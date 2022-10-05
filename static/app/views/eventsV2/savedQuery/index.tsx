@@ -117,18 +117,18 @@ type Props = DefaultProps & {
   router: InjectedRouter;
   savedQuery: SavedQuery | undefined;
   savedQueryLoading: boolean;
+  setHomepageQuery: (homepageQuery?: SavedQuery) => void;
   setSavedQuery: (savedQuery: SavedQuery) => void;
   updateCallback: () => void;
   yAxis: string[];
+  homepageQuery?: SavedQuery;
   isHomepage?: boolean;
 };
 
 type State = {
-  canResetHomepage: boolean;
   isEditingQuery: boolean;
   isNewQuery: boolean;
 
-  previousEventView: EventView | null;
   queryName: string;
 };
 
@@ -140,14 +140,6 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     if (!savedQuery) {
       return {
         ...prevState,
-        previousEventView: nextEventView,
-        canResetHomepage: prevState.previousEventView
-          ? !!(
-              prevState.canResetHomepage &&
-              prevState.previousEventView &&
-              nextEventView.isEqualTo(prevState.previousEventView)
-            )
-          : prevState.canResetHomepage,
         isNewQuery: true,
         isEditingQuery: false,
         queryName: prevState.queryName || '',
@@ -182,12 +174,6 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
         : savedQuery.yAxis
     );
     return {
-      previousEventView: nextEventView,
-      canResetHomepage: !!(
-        prevState.canResetHomepage &&
-        prevState.previousEventView &&
-        nextEventView.isEqualTo(prevState.previousEventView)
-      ),
       isNewQuery: false,
       isEditingQuery: !isEqualQuery || !isEqualYAxis,
 
@@ -217,13 +203,9 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
   };
 
   state: State = {
-    canResetHomepage: !!this.props.isHomepage,
     isNewQuery: true,
     isEditingQuery: false,
 
-    previousEventView: this.props.savedQuery
-      ? EventView.fromSavedQuery(this.props.savedQuery)
-      : null,
     queryName: '',
   };
 
@@ -416,16 +398,26 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
   }
 
   renderSaveAsHomepage() {
-    const {canResetHomepage} = this.state;
-    const {api, organization, eventView, location, isHomepage} = this.props;
-    if (canResetHomepage) {
+    const {
+      api,
+      organization,
+      eventView,
+      location,
+      isHomepage,
+      setHomepageQuery,
+      homepageQuery,
+    } = this.props;
+    if (
+      homepageQuery &&
+      eventView.isEqualTo(EventView.fromSavedQuery(homepageQuery), ['id'])
+    ) {
       return (
         <Button
           key="reset-discover-homepage"
           data-test-id="reset-discover-homepage"
-          onClick={() => {
-            handleResetHomepageQuery(api, organization);
-            this.setState({canResetHomepage: false});
+          onClick={async () => {
+            await handleResetHomepageQuery(api, organization);
+            setHomepageQuery(undefined);
             if (isHomepage) {
               const nextEventView = EventView.fromNewQueryWithLocation(
                 DEFAULT_EVENT_VIEW,
@@ -448,9 +440,15 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
       <Button
         key="save-query-as-homepage"
         data-test-id="save-query-as-homepage"
-        onClick={() => {
-          handleUpdateHomepageQuery(api, organization, eventView.toNewQuery());
-          this.setState({canResetHomepage: true});
+        onClick={async () => {
+          const updatedHomepageQuery = await handleUpdateHomepageQuery(
+            api,
+            organization,
+            eventView.toNewQuery()
+          );
+          if (updatedHomepageQuery) {
+            setHomepageQuery(updatedHomepageQuery);
+          }
         }}
       >
         {t('Use as Discover Home')}

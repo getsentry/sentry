@@ -30,12 +30,14 @@ type Props = {
 };
 
 type State = {
+  homepageQuery: SavedQuery | undefined;
   loading: boolean;
   savedQuery: SavedQuery | undefined;
 };
 
 class ResultsHeader extends Component<Props, State> {
   state: State = {
+    homepageQuery: undefined,
     savedQuery: undefined,
     loading: true,
   };
@@ -98,7 +100,7 @@ class ResultsHeader extends Component<Props, State> {
       setSavedQuery,
       isHomepage,
     } = this.props;
-    const {savedQuery, loading} = this.state;
+    const {savedQuery, loading, homepageQuery} = this.state;
 
     return (
       <Layout.Header>
@@ -129,6 +131,10 @@ class ResultsHeader extends Component<Props, State> {
             yAxis={yAxis}
             router={router}
             isHomepage={isHomepage}
+            setHomepageQuery={updatedHomepageQuery =>
+              this.setState({homepageQuery: updatedHomepageQuery})
+            }
+            homepageQuery={homepageQuery}
           />
         </Layout.HeaderActions>
       </Layout.Header>
