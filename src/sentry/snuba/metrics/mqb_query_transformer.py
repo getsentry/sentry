@@ -208,6 +208,7 @@ def _transform_orderby(query_orderby):
 
 
 def tranform_mqb_query_to_metrics_query(query: Query) -> MetricsQuery:
+    # ToDo(having): Validate against
     # Handles select statements
     select, extra_groupby = _transform_select(query.select)
     # Handle groupby
