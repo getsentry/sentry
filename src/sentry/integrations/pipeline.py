@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 __all__ = ["IntegrationPipeline"]
-from typing import Any
 
 from django.db import IntegrityError
 from django.utils import timezone
