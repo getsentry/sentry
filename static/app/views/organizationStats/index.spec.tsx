@@ -1,6 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {PageFilters} from 'sentry/types';
 import OrganizationStats from 'sentry/views/organizationStats';
 
@@ -15,30 +16,29 @@ describe('OrganizationStats', function () {
       utc: false,
     },
   };
-
-  const {organization, routerContext} = initializeOrg();
+  const {organization, router, routerContext} = initializeOrg();
   organization.features.push('team-insights');
 
   beforeEach(() => {
-    MockApiClient.addMockResponse({
+    PageFiltersStore.init();
+    PageFiltersStore.onInitializeUrlState(defaultSelection, new Set());
+  });
+
+  it('renders', async () => {
+    const mockCall = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/${organization.slug}/stats_v2/`,
       body: mockStatsResponse,
     });
-  });
 
-  it('renders with default state', async () => {
-    render(
-      <OrganizationStats selection={defaultSelection} organization={organization} />,
-      {
-        context: routerContext,
-        organization,
-      }
-    );
-    await tick();
+    render(<OrganizationStats />, {
+      context: routerContext,
+      organization,
+    });
 
-    await screen.findByText('');
-    screen.debug();
+    // await screen.findByText('Errors');
+
+    expect(mockCall).toHaveBeenCalled();
   });
 });
 
