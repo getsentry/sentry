@@ -105,6 +105,7 @@ default_manager.add("organizations:metrics-performance-alerts", OrganizationFeat
 default_manager.add("organizations:metrics-performance-ui", OrganizationFeature, True)
 default_manager.add("organizations:minute-resolution-sessions", OrganizationFeature)
 default_manager.add("organizations:mobile-screenshots", OrganizationFeature, True)
+default_manager.add("organizations:mobile-screenshot-gallery", OrganizationFeature, True)
 default_manager.add("organizations:monitors", OrganizationFeature)
 default_manager.add("organizations:native-stack-trace-v2", OrganizationFeature, True)
 default_manager.add("organizations:new-weekly-report", OrganizationFeature, True)
@@ -156,7 +157,6 @@ default_manager.add("organizations:widget-library", OrganizationFeature, True)
 default_manager.add("organizations:widget-viewer-modal", OrganizationFeature, True)
 default_manager.add("organizations:widget-viewer-modal-minimap", OrganizationFeature, True)
 default_manager.add("organizations:u2f-superuser-form", OrganizationFeature, True)
-default_manager.add("organizations:enable-snowflake-id", OrganizationFeature, True)
 # NOTE: Don't add features down here! Add them to their specific group and sort
 #       them alphabetically! The order features are registered is not important.
 
@@ -175,6 +175,7 @@ default_manager.add("organizations:dashboards-edit", OrganizationFeature)
 default_manager.add("organizations:data-forwarding", OrganizationFeature)
 default_manager.add("organizations:discover-basic", OrganizationFeature)
 default_manager.add("organizations:discover-query", OrganizationFeature)
+default_manager.add("organizations:dynamic-sampling-demo", OrganizationFeature, True)
 default_manager.add("organizations:dynamic-sampling-basic", OrganizationFeature)
 default_manager.add("organizations:dynamic-sampling-advanced", OrganizationFeature)
 default_manager.add("organizations:dynamic-sampling-performance-cta", OrganizationFeature, True)
