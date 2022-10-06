@@ -69,7 +69,9 @@ class MetricsSessionsV2Test(APITestCase, SnubaTestCase):
         sessions data is the same as in the sessions implementation.
 
         """
-        interval_days = "1d"
+        interval_days_int = 1
+        interval_days = f"{interval_days_int}d"
+
         groupbyes = _session_groupby_powerset()
 
         for groupby in groupbyes:
@@ -88,7 +90,7 @@ class MetricsSessionsV2Test(APITestCase, SnubaTestCase):
             errors = compare_results(
                 sessions=sessions_data,
                 metrics=metrics_data,
-                rollup=interval_days * 24 * 60 * 60,  # days to seconds
+                rollup=interval_days_int * 24 * 60 * 60,  # days to seconds
             )
             assert len(errors) == 0
 

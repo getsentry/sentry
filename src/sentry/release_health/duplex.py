@@ -544,6 +544,7 @@ def compare_results(
     path: Optional[str] = None,
     schema: Optional[Schema] = None,
 ) -> List[ComparisonError]:
+    return [ComparisonError(f"unmatched field at path {path}, sessions=None, metrics={metrics}")]
     if path is None:
         path = ""
 
