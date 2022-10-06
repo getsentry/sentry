@@ -12,17 +12,7 @@ const replayReaderParams = TestStubs.ReplayReaderParams({
   replayRecord: {
     tags: {
       'browser.name': ['Chrome'],
-      'browser.version': ['105.0.0'],
-      'device.brand': ['Apple'],
-      'device.family': ['Mac family'],
-      'device.model': ['Mac model'],
-      organization: ['1176005'],
-      'organization.slug': ['sentry-emerging-tech'],
-      'os.name': ['Mac OS X'],
-      'os.version': ['10.15.7'],
-      'sdk.name': ['sentry.javascript.react'],
       'sdk.version': ['7.13.0', '7.13.2'],
-      'user.ip_address': ['127.0.0.1'],
     },
   },
 });
@@ -57,42 +47,19 @@ describe('TagPanel', () => {
     expect(screen.getByTestId('replay-tags-loading-placeholder')).toBeInTheDocument();
   });
 
-  it('should show the tags correctly', () => {
+  it('should show the tags correctly inside ReplayTagsTableRow component with single item array', () => {
     renderComponent(mockReplay);
 
     expect(screen.getByText('browser.name')).toBeInTheDocument();
     expect(screen.getByText('Chrome')).toBeInTheDocument();
+  });
 
-    expect(screen.getByText('browser.version')).toBeInTheDocument();
-    expect(screen.getByText('105.0.0')).toBeInTheDocument();
-
-    expect(screen.getByText('device.family')).toBeInTheDocument();
-    expect(screen.getByText('Mac family')).toBeInTheDocument();
-
-    expect(screen.getByText('device.model')).toBeInTheDocument();
-    expect(screen.getByText('Mac model')).toBeInTheDocument();
-
-    expect(screen.getByText('os.name')).toBeInTheDocument();
-    expect(screen.getByText('Mac OS X')).toBeInTheDocument();
-
-    expect(screen.getByText('os.version')).toBeInTheDocument();
-    expect(screen.getByText('10.15.7')).toBeInTheDocument();
-
-    expect(screen.getByText('sdk.name')).toBeInTheDocument();
-    expect(screen.getByText('sentry.javascript.react')).toBeInTheDocument();
+  it('should show the tags correctly inside ReplayTagsTableRow component with multiple items array', () => {
+    renderComponent(mockReplay);
 
     expect(screen.getByText('sdk.version')).toBeInTheDocument();
     expect(screen.getByText('7.13.0')).toBeInTheDocument();
     expect(screen.getByText('7.13.2')).toBeInTheDocument();
-
-    expect(screen.getByText('user.ip_address')).toBeInTheDocument();
-    expect(screen.getByText('127.0.0.1')).toBeInTheDocument();
-
-    expect(screen.getByText('organization')).toBeInTheDocument();
-    expect(screen.getByText('1176005')).toBeInTheDocument();
-
-    expect(screen.getByText('organization.slug')).toBeInTheDocument();
-    expect(screen.getByText('sentry-emerging-tech')).toBeInTheDocument();
   });
 
   it('should snaptshot empty state', async () => {
@@ -101,5 +68,23 @@ describe('TagPanel', () => {
     await waitFor(() => {
       expect(container).toSnapshot();
     });
+  });
+
+  it('should snaptshot state with tags', async () => {
+    const {container} = renderComponent(mockReplay);
+
+    await waitFor(() => {
+      expect(container).toSnapshot();
+    });
+  });
+
+  it('should show not found message when no tags are found', () => {
+    if (mockReplay) {
+      mockReplay.getReplay = jest.fn().mockReturnValue({tags: {}});
+    }
+
+    renderComponent(mockReplay);
+
+    expect(screen.getByText('No tags for this replay were found.')).toBeInTheDocument();
   });
 });
