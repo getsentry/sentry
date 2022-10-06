@@ -206,14 +206,14 @@ class ProjectDynamicSamplingTest(APITestCase):
         with Feature({"organizations:server-side-sampling": True}):
             response = self.client.get(self.endpoint)
             assert response.json() == {
-                "project_breakdown": [
+                "projectBreakdown": [
                     {"project_id": 27, "project": "earth", "count()": 34},
                     {"project_id": 28, "project": "heart", "count()": 3},
                     {"project_id": 24, "project": "water", "count()": 3},
                     {"project_id": 23, "project": "wind", "count()": 3},
                     {"project_id": 25, "project": "fire", "count()": 21},
                 ],
-                "sample_size": 21,
+                "sampleSize": 21,
                 "startTimestamp": "2022-08-18T10:00:00Z",
                 "endTimestamp": "2022-08-18T11:00:00Z",
             }
@@ -233,8 +233,8 @@ class ProjectDynamicSamplingTest(APITestCase):
         with Feature({"organizations:server-side-sampling": True}):
             response = self.client.get(f"{self.endpoint}?distributedTrace=0")
             assert response.json() == {
-                "project_breakdown": None,
-                "sample_size": 21,
+                "projectBreakdown": None,
+                "sampleSize": 21,
                 "startTimestamp": "2022-08-18T10:00:00Z",
                 "endTimestamp": "2022-08-18T11:00:00Z",
             }
@@ -272,10 +272,10 @@ class ProjectDynamicSamplingTest(APITestCase):
         with Feature({"organizations:server-side-sampling": True}):
             response = self.client.get(f"{self.endpoint}?sampleSize=2")
             assert response.json() == {
-                "project_breakdown": [
+                "projectBreakdown": [
                     {"project_id": 25, "project": "fire", "count()": 2},
                 ],
-                "sample_size": 2,
+                "sampleSize": 2,
                 "startTimestamp": "2022-08-18T10:00:00Z",
                 "endTimestamp": "2022-08-18T11:00:00Z",
             }
@@ -287,8 +287,8 @@ class ProjectDynamicSamplingTest(APITestCase):
         with Feature({"organizations:server-side-sampling": True}):
             response = self.client.get(f"{self.endpoint}?sampleSize=2")
             assert response.json() == {
-                "project_breakdown": None,
-                "sample_size": 0,
+                "projectBreakdown": None,
+                "sampleSize": 0,
                 "startTimestamp": None,
                 "endTimestamp": None,
             }
@@ -332,10 +332,10 @@ class ProjectDynamicSamplingTest(APITestCase):
         with Feature({"organizations:server-side-sampling": True}):
             response = self.client.get(f"{self.endpoint}?sampleSize=2")
             assert response.json() == {
-                "project_breakdown": [
+                "projectBreakdown": [
                     {"project_id": 25, "project": "fire", "count()": 2},
                 ],
-                "sample_size": 2,
+                "sampleSize": 2,
                 "startTimestamp": "2022-08-06T00:00:00Z",
                 "endTimestamp": "2022-08-07T00:00:00Z",
             }

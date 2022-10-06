@@ -119,6 +119,22 @@ def normalized_db_span_in_condition_strategy(span: Span) -> Optional[Sequence[st
     return [cleaned]
 
 
+# Catches sequences like (?, ?, ?), ($1, $2, $3), and (%s, %s, %s)
+LOOSE_IN_CONDITION_PATTERN = re.compile(r" IN \(((%s|\$?\d+|\?)(\s*,\s*(%s|\$?\d+|\?))*)\)", re.I)
+
+
+@span_op(["db", "db.query", "db.sql.query", "db.sql.active_record"])
+def loose_normalized_db_span_in_condition_strategy(span: Span) -> Optional[Sequence[str]]:
+    """This is identical to the above
+    `normalized_db_span_in_condition_strategy` but it uses a looser regular
+    expression that catches database spans that come from Laravel and Rails"""
+    description = span.get("description") or ""
+    cleaned, count = LOOSE_IN_CONDITION_PATTERN.subn(" IN (%s)", description)
+    if count == 0:
+        return None
+    return [cleaned]
+
+
 HTTP_METHODS = {
     "GET",
     "HEAD",
