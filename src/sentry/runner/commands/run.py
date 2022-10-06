@@ -658,6 +658,17 @@ def metrics_parallel_consumer(**options):
     streamer.run()
 
 
+@run.command("billing-metrics-consumer")
+@log_options()
+@batching_kafka_options("billing-metrics-consumer")
+@configuration
+def metrics_billing_consumer(**options):
+    from sentry.ingest.billing_metrics_consumer import get_metrics_billing_consumer
+
+    consumer = get_metrics_billing_consumer(**options)
+    consumer.run()
+
+
 @run.command("ingest-profiles")
 @log_options()
 @click.option("--topic", default="profiles", help="Topic to get profiles data from.")

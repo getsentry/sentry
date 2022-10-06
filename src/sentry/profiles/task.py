@@ -44,6 +44,16 @@ def process_profile(
     project = Project.objects.get_from_cache(id=profile["project_id"])
     event_id = profile["event_id"] if "event_id" in profile else profile["profile_id"]
 
+    sentry_sdk.set_context(
+        "profile",
+        {
+            "organization_id": profile["organization_id"],
+            "project_id": profile["project_id"],
+            "profile_id": event_id,
+        },
+    )
+    sentry_sdk.set_tag("platform", profile["platform"])
+
     try:
         if _should_symbolicate(profile):
             modules, stacktraces = _prepare_frames_from_profile(profile)
@@ -238,9 +248,12 @@ def _process_symbolicator_results_for_sample(profile: Profile, stacktraces: List
             frame.pop("post_context", None)
 
         def truncate_stack_needed(frames: List[dict[str, Any]], stack: List[Any]) -> List[Any]:
-            # remove top frames related to the profiler
-            if frames[0].get("function", "") == "perf_signal_handler":
-                return stack[2:]
+            # remove top frames related to the profiler (top of the stack)
+            if frames[stack[0]].get("function", "") == "perf_signal_handler":
+                stack = stack[2:]
+            # remove unsymbolicated frames before the runtime calls (bottom of the stack)
+            if frames[stack[len(stack) - 2]].get("function", "") == "":
+                stack = stack[:-2]
             return stack
 
     elif profile["platform"] == "cocoa":
@@ -503,17 +516,6 @@ def _insert_vroom_profile(profile: Profile) -> bool:
             return False
         return True
     except RecursionError as e:
-        sentry_sdk.set_context(
-            "profile",
-            {
-                "organization_id": profile["organization_id"],
-                "project_id": profile["project_id"],
-                "profile_id": profile["event_id"]
-                if "event_id" in profile
-                else profile["profile_id"],
-                "platform": profile["platform"],
-            },
-        )
         sentry_sdk.capture_exception(e)
         return True
     except Exception as e:
