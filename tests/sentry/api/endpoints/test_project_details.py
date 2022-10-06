@@ -233,7 +233,6 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
 
     def setUp(self):
         super().setUp()
-        self.org = self.create_organization(name="Rowdy Tiger", owner=None)
         self.project = self.create_project(organization=self.org, platform="javascript")
         self.user = self.create_user("bar@example.com")
 
