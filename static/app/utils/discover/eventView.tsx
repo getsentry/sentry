@@ -524,7 +524,7 @@ class EventView {
     return EventView.fromLocation(location);
   }
 
-  isEqualTo(other: EventView): boolean {
+  isEqualTo(other: EventView, omitList: string[] = []): boolean {
     const defaults = {
       id: undefined,
       name: undefined,
@@ -539,7 +539,7 @@ class EventView {
       display: DisplayModes.DEFAULT,
       topEvents: '5',
     };
-    const keys = Object.keys(defaults);
+    const keys = Object.keys(defaults).filter(key => !omitList.includes(key));
     for (const key of keys) {
       const currentValue = this[key] ?? defaults[key];
       const otherValue = other[key] ?? defaults[key];

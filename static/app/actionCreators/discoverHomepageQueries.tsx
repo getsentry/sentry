@@ -11,3 +11,9 @@ export function updateHomepageQuery(
     data: query,
   });
 }
+
+export function deleteHomepageQuery(api: Client, orgId: string): Promise<void> {
+  return api.requestPromise(`/organizations/${orgId}/discover/homepage/`, {
+    method: 'DELETE',
+  });
+}
