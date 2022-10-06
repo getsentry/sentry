@@ -16,6 +16,7 @@ import CompactSelect from 'sentry/components/forms/compactSelect';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
 import PageHeading from 'sentry/components/pageHeading';
@@ -138,10 +139,9 @@ export class OrganizationStats extends Component<Props> {
     return this.props.location?.query?.cursor;
   }
 
+  // Project selection from GlobalSelectionHeader
   get projectIds(): number[] {
-    return this.props.selection.projects.length > 0
-      ? this.props.selection.projects
-      : [-1];
+    return this.props.selection.projects;
   }
 
   getNextLocations = (project: Project): Record<string, LocationDescriptorObject> => {
@@ -251,7 +251,6 @@ export class OrganizationStats extends Component<Props> {
   };
 
   renderProjectPageControl = () => {
-    console.log(this.projectIds);
     return (
       <SearchContainer>
         <PageFilterBar>
@@ -271,7 +270,6 @@ export class OrganizationStats extends Component<Props> {
   };
 
   renderPageControl = () => {
-    console.log(this.projectIds);
     const {organization} = this.props;
 
     const {start, end, period, utc} = this.dataDatetime;
@@ -298,12 +296,12 @@ export class OrganizationStats extends Component<Props> {
   };
 
   render() {
-    const {organization, selection: pageFilters} = this.props;
+    const {organization} = this.props;
     const hasTeamInsights = organization.features.includes('team-insights');
 
     return (
       <SentryDocumentTitle title="Usage Stats">
-        <Fragment>
+        <PageFiltersContainer>
           {hasTeamInsights && (
             <HeaderTabs organization={organization} activeTab="stats" />
           )}
@@ -369,7 +367,7 @@ export class OrganizationStats extends Component<Props> {
               </ErrorBoundary>
             </Layout.Main>
           </Body>
-        </Fragment>
+        </PageFiltersContainer>
       </SentryDocumentTitle>
     );
   }

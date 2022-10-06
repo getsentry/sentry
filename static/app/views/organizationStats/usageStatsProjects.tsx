@@ -173,14 +173,27 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
     }"; cursor="0:${nextOffset}:0"`;
   }
 
+  get projectSelectionFilter(): (p: Project) => boolean {
+    const {projectIds} = this.props;
+    const selectedProjects = new Set(projectIds.map(id => `${id}`));
+
+    // If 'My Projects' or 'All Projects' are selected
+    return selectedProjects.size === 0 || selectedProjects.has('-1')
+      ? _p => true
+      : p => selectedProjects.has(p.id);
+  }
+
   /**
    * Filter projects if there's a query
    */
   get filteredProjects() {
     const {projects, tableQuery} = this.props;
     return tableQuery
-      ? projects.filter(p => p.slug.includes(tableQuery) && p.hasAccess)
-      : projects.filter(p => p.hasAccess);
+      ? projects.filter(
+          p =>
+            p.slug.includes(tableQuery) && p.hasAccess && this.projectSelectionFilter(p)
+        )
+      : projects.filter(p => p.hasAccess && this.projectSelectionFilter(p));
   }
 
   get tableHeader() {
