@@ -415,26 +415,26 @@ def post_process_group(
                 "is_reprocessed": is_reprocessed,
                 "has_reappeared": not group_state["is_new"],
             }
+            run_post_process_job(job)
 
-            _capture_group_stats(job)
-            process_snoozes(job)
-            process_inbox_adds(job)
-            handle_owner_assignment(job)
-            process_rules(job)
-            process_commits(job)
-            process_service_hooks(job)
-            process_resource_change_bounds(job)
-            process_plugins(job)
-            process_similarity(job)
-            update_existing_attachments(job)
 
-            if not is_reprocessed:
-                event_processed.send_robust(
-                    sender=post_process_group,
-                    project=event.project,
-                    event=event,
-                    primary_hash=kwargs.get("primary_hash"),
-                )
+def run_post_process_job(job: PostProcessJob):
+    event = job["event"]
+    if event.group.issue_category not in GROUP_CATEGORY_POST_PROCESS_PIPELINE:
+        logger.error(
+            "No post process pipeline configured for issue category",
+            extra={"category": event.group.issue_category},
+        )
+        return
+    pipeline = GROUP_CATEGORY_POST_PROCESS_PIPELINE[event.group.issue_category]
+    for pipeline_step in pipeline:
+        try:
+            pipeline_step(job)
+        except Exception:
+            logger.exception(
+                f"Failed to process pipeline step {pipeline_step}",
+                extra={"event": event, "group": event.group},
+            )
 
 
 def process_event(data: dict, group_id: Optional[int]) -> Event:
@@ -729,6 +729,17 @@ def process_similarity(job: PostProcessJob) -> None:
         safe_execute(similarity.record, event.project, [event], _with_transaction=False)
 
 
+def fire_error_processed(job: PostProcessJob):
+    if job["is_reprocessed"]:
+        return
+    event = job["event"]
+    event_processed.send_robust(
+        sender=post_process_group,
+        project=event.project,
+        event=event,
+    )
+
+
 def plugin_post_process_group(plugin_slug, event, **kwargs):
     """
     Fires post processing hooks for a group.
@@ -746,3 +757,21 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
         _with_transaction=False,
         **kwargs,
     )
+
+
+GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
+    GroupCategory.ERROR: [
+        _capture_group_stats,
+        process_snoozes,
+        process_inbox_adds,
+        handle_owner_assignment,
+        process_rules,
+        process_commits,
+        process_service_hooks,
+        process_resource_change_bounds,
+        process_plugins,
+        process_similarity,
+        update_existing_attachments,
+        fire_error_processed,
+    ],
+}
