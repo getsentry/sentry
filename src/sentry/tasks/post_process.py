@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Optional, TypedDict
+from typing import TYPE_CHECKING, List, Mapping, Optional, Tuple, TypedDict, Union
 
 import sentry_sdk
 from django.conf import settings
@@ -23,7 +23,7 @@ from sentry.utils.sdk import bind_organization_context, set_current_event_projec
 from sentry.utils.services import build_instance_from_options
 
 if TYPE_CHECKING:
-    from sentry.eventstore.models import Event
+    from sentry.eventstore.models import Event, GroupEvent
     from sentry.eventstream.base import GroupState, GroupStates
 
 logger = logging.getLogger("sentry")
@@ -32,7 +32,7 @@ locks = LockManager(build_instance_from_options(settings.SENTRY_POST_PROCESS_LOC
 
 
 class PostProcessJob(TypedDict, total=False):
-    event: Event
+    event: Union[Event, GroupEvent]
     group_state: GroupState
     is_reprocessed: bool
     has_reappeared: bool
@@ -387,15 +387,17 @@ def post_process_group(
             ):
                 return
 
-        group_states = kwargs.get("group_states")
+        update_event_groups(event)
 
         # TODO: Remove this check once we're sending all group ids as `group_states` and treat all
         # events the same way
-        if event.get_event_type() != "transaction" or group_states is None:
+        if not is_transaction_event or group_states is None:
             # error issue
             group_states = [
                 {
-                    "id": group_id,
+                    # have to use the event.group_id field, instead of the passed in group_id
+                    # since we rebind it in `update_event_groups` (for merging groups)
+                    "id": event.group_id,
                     "is_new": is_new,
                     "is_regression": is_regression,
                     "is_new_group_environment": is_new_group_environment,
@@ -405,19 +407,32 @@ def post_process_group(
             # performance issue
             return
 
-        update_event_group(event)
         _capture_event_stats(event)
+
+        group_events: Mapping[int, GroupEvent] = {
+            ge.group_id: ge for ge in list(event.build_group_events())
+        }
+
+        multi_groups: Mapping[int, Tuple[GroupEvent, GroupState]] = {
+            gs.get("id"): (group_events.get(gs.get("id")), gs)
+            for gs in group_states
+            if gs.get("id") is not None
+        }
+
+        group_jobs: List[PostProcessJob] = [
+            {
+                "event": v[0],
+                "group_state": v[1],
+                "is_reprocessed": is_reprocessed,
+                "has_reappeared": bool(not v[1]["is_new"]),
+                "has_alert": False,
+            }
+            for k, v in multi_groups.items()
+        ]
 
         bind_organization_context(event.project.organization)
 
-        for group_state in group_states:
-            job = {
-                "event": event,
-                "group_state": group_state,
-                "is_reprocessed": is_reprocessed,
-                "has_reappeared": not group_state["is_new"],
-                "has_alert": False,
-            }
+        for job in group_jobs:
             run_post_process_job(job)
 
 
@@ -457,25 +472,36 @@ def process_event(data: dict, group_id: Optional[int]) -> Event:
     return event
 
 
-def update_event_group(event: Event) -> None:
+def update_event_groups(event: Event, group_states: Optional[GroupStates] = None) -> None:
     # NOTE: we must pass through the full Event object, and not an
     # event_id since the Event object may not actually have been stored
     # in the database due to sampling.
     from sentry.models.group import get_group_with_redirect
 
+    # event.group_id can be None in the case of transaction events
+    if event.group_id is not None:
+        # deprecated event.group and event.group_id usage, kept here for backwards compatibility
+        event.group, _ = get_group_with_redirect(event.group_id)
+        event.group_id = event.group.id
+
     # Re-bind Group since we're reading the Event object
     # from cache, which may contain a stale group and project
-    event.group, _ = get_group_with_redirect(event.group_id)
-    event.group_id = event.group.id
+    group_states = group_states or [{"id": event.group_id}]
+    event.groups = [
+        get_group_with_redirect(group_state["id"])[0]
+        for group_state in group_states
+        if group_state.get("id")
+    ]
 
-    # We fetch buffered updates to group aggregates here and populate them on the Group. This
-    # helps us avoid problems with processing group ignores and alert rules that rely on these
-    # stats.
-    with sentry_sdk.start_span(op="tasks.post_process_group.fetch_buffered_group_stats"):
-        fetch_buffered_group_stats(event.group)
+    for group in event.groups:
+        # We fetch buffered updates to group aggregates here and populate them on the Group. This
+        # helps us avoid problems with processing group ignores and alert rules that rely on these
+        # stats.
+        with sentry_sdk.start_span(op="tasks.post_process_group.fetch_buffered_group_stats"):
+            fetch_buffered_group_stats(group)
 
-    event.group.project = event.project
-    event.group.project.set_cached_field_value("organization", event.project.organization)
+        group.project = event.project
+        group.project.set_cached_field_value("organization", event.project.organization)
 
 
 def process_inbox_adds(job: PostProcessJob) -> None:

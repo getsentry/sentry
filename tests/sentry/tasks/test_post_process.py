@@ -2,6 +2,7 @@ from datetime import timedelta
 from unittest import mock
 from unittest.mock import Mock, patch
 
+import pytz
 from django.test import override_settings
 from django.utils import timezone
 
@@ -26,12 +27,14 @@ from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.rules import init_registry
 from sentry.tasks.merge import merge_groups
 from sentry.tasks.post_process import post_process_group
-from sentry.testutils import TestCase
+from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
+from sentry.testutils.perfomance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
+from sentry.types.issues import GroupType
 from sentry.utils.cache import cache
 
 
@@ -83,12 +86,12 @@ class PostProcessGroupTest(TestCase):
             group_id=event.group_id,
         )
 
-        mock_processor.assert_not_called()
-        mock_process_service_hook.assert_not_called()
-        mock_process_resource_change_bound.assert_not_called()
+        assert mock_processor.call_count == 0
+        assert mock_process_service_hook.call_count == 0
+        assert mock_process_resource_change_bound.call_count == 0
 
         # transaction events do not call event.processed
-        mock_signal.assert_not_called()
+        assert mock_signal.call_count == 0
 
     @patch("sentry.rules.processor.RuleProcessor")
     def test_no_cache_abort(self, mock_processor):
@@ -989,3 +992,41 @@ class PostProcessGroupAssignmentTest(TestCase):
             cache_key=cache_key,
             group_id=event.group_id,
         )
+
+
+@region_silo_test
+class PostProcessGroupPerformanceTest(TestCase, SnubaTestCase, PerfIssueTransactionTestMixin):
+    @patch("sentry.rules.processor.RuleProcessor")
+    @patch("sentry.signals.transaction_processed.send_robust")
+    @patch("sentry.signals.event_processed.send_robust")
+    def test_full_pipeline_with_group_states(
+        self, event_processed_signal_mock, transaction_processed_signal_mock, mock_processor
+    ):
+        min_ago = before_now(minutes=1).replace(tzinfo=pytz.utc)
+        event = self.store_transaction(
+            project_id=self.project.id,
+            user_id=self.create_user(name="user1").name,
+            fingerprint=[
+                f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group1",
+                f"{GroupType.PERFORMANCE_N_PLUS_ONE.value}-group2",
+            ],
+            environment=None,
+            timestamp=min_ago,
+        )
+        assert len(event.groups) == 2
+        cache_key = write_event_to_cache(event)
+        group_state = dict(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+        )
+        post_process_group(
+            **group_state,
+            cache_key=cache_key,
+            group_id=event.group_id,
+            group_states=[{"id": group.id, **group_state} for group in event.groups],
+        )
+
+        assert transaction_processed_signal_mock.call_count == 1
+        assert event_processed_signal_mock.call_count == 0
+        assert mock_processor.call_count == 0
