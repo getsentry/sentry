@@ -1173,6 +1173,8 @@ SENTRY_FEATURES = {
     "organizations:server-side-sampling-ui": False,
     # Enable creating DS rules on incompatible platforms (used by SDK teams for dev purposes)
     "organizations:server-side-sampling-allow-incompatible-platforms": False,
+    # Enable the deletion of sampling uniform rules (used internally for demo purposes)
+    "organizations:dynamic-sampling-demo": False,
     # Enable the creation of a uniform sampling rule.
     "organizations:dynamic-sampling-basic": False,
     # Enable the creation of uniform and conditional sampling rules.
@@ -2853,3 +2855,6 @@ SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS = {}
 
 SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
 SENTRY_REGION_CONFIG: Iterable[Region] = ()
+
+# How long we should wait for a gateway proxy request to return before giving up
+GATEWAY_PROXY_TIMEOUT = None

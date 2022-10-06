@@ -1,5 +1,3 @@
-from collections import OrderedDict
-
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -15,7 +13,7 @@ class MonitorStatsEndpoint(MonitorEndpoint, StatsMixin):
     def get(self, request: Request, project, monitor) -> Response:
         args = self._parse_args(request)
 
-        stats = OrderedDict()
+        stats = {}
         current = tsdb.normalize_to_epoch(args["start"], args["rollup"])
         end = tsdb.normalize_to_epoch(args["end"], args["rollup"])
         while current <= end:
