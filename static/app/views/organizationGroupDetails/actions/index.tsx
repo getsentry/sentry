@@ -18,7 +18,7 @@ import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import ActionButton from 'sentry/components/actions/button';
-import IgnoreActions from 'sentry/components/actions/ignore';
+import IgnoreActions, {getIgnoreActions} from 'sentry/components/actions/ignore';
 import ResolveActions from 'sentry/components/actions/resolve';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Button from 'sentry/components/button';
@@ -430,6 +430,7 @@ class Actions extends Component<Props, State> {
     ];
 
     if (orgFeatures.has('issue-actions-v2')) {
+      const {dropdownItems, onIgnore} = getIgnoreActions({onUpdate: this.onUpdate});
       return (
         <ActionWrapper>
           <DropdownMenuControl
@@ -441,6 +442,25 @@ class Actions extends Component<Props, State> {
               size: 'sm',
             }}
             items={[
+              ...(isIgnored
+                ? []
+                : [
+                    {
+                      key: 'ignore',
+                      className: 'hidden-sm hidden-md hidden-lg',
+                      label: t('Ignore'),
+                      isSubmenu: true,
+                      disabled,
+                      children: [
+                        {
+                          key: 'ignore-now',
+                          label: t('Ignore Issue'),
+                          onAction: () => onIgnore(),
+                        },
+                        ...dropdownItems,
+                      ],
+                    },
+                  ]),
               {
                 key: 'open-in-discover',
                 className: 'hidden-sm hidden-md hidden-lg',

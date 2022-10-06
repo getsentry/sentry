@@ -40,35 +40,19 @@ const IGNORE_WINDOWS: SelectValue<number>[] = [
   {value: ONE_HOUR * 24 * 7, label: t('per week')},
 ];
 
-type Props = {
-  onUpdate: (params: GroupStatusResolution) => void;
-  className?: string;
-  confirmLabel?: string;
-  confirmMessage?: (
-    statusDetails: ResolutionStatusDetails | undefined
-  ) => React.ReactNode;
-  disableTooltip?: boolean;
-  disabled?: boolean;
-  dropdownPlacement?: 'bottom right';
-  hideIcon?: boolean;
-  isIgnored?: boolean;
-  shouldConfirm?: boolean;
-  size?: 'xs' | 'sm';
-};
-
-const IgnoreActions = ({
-  onUpdate,
-  disabled,
-  shouldConfirm,
+/**
+ * Create the dropdown submenus
+ */
+export function getIgnoreActions({
+  confirmLabel,
   confirmMessage,
-  className,
+  shouldConfirm,
   dropdownPlacement,
-  hideIcon,
-  disableTooltip,
-  size = 'xs',
-  confirmLabel = t('Ignore'),
-  isIgnored = false,
-}: Props) => {
+  onUpdate,
+}: Pick<
+  IgnoreActionProps,
+  'shouldConfirm' | 'confirmMessage' | 'confirmLabel' | 'onUpdate' | 'dropdownPlacement'
+>) {
   const onIgnore = (
     statusDetails: ResolutionStatusDetails | undefined = {},
     {bypassConfirm} = {bypassConfirm: false}
@@ -88,22 +72,6 @@ const IgnoreActions = ({
   const onCustomIgnore = (statusDetails: ResolutionStatusDetails) => {
     onIgnore(statusDetails, {bypassConfirm: true});
   };
-
-  if (isIgnored) {
-    return (
-      <Tooltip title={t('Change status to unresolved')}>
-        <Button
-          priority="primary"
-          size="xs"
-          onClick={() =>
-            onUpdate({status: ResolutionStatus.UNRESOLVED, statusDetails: {}})
-          }
-          aria-label={t('Unignore')}
-          icon={<IconMute size="xs" />}
-        />
-      </Tooltip>
-    );
-  }
 
   const openCustomIgnoreDuration = () =>
     openModal(deps => (
@@ -235,6 +203,61 @@ const IgnoreActions = ({
       ],
     },
   ];
+  return {dropdownItems, onIgnore};
+}
+
+type IgnoreActionProps = {
+  onUpdate: (params: GroupStatusResolution) => void;
+  className?: string;
+  confirmLabel?: string;
+  confirmMessage?: (
+    statusDetails: ResolutionStatusDetails | undefined
+  ) => React.ReactNode;
+  disableTooltip?: boolean;
+  disabled?: boolean;
+  dropdownPlacement?: 'bottom right';
+  hideIcon?: boolean;
+  isIgnored?: boolean;
+  shouldConfirm?: boolean;
+  size?: 'xs' | 'sm';
+};
+
+const IgnoreActions = ({
+  onUpdate,
+  disabled,
+  shouldConfirm,
+  confirmMessage,
+  className,
+  dropdownPlacement,
+  hideIcon,
+  disableTooltip,
+  size = 'xs',
+  confirmLabel = t('Ignore'),
+  isIgnored = false,
+}: IgnoreActionProps) => {
+  if (isIgnored) {
+    return (
+      <Tooltip title={t('Change status to unresolved')}>
+        <Button
+          priority="primary"
+          size="xs"
+          onClick={() =>
+            onUpdate({status: ResolutionStatus.UNRESOLVED, statusDetails: {}})
+          }
+          aria-label={t('Unignore')}
+          icon={<IconMute size="xs" />}
+        />
+      </Tooltip>
+    );
+  }
+
+  const {dropdownItems, onIgnore} = getIgnoreActions({
+    confirmLabel,
+    onUpdate,
+    shouldConfirm,
+    confirmMessage,
+    dropdownPlacement,
+  });
 
   return (
     <ButtonBar className={className} merged>
