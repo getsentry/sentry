@@ -95,6 +95,10 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         assignees: Sequence[JSONData] = self.get_with_pagination(f"/repos/{repo}/assignees")
         return assignees
 
+    # To help use MagicMock
+    def _page_size(self):
+        return self.page_size
+
     def get_with_pagination(
         self, api_path: str, response_key: str | None = None
     ) -> Sequence[JSONData]:
@@ -121,10 +125,13 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         ):
             output = []
             page_number: int = 1
+            self._page_size()
 
             # Safeguard in case there's something iffy in the headers Github gives us
             while page_number < self.page_number_limit:
-                resp = self.get(api_path, params={"per_page": self.page_size, "page": page_number})
+                resp = self.get(
+                    api_path, params={"per_page": self._page_size(), "page": page_number}
+                )
                 output.extend(resp) if not response_key else output.extend(resp[response_key])
                 next_url = get_link(resp)
                 if next_url:
