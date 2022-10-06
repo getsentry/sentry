@@ -2,17 +2,24 @@ from __future__ import annotations
 
 from typing import Callable
 
+from django.http.response import HttpResponseBase
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry.api_gateway import proxy_request_if_needed
 
 
-def api_gateway_middleware(
-    get_response: Callable[[Request], Response]
-) -> Callable[[Request], Response]:
-    def middleware(request: Request) -> Response:
-        proxy_response = proxy_request_if_needed(request)
-        return proxy_response if proxy_response is not None else get_response(request)
+class ApiGatewayMiddleware:
+    """Proxy requests intended for remote silos"""
 
-    return middleware
+    def __init__(self, get_response: Callable[[Request], HttpResponseBase]):
+        self.get_response = get_response
+
+    def __call__(self, request: Request) -> HttpResponseBase:
+        return self.get_response(request)
+
+    def process_view(
+        self, request: Request, view_func, view_args, view_kwargs
+    ) -> HttpResponseBase | None:
+        proxy_response = proxy_request_if_needed(request, view_kwargs)
+        if proxy_response is not None:
+            return proxy_response
