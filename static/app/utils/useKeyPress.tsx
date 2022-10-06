@@ -11,6 +11,7 @@ const useKeyPress = (targetKey: string, target?: HTMLElement) => {
     const downHandler = ({key}: KeyboardEvent) => {
       if (key === targetKey) {
         setKeyPressed(true);
+        setTimeout(() => setKeyPressed(false), 200);
       }
     };
 
