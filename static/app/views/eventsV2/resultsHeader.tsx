@@ -125,6 +125,7 @@ class ResultsHeader extends Component<Props, State> {
             eventView={eventView}
             organization={organization}
             location={location}
+            isHomepage={isHomepage}
           />
           <EventInputName
             savedQuery={savedQuery}
