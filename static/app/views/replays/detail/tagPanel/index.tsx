@@ -12,7 +12,7 @@ function TagPanel() {
   const replayRecord = replay?.getReplay();
 
   if (!replayRecord) {
-    return <Placeholder height="100%" />;
+    return <Placeholder testId="replay-tags-loading-placeholder" height="100%" />;
   }
 
   return (
