@@ -231,7 +231,8 @@ class FeatureManager(RegisteredFeatureManager):
 
             # Features are by default disabled if no plugin or default enables them
             return False
-        except Exception:
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
             return False
 
     def batch_has(
