@@ -238,7 +238,7 @@ class RedisCardinalityLimiter(CardinalityLimiter):
         self.metric_tags = metric_tags or {}
         super().__init__()
 
-    def validate(self):
+    def validate(self) -> None:
         redis.validate_dynamic_cluster(self.is_redis_cluster, self.client)
 
     @staticmethod
