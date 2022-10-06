@@ -305,10 +305,10 @@ class ResolveActions extends Component<Props> {
 
 export default withOrganization(ResolveActions);
 
-const ResolveButton = styled(Button)`
+const ResolveButton = styled(Button)<{priority: ButtonProps['priority']}>`
   box-shadow: none;
   border-radius: ${p => p.theme.borderRadiusLeft};
-  border-right-color: ${p => p.theme.background};
+  ${p => (p.priority === 'primary' ? `border-right-color: ${p.theme.background};` : '')}
 `;
 
 const DropdownTrigger = styled(Button)`
