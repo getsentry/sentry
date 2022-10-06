@@ -66,7 +66,9 @@ class OrganizationReportContext:
         self.end = to_datetime(timestamp)
 
         self.organization = organization
-        self.projects = {}
+        self.projects = {}  # { project_id: ProjectContext }
+
+        self.project_ownership = {}  # { user_id: set<project_id> }
         for project in organization.project_set.all():
             self.projects[project.id] = ProjectContext(project)
 
@@ -135,6 +137,7 @@ def prepare_organization_report(timestamp, duration, organization_id, dry_run=Fa
     ctx = OrganizationReportContext(timestamp, duration, organization)
 
     # Run organization passes
+    user_project_ownership(ctx)
     project_event_counts_for_organization(ctx)
 
     # Run project passes
@@ -149,6 +152,13 @@ def prepare_organization_report(timestamp, duration, organization_id, dry_run=Fa
 
 
 # Organization Passes
+def user_project_ownership(ctx):
+    for (project_id, user_id) in OrganizationMember.objects.filter(
+        organization_id=ctx.organization.id, teams__projectteam__project__isnull=False
+    ).values_list("teams__projectteam__project_id", "user_id"):
+        ctx.project_ownership.setdefault(user_id, set()).add(project_id)
+
+
 def project_event_counts_for_organization(ctx):
     def zerofill_data(data):
         return zerofill(data, ctx.start, ctx.end, ONE_DAY, fill_default=0)
@@ -319,8 +329,18 @@ other_color = "#f2f0fa"
 
 
 # Serialize ctx for template, and calculate view parameters (like graph bar heights)
-# This function should be pure, and it should not make any external queries
 def render_template_context(ctx, user):
+    # Fetch the list of projects associated with the user.
+    # Projects owned by teams that the user has membership of.
+    user_projects = list(
+        filter(
+            lambda project_ctx: project_ctx.project.id in ctx.project_ownership[user.id],
+            ctx.projects.values(),
+        )
+    )
+    if len(user_projects) == 0:
+        return None
+
     # Render the first section of the email where we had the table showing the
     # number of accepted/dropped errors/transactions for each project.
     def trends():
@@ -340,9 +360,9 @@ def render_template_context(ctx, user):
                 (0, 0, 0, 0),
             )
 
-        projects_associated_with_user = list(filter(lambda project: True, ctx.projects.values()))
         # Highest volume projects go first
-        projects_associated_with_user.sort(
+        projects_associated_with_user = sorted(
+            user_projects,
             reverse=True,
             key=lambda item: item.accepted_error_count * item.accepted_transaction_count,
         )
@@ -458,6 +478,8 @@ def render_template_context(ctx, user):
 
 def send_email(ctx, user, dry_run=False):
     template_ctx = render_template_context(ctx, user)
+    if not template_ctx:
+        return
 
     message = MessageBuilder(
         subject=f"Weekly Report for {ctx.organization.name}: {date_format(ctx.start)} - {date_format(ctx.end)}",
