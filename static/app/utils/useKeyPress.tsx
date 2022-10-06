@@ -1,9 +1,9 @@
-import {RefObject, useEffect, useState} from 'react';
+import {useEffect, useState} from 'react';
 
 /**
  * Hook to detect when a specific key is being pressed
  */
-const useKeyPress = (targetKey: string, ref?: RefObject<HTMLElement>) => {
+const useKeyPress = (targetKey: string, ref?: React.RefObject<HTMLElement>) => {
   const [keyPressed, setKeyPressed] = useState(false);
   const target = ref ? ref.current : document.body;
 
