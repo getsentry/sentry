@@ -27,7 +27,7 @@ type Props = {
 export function SamplingBreakdown({orgSlug}: Props) {
   const theme = useTheme();
   const {distribution, loading} = useDistribution();
-  const projectBreakdown = distribution?.project_breakdown;
+  const projectBreakdown = distribution?.projectBreakdown;
 
   const {projects} = useProjects({
     slugs: projectBreakdown?.map(project => project.project) ?? [],
