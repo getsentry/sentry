@@ -16,6 +16,7 @@ from sentry.models import Project
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.constants import TRACE_PARENT_SPAN_CONTEXT
 from sentry.snuba import discover
+from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import Dataset, parse_snuba_datetime, raw_snql_query
 
 
@@ -112,7 +113,7 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
         snuba_query = snuba_query.set_select(snuba_query.select + extra_select)
         data = raw_snql_query(
             SnubaRequest(dataset=Dataset.Discover.value, app_id="default", query=snuba_query),
-            referrer="dynamic-sampling.distribution.fetch-project-stats",
+            referrer=Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECT_STATS.value,
         )["data"]
         return data
 
@@ -131,7 +132,7 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                 "organization_id": project.organization.id,
             },
             limit=sample_size,
-            referrer="dynamic-sampling.distribution.fetch-transactions-count",
+            referrer=Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_TRANSACTIONS_COUNT.value,
         )[0]["count()"]
 
     def __generate_transactions_sampling_factor(
@@ -175,7 +176,7 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                 },
                 orderby=["-timestamp.to_day"],
                 limit=1,
-                referrer="dynamic-sampling.distribution.get-most-recent-day-with-transactions",
+                referrer=Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_GET_MOST_RECENT_DAY_WITH_TRANSACTIONS.value,
             )
             if len(transaction_count_month) == 0:
                 # If no data is found in the last 30 days, raise an exception
@@ -248,17 +249,21 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
         builder.add_conditions([Condition(lhs=Column("modulo_num"), op=Op.EQ, rhs=0)])
         snuba_query = builder.get_snql_query().query
 
-        extra_select = [
-            Function("has", [Column("contexts.key"), TRACE_PARENT_SPAN_CONTEXT], alias="is_root")
-        ]
-        snuba_query = snuba_query.set_select(snuba_query.select + extra_select)
+        snuba_query = snuba_query.set_select(
+            snuba_query.select
+            + [
+                Function(
+                    "has", [Column("contexts.key"), TRACE_PARENT_SPAN_CONTEXT], alias="is_root"
+                )
+            ]
+        )
         snuba_query = snuba_query.set_groupby(
             snuba_query.groupby + [Column("modulo_num"), Column("contexts.key")]
         )
 
         data = raw_snql_query(
             SnubaRequest(dataset=Dataset.Discover.value, app_id="default", query=snuba_query),
-            referrer="dynamic-sampling.distribution.fetch-transactions",
+            referrer=Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_TRANSACTIONS.value,
         )["data"]
         return data
 
@@ -301,7 +306,6 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
         query_time_range: QueryTimeRange = QueryTimeRange(time_now - stats_period, time_now)
 
         try:
-            # Fetch X random trace ids group by count_if(trace.parent_span, equals, "")
             transactions = self.__fetch_randomly_sampled_transactions(
                 project=project,
                 query=query,
@@ -309,11 +313,10 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                 query_time_range=query_time_range,
             )
         except EmptyTransactionDatasetException:
-            # TODO: make response keys in same notation (all camelCase)
             return Response(
                 {
-                    "project_breakdown": None,
-                    "sample_size": 0,
+                    "projectBreakdown": None,
+                    "sampleSize": 0,
                     "startTimestamp": None,
                     "endTimestamp": None,
                     "parentProjectBreakdown": [],
@@ -395,7 +398,7 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                             "project",
                             "count()",
                         ],
-                        query=f"event.type:transaction !has:trace.parent_span trace:[{','.join(parent_trace_ids)}]",
+                        query=f"event.type:transaction trace:[{','.join(parent_trace_ids)}]",
                         params={
                             "start": query_time_range.start_time,
                             "end": query_time_range.end_time,
@@ -403,7 +406,7 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                             "organization_id": project.organization.id,
                         },
                         limit=20,
-                        referrer="dynamic-sampling.distribution.fetch-project-breakdown",
+                        referrer=Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECT_BREAKDOWN.value,
                     )
 
                 elif len(parent_project_breakdown) == 1:
@@ -418,8 +421,8 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
 
         return Response(
             {
-                "project_breakdown": project_breakdown,
-                "sample_size": sample_size,
+                "projectBreakdown": project_breakdown,
+                "sampleSize": sample_size,
                 "startTimestamp": query_time_range.start_time,
                 "endTimestamp": query_time_range.end_time,
                 "parentProjectBreakdown": parent_project_breakdown,
