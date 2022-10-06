@@ -1129,6 +1129,8 @@ SENTRY_FEATURES = {
     "organizations:performance-transaction-name-only-search": False,
     # Enable showing INP web vital in default views
     "organizations:performance-vitals-inp": False,
+    # Enable processing transactions in post_process_group
+    "organizations:performance-issues-post-process-group": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable populating suggested assignees with release committers
