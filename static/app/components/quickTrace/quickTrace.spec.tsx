@@ -1,5 +1,7 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import first from 'lodash/first';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render} from 'sentry-test/reactTestingLibrary';
 
 import QuickTrace from 'sentry/components/quickTrace';
 import {Event} from 'sentry/types/event';
@@ -48,17 +50,13 @@ describe('Quick Trace', function () {
     };
   }
 
-  function makeTransactionTarget(
+  function makeTransactionHref(
     pid: string,
     eid: string,
     transaction: string,
     project: string
   ) {
-    const query = {transaction, project};
-    return {
-      pathname: `/organizations/${organization.slug}/performance/${pid}:${eid}/`,
-      query,
-    };
+    return `/organizations/${organization.slug}/performance/${pid}:${eid}/?project=${project}&transaction=${transaction}`;
   }
 
   beforeEach(function () {
@@ -71,7 +69,7 @@ describe('Quick Trace', function () {
 
   describe('Empty Trace', function () {
     it('renders nothing for empty trace', function () {
-      const quickTrace = mountWithTheme(
+      const {container} = render(
         <QuickTrace
           event={makeTransactionEvent(1) as Event}
           quickTrace={{
@@ -85,13 +83,13 @@ describe('Quick Trace', function () {
           organization={organization}
         />
       );
-      expect(quickTrace.text()).toEqual('\u2014');
+      expect(container).toHaveTextContent('\u2014');
     });
   });
 
   describe('Partial Trace', function () {
     it('renders nothing when partial trace is empty', function () {
-      const quickTrace = mountWithTheme(
+      const {container} = render(
         <QuickTrace
           event={makeTransactionEvent(1) as Event}
           quickTrace={{
@@ -105,11 +103,11 @@ describe('Quick Trace', function () {
           organization={organization}
         />
       );
-      expect(quickTrace.text()).toEqual('\u2014');
+      expect(container).toHaveTextContent('\u2014');
     });
 
     it('renders nothing when partial trace missing current event', function () {
-      const quickTrace = mountWithTheme(
+      const {container} = render(
         <QuickTrace
           event={makeTransactionEvent('not-1') as Event}
           quickTrace={{
@@ -123,12 +121,13 @@ describe('Quick Trace', function () {
           organization={organization}
         />
       );
-      expect(quickTrace.text()).toEqual('\u2014');
+      expect(container).toHaveTextContent('\u2014');
     });
 
-    it('renders partial trace with no children', function () {
+    // TODO
+    it('renders partial trace with no children', async function () {
       MockApiClient.warnOnMissingMocks();
-      const quickTrace = mountWithTheme(
+      const {findAllByTestId} = render(
         <QuickTrace
           event={makeTransactionEvent(4) as Event}
           quickTrace={{
@@ -142,13 +141,13 @@ describe('Quick Trace', function () {
           organization={organization}
         />
       );
-      const nodes = quickTrace.find('EventNode');
+      const nodes = await findAllByTestId('event-node');
       expect(nodes.length).toEqual(1);
-      expect(nodes.first().text()).toEqual('This Event');
+      expect(first(nodes)).toHaveTextContent('This Event');
     });
 
-    it('renders partial trace with single child', function () {
-      const quickTrace = mountWithTheme(
+    it('renders partial trace with single child', async function () {
+      const {findAllByTestId} = render(
         <QuickTrace
           event={makeTransactionEvent(4) as Event}
           quickTrace={{
@@ -162,16 +161,16 @@ describe('Quick Trace', function () {
           organization={organization}
         />
       );
-      const nodes = quickTrace.find('EventNode');
+      const nodes = await findAllByTestId('event-node');
       expect(nodes.length).toEqual(2);
       ['This Event', '1 Child'].forEach((text, i) =>
-        expect(nodes.at(i).text()).toEqual(text)
+        expect(nodes[i]).toHaveTextContent(text)
       );
     });
 
-    it('renders partial trace with multiple children', function () {
+    it('renders partial trace with multiple children', async function () {
       MockApiClient.warnOnMissingMocks();
-      const quickTrace = mountWithTheme(
+      const {findAllByTestId} = render(
         <QuickTrace
           event={makeTransactionEvent(4) as Event}
           quickTrace={{
@@ -185,15 +184,15 @@ describe('Quick Trace', function () {
           organization={organization}
         />
       );
-      const nodes = quickTrace.find('EventNode');
+      const nodes = await findAllByTestId('event-node');
       expect(nodes.length).toEqual(2);
       ['This Event', '3 Children'].forEach((text, i) =>
-        expect(nodes.at(i).text()).toEqual(text)
+        expect(nodes[i]).toHaveTextContent(text)
       );
     });
 
-    it('renders full trace with root as parent', function () {
-      const quickTrace = mountWithTheme(
+    it('renders full trace with root as parent', async function () {
+      const {findAllByTestId} = render(
         <QuickTrace
           event={makeTransactionEvent(1) as Event}
           quickTrace={{
@@ -207,17 +206,17 @@ describe('Quick Trace', function () {
           organization={organization}
         />
       );
-      const nodes = quickTrace.find('EventNode');
+      const nodes = await findAllByTestId('event-node');
       expect(nodes.length).toEqual(2);
       ['Parent', 'This Event'].forEach((text, i) =>
-        expect(nodes.at(i).text()).toEqual(text)
+        expect(nodes[i]).toHaveTextContent(text)
       );
     });
   });
 
   describe('Full Trace', function () {
-    it('renders full trace with single ancestor', function () {
-      const quickTrace = mountWithTheme(
+    it('renders full trace with single ancestor', async function () {
+      const {findAllByTestId} = render(
         <QuickTrace
           event={makeTransactionEvent(3) as Event}
           quickTrace={{
@@ -236,16 +235,16 @@ describe('Quick Trace', function () {
           organization={organization}
         />
       );
-      const nodes = quickTrace.find('EventNode');
+      const nodes = await findAllByTestId('event-node');
       expect(nodes.length).toEqual(4);
       ['Root', '1 Ancestor', 'Parent', 'This Event'].forEach((text, i) =>
-        expect(nodes.at(i).text()).toEqual(text)
+        expect(nodes[i]).toHaveTextContent(text)
       );
     });
 
-    it('renders full trace with multiple ancestors', function () {
+    it('renders full trace with multiple ancestors', async function () {
       MockApiClient.warnOnMissingMocks();
-      const quickTrace = mountWithTheme(
+      const {findAllByTestId} = render(
         <QuickTrace
           event={makeTransactionEvent(5) as Event}
           quickTrace={{
@@ -266,15 +265,15 @@ describe('Quick Trace', function () {
           organization={organization}
         />
       );
-      const nodes = quickTrace.find('EventNode');
+      const nodes = await findAllByTestId('event-node');
       expect(nodes.length).toEqual(4);
       ['Root', '3 Ancestors', 'Parent', 'This Event'].forEach((text, i) =>
-        expect(nodes.at(i).text()).toEqual(text)
+        expect(nodes[i]).toHaveTextContent(text)
       );
     });
 
-    it('renders full trace with single descendant', function () {
-      const quickTrace = mountWithTheme(
+    it('renders full trace with single descendant', async function () {
+      const {findAllByTestId} = render(
         <QuickTrace
           event={makeTransactionEvent(0) as Event}
           quickTrace={{
@@ -292,16 +291,16 @@ describe('Quick Trace', function () {
           organization={organization}
         />
       );
-      const nodes = quickTrace.find('EventNode');
+      const nodes = await findAllByTestId('event-node');
       expect(nodes.length).toEqual(3);
       ['This Event', '1 Child', '1 Descendant'].forEach((text, i) =>
-        expect(nodes.at(i).text()).toEqual(text)
+        expect(nodes[i]).toHaveTextContent(text)
       );
     });
 
-    it('renders full trace with multiple descendants', function () {
+    it('renders full trace with multiple descendants', async function () {
       MockApiClient.warnOnMissingMocks();
-      const quickTrace = mountWithTheme(
+      const {findAllByTestId} = render(
         <QuickTrace
           event={makeTransactionEvent(0) as Event}
           quickTrace={{
@@ -321,16 +320,16 @@ describe('Quick Trace', function () {
           organization={organization}
         />
       );
-      const nodes = quickTrace.find('EventNode');
+      const nodes = await findAllByTestId('event-node');
       expect(nodes.length).toEqual(3);
       ['This Event', '1 Child', '3 Descendants'].forEach((text, i) =>
-        expect(nodes.at(i).text()).toEqual(text)
+        expect(nodes[i]).toHaveTextContent(text)
       );
     });
 
-    it('renders full trace', function () {
+    it('renders full trace', async function () {
       MockApiClient.warnOnMissingMocks();
-      const quickTrace = mountWithTheme(
+      const {findAllByTestId} = render(
         <QuickTrace
           event={makeTransactionEvent(5) as Event}
           quickTrace={{
@@ -355,17 +354,18 @@ describe('Quick Trace', function () {
           organization={organization}
         />
       );
-      const nodes = quickTrace.find('EventNode');
+      const nodes = await findAllByTestId('event-node');
       expect(nodes.length).toEqual(6);
       ['Root', '3 Ancestors', 'Parent', 'This Event', '1 Child', '3 Descendants'].forEach(
-        (text, i) => expect(nodes.at(i).text()).toEqual(text)
+        (text, i) => expect(nodes[i]).toHaveTextContent(text)
       );
     });
   });
 
   describe('Event Node Clicks', function () {
-    it('renders single event targets', function () {
-      const quickTrace = mountWithTheme(
+    it('renders single event targets', async function () {
+      const routerContext = TestStubs.routerContext();
+      const {findAllByTestId} = render(
         <QuickTrace
           event={makeTransactionEvent(3) as Event}
           quickTrace={{
@@ -384,23 +384,31 @@ describe('Quick Trace', function () {
           transactionDest="performance"
           location={location}
           organization={organization}
-        />
+        />,
+        {context: routerContext}
       );
-      const nodes = quickTrace.find('EventNode');
+      const nodes = await findAllByTestId('event-node');
       expect(nodes.length).toEqual(6);
       [
-        makeTransactionTarget('p0', 'e0', 't0', '0'),
-        makeTransactionTarget('p1', 'e1', 't1', '1'),
-        makeTransactionTarget('p2', 'e2', 't2', '2'),
+        makeTransactionHref('p0', 'e0', 't0', '0'),
+        makeTransactionHref('p1', 'e1', 't1', '1'),
+        makeTransactionHref('p2', 'e2', 't2', '2'),
         undefined, // the "This Event" node has no target
-        makeTransactionTarget('p4', 'e4', 't4', '4'),
-        makeTransactionTarget('p5', 'e5', 't5', '5'),
-      ].forEach((target, i) => expect(nodes.at(i).props().to).toEqual(target));
+        makeTransactionHref('p4', 'e4', 't4', '4'),
+        makeTransactionHref('p5', 'e5', 't5', '5'),
+      ].forEach((target, i) => {
+        const linkNode = nodes[i].children[0];
+        if (target) {
+          expect(linkNode).toHaveAttribute('href', target);
+        } else {
+          expect(linkNode).not.toHaveAttribute('href');
+        }
+      });
     });
 
-    it('renders multiple event targets', function () {
+    it('renders multiple event targets', async function () {
       MockApiClient.warnOnMissingMocks();
-      const quickTrace = mountWithTheme(
+      const {findAllByTestId} = render(
         <QuickTrace
           event={makeTransactionEvent(0) as Event}
           quickTrace={{
@@ -414,7 +422,7 @@ describe('Quick Trace', function () {
           organization={organization}
         />
       );
-      const items = quickTrace.find('DropdownItem');
+      const items = await findAllByTestId('dropdown-item');
       expect(items.length).toEqual(3);
       // can't easily assert the target is correct since it uses an onClick handler
     });
