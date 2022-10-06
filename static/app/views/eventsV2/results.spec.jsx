@@ -7,8 +7,11 @@ import {triggerPress} from 'sentry-test/utils';
 
 import * as PageFilterPersistence from 'sentry/components/organizations/pageFilters/persistence';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import EventView from 'sentry/utils/discover/eventView';
 import Results from 'sentry/views/eventsV2/results';
 import {OrganizationContext} from 'sentry/views/organizationContext';
+
+import {DEFAULT_EVENT_VIEW} from './data';
 
 const FIELDS = [
   {
@@ -1748,5 +1751,140 @@ describe('Results', function () {
         }),
       })
     );
+  });
+
+  it('Changes the Use as Discover button to a reset button for saved query', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/discover/homepage/',
+      method: 'PUT',
+      statusCode: 200,
+      body: {
+        id: '2',
+        name: 'new',
+        projects: [],
+        version: 2,
+        expired: false,
+        dateCreated: '2021-04-08T17:53:25.195782Z',
+        dateUpdated: '2021-04-09T12:13:18.567264Z',
+        createdBy: {
+          id: '2',
+        },
+        environment: [],
+        fields: ['title', 'event.type', 'project', 'user.display', 'timestamp'],
+        widths: ['-1', '-1', '-1', '-1', '-1'],
+        range: '14d',
+        orderby: '-user.display',
+      },
+    });
+    const organization = TestStubs.Organization({
+      features: [
+        'discover-basic',
+        'discover-query',
+        'discover-query-builder-as-landing-page',
+      ],
+    });
+
+    const initialData = initializeOrg({
+      organization,
+      router: {
+        location: {query: {id: '1'}},
+      },
+    });
+
+    ProjectsStore.loadInitialData([TestStubs.Project()]);
+
+    const {rerender} = render(
+      <Results
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+      />,
+      {context: initialData.routerContext, organization}
+    );
+
+    userEvent.click(screen.getByText('Use as Discover Home'));
+    expect(await screen.findByText('Reset Discover Home')).toBeInTheDocument();
+
+    userEvent.click(screen.getByText('Total Period'));
+    userEvent.click(screen.getByText('Previous Period'));
+    const rerenderData = initializeOrg({
+      organization,
+      router: {
+        location: {query: {...initialData.router.location.query, display: 'previous'}},
+      },
+    });
+    rerender(
+      <Results
+        organization={organization}
+        location={rerenderData.router.location}
+        router={rerenderData.router}
+      />
+    );
+    screen.getByText('Previous Period');
+    expect(await screen.findByText('Use as Discover Home')).toBeInTheDocument();
+  });
+
+  it('Changes the Use as Discover button to a reset button for prebuilt query', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/discover/homepage/',
+      method: 'PUT',
+      statusCode: 200,
+      body: DEFAULT_EVENT_VIEW,
+    });
+    const organization = TestStubs.Organization({
+      features: [
+        'discover-basic',
+        'discover-query',
+        'discover-query-builder-as-landing-page',
+      ],
+    });
+
+    const initialData = initializeOrg({
+      organization,
+      router: {
+        location: {
+          ...TestStubs.location(),
+          query: {
+            ...EventView.fromNewQueryWithLocation(
+              DEFAULT_EVENT_VIEW,
+              TestStubs.location()
+            ).generateQueryStringObject(),
+          },
+        },
+      },
+    });
+
+    ProjectsStore.loadInitialData([TestStubs.Project()]);
+
+    const {rerender} = render(
+      <Results
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+      />,
+      {context: initialData.routerContext, organization}
+    );
+
+    await screen.findAllByText('All Events');
+    userEvent.click(screen.getByText('Use as Discover Home'));
+    expect(await screen.findByText('Reset Discover Home')).toBeInTheDocument();
+
+    userEvent.click(screen.getByText('Total Period'));
+    userEvent.click(screen.getByText('Previous Period'));
+    const rerenderData = initializeOrg({
+      organization,
+      router: {
+        location: {query: {...initialData.router.location.query, display: 'previous'}},
+      },
+    });
+    rerender(
+      <Results
+        organization={organization}
+        location={rerenderData.router.location}
+        router={rerenderData.router}
+      />
+    );
+    screen.getByText('Previous Period');
+    expect(await screen.findByText('Use as Discover Home')).toBeInTheDocument();
   });
 });

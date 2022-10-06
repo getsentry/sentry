@@ -31,9 +31,12 @@ import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
 import {handleAddQueryToDashboard} from 'sentry/views/eventsV2/utils';
 
+import {DEFAULT_EVENT_VIEW} from '../data';
+
 import {
   handleCreateQuery,
   handleDeleteQuery,
+  handleResetHomepageQuery,
   handleUpdateHomepageQuery,
   handleUpdateQuery,
 } from './utils';
@@ -114,9 +117,12 @@ type Props = DefaultProps & {
   router: InjectedRouter;
   savedQuery: SavedQuery | undefined;
   savedQueryLoading: boolean;
+  setHomepageQuery: (homepageQuery?: SavedQuery) => void;
   setSavedQuery: (savedQuery: SavedQuery) => void;
   updateCallback: () => void;
   yAxis: string[];
+  homepageQuery?: SavedQuery;
+  isHomepage?: boolean;
 };
 
 type State = {
@@ -389,13 +395,57 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
   }
 
   renderSaveAsHomepage() {
-    const {api, organization, eventView} = this.props;
+    const {
+      api,
+      organization,
+      eventView,
+      location,
+      isHomepage,
+      setHomepageQuery,
+      homepageQuery,
+    } = this.props;
+    if (
+      homepageQuery &&
+      eventView.isEqualTo(EventView.fromSavedQuery(homepageQuery), ['id'])
+    ) {
+      return (
+        <Button
+          key="reset-discover-homepage"
+          data-test-id="reset-discover-homepage"
+          onClick={async () => {
+            await handleResetHomepageQuery(api, organization);
+            setHomepageQuery(undefined);
+            if (isHomepage) {
+              const nextEventView = EventView.fromNewQueryWithLocation(
+                DEFAULT_EVENT_VIEW,
+                location
+              );
+              browserHistory.push({
+                pathname: location.pathname,
+                query: nextEventView.generateQueryStringObject(),
+              });
+            }
+          }}
+        >
+          {t('Reset Discover Home')}
+          <FeatureBadge type="alpha" />
+        </Button>
+      );
+    }
+
     return (
       <Button
         key="save-query-as-homepage"
         data-test-id="save-query-as-homepage"
-        onClick={() => {
-          handleUpdateHomepageQuery(api, organization, eventView.toNewQuery());
+        onClick={async () => {
+          const updatedHomepageQuery = await handleUpdateHomepageQuery(
+            api,
+            organization,
+            eventView.toNewQuery()
+          );
+          if (updatedHomepageQuery) {
+            setHomepageQuery(updatedHomepageQuery);
+          }
         }}
       >
         {t('Use as Discover Home')}
