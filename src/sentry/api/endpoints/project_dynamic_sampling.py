@@ -65,7 +65,7 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
             referrer=referrer,
         )["data"]
 
-    def __project_stats_query(self, project, query_time_range, trace_ids):
+    def __project_stats_query(self, query, projects_in_org, org_id, query_time_range, trace_ids):
         """
         Smart query to get:
         counts as count,
@@ -79,10 +79,10 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
             params={
                 "start": query_time_range.start_time,
                 "end": query_time_range.end_time,
-                "project_id": [project.id],
-                "organization_id": project.organization.id,
+                "project_id": projects_in_org,
+                "organization_id": org_id,
             },
-            query=f"event.type:transaction trace:[{','.join(trace_ids)}]",
+            query=f"{query} event.type:transaction trace:[{','.join(trace_ids)}]",
             selected_columns=[
                 "project_id",
                 "project",
@@ -253,7 +253,9 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
             snuba_query.select
             + [
                 Function(
-                    "has", [Column("contexts.key"), TRACE_PARENT_SPAN_CONTEXT], alias="is_root"
+                    "not",
+                    [Function("has", [Column("contexts.key"), TRACE_PARENT_SPAN_CONTEXT])],
+                    alias="is_root",
                 )
             ]
         )
@@ -324,19 +326,20 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
             )
         sample_size = len(transactions)
         project_breakdown = None
-        parent_trace_ids = None
         parent_project_breakdown = []
         if distributed_trace:
             # If the distributedTrace flag was enabled, then we are also interested in fetching
             # the project breakdown of the projects in the trace of the root transaction
-
             trace_ids = [transaction.get("trace") for transaction in transactions]
             projects_in_org = Project.objects.filter(organization=project.organization).values_list(
                 "id", flat=True
             )
 
             # Discover query to fetch parent projects (smart query)
-            projects_counts = self.__project_stats_query(project, query_time_range, trace_ids)
+            projects_counts = self.__project_stats_query(
+                query, list(projects_in_org), project.organization.id, query_time_range, trace_ids
+            )
+
             # If the number of the projects in the breakdown is greater than 10 projects,
             # then a question needs to be raised on the eligibility of the org for dynamic sampling
             if len(projects_counts) > 10:
@@ -359,8 +362,11 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
 
             if root_projects_count >= 1:
                 parent_project_breakdown = []
+                # ToDo(): revisit this logic with count if necessary in the future
                 total_count = sum(
-                    _project["count"] for _project in projects_counts if _project["root_count"] > 0
+                    _project["root_count"]
+                    for _project in projects_counts
+                    if _project["root_count"] > 0
                 )
                 for _project in projects_counts:
                     if _project["root_count"] > 0:
@@ -384,8 +390,7 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                     parent_trace_ids = [
                         transaction.get("trace")
                         for transaction in transactions
-                        if transaction.get("is_root", False)
-                        and transaction["project_id"] == project.id
+                        if transaction["is_root"]
                     ]
                     # Calculate parent project_breakdown attribute:
                     project_breakdown = self.__run_discover_query(
@@ -394,7 +399,7 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                             "project",
                             "count()",
                         ],
-                        query=f"event.type:transaction trace:[{','.join(parent_trace_ids)}]",
+                        query=f"{query} event.type:transaction trace:[{','.join(parent_trace_ids)}]",
                         params={
                             "start": query_time_range.start_time,
                             "end": query_time_range.end_time,
