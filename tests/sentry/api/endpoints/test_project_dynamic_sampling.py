@@ -788,6 +788,7 @@ class ProjectDynamicSamplingDistributionQueryCallsTest(APITestCase):
 class ProjectDynamicSamplingDistributionIntegrationTest(SnubaTestCase, APITestCase):
     # ToDo: Add tests for other cases A, C and D + case when no transactions in last hour but in last 30 days + test
     #  case when no transactions in last 30 days
+    # ToDo: Refactor/ clean up when possible
     @property
     def endpoint(self):
         return reverse(
