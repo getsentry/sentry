@@ -434,43 +434,38 @@ class PerformanceGroupSerializerSnubaTest(
         proj = self.create_project()
         environment = self.create_environment(project=proj)
 
-        first_group = self.create_group(
-            type=GroupType.PERFORMANCE_SLOW_SPAN.value,
-            project=proj,
-            first_seen=timezone.now() - timedelta(days=5),
-        )
+        first_group_fingerprint = f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group1"
+        timestamp = timezone.now() - timedelta(days=5)
         times = 5
         for _ in range(0, times):
             self.store_transaction(
                 proj.id,
                 "user1",
-                [first_group],
-                environment,
-                timestamp=first_group.first_seen + timedelta(minutes=1),
+                [first_group_fingerprint],
+                environment.name,
+                timestamp=timestamp + timedelta(minutes=1),
             )
 
-        self.store_transaction(
+        event = self.store_transaction(
             proj.id,
             "user2",
-            [first_group],
-            environment,
-            timestamp=first_group.first_seen + timedelta(minutes=2),
+            [first_group_fingerprint],
+            environment.name,
+            timestamp=timestamp + timedelta(minutes=2),
         )
+
+        first_group = event.groups[0]
 
         result = serialize(
             first_group,
             serializer=GroupSerializerSnuba(
                 environment_ids=[environment.id],
-                start=first_group.first_seen - timedelta(hours=1),
-                end=first_group.first_seen + timedelta(hours=1),
+                start=timestamp - timedelta(hours=1),
+                end=timestamp + timedelta(hours=1),
             ),
         )
 
         assert result["userCount"] == 2
-        assert iso_format(result["lastSeen"]) == iso_format(
-            first_group.first_seen + timedelta(minutes=2)
-        )
-        assert iso_format(result["firstSeen"]) == iso_format(
-            first_group.first_seen + timedelta(minutes=1)
-        )
+        assert iso_format(result["lastSeen"]) == iso_format(timestamp + timedelta(minutes=2))
+        assert iso_format(result["firstSeen"]) == iso_format(timestamp + timedelta(minutes=1))
         assert result["count"] == str(times + 1)

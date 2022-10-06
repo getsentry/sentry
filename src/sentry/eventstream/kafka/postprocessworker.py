@@ -6,6 +6,7 @@ from enum import Enum
 from typing import Any, Generator, Mapping, Optional, Sequence
 
 from sentry import options
+from sentry.eventstream.base import GroupStates
 from sentry.eventstream.kafka.protocol import (
     decode_bool,
     get_task_kwargs_for_message,
@@ -73,6 +74,7 @@ def dispatch_post_process_group_task(
     is_new_group_environment: bool,
     primary_hash: Optional[str],
     skip_consume: bool = False,
+    group_states: Optional[GroupStates] = None,
 ) -> None:
     if skip_consume:
         logger.info("post_process.skip.raw_event", extra={"event_id": event_id})
