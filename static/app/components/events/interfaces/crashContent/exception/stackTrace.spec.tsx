@@ -105,16 +105,16 @@ describe('ExceptionStacktraceContent', function () {
   });
 
   it('should return an emptyRender', function () {
-    render(
+    const {container} = render(
       <OrganizationContext.Provider value={organization}>
         <ExceptionStacktraceContent {...props} stacktrace={null} />
       </OrganizationContext.Provider>
     );
 
-    expect(screen.queryByText(frames[0].filename)).not.toBeInTheDocument();
+    expect(container).toBeEmptyDOMElement();
   });
 
-  it('should return the EmptyMessage component', function () {
+  it('shows stack trace', function () {
     render(
       <OrganizationContext.Provider value={organization}>
         <ExceptionStacktraceContent
@@ -131,7 +131,7 @@ describe('ExceptionStacktraceContent', function () {
     ).toBeInTheDocument();
   });
 
-  it('should not return the EmptyMessage component', () => {
+  it('does not show stack trace', function () {
     render(
       <OrganizationContext.Provider value={organization}>
         <ExceptionStacktraceContent
@@ -156,11 +156,9 @@ describe('ExceptionStacktraceContent', function () {
       </OrganizationContext.Provider>
     );
 
-    // frame 1
-    expect(screen.getByText(frames[0].filename)).toBeInTheDocument();
-
-    // frame 2
-    expect(screen.getByText(frames[1].filename)).toBeInTheDocument();
+    for (const frame of frames) {
+      expect(screen.getByText(frame.filename)).toBeInTheDocument();
+    }
   });
 
   it('should not render system frames if "stackView: app" and there are inApp frames and is a chained exceptions', () => {
