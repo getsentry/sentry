@@ -309,7 +309,7 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
                     {"project_id": 23, "project": "wind", "count()": 3},
                     {"project_id": 25, "project": "fire", "count()": 21},
                 ],
-                "sampleSize": 21,
+                "sampleSize": 1,
                 "startTimestamp": "2022-08-18T10:00:00Z",
                 "endTimestamp": "2022-08-18T11:00:00Z",
                 "parentProjectBreakdown": [
