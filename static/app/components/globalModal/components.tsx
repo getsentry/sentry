@@ -9,7 +9,12 @@ const ModalHeader = styled('header')`
   position: relative;
   border-bottom: 1px solid ${p => p.theme.border};
   padding: ${space(3)} ${space(4)};
-  margin: -${space(4)} -${space(4)} ${space(3)} -${space(4)};
+  margin: -${space(4)} -${space(3)} ${space(3)} -${space(3)};
+
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    padding: ${space(3)} ${space(4)};
+    margin: -${space(4)} -${space(4)} ${space(3)} -${space(4)};
+  }
 
   h1,
   h2,
@@ -55,8 +60,13 @@ const ModalFooter = styled('footer')`
   border-top: 1px solid ${p => p.theme.border};
   display: flex;
   justify-content: flex-end;
-  padding: ${space(3)} ${space(4)};
-  margin: ${space(3)} -${space(4)} -${space(4)};
+  padding: ${space(3)} ${space(2)};
+  margin: ${space(3)} -${space(3)} -${space(4)};
+
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    padding: ${space(3)} ${space(4)};
+    margin: ${space(3)} -${space(4)} -${space(4)};
+  }
 `;
 
 interface ClosableHeaderProps extends React.HTMLAttributes<HTMLHeadingElement> {
