@@ -331,7 +331,6 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
             # the project breakdown of the projects in the trace of the root transaction
 
             trace_ids = [transaction.get("trace") for transaction in transactions]
-
             projects_in_org = Project.objects.filter(organization=project.organization).values_list(
                 "id", flat=True
             )
@@ -368,18 +367,15 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                         parent_project_breakdown.append(
                             {
                                 "project": _project["project"],
-                                "project_id": _project["project_id"],
+                                "projectId": _project["project_id"],
                                 "percentage": _project["root_count"] / total_count,
                             }
                         )
 
-            else:
-                parent_project_breakdown = []
-
             # Get project breakdown
             project_breakdown = []
 
-            parent_project_ids = {p["project_id"] for p in parent_project_breakdown}
+            parent_project_ids = {p["projectId"] for p in parent_project_breakdown}
 
             if requested_project["project_id"] in parent_project_ids:
                 if len(parent_project_breakdown) > 1:

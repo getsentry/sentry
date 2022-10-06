@@ -11,6 +11,7 @@ from snuba_sdk.conditions import Condition, Op
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.constants import TRACE_PARENT_SPAN_CONTEXT
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.referrer import Referrer
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature
 from sentry.testutils.silo import region_silo_test
@@ -264,13 +265,36 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
     @freeze_time("2022-08-18T11:00:0.000000Z")
     @mock.patch("sentry.api.endpoints.project_dynamic_sampling.raw_snql_query")
     @mock.patch("sentry.api.endpoints.project_dynamic_sampling.discover.query")
-    def test_successful_response_with_distributed_traces(self, mock_query, mock_querybuilder):
+    def test_successful_response_with_root_project_and_part_of_distributed_traces(
+        self, mock_query, mock_querybuilder
+    ):
+        """
+        Case A: Requesting for a project (bar) that is root but is a part of distributed traces
+        Example of smart query response (DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECT_STATS):
+        |---------+-------+------|
+        | project | count | root |
+        |---------+-------+------|
+        | bar     | 100   | 100  |
+        | heart   | 5     | 0    |
+        | water   | 10    | 0    |
+        |---------+-------+------|
+        """
         self.login_as(self.user)
+        heart = self.create_project(
+            name="Heart", slug="heart", teams=[self.team], fire_project_created=True
+        )
+        water = self.create_project(
+            name="Water", slug="water", teams=[self.team], fire_project_created=True
+        )
+
+        # We need mock this query to calculate transaction sampling factor
         mock_query.side_effect = [
-            mocked_discover_query("dynamic-sampling.distribution.fetch-transactions-count"),
-            mocked_discover_query("dynamic-sampling.distribution.fetch-project-breakdown"),
+            mocked_discover_query(
+                Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_TRANSACTIONS_COUNT.value,
+            )
         ]
         mock_querybuilder.side_effect = [
+            # mock Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_TRANSACTIONS
             {
                 "data": [
                     {
@@ -288,13 +312,11 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
                     {
                         "project_id": self.project.id,
                         "project": self.project.slug,
-                        "count": 34,
-                        "root_count": 3,
+                        "count": 100,
+                        "root_count": 100,
                     },
-                    {"project_id": 28, "project": "heart", "count": 3, "root_count": 3},
-                    {"project_id": 24, "project": "water", "count": 3, "root_count": 3},
-                    {"project_id": 23, "project": "wind", "count": 3, "root_count": 3},
-                    {"project_id": 25, "project": "fire", "count": 21, "root_count": 3},
+                    {"project_id": heart.id, "project": heart.slug, "count": 5, "root_count": 0},
+                    {"project_id": water.id, "project": water.slug, "count": 10, "root_count": 0},
                 ]
             },
         ]
@@ -303,11 +325,9 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
             response = self.client.get(self.endpoint)
             assert response.json() == {
                 "projectBreakdown": [
-                    {"project_id": 27, "project": "earth", "count()": 34},
-                    {"project_id": 28, "project": "heart", "count()": 3},
-                    {"project_id": 24, "project": "water", "count()": 3},
-                    {"project_id": 23, "project": "wind", "count()": 3},
-                    {"project_id": 25, "project": "fire", "count()": 21},
+                    {"project_id": self.project.id, "project": self.project.slug, "count()": 100},
+                    {"project_id": heart.id, "project": heart.slug, "count()": 5},
+                    {"project_id": water.id, "project": water.slug, "count()": 10},
                 ],
                 "sampleSize": 1,
                 "startTimestamp": "2022-08-18T10:00:00Z",
@@ -315,35 +335,250 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
                 "parentProjectBreakdown": [
                     {
                         "project": self.project.slug,
-                        "project_id": self.project.id,
-                        "percentage": 0.046875,
+                        "projectId": self.project.id,
+                        "percentage": 1.0,
                     },
-                    {"project": "heart", "project_id": 28, "percentage": 0.046875},
-                    {"project": "water", "project_id": 24, "percentage": 0.046875},
-                    {"project": "wind", "project_id": 23, "percentage": 0.046875},
-                    {"project": "fire", "project_id": 25, "percentage": 0.046875},
                 ],
             }
 
     @freeze_time("2022-08-18T11:00:0.000000Z")
     @mock.patch("sentry.api.endpoints.project_dynamic_sampling.raw_snql_query")
     @mock.patch("sentry.api.endpoints.project_dynamic_sampling.discover.query")
-    def test_successful_response_with_single_transactions(self, mock_query, mock_querybuilder):
+    def test_successful_response_with_root_project_and_non_root_part_of_distributed_traces(
+        self, mock_query, mock_querybuilder
+    ):
+        """
+        Case B: Requesting for a project (bar) that is root for some transactions,
+        but not root for others and part of distributed trace
+        Example of smart query response (DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECT_STATS):
+        |---------+-------+------|
+        | project | count | root |
+        |---------+-------+------|
+        | bar     | 15    | 10   |
+        | heart   | 100   | 100  |
+        | water   | 10    | 0    |
+        |---------+-------+------|
+        """
         self.login_as(self.user)
+        heart = self.create_project(
+            name="Heart", slug="heart", teams=[self.team], fire_project_created=True
+        )
+        water = self.create_project(
+            name="Water", slug="water", teams=[self.team], fire_project_created=True
+        )
+
+        # We need mock this query to calculate transaction sampling factor
         mock_query.side_effect = [
-            mocked_discover_query("dynamic-sampling.distribution.fetch-transactions-count"),
+            mocked_discover_query(
+                Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_TRANSACTIONS_COUNT.value,
+            ),
+            # project breakdown
+            # Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECT_BREAKDOWN
+            {
+                "data": [
+                    {"project_id": self.project.id, "project": self.project.slug, "count()": 9},
+                    {"project_id": heart.id, "project": heart.slug, "count()": 99},
+                ]
+            },
         ]
         mock_querybuilder.side_effect = [
-            mocked_query_builder_query(referrer="dynamic-sampling.distribution.fetch-transactions")
+            # mock Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_TRANSACTIONS
+            {
+                "data": [
+                    {
+                        "trace": "6503ee33b7bc43aead1facaa625a5dba",
+                        "id": "5c7c7eca495842e39744196851edd947",
+                        "project.name": self.project.slug,
+                        "project_id": self.project.id,
+                        "random_number() AS random_number": 121455970,
+                        "is_root": 1,
+                    }
+                ],
+            },
+            # mock Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECT_STATS
+            {
+                "data": [
+                    {
+                        "project_id": self.project.id,
+                        "project": self.project.slug,
+                        "count": 15,
+                        "root_count": 10,
+                    },
+                    {
+                        "project_id": heart.id,
+                        "project": heart.slug,
+                        "count": 100,
+                        "root_count": 100,
+                    },
+                    {"project_id": water.id, "project": water.slug, "count": 10, "root_count": 0},
+                ]
+            },
         ]
+
         with Feature({"organizations:server-side-sampling": True}):
-            response = self.client.get(f"{self.endpoint}?distributedTrace=0")
+            response = self.client.get(self.endpoint)
             assert response.json() == {
-                "parentProjectBreakdown": [],
-                "projectBreakdown": None,
-                "sampleSize": 21,
+                "projectBreakdown": [
+                    {"project_id": self.project.id, "project": self.project.slug, "count()": 9},
+                    {"project_id": heart.id, "project": heart.slug, "count()": 99},
+                ],
+                "sampleSize": 1,
                 "startTimestamp": "2022-08-18T10:00:00Z",
                 "endTimestamp": "2022-08-18T11:00:00Z",
+                "parentProjectBreakdown": [
+                    {
+                        "project": self.project.slug,
+                        "projectId": self.project.id,
+                        "percentage": 0.08695652173913043,
+                    },
+                    {
+                        "project": heart.slug,
+                        "projectId": heart.id,
+                        "percentage": 0.8695652173913043,
+                    },
+                ],
+            }
+
+    @freeze_time("2022-08-18T11:00:0.000000Z")
+    @mock.patch("sentry.api.endpoints.project_dynamic_sampling.raw_snql_query")
+    @mock.patch("sentry.api.endpoints.project_dynamic_sampling.discover.query")
+    def test_successful_response_with_non_root_project_and_part_of_distributed_traces(
+        self, mock_query, mock_querybuilder
+    ):
+        """
+        Case C: Requesting for a project (bar) that is part of a distributed trace but is not root
+        Example of smart query response (DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECT_STATS):
+        |---------+-------+------|
+        | project | count | root |
+        |---------+-------+------|
+        | bar     | 10    | 0    |
+        | heart   | 100   | 100  |
+        | water   | 5     | 0    |
+        |---------+-------+------|
+        """
+        self.login_as(self.user)
+        heart = self.create_project(
+            name="Heart", slug="heart", teams=[self.team], fire_project_created=True
+        )
+        water = self.create_project(
+            name="Water", slug="water", teams=[self.team], fire_project_created=True
+        )
+
+        # We need mock this query to calculate transaction sampling factor
+        mock_query.side_effect = [
+            mocked_discover_query(
+                Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_TRANSACTIONS_COUNT.value,
+            )
+        ]
+        mock_querybuilder.side_effect = [
+            # mock Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_TRANSACTIONS
+            {
+                "data": [
+                    {
+                        "trace": "6503ee33b7bc43aead1facaa625a5dba",
+                        "id": "5c7c7eca495842e39744196851edd947",
+                        "project.name": self.project.slug,
+                        "project_id": self.project.id,
+                        "random_number() AS random_number": 121455970,
+                        "is_root": 1,
+                    }
+                ],
+            },
+            {
+                "data": [
+                    {
+                        "project_id": self.project.id,
+                        "project": self.project.slug,
+                        "count": 10,
+                        "root_count": 0,
+                    },
+                    {
+                        "project_id": heart.id,
+                        "project": heart.slug,
+                        "count": 100,
+                        "root_count": 100,
+                    },
+                    {"project_id": water.id, "project": water.slug, "count": 5, "root_count": 0},
+                ]
+            },
+        ]
+
+        with Feature({"organizations:server-side-sampling": True}):
+            response = self.client.get(self.endpoint)
+            assert response.json() == {
+                "projectBreakdown": [],
+                "sampleSize": 1,
+                "startTimestamp": "2022-08-18T10:00:00Z",
+                "endTimestamp": "2022-08-18T11:00:00Z",
+                "parentProjectBreakdown": [
+                    {
+                        "project": heart.slug,
+                        "projectId": heart.id,
+                        "percentage": 1.0,
+                    },
+                ],
+            }
+
+    @freeze_time("2022-08-18T11:00:0.000000Z")
+    @mock.patch("sentry.api.endpoints.project_dynamic_sampling.raw_snql_query")
+    @mock.patch("sentry.api.endpoints.project_dynamic_sampling.discover.query")
+    def test_successful_response_with_single_project_and_without_distributed_traces(
+        self, mock_query, mock_querybuilder
+    ):
+        """
+        Case D: Requesting for a single project (bar - distributed tracing is disabled)
+        Example of smart query response (DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECT_STATS):
+        |---------+-------+------|
+        | project | count | root |
+        |---------+-------+------|
+        | bar     | 100   | 100  |
+        |---------+-------+------|
+        """
+        self.login_as(self.user)
+        # We need mock this query to calculate transaction sampling factor
+        mock_query.side_effect = [
+            mocked_discover_query(
+                Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_TRANSACTIONS_COUNT.value,
+            )
+        ]
+        mock_querybuilder.side_effect = [
+            # mock Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_TRANSACTIONS
+            {
+                "data": [
+                    {
+                        "trace": "6503ee33b7bc43aead1facaa625a5dba",
+                        "id": "5c7c7eca495842e39744196851edd947",
+                        "project.name": self.project.slug,
+                        "project_id": self.project.id,
+                        "random_number() AS random_number": 121455970,
+                        "is_root": 1,
+                    }
+                ],
+            },
+            {
+                "data": [
+                    {
+                        "project_id": self.project.id,
+                        "project": self.project.slug,
+                        "count": 100,
+                        "root_count": 100,
+                    },
+                ]
+            },
+        ]
+
+        with Feature({"organizations:server-side-sampling": True}):
+            response = self.client.get(self.endpoint)
+            assert response.json() == {
+                "projectBreakdown": [
+                    {"count()": 100, "project": self.project.slug, "project_id": self.project.id}
+                ],
+                "sampleSize": 1,
+                "startTimestamp": "2022-08-18T10:00:00Z",
+                "endTimestamp": "2022-08-18T11:00:00Z",
+                "parentProjectBreakdown": [
+                    {"percentage": 1.0, "project": self.project.slug, "projectId": self.project.id}
+                ],
             }
 
     @freeze_time("2022-08-18T11:00:0.000000Z")
@@ -352,7 +587,9 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
     def test_successful_response_with_small_sample_size(self, mock_query, mock_querybuilder):
         self.login_as(self.user)
         mock_query.side_effect = [
-            mocked_discover_query("dynamic-sampling.distribution.fetch-transactions-count"),
+            mocked_discover_query(
+                Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_TRANSACTIONS_COUNT.value
+            ),
             {
                 "data": [
                     {"project_id": 25, "project": "fire", "count()": 2},
@@ -399,7 +636,7 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
                 "startTimestamp": "2022-08-18T10:00:00Z",
                 "endTimestamp": "2022-08-18T11:00:00Z",
                 "parentProjectBreakdown": [
-                    {"project": self.project.slug, "project_id": self.project.id, "percentage": 1.0}
+                    {"project": self.project.slug, "projectId": self.project.id, "percentage": 1.0}
                 ],
             }
 
@@ -475,7 +712,7 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
                 "startTimestamp": "2022-08-06T00:00:00Z",
                 "endTimestamp": "2022-08-07T00:00:00Z",
                 "parentProjectBreakdown": [
-                    {"project": self.project.slug, "project_id": self.project.id, "percentage": 1.0}
+                    {"project": self.project.slug, "projectId": self.project.id, "percentage": 1.0}
                 ],
             }
 
