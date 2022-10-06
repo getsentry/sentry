@@ -414,6 +414,12 @@ def post_process_group(
 
 def run_post_process_job(job: PostProcessJob):
     event = job["event"]
+    if event.group.issue_category not in GROUP_CATEGORY_POST_PROCESS_PIPELINE:
+        logger.error(
+            "No post process pipeline configured for issue category",
+            extra={"category": event.group.issue_category},
+        )
+        return
     pipeline = GROUP_CATEGORY_POST_PROCESS_PIPELINE[event.group.issue_category]
     for pipeline_step in pipeline:
         try:
