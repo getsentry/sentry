@@ -82,7 +82,7 @@ def should_write_event_stats(event: Event):
     # other event types we'll throw off existing stats and potentially cause various alerts to fire.
     # We might decide to write these stats for other event types later, either under different keys
     # or with differentiating tags.
-    return event.group.issue_category == GroupCategory.Error and event.group.platform is not None
+    return event.group.issue_category == GroupCategory.ERROR and event.group.platform is not None
 
 
 def format_event_platform(event: Event):
@@ -104,7 +104,7 @@ def _capture_event_stats(event: Event) -> None:
 
 
 def _capture_group_stats(job: PostProcessJob) -> None:
-    event = (job["event"],)
+    event = job["event"]
     if not job["group_state"]["is_new"] or not should_write_event_stats(event):
         return
 
