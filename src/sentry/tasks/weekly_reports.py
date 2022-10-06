@@ -80,14 +80,18 @@ class ProjectContext:
     accepted_transaction_count = 0
     dropped_transaction_count = 0
 
-    # Array of (group_id, count)
-    key_errors = []
-
-    # Array of (transaction_name, count_this_week, p95_this_week, count_last_week, p95_last_week)
-    key_transactions = []
-
     def __init__(self, project):
         self.project = project
+
+        # Array of (group_id, count)
+        self.key_errors = []
+        # Array of (transaction_name, count_this_week, p95_this_week, count_last_week, p95_last_week)
+        self.key_transactions = []
+
+        # Dictionary of { timestamp: count }
+        self.error_count_by_day = {}
+        # Dictionary of { timestamp: count }
+        self.transaction_count_by_day = {}
 
     def __repr__(self):
         return f"{self.key_errors}, Errors: [Accepted {self.accepted_error_count}, Dropped {self.dropped_error_count}]\nTransactions: [Accepted {self.accepted_transaction_count} Dropped {self.dropped_transaction_count}]"
@@ -146,6 +150,9 @@ def prepare_organization_report(timestamp, duration, organization_id, dry_run=Fa
 
 # Organization Passes
 def project_event_counts_for_organization(ctx):
+    def zerofill_data(data):
+        return zerofill(data, ctx.start, ctx.end, ONE_DAY, fill_default=0)
+
     query = Query(
         match=Entity("outcomes"),
         select=[
@@ -167,24 +174,34 @@ def project_event_counts_for_organization(ctx):
                 [*DataCategory.error_categories(), DataCategory.TRANSACTION],
             ),
         ],
-        groupby=[Column("outcome"), Column("category"), Column("project_id")],
+        groupby=[Column("outcome"), Column("category"), Column("project_id"), Column("time")],
         granularity=Granularity(ONE_DAY),
+        orderby=[OrderBy(Column("time"), Direction.ASC)],
     )
     request = Request(dataset=Dataset.Outcomes.value, app_id="reports", query=query)
     data = raw_snql_query(request, referrer="reports.outcomes")["data"]
+
     for dat in data:
-        project = ctx.projects[dat["project_id"]]
+        project_id = dat["project_id"]
+        project = ctx.projects[project_id]
         total = dat["total"]
+        timestamp = int(to_timestamp(parse_snuba_datetime(dat["time"])))
         if dat["category"] == DataCategory.TRANSACTION:
+            # Transaction outcome
             if dat["outcome"] == Outcome.RATE_LIMITED:
                 project.dropped_transaction_count += total
             else:
                 project.accepted_transaction_count += total
+                project.transaction_count_by_day[timestamp] = total
         else:
+            # Error outcome
             if dat["outcome"] == Outcome.RATE_LIMITED:
                 project.dropped_error_count += total
             else:
                 project.accepted_error_count += total
+                project.error_count_by_day[timestamp] = (
+                    project.error_count_by_day.get(timestamp, 0) + total
+                )
 
 
 # Project passes
@@ -319,6 +336,7 @@ def render_template_context(ctx, user):
                     )
                     for project_ctx in project_ctxs
                 ],
+                (0, 0, 0, 0),
             )
 
         projects_associated_with_user = list(filter(lambda project: True, ctx.projects.values()))
@@ -336,11 +354,12 @@ def render_template_context(ctx, user):
         ) = sum_event_counts(projects_associated_with_user)
         # The number of reports to keep is the same as the number of colors
         # available to use in the legend.
-        items_taken = projects_associated_with_user[: len(project_breakdown_colors)]
+        projects_taken = projects_associated_with_user[: len(project_breakdown_colors)]
         # All other items are merged to "Others"
-        items_not_taken = projects_associated_with_user[len(project_breakdown_colors) :]
+        projects_not_taken = projects_associated_with_user[len(project_breakdown_colors) :]
 
-        results = [
+        # Calculate legend
+        legend = [
             {
                 "slug": project_ctx.project.slug,
                 "url": project_ctx.project.get_absolute_url(),
@@ -350,19 +369,19 @@ def render_template_context(ctx, user):
                 "dropped_transaction_count": project_ctx.dropped_transaction_count,
                 "accepted_transaction_count": project_ctx.accepted_transaction_count,
             }
-            for i, project_ctx in enumerate(items_taken)
+            for i, project_ctx in enumerate(projects_taken)
         ]
 
-        if len(items_not_taken) > 0:
+        if len(projects_not_taken) > 0:
             (
                 others_error,
                 others_dropped_error,
                 others_transaction,
                 others_dropped_transaction,
-            ) = sum_event_counts(items_not_taken)
-            results.append(
+            ) = sum_event_counts(projects_not_taken)
+            legend.append(
                 {
-                    "slug": f"Other ({len(items_not_taken)})",
+                    "slug": f"Other ({len(projects_not_taken)})",
                     "color": "#f2f0fa",
                     "dropped_error_count": others_dropped_error,
                     "accepted_error_count": others_error,
@@ -370,8 +389,8 @@ def render_template_context(ctx, user):
                     "accepted_transaction_count": others_transaction,
                 }
             )
-        if len(items_taken) > 1:
-            results.append(
+        if len(projects_taken) > 1:
+            legend.append(
                 {
                     "slug": f"Total ({len(projects_associated_with_user)})",
                     "color": total_color,
@@ -381,7 +400,38 @@ def render_template_context(ctx, user):
                     "accepted_transaction_count": total_transaction,
                 }
             )
-        return {"legend": results, "total_error_count": total_error}
+
+        # Calculate series
+        series = []
+        for i in range(0, 7):
+            t = int(to_timestamp(ctx.start)) + ONE_DAY * i
+            series.append(
+                (
+                    to_datetime(t),
+                    [
+                        {
+                            "color": project_breakdown_colors[i],
+                            "error_count": project_ctx.error_count_by_day.get(t, 0),
+                            "transaction_count": project_ctx.transaction_count_by_day.get(t, 0),
+                        }
+                        for i, project_ctx in enumerate(projects_taken)
+                    ],
+                )
+            )
+        return {
+            "legend": legend,
+            "series": series,
+            "total_error_count": total_error,
+            "total_transaction_count": total_transaction,
+            "error_maximum": max(  # The max error count on any single day
+                sum(value["error_count"] for value in values) for timestamp, values in series
+            ),
+            "transaction_maximum": max(  # The max transaction count on any single day
+                sum(value["transaction_count"] for value in values) for timestamp, values in series
+            )
+            if len(projects_taken) > 0
+            else 0,
+        }
 
     return {
         "organization": ctx.organization,

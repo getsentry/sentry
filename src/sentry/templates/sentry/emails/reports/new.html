@@ -191,12 +191,12 @@
 
     <table class="graph">
       <tr>
-        {% for timestamp, values in series.points %}
+        {% for timestamp, project_values in trends.series %}
         <td valign="bottom" class="bar" style="height: {{ height }}px; width: {% widthratio 1 series.points|length 100 %}%">
             <table class="bar">
-              {% for key, count in values %}
+              {% for project_value in project_values %}
                 <tr>
-                  <td height="{% widthratio count series.maximum height %}" style="background-color: {{ key.color }};">&nbsp;</td>
+                  <td height="{% widthratio project_value.error_count trends.error_maximum height %}" style="background-color: {{ project_value.color }};">&nbsp;</td>
                 </tr>
               {% empty %}
                 <tr>
@@ -208,9 +208,9 @@
         {% endfor %}
       </tr>
       <tr>
-        {% for timestamp, values in series.points %}
-          <td class="label" style="width: {% widthratio 1 series.points|length 100 %}%">
-            {{ timestamp|date:duration.date_format }}
+        {% for timestamp, project_values in trends.series %}
+          <td class="label" style="width: {% widthratio 1 trends.series|length 100 %}%">
+            {{ timestamp|date:"D" }}
           </td>
         {% endfor %}
       </tr>
