@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any, Dict, Optional
 from urllib.parse import urlencode, urlparse
 
-import brotli  # type: ignore
+import brotli
 import urllib3
 from django.conf import settings
 from django.http import HttpResponse
@@ -82,7 +82,7 @@ def get_from_profiling_service(
             }
         )
         kwargs["body"] = brotli.compress(
-            json.dumps(json_data).encode("utf-8"), quality=6, mode=brotli.BrotliEncoderMode.TEXT
+            json.dumps(json_data).encode("utf-8"), quality=6, mode=brotli.MODE_TEXT
         )
     return _profiling_pool.urlopen(  # type: ignore
         method,
