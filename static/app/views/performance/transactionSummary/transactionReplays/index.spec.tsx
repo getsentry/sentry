@@ -1,12 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {
-  act,
-  fireEvent,
-  render,
-  screen,
-  userEvent,
-  waitFor,
-} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {OrganizationContext} from 'sentry/views/organizationContext';
