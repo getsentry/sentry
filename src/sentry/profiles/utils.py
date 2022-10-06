@@ -1,4 +1,3 @@
-import re
 from datetime import datetime
 from typing import Any, Dict, Optional
 from urllib.parse import urlencode, urlparse
@@ -14,10 +13,6 @@ from sentry.api.event_search import SearchFilter, parse_search_query
 from sentry.exceptions import InvalidSearchQuery
 from sentry.net.http import connection_from_url
 from sentry.utils import json, metrics
-
-ORGANIZATION_ID_PATTERN = re.compile(r"/organizations/(\d+)/")
-PROJECT_ID_PATTERN = re.compile(r"/projects/(\d+)/")
-UUID_PATTERN = re.compile(r"/([A-Za-z0-9]{32})$")
 
 
 class RetrySkipTimeout(urllib3.Retry):
@@ -38,9 +33,14 @@ class RetrySkipTimeout(urllib3.Retry):
             # The url is high cardinality because of the ids in it, so strip it
             # from the path before using it in the metric tags.
             path = urlparse(url).path
-            path = ORGANIZATION_ID_PATTERN.sub("/organizations/:orgId/", path)
-            path = PROJECT_ID_PATTERN.sub("/projects/:projId/", path)
-            path = UUID_PATTERN.sub("/:uuid", path)
+            parts = path.split("/")
+            if len(parts) > 2:
+                parts[2] = ":orgId"
+            if len(parts) > 4:
+                parts[4] = ":projId"
+            if len(parts) > 6:
+                parts[6] = ":uuid"
+            path = "/".join(parts)
         else:
             path = None
 
