@@ -382,13 +382,8 @@ def post_process_group(
                     project=event.project,
                     event=event,
                 )
-            if (
-                event.project
-                and event.project.organization
-                and not features.has(
-                    "organizations:performance-issues-post-process-group",
-                    event.project.organization,
-                )
+            if not features.has(
+                "organizations:performance-issues-post-process-group", event.project.organization
             ):
                 return
 
