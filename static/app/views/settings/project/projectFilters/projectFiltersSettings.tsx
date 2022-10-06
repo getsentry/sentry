@@ -5,7 +5,6 @@ import iconIe from 'sentry-logos/logo-ie.svg';
 import iconOpera from 'sentry-logos/logo-opera.svg';
 import iconSafari from 'sentry-logos/logo-safari.svg';
 
-import ProjectActions from 'sentry/actions/projectActions';
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
@@ -25,6 +24,7 @@ import Switch from 'sentry/components/switchButton';
 import filterGroups, {customFilterFields} from 'sentry/data/forms/inboundFilters';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 
@@ -223,7 +223,7 @@ class ProjectFiltersSettings extends AsyncComponent<Props, State> {
 
   handleSubmit = (response: Project) => {
     // This will update our project context
-    ProjectActions.updateSuccess(response);
+    ProjectsStore.onUpdateSuccess(response);
   };
 
   renderDisabledCustomFilters = p => (

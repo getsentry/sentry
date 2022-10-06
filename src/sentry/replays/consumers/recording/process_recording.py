@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import concurrent.futures
 import logging
+import random
 import time
 from collections import deque
 from concurrent.futures import Future
@@ -25,7 +26,7 @@ from sentry.replays.consumers.recording.types import (
     RecordingSegmentMessage,
 )
 from sentry.replays.models import ReplayRecordingSegment
-from sentry.utils import json
+from sentry.utils import json, metrics
 from sentry.utils.sdk import configure_scope
 
 logger = logging.getLogger("sentry.replays")
@@ -61,6 +62,7 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
         self.__commit_data: MutableMapping[Partition, Position] = {}
         self.__last_committed: float = 0
 
+    @metrics.wraps("replays.process_recording.process_chunk")
     def _process_chunk(
         self, message_dict: RecordingSegmentChunkMessage, message: Message[KafkaPayload]
     ) -> None:
@@ -91,6 +93,7 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
             raise MissingRecordingSegmentHeaders
         return json.loads(recording_headers), recording_segment
 
+    @metrics.wraps("replays.process_recording.store_recording")
     def _store(
         self,
         message_dict: RecordingSegmentMessage,
@@ -132,6 +135,7 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
             # TODO: how to handle failures in the above calls. what should happen?
             # also: handling same message twice?
 
+    @metrics.wraps("replays.process_recording.get_from_cache")
     def _get_from_cache(self, message_dict: RecordingSegmentMessage) -> CachedAttachment | None:
         cache_id = replay_recording_segment_cache_id(
             message_dict["project_id"], message_dict["replay_id"]
@@ -166,6 +170,7 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
             )
         )
 
+    @metrics.wraps("replays.process_recording.submit")
     def submit(self, message: Message[KafkaPayload]) -> None:
         assert not self.__closed
 
@@ -173,6 +178,8 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
             with sentry_sdk.start_transaction(
                 op="replays.consumer.process_recording",
                 description="Replay recording segment message received.",
+                sampled=random.random()
+                < getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0),
             ):
                 message_dict = msgpack.unpackb(message.payload.value)
                 self._configure_sentry_scope(message_dict)
