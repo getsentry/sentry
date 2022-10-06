@@ -102,14 +102,14 @@ export type SamplingRule = {
 
 export type SamplingDistribution = {
   endTimestamp: string | null;
-  project_breakdown:
+  projectBreakdown:
     | null
     | {
         'count()': number;
         project: string;
         project_id: number;
       }[];
-  sample_size: number;
+  sampleSize: number;
   startTimestamp: string | null;
 };
 
