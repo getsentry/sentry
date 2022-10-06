@@ -310,7 +310,6 @@ class GitHubIntegrationTest(IntegrationTestCase):
         with self.tasks():
             self.assert_setup_flow()
 
-        # XXX: This is actually wrong
         querystring = urlencode({"q": "org:Test Organization ex"})
         responses.add(
             responses.GET,

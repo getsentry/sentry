@@ -1,4 +1,3 @@
-from typing import Any, Mapping, Sequence
 from urllib.parse import urlparse
 
 from django import forms
@@ -15,7 +14,7 @@ from sentry.integrations import (
     IntegrationInstallation,
     IntegrationMetadata,
 )
-from sentry.integrations.github.integration import GitHubIntegrationProvider
+from sentry.integrations.github.integration import GitHubIntegrationProvider, build_repository_query
 from sentry.integrations.github.issues import GitHubIssueBasic
 from sentry.integrations.github.utils import get_jwt
 from sentry.integrations.mixins import RepositoryMixin
@@ -118,15 +117,15 @@ class GitHubEnterpriseIntegration(IntegrationInstallation, GitHubIssueBasic, Rep
             verify_ssl=self.model.metadata["installation"]["verify_ssl"],
         )
 
-    def get_repositories(self):
-        return [
-            {"name": i["name"], "identifier": i["full_name"]}
-            for i in self.get_client().get_repositories()
-        ]
+    def get_repositories(self, query=None):
+        if not query:
+            return [
+                {"name": i["name"], "identifier": i["full_name"]}
+                for i in self.get_client().get_repositories()
+            ]
 
-    def search_repositories(self, search_term: str) -> Sequence[Mapping[str, Any]]:
-        """Searches for all repositories that match a string"""
-        response = self.get_client().search_repositories(search_term)
+        full_query = build_repository_query(self.model.metadata, self.model.name, query)
+        response = self.get_client().search_repositories(full_query)
         return [
             {"name": i["name"], "identifier": i["full_name"]} for i in response.get("items", [])
         ]

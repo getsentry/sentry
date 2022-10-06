@@ -90,6 +90,11 @@ API_ERRORS = {
 }
 
 
+def build_repository_query(metadata: Mapping[str, Any], name: str, query: str) -> bytes:
+    account_type = "user" if metadata["account_type"] == "User" else "org"
+    return f"{account_type}:{name} {query}".encode()
+
+
 # Github App docs and list of available endpoints
 # https://docs.github.com/en/rest/apps/installations
 # https://docs.github.com/en/rest/overview/endpoints-available-for-github-apps
@@ -107,9 +112,10 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
             for i in self.get_client().get_repositories()
         ]
 
-    def search_repositories(self, search_term: str) -> Sequence[Mapping[str, Any]]:
+    def search_repositories(self, query: str | None = None) -> Sequence[Mapping[str, Any]]:
         """Searches for all repositories that match a string"""
-        response = self.get_client().search_repositories(search_term)
+        full_query = build_repository_query(self.model.metadata, self.model.name, query)
+        response = self.get_client().search_repositories(full_query)
         return [
             {"name": i["name"], "identifier": i["full_name"]} for i in response.get("items", [])
         ]
