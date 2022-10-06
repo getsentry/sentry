@@ -114,9 +114,9 @@ type Props = DefaultProps & {
   location: Location;
   organization: Organization;
   projects: Project[];
+  queryDataLoading: boolean;
   router: InjectedRouter;
   savedQuery: SavedQuery | undefined;
-  savedQueryLoading: boolean;
   setHomepageQuery: (homepageQuery?: SavedQuery) => void;
   setSavedQuery: (savedQuery: SavedQuery) => void;
   updateCallback: () => void;
@@ -134,7 +134,7 @@ type State = {
 
 class SavedQueryButtonGroup extends PureComponent<Props, State> {
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
-    const {eventView: nextEventView, savedQuery, savedQueryLoading, yAxis} = nextProps;
+    const {eventView: nextEventView, savedQuery, queryDataLoading, yAxis} = nextProps;
 
     // For a new unsaved query
     if (!savedQuery) {
@@ -145,7 +145,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
       };
     }
 
-    if (savedQueryLoading) {
+    if (queryDataLoading) {
       return prevState;
     }
 
@@ -403,6 +403,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
       isHomepage,
       setHomepageQuery,
       homepageQuery,
+      queryDataLoading,
     } = this.props;
     if (
       homepageQuery &&
@@ -426,6 +427,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
               });
             }
           }}
+          disabled={queryDataLoading}
         >
           {t('Reset Discover Home')}
           <FeatureBadge type="alpha" />
@@ -447,6 +449,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
             setHomepageQuery(updatedHomepageQuery);
           }
         }}
+        disabled={queryDataLoading}
       >
         {t('Use as Discover Home')}
         <FeatureBadge type="alpha" />
