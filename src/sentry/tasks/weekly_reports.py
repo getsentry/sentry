@@ -183,24 +183,24 @@ def project_event_counts_for_organization(ctx):
 
     for dat in data:
         project_id = dat["project_id"]
-        project = ctx.projects[project_id]
+        project_ctx = ctx.projects[project_id]
         total = dat["total"]
         timestamp = int(to_timestamp(parse_snuba_datetime(dat["time"])))
         if dat["category"] == DataCategory.TRANSACTION:
             # Transaction outcome
             if dat["outcome"] == Outcome.RATE_LIMITED:
-                project.dropped_transaction_count += total
+                project_ctx.dropped_transaction_count += total
             else:
-                project.accepted_transaction_count += total
-                project.transaction_count_by_day[timestamp] = total
+                project_ctx.accepted_transaction_count += total
+                project_ctx.transaction_count_by_day[timestamp] = total
         else:
             # Error outcome
             if dat["outcome"] == Outcome.RATE_LIMITED:
-                project.dropped_error_count += total
+                project_ctx.dropped_error_count += total
             else:
-                project.accepted_error_count += total
-                project.error_count_by_day[timestamp] = (
-                    project.error_count_by_day.get(timestamp, 0) + total
+                project_ctx.accepted_error_count += total
+                project_ctx.error_count_by_day[timestamp] = (
+                    project_ctx.error_count_by_day.get(timestamp, 0) + total
                 )
 
 

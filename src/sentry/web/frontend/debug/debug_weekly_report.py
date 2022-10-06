@@ -14,6 +14,7 @@ from sentry.incidents.models import (
 )
 from sentry.models import Organization, Project, User
 from sentry.tasks.weekly_reports import (
+    ONE_DAY,
     OrganizationReportContext,
     ProjectContext,
     render_template_context,
@@ -49,6 +50,10 @@ class DebugWeeklyReportView(MailPreviewView):
         ctx = OrganizationReportContext(timestamp, duration, organization)
         ctx.projects.clear()
 
+        start_timestamp = to_timestamp(ctx.start)
+
+        daily_maximum = random.randint(1000, 10000)
+
         # Initialize projects
         for i in range(0, random.randint(1, 8)):
             name = " ".join(random.sample(loremipsum.words, random.randint(1, 4)))
@@ -60,16 +65,18 @@ class DebugWeeklyReportView(MailPreviewView):
                 date_added=ctx.start - timedelta(days=random.randint(0, 120)),
             )
             project_context = ProjectContext(project)
-            project_context.dropped_transaction_count = int(
-                random.weibullvariate(5, 1) * random.paretovariate(0.2)
-            )
-            project_context.accepted_transaction_count = int(
-                random.weibullvariate(5, 1) * random.paretovariate(0.2)
-            )
+            project_context.error_count_by_day = {
+                start_timestamp + (i * ONE_DAY): random.randint(0, daily_maximum) for i in range(0, 7)
+            }
+            project_context.transaction_count_by_day = {
+                start_timestamp + (i * ONE_DAY): random.randint(0, daily_maximum) for i in range(0, 7)
+            }
+            project_context.accepted_transaction_count = sum(project_context.transaction_count_by_day.values())
+            project_context.accepted_error_count = sum(project_context.error_count_by_day.values())
             project_context.dropped_error_count = int(
                 random.weibullvariate(5, 1) * random.paretovariate(0.2)
             )
-            project_context.accepted_error_count = int(
+            project_context.dropped_transaction_count = int(
                 random.weibullvariate(5, 1) * random.paretovariate(0.2)
             )
             ctx.projects[project.id] = project_context
