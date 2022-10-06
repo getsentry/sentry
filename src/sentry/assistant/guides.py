@@ -29,23 +29,21 @@ GUIDES = {
 
 # demo mode has different guides
 if settings.DEMO_MODE:
-    # GUIDES = {
-    #     "sidebar": 20,
-    #     "issue_stream_v2": 21,
-    #     "issue_v2": 22,
-    #     "releases": 23,
-    #     "release_details": 24,
-    #     "discover_landing": 25,
-    #     "discover_event_view": 26,
-    #     "transaction_details": 27,
-    # }
     GUIDES = {
         "sidebar": 20,
-        "issues": 21,
-        "releases": 22,
-        "react-native-release": 23,
-        "release-details": 24,
-        "performance": 25,
-        "transaction_summary": 26,
+        "issue_stream_v2": 21,
+        "issue_v2": 22,
+        "releases": 23,
+        "release_details": 24,
+        "discover_landing": 25,
+        "discover_event_view": 26,
         "transaction_details": 27,
+        "sidebar_v2": 28,
+        "issues_v3": 29,
+        "releases_v2": 30,
+        "react-native-release": 31,
+        "release-details_v2": 32,
+        "performance": 33,
+        "transaction_summary": 34,
+        "transaction_details_v2": 35,
     }
