@@ -142,7 +142,20 @@ class DynamicSamplingSerializer(serializers.Serializer):
         try:
             config_str = json.dumps(data)
             validate_sampling_configuration(config_str)
-            self.validate_uniform_sampling_rule(data.get("rules", []))
+            project = self.context.get("project")
+            request = self.context.get("request")
+            is_demo = False
+
+            # This checks are needed because we are testing the serializer without passing this information
+            if project is not None and request is not None:
+                org = project.organization
+                user = request.user
+                # If the feature flag 'organizations:dynamic-sampling-demo' is enabled, we skip the uniform rule validation.
+                # This is useful for product demos, as the user will be able to delete uniform rules.
+                is_demo = features.has("organizations:dynamic-sampling-demo", org, actor=user)
+
+            if is_demo is False:
+                self.validate_uniform_sampling_rule(data.get("rules", []))
         except ValueError as err:
             reason = err.args[0] if len(err.args) > 0 else "invalid configuration"
             raise serializers.ValidationError(reason)

@@ -233,7 +233,8 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
 
     def setUp(self):
         super().setUp()
-        self.project = self.create_project(platform="javascript")
+        self.org = self.create_organization(name="Rowdy Tiger", owner=None)
+        self.project = self.create_project(organization=self.org, platform="javascript")
         self.user = self.create_user("bar@example.com")
 
     def test_member_can_read_project_details(self):
@@ -822,9 +823,89 @@ class ProjectUpdateTest(APITestCase):
                 event=audit_log.get_event_id("PROJECT_EDIT"),
             )
 
+    def test_dynamic_sampling_uniform_rule_deletion_fail(self):
+        """
+        Tests that when sending a request to delete a dynamic sampling uniform rule without the demo feature flag,
+        the rule will fail to delete
+        """
+        dynamic_sampling = _dyn_sampling_data()
+        project = self.project  # force creation
+
+        # Update project adding three rules
+        project.update_option("sentry:dynamic_sampling", dynamic_sampling)
+
+        self.login_as(self.user)
+
+        token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
+        authorization = f"Bearer {token.token}"
+
+        url = reverse(
+            "sentry-api-0-project-details",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+            },
+        )
+
+        data = {
+            "dynamicSampling": {
+                "rules": [],
+            }
+        }
+
+        with Feature({"organizations:server-side-sampling": True}):
+            response = self.client.put(
+                url, format="json", HTTP_AUTHORIZATION=authorization, data=data
+            )
+
+            assert response.status_code == 400, response.content
+
+    def test_dynamic_sampling_uniform_rule_deletion_success(self):
+        """
+        Tests that when sending a request to delete a dynamic sampling uniform rule with the demo feature flag,
+        the rule will be successfully deleted
+        """
+        dynamic_sampling = _dyn_sampling_data()
+        project = self.project  # force creation
+
+        # Update project adding three rules
+        project.update_option("sentry:dynamic_sampling", dynamic_sampling)
+
+        self.login_as(self.user)
+
+        token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
+        authorization = f"Bearer {token.token}"
+
+        url = reverse(
+            "sentry-api-0-project-details",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+            },
+        )
+
+        data = {
+            "dynamicSampling": {
+                "rules": [],
+            }
+        }
+
+        with Feature(
+            {
+                "organizations:server-side-sampling": True,
+                "organizations:dynamic-sampling-demo": True,
+            }
+        ):
+
+            response = self.client.put(
+                url, format="json", HTTP_AUTHORIZATION=authorization, data=data
+            )
+
+            assert response.status_code == 200, response.content
+
     def test_dynamic_sampling_rule_deletion(self):
         """
-        Tests that when sending a request to dekete a dynamic sampling rule,
+        Tests that when sending a request to delete a dynamic sampling rule,
         the rule will be successfully deleted and that the audit log 'SAMPLING_RULE_REMOVE' will be triggered
         """
         dynamic_sampling = _dyn_sampling_data()
@@ -1717,6 +1798,7 @@ def test_rule_config_serializer():
         ],
         "next_id": 22,
     }
+
     serializer = DynamicSamplingSerializer(data=data)
     assert serializer.is_valid()
     assert data == serializer.validated_data
