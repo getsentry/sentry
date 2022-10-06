@@ -32,7 +32,11 @@ class OrganizationIntegrationReposEndpoint(OrganizationIntegrationBaseEndpoint):
 
         if isinstance(install, RepositoryMixin):
             try:
-                repositories = install.get_repositories(request.GET.get("search"))
+                search = request.GET.get("search")
+                if search:
+                    repositories = install.search_repositories(search)
+                else:
+                    repositories = install.get_repositories()
             except (IntegrationError, IdentityNotValid) as e:
                 return self.respond({"detail": str(e)}, status=400)
 
