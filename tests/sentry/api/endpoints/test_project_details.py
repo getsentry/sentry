@@ -787,6 +787,14 @@ class ProjectUpdateTest(APITestCase):
             self.org_slug, self.proj_slug, dynamicSampling=_dyn_sampling_data(), status_code=403
         )
 
+    # TODO: write test.
+    def test_setting_dynamic_sampling_with_uniform_rule(self):
+        return
+
+    # TODO: write test.
+    def test_setting_dynamic_sampling_with_condition_rule(self):
+        return
+
     def test_setting_dynamic_sampling_rules(self):
         """
         Test that we can set sampling rules

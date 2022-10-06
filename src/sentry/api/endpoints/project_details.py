@@ -1,3 +1,4 @@
+import enum
 import math
 import time
 from datetime import timedelta
@@ -52,6 +53,12 @@ from sentry.utils import json
 #: Relay compiles this list into a regex which cannot exceed a certain size.
 #: Limit determined experimentally here: https://github.com/getsentry/relay/blob/3105d8544daca3a102c74cefcd77db980306de71/relay-general/src/pii/convert.rs#L289
 MAX_SENSITIVE_FIELD_CHARS = 4000
+
+
+class DynamicSamplingAuthorizationResult(enum):
+    DS_NOT_AUTHORIZED = 0
+    DS_BASIC_ALLOWED = 1
+    DS_ADVANCED_ALLOWED = 2
 
 
 def clean_newline_inputs(value, case_insensitive=True):
@@ -482,16 +489,19 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         result = serializer.validated_data
 
-        allow_dynamic_sampling = features.has(
-            "organizations:server-side-sampling", project.organization, actor=request.user
-        )
+        # validation_result = self.authorize_dynamic_sampling(result.get("dynamicSampling"))
 
-        if not allow_dynamic_sampling and result.get("dynamicSampling"):
-            # trying to set sampling with feature disabled
-            return Response(
-                {"detail": ["You do not have permission to set sampling."]},
-                status=403,
-            )
+        # allow_dynamic_sampling = features.has(
+        #     "organizations:server-side-sampling", project.organization, actor=request.user
+        # )
+        #
+        #
+        # if not allow_dynamic_sampling and result.get("dynamicSampling"):
+        #     # trying to set sampling with feature disabled
+        #     return Response(
+        #         {"detail": ["You do not have permission to set sampling."]},
+        #         status=403,
+        #     )
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
@@ -953,3 +963,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             common_audit_data,
             "SAMPLING_RULE_EDIT",
         )
+
+    # TODO: check thread here
+    #  https://sentry.slack.com/archives/C03B7A8GGLA/p1665041535882819?thread_ts=1665039905.072039&cid=C03B7A8GGLA
+    def authorize_dynamic_sampling(
+        self, dynamic_sampling_rules
+    ) -> DynamicSamplingAuthorizationResult:
+        # TODO: implement check and throw error if needed.
+        return
