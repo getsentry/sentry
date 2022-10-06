@@ -1,7 +1,6 @@
 import {createStore} from 'reflux';
 
 import GroupStore from 'sentry/stores/groupStore';
-import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 import {CommonStoreDefinition} from './types';
 
@@ -43,10 +42,6 @@ const storeConfig: SelectedGroupStoreDefinition = {
 
   init() {
     this.reset();
-
-    this.unsubscribeListeners.push(
-      this.listenTo(GroupStore, this.onGroupChange, this.onGroupChange)
-    );
   },
 
   reset() {
@@ -165,5 +160,5 @@ const storeConfig: SelectedGroupStoreDefinition = {
   },
 };
 
-const SelectedGroupStore = createStore(makeSafeRefluxStore(storeConfig));
+const SelectedGroupStore = createStore(storeConfig);
 export default SelectedGroupStore;
