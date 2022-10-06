@@ -84,6 +84,7 @@ class EventStream(Service):
                 primary_hash=primary_hash,
                 cache_key=cache_key,
                 group_id=group_id,
+                group_states=group_states,
             )
 
     def insert(
