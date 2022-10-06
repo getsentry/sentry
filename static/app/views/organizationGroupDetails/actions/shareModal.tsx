@@ -18,7 +18,6 @@ import useApi from 'sentry/utils/useApi';
 
 interface ShareIssueModalProps extends ModalRenderProps {
   groupId: string;
-  loading: boolean;
   organization: Organization;
   projectSlug: string;
   disabled?: boolean;
@@ -39,7 +38,7 @@ function ShareIssueModal({
   const [loading, setLoading] = useState(false);
   const urlRef = useRef<UrlRef>(null);
   const groups = useLegacyStore(GroupStore);
-  const group = groups.find(item => item.id === groupId) as Group;
+  const group = (groups as Group[]).find(item => item.id === groupId)!;
   const isShared = group.isPublic;
 
   function getShareUrl() {
@@ -104,7 +103,12 @@ function ShareIssueModal({
               <Title>{t('Create a public link')}</Title>
               <SubText>{t('Share a link with anyone outside your organization')}</SubText>
             </div>
-            <Switch isActive={isShared} size="lg" toggle={handleShare} />
+            <Switch
+              aria-label={isShared ? t('Unshare') : t('Share')}
+              isActive={isShared}
+              size="lg"
+              toggle={handleShare}
+            />
           </SwitchWrapper>
 
           {loading && (
@@ -146,6 +150,7 @@ function ShareIssueModal({
       <Footer>
         {!loading && isShared && shareUrl ? (
           <Button
+            type="button"
             priority="primary"
             onClick={() => {
               navigator.clipboard.writeText(shareUrl);
@@ -156,6 +161,7 @@ function ShareIssueModal({
           </Button>
         ) : (
           <Button
+            type="button"
             priority="primary"
             onClick={() => {
               closeModal();
