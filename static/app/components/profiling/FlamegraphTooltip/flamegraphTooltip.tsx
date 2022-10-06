@@ -52,10 +52,9 @@ export function FlamegraphTooltip(props: FlamegraphTooltipProps) {
           )}{' '}
           {props.frame.frame.name}
         </FlamegraphTooltipFrameMainInfo>
-        {(defined(props.frame.frame.file) || defined(props.frame.frame.line)) && (
+        {defined(props.frame.frame.file) && (
           <FlamegraphTooltipTimelineInfo>
-            {props.frame.frame.file ?? t('<unknown file>')}:
-            {props.frame.frame.line ?? t('<unknown line>')}
+            {props.frame.frame.file}:{props.frame.frame.line ?? t('<unknown line>')}
           </FlamegraphTooltipTimelineInfo>
         )}
         <FlamegraphTooltipTimelineInfo>
