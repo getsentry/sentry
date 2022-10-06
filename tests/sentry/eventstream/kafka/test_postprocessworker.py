@@ -317,15 +317,20 @@ def test_errors_post_process_forwarder_calls_post_process_group(
         assert post_process_group_spy.call_count == 1
         from sentry.utils.cache import cache_key_for_event
 
+        group_state = dict(
+            is_new=False,
+            is_regression=None,
+            is_new_group_environment=False,
+        )
+
         assert post_process_group_spy.call_args.kwargs == dict(
             group_id=43,
             primary_hash="311ee66a5b8e697929804ceb1c456ffe",
             cache_key=cache_key_for_event(
                 {"project": str(1), "event_id": "fe0ee9a2bc3b415497bad68aaf70dc7f"}
             ),
-            is_new=False,
-            is_regression=None,
-            is_new_group_environment=False,
+            **group_state,
+            group_states=[{"id": 43, **group_state}],
         )
 
     forwarder.shutdown()
@@ -353,15 +358,20 @@ def test_transactions_post_process_forwarder_calls_post_process_group(
         assert post_process_group_spy.call_count == 1
         from sentry.utils.cache import cache_key_for_event
 
+        group_state = dict(
+            is_new=False,
+            is_regression=None,
+            is_new_group_environment=False,
+        )
+
         assert post_process_group_spy.call_args.kwargs == dict(
             group_id=43,
             primary_hash="311ee66a5b8e697929804ceb1c456ffe",
             cache_key=cache_key_for_event(
                 {"project": str(1), "event_id": "fe0ee9a2bc3b415497bad68aaf70dc7f"}
             ),
-            is_new=False,
-            is_regression=None,
-            is_new_group_environment=False,
+            **group_state,
+            group_states=[{"id": 43, **group_state}],
         )
 
     forwarder.shutdown()
