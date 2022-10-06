@@ -43,9 +43,7 @@ class GitHubSearchEndpoint(IntegrationEndpoint):  # type: ignore
 
         if field == "repo":
             try:
-                response = installation.get_client().search_repositories(
-                    self.org_user_query_term, query
-                )
+                response = installation.get_client().search_repositories(query)
             except ApiError as err:
                 if err.code == 403:
                     return Response({"detail": "Rate limit exceeded"}, status=429)

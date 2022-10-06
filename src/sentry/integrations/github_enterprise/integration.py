@@ -126,7 +126,7 @@ class GitHubEnterpriseIntegration(IntegrationInstallation, GitHubIssueBasic, Rep
 
     def search_repositories(self, search_term: str) -> Sequence[Mapping[str, Any]]:
         """Searches for all repositories that match a string"""
-        response = self.get_client().search_repositories(self.org_user_query_term, search_term)
+        response = self.get_client().search_repositories(search_term)
         return [
             {"name": i["name"], "identifier": i["full_name"]} for i in response.get("items", [])
         ]

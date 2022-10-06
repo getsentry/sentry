@@ -76,14 +76,14 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         return [repo for repo in repos if not repo.get("archived")]
 
     # XXX: Find alternative approach
-    def search_repositories(
-        self, org_user: str, search_term: str
-    ) -> Mapping[str, Sequence[JSONData]]:
+    def search_repositories(self, search_term: str) -> Mapping[str, Sequence[JSONData]]:
         """Find repositories matching a query.
         NOTE: This API is rate limited to 30 requests/minute"""
+        account_type = "user" if self.integration.metadata["account_type"] == "User" else "org"
         # Explicitly typing to satisfy mypy.
         repositories: Mapping[str, Sequence[JSONData]] = self.get(
-            "/search/repositories", params={"q": f"{org_user} {search_term}"}
+            "/search/repositories",
+            params={"q": f"{account_type}:{self.integration.name} {search_term}"},
         )
         return repositories
 

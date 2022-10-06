@@ -325,7 +325,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         integration = Integration.objects.get(provider=self.provider.key)
         installation = integration.get_installation(self.organization)
         # This searches for any repositories matching the term 'ex'
-        result = installation.get_repositories("ex")
+        result = installation.search_repositories("ex")
         assert result == [
             {"identifier": "test/example", "name": "example"},
             {"identifier": "test/exhaust", "name": "exhaust"},
