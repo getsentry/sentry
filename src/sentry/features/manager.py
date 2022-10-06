@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 __all__ = ["FeatureManager"]
 
 import abc
@@ -231,8 +233,8 @@ class FeatureManager(RegisteredFeatureManager):
 
             # Features are by default disabled if no plugin or default enables them
             return False
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
+        except Exception:
+            logging.exception("Failed to run feature check")
             return False
 
     def batch_has(
