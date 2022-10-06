@@ -43,8 +43,11 @@ class GroupAttachmentsEndpoint(GroupEndpoint, EnvironmentMixin):
         attachments = EventAttachment.objects.filter(group_id=group.id)
 
         types = request.GET.getlist("types") or ()
+        event_ids = request.GET.getlist("event_id") or ()
         if types:
             attachments = attachments.filter(type__in=types)
+        if event_ids:
+            attachments = attachments.filter(event_id__in=event_ids)
 
         return self.paginate(
             default_per_page=20,
