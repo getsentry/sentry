@@ -382,8 +382,15 @@ def post_process_group(
                     project=event.project,
                     event=event,
                 )
-
-            return
+            if (
+                event.project
+                and event.project.organization
+                and not features.has(
+                    "organizations:performance-issues-post-process-group",
+                    event.project.organization,
+                )
+            ):
+                return
 
         group_states = kwargs.get("group_states")
 
