@@ -31,10 +31,11 @@ class GroupEventAttachmentsTest(APITestCase):
 
         typesQuery = [("types", t) for t in types or ()]
         eventIdQuery = [("event_id", id) for id in event_ids or ()]
-        if typesQuery:
+        if typesQuery and eventIdQuery:
+            path += "?" + urlencode(typesQuery) + "&" + urlencode(eventIdQuery)
+        elif typesQuery:
             path += "?" + urlencode(typesQuery)
-
-        if eventIdQuery:
+        elif eventIdQuery:
             path += "?" + urlencode(eventIdQuery)
 
         return path
