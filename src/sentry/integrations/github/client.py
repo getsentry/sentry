@@ -94,7 +94,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         return assignees
 
     # To help use MagicMock
-    def _page_size(self):
+    def _page_size(self) -> int:
         return self.page_size
 
     def get_with_pagination(self, path: str, response_key: str | None = None) -> Sequence[JSONData]:
