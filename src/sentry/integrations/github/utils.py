@@ -29,7 +29,7 @@ def get_jwt(github_id: str | None = None, github_private_key: str | None = None)
     return jwt.encode(payload, github_private_key, algorithm="RS256")
 
 
-def get_link(response: Response, link_text: str = "next") -> str | None:
+def get_next_link(response: Response) -> str | None:
     """Github uses a link header to inform pagination.
     The relation parameter can be prev, next, first or last
     e.g. <https://api.github.com/organizations/1396951/repos?per_page=100&page=1>; rel="first"
@@ -43,7 +43,7 @@ def get_link(response: Response, link_text: str = "next") -> str | None:
 
     for link in links:
         # If there is a 'next' link return the URL between the angle brackets, or None
-        if f'rel="{link_text}"' in link:
+        if 'rel="next"' in link:
             start = link.find("<") + 1
             end = link.find(">")
             return link[start:end]

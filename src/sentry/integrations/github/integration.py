@@ -105,15 +105,19 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
     def get_client(self) -> GitHubClientMixin:
         return GitHubAppsClient(integration=self.model)
 
-    def get_repositories(self) -> Sequence[Mapping[str, Any]]:
-        """Get all repositories for the associated installation"""
-        return [
-            {"name": i["name"], "identifier": i["full_name"]}
-            for i in self.get_client().get_repositories()
-        ]
+    def get_repositories(self, query: str | None = None) -> Sequence[Mapping[str, Any]]:
+        """
+        This fetches all repositories accessible to a Github App
+        https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
 
-    def search_repositories(self, query: str) -> Sequence[Mapping[str, Any]]:
-        """Searches for all repositories that match a string"""
+        per_page: The number of results per page (max 100; default 30).
+        """
+        if not query:
+            return [
+                {"name": i["name"], "identifier": i["full_name"]}
+                for i in self.get_client().get_repositories()
+            ]
+
         full_query = build_repository_query(self.model.metadata, self.model.name, query)
         response = self.get_client().search_repositories(full_query)
         return [

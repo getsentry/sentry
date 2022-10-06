@@ -37,13 +37,12 @@ class GitHubIntegrationTest(IntegrationTestCase):
         plugins.register(GitHubPlugin)
 
     def tearDown(self):
+        responses.reset()
         plugins.unregister(GitHubPlugin)
         super().tearDown()
 
     def _stub_github(self):
         """This stubs the calls related to a Github App"""
-        responses.reset()
-
         sentry.integrations.github.integration.get_jwt = MagicMock(return_value="jwt_token_1")
         sentry.integrations.github.client.get_jwt = MagicMock(return_value="jwt_token_1")
         pp = 1
@@ -70,7 +69,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         responses.add(
             responses.GET,
             url=api_url,
-            match=[responses.matchers.query_param_matcher({"per_page": pp, "page": 1})],
+            match=[responses.matchers.query_param_matcher({"per_page": pp})],
             json={"repositories": [repositories[0]]},
             headers={"link": ", ".join([gen_link(2, "next"), last])},
         )
@@ -320,7 +319,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         integration = Integration.objects.get(provider=self.provider.key)
         installation = integration.get_installation(self.organization)
         # This searches for any repositories matching the term 'ex'
-        result = installation.search_repositories("ex")
+        result = installation.get_repositories("ex")
         assert result == [
             {"identifier": "test/example", "name": "example"},
             {"identifier": "test/exhaust", "name": "exhaust"},

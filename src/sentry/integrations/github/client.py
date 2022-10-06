@@ -7,7 +7,7 @@ from typing import Any, Mapping, Sequence
 import sentry_sdk
 
 from sentry.integrations.client import ApiClient
-from sentry.integrations.github.utils import get_jwt, get_link
+from sentry.integrations.github.utils import get_jwt, get_next_link
 from sentry.models import Integration, Repository
 from sentry.utils import jwt
 from sentry.utils.json import JSONData
@@ -21,7 +21,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
     base_url = "https://api.github.com"
     integration_name = "github"
     # Github gives us links to navigate, however, let's be safe in case we're fed garbage
-    page_number_limit = 50  # 5,000 repositories
+    page_number_limit = 50  # With a default of 100 per page -> 5,000 items
 
     def get_jwt(self) -> str:
         return get_jwt()
@@ -69,10 +69,8 @@ class GitHubClientMixin(ApiClient):  # type: ignore
 
     def get_repositories(self) -> Sequence[JSONData]:
         """
-        This fetches all repositories accessible to a Github App
+        This fetches all repositories accessible to the Github App
         https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
-
-        per_page: The number of results per page (max 100; default 30).
         """
         # Explicitly typing to satisfy mypy.
         repos: JSONData = self.get_with_pagination(
@@ -99,14 +97,14 @@ class GitHubClientMixin(ApiClient):  # type: ignore
     def _page_size(self):
         return self.page_size
 
-    def get_with_pagination(
-        self, api_path: str, response_key: str | None = None
-    ) -> Sequence[JSONData]:
+    def get_with_pagination(self, path: str, response_key: str | None = None) -> Sequence[JSONData]:
         """
         Github uses the Link header to provide pagination links. Github
         recommends using the provided link relations and not constructing our
         own URL.
         https://docs.github.com/en/rest/guides/traversing-with-pagination
+
+        Use response_key when the API stores the results within a key.
         """
         with sentry_sdk.configure_scope() as scope:
             if scope.span is not None:
@@ -124,31 +122,14 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             sampled=True,
         ):
             output = []
-            page_number: int = 1
-            self._page_size()
+            resp = self.get(path, params={"per_page": self._page_size()})
+            output.extend(resp) if not response_key else output.extend(resp[response_key])
+            page_number = 1
 
-            # Safeguard in case there's something iffy in the headers Github gives us
-            while page_number < self.page_number_limit:
-                resp = self.get(
-                    api_path, params={"per_page": self._page_size(), "page": page_number}
-                )
+            while get_next_link(resp) and page_number < self.page_number_limit:
+                resp = self.get(get_next_link(resp))
                 output.extend(resp) if not response_key else output.extend(resp[response_key])
-                next_url = get_link(resp)
-                if next_url:
-                    # We want `installations/repositories` rather than
-                    # https://api.github.com/installations/repositories?per_page=X&page=Y
-                    api_path = next_url.split(self.base_url)[-1].split("?")[0]
-                else:
-                    # The last page does not include a next link, thus, break out
-                    break
-
-                # This will allow investigating issues
-                if page_number == self.page_number_limit:
-                    logger.error("github: Max pagination reached.")
-                    sentry_sdk.capture_message("github: Max pagination reached.", level="error")
-
                 page_number += 1
-
             return output
 
     def get_issues(self, repo: str) -> Sequence[JSONData]:
