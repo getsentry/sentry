@@ -182,6 +182,17 @@ function FlamegraphZoomView({
 
         dispatch({type: action});
       }
+
+      if (evt.target === flamegraphCanvasRef) {
+        const nextSelected = handleFlamegraphKeyboardNavigation(
+          evt,
+          selectedFramesRef.current?.[0]
+        );
+        if (nextSelected) {
+          selectedFramesRef.current = [nextSelected];
+          canvasPoolManager.dispatch('zoom at frame', [nextSelected, 'min']);
+        }
+      }
     };
 
     document.addEventListener('keydown', onKeyDown);
@@ -189,7 +200,15 @@ function FlamegraphZoomView({
     return () => {
       document.removeEventListener('keydown', onKeyDown);
     };
-  }, [canvasPoolManager, dispatch, nextState, previousState, flamegraphView]);
+  }, [
+    canvasPoolManager,
+    dispatch,
+    nextState,
+    previousState,
+    flamegraphView,
+    scheduler,
+    flamegraphCanvasRef,
+  ]);
 
   const previousInteraction = usePrevious(lastInteraction);
   const beforeInteractionConfigView = useRef<Rect | null>(null);
@@ -730,6 +749,7 @@ function FlamegraphZoomView({
         onMouseLeave={onCanvasMouseLeave}
         onContextMenu={handleContextMenuOpen}
         style={{cursor: lastInteraction === 'pan' ? 'grab' : 'default'}}
+        tabIndex={1}
       />
       <Canvas
         ref={canvas => setFlamegraphOverlayCanvasRef(canvas)}
@@ -781,5 +801,113 @@ const Canvas = styled('canvas')`
   user-select: none;
   position: absolute;
 `;
+
+function selectNearestFrame(n: FlamegraphFrame, dir: 'up' | 'down' | 'left' | 'right') {
+  if (!n) {
+    return null;
+  }
+
+  const targetDepth = n.depth;
+  let parent = n.parent;
+  let node = n;
+
+  if (dir === 'up' && parent) {
+    return parent;
+  }
+
+  const child = n.children?.[0];
+  if (dir === 'down' && child) {
+    return child;
+  }
+
+  while (parent) {
+    const indexOfChild = parent.children.indexOf(node);
+    if (indexOfChild === -1) {
+      return n;
+    }
+    const hasSiblings =
+      dir === 'right' ? indexOfChild < parent.children.length - 1 : indexOfChild > 0;
+
+    if (hasSiblings) {
+      const siblingOffset = dir === 'right' ? 1 : -1;
+      const sibling = parent.children[indexOfChild + siblingOffset];
+      const foundNode = scanForNearestFrameWithDepth(
+        sibling,
+        targetDepth,
+        dir as 'left' | 'right'
+      );
+      return foundNode;
+    }
+
+    node = parent;
+    parent = parent.parent;
+  }
+  return null;
+}
+
+function scanForNearestFrameWithDepth(
+  n: FlamegraphFrame,
+  depth: number,
+  dir: 'left' | 'right'
+) {
+  const stack = [n];
+
+  while (stack.length) {
+    const node = stack.pop();
+    if (!node) {
+      return node;
+    }
+    if (node.depth === depth) {
+      return node;
+    }
+    if (!node.children) {
+      continue;
+    }
+
+    const nextNode = node.children[dir === 'right' ? 0 : node.children.length - 1];
+    if (!nextNode) {
+      return node;
+    }
+    stack.push(nextNode);
+  }
+
+  return n;
+}
+
+const keyDirectionMap = {
+  ArrowUp: 'up',
+  ArrowDown: 'down',
+  ArrowLeft: 'left',
+  ArrowRight: 'right',
+  Tab: 'right',
+  'Shift+Tab': 'left',
+  Enter: 'down',
+  'Shift+Enter': 'up',
+  w: 'up',
+  s: 'down',
+  a: 'left',
+  d: 'right',
+};
+
+function handleFlamegraphKeyboardNavigation(
+  evt: KeyboardEvent,
+  currentFrame: FlamegraphFrame | undefined
+) {
+  if (!currentFrame) {
+    return null;
+  }
+  const key = evt.shiftKey ? `Shift+${evt.key}` : evt.key;
+  const direction = keyDirectionMap[key];
+  if (!direction) {
+    return currentFrame;
+  }
+  const nextSelection = selectNearestFrame(currentFrame, direction);
+  if (!nextSelection) {
+    return null;
+  }
+  evt.preventDefault();
+
+  return nextSelection;
+}
 
 export {FlamegraphZoomView};
