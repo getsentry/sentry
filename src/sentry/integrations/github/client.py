@@ -75,10 +75,15 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         )
         return [repo for repo in repos if not repo.get("archived")]
 
-    def search_repositories(self, query: str) -> Mapping[str, Sequence[JSONData]]:
+    # XXX: Find alternative approach
+    def search_repositories(
+        self, org_user: str, search_term: str
+    ) -> Mapping[str, Sequence[JSONData]]:
+        """Find repositories matching a query.
+        NOTE: This API is rate limited to 30 requests/minute"""
         # Explicitly typing to satisfy mypy.
         repositories: Mapping[str, Sequence[JSONData]] = self.get(
-            "/search/repositories", params={"q": query}
+            "/search/repositories", params={"q": f"{org_user} {search_term}"}
         )
         return repositories
 
@@ -111,7 +116,6 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         ):
             output = []
             resp = self.get(path, params={"per_page": self.page_size})
-
             output.extend(resp) if not response_key else output.extend(resp[response_key])
 
             page_number = 1
@@ -205,20 +209,6 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             path=f"/repos/{repo.name}/contents/{path}", params={"ref": version}
         )
         return file
-
-    # XXX: This function is mainly to find a file in a specific repo. Move to a different API
-    # Thankfully we do not use this code
-    def search_file(
-        self, repo: Repository, filename: str
-    ) -> Mapping[str, Sequence[Mapping[str, Any]]]:
-        """This uses Github's Search API.
-        It has a rate limit of 30 requests per minute.
-        https://docs.github.com/en/rest/search#about-the-search-api
-        """
-        query = f"filename:{filename}+repo:{repo}"
-
-        results: Mapping[str, Any] = self.get(path="/search/code", params={"q": query})
-        return results
 
     def get_file(self, repo: Repository, path: str, ref: str) -> str:
         """Get the contents of a file

@@ -257,6 +257,12 @@ class IntegrationProvider(PipelineProvider, abc.ABC):
         return feature in self.features
 
 
+def build_repository_query(account_type: str, name: str) -> str:
+    """Returns query representation of a user/org"""
+    account_type = "user" if account_type == "User" else "org"
+    return f"{account_type}:{name}"
+
+
 class IntegrationInstallation:
     """
     An IntegrationInstallation represents an installed integration and manages the
@@ -269,6 +275,7 @@ class IntegrationInstallation:
         self.model = model
         self.organization_id = organization_id
         self._org_integration = None
+        self.org_user_query_term = build_repository_query(model.metadata, model.name)
 
     @property
     def org_integration(self) -> OrganizationIntegration:

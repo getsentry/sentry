@@ -30,7 +30,7 @@ def get_jwt(github_id: str | None = None, github_private_key: str | None = None)
 
 
 def get_next_link(response: Response) -> str | None:
-    link_option: str | None = response.headers["link"]
+    link_option: str | None = response.headers.get("link")
     if link_option is None:
         return None
 

@@ -3,7 +3,6 @@ from rest_framework.response import Response
 
 from sentry.api.base import pending_silo_endpoint
 from sentry.api.bases.integration import IntegrationEndpoint
-from sentry.integrations.github.integration import build_repository_query
 from sentry.models import Integration, Organization
 from sentry.shared_integrations.exceptions import ApiError
 
@@ -43,11 +42,10 @@ class GitHubSearchEndpoint(IntegrationEndpoint):  # type: ignore
             )
 
         if field == "repo":
-            full_query = build_repository_query(
-                integration.metadata["account_type"], integration.name, query
-            )
             try:
-                response = installation.get_client().search_repositories(full_query)
+                response = installation.get_client().search_repositories(
+                    self.org_user_query_term, query
+                )
             except ApiError as err:
                 if err.code == 403:
                     return Response({"detail": "Rate limit exceeded"}, status=429)
