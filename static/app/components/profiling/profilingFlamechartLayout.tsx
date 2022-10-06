@@ -151,7 +151,7 @@ const ZoomViewContainer = styled('div')`
 const FrameStackContainer = styled('div')<{layout: FlamegraphPreferences['layout']}>`
   grid-area: frame-stack;
   position: relative;
-  overflow: auto;
+  overflow: hidden;
   min-width: ${MIN_FRAMESTACK_DIMENSIONS[0]}px;
 
   > div {

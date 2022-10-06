@@ -5,6 +5,7 @@ from sentry.spans.grouping.result import SpanGroupingResults
 from sentry.spans.grouping.strategy.base import (
     CallableStrategy,
     SpanGroupingStrategy,
+    loose_normalized_db_span_in_condition_strategy,
     normalized_db_span_in_condition_strategy,
     remove_http_client_query_string_strategy,
     remove_redis_command_arguments_strategy,
@@ -55,7 +56,7 @@ register_configuration(
 register_configuration(
     "default:2022-10-04",
     strategies=[
-        normalized_db_span_in_condition_strategy,
+        loose_normalized_db_span_in_condition_strategy,
         remove_http_client_query_string_strategy,
         remove_redis_command_arguments_strategy,
     ],
