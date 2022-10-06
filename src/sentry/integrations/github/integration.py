@@ -112,7 +112,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
             for i in self.get_client().get_repositories()
         ]
 
-    def search_repositories(self, query: str | None = None) -> Sequence[Mapping[str, Any]]:
+    def search_repositories(self, query: str) -> Sequence[Mapping[str, Any]]:
         """Searches for all repositories that match a string"""
         full_query = build_repository_query(self.model.metadata, self.model.name, query)
         response = self.get_client().search_repositories(full_query)

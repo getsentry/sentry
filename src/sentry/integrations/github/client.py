@@ -130,7 +130,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                 if next_url:
                     # We want `installations/repositories` rather than
                     # https://api.github.com/installations/repositories?per_page=X&page=Y
-                    api_path = get_link(resp).split(self.base_url)[-1].split("?")[0]
+                    api_path = next_url.split(self.base_url)[-1].split("?")[0]
                 else:
                     # The last page does not include a next link, thus, break out
                     break
