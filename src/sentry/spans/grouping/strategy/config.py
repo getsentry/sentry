@@ -40,7 +40,7 @@ def register_configuration(config_id: str, strategies: Sequence[CallableStrategy
     CONFIGURATIONS[config_id] = SpanGroupingConfig(config_id, strategy)
 
 
-DEFAULT_CONFIG_ID = "default:2021-08-25"
+DEFAULT_CONFIG_ID = "default:2022-10-04"
 
 register_configuration(
     "default:2021-08-25",
