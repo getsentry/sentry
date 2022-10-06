@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from typing import TYPE_CHECKING, Optional, TypedDict
 
@@ -10,6 +12,7 @@ from sentry.killswitches import killswitch_matches_context
 from sentry.signals import event_processed, issue_unignored, transaction_processed
 from sentry.tasks.base import instrumented_task
 from sentry.types.activity import ActivityType
+from sentry.types.issues import GroupCategory
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.event_frames import get_sdk_name
@@ -21,7 +24,7 @@ from sentry.utils.services import build_instance_from_options
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event
-    from sentry.eventstream.base import GroupState
+    from sentry.eventstream.base import GroupState, GroupStates
 
 logger = logging.getLogger("sentry")
 
@@ -29,8 +32,8 @@ locks = LockManager(build_instance_from_options(settings.SENTRY_POST_PROCESS_LOC
 
 
 class PostProcessJob(TypedDict, total=False):
-    event: "Event"
-    group_state: "GroupState"
+    event: Event
+    group_state: GroupState
     is_reprocessed: bool
     has_reappeared: bool
     has_alert: bool
@@ -74,29 +77,40 @@ def _should_send_error_created_hooks(project):
     return result
 
 
-def _capture_stats(job: PostProcessJob) -> None:
-    event, is_new = job["event"], job["group_state"]["is_new"]
-    # TODO(dcramer): limit platforms to... something?
+def should_write_event_stats(event: Event):
+    # For now, we only want to write these stats for error events. If we start writing them for
+    # other event types we'll throw off existing stats and potentially cause various alerts to fire.
+    # We might decide to write these stats for other event types later, either under different keys
+    # or with differentiating tags.
+    return event.group.issue_category == GroupCategory.ERROR and event.group.platform is not None
+
+
+def format_event_platform(event: Event):
     platform = event.group.platform
     if not platform:
         return
-    platform = platform.split("-", 1)[0].split("_", 1)[0]
+    return platform.split("-", 1)[0].split("_", 1)[0]
+
+
+def _capture_event_stats(event: Event) -> None:
+    if not should_write_event_stats(event):
+        return
+
+    platform = format_event_platform(event)
     tags = {"platform": platform}
-
-    if is_new:
-        metrics.incr("events.unique", tags=tags, skip_internal=False)
-
-    metrics.incr("events.processed", tags=tags, skip_internal=False)
+    metrics.incr("events.processed", tags={"platform": platform}, skip_internal=False)
     metrics.incr(f"events.processed.{platform}", skip_internal=False)
     metrics.timing("events.size.data", event.size, tags=tags)
 
-    # This is an experiment to understand whether we have, in production,
-    # mismatches between event and group before we permanently rely on events
-    # for the platform. before adding some more verbose logging on this
-    # case, using a stats will give us a sense of the magnitude of the problem.
-    if event.group:
-        if event.group.platform != event.platform:
-            metrics.incr("events.platform_mismatch", tags=tags)
+
+def _capture_group_stats(job: PostProcessJob) -> None:
+    event = job["event"]
+    if not job["group_state"]["is_new"] or not should_write_event_stats(event):
+        return
+
+    platform = format_event_platform(event)
+    tags = {"platform": platform}
+    metrics.incr("events.unique", tags=tags, skip_internal=False)
 
 
 def handle_owner_assignment(job):
@@ -310,7 +324,13 @@ def fetch_buffered_group_stats(group):
     queue="triggers-0",
 )
 def post_process_group(
-    is_new, is_regression, is_new_group_environment, cache_key, group_id=None, **kwargs
+    is_new,
+    is_regression,
+    is_new_group_environment,
+    cache_key,
+    group_id=None,
+    group_states: Optional[GroupStates] = None,
+    **kwargs,
 ):
     """
     Fires post processing hooks for a group.
@@ -384,6 +404,8 @@ def post_process_group(
             return
 
         update_event_group(event)
+        _capture_event_stats(event)
+
         bind_organization_context(event.project.organization)
 
         for group_state in group_states:
@@ -393,29 +415,29 @@ def post_process_group(
                 "is_reprocessed": is_reprocessed,
                 "has_reappeared": not group_state["is_new"],
             }
-
-            _capture_stats(job)
-            process_snoozes(job)
-            process_inbox_adds(job)
-            handle_owner_assignment(job)
-            process_rules(job)
-            process_commits(job)
-            process_service_hooks(job)
-            process_resource_change_bounds(job)
-            process_plugins(job)
-            process_similarity(job)
-            update_existing_attachments(job)
-
-            if not is_reprocessed:
-                event_processed.send_robust(
-                    sender=post_process_group,
-                    project=event.project,
-                    event=event,
-                    primary_hash=kwargs.get("primary_hash"),
-                )
+            run_post_process_job(job)
 
 
-def process_event(data: dict, group_id: Optional[int]) -> "Event":
+def run_post_process_job(job: PostProcessJob):
+    event = job["event"]
+    if event.group.issue_category not in GROUP_CATEGORY_POST_PROCESS_PIPELINE:
+        logger.error(
+            "No post process pipeline configured for issue category",
+            extra={"category": event.group.issue_category},
+        )
+        return
+    pipeline = GROUP_CATEGORY_POST_PROCESS_PIPELINE[event.group.issue_category]
+    for pipeline_step in pipeline:
+        try:
+            pipeline_step(job)
+        except Exception:
+            logger.exception(
+                f"Failed to process pipeline step {pipeline_step}",
+                extra={"event": event, "group": event.group},
+            )
+
+
+def process_event(data: dict, group_id: Optional[int]) -> Event:
     from sentry.eventstore.models import Event
     from sentry.models import EventDict
 
@@ -432,7 +454,7 @@ def process_event(data: dict, group_id: Optional[int]) -> "Event":
     return event
 
 
-def update_event_group(event: "Event") -> None:
+def update_event_group(event: Event) -> None:
     # NOTE: we must pass through the full Event object, and not an
     # event_id since the Event object may not actually have been stored
     # in the database due to sampling.
@@ -707,6 +729,17 @@ def process_similarity(job: PostProcessJob) -> None:
         safe_execute(similarity.record, event.project, [event], _with_transaction=False)
 
 
+def fire_error_processed(job: PostProcessJob):
+    if job["is_reprocessed"]:
+        return
+    event = job["event"]
+    event_processed.send_robust(
+        sender=post_process_group,
+        project=event.project,
+        event=event,
+    )
+
+
 def plugin_post_process_group(plugin_slug, event, **kwargs):
     """
     Fires post processing hooks for a group.
@@ -724,3 +757,21 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
         _with_transaction=False,
         **kwargs,
     )
+
+
+GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
+    GroupCategory.ERROR: [
+        _capture_group_stats,
+        process_snoozes,
+        process_inbox_adds,
+        handle_owner_assignment,
+        process_rules,
+        process_commits,
+        process_service_hooks,
+        process_resource_change_bounds,
+        process_plugins,
+        process_similarity,
+        update_existing_attachments,
+        fire_error_processed,
+    ],
+}
