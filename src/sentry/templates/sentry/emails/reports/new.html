@@ -217,19 +217,19 @@
     </table>
     </td>
 
-    {% if series.legend.total.data.accepted_transactions > 0 %}
+    {% if trends.total_transaction_count > 0 %}
     <td class="project-breakdown-graph-cell transactions">
       <h4 class="total-count-title">Total Project Transactions</h4>
       <h1 style="margin: 0;" class="total-count">{{ trends.total_transaction_count|small_count:1 }}</h1>
       <a href="{% absolute_uri '/organizations/{}/performance/?referrer=weekly_email_view_all' organization.slug %}" style="font-size: 12px; margin-bottom: 16px; display: block;">View All Transactions</a>
       <table class="graph">
         <tr>
-          {% for timestamp, values in series.transaction_points %}
+          {% for timestamp, project_values in trends.series %}
           <td valign="bottom" class="bar" style="height: {{ height }}px; width: {% widthratio 1 series.points|length 100 %}%">
               <table class="bar">
-                {% for key, count in values %}
+                {% for project_value in project_values %}
                   <tr>
-                    <td height="{% widthratio count series.transaction_maximum height %}" style="background-color: {{ key.color }};">&nbsp;</td>
+                    <td height="{% widthratio project_value.transaction_count trends.transaction_maximum height %}" style="background-color: {{ project_value.color }};">&nbsp;</td>
                   </tr>
                 {% empty %}
                   <tr>
@@ -241,9 +241,9 @@
           {% endfor %}
         </tr>
         <tr>
-          {% for timestamp, values in series.transaction_points %}
+          {% for timestamp, project_values in trends.series %}
             <td class="label" style="width: {% widthratio 1 series.points|length 100 %}%">
-              {{ timestamp|date:duration.date_format }}
+              {{ timestamp|date:"D" }}
             </td>
           {% endfor %}
         </tr>

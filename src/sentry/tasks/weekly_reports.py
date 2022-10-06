@@ -315,6 +315,7 @@ linear-gradient(
     transparent
 );
 """
+other_color = "#f2f0fa"
 
 
 # Serialize ctx for template, and calculate view parameters (like graph bar heights)
@@ -382,7 +383,7 @@ def render_template_context(ctx, user):
             legend.append(
                 {
                     "slug": f"Other ({len(projects_not_taken)})",
-                    "color": "#f2f0fa",
+                    "color": other_color,
                     "dropped_error_count": others_dropped_error,
                     "accepted_error_count": others_error,
                     "dropped_transaction_count": others_dropped_transaction,
@@ -405,19 +406,21 @@ def render_template_context(ctx, user):
         series = []
         for i in range(0, 7):
             t = int(to_timestamp(ctx.start)) + ONE_DAY * i
-            series.append(
-                (
-                    to_datetime(t),
-                    [
-                        {
-                            "color": project_breakdown_colors[i],
-                            "error_count": project_ctx.error_count_by_day.get(t, 0),
-                            "transaction_count": project_ctx.transaction_count_by_day.get(t, 0),
-                        }
-                        for i, project_ctx in enumerate(projects_taken)
-                    ],
-                )
-            )
+            project_series = [
+                {
+                    "color": project_breakdown_colors[i],
+                    "error_count": project_ctx.error_count_by_day.get(t, 0),
+                    "transaction_count": project_ctx.transaction_count_by_day.get(t, 0),
+                }
+                for i, project_ctx in enumerate(projects_taken)
+            ]
+            if len(projects_not_taken) > 0:
+                project_series.append({
+                    "color": other_color,
+                    "error_count": sum(map(lambda project_ctx: project_ctx.error_count_by_day.get(t, 0), projects_not_taken)),
+                    "transaction_count": sum(map(lambda project_ctx: project_ctx.transaction_count_by_day.get(t, 0), projects_not_taken)),
+                })
+            series.append((to_datetime(t), project_series))
         return {
             "legend": legend,
             "series": series,
