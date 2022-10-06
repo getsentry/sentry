@@ -78,6 +78,7 @@ export function ServerSideSampling({project}: Props) {
   const api = useApi();
 
   const hasAccess = organization.access.includes('project:write');
+  const canDemo = organization.features.includes('dynamic-sampling-demo');
   const currentRules = project.dynamicSampling?.rules;
 
   const previousRules = usePrevious(currentRules);
@@ -619,6 +620,7 @@ export function ServerSideSampling({project}: Props) {
                             : `${samplingProjectSettingsPath}rules/${currentRule.id}/`
                         );
                       }}
+                      canDemo={canDemo}
                       onDeleteRule={() => handleDeleteRule(currentRule)}
                       onActivate={() => handleActivateToggle(currentRule)}
                       noPermission={!hasAccess}
