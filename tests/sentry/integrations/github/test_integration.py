@@ -328,15 +328,15 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
     @responses.activate
     def test_get_repositories_all_and_pagination(self):
-        """This getting all repositories and the pagination logic"""
+        """Fetch all repositories and test the pagination logic."""
         with self.tasks():
             self.assert_setup_flow()
 
         integration = Integration.objects.get(provider=self.provider.key)
         installation = integration.get_installation(self.organization)
 
+        # The setUp function forces the pagination of one repo per page
         result = installation.get_repositories()
-        # XXX: Should we sort?
         assert result == [
             {"name": "foo", "identifier": "Test-Organization/foo"},
             {"name": "bar", "identifier": "Test-Organization/bar"},

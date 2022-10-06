@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from datetime import datetime
 from typing import Any, Mapping, Sequence
 
@@ -11,6 +12,8 @@ from sentry.models import Integration, Repository
 from sentry.utils import jwt
 from sentry.utils.json import JSONData
 
+logger = logging.getLogger("sentry.integrations.github")
+
 
 class GitHubClientMixin(ApiClient):  # type: ignore
     allow_redirects = True
@@ -18,7 +21,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
     base_url = "https://api.github.com"
     integration_name = "github"
     # Github gives us links to navigate, however, let's be safe in case we're fed garbage
-    page_number_limit = 5  # 5,000 repositories
+    page_number_limit = 50  # 5,000 repositories
 
     def get_jwt(self) -> str:
         return get_jwt()
@@ -119,14 +122,23 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             output = []
             page_number: int = 1
 
+            # Safeguard in case there's something iffy in the headers Github gives us
             while page_number < self.page_number_limit:
                 resp = self.get(api_path, params={"per_page": self.page_size, "page": page_number})
                 output.extend(resp) if not response_key else output.extend(resp[response_key])
                 next_url = get_link(resp)
                 if next_url:
+                    # We want `installations/repositories` rather than
+                    # https://api.github.com/installations/repositories?per_page=X&page=Y
                     api_path = get_link(resp).split(self.base_url)[-1].split("?")[0]
                 else:
+                    # The last page does not include a next link, thus, break out
                     break
+
+                # This will allow investigating issues
+                if page_number == self.page_number_limit:
+                    logger.error("github: Max pagination reached.")
+                    sentry_sdk.capture_message("github: Max pagination reached.", level="error")
 
                 page_number += 1
 
