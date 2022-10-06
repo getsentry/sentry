@@ -160,6 +160,25 @@ describe('GroupReplays', () => {
     const mockApi = MockApiClient.addMockResponse({
       url: mockUrl,
       statusCode: 500,
+      body: {
+        detail: 'Invalid number: asdf. Expected number.',
+      },
+    });
+
+    renderComponent();
+
+    await waitFor(() => {
+      expect(mockApi).toHaveBeenCalledTimes(1);
+      expect(
+        screen.getByText('Invalid number: asdf. Expected number.')
+      ).toBeInTheDocument();
+    });
+  });
+
+  it('should display default error message when api call fails without a body', async () => {
+    const mockApi = MockApiClient.addMockResponse({
+      url: mockUrl,
+      statusCode: 500,
       body: {},
     });
 
