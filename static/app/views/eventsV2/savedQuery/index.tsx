@@ -117,7 +117,6 @@ type Props = DefaultProps & {
   queryDataLoading: boolean;
   router: InjectedRouter;
   savedQuery: SavedQuery | undefined;
-  savedQueryLoading: boolean;
   setHomepageQuery: (homepageQuery?: SavedQuery) => void;
   setSavedQuery: (savedQuery: SavedQuery) => void;
   updateCallback: () => void;
