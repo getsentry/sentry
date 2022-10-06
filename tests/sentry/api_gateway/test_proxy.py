@@ -1,9 +1,9 @@
 from unittest.mock import patch
 from urllib.parse import urlencode
 
+import pytest
 import responses
 from django.test.client import RequestFactory
-from pytest import raises
 from rest_framework.exceptions import NotFound
 
 from sentry.api_gateway.proxy import proxy_request
@@ -49,10 +49,11 @@ class ProxyTestCase(ApiGatewayTestCase):
         assert query_param_dict["foo"] == resp_json["foo"][0]
         assert query_param_dict["numlist"] == resp_json["numlist"]
 
+    @pytest.mark.xfail(reason="Uncommitted to Organization Table Location")
     @responses.activate
     @patch("sentry.types.region.get_region_for_organization")
     def test_bad_org(self, region_fnc_patch):
         request = RequestFactory().get("http://sentry.io/get")
         region_fnc_patch.return_value = SENTRY_REGION_CONFIG[0]
-        with raises(NotFound):
+        with pytest.raises(NotFound):
             proxy_request(request, "doesnotexist")
