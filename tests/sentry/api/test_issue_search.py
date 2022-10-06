@@ -167,7 +167,7 @@ class ConvertJavaScriptConsoleTagTest(TestCase):
 
     def test_invalid(self):
         filters = [SearchFilter(SearchKey("empty_stacktrace.js_console"), "=", SearchValue(True))]
-        with pytest.raises(
+        with self.feature({"organizations:javascript-console-error-tag": False}) and pytest.raises(
             InvalidSearchQuery,
             match="The empty_stacktrace.js_console filter is not supported for this organization",
         ):

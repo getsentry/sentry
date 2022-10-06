@@ -29,15 +29,12 @@ class OrganizationTagsEndpoint(OrganizationEventsEndpointBase):
                     # Defaults to True, because the frontend caches these tags globally
                     include_transactions=request.GET.get("include_transactions", "1") == "1",
                 )
-                if (
-                    not features.has(
-                        "organizations:javascript-console-error-tag",
-                        organization,
-                        actor=request.user,
-                    )
-                    and "empty_stacktrace.js_console" in results
+                if not features.has(
+                    "organizations:javascript-console-error-tag",
+                    organization,
+                    actor=None,
                 ):
-                    results.remove("empty_stacktrace.js_console")
+                    results = [tag for tag in results if tag != "empty_stacktrace.js_console"]
 
                 # Setting the tag for now since the measurement is still experimental
                 sentry_sdk.set_tag("custom_tags.count", len(results))
