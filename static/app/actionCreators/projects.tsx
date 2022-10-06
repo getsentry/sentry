@@ -7,11 +7,12 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import ProjectActions from 'sentry/actions/projectActions';
 import {Client} from 'sentry/api';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
+import LatestContextStore from 'sentry/stores/latestContextStore';
 import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {Project, Team} from 'sentry/types';
 
 type UpdateParams = {
@@ -22,7 +23,7 @@ type UpdateParams = {
 };
 
 export function update(api: Client, params: UpdateParams) {
-  ProjectActions.update(params.projectId, params.data);
+  ProjectsStatsStore.onUpdate(params.projectId, params.data as Partial<Project>);
 
   const endpoint = `/projects/${params.orgId}/${params.projectId}/`;
   return api
@@ -32,11 +33,11 @@ export function update(api: Client, params: UpdateParams) {
     })
     .then(
       data => {
-        ProjectActions.updateSuccess(data);
+        ProjectsStore.onUpdateSuccess(data);
         return data;
       },
       err => {
-        ProjectActions.updateError(err, params.projectId);
+        ProjectsStatsStore.onUpdateError(err, params.projectId);
         throw err;
       }
     );
@@ -45,17 +46,10 @@ export function update(api: Client, params: UpdateParams) {
 type StatsParams = Pick<UpdateParams, 'orgId' | 'data' | 'query'>;
 
 export function loadStats(api: Client, params: StatsParams) {
-  ProjectActions.loadStats(params.orgId, params.data);
-
   const endpoint = `/organizations/${params.orgId}/stats/`;
   api.request(endpoint, {
     query: params.query,
-    success: data => {
-      ProjectActions.loadStatsSuccess(data);
-    },
-    error: data => {
-      ProjectActions.loadStatsError(data);
-    },
+    success: data => ProjectsStore.onStatsLoadSuccess(data),
   });
 }
 
@@ -108,7 +102,7 @@ export const _debouncedLoadStats = debounce(
 
     Promise.all(queries)
       .then(results => {
-        ProjectActions.loadStatsForProjectSuccess(
+        ProjectsStatsStore.onStatsLoadSuccess(
           results.reduce((acc, result) => acc.concat(result), [])
         );
       })
@@ -130,26 +124,23 @@ export function loadStatsForProject(api: Client, project: string, params: Update
 }
 
 export function setActiveProject(project: Project | null) {
-  ProjectActions.setActive(project);
+  LatestContextStore.onSetActiveProject(project);
 }
 
 export function removeProject(api: Client, orgId: string, project: Project) {
   const endpoint = `/projects/${orgId}/${project.slug}/`;
 
-  ProjectActions.removeProject(project);
   return api
     .requestPromise(endpoint, {
       method: 'DELETE',
     })
     .then(
       () => {
-        ProjectActions.removeProjectSuccess(project);
         addSuccessMessage(
           tct('[project] was successfully removed', {project: project.slug})
         );
       },
       err => {
-        ProjectActions.removeProjectError(project);
         addErrorMessage(tct('Error removing [project]', {project: project.slug}));
         throw err;
       }
@@ -227,7 +218,6 @@ export function addTeamToProject(
   const endpoint = `/projects/${orgSlug}/${projectSlug}/teams/${team.slug}/`;
 
   addLoadingMessage();
-  ProjectActions.addTeam(team);
 
   return api
     .requestPromise(endpoint, {
@@ -241,8 +231,8 @@ export function addTeamToProject(
             project: projectSlug,
           })
         );
-        ProjectActions.addTeamSuccess(team, projectSlug);
-        ProjectActions.updateSuccess(project);
+        ProjectsStore.onAddTeam(team, projectSlug);
+        ProjectsStore.onUpdateSuccess(project);
       },
       err => {
         addErrorMessage(
@@ -251,7 +241,6 @@ export function addTeamToProject(
             project: projectSlug,
           })
         );
-        ProjectActions.addTeamError();
         throw err;
       }
     );
@@ -274,7 +263,6 @@ export function removeTeamFromProject(
   const endpoint = `/projects/${orgSlug}/${projectSlug}/teams/${teamSlug}/`;
 
   addLoadingMessage();
-  ProjectActions.removeTeam(teamSlug);
 
   return api
     .requestPromise(endpoint, {
@@ -288,8 +276,8 @@ export function removeTeamFromProject(
             project: projectSlug,
           })
         );
-        ProjectActions.removeTeamSuccess(teamSlug, projectSlug);
-        ProjectActions.updateSuccess(project);
+        ProjectsStore.onRemoveTeam(teamSlug, projectSlug);
+        ProjectsStore.onUpdateSuccess(project);
       },
       err => {
         addErrorMessage(
@@ -298,7 +286,6 @@ export function removeTeamFromProject(
             project: projectSlug,
           })
         );
-        ProjectActions.removeTeamError(err);
         throw err;
       }
     );
@@ -311,7 +298,7 @@ export function removeTeamFromProject(
  * @param next New slug
  */
 export function changeProjectSlug(prev: string, next: string) {
-  ProjectActions.changeSlug(prev, next);
+  ProjectsStore.onChangeSlug(prev, next);
 }
 
 /**

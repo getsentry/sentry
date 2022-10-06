@@ -1,8 +1,9 @@
 from collections import namedtuple
 from typing import Optional
-from urllib.parse import quote, urlencode, urljoin, urlparse
+from urllib.parse import quote, urljoin, urlparse
 
 from django.conf import settings
+from rest_framework.request import Request
 
 from sentry import options
 
@@ -14,7 +15,17 @@ def absolute_uri(url: Optional[str] = None, url_prefix=None) -> str:
         url_prefix = options.get("system.url-prefix")
     if not url:
         return url_prefix
+    parsed = urlparse(url)
+    if parsed.hostname is not None:
+        url_prefix = origin_from_url(url)
     return urljoin(url_prefix.rstrip("/") + "/", url.lstrip("/"))
+
+
+def create_redirect_url(request: Request, redirect_url: str) -> str:
+    qs = request.META.get("QUERY_STRING") or ""
+    if qs:
+        qs = "?" + qs
+    return f"{redirect_url}{qs}"
 
 
 def origin_from_url(url):
@@ -22,33 +33,6 @@ def origin_from_url(url):
         return url
     url = urlparse(url)
     return f"{url.scheme}://{url.netloc}"
-
-
-def safe_urlencode(params, doseq=0):
-    """
-    UTF-8-safe version of safe_urlencode
-
-    The stdlib safe_urlencode prior to Python 3.x chokes on UTF-8 values
-    which can't fail down to ascii.
-    """
-    # Snippet originally from pysolr: https://github.com/toastdriven/pysolr
-
-    if hasattr(params, "items"):
-        params = params.items()
-
-    new_params = list()
-
-    for k, v in params:
-        k = k.encode("utf-8")
-
-        if isinstance(v, str):
-            new_params.append((k, v.encode("utf-8")))
-        elif isinstance(v, (list, tuple)):
-            new_params.append((k, [i.encode("utf-8") for i in v]))
-        else:
-            new_params.append((k, str(v)))
-
-    return urlencode(new_params, doseq)
 
 
 def get_origins(project=None):
