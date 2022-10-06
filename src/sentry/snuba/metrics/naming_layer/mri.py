@@ -16,7 +16,13 @@ and so it is a private metric, whereas `SessionMRI.CRASH_FREE_RATE` has a corres
 `SessionMetricKey` with the same name i.e. `SessionMetricKey.CRASH_FREE_RATE` and hence is a public
 metric that is queryable by the API.
 """
-__all__ = ("SessionMRI", "TransactionMRI", "MRI_SCHEMA_REGEX", "MRI_EXPRESSION_REGEX", "parse_mri")
+__all__ = (
+    "SessionMRI",
+    "TransactionMRI",
+    "MRI_SCHEMA_REGEX",
+    "MRI_EXPRESSION_REGEX",
+    "parse_mri",
+)
 
 import re
 from dataclasses import dataclass

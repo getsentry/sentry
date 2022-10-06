@@ -4,21 +4,28 @@ Metrics Service Layer Tests for Release Health
 import time
 
 import pytest
+from django.utils import timezone
 from django.utils.datastructures import MultiValueDict
-from snuba_sdk import Granularity, Limit, Offset
+from freezegun import freeze_time
+from snuba_sdk import Limit, Offset
 
 from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.snuba.metrics import MetricField, MetricsQuery
+from sentry.snuba.metrics import MetricField
 from sentry.snuba.metrics.datasource import get_series
 from sentry.snuba.metrics.naming_layer import SessionMRI
-from sentry.snuba.metrics.query_builder import QueryDefinition, get_date_range
-from sentry.testutils import BaseMetricsTestCase, TestCase
+from sentry.snuba.metrics.query_builder import QueryDefinition
+from sentry.testutils import BaseMetricsLayerTestCase, TestCase
 
 pytestmark = pytest.mark.sentry_metrics
 
 
-class ReleaseHealthMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
+@freeze_time("2022-09-29 10:00:00")
+class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
+    @property
+    def now(self):
+        return timezone.now()
+
     def test_valid_filter_include_meta(self):
         self.create_release(version="foo", project=self.project)
         self.store_session(
@@ -80,45 +87,28 @@ class ReleaseHealthMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
         )
 
     def test_alias_on_composite_entity_derived_metric(self):
-        user_ts = time.time()
-        org_id = self.organization.id
-
         for tag_value, count_value in (
             ("errored_preaggr", 10),
             ("crashed", 2),
             ("abnormal", 4),
             ("init", 15),
         ):
-            self.store_metric(
-                org_id=org_id,
-                project_id=self.project.id,
-                type="counter",
-                name=str(SessionMRI.SESSION.value),
+            self.store_release_health_metric(
+                name=SessionMRI.SESSION.value,
                 tags={"session.status": tag_value},
-                timestamp=(user_ts // 60 - 4) * 60,
                 value=count_value,
-                use_case_id=UseCaseKey.RELEASE_HEALTH,
+                minutes_before_now=4,
             )
         for value in range(3):
-            self.store_metric(
-                org_id=org_id,
-                project_id=self.project.id,
-                type="set",
-                name=str(SessionMRI.ERROR.value),
+            self.store_release_health_metric(
+                name=SessionMRI.ERROR.value,
                 tags={"release": "foo"},
-                timestamp=user_ts,
                 value=value,
-                use_case_id=UseCaseKey.RELEASE_HEALTH,
             )
-        start, end, rollup = get_date_range(
-            {
-                "statsPeriod": "6m",
-                "interval": "1m",
-            }
-        )
-        metrics_query = MetricsQuery(
-            org_id=self.organization.id,
-            project_ids=[self.project.id],
+
+        metrics_query = self.build_metrics_query(
+            before_now="6m",
+            granularity="1m",
             select=[
                 MetricField(
                     op=None,
@@ -126,9 +116,6 @@ class ReleaseHealthMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                     alias="errored_sessions_alias",
                 ),
             ],
-            start=start,
-            end=end,
-            granularity=Granularity(granularity=rollup),
             limit=Limit(limit=51),
             offset=Offset(offset=0),
         )
@@ -150,33 +137,20 @@ class ReleaseHealthMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
         )
 
     def test_aliasing_behavior_on_derived_op_and_derived_alias(self):
-        user_ts = time.time()
         for tag_value, d_value in (
             ("exited", [4, 5, 6, 1, 2, 3]),
             ("crashed", [7, 8, 9]),
         ):
             for v in d_value:
-                self.store_metric(
-                    org_id=self.organization.id,
-                    project_id=self.project.id,
-                    type="distribution",
-                    name=str(SessionMRI.RAW_DURATION.value),
+                self.store_release_health_metric(
+                    name=SessionMRI.RAW_DURATION.value,
                     tags={"session.status": tag_value},
-                    timestamp=user_ts,
                     value=v,
-                    use_case_id=UseCaseKey.RELEASE_HEALTH,
                 )
 
-        start, end, rollup = get_date_range(
-            {
-                "statsPeriod": "1h",
-                "interval": "1h",
-            }
-        )
-
-        metrics_query = MetricsQuery(
-            org_id=self.organization.id,
-            project_ids=[self.project.id],
+        metrics_query = self.build_metrics_query(
+            before_now="1h",
+            granularity="1h",
             select=[
                 MetricField(
                     op="histogram",
@@ -188,9 +162,6 @@ class ReleaseHealthMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                     alias="histogram_non_filtered_duration",
                 ),
             ],
-            start=start,
-            end=end,
-            granularity=Granularity(granularity=rollup),
             limit=Limit(limit=51),
             offset=Offset(offset=0),
             include_series=False,
@@ -210,9 +181,9 @@ class ReleaseHealthMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             }
         ]
 
-        metrics_query = MetricsQuery(
-            org_id=self.organization.id,
-            project_ids=[self.project.id],
+        metrics_query = self.build_metrics_query(
+            before_now="1h",
+            granularity="1h",
             select=[
                 MetricField(
                     op="histogram",
@@ -224,9 +195,6 @@ class ReleaseHealthMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                     alias="histogram_duration",
                 ),
             ],
-            start=start,
-            end=end,
-            granularity=Granularity(granularity=rollup),
             limit=Limit(limit=51),
             offset=Offset(offset=0),
             include_series=False,
@@ -247,29 +215,19 @@ class ReleaseHealthMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
         ]
 
     def test_query_private_metrics_raise_exception(self):
-        self.store_metric(
-            org_id=self.organization.id,
-            project_id=self.project.id,
-            type="counter",
-            name=str(SessionMRI.SESSION.value),
+        self.store_release_health_metric(
+            name=SessionMRI.SESSION.value,
             tags={"session.status": "errored_preaggr"},
-            timestamp=time.time(),
             value=2,
-            use_case_id=UseCaseKey.RELEASE_HEALTH,
         )
-        start, end, rollup = get_date_range(
-            {
-                "statsPeriod": "1h",
-                "interval": "1h",
-            }
-        )
+
         with pytest.raises(
             InvalidParams,
             match="Unable to find a mri reverse mapping for 'e:sessions/error.preaggr@none'.",
         ):
-            MetricsQuery(
-                org_id=self.organization.id,
-                project_ids=[self.project.id],
+            self.build_metrics_query(
+                before_now="1h",
+                granularity="1h",
                 select=[
                     MetricField(
                         op=None,
@@ -277,9 +235,6 @@ class ReleaseHealthMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                         alias="errored_preaggregated_sessions_alias",
                     ),
                 ],
-                start=start,
-                end=end,
-                granularity=Granularity(granularity=rollup),
                 limit=Limit(limit=51),
                 offset=Offset(offset=0),
             )
