@@ -206,10 +206,10 @@ def handle_owner_assignment(job):
                     if owners and not owners_exists:
                         try:
                             handle_group_owners(project, group, owners, owner_source)
-                        except Exception:
-                            logger.exception("Failed to store group owners")
-        except Exception:
-            logger.exception("Failed to handle owner assignments")
+                        except Exception as e:
+                            raise Exception("Failed to store group owners") from e
+        except Exception as e:
+            raise Exception("Failed to handle owner assignments") from e
 
 
 def handle_group_owners(project, group, owners, owner_source):
@@ -301,8 +301,8 @@ def update_existing_attachments(job):
             EventAttachment.objects.filter(
                 project_id=event.project_id, event_id=event.event_id
             ).update(group_id=event.group_id)
-        except Exception:
-            logger.exception("Failed to update existing attachments")
+        except Exception as e:
+            raise Exception("Failed to update existing attachments") from e
 
 
 def fetch_buffered_group_stats(group):
@@ -430,9 +430,9 @@ def run_post_process_job(job: PostProcessJob):
     for pipeline_step in pipeline:
         try:
             pipeline_step(job)
-        except Exception:
+        except Exception as e:
             logger.exception(
-                f"Failed to process pipeline step {pipeline_step}",
+                f"Failed to process pipeline step {pipeline_step.__name__}: {e}",
                 extra={"event": event, "group": event.group},
             )
 
@@ -489,8 +489,8 @@ def process_inbox_adds(job: PostProcessJob) -> None:
         if is_reprocessed and is_new:
             try:
                 add_group_to_inbox(event.group, GroupInboxReason.REPROCESSED)
-            except Exception:
-                logger.exception("Failed to add group to inbox for reprocessed groups")
+            except Exception as e:
+                raise Exception("Failed to add group to inbox for reprocessed groups") from e
         elif (
             not is_reprocessed and not has_reappeared
         ):  # If true, we added the .UNIGNORED reason already
@@ -499,8 +499,8 @@ def process_inbox_adds(job: PostProcessJob) -> None:
                     add_group_to_inbox(event.group, GroupInboxReason.NEW)
                 elif is_regression:
                     add_group_to_inbox(event.group, GroupInboxReason.REGRESSION)
-            except Exception:
-                logger.exception("Failed to add group to inbox for non-reprocessed groups")
+            except Exception as e:
+                raise Exception("Failed to add group to inbox for non-reprocessed groups") from e
 
 
 def process_snoozes(job: PostProcessJob) -> None:
@@ -570,8 +570,8 @@ def process_snoozes(job: PostProcessJob) -> None:
 
         job["has_reappeared"] = False
         return
-    except Exception:
-        logger.exception("Failed to process snoozes for group")
+    except Exception as e:
+        raise Exception("Failed to process snoozes for group") from e
 
 
 def process_rules(job: PostProcessJob) -> None:
@@ -658,8 +658,8 @@ def process_commits(job: PostProcessJob) -> None:
                         )
     except UnableToAcquireLock:
         pass
-    except Exception:
-        logger.exception("Failed to process suspect commits")
+    except Exception as e:
+        raise Exception("Failed to process suspect commits") from e
 
 
 def process_service_hooks(job: PostProcessJob) -> None:
