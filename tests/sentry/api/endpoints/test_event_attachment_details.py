@@ -24,13 +24,7 @@ class CreateAttachmentMixin:
         self.file = File.objects.create(name="hello.png", type="image/png; foo=bar")
         self.file.putfile(BytesIO(b"File contents here"))
 
-        self.attachment = EventAttachment.objects.create(
-            event_id=self.event.event_id,
-            project_id=self.event.project_id,
-            file_id=self.file.id,
-            type=self.file.type,
-            name="hello.png",
-        )
+        self.attachment = self.create_event_attachment(file=self.file, name="hello.png")
         assert self.attachment.mimetype == "image/png"
 
         return self.attachment

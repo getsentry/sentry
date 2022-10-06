@@ -1,4 +1,4 @@
-from sentry.models import EventAttachment, File
+from sentry.models import File
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
@@ -17,20 +17,13 @@ class EventAttachmentsTest(APITestCase):
             data={"fingerprint": ["group1"], "timestamp": min_ago}, project_id=self.project.id
         )
 
-        attachment1 = EventAttachment.objects.create(
-            event_id=event1.event_id,
-            project_id=event1.project_id,
-            file_id=File.objects.create(name="hello.png", type="image/png").id,
+        attachment1 = self.create_event_attachment(
+            event=event1,
+            file=File.objects.create(name="hello.png", type="image/png"),
             name="hello.png",
         )
         file = File.objects.create(name="hello.png", type="image/png")
-        EventAttachment.objects.create(
-            event_id=event2.event_id,
-            project_id=event2.project_id,
-            file_id=file.id,
-            type=file.type,
-            name="hello.png",
-        )
+        self.create_event_attachment(event=event2, file=file, name="hello.png")
 
         path = f"/api/0/projects/{event1.project.organization.slug}/{event1.project.slug}/events/{event1.event_id}/attachments/"
 
@@ -50,18 +43,14 @@ class EventAttachmentsTest(APITestCase):
             data={"fingerprint": ["group1"], "timestamp": min_ago}, project_id=self.project.id
         )
 
-        attachment1 = EventAttachment.objects.create(
-            event_id=event1.event_id,
-            project_id=event1.project_id,
-            file_id=File.objects.create(name="screenshot.png", type="image/png").id,
+        attachment1 = self.create_event_attachment(
+            event=event1,
+            file=File.objects.create(name="screenshot.png", type="image/png"),
             name="screenshot.png",
         )
-        file = File.objects.create(name="screenshot-not.png", type="image/png")
-        EventAttachment.objects.create(
-            event_id=event1.event_id,
-            project_id=event1.project_id,
-            file_id=file.id,
-            type=file.type,
+        self.create_event_attachment(
+            event=event1,
+            file=File.objects.create(name="screenshot-not.png", type="image/png"),
             name="screenshot-not.png",
         )
 

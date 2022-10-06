@@ -1,29 +1,23 @@
 from io import BytesIO
 from urllib.parse import urlencode
 
-from sentry.models import EventAttachment, File
+from sentry.models import File
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 
 @region_silo_test
 class GroupEventAttachmentsTest(APITestCase):
-    def create_attachment(self, type=None):
-        if type is None:
-            type = "event.attachment"
+    def create_attachment(self, event_type=None):
+        if event_type is None:
+            event_type = "event.attachment"
 
-        self.file = File.objects.create(name="hello.png", type=type)
+        self.file = File.objects.create(name="hello.png", type=event_type)
         self.file.putfile(BytesIO(b"File contents here"))
 
-        self.attachment = EventAttachment.objects.create(
-            event_id=self.event.event_id,
-            project_id=self.event.project_id,
-            group_id=self.group.id,
-            file_id=self.file.id,
-            type=self.file.type,
-            name="hello.png",
+        self.attachment = self.create_event_attachment(
+            file=self.file, group_id=self.group.id, name="hello.png"
         )
-
         return self.attachment
 
     def path(self, types=None):
