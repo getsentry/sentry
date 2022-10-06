@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from typing import TYPE_CHECKING, Optional, TypedDict
 
@@ -29,8 +31,8 @@ locks = LockManager(build_instance_from_options(settings.SENTRY_POST_PROCESS_LOC
 
 
 class PostProcessJob(TypedDict, total=False):
-    event: "Event"
-    group_state: "GroupState"
+    event: Event
+    group_state: GroupState
     is_reprocessed: bool
     has_reappeared: bool
     has_alert: bool
@@ -315,7 +317,7 @@ def post_process_group(
     is_new_group_environment,
     cache_key,
     group_id=None,
-    group_states: Optional["GroupStates"] = None,
+    group_states: Optional[GroupStates] = None,
     **kwargs,
 ):
     """
@@ -421,7 +423,7 @@ def post_process_group(
                 )
 
 
-def process_event(data: dict, group_id: Optional[int]) -> "Event":
+def process_event(data: dict, group_id: Optional[int]) -> Event:
     from sentry.eventstore.models import Event
     from sentry.models import EventDict
 
@@ -438,7 +440,7 @@ def process_event(data: dict, group_id: Optional[int]) -> "Event":
     return event
 
 
-def update_event_group(event: "Event") -> None:
+def update_event_group(event: Event) -> None:
     # NOTE: we must pass through the full Event object, and not an
     # event_id since the Event object may not actually have been stored
     # in the database due to sampling.
