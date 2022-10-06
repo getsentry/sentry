@@ -135,7 +135,11 @@ function ReplayTable({isFetching, replays, showProjectColumn, sort, fetchError}:
         isLoading={false}
       >
         <StyledAlert type="error" showIcon>
-          {fetchError}
+          {typeof fetchError === 'string'
+            ? fetchError
+            : t(
+                'Sorry, the list of replays could not be loaded. This could be due to invalid search parameters or an internal systems error.'
+              )}
         </StyledAlert>
       </StyledPanelTable>
     );
