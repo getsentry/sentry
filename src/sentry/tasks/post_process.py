@@ -21,7 +21,7 @@ from sentry.utils.services import build_instance_from_options
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event
-    from sentry.eventstream.base import GroupState
+    from sentry.eventstream.base import GroupState, GroupStates
 
 logger = logging.getLogger("sentry")
 
@@ -310,7 +310,13 @@ def fetch_buffered_group_stats(group):
     queue="triggers-0",
 )
 def post_process_group(
-    is_new, is_regression, is_new_group_environment, cache_key, group_id=None, **kwargs
+    is_new,
+    is_regression,
+    is_new_group_environment,
+    cache_key,
+    group_id=None,
+    group_states: Optional["GroupStates"] = None,
+    **kwargs,
 ):
     """
     Fires post processing hooks for a group.
