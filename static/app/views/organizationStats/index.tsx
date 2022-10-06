@@ -205,8 +205,6 @@ export class OrganizationStats extends Component<Props> {
   };
 
   /**
-   * TODO: Enable user to set dateStart/dateEnd
-   *
    * See PAGE_QUERY_PARAMS for list of accepted keys on nextState
    */
   setStateOnUrl = (
