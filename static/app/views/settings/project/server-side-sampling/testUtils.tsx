@@ -129,7 +129,7 @@ export const recommendedSdkUpgrades: RecommendedSdkUpgrade[] = [
 ];
 
 export const mockedSamplingDistribution: SamplingDistribution = {
-  project_breakdown: [
+  projectBreakdown: [
     {
       project: mockedProjects[0].slug,
       project_id: mockedProjects[0].id,
@@ -141,17 +141,7 @@ export const mockedSamplingDistribution: SamplingDistribution = {
       'count()': 100,
     },
   ],
-  sample_size: 100,
-  null_sample_rate_percentage: 98,
-  sample_rate_distributions: {
-    min: 1,
-    max: 1,
-    avg: 1,
-    p50: 1,
-    p90: 1,
-    p95: 1,
-    p99: 1,
-  },
+  sampleSize: 100,
   startTimestamp: '2017-08-04T07:52:11Z',
   endTimestamp: '2017-08-05T07:52:11Z',
 };

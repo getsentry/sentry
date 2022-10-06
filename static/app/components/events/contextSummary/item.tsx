@@ -40,14 +40,15 @@ const Details = styled('div')`
   display: flex;
   flex-direction: column;
   justify-content: center;
-  max-width: 100%;
   min-height: 48px;
+  min-width: 0;
 `;
 
 const IconContainer = styled('div')`
   width: 36px;
   height: 36px;
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   justify-content: center;
 `;
