@@ -105,6 +105,7 @@ default_manager.add("organizations:metrics-performance-alerts", OrganizationFeat
 default_manager.add("organizations:metrics-performance-ui", OrganizationFeature, True)
 default_manager.add("organizations:minute-resolution-sessions", OrganizationFeature)
 default_manager.add("organizations:mobile-screenshots", OrganizationFeature, True)
+default_manager.add("organizations:mobile-screenshot-gallery", OrganizationFeature, True)
 default_manager.add("organizations:monitors", OrganizationFeature)
 default_manager.add("organizations:native-stack-trace-v2", OrganizationFeature, True)
 default_manager.add("organizations:new-weekly-report", OrganizationFeature, True)
