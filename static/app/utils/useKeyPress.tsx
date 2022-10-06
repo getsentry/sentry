@@ -5,7 +5,7 @@ import {RefObject, useEffect, useState} from 'react';
  */
 const useKeyPress = (targetKey: string, ref?: RefObject<HTMLElement>) => {
   const [keyPressed, setKeyPressed] = useState(false);
-  const target = (ref && ref.current) ?? document.body;
+  const target = ref ? ref.current : document.body;
 
   useEffect(() => {
     const downHandler = ({key}: KeyboardEvent) => {
