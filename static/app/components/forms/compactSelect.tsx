@@ -31,6 +31,7 @@ interface TriggerRenderingProps {
 
 interface MenuProps extends OverlayProps, Omit<AriaPositionProps, 'overlayRef'> {
   children: (maxHeight: number | string) => React.ReactNode;
+  fluid?: boolean;
   maxMenuHeight?: number;
   minMenuWidth?: number;
 }
@@ -44,6 +45,7 @@ interface Props<OptionType extends OptionTypeBase, MultipleType extends boolean>
    * Pass class name to the outer wrap
    */
   className?: string;
+  fluidMenu?: boolean;
   /**
    * Whether new options are being loaded. When true, CompactSelect will
    * display a loading indicator in the header.
@@ -74,6 +76,7 @@ interface Props<OptionType extends OptionTypeBase, MultipleType extends boolean>
    * triggerLabel as the button label.
    */
   triggerLabel?: React.ReactNode;
+
   /**
    * If using the default button trigger (i.e. the custom `trigger` prop has
    * not been provided), then `triggerProps` will be passed on to the button
@@ -158,6 +161,7 @@ function Menu({
   maxMenuHeight = 400,
   minMenuWidth,
   children,
+  fluid,
 }: MenuProps) {
   // Control the overlay's position
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -190,6 +194,7 @@ function Menu({
     <Overlay
       ref={overlayRef}
       minWidth={minMenuWidth}
+      fluid={fluid}
       {...mergeProps(overlayProps, positionProps)}
     >
       <FocusScope restoreFocus autoFocus>
@@ -227,6 +232,7 @@ function CompactSelect<
   closeOnSelect = true,
   menuTitle,
   onClose,
+  fluidMenu,
   ...props
 }: Props<OptionType, MultipleType>) {
   // Manage the dropdown menu's open state
@@ -342,6 +348,7 @@ function CompactSelect<
         targetRef={triggerRef}
         onClose={onMenuClose}
         minMenuWidth={triggerWidth}
+        fluid={fluidMenu}
         {...props}
       >
         {menuHeight => (
@@ -395,13 +402,14 @@ const StyledBadge = styled(Badge)`
   top: auto;
 `;
 
-const Overlay = styled('div')<{minWidth?: number}>`
+const Overlay = styled('div')<{fluid?: boolean; minWidth?: number}>`
   max-width: calc(100% - ${space(2)});
   border-radius: ${p => p.theme.borderRadius};
   background: ${p => p.theme.backgroundElevated};
   box-shadow: 0 0 0 1px ${p => p.theme.translucentBorder}, ${p => p.theme.dropShadowHeavy};
   font-size: ${p => p.theme.fontSizeMedium};
   overflow: hidden;
+  ${p => (p.fluid ? `width: calc(100% - ${space(2)});` : '')}
 
   /* Override z-index from useOverlayPosition */
   z-index: ${p => p.theme.zIndex.dropdown} !important;
