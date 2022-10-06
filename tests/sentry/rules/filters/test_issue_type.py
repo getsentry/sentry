@@ -1,5 +1,5 @@
 from sentry.eventstore.models import Event, GroupEvent
-from sentry.rules.filters.issue_type import IssueTypeFilter
+from sentry.rules.filters.issue_type import ENABLED_GROUP_TYPES, IssueTypeFilter
 from sentry.testutils import RuleTestCase, SnubaTestCase
 from sentry.testutils.perfomance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.types.issues import GroupType
@@ -47,21 +47,11 @@ class IssueTypeFilterErrorTest(RuleTestCase):
 class IssueTypeFilterPerformanceTest(RuleTestCase, SnubaTestCase, PerfIssueTransactionTestMixin):
     rule_cls = IssueTypeFilter
 
-    def test_transaction_types(self):
-        for i, perf_type in enumerate(
-            [
-                GroupType.PERFORMANCE_SLOW_SPAN,
-                GroupType.PERFORMANCE_N_PLUS_ONE,
-                GroupType.PERFORMANCE_SEQUENTIAL_SLOW_SPANS,
-                GroupType.PERFORMANCE_LONG_TASK_SPANS,
-                GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN,
-                GroupType.PERFORMANCE_DUPLICATE_SPANS,
-                GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
-            ]
-        ):
+    def test_enabled_transaction_types(self):
+        for i, perf_type in enumerate(ENABLED_GROUP_TYPES):
             tx_event = self.store_transaction(
                 self.project.id,
-                "test_transaction_category",
+                "test_enabled_transaction_types",
                 [f"{perf_type.value}-group{i}"],
             )
 
