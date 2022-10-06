@@ -6,7 +6,7 @@ from typing import Any, Mapping, Sequence
 import sentry_sdk
 
 from sentry.integrations.client import ApiClient
-from sentry.integrations.github.utils import get_jwt, get_next_link
+from sentry.integrations.github.utils import get_jwt, get_link
 from sentry.models import Integration, Repository
 from sentry.utils import jwt
 from sentry.utils.json import JSONData
@@ -17,6 +17,8 @@ class GitHubClientMixin(ApiClient):  # type: ignore
 
     base_url = "https://api.github.com"
     integration_name = "github"
+    # Github gives us links to navigate, however, let's be safe in case we're fed garbage
+    page_number_limit = 5  # 5,000 repositories
 
     def get_jwt(self) -> str:
         return get_jwt()
@@ -90,7 +92,9 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         assignees: Sequence[JSONData] = self.get_with_pagination(f"/repos/{repo}/assignees")
         return assignees
 
-    def get_with_pagination(self, path: str, response_key: str | None = None) -> Sequence[JSONData]:
+    def get_with_pagination(
+        self, api_path: str, response_key: str | None = None
+    ) -> Sequence[JSONData]:
         """
         Github uses the Link header to provide pagination links. Github
         recommends using the provided link relations and not constructing our
@@ -113,16 +117,19 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             sampled=True,
         ):
             output = []
-            resp = self.get(path, params={"per_page": self.page_size})
-            output.extend(resp) if not response_key else output.extend(resp[response_key])
+            page_number: int = 1
 
-            page_number = 1
-
-            while get_next_link(resp) and page_number < self.page_number_limit:
-                resp = self.get(get_next_link(resp))
+            while page_number < self.page_number_limit:
+                resp = self.get(api_path, params={"per_page": self.page_size, "page": page_number})
                 output.extend(resp) if not response_key else output.extend(resp[response_key])
+                next_url = get_link(resp)
+                if next_url:
+                    api_path = get_link(resp).split(self.base_url)[-1].split("?")[0]
+                else:
+                    break
 
                 page_number += 1
+
             return output
 
     def get_issues(self, repo: str) -> Sequence[JSONData]:
