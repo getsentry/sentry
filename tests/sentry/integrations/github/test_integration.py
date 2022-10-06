@@ -46,8 +46,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         sentry.integrations.github.integration.get_jwt = MagicMock(return_value="jwt_token_1")
         sentry.integrations.github.client.get_jwt = MagicMock(return_value="jwt_token_1")
-        pp = 2
-        sentry.integrations.github.client.ApiClient.page_size = pp
+        pp = 1
 
         responses.add(
             responses.POST,
