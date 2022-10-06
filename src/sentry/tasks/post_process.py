@@ -355,9 +355,6 @@ def post_process_group(
 
         event = process_event(data, group_id)
 
-        with metrics.timer("tasks.post_process.delete_event_cache"):
-            event_processing_store.delete_by_key(cache_key)
-
         # Re-bind Project and Org since we're reading the Event object
         # from cache which may contain stale parent models.
         with sentry_sdk.start_span(op="tasks.post_process_group.project_get_from_cache"):
@@ -388,6 +385,7 @@ def post_process_group(
                 return
 
         update_event_groups(event)
+        bind_organization_context(event.project.organization)
 
         # TODO: Remove this check once we're sending all group ids as `group_states` and treat all
         # events the same way
@@ -430,10 +428,11 @@ def post_process_group(
             for k, v in multi_groups.items()
         ]
 
-        bind_organization_context(event.project.organization)
-
         for job in group_jobs:
             run_post_process_job(job)
+
+        with metrics.timer("tasks.post_process.delete_event_cache"):
+            event_processing_store.delete_by_key(cache_key)
 
 
 def run_post_process_job(job: PostProcessJob):
