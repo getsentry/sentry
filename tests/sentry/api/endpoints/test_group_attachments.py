@@ -29,12 +29,13 @@ class GroupEventAttachmentsTest(APITestCase):
     def path(self, types=None, event_ids=None):
         path = f"/api/0/issues/{self.group.id}/attachments/"
 
-        query = [("types", t) for t in types or ()]
-        if query:
-            path += "?" + urlencode(query)
+        typesQuery = [("types", t) for t in types or ()]
+        eventIdQuery = [("event_id", id) for id in event_ids or ()]
+        if typesQuery:
+            path += "?" + urlencode(typesQuery)
 
-        if event_ids:
-            path += "?event_ids=" + event_ids
+        if eventIdQuery:
+            path += "?" + urlencode(eventIdQuery)
 
         return path
 
@@ -78,8 +79,24 @@ class GroupEventAttachmentsTest(APITestCase):
         self.create_attachment(event_id="b" * 32)
 
         with self.feature("organizations:event-attachments"):
-            response = self.client.get(self.path(event_ids=attachment.event_id))
+            response = self.client.get(self.path(event_ids=[attachment.event_id]))
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["event_id"] == attachment.event_id
+
+    def test_multi_event_id_filter(self):
+        self.login_as(user=self.user)
+        attachment = self.create_attachment()
+        attachment2 = self.create_attachment(event_id="b" * 32)
+        self.create_attachment(event_id="c" * 32)
+
+        with self.feature("organizations:event-attachments"):
+            response = self.client.get(
+                self.path(event_ids=[attachment.event_id, attachment2.event_id])
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
+        assert response.data[0]["event_id"] == attachment2.event_id
+        assert response.data[1]["event_id"] == attachment.event_id
