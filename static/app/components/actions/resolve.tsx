@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import type {AriaPositionProps} from '@react-aria/overlays';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import Button, {ButtonProps} from 'sentry/components/button';
+import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {openConfirmModal} from 'sentry/components/confirm';
 import CustomCommitsResolutionModal from 'sentry/components/customCommitsResolutionModal';
@@ -42,7 +42,7 @@ type Props = {
   dropdownPlacement?: AriaPositionProps['placement'];
   hideIcon?: boolean;
   latestRelease?: Release;
-  priority?: ButtonProps['priority'];
+  priority?: 'primary';
   projectFetchError?: boolean;
   projectSlug?: string;
   shouldConfirm?: boolean;
@@ -305,7 +305,7 @@ class ResolveActions extends Component<Props> {
 
 export default withOrganization(ResolveActions);
 
-const ResolveButton = styled(Button)<{priority: ButtonProps['priority']}>`
+const ResolveButton = styled(Button)<{priority?: 'primary'}>`
   box-shadow: none;
   border-radius: ${p => p.theme.borderRadiusLeft};
   ${p => (p.priority === 'primary' ? `border-right-color: ${p.theme.background};` : '')}
