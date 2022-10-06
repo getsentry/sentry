@@ -6,7 +6,7 @@ import ConfigStore from 'sentry/stores/configStore';
 
 export default function getGuidesContent(orgSlug: string | null): GuidesContent {
   if (ConfigStore.get('demoMode')) {
-    if (localStorage.getItem('new-walkthrough')) {
+    if (localStorage.getItem('new-walkthrough') === '1') {
       return getDemoModeGuidesV2();
     }
     return getDemoModeGuides();
@@ -501,20 +501,20 @@ function getDemoModeGuidesV2(): GuidesContent {
       ],
     },
     {
-      guide: 'issue_v2',
-      requiredTargets: ['tags', 'exception'],
+      guide: 'issues',
+      requiredTargets: ['tags', 'stack_trace', 'breadcrumbs'],
       steps: [
         {
           title: t('Metadata and metrics'),
           target: 'tags',
           description: t(
             `See tags like specific users affected by the event, device, OS, and browser type.
-            On the right side of the page you can view the number of affected users adn exception frequency overtime.`
+            On the right side of the page you can view the number of affected users and exception frequency overtime.`
           ),
         },
         {
           title: t('Find your broken code'),
-          target: 'exception',
+          target: 'stack_trace',
           description: t(
             `View the stack trace to see the exact sequence of function calls leading to the error in question.`
           ),
@@ -525,24 +525,24 @@ function getDemoModeGuidesV2(): GuidesContent {
           description: t(
             `Sentry automatically captures breadcrumbs for events so you can see the sequence of events so you can see the sequence of events leading up to the error.`
           ),
+          nextText: t(`Got it`),
         },
       ],
     },
     {
       guide: 'releases',
-      requiredTargets: ['my_projects'],
+      requiredTargets: ['release_projects'],
       priority: 1,
       steps: [
         {
           title: t('Compare releases'),
-          target: 'my_projects',
+          target: 'release_projects',
           description: t(
             `Click here and select the "react-native" project to see how the release is trending compaed to previous releases.`
           ),
         },
       ],
     },
-
     {
       guide: 'react-native-release',
       requiredTargets: ['release_version'],
@@ -558,11 +558,11 @@ function getDemoModeGuidesV2(): GuidesContent {
     },
     {
       guide: 'release-details',
-      requiredTargets: ['all_issues'],
+      requiredTargets: ['release_states'],
       steps: [
         {
           title: t('New and regresses issues'),
-          target: 'all_issues',
+          target: 'release_states',
           description: t(
             `Along with reviewing how your release is trending over time compared to previous releases, you can view new and regressed issues here.`
           ),
@@ -571,31 +571,31 @@ function getDemoModeGuidesV2(): GuidesContent {
     },
     {
       guide: 'performance',
-      requiredTargets: ['FIXME'],
+      requiredTargets: ['performance_table'],
       steps: [
         {
           title: t('See slow transactions'),
-          target: 'FIXME',
+          target: 'performance_table',
           description: t(
-            `Trace slow-loading pages back to their API calls, as well as, related errors and users impacted across projects. Select this transaction to see more details.`
+            `Trace slow-loading pages back to their API calls, as well as, related errors and users impacted across projects. Select a transaction to see more details.`
           ),
         },
       ],
     },
     {
-      guide: 'transaction-summary',
-      requiredTargets: ['FIXME'],
+      guide: 'transaction_summary',
+      requiredTargets: ['user_misery', 'transactions_table'],
       steps: [
         {
           title: t('Identify the root cause'),
-          target: 'FIXME',
+          target: 'user_misery',
           description: t(
             'Dive into the details behind a slow transaction. See User Misery, Apdex, and more metrics, along with related events and suspect spans.'
           ),
         },
         {
           title: t('Breakdown event spans'),
-          target: 'FIXME',
+          target: 'transactions_table',
           description: t(
             'Select an Event ID from a list of slow transactions to uncover slow spans.'
           ),
@@ -603,7 +603,7 @@ function getDemoModeGuidesV2(): GuidesContent {
       ],
     },
     {
-      guide: 'transaction',
+      guide: 'transaction_details',
       requiredTargets: ['span_tree'],
       steps: [
         {
