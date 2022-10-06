@@ -23,147 +23,126 @@ def mocked_query_builder_query(referrer):
                 {
                     "trace": "6503ee33b7bc43aead1facaa625a5dba",
                     "id": "6ddc83ee612b4e89b95b5278c8fd188f",
-                    "trace.client_sample_rate": "",
                     "project.name": "fire",
                     "random_number() AS random_number": 4255299100,
                 },
                 {
                     "trace": "6503ee33b7bc43aead1facaa625a5dba",
                     "id": "0b127a578f8440c793f9ba1de595229f",
-                    "trace.client_sample_rate": "",
                     "project.name": "fire",
                     "random_number() AS random_number": 3976019453,
                 },
                 {
                     "trace": "9f1a4413544f4d2d9cef4fe109ec426c",
                     "id": "4d3058e9b3094dcebfdf318d5c025931",
-                    "trace.client_sample_rate": "0.9609190650573167",
                     "project.name": "fire",
                     "random_number() AS random_number": 3941410921,
                 },
                 {
                     "trace": "06f91ed13ce042f58f848a11bd26ba3c",
                     "id": "c3bc0378a08249158d46e36f3dd1cc49",
-                    "trace.client_sample_rate": "0.8610195401441058",
                     "project.name": "fire",
                     "random_number() AS random_number": 3877259197,
                 },
                 {
                     "trace": "1f9f55e795f843efbf53a3eb84602c56",
                     "id": "9d45de8df2d74e5ea8237e694d39c742",
-                    "trace.client_sample_rate": "",
                     "project.name": "fire",
                     "random_number() AS random_number": 3573364680,
                 },
                 {
                     "trace": "6503ee33b7bc43aead1facaa625a5dba",
                     "id": "e861796cea8242338981b2b43aa1b88a",
-                    "trace.client_sample_rate": "",
                     "project.name": "fire",
                     "random_number() AS random_number": 3096490437,
                 },
                 {
                     "trace": "6503ee33b7bc43aead1facaa625a5dba",
                     "id": "aac21853bbe746a794303a8f26ec0ac3",
-                    "trace.client_sample_rate": "",
                     "project.name": "fire",
                     "random_number() AS random_number": 2311382371,
                 },
                 {
                     "trace": "05578079ff5848bdb27c50f70687ee0b",
                     "id": "060faa37691a48fb95ec2e3e4c06142a",
-                    "trace.client_sample_rate": "0.9545587106701261",
                     "project.name": "fire",
                     "random_number() AS random_number": 2211686055,
                 },
                 {
                     "trace": "05578079ff5848bdb27c50f70687ee0b",
                     "id": "ae563f50cfb34f5d8d0b3c32f744dace",
-                    "trace.client_sample_rate": "0.811665375972728",
                     "project.name": "fire",
                     "random_number() AS random_number": 2192550125,
                 },
                 {
                     "trace": "6503ee33b7bc43aead1facaa625a5dba",
                     "id": "5fdeddd215e6410f83ffad9087f966e8",
-                    "trace.client_sample_rate": "",
                     "project.name": "fire",
                     "random_number() AS random_number": 2175797883,
                 },
                 {
                     "trace": "6503ee33b7bc43aead1facaa625a5dba",
                     "id": "0ff7bdf09ddf427b89cc6892a0909ba0",
-                    "trace.client_sample_rate": "",
                     "project.name": "fire",
                     "random_number() AS random_number": 2142152502,
                 },
                 {
                     "trace": "6503ee33b7bc43aead1facaa625a5dba",
                     "id": "9514c862fddb4686baac0477f4bd81db",
-                    "trace.client_sample_rate": "0.9059899056468697",
                     "project.name": "fire",
                     "random_number() AS random_number": 1863063737,
                 },
                 {
                     "trace": "c6e5dd7caeef4d6d8320b2d431fcaf1c",
                     "id": "02b3325de01f4e4ca85f4ca26904141d",
-                    "trace.client_sample_rate": "0.8096753824342516",
                     "project.name": "fire",
                     "random_number() AS random_number": 1764088972,
                 },
                 {
                     "trace": "6503ee33b7bc43aead1facaa625a5dba",
                     "id": "712221220ff04138986905bb42c04bdf",
-                    "trace.client_sample_rate": "",
                     "project.name": "fire",
                     "random_number() AS random_number": 1637151306,
                 },
                 {
                     "trace": "6503ee33b7bc43aead1facaa625a5dba",
                     "id": "0b9eb3872cab4dddaed850ab3d9c1882",
-                    "trace.client_sample_rate": "",
                     "project.name": "fire",
                     "random_number() AS random_number": 1500459010,
                 },
                 {
                     "trace": "6503ee33b7bc43aead1facaa625a5dba",
                     "id": "27d80cd631574d349345cbd21bf89bcd",
-                    "trace.client_sample_rate": "",
                     "project.name": "fire",
                     "random_number() AS random_number": 732695464,
                 },
                 {
                     "trace": "6503ee33b7bc43aead1facaa625a5dba",
                     "id": "95c1ca5655ca4ddbb8421282abbaf950",
-                    "trace.client_sample_rate": "",
                     "project.name": "fire",
                     "random_number() AS random_number": 523157974,
                 },
                 {
                     "trace": "6503ee33b7bc43aead1facaa625a5dba",
                     "id": "0bcf9d68b50544d0a4369586aad0721f",
-                    "trace.client_sample_rate": "",
                     "project.name": "fire",
                     "random_number() AS random_number": 283786475,
                 },
                 {
                     "trace": "6503ee33b7bc43aead1facaa625a5dba",
                     "id": "da9b8f0f8e3c48f8af452a4def0dc356",
-                    "trace.client_sample_rate": "",
                     "project.name": "fire",
                     "random_number() AS random_number": 259256656,
                 },
                 {
                     "trace": "6503ee33b7bc43aead1facaa625a5dba",
                     "id": "7aa51f558a8c411793fe28d6fbc6ba55",
-                    "trace.client_sample_rate": "",
                     "project.name": "fire",
                     "random_number() AS random_number": 171492976,
                 },
                 {
                     "trace": "6503ee33b7bc43aead1facaa625a5dba",
                     "id": "5c7c7eca495842e39744196851edd947",
-                    "trace.client_sample_rate": "",
                     "project.name": "fire",
                     "random_number() AS random_number": 121455970,
                 },
@@ -227,24 +206,14 @@ class ProjectDynamicSamplingTest(APITestCase):
         with Feature({"organizations:server-side-sampling": True}):
             response = self.client.get(self.endpoint)
             assert response.json() == {
-                "project_breakdown": [
+                "projectBreakdown": [
                     {"project_id": 27, "project": "earth", "count()": 34},
                     {"project_id": 28, "project": "heart", "count()": 3},
                     {"project_id": 24, "project": "water", "count()": 3},
                     {"project_id": 23, "project": "wind", "count()": 3},
                     {"project_id": 25, "project": "fire", "count()": 21},
                 ],
-                "sample_size": 21,
-                "null_sample_rate_percentage": 71.42857142857143,
-                "sample_rate_distributions": {
-                    "min": 0.8096753824342516,
-                    "max": 0.9609190650573167,
-                    "avg": 0.8839713299875663,
-                    "p50": 0.8610195401441058,
-                    "p90": 0.9545587106701261,
-                    "p95": 0.9545587106701261,
-                    "p99": 0.9545587106701261,
-                },
+                "sampleSize": 21,
                 "startTimestamp": "2022-08-18T10:00:00Z",
                 "endTimestamp": "2022-08-18T11:00:00Z",
             }
@@ -264,18 +233,8 @@ class ProjectDynamicSamplingTest(APITestCase):
         with Feature({"organizations:server-side-sampling": True}):
             response = self.client.get(f"{self.endpoint}?distributedTrace=0")
             assert response.json() == {
-                "project_breakdown": None,
-                "sample_size": 21,
-                "null_sample_rate_percentage": 71.42857142857143,
-                "sample_rate_distributions": {
-                    "min": 0.8096753824342516,
-                    "max": 0.9609190650573167,
-                    "avg": 0.8839713299875663,
-                    "p50": 0.8610195401441058,
-                    "p90": 0.9545587106701261,
-                    "p95": 0.9545587106701261,
-                    "p99": 0.9545587106701261,
-                },
+                "projectBreakdown": None,
+                "sampleSize": 21,
                 "startTimestamp": "2022-08-18T10:00:00Z",
                 "endTimestamp": "2022-08-18T11:00:00Z",
             }
@@ -298,14 +257,12 @@ class ProjectDynamicSamplingTest(APITestCase):
                 {
                     "trace": "6503ee33b7bc43aead1facaa625a5dba",
                     "id": "6ddc83ee612b4e89b95b5278c8fd188f",
-                    "trace.client_sample_rate": "",
                     "project.name": "fire",
                     "random_number() AS random_number": 4255299100,
                 },
                 {
                     "trace": "6503ee33b7bc43aead1facaa625a5dba",
                     "id": "0b127a578f8440c793f9ba1de595229f",
-                    "trace.client_sample_rate": "",
                     "project.name": "fire",
                     "random_number() AS random_number": 3976019453,
                 },
@@ -315,20 +272,10 @@ class ProjectDynamicSamplingTest(APITestCase):
         with Feature({"organizations:server-side-sampling": True}):
             response = self.client.get(f"{self.endpoint}?sampleSize=2")
             assert response.json() == {
-                "project_breakdown": [
+                "projectBreakdown": [
                     {"project_id": 25, "project": "fire", "count()": 2},
                 ],
-                "sample_size": 2,
-                "null_sample_rate_percentage": 100.0,
-                "sample_rate_distributions": {
-                    "min": None,
-                    "max": None,
-                    "avg": None,
-                    "p50": None,
-                    "p90": None,
-                    "p95": None,
-                    "p99": None,
-                },
+                "sampleSize": 2,
                 "startTimestamp": "2022-08-18T10:00:00Z",
                 "endTimestamp": "2022-08-18T11:00:00Z",
             }
@@ -340,10 +287,8 @@ class ProjectDynamicSamplingTest(APITestCase):
         with Feature({"organizations:server-side-sampling": True}):
             response = self.client.get(f"{self.endpoint}?sampleSize=2")
             assert response.json() == {
-                "project_breakdown": None,
-                "sample_size": 0,
-                "null_sample_rate_percentage": None,
-                "sample_rate_distributions": None,
+                "projectBreakdown": None,
+                "sampleSize": 0,
                 "startTimestamp": None,
                 "endTimestamp": None,
             }
@@ -354,7 +299,6 @@ class ProjectDynamicSamplingTest(APITestCase):
     def test_response_when_no_transactions_are_available_in_last_day_only(
         self, mock_query, mock_querybuilder
     ):
-        # ToDo: Continue this test
         self.login_as(self.user)
         mock_query.side_effect = [
             {"data": [{"count()": 0}]},
@@ -374,14 +318,12 @@ class ProjectDynamicSamplingTest(APITestCase):
                 {
                     "trace": "6503ee33b7bc43aead1facaa625a5dba",
                     "id": "6ddc83ee612b4e89b95b5278c8fd188f",
-                    "trace.client_sample_rate": "",
                     "project.name": "fire",
                     "random_number() AS random_number": 4255299100,
                 },
                 {
                     "trace": "6503ee33b7bc43aead1facaa625a5dba",
                     "id": "0b127a578f8440c793f9ba1de595229f",
-                    "trace.client_sample_rate": "",
                     "project.name": "fire",
                     "random_number() AS random_number": 3976019453,
                 },
@@ -390,20 +332,10 @@ class ProjectDynamicSamplingTest(APITestCase):
         with Feature({"organizations:server-side-sampling": True}):
             response = self.client.get(f"{self.endpoint}?sampleSize=2")
             assert response.json() == {
-                "project_breakdown": [
+                "projectBreakdown": [
                     {"project_id": 25, "project": "fire", "count()": 2},
                 ],
-                "sample_size": 2,
-                "null_sample_rate_percentage": 100.0,
-                "sample_rate_distributions": {
-                    "min": None,
-                    "max": None,
-                    "avg": None,
-                    "p50": None,
-                    "p90": None,
-                    "p95": None,
-                    "p99": None,
-                },
+                "sampleSize": 2,
                 "startTimestamp": "2022-08-06T00:00:00Z",
                 "endTimestamp": "2022-08-07T00:00:00Z",
             }
@@ -457,14 +389,12 @@ class ProjectDynamicSamplingTest(APITestCase):
                 {
                     "trace": "6503ee33b7bc43aead1facaa625a5dba",
                     "id": "6ddc83ee612b4e89b95b5278c8fd188f",
-                    "trace.client_sample_rate": "",
                     "project.name": "fire",
                     "random_number() AS random_number": 4255299100,
                 },
                 {
                     "trace": "6503ee33b7bc43aead1facaa625a5dba",
                     "id": "0b127a578f8440c793f9ba1de595229f",
-                    "trace.client_sample_rate": "",
                     "project.name": "fire",
                     "random_number() AS random_number": 3976019453,
                 },
@@ -530,7 +460,6 @@ class ProjectDynamicSamplingTest(APITestCase):
             selected_columns=[
                 "id",
                 "trace",
-                "trace.client_sample_rate",
                 "random_number() AS rand_num",
                 "modulo(rand_num, 10) as modulo_num",
             ],
@@ -608,14 +537,12 @@ class ProjectDynamicSamplingTest(APITestCase):
                 {
                     "trace": "6503ee33b7bc43aead1facaa625a5dba",
                     "id": "6ddc83ee612b4e89b95b5278c8fd188f",
-                    "trace.client_sample_rate": "",
                     "project.name": "fire",
                     "random_number() AS random_number": 4255299100,
                 },
                 {
                     "trace": "6503ee33b7bc43aead1facaa625a5dba",
                     "id": "0b127a578f8440c793f9ba1de595229f",
-                    "trace.client_sample_rate": "",
                     "project.name": "fire",
                     "random_number() AS random_number": 3976019453,
                 },
@@ -710,7 +637,6 @@ class ProjectDynamicSamplingTest(APITestCase):
             selected_columns=[
                 "id",
                 "trace",
-                "trace.client_sample_rate",
                 "random_number() AS rand_num",
                 "modulo(rand_num, 10) as modulo_num",
             ],

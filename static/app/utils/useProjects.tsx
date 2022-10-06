@@ -139,7 +139,7 @@ async function fetchProjects(
 }
 
 /**
- * Provides projects from the ProjectStore
+ * Provides projects from the ProjectsStore
  *
  * This hook also provides a way to select specific project slugs, and search
  * (type-ahead) for more projects that may not be in the project store.

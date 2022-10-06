@@ -70,35 +70,6 @@ describe('SuggestedOwners', function () {
     userEvent.hover(screen.getAllByTestId('suggested-assignee')[0]);
   });
 
-  it('does not call committers endpoint if `group.firstRelease` does not exist', function () {
-    const committers = Client.addMockResponse({
-      url: `${endpoint}/committers/`,
-      body: {
-        committers: [
-          {
-            author: TestStubs.CommitAuthor(),
-            commits: [TestStubs.Commit()],
-          },
-        ],
-      },
-    });
-
-    Client.addMockResponse({
-      url: `${endpoint}/owners/`,
-      body: {
-        owners: [{type: 'user', ...user}],
-        rules: [[['path', 'sentry/tagstore/*'], [['user', user.email]]]],
-      },
-    });
-
-    render(
-      <SuggestedOwners project={project} group={TestStubs.Group()} event={event} />,
-      {organization}
-    );
-
-    expect(committers).not.toHaveBeenCalled();
-  });
-
   it('Merges owner matching rules and having suspect commits', async function () {
     const author = TestStubs.CommitAuthor();
 
