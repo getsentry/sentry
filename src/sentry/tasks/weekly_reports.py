@@ -415,11 +415,23 @@ def render_template_context(ctx, user):
                 for i, project_ctx in enumerate(projects_taken)
             ]
             if len(projects_not_taken) > 0:
-                project_series.append({
-                    "color": other_color,
-                    "error_count": sum(map(lambda project_ctx: project_ctx.error_count_by_day.get(t, 0), projects_not_taken)),
-                    "transaction_count": sum(map(lambda project_ctx: project_ctx.transaction_count_by_day.get(t, 0), projects_not_taken)),
-                })
+                project_series.append(
+                    {
+                        "color": other_color,
+                        "error_count": sum(
+                            map(
+                                lambda project_ctx: project_ctx.error_count_by_day.get(t, 0),
+                                projects_not_taken,
+                            )
+                        ),
+                        "transaction_count": sum(
+                            map(
+                                lambda project_ctx: project_ctx.transaction_count_by_day.get(t, 0),
+                                projects_not_taken,
+                            )
+                        ),
+                    }
+                )
             series.append((to_datetime(t), project_series))
         return {
             "legend": legend,

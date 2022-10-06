@@ -277,7 +277,7 @@
       {% for project in trends.legend %}
         <tr>
           <td>
-              {% if project.color %}<span style="background-color: {{ project.color }}; display: inline-block; height: 1em; width: 1em;">&nbsp;</span>{% endif %}
+              {% if project.color %}<span style="background: {{ project.color }}; display: inline-block; height: 1em; width: 1em;">&nbsp;</span>{% endif %}
           </td>
           <td>
               {% if project.url %}<a href="{{ project.url }}">{% endif %}{{ project.slug }}{% if project.url %}</a>{% endif %}
@@ -289,24 +289,6 @@
         </tr>
       {% endfor %}
       </tbody>
-      {% if series.legend.rows|length > 1 %}
-        <tfoot>
-          {% with key=series.legend.total %}
-            <tr>
-              <td>
-                  {% if key.color %}<span style="background: {{ key.color }}; background-size: 4px 4px; display: inline-block; height: 1em; width: 1em;">&nbsp;</span>{% endif %}
-              </td>
-              <td>
-                  {% if key.url %}<a href="{{ key.url }}">{% endif %}{{ key.label }}{% if key.url %}</a>{% endif %}
-              </td>
-              <td class="numeric">{{ key.data.accepted_errors|small_count:1 }}</td>
-              <td class="numeric col-dropped col-errors-dropped">{{ key.data.dropped_errors|small_count:1 }}</td>
-              <td class="numeric">{{ key.data.accepted_transactions|small_count:1 }}</td>
-              <td class="numeric col-dropped">{{ key.data.dropped_transactions|small_count:1 }}</td>
-            </tr>
-          {% endwith %}
-        </tfoot>
-      {% endif %}
     </table>
     {% endwith %}
 
