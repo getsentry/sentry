@@ -8,11 +8,20 @@ from sentry.ratelimits.cardinality import (
     RedisCardinalityLimiter,
     RequestedQuota,
 )
+from sentry.utils import redis
 
 
-@pytest.fixture
-def limiter():
-    return RedisCardinalityLimiter()
+@pytest.fixture(params=["cluster", "rb"])
+def limiter(request):
+    instance = RedisCardinalityLimiter()
+    if request.param == "rb":
+        instance.is_redis_cluster = False
+        instance.client = redis.clusters.get("default")
+    else:
+        instance.is_redis_cluster = True
+        instance.client = redis.redis_clusters.get("default")
+
+    return instance
 
 
 class LimiterHelper:

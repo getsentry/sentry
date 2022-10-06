@@ -228,12 +228,18 @@ class RedisCardinalityLimiter(CardinalityLimiter):
             is a sampling rate, the lower it is, the less precise accounting
             will be.
         """
-        self.client = redis.redis_clusters.get(cluster)
+        self.is_redis_cluster, self.client, _ = redis.get_dynamic_cluster_from_options(
+            "", {"cluster": cluster}
+        )
+
         assert 0 < num_physical_shards <= num_shards
         self.num_shards = num_shards
         self.num_physical_shards = num_physical_shards
         self.metric_tags = metric_tags or {}
         super().__init__()
+
+    def validate(self):
+        redis.validate_dynamic_cluster(self.is_redis_cluster, self.client)
 
     @staticmethod
     def _get_timeseries_key(request: RequestedQuota, hash: Hash) -> str:
@@ -289,16 +295,25 @@ class RedisCardinalityLimiter(CardinalityLimiter):
                 for request in requests
             ]
 
-        with self.client.pipeline(transaction=False) as pipeline:
-            pipeline.mget(unit_keys_to_get)
-            # O(self.cluster_shard_factor * len(requests)), assuming there's
-            # only one per-org quota
-            for key in set_keys_to_count:
-                pipeline.scard(key)
+        if self.is_redis_cluster:
+            with self.client.pipeline(transaction=False) as pipeline:
+                pipeline.mget(unit_keys_to_get)
+                # O(self.cluster_shard_factor * len(requests)), assuming there's
+                # only one per-org quota
+                for key in set_keys_to_count:
+                    pipeline.scard(key)
 
-            results = iter(pipeline.execute())
-            unit_keys = dict(zip(unit_keys_to_get, next(results)))
-            set_counts = dict(zip(set_keys_to_count, results))
+                results = iter(pipeline.execute())
+                unit_keys = dict(zip(unit_keys_to_get, next(results)))
+                set_counts = dict(zip(set_keys_to_count, results))
+        else:
+            with self.client.map() as client:
+                mget_result = client.mget(unit_keys_to_get)
+
+                scard_results = [client.scard(key) for key in set_keys_to_count]
+
+            unit_keys = dict(zip(unit_keys_to_get, mget_result.value))
+            set_counts = dict(zip(set_keys_to_count, (p.value for p in scard_results)))
 
         grants = []
         cardinality_sample_factor = self._get_set_cardinality_sample_factor()
@@ -377,7 +392,11 @@ class RedisCardinalityLimiter(CardinalityLimiter):
             # enforce), we can save the redis call entirely.
             return
 
-        with self.client.pipeline(transaction=False) as pipeline:
+        ctx_mgr = (
+            self.client.pipeline(transaction=False) if self.is_redis_cluster else self.client.map()
+        )
+
+        with ctx_mgr as pipeline:
             for key, ttl in unit_keys_to_set.items():
                 pipeline.setex(key, ttl, 1)
 
@@ -391,4 +410,5 @@ class RedisCardinalityLimiter(CardinalityLimiter):
 
                 pipeline.expire(key, set_keys_ttl[key])
 
-            pipeline.execute()
+            if self.is_redis_cluster:
+                pipeline.execute()
