@@ -2,7 +2,7 @@ import {browserHistory} from 'react-router';
 
 import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {triggerPress} from 'sentry-test/utils';
 
 import * as PageFilterPersistence from 'sentry/components/organizations/pageFilters/persistence';
@@ -180,6 +180,28 @@ describe('Results', function () {
       body: {
         id: '1',
         name: 'new',
+        projects: [],
+        version: 2,
+        expired: false,
+        dateCreated: '2021-04-08T17:53:25.195782Z',
+        dateUpdated: '2021-04-09T12:13:18.567264Z',
+        createdBy: {
+          id: '2',
+        },
+        environment: [],
+        fields: ['title', 'event.type', 'project', 'user.display', 'timestamp'],
+        widths: ['-1', '-1', '-1', '-1', '-1'],
+        range: '24h',
+        orderby: '-user.display',
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/discover/homepage/',
+      method: 'GET',
+      statusCode: 200,
+      body: {
+        id: '2',
+        name: '',
         projects: [],
         version: 2,
         expired: false,
@@ -1708,11 +1730,11 @@ describe('Results', function () {
     );
   });
 
-  it('updates the homepage query with up to date eventView when Use as Discover Home is clicked', () => {
+  it('updates the homepage query with up to date eventView when Use as Discover Home is clicked', async () => {
     const mockHomepageUpdate = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/discover/homepage/',
       method: 'PUT',
-      statusCode: 204,
+      statusCode: 200,
     });
     const organization = TestStubs.Organization({
       features: [
@@ -1726,7 +1748,7 @@ describe('Results', function () {
       organization,
       router: {
         // These fields take priority and should be sent in the request
-        location: {query: {field: ['title', 'user']}},
+        location: {query: {field: ['title', 'user'], id: '1'}},
       },
     });
 
@@ -1741,6 +1763,9 @@ describe('Results', function () {
       {context: initialData.routerContext, organization}
     );
 
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: /use as discover home/i})).toBeEnabled()
+    );
     userEvent.click(screen.getByText('Use as Discover Home'));
 
     expect(mockHomepageUpdate).toHaveBeenCalledWith(
@@ -1802,6 +1827,9 @@ describe('Results', function () {
       {context: initialData.routerContext, organization}
     );
 
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: /use as discover home/i})).toBeEnabled()
+    );
     userEvent.click(screen.getByText('Use as Discover Home'));
     expect(await screen.findByText('Reset Discover Home')).toBeInTheDocument();
 
