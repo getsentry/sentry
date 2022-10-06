@@ -1,5 +1,5 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import EventView from 'sentry/utils/discover/eventView';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -73,40 +73,38 @@ const WrappedComponent = ({
 };
 
 describe('Performance > Transaction Summary Header', function () {
-  let wrapper;
-
   afterEach(function () {
     MockApiClient.clearMockResponses();
-    wrapper.unmount();
   });
 
-  it('should render web vitals tab when yes', async function () {
-    wrapper = mountWithTheme(<WrappedComponent hasWebVitals="yes" />);
+  it('should render web vitals tab when yes', function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-has-measurements/',
+      body: {measurements: true},
+    });
 
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('ListLink[data-test-id="web-vitals-tab"]').exists()).toBeTruthy();
+    render(<WrappedComponent hasWebVitals="yes" />);
+    expect(screen.getByRole('tab', {name: 'Web Vitals'})).toBeInTheDocument();
   });
 
-  it('should not render web vitals tab when no', async function () {
-    wrapper = mountWithTheme(<WrappedComponent hasWebVitals="no" />);
+  it('should not render web vitals tab when no', function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-has-measurements/',
+      body: {measurements: true},
+    });
 
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('ListLink[data-test-id="web-vitals-tab"]').exists()).toBeFalsy();
+    render(<WrappedComponent hasWebVitals="no" />);
+    expect(screen.queryByRole('tab', {name: 'Web Vitals'})).not.toBeInTheDocument();
   });
 
-  it('should render web vitals tab when maybe and is frontend platform', async function () {
-    wrapper = mountWithTheme(
-      <WrappedComponent hasWebVitals="maybe" platform="javascript" />
-    );
+  it('should render web vitals tab when maybe and is frontend platform', function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-has-measurements/',
+      body: {measurements: true},
+    });
 
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('ListLink[data-test-id="web-vitals-tab"]').exists()).toBeTruthy();
+    render(<WrappedComponent hasWebVitals="maybe" platform="javascript" />);
+    expect(screen.getByRole('tab', {name: 'Web Vitals'})).toBeInTheDocument();
   });
 
   it('should render web vitals tab when maybe and has measurements', async function () {
@@ -115,39 +113,32 @@ describe('Performance > Transaction Summary Header', function () {
       body: {measurements: true},
     });
 
-    wrapper = mountWithTheme(<WrappedComponent hasWebVitals="maybe" />);
-
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('ListLink[data-test-id="web-vitals-tab"]').exists()).toBeTruthy();
+    render(<WrappedComponent hasWebVitals="maybe" />);
+    expect(await screen.findByRole('tab', {name: 'Web Vitals'})).toBeInTheDocument();
   });
 
-  it('should not render web vitals tab when maybe and has no measurements', async function () {
+  it('should not render web vitals tab when maybe and has no measurements', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-has-measurements/',
       body: {measurements: false},
     });
 
-    wrapper = mountWithTheme(<WrappedComponent hasWebVitals="maybe" />);
-
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('ListLink[data-test-id="web-vitals-tab"]').exists()).toBeFalsy();
+    render(<WrappedComponent hasWebVitals="maybe" />);
+    expect(screen.queryByRole('tab', {name: 'Web Vitals'})).not.toBeInTheDocument();
   });
 
-  it('should render spans tab with feature', async function () {
-    wrapper = mountWithTheme(
+  it('should render spans tab with feature', function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-has-measurements/',
+      body: {measurements: false},
+    });
+
+    render(
       <WrappedComponent
         hasWebVitals="yes"
         features={['performance-suspect-spans-view']}
       />
     );
-
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('ListLink[data-test-id="spans-tab"]').exists()).toBeTruthy();
+    expect(screen.getByRole('tab', {name: 'Spans'})).toBeInTheDocument();
   });
 });
