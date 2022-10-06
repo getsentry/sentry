@@ -189,6 +189,28 @@ describe('Discover > Homepage', () => {
     expect(screen.queryByText('Use as Discover Home')).not.toBeInTheDocument();
   });
 
+  it('Disables the Use as Discover Home button when no saved homepage', () => {
+    mockHomepage = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/discover/homepage/',
+      method: 'GET',
+      statusCode: 200,
+    });
+
+    render(
+      <Homepage
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+        setSavedQuery={jest.fn()}
+        loading={false}
+      />,
+      {context: initialData.routerContext, organization: initialData.organization}
+    );
+
+    expect(mockHomepage).toHaveBeenCalled();
+    expect(screen.getByRole('button', {name: /use as discover home/i})).toBeDisabled();
+  });
+
   it('follows absolute date selection', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/discover/homepage/',
