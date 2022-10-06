@@ -729,7 +729,7 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
 
     def test_cannot_remove_default(self):
         Organization.objects.all().delete()
-        org = self.create_organization(owner=self.user)
+        org = self.create_organization(owner=self.user, id=1)
 
         with self.settings(SENTRY_SINGLE_ORGANIZATION=True):
             self.get_error_response(org.slug, status_code=400)
