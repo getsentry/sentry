@@ -260,9 +260,9 @@ describe('useConsoleFilters', () => {
         useConsoleFilters({breadcrumbs: simpleCrumbs})
       );
       expect(result.current.getOptions()).toStrictEqual([
-        {label: 'error', value: 'error'},
-        {label: 'log', value: 'log'},
+        {label: 'console error', value: 'error'},
         {label: 'warning', value: 'warning'},
+        {label: 'log', value: 'log'},
       ]);
     });
 
@@ -288,9 +288,9 @@ describe('useConsoleFilters', () => {
       );
 
       expect(result.current.getOptions()).toStrictEqual([
-        {label: 'error', value: 'error'},
-        {label: 'log', value: 'log'},
+        {label: 'console error', value: 'error'},
         {label: 'warning', value: 'warning'},
+        {label: 'log', value: 'log'},
       ]);
     });
 
@@ -301,7 +301,7 @@ describe('useConsoleFilters', () => {
         useConsoleFilters({breadcrumbs: simpleCrumbs})
       );
       expect(result.current.getOptions()).toStrictEqual([
-        {label: 'issue', value: 'issue'},
+        {label: 'sentry error', value: 'issue'},
       ]);
     });
 
@@ -317,7 +317,7 @@ describe('useConsoleFilters', () => {
       );
 
       expect(result.current.getOptions()).toStrictEqual([
-        {label: 'issue', value: 'issue'},
+        {label: 'sentry error', value: 'issue'},
       ]);
     });
   });
