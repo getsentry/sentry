@@ -1,39 +1,33 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {act} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import MemberListStore from 'sentry/stores/memberListStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import TeamStore from 'sentry/stores/teamStore';
+import {Team, User} from 'sentry/types';
 
 describe('ActorAvatar', function () {
-  const USER = {
+  const user: User = {
+    ...TestStubs.User(),
     id: '1',
     name: 'JanActore Bloggs',
     email: 'janebloggs@example.com',
   };
-  const TEAM_1 = {
+  const team1: Team = {
+    ...TestStubs.Team(),
     id: '3',
     slug: 'cool-team',
     name: 'COOL TEAM',
-    projects: [
-      {
-        slug: 2,
-      },
-    ],
   };
-  const org = TestStubs.Organization();
-  OrganizationStore.onUpdate(org, {replace: true});
-  beforeEach(function () {
-    MemberListStore.loadInitialData([USER]);
-    act(() => void TeamStore.loadInitialData([TEAM_1]));
-  });
 
-  afterEach(function () {});
+  beforeEach(function () {
+    MemberListStore.loadInitialData([user]);
+    TeamStore.loadInitialData([team1]);
+  });
 
   describe('render()', function () {
     it('should show a gravatar when actor type is a user', function () {
-      const avatar = mountWithTheme(
+      const {container} = render(
         <ActorAvatar
           actor={{
             id: '1',
@@ -42,11 +36,12 @@ describe('ActorAvatar', function () {
           }}
         />
       );
-      expect(avatar).toSnapshot();
+
+      expect(container).toSnapshot();
     });
 
     it('should not show a gravatar when actor type is a team', function () {
-      const avatar = mountWithTheme(
+      const {container} = render(
         <ActorAvatar
           actor={{
             id: '3',
@@ -55,50 +50,53 @@ describe('ActorAvatar', function () {
           }}
         />
       );
-      expect(avatar.find('LetterAvatar')).toHaveLength(1);
-      expect(avatar.find('Gravatar')).toHaveLength(0);
-      expect(avatar).toSnapshot();
+
+      expect(screen.getByText('CT')).toBeInTheDocument();
+
+      expect(container).toSnapshot();
     });
 
     it('should return null when actor type is a unknown', function () {
-      const avatar = mountWithTheme(
+      render(
         <ActorAvatar
           actor={{
             id: '3',
             name: 'COOL TEAM',
+            // @ts-expect-error (type shall be incorrect here)
             type: 'teapot',
           }}
         />
       );
 
-      expect(avatar.html()).toBe(null);
+      expect(screen.queryByText('CT')).not.toBeInTheDocument();
     });
 
     it('should fetch a team not in the store', async function () {
-      const team2 = TestStubs.Team({id: '2'});
+      const organization = TestStubs.Organization();
+
+      OrganizationStore.onUpdate(organization, {replace: true});
+
+      const team2 = TestStubs.Team({id: '2', name: 'COOL TEAM', slug: 'cool-team'});
 
       const mockRequest = MockApiClient.addMockResponse({
-        url: `/organizations/${org.slug}/teams/`,
+        url: `/organizations/${organization.slug}/teams/`,
         method: 'GET',
         body: [team2],
       });
 
-      const avatar = mountWithTheme(
+      render(
         <ActorAvatar
           actor={{
-            id: '2',
-            name: 'COOL TEAM',
+            id: team2.id,
+            name: team2.name,
             type: 'team',
           }}
         />
       );
 
-      expect(mockRequest).toHaveBeenCalled();
+      await waitFor(() => expect(mockRequest).toHaveBeenCalled());
 
-      await act(() => tick());
-      avatar.update();
-
-      expect(avatar.find('LetterAvatar')).toHaveLength(1);
+      expect(screen.getByText('CT')).toBeInTheDocument();
     });
   });
 });
