@@ -233,7 +233,7 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
 
     def setUp(self):
         super().setUp()
-        self.project = self.create_project(organization=self.org, platform="javascript")
+        self.project = self.create_project(platform="javascript")
         self.user = self.create_user("bar@example.com")
 
     def test_member_can_read_project_details(self):
