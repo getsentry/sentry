@@ -19,14 +19,19 @@ import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import ActionButton from 'sentry/components/actions/button';
 import IgnoreActions from 'sentry/components/actions/ignore';
-import IgnoreButton from 'sentry/components/actions/ignoreV2';
 import ResolveActions from 'sentry/components/actions/resolve';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Button from 'sentry/components/button';
 import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
 import type {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
-import {IconCheckmark, IconEllipsis, IconMute} from 'sentry/icons';
+import {
+  IconCheckmark,
+  IconEllipsis,
+  IconMute,
+  IconSubscribed,
+  IconUnsubscribed,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
@@ -450,6 +455,12 @@ class Actions extends Component<Props, State> {
                 disabled: disabled || group.subscriptionDetails?.disabled,
                 onAction: this.onToggleSubscribe,
               },
+              {
+                key: 'mark-review',
+                label: t('Mark reviewed'),
+                disabled: !group.inbox || disabled,
+                onAction: () => this.onUpdate({inbox: false}),
+              },
               ...(orgFeatures.has('shared-issues')
                 ? [
                     {
@@ -465,8 +476,10 @@ class Actions extends Component<Props, State> {
           <SubscribeAction
             className="hidden-xs"
             disabled={disabled}
+            disablePriority
             group={group}
             onClick={this.handleClick(disabled, this.onToggleSubscribe)}
+            icon={group.isSubscribed ? <IconSubscribed /> : <IconUnsubscribed />}
             size="sm"
           />
           <div className="hidden-xs">
@@ -510,12 +523,15 @@ class Actions extends Component<Props, State> {
           ) : (
             <Fragment>
               <GuideAnchor target="ignore_delete_discard" position="bottom" offset={20}>
-                <IgnoreButton
+                <IgnoreActions
                   className="hidden-xs"
                   isIgnored={isIgnored}
                   onUpdate={this.onUpdate}
                   disabled={disabled}
+                  dropdownPlacement="bottom right"
                   size="sm"
+                  hideIcon
+                  disableTooltip
                 />
               </GuideAnchor>
               <GuideAnchor target="resolve" position="bottom" offset={20}>

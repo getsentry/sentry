@@ -45,6 +45,9 @@ export type MenuItemProps = MenuListItemProps & {
    * item's key is passed as an argument.
    */
   onAction?: (key: MenuItemProps['key']) => void;
+  /**
+   * Submenu placement
+   */
   placement?: AriaPositionProps['placement'];
   /**
    * Whether to show a line divider below this menu item

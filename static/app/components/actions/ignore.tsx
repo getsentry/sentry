@@ -7,6 +7,7 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import CustomIgnoreCountModal from 'sentry/components/customIgnoreCountModal';
 import CustomIgnoreDurationModal from 'sentry/components/customIgnoreDurationModal';
 import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
+import type {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import Duration from 'sentry/components/duration';
 import Tooltip from 'sentry/components/tooltip';
 import {IconChevron, IconMute} from 'sentry/icons';
@@ -41,13 +42,18 @@ const IGNORE_WINDOWS: SelectValue<number>[] = [
 
 type Props = {
   onUpdate: (params: GroupStatusResolution) => void;
+  className?: string;
   confirmLabel?: string;
   confirmMessage?: (
     statusDetails: ResolutionStatusDetails | undefined
   ) => React.ReactNode;
+  disableTooltip?: boolean;
   disabled?: boolean;
+  dropdownPlacement?: 'bottom right';
+  hideIcon?: boolean;
   isIgnored?: boolean;
   shouldConfirm?: boolean;
+  size?: 'xs' | 'sm';
 };
 
 const IgnoreActions = ({
@@ -55,6 +61,11 @@ const IgnoreActions = ({
   disabled,
   shouldConfirm,
   confirmMessage,
+  className,
+  dropdownPlacement,
+  hideIcon,
+  disableTooltip,
+  size = 'xs',
   confirmLabel = t('Ignore'),
   isIgnored = false,
 }: Props) => {
@@ -128,11 +139,14 @@ const IgnoreActions = ({
       />
     ));
 
-  const dropdownItems = [
+  // Move submenu placement when ignore used in top right menu
+  const submenuPlacement = dropdownPlacement === 'bottom right' ? 'left top' : undefined;
+  const dropdownItems: MenuItemProps[] = [
     {
       key: 'for',
       label: t('For\u2026'),
       isSubmenu: true,
+      placement: submenuPlacement,
       children: [
         ...IGNORE_DURATIONS.map(duration => ({
           key: `for-${duration}`,
@@ -150,6 +164,7 @@ const IgnoreActions = ({
       key: 'until-reoccur',
       label: t('Until this occurs again\u2026'),
       isSubmenu: true,
+      placement: submenuPlacement,
       children: [
         ...IGNORE_COUNTS.map(count => ({
           key: `until-reoccur-${count}-times`,
@@ -186,6 +201,7 @@ const IgnoreActions = ({
       key: 'until-affect',
       label: t('Until this affects an additional\u2026'),
       isSubmenu: true,
+      placement: submenuPlacement,
       children: [
         ...IGNORE_COUNTS.map(count => ({
           key: `until-affect-${count}-users`,
@@ -221,14 +237,14 @@ const IgnoreActions = ({
   ];
 
   return (
-    <ButtonBar merged>
+    <ButtonBar className={className} merged>
       <IgnoreButton
-        size="xs"
-        tooltipProps={{delay: 300, disabled}}
+        size={size}
+        tooltipProps={{delay: 300, disabled: disabled || disableTooltip}}
         title={t(
           'Silences alerts for this issue and removes it from the issue stream by default.'
         )}
-        icon={<IconMute size="xs" />}
+        icon={hideIcon ? null : <IconMute size={size} />}
         onClick={() => onIgnore()}
         disabled={disabled}
       >
@@ -236,12 +252,13 @@ const IgnoreActions = ({
       </IgnoreButton>
       <DropdownMenuControl
         size="sm"
+        placement={dropdownPlacement}
         trigger={({props: triggerProps, ref: triggerRef}) => (
           <DropdownTrigger
             ref={triggerRef}
             {...triggerProps}
             aria-label={t('Ignore options')}
-            size="xs"
+            size={size}
             icon={<IconChevron direction="down" size="xs" />}
             disabled={disabled}
           />
