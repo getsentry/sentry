@@ -409,13 +409,8 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
 
   renderComponent() {
     const {error, errors, loading} = this.state;
-    const {dataCategory, loadingProjects, tableQuery, projectIds} = this.props;
+    const {dataCategory, loadingProjects, tableQuery} = this.props;
     const {headers, tableStats} = this.tableData;
-
-    // Don't render this component if only a single project is in view
-    if (projectIds.length === 1 && projectIds[0] !== -1) {
-      return null;
-    }
 
     return (
       <Fragment>

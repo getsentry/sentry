@@ -20,14 +20,9 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
 import PageHeading from 'sentry/components/pageHeading';
-import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {
-  DATA_CATEGORY_NAMES,
-  DEFAULT_RELATIVE_PERIODS,
-  DEFAULT_STATS_PERIOD,
-} from 'sentry/constants';
+import {DATA_CATEGORY_NAMES, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {PageHeader} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
@@ -250,7 +245,7 @@ export class OrganizationStats extends Component<Props> {
     return nextLocation;
   };
 
-  renderProjectPageControl = () => {
+  renderPageControl = () => {
     return (
       <SearchContainer>
         <PageFilterBar>
@@ -269,35 +264,13 @@ export class OrganizationStats extends Component<Props> {
     );
   };
 
-  renderPageControl = () => {
-    const {organization} = this.props;
-
-    const {start, end, period, utc} = this.dataDatetime;
-
-    return (
-      <Fragment>
-        <DropdownDataCategory
-          triggerProps={{prefix: t('Category')}}
-          value={this.dataCategory}
-          options={CHART_OPTIONS_DATACATEGORY}
-          onChange={opt => this.setStateOnUrl({dataCategory: opt.value as DataCategory})}
-        />
-        <StyledPageTimeRangeSelector
-          organization={organization}
-          relative={period ?? ''}
-          start={start ?? null}
-          end={end ?? null}
-          utc={utc ?? null}
-          onUpdate={this.handleUpdateDatetime}
-          relativeOptions={omit(DEFAULT_RELATIVE_PERIODS, ['1h'])}
-        />
-      </Fragment>
-    );
-  };
-
   render() {
     const {organization} = this.props;
     const hasTeamInsights = organization.features.includes('team-insights');
+
+    // We only show UsageProjectStats if multiple projects are selected
+    const shouldRenderProjectStats =
+      this.projectIds.includes(-1) || this.projectIds.length !== 1;
 
     return (
       <SentryDocumentTitle title="Usage Stats">
@@ -321,7 +294,7 @@ export class OrganizationStats extends Component<Props> {
               )}
               <HookHeader organization={organization} />
 
-              {this.renderProjectPageControl()}
+              {this.renderPageControl()}
               <PageGrid>
                 <ErrorBoundary mini>
                   <UsageStatsOrg
@@ -351,20 +324,22 @@ export class OrganizationStats extends Component<Props> {
                   </Alert>
                 )}
               </Feature>
-              <ErrorBoundary mini>
-                <UsageStatsProjects
-                  organization={organization}
-                  dataCategory={this.dataCategory}
-                  dataCategoryName={this.dataCategoryName}
-                  projectIds={this.projectIds}
-                  dataDatetime={this.dataDatetime}
-                  tableSort={this.tableSort}
-                  tableQuery={this.tableQuery}
-                  tableCursor={this.tableCursor}
-                  handleChangeState={this.setStateOnUrl}
-                  getNextLocations={this.getNextLocations}
-                />
-              </ErrorBoundary>
+              {shouldRenderProjectStats && (
+                <ErrorBoundary mini>
+                  <UsageStatsProjects
+                    organization={organization}
+                    dataCategory={this.dataCategory}
+                    dataCategoryName={this.dataCategoryName}
+                    projectIds={this.projectIds}
+                    dataDatetime={this.dataDatetime}
+                    tableSort={this.tableSort}
+                    tableQuery={this.tableQuery}
+                    tableCursor={this.tableCursor}
+                    handleChangeState={this.setStateOnUrl}
+                    getNextLocations={this.getNextLocations}
+                  />
+                </ErrorBoundary>
+              )}
             </Layout.Main>
           </Body>
         </PageFiltersContainer>
@@ -401,17 +376,6 @@ const DropdownDataCategory = styled(CompactSelect)`
   }
   @media (min-width: ${p => p.theme.breakpoints.large}) {
     grid-column: auto / span 1;
-  }
-`;
-
-const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
-  grid-column: auto / span 1;
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-column: auto / span 2;
-  }
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
-    grid-column: auto / span 3;
   }
 `;
 
