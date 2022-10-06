@@ -1185,6 +1185,8 @@ SENTRY_FEATURES = {
     "organizations:dynamic-sampling-performance-cta-advanced": False,
     # Enable the mobile screenshots feature
     "organizations:mobile-screenshots": False,
+    # Enable the mobile screenshot gallery in the attachments tab
+    "organizations:mobile-screenshot-gallery": False,
     # Enable the release details performance section
     "organizations:release-comparison-performance": False,
     # Enable team insights page
