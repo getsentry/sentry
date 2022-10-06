@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import abc
 import string
-from collections import OrderedDict
 from copy import deepcopy
 from datetime import datetime
 from hashlib import md5
@@ -504,8 +503,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
     def as_dict(self) -> Mapping[str, Any]:
         """Returns the data in normalized form for external consumers."""
-        # We use a OrderedDict to keep elements ordered for a potential JSON serializer
-        data: MutableMapping[str, Any] = OrderedDict()
+        data: MutableMapping[str, Any] = {}
         data["event_id"] = self.event_id
         data["project"] = self.project_id
         data["release"] = self.release

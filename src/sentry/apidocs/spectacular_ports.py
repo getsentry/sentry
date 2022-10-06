@@ -3,7 +3,7 @@
 import collections
 import inspect
 import typing
-from collections import OrderedDict, defaultdict
+from collections import defaultdict
 from enum import Enum
 from typing import Any, Literal, Union
 from typing import get_type_hints as _get_type_hints
@@ -77,7 +77,7 @@ def resolve_type_hint(hint) -> Any:
             max_length=len(args),
             min_length=len(args),
         )
-    elif origin is dict or origin is defaultdict or origin is OrderedDict:
+    elif origin is dict or origin is defaultdict:
         schema = build_basic_type(OpenApiTypes.OBJECT)
         if args and args[1] is not typing.Any:
             schema["additionalProperties"] = resolve_type_hint(args[1])

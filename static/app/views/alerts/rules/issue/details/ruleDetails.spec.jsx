@@ -84,7 +84,6 @@ describe('AlertRuleDetails', () => {
 
   afterEach(() => {
     ProjectsStore.reset();
-    ProjectsStore.teardown();
     MockApiClient.clearMockResponses();
   });
 
