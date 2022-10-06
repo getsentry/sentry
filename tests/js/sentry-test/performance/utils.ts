@@ -125,6 +125,7 @@ export class TransactionEventBuilder {
         data: {},
         span_id: spanId,
         trace_id: this.TRACE_ID,
+        parent_span_id: this.ROOT_SPAN_ID,
       };
 
       this._event.entries[0].data.push(span);

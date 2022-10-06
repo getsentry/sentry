@@ -28,7 +28,7 @@ const WrappedComponent = ({event}: {event: EventTransaction}) => (
 );
 
 describe('spanEvidence', () => {
-  it('only shows spans related to the issue in the span tree', () => {
+  it('renders and highlights the correct data in the span evidence section', () => {
     const builder = new TransactionEventBuilder();
 
     builder

@@ -908,6 +908,7 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
     return (
       <RowCellContainer showDetail={this.state.showDetail}>
         <RowCell
+          data-test-id={`row-cell-${spanBarHatch}`}
           data-type="span-row-cell"
           showDetail={this.state.showDetail}
           style={{
