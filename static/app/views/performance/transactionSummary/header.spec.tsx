@@ -85,7 +85,7 @@ describe('Performance > Transaction Summary Header', function () {
       </ComponentProviders>
     );
 
-    expect(screen.getByLabelText('Open web vitals tab')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Web Vitals'})).toBeInTheDocument();
   });
 
   it('should not render web vitals tab when no', function () {
@@ -104,7 +104,7 @@ describe('Performance > Transaction Summary Header', function () {
       />
     </ComponentProviders>;
 
-    expect(screen.queryByLabelText('Open web vitals tab')).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: 'Web Vitals'})).not.toBeInTheDocument();
   });
 
   it('should render web vitals tab when maybe and is frontend platform', function () {
@@ -127,7 +127,7 @@ describe('Performance > Transaction Summary Header', function () {
       </ComponentProviders>
     );
 
-    expect(screen.getByLabelText('Open web vitals tab')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Web Vitals'})).toBeInTheDocument();
   });
 
   it('should render web vitals tab when maybe and has measurements', async function () {
@@ -155,7 +155,7 @@ describe('Performance > Transaction Summary Header', function () {
 
     await waitFor(() => expect(eventHasMeasurementsMock).toHaveBeenCalled());
 
-    expect(screen.getByLabelText('Open web vitals tab')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Web Vitals'})).toBeInTheDocument();
   });
 
   it('should not render web vitals tab when maybe and has no measurements', async function () {
@@ -183,7 +183,7 @@ describe('Performance > Transaction Summary Header', function () {
 
     await waitFor(() => expect(eventHasMeasurementsMock).toHaveBeenCalled());
 
-    expect(screen.queryByLabelText('Open web vitals tab')).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: 'Web Vitals'})).not.toBeInTheDocument();
   });
 
   it('should render spans tab with feature', function () {
@@ -206,6 +206,6 @@ describe('Performance > Transaction Summary Header', function () {
       </ComponentProviders>
     );
 
-    expect(screen.getByLabelText('Open spans tab')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Spans'})).toBeInTheDocument();
   });
 });
