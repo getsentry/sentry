@@ -4,6 +4,7 @@ import {withRouter} from 'react-router';
 
 import Button from 'sentry/components/button';
 import Truncate from 'sentry/components/truncate';
+import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import TrendsDiscoverQuery from 'sentry/utils/performance/trends/trendsDiscoverQuery';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -161,6 +162,7 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
                   initialConditions,
                   additionalQuery: {
                     trendFunction: trendFunctionField,
+                    statsPeriod: eventView.statsPeriod || DEFAULT_STATS_PERIOD,
                   },
                 });
                 return (

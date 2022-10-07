@@ -1,5 +1,5 @@
 import {Component} from 'react';
-import {css} from '@emotion/core';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ProgressRing from 'sentry/components/progressRing';

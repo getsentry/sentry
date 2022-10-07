@@ -41,11 +41,11 @@ class IssueListTagFilter extends Component<Props, State> {
     textValue: this.props.value,
   };
 
-  UNSAFE_componentWillReceiveProps(nextProps: Props) {
-    if (nextProps.value !== this.state.value) {
+  componentDidUpdate() {
+    if (this.props.value !== this.state.value) {
       this.setState({
-        value: nextProps.value,
-        textValue: nextProps.value,
+        value: this.props.value,
+        textValue: this.props.value,
       });
     }
   }
