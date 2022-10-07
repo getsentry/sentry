@@ -1531,7 +1531,7 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
             event = manager.save(self.project.id)
             data = event.data
             assert data["type"] == "transaction"
-            assert data["span_grouping_config"]["id"] == "default:2021-08-25"
+            assert data["span_grouping_config"]["id"] == "default:2022-10-04"
             spans = [{"hash": span["hash"]} for span in data["spans"]]
             # the basic strategy is to simply use the description
             assert spans == [{"hash": hash_values([span["description"]])} for span in data["spans"]]
@@ -2159,7 +2159,7 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
             data = event.data
             expected_hash = "19e15e0444e0bc1d5159fb07cd4bd2eb"
             assert event.get_event_type() == "transaction"
-            assert data["span_grouping_config"]["id"] == "default:2021-08-25"
+            assert data["span_grouping_config"]["id"] == "default:2022-10-04"
             assert data["hashes"] == [expected_hash]
             spans = [{"hash": span["hash"]} for span in data["spans"]]
             # the basic strategy is to simply use the description
