@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, List, Mapping, Optional, Tuple, TypedDict, Union
+from typing import TYPE_CHECKING, Mapping, Optional, Sequence, Tuple, TypedDict, Union
 
 import sentry_sdk
 from django.conf import settings
@@ -414,21 +414,19 @@ def post_process_group(
             ge.group_id: ge for ge in list(event.build_group_events())
         }
 
-        multi_groups: Mapping[int, Tuple[GroupEvent, GroupState]] = {
-            gs.get("id"): (group_events.get(gs.get("id")), gs)
-            for gs in group_states
-            if gs.get("id") is not None
-        }
+        multi_groups: Sequence[Tuple[GroupEvent, GroupState]] = [
+            (group_events.get(gs.get("id")), gs) for gs in group_states if gs.get("id") is not None
+        ]
 
-        group_jobs: List[PostProcessJob] = [
+        group_jobs: Sequence[PostProcessJob] = [
             {
-                "event": v[0],
-                "group_state": v[1],
+                "event": ge,
+                "group_state": gs,
                 "is_reprocessed": is_reprocessed,
-                "has_reappeared": bool(not v[1]["is_new"]),
+                "has_reappeared": bool(not gs["is_new"]),
                 "has_alert": False,
             }
-            for k, v in multi_groups.items()
+            for ge, gs in multi_groups
         ]
 
         for job in group_jobs:
