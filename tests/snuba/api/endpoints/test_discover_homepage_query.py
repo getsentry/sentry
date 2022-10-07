@@ -107,6 +107,27 @@ class DiscoverHomepageQueryTest(DiscoverSavedQueryBase):
         assert new_query.name == ""
         assert response.data["name"] == ""
 
+    def test_put_with_no_name(self):
+        homepage_query_payload = {
+            "version": 2,
+            "name": "",
+            "projects": self.project_ids,
+            "environment": ["alpha"],
+            "fields": ["environment", "platform.name"],
+            "orderby": "-timestamp",
+            "range": None,
+        }
+        with self.feature(FEATURES):
+            response = self.client.put(self.url, data=homepage_query_payload)
+
+        assert response.status_code == 201, response.content
+
+        new_query = DiscoverSavedQuery.objects.get(
+            created_by=self.user, organization=self.org, is_homepage=True
+        )
+        assert new_query.name == ""
+        assert response.data["name"] == ""
+
     def test_post_not_allowed(self):
         homepage_query_payload = {
             "version": 2,

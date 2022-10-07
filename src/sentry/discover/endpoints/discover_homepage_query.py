@@ -65,7 +65,8 @@ class DiscoverHomepageQueryEndpoint(OrganizationEndpoint):
             raise ParseError(detail="No Projects found, join a Team")
 
         serializer = DiscoverSavedQuerySerializer(
-            data=request.data,
+            # HACK: To ensure serializer data is valid, pass along a name temporarily
+            data={**request.data, "name": "New Query"},
             context={"params": params},
         )
         if not serializer.is_valid():
