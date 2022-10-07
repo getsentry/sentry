@@ -2,6 +2,7 @@ from time import time
 from unittest import mock
 
 import pytest
+from django.http import HttpRequest
 from django.urls import reverse
 
 from sentry import audit_log
@@ -169,6 +170,87 @@ class ProjectDetailsTest(APITestCase):
             project.organization.slug, project.slug, qs_params={"expand": "hasAlertIntegration"}
         )
         assert not response.data["hasAlertIntegrationInstalled"]
+
+    def test_condition_serializer_ok(self):
+        conditions = (
+            {"op": "and", "inner": []},
+            {"op": "and", "inner": [{"op": "and", "inner": []}]},
+            {"op": "or", "inner": []},
+            {"op": "or", "inner": [{"op": "or", "inner": []}]},
+            {"op": "not", "inner": {"op": "or", "inner": []}},
+            {"op": "eq", "ignoreCase": True, "name": "field1", "value": ["val"]},
+            {"op": "eq", "name": "field1", "value": ["val"]},
+            {"op": "glob", "name": "field1", "value": ["val"]},
+        )
+        self.request = HttpRequest()
+        self.request.user = self.user
+
+        for condition in conditions:
+            serializer = DynamicSamplingConditionSerializer(
+                data=condition,
+                partial=True,
+                context={"project": self.project, "request": self.request},
+            )
+            assert serializer.is_valid()
+            assert serializer.validated_data == condition
+
+    def test_bad_condition_serialization(self):
+        conditions = (
+            {"inner": []},
+            {"op": "and"},
+            {"op": "or"},
+            {"op": "eq", "value": ["val"]},
+            {"op": "eq", "name": "field1"},
+            {"op": "glob", "value": ["val"]},
+            {"op": "glob", "name": "field1"},
+        )
+        self.request = HttpRequest()
+        self.request.user = self.user
+        for condition in conditions:
+            serializer = DynamicSamplingConditionSerializer(
+                data=condition,
+                partial=True,
+                context={"project": self.project, "request": self.request},
+            )
+            assert not serializer.is_valid()
+
+    def test_rule_config_serializer(self):
+        data = {
+            "rules": [
+                {
+                    "sampleRate": 0.7,
+                    "type": "trace",
+                    "active": False,
+                    "id": 1,
+                    "condition": {
+                        "op": "and",
+                        "inner": [
+                            {"op": "eq", "name": "field1", "value": ["val"]},
+                            {"op": "glob", "name": "field1", "value": ["val"]},
+                        ],
+                    },
+                },
+                {
+                    "sampleRate": 0.7,
+                    "type": "trace",
+                    "active": False,
+                    "id": 2,
+                    "condition": {
+                        "op": "and",
+                        "inner": [],
+                    },
+                },
+            ],
+            "next_id": 22,
+        }
+        self.request = HttpRequest()
+        self.request.user = self.user
+
+        serializer = DynamicSamplingSerializer(
+            data=data, partial=True, context={"project": self.project, "request": self.request}
+        )
+        assert serializer.is_valid()
+        assert data == serializer.validated_data
 
     def test_with_dynamic_sampling_rules(self):
         project = self.project  # force creation
@@ -1730,74 +1812,3 @@ class ProjectDeleteTest(APITestCase):
         assert not ScheduledDeletion.objects.filter(
             model_name="Project", object_id=project.id
         ).exists()
-
-
-@pytest.mark.parametrize(
-    "condition",
-    (
-        {"op": "and", "inner": []},
-        {"op": "and", "inner": [{"op": "and", "inner": []}]},
-        {"op": "or", "inner": []},
-        {"op": "or", "inner": [{"op": "or", "inner": []}]},
-        {"op": "not", "inner": {"op": "or", "inner": []}},
-        {"op": "eq", "ignoreCase": True, "name": "field1", "value": ["val"]},
-        {"op": "eq", "name": "field1", "value": ["val"]},
-        {"op": "glob", "name": "field1", "value": ["val"]},
-    ),
-)
-def test_condition_serializer_ok(condition):
-    serializer = DynamicSamplingConditionSerializer(data=condition)
-    assert serializer.is_valid()
-    assert serializer.validated_data == condition
-
-
-@pytest.mark.parametrize(
-    "condition",
-    (
-        {"inner": []},
-        {"op": "and"},
-        {"op": "or"},
-        {"op": "eq", "value": ["val"]},
-        {"op": "eq", "name": "field1"},
-        {"op": "glob", "value": ["val"]},
-        {"op": "glob", "name": "field1"},
-    ),
-)
-def test_bad_condition_serialization(condition):
-    serializer = DynamicSamplingConditionSerializer(data=condition)
-    assert not serializer.is_valid()
-
-
-def test_rule_config_serializer():
-    data = {
-        "rules": [
-            {
-                "sampleRate": 0.7,
-                "type": "trace",
-                "active": False,
-                "id": 1,
-                "condition": {
-                    "op": "and",
-                    "inner": [
-                        {"op": "eq", "name": "field1", "value": ["val"]},
-                        {"op": "glob", "name": "field1", "value": ["val"]},
-                    ],
-                },
-            },
-            {
-                "sampleRate": 0.7,
-                "type": "trace",
-                "active": False,
-                "id": 2,
-                "condition": {
-                    "op": "and",
-                    "inner": [],
-                },
-            },
-        ],
-        "next_id": 22,
-    }
-
-    serializer = DynamicSamplingSerializer(data=data)
-    assert serializer.is_valid()
-    assert data == serializer.validated_data

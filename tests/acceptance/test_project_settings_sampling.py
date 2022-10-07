@@ -4,6 +4,7 @@ import pytest
 import pytz
 import requests
 from django.conf import settings
+from django.http import HttpRequest
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
 
@@ -87,6 +88,8 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
         self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
         self.login_as(self.user)
         self.path = f"/settings/{self.org.slug}/projects/{self.project.slug}/server-side-sampling/"
+        self.request = HttpRequest()
+        self.request.user = self.user
         assert requests.post(settings.SENTRY_SNUBA + "/tests/outcomes/drop").status_code == 200
 
     def store_outcomes(self, outcome, num_times=1):
@@ -142,7 +145,11 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
                 key="sentry:dynamic_sampling", project=self.project
             )
             saved_sampling_setting = project_option.value
-            serializer = DynamicSamplingSerializer(data=saved_sampling_setting)
+            serializer = DynamicSamplingSerializer(
+                data=saved_sampling_setting,
+                partial=True,
+                context={"project": self.project, "request": self.request},
+            )
             assert serializer.is_valid()
             assert len(serializer.validated_data["rules"]) == 1
             assert saved_sampling_setting == serializer.validated_data
@@ -194,7 +201,11 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
                 key="sentry:dynamic_sampling", project=self.project
             )
             saved_sampling_setting = project_option.value
-            serializer = DynamicSamplingSerializer(data=saved_sampling_setting)
+            serializer = DynamicSamplingSerializer(
+                data=saved_sampling_setting,
+                partial=True,
+                context={"project": self.project, "request": self.request},
+            )
             assert serializer.is_valid()
             assert len(serializer.validated_data["rules"]) == 1
             assert saved_sampling_setting == serializer.validated_data
@@ -305,7 +316,11 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
                 key="sentry:dynamic_sampling", project=self.project
             )
             saved_sampling_setting = project_option.value
-            serializer = DynamicSamplingSerializer(data=saved_sampling_setting)
+            serializer = DynamicSamplingSerializer(
+                data=saved_sampling_setting,
+                partial=True,
+                context={"project": self.project, "request": self.request},
+            )
             assert serializer.is_valid()
             assert len(serializer.validated_data["rules"]) == 1
             assert saved_sampling_setting == serializer.validated_data
@@ -354,7 +369,11 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
                 key="sentry:dynamic_sampling", project=self.project
             )
             saved_sampling_setting = project_option.value
-            serializer = DynamicSamplingSerializer(data=saved_sampling_setting)
+            serializer = DynamicSamplingSerializer(
+                data=saved_sampling_setting,
+                partial=True,
+                context={"project": self.project, "request": self.request},
+            )
             assert serializer.is_valid()
             assert len(serializer.validated_data["rules"]) == 1
             assert saved_sampling_setting == serializer.validated_data
@@ -440,7 +459,11 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
                 key="sentry:dynamic_sampling", project=self.project
             )
             saved_sampling_setting = project_option.value
-            serializer = DynamicSamplingSerializer(data=saved_sampling_setting)
+            serializer = DynamicSamplingSerializer(
+                data=saved_sampling_setting,
+                partial=True,
+                context={"project": self.project, "request": self.request},
+            )
             assert serializer.is_valid()
             assert len(serializer.validated_data["rules"]) == 2
             assert saved_sampling_setting == serializer.validated_data
