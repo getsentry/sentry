@@ -88,6 +88,7 @@ class EventMetas extends Component<Props, State> {
     const {isLargeScreen} = this.state;
 
     const hasReplay =
+      organization.features.includes('session-replay-ui') &&
       Boolean(event.entries.find(({type}) => type === 'breadcrumbs')) &&
       Boolean(event?.tags?.find(({key}) => key === 'replayId')?.value);
 
