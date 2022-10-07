@@ -2,14 +2,13 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import ProjectsStore from 'sentry/stores/projectsStore';
-import {BaseGroup, GroupTombstone, IssueCategory, Organization} from 'sentry/types';
+import {BaseGroup, GroupTombstone, Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {getTitle} from 'sentry/utils/events';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import EventTitleTreeLabel from './eventTitleTreeLabel';
-import {StackTracePreview} from './stacktracePreview';
+import GroupPreviewTooltip from './groupPreviewTooltip';
 
 type Props = {
   data: Event | BaseGroup | GroupTombstone;
@@ -33,28 +32,22 @@ function EventOrGroupTitle({
   const groupingIssueCategory = (data as BaseGroup)?.issueCategory;
 
   const hasGroupingTreeUI = !!organization?.features.includes('grouping-tree-ui');
-  const hasGroupingStacktraceUI = !!organization?.features.includes(
-    'grouping-stacktrace-ui'
-  );
   const {id, eventID, groupID, projectID} = event;
 
   const {title, subtitle, treeLabel} = getTitle(event, organization?.features, grouping);
 
   return (
     <Wrapper className={className} hasGroupingTreeUI={hasGroupingTreeUI}>
-      {withStackTracePreview && groupingIssueCategory === IssueCategory.ERROR ? (
-        <StyledStacktracePreview
-          organization={organization}
-          issueId={groupID ? groupID : id}
+      {withStackTracePreview ? (
+        <GroupPreviewTooltip
+          groupId={groupID ? groupID : id}
+          issueCategory={groupingIssueCategory}
           groupingCurrentLevel={groupingCurrentLevel}
-          // we need eventId and projectSlug only when hovering over Event, not Group
-          // (different API call is made to get the stack trace then)
           eventId={eventID}
-          projectSlug={eventID ? ProjectsStore.getById(projectID)?.slug : undefined}
-          hasGroupingStacktraceUI={hasGroupingStacktraceUI}
+          projectId={projectID}
         >
-          {treeLabel ? <EventTitleTreeLabel treeLabel={treeLabel} /> : title}
-        </StyledStacktracePreview>
+          {treeLabel ? <EventTitleTreeLabel treeLabel={treeLabel} /> : title ?? ''}
+        </GroupPreviewTooltip>
       ) : treeLabel ? (
         <EventTitleTreeLabel treeLabel={treeLabel} />
       ) : (
@@ -83,21 +76,6 @@ const Spacer = () => <span style={{display: 'inline-block', width: 10}}>&nbsp;</
 const Subtitle = styled('em')`
   color: ${p => p.theme.gray300};
   font-style: normal;
-`;
-
-const StyledStacktracePreview = styled(StackTracePreview)<{
-  hasGroupingStacktraceUI: boolean;
-}>`
-  ${p =>
-    p.hasGroupingStacktraceUI &&
-    css`
-      display: inline-flex;
-      overflow: hidden;
-      height: 100%;
-      > span:first-child {
-        ${p.theme.overflowEllipsis}
-      }
-    `}
 `;
 
 const Wrapper = styled('span')<{hasGroupingTreeUI: boolean}>`

@@ -44,6 +44,16 @@ def process_profile(
     project = Project.objects.get_from_cache(id=profile["project_id"])
     event_id = profile["event_id"] if "event_id" in profile else profile["profile_id"]
 
+    sentry_sdk.set_context(
+        "profile",
+        {
+            "organization_id": profile["organization_id"],
+            "project_id": profile["project_id"],
+            "profile_id": event_id,
+        },
+    )
+    sentry_sdk.set_tag("platform", profile["platform"])
+
     try:
         if _should_symbolicate(profile):
             modules, stacktraces = _prepare_frames_from_profile(profile)
@@ -198,6 +208,7 @@ def _symbolicate(
             if (
                 time() - symbolication_start_time
             ) > settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT:
+                metrics.incr("process_profile.symbolicate.timeout", sample_rate=1.0)
                 break
             else:
                 sleep_time = (
@@ -209,7 +220,9 @@ def _symbolicate(
                 continue
         except Exception as e:
             sentry_sdk.capture_exception(e)
+            metrics.incr("process_profile.symbolicate.error", sample_rate=1.0)
             break
+
     # returns the unsymbolicated stacktraces to avoid errors later
     return stacktraces
 
@@ -238,9 +251,12 @@ def _process_symbolicator_results_for_sample(profile: Profile, stacktraces: List
             frame.pop("post_context", None)
 
         def truncate_stack_needed(frames: List[dict[str, Any]], stack: List[Any]) -> List[Any]:
-            # remove top frames related to the profiler
-            if frames[0].get("function", "") == "perf_signal_handler":
-                return stack[2:]
+            # remove top frames related to the profiler (top of the stack)
+            if frames[stack[0]].get("function", "") == "perf_signal_handler":
+                stack = stack[2:]
+            # remove unsymbolicated frames before the runtime calls (bottom of the stack)
+            if frames[stack[len(stack) - 2]].get("function", "") == "":
+                stack = stack[:-2]
             return stack
 
     elif profile["platform"] == "cocoa":
@@ -489,6 +505,7 @@ def _insert_vroom_profile(profile: Profile) -> bool:
         profile["received"] = (
             datetime.utcfromtimestamp(profile["received"]).replace(tzinfo=timezone.utc).isoformat()
         )
+
         response = get_from_profiling_service(method="POST", path="/profile", json_data=profile)
 
         if response.status == 204:
@@ -497,30 +514,21 @@ def _insert_vroom_profile(profile: Profile) -> bool:
             profile["call_trees"] = json.loads(response.data)["call_trees"]
         else:
             metrics.incr(
-                "profiling.insert_vroom_profile.error",
+                "process_profile.insert_vroom_profile.error",
                 tags={"platform": profile["platform"], "reason": "bad status"},
+                sample_rate=1.0,
             )
             return False
         return True
     except RecursionError as e:
-        sentry_sdk.set_context(
-            "profile",
-            {
-                "organization_id": profile["organization_id"],
-                "project_id": profile["project_id"],
-                "profile_id": profile["event_id"]
-                if "event_id" in profile
-                else profile["profile_id"],
-                "platform": profile["platform"],
-            },
-        )
         sentry_sdk.capture_exception(e)
         return True
     except Exception as e:
         sentry_sdk.capture_exception(e)
         metrics.incr(
-            "profiling.insert_vroom_profile.error",
+            "process_profile.insert_vroom_profile.error",
             tags={"platform": profile["platform"], "reason": "encountered error"},
+            sample_rate=1.0,
         )
         return False
     finally:

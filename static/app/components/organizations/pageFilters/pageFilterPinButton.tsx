@@ -4,19 +4,18 @@ import {pinFilter} from 'sentry/actionCreators/pageFilters';
 import Button, {ButtonProps} from 'sentry/components/button';
 import {IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {PinnedPageFilter} from 'sentry/types';
+import {Organization, PinnedPageFilter} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 type Props = {
   filter: PinnedPageFilter;
+  organization: Organization;
   size: Extract<ButtonProps['size'], 'xs' | 'zero'>;
   className?: string;
 };
 
-function PageFilterPinButton({filter, size, className}: Props) {
-  const organization = useOrganization();
+function PageFilterPinButton({organization, filter, size, className}: Props) {
   const {pinnedFilters} = usePageFilters();
   const pinned = pinnedFilters.has(filter);
 
