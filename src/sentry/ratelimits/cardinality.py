@@ -2,6 +2,8 @@ import time
 from collections import defaultdict
 from typing import Collection, Iterator, List, Mapping, NamedTuple, Optional, Sequence, Tuple
 
+import rb
+
 from sentry.utils import metrics, redis
 from sentry.utils.services import Service
 
@@ -232,6 +234,12 @@ class RedisCardinalityLimiter(CardinalityLimiter):
             "", {"cluster": cluster}
         )
 
+        self.helper: RedisHelper = (
+            RedisClusterHelper(self.client)
+            if self.is_redis_cluster
+            else RedisBlasterHelper(self.client)
+        )
+
         assert 0 < num_physical_shards <= num_shards
         self.num_shards = num_shards
         self.num_physical_shards = num_physical_shards
@@ -295,25 +303,9 @@ class RedisCardinalityLimiter(CardinalityLimiter):
                 for request in requests
             ]
 
-        if self.is_redis_cluster:
-            with self.client.pipeline(transaction=False) as pipeline:
-                pipeline.mget(unit_keys_to_get)
-                # O(self.cluster_shard_factor * len(requests)), assuming there's
-                # only one per-org quota
-                for key in set_keys_to_count:
-                    pipeline.scard(key)
-
-                results = iter(pipeline.execute())
-                unit_keys = dict(zip(unit_keys_to_get, next(results)))
-                set_counts = dict(zip(set_keys_to_count, results))
-        else:
-            with self.client.map() as client:
-                mget_result = client.mget(unit_keys_to_get)
-
-                scard_results = [client.scard(key) for key in set_keys_to_count]
-
-            unit_keys = dict(zip(unit_keys_to_get, mget_result.value))
-            set_counts = dict(zip(set_keys_to_count, (p.value for p in scard_results)))
+        unit_keys, set_counts = self.helper.run_check_within_quotas(
+            unit_keys_to_get, set_keys_to_count
+        )
 
         grants = []
         cardinality_sample_factor = self._get_set_cardinality_sample_factor()
@@ -392,11 +384,51 @@ class RedisCardinalityLimiter(CardinalityLimiter):
             # enforce), we can save the redis call entirely.
             return
 
-        ctx_mgr = (
-            self.client.pipeline(transaction=False) if self.is_redis_cluster else self.client.map()
-        )
+        self.helper.run_use_quotas(unit_keys_to_set, set_keys_to_add, set_keys_ttl)
 
-        with ctx_mgr as pipeline:
+
+class RedisHelper:
+    def run_check_within_quotas(
+        self, unit_keys_to_get: Sequence[str], set_keys_to_count: Sequence[str]
+    ) -> Tuple[Mapping[str, int], Mapping[str, int]]:
+        raise NotImplementedError()
+
+    def run_use_quotas(
+        self,
+        unit_keys_to_set: Mapping[str, int],
+        set_keys_to_add: Mapping[str, Collection[int]],
+        set_keys_ttl: Mapping[str, int],
+    ) -> None:
+        raise NotImplementedError()
+
+
+class RedisClusterHelper(RedisHelper):
+    def __init__(self, client: redis.RedisCluster) -> None:
+        self.client = client
+
+    def run_check_within_quotas(
+        self, unit_keys_to_get: Sequence[str], set_keys_to_count: Sequence[str]
+    ) -> Tuple[Mapping[str, int], Mapping[str, int]]:
+        with self.client.pipeline(transaction=False) as pipeline:
+            pipeline.mget(unit_keys_to_get)
+            # O(self.cluster_shard_factor * len(requests)), assuming there's
+            # only one per-org quota
+            for key in set_keys_to_count:
+                pipeline.scard(key)
+
+            results = iter(pipeline.execute())
+            unit_keys = dict(zip(unit_keys_to_get, next(results)))
+            set_counts = dict(zip(set_keys_to_count, results))
+
+        return unit_keys, set_counts
+
+    def run_use_quotas(
+        self,
+        unit_keys_to_set: Mapping[str, int],
+        set_keys_to_add: Mapping[str, Collection[int]],
+        set_keys_ttl: Mapping[str, int],
+    ) -> None:
+        with self.client.pipeline(transaction=False) as pipeline:
             for key, ttl in unit_keys_to_set.items():
                 pipeline.setex(key, ttl, 1)
 
@@ -410,5 +442,42 @@ class RedisCardinalityLimiter(CardinalityLimiter):
 
                 pipeline.expire(key, set_keys_ttl[key])
 
-            if self.is_redis_cluster:
-                pipeline.execute()
+            pipeline.execute()
+
+
+class RedisBlasterHelper(RedisHelper):
+    def __init__(self, client: rb.Cluster) -> None:
+        self.client = client
+
+    def run_check_within_quotas(
+        self, unit_keys_to_get: Sequence[str], set_keys_to_count: Sequence[str]
+    ) -> Tuple[Mapping[str, int], Mapping[str, int]]:
+        with self.client.map() as client:
+            mget_result = client.mget(unit_keys_to_get)
+
+            scard_results = [client.scard(key) for key in set_keys_to_count]
+
+        unit_keys = dict(zip(unit_keys_to_get, mget_result.value))
+        set_counts = dict(zip(set_keys_to_count, (p.value for p in scard_results)))
+
+        return unit_keys, set_counts
+
+    def run_use_quotas(
+        self,
+        unit_keys_to_set: Mapping[str, int],
+        set_keys_to_add: Mapping[str, Collection[int]],
+        set_keys_ttl: Mapping[str, int],
+    ) -> None:
+        with self.client.map() as pipeline:
+            for key, ttl in unit_keys_to_set.items():
+                pipeline.setex(key, ttl, 1)
+
+            for key, items in set_keys_to_add.items():
+                items_list = list(items)
+                while items_list:
+                    # SADD can take multiple arguments, but if you provide too
+                    # many you end up with very long-running redis commands.
+                    pipeline.sadd(key, *items_list[:200])
+                    items_list = items_list[200:]
+
+                pipeline.expire(key, set_keys_ttl[key])
