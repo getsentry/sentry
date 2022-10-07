@@ -3,15 +3,14 @@ import styled from '@emotion/styled';
 import {Panel} from 'sentry/components/panels';
 import space from 'sentry/styles/space';
 
-type Props = {
+interface Props extends React.ComponentProps<typeof Panel> {
   children: React.ReactNode;
   image: React.ReactNode;
-  className?: string;
-};
+}
 
-function OnboardingPanel({className, image, children}: Props) {
+function OnboardingPanel({image, children, ...props}: Props) {
   return (
-    <Panel className={className}>
+    <Panel {...props}>
       <Container>
         <IlloBox>{image}</IlloBox>
         <StyledBox>{children}</StyledBox>
