@@ -305,7 +305,6 @@ class ProjectDynamicSamplingDistributionQueryCallsTest(APITestCase):
         |---------+-------+------|
         | bar     | 100   | 100  |
         | heart   | 5     | 0    |
-        | water   | 10    | 0    |
         |---------+-------+------|
         """
         # Case A: Head of trace project
@@ -405,7 +404,7 @@ class ProjectDynamicSamplingDistributionQueryCallsTest(APITestCase):
         |---------+-------+------|
         | bar     | 15    | 10   |
         | heart   | 100   | 100  |
-        | water   | 10    | 0    |
+        | wind   | 10    | 0    |
         |---------+-------+------|
         """
         # Case B: Head of trace project in some distributed trace and non-root in others
@@ -527,7 +526,6 @@ class ProjectDynamicSamplingDistributionQueryCallsTest(APITestCase):
         |---------+-------+------|
         | bar     | 10    | 0    |
         | heart   | 100   | 100  |
-        | water   | 5     | 0    |
         |---------+-------+------|
         """
         # Case C: request project not head of trace project
@@ -803,9 +801,6 @@ class ProjectDynamicSamplingDistributionQueryCallsTest(APITestCase):
 
 
 class ProjectDynamicSamplingDistributionIntegrationTest(SnubaTestCase, APITestCase):
-    # ToDo: Add tests for other cases A, C and D + case when no transactions in last hour but in last 30 days + test
-    #  case when no transactions in last 30 days
-    # ToDo: Refactor/ clean up when possible
     @property
     def endpoint(self):
         return reverse(
@@ -849,22 +844,79 @@ class ProjectDynamicSamplingDistributionIntegrationTest(SnubaTestCase, APITestCa
         return self.store_event(data, project_id=project_id)
 
     @freeze_time()
-    def test_queries_when_requested_project_is_head_of_trace_and_non_root_in_others(
-        self,
-    ):
+    def test_queries_when_requested_project_is_head_of_trace(self):
         """
-        Case B: Requesting for a project (bar) that is the head of trace for some distributed traces but also is
-        non-root for some other distributed traces
+        Case A: Requesting for a project (bar) that is the head of trace
         Example of smart query response (DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECT_STATS):
         |---------+-------+------|
         | project | count | root |
         |---------+-------+------|
-        | bar     | 15    | 10   |
-        | heart   | 100   | 100  |
-        | water   | 10    | 0    |
+        | bar     | 1     | 1    |
+        | heart   | 2     | 0    |
         |---------+-------+------|
         """
-        # Case B: Head of trace project in some distributed trace and non-root in others
+        self.login_as(self.user)
+        heart = self.create_project(
+            name="Heart", slug="heart", teams=[self.team], fire_project_created=True
+        )
+
+        for (transaction, trace_id, span_id, parent_span_id, project_id) in (
+            # Create first trace: bar -> heart
+            ("bar_transaction", "a" * 32, "b" * 16, None, self.project.id),
+            ("heart_transaction", "a" * 32, "c" * 16, "b" * 16, heart.id),
+            # Create second heart transaction unrelated to bar
+            ("heart_transaction", "b" * 32, "f" * 16, "d" * 16, heart.id),
+        ):
+            self.create_transaction(
+                transaction=transaction,
+                trace_id=trace_id,
+                span_id=span_id,
+                parent_span_id=parent_span_id,
+                spans=None,
+                project_id=project_id,
+                start_timestamp=before_now(days=1).replace(
+                    hour=10, minute=0, second=0, microsecond=0
+                ),
+                duration=800,
+                is_root=True if parent_span_id is None else False,
+            )
+        requested_sample_size = 2
+
+        with Feature({"organizations:server-side-sampling": True}):
+            response = self.client.get(f"{self.endpoint}?sampleSize={requested_sample_size}")
+            response_data = response.json()
+            assert sorted(response_data["projectBreakdown"], key=itemgetter("project")) == sorted(
+                [
+                    {"project_id": self.project.id, "project": self.project.slug, "count()": 1},
+                    {"project_id": heart.id, "project": heart.slug, "count()": 1},
+                ],
+                key=itemgetter("project"),
+            )
+            assert sorted(
+                response_data["parentProjectBreakdown"], key=itemgetter("project")
+            ) == sorted(
+                [
+                    {"project": self.project.slug, "projectId": self.project.id, "percentage": 1.0},
+                ],
+                key=itemgetter("project"),
+            )
+
+    @freeze_time()
+    def test_queries_when_requested_project_is_head_of_trace_and_non_root_in_others(
+        self,
+    ):
+        """
+        Case B: Requesting for a project (bar) that is the head of trace in some distributed trace
+        and non-root in others
+        Example of smart query response (DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECT_STATS):
+        |---------+-------+------|
+        | project | count | root |
+        |---------+-------+------|
+        | bar     | 2     | 1    |
+        | heart   | 2     | 0    |
+        | wind    | 1     | 1    |
+        |---------+-------+------|
+        """
         self.login_as(self.user)
         heart = self.create_project(
             name="Heart", slug="heart", teams=[self.team], fire_project_created=True
@@ -873,60 +925,28 @@ class ProjectDynamicSamplingDistributionIntegrationTest(SnubaTestCase, APITestCa
             name="Wind", slug="wind", teams=[self.team], fire_project_created=True
         )
 
-        # bar -> heart
-        self.create_transaction(
-            transaction="bar_transaction",
-            trace_id="a" * 32,
-            span_id="b" * 16,
-            parent_span_id=None,
-            spans=None,
-            project_id=self.project.id,
-            start_timestamp=before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0),
-            duration=800,
-            is_root=True,
-        )
-        self.create_transaction(
-            transaction="heart_transaction",
-            trace_id="a" * 32,
-            span_id="c" * 16,
-            parent_span_id="b" * 16,
-            spans=None,
-            project_id=heart.id,
-            start_timestamp=before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0),
-            duration=800,
-        )
-        # wind -> bar -> heart
-        self.create_transaction(
-            transaction="wind_transaction",
-            trace_id="b" * 32,
-            span_id="d" * 16,
-            parent_span_id=None,
-            spans=None,
-            project_id=wind.id,
-            start_timestamp=before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0),
-            duration=800,
-            is_root=True,
-        )
-        self.create_transaction(
-            transaction="bar_non_root_transaction",
-            trace_id="b" * 32,
-            span_id="e" * 16,
-            parent_span_id="d" * 16,
-            spans=None,
-            project_id=self.project.id,
-            start_timestamp=before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0),
-            duration=800,
-        )
-        self.create_transaction(
-            transaction="heart_transaction",
-            trace_id="b" * 32,
-            span_id="f" * 16,
-            parent_span_id="e" * 16,
-            spans=None,
-            project_id=heart.id,
-            start_timestamp=before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0),
-            duration=800,
-        )
+        for (transaction, trace_id, span_id, parent_span_id, project_id) in (
+            # Create first trace: bar -> heart
+            ("bar_transaction", "a" * 32, "b" * 16, None, self.project.id),
+            ("heart_transaction", "a" * 32, "c" * 16, "b" * 16, heart.id),
+            # Create second trace wind -> bar -> heart
+            ("wind_transaction", "b" * 32, "d" * 16, None, wind.id),
+            ("bar_non_root_transaction", "b" * 32, "e" * 16, "d" * 16, self.project.id),
+            ("heart_transaction", "b" * 32, "f" * 16, "e" * 16, heart.id),
+        ):
+            self.create_transaction(
+                transaction=transaction,
+                trace_id=trace_id,
+                span_id=span_id,
+                parent_span_id=parent_span_id,
+                spans=None,
+                project_id=project_id,
+                start_timestamp=before_now(days=1).replace(
+                    hour=10, minute=0, second=0, microsecond=0
+                ),
+                duration=800,
+                is_root=True if parent_span_id is None else False,
+            )
         requested_sample_size = 2
 
         with Feature({"organizations:server-side-sampling": True}):
@@ -948,3 +968,180 @@ class ProjectDynamicSamplingDistributionIntegrationTest(SnubaTestCase, APITestCa
                 ],
                 key=itemgetter("project"),
             )
+
+    @freeze_time()
+    def test_when_requested_project_is_not_head_of_trace(
+        self,
+    ):
+        """
+        Case C: Requesting for a project (bar) that is part of a distributed trace but is not root
+        Example of smart query response (DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECT_STATS):
+        |---------+-------+------|
+        | project | count | root |
+        |---------+-------+------|
+        | bar     | 1     | 0    |
+        | heart   | 2     | 2    |
+        |---------+-------+------|
+        """
+        self.login_as(self.user)
+        heart = self.create_project(
+            name="Heart", slug="heart", teams=[self.team], fire_project_created=True
+        )
+
+        for (transaction, trace_id, span_id, parent_span_id, project_id) in (
+            # Create first trace: heart -> bar
+            ("heart_transaction", "a" * 32, "b" * 16, None, heart.id),
+            ("bar_transaction", "a" * 32, "c" * 16, "b" * 16, self.project.id),
+            # Create second trace heart
+            ("heart_transaction", "b" * 32, "f" * 16, "d" * 16, heart.id),
+        ):
+            self.create_transaction(
+                transaction=transaction,
+                trace_id=trace_id,
+                span_id=span_id,
+                parent_span_id=parent_span_id,
+                spans=None,
+                project_id=project_id,
+                start_timestamp=before_now(days=1).replace(
+                    hour=10, minute=0, second=0, microsecond=0
+                ),
+                duration=800,
+                is_root=True if parent_span_id is None else False,
+            )
+        requested_sample_size = 2
+
+        with Feature({"organizations:server-side-sampling": True}):
+            response = self.client.get(f"{self.endpoint}?sampleSize={requested_sample_size}")
+            response_data = response.json()
+            assert sorted(response_data["projectBreakdown"], key=itemgetter("project")) == sorted(
+                [],
+                key=itemgetter("project"),
+            )
+            assert sorted(
+                response_data["parentProjectBreakdown"], key=itemgetter("project")
+            ) == sorted(
+                [{"percentage": 1.0, "project": heart.slug, "projectId": heart.id}],
+                key=itemgetter("project"),
+            )
+
+    @freeze_time()
+    def test_queries_when_requested_project_is_not_head_of_trace(
+        self,
+    ):
+        """
+        Case D: Requesting for a single project (bar - distributed tracing is disabled)
+        Example of smart query response (DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECT_STATS):
+        |---------+-------+------|
+        | project | count | root |
+        |---------+-------+------|
+        | bar     | 3     | 3    |
+        |---------+-------+------|
+        """
+        self.login_as(self.user)
+
+        for (transaction, trace_id, span_id, parent_span_id, project_id) in (
+            # Create 3 individual transactions for single project bar
+            ("bar_transaction", "a" * 32, "a" * 16, None, self.project.id),
+            ("bar_transaction", "b" * 32, "b" * 16, None, self.project.id),
+            ("bar_transaction", "c" * 32, "c" * 16, None, self.project.id),
+        ):
+            self.create_transaction(
+                transaction=transaction,
+                trace_id=trace_id,
+                span_id=span_id,
+                parent_span_id=parent_span_id,
+                spans=None,
+                project_id=project_id,
+                start_timestamp=before_now(days=1).replace(
+                    hour=10, minute=0, second=0, microsecond=0
+                ),
+                duration=800,
+                is_root=True if parent_span_id is None else False,
+            )
+        requested_sample_size = 3
+
+        with Feature({"organizations:server-side-sampling": True}):
+            response = self.client.get(f"{self.endpoint}?sampleSize={requested_sample_size}")
+            response_data = response.json()
+            assert sorted(response_data["projectBreakdown"], key=itemgetter("project")) == sorted(
+                # count is 3 because we set requested_sample_size = 3
+                [{"project_id": self.project.id, "project": self.project.slug, "count()": 3}],
+                key=itemgetter("project"),
+            )
+            assert sorted(
+                response_data["parentProjectBreakdown"], key=itemgetter("project")
+            ) == sorted(
+                [{"percentage": 1.0, "project": self.project.slug, "projectId": self.project.id}],
+                key=itemgetter("project"),
+            )
+
+    @freeze_time()
+    def test_queries_when_no_transactions_in_last_hour_but_exists_in_last_30_days(
+        self,
+    ):
+        """
+        Test when no transactions in last hour but exists in last 30 days,
+        then we simulate Case A by equesting for a project (bar)
+        that is root but is a head of distributed traces
+        """
+        self.login_as(self.user)
+
+        heart = self.create_project(
+            name="Heart", slug="heart", teams=[self.team], fire_project_created=True
+        )
+
+        for (transaction, trace_id, span_id, parent_span_id, project_id) in (
+            # Create first trace: bar -> heart
+            ("bar_transaction", "a" * 32, "b" * 16, None, self.project.id),
+            ("heart_transaction", "a" * 32, "c" * 16, "b" * 16, heart.id),
+            # Create second heart transaction unrelated to bar
+            ("heart_transaction", "b" * 32, "f" * 16, "d" * 16, heart.id),
+        ):
+            self.create_transaction(
+                transaction=transaction,
+                trace_id=trace_id,
+                span_id=span_id,
+                parent_span_id=parent_span_id,
+                spans=None,
+                project_id=project_id,
+                start_timestamp=before_now(days=15).replace(
+                    hour=10, minute=0, second=0, microsecond=0
+                ),
+                duration=800,
+                is_root=True if parent_span_id is None else False,
+            )
+        requested_sample_size = 2
+
+        with Feature({"organizations:server-side-sampling": True}):
+            response = self.client.get(f"{self.endpoint}?sampleSize={requested_sample_size}")
+            response_data = response.json()
+            assert sorted(response_data["projectBreakdown"], key=itemgetter("project")) == sorted(
+                [
+                    {"project_id": self.project.id, "project": self.project.slug, "count()": 1},
+                    {"project_id": heart.id, "project": heart.slug, "count()": 1},
+                ],
+                key=itemgetter("project"),
+            )
+            assert sorted(
+                response_data["parentProjectBreakdown"], key=itemgetter("project")
+            ) == sorted(
+                [{"percentage": 1.0, "project": self.project.slug, "projectId": self.project.id}],
+                key=itemgetter("project"),
+            )
+
+    @freeze_time()
+    def test_queries_when_no_transactions_in_last_hour_and_no_transactions_in_last_30_days(
+        self,
+    ):
+        """
+        Test when no transactions in last hour and no transactions exists in last 30 days,
+        """
+        self.login_as(self.user)
+
+        requested_sample_size = 2
+
+        with Feature({"organizations:server-side-sampling": True}):
+            response = self.client.get(f"{self.endpoint}?sampleSize={requested_sample_size}")
+            response_data = response.json()
+            assert response_data["projectBreakdown"] is None
+            assert response_data["parentProjectBreakdown"] == []
