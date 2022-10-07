@@ -148,7 +148,13 @@ function MultipleCheckboxField({
 
 export function SamplingFeedback() {
   return (
-    <FeatureFeedback featureName="dynamic-sampling" initialData={initialData}>
+    <FeatureFeedback
+      featureName="dynamic-sampling"
+      initialData={initialData}
+      buttonProps={{
+        priority: 'primary',
+      }}
+    >
       {({Header, Body, Footer, state, onFieldChange}) => {
         if (state.step === 0) {
           return (

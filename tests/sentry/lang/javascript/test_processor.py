@@ -36,6 +36,7 @@ from sentry.models import EventError, File, Release, ReleaseFile
 from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME, update_artifact_index
 from sentry.stacktraces.processing import find_stacktraces_in_data
 from sentry.testutils import TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 from sentry.utils.strings import truncatechars
@@ -96,6 +97,7 @@ class JavaScriptStacktraceProcessorTest(TestCase):
         assert processor.dist.name == "foo"
         assert processor.dist.date_added.timestamp() == processor.data["timestamp"]
 
+    @with_feature("organizations:javascript-console-error-tag")
     def test_tag_suspected_console_error(self):
         project = self.create_project()
         release = self.create_release(project=project, version="12.31.12")
@@ -143,6 +145,7 @@ class JavaScriptStacktraceProcessorTest(TestCase):
         processor.tag_suspected_console_errors(frames)
         assert get_tag(processor.data, "empty_stacktrace.js_console") is True
 
+    @with_feature("organizations:javascript-console-error-tag")
     def test_no_suspected_console_error(self):
         project = self.create_project()
         release = self.create_release(project=project, version="12.31.12")

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 __all__ = ["FeatureManager"]
 
 import abc
@@ -211,25 +213,29 @@ class FeatureManager(RegisteredFeatureManager):
         >>> FeatureManager.has('organizations:feature', organization, actor=request.user)
 
         """
-        actor = kwargs.pop("actor", None)
-        feature = self.get(name, *args, **kwargs)
+        try:
+            actor = kwargs.pop("actor", None)
+            feature = self.get(name, *args, **kwargs)
 
-        # Check registered feature handlers
-        rv = self._get_handler(feature, actor)
-        if rv is not None:
-            return rv
-
-        if self._entity_handler and not skip_entity:
-            rv = self._entity_handler.has(feature, actor)
+            # Check registered feature handlers
+            rv = self._get_handler(feature, actor)
             if rv is not None:
                 return rv
 
-        rv = settings.SENTRY_FEATURES.get(feature.name, False)
-        if rv is not None:
-            return rv
+            if self._entity_handler and not skip_entity:
+                rv = self._entity_handler.has(feature, actor)
+                if rv is not None:
+                    return rv
 
-        # Features are by default disabled if no plugin or default enables them
-        return False
+            rv = settings.SENTRY_FEATURES.get(feature.name, False)
+            if rv is not None:
+                return rv
+
+            # Features are by default disabled if no plugin or default enables them
+            return False
+        except Exception:
+            logging.exception("Failed to run feature check")
+            return False
 
     def batch_has(
         self,

@@ -1,5 +1,7 @@
+import {useState} from 'react';
 import {Location} from 'history';
 
+import LoadingError from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import EventView, {decodeSorts} from 'sentry/utils/discover/eventView';
@@ -10,11 +12,13 @@ export interface Props {
   issueId: string;
   location: Location;
   organization: Organization;
+  excludedTags?: string[];
 }
 
 const AllEventsTable = (props: Props) => {
-  const {location, organization, issueId, isPerfIssue} = props;
-  const eventView: EventView = EventView.fromLocation(location);
+  const {location, organization, issueId, isPerfIssue, excludedTags} = props;
+  const [error, setError] = useState<string>('');
+  const eventView: EventView = EventView.fromLocation(props.location);
   eventView.sorts = decodeSorts(location);
   eventView.fields = [
     {field: 'id'},
@@ -43,12 +47,20 @@ const AllEventsTable = (props: Props) => {
     t('timestamp'),
   ];
 
+  if (error) {
+    return <LoadingError message={error} />;
+  }
+
   return (
     <EventsTable
       eventView={eventView}
       location={location}
+      issueId={issueId}
       organization={organization}
-      setError={() => {}}
+      excludedTags={excludedTags}
+      setError={() => {
+        (msg: string) => setError(msg);
+      }}
       transactionName=""
       disablePagination
       columnTitles={columnTitles.slice()}

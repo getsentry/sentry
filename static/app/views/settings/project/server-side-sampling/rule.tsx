@@ -43,6 +43,7 @@ type Props = {
    * If not empty, the activate rule toggle will be disabled.
    */
   upgradeSdkForProjects: Project['slug'][];
+  canDemo?: boolean;
   grabAttributes?: UseDraggableArguments['attributes'];
 };
 
@@ -59,9 +60,10 @@ export function Rule({
   hideGrabButton,
   upgradeSdkForProjects,
   loadingRecommendedSdkUpgrades,
+  canDemo,
 }: Props) {
   const isUniform = isUniformRule(rule);
-  const canDelete = !noPermission && !isUniform;
+  const canDelete = !noPermission && (!isUniform || canDemo);
   const canDrag = !noPermission && !isUniform;
   const canActivate = !noPermission && (!upgradeSdkForProjects.length || rule.active);
 

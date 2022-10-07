@@ -1197,31 +1197,36 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             new_frames = [new_frame]
             raw_frames = [raw_frame] if changed_raw else None
 
-            if features.has(
-                "organizations:javascript-console-error-tag", self.organization.id, actor=None
-            ):
-                self.tag_suspected_console_errors(new_frames)
-
+            self.tag_suspected_console_errors(new_frames)
             return new_frames, raw_frames, all_errors
 
     def tag_suspected_console_errors(self, new_frames):
-        suspected_console_errors = None
-        try:
-            suspected_console_errors = self.suspected_console_errors(new_frames)
-        except Exception as exc:
-            logger.error(
-                "Failed to evaluate event for suspected JavaScript browser console error",
-                exc_info=exc,
-            )
+        def tag_error(new_frames):
+            suspected_console_errors = None
+            try:
+                suspected_console_errors = self.suspected_console_errors(new_frames)
+            except Exception as exc:
+                logger.error(
+                    "Failed to evaluate event for suspected JavaScript browser console error",
+                    exc_info=exc,
+                )
+
+            try:
+                set_tag(self.data, "empty_stacktrace.js_console", suspected_console_errors)
+            except Exception as exc:
+                logger.error(
+                    "Failed to tag event with empty_stacktrace.js_console=%s for suspected JavaScript browser console error",
+                    suspected_console_errors,
+                    exc_info=exc,
+                )
 
         try:
-            set_tag(self.data, "empty_stacktrace.js_console", suspected_console_errors)
+            if features.has(
+                "organizations:javascript-console-error-tag", self.organization, actor=None
+            ):
+                tag_error(new_frames)
         except Exception as exc:
-            logger.error(
-                "Failed to tag issue with empty_stacktrace.js_console=%s for suspected JavaScript browser console error",
-                suspected_console_errors,
-                exc_info=exc,
-            )
+            logger.exception("Failed to tag suspected console errors", exc_info=exc)
 
     def expand_frame(self, frame, source=None):
         """
@@ -1617,11 +1622,13 @@ class JavaScriptSmCacheStacktraceProcessor(JavaScriptStacktraceProcessor):
             new_frames = [new_frame]
             raw_frames = [raw_frame] if changed_raw else None
 
-            if features.has(
-                "organizations:javascript-console-error-tag", self.organization.id, actor=None
-            ):
-                self.tag_suspected_console_errors(new_frames)
-
+            try:
+                if features.has(
+                    "organizations:javascript-console-error-tag", self.organization, actor=None
+                ):
+                    self.tag_suspected_console_errors(new_frames)
+            except Exception as exc:
+                logger.exception("Failed to tag suspected console errors", exc_info=exc)
             return new_frames, raw_frames, all_errors
 
     def expand_frame(self, frame, source_context=None, source=None):

@@ -2014,10 +2014,17 @@ def _calculate_span_grouping(jobs, projects):
             ):
                 continue
 
-            groupings = event.get_span_groupings()
+            with metrics.timer("event_manager.save.get_span_groupings.default"):
+                groupings = event.get_span_groupings()
             groupings.write_to_event(event.data)
 
             metrics.timing("save_event.transaction.span_count", len(groupings.results))
+            unique_default_hashes = set(groupings.results.values())
+            metrics.incr(
+                "save_event.transaction.span_group_count.default",
+                amount=len(unique_default_hashes),
+                tags={"platform": job["platform"] or "unknown"},
+            )
         except Exception:
             sentry_sdk.capture_exception()
 
