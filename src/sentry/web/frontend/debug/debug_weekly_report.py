@@ -12,7 +12,7 @@ from sentry.incidents.models import (
     IncidentStatus,
     TriggerStatus,
 )
-from sentry.models import Organization, Project, User
+from sentry.models import Group, Organization, Project, User
 from sentry.tasks.weekly_reports import (
     ONE_DAY,
     OrganizationReportContext,
@@ -66,12 +66,16 @@ class DebugWeeklyReportView(MailPreviewView):
             )
             project_context = ProjectContext(project)
             project_context.error_count_by_day = {
-                start_timestamp + (i * ONE_DAY): random.randint(0, daily_maximum) for i in range(0, 7)
+                start_timestamp + (i * ONE_DAY): random.randint(0, daily_maximum)
+                for i in range(0, 7)
             }
             project_context.transaction_count_by_day = {
-                start_timestamp + (i * ONE_DAY): random.randint(0, daily_maximum) for i in range(0, 7)
+                start_timestamp + (i * ONE_DAY): random.randint(0, daily_maximum)
+                for i in range(0, 7)
             }
-            project_context.accepted_transaction_count = sum(project_context.transaction_count_by_day.values())
+            project_context.accepted_transaction_count = sum(
+                project_context.transaction_count_by_day.values()
+            )
             project_context.accepted_error_count = sum(project_context.error_count_by_day.values())
             project_context.dropped_error_count = int(
                 random.weibullvariate(5, 1) * random.paretovariate(0.2)
@@ -79,9 +83,13 @@ class DebugWeeklyReportView(MailPreviewView):
             project_context.dropped_transaction_count = int(
                 random.weibullvariate(5, 1) * random.paretovariate(0.2)
             )
+            project_context.key_errors = [
+                (g, None, random.randint(0, 1000)) for g in Group.objects.all()[:3]
+            ]
+            # project_context.key_transactions=[("/transaction/1", 1234, project.id, 1111, 2222)],
             ctx.projects[project.id] = project_context
 
-        return render_template_context(ctx, request.user)
+        return render_template_context(ctx, None)
 
     @property
     def html_template(self):

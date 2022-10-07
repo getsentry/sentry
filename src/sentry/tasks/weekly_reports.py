@@ -1,4 +1,5 @@
 import bisect
+import heapq
 import logging
 import math
 import operator
@@ -145,6 +146,8 @@ def prepare_organization_report(timestamp, duration, organization_id, dry_run=Fa
         project_key_errors(ctx, project)
         project_key_transactions(ctx, project)
 
+    fetch_key_error_groups(ctx)
+
     # TODO: Run user passes
 
     # Finally, deliver the reports
@@ -172,7 +175,7 @@ def project_event_counts_for_organization(ctx):
         ],
         where=[
             Condition(Column("timestamp"), Op.GTE, ctx.start),
-            Condition(Column("timestamp"), Op.LT, ctx.end),
+            Condition(Column("timestamp"), Op.LT, ctx.end + timedelta(days=1)),
             Condition(Column("project_id"), Op.EQ, 1),
             Condition(Column("org_id"), Op.EQ, ctx.organization.id),
             Condition(
@@ -222,7 +225,7 @@ def project_key_errors(ctx, project):
         select=[Column("group_id"), Function("count", [])],
         where=[
             Condition(Column("timestamp"), Op.GTE, ctx.start),
-            Condition(Column("timestamp"), Op.LT, ctx.end),
+            Condition(Column("timestamp"), Op.LT, ctx.end + timedelta(days=1)),
             Condition(Column("project_id"), Op.EQ, project.id),
         ],
         groupby=[Column("group_id")],
@@ -233,6 +236,34 @@ def project_key_errors(ctx, project):
     query_result = raw_snql_query(request, referrer="reports.key_errors")
     key_errors = query_result["data"]
     ctx.projects[project.id].key_errors = [(e["group_id"], e["count()"]) for e in key_errors]
+
+
+# Organization pass. Depends on project_key_errors.
+def fetch_key_error_groups(ctx):
+    all_key_error_group_ids = []
+    for project_ctx in ctx.projects.values():
+        all_key_error_group_ids.extend([group_id for group_id, count in project_ctx.key_errors])
+
+    group_id_to_group = {}
+    for group in Group.objects.filter(id__in=all_key_error_group_ids).all():
+        group_id_to_group[group.id] = group
+
+    group_history = (
+        GroupHistory.objects.filter(
+            group_id__in=all_key_error_group_ids, organization_id=ctx.organization.id
+        )
+        .order_by("group_id", "-date_added")
+        .distinct("group_id")
+        .all()
+    )
+    group_id_to_group_history = {g.group_id: g for g in group_history}
+    print(group_id_to_group_history)
+
+    for project_ctx in ctx.projects.values():
+        project_ctx.key_errors = [
+            (group_id_to_group[group_id], group_id_to_group_history.get(group_id, None), count)
+            for group_id, count in project_ctx.key_errors
+        ]
 
 
 def project_key_transactions(ctx, project):
@@ -246,7 +277,7 @@ def project_key_transactions(ctx, project):
         ],
         where=[
             Condition(Column("finish_ts"), Op.GTE, ctx.start),
-            Condition(Column("finish_ts"), Op.LT, ctx.end),
+            Condition(Column("finish_ts"), Op.LT, ctx.end + timedelta(days=1)),
             Condition(Column("project_id"), Op.EQ, project.id),
         ],
         groupby=[Column("transaction_name")],
@@ -326,20 +357,41 @@ linear-gradient(
 );
 """
 other_color = "#f2f0fa"
+group_status_to_color = {
+    GroupHistoryStatus.UNRESOLVED: "#FAD473",
+    GroupHistoryStatus.RESOLVED: "#8ACBBC",
+    GroupHistoryStatus.SET_RESOLVED_IN_RELEASE: "#8ACBBC",
+    GroupHistoryStatus.SET_RESOLVED_IN_COMMIT: "#8ACBBC",
+    GroupHistoryStatus.SET_RESOLVED_IN_PULL_REQUEST: "#8ACBBC",
+    GroupHistoryStatus.AUTO_RESOLVED: "#8ACBBC",
+    GroupHistoryStatus.IGNORED: "#DBD6E1",
+    GroupHistoryStatus.UNIGNORED: "#FAD473",
+    GroupHistoryStatus.ASSIGNED: "#FAAAAC",
+    GroupHistoryStatus.UNASSIGNED: "#FAD473",
+    GroupHistoryStatus.REGRESSED: "#FAAAAC",
+    GroupHistoryStatus.DELETED: "#DBD6E1",
+    GroupHistoryStatus.DELETED_AND_DISCARDED: "#DBD6E1",
+    GroupHistoryStatus.REVIEWED: "#FAD473",
+    GroupHistoryStatus.NEW: "#FAD473",
+}
 
 
 # Serialize ctx for template, and calculate view parameters (like graph bar heights)
 def render_template_context(ctx, user):
     # Fetch the list of projects associated with the user.
     # Projects owned by teams that the user has membership of.
-    user_projects = list(
-        filter(
-            lambda project_ctx: project_ctx.project.id in ctx.project_ownership[user.id],
-            ctx.projects.values(),
+    if user:
+        user_projects = list(
+            filter(
+                lambda project_ctx: project_ctx.project.id in ctx.project_ownership[user.id],
+                ctx.projects.values(),
+            )
         )
-    )
-    if len(user_projects) == 0:
-        return None
+        if len(user_projects) == 0:
+            return None
+    else:
+        # If user is None, we assume that the user was directed to a user who joined all teams.
+        user_projects = ctx.projects.values()
 
     # Render the first section of the email where we had the table showing the
     # number of accepted/dropped errors/transactions for each project.
@@ -468,11 +520,31 @@ def render_template_context(ctx, user):
             else 0,
         }
 
+    def key_errors():
+        def all_key_errors():
+            for project_ctx in user_projects:
+                for group, group_history, count in project_ctx.key_errors:
+                    yield {
+                        "count": count,
+                        "group": group,
+                        "status": group_history.get_status_display()
+                        if group_history
+                        else "Unresolved",
+                        "status_color": group_status_to_color[group_history.status]
+                        if group_history
+                        else group_status_to_color[GroupHistoryStatus.NEW],
+                    }
+
+        return heapq.nlargest(
+            3, all_key_errors(), lambda d: d["count"]
+        )  # List of (group_id, count)
+
     return {
         "organization": ctx.organization,
         "start": date_format(ctx.start),
         "end": date_format(ctx.end),
         "trends": trends(),
+        "key_errors": key_errors(),
     }
 
 

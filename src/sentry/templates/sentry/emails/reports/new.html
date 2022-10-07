@@ -180,7 +180,7 @@
 <div class="container">
 
   <div class="project-breakdown">
-    {% with series=report.projects.series height=110 %}
+    {% with height=110 %}
     <table class="project-breakdown-graph-deck"><tbody><tr>
 
     <td class="project-breakdown-graph-cell errors">
@@ -225,7 +225,7 @@
       <table class="graph">
         <tr>
           {% for timestamp, project_values in trends.series %}
-          <td valign="bottom" class="bar" style="height: {{ height }}px; width: {% widthratio 1 series.points|length 100 %}%">
+          <td valign="bottom" class="bar" style="height: {{ height }}px; width: {% widthratio 1 trends.series|length 100 %}%">
               <table class="bar">
                 {% for project_value in project_values %}
                   <tr>
@@ -242,7 +242,7 @@
         </tr>
         <tr>
           {% for timestamp, project_values in trends.series %}
-            <td class="label" style="width: {% widthratio 1 series.points|length 100 %}%">
+            <td class="label" style="width: {% widthratio 1 trends.series|length 100 %}%">
               {{ timestamp|date:"D" }}
             </td>
           {% endfor %}
@@ -291,7 +291,6 @@
       </tbody>
     </table>
     {% endwith %}
-
   </div>
 
   <div id="events-by-issue-type">
@@ -326,11 +325,10 @@
 
   </div>
 
-  {%if report.key_errors|length > 0 %}
+  {%if key_errors|length > 0 %}
   <div id="key-errors">
-    {% with report.key_errors as errors %}
     <h4>Issues with the most errors</h4>
-    {% for a in errors %}
+    {% for a in key_errors %}
     <div style="display: flex; flex-direction: row; margin-bottom: 8px; align-items: flex-start;">
       <div style="width: 10%; font-size: 17px;">{{a.count|small_count:1}}</div>
       <div style="width: 65%;">
@@ -341,7 +339,6 @@
       <span style="background-color: {{a.status_color}}; border-radius: 8px; font-size: 12px; align-self: center; padding: 2px 10px; margin-left: auto; height: 100%;">{{a.status}}</span>
     </div>
     {% endfor %}
-    {% endwith %}
   </div>
   {% endif %}
 
