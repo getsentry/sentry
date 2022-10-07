@@ -1,10 +1,11 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import AcceptProjectTransfer from 'sentry/views/acceptProjectTransfer';
 
 describe('AcceptProjectTransfer', function () {
-  let getMock;
-  let postMock;
+  let getMock: jest.Mock<any>;
+  let postMock: jest.Mock<any>;
+  const router = TestStubs.router();
   const endpoint = '/accept-transfer/';
   beforeEach(function () {
     MockApiClient.clearMockResponses();
@@ -26,12 +27,17 @@ describe('AcceptProjectTransfer', function () {
   });
 
   it('renders', function () {
-    mountWithTheme(
+    render(
       <AcceptProjectTransfer
-        location={{
+        location={TestStubs.location({
           pathname: 'endpoint',
           query: {data: 'XYZ'},
-        }}
+        })}
+        route={{}}
+        routeParams={router.params}
+        router={router}
+        routes={router.routes}
+        params={{}}
       />
     );
 
@@ -39,16 +45,21 @@ describe('AcceptProjectTransfer', function () {
   });
 
   it('submits', function () {
-    const wrapper = mountWithTheme(
+    render(
       <AcceptProjectTransfer
-        location={{
+        location={TestStubs.location({
           pathname: 'endpoint',
           query: {data: 'XYZ'},
-        }}
+        })}
+        route={{}}
+        routeParams={router.params}
+        router={router}
+        routes={router.routes}
+        params={{}}
       />
     );
 
-    wrapper.find('form').simulate('submit');
+    userEvent.click(screen.getByText('Transfer Project'));
 
     expect(postMock).toHaveBeenCalledWith(
       endpoint,
