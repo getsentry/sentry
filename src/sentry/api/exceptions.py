@@ -128,3 +128,9 @@ class ConflictError(APIException):
 
 class InvalidRepository(Exception):
     pass
+
+
+class RequestTimeout(SentryAPIException):
+    status_code = status.HTTP_408_REQUEST_TIMEOUT
+    code = "request-timeout"
+    message = "Proxied request timed out"

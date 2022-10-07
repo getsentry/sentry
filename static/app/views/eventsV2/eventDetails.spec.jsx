@@ -1,6 +1,5 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
@@ -111,64 +110,59 @@ describe('EventsV2 > EventDetails', function () {
     });
   });
 
-  it('renders', function () {
-    const wrapper = mountWithTheme(
+  it('renders', async function () {
+    render(
       <WrappedEventDetails
         organization={TestStubs.Organization()}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={{query: allEventsView.generateQueryStringObject()}}
       />
     );
-    const content = wrapper.find('EventHeader');
-    expect(content.text()).toContain('Oh no something bad');
+    expect(await screen.findByText('Oh no something bad')).toBeInTheDocument();
   });
 
-  it('renders a 404', function () {
-    const wrapper = mountWithTheme(
+  it('renders a 404', async function () {
+    render(
       <WrappedEventDetails
         organization={TestStubs.Organization()}
         params={{eventSlug: 'project-slug:abad1'}}
         location={{query: allEventsView.generateQueryStringObject()}}
       />
     );
-    const content = wrapper.find('NotFound');
-    expect(content).toHaveLength(1);
+
+    expect(await screen.findByText('Page Not Found')).toBeInTheDocument();
   });
 
   it('renders a chart in grouped view', async function () {
-    const wrapper = mountWithTheme(
+    render(
       <WrappedEventDetails
         organization={TestStubs.Organization()}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={{query: errorsView.generateQueryStringObject()}}
       />
     );
-
-    // loading state
-    await tick();
-    wrapper.update();
-
-    const content = wrapper.find('EventHeader');
-    expect(content.text()).toContain('Oh no something bad');
+    expect(await screen.findByText('Oh no something bad')).toBeInTheDocument();
   });
 
-  it('renders an alert when linked issues are missing', function () {
+  it('renders an alert when linked issues are missing', async function () {
     MockApiClient.addMockResponse({
       url: '/issues/123/',
       statusCode: 404,
       method: 'GET',
       body: {},
     });
-    const wrapper = mountWithTheme(
+    render(
       <WrappedEventDetails
         organization={TestStubs.Organization()}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={{query: allEventsView.generateQueryStringObject()}}
       />
     );
-    const alert = wrapper.find('Alert');
-    expect(alert).toHaveLength(1);
-    expect(alert.text()).toContain('linked issue cannot be found');
+    expect(
+      await screen.findByText(
+        'The linked issue cannot be found. It may have been deleted, or merged.'
+      )
+    ).toBeInTheDocument();
   });
 
   it('navigates when tag values are clicked', async function () {
@@ -181,57 +175,32 @@ describe('EventsV2 > EventDetails', function () {
         },
       },
     });
-    const wrapper = mountWithTheme(
+    render(
       <WrappedEventDetails
         organization={organization}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={{query: allEventsView.generateQueryStringObject()}}
       />,
-      routerContext
+      {context: routerContext}
     );
-    await tick();
-    wrapper.update();
 
     // Get the first link as we wrap react-router's link
-    const browserTagLink = wrapper
-      .find('WrappedEventDetails KeyValueTable Value Link')
-      .first();
-
-    // Should append tag value and other event attributes to results view query.
-    const browserTagTarget = browserTagLink.props().to;
-    expect(browserTagTarget.pathname).toEqual(
-      '/organizations/org-slug/discover/results/'
-    );
-    expect(browserTagTarget.query.query).toEqual(
-      'browser:Firefox title:"Oh no something bad"'
+    expect(await screen.findByText('Firefox')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Firefox'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All%20Events&query=browser%3AFirefox%20title%3A%22Oh%20no%20something%20bad%22&sort=-timestamp&statsPeriod=24h&yAxis=count%28%29'
     );
 
     // Get the second link
-    const deviceUUIDTagLink = wrapper
-      .find('WrappedEventDetails KeyValueTable Value Link')
-      .at(2);
-
-    // Should append tag value wrapped with tags[] as device.uuid is part of our fields
-    const deviceUUIDTagTarget = deviceUUIDTagLink.props().to;
-    expect(deviceUUIDTagTarget.pathname).toEqual(
-      '/organizations/org-slug/discover/results/'
-    );
-    expect(deviceUUIDTagTarget.query.query).toEqual(
-      'tags[device.uuid]:test-uuid title:"Oh no something bad"'
+    expect(screen.getByRole('link', {name: 'test-uuid'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All%20Events&query=tags%5Bdevice.uuid%5D%3Atest-uuid%20title%3A%22Oh%20no%20something%20bad%22&sort=-timestamp&statsPeriod=24h&yAxis=count%28%29'
     );
 
     // Get the third link
-    const releaseTagLink = wrapper
-      .find('WrappedEventDetails KeyValueTable Value Link')
-      .at(4);
-
-    // Should append raw tag value without tags[] as release is exempt from being wrapped
-    const releaseTagTarget = releaseTagLink.props().to;
-    expect(releaseTagTarget.pathname).toEqual(
-      '/organizations/org-slug/discover/results/'
-    );
-    expect(releaseTagTarget.query.query).toEqual(
-      'release:82ebf297206a title:"Oh no something bad"'
+    expect(screen.getByRole('link', {name: '82ebf297206a'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All%20Events&query=release%3A82ebf297206a%20title%3A%22Oh%20no%20something%20bad%22&sort=-timestamp&statsPeriod=24h&yAxis=count%28%29'
     );
   });
 
@@ -245,7 +214,7 @@ describe('EventsV2 > EventDetails', function () {
         },
       },
     });
-    const wrapper = mountWithTheme(
+    render(
       <WrappedEventDetails
         organization={organization}
         params={{eventSlug: 'project-slug:deadbeef'}}
@@ -253,51 +222,52 @@ describe('EventsV2 > EventDetails', function () {
           query: {...allEventsView.generateQueryStringObject(), query: 'Dumpster'},
         }}
       />,
-      routerContext
+      {context: routerContext}
     );
-    await tick();
-    wrapper.update();
 
     // Get the first link as we wrap react-router's link
-    const browserTagLink = wrapper
-      .find('WrappedEventDetails KeyValueTable Value Link')
-      .first();
-
-    // Should append tag value and other event attributes to results view query.
-    const browserTagTarget = browserTagLink.props().to;
-    expect(browserTagTarget.pathname).toEqual(
-      '/organizations/org-slug/discover/results/'
-    );
-    expect(browserTagTarget.query.query).toEqual(
-      'Dumpster browser:Firefox title:"Oh no something bad"'
+    expect(await screen.findByText('Firefox')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Firefox'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All%20Events&query=Dumpster%20browser%3AFirefox%20title%3A%22Oh%20no%20something%20bad%22&sort=-timestamp&statsPeriod=24h&yAxis=count%28%29'
     );
 
     // Get the second link
-    const deviceUUIDTagLink = wrapper
-      .find('WrappedEventDetails KeyValueTable Value Link')
-      .at(2);
-
-    // Should append tag value wrapped with tags[] as device.uuid is part of our fields
-    const deviceUUIDTagTarget = deviceUUIDTagLink.props().to;
-    expect(deviceUUIDTagTarget.pathname).toEqual(
-      '/organizations/org-slug/discover/results/'
+    expect(screen.getByRole('link', {name: 'test-uuid'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All%20Events&query=Dumpster%20tags%5Bdevice.uuid%5D%3Atest-uuid%20title%3A%22Oh%20no%20something%20bad%22&sort=-timestamp&statsPeriod=24h&yAxis=count%28%29'
     );
-    expect(deviceUUIDTagTarget.query.query).toEqual(
-      'Dumpster tags[device.uuid]:test-uuid title:"Oh no something bad"'
-    );
-
     // Get the third link
-    const releaseTagLink = wrapper
-      .find('WrappedEventDetails KeyValueTable Value Link')
-      .at(4);
-
-    // Should append raw tag value without tags[] as release is exempt from being wrapped
-    const releaseTagTarget = releaseTagLink.props().to;
-    expect(releaseTagTarget.pathname).toEqual(
-      '/organizations/org-slug/discover/results/'
+    expect(screen.getByRole('link', {name: '82ebf297206a'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All%20Events&query=Dumpster%20release%3A82ebf297206a%20title%3A%22Oh%20no%20something%20bad%22&sort=-timestamp&statsPeriod=24h&yAxis=count%28%29'
     );
-    expect(releaseTagTarget.query.query).toEqual(
-      'Dumpster release:82ebf297206a title:"Oh no something bad"'
+  });
+
+  it('links back to the homepage if the query param contains homepage flag', async () => {
+    const {organization, router, routerContext} = initializeOrg({
+      organization: TestStubs.Organization({
+        features: ['discover-query-builder-as-landing-page'],
+      }),
+      router: {
+        location: {
+          pathname: '/organizations/org-slug/discover/project-slug:deadbeef',
+          query: {...allEventsView.generateQueryStringObject(), homepage: true},
+        },
+      },
+    });
+
+    render(
+      <EventDetails
+        organization={organization}
+        params={{eventSlug: 'project-slug:deadbeef'}}
+        location={router.location}
+      />,
+      {context: routerContext, organization}
+    );
+
+    expect((await screen.findByText('New Query')).pathname).toEqual(
+      '/organizations/org-slug/discover/homepage/'
     );
   });
 });
