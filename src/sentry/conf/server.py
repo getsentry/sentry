@@ -683,7 +683,6 @@ CELERY_QUEUES = [
     Queue("replays.delete_replay", routing_key="replays.delete_replay"),
     Queue("counters-0", routing_key="counters-0"),
     Queue("triggers-0", routing_key="triggers-0"),
-    Queue("post-process-errors", routing_key="post-process-errors"),
 ]
 
 for queue in CELERY_QUEUES:
