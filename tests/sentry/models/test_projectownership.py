@@ -160,7 +160,7 @@ class ProjectOwnershipTestCase(TestCase):
 
         # No data matches
         assert ProjectOwnership.get_autoassign_owners(self.project.id, {}) == (
-            False,
+            True,
             [],
             False,
             None,
@@ -171,7 +171,7 @@ class ProjectOwnershipTestCase(TestCase):
         assert ProjectOwnership.get_autoassign_owners(
             self.project.id,
             {"stacktrace": {"frames": [{"filename": "foo.py"}]}},
-        ) == (False, [self.team], False, rule_a, [OwnerRuleType.OWNERSHIP_RULE.value])
+        ) == (True, [self.team], False, rule_a, [OwnerRuleType.OWNERSHIP_RULE.value])
 
         # autoassignment is True
         owner = ProjectOwnership.objects.get(project_id=self.project.id)
@@ -200,7 +200,7 @@ class ProjectOwnershipTestCase(TestCase):
         )
         # No data matches
         assert ProjectOwnership.get_autoassign_owners(self.project.id, {}) == (
-            False,
+            True,
             [],
             False,
             None,
@@ -210,7 +210,7 @@ class ProjectOwnershipTestCase(TestCase):
         # No autoassignment on match
         assert ProjectOwnership.get_autoassign_owners(
             self.project.id, {"stacktrace": {"frames": [{"filename": "foo.js"}]}}
-        ) == (False, [self.team], True, rule_a, [OwnerRuleType.CODEOWNERS.value])
+        ) == (True, [self.team], True, rule_a, [OwnerRuleType.CODEOWNERS.value])
 
     def test_get_autoassign_owners_when_codeowners_and_issueowners_exists(self):
         self.team = self.create_team(
@@ -240,7 +240,7 @@ class ProjectOwnershipTestCase(TestCase):
         assert ProjectOwnership.get_autoassign_owners(
             self.project.id, {"stacktrace": {"frames": [{"filename": "api/foo.py"}]}}
         ) == (
-            False,
+            True,
             [self.team, self.team2],
             False,
             rule_a,
