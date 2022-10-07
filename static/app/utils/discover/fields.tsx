@@ -189,7 +189,7 @@ export const AGGREGATIONS = {
       },
     ],
     isSortable: true,
-    multiPlotType: 'line',
+    multiPlotType: 'area',
   },
   [AggregationKey.CountMiserable]: {
     ...getDocsAndOutputType(AggregationKey.CountMiserable),
@@ -571,7 +571,7 @@ export const SEMVER_TAGS = {
  * Some tag keys should never be formatted as `tag[...]`
  * when used as a filter because they are predefined.
  */
-const EXCLUDED_TAG_KEYS = new Set(['release']);
+const EXCLUDED_TAG_KEYS = new Set(['release', 'user']);
 
 export function formatTagKey(key: string): string {
   // Some tags may be normalized from context, but not all of them are.
@@ -688,7 +688,7 @@ export function parseArguments(functionText: string, columnText: string): string
     (functionText !== 'to_other' &&
       functionText !== 'count_if' &&
       functionText !== 'spans_histogram') ||
-    columnText.length === 0
+    columnText?.length === 0
   ) {
     return columnText ? columnText.split(',').map(result => result.trim()) : [];
   }

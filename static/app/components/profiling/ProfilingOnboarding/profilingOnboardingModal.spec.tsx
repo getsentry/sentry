@@ -2,7 +2,7 @@ import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {ProfilingOnboardingModal} from 'sentry/components/profiling/ProfilingOnboarding/profilingOnboardingModal';
-import ProjectStore from 'sentry/stores/projectsStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {Project} from 'sentry/types/project';
 
 const MockRenderModalProps: ModalRenderProps = {
@@ -31,7 +31,6 @@ describe('ProfilingOnboarding', function () {
   });
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    ProjectStore.teardown();
     // @ts-ignore no-console
     // eslint-disable-next-line no-console
     console.error.mockRestore();
@@ -52,7 +51,7 @@ describe('ProfilingOnboarding', function () {
 
   it('goes to next step and previous step if project is supported', () => {
     const organization = TestStubs.Organization();
-    ProjectStore.loadInitialData([
+    ProjectsStore.loadInitialData([
       TestStubs.Project({name: 'iOS Project', platform: 'apple-ios'}),
     ]);
 
@@ -78,7 +77,7 @@ describe('ProfilingOnboarding', function () {
 
   it('does not allow going to next step if project is unsupported', () => {
     const organization = TestStubs.Organization();
-    ProjectStore.loadInitialData([
+    ProjectsStore.loadInitialData([
       TestStubs.Project({name: 'javascript', platform: 'javascript'}),
     ]);
 
@@ -99,7 +98,7 @@ describe('ProfilingOnboarding', function () {
   it('shows sdk updates are required if version is lower than required', async () => {
     const organization = TestStubs.Organization();
     const project = TestStubs.Project({name: 'iOS Project', platform: 'apple-ios'});
-    ProjectStore.loadInitialData([project]);
+    ProjectsStore.loadInitialData([project]);
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sdk-updates/`,
@@ -122,5 +121,40 @@ describe('ProfilingOnboarding', function () {
     expect(
       await screen.findByText(/Update your projects SDK version/)
     ).toBeInTheDocument();
+  });
+
+  it('shows a sdk update URL when receiving a updateSdk suggestion if a version is lower than required', async () => {
+    const organization = TestStubs.Organization();
+    const project = TestStubs.Project({name: 'iOS Project', platform: 'apple-ios'});
+    ProjectsStore.loadInitialData([project]);
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sdk-updates/`,
+      body: [
+        {
+          projectId: project.id,
+          sdkName: 'sentry ios',
+          sdkVersion: '6.0.0',
+          suggestions: [
+            {
+              type: 'updateSdk',
+              sdkName: 'sentry-ios',
+              newSdkVersion: '9.0.0',
+              sdkUrl: 'http://test/fake-slug',
+            },
+          ],
+        },
+      ],
+    });
+
+    render(
+      <ProfilingOnboardingModal organization={organization} {...MockRenderModalProps} />
+    );
+
+    selectProject(project);
+
+    const link = (await screen.findByText(/sentry-ios@9.0.0/)) as HTMLAnchorElement;
+    expect(link).toBeInTheDocument();
+    expect(link.href).toBe('http://test/fake-slug');
   });
 });

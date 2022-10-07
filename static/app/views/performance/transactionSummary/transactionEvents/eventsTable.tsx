@@ -1,7 +1,7 @@
 import {Component, Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location, LocationDescriptorObject} from 'history';
+import {Location, LocationDescriptor, LocationDescriptorObject} from 'history';
 
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -83,9 +83,12 @@ type Props = {
   location: Location;
   organization: Organization;
   setError: (msg: string | undefined) => void;
-  totalEventCount: string;
   transactionName: string;
   columnTitles?: string[];
+  disablePagination?: boolean;
+  excludedTags?: string[];
+  issueId?: string;
+  totalEventCount?: string;
 };
 
 type State = {
@@ -99,7 +102,7 @@ class EventsTable extends Component<Props, State> {
 
   handleCellAction = (column: TableColumn<keyof TableDataRow>) => {
     return (action: Actions, value: React.ReactText) => {
-      const {eventView, location, organization} = this.props;
+      const {eventView, location, organization, excludedTags} = this.props;
 
       trackAnalyticsEvent({
         eventKey: 'performance_views.transactionEvents.cellaction',
@@ -109,6 +112,12 @@ class EventsTable extends Component<Props, State> {
       });
 
       const searchConditions = normalizeSearchConditions(eventView.query);
+
+      if (excludedTags) {
+        excludedTags.forEach(tag => {
+          searchConditions.removeFilter(tag);
+        });
+      }
 
       updateQuery(searchConditions, action, column, value);
 
@@ -146,8 +155,15 @@ class EventsTable extends Component<Props, State> {
     ];
 
     if (field === 'id' || field === 'trace') {
-      const generateLink = field === 'id' ? generateTransactionLink : generateTraceLink;
-      const target = generateLink(transactionName)(organization, dataRow, location.query);
+      const {issueId} = this.props;
+      const isIssue: boolean = !!issueId;
+      let target: LocationDescriptor = {};
+      if (isIssue && field === 'id') {
+        target.pathname = `/organizations/${organization.slug}/issues/${issueId}/events/${dataRow.id}/`;
+      } else {
+        const generateLink = field === 'id' ? generateTransactionLink : generateTraceLink;
+        target = generateLink(transactionName)(organization, dataRow, location.query);
+      }
 
       return (
         <CellAction
@@ -323,7 +339,7 @@ class EventsTable extends Component<Props, State> {
           {({pageLinks, isLoading, tableData}) => {
             const parsedPageLinks = parseLinkHeader(pageLinks);
             let currentEvent = parsedPageLinks?.next?.cursor.split(':')[1] ?? 0;
-            if (!parsedPageLinks?.next?.results) {
+            if (!parsedPageLinks?.next?.results && totalEventCount) {
               currentEvent = totalEventCount;
             }
             const paginationCaption =
@@ -348,11 +364,13 @@ class EventsTable extends Component<Props, State> {
                   }}
                   location={location}
                 />
-                <Pagination
-                  disabled={isLoading}
-                  caption={paginationCaption}
-                  pageLinks={pageLinks}
-                />
+                {!this.props.disablePagination && (
+                  <Pagination
+                    disabled={isLoading}
+                    caption={paginationCaption}
+                    pageLinks={pageLinks}
+                  />
+                )}
               </Fragment>
             );
           }}

@@ -5,7 +5,6 @@ import GenericDiscoverQuery, {
   GenericChildrenProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {DataFilter, HistogramData} from 'sentry/utils/performance/histogram/types';
-import withApi from 'sentry/utils/withApi';
 
 import {SpanSlug} from '../suspectSpans/types';
 
@@ -65,4 +64,4 @@ function SpanHistogramQuery(props: Props) {
   );
 }
 
-export default withApi(SpanHistogramQuery);
+export default SpanHistogramQuery;

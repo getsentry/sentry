@@ -36,7 +36,9 @@ function mount(
       updateCallback={() => {}}
       yAxis={yAxis}
       router={router}
-      savedQueryLoading={false}
+      queryDataLoading={false}
+      setSavedQuery={jest.fn()}
+      setHomepageQuery={jest.fn()}
     />
   );
 }
@@ -49,19 +51,25 @@ function generateWrappedComponent(
   yAxis,
   disabled = false
 ) {
-  return mountWithTheme(
-    <SavedQueryButtonGroup
-      location={location}
-      organization={organization}
-      eventView={eventView}
-      savedQuery={savedQuery}
-      disabled={disabled}
-      updateCallback={() => {}}
-      yAxis={yAxis}
-      router={router}
-      savedQueryLoading={false}
-    />
-  );
+  const mockSetSavedQuery = jest.fn();
+  return {
+    mockSetSavedQuery,
+    wrapper: mountWithTheme(
+      <SavedQueryButtonGroup
+        location={location}
+        organization={organization}
+        eventView={eventView}
+        savedQuery={savedQuery}
+        disabled={disabled}
+        updateCallback={() => {}}
+        yAxis={yAxis}
+        router={router}
+        queryDataLoading={false}
+        setSavedQuery={mockSetSavedQuery}
+        setHomepageQuery={jest.fn()}
+      />
+    ),
+  };
 }
 
 describe('EventsV2 > SaveQueryButtonGroup', function () {
@@ -114,7 +122,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
     });
 
     it('renders disabled buttons when disabled prop is used', () => {
-      const wrapper = generateWrappedComponent(
+      const {wrapper} = generateWrappedComponent(
         location,
         organization,
         router,
@@ -129,7 +137,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
     });
 
     it('renders the correct set of buttons', () => {
-      const wrapper = generateWrappedComponent(
+      const {wrapper} = generateWrappedComponent(
         location,
         organization,
         router,
@@ -222,7 +230,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
     });
 
     it('renders the correct set of buttons', () => {
-      const wrapper = generateWrappedComponent(
+      const {wrapper} = generateWrappedComponent(
         location,
         organization,
         router,
@@ -243,7 +251,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
     });
 
     it('treats undefined yAxis the same as count() when checking for changes', () => {
-      const wrapper = generateWrappedComponent(
+      const {wrapper} = generateWrappedComponent(
         location,
         organization,
         router,
@@ -264,7 +272,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
     });
 
     it('converts string yAxis values to array when checking for changes', () => {
-      const wrapper = generateWrappedComponent(
+      const {wrapper} = generateWrappedComponent(
         location,
         organization,
         router,
@@ -285,7 +293,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
     });
 
     it('deletes the saved query', async () => {
-      const wrapper = generateWrappedComponent(
+      const {wrapper} = generateWrappedComponent(
         location,
         organization,
         router,
@@ -309,7 +317,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
     let mockUtils;
 
     it('renders the correct set of buttons', () => {
-      const wrapper = generateWrappedComponent(
+      const {wrapper} = generateWrappedComponent(
         location,
         organization,
         router,
@@ -341,7 +349,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
       });
 
       it('accepts a well-formed query', async () => {
-        const wrapper = generateWrappedComponent(
+        const {mockSetSavedQuery, wrapper} = generateWrappedComponent(
           location,
           organization,
           router,
@@ -362,6 +370,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
           }),
           yAxis
         );
+        expect(mockSetSavedQuery).toHaveBeenCalled();
       });
     });
 
@@ -407,7 +416,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
         ...organization,
         features: ['incidents'],
       };
-      const wrapper = generateWrappedComponent(
+      const {wrapper} = generateWrappedComponent(
         location,
         metricAlertOrg,
         router,
@@ -420,7 +429,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
       expect(buttonCreateAlert.exists()).toBe(true);
     });
     it('does not render create alert button without metric alerts', () => {
-      const wrapper = generateWrappedComponent(
+      const {wrapper} = generateWrappedComponent(
         location,
         organization,
         router,

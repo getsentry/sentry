@@ -6,10 +6,10 @@ import * as Sentry from '@sentry/react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {setActiveOrganization} from 'sentry/actionCreators/organizations';
-import OrganizationActions from 'sentry/actions/organizationActions';
-import ProjectActions from 'sentry/actions/projectActions';
 import {Client, ResponseMeta} from 'sentry/api';
+import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {Organization, Project, Team} from 'sentry/types';
 import {getPreloadedDataPromise} from 'sentry/utils/getPreloadedData';
@@ -37,7 +37,7 @@ async function fetchOrg(
     throw new Error('retrieved organization is falsey');
   }
 
-  OrganizationActions.update(org, {replace: true});
+  OrganizationStore.onUpdate(org, {replace: true});
   setActiveOrganization(org);
 
   return org;
@@ -117,8 +117,8 @@ export function fetchOrganizationDetails(
   isInitialFetch?: boolean
 ) {
   if (!silent) {
-    OrganizationActions.reset();
-    ProjectActions.reset();
+    OrganizationStore.reset();
+    ProjectsStore.reset();
     TeamStore.reset();
     PageFiltersStore.onReset();
   }
@@ -131,7 +131,7 @@ export function fetchOrganizationDetails(
         return;
       }
 
-      OrganizationActions.fetchOrgError(err);
+      OrganizationStore.onFetchOrgError(err);
 
       if (err.status === 403 || err.status === 401) {
         const errMessage =
@@ -158,7 +158,7 @@ export function fetchOrganizationDetails(
       isInitialFetch
     );
 
-    ProjectActions.loadProjects(projects);
+    ProjectsStore.loadInitialData(projects);
 
     const teamPageLinks = resp?.getResponseHeader('Link');
     if (teamPageLinks) {

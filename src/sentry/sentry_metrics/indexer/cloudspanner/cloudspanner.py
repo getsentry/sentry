@@ -4,7 +4,7 @@ from typing import Any, Mapping, Optional, Sequence, Set
 
 import google.api_core.exceptions
 from django.conf import settings
-from google.cloud import spanner
+from google.cloud import spanner  # type: ignore[attr-defined]
 
 from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_ingest_config
 from sentry.sentry_metrics.indexer.base import (

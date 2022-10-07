@@ -265,6 +265,9 @@ class RedisBuffer(Buffer):
         for key in batch_keys:
             self._process_single_incr(key)
 
+    def _process(self, model, columns, filters, extra=None, signal_only=None):
+        return super().process(model, columns, filters, extra, signal_only)
+
     def _process_single_incr(self, key):
         client = self.cluster.get_routing_client()
         lock_key = self._make_lock_key(key)
@@ -321,6 +324,6 @@ class RedisBuffer(Buffer):
                 elif k == "s":
                     signal_only = bool(int(v))  # Should be 1 if set
 
-            super().process(model, incr_values, filters, extra_values, signal_only)
+            self._process(model, incr_values, filters, extra_values, signal_only)
         finally:
             client.delete(lock_key)

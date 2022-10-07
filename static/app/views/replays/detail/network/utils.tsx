@@ -1,12 +1,5 @@
 import {defined} from 'sentry/utils';
-
-export type NetworkSpan = {
-  data: Record<string, any>;
-  endTimestamp: number;
-  op: string;
-  startTimestamp: number;
-  description?: string;
-};
+import type {NetworkSpan} from 'sentry/views/replays/types';
 
 export interface ISortConfig {
   asc: boolean;
@@ -50,16 +43,14 @@ export function sortNetwork(
 
 export const getResourceTypes = (networkSpans: NetworkSpan[]) =>
   Array.from(
-    new Set<string>(
-      networkSpans.map(networkSpan => networkSpan.op.replace('resource.', '')).sort()
-    )
-  );
+    new Set(networkSpans.map(networkSpan => networkSpan.op.replace('resource.', '')))
+  ).sort();
 
 export const getStatusTypes = (networkSpans: NetworkSpan[]) =>
   Array.from(
-    new Set<string | number>(
+    new Set(
       networkSpans
-        .map(networkSpan => networkSpan.data?.statusCode ?? UNKNOWN_STATUS)
-        .sort()
+        .map(networkSpan => networkSpan.data.statusCode ?? UNKNOWN_STATUS)
+        .map(String)
     )
-  );
+  ).sort();

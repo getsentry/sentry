@@ -573,11 +573,19 @@ register("performance.issues.all.problem-creation", default=0.0)
 register(
     "performance.issues.all.early-adopter-rollout", default=0.0
 )  # Only used for EA rollout, bound to the feature flag handler for performance-issue-ingest
+register(
+    "performance.issues.all.post-process-group-early-adopter-rollout", default=0.0
+)  # EA rollout for processing transactions in post_process_group
 
 # Individual system-wide options in case we need to turn off specific detectors for load concerns, ignoring the set project options.
 register("performance.issues.n_plus_one_db.problem-detection", default=0.0)
 register("performance.issues.n_plus_one_db.problem-creation", default=0.0)
+register("performance.issues.n_plus_one_db_ext.problem-creation", default=0.0)
 
 # System-wide options for default performance detection settings for any org opted into the performance-issues-ingest feature. Meant for rollout.
 register("performance.issues.n_plus_one_db.count_threshold", default=5)
 register("performance.issues.n_plus_one_db.duration_threshold", default=100.0)
+
+# region to control silo multi region mode controls
+# It is safe to switch this off or on freely, it is purely for testing features ahead of hybrid cloud rollout.
+register("hc.region-to-control.monolith-publish", default=False)

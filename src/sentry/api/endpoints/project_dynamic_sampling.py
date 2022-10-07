@@ -32,16 +32,6 @@ class QueryTimeRange:
     end_time: datetime
 
 
-def percentile_fn(data, percentile):
-    """
-    Returns the nth percentile from a sorted list
-
-    :param percentile: A value between 0 and 1
-    :param data: Sorted list of values
-    """
-    return data[int((len(data) - 1) * percentile)] if len(data) > 0 else None
-
-
 class DynamicSamplingPermission(ProjectPermission):
     scope_map = {"GET": ["project:write"]}
 
@@ -50,18 +40,6 @@ class DynamicSamplingPermission(ProjectPermission):
 class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
     private = True
     permission_classes = (DynamicSamplingPermission,)
-
-    @staticmethod
-    def _get_sample_rates_data(data):
-        return {
-            "min": min(data, default=None),
-            "max": max(data, default=None),
-            "avg": sum(data) / len(data) if len(data) > 0 else None,
-            "p50": percentile_fn(data, 0.5),
-            "p90": percentile_fn(data, 0.9),
-            "p95": percentile_fn(data, 0.95),
-            "p99": percentile_fn(data, 0.99),
-        }
 
     @staticmethod
     def __run_discover_query(columns, query: str, params, limit, referrer: str, orderby=None):
@@ -97,7 +75,7 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                 "start": query_time_range.start_time,
                 "end": query_time_range.end_time,
                 "project_id": [project.id],
-                "organization_id": project.organization,
+                "organization_id": project.organization.id,
             },
             limit=sample_size,
             referrer="dynamic-sampling.distribution.fetch-parent-transactions-count",
@@ -140,7 +118,7 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                     "start": start_bound_time,
                     "end": end_bound_time,
                     "project_id": [project.id],
-                    "organization_id": project.organization,
+                    "organization_id": project.organization.id,
                 },
                 orderby=["-timestamp.to_day"],
                 limit=1,
@@ -197,13 +175,12 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                 "start": query_time_range.start_time,
                 "end": query_time_range.end_time,
                 "project_id": [project.id],
-                "organization_id": project.organization,
+                "organization_id": project.organization.id,
             },
             query=f"{query} event.type:transaction !has:trace.parent_span",
             selected_columns=[
                 "id",
                 "trace",
-                "trace.client_sample_rate",
                 "random_number() as rand_num",
                 f"modulo(rand_num, {sampling_factor}) as modulo_num",
             ],
@@ -275,21 +252,13 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
         except EmptyTransactionDatasetException:
             return Response(
                 {
-                    "project_breakdown": None,
-                    "sample_size": 0,
-                    "null_sample_rate_percentage": None,
-                    "sample_rate_distributions": None,
+                    "projectBreakdown": None,
+                    "sampleSize": 0,
                     "startTimestamp": None,
                     "endTimestamp": None,
                 }
             )
         sample_size = len(root_transactions)
-        sample_rates = sorted(
-            transaction.get("trace.client_sample_rate") for transaction in root_transactions
-        )
-        non_null_sample_rates = sorted(
-            float(sample_rate) for sample_rate in sample_rates if sample_rate not in {"", None}
-        )
 
         project_breakdown = None
         if distributed_trace:
@@ -307,7 +276,7 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                     "start": query_time_range.start_time,
                     "end": query_time_range.end_time,
                     "project_id": list(projects_in_org),
-                    "organization_id": project.organization,
+                    "organization_id": project.organization.id,
                 },
                 limit=20,
                 referrer="dynamic-sampling.distribution.fetch-project-breakdown",
@@ -325,12 +294,8 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
 
         return Response(
             {
-                "project_breakdown": project_breakdown,
-                "sample_size": sample_size,
-                "null_sample_rate_percentage": (
-                    (sample_size - len(non_null_sample_rates)) / sample_size * 100
-                ),
-                "sample_rate_distributions": self._get_sample_rates_data(non_null_sample_rates),
+                "projectBreakdown": project_breakdown,
+                "sampleSize": sample_size,
                 "startTimestamp": query_time_range.start_time,
                 "endTimestamp": query_time_range.end_time,
             }

@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useEffect} from 'react';
 import {
   AutoSizer,
   CellMeasurer,
@@ -7,8 +7,6 @@ import {
   ListRowProps,
 } from 'react-virtualized';
 import styled from '@emotion/styled';
-import debounce from 'lodash/debounce';
-import isEmpty from 'lodash/isEmpty';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type/icon';
@@ -17,18 +15,19 @@ import HTMLCode from 'sentry/components/htmlCode';
 import Placeholder from 'sentry/components/placeholder';
 import {getDetails} from 'sentry/components/replays/breadcrumbs/utils';
 import PlayerRelativeTime from 'sentry/components/replays/playerRelativeTime';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
+import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import SearchBar from 'sentry/components/searchBar';
 import {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
-import useExtractedCrumbHtml, {
-  Extraction,
-} from 'sentry/utils/replays/hooks/useExtractedCrumbHtml';
+import useExtractedCrumbHtml from 'sentry/utils/replays/hooks/useExtractedCrumbHtml';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
+import useDomFilters from 'sentry/views/replays/detail/domMutations/useDomFilters';
 import {getDomMutationsTypes} from 'sentry/views/replays/detail/domMutations/utils';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
-import {Filters, getFilteredItems} from 'sentry/views/replays/detail/utils';
 
 type Props = {
   replay: ReplayReader;
@@ -41,63 +40,44 @@ const cache = new CellMeasurerCache({
 });
 
 function DomMutations({replay}: Props) {
-  const {isLoading, actions} = useExtractedCrumbHtml({replay});
-  const [searchTerm, setSearchTerm] = useState('');
-  let listRef: ReactVirtualizedList | null = null;
-  const [filters, setFilters] = useState<Filters<Extraction>>({});
-
-  const filteredDomMutations = useMemo(
-    () =>
-      getFilteredItems({
-        items: actions,
-        filters,
-        searchTerm,
-        searchProp: 'html',
-      }),
-    [actions, filters, searchTerm]
-  );
-
-  const handleSearch = useMemo(() => debounce(query => setSearchTerm(query), 150), []);
-
   const startTimestampMs = replay.getReplay().startedAt.getTime();
+  const {currentTime} = useReplayContext();
+  const {isLoading, actions} = useExtractedCrumbHtml({replay});
+  let listRef: ReactVirtualizedList | null = null;
+
+  const {
+    items,
+    type: filteredTypes,
+    searchTerm,
+    setType,
+    setSearchTerm,
+  } = useDomFilters({actions});
+
+  const currentDomMutation = getPrevReplayEvent({
+    items: items.map(mutation => mutation.crumb),
+    targetTimestampMs: startTimestampMs + currentTime,
+    allowEqual: true,
+    allowExact: true,
+  });
 
   const {handleMouseEnter, handleMouseLeave, handleClick} =
     useCrumbHandlers(startTimestampMs);
 
-  const handleFilters = useCallback(
-    (
-      selectedValues: (string | number)[],
-      key: string,
-      filter: (mutation: Extraction) => boolean
-    ) => {
-      const filtersCopy = {...filters};
-
-      if (selectedValues.length === 0) {
-        delete filtersCopy[key];
-        setFilters(filtersCopy);
-        return;
-      }
-
-      setFilters({
-        ...filters,
-        [key]: filter,
-      });
-    },
-    [filters]
-  );
-
-  // Restart cache when filteredDomMutations changes
   useEffect(() => {
+    // Restart cache when items changes
     if (listRef) {
       cache.clearAll();
       listRef?.forceUpdateGrid();
     }
-  }, [filteredDomMutations, listRef]);
+  }, [items, listRef]);
 
   const renderRow = ({index, key, style, parent}: ListRowProps) => {
-    const mutation = filteredDomMutations[index];
+    const mutation = items[index];
     const {html, crumb} = mutation;
     const {title} = getDetails(crumb);
+
+    const hasOccurred =
+      currentTime >= relativeTimeInMs(crumb.timestamp || '', startTimestampMs);
 
     return (
       <CellMeasurer
@@ -111,15 +91,16 @@ function DomMutations({replay}: Props) {
           onMouseEnter={() => handleMouseEnter(crumb)}
           onMouseLeave={() => handleMouseLeave(crumb)}
           style={style}
+          isCurrent={crumb.id === currentDomMutation?.id}
         >
-          <IconWrapper color={crumb.color}>
+          <IconWrapper color={crumb.color} hasOccurred={hasOccurred}>
             <BreadcrumbIcon type={crumb.type} />
           </IconWrapper>
           <MutationContent>
             <MutationDetailsContainer>
               <div>
                 <TitleContainer>
-                  <Title>{title}</Title>
+                  <Title hasOccurred={hasOccurred}>{title}</Title>
                 </TitleContainer>
                 <MutationMessage>{crumb.message}</MutationMessage>
               </div>
@@ -143,26 +124,20 @@ function DomMutations({replay}: Props) {
     <MutationContainer>
       <MutationFilters>
         <CompactSelect
-          triggerProps={{
-            prefix: t('Event Type'),
-          }}
-          triggerLabel={isEmpty(filters) ? t('Any') : null}
+          triggerProps={{prefix: t('Event Type')}}
+          triggerLabel={filteredTypes.length === 0 ? t('Any') : null}
           multiple
-          options={getDomMutationsTypes(actions).map(mutationEventType => ({
-            value: mutationEventType,
-            label: mutationEventType,
-          }))}
+          options={getDomMutationsTypes(actions).map(value => ({value, label: value}))}
           size="sm"
-          onChange={selections => {
-            const selectedValues = selections.map(selection => selection.value);
-
-            handleFilters(selectedValues, 'eventType', (mutation: Extraction) => {
-              return selectedValues.includes(mutation.crumb.type);
-            });
-          }}
+          onChange={selected => setType(selected.map(_ => _.value))}
+          value={filteredTypes}
         />
-
-        <SearchBar size="sm" onChange={handleSearch} placeholder={t('Search DOM')} />
+        <SearchBar
+          size="sm"
+          onChange={setSearchTerm}
+          placeholder={t('Search DOM')}
+          query={searchTerm}
+        />
       </MutationFilters>
       {isLoading ? (
         <Placeholder height="200px" />
@@ -177,7 +152,7 @@ function DomMutations({replay}: Props) {
                 deferredMeasurementCache={cache}
                 height={height}
                 overscanRowCount={5}
-                rowCount={filteredDomMutations.length}
+                rowCount={items.length}
                 noRowsRenderer={() => (
                   <EmptyStateWarning withIcon={false} small>
                     {t('No related DOM Events recorded')}
@@ -220,12 +195,48 @@ const MutationList = styled('ul')`
   margin-bottom: 0;
 `;
 
-const MutationListItem = styled('li')`
+const MutationContent = styled('div')`
+  overflow: hidden;
+  width: 100%;
+
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
+`;
+
+const MutationDetailsContainer = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-grow: 1;
+`;
+
+/**
+ * Taken `from events/interfaces/.../breadcrumbs/types`
+ */
+const IconWrapper = styled('div')<
+  {hasOccurred?: boolean} & Required<Pick<SVGIconProps, 'color'>>
+>`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  min-width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  color: ${p => p.theme.white};
+  background: ${p => (p.hasOccurred ? p.theme[p.color] ?? p.color : p.theme.purple200)};
+  box-shadow: ${p => p.theme.dropShadowLightest};
+  z-index: 2;
+`;
+
+const MutationListItem = styled('li')<{isCurrent?: boolean}>`
   display: flex;
   gap: ${space(1)};
   flex-grow: 1;
   padding: ${space(1)} ${space(1.5)};
   position: relative;
+  border-bottom: 1px solid ${p => (p.isCurrent ? p.theme.purple300 : 'transparent')};
   &:hover {
     background-color: ${p => p.theme.backgroundSecondary};
   }
@@ -256,48 +267,15 @@ const MutationListItem = styled('li')`
   }
 `;
 
-const MutationContent = styled('div')`
-  overflow: hidden;
-  width: 100%;
-
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
-
-const MutationDetailsContainer = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  flex-grow: 1;
-`;
-
-/**
- * Taken `from events/interfaces/.../breadcrumbs/types`
- */
-const IconWrapper = styled('div')<Required<Pick<SVGIconProps, 'color'>>>`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  min-width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  color: ${p => p.theme.white};
-  background: ${p => p.theme[p.color] ?? p.color};
-  box-shadow: ${p => p.theme.dropShadowLightest};
-  z-index: 2;
-`;
-
 const TitleContainer = styled('div')`
   display: flex;
   justify-content: space-between;
 `;
 
-const Title = styled('span')`
+const Title = styled('span')<{hasOccurred?: boolean}>`
   ${p => p.theme.overflowEllipsis};
   text-transform: capitalize;
-  color: ${p => p.theme.gray400};
+  color: ${p => (p.hasOccurred ? p.theme.gray400 : p.theme.gray300)};
   font-weight: bold;
   line-height: ${p => p.theme.text.lineHeightBody};
 `;
@@ -317,6 +295,7 @@ const MutationMessage = styled('p')`
 
 const CodeContainer = styled('div')`
   max-height: 400px;
+  max-width: 100%;
 `;
 
 export default DomMutations;

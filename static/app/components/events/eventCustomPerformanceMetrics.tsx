@@ -91,6 +91,7 @@ export function getFieldTypeFromUnit(unit) {
     if (unit === 'none') {
       return 'integer';
     }
+    return 'string';
   }
   return 'number';
 }
@@ -108,13 +109,14 @@ function EventCustomPerformanceMetric({
   }
 
   const fieldType = getFieldTypeFromUnit(unit);
+  const renderValue = fieldType === 'string' ? `${value} ${unit}` : value;
   const rendered = fieldType
     ? FIELD_FORMATTERS[fieldType].renderFunc(
         name,
-        {[name]: value},
+        {[name]: renderValue},
         {location, organization, unit}
       )
-    : value;
+    : renderValue;
 
   function generateLinkWithQuery(query: string) {
     const eventView = EventView.fromLocation(location);
@@ -132,6 +134,17 @@ function EventCustomPerformanceMetric({
         return eventView.getResultsViewUrlTarget(organization.slug);
     }
   }
+
+  // Some custom perf metrics have units.
+  // These custom perf metrics need to be adjusted to the correct value.
+  let customMetricValue = value;
+  if (typeof value === 'number' && unit && customMetricValue) {
+    if (Object.keys(SIZE_UNITS).includes(unit)) {
+      customMetricValue *= SIZE_UNITS[unit];
+    } else if (Object.keys(DURATION_UNITS).includes(unit)) {
+      customMetricValue *= DURATION_UNITS[unit];
+    }
+  }
   return (
     <StyledPanel>
       <div>
@@ -145,22 +158,22 @@ function EventCustomPerformanceMetric({
           {
             key: 'includeEvents',
             label: t('Show events with this value'),
-            to: generateLinkWithQuery(`measurements.${name}:${value}`),
+            to: generateLinkWithQuery(`measurements.${name}:${customMetricValue}`),
           },
           {
             key: 'excludeEvents',
             label: t('Hide events with this value'),
-            to: generateLinkWithQuery(`!measurements.${name}:${value}`),
+            to: generateLinkWithQuery(`!measurements.${name}:${customMetricValue}`),
           },
           {
             key: 'includeGreaterThanEvents',
             label: t('Show events with values greater than'),
-            to: generateLinkWithQuery(`measurements.${name}:>${value}`),
+            to: generateLinkWithQuery(`measurements.${name}:>${customMetricValue}`),
           },
           {
             key: 'includeLessThanEvents',
             label: t('Show events with values less than'),
-            to: generateLinkWithQuery(`measurements.${name}:<${value}`),
+            to: generateLinkWithQuery(`measurements.${name}:<${customMetricValue}`),
           },
         ]}
         triggerProps={{

@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import moment from 'moment-timezone';
 
+import Button from 'sentry/components/button';
 import DateTime from 'sentry/components/dateTime';
 import {DataSection} from 'sentry/components/events/styles';
 import FileSize from 'sentry/components/fileSize';
@@ -11,7 +12,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import NavigationButtonGroup from 'sentry/components/navigationButtonGroup';
 import Tooltip from 'sentry/components/tooltip';
-import {IconWarning} from 'sentry/icons';
+import {IconPlay, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
@@ -50,6 +51,7 @@ type Props = {
   location: Location;
   organization: Organization;
   project: Project;
+  hasReplay?: boolean;
 };
 
 class GroupEventToolbar extends Component<Props> {
@@ -101,8 +103,9 @@ class GroupEventToolbar extends Component<Props> {
     const is24Hours = shouldUse24Hours();
     const evt = this.props.event;
 
-    const {group, organization, location, project} = this.props;
+    const {group, organization, location, project, hasReplay} = this.props;
     const groupId = group.id;
+    const isReplayEnabled = organization.features.includes('session-replay-ui');
 
     const baseEventsPath = `/organizations/${organization.slug}/issues/${groupId}/events/`;
 
@@ -119,7 +122,7 @@ class GroupEventToolbar extends Component<Props> {
       <Wrapper>
         <div>
           <Heading>
-            {t('Event')}{' '}
+            {t('Event ID')}{' '}
             <EventIdLink to={`${baseEventsPath}${evt.id}/`}>{evt.eventID}</EventIdLink>
             <LinkContainer>
               <ExternalLink
@@ -156,21 +159,31 @@ class GroupEventToolbar extends Component<Props> {
             location={location}
           />
         </div>
-        <NavigationButtonGroup
-          hasPrevious={!!evt.previousEventID}
-          hasNext={!!evt.nextEventID}
-          links={[
-            {pathname: `${baseEventsPath}oldest/`, query: location.query},
-            {pathname: `${baseEventsPath}${evt.previousEventID}/`, query: location.query},
-            {pathname: `${baseEventsPath}${evt.nextEventID}/`, query: location.query},
-            {pathname: `${baseEventsPath}latest/`, query: location.query},
-          ]}
-          onOldestClick={() => this.handleNavigationClick('oldest')}
-          onOlderClick={() => this.handleNavigationClick('older')}
-          onNewerClick={() => this.handleNavigationClick('newer')}
-          onNewestClick={() => this.handleNavigationClick('newest')}
-          size="sm"
-        />
+        <NavigationContainer>
+          {hasReplay && isReplayEnabled ? (
+            <Button href="#breadcrumbs" size="sm" icon={<IconPlay size="xs" />}>
+              Replay
+            </Button>
+          ) : null}
+          <NavigationButtonGroup
+            hasPrevious={!!evt.previousEventID}
+            hasNext={!!evt.nextEventID}
+            links={[
+              {pathname: `${baseEventsPath}oldest/`, query: location.query},
+              {
+                pathname: `${baseEventsPath}${evt.previousEventID}/`,
+                query: location.query,
+              },
+              {pathname: `${baseEventsPath}${evt.nextEventID}/`, query: location.query},
+              {pathname: `${baseEventsPath}latest/`, query: location.query},
+            ]}
+            onOldestClick={() => this.handleNavigationClick('oldest')}
+            onOlderClick={() => this.handleNavigationClick('older')}
+            onNewerClick={() => this.handleNavigationClick('newer')}
+            onNewestClick={() => this.handleNavigationClick('newest')}
+            size="sm"
+          />
+        </NavigationContainer>
       </Wrapper>
     );
   }
@@ -236,6 +249,13 @@ const DescriptionList = styled('dl')`
   gap: ${space(0.75)} ${space(1)};
   text-align: left;
   margin: 0;
+`;
+
+const NavigationContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0 ${space(1)};
 `;
 
 export default GroupEventToolbar;

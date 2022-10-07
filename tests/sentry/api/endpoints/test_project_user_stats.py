@@ -1,9 +1,7 @@
 from django.urls import reverse
-from django.utils import timezone
 
-from sentry import tsdb
-from sentry.models import EventUser
 from sentry.testutils import APITestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 
 
@@ -24,14 +22,26 @@ class ProjectUserDetailsTest(APITestCase):
         )
 
     def test_simple(self):
-        euser1 = EventUser.objects.create(email="foo@example.com", project_id=self.project.id)
-        euser2 = EventUser.objects.create(email="bar@example.com", project_id=self.project.id)
-        tsdb.record_multi(
-            (
-                (tsdb.models.users_affected_by_project, self.project.id, (euser2.tag_value,)),
-                (tsdb.models.users_affected_by_project, self.project.id, (euser1.tag_value,)),
-            ),
-            timestamp=timezone.now(),
+        self.store_event(
+            data={
+                "timestamp": iso_format(before_now(minutes=5)),
+                "tags": {"sentry:user": "user_1"},
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "timestamp": iso_format(before_now(minutes=5)),
+                "tags": {"sentry:user": "user_1"},
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "timestamp": iso_format(before_now(minutes=5)),
+                "tags": {"sentry:user": "user_2"},
+            },
+            project_id=self.project.id,
         )
 
         response = self.client.get(self.path)

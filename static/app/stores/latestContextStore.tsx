@@ -1,9 +1,6 @@
 import {createStore, StoreDefinition} from 'reflux';
 
-import OrganizationActions from 'sentry/actions/organizationActions';
-import ProjectActions from 'sentry/actions/projectActions';
 import {Organization, Project} from 'sentry/types';
-import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 type State = {
   environment: string | string[] | null;
@@ -31,8 +28,6 @@ interface LatestContextStoreDefinition extends StoreDefinition {
  * here Org/project data is currently in organizationsStore/projectsStore
  */
 const storeConfig: LatestContextStoreDefinition = {
-  unsubscribeListeners: [],
-
   state: {
     project: null,
     lastProject: null,
@@ -46,16 +41,6 @@ const storeConfig: LatestContextStoreDefinition = {
 
   init() {
     this.reset();
-
-    this.unsubscribeListeners.push(
-      this.listenTo(ProjectActions.setActive, this.onSetActiveProject)
-    );
-    this.unsubscribeListeners.push(
-      this.listenTo(ProjectActions.updateSuccess, this.onUpdateProject)
-    );
-    this.unsubscribeListeners.push(
-      this.listenTo(OrganizationActions.update, this.onUpdateOrganization)
-    );
   },
 
   reset() {
@@ -135,5 +120,5 @@ const storeConfig: LatestContextStoreDefinition = {
   },
 };
 
-const LatestContextStore = createStore(makeSafeRefluxStore(storeConfig));
+const LatestContextStore = createStore(storeConfig);
 export default LatestContextStore;

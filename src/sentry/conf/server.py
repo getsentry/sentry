@@ -10,7 +10,7 @@ import socket
 import sys
 import tempfile
 from datetime import datetime, timedelta
-from typing import Mapping
+from typing import Iterable
 from urllib.parse import urlparse
 
 import sentry
@@ -515,7 +515,7 @@ SOCIAL_AUTH_PROTECTED_USER_FIELDS = ["email"]
 SOCIAL_AUTH_FORCE_POST_DISCONNECT = True
 
 # Queue configuration
-from kombu import Exchange, Queue
+from kombu import Queue
 
 BROKER_URL = "redis://127.0.0.1:6379"
 BROKER_TRANSPORT_OPTIONS = {}
@@ -558,6 +558,7 @@ CELERY_IMPORTS = (
     "sentry.discover.tasks",
     "sentry.incidents.tasks",
     "sentry.snuba.tasks",
+    "sentry.replays.tasks",
     "sentry.tasks.app_store_connect",
     "sentry.tasks.assemble",
     "sentry.tasks.auth",
@@ -571,6 +572,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.codeowners.update_code_owners_schema",
     "sentry.tasks.collect_project_platforms",
     "sentry.tasks.commits",
+    "sentry.tasks.commit_context",
     "sentry.tasks.deletion",
     "sentry.tasks.digests",
     "sentry.tasks.email",
@@ -645,6 +647,7 @@ CELERY_QUEUES = [
     Queue(
         "group_owners.process_suspect_commits", routing_key="group_owners.process_suspect_commits"
     ),
+    Queue("group_owners.process_commit_context", routing_key="group_owners.process_commit_context"),
     Queue(
         "releasemonitor",
         routing_key="releasemonitor",
@@ -655,6 +658,8 @@ CELERY_QUEUES = [
     Queue("integrations", routing_key="integrations"),
     Queue("merge", routing_key="merge"),
     Queue("options", routing_key="options"),
+    Queue("post_process_errors", routing_key="post_process_errors"),
+    Queue("post_process_performance", routing_key="post_process_performance"),
     Queue("relay_config", routing_key="relay_config"),
     Queue("relay_config_bulk", routing_key="relay_config_bulk"),
     Queue("reports.deliver", routing_key="reports.deliver"),
@@ -675,22 +680,14 @@ CELERY_QUEUES = [
     Queue("release_health.duplex", routing_key="release_health.duplex"),
     Queue("get_suspect_resolutions", routing_key="get_suspect_resolutions"),
     Queue("get_suspect_resolutions_releases", routing_key="get_suspect_resolutions_releases"),
+    Queue("replays.delete_replay", routing_key="replays.delete_replay"),
+    Queue("counters-0", routing_key="counters-0"),
+    Queue("triggers-0", routing_key="triggers-0"),
 ]
 
 for queue in CELERY_QUEUES:
     queue.durable = False
 
-CELERY_ROUTES = ("sentry.queue.routers.SplitQueueRouter",)
-
-
-def create_partitioned_queues(name):
-    exchange = Exchange(name, type="direct")
-    for num in range(1):
-        CELERY_QUEUES.append(Queue(f"{name}-{num}", exchange=exchange))
-
-
-create_partitioned_queues("counters")
-create_partitioned_queues("triggers")
 
 from celery.schedules import crontab
 
@@ -1103,6 +1100,8 @@ SENTRY_FEATURES = {
     "organizations:invite-members": True,
     # Enable rate limits for inviting members.
     "organizations:invite-members-rate-limits": True,
+    # Enable new issue actions on issue details
+    "organizations:issue-actions-v2": False,
     # Enable "Owned By" and "Assigned To" on issue details
     "organizations:issue-details-owners": False,
     # Enable removing issue from issue list if action taken.
@@ -1130,6 +1129,8 @@ SENTRY_FEATURES = {
     "organizations:performance-transaction-name-only-search": False,
     # Enable showing INP web vital in default views
     "organizations:performance-vitals-inp": False,
+    # Enable processing transactions in post_process_group
+    "organizations:performance-issues-post-process-group": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable populating suggested assignees with release committers
@@ -1157,6 +1158,8 @@ SENTRY_FEATURES = {
     "organizations:performance-issues-ingest": False,
     # Enable performance issues dev options, includes changing detection thresholds and other parts of issues that we're using for development.
     "organizations:performance-issues-dev": False,
+    # Enables updated all events tab in a performance issue
+    "organizations:performance-issues-all-events-tab": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
     # Enable the UI for the overage alert settings
@@ -1174,8 +1177,20 @@ SENTRY_FEATURES = {
     "organizations:server-side-sampling-ui": False,
     # Enable creating DS rules on incompatible platforms (used by SDK teams for dev purposes)
     "organizations:server-side-sampling-allow-incompatible-platforms": False,
+    # Enable the deletion of sampling uniform rules (used internally for demo purposes)
+    "organizations:dynamic-sampling-demo": False,
+    # Enable the creation of a uniform sampling rule.
+    "organizations:dynamic-sampling-basic": False,
+    # Enable the creation of uniform and conditional sampling rules.
+    "organizations:dynamic-sampling-advanced": False,
+    # Enable dynamic sampling call to action in the performance product
+    "organizations:dynamic-sampling-performance-cta": False,
+    # Enable a more advanced dynamic sampling call to action in the performance product
+    "organizations:dynamic-sampling-performance-cta-advanced": False,
     # Enable the mobile screenshots feature
     "organizations:mobile-screenshots": False,
+    # Enable the mobile screenshot gallery in the attachments tab
+    "organizations:mobile-screenshot-gallery": False,
     # Enable the release details performance section
     "organizations:release-comparison-performance": False,
     # Enable team insights page
@@ -1184,8 +1199,6 @@ SENTRY_FEATURES = {
     "organizations:u2f-superuser-form": False,
     # Enable setting team-level roles and receiving permissions from them
     "organizations:team-roles": False,
-    # Enable snowflake ids
-    "organizations:enable-snowflake-id": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -1209,6 +1222,8 @@ SENTRY_FEATURES = {
     "projects:rate-limits": True,
     # Enable functionality to trigger service hooks upon event ingestion.
     "projects:servicehooks": False,
+    # Enable use of symbolic-sourcemapcache for JavaScript Source Maps processing
+    "projects:sourcemapcache-processor": False,
     # Enable suspect resolutions feature
     "projects:suspect-resolutions": False,
     # Use Kafka (instead of Celery) for ingestion pipeline.
@@ -1876,6 +1891,9 @@ SENTRY_USE_CDC_DEV = False
 # This flag activates profiling backend in the development environment
 SENTRY_USE_PROFILING = False
 
+# This flag activates code paths that are specific for customer domains
+SENTRY_USE_CUSTOMER_DOMAINS = False
+
 # SENTRY_DEVSERVICES = {
 #     "service-name": lambda settings, options: (
 #         {
@@ -2143,7 +2161,6 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.custom_scm.CustomSCMIntegrationProvider",
 )
 
-
 SENTRY_SDK_CONFIG = {
     "release": sentry.__semantic_version__,
     "environment": ENVIRONMENT,
@@ -2155,6 +2172,35 @@ SENTRY_SDK_CONFIG = {
         "custom_measurements": True,
     },
 }
+
+SENTRY_DEV_DSN = os.environ.get("SENTRY_DEV_DSN")
+if SENTRY_DEV_DSN:
+    # In production, this value is *not* set via an env variable
+    # https://github.com/getsentry/getsentry/blob/16a07f72853104b911a368cc8ae2b4b49dbf7408/getsentry/conf/settings/prod.py#L604-L606
+    # This is used in case you want to report traces of your development set up to a project of your choice
+    SENTRY_SDK_CONFIG["dsn"] = SENTRY_DEV_DSN
+
+# The sample rate to use for profiles. This is conditional on the usage of
+# traces_sample_rate. So that means the true sample rate will be approximately
+# traces_sample_rate * profiles_sample_rate
+# (subject to things like the traces_sampler)
+SENTRY_PROFILES_SAMPLE_RATE = 0
+
+# We want to test a few schedulers possible in the profiler. Some are platform
+# specific, and each have their own pros/cons. See the sdk for more details.
+SENTRY_PROFILER_MODE = "sleep"
+
+# To have finer control over which process will have profiling enabled, this
+# environment variable will be required to enable profiling.
+#
+# This is because profiling requires that we run some stuff globally, and we
+# are not ready to run this on the more critical parts of the codebase such as
+# the ingest workers yet.
+#
+# This will allow us to have finer control over where we are running the
+# profiler. For example, only on the web server.
+SENTRY_PROFILING_ENABLED = os.environ.get("SENTRY_PROFILING_ENABLED", False)
+
 # Callable to bind additional context for the Sentry SDK
 #
 # def get_org_context(scope, organization, **kwargs):
@@ -2444,7 +2490,9 @@ KAFKA_SNUBA_METRICS = "snuba-metrics"
 KAFKA_PROFILES = "profiles"
 KAFKA_INGEST_PERFORMANCE_METRICS = "ingest-performance-metrics"
 KAFKA_SNUBA_GENERIC_METRICS = "snuba-generic-metrics"
+KAFKA_INGEST_REPLAY_EVENTS = "ingest-replay-events"
 KAFKA_INGEST_REPLAYS_RECORDINGS = "ingest-replay-recordings"
+KAFKA_REGION_TO_CONTROL = "region-to-control"
 
 # topic for testing multiple indexer backends in parallel
 # in production. So far just testing backends for the perf data,
@@ -2489,9 +2537,12 @@ KAFKA_TOPICS = {
     KAFKA_PROFILES: {"cluster": "default"},
     KAFKA_INGEST_PERFORMANCE_METRICS: {"cluster": "default"},
     KAFKA_SNUBA_GENERIC_METRICS: {"cluster": "default"},
+    KAFKA_INGEST_REPLAY_EVENTS: {"cluster": "default"},
     KAFKA_INGEST_REPLAYS_RECORDINGS: {"cluster": "default"},
     # Metrics Testing Topics
     KAFKA_SNUBA_GENERICS_METRICS_CS: {"cluster": "default"},
+    # Region to Control Silo messaging - eg UserIp and AuditLog
+    KAFKA_REGION_TO_CONTROL: {"cluster": "default"},
 }
 
 
@@ -2775,7 +2826,6 @@ MAX_QUERY_SUBSCRIPTIONS_PER_ORG = 1000
 MAX_REDIS_SNOWFLAKE_RETRY_COUNTER = 5
 
 SNOWFLAKE_VERSION_ID = 1
-SNOWFLAKE_REGION_ID = 0
 SENTRY_SNOWFLAKE_EPOCH_START = datetime(2022, 8, 8, 0, 0).timestamp()
 SENTRY_USE_SNOWFLAKE = False
 
@@ -2792,6 +2842,7 @@ ORGANIZATION_VITALS_OVERVIEW_PROJECT_LIMIT = 300
 SENTRY_STRING_INDEXER_CACHE_OPTIONS = {
     "cache_name": "default",
 }
+SENTRY_POSTGRES_INDEXER_RETRY_COUNT = 2
 
 SENTRY_FUNCTIONS_PROJECT_NAME = None
 
@@ -2806,4 +2857,8 @@ DISALLOWED_CUSTOMER_DOMAINS = []
 
 SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS = {}
 
-SENTRY_REGION_CONFIG: Mapping[str, Region] = {}
+SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
+SENTRY_REGION_CONFIG: Iterable[Region] = ()
+
+# How long we should wait for a gateway proxy request to return before giving up
+GATEWAY_PROXY_TIMEOUT = None

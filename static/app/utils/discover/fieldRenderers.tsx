@@ -701,7 +701,6 @@ const spanOperationRelativeBreakdownRenderer = (
               containerDisplayMode="block"
             >
               <RectangleRelativeOpsBreakdown
-                spanBarHatch={false}
                 style={{
                   backgroundColor: pickBarColor(operationName),
                   cursor: 'pointer',
@@ -734,7 +733,7 @@ const spanOperationRelativeBreakdownRenderer = (
       })}
       <div key="other" style={{width: toPercent(otherPercentage || 0)}}>
         <Tooltip title={<div>{t('Other')}</div>} containerDisplayMode="block">
-          <OtherRelativeOpsBreakdown spanBarHatch={false} />
+          <OtherRelativeOpsBreakdown />
         </Tooltip>
       </div>
     </RelativeOpsBreakdown>

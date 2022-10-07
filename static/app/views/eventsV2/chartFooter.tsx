@@ -17,9 +17,13 @@ import Switch from 'sentry/components/switchButton';
 import {t, tct} from 'sentry/locale';
 import {Organization, SelectValue} from 'sentry/types';
 import {defined} from 'sentry/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import {TOP_EVENT_MODES} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import localStorage from 'sentry/utils/localStorage';
+
+export const PROCESSED_BASELINE_TOGGLE_KEY = 'show-processed-baseline';
 
 type Props = {
   displayMode: string;
@@ -96,7 +100,21 @@ export default function ChartFooter({
               isActive={showBaseline}
               isDisabled={disableProcessedBaselineToggle ?? true}
               size="lg"
-              toggle={() => setShowBaseline(!showBaseline)}
+              toggle={() => {
+                const value = !showBaseline;
+                localStorage.setItem(
+                  PROCESSED_BASELINE_TOGGLE_KEY,
+                  value === true ? '1' : '0'
+                );
+                trackAdvancedAnalyticsEvent(
+                  'discover_v2.processed_baseline_toggle.clicked',
+                  {
+                    organization,
+                    toggled: value === true ? 'on' : 'off',
+                  }
+                );
+                setShowBaseline(value);
+              }}
             />
             <QuestionTooltip
               isHoverable
@@ -119,11 +137,16 @@ export default function ChartFooter({
                 }
               )}
             />
-            <FeatureBadge type="alpha" />
+            <FeatureBadge type="beta" />
           </Fragment>
         </Feature>
         <Feature organization={organization} features={['discover-interval-selector']}>
-          <IntervalSelector eventView={eventView} onIntervalChange={onIntervalChange} />
+          <IntervalSelector
+            displayMode={displayMode}
+            eventView={eventView}
+            onIntervalChange={onIntervalChange}
+          />
+          <FeatureBadge type="new" space={0} />
         </Feature>
         <OptionSelector
           title={t('Display')}

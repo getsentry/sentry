@@ -47,6 +47,7 @@ function BreadcrumbItem({
   const handleClick = useCallback(
     (e: React.MouseEvent<HTMLElement>) => {
       onClick?.(crumb, e);
+
       switch (crumb.type) {
         case 'navigation':
         case 'debug':
@@ -56,8 +57,6 @@ function BreadcrumbItem({
           setActiveTab('dom');
           break;
         case 'error':
-          setActiveTab('issues');
-          break;
         default:
           setActiveTab('console');
           break;

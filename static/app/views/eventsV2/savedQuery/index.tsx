@@ -15,6 +15,7 @@ import Banner from 'sentry/components/banner';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
+import FeatureBadge from 'sentry/components/featureBadge';
 import {Hovercard} from 'sentry/components/hovercard';
 import InputControl from 'sentry/components/input';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
@@ -30,7 +31,15 @@ import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
 import {handleAddQueryToDashboard} from 'sentry/views/eventsV2/utils';
 
-import {handleCreateQuery, handleDeleteQuery, handleUpdateQuery} from './utils';
+import {DEFAULT_EVENT_VIEW} from '../data';
+
+import {
+  handleCreateQuery,
+  handleDeleteQuery,
+  handleResetHomepageQuery,
+  handleUpdateHomepageQuery,
+  handleUpdateQuery,
+} from './utils';
 
 type SaveAsDropdownProps = {
   disabled: boolean;
@@ -105,11 +114,15 @@ type Props = DefaultProps & {
   location: Location;
   organization: Organization;
   projects: Project[];
+  queryDataLoading: boolean;
   router: InjectedRouter;
   savedQuery: SavedQuery | undefined;
-  savedQueryLoading: boolean;
+  setHomepageQuery: (homepageQuery?: SavedQuery) => void;
+  setSavedQuery: (savedQuery: SavedQuery) => void;
   updateCallback: () => void;
   yAxis: string[];
+  homepageQuery?: SavedQuery;
+  isHomepage?: boolean;
 };
 
 type State = {
@@ -121,7 +134,7 @@ type State = {
 
 class SavedQueryButtonGroup extends PureComponent<Props, State> {
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
-    const {eventView: nextEventView, savedQuery, savedQueryLoading, yAxis} = nextProps;
+    const {eventView: nextEventView, savedQuery, queryDataLoading, yAxis} = nextProps;
 
     // For a new unsaved query
     if (!savedQuery) {
@@ -132,7 +145,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
       };
     }
 
-    if (savedQueryLoading) {
+    if (queryDataLoading) {
       return prevState;
     }
 
@@ -236,11 +249,13 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     event.preventDefault();
     event.stopPropagation();
 
-    const {api, organization, eventView, updateCallback, yAxis} = this.props;
+    const {api, organization, eventView, updateCallback, yAxis, setSavedQuery} =
+      this.props;
 
     handleUpdateQuery(api, organization, eventView, yAxis).then(
       (savedQuery: SavedQuery) => {
         const view = EventView.fromSavedQuery(savedQuery);
+        setSavedQuery(savedQuery);
         this.setState({queryName: ''});
         browserHistory.push(view.getResultsViewShortUrlTarget(organization.slug));
         updateCallback();
@@ -379,6 +394,73 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     );
   }
 
+  renderSaveAsHomepage() {
+    const {
+      api,
+      organization,
+      eventView,
+      location,
+      isHomepage,
+      setHomepageQuery,
+      homepageQuery,
+      queryDataLoading,
+    } = this.props;
+    const buttonDisabled =
+      queryDataLoading ||
+      (!homepageQuery &&
+        eventView.isEqualTo(EventView.fromSavedQuery(DEFAULT_EVENT_VIEW)));
+    if (
+      homepageQuery &&
+      eventView.isEqualTo(EventView.fromSavedQuery(homepageQuery), ['id'])
+    ) {
+      return (
+        <Button
+          key="reset-discover-homepage"
+          data-test-id="reset-discover-homepage"
+          onClick={async () => {
+            await handleResetHomepageQuery(api, organization);
+            setHomepageQuery(undefined);
+            if (isHomepage) {
+              const nextEventView = EventView.fromNewQueryWithLocation(
+                DEFAULT_EVENT_VIEW,
+                location
+              );
+              browserHistory.push({
+                pathname: location.pathname,
+                query: nextEventView.generateQueryStringObject(),
+              });
+            }
+          }}
+          disabled={buttonDisabled}
+        >
+          {t('Reset Discover Home')}
+          <FeatureBadge type="alpha" />
+        </Button>
+      );
+    }
+
+    return (
+      <Button
+        key="save-query-as-homepage"
+        data-test-id="save-query-as-homepage"
+        onClick={async () => {
+          const updatedHomepageQuery = await handleUpdateHomepageQuery(
+            api,
+            organization,
+            eventView.toNewQuery()
+          );
+          if (updatedHomepageQuery) {
+            setHomepageQuery(updatedHomepageQuery);
+          }
+        }}
+        disabled={buttonDisabled}
+      >
+        {t('Use as Discover Home')}
+        <FeatureBadge type="alpha" />
+      </Button>
+    );
+  }
+
   render() {
     const {organization} = this.props;
 
@@ -412,6 +494,12 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
 
     return (
       <ResponsiveButtonBar gap={1}>
+        <Feature
+          organization={organization}
+          features={['discover-query', 'discover-query-builder-as-landing-page']}
+        >
+          {({hasFeature}) => hasFeature && this.renderSaveAsHomepage()}
+        </Feature>
         {renderQueryButton(disabled => this.renderButtonSave(disabled))}
         <Feature organization={organization} features={['incidents']}>
           {({hasFeature}) => hasFeature && this.renderButtonCreateAlert()}

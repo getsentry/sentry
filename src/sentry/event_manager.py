@@ -89,10 +89,12 @@ from sentry.ratelimits.sliding_windows import Quota, RedisSlidingWindowRateLimit
 from sentry.reprocessing2 import is_reprocessed_event, save_unprocessed_event
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.signals import first_event_received, first_transaction_received, issue_unresolved
+from sentry.spans.grouping.strategy.config import INCOMING_DEFAULT_CONFIG_ID
 from sentry.tasks.commits import fetch_commits
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.process_buffer import buffer_incr
 from sentry.types.activity import ActivityType
+from sentry.types.issues import GroupCategory
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
@@ -505,6 +507,9 @@ class EventManager:
             discard_event(job, attachments)
             raise
 
+        if not group_info:
+            return job["event"]
+
         job["event"].group = group_info.group
 
         # store a reference to the group id to guarantee validation of isolation
@@ -586,14 +591,17 @@ class EventManager:
 
         # Check if the project is configured for auto upgrading and we need to upgrade
         # to the latest grouping config.
-        if (
-            auto_upgrade_grouping
-            and settings.SENTRY_GROUPING_AUTO_UPDATE_ENABLED
-            and project.get_option("sentry:grouping_auto_update")
-        ):
+        if auto_upgrade_grouping and _project_should_update_grouping(project):
             _auto_update_grouping(project)
 
         return job["event"]
+
+
+def _project_should_update_grouping(project):
+    should_update_org = (
+        project.organization_id % 1000 < float(settings.SENTRY_GROUPING_AUTO_UPDATE_ENABLED) * 1000
+    )
+    return project.get_option("sentry:grouping_auto_update") and should_update_org
 
 
 def _auto_update_grouping(project):
@@ -1071,14 +1079,28 @@ def _eventstream_insert_many(jobs):
         # XXX: Temporary hack so that we keep this group info working for error issues. We'll need
         # to change the format of eventstream to be able to handle data for multiple groups
         if not job["groups"]:
+            group_states = None
             is_new = False
             is_regression = False
             is_new_group_environment = False
         else:
+            # error issues
             group_info = job["groups"][0]
             is_new = group_info.is_new
             is_regression = group_info.is_regression
             is_new_group_environment = group_info.is_new_group_environment
+
+            # performance issues with potentially multiple groups to a transaction
+            group_states = [
+                {
+                    "id": gi.group.id,
+                    "is_new": gi.is_new,
+                    "is_regression": gi.is_regression,
+                    "is_new_group_environment": gi.is_new_group_environment,
+                }
+                for gi in job["groups"]
+                if gi is not None
+            ]
 
         eventstream.insert(
             event=job["event"],
@@ -1093,6 +1115,7 @@ def _eventstream_insert_many(jobs):
             # through the event stream, but we don't care
             # about post processing and handling the commit.
             skip_consume=job.get("raw", False),
+            group_states=group_states,
         )
 
 
@@ -1339,6 +1362,15 @@ def _save_aggregate(event, hashes, release, metadata, received_timestamp, **kwar
                 return GroupInfo(group, is_new, is_regression)
 
     group = Group.objects.get(id=existing_grouphash.group_id)
+    if group.issue_category != GroupCategory.ERROR:
+        logger.info(
+            "event_manager.category_mismatch",
+            extra={
+                "issue_category": group.issue_category,
+                "event_type": "error",
+            },
+        )
+        return
 
     is_new = False
 
@@ -1983,10 +2015,38 @@ def _calculate_span_grouping(jobs, projects):
             ):
                 continue
 
-            groupings = event.get_span_groupings()
+            with metrics.timer("event_manager.save.get_span_groupings.default"):
+                groupings = event.get_span_groupings()
             groupings.write_to_event(event.data)
 
             metrics.timing("save_event.transaction.span_count", len(groupings.results))
+            unique_default_hashes = set(groupings.results.values())
+            metrics.incr(
+                "save_event.transaction.span_group_count.default",
+                amount=len(unique_default_hashes),
+                tags={"platform": job["platform"] or "unknown"},
+            )
+
+            # Try the second, looser config, and see how many groups it
+            # generates for comparison against the base. Do not store changes,
+            # record the number of generated unique groups.
+            with metrics.timer("event_manager.save.get_span_groupings.incoming"):
+                experimental_groupings = event.get_span_groupings(
+                    {"id": INCOMING_DEFAULT_CONFIG_ID}
+                )
+
+            unique_incoming_hashes = set(experimental_groupings.results.values())
+            metrics.incr(
+                "save_event.transaction.span_group_count.incoming",
+                amount=len(unique_incoming_hashes),
+                tags={"platform": job["platform"] or "unknown"},
+            )
+
+            metrics.incr(
+                "save_event.transaction.span_group_count.difference",
+                amount=len(unique_default_hashes ^ unique_incoming_hashes),
+                tags={"platform": job["platform"] or "unknown"},
+            )
         except Exception:
             sentry_sdk.capture_exception()
 
@@ -2063,12 +2123,12 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
                 metrics.incr("performance.performance_issue.dropped", _dropped_group_hash_count)
 
                 for new_grouphash in list(new_grouphashes)[: granted_quota.granted]:
-
                     # GROUP DOES NOT EXIST
                     with sentry_sdk.start_span(
                         op="event_manager.create_performance_group_transaction"
                     ) as span, metrics.timer(
                         "event_manager.create_performance_group_transaction",
+                        tags={"platform": event.platform or "unknown"},
                         sample_rate=1.0,
                     ) as metric_tags, transaction.atomic():
                         span.set_tag("create_group_transaction.outcome", "no_group")
@@ -2107,6 +2167,15 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
                 # GROUP EXISTS
                 for existing_grouphash in existing_grouphashes:
                     group = existing_grouphash.group
+                    if group.issue_category != GroupCategory.PERFORMANCE:
+                        logger.info(
+                            "event_manager.category_mismatch",
+                            extra={
+                                "issue_category": group.issue_category,
+                                "event_type": "performance",
+                            },
+                        )
+                        continue
 
                     is_new = False
 

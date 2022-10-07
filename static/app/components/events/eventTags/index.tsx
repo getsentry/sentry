@@ -1,5 +1,7 @@
+import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import ClippedBox from 'sentry/components/clippedBox';
 import Pills from 'sentry/components/pills';
 import {Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
@@ -31,18 +33,24 @@ export function EventTags({event, organization, projectId, location}: Props) {
   const streamPath = `/organizations/${orgSlug}/issues/`;
 
   return (
-    <Pills>
-      {event.tags.map((tag, index) => (
-        <EventTagsPill
-          key={!defined(tag.key) ? `tag-pill-${index}` : tag.key}
-          tag={tag}
-          projectId={projectId}
-          organization={organization}
-          query={generateQueryWithTag(location.query, tag)}
-          streamPath={streamPath}
-          meta={meta?.[index]}
-        />
-      ))}
-    </Pills>
+    <StyledClippedBox clipHeight={150}>
+      <Pills>
+        {event.tags.map((tag, index) => (
+          <EventTagsPill
+            key={!defined(tag.key) ? `tag-pill-${index}` : tag.key}
+            tag={tag}
+            projectId={projectId}
+            organization={organization}
+            query={generateQueryWithTag(location.query, tag)}
+            streamPath={streamPath}
+            meta={meta?.[index]}
+          />
+        ))}
+      </Pills>
+    </StyledClippedBox>
   );
 }
+
+const StyledClippedBox = styled(ClippedBox)`
+  padding: 0;
+`;

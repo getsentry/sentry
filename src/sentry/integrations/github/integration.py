@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from datetime import datetime
 from typing import Any, Mapping, Sequence
 
 from django.utils.text import slugify
@@ -18,6 +19,7 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.mixins import RepositoryMixin
+from sentry.integrations.mixins.commit_context import CommitContextMixin
 from sentry.models import Integration, Organization, OrganizationIntegration, Repository
 from sentry.pipeline import Pipeline, PipelineView
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
@@ -93,7 +95,7 @@ def build_repository_query(metadata: Mapping[str, Any], name: str, query: str) -
     return f"{account_type}:{name} {query}".encode()
 
 
-class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMixin):  # type: ignore
+class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMixin, CommitContextMixin):  # type: ignore
     repo_search = True
     codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
@@ -164,6 +166,39 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         except ApiError:
             return False
         return True
+
+    def get_commit_context(
+        self, repo: Repository, filepath: str, branch: str, event_frame: Mapping[str, Any]
+    ) -> Mapping[str, str] | None:
+        blame_range = self.get_blame_for_file(repo, filepath, branch)
+        lineno = event_frame.get("lineno")
+        if not lineno:
+            return None
+        try:
+            commit = sorted(
+                (
+                    blame
+                    for blame in blame_range
+                    if blame.get("startingLine", 0) <= lineno <= blame.get("endingLine", 0)
+                ),
+                key=lambda blame: datetime.strptime(
+                    blame.get("commit", {}).get("committedDate"), "%Y-%m-%dT%H:%M:%SZ"
+                ),
+            )[-1]
+        except IndexError:
+            return None
+
+        commitInfo = commit.get("commit")
+        if not commitInfo:
+            return None
+        else:
+            return {
+                "commitId": commitInfo.get("oid"),
+                "committedDate": commitInfo.get("committedDate"),
+                "commitMessage": commitInfo.get("message"),
+                "commitAuthorName": commitInfo.get("author", {}).get("name"),
+                "commitAuthorEmail": commitInfo.get("author", {}).get("email"),
+            }
 
 
 class GitHubIntegrationProvider(IntegrationProvider):  # type: ignore
