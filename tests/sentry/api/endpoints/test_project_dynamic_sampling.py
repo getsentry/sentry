@@ -1,6 +1,7 @@
 import datetime
 import string
 from datetime import timedelta
+from operator import itemgetter
 from unittest import mock
 
 from django.urls import reverse
@@ -9,6 +10,7 @@ from freezegun import freeze_time
 from snuba_sdk import Column, Function
 from snuba_sdk.conditions import Condition, Op
 
+from sentry.models import Project
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.constants import TRACE_PARENT_SPAN_CONTEXT
 from sentry.snuba.dataset import Dataset
@@ -51,23 +53,33 @@ def random_transactions_snuba_query(
     query_builder.add_conditions([Condition(lhs=Column("modulo_num"), op=Op.EQ, rhs=0)])
     snuba_query = query_builder.get_snql_query().query
 
-    extra_select = [
-        Function("has", [Column("contexts.key"), TRACE_PARENT_SPAN_CONTEXT], alias="is_root")
-    ]
-    snuba_query = snuba_query.set_select(snuba_query.select + extra_select)
-
-    groupby = snuba_query.groupby + [Column("modulo_num"), Column("contexts.key")]
-    snuba_query = snuba_query.set_groupby(groupby)
-
+    snuba_query = snuba_query.set_select(
+        snuba_query.select
+        + [
+            Function(
+                "not",
+                [Function("has", [Column("contexts.key"), TRACE_PARENT_SPAN_CONTEXT])],
+                alias="is_root",
+            )
+        ]
+    )
+    snuba_query = snuba_query.set_groupby(
+        snuba_query.groupby + [Column("modulo_num"), Column("contexts.key")]
+    )
     return snuba_query
 
 
 def project_stats_snuba_query(query, updated_start_time, updated_end_time, project, trace_ids):
+    projects_in_org = Project.objects.filter(organization=project.organization).values_list(
+        "id", flat=True
+    )
+
     builder = QueryBuilder(
         Dataset.Discover,
         params={
             "start": updated_start_time,
             "end": updated_end_time,
+            "project_id": list(projects_in_org),
             "organization_id": project.organization.id,
         },
         query=f"{query} event.type:transaction trace:[{','.join(trace_ids)}]",
@@ -130,7 +142,7 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
     @mock.patch("sentry.api.endpoints.project_dynamic_sampling.discover.query")
     def test_response_when_no_transactions_are_available_in_last_month(self, mock_query):
         self.login_as(self.user)
-        mock_query.side_effect = [{"data": [{"count()": 0}]}]
+        mock_query.side_effect = [{"data": [{"count()": 0}]}, {"data": []}]
         with Feature({"organizations:server-side-sampling": True}):
             response = self.client.get(f"{self.endpoint}?sampleSize=2")
             assert response.json() == {
@@ -205,10 +217,14 @@ class ProjectDynamicSamplingDistributionQueryCallsTest(APITestCase):
                 use_aggregate_conditions=True,
                 transform_alias_to_input_format=True,
                 functions_acl=None,
-                referrer="dynamic-sampling.distribution.fetch-transactions-count",
+                # referrer="dynamic-sampling.distribution.fetch-transactions-count",
+                referrer=Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_TRANSACTIONS_COUNT.value,
             ),
         ]
         if extra_call_trace_ids is not None:
+            projects_in_org = Project.objects.filter(
+                organization=self.project.organization
+            ).values_list("id", flat=True)
             calls.append(
                 mock.call(
                     selected_columns=[
@@ -220,6 +236,7 @@ class ProjectDynamicSamplingDistributionQueryCallsTest(APITestCase):
                     params={
                         "start": start_time,
                         "end": end_time,
+                        "project_id": list(projects_in_org),
                         "organization_id": self.project.organization.id,
                     },
                     orderby=[],
@@ -752,7 +769,7 @@ class ProjectDynamicSamplingDistributionQueryCallsTest(APITestCase):
                 use_aggregate_conditions=True,
                 transform_alias_to_input_format=True,
                 functions_acl=None,
-                referrer="dynamic-sampling.distribution.get-most-recent-day-with-transactions",
+                referrer=Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_GET_MOST_RECENT_DAY_WITH_TRANSACTIONS.value,
             ),
         ]
         snuba_query_random_transactions = random_transactions_snuba_query(
@@ -915,21 +932,19 @@ class ProjectDynamicSamplingDistributionIntegrationTest(SnubaTestCase, APITestCa
         with Feature({"organizations:server-side-sampling": True}):
             response = self.client.get(f"{self.endpoint}?sampleSize={requested_sample_size}")
             response_data = response.json()
-            assert sorted(
-                response_data["projectBreakdown"], key=lambda elem: elem["project"]
-            ) == sorted(
+            assert sorted(response_data["projectBreakdown"], key=itemgetter("project")) == sorted(
                 [
                     {"project_id": self.project.id, "project": self.project.slug, "count()": 1},
                     {"project_id": heart.id, "project": heart.slug, "count()": 1},
                 ],
-                key=lambda elem: elem["project"],
+                key=itemgetter("project"),
             )
             assert sorted(
-                response_data["parentProjectBreakdown"], key=lambda elem: elem["project"]
+                response_data["parentProjectBreakdown"], key=itemgetter("project")
             ) == sorted(
                 [
                     {"project": self.project.slug, "projectId": self.project.id, "percentage": 0.5},
                     {"project": wind.slug, "projectId": wind.id, "percentage": 0.5},
                 ],
-                key=lambda elem: elem["project"],
+                key=itemgetter("project"),
             )
