@@ -1,9 +1,9 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {OrganizationContext} from 'sentry/views/organizationContext';
-import GroupReplays from 'sentry/views/organizationGroupDetails/groupReplays';
+import TransactionReplays from 'sentry/views/performance/transactionSummary/transactionReplays';
 import {RouteContext} from 'sentry/views/routeContext';
 
 type InitializeOrgProps = {
@@ -18,11 +18,6 @@ type InitializeOrgProps = {
 
 const mockUrl = '/organizations/org-slug/replays/';
 
-const mockProps = {
-  group: TestStubs.Group(),
-  replayIds: ['346789a703f6454384f1de473b8b9fcc', 'b05dae9b6be54d21a4d5ad9f8f02b780'],
-};
-
 let mockRouterContext: {
   childContextTypes?: any;
   context?: any;
@@ -30,7 +25,7 @@ let mockRouterContext: {
 
 const getComponent = ({
   location,
-  organizationProps = {features: ['session-replay-ui']},
+  organizationProps = {features: ['performance-view', 'session-replay-ui']},
 }: InitializeOrgProps) => {
   const {router, organization, routerContext} = initializeOrg({
     organization: {
@@ -41,12 +36,15 @@ const getComponent = ({
     router: {
       routes: [
         {path: '/'},
-        {path: '/organizations/:orgId/issues/:groupId/'},
+        {path: '/organizations/:orgId/performance/summary/'},
         {path: 'replays/'},
       ],
       location: {
         pathname: '/organizations/org-slug/replays/',
-        query: {},
+        query: {
+          project: '1',
+          transaction: 'transaction',
+        },
         ...location,
       },
     },
@@ -67,7 +65,7 @@ const getComponent = ({
           routes: router.routes,
         }}
       >
-        <GroupReplays {...mockProps} />
+        <TransactionReplays location={router.location} organization={organization} />
       </RouteContext.Provider>
     </OrganizationContext.Provider>
   );
@@ -77,46 +75,49 @@ const renderComponent = (componentProps: InitializeOrgProps = {}) => {
   return render(getComponent(componentProps), {context: mockRouterContext});
 };
 
-describe('GroupReplays', () => {
+describe('TransactionReplays', () => {
+  let eventsMockApi: jest.Mock<any, any>;
+  let replaysMockApi: jest.Mock<any, any>;
   beforeEach(() => {
-    MockApiClient.clearMockResponses();
-  });
-
-  it('should query the events endpoint with the passed in replayIds', async () => {
-    const mockApi = MockApiClient.addMockResponse({
-      url: mockUrl,
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-has-measurements/',
+      body: {measurements: false},
+    });
+    eventsMockApi = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
       body: {
         data: [],
       },
       statusCode: 200,
     });
+    replaysMockApi = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/replays/',
+      body: {
+        data: [],
+      },
+      statusCode: 200,
+    });
+  });
 
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
+  });
+
+  it('should query the events endpoint for replayIds of a transaction', async () => {
     renderComponent();
 
     await waitFor(() => {
-      expect(mockApi).toHaveBeenCalledTimes(1);
-      // Expect api path to have the correct query params
-      expect(mockApi).toHaveBeenCalledWith(
-        mockUrl,
+      expect(eventsMockApi).toHaveBeenCalledTimes(1);
+      expect(eventsMockApi).toHaveBeenCalledWith(
+        '/organizations/org-slug/events/',
         expect.objectContaining({
           query: expect.objectContaining({
             statsPeriod: '14d',
-            project: ['2'],
+            project: ['1'],
             environment: [],
-            field: [
-              'countErrors',
-              'duration',
-              'finishedAt',
-              'id',
-              'projectId',
-              'startedAt',
-              'urls',
-              'user',
-            ],
-            sort: '-startedAt',
+            field: ['replayId', 'count()'],
             per_page: 50,
-            query:
-              'id:[346789a703f6454384f1de473b8b9fcc,b05dae9b6be54d21a4d5ad9f8f02b780]',
+            query: 'transaction:transaction !replayId:""',
           }),
         })
       );
@@ -140,57 +141,11 @@ describe('GroupReplays', () => {
   });
 
   it('should show empty message when no replays are found', async () => {
-    const mockApi = MockApiClient.addMockResponse({
-      url: mockUrl,
-      body: {
-        data: [],
-      },
-      statusCode: 200,
-    });
-
     renderComponent();
 
     await waitFor(() => {
-      expect(mockApi).toHaveBeenCalledTimes(1);
+      expect(replaysMockApi).toHaveBeenCalledTimes(1);
       expect(screen.getByText('There are no items to display')).toBeInTheDocument();
-    });
-  });
-
-  it('should display error message when api call fails', async () => {
-    const mockApi = MockApiClient.addMockResponse({
-      url: mockUrl,
-      statusCode: 500,
-      body: {
-        detail: 'Invalid number: asdf. Expected number.',
-      },
-    });
-
-    renderComponent();
-
-    await waitFor(() => {
-      expect(mockApi).toHaveBeenCalledTimes(1);
-      expect(
-        screen.getByText('Invalid number: asdf. Expected number.')
-      ).toBeInTheDocument();
-    });
-  });
-
-  it('should display default error message when api call fails without a body', async () => {
-    const mockApi = MockApiClient.addMockResponse({
-      url: mockUrl,
-      statusCode: 500,
-      body: {},
-    });
-
-    renderComponent();
-
-    await waitFor(() => {
-      expect(mockApi).toHaveBeenCalledTimes(1);
-      expect(
-        screen.getByText(
-          'Sorry, the list of replays could not be loaded. This could be due to invalid search parameters or an internal systems error.'
-        )
-      ).toBeInTheDocument();
     });
   });
 
@@ -275,13 +230,13 @@ describe('GroupReplays', () => {
     // Expect the first row to have the correct href
     expect(screen.getAllByRole('link', {name: 'testDisplayName'})[0]).toHaveAttribute(
       'href',
-      '/organizations/org-slug/replays/project-slug:346789a703f6454384f1de473b8b9fcc/?referrer=%2Forganizations%2F%3AorgId%2Fissues%2F%3AgroupId%2Freplays%2F'
+      '/organizations/org-slug/replays/project-slug:346789a703f6454384f1de473b8b9fcc/?referrer=%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2Freplays%2F'
     );
 
     // Expect the second row to have the correct href
     expect(screen.getAllByRole('link', {name: 'testDisplayName'})[1]).toHaveAttribute(
       'href',
-      '/organizations/org-slug/replays/project-slug:b05dae9b6be54d21a4d5ad9f8f02b780/?referrer=%2Forganizations%2F%3AorgId%2Fissues%2F%3AgroupId%2Freplays%2F'
+      '/organizations/org-slug/replays/project-slug:b05dae9b6be54d21a4d5ad9f8f02b780/?referrer=%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2Freplays%2F'
     );
 
     // Expect the first row to have the correct duration
@@ -304,18 +259,10 @@ describe('GroupReplays', () => {
   });
 
   it('should be able to click the `Start Time` column and request data sorted by startedAt query', async () => {
-    const mockApi = MockApiClient.addMockResponse({
-      url: mockUrl,
-      body: {
-        data: [],
-      },
-      statusCode: 200,
-    });
-
     const {rerender} = renderComponent();
 
     await waitFor(() => {
-      expect(mockApi).toHaveBeenCalledWith(
+      expect(replaysMockApi).toHaveBeenCalledWith(
         mockUrl,
         expect.objectContaining({
           query: expect.objectContaining({
@@ -332,23 +279,29 @@ describe('GroupReplays', () => {
       pathname: '/organizations/org-slug/replays/',
       query: {
         sort: 'startedAt',
+        project: '1',
+        transaction: 'transaction',
       },
     });
 
     // Need to simulate a rerender to get the new sort
-    rerender(
-      getComponent({
-        location: {
-          query: {
-            sort: 'startedAt',
+    act(() => {
+      rerender(
+        getComponent({
+          location: {
+            query: {
+              sort: 'startedAt',
+              project: '1',
+              transaction: 'transaction',
+            },
           },
-        },
-      })
-    );
+        })
+      );
+    });
 
     await waitFor(() => {
-      expect(mockApi).toHaveBeenCalledTimes(2);
-      expect(mockApi).toHaveBeenCalledWith(
+      expect(replaysMockApi).toHaveBeenCalledTimes(2);
+      expect(replaysMockApi).toHaveBeenCalledWith(
         mockUrl,
         expect.objectContaining({
           query: expect.objectContaining({
@@ -388,19 +341,25 @@ describe('GroupReplays', () => {
       pathname: '/organizations/org-slug/replays/',
       query: {
         sort: 'duration',
+        project: '1',
+        transaction: 'transaction',
       },
     });
 
     // Need to simulate a rerender to get the new sort
-    rerender(
-      getComponent({
-        location: {
-          query: {
-            sort: 'duration',
+    act(() => {
+      rerender(
+        getComponent({
+          location: {
+            query: {
+              sort: 'duration',
+              project: '1',
+              transaction: 'transaction',
+            },
           },
-        },
-      })
-    );
+        })
+      );
+    });
 
     await waitFor(() => {
       expect(mockApi).toHaveBeenCalledTimes(2);
@@ -444,19 +403,25 @@ describe('GroupReplays', () => {
       pathname: '/organizations/org-slug/replays/',
       query: {
         sort: 'countErrors',
+        project: '1',
+        transaction: 'transaction',
       },
     });
 
     // Need to simulate a rerender to get the new sort
-    rerender(
-      getComponent({
-        location: {
-          query: {
-            sort: 'countErrors',
+    act(() => {
+      rerender(
+        getComponent({
+          location: {
+            query: {
+              sort: 'countErrors',
+              project: '1',
+              transaction: 'transaction',
+            },
           },
-        },
-      })
-    );
+        })
+      );
+    });
 
     await waitFor(() => {
       expect(mockApi).toHaveBeenCalledTimes(2);
@@ -471,13 +436,17 @@ describe('GroupReplays', () => {
     });
   });
 
-  it("should show a message when the organization doesn't have access to the replay feature", () => {
+  it("should show a message when the organization doesn't have access to the replay feature", async () => {
     renderComponent({
       organizationProps: {
-        features: [],
+        features: ['performance-view'],
       },
     });
 
-    expect(screen.getByText("You don't have access to this feature")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.getByText("You don't have access to this feature")
+      ).toBeInTheDocument();
+    });
   });
 });
