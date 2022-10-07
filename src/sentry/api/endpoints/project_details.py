@@ -140,6 +140,31 @@ class DynamicSamplingSerializer(serializers.Serializer):
                 "Last rule is reserved for uniform rule which must have no conditions"
             )
 
+    def _contains_condition_rules(self, rules) -> bool:
+        for rule in rules:
+            if len(rule["condition"]["inner"]) > 0:
+                return True
+
+        return False
+
+    def authorize_dynamic_sampling(
+        self, organization, user, rules
+    ) -> DynamicSamplingAuthorizationResult:
+        is_basic = features.has("organizations:dynamic-sampling-basic", organization, actor=user)
+        is_advanced = features.has(
+            "organizations:dynamic-sampling-advanced", organization, actor=user
+        )
+        contains_condition_rules = self._contains_condition_rules(rules)
+
+        if (not is_basic) and (not contains_condition_rules):
+            return DynamicSamplingAuthorizationResult.DS_UNIFORM_NOT_AUTHORIZED
+        elif ((not is_basic) or (is_basic and (not is_advanced))) and contains_condition_rules:
+            return DynamicSamplingAuthorizationResult.DS_CONDITION_NOT_AUTHORIZED
+        elif (is_basic and (not contains_condition_rules)) or is_advanced:
+            return DynamicSamplingAuthorizationResult.DS_AUTHORIZED
+        else:
+            return DynamicSamplingAuthorizationResult.DS_NOT_AUTHORIZED
+
     def validate(self, data):
         """
         Additional validation using sentry-relay to make sure that
@@ -150,7 +175,24 @@ class DynamicSamplingSerializer(serializers.Serializer):
         try:
             config_str = json.dumps(data)
             validate_sampling_configuration(config_str)
-            self.validate_uniform_sampling_rule(data.get("rules", []))
+
+            rules = data.get("rules", [])
+            self.validate_uniform_sampling_rule(rules=rules)
+            authorization_result = self.authorize_dynamic_sampling(
+                organization=self.context["project"].organization,
+                user=self.context["request"].user,
+                rules=rules,
+            )
+            # We want to keep different authorization results because in the future we might act differently
+            # based on each specific case.
+            if authorization_result in (
+                DynamicSamplingAuthorizationResult.DS_NOT_AUTHORIZED,
+                DynamicSamplingAuthorizationResult.DS_UNIFORM_NOT_AUTHORIZED,
+                DynamicSamplingAuthorizationResult.DS_CONDITION_NOT_AUTHORIZED,
+            ):
+                raise serializers.ValidationError(
+                    "You do not have permission to set a sampling rule."
+                )
         except ValueError as err:
             reason = err.args[0] if len(err.args) > 0 else "invalid configuration"
             raise serializers.ValidationError(reason)
@@ -489,37 +531,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         serializer.is_valid()
 
         result = serializer.validated_data
-
-        validation_result = self.authorize_dynamic_sampling(
-            organization=project.organization,
-            user=request.user,
-            dynamic_sampling_rules=result.get("dynamicSampling"),
-        )
-        if validation_result == DynamicSamplingAuthorizationResult.DS_NOT_AUTHORIZED:
-            return Response(
-                {"detail": ["You do not have permission to set a sampling rule."]},
-                status=403,
-            )
-        elif validation_result == DynamicSamplingAuthorizationResult.DS_UNIFORM_NOT_AUTHORIZED:
-            return Response(
-                {
-                    "detail": [
-                        "You do not have permission to set a uniform sampling rule, "
-                        "for that you would need a team account."
-                    ]
-                },
-                status=403,
-            )
-        elif validation_result == DynamicSamplingAuthorizationResult.DS_CONDITION_NOT_AUTHORIZED:
-            return Response(
-                {
-                    "detail": [
-                        "You do not have permission to set a condition sampling rule, "
-                        "for that you would need a business account."
-                    ]
-                },
-                status=403,
-            )
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
@@ -981,30 +992,3 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             common_audit_data,
             "SAMPLING_RULE_EDIT",
         )
-
-    # TODO: check thread here
-    #  https://sentry.slack.com/archives/C03B7A8GGLA/p1665041535882819?thread_ts=1665039905.072039&cid=C03B7A8GGLA
-    def authorize_dynamic_sampling(
-        self, organization, user, dynamic_sampling_rules
-    ) -> DynamicSamplingAuthorizationResult:
-        is_basic = features.has("organizations:dynamic-sampling-basic", organization, actor=user)
-        is_advanced = features.has(
-            "organizations:dynamic-sampling-advanced", organization, actor=user
-        )
-        contains_condition_rules = self.contains_condition_rules(dynamic_sampling_rules)
-
-        if (not is_basic) and (not contains_condition_rules):
-            return DynamicSamplingAuthorizationResult.DS_UNIFORM_NOT_AUTHORIZED
-        elif ((not is_basic) or (is_basic and (not is_advanced))) and contains_condition_rules:
-            return DynamicSamplingAuthorizationResult.DS_CONDITION_NOT_AUTHORIZED
-        elif (is_basic and (not contains_condition_rules)) or is_advanced:
-            return DynamicSamplingAuthorizationResult.DS_AUTHORIZED
-        else:
-            return DynamicSamplingAuthorizationResult.DS_NOT_AUTHORIZED
-
-    def contains_condition_rules(self, dynamic_sampling_rules) -> bool:
-        for rule in dynamic_sampling_rules["rules"]:
-            if len(rule["condition"]["inner"]) > 0:
-                return True
-
-        return False

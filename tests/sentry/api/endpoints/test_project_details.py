@@ -32,6 +32,7 @@ from sentry.models import (
     ScheduledDeletion,
 )
 from sentry.testutils import APITestCase
+from sentry.testutils.cases import BaseTestCase
 from sentry.testutils.helpers import Feature, faux
 from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import ExternalProviders
@@ -151,20 +152,20 @@ def _remove_ids_from_dynamic_rules(dynamic_rules):
     return dynamic_rules
 
 
-def first_symbol_source_id(sources_json):
+def _first_symbol_source_id(sources_json):
     sources = json.loads(sources_json)
     return sources[0]["id"]
 
 
-def ordered_dict_to_dict(ordered_dict):
+def _ordered_dict_to_dict(ordered_dict):
     for key in ordered_dict.keys():
         value = ordered_dict[key]
         if isinstance(value, OrderedDict):
-            ordered_dict[key] = ordered_dict_to_dict(value)
+            ordered_dict[key] = _ordered_dict_to_dict(value)
         elif isinstance(value, list):
             for index, element in enumerate(value):
                 if isinstance(element, OrderedDict):
-                    value[index] = ordered_dict_to_dict(element)
+                    value[index] = _ordered_dict_to_dict(element)
 
     return dict(ordered_dict)
 
@@ -843,21 +844,22 @@ class ProjectUpdateTest(APITestCase):
         assert self.project.get_option("digests:mail:minimum_delay") == min_delay
         assert self.project.get_option("digests:mail:maximum_delay") == max_delay
 
-    def test_dynamic_sampling_requires_feature_enabled(self):
-        self.get_error_response(
-            self.org_slug, self.proj_slug, dynamicSampling=_dyn_sampling_data(), status_code=403
-        )
-
     def test_setting_dynamic_sampling_with_uniform_rule_and_basic_plan(self):
+        """
+        Tests that we can set a uniform sampling rule when basic dynamic sampling is enabled
+        """
         config = _dyn_sampling_uniform_rule()
 
         with Feature({"organizations:dynamic-sampling-basic": True}):
             self.get_success_response(self.org_slug, self.proj_slug, dynamicSampling=config)
 
         saved_config = self.project.get_option("sentry:dynamic_sampling")
-        assert config["rules"] == ordered_dict_to_dict(saved_config)["rules"]
+        assert config["rules"] == _ordered_dict_to_dict(saved_config)["rules"]
 
     def test_setting_dynamic_sampling_with_uniform_rule_and_advanced_plan(self):
+        """
+        Tests that we can set a uniform sampling rule when advanced dynamic sampling is enabled
+        """
         config = _dyn_sampling_uniform_rule()
 
         with Feature(
@@ -869,18 +871,24 @@ class ProjectUpdateTest(APITestCase):
             self.get_success_response(self.org_slug, self.proj_slug, dynamicSampling=config)
 
         saved_config = self.project.get_option("sentry:dynamic_sampling")
-        assert config["rules"] == ordered_dict_to_dict(saved_config)["rules"]
+        assert config["rules"] == _ordered_dict_to_dict(saved_config)["rules"]
 
     def test_setting_dynamic_sampling_with_condition_rule_and_basic_plan(self):
+        """
+        Tests that we can set a condition sampling rule when basic dynamic sampling is enabled
+        """
         with Feature({"organizations:dynamic-sampling-basic": True}):
             self.get_error_response(
                 self.org_slug,
                 self.proj_slug,
                 dynamicSampling=_dyn_sampling_condition_rule(),
-                status_code=403,
+                status_code=400,
             )
 
     def test_setting_dynamic_sampling_with_condition_rule_and_advanced_plan(self):
+        """
+        Tests that we can set a condition sampling rule when advanced dynamic sampling is enabled
+        """
         config = _dyn_sampling_condition_rule()
 
         with Feature(
@@ -892,13 +900,18 @@ class ProjectUpdateTest(APITestCase):
             self.get_success_response(self.org_slug, self.proj_slug, dynamicSampling=config)
 
         saved_config = self.project.get_option("sentry:dynamic_sampling")
-        assert config["rules"] == ordered_dict_to_dict(saved_config)["rules"]
+        assert config["rules"] == _ordered_dict_to_dict(saved_config)["rules"]
 
     def test_setting_dynamic_sampling_rules(self):
         """
         Test that we can set sampling rules
         """
-        with Feature({"organizations:server-side-sampling": True}):
+        with Feature(
+            {
+                "organizations:dynamic-sampling-basic": True,
+                "organizations:dynamic-sampling-advanced": True,
+            }
+        ):
             self.get_success_response(
                 self.org_slug, self.proj_slug, dynamicSampling=_dyn_sampling_data()
             )
@@ -958,7 +971,12 @@ class ProjectUpdateTest(APITestCase):
             }
         }
 
-        with Feature({"organizations:server-side-sampling": True}):
+        with Feature(
+            {
+                "organizations:dynamic-sampling-basic": True,
+                "organizations:dynamic-sampling-advanced": True,
+            }
+        ):
             self.client.put(url, format="json", HTTP_AUTHORIZATION=authorization, data=data)
 
             assert AuditLogEntry.objects.filter(
@@ -1014,7 +1032,12 @@ class ProjectUpdateTest(APITestCase):
             }
         }
 
-        with Feature({"organizations:server-side-sampling": True}):
+        with Feature(
+            {
+                "organizations:dynamic-sampling-basic": True,
+                "organizations:dynamic-sampling-advanced": True,
+            }
+        ):
             self.client.put(url, format="json", HTTP_AUTHORIZATION=authorization, data=data)
 
             assert AuditLogEntry.objects.filter(
@@ -1063,7 +1086,12 @@ class ProjectUpdateTest(APITestCase):
             }
         }
 
-        with Feature({"organizations:server-side-sampling": True}):
+        with Feature(
+            {
+                "organizations:dynamic-sampling-basic": True,
+                "organizations:dynamic-sampling-advanced": True,
+            }
+        ):
             self.client.put(url, format="json", HTTP_AUTHORIZATION=authorization, data=data)
 
             assert AuditLogEntry.objects.filter(
@@ -1112,7 +1140,12 @@ class ProjectUpdateTest(APITestCase):
             }
         }
 
-        with Feature({"organizations:server-side-sampling": True}):
+        with Feature(
+            {
+                "organizations:dynamic-sampling-basic": True,
+                "organizations:dynamic-sampling-advanced": True,
+            }
+        ):
             self.client.put(url, format="json", HTTP_AUTHORIZATION=authorization, data=data)
 
             assert AuditLogEntry.objects.filter(
@@ -1158,7 +1191,12 @@ class ProjectUpdateTest(APITestCase):
             "relayPiiConfig": "",
         }
 
-        with Feature({"organizations:server-side-sampling": True}):
+        with Feature(
+            {
+                "organizations:dynamic-sampling-basic": True,
+                "organizations:dynamic-sampling-advanced": True,
+            }
+        ):
             self.client.put(url, format="json", HTTP_AUTHORIZATION=authorization, data=data)
 
             # Audit Log shall be triggered twice
@@ -1177,7 +1215,12 @@ class ProjectUpdateTest(APITestCase):
         Tests that we get the same dynamic sampling rules that previously set
         """
         data = _dyn_sampling_data()
-        with Feature({"organizations:server-side-sampling": True}):
+        with Feature(
+            {
+                "organizations:dynamic-sampling-basic": True,
+                "organizations:dynamic-sampling-advanced": True,
+            }
+        ):
             self.get_success_response(self.org_slug, self.proj_slug, dynamicSampling=data)
             response = self.get_success_response(self.org_slug, self.proj_slug, method="get")
         saved_config = _remove_ids_from_dynamic_rules(response.data["dynamicSampling"])
@@ -1229,7 +1272,12 @@ class ProjectUpdateTest(APITestCase):
                 },
             ]
         }
-        with Feature({"organizations:server-side-sampling": True}):
+        with Feature(
+            {
+                "organizations:dynamic-sampling-basic": True,
+                "organizations:dynamic-sampling-advanced": True,
+            }
+        ):
             self.get_success_response(self.org_slug, self.proj_slug, dynamicSampling=config)
         response = self.get_success_response(self.org_slug, self.proj_slug, method="get")
         saved_config = response.data["dynamicSampling"]
@@ -1274,7 +1322,12 @@ class ProjectUpdateTest(APITestCase):
         }
 
         saved_config["rules"].append(new_rule_2)
-        with Feature({"organizations:server-side-sampling": True}):
+        with Feature(
+            {
+                "organizations:dynamic-sampling-basic": True,
+                "organizations:dynamic-sampling-advanced": True,
+            }
+        ):
             # turn it back from ordered dict to dict (both main obj and rules)
             saved_config = dict(saved_config)
             saved_config["rules"] = [dict(rule) for rule in saved_config["rules"]]
@@ -1293,7 +1346,12 @@ class ProjectUpdateTest(APITestCase):
         Tests that the active flag is set for all rules
         """
         data = _dyn_sampling_data()
-        with Feature({"organizations:server-side-sampling": True}):
+        with Feature(
+            {
+                "organizations:dynamic-sampling-basic": True,
+                "organizations:dynamic-sampling-advanced": True,
+            }
+        ):
             self.get_success_response(self.org_slug, self.proj_slug, dynamicSampling=data)
             response = self.get_success_response(self.org_slug, self.proj_slug, method="get")
         saved_config = response.data["dynamicSampling"]
@@ -1316,7 +1374,12 @@ class ProjectUpdateTest(APITestCase):
         """
         Tests that ensures you can only have one uniform rule
         """
-        with Feature({"organizations:server-side-sampling": True}):
+        with Feature(
+            {
+                "organizations:dynamic-sampling-basic": True,
+                "organizations:dynamic-sampling-advanced": True,
+            }
+        ):
             response = self.get_response(
                 self.org_slug,
                 self.proj_slug,
@@ -1332,7 +1395,12 @@ class ProjectUpdateTest(APITestCase):
         """
         Tests that ensures you can only have one uniform rule, and it is at the last position
         """
-        with Feature({"organizations:server-side-sampling": True}):
+        with Feature(
+            {
+                "organizations:dynamic-sampling-basic": True,
+                "organizations:dynamic-sampling-advanced": True,
+            }
+        ):
             response = self.get_response(
                 self.org_slug,
                 self.proj_slug,
@@ -1348,7 +1416,12 @@ class ProjectUpdateTest(APITestCase):
         """
         Tests that ensures that payload has a uniform rule i.e. guards against deletion of rule
         """
-        with Feature({"organizations:server-side-sampling": True}):
+        with Feature(
+            {
+                "organizations:dynamic-sampling-basic": True,
+                "organizations:dynamic-sampling-advanced": True,
+            }
+        ):
             response = self.get_response(
                 self.org_slug, self.proj_slug, dynamicSampling={"rules": []}
             )
@@ -1404,7 +1477,7 @@ class ProjectUpdateTest(APITestCase):
             self.get_success_response(
                 self.org_slug, self.proj_slug, symbolSources=json.dumps([config])
             )
-            config["id"] = first_symbol_source_id(self.project.get_option("sentry:symbol_sources"))
+            config["id"] = _first_symbol_source_id(self.project.get_option("sentry:symbol_sources"))
 
             assert self.project.get_option("sentry:symbol_sources") == json.dumps([config])
 
@@ -1454,7 +1527,7 @@ class ProjectUpdateTest(APITestCase):
             self.get_success_response(
                 self.org_slug, self.proj_slug, symbolSources=json.dumps([config])
             )
-            config["id"] = first_symbol_source_id(self.project.get_option("sentry:symbol_sources"))
+            config["id"] = _first_symbol_source_id(self.project.get_option("sentry:symbol_sources"))
 
             assert self.project.get_option("sentry:symbol_sources") == json.dumps([config])
 
@@ -1759,71 +1832,81 @@ class ProjectDeleteTest(APITestCase):
         ).exists()
 
 
-@pytest.mark.parametrize(
-    "condition",
-    (
-        {"op": "and", "inner": []},
-        {"op": "and", "inner": [{"op": "and", "inner": []}]},
-        {"op": "or", "inner": []},
-        {"op": "or", "inner": [{"op": "or", "inner": []}]},
-        {"op": "not", "inner": {"op": "or", "inner": []}},
-        {"op": "eq", "ignoreCase": True, "name": "field1", "value": ["val"]},
-        {"op": "eq", "name": "field1", "value": ["val"]},
-        {"op": "glob", "name": "field1", "value": ["val"]},
-    ),
-)
-def test_condition_serializer_ok(condition):
-    serializer = DynamicSamplingConditionSerializer(data=condition)
-    assert serializer.is_valid()
-    assert serializer.validated_data == condition
+class TestDynamicSamplingSerializers(BaseTestCase):
+    @pytest.mark.parametrize(
+        "condition",
+        (
+            {"op": "and", "inner": []},
+            {"op": "and", "inner": [{"op": "and", "inner": []}]},
+            {"op": "or", "inner": []},
+            {"op": "or", "inner": [{"op": "or", "inner": []}]},
+            {"op": "not", "inner": {"op": "or", "inner": []}},
+            {"op": "eq", "ignoreCase": True, "name": "field1", "value": ["val"]},
+            {"op": "eq", "name": "field1", "value": ["val"]},
+            {"op": "glob", "name": "field1", "value": ["val"]},
+        ),
+    )
+    def test_condition_serializer_ok(self, condition):
+        serializer = DynamicSamplingConditionSerializer(data=condition)
+        assert serializer.is_valid()
+        assert serializer.validated_data == condition
 
+    @pytest.mark.parametrize(
+        "condition",
+        (
+            {"inner": []},
+            {"op": "and"},
+            {"op": "or"},
+            {"op": "eq", "value": ["val"]},
+            {"op": "eq", "name": "field1"},
+            {"op": "glob", "value": ["val"]},
+            {"op": "glob", "name": "field1"},
+        ),
+    )
+    def test_bad_condition_serialization(self, condition):
+        serializer = DynamicSamplingConditionSerializer(data=condition)
+        assert not serializer.is_valid()
 
-@pytest.mark.parametrize(
-    "condition",
-    (
-        {"inner": []},
-        {"op": "and"},
-        {"op": "or"},
-        {"op": "eq", "value": ["val"]},
-        {"op": "eq", "name": "field1"},
-        {"op": "glob", "value": ["val"]},
-        {"op": "glob", "name": "field1"},
-    ),
-)
-def test_bad_condition_serialization(condition):
-    serializer = DynamicSamplingConditionSerializer(data=condition)
-    assert not serializer.is_valid()
-
-
-def test_rule_config_serializer():
-    data = {
-        "rules": [
-            {
-                "sampleRate": 0.7,
-                "type": "trace",
-                "active": False,
-                "id": 1,
-                "condition": {
-                    "op": "and",
-                    "inner": [
-                        {"op": "eq", "name": "field1", "value": ["val"]},
-                        {"op": "glob", "name": "field1", "value": ["val"]},
-                    ],
+    @pytest.mark.django_db
+    def test_rule_config_serializer(self):
+        data = {
+            "rules": [
+                {
+                    "sampleRate": 0.7,
+                    "type": "trace",
+                    "active": False,
+                    "id": 1,
+                    "condition": {
+                        "op": "and",
+                        "inner": [
+                            {"op": "eq", "name": "field1", "value": ["val"]},
+                            {"op": "glob", "name": "field1", "value": ["val"]},
+                        ],
+                    },
                 },
-            },
-            {
-                "sampleRate": 0.7,
-                "type": "trace",
-                "active": False,
-                "id": 2,
-                "condition": {
-                    "op": "and",
-                    "inner": [],
+                {
+                    "sampleRate": 0.7,
+                    "type": "trace",
+                    "active": False,
+                    "id": 2,
+                    "condition": {
+                        "op": "and",
+                        "inner": [],
+                    },
                 },
-            },
-        ],
-        "next_id": 22,
-    }
-    serializer = DynamicSamplingSerializer(data=data)
-    assert serializer.is_valid()
-    assert data == serializer.validated_data
+            ],
+            "next_id": 22,
+        }
+
+        with Feature(
+            {
+                "organizations:dynamic-sampling-basic": True,
+                "organizations:dynamic-sampling-advanced": True,
+            }
+        ):
+            serializer = DynamicSamplingSerializer(
+                data=data,
+                context={"project": self.create_project(), "request": self.make_request()},
+            )
+            assert serializer.is_valid()
+            assert data == serializer.validated_data
