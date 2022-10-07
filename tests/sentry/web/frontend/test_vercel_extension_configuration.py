@@ -6,6 +6,7 @@ from sentry.identity.vercel import VercelIdentityProvider
 from sentry.integrations.vercel import VercelClient
 from sentry.models import OrganizationMember
 from sentry.testutils import TestCase
+from sentry.testutils.helpers import with_feature
 
 
 class VercelExtensionConfigurationTest(TestCase):
@@ -47,6 +48,7 @@ class VercelExtensionConfigurationTest(TestCase):
         }
 
     @responses.activate
+    @with_feature("organizations:integrations-deployment")
     def test_logged_in_one_org(self):
         self.login_as(self.user)
 
