@@ -117,6 +117,7 @@ class ProjectTags extends AsyncView<Props, State> {
                               }
                               aria-label={t('Remove tag')}
                               icon={<IconDelete size="xs" />}
+                              data-test-id="delete"
                             />
                           </Confirm>
                         </Actions>
