@@ -109,6 +109,7 @@ export function DropdownItem({
 }: DropdownItemProps) {
   return (
     <StyledMenuItem
+      data-test-id="dropdown-item"
       to={to}
       onSelect={onSelect}
       width={width}
