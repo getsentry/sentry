@@ -30,6 +30,7 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {
   getClientSampleRates,
+  isSamplingSdkVersionsBeingProcessed,
   isValidSampleRate,
   percentageToRate,
   rateToPercentage,
@@ -125,7 +126,7 @@ export function UniformRateModal({
     );
 
     setActiveStep(
-      clientDiscard || !isProjectOnOldSDK
+      (clientDiscard || !isProjectOnOldSDK) && !isSamplingSdkVersionsBeingProcessed()
         ? Step.SET_UNIFORM_SAMPLE_RATE
         : Step.SET_CURRENT_CLIENT_SAMPLE_RATE
     );

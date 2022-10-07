@@ -1,6 +1,7 @@
 import round from 'lodash/round';
 
 import {t} from 'sentry/locale';
+import {ServerSideSamplingStore} from 'sentry/stores/serverSideSamplingStore';
 import {SeriesApi} from 'sentry/types';
 import {SamplingInnerName, SamplingRule, SamplingRuleType} from 'sentry/types/sampling';
 import {defined} from 'sentry/utils';
@@ -88,4 +89,8 @@ export function getClientSampleRates(
     recommended,
     diff,
   };
+}
+
+export function isSamplingSdkVersionsBeingProcessed() {
+  return (ServerSideSamplingStore.getState().sdkVersions.data ?? []).length === 0;
 }

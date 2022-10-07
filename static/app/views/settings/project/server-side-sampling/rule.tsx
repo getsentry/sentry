@@ -17,7 +17,11 @@ import {Project} from 'sentry/types';
 import {SamplingRule, SamplingRuleOperator} from 'sentry/types/sampling';
 import {formatPercentage} from 'sentry/utils/formatters';
 
-import {getInnerNameLabel, isUniformRule} from './utils';
+import {
+  getInnerNameLabel,
+  isSamplingSdkVersionsBeingProcessed,
+  isUniformRule,
+} from './utils';
 
 type Props = {
   dragging: boolean;
@@ -62,10 +66,14 @@ export function Rule({
   loadingRecommendedSdkUpgrades,
   canDemo,
 }: Props) {
+  const processingSamplingSdkVersions = isSamplingSdkVersionsBeingProcessed();
   const isUniform = isUniformRule(rule);
   const canDelete = !noPermission && (!isUniform || canDemo);
   const canDrag = !noPermission && !isUniform;
-  const canActivate = !noPermission && (!upgradeSdkForProjects.length || rule.active);
+  const canActivate =
+    !processingSamplingSdkVersions &&
+    !noPermission &&
+    (!upgradeSdkForProjects.length || rule.active);
 
   return (
     <Fragment>
@@ -142,11 +150,15 @@ export function Rule({
               disabled={canActivate}
               title={
                 !canActivate
-                  ? tn(
-                      'To enable the rule, the recommended sdk version have to be updated',
-                      'To enable the rule, the recommended sdk versions have to be updated',
-                      upgradeSdkForProjects.length
-                    )
+                  ? processingSamplingSdkVersions
+                    ? t(
+                        'We are processing sampling information for your project, so you cannot enable the rule yet. Please check again later'
+                      )
+                    : tn(
+                        'To enable the rule, the recommended sdk version have to be updated',
+                        'To enable the rule, the recommended sdk versions have to be updated',
+                        upgradeSdkForProjects.length
+                      )
                   : undefined
               }
             >
