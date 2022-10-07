@@ -338,11 +338,7 @@ function BreadcrumbsContainer({
   return (
     <EventDataSection
       type={EntryType.BREADCRUMBS}
-      title={
-        <GuideAnchor target="breadcrumbs" position="right">
-          <h3>{t('Breadcrumbs')}</h3>
-        </GuideAnchor>
-      }
+      title={<h3>{t('Breadcrumbs')}</h3>}
       actions={!showReplay ? searchBar : null}
       wrapTitle={false}
       isCentered
@@ -359,18 +355,20 @@ function BreadcrumbsContainer({
         </Fragment>
       ) : null}
       <ErrorBoundary>
-        <Breadcrumbs
-          router={router}
-          route={route}
-          emptyMessage={getEmptyMessage()}
-          breadcrumbs={filteredBySearch}
-          event={event}
-          organization={organization}
-          onSwitchTimeFormat={handleSwitchTimeFormat}
-          displayRelativeTime={displayRelativeTime}
-          searchTerm={searchTerm}
-          relativeTime={relativeTime!} // relativeTime has to be always available, as the last item timestamp is the event created time
-        />
+        <GuideAnchor target="breadcrumbs" position="bottom">
+          <Breadcrumbs
+            router={router}
+            route={route}
+            emptyMessage={getEmptyMessage()}
+            breadcrumbs={filteredBySearch}
+            event={event}
+            organization={organization}
+            onSwitchTimeFormat={handleSwitchTimeFormat}
+            displayRelativeTime={displayRelativeTime}
+            searchTerm={searchTerm}
+            relativeTime={relativeTime!} // relativeTime has to be always available, as the last item timestamp is the event created time
+          />
+        </GuideAnchor>
       </ErrorBoundary>
     </EventDataSection>
   );

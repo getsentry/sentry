@@ -1,6 +1,7 @@
 import {cloneElement, Component} from 'react';
 import styled from '@emotion/styled';
 
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {t} from 'sentry/locale';
 import {Frame, Organization, PlatformType} from 'sentry/types';
 import {Event} from 'sentry/types/event';
@@ -261,7 +262,9 @@ class Content extends Component<Props, State> {
     return (
       <Wrapper className={className} data-test-id="stack-trace-content">
         <StacktracePlatformIcon platform={platformIcon} />
-        <StyledList data-test-id="frames">{frames}</StyledList>
+        <GuideAnchor target="stack_trace">
+          <StyledList data-test-id="frames">{frames}</StyledList>
+        </GuideAnchor>
       </Wrapper>
     );
   }

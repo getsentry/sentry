@@ -114,7 +114,10 @@ class ReleaseCard extends Component<Props> {
                 query: {project: getReleaseProjectId(release, selection)},
               }}
             >
-              <GuideAnchor disabled={!isTopRelease} target="release_version">
+              <GuideAnchor
+                disabled={!isTopRelease || projectsToShow.length > 1}
+                target="release_version"
+              >
                 <VersionWrapper>
                   <StyledVersion version={version} tooltipRawVersion anchor={false} />
                 </VersionWrapper>
