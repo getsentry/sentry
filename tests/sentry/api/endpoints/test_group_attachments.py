@@ -8,11 +8,11 @@ from sentry.testutils.silo import region_silo_test
 
 @region_silo_test
 class GroupEventAttachmentsTest(APITestCase):
-    def create_attachment(self, type=None, event_id=None):
+    def create_attachment(self, type=None, event_id=None, file_name="hello.png"):
         if type is None:
             type = "event.attachment"
 
-        self.file = File.objects.create(name="hello.png", type=type)
+        self.file = File.objects.create(name=file_name, type=type)
         self.file.putfile(BytesIO(b"File contents here"))
 
         self.attachment = EventAttachment.objects.create(
@@ -21,22 +21,20 @@ class GroupEventAttachmentsTest(APITestCase):
             group_id=self.group.id,
             file_id=self.file.id,
             type=self.file.type,
-            name="hello.png",
+            name=file_name,
         )
 
         return self.attachment
 
-    def path(self, types=None, event_ids=None):
+    def path(self, types=None, event_ids=None, screenshot=False):
         path = f"/api/0/issues/{self.group.id}/attachments/"
 
-        typesQuery = [("types", t) for t in types or ()]
-        eventIdQuery = [("event_id", id) for id in event_ids or ()]
-        if typesQuery and eventIdQuery:
-            path += "?" + urlencode(typesQuery) + "&" + urlencode(eventIdQuery)
-        elif typesQuery:
-            path += "?" + urlencode(typesQuery)
-        elif eventIdQuery:
-            path += "?" + urlencode(eventIdQuery)
+        query = [("types", t) for t in types or ()]
+        query.extend([("event_id", id) for id in event_ids or ()])
+        if screenshot:
+            query.append(("screenshot", 1))
+        if query:
+            path += "?" + urlencode(query)
 
         return path
 
@@ -64,6 +62,19 @@ class GroupEventAttachmentsTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(attachment2.id)
+
+    def test_screenshot_filter(self):
+        self.login_as(user=self.user)
+
+        attachment1 = self.create_attachment(type="event.attachment", file_name="screenshot.png")
+        self.create_attachment(type="event.attachment", file_name="screenshot-not.png")
+
+        with self.feature("organizations:event-attachments"):
+            response = self.client.get(self.path(screenshot=True))
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(attachment1.id)
 
     def test_without_feature(self):
         self.login_as(user=self.user)
