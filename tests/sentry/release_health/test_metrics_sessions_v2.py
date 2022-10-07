@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 import pytest
 from django.urls import reverse
+from freezegun import freeze_time
 from snuba_sdk import Column, Condition, Function, Op
 
 from sentry.release_health.duplex import compare_results
@@ -20,6 +21,7 @@ from tests.snuba.api.endpoints.test_organization_sessions import result_sorted
 pytestmark = pytest.mark.sentry_metrics
 
 
+@freeze_time("2022-09-29 10:00:00")
 class MetricsSessionsV2Test(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -61,14 +63,15 @@ class MetricsSessionsV2Test(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         return response.data
 
-    @pytest.mark.skip(reason="flaky: INGEST-1610")
     def test_sessions_metrics_equal_num_keys(self):
         """
         Tests whether the number of keys in the metrics implementation of
         sessions data is the same as in the sessions implementation.
 
         """
-        interval_days = "1d"
+        interval_days_int = 1
+        interval_days = f"{interval_days_int}d"
+
         groupbyes = _session_groupby_powerset()
 
         for groupby in groupbyes:
@@ -87,7 +90,7 @@ class MetricsSessionsV2Test(APITestCase, SnubaTestCase):
             errors = compare_results(
                 sessions=sessions_data,
                 metrics=metrics_data,
-                rollup=interval_days * 24 * 60 * 60,  # days to seconds
+                rollup=interval_days_int * 24 * 60 * 60,  # days to seconds
             )
             assert len(errors) == 0
 
