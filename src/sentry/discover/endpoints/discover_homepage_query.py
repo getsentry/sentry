@@ -75,7 +75,7 @@ class DiscoverHomepageQueryEndpoint(OrganizationEndpoint):
         if previous_homepage:
             previous_homepage.update(
                 organization=organization,
-                name=data["name"],
+                name="",
                 query=data["query"],
                 version=data["version"],
             )
@@ -84,7 +84,7 @@ class DiscoverHomepageQueryEndpoint(OrganizationEndpoint):
 
         model = DiscoverSavedQuery.objects.create(
             organization=organization,
-            name=data["name"],
+            name="",
             query=data["query"],
             version=data["version"],
             created_by=request.user,

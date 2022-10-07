@@ -25,6 +25,8 @@ type Props = {
 };
 
 type HomepageQueryState = AsyncComponent['state'] & {
+  // Used to trigger intial redirect for the saved query
+  hasLoaded: boolean;
   savedQuery?: SavedQuery | null;
 };
 
@@ -47,7 +49,9 @@ class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
 
   onRequestSuccess = ({stateKey, data}) => {
     const {location} = this.props;
-    if (stateKey === 'savedQuery') {
+    const {hasLoaded} = this.state;
+    if (stateKey === 'savedQuery' && !hasLoaded) {
+      this.setState({hasLoaded: true});
       const normalizedDateTime = normalizeDateTimeParams({
         start: data.start,
         end: data.end,

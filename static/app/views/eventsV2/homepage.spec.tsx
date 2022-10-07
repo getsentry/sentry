@@ -146,4 +146,93 @@ describe('Discover > Homepage', () => {
     expect(screen.queryByText(/Created by:/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Last edited:/)).not.toBeInTheDocument();
   });
+
+  it('shows the Reset Discover Home button on initial load', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/discover/homepage/',
+      method: 'GET',
+      statusCode: 200,
+      body: {
+        id: '2',
+        name: 'homepage query',
+        projects: [],
+        version: 2,
+        expired: false,
+        dateCreated: '2021-04-08T17:53:25.195782Z',
+        dateUpdated: '2021-04-09T12:13:18.567264Z',
+        createdBy: {
+          id: '2',
+        },
+        environment: [],
+        fields: ['environment'],
+        widths: ['-1'],
+        range: '14d',
+        orderby: '-environment',
+        display: 'previous',
+        query: 'event.type:error',
+        topEvents: '5',
+      },
+    });
+
+    render(
+      <Homepage
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+        setSavedQuery={jest.fn()}
+        loading={false}
+      />,
+      {context: initialData.routerContext, organization: initialData.organization}
+    );
+
+    expect(await screen.findByText('Reset Discover Home')).toBeInTheDocument();
+    expect(screen.queryByText('Use as Discover Home')).not.toBeInTheDocument();
+  });
+
+  it('Disables the Use as Discover Home button when no saved homepage', () => {
+    mockHomepage = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/discover/homepage/',
+      method: 'GET',
+      statusCode: 200,
+    });
+
+    render(
+      <Homepage
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+        setSavedQuery={jest.fn()}
+        loading={false}
+      />,
+      {context: initialData.routerContext, organization: initialData.organization}
+    );
+
+    expect(mockHomepage).toHaveBeenCalled();
+    expect(screen.getByRole('button', {name: /use as discover home/i})).toBeDisabled();
+  });
+
+  it('follows absolute date selection', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/discover/homepage/',
+      method: 'GET',
+      statusCode: 200,
+    });
+
+    render(
+      <Homepage
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+        setSavedQuery={jest.fn()}
+        loading={false}
+      />,
+      {context: initialData.routerContext, organization: initialData.organization}
+    );
+
+    userEvent.click(await screen.findByText('14D'));
+    userEvent.click(await screen.findByText('Absolute date'));
+    userEvent.click(screen.getByText('Apply'));
+
+    expect(screen.queryByText('14D')).not.toBeInTheDocument();
+  });
 });
