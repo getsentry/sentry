@@ -25,11 +25,11 @@ def _get_derived_op_metric_field_from_snuba_function(function: Function):
         raise MQBQueryTransformationException(
             "The first parameter of a function should be a column of the metric MRI"
         )
+    default_args_for_snql_func = {"aggregate_filter", "org_id", "alias"}
 
     metric_field_params = {}
     function_params = function.parameters[1:]
     snql_func_args = inspect.signature(DERIVED_OPS[function.function].snql_func).parameters.keys()
-    default_args_for_snql_func = {"aggregate_filter", "org_id", "alias"}
     for arg in snql_func_args:
         if arg in default_args_for_snql_func:
             continue
@@ -127,22 +127,20 @@ def _transform_groupby(query_groupby):
                     f"Unsupported groupby field '{column_field.name}'"
                 )
         elif isinstance(groupby_field, Function):
-            if groupby_field.function not in DERIVED_OPS:
-                raise MQBQueryTransformationException(
-                    f"Unsupported function '{groupby_field.function}' in groupby"
+            if (
+                groupby_field.function in DERIVED_OPS
+                and DERIVED_OPS[groupby_field.function].can_groupby
+            ):
+                mq_groupby.append(
+                    MetricGroupByField(
+                        field=_get_derived_op_metric_field_from_snuba_function(groupby_field),
+                        alias=groupby_field.alias,
+                    )
                 )
-
-            if not DERIVED_OPS[groupby_field.function].can_groupby:
+            else:
                 raise MQBQueryTransformationException(
                     f"Cannot group by function {groupby_field.function}"
                 )
-
-            mq_groupby.append(
-                MetricGroupByField(
-                    field=_get_derived_op_metric_field_from_snuba_function(groupby_field),
-                    alias=groupby_field.alias,
-                )
-            )
         else:
             raise MQBQueryTransformationException(f"Unsupported groupby field {groupby_field}")
     return mq_groupby if len(mq_groupby) > 0 else None, include_series
@@ -193,8 +191,7 @@ def _get_mq_dict_params_from_where(query_where):
 def _transform_orderby(query_orderby):
     mq_orderby = []
     for orderby_field in query_orderby:
-        transformed_field_lst = _transform_select([orderby_field.exp])
-        transformed_field = transformed_field_lst.pop()
+        transformed_field = _transform_select([orderby_field.exp]).pop()
         metric_exp = metric_object_factory(
             op=transformed_field.op, metric_mri=transformed_field.metric_mri
         )

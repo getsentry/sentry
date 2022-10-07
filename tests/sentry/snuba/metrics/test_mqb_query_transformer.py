@@ -898,15 +898,13 @@ def test_mqb_to_metrics_query_tranformer(input, output):
 
 
 def _construct_snuba_sdk_query(
-    select=None,
+    select,
     groupby=None,
     orderby=None,
     where=None,
     having=None,
     entity="generic_metrics_distributions",
 ):
-    if select is None:
-        select = []
     if groupby is None:
         groupby = []
     if orderby is None:
@@ -1130,7 +1128,7 @@ INVALID_QUERIES_INTEGRATION_TEST_CASES = [
                 ),
             ],
         ),
-        "Unsupported function 'transform' in groupby",
+        "Cannot group by function transform",
         id="Unsupported function in groupby statement",
     ),
     pytest.param(
