@@ -1,7 +1,6 @@
 import math
 import time
 from datetime import timedelta
-from enum import Enum
 from itertools import chain
 from uuid import uuid4
 
@@ -53,13 +52,6 @@ from sentry.utils import json
 #: Relay compiles this list into a regex which cannot exceed a certain size.
 #: Limit determined experimentally here: https://github.com/getsentry/relay/blob/3105d8544daca3a102c74cefcd77db980306de71/relay-general/src/pii/convert.rs#L289
 MAX_SENSITIVE_FIELD_CHARS = 4000
-
-
-class DynamicSamplingAuthorizationResult(Enum):
-    DS_NOT_AUTHORIZED = 0
-    DS_UNIFORM_NOT_AUTHORIZED = 1
-    DS_CONDITION_NOT_AUTHORIZED = 2
-    DS_AUTHORIZED = 3
 
 
 def clean_newline_inputs(value, case_insensitive=True):
@@ -147,23 +139,16 @@ class DynamicSamplingSerializer(serializers.Serializer):
 
         return False
 
-    def authorize_dynamic_sampling(
-        self, organization, user, rules
-    ) -> DynamicSamplingAuthorizationResult:
+    def authorize_dynamic_sampling(self, organization, user, rules):
         is_basic = features.has("organizations:dynamic-sampling-basic", organization, actor=user)
         is_advanced = features.has(
             "organizations:dynamic-sampling-advanced", organization, actor=user
         )
         contains_condition_rules = self._contains_condition_rules(rules)
+        is_authorized = (is_basic and (not contains_condition_rules)) or is_advanced
 
-        if (not is_basic) and (not contains_condition_rules):
-            return DynamicSamplingAuthorizationResult.DS_UNIFORM_NOT_AUTHORIZED
-        elif ((not is_basic) or (is_basic and (not is_advanced))) and contains_condition_rules:
-            return DynamicSamplingAuthorizationResult.DS_CONDITION_NOT_AUTHORIZED
-        elif (is_basic and (not contains_condition_rules)) or is_advanced:
-            return DynamicSamplingAuthorizationResult.DS_AUTHORIZED
-        else:
-            return DynamicSamplingAuthorizationResult.DS_NOT_AUTHORIZED
+        if not is_authorized:
+            raise serializers.ValidationError("You do not have permission to set a sampling rule.")
 
     def validate(self, data):
         """
@@ -178,21 +163,11 @@ class DynamicSamplingSerializer(serializers.Serializer):
 
             rules = data.get("rules", [])
             self.validate_uniform_sampling_rule(rules=rules)
-            authorization_result = self.authorize_dynamic_sampling(
+            self.authorize_dynamic_sampling(
                 organization=self.context["project"].organization,
                 user=self.context["request"].user,
                 rules=rules,
             )
-            # We want to keep different authorization results because in the future we might act differently
-            # based on each specific case.
-            if authorization_result in (
-                DynamicSamplingAuthorizationResult.DS_NOT_AUTHORIZED,
-                DynamicSamplingAuthorizationResult.DS_UNIFORM_NOT_AUTHORIZED,
-                DynamicSamplingAuthorizationResult.DS_CONDITION_NOT_AUTHORIZED,
-            ):
-                raise serializers.ValidationError(
-                    "You do not have permission to set a sampling rule."
-                )
         except ValueError as err:
             reason = err.args[0] if len(err.args) > 0 else "invalid configuration"
             raise serializers.ValidationError(reason)
