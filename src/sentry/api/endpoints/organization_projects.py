@@ -164,12 +164,17 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
             if request.GET.get("sessionStats"):
                 expand.add("session_stats")
 
+            expand_context = {"options": request.GET.getlist("options") or []}
+            if expand_context:
+                expand.add("options")
+
             def serialize_on_result(result):
                 environment_id = self._get_environment_id_from_request(request, organization.id)
                 serializer = ProjectSummarySerializer(
                     environment_id=environment_id,
                     stats_period=stats_period,
                     expand=expand,
+                    expand_context=expand_context,
                     collapse=collapse,
                 )
                 return serialize(result, request.user, serializer)

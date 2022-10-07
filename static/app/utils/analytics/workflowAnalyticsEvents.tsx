@@ -18,6 +18,22 @@ type IssueDetailsWithAlert = {
   alert_type?: string;
 };
 
+export type BaseEventAnalyticsParams = {
+  event_id: string;
+  has_commit: boolean;
+  has_release: boolean;
+  has_source_maps: boolean;
+  has_trace: boolean;
+  num_commits: number;
+  num_in_app_stack_frames: number;
+  num_stack_frames: number;
+  num_threads_with_names: number;
+  event_platform?: string;
+  event_type?: string;
+  sdk_name?: string;
+  sdk_version?: string;
+};
+
 export type TeamInsightsEventParameters = {
   'alert_builder.filter': {query: string; session_id?: string};
   'alert_details.viewed': {alert_id: number};
@@ -53,7 +69,20 @@ export type TeamInsightsEventParameters = {
   'issue_details.tab_changed': IssueDetailsWithAlert & {
     tab: Tab;
   };
-  'issue_details.viewed': IssueDetailsWithAlert;
+  'issue_details.viewed': IssueDetailsWithAlert &
+    BaseEventAnalyticsParams & {
+      error_count: number;
+      event_errors: string;
+      has_owner: boolean;
+      is_assigned: boolean;
+      issue_age: number;
+      num_comments: number;
+      has_external_issue?: boolean;
+      integration_assignment_source?: string;
+      issue_level?: string;
+      issue_status?: string;
+      project_platform?: string;
+    };
   'new_alert_rule.viewed': RuleViewed & {
     duplicate_rule: string;
     session_id: string;

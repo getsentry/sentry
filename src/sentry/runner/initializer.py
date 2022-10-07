@@ -589,7 +589,9 @@ def apply_legacy_settings(settings: Any) -> None:
         url_prefix = options.get("system.url-prefix", silent=True)
         if not url_prefix:
             # HACK: We need to have some value here for backwards compatibility
+            # Also set SENTRY_OPTIONS['system.url-prefix'] to avoid deprecation warning
             url_prefix = "http://sentry.example.com"
+            settings.SENTRY_OPTIONS["system.url-prefix"] = url_prefix
         settings.SENTRY_URL_PREFIX = url_prefix
 
     if settings.TIME_ZONE != "UTC":

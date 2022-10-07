@@ -152,7 +152,7 @@ function useApiRequests<T extends Record<string, any>>({
   const initialState = useMemo<State<T>>(
     () => ({
       data: {} as T,
-      isLoading: false,
+      isLoading: true,
       hasError: false,
       isReloading: false,
       errors: {},

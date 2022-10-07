@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import abc
 import re
-from collections import OrderedDict
 from dataclasses import dataclass
 from typing import Any, Dict, FrozenSet, Generic, Iterable, Mapping, Sequence, Tuple, Type, TypeVar
 
@@ -82,7 +81,7 @@ class RoleLevel(Generic[R]):
 
     def __init__(self, roles: Iterable[R], default_id: str | None = None) -> None:
         self._priority_seq = tuple(sorted(roles, key=lambda r: r.priority))
-        self._id_map = OrderedDict((r.id, r) for r in self._priority_seq)
+        self._id_map = {r.id: r for r in self._priority_seq}
 
         self._choices = tuple((r.id, r.name) for r in self._priority_seq)
         self._default = self._id_map[default_id] if default_id else self._priority_seq[0]
@@ -167,10 +166,10 @@ class RoleManager:
                     return team_role
             return team_roles.get_default()
 
-        return OrderedDict(
-            (org_role.id, get_highest_available_team_role(org_role).id)
+        return {
+            org_role.id: get_highest_available_team_role(org_role).id
             for org_role in organization_roles.get_all()
-        )
+        }
 
     def __iter__(self) -> Iterable[OrganizationRole]:
         yield from self.organization_roles.get_all()
