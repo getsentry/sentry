@@ -417,9 +417,9 @@ def run_post_process_job(job: PostProcessJob):
     for pipeline_step in pipeline:
         try:
             pipeline_step(job)
-        except Exception as e:
+        except Exception:
             logger.exception(
-                f"Failed to process pipeline step {pipeline_step.__name__}: {e}",
+                f"Failed to process pipeline step {pipeline_step.__name__}",
                 extra={"event": event, "group": event.group},
             )
 
