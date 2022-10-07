@@ -1,33 +1,43 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {mountGlobalModal} from 'sentry-test/modal';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import ProjectTags from 'sentry/views/settings/projectTags';
 
 describe('ProjectTags', function () {
-  let org, project;
+  const tags = TestStubs.Tags();
+  const org = TestStubs.Organization();
+  const project = TestStubs.Project();
+  let deleteApi;
 
   beforeEach(function () {
-    org = TestStubs.Organization();
-    project = TestStubs.Project();
-
-    MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/tags/`,
       method: 'GET',
-      body: TestStubs.Tags(),
+      body: tags,
     });
-    MockApiClient.addMockResponse({
+    deleteApi = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/tags/browser/`,
       method: 'DELETE',
     });
   });
 
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
+    jest.clearAllMocks();
+  });
+
   it('renders', function () {
-    const wrapper = mountWithTheme(
+    const wrapper = render(
       <ProjectTags params={{orgId: org.slug, projectId: project.slug}} />
     );
 
-    expect(wrapper).toSnapshot();
+    expect(screen.getAllByTestId('tag-row')).toHaveLength(5);
+    expect(wrapper.container).toSnapshot();
   });
 
   it('renders empty', function () {
@@ -38,42 +48,37 @@ describe('ProjectTags', function () {
       body: [],
     });
 
-    const wrapper = mountWithTheme(
-      <ProjectTags params={{orgId: org.slug, projectId: project.slug}} />
-    );
+    render(<ProjectTags params={{orgId: org.slug, projectId: project.slug}} />);
 
-    expect(wrapper.find('EmptyMessage')).toHaveLength(1);
+    expect(screen.getByText(/There are no tags/)).toBeInTheDocument();
   });
 
   it('disables delete button for users without access', function () {
-    const context = {
-      organization: TestStubs.Organization({access: []}),
-    };
+    render(<ProjectTags params={{orgId: org.slug, projectId: project.slug}} />, {
+      context: TestStubs.routerContext([
+        {organization: TestStubs.Organization({access: []})},
+      ]),
+    });
 
-    const wrapper = mountWithTheme(
-      <ProjectTags params={{orgId: org.slug, projectId: project.slug}} />,
-      TestStubs.routerContext([context])
-    );
-
-    expect(wrapper.find('Button[disabled=false]')).toHaveLength(0);
+    expect(screen.getAllByLabelText('Remove tag').at(0)).toBeDisabled();
   });
 
   it('deletes tag', async function () {
-    const wrapper = mountWithTheme(
-      <ProjectTags params={{orgId: org.slug, projectId: project.slug}} />
-    );
+    render(<ProjectTags params={{orgId: org.slug, projectId: project.slug}} />);
+    renderGlobalModal();
 
-    const tags = wrapper.state('tags').length;
-
-    wrapper.find('button[data-test-id="delete"]').first().simulate('click');
+    expect(screen.getAllByTestId('tag-row')).toHaveLength(tags.length);
+    userEvent.click(screen.getAllByRole('button', {name: 'Remove tag'}).at(0));
 
     // Press confirm in modal
-    const modal = await mountGlobalModal();
-    modal.find('Button[priority="primary"]').simulate('click');
+    userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
-    await tick(); // Wait for the handleDelete function
-    wrapper.update();
-
-    expect(wrapper.state('tags')).toHaveLength(tags - 1);
+    await waitFor(() =>
+      expect(screen.getAllByTestId('tag-row')).toHaveLength(tags.length - 1)
+    );
+    expect(deleteApi).toHaveBeenCalledWith(
+      `/projects/${org.slug}/${project.slug}/tags/browser/`,
+      expect.anything()
+    );
   });
 });
