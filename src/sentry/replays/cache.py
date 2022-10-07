@@ -1,3 +1,4 @@
+"""Recording segment part cache manager."""
 from typing import Generator
 
 from sentry.cache import default_cache
