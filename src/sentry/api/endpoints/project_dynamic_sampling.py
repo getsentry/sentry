@@ -363,7 +363,7 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
             if root_projects_count >= 1:
                 parent_project_breakdown = []
                 # ToDo(): revisit this logic with count if necessary in the future
-                total_count = sum(
+                total_root_count = sum(
                     _project["root_count"]
                     for _project in projects_counts
                     if _project["root_count"] > 0
@@ -374,11 +374,10 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                             {
                                 "project": _project["project"],
                                 "projectId": _project["project_id"],
-                                "percentage": _project["root_count"] / total_count,
+                                "percentage": _project["root_count"] / total_root_count,
                             }
                         )
 
-            # Get project breakdown
             project_breakdown = []
 
             parent_project_ids = {p["projectId"] for p in parent_project_breakdown}
@@ -386,13 +385,16 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
             if requested_project["project_id"] in parent_project_ids:
                 if len(parent_project_breakdown) > 1:
 
-                    # loop over trace ids, and filter down trace ids where project is sentry
+                    # Build list of all head traces based io is_root column
+                    # from Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_TRANSACTIONS query
                     parent_trace_ids = [
                         transaction.get("trace")
                         for transaction in transactions
                         if transaction["is_root"]
                     ]
-                    # Calculate parent project_breakdown attribute:
+                    # Run extra query to build project_breakdown,
+                    # because in this case (project is the head of trace in some distributed trace
+                    # and non-root in others) we can't create it based on parent_project_breakdown
                     project_breakdown = self.__run_discover_query(
                         columns=[
                             "project_id",
