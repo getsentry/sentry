@@ -1,4 +1,4 @@
-import React, {createContext} from 'react';
+import React, {createContext, useMemo} from 'react';
 import type {RouteContextInterface} from 'react-router';
 
 import HookStore from 'sentry/stores/hookStore';
@@ -10,6 +10,11 @@ const DEFAULT_CONTEXT = {
   setOrganization: () => {},
 };
 
+/**
+ * This context is used to set analytics params for route based analytics.
+ * It is used by multiple different hooks and an HoC, each with
+ * slightly different use cases.
+ */
 export const RouteAnalyticsContext = createContext<{
   setDisableRouteAnalytics: () => void;
   setOrganization: (organization: Organization) => void;
@@ -25,14 +30,17 @@ export default function RouteAnalyticsContextProvider({children, ...props}: Prop
   const {setDisableRouteAnalytics, setRouteAnalyticsParams, setOrganization} =
     useRouteActivatedHook?.(props) || DEFAULT_CONTEXT;
 
+  const memoizedValue = useMemo(
+    () => ({
+      setDisableRouteAnalytics,
+      setRouteAnalyticsParams,
+      setOrganization,
+    }),
+    [setDisableRouteAnalytics, setRouteAnalyticsParams, setOrganization]
+  );
+
   return (
-    <RouteAnalyticsContext.Provider
-      value={{
-        setDisableRouteAnalytics,
-        setRouteAnalyticsParams,
-        setOrganization,
-      }}
-    >
+    <RouteAnalyticsContext.Provider value={memoizedValue}>
       {children}
     </RouteAnalyticsContext.Provider>
   );

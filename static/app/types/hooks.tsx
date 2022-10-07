@@ -214,6 +214,9 @@ export type SettingsHooks = {
   'settings:organization-navigation-config': SettingsConfigHook;
 };
 
+/**
+ * Hooks that are actually React Hooks as well
+ */
 export type ReactHooks = {
   'react-hook:route-activated': (
     props: RouteContextInterface

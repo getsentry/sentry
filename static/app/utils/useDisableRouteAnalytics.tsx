@@ -3,12 +3,12 @@ import {useContext, useEffect} from 'react';
 import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 
 /**
- * Sets the analyitcs params for route analytics events
+ * Disables route analytics when called in a component.
+ * Must be called within 2s after the organization context is loaded.
  */
 export default function useDisableRouteAnalytics() {
   const {setDisableRouteAnalytics} = useContext(RouteAnalyticsContext);
   useEffect(() => {
     setDisableRouteAnalytics();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [setDisableRouteAnalytics]);
 }
