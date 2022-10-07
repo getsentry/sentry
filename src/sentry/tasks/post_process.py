@@ -486,12 +486,14 @@ def update_event_groups(event: Event, group_states: Optional[GroupStates] = None
     # Re-bind Group since we're reading the Event object
     # from cache, which may contain a stale group and project
     group_states = group_states or ([{"id": event.group_id}] if event.group_id else [])
-    event.groups = [
-        get_group_with_redirect(group_state["id"])[0]
-        for group_state in group_states
-        if group_state.get("id")
-    ]
+    rebound_groups = []
+    for group_state in group_states:
+        if group_state.get("id"):
+            rebound_group = get_group_with_redirect(group_state["id"])[0]
+            group_state["id"] = rebound_group.id
+            rebound_groups.append(rebound_group)
 
+    event.groups = rebound_groups
     for group in event.groups:
         # We fetch buffered updates to group aggregates here and populate them on the Group. This
         # helps us avoid problems with processing group ignores and alert rules that rely on these
