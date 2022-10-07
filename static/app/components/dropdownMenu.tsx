@@ -215,10 +215,9 @@ export default DropdownMenu;
 
 const StyledOverlay = styled(Overlay)`
   max-width: 24rem;
-  border-radius: ${p => p.theme.borderRadius};
-  background: ${p => p.theme.backgroundElevated};
-  box-shadow: 0 0 0 1px ${p => p.theme.translucentBorder}, ${p => p.theme.dropShadowHeavy};
-  font-size: ${p => p.theme.fontSizeMedium};
+  @media only screen and (max-width: calc(24rem + ${space(2)} * 2)) {
+    max-width: calc(100vw - ${space(2)} * 2);
+  }
 `;
 
 const MenuWrap = styled('ul')`
