@@ -340,8 +340,8 @@ def strip_pii_from_rrweb(rrweb_output: bytes) -> bytes:
         event_type = event.get("type")
         if event_type == 2:
             recurse_nodes(event["data"]["node"]["childNodes"])
-        elif event_type == 3:
-            recurse_nodes(i["node"] for i in event["data"]["adds"])
+        elif event["type"] == 3:
+            recurse_nodes(i["node"] for i in event["data"].get("adds", []) if "node" in i)
         elif event_type == 5:
             payload = event["data"]["payload"]
             if payload.get("op") == "performanceSpan":
@@ -355,8 +355,11 @@ def strip_pii_from_rrweb(rrweb_output: bytes) -> bytes:
 
 def recurse_nodes(nodes: typing.Iterator[dict[str, typing.Any]]) -> None:
     for node in nodes:
-        if node["type"] == 2 and node["tagName"] not in SKIP_NODES:
-            recurse_nodes(node["childNodes"])
+        if node["type"] == 2:
+            if node["tagName"] == "img":
+                node["attributes"]["src"] = "#"
+            elif node["tagName"] not in SKIP_NODES:
+                recurse_nodes(node["childNodes"])
         elif node["type"] == 3:
             node["textContent"] = replace_detectable_pii(node["textContent"])
 
