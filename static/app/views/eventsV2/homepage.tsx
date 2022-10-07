@@ -76,6 +76,9 @@ class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
   };
 
   renderLoading() {
+    if (!this.state.hasLoaded) {
+      return super.renderLoading();
+    }
     return this.renderBody();
   }
 
