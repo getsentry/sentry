@@ -85,7 +85,7 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):  # type: ignore
             "start": start if start else default_start,
             "end": end if end else default_end,
         }
-        referrer = f"{group.issue_category}.api.group-events"
+        referrer = f"api.group-events.{group.issue_category.name.lower()}"
 
         direct_hit_resp = get_direct_hit_response(
             request, query, params, f"{referrer}.direct-hit", group
