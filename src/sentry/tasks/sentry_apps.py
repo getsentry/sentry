@@ -198,11 +198,7 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
 
     org = None
 
-    if (
-        isinstance(instance, Group)
-        or isinstance(instance, Event)
-        or isinstance(instance, GroupEvent)
-    ):
+    if isinstance(instance, (Group, Event, GroupEvent)):
         org = Organization.objects.get_from_cache(
             id=Project.objects.get_from_cache(id=instance.project_id).organization_id
         )
