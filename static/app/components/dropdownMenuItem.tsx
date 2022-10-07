@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useRef, useState} from 'react';
+import {forwardRef, Fragment, useEffect, useRef, useState} from 'react';
 import {useHover, useKeyboard} from '@react-aria/interactions';
 import {useMenuItem} from '@react-aria/menu';
 import {mergeProps} from '@react-aria/utils';
@@ -86,11 +86,6 @@ type Props = {
    * Tag name for item wrapper
    */
   renderAs?: React.ElementType;
-  /**
-   * If isSubmenuTrigger is true, then replace the internal ref object with
-   * this ref
-   */
-  submenuTriggerRef?: React.RefObject<HTMLLIElement>;
 };
 
 /**
@@ -98,24 +93,24 @@ type Props = {
  * Can also be used as a trigger button for a submenu. See:
  * https://react-spectrum.adobe.com/react-aria/useMenu.html
  */
-const MenuItem = ({
-  node,
-  isLastNode,
-  state,
-  onClose,
-  closeOnSelect,
-  isSubmenuTrigger = false,
-  submenuTriggerRef,
-  renderAs = 'li' as React.ElementType,
-  ...submenuTriggerProps
-}: Props) => {
-  const ourRef = useRef(null);
+const BaseDropdownMenuItem: React.ForwardRefRenderFunction<HTMLLIElement, Props> = (
+  {
+    node,
+    isLastNode,
+    state,
+    onClose,
+    closeOnSelect,
+    isSubmenuTrigger = false,
+    renderAs = 'li' as React.ElementType,
+    ...submenuTriggerProps
+  },
+  forwardedRef
+) => {
+  const ref = useRef<HTMLLIElement | null>(null);
   const isDisabled = state.disabledKeys.has(node.key);
   const isFocused = state.selectionManager.focusedKey === node.key;
   const {key, onAction, to, label, showDividers, ...itemProps} = node.value;
   const {size} = node.props;
-
-  const ref = submenuTriggerRef ?? ourRef;
 
   const actionHandler = () => {
     if (to) {
@@ -199,7 +194,14 @@ const MenuItem = ({
 
   return (
     <MenuListItem
-      ref={ref}
+      ref={el => {
+        ref.current = el;
+        if (typeof forwardedRef === 'function') {
+          forwardedRef(el);
+        } else if (forwardedRef) {
+          forwardedRef.current = el;
+        }
+      }}
       as={renderAs}
       data-test-id={key}
       label={itemLabel}
@@ -225,4 +227,6 @@ const MenuItem = ({
   );
 };
 
-export default MenuItem;
+const DropdownMenuItem = forwardRef(BaseDropdownMenuItem);
+
+export default DropdownMenuItem;

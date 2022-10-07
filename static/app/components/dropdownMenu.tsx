@@ -1,15 +1,10 @@
-import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useMemo, useRef} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import {useKeyboard} from '@react-aria/interactions';
 import {AriaMenuOptions, useMenu} from '@react-aria/menu';
-import {
-  AriaPositionProps,
-  OverlayProps,
-  PositionAria,
-  useOverlay,
-  useOverlayPosition,
-} from '@react-aria/overlays';
+import {AriaPositionProps, OverlayProps} from '@react-aria/overlays';
 import {useSeparator} from '@react-aria/separator';
 import {mergeProps} from '@react-aria/utils';
 import {useTreeState} from '@react-stately/tree';
@@ -18,6 +13,7 @@ import {Node} from '@react-types/shared';
 import MenuControl from 'sentry/components/dropdownMenuControl';
 import MenuItem, {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import MenuSection from 'sentry/components/dropdownMenuSection';
+import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import space from 'sentry/styles/space';
 
 type Props = {
@@ -30,10 +26,7 @@ type Props = {
    * Whether this is a submenu
    */
   isSubmenu: boolean;
-  /**
-   * Ref object to the trigger element, needed for useOverlayPosition()
-   */
-  triggerRef: React.RefObject<HTMLButtonElement>;
+  overlayPositionProps: React.HTMLAttributes<HTMLDivElement>;
   /**
    * If this is a submenu, it will in some cases need to close itself (e.g.
    * when the user presses the arrow left key)
@@ -58,21 +51,15 @@ type Props = {
   Partial<OverlayProps> &
   Partial<AriaPositionProps>;
 
-function Menu({
-  offset = 8,
-  crossOffset = 0,
-  containerPadding = 0,
-  placement = 'bottom left',
+function DropdownMenu({
   closeOnSelect = true,
-  triggerRef,
   triggerWidth,
   size,
   isSubmenu,
   menuTitle,
   closeRootMenu,
   closeCurrentSubmenu,
-  isDismissable = true,
-  shouldCloseOnBlur = true,
+  overlayPositionProps,
   ...props
 }: Props) {
   const state = useTreeState<MenuItemProps>({...props, selectionMode: 'single'});
@@ -95,42 +82,12 @@ function Menu({
     },
   });
 
-  // Close the menu on outside interaction, blur, or Esc key press, and
-  // control its position relative to the trigger button. See:
-  // https://react-spectrum.adobe.com/react-aria/useOverlay.html
-  // https://react-spectrum.adobe.com/react-aria/useOverlayPosition.html
-  const overlayRef = useRef(null);
-  const {overlayProps} = useOverlay(
-    {
-      onClose: closeRootMenu,
-      shouldCloseOnBlur,
-      isDismissable,
-      isOpen: true,
-      shouldCloseOnInteractOutside: target =>
-        target && triggerRef.current !== target && !triggerRef.current?.contains(target),
-    },
-    overlayRef
-  );
-  const {overlayProps: positionProps, placement: placementProp} = useOverlayPosition({
-    targetRef: triggerRef,
-    overlayRef,
-    offset,
-    crossOffset,
-    placement,
-    containerPadding,
-    isOpen: true,
-    // useOverlayPosition's algorithm doesn't work well for submenus on viewport
-    // scroll. Changing the boundary element (document.body by default) seems to
-    // fix this.
-    boundaryElement: document.querySelector<HTMLElement>('.app') ?? undefined,
-  });
-
-  // Store whether this menu/submenu is the current focused one, which in a
-  // nested, tree-like menu system should be the leaf submenu. This
-  // information is used for controlling keyboard events. See:
-  // modifiedMenuProps below.
-  const [hasFocus, setHasFocus] = useState(true);
-  useEffect(() => {
+  /**
+   * Whether this menu/submenu is the current focused one, which in a nested,
+   * tree-like menu system should be the leaf submenu. This information is
+   * used for controlling keyboard events. See ``modifiedMenuProps` below.
+   */
+  const hasFocus = useMemo(() => {
     // A submenu is a leaf when it does not contain any expanded submenu. This
     // logically follows from the tree-like structure and single-selection
     // nature of menus.
@@ -144,17 +101,22 @@ function Menu({
           )
         : state.selectionManager.isSelected(`${node.key}`);
     });
-    setHasFocus(isLeafSubmenu);
+
+    return isLeafSubmenu;
   }, [stateCollection, state.selectionManager]);
+
   // Menu props from useMenu, modified to disable keyboard events if the
   // current menu does not have focus.
-  const modifiedMenuProps = {
-    ...menuProps,
-    ...(!hasFocus && {
-      onKeyUp: () => null,
-      onKeyDown: () => null,
+  const modifiedMenuProps = useMemo(
+    () => ({
+      ...menuProps,
+      ...(!hasFocus && {
+        onKeyUp: () => null,
+        onKeyDown: () => null,
+      }),
     }),
-  };
+    [menuProps, hasFocus]
+  );
 
   // Render a single menu item
   const renderItem = (node: Node<MenuItemProps>, isLastNode: boolean) => {
@@ -171,14 +133,13 @@ function Menu({
 
   // Render a submenu whose trigger button is a menu item
   const renderItemWithSubmenu = (node: Node<MenuItemProps>, isLastNode: boolean) => {
-    const trigger = ({props: submenuTriggerProps, ref: submenuTriggerRef}) => (
+    const trigger = submenuTriggerProps => (
       <MenuItem
         renderAs="div"
         node={node}
         isLastNode={isLastNode}
         state={state}
         isSubmenuTrigger
-        submenuTriggerRef={submenuTriggerRef}
         {...submenuTriggerProps}
       />
     );
@@ -188,9 +149,8 @@ function Menu({
         items={node.value.children as MenuItemProps[]}
         trigger={trigger}
         menuTitle={node.value.submenuTitle}
-        placement="right top"
+        position="right-start"
         offset={-4}
-        crossOffset={-8}
         closeOnSelect={closeOnSelect}
         isOpen={state.selectionManager.isSelected(node.key)}
         size={size}
@@ -229,52 +189,42 @@ function Menu({
       );
     });
 
+  const theme = useTheme();
   return (
     <FocusScope restoreFocus autoFocus>
-      <Overlay
-        ref={overlayRef}
-        placementProp={placementProp}
-        {...mergeProps(overlayProps, positionProps, keyboardProps)}
-      >
-        <MenuWrap
-          ref={menuRef}
-          {...modifiedMenuProps}
-          style={{
-            maxHeight: positionProps.style?.maxHeight,
-            minWidth: triggerWidth,
-          }}
-        >
-          {menuTitle && <MenuTitle>{menuTitle}</MenuTitle>}
-          {renderCollection(stateCollection)}
-        </MenuWrap>
-      </Overlay>
+      <PositionWrapper zIndex={theme.zIndex.dropdown} {...overlayPositionProps}>
+        <StyledOverlay>
+          <MenuWrap
+            ref={menuRef}
+            {...mergeProps(modifiedMenuProps, keyboardProps)}
+            style={{
+              maxHeight: overlayPositionProps.style?.maxHeight,
+              minWidth: triggerWidth,
+            }}
+          >
+            {menuTitle && <MenuTitle>{menuTitle}</MenuTitle>}
+            {renderCollection(stateCollection)}
+          </MenuWrap>
+        </StyledOverlay>
+      </PositionWrapper>
     </FocusScope>
   );
 }
 
-export default Menu;
+export default DropdownMenu;
 
-const Overlay = styled('div')<{placementProp: PositionAria['placement']}>`
+const StyledOverlay = styled(Overlay)`
   max-width: 24rem;
   border-radius: ${p => p.theme.borderRadius};
   background: ${p => p.theme.backgroundElevated};
   box-shadow: 0 0 0 1px ${p => p.theme.translucentBorder}, ${p => p.theme.dropShadowHeavy};
   font-size: ${p => p.theme.fontSizeMedium};
-
-  margin: ${space(1)} 0;
-  ${p => p.placementProp === 'top' && `margin-bottom: 0;`}
-  ${p => p.placementProp === 'bottom' && `margin-top: 0;`}
-
-  /* Override z-index from useOverlayPosition */
-  z-index: ${p => p.theme.zIndex.dropdown} !important;
 `;
 
 const MenuWrap = styled('ul')`
   margin: 0;
   padding: ${space(0.5)} 0;
   font-size: ${p => p.theme.fontSizeMedium};
-  overflow-x: hidden;
-  overflow-y: auto;
 
   &:focus {
     outline: none;
