@@ -52,32 +52,18 @@ def _get_derived_op_metric_field_from_snuba_function(function: Function):
 
 def _transform_select(query_select):
     select = []
-    groupby = []
     for select_field in query_select:
-        if isinstance(select_field, Column):
-            if select_field.name.startswith("tags["):
-                groupby.append(select_field)
+        if isinstance(select_field, (Column, AliasedExpression)):
+            if isinstance(select_field, AliasedExpression):
+                column_field = select_field.exp
+                column_alias = select_field.alias
+            else:
+                column_field = select_field
+                column_alias = None
 
             try:
                 select.append(
-                    MetricField(
-                        op=None,
-                        metric_mri=select_field.name,
-                    )
-                )
-            except InvalidParams as e:
-                raise MQBQueryTransformationException(e)
-        elif isinstance(select_field, AliasedExpression):
-            if select_field.exp.name.startswith("tags["):
-                groupby.append(select_field)
-
-            try:
-                select.append(
-                    MetricField(
-                        op=None,
-                        metric_mri=select_field.exp.name,
-                        alias=select_field.alias,
-                    )
+                    MetricField(op=None, metric_mri=column_field.name, alias=column_alias)
                 )
             except InvalidParams as e:
                 raise MQBQueryTransformationException(e)
@@ -104,57 +90,41 @@ def _transform_select(query_select):
                 )
         else:
             raise MQBQueryTransformationException(f"Unsupported select field {select_field}")
-    return select, groupby
+    return select
 
 
 def _transform_groupby(query_groupby):
     mq_groupby = []
     include_series = False
     for groupby_field in query_groupby:
-        if isinstance(groupby_field, Column):
-            if groupby_field.name == "bucketed_time":
+        if isinstance(groupby_field, (Column, AliasedExpression)):
+            if isinstance(groupby_field, AliasedExpression):
+                column_field = groupby_field.exp
+                column_alias = groupby_field.alias
+            else:
+                column_field = groupby_field
+                column_alias = None
+
+            if column_field.name == "bucketed_time":
                 include_series = True
                 continue
-            if groupby_field.name in FIELD_ALIAS_MAPPINGS.keys() | FIELD_ALIAS_MAPPINGS.values():
+            if column_field.name in FIELD_ALIAS_MAPPINGS.keys() | FIELD_ALIAS_MAPPINGS.values():
                 mq_groupby.append(
                     MetricGroupByField(
-                        field=groupby_field.name,
+                        field=column_field.name,
+                        alias=column_alias,
                     )
                 )
-            elif groupby_field.name.startswith("tags["):
+            elif column_field.name.startswith("tags["):
                 mq_groupby.append(
                     MetricGroupByField(
-                        field=groupby_field.name.split("tags[")[1].split("]")[0],
+                        field=column_field.name.split("tags[")[1].split("]")[0],
+                        alias=column_alias,
                     )
                 )
             else:
                 raise MQBQueryTransformationException(
-                    f"Unsupported groupby field '{groupby_field.name}'"
-                )
-        elif isinstance(groupby_field, AliasedExpression):
-            if groupby_field.exp.name == "bucketed_time":
-                include_series = True
-                continue
-            if (
-                groupby_field.exp.name
-                in FIELD_ALIAS_MAPPINGS.keys() | FIELD_ALIAS_MAPPINGS.values()
-            ):
-                mq_groupby.append(
-                    MetricGroupByField(
-                        field=groupby_field.exp.name,
-                        alias=groupby_field.alias,
-                    )
-                )
-            elif groupby_field.exp.name.startswith("tags["):
-                mq_groupby.append(
-                    MetricGroupByField(
-                        field=groupby_field.exp.name.split("tags[")[1].split("]")[0],
-                        alias=groupby_field.alias,
-                    )
-                )
-            else:
-                raise MQBQueryTransformationException(
-                    f"Unsupported groupby field '{groupby_field.exp.name}'"
+                    f"Unsupported groupby field '{column_field.name}'"
                 )
         elif isinstance(groupby_field, Function):
             if groupby_field.function not in DERIVED_OPS:
@@ -223,7 +193,7 @@ def _get_mq_dict_params_from_where(query_where):
 def _transform_orderby(query_orderby):
     mq_orderby = []
     for orderby_field in query_orderby:
-        transformed_field_lst, _ = _transform_select([orderby_field.exp])
+        transformed_field_lst = _transform_select([orderby_field.exp])
         transformed_field = transformed_field_lst.pop()
         metric_exp = metric_object_factory(
             op=transformed_field.op, metric_mri=transformed_field.metric_mri
@@ -247,22 +217,18 @@ def tranform_mqb_query_to_metrics_query(query: Query) -> MetricsQuery:
         raise MQBQueryTransformationException(
             "Having clauses are not supported by the metrics layer"
         )
-    # Handles select statements
-    select, extra_groupby = _transform_select(query.select)
     # Handle groupby
-    groupby, include_series = _transform_groupby(query.groupby + extra_groupby)
-    # Handle orderby
-    orderby = _transform_orderby(query.orderby)
+    groupby, include_series = _transform_groupby(query.groupby)
 
     mq_dict = {
-        "select": select,
+        "select": _transform_select(query.select),
         "groupby": groupby,
         "limit": query.limit,
         "offset": query.offset,
         "include_totals": True,
         "include_series": include_series,
         "granularity": query.granularity if query.granularity is not None else Granularity(3600),
-        "orderby": orderby,
+        "orderby": _transform_orderby(query.orderby),
         **_get_mq_dict_params_from_where(query.where),
     }
     return MetricsQuery(**mq_dict)
