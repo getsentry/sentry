@@ -10,6 +10,7 @@ from collections import deque
 from concurrent.futures import Future
 from io import BytesIO
 from typing import Any, Callable, Deque, Mapping, MutableMapping, NamedTuple, Optional, cast
+from urllib.parse import parse_qs, urlencode, urlparse
 
 import msgpack
 import sentry_sdk
@@ -19,9 +20,8 @@ from arroyo.processing.strategies.abstract import ProcessingStrategy
 from arroyo.types import Message, Position
 from django.conf import settings
 
-from sentry.attachments import MissingAttachmentChunks, attachment_cache
-from sentry.attachments.base import CachedAttachment
 from sentry.models import File
+from sentry.replays.cache import RecordingSegmentPart, RecordingSegmentParts
 from sentry.replays.consumers.recording.types import (
     RecordingSegmentChunkMessage,
     RecordingSegmentHeaders,
@@ -67,22 +67,14 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
     def _process_chunk(
         self, message_dict: RecordingSegmentChunkMessage, message: Message[KafkaPayload]
     ) -> None:
-        # TODO: implement threaded chunk sets, and wait for an individual segment's
-        # futures to finish before trying to read from redis in the final kafka message
-        # https://github.com/getsentry/replay-backend/pull/38/files
-        recording_segment_uuid = message_dict["id"]
-        replay_id = message_dict["replay_id"]
-        project_id = message_dict["project_id"]
-        chunk_index = message_dict["chunk_index"]
-        cache_key = replay_recording_segment_cache_id(project_id, replay_id)
-
-        attachment_cache.set_chunk(
-            key=cache_key,
-            id=recording_segment_uuid,
-            chunk_index=chunk_index,
-            chunk_data=message_dict["payload"],
-            timeout=CACHE_TIMEOUT,
+        cache_prefix = replay_recording_segment_cache_id(
+            project_id=message_dict["project_id"],
+            replay_id=message_dict["replay_id"],
+            segment_id=message_dict["id"],
         )
+
+        part = RecordingSegmentPart(cache_prefix)
+        part[message_dict["chunk_index"]] = message_dict["payload"]
 
     def _process_headers(
         self, recording_segment_with_headers: bytes
@@ -97,23 +89,32 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
     def _store(
         self,
         message_dict: RecordingSegmentMessage,
-        cached_replay_recording_segment: CachedAttachment,
+        parts: RecordingSegmentParts,
     ) -> None:
         with sentry_sdk.start_transaction(
             op="replays.consumer.flush_batch", description="Replay recording segment stored."
         ):
             sentry_sdk.set_extra("replay_id", message_dict["replay_id"])
 
+            parts_iterator = iter(parts)
+
             try:
-                headers, recording_segment = self._process_headers(
-                    cached_replay_recording_segment.data
-                )
+                headers, part = self._process_headers(next(parts_iterator))
             except MissingRecordingSegmentHeaders:
                 logger.warning(f"missing header on {message_dict['replay_id']}")
                 return
 
-            # Server side PII stripping enabled by default.
+            recording_segment_parts = [part]
+            recording_segment_parts.extend(part for part in parts_iterator)
+
+            # The parts were gzipped by the SDK and disassembled by Relay. In this step we can
+            # blindly merge the bytes objects into a single bytes object.
+            recording_segment = b"".join(recording_segment_parts)
+
+            # Post-processing steps.
+            recording_segment = zlib.decompress(recording_segment)
             recording_segment = strip_pii_from_rrweb(recording_segment)
+            recording_segment = zlib.compress(recording_segment)
 
             # create a File for our recording segment.
             recording_segment_file_name = f"rr:{message_dict['replay_id']}:{headers['segment_id']}"
@@ -133,32 +134,22 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
                 file_id=file.id,
             )
             # delete the recording segment from cache after we've stored it
-            cached_replay_recording_segment.delete()
+            parts.drop()
 
             # TODO: how to handle failures in the above calls. what should happen?
             # also: handling same message twice?
 
-    def _get_from_cache(self, message_dict: RecordingSegmentMessage) -> CachedAttachment | None:
-        cache_id = replay_recording_segment_cache_id(
-            message_dict["project_id"], message_dict["replay_id"]
-        )
-        cached_replay_recording = attachment_cache.get_from_chunks(
-            key=cache_id, **message_dict["replay_recording"]
-        )
-        try:
-            # try accessing data to ensure that it exists, which loads it
-            cached_replay_recording.data
-        except MissingAttachmentChunks:
-            logger.warning("missing replay recording chunks!")
-            return None
-        return cached_replay_recording
-
     def _process_recording(
         self, message_dict: RecordingSegmentMessage, message: Message[KafkaPayload]
     ) -> None:
-        cached_replay_recording = self._get_from_cache(message_dict)
-        if cached_replay_recording is None:
-            return
+        cache_prefix = replay_recording_segment_cache_id(
+            project_id=message_dict["project_id"],
+            replay_id=message_dict["replay_id"],
+            segment_id=message_dict["replay_recording"]["id"],
+        )
+        parts = RecordingSegmentParts(
+            prefix=cache_prefix, num_parts=message_dict["replay_recording"]["chunks"]
+        )
 
         # in a thread, upload the recording segment and delete the cached version
         self.__futures.append(
@@ -167,7 +158,7 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
                 self.__threadpool.submit(
                     self._store,
                     message_dict=message_dict,
-                    cached_replay_recording_segment=cached_replay_recording,
+                    parts=parts,
                 ),
             )
         )
@@ -268,8 +259,8 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
             # TODO: add replay sdk version once added
 
 
-def replay_recording_segment_cache_id(project_id: int, replay_id: str) -> str:
-    return f"{project_id}:{replay_id}"
+def replay_recording_segment_cache_id(project_id: int, replay_id: str, segment_id: str) -> str:
+    return f"{project_id}:{replay_id}:{segment_id}"
 
 
 SKIP_NODES = {"style", "script"}
@@ -280,8 +271,6 @@ PATTERNS = [
     re.compile(r"(?ix)\b[a-z0-9]{8}-?[a-z0-9]{4}-?[a-z0-9]{4}-?[a-z0-9]{4}-?[a-z0-9]{12}\b"),
     # Email
     re.compile(r"(?x)\b[a-zA-Z0-9.!\#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*\b"),
-    # MAC
-    re.compile(r"(?x)\b([[:xdigit:]]{2}[:-]){5}[[:xdigit:]]{2}\b"),
     # IMEI
     re.compile(
         r"""(?x)
@@ -344,22 +333,57 @@ PATTERNS = [
 
 
 def strip_pii_from_rrweb(rrweb_output: bytes) -> bytes:
-    root = json.loads(zlib.decompress(rrweb_output))
-    for node in root:
-        if node["type"] == 2:
-            _recurse_rrweb(node["data"]["node"]["childNodes"])
-    return zlib.compress(json.dumps(root).encode())
+    # Result must be decompressed before it can be used. Currently the SDK gzips rrweb payloads.
+    events = json.loads(rrweb_output)
+
+    for event in events:
+        event_type = event.get("type")
+        if event_type == 2:
+            recurse_nodes(event["data"]["node"]["childNodes"])
+        elif event_type == 3:
+            recurse_nodes(i["node"] for i in event["data"]["adds"])
+        elif event_type == 5:
+            payload = event["data"]["payload"]
+            if payload.get("op") == "performanceSpan":
+                payload["description"] = replace_query_args(payload["description"])
+            elif payload.get("category") == "console":
+                payload["message"] = replace_detectable_pii(payload["message"])
+
+    # Result must be gzipped before it is uploaded to blob storage.
+    return json.dumps(events).encode()
 
 
-def _recurse_rrweb(nodes: list[dict[str, typing.Any]]) -> None:
+def recurse_nodes(nodes: typing.Iterator[dict[str, typing.Any]]) -> None:
     for node in nodes:
         if node["type"] == 2 and node["tagName"] not in SKIP_NODES:
-            _recurse_rrweb(node["childNodes"])
+            recurse_nodes(node["childNodes"])
         elif node["type"] == 3:
-            for pattern in PATTERNS:
-                node["textContent"] = pattern.sub(_replace_text, node["textContent"])
+            node["textContent"] = replace_detectable_pii(node["textContent"])
 
 
-def _replace_text(match_obj: typing.Any) -> str:
+def replace_query_args(url: str) -> str:
+    """Replace detectable PII in a navigation events request args."""
+    parts = urlparse(url)
+
+    params_dict = parse_qs(parts.query)
+    for key in params_dict:
+        params_dict[key] = [replace_detectable_pii(v) for v in params_dict[key]]
+
+    # "parts" is immutable by default but the "_replace" method allows us to bypass this
+    # constraint. "_replace" is NOT a private method. It is underscored to prevent collisions with
+    # user-defined namedtuple parameter names.
+    parts = parts._replace(query=urlencode(params_dict))
+
+    return parts.geturl()
+
+
+def replace_detectable_pii(value: str) -> str:
+    """Replace detectable PII."""
+    for pattern in PATTERNS:
+        value = pattern.sub(replacement_fn, value)
+    return value
+
+
+def replacement_fn(match_obj: typing.Any) -> str:
     """Replace text-content with asterisks."""
     return "*" * len(match_obj.group(0))

@@ -1,5 +1,6 @@
 # type:ignore
 import uuid
+import zlib
 from datetime import datetime
 from hashlib import sha1
 
@@ -25,9 +26,12 @@ class TestRecordingsConsumerEndToEnd(TransactionTestCase):
     def test_basic_flow(self):
         processing_strategy = self.processing_factory().create_with_partitions(lambda x: None, None)
         segment_id = 0
+        message = zlib.compress(b'[{"hello":"world"}]')
+
         consumer_messages = [
             {
-                "payload": f'{{"segment_id":{segment_id}}}\ntest'.encode(),
+                "payload": f'{{"segment_id":{segment_id}}}\n'.encode()
+                + message[: len(message) // 2],
                 "replay_id": self.replay_id,
                 "project_id": self.project.id,
                 "id": self.replay_recording_id,
@@ -35,7 +39,7 @@ class TestRecordingsConsumerEndToEnd(TransactionTestCase):
                 "type": "replay_recording_chunk",
             },
             {
-                "payload": b"foobar",
+                "payload": message[len(message) // 2 :],
                 "replay_id": self.replay_id,
                 "project_id": self.project.id,
                 "id": self.replay_recording_id,
@@ -52,12 +56,12 @@ class TestRecordingsConsumerEndToEnd(TransactionTestCase):
                 "project_id": self.project.id,
             },
         ]
-        for message in consumer_messages:
+        for m in consumer_messages:
             processing_strategy.submit(
                 Message(
                     Partition(Topic("ingest-replay-recordings"), 1),
                     1,
-                    KafkaPayload(b"key", msgpack.packb(message), [("should_drop", b"1")]),
+                    KafkaPayload(b"key", msgpack.packb(m), [("should_drop", b"1")]),
                     datetime.now(),
                 )
             )
@@ -68,15 +72,18 @@ class TestRecordingsConsumerEndToEnd(TransactionTestCase):
         recording = File.objects.get(name=recording_file_name)
 
         assert recording
-        assert recording.checksum == sha1(b"testfoobar").hexdigest()
+        assert recording.checksum == sha1(message).hexdigest()
         assert ReplayRecordingSegment.objects.get(replay_id=self.replay_id)
 
     def test_duplicate_segment_flow(self):
         processing_strategy = self.processing_factory().create_with_partitions(lambda x: None, None)
         segment_id = 0
+        message1 = zlib.compress(b'[{"hello":"world"}]')
+        message2 = zlib.compress(b'[{"other":"message"}]')
+
         consumer_messages = [
             {
-                "payload": f'{{"segment_id":{segment_id}}}\ntest'.encode(),
+                "payload": f'{{"segment_id":{segment_id}}}\n'.encode() + message1,
                 "replay_id": self.replay_id,
                 "project_id": self.project.id,
                 "id": self.replay_recording_id,
@@ -84,7 +91,7 @@ class TestRecordingsConsumerEndToEnd(TransactionTestCase):
                 "type": "replay_recording_chunk",
             },
             {
-                "payload": f'{{"segment_id":{segment_id}}}\nduplicatedyadada'.encode(),
+                "payload": f'{{"segment_id":{segment_id}}}\n'.encode() + message2,
                 "replay_id": self.replay_id,
                 "project_id": self.project.id,
                 "id": self.replay_recording_id,
@@ -101,12 +108,12 @@ class TestRecordingsConsumerEndToEnd(TransactionTestCase):
                 "project_id": self.project.id,
             },
         ]
-        for message in consumer_messages:
+        for m in consumer_messages:
             processing_strategy.submit(
                 Message(
                     Partition(Topic("ingest-replay-recordings"), 1),
                     1,
-                    KafkaPayload(b"key", msgpack.packb(message), [("should_drop", b"1")]),
+                    KafkaPayload(b"key", msgpack.packb(m), [("should_drop", b"1")]),
                     datetime.now(),
                 )
             )
