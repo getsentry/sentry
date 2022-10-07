@@ -457,7 +457,7 @@ function getDemoModeGuides(): GuidesContent {
 function getDemoModeGuidesV2(): GuidesContent {
   return [
     {
-      guide: 'sidebar',
+      guide: 'sidebar_v2',
       requiredTargets: ['projects', 'issues'],
       priority: 1,
       markOthersAsSeen: true,
@@ -501,7 +501,7 @@ function getDemoModeGuidesV2(): GuidesContent {
       ],
     },
     {
-      guide: 'issues',
+      guide: 'issues_v3',
       requiredTargets: ['tags', 'stack_trace', 'breadcrumbs'],
       steps: [
         {
@@ -530,7 +530,7 @@ function getDemoModeGuidesV2(): GuidesContent {
       ],
     },
     {
-      guide: 'releases',
+      guide: 'releases_v2',
       requiredTargets: ['release_projects'],
       priority: 1,
       steps: [
@@ -557,7 +557,7 @@ function getDemoModeGuidesV2(): GuidesContent {
       ],
     },
     {
-      guide: 'release-details',
+      guide: 'release-details_v2',
       requiredTargets: ['release_states'],
       steps: [
         {
@@ -599,11 +599,12 @@ function getDemoModeGuidesV2(): GuidesContent {
           description: t(
             'Select an Event ID from a list of slow transactions to uncover slow spans.'
           ),
+          nextText: t(`Got it`),
         },
       ],
     },
     {
-      guide: 'transaction_details',
+      guide: 'transaction_details_v2',
       requiredTargets: ['span_tree'],
       steps: [
         {
