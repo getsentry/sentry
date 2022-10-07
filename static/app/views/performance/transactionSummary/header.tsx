@@ -170,7 +170,7 @@ class TransactionHeader extends Component<Props> {
 
     const tab = (
       <ListLink
-        data-test-id="web-vitals-tab"
+        aria-label={t('Open web vitals tab')}
         to={vitalsTarget}
         isActive={() => currentTab === Tab.WebVitals}
         onClick={this.trackTabClick(Tab.WebVitals)}
@@ -296,7 +296,7 @@ class TransactionHeader extends Component<Props> {
               features={['organizations:performance-suspect-spans-view']}
             >
               <ListLink
-                data-test-id="spans-tab"
+                aria-label={t('Open spans tab')}
                 to={spansTarget}
                 isActive={() => currentTab === Tab.Spans}
                 onClick={this.trackTabClick(Tab.Spans)}
