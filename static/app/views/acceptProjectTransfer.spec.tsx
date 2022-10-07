@@ -26,7 +26,7 @@ describe('AcceptProjectTransfer', function () {
     });
   });
 
-  it('renders', function () {
+  it('submits', function () {
     render(
       <AcceptProjectTransfer
         location={TestStubs.location({
@@ -42,22 +42,6 @@ describe('AcceptProjectTransfer', function () {
     );
 
     expect(getMock).toHaveBeenCalled();
-  });
-
-  it('submits', function () {
-    render(
-      <AcceptProjectTransfer
-        location={TestStubs.location({
-          pathname: 'endpoint',
-          query: {data: 'XYZ'},
-        })}
-        route={{}}
-        routeParams={router.params}
-        router={router}
-        routes={router.routes}
-        params={{}}
-      />
-    );
 
     userEvent.click(screen.getByText('Transfer Project'));
 
