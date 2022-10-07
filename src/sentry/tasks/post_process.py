@@ -82,7 +82,11 @@ def should_write_event_stats(event: Event):
     # other event types we'll throw off existing stats and potentially cause various alerts to fire.
     # We might decide to write these stats for other event types later, either under different keys
     # or with differentiating tags.
-    return event.group.issue_category == GroupCategory.ERROR and event.group.platform is not None
+    return (
+        event.group
+        and event.group.issue_category == GroupCategory.ERROR
+        and event.group.platform is not None
+    )
 
 
 def format_event_platform(event: Event):
@@ -353,6 +357,9 @@ def post_process_group(
             )
             return
 
+        with metrics.timer("tasks.post_process.delete_event_cache"):
+            event_processing_store.delete_by_key(cache_key)
+
         event = process_event(data, group_id)
 
         # Re-bind Project and Org since we're reading the Event object
@@ -384,9 +391,6 @@ def post_process_group(
             ):
                 return
 
-        update_event_groups(event)
-        bind_organization_context(event.project.organization)
-
         # TODO: Remove this check once we're sending all group ids as `group_states` and treat all
         # events the same way
         if not is_transaction_event or group_states is None:
@@ -395,16 +399,15 @@ def post_process_group(
                 {
                     # have to use the event.group_id field, instead of the passed in group_id
                     # since we rebind it in `update_event_groups` (for merging groups)
-                    "id": event.group_id,
+                    "id": group_id,
                     "is_new": is_new,
                     "is_regression": is_regression,
                     "is_new_group_environment": is_new_group_environment,
                 }
             ]
-        else:
-            # performance issue
-            return
 
+        update_event_groups(event, group_states)
+        bind_organization_context(event.project.organization)
         _capture_event_stats(event)
 
         group_events: Mapping[int, GroupEvent] = {
@@ -430,9 +433,6 @@ def post_process_group(
 
         for job in group_jobs:
             run_post_process_job(job)
-
-        with metrics.timer("tasks.post_process.delete_event_cache"):
-            event_processing_store.delete_by_key(cache_key)
 
 
 def run_post_process_job(job: PostProcessJob):
@@ -485,7 +485,7 @@ def update_event_groups(event: Event, group_states: Optional[GroupStates] = None
 
     # Re-bind Group since we're reading the Event object
     # from cache, which may contain a stale group and project
-    group_states = group_states or [{"id": event.group_id}]
+    group_states = group_states or ([{"id": event.group_id}] if event.group_id else [])
     event.groups = [
         get_group_with_redirect(group_state["id"])[0]
         for group_state in group_states

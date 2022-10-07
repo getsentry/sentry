@@ -996,11 +996,17 @@ class PostProcessGroupAssignmentTest(TestCase):
 
 @region_silo_test
 class PostProcessGroupPerformanceTest(TestCase, SnubaTestCase, PerfIssueTransactionTestMixin):
+    @with_feature("organizations:performance-issues-post-process-group")
+    @patch("sentry.tasks.post_process.run_post_process_job")
     @patch("sentry.rules.processor.RuleProcessor")
     @patch("sentry.signals.transaction_processed.send_robust")
     @patch("sentry.signals.event_processed.send_robust")
     def test_full_pipeline_with_group_states(
-        self, event_processed_signal_mock, transaction_processed_signal_mock, mock_processor
+        self,
+        event_processed_signal_mock,
+        transaction_processed_signal_mock,
+        mock_processor,
+        run_post_process_job_mock,
     ):
         min_ago = before_now(minutes=1).replace(tzinfo=pytz.utc)
         event = self.store_transaction(
@@ -1030,3 +1036,4 @@ class PostProcessGroupPerformanceTest(TestCase, SnubaTestCase, PerfIssueTransact
         assert transaction_processed_signal_mock.call_count == 1
         assert event_processed_signal_mock.call_count == 0
         assert mock_processor.call_count == 0
+        assert run_post_process_job_mock.call_count == 2
