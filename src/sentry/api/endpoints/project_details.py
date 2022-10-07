@@ -1,7 +1,7 @@
-import enum
 import math
 import time
 from datetime import timedelta
+from enum import Enum
 from itertools import chain
 from uuid import uuid4
 
@@ -55,10 +55,11 @@ from sentry.utils import json
 MAX_SENSITIVE_FIELD_CHARS = 4000
 
 
-class DynamicSamplingAuthorizationResult(enum):
+class DynamicSamplingAuthorizationResult(Enum):
     DS_NOT_AUTHORIZED = 0
-    DS_BASIC_ALLOWED = 1
-    DS_ADVANCED_ALLOWED = 2
+    DS_UNIFORM_NOT_AUTHORIZED = 1
+    DS_CONDITION_NOT_AUTHORIZED = 2
+    DS_AUTHORIZED = 3
 
 
 def clean_newline_inputs(value, case_insensitive=True):
@@ -489,19 +490,36 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         result = serializer.validated_data
 
-        # validation_result = self.authorize_dynamic_sampling(result.get("dynamicSampling"))
-
-        # allow_dynamic_sampling = features.has(
-        #     "organizations:server-side-sampling", project.organization, actor=request.user
-        # )
-        #
-        #
-        # if not allow_dynamic_sampling and result.get("dynamicSampling"):
-        #     # trying to set sampling with feature disabled
-        #     return Response(
-        #         {"detail": ["You do not have permission to set sampling."]},
-        #         status=403,
-        #     )
+        validation_result = self.authorize_dynamic_sampling(
+            organization=project.organization,
+            user=request.user,
+            dynamic_sampling_rules=result.get("dynamicSampling"),
+        )
+        if validation_result == DynamicSamplingAuthorizationResult.DS_NOT_AUTHORIZED:
+            return Response(
+                {"detail": ["You do not have permission to set a sampling rule."]},
+                status=403,
+            )
+        elif validation_result == DynamicSamplingAuthorizationResult.DS_UNIFORM_NOT_AUTHORIZED:
+            return Response(
+                {
+                    "detail": [
+                        "You do not have permission to set a uniform sampling rule, "
+                        "for that you would need a team account."
+                    ]
+                },
+                status=403,
+            )
+        elif validation_result == DynamicSamplingAuthorizationResult.DS_CONDITION_NOT_AUTHORIZED:
+            return Response(
+                {
+                    "detail": [
+                        "You do not have permission to set a condition sampling rule, "
+                        "for that you would need a business account."
+                    ]
+                },
+                status=403,
+            )
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
@@ -967,7 +985,26 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
     # TODO: check thread here
     #  https://sentry.slack.com/archives/C03B7A8GGLA/p1665041535882819?thread_ts=1665039905.072039&cid=C03B7A8GGLA
     def authorize_dynamic_sampling(
-        self, dynamic_sampling_rules
+        self, organization, user, dynamic_sampling_rules
     ) -> DynamicSamplingAuthorizationResult:
-        # TODO: implement check and throw error if needed.
-        return
+        is_basic = features.has("organizations:dynamic-sampling-basic", organization, actor=user)
+        is_advanced = features.has(
+            "organizations:dynamic-sampling-advanced", organization, actor=user
+        )
+        contains_condition_rules = self.contains_condition_rules(dynamic_sampling_rules)
+
+        if (not is_basic) and (not contains_condition_rules):
+            return DynamicSamplingAuthorizationResult.DS_UNIFORM_NOT_AUTHORIZED
+        elif ((not is_basic) or (is_basic and (not is_advanced))) and contains_condition_rules:
+            return DynamicSamplingAuthorizationResult.DS_CONDITION_NOT_AUTHORIZED
+        elif (is_basic and (not contains_condition_rules)) or is_advanced:
+            return DynamicSamplingAuthorizationResult.DS_AUTHORIZED
+        else:
+            return DynamicSamplingAuthorizationResult.DS_NOT_AUTHORIZED
+
+    def contains_condition_rules(self, dynamic_sampling_rules) -> bool:
+        for rule in dynamic_sampling_rules["rules"]:
+            if len(rule["condition"]["inner"]) > 0:
+                return True
+
+        return False

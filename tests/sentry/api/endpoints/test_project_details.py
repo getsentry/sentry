@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from time import time
 from unittest import mock
 
@@ -95,6 +96,53 @@ def _dyn_sampling_data(multiple_uniform_rules=False, uniform_rule_last_position=
     }
 
 
+def _dyn_sampling_uniform_rule():
+    return {
+        "rules": [
+            {
+                "sampleRate": 0.8,
+                "type": "trace",
+                "active": True,
+                "condition": {
+                    "op": "and",
+                    "inner": [],
+                },
+                "id": 1,
+            }
+        ],
+    }
+
+
+def _dyn_sampling_condition_rule():
+    return {
+        "rules": [
+            {
+                "sampleRate": 0.7,
+                "type": "trace",
+                "active": True,
+                "condition": {
+                    "op": "and",
+                    "inner": [
+                        {"op": "eq", "name": "field1", "value": ["val"]},
+                        {"op": "glob", "name": "field1", "value": ["val"]},
+                    ],
+                },
+                "id": 1,
+            },
+            {
+                "sampleRate": 0.8,
+                "type": "trace",
+                "active": True,
+                "condition": {
+                    "op": "and",
+                    "inner": [],
+                },
+                "id": 2,
+            },
+        ],
+    }
+
+
 def _remove_ids_from_dynamic_rules(dynamic_rules):
     if dynamic_rules.get("next_id") is not None:
         del dynamic_rules["next_id"]
@@ -106,6 +154,19 @@ def _remove_ids_from_dynamic_rules(dynamic_rules):
 def first_symbol_source_id(sources_json):
     sources = json.loads(sources_json)
     return sources[0]["id"]
+
+
+def ordered_dict_to_dict(ordered_dict):
+    for key in ordered_dict.keys():
+        value = ordered_dict[key]
+        if isinstance(value, OrderedDict):
+            ordered_dict[key] = ordered_dict_to_dict(value)
+        elif isinstance(value, list):
+            for index, element in enumerate(value):
+                if isinstance(element, OrderedDict):
+                    value[index] = ordered_dict_to_dict(element)
+
+    return dict(ordered_dict)
 
 
 @region_silo_test
@@ -787,13 +848,51 @@ class ProjectUpdateTest(APITestCase):
             self.org_slug, self.proj_slug, dynamicSampling=_dyn_sampling_data(), status_code=403
         )
 
-    # TODO: write test.
-    def test_setting_dynamic_sampling_with_uniform_rule(self):
-        return
+    def test_setting_dynamic_sampling_with_uniform_rule_and_basic_plan(self):
+        config = _dyn_sampling_uniform_rule()
 
-    # TODO: write test.
-    def test_setting_dynamic_sampling_with_condition_rule(self):
-        return
+        with Feature({"organizations:dynamic-sampling-basic": True}):
+            self.get_success_response(self.org_slug, self.proj_slug, dynamicSampling=config)
+
+        saved_config = self.project.get_option("sentry:dynamic_sampling")
+        assert config["rules"] == ordered_dict_to_dict(saved_config)["rules"]
+
+    def test_setting_dynamic_sampling_with_uniform_rule_and_advanced_plan(self):
+        config = _dyn_sampling_uniform_rule()
+
+        with Feature(
+            {
+                "organizations:dynamic-sampling-basic": True,
+                "organizations:dynamic-sampling-advanced": True,
+            }
+        ):
+            self.get_success_response(self.org_slug, self.proj_slug, dynamicSampling=config)
+
+        saved_config = self.project.get_option("sentry:dynamic_sampling")
+        assert config["rules"] == ordered_dict_to_dict(saved_config)["rules"]
+
+    def test_setting_dynamic_sampling_with_condition_rule_and_basic_plan(self):
+        with Feature({"organizations:dynamic-sampling-basic": True}):
+            self.get_error_response(
+                self.org_slug,
+                self.proj_slug,
+                dynamicSampling=_dyn_sampling_condition_rule(),
+                status_code=403,
+            )
+
+    def test_setting_dynamic_sampling_with_condition_rule_and_advanced_plan(self):
+        config = _dyn_sampling_condition_rule()
+
+        with Feature(
+            {
+                "organizations:dynamic-sampling-basic": True,
+                "organizations:dynamic-sampling-advanced": True,
+            }
+        ):
+            self.get_success_response(self.org_slug, self.proj_slug, dynamicSampling=config)
+
+        saved_config = self.project.get_option("sentry:dynamic_sampling")
+        assert config["rules"] == ordered_dict_to_dict(saved_config)["rules"]
 
     def test_setting_dynamic_sampling_rules(self):
         """
