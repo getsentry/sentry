@@ -1,7 +1,5 @@
-import first from 'lodash/first';
-
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import QuickTrace from 'sentry/components/quickTrace';
 import {Event} from 'sentry/types/event';
@@ -127,7 +125,7 @@ describe('Quick Trace', function () {
     // TODO
     it('renders partial trace with no children', async function () {
       MockApiClient.warnOnMissingMocks();
-      const {findAllByTestId} = render(
+      render(
         <QuickTrace
           event={makeTransactionEvent(4) as Event}
           quickTrace={{
@@ -141,13 +139,13 @@ describe('Quick Trace', function () {
           organization={organization}
         />
       );
-      const nodes = await findAllByTestId('event-node');
+      const nodes = await screen.findAllByTestId('event-node');
       expect(nodes.length).toEqual(1);
-      expect(first(nodes)).toHaveTextContent('This Event');
+      expect(nodes[0]).toHaveTextContent('This Event');
     });
 
     it('renders partial trace with single child', async function () {
-      const {findAllByTestId} = render(
+      render(
         <QuickTrace
           event={makeTransactionEvent(4) as Event}
           quickTrace={{
@@ -161,7 +159,7 @@ describe('Quick Trace', function () {
           organization={organization}
         />
       );
-      const nodes = await findAllByTestId('event-node');
+      const nodes = await screen.findAllByTestId('event-node');
       expect(nodes.length).toEqual(2);
       ['This Event', '1 Child'].forEach((text, i) =>
         expect(nodes[i]).toHaveTextContent(text)
@@ -170,7 +168,7 @@ describe('Quick Trace', function () {
 
     it('renders partial trace with multiple children', async function () {
       MockApiClient.warnOnMissingMocks();
-      const {findAllByTestId} = render(
+      render(
         <QuickTrace
           event={makeTransactionEvent(4) as Event}
           quickTrace={{
@@ -184,7 +182,7 @@ describe('Quick Trace', function () {
           organization={organization}
         />
       );
-      const nodes = await findAllByTestId('event-node');
+      const nodes = await screen.findAllByTestId('event-node');
       expect(nodes.length).toEqual(2);
       ['This Event', '3 Children'].forEach((text, i) =>
         expect(nodes[i]).toHaveTextContent(text)
@@ -192,7 +190,7 @@ describe('Quick Trace', function () {
     });
 
     it('renders full trace with root as parent', async function () {
-      const {findAllByTestId} = render(
+      render(
         <QuickTrace
           event={makeTransactionEvent(1) as Event}
           quickTrace={{
@@ -206,7 +204,7 @@ describe('Quick Trace', function () {
           organization={organization}
         />
       );
-      const nodes = await findAllByTestId('event-node');
+      const nodes = await screen.findAllByTestId('event-node');
       expect(nodes.length).toEqual(2);
       ['Parent', 'This Event'].forEach((text, i) =>
         expect(nodes[i]).toHaveTextContent(text)
@@ -216,7 +214,7 @@ describe('Quick Trace', function () {
 
   describe('Full Trace', function () {
     it('renders full trace with single ancestor', async function () {
-      const {findAllByTestId} = render(
+      render(
         <QuickTrace
           event={makeTransactionEvent(3) as Event}
           quickTrace={{
@@ -235,7 +233,7 @@ describe('Quick Trace', function () {
           organization={organization}
         />
       );
-      const nodes = await findAllByTestId('event-node');
+      const nodes = await screen.findAllByTestId('event-node');
       expect(nodes.length).toEqual(4);
       ['Root', '1 Ancestor', 'Parent', 'This Event'].forEach((text, i) =>
         expect(nodes[i]).toHaveTextContent(text)
@@ -244,7 +242,7 @@ describe('Quick Trace', function () {
 
     it('renders full trace with multiple ancestors', async function () {
       MockApiClient.warnOnMissingMocks();
-      const {findAllByTestId} = render(
+      render(
         <QuickTrace
           event={makeTransactionEvent(5) as Event}
           quickTrace={{
@@ -265,7 +263,7 @@ describe('Quick Trace', function () {
           organization={organization}
         />
       );
-      const nodes = await findAllByTestId('event-node');
+      const nodes = await screen.findAllByTestId('event-node');
       expect(nodes.length).toEqual(4);
       ['Root', '3 Ancestors', 'Parent', 'This Event'].forEach((text, i) =>
         expect(nodes[i]).toHaveTextContent(text)
@@ -273,7 +271,7 @@ describe('Quick Trace', function () {
     });
 
     it('renders full trace with single descendant', async function () {
-      const {findAllByTestId} = render(
+      render(
         <QuickTrace
           event={makeTransactionEvent(0) as Event}
           quickTrace={{
@@ -291,7 +289,7 @@ describe('Quick Trace', function () {
           organization={organization}
         />
       );
-      const nodes = await findAllByTestId('event-node');
+      const nodes = await screen.findAllByTestId('event-node');
       expect(nodes.length).toEqual(3);
       ['This Event', '1 Child', '1 Descendant'].forEach((text, i) =>
         expect(nodes[i]).toHaveTextContent(text)
@@ -300,7 +298,7 @@ describe('Quick Trace', function () {
 
     it('renders full trace with multiple descendants', async function () {
       MockApiClient.warnOnMissingMocks();
-      const {findAllByTestId} = render(
+      render(
         <QuickTrace
           event={makeTransactionEvent(0) as Event}
           quickTrace={{
@@ -320,7 +318,7 @@ describe('Quick Trace', function () {
           organization={organization}
         />
       );
-      const nodes = await findAllByTestId('event-node');
+      const nodes = await screen.findAllByTestId('event-node');
       expect(nodes.length).toEqual(3);
       ['This Event', '1 Child', '3 Descendants'].forEach((text, i) =>
         expect(nodes[i]).toHaveTextContent(text)
@@ -329,7 +327,7 @@ describe('Quick Trace', function () {
 
     it('renders full trace', async function () {
       MockApiClient.warnOnMissingMocks();
-      const {findAllByTestId} = render(
+      render(
         <QuickTrace
           event={makeTransactionEvent(5) as Event}
           quickTrace={{
@@ -354,7 +352,7 @@ describe('Quick Trace', function () {
           organization={organization}
         />
       );
-      const nodes = await findAllByTestId('event-node');
+      const nodes = await screen.findAllByTestId('event-node');
       expect(nodes.length).toEqual(6);
       ['Root', '3 Ancestors', 'Parent', 'This Event', '1 Child', '3 Descendants'].forEach(
         (text, i) => expect(nodes[i]).toHaveTextContent(text)
@@ -365,7 +363,7 @@ describe('Quick Trace', function () {
   describe('Event Node Clicks', function () {
     it('renders single event targets', async function () {
       const routerContext = TestStubs.routerContext();
-      const {findAllByTestId} = render(
+      render(
         <QuickTrace
           event={makeTransactionEvent(3) as Event}
           quickTrace={{
@@ -387,7 +385,7 @@ describe('Quick Trace', function () {
         />,
         {context: routerContext}
       );
-      const nodes = await findAllByTestId('event-node');
+      const nodes = await screen.findAllByTestId('event-node');
       expect(nodes.length).toEqual(6);
       [
         makeTransactionHref('p0', 'e0', 't0', '0'),
@@ -408,7 +406,7 @@ describe('Quick Trace', function () {
 
     it('renders multiple event targets', async function () {
       MockApiClient.warnOnMissingMocks();
-      const {findAllByTestId} = render(
+      render(
         <QuickTrace
           event={makeTransactionEvent(0) as Event}
           quickTrace={{
@@ -422,7 +420,7 @@ describe('Quick Trace', function () {
           organization={organization}
         />
       );
-      const items = await findAllByTestId('dropdown-item');
+      const items = await screen.findAllByTestId('dropdown-item');
       expect(items.length).toEqual(3);
       // can't easily assert the target is correct since it uses an onClick handler
     });
