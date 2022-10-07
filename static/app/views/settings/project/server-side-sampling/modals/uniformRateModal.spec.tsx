@@ -9,13 +9,33 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import {openModal} from 'sentry/actionCreators/modal';
 import GlobalModal from 'sentry/components/globalModal';
 import {ServerSideSamplingStore} from 'sentry/stores/serverSideSamplingStore';
+import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {UniformRateModal} from 'sentry/views/settings/project/server-side-sampling/modals/uniformRateModal';
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/server-side-sampling/utils';
 
-import {getMockData, outcomesWithoutClientDiscarded} from '../testUtils';
+import {
+  getMockData,
+  mockedSamplingDistribution,
+  mockedSamplingSdkVersions,
+  outcomesWithoutClientDiscarded,
+} from '../testUtils';
 
 jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
+
+function renderMockRequests({
+  organizationSlug,
+}: {
+  organizationSlug: Organization['slug'];
+}) {
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organizationSlug}/projects/`,
+    method: 'GET',
+    body: mockedSamplingDistribution.projectBreakdown!.map(p =>
+      TestStubs.Project({id: p.project_id, slug: p.project})
+    ),
+  });
+}
 
 describe('Server-Side Sampling - Uniform Rate Modal', function () {
   beforeEach(function () {
@@ -24,11 +44,15 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
 
   it('render next button', async function () {
     const {organization, project} = getMockData();
+
+    renderMockRequests({organizationSlug: organization.slug});
+
     const handleSubmit = jest.fn();
     const handleReadDocs = jest.fn();
 
     ServerSideSamplingStore.projectStats30dRequestSuccess(TestStubs.Outcomes());
     ServerSideSamplingStore.projectStats48hRequestSuccess(TestStubs.Outcomes());
+    ServerSideSamplingStore.sdkVersionsRequestSuccess(mockedSamplingSdkVersions);
 
     const {container} = render(<GlobalModal />);
 
@@ -156,8 +180,10 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
       ...TestStubs.Outcomes(),
       groups: [],
     });
+    ServerSideSamplingStore.sdkVersionsRequestSuccess([mockedSamplingSdkVersions[0]]);
 
     const {organization, project} = getMockData();
+
     const handleSubmit = jest.fn();
 
     const {container} = render(<GlobalModal />);
@@ -234,6 +260,7 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
       ...TestStubs.Outcomes(),
       groups: [],
     });
+    ServerSideSamplingStore.sdkVersionsRequestSuccess(mockedSamplingSdkVersions);
 
     const {organization, project} = getMockData();
 
@@ -338,6 +365,7 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
       ...outcomesWithoutClientDiscarded,
       groups: [],
     });
+    ServerSideSamplingStore.sdkVersionsRequestSuccess(mockedSamplingSdkVersions);
 
     const {organization, project} = getMockData();
 

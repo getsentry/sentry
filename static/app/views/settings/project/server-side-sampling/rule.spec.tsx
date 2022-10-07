@@ -1,13 +1,18 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {ServerSideSamplingStore} from 'sentry/stores/serverSideSamplingStore';
 import {SamplingRuleOperator} from 'sentry/types/sampling';
 
 import {Rule} from './rule';
-import {uniformRule} from './testUtils';
+import {mockedSamplingSdkVersions, uniformRule} from './testUtils';
 
 export const samplingBreakdownTitle = 'Transaction Breakdown';
 
 describe('Server-Side Sampling - Rule', function () {
+  beforeEach(function () {
+    ServerSideSamplingStore.reset();
+  });
+
   it('renders toggle placeholders', function () {
     render(
       <Rule
@@ -31,6 +36,8 @@ describe('Server-Side Sampling - Rule', function () {
   });
 
   it('can be deactivated even with unsupported SDKs', function () {
+    ServerSideSamplingStore.sdkVersionsRequestSuccess(mockedSamplingSdkVersions);
+
     render(
       <Rule
         operator={SamplingRuleOperator.IF}
