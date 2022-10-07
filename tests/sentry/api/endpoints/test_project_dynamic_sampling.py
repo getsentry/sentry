@@ -217,7 +217,6 @@ class ProjectDynamicSamplingDistributionQueryCallsTest(APITestCase):
                 use_aggregate_conditions=True,
                 transform_alias_to_input_format=True,
                 functions_acl=None,
-                # referrer="dynamic-sampling.distribution.fetch-transactions-count",
                 referrer=Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_TRANSACTIONS_COUNT.value,
             ),
         ]
