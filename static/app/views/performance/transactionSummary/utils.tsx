@@ -133,6 +133,22 @@ export function generateTransactionLink(transactionName: string) {
   };
 }
 
+export function generateReplayLink() {
+  return (
+    organization: Organization,
+    tableRow: TableDataRow,
+    _query: Query
+  ): LocationDescriptor => {
+    const replayId = tableRow.replayId;
+    const replaySlug = `${tableRow['project.name']}:${replayId}`;
+
+    return {
+      pathname: `/organizations/${organization.slug}/replays/${replaySlug}`,
+      query: {},
+    };
+  };
+}
+
 export const SidebarSpacer = styled('div')`
   margin-top: ${space(3)};
 `;

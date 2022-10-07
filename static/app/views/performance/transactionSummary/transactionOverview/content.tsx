@@ -48,6 +48,7 @@ import Filter, {
   SpanOperationBreakdownFilter,
 } from '../filter';
 import {
+  generateReplayLink,
   generateTraceLink,
   generateTransactionLink,
   normalizeSearchConditions,
@@ -213,6 +214,10 @@ function SummaryContent({
     t('timestamp'),
   ];
 
+  if (organization.features.includes('session-replay-ui')) {
+    transactionsListTitles.push(t('replay id'));
+  }
+
   let transactionsListEventView = eventView.clone();
 
   if (organization.features.includes('performance-ops-breakdown')) {
@@ -325,6 +330,7 @@ function SummaryContent({
           generateLink={{
             id: generateTransactionLink(transactionName),
             trace: generateTraceLink(eventView.normalizeDateSelection(location)),
+            replayId: generateReplayLink(),
           }}
           handleCellAction={handleCellAction}
           {...getTransactionsListSort(location, {

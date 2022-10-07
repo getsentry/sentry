@@ -155,9 +155,11 @@ function getDocumentTitle(transactionName: string): string {
 
 function generateEventView({
   location,
+  organization,
   transactionName,
 }: {
   location: Location;
+  organization: Organization;
   transactionName: string;
 }): EventView {
   // Use the user supplied query but overwrite any transaction or event type
@@ -175,6 +177,10 @@ function generateEventView({
   });
 
   const fields = ['id', 'user.display', 'transaction.duration', 'trace', 'timestamp'];
+
+  if (organization.features.includes('session-replay-ui')) {
+    fields.push('replayId');
+  }
 
   return EventView.fromNewQueryWithLocation(
     {

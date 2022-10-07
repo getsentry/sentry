@@ -285,6 +285,7 @@ type SpecialFields = {
   'issue.id': SpecialField;
   project: SpecialField;
   release: SpecialField;
+  replayId: SpecialField;
   team_key_transaction: SpecialField;
   'timestamp.to_day': SpecialField;
   'timestamp.to_hour': SpecialField;
@@ -335,6 +336,17 @@ const SPECIAL_FIELDS: SpecialFields = {
           </OverflowLink>
         </Container>
       );
+    },
+  },
+  replayId: {
+    sortField: 'replayId',
+    renderFunc: data => {
+      const replayId: string | unknown = data?.replayId;
+      if (typeof replayId !== 'string') {
+        return null;
+      }
+
+      return <Container>{getShortEventId(replayId)}</Container>;
     },
   },
   issue: {
