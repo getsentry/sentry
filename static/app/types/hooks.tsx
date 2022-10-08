@@ -318,11 +318,6 @@ type AnalyticsTrackEventV2 = (
      * If no org, pass in null.
      */
     organization: Organization | string | null;
-
-    /**
-     * Optional timstamp (currently only used for Amplitude)
-     */
-    timestamp?: number;
   },
   options?: {
     /**
@@ -335,6 +330,11 @@ type AnalyticsTrackEventV2 = (
      * startSession set to true.
      */
     startSession?: boolean;
+
+    /**
+     * Optional timstamp (currently only used for Amplitude)
+     */
+    time?: number;
   }
 ) => void;
 
