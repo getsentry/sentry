@@ -102,9 +102,7 @@ function EventCause({group, event, project}: Props) {
 const ExpandButton = styled('button')`
   display: flex;
   align-items: center;
-  & > svg {
-    margin-left: ${space(0.5)};
-  }
+  gap: ${space(0.5)};
 `;
 
 export default EventCause;

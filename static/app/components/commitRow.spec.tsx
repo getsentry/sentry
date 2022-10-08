@@ -3,7 +3,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {CommitRow} from 'sentry/components/commitRow';
-import {Commit, Repository, User} from 'sentry/types';
+import {Commit, Repository, RepositoryStatus, User} from 'sentry/types';
 
 jest.mock('sentry/components/hovercard', () => {
   return {
@@ -87,5 +87,33 @@ describe('commitRow', () => {
     render(<CommitRow commit={commit} />);
 
     expect(screen.getByText(/ref\(commitRow\): refactor to fc/)).toBeInTheDocument();
+  });
+
+  it('renders pull request', () => {
+    const commit: Commit = {
+      ...baseCommit,
+      pullRequest: {
+        id: '9',
+        title: 'cool pr',
+        externalUrl: 'https://github.com',
+        repository: {
+          id: '14',
+          name: 'example',
+          url: '',
+          provider: {
+            id: 'unknown',
+            name: 'Unknown Provider',
+          },
+          status: RepositoryStatus.ACTIVE,
+          dateCreated: '2022-10-07T19:35:27.370422Z',
+          integrationId: '14',
+          externalSlug: 'org-slug',
+        },
+      },
+    };
+
+    render(<CommitRow commit={commit} />);
+
+    expect(screen.getByRole('button', {name: 'View Pull Request'})).toBeInTheDocument();
   });
 });
