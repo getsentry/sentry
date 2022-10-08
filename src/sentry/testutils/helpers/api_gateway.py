@@ -62,6 +62,16 @@ def verify_request_body(body, headers):
     return request_callback
 
 
+def verify_request_headers(headers):
+    """Wrapper for a callback function for responses.add_callback"""
+
+    def request_callback(request):
+        assert (request.headers[key] == headers[key] for key in headers)
+        return 200, {}, json.dumps({"proxy": True})
+
+    return request_callback
+
+
 def verify_request_params(params, headers):
     """Wrapper for a callback function for responses.add_callback"""
 
