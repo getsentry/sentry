@@ -3,7 +3,7 @@ import time
 from typing import Any, List, MutableMapping, Optional, Set
 
 from arroyo.backends.kafka import KafkaPayload
-from arroyo.configuration import build_kafka_consumer_configuration
+from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
 from arroyo.processing.strategies import MessageRejected
 from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
