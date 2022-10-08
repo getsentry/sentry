@@ -332,7 +332,7 @@ type AnalyticsTrackEventV2 = (
     startSession?: boolean;
 
     /**
-     * Optional timstamp (currently only used for Amplitude)
+     * Optional unix timestamp
      */
     time?: number;
   }
