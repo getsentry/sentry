@@ -3,7 +3,7 @@ from typing import Callable, Generic, Mapping, Sequence, TypeVar
 
 from arroyo import Partition, Topic
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
-from arroyo.configuration import build_kafka_consumer_configuration
+from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
 from arroyo.processing import StreamProcessor
 from arroyo.processing.strategies import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.batching import AbstractBatchWorker, BatchProcessingStrategy
