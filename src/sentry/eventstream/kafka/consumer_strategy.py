@@ -2,12 +2,12 @@ import logging
 import time
 from collections import deque
 from concurrent.futures import Future, ThreadPoolExecutor
-from typing import Any, Callable, Deque, Mapping, MutableMapping, Optional, Tuple
+from typing import Any, Deque, Mapping, Optional, Tuple
 
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.abstract import MessageRejected
-from arroyo.types import Message, Partition, Position
+from arroyo.types import Commit, Message, Partition, Position
 
 from sentry import options
 from sentry.eventstream.kafka.postprocessworker import _sampled_eventstream_timer
@@ -19,8 +19,6 @@ from sentry.eventstream.kafka.protocol import (
     get_task_kwargs_for_message_from_headers,
 )
 from sentry.utils import metrics
-
-COMMIT_FREQUENCY_SEC = 1
 
 _DURATION_METRIC = "eventstream.duration"
 
@@ -76,14 +74,14 @@ def _get_task_kwargs_and_dispatch(message: Message[KafkaPayload]) -> None:
 
 class DispatchTask(ProcessingStrategy[KafkaPayload]):
     def __init__(
-        self, concurrency: int, commit: Callable[[Mapping[Partition, Position]], None]
+        self,
+        concurrency: int,
+        commit: Commit,
     ) -> None:
         self.__executor = ThreadPoolExecutor(max_workers=concurrency)
         self.__futures: Deque[Tuple[Message[KafkaPayload], Future[None]]] = deque()
         self.__max_pending_futures = concurrency * 2
         self.__commit = commit
-        self.__commit_data: MutableMapping[Partition, Position] = {}
-        self.__last_committed: Optional[float] = None
         self.__closed = False
 
     def submit(self, message: Message[KafkaPayload]) -> None:
@@ -101,32 +99,13 @@ class DispatchTask(ProcessingStrategy[KafkaPayload]):
         while self.__futures and self.__futures[0][1].done():
             message, _ = self.__futures.popleft()
 
-            self.__commit_data[message.partition] = Position(message.next_offset, message.timestamp)
-
-        self.__throttled_commit()
-
-    def __throttled_commit(self, force: bool = False) -> None:
-        # Commits all offsets and resets self.__commit_data at most
-        # every COMMIT_FREQUENCY_SEC. If force=True is passed, the
-        # commit frequency is ignored and we immediately commit.
-
-        now = time.time()
-
-        if (
-            self.__last_committed is None
-            or now - self.__last_committed >= COMMIT_FREQUENCY_SEC
-            or force is True
-        ):
-            if self.__commit_data:
-                self.__commit(self.__commit_data)
-                self.__last_committed = now
-                self.__commit_data = {}
+            self.__commit({message.partition: Position(message.next_offset, message.timestamp)})
 
     def join(self, timeout: Optional[float] = None) -> None:
         start = time.time()
 
         # Commit all pending offsets
-        self.__throttled_commit(force=True)
+        self.__commit({}, force=True)
 
         while self.__futures:
             remaining = timeout - (time.time() - start) if timeout is not None else None
@@ -138,7 +117,9 @@ class DispatchTask(ProcessingStrategy[KafkaPayload]):
 
             future.result(remaining)
 
-            self.__commit({message.partition: Position(message.offset, message.timestamp)})
+            self.__commit(
+                {message.partition: Position(message.next_offset, message.timestamp)}, force=True
+            )
 
         self.__executor.shutdown()
 
@@ -159,7 +140,7 @@ class PostProcessForwarderStrategyFactory(ProcessingStrategyFactory[KafkaPayload
 
     def create_with_partitions(
         self,
-        commit: Callable[[Mapping[Partition, Position]], None],
+        commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
         return DispatchTask(self.__concurrency, commit)
