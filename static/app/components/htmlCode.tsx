@@ -12,16 +12,17 @@ type Props = {
 };
 
 function HTMLCode({code}: Props) {
-  const codeRef = useRef<HTMLModElement | null>(null);
+  const ref = useRef<HTMLModElement | null>(null);
   const formattedCode = beautify.html(code, {indent_size: 2});
 
-  useEffect(() => {
-    Prism.highlightElement(codeRef.current, false);
-  }, [code]);
+  useEffect(
+    () => void (ref.current && Prism.highlightElement(ref.current, false)),
+    [code]
+  );
 
   return (
     <StyledPre>
-      <code ref={codeRef} className="language-html">
+      <code ref={ref} className="language-html">
         {formattedCode}
       </code>
     </StyledPre>
