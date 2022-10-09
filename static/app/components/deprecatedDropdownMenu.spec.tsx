@@ -1,3 +1,5 @@
+import type {ComponentProps} from 'react';
+
 import {
   render,
   screen,
@@ -10,7 +12,9 @@ import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';
 jest.useFakeTimers();
 
 describe('dropdownMenuDeprecated', function () {
-  const DeprecatedDropdownImplementation = (props = {}) => {
+  const DeprecatedDropdownImplementation = (
+    props: Partial<ComponentProps<typeof DeprecatedDropdownMenu>> = {}
+  ) => {
     return (
       <DeprecatedDropdownMenu {...props}>
         {({getRootProps, getActorProps, getMenuProps, isOpen}) => (
@@ -94,24 +98,24 @@ describe('dropdownMenuDeprecated', function () {
         {({getRootProps, getActorProps, getMenuProps, isOpen}) => (
           <span
             {...getRootProps({
-              'data-test-id': 'root',
               onClick: rootClick,
             })}
+            data-test-id="root"
           >
             <button
               {...getActorProps({
-                'data-test-id': 'actor',
                 onClick: actorClick,
               })}
+              data-test-id="actor"
             >
               Open Dropdown
             </button>
             {isOpen && (
               <ul
                 {...getMenuProps({
-                  'data-test-id': 'menu',
                   onClick: menuClick,
                 })}
+                data-test-id="menu"
               >
                 <li>Dropdown Menu Item 1</li>
               </ul>
