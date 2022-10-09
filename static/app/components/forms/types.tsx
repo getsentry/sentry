@@ -61,6 +61,11 @@ type BaseField = {
   // TODO(ts): FormField prop?
   inline?: boolean;
   label?: React.ReactNode | (() => React.ReactNode);
+  /**
+   * May be used to give the field an aria-label when the field's label is a
+   * react node.
+   */
+  labelText?: string;
   maxRows?: number;
   // TODO(ts): used in sentryAppPublishRequestModal
   meta?: string;
