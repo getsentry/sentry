@@ -843,7 +843,7 @@ class ProjectDynamicSamplingDistributionIntegrationTest(SnubaTestCase, APITestCa
         return self.store_event(data, project_id=project_id)
 
     @freeze_time()
-    def test_queries_when_requested_project_is_head_of_trace(self):
+    def test_when_requested_project_is_head_of_trace(self):
         """
         Case A: Requesting for a project (bar) that is the head of trace
         Example of smart query response (DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECT_STATS):
@@ -901,7 +901,7 @@ class ProjectDynamicSamplingDistributionIntegrationTest(SnubaTestCase, APITestCa
             )
 
     @freeze_time()
-    def test_queries_when_requested_project_is_head_of_trace_and_non_root_in_others(
+    def test_when_requested_project_is_head_of_trace_and_non_root_in_others(
         self,
     ):
         """
@@ -969,7 +969,7 @@ class ProjectDynamicSamplingDistributionIntegrationTest(SnubaTestCase, APITestCa
             )
 
     @freeze_time()
-    def test_queries_when_requested_project_is_not_head_of_trace(
+    def test_when_requested_project_is_not_head_of_trace(
         self,
     ):
         """
@@ -1024,7 +1024,7 @@ class ProjectDynamicSamplingDistributionIntegrationTest(SnubaTestCase, APITestCa
             )
 
     @freeze_time()
-    def test_when_requested_project_is_not_head_of_trace(
+    def test_when_requested_project_is_single_project_and_no_distributed_trace(
         self,
     ):
         """
@@ -1129,7 +1129,7 @@ class ProjectDynamicSamplingDistributionIntegrationTest(SnubaTestCase, APITestCa
             )
 
     @freeze_time()
-    def test_queries_when_no_transactions_in_last_hour_and_no_transactions_in_last_30_days(
+    def test_when_no_transactions_in_last_hour_and_no_transactions_in_last_30_days(
         self,
     ):
         """
