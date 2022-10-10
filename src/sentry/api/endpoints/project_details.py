@@ -132,26 +132,17 @@ class DynamicSamplingSerializer(serializers.Serializer):
                 "Last rule is reserved for uniform rule which must have no conditions"
             )
 
-    def _contains_condition_rules(self, rules) -> bool:
-        for rule in rules:
-            if len(rule["condition"]["inner"]) > 0:
-                return True
-
-        return False
-
     def authorize_dynamic_sampling(self, organization, user, rules):
-        allow_dynamic_sampling = features.has(
-            "organizations:server-side-sampling", organization, actor=user
-        )
         is_basic = features.has("organizations:dynamic-sampling-basic", organization, actor=user)
         is_advanced = features.has(
             "organizations:dynamic-sampling-advanced", organization, actor=user
         )
 
-        contains_condition_rules = self._contains_condition_rules(rules)
-        is_authorized = allow_dynamic_sampling and (
-            (is_basic and (not contains_condition_rules)) or is_advanced
-        )
+        # We just check if there is more than 1 rule because in that case we are sure that we have 1 uniform
+        # and the other rules must be condition rules. This assumption is based on the check performed by
+        # "validate_uniform_sampling_rule".
+        contains_condition_rules = len(rules) > 1
+        is_authorized = (is_basic and (not contains_condition_rules)) or is_advanced
 
         if not is_authorized:
             raise serializers.ValidationError("You do not have permission to set a sampling rule.")
@@ -512,6 +503,17 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         serializer.is_valid()
 
         result = serializer.validated_data
+
+        # This check should be removed when we move from EA to GA.
+        allow_dynamic_sampling = features.has(
+            "organizations:server-side-sampling", project.organization, actor=request.user
+        )
+        if not allow_dynamic_sampling and result.get("dynamicSampling"):
+            # trying to set sampling with feature disabled
+            return Response(
+                {"detail": ["You do not have permission to set sampling."]},
+                status=403,
+            )
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
