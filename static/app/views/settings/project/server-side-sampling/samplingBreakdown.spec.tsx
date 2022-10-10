@@ -26,7 +26,7 @@ describe('Server-Side Sampling - SamplingBreakdown', function () {
     const projectBreakdown = mockedSamplingDistribution.projectBreakdown;
 
     ProjectsStore.loadInitialData(
-      projectBreakdown!.map(p => TestStubs.Project({id: p.project_id, slug: p.project}))
+      projectBreakdown!.map(p => TestStubs.Project({id: p.projectId, slug: p.project}))
     );
 
     ServerSideSamplingStore.distributionRequestSuccess(mockedSamplingDistribution);

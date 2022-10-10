@@ -33,7 +33,7 @@ export function fetchSamplingSdkVersions({
 
   const projectIds = [
     projectID,
-    ...(projectBreakdown?.map(projectBreakdownObj => projectBreakdownObj.project_id) ??
+    ...(projectBreakdown?.map(projectBreakdownObj => projectBreakdownObj.projectId) ??
       []),
   ];
 
