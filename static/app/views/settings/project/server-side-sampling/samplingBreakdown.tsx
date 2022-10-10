@@ -50,7 +50,7 @@ export function SamplingBreakdown({orgSlug}: Props) {
   function projectWithPercentage(project: Project, percentage: number) {
     return (
       <ProjectWithPercentage key={project.slug}>
-        <ProjectBadge project={project} avatarSize={16} />
+        <StyledProjectBadge project={project} avatarSize={16} />
         {formatPercentage(percentage / 100)}
       </ProjectWithPercentage>
     );
@@ -159,7 +159,8 @@ const Projects = styled('div')`
 `;
 
 const ProjectWithPercentage = styled('div')`
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr max-content;
   align-items: center;
   gap: ${space(0.5)};
   color: ${p => p.theme.subText};
@@ -170,4 +171,9 @@ const EmptyMessage = styled('div')`
   align-items: center;
   min-height: 25px;
   color: ${p => p.theme.subText};
+`;
+
+const StyledProjectBadge = styled(ProjectBadge)`
+  max-width: 100%;
+  overflow: hidden;
 `;

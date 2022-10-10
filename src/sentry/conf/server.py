@@ -658,6 +658,8 @@ CELERY_QUEUES = [
     Queue("integrations", routing_key="integrations"),
     Queue("merge", routing_key="merge"),
     Queue("options", routing_key="options"),
+    Queue("post_process_errors", routing_key="post_process_errors"),
+    Queue("post_process_performance", routing_key="post_process_performance"),
     Queue("relay_config", routing_key="relay_config"),
     Queue("relay_config_bulk", routing_key="relay_config_bulk"),
     Queue("reports.deliver", routing_key="reports.deliver"),
@@ -948,6 +950,8 @@ SENTRY_FEATURES = {
     "organizations:active-release-monitor-alpha": False,
     # Workflow 2.0 Active Release Notifications
     "organizations:active-release-notifications-enable": False,
+    # Enables tagging javascript errors from the browser console.
+    "organizations:javascript-console-error-tag": False,
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
     # Use metrics as the dataset for crash free metric alerts
@@ -1127,6 +1131,8 @@ SENTRY_FEATURES = {
     "organizations:performance-transaction-name-only-search": False,
     # Enable showing INP web vital in default views
     "organizations:performance-vitals-inp": False,
+    # Enable processing transactions in post_process_group
+    "organizations:performance-issues-post-process-group": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable populating suggested assignees with release committers
@@ -1173,6 +1179,8 @@ SENTRY_FEATURES = {
     "organizations:server-side-sampling-ui": False,
     # Enable creating DS rules on incompatible platforms (used by SDK teams for dev purposes)
     "organizations:server-side-sampling-allow-incompatible-platforms": False,
+    # Enable the deletion of sampling uniform rules (used internally for demo purposes)
+    "organizations:dynamic-sampling-demo": False,
     # Enable the creation of a uniform sampling rule.
     "organizations:dynamic-sampling-basic": False,
     # Enable the creation of uniform and conditional sampling rules.
@@ -1183,6 +1191,8 @@ SENTRY_FEATURES = {
     "organizations:dynamic-sampling-performance-cta-advanced": False,
     # Enable the mobile screenshots feature
     "organizations:mobile-screenshots": False,
+    # Enable the mobile screenshot gallery in the attachments tab
+    "organizations:mobile-screenshot-gallery": False,
     # Enable the release details performance section
     "organizations:release-comparison-performance": False,
     # Enable team insights page
@@ -1191,8 +1201,6 @@ SENTRY_FEATURES = {
     "organizations:u2f-superuser-form": False,
     # Enable setting team-level roles and receiving permissions from them
     "organizations:team-roles": False,
-    # Enable snowflake ids
-    "organizations:enable-snowflake-id": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -2436,6 +2444,11 @@ INVALID_EMAIL_ADDRESS_PATTERN = re.compile(r"\@qq\.com$", re.I)
 # (currently the values not used anymore so this is more for documentation purposes)
 SENTRY_USER_PERMISSIONS = ("broadcasts.admin", "users.admin", "options.admin")
 
+# WARNING(iker): there are two different formats for KAFKA_CLUSTERS: the one we
+# use below, and a legacy one still used in `getsentry`.
+# Reading items from this default configuration directly might break deploys.
+# To correctly read items from this dictionary and not worry about the format,
+# see `sentry.utils.kafka_config.get_kafka_consumer_cluster_options`.
 KAFKA_CLUSTERS = {
     "default": {
         "common": {"bootstrap.servers": "127.0.0.1:9092"},
@@ -2821,7 +2834,7 @@ MAX_REDIS_SNOWFLAKE_RETRY_COUNTER = 5
 
 SNOWFLAKE_VERSION_ID = 1
 SENTRY_SNOWFLAKE_EPOCH_START = datetime(2022, 8, 8, 0, 0).timestamp()
-SENTRY_USE_SNOWFLAKE = True
+SENTRY_USE_SNOWFLAKE = False
 
 SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS = {
     "path": "sentry.utils.locking.backends.redis.RedisLockBackend",

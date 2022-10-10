@@ -1,3 +1,4 @@
+from django.db.models import Q
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -43,8 +44,16 @@ class GroupAttachmentsEndpoint(GroupEndpoint, EnvironmentMixin):
         attachments = EventAttachment.objects.filter(group_id=group.id)
 
         types = request.GET.getlist("types") or ()
+        event_ids = request.GET.getlist("event_id") or ()
+        screenshot = "screenshot" in request.GET
+
+        if screenshot:
+            # TODO: Consolidate this with the EventAttachment endpoint logic
+            attachments = attachments.filter(Q(name="screenshot.jpg") | Q(name="screenshot.png"))
         if types:
             attachments = attachments.filter(type__in=types)
+        if event_ids:
+            attachments = attachments.filter(event_id__in=event_ids)
 
         return self.paginate(
             default_per_page=20,
