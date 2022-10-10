@@ -54,12 +54,10 @@ describe('NoteInputWithStorage', function () {
 
     render(<NoteInputWithStorage {...defaultProps} />);
 
-    const textbox = screen.getByRole('textbox');
-
-    userEvent.clear(textbox);
+    userEvent.clear(screen.getByRole('textbox'));
     userEvent.type(screen.getByRole('textbox'), 'new comment');
 
-    userEvent.type(textbox, '{ctrl}{enter}{/ctrl}');
+    userEvent.type(screen.getByRole('textbox'), '{ctrl}{enter}{/ctrl}');
 
     expect(localStorage.setItem).toHaveBeenLastCalledWith(
       'storage',
