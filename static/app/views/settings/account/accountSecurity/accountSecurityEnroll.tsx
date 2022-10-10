@@ -72,7 +72,11 @@ const getFields = ({
     return [
       () => (
         <CodeContainer key="qrcode">
-          <StyledQRCode value={authenticator.qrcode} size={228} />
+          <StyledQRCode
+            aria-label={t('Enrollment QR Code')}
+            value={authenticator.qrcode}
+            size={228}
+          />
         </CodeContainer>
       ),
       () => (
@@ -384,6 +388,8 @@ class AccountSecurityEnroll extends AsyncView<Props, State> {
           }, {})
       : {};
 
+    const isActive = authenticator.isEnrolled || authenticator.status === 'rotation';
+
     return (
       <Fragment>
         <SettingsPageHeader
@@ -391,8 +397,10 @@ class AccountSecurityEnroll extends AsyncView<Props, State> {
             <Fragment>
               <span>{authenticator.name}</span>
               <CircleIndicator
+                role="status"
+                data-is-active={isActive}
+                enabled={isActive}
                 css={{marginLeft: 6}}
-                enabled={authenticator.isEnrolled || authenticator.status === 'rotation'}
               />
             </Fragment>
           }
