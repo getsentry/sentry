@@ -145,7 +145,7 @@ export const mockedSamplingDistribution: SamplingDistribution = {
     {
       percentage: 10,
       project: 'parent-project',
-      project_id: 10,
+      projectId: 10,
     },
   ],
   sampleSize: 100,

@@ -53,7 +53,7 @@ export function SamplingFromOtherProject({orgSlug, projectSlug}: Props) {
       <Projects>
         {otherProjects.map(project => (
           <ProjectBadge
-            key={project.id}
+            key={project.slug}
             project={project}
             avatarSize={16}
             to={`/settings/${orgSlug}/projects/${project.slug}/dynamic-sampling/`}

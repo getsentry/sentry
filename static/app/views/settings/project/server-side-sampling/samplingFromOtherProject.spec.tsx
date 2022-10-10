@@ -20,13 +20,13 @@ describe('Server-Side Sampling - SamplingFromOtherProject', function () {
 
     ProjectsStore.loadInitialData(
       parentProjectBreakdown!.map(p =>
-        TestStubs.Project({id: p.project_id, slug: p.project})
+        TestStubs.Project({id: p.projectId, slug: p.project})
       )
     );
 
     ServerSideSamplingStore.distributionRequestSuccess(mockedSamplingDistribution);
 
-    render(<SamplingFromOtherProject orgSlug={organization.slug} />);
+    render(<SamplingFromOtherProject orgSlug={organization.slug} projectSlug="abc" />);
 
     expect(screen.getByText('parent-project')).toBeInTheDocument();
     expect(
@@ -42,7 +42,7 @@ describe('Server-Side Sampling - SamplingFromOtherProject', function () {
 
     ProjectsStore.loadInitialData(
       parentProjectBreakdown!.map(p =>
-        TestStubs.Project({id: p.project_id, slug: p.project})
+        TestStubs.Project({id: p.projectId, slug: p.project})
       )
     );
 
@@ -51,7 +51,7 @@ describe('Server-Side Sampling - SamplingFromOtherProject', function () {
       parentProjectBreakdown: [],
     });
 
-    render(<SamplingFromOtherProject orgSlug={organization.slug} />);
+    render(<SamplingFromOtherProject orgSlug={organization.slug} projectSlug="abc" />);
 
     expect(screen.queryByText('parent-project')).not.toBeInTheDocument();
     expect(
