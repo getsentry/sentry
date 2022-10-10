@@ -7,7 +7,7 @@ from django.utils import timezone
 from pytz import UTC
 from rest_framework import status
 
-from sentry import audit_log
+from sentry import audit_log, options
 from sentry.api.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
 from sentry.auth.authenticators import TotpInterface
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS
@@ -131,7 +131,10 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         expected_queries += 1
 
         # Symbolication Low Priority Queue stats reads two killswitches
-        expected_queries += 8
+        # make sure options are not cached the first time to get predictable number of database queries
+        options.delete("store.symbolicate-event-lpq-always")
+        options.delete("store.symbolicate-event-lpq-never")
+        expected_queries += 2
 
         with self.assertNumQueries(expected_queries, using="default"):
             response = self.get_success_response(self.organization.slug)
