@@ -136,7 +136,7 @@ describe('Server-Side Sampling', function () {
     userEvent.click(screen.getByRole('button', {name: 'Start Setup'}));
 
     expect(
-      await screen.findByRole('heading', {name: 'Set a global sample rate'})
+      await screen.findByRole('heading', {name: 'Set a uniform server-side sample rate'})
     ).toBeInTheDocument();
 
     expect(mockRequests.statsV2).toHaveBeenCalledTimes(2);
@@ -529,7 +529,7 @@ describe('Server-Side Sampling', function () {
     userEvent.click(screen.getByLabelText('Edit'));
 
     expect(
-      await screen.findByRole('heading', {name: 'Set a global sample rate'})
+      await screen.findByRole('heading', {name: 'Set a uniform server-side sample rate'})
     ).toBeInTheDocument();
 
     expect(mockRequests.statsV2).toHaveBeenCalledTimes(2);

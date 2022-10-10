@@ -1,12 +1,11 @@
-import {
-  render,
-  screen,
-  userEvent,
-  waitForElementToBeRemoved,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {openModal} from 'sentry/actionCreators/modal';
-import GlobalModal from 'sentry/components/globalModal';
+import {
+  makeClosableHeader,
+  makeCloseButton,
+  ModalBody,
+  ModalFooter,
+} from 'sentry/components/globalModal/components';
 import {SpecifyClientRateModal} from 'sentry/views/settings/project/server-side-sampling/modals/specifyClientRateModal';
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/server-side-sampling/utils';
 
@@ -20,12 +19,15 @@ describe('Server-Side Sampling - Specify Client Rate Modal', function () {
     const handleReadDocs = jest.fn();
     const handleGoNext = jest.fn();
     const handleChange = jest.fn();
+    const handleCloseModal = jest.fn();
 
-    const {container} = render(<GlobalModal />);
-
-    openModal(modalProps => (
+    const {container} = render(
       <SpecifyClientRateModal
-        {...modalProps}
+        Header={makeClosableHeader(jest.fn())}
+        Body={ModalBody}
+        Footer={ModalFooter}
+        CloseButton={makeCloseButton(jest.fn())}
+        closeModal={handleCloseModal}
         organization={organization}
         onReadDocs={handleReadDocs}
         projectId={project.id}
@@ -33,7 +35,7 @@ describe('Server-Side Sampling - Specify Client Rate Modal', function () {
         value={undefined}
         onChange={handleChange}
       />
-    ));
+    );
 
     // Header
     expect(
@@ -73,6 +75,6 @@ describe('Server-Side Sampling - Specify Client Rate Modal', function () {
 
     // Click on cancel button
     userEvent.click(screen.getByLabelText('Cancel'));
-    await waitForElementToBeRemoved(() => screen.queryByLabelText('Cancel'));
+    expect(handleCloseModal).toHaveBeenCalled();
   });
 });

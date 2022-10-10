@@ -4,10 +4,13 @@ import {
   userEvent,
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
-import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {openModal} from 'sentry/actionCreators/modal';
-import GlobalModal from 'sentry/components/globalModal';
+import {
+  makeClosableHeader,
+  makeCloseButton,
+  ModalBody,
+  ModalFooter,
+} from 'sentry/components/globalModal/components';
 import {ServerSideSamplingStore} from 'sentry/stores/serverSideSamplingStore';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {UniformRateModal} from 'sentry/views/settings/project/server-side-sampling/modals/uniformRateModal';
@@ -30,52 +33,46 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
     ServerSideSamplingStore.projectStats30dRequestSuccess(TestStubs.Outcomes());
     ServerSideSamplingStore.projectStats48hRequestSuccess(TestStubs.Outcomes());
 
-    const {container} = render(<GlobalModal />);
-
-    openModal(modalProps => (
+    const {container} = render(
       <UniformRateModal
-        {...modalProps}
+        Header={makeClosableHeader(jest.fn())}
+        Body={ModalBody}
+        Footer={ModalFooter}
+        CloseButton={makeCloseButton(jest.fn())}
+        closeModal={jest.fn()}
         organization={organization}
         project={project}
         rules={[]}
         onSubmit={handleSubmit}
         onReadDocs={handleReadDocs}
       />
-    ));
+    );
 
     // Header
     expect(
       await screen.findByRole('heading', {
-        name: 'Set a global sample rate',
+        name: 'Set a uniform server-side sample rate',
       })
-    ).toBeInTheDocument();
-
-    expect(
-      screen.getByText(
-        textWithMarkupMatcher(
-          'Set a server-side sample rate for all transactions using our suggestion as a starting point.'
-        )
-      )
     ).toBeInTheDocument();
 
     // Content
     expect(screen.getByText('Transactions (Last 30 days)')).toBeInTheDocument(); // Chart
     expect(screen.getByRole('radio', {name: 'Current'})).not.toBeChecked();
-    expect(screen.getByRole('radio', {name: 'Suggested'})).toBeChecked();
+    expect(screen.getByRole('radio', {name: 'New'})).toBeChecked();
     expect(screen.getByText('100%')).toBeInTheDocument(); // Current client-side sample rate
     expect(screen.getByText('N/A')).toBeInTheDocument(); // Current server-side sample rate
     expect(screen.getAllByRole('spinbutton')[0]).toHaveValue(95); // Suggested client-side sample rate
     expect(screen.queryByTestId('invalid-client-rate')).not.toBeInTheDocument(); // Client input warning is not visible
-    expect(screen.getAllByTestId('more-information')).toHaveLength(2); // Client input help is visible
+    // expect(screen.getAllByTestId('more-information')).toHaveLength(4); // Client input help is visible
     expect(screen.getAllByRole('spinbutton')[1]).toHaveValue(95); // Suggested server-side sample rate
-    expect(screen.queryByLabelText('Reset to suggested values')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Reset to new values')).not.toBeInTheDocument();
     expect(screen.queryByTestId('invalid-server-rate')).not.toBeInTheDocument(); // Server input warning is not visible
 
     // Enter invalid client-side sample rate
     userEvent.clear(screen.getAllByRole('spinbutton')[0]);
     userEvent.hover(screen.getByTestId('invalid-client-rate')); // Client input warning is visible
     expect(await screen.findByText('Set a value between 0 and 100')).toBeInTheDocument();
-    expect(screen.queryByTestId('more-information')).not.toBeInTheDocument(); // Client input help is not visible
+    // expect(screen.queryByTestId('more-information')).not.toBeInTheDocument(); // Client input help is not visible
 
     // Hover over next button
     userEvent.hover(screen.getByRole('button', {name: 'Next'}));
@@ -83,10 +80,10 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
 
     // Enter valid custom client-sample rate
     userEvent.type(screen.getAllByRole('spinbutton')[0], '20{enter}');
-    expect(screen.queryByText('Suggested')).not.toBeInTheDocument();
+    expect(screen.queryByText('New')).not.toBeInTheDocument();
     expect(screen.getAllByRole('spinbutton')[0]).toHaveValue(20); // Custom client-side sample rate
     expect(screen.getByRole('radio', {name: 'New'})).toBeChecked();
-    expect(screen.getByLabelText('Reset to suggested values')).toBeInTheDocument();
+    expect(screen.getByLabelText('Reset to new values')).toBeInTheDocument();
 
     // Enter invalid server-side sample rate
     userEvent.clear(screen.getAllByRole('spinbutton')[1]);
@@ -98,13 +95,13 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
     userEvent.hover(screen.getByTestId('invalid-server-rate')); // Server input warning is visible
     expect(
       await screen.findByText(
-        'Server sample rate shall not be higher than client sample rate'
+        'The Server-Side sampling rate must be equal to or less than the Client-Side rate.'
       )
     ).toBeInTheDocument();
 
     // Reset sample rates to suggested values
-    userEvent.click(screen.getByLabelText('Reset to suggested values'));
-    expect(screen.getByText('Suggested')).toBeInTheDocument();
+    userEvent.click(screen.getByLabelText('Reset to new values'));
+    expect(screen.getByText('New')).toBeInTheDocument();
     expect(screen.getAllByRole('spinbutton')[0]).toHaveValue(95); // Suggested client-side sample rate
     expect(screen.getAllByRole('spinbutton')[1]).toHaveValue(95); // Suggested server-side sample rate
     expect(screen.queryByTestId('invalid-client-rate')).not.toBeInTheDocument();
@@ -160,18 +157,20 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
     const {organization, project} = getMockData();
     const handleSubmit = jest.fn();
 
-    const {container} = render(<GlobalModal />);
-
-    openModal(modalProps => (
+    const {container} = render(
       <UniformRateModal
-        {...modalProps}
+        Header={makeClosableHeader(jest.fn())}
+        Body={ModalBody}
+        Footer={ModalFooter}
+        CloseButton={makeCloseButton(jest.fn())}
+        closeModal={jest.fn()}
         organization={organization}
         project={project}
         rules={[]}
         onSubmit={handleSubmit}
         onReadDocs={jest.fn()}
       />
-    ));
+    );
 
     // Content
     const suggestedSampleRates = await screen.findAllByRole('spinbutton');
@@ -207,7 +206,7 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
     ).toBeInTheDocument();
 
     // Switch again to recommended sample rates
-    userEvent.click(screen.getByText('Suggested'));
+    userEvent.click(screen.getByText('New'));
 
     // Take screenshot (this is good as we can not test the chart)
     expect(container).toSnapshot();
@@ -237,20 +236,22 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
 
     const {organization, project} = getMockData();
 
-    render(<GlobalModal />);
-
-    openModal(modalProps => (
+    render(
       <UniformRateModal
-        {...modalProps}
+        Header={makeClosableHeader(jest.fn())}
+        Body={ModalBody}
+        Footer={ModalFooter}
+        CloseButton={makeCloseButton(jest.fn())}
+        closeModal={jest.fn()}
         organization={organization}
         project={project}
         rules={[]}
         onSubmit={jest.fn()}
         onReadDocs={jest.fn()}
       />
-    ));
+    );
 
-    await screen.findByRole('heading', {name: 'Set a global sample rate'});
+    await screen.findByRole('heading', {name: 'Set a uniform server-side sample rate'});
 
     // Cancel
     userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
@@ -287,18 +288,20 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
       },
     ]);
 
-    render(<GlobalModal />);
-
-    openModal(modalProps => (
+    render(
       <UniformRateModal
-        {...modalProps}
+        Header={makeClosableHeader(jest.fn())}
+        Body={ModalBody}
+        Footer={ModalFooter}
+        CloseButton={makeCloseButton(jest.fn())}
+        closeModal={jest.fn()}
         organization={organization}
         project={project}
         rules={[]}
         onSubmit={jest.fn()}
         onReadDocs={jest.fn()}
       />
-    ));
+    );
 
     expect(
       await screen.findByRole('heading', {
@@ -309,7 +312,7 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
     userEvent.click(screen.getByRole('button', {name: 'Next'}));
 
     expect(
-      await screen.findByRole('heading', {name: 'Set a global sample rate'})
+      await screen.findByRole('heading', {name: 'Set a uniform server-side sample rate'})
     ).toBeInTheDocument();
 
     // Content
@@ -341,21 +344,23 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
 
     const {organization, project} = getMockData();
 
-    render(<GlobalModal />);
-
-    openModal(modalProps => (
+    render(
       <UniformRateModal
-        {...modalProps}
+        Header={makeClosableHeader(jest.fn())}
+        Body={ModalBody}
+        Footer={ModalFooter}
+        CloseButton={makeCloseButton(jest.fn())}
+        closeModal={jest.fn()}
         organization={organization}
         project={project}
         rules={[]}
         onSubmit={jest.fn()}
         onReadDocs={jest.fn()}
       />
-    ));
+    );
 
     expect(
-      await screen.findByRole('heading', {name: 'Set a global sample rate'})
+      await screen.findByRole('heading', {name: 'Set a uniform server-side sample rate'})
     ).toBeInTheDocument();
 
     // Close Modal
@@ -370,18 +375,20 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
 
     const {organization, project} = getMockData();
 
-    render(<GlobalModal />);
-
-    openModal(modalProps => (
+    render(
       <UniformRateModal
-        {...modalProps}
+        Header={makeClosableHeader(jest.fn())}
+        Body={ModalBody}
+        Footer={ModalFooter}
+        CloseButton={makeCloseButton(jest.fn())}
+        closeModal={jest.fn()}
         organization={organization}
         project={project}
         rules={[]}
         onSubmit={jest.fn()}
         onReadDocs={jest.fn()}
       />
-    ));
+    );
 
     expect(
       await screen.findByText(/There was an error loading data/)

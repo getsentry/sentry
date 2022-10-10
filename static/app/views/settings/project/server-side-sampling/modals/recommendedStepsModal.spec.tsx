@@ -1,8 +1,12 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {openModal} from 'sentry/actionCreators/modal';
-import GlobalModal from 'sentry/components/globalModal';
+import {
+  makeClosableHeader,
+  makeCloseButton,
+  ModalBody,
+  ModalFooter,
+} from 'sentry/components/globalModal/components';
 import {RecommendedStepsModal} from 'sentry/views/settings/project/server-side-sampling/modals/recommendedStepsModal';
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/server-side-sampling/utils';
 
@@ -26,21 +30,23 @@ describe('Server-Side Sampling - Recommended Steps Modal', function () {
   it('render all recommended steps', function () {
     const {organization, project} = getMockData();
 
-    render(<GlobalModal />);
-
-    openModal(modalProps => (
+    render(
       <RecommendedStepsModal
-        {...modalProps}
         organization={organization}
         projectId={project.id}
         recommendedSdkUpgrades={recommendedSdkUpgrades}
         onReadDocs={jest.fn()}
         onSubmit={jest.fn()}
         clientSampleRate={0.5}
+        Header={makeClosableHeader(jest.fn())}
+        Body={ModalBody}
+        Footer={ModalFooter}
+        CloseButton={makeCloseButton(jest.fn())}
+        closeModal={jest.fn()}
       />
-    ));
+    );
 
-    expect(screen.getByText('Next steps')).toBeInTheDocument();
+    expect(screen.getByText('Important next steps')).toBeInTheDocument();
 
     // First recommended step
     expect(
@@ -51,7 +57,7 @@ describe('Server-Side Sampling - Recommended Steps Modal', function () {
 
     expect(
       screen.getByText(
-        'To activate sampling rules, it’s a requirement to update the following project SDK(s):'
+        'To activate Dynamic Sampling rules, it’s a requirement to update the following project SDK(s):'
       )
     ).toBeInTheDocument();
 
@@ -73,13 +79,13 @@ describe('Server-Side Sampling - Recommended Steps Modal', function () {
     // Second recommended step
     expect(
       screen.getByRole('heading', {
-        name: 'Increase your client-side transaction sample rate',
+        name: 'Adjust your Client-Side (SDK) sample rate',
       })
     ).toBeInTheDocument();
 
     expect(
       screen.getByText(
-        'Here’s your optimal client(SDK) sample rate based on your organization’s usage and quota. To make this change, find the tracesSampleRate option in your SDK Config, modify it’s value to what’s suggested below and re-deploy.'
+        'Here’s the new Client-Side (SDK) sample rate you specified in the previous step. To make this change, find the ‘tracesSampleRate’ option in your SDK Config, modify it’s value to what’s shown below and re-deploy.'
       )
     ).toBeInTheDocument();
 
@@ -105,11 +111,13 @@ describe('Server-Side Sampling - Recommended Steps Modal', function () {
   it('render only the last recommended step', function () {
     const {organization, project} = getMockData();
 
-    render(<GlobalModal />);
-
-    openModal(modalProps => (
+    render(
       <RecommendedStepsModal
-        {...modalProps}
+        Header={makeClosableHeader(jest.fn())}
+        Body={ModalBody}
+        Footer={ModalFooter}
+        CloseButton={makeCloseButton(jest.fn())}
+        closeModal={jest.fn()}
         organization={organization}
         projectId={project.id}
         recommendedSdkUpgrades={[]}
@@ -117,7 +125,7 @@ describe('Server-Side Sampling - Recommended Steps Modal', function () {
         onReadDocs={jest.fn()}
         clientSampleRate={uniformRule.sampleRate}
       />
-    ));
+    );
 
     expect(
       screen.queryByRole('heading', {
@@ -127,7 +135,7 @@ describe('Server-Side Sampling - Recommended Steps Modal', function () {
 
     expect(
       screen.getByRole('heading', {
-        name: 'Increase your client-side transaction sample rate',
+        name: 'Adjust your Client-Side (SDK) sample rate',
       })
     ).toBeInTheDocument();
   });
@@ -137,11 +145,13 @@ describe('Server-Side Sampling - Recommended Steps Modal', function () {
 
     const onGoBack = jest.fn();
 
-    render(<GlobalModal />);
-
-    openModal(modalProps => (
+    render(
       <RecommendedStepsModal
-        {...modalProps}
+        Header={makeClosableHeader(jest.fn())}
+        Body={ModalBody}
+        Footer={ModalFooter}
+        CloseButton={makeCloseButton(jest.fn())}
+        closeModal={jest.fn()}
         organization={organization}
         projectId={project.id}
         recommendedSdkUpgrades={[]}
@@ -150,7 +160,7 @@ describe('Server-Side Sampling - Recommended Steps Modal', function () {
         onReadDocs={jest.fn()}
         clientSampleRate={uniformRule.sampleRate}
       />
-    ));
+    );
 
     expect(screen.getByText('Step 2 of 2')).toBeInTheDocument();
     userEvent.click(screen.getByRole('button', {name: 'Back'}));
@@ -160,11 +170,13 @@ describe('Server-Side Sampling - Recommended Steps Modal', function () {
   it('renders 3/3 footer', function () {
     const {organization, project} = getMockData();
 
-    render(<GlobalModal />);
-
-    openModal(modalProps => (
+    render(
       <RecommendedStepsModal
-        {...modalProps}
+        Header={makeClosableHeader(jest.fn())}
+        Body={ModalBody}
+        Footer={ModalFooter}
+        CloseButton={makeCloseButton(jest.fn())}
+        closeModal={jest.fn()}
         organization={organization}
         projectId={project.id}
         recommendedSdkUpgrades={[]}
@@ -174,7 +186,7 @@ describe('Server-Side Sampling - Recommended Steps Modal', function () {
         clientSampleRate={uniformRule.sampleRate}
         specifiedClientRate={0.1}
       />
-    ));
+    );
 
     expect(screen.getByText('Step 3 of 3')).toBeInTheDocument();
   });

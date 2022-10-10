@@ -7,7 +7,6 @@ import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {NumberField} from 'sentry/components/forms';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PanelTable} from 'sentry/components/panels';
@@ -274,7 +273,7 @@ export function UniformRateModal({
       <Fragment>
         <Header closeButton>
           {error ? (
-            <h4>{t('Set a global sample rate')}</h4>
+            <h4>{t('Set a uniform server-side sample rate')}</h4>
           ) : (
             <Placeholder height="22px" />
           )}
@@ -360,19 +359,13 @@ export function UniformRateModal({
   return (
     <Fragment>
       <Header closeButton>
-        <h4>{t('Set a global sample rate')}</h4>
+        <h4>{t('Set a uniform server-side sample rate')}</h4>
       </Header>
       <Body>
         <TextBlock>
           {tct(
-            'Set a server-side sample rate for all transactions using our suggestion as a starting point. To improve the accuracy of your performance metrics, we also suggest increasing your client(SDK) sample rate to allow more transactions to be processed. [learnMoreLink: Learn more about quota management].',
-            {
-              learnMoreLink: (
-                <ExternalLink
-                  href={`${SERVER_SIDE_SAMPLING_DOC_LINK}getting-started/#2-set-a-uniform-sampling-rate`}
-                />
-              ),
-            }
+            "If you set a [emphasis:Server-Side] sample rate to determine which transactions get indexed/stored, you can increase your application's [emphasis:Client-Side] (SDK) sample rate to process more metrics.",
+            {emphasis: <strong />}
           )}
         </TextBlock>
         <Fragment>
@@ -394,10 +387,25 @@ export function UniformRateModal({
               <SamplingValuesColumn key="sampling-values">
                 {t('Sampling Values')}
               </SamplingValuesColumn>,
-              <ClientColumn key="client">{t('Client')}</ClientColumn>,
-              <ClientHelpOrWarningColumn key="client-rate-help" />,
-              <ServerColumn key="server">{t('Server')}</ServerColumn>,
-              <ServerWarningColumn key="server-warning" />,
+              <ClientColumn key="client">{t('Client-side')}</ClientColumn>,
+              <ClientHelpOrWarningColumn key="client-rate-help">
+                <QuestionTooltip
+                  title={tct(
+                    'Determines how many transactions are sent to Sentry for processing performance metrics. [emphasis:Adjusting your Client-Side (SDK) sample rate requires redeployment.]',
+                    {emphasis: <strong />}
+                  )}
+                  size="sm"
+                />
+              </ClientHelpOrWarningColumn>,
+              <ServerColumn key="server">{t('Server-side')}</ServerColumn>,
+              <ServerWarningColumn key="server-warning">
+                <QuestionTooltip
+                  title={t(
+                    'Determines how many processed transactions Sentry indexes/stores for their full event details.'
+                  )}
+                  size="sm"
+                />
+              </ServerWarningColumn>,
               <RefreshRatesColumn key="refresh-rates" />,
             ]}
           >
@@ -438,15 +446,11 @@ export function UniformRateModal({
                       setSelectedStrategy(Strategy.RECOMMENDED);
                     }}
                   />
-                  {isEdited ? t('New') : t('Suggested')}
-                  {!isEdited && (
-                    <QuestionTooltip
-                      title={t(
-                        'Optimal sample rates based on your organization’s usage and quota.'
-                      )}
-                      size="sm"
-                    />
-                  )}
+                  {t('New')}
+                  <QuestionTooltip
+                    title={t('Use this suggestion as a baseline to begin adjusting.')}
+                    size="sm"
+                  />
                 </Label>
               </SamplingValuesColumn>
               <ClientColumn>
@@ -516,7 +520,7 @@ export function UniformRateModal({
                   isServerRateHigherThanClientRate && (
                     <Tooltip
                       title={t(
-                        'Server sample rate shall not be higher than client sample rate'
+                        'The Server-Side sampling rate must be equal to or less than the Client-Side rate.'
                       )}
                       containerDisplayMode="inline-flex"
                     >
@@ -532,9 +536,9 @@ export function UniformRateModal({
               <RefreshRatesColumn>
                 {isEdited && (
                   <Button
-                    title={t('Reset to suggested values')}
+                    title={t('Reset to new values')}
                     icon={<IconRefresh size="sm" />}
-                    aria-label={t('Reset to suggested values')}
+                    aria-label={t('Reset to new values')}
                     onClick={() => {
                       setClientInput(rateToPercentage(recommendedClientSampling));
                       setServerInput(rateToPercentage(recommendedServerSampling));
