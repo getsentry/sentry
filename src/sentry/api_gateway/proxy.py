@@ -45,6 +45,7 @@ def proxy_request(request: Request, org_slug: str) -> StreamingHttpResponse:
     request_args = {
         "headers": request.headers,
         "params": dict(query_params) if query_params is not None else None,
+        "data": getattr(request, "body", None),
         "stream": True,
         "timeout": settings.GATEWAY_PROXY_TIMEOUT,
     }
