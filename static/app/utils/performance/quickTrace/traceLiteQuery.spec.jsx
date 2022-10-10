@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import TraceLiteQuery from 'sentry/utils/performance/quickTrace/traceLiteQuery';
@@ -43,7 +43,7 @@ describe('TraceLiteQuery', function () {
       body: [],
       match: [MockApiClient.matchQuery({event_id: eventId})],
     });
-    const wrapper = mountWithTheme(
+    render(
       <TraceLiteQuery
         api={api}
         traceId={traceId}
@@ -55,10 +55,8 @@ describe('TraceLiteQuery', function () {
         {renderTraceLite}
       </TraceLiteQuery>
     );
-    await tick();
-    wrapper.update();
 
+    expect(await screen.findByText('partial')).toBeInTheDocument();
     expect(getMock).toHaveBeenCalledTimes(1);
-    expect(wrapper.find('div[data-test-id="type"]').text()).toEqual('partial');
   });
 });
