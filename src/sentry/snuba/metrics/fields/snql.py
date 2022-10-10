@@ -311,9 +311,9 @@ def session_duration_filters(org_id):
 
 def histogram_snql_factory(
     aggregate_filter,
-    histogram_buckets: int = 100,
     histogram_from: Optional[float] = None,
     histogram_to: Optional[float] = None,
+    histogram_buckets: int = 100,
     alias=None,
 ):
     zoom_conditions = zoom_histogram(
