@@ -140,12 +140,18 @@ class DynamicSamplingSerializer(serializers.Serializer):
         return False
 
     def authorize_dynamic_sampling(self, organization, user, rules):
+        allow_dynamic_sampling = features.has(
+            "organizations:server-side-sampling", organization, actor=user
+        )
         is_basic = features.has("organizations:dynamic-sampling-basic", organization, actor=user)
         is_advanced = features.has(
             "organizations:dynamic-sampling-advanced", organization, actor=user
         )
+
         contains_condition_rules = self._contains_condition_rules(rules)
-        is_authorized = (is_basic and (not contains_condition_rules)) or is_advanced
+        is_authorized = allow_dynamic_sampling and (
+            (is_basic and (not contains_condition_rules)) or is_advanced
+        )
 
         if not is_authorized:
             raise serializers.ValidationError("You do not have permission to set a sampling rule.")
