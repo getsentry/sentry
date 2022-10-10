@@ -142,7 +142,11 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
                 key="sentry:dynamic_sampling", project=self.project
             )
             saved_sampling_setting = project_option.value
-            serializer = DynamicSamplingSerializer(data=saved_sampling_setting)
+            serializer = DynamicSamplingSerializer(
+                data=saved_sampling_setting,
+                partial=True,
+                context={"project": self.project, "request": self.make_request(user=self.user)},
+            )
             assert serializer.is_valid()
             assert len(serializer.validated_data["rules"]) == 1
             assert saved_sampling_setting == serializer.validated_data
@@ -194,7 +198,11 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
                 key="sentry:dynamic_sampling", project=self.project
             )
             saved_sampling_setting = project_option.value
-            serializer = DynamicSamplingSerializer(data=saved_sampling_setting)
+            serializer = DynamicSamplingSerializer(
+                data=saved_sampling_setting,
+                partial=True,
+                context={"project": self.project, "request": self.make_request(user=self.user)},
+            )
             assert serializer.is_valid()
             assert len(serializer.validated_data["rules"]) == 1
             assert saved_sampling_setting == serializer.validated_data
@@ -305,7 +313,11 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
                 key="sentry:dynamic_sampling", project=self.project
             )
             saved_sampling_setting = project_option.value
-            serializer = DynamicSamplingSerializer(data=saved_sampling_setting)
+            serializer = DynamicSamplingSerializer(
+                data=saved_sampling_setting,
+                partial=True,
+                context={"project": self.project, "request": self.make_request(user=self.user)},
+            )
             assert serializer.is_valid()
             assert len(serializer.validated_data["rules"]) == 1
             assert saved_sampling_setting == serializer.validated_data
@@ -354,7 +366,11 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
                 key="sentry:dynamic_sampling", project=self.project
             )
             saved_sampling_setting = project_option.value
-            serializer = DynamicSamplingSerializer(data=saved_sampling_setting)
+            serializer = DynamicSamplingSerializer(
+                data=saved_sampling_setting,
+                partial=True,
+                context={"project": self.project, "request": self.make_request(user=self.user)},
+            )
             assert serializer.is_valid()
             assert len(serializer.validated_data["rules"]) == 1
             assert saved_sampling_setting == serializer.validated_data
@@ -440,7 +456,11 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
                 key="sentry:dynamic_sampling", project=self.project
             )
             saved_sampling_setting = project_option.value
-            serializer = DynamicSamplingSerializer(data=saved_sampling_setting)
+            serializer = DynamicSamplingSerializer(
+                data=saved_sampling_setting,
+                partial=True,
+                context={"project": self.project, "request": self.make_request(user=self.user)},
+            )
             assert serializer.is_valid()
             assert len(serializer.validated_data["rules"]) == 2
             assert saved_sampling_setting == serializer.validated_data
