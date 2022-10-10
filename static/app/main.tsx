@@ -21,7 +21,6 @@ function renderRouter(props: any) {
   );
 }
 
-// Create a client to our app
 const queryClient = new QueryClient();
 
 function Main() {

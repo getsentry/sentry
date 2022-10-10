@@ -157,7 +157,11 @@ export function getMockInitializeOrg({
     ...initializeOrg(),
     organization: {
       ...initializeOrg().organization,
-      features: ['server-side-sampling', 'server-side-sampling-ui'],
+      features: [
+        'server-side-sampling',
+        'server-side-sampling-ui',
+        'dynamic-sampling-basic',
+      ],
       access: access ?? initializeOrg().organization.access,
       projects,
     },

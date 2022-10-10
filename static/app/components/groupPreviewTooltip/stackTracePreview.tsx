@@ -1,28 +1,27 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import StackTraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
 import StackTraceContentV2 from 'sentry/components/events/interfaces/crashContent/stackTrace/contentV2';
 import StackTraceContentV3 from 'sentry/components/events/interfaces/crashContent/stackTrace/contentV3';
+import findBestThread from 'sentry/components/events/interfaces/threads/threadSelector/findBestThread';
+import getThreadStacktrace from 'sentry/components/events/interfaces/threads/threadSelector/getThreadStacktrace';
 import {isStacktraceNewestFirst} from 'sentry/components/events/interfaces/utils';
 import {Body, Hovercard} from 'sentry/components/hovercard';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, PlatformType} from 'sentry/types';
+import {PlatformType} from 'sentry/types';
 import {EntryType, Event} from 'sentry/types/event';
 import {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {isNativePlatform} from 'sentry/utils/platform';
 import useApi from 'sentry/utils/useApi';
-
-import findBestThread from './events/interfaces/threads/threadSelector/findBestThread';
-import getThreadStacktrace from './events/interfaces/threads/threadSelector/getThreadStacktrace';
+import useOrganization from 'sentry/utils/useOrganization';
 
 const REQUEST_DELAY = 100;
 const HOVERCARD_CONTENT_DELAY = 400;
-
-export const STACKTRACE_PREVIEW_TOOLTIP_DELAY = 1000;
 
 function getStacktrace(event: Event): StacktraceType | null {
   const exceptionsWithStacktrace =
@@ -102,8 +101,6 @@ function StackTracePreviewContent({
 type StackTracePreviewProps = {
   children: React.ReactNode;
   issueId: string;
-  organization: Organization;
-  className?: string;
   eventId?: string;
   groupingCurrentLevel?: number;
   projectSlug?: string;
@@ -111,6 +108,7 @@ type StackTracePreviewProps = {
 
 function StackTracePreview(props: StackTracePreviewProps): React.ReactElement {
   const api = useApi();
+  const organization = useOrganization();
 
   const [loadingVisible, setLoadingVisible] = useState<boolean>(false);
   const [status, setStatus] = useState<'loading' | 'loaded' | 'error'>('loading');
@@ -145,7 +143,7 @@ function StackTracePreview(props: StackTracePreviewProps): React.ReactElement {
     try {
       const evt = await api.requestPromise(
         props.eventId && props.projectSlug
-          ? `/projects/${props.organization.slug}/${props.projectSlug}/events/${props.eventId}/`
+          ? `/projects/${organization.slug}/${props.projectSlug}/events/${props.eventId}/`
           : `/issues/${props.issueId}/events/latest/?collapse=stacktraceOnly`
       );
       window.clearTimeout(loaderTimeoutRef.current);
@@ -158,14 +156,7 @@ function StackTracePreview(props: StackTracePreviewProps): React.ReactElement {
       setStatus('error');
       setLoadingVisible(false);
     }
-  }, [
-    event,
-    api,
-    props.organization.slug,
-    props.projectSlug,
-    props.eventId,
-    props.issueId,
-  ]);
+  }, [event, api, organization.slug, props.projectSlug, props.eventId, props.issueId]);
 
   const handleMouseEnter = useCallback(() => {
     window.clearTimeout(delayTimeoutRef.current);
@@ -187,12 +178,16 @@ function StackTracePreview(props: StackTracePreviewProps): React.ReactElement {
 
   const stacktrace = useMemo(() => (event ? getStacktrace(event) : null), [event]);
 
+  const hasGroupingStacktraceUI = organization.features.includes(
+    'grouping-stacktrace-ui'
+  );
+
   return (
-    <span
-      className={props.className}
+    <Wrapper
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       data-testid="stacktrace-preview"
+      hasGroupingStacktraceUI={hasGroupingStacktraceUI}
     >
       <StacktraceHovercard
         body={
@@ -214,7 +209,7 @@ function StackTracePreview(props: StackTracePreviewProps): React.ReactElement {
                 event={event}
                 stacktrace={stacktrace}
                 groupingCurrentLevel={props.groupingCurrentLevel}
-                orgFeatures={props.organization.features}
+                orgFeatures={organization.features}
               />
             </div>
           )
@@ -233,11 +228,26 @@ function StackTracePreview(props: StackTracePreviewProps): React.ReactElement {
       >
         {props.children}
       </StacktraceHovercard>
-    </span>
+    </Wrapper>
   );
 }
 
 export {StackTracePreview};
+
+const Wrapper = styled('span')<{
+  hasGroupingStacktraceUI: boolean;
+}>`
+  ${p =>
+    p.hasGroupingStacktraceUI &&
+    css`
+      display: inline-flex;
+      overflow: hidden;
+      height: 100%;
+      > span:first-child {
+        ${p.theme.overflowEllipsis}
+      }
+    `}
+`;
 
 const StacktraceHovercard = styled(Hovercard)<{state: 'loading' | 'empty' | 'done'}>`
   /* Lower z-index to match the modals (10000 vs 10002) to allow stackTraceLinkModal be on top of stack trace preview. */

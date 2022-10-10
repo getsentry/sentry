@@ -88,7 +88,9 @@ export function UniformRateModal({
     undefined
   );
   const [activeStep, setActiveStep] = useState<Step | undefined>(undefined);
-  const [selectedStrategy, setSelectedStrategy] = useState<Strategy>(Strategy.CURRENT);
+  const [selectedStrategy, setSelectedStrategy] = useState<Strategy>(
+    Strategy.RECOMMENDED
+  );
 
   const modalStore = useLegacyStore(ModalStore);
 

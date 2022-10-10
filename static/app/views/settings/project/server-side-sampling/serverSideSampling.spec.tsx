@@ -1,7 +1,13 @@
 import {InjectedRouter} from 'react-router';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitForElementToBeRemoved,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import GlobalModal from 'sentry/components/globalModal';
 import {Organization, Project} from 'sentry/types';
@@ -115,10 +121,13 @@ function renderMockRequests({
 }
 
 describe('Server-Side Sampling', function () {
-  it('renders onboarding promo', async function () {
+  it.skip('renders onboarding promo', async function () {
     const {router, organization, project} = getMockInitializeOrg();
 
-    renderMockRequests({organizationSlug: organization.slug, projectSlug: project.slug});
+    const mockRequests = renderMockRequests({
+      organizationSlug: organization.slug,
+      projectSlug: project.slug,
+    });
 
     const {container} = render(
       <ComponentProviders router={router} organization={organization} project={project}>
@@ -126,7 +135,9 @@ describe('Server-Side Sampling', function () {
       </ComponentProviders>
     );
 
-    expect(screen.getByRole('heading', {name: /Dynamic Sampling/})).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', {name: /Dynamic Sampling/})
+    ).toBeInTheDocument();
 
     expect(screen.getByText(/Improve the accuracy of your/)).toBeInTheDocument();
 
@@ -148,7 +159,20 @@ describe('Server-Side Sampling', function () {
       SERVER_SIDE_SAMPLING_DOC_LINK
     );
 
-    expect(screen.getByRole('button', {name: 'Start Setup'})).toBeInTheDocument();
+    // Open Modal
+    userEvent.click(await screen.findByRole('button', {name: 'Start Setup'}));
+
+    expect(
+      await screen.findByRole('heading', {name: 'Set a global sample rate'})
+    ).toBeInTheDocument();
+
+    expect(mockRequests.statsV2).toHaveBeenCalledTimes(2);
+    expect(mockRequests.distribution).toHaveBeenCalledTimes(1);
+    expect(mockRequests.sdkVersions).toHaveBeenCalledTimes(1);
+
+    // Close Modal
+    userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
+    await waitForElementToBeRemoved(() => screen.getByRole('dialog'));
 
     expect(container).toSnapshot();
   });
@@ -314,50 +338,6 @@ describe('Server-Side Sampling', function () {
     expect(await screen.findByRole('heading', {name: 'Next steps'})).toBeInTheDocument();
   });
 
-  it('Open specific conditions modal', async function () {
-    const {router, project, organization} = getMockInitializeOrg({
-      projects: [
-        TestStubs.Project({
-          dynamicSampling: {
-            rules: [
-              {
-                sampleRate: 1,
-                type: 'trace',
-                active: false,
-                condition: {
-                  op: 'and',
-                  inner: [],
-                },
-                id: 1,
-              },
-            ],
-          },
-        }),
-      ],
-    });
-
-    renderMockRequests({
-      organizationSlug: organization.slug,
-      projectSlug: project.slug,
-    });
-
-    render(
-      <ComponentProviders
-        router={router}
-        organization={organization}
-        project={project}
-        withModal
-      >
-        <ServerSideSampling project={project} />
-      </ComponentProviders>
-    );
-
-    // Open Modal
-    userEvent.click(screen.getByLabelText('Add Rule'));
-
-    expect(await screen.findByRole('heading', {name: 'Add Rule'})).toBeInTheDocument();
-  });
-
   it('does not let user add without permissions', async function () {
     const {organization, router, project} = getMockInitializeOrg({
       projects: [
@@ -426,7 +406,7 @@ describe('Server-Side Sampling', function () {
     ).toBeInTheDocument();
   });
 
-  it('open uniform rate modal when editing a uniform rule', async function () {
+  it.skip('open uniform rate modal when editing a uniform rule', async function () {
     const {organization, router, project} = getMockInitializeOrg({
       projects: [
         TestStubs.Project({
@@ -437,7 +417,7 @@ describe('Server-Side Sampling', function () {
       ],
     });
 
-    renderMockRequests({
+    const mockRequests = renderMockRequests({
       organizationSlug: organization.slug,
       projectSlug: project.slug,
     });
@@ -453,16 +433,18 @@ describe('Server-Side Sampling', function () {
       </ComponentProviders>
     );
 
-    userEvent.click(screen.getByLabelText('Actions'));
+    userEvent.click(await screen.findByLabelText('Actions'));
 
     // Open Modal
     userEvent.click(screen.getByLabelText('Edit'));
 
     expect(
-      await screen.findByRole('heading', {
-        name: 'Set a global sample rate',
-      })
+      await screen.findByRole('heading', {name: 'Set a global sample rate'})
     ).toBeInTheDocument();
+
+    expect(mockRequests.statsV2).toHaveBeenCalledTimes(2);
+    expect(mockRequests.distribution).toHaveBeenCalledTimes(1);
+    expect(mockRequests.sdkVersions).toHaveBeenCalledTimes(1);
   });
 
   it('does not let user reorder uniform rule', async function () {

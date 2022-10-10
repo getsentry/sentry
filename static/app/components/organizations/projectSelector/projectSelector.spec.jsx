@@ -1,6 +1,12 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 
 import ProjectSelector from 'sentry/components/organizations/projectSelector';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 
 describe('ProjectSelector', function () {
   const testProject = TestStubs.Project({
@@ -33,6 +39,8 @@ describe('ProjectSelector', function () {
   }
 
   const props = {
+    customDropdownButton: () => 'Project Picker',
+    customLoadingIndicator: () => 'Loading...',
     isGlobalSelectionReady: true,
     organization: mockOrg,
     memberProjects: [testProject, anotherProject],
@@ -356,5 +364,90 @@ describe('ProjectSelector', function () {
     expect(resortedProjectLabels[0]).toHaveTextContent(projectBBookmarked.slug);
     expect(resortedProjectLabels[1]).toHaveTextContent(projectA.slug);
     expect(resortedProjectLabels[2]).toHaveTextContent(projectDSelected.slug);
+  });
+
+  it('can select all projects when role=owner', function () {
+    const mockOnApplyChange = jest.fn();
+    render(
+      <ProjectSelector
+        {...props}
+        nonMemberProjects={[anotherProject]}
+        organization={{...mockOrg, role: 'owner'}}
+        onApplyChange={mockOnApplyChange}
+      />,
+      {context: routerContext}
+    );
+
+    openMenu();
+
+    userEvent.click(screen.getByRole('button', {name: 'Select All Projects'}));
+
+    expect(mockOnApplyChange).toHaveBeenCalledTimes(1);
+    expect(mockOnApplyChange).toHaveBeenCalledWith([ALL_ACCESS_PROJECTS]);
+  });
+
+  it('can select all projects when role=manager', function () {
+    const mockOnApplyChange = jest.fn();
+    render(
+      <ProjectSelector
+        {...props}
+        nonMemberProjects={[anotherProject]}
+        organization={{...mockOrg, role: 'manager'}}
+        onApplyChange={mockOnApplyChange}
+      />,
+      {context: routerContext}
+    );
+
+    openMenu();
+
+    userEvent.click(screen.getByRole('button', {name: 'Select All Projects'}));
+
+    expect(mockOnApplyChange).toHaveBeenCalledTimes(1);
+    expect(mockOnApplyChange).toHaveBeenCalledWith([ALL_ACCESS_PROJECTS]);
+  });
+
+  it('can select all projects when org has open membership', function () {
+    const mockOnApplyChange = jest.fn();
+    render(
+      <ProjectSelector
+        {...props}
+        nonMemberProjects={[anotherProject]}
+        organization={{...mockOrg, features: [...mockOrg.features, 'open-membership']}}
+        onApplyChange={mockOnApplyChange}
+      />,
+      {context: routerContext}
+    );
+
+    openMenu();
+
+    userEvent.click(screen.getByRole('button', {name: 'Select All Projects'}));
+
+    expect(mockOnApplyChange).toHaveBeenCalledTimes(1);
+    expect(mockOnApplyChange).toHaveBeenCalledWith([ALL_ACCESS_PROJECTS]);
+  });
+
+  it('can select all projects after first selecting a project', async function () {
+    const mockOnApplyChange = jest.fn();
+    render(
+      <ProjectSelector
+        {...props}
+        nonMemberProjects={[anotherProject]}
+        organization={{...mockOrg, role: 'manager'}}
+        onApplyChange={mockOnApplyChange}
+      />,
+      {context: routerContext}
+    );
+
+    openMenu();
+
+    // Check the first project
+    userEvent.click(screen.getByRole('checkbox', {name: testProject.slug}));
+
+    userEvent.click(screen.getByRole('button', {name: 'Select All Projects'}));
+
+    // Menu should close and all projects should be selected, not previously selected project
+    await waitForElementToBeRemoved(() => screen.getByRole('listbox'));
+    expect(mockOnApplyChange).toHaveBeenCalledTimes(1);
+    expect(mockOnApplyChange).toHaveBeenCalledWith([ALL_ACCESS_PROJECTS]);
   });
 });
