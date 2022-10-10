@@ -541,7 +541,10 @@ export function ServerSideSampling({project}: Props) {
           />
         )}
 
-        <SamplingFromOtherProject orgSlug={organization.slug} />
+        <SamplingFromOtherProject
+          orgSlug={organization.slug}
+          projectSlug={project.slug}
+        />
 
         {hasAccess && <SamplingBreakdown orgSlug={organization.slug} />}
         {!rules.length ? (

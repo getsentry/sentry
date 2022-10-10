@@ -107,7 +107,7 @@ export type SamplingDistribution = {
     | {
         percentage: number;
         project: string;
-        project_id: number;
+        projectId: number;
       }[];
   projectBreakdown:
     | null

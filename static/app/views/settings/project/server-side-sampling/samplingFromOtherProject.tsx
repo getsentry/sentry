@@ -5,7 +5,7 @@ import Button from 'sentry/components/button';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
 import useProjects from 'sentry/utils/useProjects';
 
 import {useDistribution} from './utils/useDistribution';
@@ -13,9 +13,10 @@ import {SERVER_SIDE_SAMPLING_DOC_LINK} from './utils';
 
 type Props = {
   orgSlug: Organization['slug'];
+  projectSlug: Project['slug'];
 };
 
-export function SamplingFromOtherProject({orgSlug}: Props) {
+export function SamplingFromOtherProject({orgSlug, projectSlug}: Props) {
   const {distribution, loading} = useDistribution();
 
   const {projects} = useProjects({
@@ -23,7 +24,9 @@ export function SamplingFromOtherProject({orgSlug}: Props) {
     orgId: orgSlug,
   });
 
-  if (loading || projects.length === 0) {
+  const otherProjects = projects.filter(project => project.slug !== projectSlug);
+
+  if (loading || otherProjects.length === 0) {
     return null;
   }
 
@@ -45,10 +48,10 @@ export function SamplingFromOtherProject({orgSlug}: Props) {
       {tn(
         'The following project made sampling decisions for this project. You might want to set up rules there.',
         'The following projects made sampling decisions for this project. You might want to set up rules there.',
-        projects.length
+        otherProjects.length
       )}
       <Projects>
-        {projects.map(project => (
+        {otherProjects.map(project => (
           <ProjectBadge
             key={project.id}
             project={project}
