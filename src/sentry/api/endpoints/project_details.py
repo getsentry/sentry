@@ -148,8 +148,8 @@ class DynamicSamplingSerializer(serializers.Serializer):
             if (
                 features.has(
                     "organizations:dynamic-sampling-demo",
-                    self.context.get("project", {}).organization,
-                    actor=self.context.get("request", {}).user,
+                    self.context["project"].organization,
+                    actor=self.context["request"].user,
                 )
                 is False
             ):
