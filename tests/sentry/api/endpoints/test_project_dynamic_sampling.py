@@ -381,8 +381,8 @@ class ProjectDynamicSamplingDistributionQueryCallsTest(APITestCase):
 
             response_data = response.json()
             assert response_data["projectBreakdown"] == [
-                {"project_id": self.project.id, "project": self.project.slug, "count()": 2},
-                {"project_id": heart.id, "project": heart.slug, "count()": 1},
+                {"projectId": self.project.id, "project": self.project.slug, "count()": 2},
+                {"projectId": heart.id, "project": heart.slug, "count()": 1},
             ]
             assert response_data["parentProjectBreakdown"] == [
                 {"project": self.project.slug, "projectId": self.project.id, "percentage": 1.0}
@@ -503,8 +503,8 @@ class ProjectDynamicSamplingDistributionQueryCallsTest(APITestCase):
 
             response_data = response.json()
             assert response_data["projectBreakdown"] == [
-                {"project_id": self.project.id, "project": self.project.slug, "count()": 1},
-                {"project_id": heart.id, "project": heart.slug, "count()": 1},
+                {"projectId": self.project.id, "project": self.project.slug, "count()": 1},
+                {"projectId": heart.id, "project": heart.slug, "count()": 1},
             ]
             assert response_data["parentProjectBreakdown"] == [
                 {"project": self.project.slug, "projectId": self.project.id, "percentage": 0.5},
@@ -684,7 +684,7 @@ class ProjectDynamicSamplingDistributionQueryCallsTest(APITestCase):
             )
             response_data = response.json()
             assert response_data["projectBreakdown"] == [
-                {"project_id": self.project.id, "project": self.project.slug, "count()": 2},
+                {"projectId": self.project.id, "project": self.project.slug, "count()": 2},
             ]
             assert response_data["parentProjectBreakdown"] == [
                 {"project": self.project.slug, "projectId": self.project.id, "percentage": 1.0}
@@ -792,7 +792,7 @@ class ProjectDynamicSamplingDistributionQueryCallsTest(APITestCase):
             )
             response_data = response.json()
             assert response_data["projectBreakdown"] == [
-                {"project_id": self.project.id, "project": self.project.slug, "count()": 2},
+                {"projectId": self.project.id, "project": self.project.slug, "count()": 2},
             ]
             assert response_data["parentProjectBreakdown"] == [
                 {"project": self.project.slug, "projectId": self.project.id, "percentage": 1.0}
@@ -886,8 +886,8 @@ class ProjectDynamicSamplingDistributionIntegrationTest(SnubaTestCase, APITestCa
             response_data = response.json()
             assert sorted(response_data["projectBreakdown"], key=itemgetter("project")) == sorted(
                 [
-                    {"project_id": self.project.id, "project": self.project.slug, "count()": 1},
-                    {"project_id": heart.id, "project": heart.slug, "count()": 1},
+                    {"projectId": self.project.id, "project": self.project.slug, "count()": 1},
+                    {"projectId": heart.id, "project": heart.slug, "count()": 1},
                 ],
                 key=itemgetter("project"),
             )
@@ -953,8 +953,8 @@ class ProjectDynamicSamplingDistributionIntegrationTest(SnubaTestCase, APITestCa
             response_data = response.json()
             assert sorted(response_data["projectBreakdown"], key=itemgetter("project")) == sorted(
                 [
-                    {"project_id": self.project.id, "project": self.project.slug, "count()": 1},
-                    {"project_id": heart.id, "project": heart.slug, "count()": 1},
+                    {"projectId": self.project.id, "project": self.project.slug, "count()": 1},
+                    {"projectId": heart.id, "project": heart.slug, "count()": 1},
                 ],
                 key=itemgetter("project"),
             )
@@ -1064,7 +1064,7 @@ class ProjectDynamicSamplingDistributionIntegrationTest(SnubaTestCase, APITestCa
             response_data = response.json()
             assert sorted(response_data["projectBreakdown"], key=itemgetter("project")) == sorted(
                 # count is 3 because we set requested_sample_size = 3
-                [{"project_id": self.project.id, "project": self.project.slug, "count()": 3}],
+                [{"projectId": self.project.id, "project": self.project.slug, "count()": 3}],
                 key=itemgetter("project"),
             )
             assert sorted(
@@ -1116,8 +1116,8 @@ class ProjectDynamicSamplingDistributionIntegrationTest(SnubaTestCase, APITestCa
             response_data = response.json()
             assert sorted(response_data["projectBreakdown"], key=itemgetter("project")) == sorted(
                 [
-                    {"project_id": self.project.id, "project": self.project.slug, "count()": 1},
-                    {"project_id": heart.id, "project": heart.slug, "count()": 1},
+                    {"projectId": self.project.id, "project": self.project.slug, "count()": 1},
+                    {"projectId": heart.id, "project": heart.slug, "count()": 1},
                 ],
                 key=itemgetter("project"),
             )
