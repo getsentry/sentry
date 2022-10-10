@@ -31,6 +31,7 @@ import {
 import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useRoutes} from 'sentry/utils/useRoutes';
 import withProjects from 'sentry/utils/withProjects';
 import {Actions, updateQuery} from 'sentry/views/eventsV2/table/cellAction';
 import {TableColumn} from 'sentry/views/eventsV2/table/types';
@@ -92,6 +93,8 @@ function SummaryContent({
   transactionName,
   onChangeFilter,
 }: Props) {
+  const routes = useRoutes();
+
   const useAggregateAlias = !organization.features.includes(
     'performance-frontend-use-events-endpoint'
   );
@@ -215,7 +218,7 @@ function SummaryContent({
   ];
 
   if (organization.features.includes('session-replay-ui')) {
-    transactionsListTitles.push(t('replay id'));
+    transactionsListTitles.push(t('replayid'));
   }
 
   let transactionsListEventView = eventView.clone();
@@ -330,7 +333,7 @@ function SummaryContent({
           generateLink={{
             id: generateTransactionLink(transactionName),
             trace: generateTraceLink(eventView.normalizeDateSelection(location)),
-            replayId: generateReplayLink(),
+            replayId: generateReplayLink(routes),
           }}
           handleCellAction={handleCellAction}
           {...getTransactionsListSort(location, {
