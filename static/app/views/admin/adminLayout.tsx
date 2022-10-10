@@ -7,7 +7,7 @@ import {BreadcrumbProvider} from 'sentry/views/settings/components/settingsBread
 import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
 import SettingsNavigation from 'sentry/views/settings/components/settingsNavigation';
 
-const AdminNavigation = () => (
+const renderAdminNavigation = () => (
   <SettingsNavigation
     stickyTop="0"
     navigationObjects={[
@@ -46,7 +46,7 @@ function AdminLayout({children, ...props}: Props) {
     <SentryDocumentTitle noSuffix title={t('Sentry Admin')}>
       <Page>
         <BreadcrumbProvider>
-          <SettingsLayout renderNavigation={AdminNavigation} {...props}>
+          <SettingsLayout renderNavigation={renderAdminNavigation} {...props}>
             {children}
           </SettingsLayout>
         </BreadcrumbProvider>
