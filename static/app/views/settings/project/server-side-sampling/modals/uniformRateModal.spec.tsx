@@ -32,7 +32,7 @@ function renderMockRequests({
     url: `/organizations/${organizationSlug}/projects/`,
     method: 'GET',
     body: mockedSamplingDistribution.projectBreakdown!.map(p =>
-      TestStubs.Project({id: p.project_id, slug: p.project})
+      TestStubs.Project({id: p.projectId, slug: p.project})
     ),
   });
 }
