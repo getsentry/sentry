@@ -18,7 +18,7 @@ import {Panel, PanelFooter, PanelHeader} from 'sentry/components/panels';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import ProjectStore from 'sentry/stores/projectsStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import {
@@ -72,6 +72,7 @@ export function ServerSideSampling({project}: Props) {
   const api = useApi();
 
   const hasAccess = organization.access.includes('project:write');
+  const canDemo = organization.features.includes('dynamic-sampling-demo');
   const currentRules = project.dynamicSampling?.rules;
 
   const previousRules = usePrevious(currentRules);
@@ -188,7 +189,7 @@ export function ServerSideSampling({project}: Props) {
           `/projects/${organization.slug}/${project.slug}/`,
           {method: 'PUT', data: {dynamicSampling: {rules: newRules}}}
         );
-        ProjectStore.onUpdateSuccess(response);
+        ProjectsStore.onUpdateSuccess(response);
         addSuccessMessage(
           rule
             ? t('Successfully edited sampling rule')
@@ -331,7 +332,7 @@ export function ServerSideSampling({project}: Props) {
           data: {dynamicSampling: {rules: newRules}},
         }
       );
-      ProjectStore.onUpdateSuccess(result);
+      ProjectsStore.onUpdateSuccess(result);
       addSuccessMessage(t('Successfully updated the sampling rule'));
     } catch (error) {
       const message = t('Unable to update the sampling rule');
@@ -401,7 +402,7 @@ export function ServerSideSampling({project}: Props) {
           data: {dynamicSampling: {rules: sortedRules}},
         }
       );
-      ProjectStore.onUpdateSuccess(result);
+      ProjectsStore.onUpdateSuccess(result);
       addSuccessMessage(t('Successfully sorted sampling rules'));
     } catch (error) {
       setRules(previousRules ?? []);
@@ -430,7 +431,7 @@ export function ServerSideSampling({project}: Props) {
           data: {dynamicSampling: {rules: rules.filter(({id}) => id !== rule.id)}},
         }
       );
-      ProjectStore.onUpdateSuccess(result);
+      ProjectsStore.onUpdateSuccess(result);
       addSuccessMessage(t('Successfully deleted sampling rule'));
     } catch (error) {
       const message = t('Unable to delete sampling rule');
@@ -593,6 +594,7 @@ export function ServerSideSampling({project}: Props) {
                             : `${samplingProjectSettingsPath}rules/${currentRule.id}/`
                         );
                       }}
+                      canDemo={canDemo}
                       onDeleteRule={() => handleDeleteRule(currentRule)}
                       onActivate={() => handleActivateToggle(currentRule)}
                       noPermission={!hasAccess}

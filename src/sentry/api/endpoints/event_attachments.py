@@ -1,3 +1,4 @@
+from django.db.models import Q
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -42,6 +43,12 @@ class EventAttachmentsEndpoint(ProjectEndpoint):
                 if key == "query":
                     value = " ".join(value)
                     queryset = queryset.filter(name__icontains=value)
+                elif key == "is":
+                    value = " ".join(value)
+                    if value in ["screenshot"]:
+                        queryset = queryset.filter(
+                            Q(name="screenshot.jpg") | Q(name="screenshot.png")
+                        )
                 else:
                     queryset = queryset.none()
 
