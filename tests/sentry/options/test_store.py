@@ -32,7 +32,7 @@ class OptionsStoreTest(TestCase):
     def test_simple(self):
         store, key = self.store, self.key
 
-        assert store.get(key) == ""
+        assert store.get(key) is None
         assert store.set(key, "bar")
         assert store.get(key) == "bar"
         assert store.delete(key)
@@ -41,7 +41,7 @@ class OptionsStoreTest(TestCase):
         store = OptionsStore(cache=None)
         key = self.key
 
-        assert store.get(key) == ""
+        assert store.get(key) is None
 
         with pytest.raises(AssertionError):
             store.set(key, "bar")
