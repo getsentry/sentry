@@ -1,6 +1,6 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {mountGlobalModal} from 'sentry-test/modal';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import GlobalModal from 'sentry/components/globalModal';
 import ProjectTags from 'sentry/views/settings/projectTags';
 
 describe('ProjectTags', function () {
@@ -23,11 +23,11 @@ describe('ProjectTags', function () {
   });
 
   it('renders', function () {
-    const wrapper = mountWithTheme(
+    const {container} = render(
       <ProjectTags params={{orgId: org.slug, projectId: project.slug}} />
     );
 
-    expect(wrapper).toSnapshot();
+    expect(container).toSnapshot();
   });
 
   it('renders empty', function () {
@@ -38,11 +38,8 @@ describe('ProjectTags', function () {
       body: [],
     });
 
-    const wrapper = mountWithTheme(
-      <ProjectTags params={{orgId: org.slug, projectId: project.slug}} />
-    );
-
-    expect(wrapper.find('EmptyMessage')).toHaveLength(1);
+    render(<ProjectTags params={{orgId: org.slug, projectId: project.slug}} />);
+    expect(screen.getByTestId('empty-message')).toBeInTheDocument();
   });
 
   it('disables delete button for users without access', function () {
@@ -50,30 +47,31 @@ describe('ProjectTags', function () {
       organization: TestStubs.Organization({access: []}),
     };
 
-    const wrapper = mountWithTheme(
-      <ProjectTags params={{orgId: org.slug, projectId: project.slug}} />,
-      TestStubs.routerContext([context])
-    );
+    render(<ProjectTags params={{orgId: org.slug, projectId: project.slug}} />, {
+      context: TestStubs.routerContext([context]),
+    });
 
-    expect(wrapper.find('Button[disabled=false]')).toHaveLength(0);
+    screen
+      .getAllByRole('button', {name: 'Remove tag'})
+      .forEach(button => expect(button).toBeDisabled());
   });
 
   it('deletes tag', async function () {
-    const wrapper = mountWithTheme(
-      <ProjectTags params={{orgId: org.slug, projectId: project.slug}} />
-    );
+    render(<ProjectTags params={{orgId: org.slug, projectId: project.slug}} />);
 
-    const tags = wrapper.state('tags').length;
+    // First tag exists
+    const tagCount = screen.getAllByTestId('tag-row').length;
 
-    wrapper.find('button[data-test-id="delete"]').first().simulate('click');
+    // Remove the first tag
+    userEvent.click(screen.getAllByRole('button', {name: 'Remove tag'})[0]);
 
     // Press confirm in modal
-    const modal = await mountGlobalModal();
-    modal.find('Button[priority="primary"]').simulate('click');
+    render(<GlobalModal />);
+    userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
-    await tick(); // Wait for the handleDelete function
-    wrapper.update();
-
-    expect(wrapper.state('tags')).toHaveLength(tags - 1);
+    // Wait for the tag to have been removed in the store
+    await waitFor(() =>
+      expect(screen.getAllByTestId('tag-row')).toHaveLength(tagCount - 1)
+    );
   });
 });
