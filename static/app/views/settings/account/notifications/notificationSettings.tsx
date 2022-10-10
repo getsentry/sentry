@@ -168,9 +168,11 @@ class NotificationSettings extends AsyncComponent<Props, State> {
         fields.push(field);
       }
     }
+
     const legacyField = SELF_NOTIFICATION_SETTINGS_TYPES.map(
       type => NOTIFICATION_SETTING_FIELDS[type] as FieldObject
     );
+
     fields.push(...legacyField);
 
     const allFields = [...fields, ...endOfFields];
