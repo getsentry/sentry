@@ -1,9 +1,8 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectPluginRow from 'sentry/views/settings/projectPlugins/projectPluginRow';
 
 describe('ProjectPluginRow', function () {
-  let wrapper;
   const plugin = TestStubs.Plugin();
   const org = TestStubs.Organization({access: ['project:write']});
   const project = TestStubs.Project();
@@ -11,35 +10,43 @@ describe('ProjectPluginRow', function () {
   const routerContext = TestStubs.routerContext([{organization: org, project}]);
 
   it('renders', function () {
-    wrapper = mountWithTheme(
+    const {container} = render(
       <ProjectPluginRow {...params} {...plugin} project={project} />,
-      routerContext
+      {
+        context: routerContext,
+      }
     );
 
-    expect(wrapper).toSnapshot();
+    expect(container).toSnapshot();
   });
 
   it('calls `onChange` when clicked', function () {
     const onChange = jest.fn();
-    wrapper = mountWithTheme(
+
+    render(
       <ProjectPluginRow {...params} {...plugin} onChange={onChange} project={project} />,
-      routerContext
+      {context: routerContext}
     );
 
-    expect(onChange).not.toHaveBeenCalled();
-    wrapper.find('Switch').simulate('click');
+    userEvent.click(screen.getByRole('checkbox'));
+
     expect(onChange).toHaveBeenCalledWith('amazon-sqs', true);
   });
 
   it('can not enable/disable or configure plugin without `project:write`', function () {
     const onChange = jest.fn();
-    wrapper = mountWithTheme(
+
+    render(
       <ProjectPluginRow {...params} {...plugin} onChange={onChange} project={project} />,
-      TestStubs.routerContext([{organization: TestStubs.Organization({access: []})}])
+      {
+        context: TestStubs.routerContext([
+          {organization: TestStubs.Organization({access: []})},
+        ]),
+      }
     );
 
-    expect(onChange).not.toHaveBeenCalled();
-    wrapper.find('Switch').simulate('click');
+    userEvent.click(screen.getByRole('checkbox'));
+
     expect(onChange).not.toHaveBeenCalled();
   });
 });
