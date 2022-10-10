@@ -1,7 +1,6 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
-import {Plugin} from 'sentry/types';
 import ProjectPluginDetailsContainer, {
   ProjectPluginDetails,
 } from 'sentry/views/settings/projectPlugins/details';
@@ -74,7 +73,7 @@ describe('ProjectPluginDetails', function () {
       <ProjectPluginDetails
         organization={organization}
         project={project}
-        plugins={{plugins: TestStubs.Plugins() as Plugin[]}}
+        plugins={{plugins}}
         params={{
           orgId: organization.slug,
           projectId: project.slug,
@@ -102,7 +101,7 @@ describe('ProjectPluginDetails', function () {
       <ProjectPluginDetailsContainer
         organization={organization}
         project={project}
-        plugins={{plugins: TestStubs.Plugins() as Plugin[]}}
+        plugins={{plugins}}
         params={{
           orgId: organization.slug,
           projectId: project.slug,
