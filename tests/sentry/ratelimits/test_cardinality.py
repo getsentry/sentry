@@ -5,23 +5,24 @@ import pytest
 from sentry.ratelimits.cardinality import (
     GrantedQuota,
     Quota,
+    RedisBlasterBackend,
     RedisCardinalityLimiter,
+    RedisClusterBackend,
     RequestedQuota,
 )
 from sentry.utils import redis
 
 
-@pytest.fixture(params=["cluster", "rb"])
-def limiter(request):
+@pytest.fixture(params=["cluster", "rb", "rb_many"])
+def limiter(request, settings):
     instance = RedisCardinalityLimiter()
     if request.param == "rb":
-        instance.is_redis_cluster = False
-        instance.client = redis.clusters.get("default")
-    else:
-        instance.is_redis_cluster = True
-        instance.client = redis.redis_clusters.get("default")
+        instance.backend = RedisBlasterBackend(redis.clusters.get("default"))
+        yield instance
 
-    return instance
+    else:
+        instance.backend = RedisClusterBackend(redis.redis_clusters.get("default"))
+        yield instance
 
 
 class LimiterHelper:

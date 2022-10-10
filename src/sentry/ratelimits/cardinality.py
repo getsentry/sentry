@@ -1,4 +1,5 @@
 import time
+from abc import ABC, abstractmethod
 from collections import defaultdict
 from typing import Collection, Iterator, List, Mapping, NamedTuple, Optional, Sequence, Tuple
 
@@ -230,14 +231,12 @@ class RedisCardinalityLimiter(CardinalityLimiter):
             is a sampling rate, the lower it is, the less precise accounting
             will be.
         """
-        self.is_redis_cluster, self.client, _ = redis.get_dynamic_cluster_from_options(
+        is_redis_cluster, client, _ = redis.get_dynamic_cluster_from_options(
             "", {"cluster": cluster}
         )
 
-        self.helper: RedisHelper = (
-            RedisClusterHelper(self.client)
-            if self.is_redis_cluster
-            else RedisBlasterHelper(self.client)
+        self.backend: RedisBackend = (
+            RedisClusterBackend(client) if is_redis_cluster else RedisBlasterBackend(client)
         )
 
         assert 0 < num_physical_shards <= num_shards
@@ -245,9 +244,6 @@ class RedisCardinalityLimiter(CardinalityLimiter):
         self.num_physical_shards = num_physical_shards
         self.metric_tags = metric_tags or {}
         super().__init__()
-
-    def validate(self) -> None:
-        redis.validate_dynamic_cluster(self.is_redis_cluster, self.client)
 
     @staticmethod
     def _get_timeseries_key(request: RequestedQuota, hash: Hash) -> str:
@@ -303,7 +299,7 @@ class RedisCardinalityLimiter(CardinalityLimiter):
                 for request in requests
             ]
 
-        unit_keys, set_counts = self.helper.run_check_within_quotas(
+        unit_keys, set_counts = self.backend.run_check_within_quotas(
             unit_keys_to_get, set_keys_to_count
         )
 
@@ -384,25 +380,27 @@ class RedisCardinalityLimiter(CardinalityLimiter):
             # enforce), we can save the redis call entirely.
             return
 
-        self.helper.run_use_quotas(unit_keys_to_set, set_keys_to_add, set_keys_ttl)
+        self.backend.run_use_quotas(unit_keys_to_set, set_keys_to_add, set_keys_ttl)
 
 
-class RedisHelper:
+class RedisBackend(ABC):
+    @abstractmethod
     def run_check_within_quotas(
         self, unit_keys_to_get: Sequence[str], set_keys_to_count: Sequence[str]
     ) -> Tuple[Mapping[str, int], Mapping[str, int]]:
-        raise NotImplementedError()
+        ...
 
+    @abstractmethod
     def run_use_quotas(
         self,
         unit_keys_to_set: Mapping[str, int],
         set_keys_to_add: Mapping[str, Collection[int]],
         set_keys_ttl: Mapping[str, int],
     ) -> None:
-        raise NotImplementedError()
+        ...
 
 
-class RedisClusterHelper(RedisHelper):
+class RedisClusterBackend(RedisBackend):
     def __init__(self, client: redis.RedisCluster) -> None:
         self.client = client
 
@@ -445,7 +443,7 @@ class RedisClusterHelper(RedisHelper):
             pipeline.execute()
 
 
-class RedisBlasterHelper(RedisHelper):
+class RedisBlasterBackend(RedisBackend):
     def __init__(self, client: rb.Cluster) -> None:
         self.client = client
 
