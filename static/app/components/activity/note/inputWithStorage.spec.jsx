@@ -1,5 +1,4 @@
-import changeReactMentionsInput from 'sentry-test/changeReactMentionsInput';
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import NoteInputWithStorage from 'sentry/components/activity/note/inputWithStorage';
 import localStorage from 'sentry/utils/localStorage';
@@ -8,32 +7,33 @@ jest.mock('sentry/utils/localStorage');
 
 describe('NoteInputWithStorage', function () {
   const defaultProps = {
-    storageKey: 'storage',
+    storageKey: 'test-key',
     itemKey: 'item1',
     group: {project: {}, id: 'groupId'},
     memberList: [],
     teams: [],
   };
 
-  const createWrapper = props =>
-    mountWithTheme(<NoteInputWithStorage {...defaultProps} {...props} />);
+  function renderComponent(props) {
+    render(<NoteInputWithStorage {...defaultProps} {...props} />);
+  }
 
   it('loads draft item from local storage when mounting', function () {
     localStorage.getItem.mockImplementation(() => JSON.stringify({item1: 'saved item'}));
 
-    const wrapper = createWrapper();
+    renderComponent();
+    expect(localStorage.getItem).toHaveBeenCalledWith('test-key');
+    expect(screen.getByRole('textbox')).toHaveValue('saved item');
 
-    expect(localStorage.getItem).toHaveBeenCalledWith('storage');
-    expect(wrapper.find('textarea').prop('value')).toBe('saved item');
+    localStorage.getItem.mockRestore();
   });
 
   it('saves draft when input changes', function () {
-    const wrapper = createWrapper();
+    renderComponent();
 
-    changeReactMentionsInput(wrapper, 'WIP COMMENT');
-
-    expect(localStorage.setItem).toHaveBeenCalledWith(
-      'storage',
+    userEvent.type(screen.getByRole('textbox'), 'WIP COMMENT');
+    expect(localStorage.setItem).toHaveBeenLastCalledWith(
+      'test-key',
       JSON.stringify({item1: 'WIP COMMENT'})
     );
   });
@@ -43,13 +43,11 @@ describe('NoteInputWithStorage', function () {
       JSON.stringify({item1: 'draft item', item2: 'item2', item3: 'item3'})
     );
 
-    const wrapper = createWrapper();
+    renderComponent();
 
-    changeReactMentionsInput(wrapper, 'new comment');
-
-    wrapper.find('textarea').simulate('keyDown', {key: 'Enter', ctrlKey: true});
-    expect(localStorage.setItem).toHaveBeenLastCalledWith(
-      'storage',
+    userEvent.type(screen.getByRole('textbox'), 'new comment{ctrl}{enter}');
+    expect(localStorage.setItem).toHaveBeenCalledWith(
+      'test-key',
       JSON.stringify({item2: 'item2', item3: 'item3'})
     );
   });
