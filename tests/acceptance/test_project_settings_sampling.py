@@ -168,9 +168,34 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
-    @mock.patch("sentry.api.endpoints.organization_dynamic_sampling_sdk_versions.discover.query")
-    def test_add_uniform_rule_with_recommended_sampling_values(self, mock_query):
+    @mock.patch("sentry.api.endpoints.project_dynamic_sampling.raw_snql_query")
+    @mock.patch(
+        "sentry.api.endpoints.project_dynamic_sampling.discover.query",
+    )
+    def test_add_uniform_rule_with_recommended_sampling_values(self, mock_query, mock_querybuilder):
         mock_query.return_value = mocked_discover_query(self.project.slug)
+        mock_querybuilder.side_effect = [
+            {
+                "data": [
+                    {
+                        "trace": "6503ee33b7bc43aead1facaa625a5dba",
+                        "id": "6ddc83ee612b4e89b95b5278c8fd188f",
+                        "random_number() AS random_number": 4255299100,
+                        "is_root": 1,
+                    }
+                ]
+            },
+            {
+                "data": [
+                    {
+                        "project": self.project.slug,
+                        "project_id": self.project.id,
+                        "count": 2,
+                        "root_count": 2,
+                    },
+                ]
+            },
+        ]
 
         self.store_outcomes(
             {
@@ -381,9 +406,34 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
                     event=audit_log.get_event_id("PROJECT_EDIT"),
                 )
 
-    @mock.patch("sentry.api.endpoints.organization_dynamic_sampling_sdk_versions.discover.query")
-    def test_activate_uniform_rule(self, mock_query):
+    @mock.patch("sentry.api.endpoints.project_dynamic_sampling.raw_snql_query")
+    @mock.patch(
+        "sentry.api.endpoints.project_dynamic_sampling.discover.query",
+    )
+    def test_activate_uniform_rule(self, mock_query, mock_querybuilder):
         mock_query.return_value = mocked_discover_query(self.project.slug)
+        mock_querybuilder.side_effect = [
+            {
+                "data": [
+                    {
+                        "trace": "6503ee33b7bc43aead1facaa625a5dba",
+                        "id": "6ddc83ee612b4e89b95b5278c8fd188f",
+                        "random_number() AS random_number": 4255299100,
+                        "is_root": 1,
+                    }
+                ]
+            },
+            {
+                "data": [
+                    {
+                        "project": self.project.slug,
+                        "project_id": self.project.id,
+                        "count": 2,
+                        "root_count": 2,
+                    },
+                ]
+            },
+        ]
         with self.feature(FEATURE_NAME):
             self.project.update_option(
                 "sentry:dynamic_sampling",
@@ -436,9 +486,34 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
                     event=audit_log.get_event_id("PROJECT_EDIT"),
                 )
 
-    @mock.patch("sentry.api.endpoints.organization_dynamic_sampling_sdk_versions.discover.query")
-    def test_deactivate_uniform_rule(self, mock_query):
+    @mock.patch("sentry.api.endpoints.project_dynamic_sampling.raw_snql_query")
+    @mock.patch(
+        "sentry.api.endpoints.project_dynamic_sampling.discover.query",
+    )
+    def test_deactivate_uniform_rule(self, mock_query, mock_querybuilder):
         mock_query.return_value = mocked_discover_query(self.project.slug)
+        mock_querybuilder.side_effect = [
+            {
+                "data": [
+                    {
+                        "trace": "6503ee33b7bc43aead1facaa625a5dba",
+                        "id": "6ddc83ee612b4e89b95b5278c8fd188f",
+                        "random_number() AS random_number": 4255299100,
+                        "is_root": 1,
+                    }
+                ]
+            },
+            {
+                "data": [
+                    {
+                        "project": self.project.slug,
+                        "project_id": self.project.id,
+                        "count": 2,
+                        "root_count": 2,
+                    },
+                ]
+            },
+        ]
         with self.feature(FEATURE_NAME):
             self.project.update_option(
                 "sentry:dynamic_sampling",
