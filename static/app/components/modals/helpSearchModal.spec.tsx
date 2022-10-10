@@ -1,41 +1,38 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import App from 'sentry/views/app';
 
 describe('Docs Search Modal', function () {
   beforeEach(function () {
-    MockApiClient.clearMockResponses();
-
     MockApiClient.addMockResponse({
       url: '/organizations/',
       body: [TestStubs.Organization({slug: 'billy-org', name: 'billy org'})],
     });
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
-      query: 'foo',
       body: [TestStubs.Project({slug: 'foo-project'})],
     });
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/teams/',
-      query: 'foo',
       body: [TestStubs.Team({slug: 'foo-team'})],
     });
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
-      query: 'foo',
       body: TestStubs.Members(),
     });
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/plugins/?plugins=_all',
-      query: 'foo',
       body: [],
     });
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/config/integrations/',
-      query: 'foo',
       body: [],
     });
 
@@ -45,6 +42,7 @@ describe('Docs Search Modal', function () {
         problems: [],
       },
     });
+
     MockApiClient.addMockResponse({
       url: '/assistant/',
       body: [],
@@ -54,20 +52,20 @@ describe('Docs Search Modal', function () {
   it('can open help search modal', async function () {
     const {routerContext} = initializeOrg();
 
-    const wrapper = mountWithTheme(
-      <App params={{orgId: 'org-slug'}}>{<div>placeholder content</div>}</App>,
-      routerContext
-    );
+    render(<App>{<div>placeholder content</div>}</App>, {context: routerContext});
 
     // No Modal
-    expect(wrapper.find('Modal')).toHaveLength(0);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    // Open Modal
     openHelpSearchModal();
-    await tick();
-    await tick();
-    wrapper.update();
 
     // Should have Modal + input
-    expect(wrapper.find('Modal')).toHaveLength(1);
-    expect(wrapper.find('HelpSearch')).toHaveLength(1);
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+
+    expect(screen.getByRole('textbox')).toHaveAttribute(
+      'placeholder',
+      'Search for documentation, FAQs, blog posts...'
+    );
   });
 });

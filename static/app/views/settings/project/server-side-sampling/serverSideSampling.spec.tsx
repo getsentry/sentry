@@ -53,8 +53,8 @@ function renderMockRequests({
   const projects = MockApiClient.addMockResponse({
     url: `/organizations/${organizationSlug}/projects/`,
     method: 'GET',
-    body: mockedSamplingDistribution.project_breakdown!.map(p =>
-      TestStubs.Project({id: p.project_id, slug: p.project})
+    body: mockedSamplingDistribution.projectBreakdown!.map(p =>
+      TestStubs.Project({id: p.projectId, slug: p.project})
     ),
   });
 

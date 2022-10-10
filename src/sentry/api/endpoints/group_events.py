@@ -85,7 +85,11 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):  # type: ignore
             "start": start if start else default_start,
             "end": end if end else default_end,
         }
-        direct_hit_resp = get_direct_hit_response(request, query, params, "api.group-events", group)
+        referrer = f"api.group-events.{group.issue_category.name.lower()}"
+
+        direct_hit_resp = get_direct_hit_response(
+            request, query, params, f"{referrer}.direct-hit", group
+        )
         if direct_hit_resp:
             return direct_hit_resp
 
@@ -102,7 +106,7 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):  # type: ignore
         full = request.GET.get("full", False)
         data_fn = partial(
             eventstore.get_events if full else eventstore.get_unfetched_events,
-            referrer="api.group-events",
+            referrer=referrer,
             filter=snuba_filter,
             dataset=dataset,
         )
