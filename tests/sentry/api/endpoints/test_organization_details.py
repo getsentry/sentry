@@ -124,17 +124,13 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         # TODO(dcramer): We need to pare this down. Lots of duplicate queries for membership data.
         expected_queries = 36
 
-        # TODO(mgaeta): Extra query while we're "dual reading" from UserOptions and NotificationSettings.
-        expected_queries += 1
-
-        # sentry_option query related to userip.
-        expected_queries += 1
-
-        # Symbolication Low Priority Queue stats reads two killswitches
         # make sure options are not cached the first time to get predictable number of database queries
+        options.delete("system.rate-limit")
+        options.delete("hc.region-to-control.monolith-publish")
         options.delete("store.symbolicate-event-lpq-always")
         options.delete("store.symbolicate-event-lpq-never")
-        expected_queries += 2
+
+        expected_queries += 4
 
         with self.assertNumQueries(expected_queries, using="default"):
             response = self.get_success_response(self.organization.slug)
