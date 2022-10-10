@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from unittest import mock
 
 import pytest
 import pytz
@@ -66,6 +67,66 @@ specific_rule_with_all_current_trace_conditions = {
 }
 
 
+def mocked_discover_query(project_slug):
+    return {
+        "data": [
+            {
+                "sdk.version": "7.1.5",
+                "sdk.name": "sentry.javascript.react",
+                "project": project_slug,
+                'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 1.0,
+                'count_if(trace.client_sample_rate, notEquals, "")': 7,
+                'equation|count_if(transaction.source, notEquals, "") / count()': 1.0,
+                'count_if(transaction.source, notEquals, "")': 5,
+                "count()": 23,
+            },
+            # Accounts for less than 10% of total count for this project, and so should be discarded
+            {
+                "sdk.version": "7.1.6",
+                "sdk.name": "sentry.javascript.browser",
+                "project": project_slug,
+                'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 1.0,
+                'count_if(trace.client_sample_rate, notEquals, "")': 5,
+                'equation|count_if(transaction.source, notEquals, "") / count()': 1.0,
+                'count_if(transaction.source, notEquals, "")': 3,
+                "count()": 4,
+            },
+            # Accounts for less than 5% of total count for this project and sdk.name so should be
+            # discarded
+            {
+                "sdk.version": "7.1.6",
+                "sdk.name": "sentry.javascript.react",
+                "project": project_slug,
+                'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 1.0,
+                'count_if(trace.client_sample_rate, notEquals, "")': 5,
+                'equation|count_if(transaction.source, notEquals, "") / count()': 0.0,
+                'count_if(transaction.source, notEquals, "")': 0,
+                "count()": 2,
+            },
+            {
+                "sdk.version": "7.1.4",
+                "sdk.name": "sentry.javascript.react",
+                "project": project_slug,
+                'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 0.0,
+                'count_if(trace.client_sample_rate, notEquals, "")': 0,
+                'equation|count_if(transaction.source, notEquals, "") / count()': 0.0,
+                'count_if(transaction.source, notEquals, "")': 0,
+                "count()": 11,
+            },
+            {
+                "sdk.version": "7.1.3",
+                "sdk.name": "sentry.javascript.react",
+                "project": project_slug,
+                'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 0.0,
+                'count_if(trace.client_sample_rate, notEquals, "")': 0,
+                'equation|count_if(transaction.source, notEquals, "") / count()': 0.0,
+                'count_if(transaction.source, notEquals, "")': 0,
+                "count()": 9,
+            },
+        ]
+    }
+
+
 @pytest.mark.snuba
 @region_silo_test
 @requires_snuba
@@ -107,7 +168,10 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
-    def test_add_uniform_rule_with_recommended_sampling_values(self):
+    @mock.patch("sentry.api.endpoints.organization_dynamic_sampling_sdk_versions.discover.query")
+    def test_add_uniform_rule_with_recommended_sampling_values(self, mock_query):
+        mock_query.return_value = mocked_discover_query(self.project.slug)
+
         self.store_outcomes(
             {
                 "org_id": self.org.id,
@@ -119,8 +183,8 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
                 "quantity": 1,
             }
         )
-
         with self.feature(FEATURE_NAME):
+
             self.wait_until_page_loaded()
 
             # Open uniform rate modal
@@ -151,7 +215,9 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
                 == serializer.validated_data["rules"][0]
             )
 
-    def test_add_uniform_rule_with_custom_sampling_values(self):
+    @mock.patch("sentry.api.endpoints.organization_dynamic_sampling_sdk_versions.discover.query")
+    def test_add_uniform_rule_with_custom_sampling_values(self, mock_query):
+        mock_query.return_value = mocked_discover_query(self.project.slug)
         self.store_outcomes(
             {
                 "org_id": self.org.id,
@@ -282,7 +348,9 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
                     event=audit_log.get_event_id("PROJECT_EDIT"),
                 )
 
-    def test_activate_uniform_rule(self):
+    @mock.patch("sentry.api.endpoints.organization_dynamic_sampling_sdk_versions.discover.query")
+    def test_activate_uniform_rule(self, mock_query):
+        mock_query.return_value = mocked_discover_query(self.project.slug)
         with self.feature(FEATURE_NAME):
             self.project.update_option(
                 "sentry:dynamic_sampling",
@@ -331,7 +399,9 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
                     event=audit_log.get_event_id("PROJECT_EDIT"),
                 )
 
-    def test_deactivate_uniform_rule(self):
+    @mock.patch("sentry.api.endpoints.organization_dynamic_sampling_sdk_versions.discover.query")
+    def test_deactivate_uniform_rule(self, mock_query):
+        mock_query.return_value = mocked_discover_query(self.project.slug)
         with self.feature(FEATURE_NAME):
             self.project.update_option(
                 "sentry:dynamic_sampling",
