@@ -1,6 +1,5 @@
 import {browserHistory, Router, RouterContext} from 'react-router';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
-import {ReactQueryDevtools} from '@tanstack/react-query-devtools';
 
 import DemoHeader from 'sentry/components/demo/demoHeader';
 import ThemeAndStyleProvider from 'sentry/components/themeAndStyleProvider';
@@ -33,7 +32,6 @@ function Main() {
             {routes()}
           </Router>
         </PersistedStoreProvider>
-        <ReactQueryDevtools />
       </QueryClientProvider>
     </ThemeAndStyleProvider>
   );
