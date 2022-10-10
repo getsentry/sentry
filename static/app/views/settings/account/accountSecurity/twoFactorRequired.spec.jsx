@@ -1,7 +1,7 @@
 import Cookies from 'js-cookie';
 import * as qs from 'query-string';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import TwoFactorRequired from 'sentry/views/settings/account/accountSecurity/';
 import AccountSecurityWrapper from 'sentry/views/settings/account/accountSecurity/accountSecurityWrapper';
@@ -29,31 +29,33 @@ describe('TwoFactorRequired', function () {
     });
   });
 
+  const routerContext = TestStubs.routerContext();
+
   it('renders empty', function () {
     MockApiClient.addMockResponse({
       url: ORG_ENDPOINT,
       body: [],
     });
 
-    const wrapper = mountWithTheme(
+    render(
       <AccountSecurityWrapper>
         <TwoFactorRequired />
       </AccountSecurityWrapper>,
-      TestStubs.routerContext()
+      {context: routerContext}
     );
-    expect(wrapper.find('TwoFactorRequired')).toHaveLength(1);
-    expect(wrapper.find('StyledAlert[data-test-id="require-2fa"]')).toHaveLength(0);
+
+    expect(screen.queryByTestId('require-2fa')).not.toBeInTheDocument();
   });
 
   it('does not render when 2FA is disabled and no pendingInvite cookie', function () {
-    const wrapper = mountWithTheme(
+    render(
       <AccountSecurityWrapper>
         <TwoFactorRequired />
       </AccountSecurityWrapper>,
-      TestStubs.routerContext()
+      {context: routerContext}
     );
-    expect(wrapper.find('TwoFactorRequired')).toHaveLength(1);
-    expect(wrapper.find('StyledAlert[data-test-id="require-2fa"]')).toHaveLength(0);
+
+    expect(screen.queryByTestId('require-2fa')).not.toBeInTheDocument();
   });
 
   it('does not render when 2FA is enrolled and no pendingInvite cookie', function () {
@@ -62,14 +64,14 @@ describe('TwoFactorRequired', function () {
       body: [TestStubs.Authenticators().Totp({isEnrolled: true})],
     });
 
-    const wrapper = mountWithTheme(
+    render(
       <AccountSecurityWrapper>
         <TwoFactorRequired />
       </AccountSecurityWrapper>,
-      TestStubs.routerContext()
+      {context: routerContext}
     );
-    expect(wrapper.find('TwoFactorRequired')).toHaveLength(0);
-    expect(wrapper.find('StyledAlert[data-test-id="require-2fa"]')).toHaveLength(0);
+
+    expect(screen.queryByTestId('require-2fa')).not.toBeInTheDocument();
   });
 
   it('does not render when 2FA is enrolled and has pendingInvite cookie', function () {
@@ -88,14 +90,14 @@ describe('TwoFactorRequired', function () {
       body: TestStubs.Organizations({require2FA: true}),
     });
 
-    const wrapper = mountWithTheme(
+    render(
       <AccountSecurityWrapper>
         <TwoFactorRequired />
       </AccountSecurityWrapper>,
-      TestStubs.routerContext()
+      {context: routerContext}
     );
-    expect(wrapper.find('TwoFactorRequired')).toHaveLength(0);
-    expect(wrapper.find('StyledAlert[data-test-id="require-2fa"]')).toHaveLength(0);
+
+    expect(screen.queryByTestId('require-2fa')).not.toBeInTheDocument();
     Cookies.remove(INVITE_COOKIE);
   });
 
@@ -106,14 +108,14 @@ describe('TwoFactorRequired', function () {
       body: TestStubs.Organizations({require2FA: true}),
     });
 
-    const wrapper = mountWithTheme(
+    render(
       <AccountSecurityWrapper>
         <TwoFactorRequired />
       </AccountSecurityWrapper>,
-      TestStubs.routerContext()
+      {context: routerContext}
     );
-    expect(wrapper.find('TwoFactorRequired')).toHaveLength(1);
-    expect(wrapper.find('StyledAlert[data-test-id="require-2fa"]')).toHaveLength(1);
+
+    expect(screen.getByTestId('require-2fa')).toBeInTheDocument();
     Cookies.remove(INVITE_COOKIE);
   });
 });
