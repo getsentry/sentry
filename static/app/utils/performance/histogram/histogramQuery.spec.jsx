@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import EventView from 'sentry/utils/discover/eventView';
@@ -56,7 +56,8 @@ describe('HistogramQuery', function () {
           .map((_, i) => ({bin: i * 1000, count: i})),
       },
     });
-    const wrapper = mountWithTheme(
+
+    render(
       <HistogramQuery
         api={api}
         location={location}
@@ -70,11 +71,9 @@ describe('HistogramQuery', function () {
         {renderHistogram}
       </HistogramQuery>
     );
-    await tick();
-    wrapper.update();
 
+    expect(await screen.findByText('measurements.fp')).toBeInTheDocument();
+    expect(screen.getAllByRole('listitem')).toHaveLength(10);
     expect(getMock).toHaveBeenCalledTimes(1);
-    expect(wrapper.find('p')).toHaveLength(1);
-    expect(wrapper.find('li')).toHaveLength(10);
   });
 });
