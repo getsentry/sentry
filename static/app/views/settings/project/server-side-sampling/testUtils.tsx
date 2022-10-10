@@ -132,12 +132,12 @@ export const mockedSamplingDistribution: SamplingDistribution = {
   projectBreakdown: [
     {
       project: mockedProjects[0].slug,
-      project_id: mockedProjects[0].id,
+      projectId: mockedProjects[0].id,
       'count()': 888,
     },
     {
       project: mockedProjects[1].slug,
-      project_id: mockedProjects[1].id,
+      projectId: mockedProjects[1].id,
       'count()': 100,
     },
   ],

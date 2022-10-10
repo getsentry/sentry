@@ -107,7 +107,7 @@ export type SamplingDistribution = {
     | {
         'count()': number;
         project: string;
-        project_id: number;
+        projectId: number;
       }[];
   sampleSize: number;
   startTimestamp: string | null;
