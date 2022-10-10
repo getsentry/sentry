@@ -1,28 +1,30 @@
 from datetime import datetime
 from unittest import mock
 
+import pytest
 from arroyo.backends.kafka import KafkaPayload
-from arroyo.types import Message, Partition, Topic
+from arroyo.processing.strategies.abstract import MessageRejected
+from arroyo.types import Message, Partition, Position, Topic
+from freezegun import freeze_time
 
-from sentry.constants import DataCategory
 from sentry.ingest.billing_metrics_consumer import (
     BillingTxCountMetricConsumerStrategy,
     MetricsBucket,
 )
 from sentry.sentry_metrics.indexer.strings import TRANSACTION_METRICS_NAMES
 from sentry.utils import json
-from sentry.utils.outcomes import Outcome
 
 
-@mock.patch("sentry.ingest.billing_metrics_consumer.track_outcome")
-def test_outcomes_consumed(track_outcome):
+@freeze_time("1985-10-26 21:00:00")
+@mock.patch(
+    "sentry.ingest.billing_metrics_consumer.BillingTxCountMetricConsumerStrategy._get_billing_producer"
+)
+def test_outcomes_consumed(_gbp):
     # Based on test_ingest_consumer_kafka.py
 
-    topic = Topic("snuba-generic-metrics")
-
-    # admin = kafka_admin(settings)
-    # admin.delete_topic(metrics_topic)
-    # producer = kafka_producer(settings)
+    time = datetime(1985, 10, 26, 21, 00, 00)
+    metrics_topic = Topic("snuba-generic-metrics")
+    billing_topic = Topic("outcomes-billing")
 
     buckets = [
         {  # Counter metric with wrong ID will not generate an outcome
@@ -69,18 +71,21 @@ def test_outcomes_consumed(track_outcome):
     ]
 
     fake_commit = mock.MagicMock()
-
     strategy = BillingTxCountMetricConsumerStrategy(
         commit=fake_commit,
         max_batch_size=2,
         max_batch_time=10000,
     )
+    assert not fake_commit.mock_calls
 
     def generate_kafka_message(bucket: MetricsBucket) -> Message[KafkaPayload]:
         encoded = json.dumps(bucket).encode()
         payload = KafkaPayload(key=None, value=encoded, headers=[])
         message = Message(
-            Partition(topic, index=0), generate_kafka_message.counter, payload, datetime.now()
+            Partition(metrics_topic, index=0),
+            generate_kafka_message.counter,
+            payload,
+            time,
         )
         generate_kafka_message.counter += 1
         return message
@@ -91,33 +96,49 @@ def test_outcomes_consumed(track_outcome):
     # then call submit when there is a message.
     strategy.poll()
     strategy.poll()
-    assert track_outcome.call_count == 0
-    for i, bucket in enumerate(buckets):
+
+    for bucket in buckets:
         strategy.poll()
         strategy.submit(generate_kafka_message(bucket))
-        # commit is called for every two messages:
-        assert fake_commit.call_count == i // 2
-        if i < 3:
-            assert track_outcome.call_count == 0
-        else:
-            assert track_outcome.mock_calls == [
-                mock.call(
-                    org_id=1,
-                    project_id=2,
-                    key_id=None,
-                    outcome=Outcome.ACCEPTED,
-                    reason=None,
-                    timestamp=datetime(1970, 1, 2, 10, 17, 36),
-                    event_id=None,
-                    category=DataCategory.TRANSACTION_PROCESSED,
-                    quantity=3,
-                )
-            ]
 
-    # There's been 5 messages, 2 x 2 of them have their offsets committed:
-    assert fake_commit.call_count == 2
+    assert strategy._billing_producer.produce.call_count == 1
+    called_payload = KafkaPayload(
+        key=None,
+        value=json.dumps(
+            {
+                "timestamp": time,
+                "org_id": 1,
+                "project_id": 2,
+                "outcome": 0,
+                "category": 8,
+                "quantity": 3,
+            }
+        ).encode("utf-8"),
+        headers=[],
+    )
+    assert strategy._billing_producer.produce.mock_calls[0] == mock.call(
+        destination=billing_topic,
+        payload=called_payload,
+    )
 
-    # Joining should commit the offset of the last message:
+    # There's been 5 messages, 2 x 2 of them have their offsets committed
+    assert fake_commit.mock_calls.pop(0) == mock.call(
+        {Partition(topic=metrics_topic, index=0): Position(offset=2, timestamp=time)}
+    )
+    assert fake_commit.mock_calls.pop(0) == mock.call(
+        {Partition(topic=metrics_topic, index=0): Position(offset=4, timestamp=time)}
+    )
+    assert not fake_commit.mock_calls
+
+    # Joining must commit the offset of the last message:
     strategy.join()
+    assert fake_commit.mock_calls.pop(0) == mock.call(
+        {Partition(topic=metrics_topic, index=0): Position(offset=5, timestamp=time)}
+    )
+    assert not fake_commit.mock_calls
 
-    assert fake_commit.call_count == 3
+    # The consumer rejects new messages after closing
+    strategy.close()
+    with pytest.raises(MessageRejected):
+        strategy.poll()
+        strategy.submit(generate_kafka_message(buckets[0]))
