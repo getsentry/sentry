@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import StreamGroup from 'sentry/components/stream/group';
 import TagStore from 'sentry/stores/tagStore';
@@ -69,10 +69,8 @@ describe('IssueList -> Polling', function () {
       {context: routerContext}
     );
 
-    await act(async () => {
-      await Promise.resolve();
-      jest.runAllTimers();
-    });
+    await Promise.resolve();
+    jest.runAllTimers();
   };
 
   beforeEach(function () {
