@@ -395,7 +395,7 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                     # Run extra query to build project_breakdown,
                     # because in this case (project is the head of trace in some distributed trace
                     # and non-root in others) we can't create it based on parent_project_breakdown
-                    project_breakdown = self.__run_discover_query(
+                    project_breakdown_response = self.__run_discover_query(
                         columns=[
                             "project_id",
                             "project",
@@ -411,11 +411,19 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                         limit=20,
                         referrer=Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECT_BREAKDOWN.value,
                     )
+                    project_breakdown = [
+                        {
+                            "projectId": _project["project_id"],
+                            "project": _project["project"],
+                            "count()": _project["count()"],
+                        }
+                        for _project in project_breakdown_response
+                    ]
 
                 elif len(parent_project_breakdown) == 1:
                     project_breakdown = [
                         {
-                            "project_id": _project["project_id"],
+                            "projectId": _project["project_id"],
                             "project": _project["project"],
                             "count()": _project["count"],
                         }
