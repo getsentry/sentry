@@ -18,11 +18,7 @@ describe('Server-Side Sampling - SamplingBreakdown', function () {
 
     render(<SamplingBreakdown orgSlug={organization.slug} />);
 
-    expect(
-      screen.getByText(
-        'There were no traces initiated from this project in the last 30 days.'
-      )
-    ).toBeInTheDocument();
+    expect(screen.getByText(/This project made no/)).toBeInTheDocument();
   });
 
   it('renders project breakdown', function () {
