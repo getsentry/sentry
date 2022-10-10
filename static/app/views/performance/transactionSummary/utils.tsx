@@ -146,8 +146,10 @@ export function generateReplayLink(routes: PlainRoute<any>[]) {
     const referrer = encodeURIComponent(getRouteStringFromRoutes(routes));
 
     return {
-      pathname: `/organizations/${organization.slug}/replays/${replaySlug}/?referrer=${referrer}`,
-      query: {},
+      pathname: `/organizations/${organization.slug}/replays/${replaySlug}`,
+      query: {
+        referrer,
+      },
     };
   };
 }
