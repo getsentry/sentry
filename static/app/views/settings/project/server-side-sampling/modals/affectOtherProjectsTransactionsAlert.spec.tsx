@@ -1,12 +1,12 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {getMockData} from '../testUtils';
+import {getMockInitializeOrg} from '../testUtils';
 
 import {AffectOtherProjectsTransactionsAlert} from './affectOtherProjectsTransactionsAlert';
 
 describe("Affect other project's transactions alert", function () {
   it('does not render', function () {
-    const {project} = getMockData();
+    const {project} = getMockInitializeOrg();
 
     const {rerender} = render(
       <AffectOtherProjectsTransactionsAlert
@@ -40,7 +40,7 @@ describe("Affect other project's transactions alert", function () {
   });
 
   it('renders', function () {
-    const {projects} = getMockData();
+    const {projects} = getMockInitializeOrg();
 
     render(
       <AffectOtherProjectsTransactionsAlert

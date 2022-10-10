@@ -1,4 +1,12 @@
-import {InjectedRouter} from 'react-router';
+import {Fragment} from 'react';
+import {
+  createMemoryHistory,
+  IndexRoute,
+  InjectedRouter,
+  Route,
+  Router,
+  RouterContext,
+} from 'react-router';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
 import {
@@ -57,29 +65,39 @@ function ComponentProviders({
   children: React.ReactNode;
   organization: Organization;
   project: Project;
-  router: InjectedRouter;
+  router?: InjectedRouter;
   withModal?: boolean;
 }) {
   const client = new QueryClient();
 
+  const content = (
+    <Fragment>
+      {withModal && <GlobalModal />}
+      <OrganizationContext.Provider value={organization}>
+        {children}
+      </OrganizationContext.Provider>
+    </Fragment>
+  );
+
   return (
     <QueryClientProvider client={client}>
-      <RouteContext.Provider
-        value={{
-          router,
-          location: router.location,
-          params: {
-            orgId: organization.slug,
-            projectId: project.slug,
-          },
-          routes: [],
-        }}
-      >
-        {withModal && <GlobalModal />}
-        <OrganizationContext.Provider value={organization}>
-          {children}
-        </OrganizationContext.Provider>
-      </RouteContext.Provider>
+      {router ? (
+        <RouteContext.Provider
+          value={{
+            router,
+            location: router.location,
+            params: {
+              orgId: organization.slug,
+              projectId: project.slug,
+            },
+            routes: [],
+          }}
+        >
+          {content}
+        </RouteContext.Provider>
+      ) : (
+        content
+      )}
     </QueryClientProvider>
   );
 }
@@ -121,23 +139,49 @@ function renderMockRequests({
 }
 
 describe('Server-Side Sampling', function () {
-  it.skip('renders onboarding promo', async function () {
-    const {router, organization, project} = getMockInitializeOrg();
+  it('renders onboarding promo and open uniform rule modal', async function () {
+    const {organization, project} = getMockInitializeOrg();
 
-    const mockRequests = renderMockRequests({
+    renderMockRequests({
       organizationSlug: organization.slug,
       projectSlug: project.slug,
     });
 
-    const {container} = render(
-      <ComponentProviders router={router} organization={organization} project={project}>
-        <ServerSideSampling project={project} />
-      </ComponentProviders>
+    const memoryHistory = createMemoryHistory();
+
+    memoryHistory.push(
+      `/settings/${organization.slug}/projects/${project.slug}/dynamic-sampling/`
     );
 
-    expect(
-      await screen.findByRole('heading', {name: /Dynamic Sampling/})
-    ).toBeInTheDocument();
+    function Component() {
+      return (
+        <ComponentProviders organization={organization} project={project} withModal>
+          <ServerSideSampling project={project} />
+        </ComponentProviders>
+      );
+    }
+
+    const {container} = render(
+      <Router
+        history={memoryHistory}
+        render={props => {
+          return (
+            <RouteContext.Provider value={props}>
+              <RouterContext {...props} />
+            </RouteContext.Provider>
+          );
+        }}
+      >
+        <Route
+          path={`/settings/${organization.slug}/projects/${project.slug}/dynamic-sampling/`}
+        >
+          <IndexRoute component={Component} />
+          <Route path="rules/:rule/" component={Component} />
+        </Route>
+      </Router>
+    );
+
+    expect(screen.getByRole('heading', {name: /Dynamic Sampling/})).toBeInTheDocument();
 
     expect(screen.getByText(/Improve the accuracy of your/)).toBeInTheDocument();
 
@@ -160,15 +204,11 @@ describe('Server-Side Sampling', function () {
     );
 
     // Open Modal
-    userEvent.click(await screen.findByRole('button', {name: 'Start Setup'}));
+    userEvent.click(screen.getByRole('button', {name: 'Start Setup'}));
 
     expect(
       await screen.findByRole('heading', {name: 'Set a global sample rate'})
     ).toBeInTheDocument();
-
-    expect(mockRequests.statsV2).toHaveBeenCalledTimes(2);
-    expect(mockRequests.distribution).toHaveBeenCalledTimes(1);
-    expect(mockRequests.sdkVersions).toHaveBeenCalledTimes(1);
 
     // Close Modal
     userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
@@ -406,8 +446,8 @@ describe('Server-Side Sampling', function () {
     ).toBeInTheDocument();
   });
 
-  it.skip('open uniform rate modal when editing a uniform rule', async function () {
-    const {organization, router, project} = getMockInitializeOrg({
+  it('open uniform rate modal when editing a uniform rule', async function () {
+    const {organization, project} = getMockInitializeOrg({
       projects: [
         TestStubs.Project({
           dynamicSampling: {
@@ -417,20 +457,43 @@ describe('Server-Side Sampling', function () {
       ],
     });
 
-    const mockRequests = renderMockRequests({
+    renderMockRequests({
       organizationSlug: organization.slug,
       projectSlug: project.slug,
     });
 
+    const memoryHistory = createMemoryHistory();
+
+    memoryHistory.push(
+      `/settings/${organization.slug}/projects/${project.slug}/dynamic-sampling/`
+    );
+
+    function Component() {
+      return (
+        <ComponentProviders organization={organization} project={project} withModal>
+          <ServerSideSampling project={project} />
+        </ComponentProviders>
+      );
+    }
+
     render(
-      <ComponentProviders
-        router={router}
-        organization={organization}
-        project={project}
-        withModal
+      <Router
+        history={memoryHistory}
+        render={props => {
+          return (
+            <RouteContext.Provider value={props}>
+              <RouterContext {...props} />
+            </RouteContext.Provider>
+          );
+        }}
       >
-        <ServerSideSampling project={project} />
-      </ComponentProviders>
+        <Route
+          path={`/settings/${organization.slug}/projects/${project.slug}/dynamic-sampling/`}
+        >
+          <IndexRoute component={Component} />
+          <Route path="rules/:rule/" component={Component} />
+        </Route>
+      </Router>
     );
 
     userEvent.click(await screen.findByLabelText('Actions'));
@@ -441,10 +504,6 @@ describe('Server-Side Sampling', function () {
     expect(
       await screen.findByRole('heading', {name: 'Set a global sample rate'})
     ).toBeInTheDocument();
-
-    expect(mockRequests.statsV2).toHaveBeenCalledTimes(2);
-    expect(mockRequests.distribution).toHaveBeenCalledTimes(1);
-    expect(mockRequests.sdkVersions).toHaveBeenCalledTimes(1);
   });
 
   it('does not let user reorder uniform rule', async function () {

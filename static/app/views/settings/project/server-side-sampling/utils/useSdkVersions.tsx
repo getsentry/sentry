@@ -24,7 +24,7 @@ export function useSdkVersions({
 
   const projectIds = [
     projectId,
-    ...(distribution?.project_breakdown?.map(
+    ...(distribution?.projectBreakdown?.map(
       projectBreakdown => projectBreakdown.project_id
     ) ?? []),
   ];
