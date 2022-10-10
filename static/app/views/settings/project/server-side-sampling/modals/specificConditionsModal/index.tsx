@@ -17,7 +17,7 @@ import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {IconAdd} from 'sentry/icons';
 import {IconSearch} from 'sentry/icons/iconSearch';
 import {t} from 'sentry/locale';
-import ProjectStore from 'sentry/stores/projectsStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
 import {Organization, Project, SelectValue} from 'sentry/types';
 import {
@@ -170,7 +170,7 @@ export function SpecificConditionsModal({
           data: {dynamicSampling: {rules: [...specificRules, ...uniformRule]}},
         }
       );
-      ProjectStore.onUpdateSuccess(response);
+      ProjectsStore.onUpdateSuccess(response);
       addSuccessMessage(
         rule
           ? t('Successfully edited sampling rule')
@@ -289,12 +289,7 @@ export function SpecificConditionsModal({
     <Fragment>
       <CloseButton />
       <Feature
-        features={[
-          'server-side-sampling',
-          project.dynamicSampling?.rules.length
-            ? 'server-side-sampling-ui'
-            : 'dynamic-sampling-advanced',
-        ]}
+        features={['server-side-sampling', 'server-side-sampling-ui']}
         organization={organization}
         hookName="feature-disabled:dynamic-sampling-advanced"
       >

@@ -15,6 +15,6 @@ describe('getDiscoverLandingUrl', function () {
     const org = TestStubs.Organization({
       features: ['discover-query', 'discover-query-builder-as-landing-page'],
     });
-    expect(getDiscoverLandingUrl(org)).toBe('/organizations/org-slug/discover/results/');
+    expect(getDiscoverLandingUrl(org)).toBe('/organizations/org-slug/discover/homepage/');
   });
 });

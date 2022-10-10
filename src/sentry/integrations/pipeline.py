@@ -1,6 +1,6 @@
-__all__ = ["IntegrationPipeline"]
+from __future__ import annotations
 
-from typing import Optional
+__all__ = ["IntegrationPipeline"]
 
 from django.db import IntegrityError
 from django.utils import timezone
@@ -35,7 +35,7 @@ class IntegrationPipeline(Pipeline):
     pipeline_name = "integration_pipeline"
     provider_manager = default_manager
 
-    def get_analytics_entry(self) -> Optional[PipelineAnalyticsEntry]:
+    def get_analytics_entry(self) -> PipelineAnalyticsEntry | None:
         pipeline_type = "reauth" if self.fetch_state("integration_id") else "install"
         return PipelineAnalyticsEntry("integrations.pipeline_step", pipeline_type)
 
