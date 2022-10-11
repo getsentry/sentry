@@ -8,8 +8,8 @@ import space from 'sentry/styles/space';
 const ModalHeader = styled('header')`
   position: relative;
   border-bottom: 1px solid ${p => p.theme.border};
-  padding: ${space(3)} ${space(4)};
-  margin: -${space(4)} -${space(3)} ${space(3)} -${space(3)};
+  padding: ${space(3)} ${space(3)};
+  margin: -${space(4)} -${space(2)} ${space(3)} -${space(3)};
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     padding: ${space(3)} ${space(4)};
