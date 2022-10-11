@@ -1,7 +1,7 @@
 import {Component, Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location, LocationDescriptorObject} from 'history';
+import {Location, LocationDescriptor, LocationDescriptorObject} from 'history';
 
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -87,6 +87,7 @@ type Props = {
   columnTitles?: string[];
   disablePagination?: boolean;
   excludedTags?: string[];
+  issueId?: string;
   totalEventCount?: string;
 };
 
@@ -154,8 +155,15 @@ class EventsTable extends Component<Props, State> {
     ];
 
     if (field === 'id' || field === 'trace') {
-      const generateLink = field === 'id' ? generateTransactionLink : generateTraceLink;
-      const target = generateLink(transactionName)(organization, dataRow, location.query);
+      const {issueId} = this.props;
+      const isIssue: boolean = !!issueId;
+      let target: LocationDescriptor = {};
+      if (isIssue && field === 'id') {
+        target.pathname = `/organizations/${organization.slug}/issues/${issueId}/events/${dataRow.id}/`;
+      } else {
+        const generateLink = field === 'id' ? generateTransactionLink : generateTraceLink;
+        target = generateLink(transactionName)(organization, dataRow, location.query);
+      }
 
       return (
         <CellAction
