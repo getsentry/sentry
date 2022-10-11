@@ -16,6 +16,7 @@ import {
 import {getDuration} from 'sentry/utils/formatters';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
+import {hasContext} from './quickContext';
 import {TableColumn} from './types';
 
 export enum Actions {
@@ -439,7 +440,7 @@ class CellAction extends Component<Props, State> {
 
     const actions = makeCellActions(this.props);
 
-    if (actions === null) {
+    if (actions === null || !hasContext(this.props.dataRow, this.props.column)) {
       // do not render the menu if there are no per cell actions
       return null;
     }
