@@ -36,6 +36,7 @@ export class Profile {
 
   samples: CallTreeNode[] = [];
   weights: number[] = [];
+  rawWeights: number[] = [];
 
   stats: ProfileStats = {
     discardedSamplesCount: 0,
