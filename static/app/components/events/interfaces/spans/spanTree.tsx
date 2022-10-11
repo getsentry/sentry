@@ -90,9 +90,11 @@ class SpanTree extends Component<PropType> {
 
     const showHiddenSpansMessage = !isCurrentSpanHidden && numOfSpansOutOfViewAbove > 0;
 
+    const firstHiddenSpanId = getSpanID(filteredSpansAbove[0].span);
+
     if (showHiddenSpansMessage) {
       messages.push(
-        <span key="spans-out-of-view">
+        <span key={`spans-out-of-view-${firstHiddenSpanId}`}>
           <strong>{numOfSpansOutOfViewAbove}</strong> {t('spans out of view')}
         </span>
       );
@@ -107,7 +109,7 @@ class SpanTree extends Component<PropType> {
       if (!isCurrentSpanHidden) {
         if (numOfFilteredSpansAbove === 1) {
           messages.push(
-            <span key="spans-filtered">
+            <span key={`spans-filtered-${firstHiddenSpanId}`}>
               {tct('[numOfSpans] hidden span', {
                 numOfSpans: <strong>{numOfFilteredSpansAbove}</strong>,
               })}
@@ -115,7 +117,7 @@ class SpanTree extends Component<PropType> {
           );
         } else {
           messages.push(
-            <span key="spans-filtered">
+            <span key={`spans-filtered-${firstHiddenSpanId}`}>
               {tct('[numOfSpans] hidden spans', {
                 numOfSpans: <strong>{numOfFilteredSpansAbove}</strong>,
               })}
@@ -131,6 +133,7 @@ class SpanTree extends Component<PropType> {
 
     return (
       <MessageRow
+        key={`message-row-${firstHiddenSpanId}`}
         onClick={
           focusedSpanIds
             ? () => {
