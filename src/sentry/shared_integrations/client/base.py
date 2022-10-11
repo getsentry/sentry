@@ -35,7 +35,7 @@ class BaseApiClient(TrackResponseMixin):
 
     cache_time = 900
 
-    page_size = 100
+    page_size: int = 100
 
     page_number_limit = 10
 

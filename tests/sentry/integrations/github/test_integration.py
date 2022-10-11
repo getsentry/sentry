@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from urllib.parse import urlencode, urlparse
 
 import responses
@@ -37,14 +37,15 @@ class GitHubIntegrationTest(IntegrationTestCase):
         plugins.register(GitHubPlugin)
 
     def tearDown(self):
+        responses.reset()
         plugins.unregister(GitHubPlugin)
         super().tearDown()
 
     def _stub_github(self):
-        responses.reset()
-
+        """This stubs the calls related to a Github App"""
         sentry.integrations.github.integration.get_jwt = MagicMock(return_value="jwt_token_1")
         sentry.integrations.github.client.get_jwt = MagicMock(return_value="jwt_token_1")
+        pp = 1
 
         responses.add(
             responses.POST,
@@ -52,15 +53,38 @@ class GitHubIntegrationTest(IntegrationTestCase):
             json={"token": self.access_token, "expires_at": self.expires_at},
         )
 
+        repositories = [
+            {"id": 1296269, "name": "foo", "full_name": "Test-Organization/foo"},
+            {"id": 9876574, "name": "bar", "full_name": "Test-Organization/bar"},
+            {"id": 1276555, "name": "baz", "full_name": "Test-Organization/baz"},
+        ]
+        api_url = f"{self.base_url}/installation/repositories"
+        first = f'<{api_url}?per_page={pp}&page=1>; rel="first"'
+        last = f'<{api_url}?per_page={pp}&page={len(repositories)}>; rel="last"'
+
+        def gen_link(page: int, text: str) -> str:
+            return f'<{api_url}?per_page={pp}&page={page}>; rel="{text}"'
+
         responses.add(
             responses.GET,
-            self.base_url + "/installation/repositories",
-            json={
-                "repositories": [
-                    {"id": 1296269, "name": "foo", "full_name": "Test-Organization/foo"},
-                    {"id": 9876574, "name": "bar", "full_name": "Test-Organization/bar"},
-                ]
-            },
+            url=api_url,
+            match=[responses.matchers.query_param_matcher({"per_page": pp})],
+            json={"repositories": [repositories[0]]},
+            headers={"link": ", ".join([gen_link(2, "next"), last])},
+        )
+        responses.add(
+            responses.GET,
+            url=self.base_url + "/installation/repositories",
+            match=[responses.matchers.query_param_matcher({"per_page": pp, "page": 2})],
+            json={"repositories": [repositories[1]]},
+            headers={"link": ", ".join([gen_link(1, "prev"), gen_link(3, "next"), last, first])},
+        )
+        responses.add(
+            responses.GET,
+            url=self.base_url + "/installation/repositories",
+            match=[responses.matchers.query_param_matcher({"per_page": pp, "page": 3})],
+            json={"repositories": [repositories[2]]},
+            headers={"link": ", ".join([gen_link(2, "prev"), first])},
         )
 
         responses.add(
@@ -293,10 +317,28 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
         integration = Integration.objects.get(provider=self.provider.key)
         installation = integration.get_installation(self.organization)
+        # This searches for any repositories matching the term 'ex'
         result = installation.get_repositories("ex")
         assert result == [
             {"identifier": "test/example", "name": "example"},
             {"identifier": "test/exhaust", "name": "exhaust"},
+        ]
+
+    @responses.activate
+    @patch.object(sentry.integrations.github.client.GitHubClientMixin, "page_size", 1)
+    def test_get_repositories_all_and_pagination(self):
+        """Fetch all repositories and test the pagination logic."""
+        with self.tasks():
+            self.assert_setup_flow()
+
+        integration = Integration.objects.get(provider=self.provider.key)
+        installation = integration.get_installation(self.organization)
+
+        result = installation.get_repositories()
+        assert result == [
+            {"name": "foo", "identifier": "Test-Organization/foo"},
+            {"name": "bar", "identifier": "Test-Organization/bar"},
+            {"name": "baz", "identifier": "Test-Organization/baz"},
         ]
 
     @responses.activate
