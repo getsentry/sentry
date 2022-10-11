@@ -2,6 +2,7 @@ import {Component} from 'react';
 import * as qs from 'query-string';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {NODE_ENV} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {IntegrationProvider, IntegrationWithConfig, Organization} from 'sentry/types';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
@@ -95,7 +96,9 @@ export default class AddIntegration extends Component<Props> {
   didReceiveMessage = (message: MessageEvent) => {
     const {analyticsParams, onInstall, organization, provider} = this.props;
 
-    if (message.origin !== document.location.origin) {
+    // TODO: Would be better if we could mock document.location.origin to '' in
+    // the tests. jsdom's window.postMessage doesn't set an origin
+    if (message.origin !== document.location.origin && NODE_ENV === 'production') {
       return;
     }
 
