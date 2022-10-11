@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import timedelta
 from unittest import mock
 from unittest.mock import Mock, patch
@@ -28,7 +30,7 @@ from sentry.rules import init_registry
 from sentry.tasks.merge import merge_groups
 from sentry.tasks.post_process import post_process_group
 from sentry.testutils import SnubaTestCase, TestCase
-from sentry.testutils.helpers import with_feature
+from sentry.testutils.helpers import apply_feature_flag_on_cls, with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.testutils.perfomance_issues.store_transaction import PerfIssueTransactionTestMixin
@@ -54,8 +56,7 @@ class EventMatcher:
         return matching_id
 
 
-@region_silo_test
-class PostProcessGroupTest(TestCase):
+class CorePostProcessGroupTestMixin:
     @patch("sentry.rules.processor.RuleProcessor")
     @patch("sentry.tasks.servicehooks.process_service_hook")
     @patch("sentry.tasks.sentry_apps.process_resource_change_bound.delay")
@@ -136,6 +137,21 @@ class PostProcessGroupTest(TestCase):
         )
         assert event_processing_store.get(cache_key) is None
 
+    def test_nodestore_stats(self):
+        event = self.store_event(data={"message": "testing"}, project_id=self.project.id)
+        cache_key = write_event_to_cache(event)
+
+        with self.options({"store.nodestore-stats-sample-rate": 1.0}), self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=True,
+                is_new_group_environment=False,
+                cache_key=cache_key,
+                group_id=event.group_id,
+            )
+
+
+class RuleProcessorTestMixin:
     @patch("sentry.rules.processor.RuleProcessor")
     def test_rule_processor_backwards_compat(self, mock_processor):
         event = self.store_event(data={}, project_id=self.project.id)
@@ -272,111 +288,8 @@ class PostProcessGroupTest(TestCase):
             EventMatcher(event, group=group2), True, False, True, False
         )
 
-    @patch("sentry.signals.issue_unignored.send_robust")
-    @patch("sentry.rules.processor.RuleProcessor")
-    def test_invalidates_snooze(self, mock_processor, send_robust):
-        event = self.store_event(data={"message": "testing"}, project_id=self.project.id)
-        cache_key = write_event_to_cache(event)
 
-        group = event.group
-        snooze = GroupSnooze.objects.create(group=group, until=timezone.now() - timedelta(hours=1))
-
-        # Check for has_reappeared=False if is_new=True
-        post_process_group(
-            is_new=True,
-            is_regression=False,
-            is_new_group_environment=True,
-            cache_key=cache_key,
-            group_id=event.group_id,
-        )
-        assert GroupInbox.objects.filter(group=group, reason=GroupInboxReason.NEW.value).exists()
-        GroupInbox.objects.filter(group=group).delete()  # Delete so it creates the UNIGNORED entry.
-        Activity.objects.filter(group=group).delete()
-
-        mock_processor.assert_called_with(EventMatcher(event), True, False, True, False)
-
-        cache_key = write_event_to_cache(event)
-        # Check for has_reappeared=True if is_new=False
-        post_process_group(
-            is_new=False,
-            is_regression=False,
-            is_new_group_environment=True,
-            cache_key=cache_key,
-            group_id=event.group_id,
-        )
-
-        mock_processor.assert_called_with(EventMatcher(event), False, False, True, True)
-
-        assert not GroupSnooze.objects.filter(id=snooze.id).exists()
-
-        group = Group.objects.get(id=group.id)
-        assert group.status == GroupStatus.UNRESOLVED
-        assert GroupInbox.objects.filter(
-            group=group, reason=GroupInboxReason.UNIGNORED.value
-        ).exists()
-        assert Activity.objects.filter(
-            group=group, project=group.project, type=ActivityType.SET_UNRESOLVED.value
-        ).exists()
-        assert send_robust.called
-
-    @override_settings(SENTRY_BUFFER="sentry.buffer.redis.RedisBuffer")
-    @patch("sentry.signals.issue_unignored.send_robust")
-    @patch("sentry.rules.processor.RuleProcessor")
-    def test_invalidates_snooze_with_buffers(self, mock_processor, send_robust):
-        redis_buffer = RedisBuffer()
-        with mock.patch("sentry.buffer.get", redis_buffer.get), mock.patch(
-            "sentry.buffer.incr", redis_buffer.incr
-        ):
-            event = self.store_event(
-                data={"message": "testing", "fingerprint": ["group-1"]}, project_id=self.project.id
-            )
-            event_2 = self.store_event(
-                data={"message": "testing", "fingerprint": ["group-1"]}, project_id=self.project.id
-            )
-            group = event.group
-            group.update(times_seen=50)
-            snooze = GroupSnooze.objects.create(group=group, count=100, state={"times_seen": 0})
-
-            cache_key = write_event_to_cache(event)
-            post_process_group(
-                is_new=False,
-                is_regression=False,
-                is_new_group_environment=True,
-                cache_key=cache_key,
-                group_id=event.group_id,
-            )
-            assert GroupSnooze.objects.filter(id=snooze.id).exists()
-            cache_key = write_event_to_cache(event_2)
-
-            buffer.incr(Group, {"times_seen": 60}, filters={"pk": event.group.id})
-            post_process_group(
-                is_new=False,
-                is_regression=False,
-                is_new_group_environment=True,
-                cache_key=cache_key,
-                group_id=event.group_id,
-            )
-            assert not GroupSnooze.objects.filter(id=snooze.id).exists()
-
-    @patch("sentry.rules.processor.RuleProcessor")
-    def test_maintains_valid_snooze(self, mock_processor):
-        event = self.store_event(data={}, project_id=self.project.id)
-        cache_key = write_event_to_cache(event)
-        group = event.group
-        snooze = GroupSnooze.objects.create(group=group, until=timezone.now() + timedelta(hours=1))
-
-        post_process_group(
-            is_new=True,
-            is_regression=False,
-            is_new_group_environment=True,
-            cache_key=cache_key,
-            group_id=event.group_id,
-        )
-
-        mock_processor.assert_called_with(EventMatcher(event), True, False, True, False)
-
-        assert GroupSnooze.objects.filter(id=snooze.id).exists()
-
+class ServiceHooksTestMixin:
     @patch("sentry.tasks.servicehooks.process_service_hook")
     def test_service_hook_fires_on_new_event(self, mock_process_service_hook):
         event = self.store_event(data={}, project_id=self.project.id)
@@ -480,6 +393,8 @@ class PostProcessGroupTest(TestCase):
 
         assert not mock_process_service_hook.delay.mock_calls
 
+
+class ResourceChangeBoundsTestMixin:
     @patch("sentry.tasks.sentry_apps.process_resource_change_bound.delay")
     def test_processes_resource_change_task_on_new_group(self, delay):
         event = self.store_event(data={}, project_id=self.project.id)
@@ -600,6 +515,8 @@ class PostProcessGroupTest(TestCase):
 
         assert not delay.called
 
+
+class InboxTestMixin:
     @patch("sentry.rules.processor.RuleProcessor")
     def test_group_inbox_regression(self, mock_processor):
         event = self.store_event(data={"message": "testing"}, project_id=self.project.id)
@@ -639,22 +556,8 @@ class PostProcessGroupTest(TestCase):
         #     group=group, reason=GroupInboxReason.REGRESSION.value
         # ).exists()
 
-    def test_nodestore_stats(self):
-        event = self.store_event(data={"message": "testing"}, project_id=self.project.id)
-        cache_key = write_event_to_cache(event)
 
-        with self.options({"store.nodestore-stats-sample-rate": 1.0}), self.tasks():
-            post_process_group(
-                is_new=True,
-                is_regression=True,
-                is_new_group_environment=False,
-                cache_key=cache_key,
-                group_id=event.group_id,
-            )
-
-
-@region_silo_test
-class PostProcessGroupAssignmentTest(TestCase):
+class AssignmentTestMixin:
     def make_ownership(self, extra_rules=None):
         self.user_2 = self.create_user()
         self.create_team_membership(team=self.team, user=self.user_2)
@@ -994,9 +897,159 @@ class PostProcessGroupAssignmentTest(TestCase):
         )
 
 
+class SnoozeTestMixin:
+    @patch("sentry.signals.issue_unignored.send_robust")
+    @patch("sentry.rules.processor.RuleProcessor")
+    def test_invalidates_snooze(self, mock_processor, send_robust):
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        cache_key = write_event_to_cache(event)
+
+        group = event.group
+        snooze = GroupSnooze.objects.create(group=group, until=timezone.now() - timedelta(hours=1))
+
+        # Check for has_reappeared=False if is_new=True
+        post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            cache_key=cache_key,
+            group_id=event.group_id,
+            group_states=[
+                {
+                    "id": event.group_id,
+                    "is_new": True,
+                    "is_regression": False,
+                    "is_new_group_environment": True,
+                }
+            ],
+        )
+        assert GroupInbox.objects.filter(group=group, reason=GroupInboxReason.NEW.value).exists()
+        GroupInbox.objects.filter(group=group).delete()  # Delete so it creates the UNIGNORED entry.
+        Activity.objects.filter(group=group).delete()
+
+        mock_processor.assert_called_with(EventMatcher(event), True, False, True, False)
+
+        cache_key = write_event_to_cache(event)
+        # Check for has_reappeared=True if is_new=False
+        post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=True,
+            cache_key=cache_key,
+            group_id=event.group_id,
+        )
+
+        mock_processor.assert_called_with(EventMatcher(event), False, False, True, True)
+
+        assert not GroupSnooze.objects.filter(id=snooze.id).exists()
+
+        group = Group.objects.get(id=group.id)
+        assert group.status == GroupStatus.UNRESOLVED
+        assert GroupInbox.objects.filter(
+            group=group, reason=GroupInboxReason.UNIGNORED.value
+        ).exists()
+        assert Activity.objects.filter(
+            group=group, project=group.project, type=ActivityType.SET_UNRESOLVED.value
+        ).exists()
+        assert send_robust.called
+
+    @override_settings(SENTRY_BUFFER="sentry.buffer.redis.RedisBuffer")
+    @patch("sentry.signals.issue_unignored.send_robust")
+    @patch("sentry.rules.processor.RuleProcessor")
+    def test_invalidates_snooze_with_buffers(self, mock_processor, send_robust):
+        redis_buffer = RedisBuffer()
+        with mock.patch("sentry.buffer.get", redis_buffer.get), mock.patch(
+            "sentry.buffer.incr", redis_buffer.incr
+        ):
+            event = self.create_event(
+                data={"message": "testing", "fingerprint": ["group-1"]}, project_id=self.project.id
+            )
+            event_2 = self.create_event(
+                data={"message": "testing", "fingerprint": ["group-1"]}, project_id=self.project.id
+            )
+            group = event.group
+            group.update(times_seen=50)
+            snooze = GroupSnooze.objects.create(group=group, count=100, state={"times_seen": 0})
+
+            cache_key = write_event_to_cache(event)
+            post_process_group(
+                is_new=False,
+                is_regression=False,
+                is_new_group_environment=True,
+                cache_key=cache_key,
+                group_id=event.group_id,
+            )
+            assert GroupSnooze.objects.filter(id=snooze.id).exists()
+            cache_key = write_event_to_cache(event_2)
+            self.feature
+
+            buffer.incr(Group, {"times_seen": 60}, filters={"pk": event.group.id})
+            post_process_group(
+                is_new=False,
+                is_regression=False,
+                is_new_group_environment=True,
+                cache_key=cache_key,
+                group_id=event.group_id,
+            )
+            assert not GroupSnooze.objects.filter(id=snooze.id).exists()
+
+    @patch("sentry.rules.processor.RuleProcessor")
+    def test_maintains_valid_snooze(self, mock_processor):
+        event = self.create_event(data={}, project_id=self.project.id)
+        cache_key = write_event_to_cache(event)
+        group = event.group
+        snooze = GroupSnooze.objects.create(group=group, until=timezone.now() + timedelta(hours=1))
+
+        post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            cache_key=cache_key,
+            group_id=event.group_id,
+        )
+
+        mock_processor.assert_called_with(EventMatcher(event), True, False, True, False)
+
+        assert GroupSnooze.objects.filter(id=snooze.id).exists()
+
+
 @region_silo_test
-class PostProcessGroupPerformanceTest(TestCase, SnubaTestCase, PerfIssueTransactionTestMixin):
-    @with_feature("organizations:performance-issues-post-process-group")
+class PostProcessGroupErrorTest(
+    TestCase,
+    AssignmentTestMixin,
+    CorePostProcessGroupTestMixin,
+    InboxTestMixin,
+    ResourceChangeBoundsTestMixin,
+    RuleProcessorTestMixin,
+    ServiceHooksTestMixin,
+    SnoozeTestMixin,
+):
+    def create_event(self, data, project_id):
+        return self.store_event(data=data, project_id=project_id)
+
+
+@region_silo_test
+@apply_feature_flag_on_cls("organizations:performance-issues-post-process-group")
+class PostProcessGroupPerformanceTest(
+    TestCase,
+    SnubaTestCase,
+    PerfIssueTransactionTestMixin,
+    CorePostProcessGroupTestMixin,
+    InboxTestMixin,
+    RuleProcessorTestMixin,
+    SnoozeTestMixin,
+):
+    def create_event(self, data, project_id):
+        fingerprint = data["fingerprint"][0] if data.get("fingerprint") else "some_group"
+        fingerprint = f"{GroupType.PERFORMANCE_N_PLUS_ONE.value}-{fingerprint}"
+        # Store a performance event
+        event = self.store_transaction(
+            project_id=project_id,
+            user_id="hi",
+            fingerprint=[fingerprint],
+        )
+        return event.for_group(event.groups[0])
+
     @patch("sentry.tasks.post_process.run_post_process_job")
     @patch("sentry.rules.processor.RuleProcessor")
     @patch("sentry.signals.transaction_processed.send_robust")
