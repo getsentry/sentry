@@ -143,7 +143,7 @@ class GitHubAppsClientTest(TestCase):
 
         responses.add(
             method=responses.GET,
-            url=f"{url}",
+            url=url,
             json={"text": 200},
             headers={"link": f'<{url}&page=2>; rel="next", <{url}&page=4>; rel="last"'},
         )

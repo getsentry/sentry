@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from urllib.parse import urlencode, urlparse
 
 import responses
@@ -46,7 +46,6 @@ class GitHubIntegrationTest(IntegrationTestCase):
         sentry.integrations.github.integration.get_jwt = MagicMock(return_value="jwt_token_1")
         sentry.integrations.github.client.get_jwt = MagicMock(return_value="jwt_token_1")
         pp = 1
-        sentry.integrations.github.client.GitHubClientMixin._page_size = MagicMock(return_value=pp)
 
         responses.add(
             responses.POST,
@@ -334,8 +333,11 @@ class GitHubIntegrationTest(IntegrationTestCase):
         integration = Integration.objects.get(provider=self.provider.key)
         installation = integration.get_installation(self.organization)
 
-        # The setUp function forces the pagination of one repo per page
-        result = installation.get_repositories()
+        with patch.object(
+            sentry.integrations.github.client.GitHubClientMixin._page_size
+        ) as page_size_mock:
+            page_size_mock.return_value = 1
+            result = installation.get_repositories()
         assert result == [
             {"name": "foo", "identifier": "Test-Organization/foo"},
             {"name": "bar", "identifier": "Test-Organization/bar"},
