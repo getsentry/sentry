@@ -52,12 +52,7 @@ const RadioGroup = <C extends string>({
   orientInline,
   ...props
 }: RadioGroupProps<C>) => (
-  <Container
-    orientInline={orientInline}
-    {...props}
-    role="radiogroup"
-    aria-labelledby={label}
-  >
+  <Container orientInline={orientInline} {...props} role="radiogroup" aria-label={label}>
     {choices.map(([id, name, description], index) => {
       const disabledChoice = disabledChoices.find(([choiceId]) => choiceId === id);
       const disabledChoiceReason = disabledChoice?.[1];

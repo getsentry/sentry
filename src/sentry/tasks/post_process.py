@@ -308,7 +308,7 @@ def fetch_buffered_group_stats(group):
     name="sentry.tasks.post_process.post_process_group",
     time_limit=120,
     soft_time_limit=110,
-    queue="triggers-0",
+    queue="post_process_errors",
 )
 def post_process_group(
     is_new,
@@ -369,8 +369,10 @@ def post_process_group(
                     project=event.project,
                     event=event,
                 )
-
-            return
+            if not features.has(
+                "organizations:performance-issues-post-process-group", event.project.organization
+            ):
+                return
 
         group_states = kwargs.get("group_states")
 

@@ -1,4 +1,4 @@
-import {mountWithTheme, shallow} from 'sentry-test/enzyme';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import MemberBadge from 'sentry/components/idBadge/memberBadge';
 
@@ -9,29 +9,29 @@ describe('MemberBadge', function () {
   });
 
   it('renders with link when member and orgId are supplied', function () {
-    const wrapper = mountWithTheme(<MemberBadge member={member} orgId="orgId" />);
+    render(<MemberBadge member={member} orgId="orgId" />);
 
-    expect(wrapper.find('StyledName').prop('children')).toBe('Foo Bar');
-    expect(wrapper.find('StyledEmail').prop('children')).toBe('foo@example.com');
-    expect(wrapper.find('StyledName Link')).toHaveLength(1);
-    expect(wrapper.find('StyledAvatar')).toHaveLength(1);
+    expect(screen.getByTestId('letter_avatar-avatar')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Foo Bar'})).toBeInTheDocument();
+    expect(screen.getByText('foo@example.com')).toBeInTheDocument();
   });
 
   it('does not use a link when useLink = false', function () {
-    const wrapper = mountWithTheme(
-      <MemberBadge member={member} useLink={false} orgId="orgId" />
-    );
-    expect(wrapper.find('StyledName Link')).toHaveLength(0);
+    render(<MemberBadge member={member} useLink={false} orgId="orgId" />);
+
+    expect(screen.queryByRole('link', {name: 'Foo Bar'})).not.toBeInTheDocument();
+    expect(screen.getByText('Foo Bar')).toBeInTheDocument();
   });
 
   it('does not use a link when orgId = null', function () {
-    const wrapper = mountWithTheme(<MemberBadge member={member} useLink />);
+    render(<MemberBadge member={member} useLink />);
 
-    expect(wrapper.find('StyledName Link')).toHaveLength(0);
+    expect(screen.queryByRole('link', {name: 'Foo Bar'})).not.toBeInTheDocument();
+    expect(screen.getByText('Foo Bar')).toBeInTheDocument();
   });
 
   it('can display alternate display names/emails', function () {
-    const wrapper = shallow(
+    render(
       <MemberBadge
         member={member}
         displayName="Other Display Name"
@@ -39,9 +39,9 @@ describe('MemberBadge', function () {
       />
     );
 
-    expect(wrapper.find('StyledName').prop('children')).toBe('Other Display Name');
-    expect(wrapper.find('StyledEmail').prop('children')).toBe('Other Display Email');
-    expect(wrapper.find('StyledAvatar')).toHaveLength(1);
+    expect(screen.getByTestId('letter_avatar-avatar')).toBeInTheDocument();
+    expect(screen.getByText('Other Display Name')).toBeInTheDocument();
+    expect(screen.getByText('Other Display Email')).toBeInTheDocument();
   });
 
   it('can coalesce using username', function () {
@@ -51,11 +51,9 @@ describe('MemberBadge', function () {
       username: 'the-batman',
     });
 
-    const wrapper = shallow(<MemberBadge member={member} />);
+    render(<MemberBadge member={member} />);
 
-    expect(wrapper.find('StyledName').prop('children')).toBe(member.user.username);
-    expect(wrapper.find('StyledEmail').prop('children')).toBe(null);
-    expect(wrapper.find('StyledAvatar')).toHaveLength(1);
+    expect(screen.getByText('the-batman')).toBeInTheDocument();
   });
 
   it('can coalesce using ipaddress', function () {
@@ -65,23 +63,21 @@ describe('MemberBadge', function () {
       username: null,
       ipAddress: '127.0.0.1',
     });
-    const wrapper = shallow(<MemberBadge member={member} />);
+    render(<MemberBadge member={member} />);
 
-    expect(wrapper.find('StyledName').prop('children')).toBe(member.user.ipAddress);
-    expect(wrapper.find('StyledEmail').prop('children')).toBe(null);
+    expect(screen.getByText('127.0.0.1')).toBeInTheDocument();
   });
 
   it('can hide email address', function () {
-    const wrapper = mountWithTheme(<MemberBadge member={member} hideEmail />);
+    render(<MemberBadge member={member} hideEmail />);
 
-    expect(wrapper.find('StyledEmail')).toHaveLength(0);
+    expect(screen.queryByText('foo@example.com')).not.toBeInTheDocument();
   });
 
   it('renders when a member without a user to passed to member', function () {
-    const wrapper = mountWithTheme(<MemberBadge member={{...member, user: null}} />);
+    render(<MemberBadge member={{...member, user: null}} />);
 
-    expect(wrapper.find('StyledName').prop('children')).toBe('Sentry 1 Name');
-    expect(wrapper.find('StyledAvatar')).toHaveLength(1);
-    expect(wrapper.find('StyledAvatar').prop('user').email).toBe(member.email);
+    expect(screen.getByTestId('letter_avatar-avatar')).toBeInTheDocument();
+    expect(screen.getByText('Sentry 1 Name')).toBeInTheDocument();
   });
 });
