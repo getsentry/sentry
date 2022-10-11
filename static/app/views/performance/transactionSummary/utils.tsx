@@ -149,9 +149,14 @@ export function generateReplayLink(routes: PlainRoute<any>[]) {
     const replaySlug = `${tableRow['project.name']}:${replayId}`;
     const referrer = encodeURIComponent(getRouteStringFromRoutes(routes));
 
+    const transactionTimestamp = tableRow.timestamp
+      ? Math.floor(new Date(tableRow.timestamp).getTime() / 1000) * 1000
+      : 0;
+
     return {
       pathname: `/organizations/${organization.slug}/replays/${replaySlug}`,
       query: {
+        event_t: transactionTimestamp,
         referrer,
       },
     };

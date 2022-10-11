@@ -9,8 +9,10 @@ import {
   Provider as ReplayContextProvider,
   useReplayContext,
 } from 'sentry/components/replays/replayContext';
+import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
+import {defined} from 'sentry/utils';
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import useReplayLayout from 'sentry/utils/replays/hooks/useReplayLayout';
 import useReplayPageview from 'sentry/utils/replays/hooks/useReplayPageview';
@@ -22,12 +24,13 @@ type Props = RouteComponentProps<
   {orgId: string; replaySlug: string},
   {},
   any,
-  {t: number}
+  {event_t: string; t: number}
 >;
 
 function ReplayDetails({
   location: {
     query: {
+      event_t: eventTimestamp, // Timestamp of the event or activity that was selected
       t: initialTimeOffset, // Time, in seconds, where the video should start
     },
   },
@@ -39,6 +42,8 @@ function ReplayDetails({
     replaySlug,
     orgSlug,
   });
+
+  const startTimestampMs = replayRecord?.startedAt.getTime() ?? 0;
 
   if (!fetching && !replay && fetchError) {
     if (fetchError.statusText === 'Not Found') {
@@ -97,6 +102,23 @@ function ReplayDetails({
         />
       </Page>
     );
+  }
+
+  // If the user has navigated to the replay from an event, then we want to
+  // start the video at the time of the event.
+  if (!defined(initialTimeOffset) && defined(eventTimestamp) && startTimestampMs) {
+    // check if the event timestamp is the correct format
+    if (eventTimestamp.length === 13) {
+      initialTimeOffset =
+        relativeTimeInMs(Number(eventTimestamp), startTimestampMs) / 1000;
+    } else {
+      initialTimeOffset = relativeTimeInMs(eventTimestamp, startTimestampMs) / 1000;
+    }
+
+    // if the event timestamp is not the correct format, default to the start of the replay
+    if (!defined(initialTimeOffset)) {
+      initialTimeOffset = 0;
+    }
   }
 
   return (
