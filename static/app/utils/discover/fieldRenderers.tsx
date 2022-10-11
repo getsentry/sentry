@@ -318,7 +318,7 @@ const SPECIAL_FIELDS: SpecialFields = {
       const items: MenuItemProps[] = attachments.map(attachment => ({
         key: attachment.id,
         label: attachment.name,
-        onAction: () => window.open(attachment.url),
+        onAction: () => window.open(attachment.url), // TODO - validate if this works
       }));
 
       return (
