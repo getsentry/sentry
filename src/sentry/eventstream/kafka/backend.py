@@ -29,9 +29,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         # TODO: KAFKA_NEW_TRANSACTIONS is temporary and only to be used during
         # the errors/transactions split process.
         self.new_transactions_topic = settings.KAFKA_NEW_TRANSACTIONS
-        self.assign_transaction_partitions_randomly = (
-            settings.SENTRY_EVENTSTREAM_PARTITION_TRANSACTIONS_RANDOMLY
-        )
+        self.assign_transaction_partitions_randomly = True
 
     def get_transactions_topic(self, project_id: int) -> str:
         use_new_topic = killswitch_matches_context(
