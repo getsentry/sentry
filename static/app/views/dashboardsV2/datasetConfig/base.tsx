@@ -12,6 +12,7 @@ import {
   AggregationOutputType,
   isEquation,
   QueryFieldValue,
+  stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
@@ -254,9 +255,20 @@ export function handleOrderByReset(
     const isUsedInGrouping = widgetQuery.columns.includes(rawOrderby);
 
     const keepCurrentOrderby = isFromAggregates || isCustomEquation || isUsedInGrouping;
-    const firstAggregateAlias = isEquation(widgetQuery.aggregates[0] ?? '')
-      ? `equation[${getNumEquations(widgetQuery.aggregates) - 1}]`
-      : newFields[0];
+    // This is a fallback if the widget's first aggregate isn't a valid equation.
+    // Likewise, check that this new field is a valid equation and if not, default
+    // to count()
+    const newFieldAggregate =
+      isEquation(newFields[0]) && stripEquationPrefix(newFields[0])
+        ? newFields[0]
+        : 'count()';
+
+    // Check that the widget's first aggregate isn't an empty equation
+    const firstAggregateAlias =
+      isEquation(widgetQuery.aggregates[0] ?? '') &&
+      stripEquationPrefix(widgetQuery.aggregates[0] ?? '')
+        ? `equation[${getNumEquations(widgetQuery.aggregates) - 1}]`
+        : newFieldAggregate;
 
     widgetQuery.orderby =
       (keepCurrentOrderby && widgetQuery.orderby) ||
