@@ -7,7 +7,6 @@ import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelTable from 'sentry/components/panels/panelTable';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -84,25 +83,6 @@ class TransactionsTable extends PureComponent<Props> {
                 ) : (
                   title
                 )
-              }
-              direction={undefined}
-              canSort={false}
-              generateSortLink={generateSortLink}
-            />
-          </HeadCellContainer>
-        );
-      }
-
-      if (column.key === 'replayId') {
-        return (
-          <HeadCellContainer key={index}>
-            <SortLink
-              align={align}
-              title={
-                <StyledGridCell>
-                  <StyledIconPlay size="xs" />
-                  {title}
-                </StyledGridCell>
               }
               direction={undefined}
               canSort={false}
@@ -256,18 +236,6 @@ const StyledIconQuestion = styled(QuestionTooltip)`
   position: relative;
   top: 1px;
   left: 4px;
-`;
-
-const StyledGridCell = styled('div')`
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  grid-gap: ${space(0.5)};
-  align-items: center;
-`;
-
-const StyledIconPlay = styled(IconPlay)`
-  position: relative;
-  top: -1px;
 `;
 
 export default TransactionsTable;

@@ -47,6 +47,7 @@ import {
   FlexContainer,
   NumberContainer,
   OverflowLink,
+  StyledIconPlay,
   UserIcon,
   VersionContainer,
 } from './styles';
@@ -341,12 +342,17 @@ const SPECIAL_FIELDS: SpecialFields = {
   replayId: {
     sortField: 'replayId',
     renderFunc: data => {
-      const replayId: string | unknown = data?.replayId;
+      const replayId = data?.replayId;
       if (typeof replayId !== 'string') {
         return null;
       }
 
-      return <Container>{getShortEventId(replayId)}</Container>;
+      return (
+        <FlexContainer>
+          <StyledIconPlay size="xs" />
+          <Container>{getShortEventId(replayId)}</Container>
+        </FlexContainer>
+      );
     },
   },
   issue: {
