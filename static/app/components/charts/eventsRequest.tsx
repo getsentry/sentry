@@ -349,7 +349,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
    * Returns `null` if data does not exist
    */
   getData = (
-    data: EventsStatsData
+    data: EventsStatsData = []
   ): {current: EventsStatsData; previous: EventsStatsData | null} => {
     const {fetchedWithPrevious} = this.state;
     const {period, includePrevious} = this.props;
