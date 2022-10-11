@@ -397,8 +397,6 @@ def post_process_group(
             # error issue
             group_states = [
                 {
-                    # have to use the event.group_id field, instead of the passed in group_id
-                    # since we rebind it in `update_event_groups` (for merging groups)
                     "id": group_id,
                     "is_new": is_new,
                     "is_regression": is_regression,
@@ -486,21 +484,21 @@ def update_event_groups(event: Event, group_states: Optional[GroupStates] = None
     group_states = group_states or ([{"id": event.group_id}] if event.group_id else [])
     rebound_groups = []
     for group_state in group_states:
-        if group_state.get("id"):
-            rebound_group = get_group_with_redirect(group_state["id"])[0]
-            group_state["id"] = rebound_group.id
-            rebound_groups.append(rebound_group)
+        rebound_group = get_group_with_redirect(group_state["id"])[0]
 
-    event.groups = rebound_groups
-    for group in event.groups:
         # We fetch buffered updates to group aggregates here and populate them on the Group. This
         # helps us avoid problems with processing group ignores and alert rules that rely on these
         # stats.
         with sentry_sdk.start_span(op="tasks.post_process_group.fetch_buffered_group_stats"):
-            fetch_buffered_group_stats(group)
+            fetch_buffered_group_stats(rebound_group)
 
-        group.project = event.project
-        group.project.set_cached_field_value("organization", event.project.organization)
+        rebound_group.project = event.project
+        rebound_group.project.set_cached_field_value("organization", event.project.organization)
+
+        group_state["id"] = rebound_group.id
+        rebound_groups.append(rebound_group)
+
+    event.groups = rebound_groups
 
 
 def process_inbox_adds(job: PostProcessJob) -> None:
