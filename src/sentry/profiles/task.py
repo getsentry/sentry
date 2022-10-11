@@ -228,6 +228,9 @@ def _symbolicate(
 def _process_symbolicator_results(
     profile: Profile, modules: List[Any], stacktraces: List[Any]
 ) -> None:
+    # update images with status after symbolication
+    profile["debug_meta"]["images"] = modules
+
     if "version" in profile:
         profile["profile"]["frames"] = stacktraces[0]["frames"]
         _process_symbolicator_results_for_sample(profile, stacktraces)
@@ -237,9 +240,6 @@ def _process_symbolicator_results(
         _process_symbolicator_results_for_rust(profile, stacktraces)
     elif profile["platform"] == "cocoa":
         _process_symbolicator_results_for_cocoa(profile, stacktraces)
-
-    # update images with status after symbolication
-    profile["debug_meta"]["images"] = modules
 
     # rename the profile key to suggest it has been processed
     profile["profile"] = profile.pop("sampled_profile")
