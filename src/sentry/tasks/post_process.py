@@ -403,6 +403,7 @@ def post_process_group(
                 "group_state": group_state,
                 "is_reprocessed": is_reprocessed,
                 "has_reappeared": not group_state["is_new"],
+                "has_alert": False,
             }
             run_post_process_job(job)
 
