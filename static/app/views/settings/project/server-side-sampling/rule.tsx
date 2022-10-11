@@ -12,16 +12,13 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconEllipsis} from 'sentry/icons';
 import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {t, tn} from 'sentry/locale';
+import {ServerSideSamplingStore} from 'sentry/stores/serverSideSamplingStore';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import {SamplingRule, SamplingRuleOperator} from 'sentry/types/sampling';
 import {formatPercentage} from 'sentry/utils/formatters';
 
-import {
-  getInnerNameLabel,
-  isSamplingSdkVersionsBeingProcessed,
-  isUniformRule,
-} from './utils';
+import {getInnerNameLabel, isUniformRule} from './utils';
 
 type Props = {
   dragging: boolean;
@@ -66,7 +63,8 @@ export function Rule({
   loadingRecommendedSdkUpgrades,
   canDemo,
 }: Props) {
-  const processingSamplingSdkVersions = isSamplingSdkVersionsBeingProcessed();
+  const processingSamplingSdkVersions =
+    (ServerSideSamplingStore.getState().sdkVersions.data ?? []).length === 0;
   const isUniform = isUniformRule(rule);
   const canDelete = !noPermission && (!isUniform || canDemo);
   const canDrag = !noPermission && !isUniform;

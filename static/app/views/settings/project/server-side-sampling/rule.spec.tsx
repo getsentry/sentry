@@ -36,8 +36,16 @@ describe('Server-Side Sampling - Rule', function () {
   });
 
   it('can be deactivated even with unsupported SDKs', function () {
-    ServerSideSamplingStore.sdkVersionsRequestSuccess(mockedSamplingSdkVersions);
-
+    ServerSideSamplingStore.sdkVersionsRequestSuccess([
+      {
+        project: 'javascript',
+        latestSDKVersion: '1.0.3',
+        latestSDKName: 'sentry.javascript.react',
+        isSendingSampleRate: true,
+        isSendingSource: true,
+        isSupportedPlatform: false,
+      },
+    ]);
     render(
       <Rule
         operator={SamplingRuleOperator.IF}

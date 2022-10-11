@@ -17,7 +17,6 @@ import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/serve
 import {
   getMockData,
   mockedSamplingDistribution,
-  mockedSamplingSdkVersions,
   outcomesWithoutClientDiscarded,
 } from '../testUtils';
 
@@ -52,7 +51,6 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
 
     ServerSideSamplingStore.projectStats30dRequestSuccess(TestStubs.Outcomes());
     ServerSideSamplingStore.projectStats48hRequestSuccess(TestStubs.Outcomes());
-    ServerSideSamplingStore.sdkVersionsRequestSuccess(mockedSamplingSdkVersions);
 
     const {container} = render(<GlobalModal />);
 
@@ -180,7 +178,6 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
       ...TestStubs.Outcomes(),
       groups: [],
     });
-    ServerSideSamplingStore.sdkVersionsRequestSuccess([mockedSamplingSdkVersions[0]]);
 
     const {organization, project} = getMockData();
 
@@ -260,7 +257,6 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
       ...TestStubs.Outcomes(),
       groups: [],
     });
-    ServerSideSamplingStore.sdkVersionsRequestSuccess(mockedSamplingSdkVersions);
 
     const {organization, project} = getMockData();
 
@@ -305,12 +301,12 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
     ServerSideSamplingStore.projectStats48hRequestSuccess(outcomesWithoutClientDiscarded);
     ServerSideSamplingStore.sdkVersionsRequestSuccess([
       {
-        isSendingSampleRate: false,
-        isSendingSource: false,
-        isSupportedPlatform: true,
-        latestSDKName: 'abc',
-        latestSDKVersion: '999',
         project: project.slug,
+        latestSDKVersion: '1.0.3',
+        latestSDKName: 'sentry.javascript.react',
+        isSendingSampleRate: false,
+        isSendingSource: true,
+        isSupportedPlatform: true,
       },
     ]);
 
@@ -365,7 +361,6 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
       ...outcomesWithoutClientDiscarded,
       groups: [],
     });
-    ServerSideSamplingStore.sdkVersionsRequestSuccess(mockedSamplingSdkVersions);
 
     const {organization, project} = getMockData();
 
