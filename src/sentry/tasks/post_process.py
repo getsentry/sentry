@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Optional, TypedDict
+from typing import TYPE_CHECKING, Mapping, Optional, Sequence, Tuple, TypedDict, Union
 
 import sentry_sdk
 from django.conf import settings
@@ -23,7 +23,7 @@ from sentry.utils.sdk import bind_organization_context, set_current_event_projec
 from sentry.utils.services import build_instance_from_options
 
 if TYPE_CHECKING:
-    from sentry.eventstore.models import Event
+    from sentry.eventstore.models import Event, GroupEvent
     from sentry.eventstream.base import GroupState, GroupStates
 
 logger = logging.getLogger("sentry")
@@ -32,7 +32,7 @@ locks = LockManager(build_instance_from_options(settings.SENTRY_POST_PROCESS_LOC
 
 
 class PostProcessJob(TypedDict, total=False):
-    event: Event
+    event: Union[Event, GroupEvent]
     group_state: GroupState
     is_reprocessed: bool
     has_reappeared: bool
@@ -82,7 +82,11 @@ def should_write_event_stats(event: Event):
     # other event types we'll throw off existing stats and potentially cause various alerts to fire.
     # We might decide to write these stats for other event types later, either under different keys
     # or with differentiating tags.
-    return event.group.issue_category == GroupCategory.ERROR and event.group.platform is not None
+    return (
+        event.group
+        and event.group.issue_category == GroupCategory.ERROR
+        and event.group.platform is not None
+    )
 
 
 def format_event_platform(event: Event):
@@ -118,98 +122,88 @@ def handle_owner_assignment(job):
         return
 
     with sentry_sdk.start_span(op="tasks.post_process_group.handle_owner_assignment"):
-        try:
-            from sentry.models import GroupAssignee, ProjectOwnership
+        from sentry.models import GroupAssignee, ProjectOwnership
 
-            event = job["event"]
-            project, group = event.project, event.group
+        event = job["event"]
+        project, group = event.project, event.group
 
-            with metrics.timer("post_process.handle_owner_assignment"):
-                with sentry_sdk.start_span(
-                    op="post_process.handle_owner_assignment.cache_set_owner"
+        with metrics.timer("post_process.handle_owner_assignment"):
+            with sentry_sdk.start_span(op="post_process.handle_owner_assignment.cache_set_owner"):
+                owner_key = "owner_exists:1:%s" % group.id
+                owners_exists = cache.get(owner_key)
+                if owners_exists is None:
+                    owners_exists = group.groupowner_set.exists()
+                    # Cache for an hour if it's assigned. We don't need to move that fast.
+                    cache.set(owner_key, owners_exists, 3600 if owners_exists else 60)
+
+            with sentry_sdk.start_span(
+                op="post_process.handle_owner_assignment.cache_set_assignee"
+            ):
+                # Is the issue already assigned to a team or user?
+                assignee_key = "assignee_exists:1:%s" % group.id
+                assignees_exists = cache.get(assignee_key)
+                if assignees_exists is None:
+                    assignees_exists = group.assignee_set.exists()
+                    # Cache for an hour if it's assigned. We don't need to move that fast.
+                    cache.set(assignee_key, assignees_exists, 3600 if assignees_exists else 60)
+
+            if owners_exists and assignees_exists:
+                return
+
+            with sentry_sdk.start_span(
+                op="post_process.handle_owner_assignment.get_autoassign_owners"
+            ):
+                if killswitch_matches_context(
+                    "post_process.get-autoassign-owners",
+                    {
+                        "project_id": project.id,
+                    },
                 ):
-                    owner_key = "owner_exists:1:%s" % group.id
-                    owners_exists = cache.get(owner_key)
-                    if owners_exists is None:
-                        owners_exists = group.groupowner_set.exists()
-                        # Cache for an hour if it's assigned. We don't need to move that fast.
-                        cache.set(owner_key, owners_exists, 3600 if owners_exists else 60)
+                    # see ProjectOwnership.get_autoassign_owners
+                    auto_assignment = False
+                    owners = []
+                    assigned_by_codeowners = False
+                    auto_assignment_rule = None
+                    owner_source = []
+                else:
+                    (
+                        auto_assignment,
+                        owners,
+                        assigned_by_codeowners,
+                        auto_assignment_rule,
+                        owner_source,
+                    ) = ProjectOwnership.get_autoassign_owners(group.project_id, event.data)
 
-                with sentry_sdk.start_span(
-                    op="post_process.handle_owner_assignment.cache_set_assignee"
-                ):
-                    # Is the issue already assigned to a team or user?
-                    assignee_key = "assignee_exists:1:%s" % group.id
-                    assignees_exists = cache.get(assignee_key)
-                    if assignees_exists is None:
-                        assignees_exists = group.assignee_set.exists()
-                        # Cache for an hour if it's assigned. We don't need to move that fast.
-                        cache.set(assignee_key, assignees_exists, 3600 if assignees_exists else 60)
+            with sentry_sdk.start_span(op="post_process.handle_owner_assignment.analytics_record"):
+                if auto_assignment and owners and not assignees_exists:
+                    from sentry.models.activity import ActivityIntegration
 
-                if owners_exists and assignees_exists:
-                    return
-
-                with sentry_sdk.start_span(
-                    op="post_process.handle_owner_assignment.get_autoassign_owners"
-                ):
-                    if killswitch_matches_context(
-                        "post_process.get-autoassign-owners",
-                        {
-                            "project_id": project.id,
+                    assignment = GroupAssignee.objects.assign(
+                        group,
+                        owners[0],
+                        create_only=True,
+                        extra={
+                            "integration": ActivityIntegration.CODEOWNERS.value
+                            if assigned_by_codeowners
+                            else ActivityIntegration.PROJECT_OWNERSHIP.value,
+                            "rule": str(auto_assignment_rule),
                         },
-                    ):
-                        # see ProjectOwnership.get_autoassign_owners
-                        auto_assignment = False
-                        owners = []
-                        assigned_by_codeowners = False
-                        auto_assignment_rule = None
-                        owner_source = []
-                    else:
-                        (
-                            auto_assignment,
-                            owners,
-                            assigned_by_codeowners,
-                            auto_assignment_rule,
-                            owner_source,
-                        ) = ProjectOwnership.get_autoassign_owners(group.project_id, event.data)
-
-                with sentry_sdk.start_span(
-                    op="post_process.handle_owner_assignment.analytics_record"
-                ):
-                    if auto_assignment and owners and not assignees_exists:
-                        from sentry.models.activity import ActivityIntegration
-
-                        assignment = GroupAssignee.objects.assign(
-                            group,
-                            owners[0],
-                            create_only=True,
-                            extra={
-                                "integration": ActivityIntegration.CODEOWNERS.value
-                                if assigned_by_codeowners
-                                else ActivityIntegration.PROJECT_OWNERSHIP.value,
-                                "rule": str(auto_assignment_rule),
-                            },
+                    )
+                    if assignment["new_assignment"] or assignment["updated_assignment"]:
+                        analytics.record(
+                            "codeowners.assignment"
+                            if assigned_by_codeowners
+                            else "issueowners.assignment",
+                            organization_id=project.organization_id,
+                            project_id=project.id,
+                            group_id=group.id,
                         )
-                        if assignment["new_assignment"] or assignment["updated_assignment"]:
-                            analytics.record(
-                                "codeowners.assignment"
-                                if assigned_by_codeowners
-                                else "issueowners.assignment",
-                                organization_id=project.organization_id,
-                                project_id=project.id,
-                                group_id=group.id,
-                            )
 
-                with sentry_sdk.start_span(
-                    op="post_process.handle_owner_assignment.handle_group_owners"
-                ):
-                    if owners and not owners_exists:
-                        try:
-                            handle_group_owners(project, group, owners, owner_source)
-                        except Exception:
-                            logger.exception("Failed to store group owners")
-        except Exception:
-            logger.exception("Failed to handle owner assignments")
+            with sentry_sdk.start_span(
+                op="post_process.handle_owner_assignment.handle_group_owners"
+            ):
+                if owners and not owners_exists:
+                    handle_group_owners(project, group, owners, owner_source)
 
 
 def handle_group_owners(project, group, owners, owner_source):
@@ -293,16 +287,13 @@ def update_existing_attachments(job):
     """
     # Patch attachments that were ingested on the standalone path.
     with sentry_sdk.start_span(op="tasks.post_process_group.update_existing_attachments"):
-        try:
-            from sentry.models import EventAttachment
+        from sentry.models import EventAttachment
 
-            event = job["event"]
+        event = job["event"]
 
-            EventAttachment.objects.filter(
-                project_id=event.project_id, event_id=event.event_id
-            ).update(group_id=event.group_id)
-        except Exception:
-            logger.exception("Failed to update existing attachments")
+        EventAttachment.objects.filter(project_id=event.project_id, event_id=event.event_id).update(
+            group_id=event.group_id
+        )
 
 
 def fetch_buffered_group_stats(group):
@@ -321,7 +312,7 @@ def fetch_buffered_group_stats(group):
     name="sentry.tasks.post_process.post_process_group",
     time_limit=120,
     soft_time_limit=110,
-    queue="triggers-0",
+    queue="post_process_errors",
 )
 def post_process_group(
     is_new,
@@ -353,10 +344,10 @@ def post_process_group(
             )
             return
 
-        event = process_event(data, group_id)
-
         with metrics.timer("tasks.post_process.delete_event_cache"):
             event_processing_store.delete_by_key(cache_key)
+
+        event = process_event(data, group_id)
 
         # Re-bind Project and Org since we're reading the Event object
         # from cache which may contain stale parent models.
@@ -382,14 +373,14 @@ def post_process_group(
                     project=event.project,
                     event=event,
                 )
-
-            return
-
-        group_states = kwargs.get("group_states")
+            if not features.has(
+                "organizations:performance-issues-post-process-group", event.project.organization
+            ):
+                return
 
         # TODO: Remove this check once we're sending all group ids as `group_states` and treat all
         # events the same way
-        if event.get_event_type() != "transaction" or group_states is None:
+        if not is_transaction_event or group_states is None:
             # error issue
             group_states = [
                 {
@@ -399,22 +390,31 @@ def post_process_group(
                     "is_new_group_environment": is_new_group_environment,
                 }
             ]
-        else:
-            # performance issue
-            return
 
-        update_event_group(event)
+        update_event_groups(event, group_states)
+        bind_organization_context(event.project.organization)
         _capture_event_stats(event)
 
-        bind_organization_context(event.project.organization)
+        group_events: Mapping[int, GroupEvent] = {
+            ge.group_id: ge for ge in list(event.build_group_events())
+        }
 
-        for group_state in group_states:
-            job = {
-                "event": event,
-                "group_state": group_state,
+        multi_groups: Sequence[Tuple[GroupEvent, GroupState]] = [
+            (group_events.get(gs.get("id")), gs) for gs in group_states if gs.get("id") is not None
+        ]
+
+        group_jobs: Sequence[PostProcessJob] = [
+            {
+                "event": ge,
+                "group_state": gs,
                 "is_reprocessed": is_reprocessed,
-                "has_reappeared": not group_state["is_new"],
+                "has_reappeared": bool(not gs["is_new"]),
+                "has_alert": False,
             }
+            for ge, gs in multi_groups
+        ]
+
+        for job in group_jobs:
             run_post_process_job(job)
 
 
@@ -432,7 +432,7 @@ def run_post_process_job(job: PostProcessJob):
             pipeline_step(job)
         except Exception:
             logger.exception(
-                f"Failed to process pipeline step {pipeline_step}",
+                f"Failed to process pipeline step {pipeline_step.__name__}",
                 extra={"event": event, "group": event.group},
             )
 
@@ -454,25 +454,38 @@ def process_event(data: dict, group_id: Optional[int]) -> Event:
     return event
 
 
-def update_event_group(event: Event) -> None:
+def update_event_groups(event: Event, group_states: Optional[GroupStates] = None) -> None:
     # NOTE: we must pass through the full Event object, and not an
     # event_id since the Event object may not actually have been stored
     # in the database due to sampling.
     from sentry.models.group import get_group_with_redirect
 
+    # event.group_id can be None in the case of transaction events
+    if event.group_id is not None:
+        # deprecated event.group and event.group_id usage, kept here for backwards compatibility
+        event.group, _ = get_group_with_redirect(event.group_id)
+        event.group_id = event.group.id
+
     # Re-bind Group since we're reading the Event object
     # from cache, which may contain a stale group and project
-    event.group, _ = get_group_with_redirect(event.group_id)
-    event.group_id = event.group.id
+    group_states = group_states or ([{"id": event.group_id}] if event.group_id else [])
+    rebound_groups = []
+    for group_state in group_states:
+        rebound_group = get_group_with_redirect(group_state["id"])[0]
 
-    # We fetch buffered updates to group aggregates here and populate them on the Group. This
-    # helps us avoid problems with processing group ignores and alert rules that rely on these
-    # stats.
-    with sentry_sdk.start_span(op="tasks.post_process_group.fetch_buffered_group_stats"):
-        fetch_buffered_group_stats(event.group)
+        # We fetch buffered updates to group aggregates here and populate them on the Group. This
+        # helps us avoid problems with processing group ignores and alert rules that rely on these
+        # stats.
+        with sentry_sdk.start_span(op="tasks.post_process_group.fetch_buffered_group_stats"):
+            fetch_buffered_group_stats(rebound_group)
 
-    event.group.project = event.project
-    event.group.project.set_cached_field_value("organization", event.project.organization)
+        rebound_group.project = event.project
+        rebound_group.project.set_cached_field_value("organization", event.project.organization)
+
+        group_state["id"] = rebound_group.id
+        rebound_groups.append(rebound_group)
+
+    event.groups = rebound_groups
 
 
 def process_inbox_adds(job: PostProcessJob) -> None:
@@ -487,20 +500,14 @@ def process_inbox_adds(job: PostProcessJob) -> None:
         from sentry.models.groupinbox import add_group_to_inbox
 
         if is_reprocessed and is_new:
-            try:
-                add_group_to_inbox(event.group, GroupInboxReason.REPROCESSED)
-            except Exception:
-                logger.exception("Failed to add group to inbox for reprocessed groups")
+            add_group_to_inbox(event.group, GroupInboxReason.REPROCESSED)
         elif (
             not is_reprocessed and not has_reappeared
         ):  # If true, we added the .UNIGNORED reason already
-            try:
-                if is_new:
-                    add_group_to_inbox(event.group, GroupInboxReason.NEW)
-                elif is_regression:
-                    add_group_to_inbox(event.group, GroupInboxReason.REGRESSION)
-            except Exception:
-                logger.exception("Failed to add group to inbox for non-reprocessed groups")
+            if is_new:
+                add_group_to_inbox(event.group, GroupInboxReason.NEW)
+            elif is_regression:
+                add_group_to_inbox(event.group, GroupInboxReason.REGRESSION)
 
 
 def process_snoozes(job: PostProcessJob) -> None:
@@ -513,65 +520,62 @@ def process_snoozes(job: PostProcessJob) -> None:
     if job["is_reprocessed"] or not job["has_reappeared"]:
         return
 
-    try:
-        from sentry.models import (
-            Activity,
-            GroupInboxReason,
-            GroupSnooze,
-            GroupStatus,
-            add_group_to_inbox,
-        )
-        from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
+    from sentry.models import (
+        Activity,
+        GroupInboxReason,
+        GroupSnooze,
+        GroupStatus,
+        add_group_to_inbox,
+    )
+    from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 
-        group = job["event"].group
+    group = job["event"].group
 
-        key = GroupSnooze.get_cache_key(group.id)
-        snooze = cache.get(key)
-        if snooze is None:
-            try:
-                snooze = GroupSnooze.objects.get(group=group)
-            except GroupSnooze.DoesNotExist:
-                snooze = False
-            # This cache is also set in post_save|delete.
-            cache.set(key, snooze, 3600)
-        if not snooze:
-            job["has_reappeared"] = False
-            return
-
-        if not snooze.is_valid(group, test_rates=True, use_pending_data=True):
-            snooze_details = {
-                "until": snooze.until,
-                "count": snooze.count,
-                "window": snooze.window,
-                "user_count": snooze.user_count,
-                "user_window": snooze.user_window,
-            }
-            add_group_to_inbox(group, GroupInboxReason.UNIGNORED, snooze_details)
-            record_group_history(group, GroupHistoryStatus.UNIGNORED)
-            Activity.objects.create(
-                project=group.project,
-                group=group,
-                type=ActivityType.SET_UNRESOLVED.value,
-                user=None,
-            )
-
-            snooze.delete()
-            group.update(status=GroupStatus.UNRESOLVED)
-            issue_unignored.send_robust(
-                project=group.project,
-                user=None,
-                group=group,
-                transition_type="automatic",
-                sender="process_snoozes",
-            )
-
-            job["has_reappeared"] = True
-            return
-
+    key = GroupSnooze.get_cache_key(group.id)
+    snooze = cache.get(key)
+    if snooze is None:
+        try:
+            snooze = GroupSnooze.objects.get(group=group)
+        except GroupSnooze.DoesNotExist:
+            snooze = False
+        # This cache is also set in post_save|delete.
+        cache.set(key, snooze, 3600)
+    if not snooze:
         job["has_reappeared"] = False
         return
-    except Exception:
-        logger.exception("Failed to process snoozes for group")
+
+    if not snooze.is_valid(group, test_rates=True, use_pending_data=True):
+        snooze_details = {
+            "until": snooze.until,
+            "count": snooze.count,
+            "window": snooze.window,
+            "user_count": snooze.user_count,
+            "user_window": snooze.user_window,
+        }
+        add_group_to_inbox(group, GroupInboxReason.UNIGNORED, snooze_details)
+        record_group_history(group, GroupHistoryStatus.UNIGNORED)
+        Activity.objects.create(
+            project=group.project,
+            group=group,
+            type=ActivityType.SET_UNRESOLVED.value,
+            user=None,
+        )
+
+        snooze.delete()
+        group.update(status=GroupStatus.UNRESOLVED)
+        issue_unignored.send_robust(
+            project=group.project,
+            user=None,
+            group=group,
+            transition_type="automatic",
+            sender="process_snoozes",
+        )
+
+        job["has_reappeared"] = True
+        return
+
+    job["has_reappeared"] = False
+    return
 
 
 def process_rules(job: PostProcessJob) -> None:
@@ -658,8 +662,6 @@ def process_commits(job: PostProcessJob) -> None:
                         )
     except UnableToAcquireLock:
         pass
-    except Exception:
-        logger.exception("Failed to process suspect commits")
 
 
 def process_service_hooks(job: PostProcessJob) -> None:

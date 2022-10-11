@@ -950,6 +950,8 @@ SENTRY_FEATURES = {
     "organizations:active-release-monitor-alpha": False,
     # Workflow 2.0 Active Release Notifications
     "organizations:active-release-notifications-enable": False,
+    # Enables tagging javascript errors from the browser console.
+    "organizations:javascript-console-error-tag": False,
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
     # Use metrics as the dataset for crash free metric alerts
@@ -1062,6 +1064,8 @@ SENTRY_FEATURES = {
     # Enable integration functionality to work with alert rules (specifically incident
     # management integrations)
     "organizations:integrations-incident-management": True,
+    # Enable integration functionality to work deployment integrations like Vercel
+    "organizations:integrations-deployment": True,
     # Allow orgs to automatically create Tickets in Issue Alerts
     "organizations:integrations-ticket-rules": True,
     # Allow orgs to use the stacktrace linking feature
@@ -1129,6 +1133,8 @@ SENTRY_FEATURES = {
     "organizations:performance-transaction-name-only-search": False,
     # Enable showing INP web vital in default views
     "organizations:performance-vitals-inp": False,
+    # Enable processing transactions in post_process_group
+    "organizations:performance-issues-post-process-group": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable populating suggested assignees with release committers
@@ -2440,6 +2446,11 @@ INVALID_EMAIL_ADDRESS_PATTERN = re.compile(r"\@qq\.com$", re.I)
 # (currently the values not used anymore so this is more for documentation purposes)
 SENTRY_USER_PERMISSIONS = ("broadcasts.admin", "users.admin", "options.admin")
 
+# WARNING(iker): there are two different formats for KAFKA_CLUSTERS: the one we
+# use below, and a legacy one still used in `getsentry`.
+# Reading items from this default configuration directly might break deploys.
+# To correctly read items from this dictionary and not worry about the format,
+# see `sentry.utils.kafka_config.get_kafka_consumer_cluster_options`.
 KAFKA_CLUSTERS = {
     "default": {
         "common": {"bootstrap.servers": "127.0.0.1:9092"},

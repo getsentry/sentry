@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render} from 'sentry-test/reactTestingLibrary';
 
 import ProjectHpkpReports from 'sentry/views/settings/projectSecurityHeaders/hpkp';
 
@@ -22,7 +22,7 @@ describe('ProjectHpkpReports', function () {
   });
 
   it('renders', function () {
-    const wrapper = mountWithTheme(
+    const {container} = render(
       <ProjectHpkpReports
         organization={org}
         project={project}
@@ -32,6 +32,6 @@ describe('ProjectHpkpReports', function () {
         })}
       />
     );
-    expect(wrapper).toSnapshot();
+    expect(container).toSnapshot();
   });
 });
