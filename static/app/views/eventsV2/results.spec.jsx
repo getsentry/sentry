@@ -11,7 +11,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import Results from 'sentry/views/eventsV2/results';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
-import {DEFAULT_EVENT_VIEW} from './data';
+import {TRANSACTION_VIEWS} from './data';
 
 const FIELDS = [
   {
@@ -1785,7 +1785,7 @@ describe('Results', function () {
       statusCode: 200,
       body: {
         id: '2',
-        name: 'new',
+        name: '',
         projects: [],
         version: 2,
         expired: false,
@@ -1857,7 +1857,7 @@ describe('Results', function () {
       url: '/organizations/org-slug/discover/homepage/',
       method: 'PUT',
       statusCode: 200,
-      body: DEFAULT_EVENT_VIEW,
+      body: {...TRANSACTION_VIEWS[0], name: ''},
     });
     const organization = TestStubs.Organization({
       features: [
@@ -1874,7 +1874,7 @@ describe('Results', function () {
           ...TestStubs.location(),
           query: {
             ...EventView.fromNewQueryWithLocation(
-              DEFAULT_EVENT_VIEW,
+              TRANSACTION_VIEWS[0],
               TestStubs.location()
             ).generateQueryStringObject(),
           },
@@ -1893,7 +1893,7 @@ describe('Results', function () {
       {context: initialData.routerContext, organization}
     );
 
-    await screen.findAllByText('All Events');
+    await screen.findAllByText(TRANSACTION_VIEWS[0].name);
     userEvent.click(screen.getByText('Use as Discover Home'));
     expect(await screen.findByText('Reset Discover Home')).toBeInTheDocument();
 

@@ -405,9 +405,13 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
       homepageQuery,
       queryDataLoading,
     } = this.props;
+    const buttonDisabled =
+      queryDataLoading ||
+      (!homepageQuery &&
+        eventView.isEqualTo(EventView.fromSavedQuery(DEFAULT_EVENT_VIEW)));
     if (
       homepageQuery &&
-      eventView.isEqualTo(EventView.fromSavedQuery(homepageQuery), ['id'])
+      eventView.isEqualTo(EventView.fromSavedQuery(homepageQuery), ['id', 'name'])
     ) {
       return (
         <Button
@@ -427,7 +431,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
               });
             }
           }}
-          disabled={queryDataLoading}
+          disabled={buttonDisabled}
         >
           {t('Reset Discover Home')}
           <FeatureBadge type="alpha" />
@@ -449,7 +453,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
             setHomepageQuery(updatedHomepageQuery);
           }
         }}
-        disabled={queryDataLoading}
+        disabled={buttonDisabled}
       >
         {t('Use as Discover Home')}
         <FeatureBadge type="alpha" />
