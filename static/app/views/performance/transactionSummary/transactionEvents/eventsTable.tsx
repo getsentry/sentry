@@ -13,7 +13,7 @@ import Pagination from 'sentry/components/pagination';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import Tooltip from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import {IssueAttachment, Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import DiscoverQuery, {
@@ -88,16 +88,21 @@ type Props = {
   disablePagination?: boolean;
   excludedTags?: string[];
   issueId?: string;
+  projectId?: string;
   totalEventCount?: string;
 };
 
 type State = {
+  attachments: IssueAttachment[];
+  isLoadingAttachments: boolean;
   widths: number[];
 };
 
 class EventsTable extends Component<Props, State> {
   state: State = {
     widths: [],
+    isLoadingAttachments: true,
+    attachments: [],
   };
 
   handleCellAction = (column: TableColumn<keyof TableDataRow>) => {
@@ -153,6 +158,10 @@ class EventsTable extends Component<Props, State> {
       Actions.SHOW_GREATER_THAN,
       Actions.SHOW_LESS_THAN,
     ];
+
+    if (field === 'attachments') {
+      return rendered;
+    }
 
     if (field === 'id' || field === 'trace') {
       const {issueId} = this.props;
@@ -300,6 +309,12 @@ class EventsTable extends Component<Props, State> {
     this.setState({widths});
   };
 
+  getUrl = ({data}: TableData) => {
+    const eventIdsQuery = `event_id=${data.map(row => row.id).join('&event_id=')}`;
+    const baseUrl = `/api/0/issues/${this.props.issueId}/attachments`;
+    return `${baseUrl}/?${eventIdsQuery}`;
+  };
+
   render() {
     const {eventView, organization, location, setError, totalEventCount} = this.props;
 
@@ -316,6 +331,12 @@ class EventsTable extends Component<Props, State> {
       );
     const columnOrder = eventView
       .getColumns()
+      .filter(col => {
+        if (!this.state.attachments.length) {
+          return col.key !== 'attachments';
+        }
+        return true;
+      })
       .filter(
         (col: TableColumn<React.ReactText>) =>
           !containsSpanOpsBreakdown || !isSpanOperationBreakdownField(col.name)
@@ -326,6 +347,20 @@ class EventsTable extends Component<Props, State> {
         }
         return col;
       });
+
+    const joinCustomData = ({data}: TableData) => {
+      if (!this.state.attachments.length) {
+        data.forEach(row => delete row.attachments);
+      } else {
+        const {projectId} = this.props;
+        const attachmentsWithUrl = this.state.attachments.map(attachment => ({
+          ...attachment,
+          url: `/api/0/projects/${organization.slug}/${projectId}/events/${attachment.event_id}/attachments/${attachment.id}/`,
+        }));
+        data.forEach(row => (row.attachments = [...attachmentsWithUrl] as any));
+      }
+    };
+
     return (
       <div>
         <DiscoverQuery
@@ -336,12 +371,14 @@ class EventsTable extends Component<Props, State> {
           referrer="api.performance.transaction-events"
           useEvents
         >
-          {({pageLinks, isLoading, tableData}) => {
+          {({pageLinks, isLoading: isDiscoverQueryLoading, tableData}) => {
+            tableData ??= {data: []};
             const parsedPageLinks = parseLinkHeader(pageLinks);
             let currentEvent = parsedPageLinks?.next?.cursor.split(':')[1] ?? 0;
             if (!parsedPageLinks?.next?.results && totalEventCount) {
               currentEvent = totalEventCount;
             }
+
             const paginationCaption =
               totalEventCount && currentEvent
                 ? tct('Showing [currentEvent] of [totalEventCount] events', {
@@ -349,11 +386,11 @@ class EventsTable extends Component<Props, State> {
                     totalEventCount,
                   })
                 : undefined;
-
+            joinCustomData(tableData);
             return (
               <Fragment>
                 <GridEditable
-                  isLoading={isLoading}
+                  isLoading={isDiscoverQueryLoading}
                   data={tableData?.data ?? []}
                   columnOrder={columnOrder}
                   columnSortBy={eventView.getSorts()}
@@ -366,7 +403,7 @@ class EventsTable extends Component<Props, State> {
                 />
                 {!this.props.disablePagination && (
                   <Pagination
-                    disabled={isLoading}
+                    disabled={isDiscoverQueryLoading}
                     caption={paginationCaption}
                     pageLinks={pageLinks}
                   />

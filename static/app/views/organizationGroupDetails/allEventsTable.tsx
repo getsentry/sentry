@@ -12,11 +12,12 @@ export interface Props {
   issueId: string;
   location: Location;
   organization: Organization;
+  projectId: string;
   excludedTags?: string[];
 }
 
 const AllEventsTable = (props: Props) => {
-  const {location, organization, issueId, isPerfIssue, excludedTags} = props;
+  const {location, organization, issueId, isPerfIssue, excludedTags, projectId} = props;
   const [error, setError] = useState<string>('');
   const eventView: EventView = EventView.fromLocation(props.location);
   eventView.sorts = decodeSorts(location);
@@ -29,6 +30,7 @@ const AllEventsTable = (props: Props) => {
     {field: 'user.display'},
     ...(isPerfIssue ? [{field: 'transaction.duration'}] : []),
     {field: 'timestamp'},
+    {field: 'attachments'},
   ];
 
   const idQuery = isPerfIssue
@@ -45,6 +47,7 @@ const AllEventsTable = (props: Props) => {
     t('user'),
     ...(isPerfIssue ? [t('total duration')] : []),
     t('timestamp'),
+    t('attachments'),
   ];
 
   if (error) {
@@ -58,6 +61,7 @@ const AllEventsTable = (props: Props) => {
       issueId={issueId}
       organization={organization}
       excludedTags={excludedTags}
+      projectId={projectId}
       setError={() => {
         (msg: string) => setError(msg);
       }}
