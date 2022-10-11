@@ -90,7 +90,9 @@ class SpanTree extends Component<PropType> {
 
     const showHiddenSpansMessage = !isCurrentSpanHidden && numOfSpansOutOfViewAbove > 0;
 
-    const firstHiddenSpanId = getSpanID(filteredSpansAbove[0].span);
+    const firstHiddenSpanId = filteredSpansAbove[0]
+      ? getSpanID(filteredSpansAbove[0].span)
+      : '0';
 
     if (showHiddenSpansMessage) {
       messages.push(
