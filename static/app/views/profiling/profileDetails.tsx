@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import Fuse from 'fuse.js';
 import * as qs from 'query-string';
 
+import CompactSelect from 'sentry/components/forms/compactSelect';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnOrder,
@@ -149,6 +150,31 @@ function ProfileDetails() {
     [location, search]
   );
 
+  const [filters, setFilters] = useState<Partial<Record<TableColumnKey, string[]>>>({});
+
+  const columnFilters = useMemo(() => {
+    function makeOnFilterChange(key: string) {
+      return values => {
+        setFilters(prevFilters => ({
+          ...prevFilters,
+          [key]: values.length > 0 ? values.map(val => val.value) : undefined,
+        }));
+      };
+    }
+    return {
+      type: {
+        values: ['application', 'system'],
+        onChange: makeOnFilterChange('type'),
+      },
+      image: {
+        values: pluckUniqueValues(slowestFunctions, 'image').sort((a, b) =>
+          a.localeCompare(b)
+        ),
+        onChange: makeOnFilterChange('image'),
+      },
+    };
+  }, [slowestFunctions]);
+
   return (
     <Fragment>
       <SentryDocumentTitle
@@ -164,12 +190,64 @@ function ProfileDetails() {
                 placeholder={t('Search for frames')}
                 onChange={handleSearch}
               />
+
+              <CompactSelect
+                options={columnFilters.type.values.map(value => ({value, label: value}))}
+                value={filters.type}
+                triggerLabel={
+                  !filters.type ||
+                  (Array.isArray(filters.type) &&
+                    filters.type.length === columnFilters.type.values.length)
+                    ? t('All')
+                    : undefined
+                }
+                triggerProps={{
+                  prefix: t('Type'),
+                }}
+                multiple
+                onChange={columnFilters.type.onChange}
+                placement="bottom right"
+              />
+
+              <CompactSelect
+                options={columnFilters.image.values.map(value => ({value, label: value}))}
+                value={filters.image}
+                triggerLabel={
+                  !filters.image ||
+                  (Array.isArray(filters.image) &&
+                    filters.image.length === columnFilters.image.values.length)
+                    ? t('All')
+                    : undefined
+                }
+                triggerProps={{
+                  prefix: t('Binary'),
+                }}
+                multiple
+                onChange={columnFilters.image.onChange}
+                placement="bottom right"
+              />
             </ActionBar>
+
             <GridEditable
               title={t('Slowest Functions')}
               isLoading={state.type === 'loading'}
               error={state.type === 'errored'}
-              data={slowestFunctions.slice(cursor, cursor + RESULTS_PER_PAGE)}
+              data={slowestFunctions
+                .filter(row => {
+                  let include = true;
+                  for (const key in filters) {
+                    const values = filters[key];
+                    if (!values) {
+                      continue;
+                    }
+                    include = values.includes(row[key]);
+                    if (!include) {
+                      return false;
+                    }
+                  }
+                  return include;
+                })
+                .slice(cursor, cursor + RESULTS_PER_PAGE)}
               columnOrder={COLUMN_ORDER.map(key => COLUMNS[key])}
               columnSortBy={[]}
               grid={{
@@ -180,6 +258,7 @@ function ProfileDetails() {
               }}
               location={location}
             />
+
             <Pagination pageLinks={pageLinks} />
           </Layout.Main>
         </Layout.Body>
@@ -188,12 +267,21 @@ function ProfileDetails() {
   );
 }
 
+function pluckUniqueValues<T extends Record<string, any>>(collection: T[], key: keyof T) {
+  return collection.reduce((acc, val) => {
+    if (!acc.includes(val[key])) {
+      acc.push(val[key]);
+    }
+    return acc;
+  }, [] as string[]);
+}
+
 const RIGHT_ALIGNED_COLUMNS = new Set<TableColumnKey>(['self weight', 'total weight']);
 
 const ActionBar = styled('div')`
   display: grid;
+  grid-template-columns: 1fr auto auto;
   gap: ${space(2)};
-  grid-template-columns: auto;
   margin-bottom: ${space(2)};
 `;
 
