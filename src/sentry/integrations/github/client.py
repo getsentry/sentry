@@ -93,10 +93,6 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         assignees: Sequence[JSONData] = self.get_with_pagination(f"/repos/{repo}/assignees")
         return assignees
 
-    # To help use MagicMock
-    def _page_size(self) -> int:
-        return self.page_size
-
     def get_with_pagination(self, path: str, response_key: str | None = None) -> Sequence[JSONData]:
         """
         Github uses the Link header to provide pagination links. Github
@@ -122,7 +118,8 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             sampled=True,
         ):
             output = []
-            resp = self.get(path, params={"per_page": self._page_size()})
+
+            resp = self.get(path, params={"per_page": self.page_size})
             output.extend(resp) if not response_key else output.extend(resp[response_key])
             page_number = 1
 

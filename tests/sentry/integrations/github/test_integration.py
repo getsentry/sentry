@@ -325,6 +325,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         ]
 
     @responses.activate
+    @patch.object(sentry.integrations.github.client.GitHubClientMixin, "page_size", 1)
     def test_get_repositories_all_and_pagination(self):
         """Fetch all repositories and test the pagination logic."""
         with self.tasks():
@@ -333,11 +334,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         integration = Integration.objects.get(provider=self.provider.key)
         installation = integration.get_installation(self.organization)
 
-        with patch.object(
-            sentry.integrations.github.client.GitHubClientMixin._page_size
-        ) as page_size_mock:
-            page_size_mock.return_value = 1
-            result = installation.get_repositories()
+        result = installation.get_repositories()
         assert result == [
             {"name": "foo", "identifier": "Test-Organization/foo"},
             {"name": "bar", "identifier": "Test-Organization/bar"},
