@@ -30,12 +30,9 @@ class DiscoverHomepageQueryEndpoint(OrganizationEndpoint):
     )
 
     def has_feature(self, organization, request):
-        return (
-            features.has("organizations:discover", organization, actor=request.user)
-            or features.has("organizations:discover-query", organization, actor=request.user)
-        ) and features.has(
-            "organizations:discover-query-builder-as-landing-page", organization, actor=request.user
-        )
+        return features.has(
+            "organizations:discover", organization, actor=request.user
+        ) or features.has("organizations:discover-query", organization, actor=request.user)
 
     def get(self, request: Request, organization) -> Response:
         if not self.has_feature(organization, request):
