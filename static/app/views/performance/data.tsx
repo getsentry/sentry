@@ -468,6 +468,9 @@ function generateGenericPerformanceEventView(
     }
     conditions.freeText = [];
   }
+  if (isLimitedSearch) {
+    conditions.tokens = [];
+  }
   savedQuery.query = conditions.formatString();
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
