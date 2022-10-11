@@ -128,7 +128,6 @@ from .external_actor.team_index import ExternalTeamEndpoint
 from .external_actor.user_details import ExternalUserDetailsEndpoint
 from .external_actor.user_index import ExternalUserEndpoint
 from .index import ProjectCodeOwnersEndpoint
-from .request import ProjectCodeOwnersRequestEndpoint
 
 __all__ = (
     "ExternalTeamEndpoint",
@@ -137,5 +136,4 @@ __all__ = (
     "ExternalUserDetailsEndpoint",
     "ProjectCodeOwnersEndpoint",
     "ProjectCodeOwnersDetailsEndpoint",
-    "ProjectCodeOwnersRequestEndpoint",
 )
