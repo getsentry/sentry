@@ -762,13 +762,13 @@ describe('Performance > TransactionSummary', function () {
       await screen.findByText('Tag Summary');
 
       userEvent.click(
-        screen.getByLabelText('Add the dev segment tag to the search query')
+        screen.getByLabelText('Add the environment dev segment tag to the search query')
       );
       userEvent.click(
-        screen.getByLabelText('Add the bar segment tag to the search query')
+        screen.getByLabelText('Add the foo bar segment tag to the search query')
       );
       userEvent.click(
-        screen.getByLabelText('Add the id:100 segment tag to the search query')
+        screen.getByLabelText('Add the user id:100 segment tag to the search query')
       );
 
       expect(router.push).toHaveBeenCalledTimes(3);
@@ -1193,10 +1193,10 @@ describe('Performance > TransactionSummary', function () {
       await screen.findByText('Tag Summary');
 
       userEvent.click(
-        screen.getByLabelText('Add the dev segment tag to the search query')
+        screen.getByLabelText('Add the environment dev segment tag to the search query')
       );
       userEvent.click(
-        screen.getByLabelText('Add the bar segment tag to the search query')
+        screen.getByLabelText('Add the foo bar segment tag to the search query')
       );
 
       expect(router.push).toHaveBeenCalledTimes(2);
