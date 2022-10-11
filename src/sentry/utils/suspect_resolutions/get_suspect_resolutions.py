@@ -24,8 +24,8 @@ def record_suspect_resolutions(
             or resolution_type == "with_commit"
             or resolution_type == "in_commit"
         ):
-            get_suspect_resolutions.delay(
-                group.id,
+            get_suspect_resolutions.apply_async(
+                kwargs={"resolved_issue_id": group.id},
                 eta=timezone.now() + timedelta(hours=1),
                 expires=timezone.now() + timedelta(hours=1, minutes=30),
             )
