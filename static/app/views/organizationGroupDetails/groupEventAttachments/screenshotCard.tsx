@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import LazyLoad from 'react-lazyload';
 import styled from '@emotion/styled';
 
 import Card from 'sentry/components/card';
@@ -31,19 +32,21 @@ export function ScreenshotCard({eventAttachment, projectSlug, eventId}: Props) {
         </CardHeader>
         <CardBody>
           <StyledPanelBody>
-            <StyledImageVisualization
-              attachment={eventAttachment}
-              orgId={organization.slug}
-              projectId={projectSlug}
-              eventId={eventId}
-              onLoad={() => setLoadingImage(false)}
-              onError={() => setLoadingImage(false)}
-            />
-            {loadingImage && (
-              <StyledLoadingIndicator>
-                <LoadingIndicator mini />
-              </StyledLoadingIndicator>
-            )}
+            <LazyLoad>
+              <StyledImageVisualization
+                attachment={eventAttachment}
+                orgId={organization.slug}
+                projectId={projectSlug}
+                eventId={eventId}
+                onLoad={() => setLoadingImage(false)}
+                onError={() => setLoadingImage(false)}
+              />
+              {loadingImage && (
+                <StyledLoadingIndicator>
+                  <LoadingIndicator mini />
+                </StyledLoadingIndicator>
+              )}
+            </LazyLoad>
           </StyledPanelBody>
         </CardBody>
         <CardFooter>{t('screenshot.png')}</CardFooter>
