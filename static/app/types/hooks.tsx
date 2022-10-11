@@ -330,6 +330,11 @@ type AnalyticsTrackEventV2 = (
      * startSession set to true.
      */
     startSession?: boolean;
+
+    /**
+     * Optional unix timestamp
+     */
+    time?: number;
   }
 ) => void;
 
