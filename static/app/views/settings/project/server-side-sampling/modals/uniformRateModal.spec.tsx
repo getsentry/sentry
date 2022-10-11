@@ -9,13 +9,32 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import {openModal} from 'sentry/actionCreators/modal';
 import GlobalModal from 'sentry/components/globalModal';
 import {ServerSideSamplingStore} from 'sentry/stores/serverSideSamplingStore';
+import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {UniformRateModal} from 'sentry/views/settings/project/server-side-sampling/modals/uniformRateModal';
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/server-side-sampling/utils';
 
-import {getMockData, outcomesWithoutClientDiscarded} from '../testUtils';
+import {
+  getMockData,
+  mockedSamplingDistribution,
+  outcomesWithoutClientDiscarded,
+} from '../testUtils';
 
 jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
+
+function renderMockRequests({
+  organizationSlug,
+}: {
+  organizationSlug: Organization['slug'];
+}) {
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organizationSlug}/projects/`,
+    method: 'GET',
+    body: mockedSamplingDistribution.projectBreakdown!.map(p =>
+      TestStubs.Project({id: p.projectId, slug: p.project})
+    ),
+  });
+}
 
 describe('Server-Side Sampling - Uniform Rate Modal', function () {
   beforeEach(function () {
@@ -24,6 +43,9 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
 
   it('render next button', async function () {
     const {organization, project} = getMockData();
+
+    renderMockRequests({organizationSlug: organization.slug});
+
     const handleSubmit = jest.fn();
     const handleReadDocs = jest.fn();
 
@@ -158,6 +180,7 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
     });
 
     const {organization, project} = getMockData();
+
     const handleSubmit = jest.fn();
 
     const {container} = render(<GlobalModal />);
@@ -278,12 +301,12 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
     ServerSideSamplingStore.projectStats48hRequestSuccess(outcomesWithoutClientDiscarded);
     ServerSideSamplingStore.sdkVersionsRequestSuccess([
       {
-        isSendingSampleRate: false,
-        isSendingSource: false,
-        isSupportedPlatform: true,
-        latestSDKName: 'abc',
-        latestSDKVersion: '999',
         project: project.slug,
+        latestSDKVersion: '1.0.3',
+        latestSDKName: 'sentry.javascript.react',
+        isSendingSampleRate: false,
+        isSendingSource: true,
+        isSupportedPlatform: true,
       },
     ]);
 
