@@ -352,6 +352,7 @@ class EventsTable extends Component<Props, State> {
       if (!this.state.attachments.length) {
         data.forEach(row => delete row.attachments);
       } else {
+        // TODO make api call and figure out how to join attachments data with events data
         const {projectId} = this.props;
         const attachmentsWithUrl = this.state.attachments.map(attachment => ({
           ...attachment,
