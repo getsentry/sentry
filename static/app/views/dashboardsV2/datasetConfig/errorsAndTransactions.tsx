@@ -170,7 +170,7 @@ function getTableSortOptions(_organization: Organization, widgetQuery: WidgetQue
   const options: SelectValue<string>[] = [];
   let equations = 0;
   [...aggregates, ...columns]
-    .filter(field => !!field)
+    .filter(field => (isEquation(field) ? stripEquationPrefix(field) : !!field))
     .forEach(field => {
       let alias;
       const label = stripEquationPrefix(field);
@@ -218,7 +218,7 @@ function getTimeseriesSortOptions(
 
   let equations = 0;
   [...widgetQuery.aggregates, ...widgetQuery.columns]
-    .filter(field => !!field)
+    .filter(field => (isEquation(field) ? stripEquationPrefix(field) : !!field))
     .forEach(field => {
       let alias;
       const label = stripEquationPrefix(field);

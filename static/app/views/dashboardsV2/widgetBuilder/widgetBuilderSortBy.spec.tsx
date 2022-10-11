@@ -980,5 +980,40 @@ describe('WidgetBuilder', function () {
         );
       });
     });
+
+    it('filters out empty equations from options for table', async function () {
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'discover-frontend-use-events-endpoint'],
+        query: {
+          source: DashboardWidgetSource.DASHBOARDS,
+          displayType: DisplayType.TABLE,
+        },
+      });
+
+      userEvent.click(screen.getByText('Add an Equation'));
+
+      selectEvent.openMenu(screen.getAllByText('count()')[2]);
+
+      // No equation options in the opened menu
+      await waitFor(() => expect(screen.queryByText('equation')).not.toBeInTheDocument());
+    });
+
+    it('filters out empty equations from options for timeseries', async function () {
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures, 'discover-frontend-use-events-endpoint'],
+        query: {
+          source: DashboardWidgetSource.DASHBOARDS,
+          displayType: DisplayType.LINE,
+        },
+      });
+
+      await selectEvent.select(await screen.findByText('Select group'), 'project');
+      userEvent.click(screen.getByText('Add an Equation'));
+
+      selectEvent.openMenu(screen.getAllByText('count()')[2]);
+
+      // Only the custom equation option
+      expect(await screen.findByText('equation')).toBeInTheDocument();
+    });
   });
 });
