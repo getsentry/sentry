@@ -400,7 +400,9 @@ def post_process_group(
         }
 
         multi_groups: Sequence[Tuple[GroupEvent, GroupState]] = [
-            (group_events.get(gs.get("id")), gs) for gs in group_states if gs.get("id") is not None
+            (group_events.get(gs.get("id")), gs)
+            for gs in (group_states or ())
+            if gs.get("id") is not None
         ]
 
         group_jobs: Sequence[PostProcessJob] = [
