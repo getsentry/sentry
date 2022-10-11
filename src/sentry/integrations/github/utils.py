@@ -30,6 +30,10 @@ def get_jwt(github_id: str | None = None, github_private_key: str | None = None)
 
 
 def get_next_link(response: Response) -> str | None:
+    """Github uses a link header to inform pagination.
+    The relation parameter can be prev, next, first or last
+    e.g. <https://api.github.com/organizations/1396951/repos?per_page=100&page=1>; rel="first"
+    """
     link_option: str | None = response.headers.get("link")
     if link_option is None:
         return None
