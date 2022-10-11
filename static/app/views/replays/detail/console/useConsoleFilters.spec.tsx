@@ -202,7 +202,7 @@ describe('useConsoleFilters', () => {
     expect(result.current.items.length).toEqual(2);
   });
 
-  it('should filer to find issues', () => {
+  it('should filter to find issues', () => {
     mockUseLocation.mockReturnValue({
       pathname: '/',
       query: {
