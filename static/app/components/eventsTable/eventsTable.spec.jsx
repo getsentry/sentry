@@ -1,14 +1,10 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render} from 'sentry-test/reactTestingLibrary';
 
 import EventsTable from 'sentry/components/eventsTable/eventsTable';
 
 describe('EventsTable', function () {
-  beforeEach(function () {});
-
-  afterEach(function () {});
-
   it('renders', function () {
-    const wrapper = mountWithTheme(
+    const {container} = render(
       <EventsTable
         tagList={[]}
         orgId="orgId"
@@ -17,6 +13,6 @@ describe('EventsTable', function () {
         events={TestStubs.DetailedEvents()}
       />
     );
-    expect(wrapper).toSnapshot();
+    expect(container).toSnapshot();
   });
 });

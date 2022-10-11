@@ -724,7 +724,8 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
 
         # Only concern ourselves with transactions where the FCP is within the
         # range we care about.
-        fcp_hash = self.event().get("measurements", {}).get("fcp", {})
+        measurements = self.event().get("measurements") or {}
+        fcp_hash = measurements.get("fcp") or {}
         fcp_value = fcp_hash.get("value")
         if fcp_value and ("unit" not in fcp_hash or fcp_hash["unit"] == "millisecond"):
             fcp = timedelta(milliseconds=fcp_value)

@@ -1064,6 +1064,8 @@ SENTRY_FEATURES = {
     # Enable integration functionality to work with alert rules (specifically incident
     # management integrations)
     "organizations:integrations-incident-management": True,
+    # Enable integration functionality to work deployment integrations like Vercel
+    "organizations:integrations-deployment": True,
     # Allow orgs to automatically create Tickets in Issue Alerts
     "organizations:integrations-ticket-rules": True,
     # Allow orgs to use the stacktrace linking feature
