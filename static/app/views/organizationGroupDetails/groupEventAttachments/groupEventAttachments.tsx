@@ -73,9 +73,10 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
           `/issues/${params.groupId}/attachments/`,
           {
             query: {
-              ...pick(location.query, ['cursor', 'environment']),
-              query: 'is:screenshot',
-              limit: 50,
+              ...location.query,
+              types: undefined, // need to explicitly set this to undefined because AsyncComponent adds location query back into the params
+              screenshot: 1,
+              limit: 6,
             },
           },
         ],
@@ -94,54 +95,6 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
         },
       ],
     ];
-  }
-
-  onRequestSuccess(): void {
-    if (this.getActiveAttachmentsTab() === EventAttachmentFilter.SCREENSHOTS) {
-      this.setState({
-        eventAttachments: [
-          {
-            id: '3889716657',
-            name: 'screenshot.png',
-            headers: {
-              'Content-Type': 'image/png',
-            },
-            mimetype: 'image/png',
-            size: 92191,
-            sha1: '06518c89fd3a1dc3b656537f3520756b7055db8d',
-            dateCreated: '2022-10-06T19:35:52.982126Z',
-            type: 'event.attachment',
-            event_id: '4629f24f955d4f2691744f464b0c890c',
-          },
-          {
-            id: '3889714492',
-            name: 'screenshot.png',
-            headers: {
-              'Content-Type': 'image/png',
-            },
-            mimetype: 'image/png',
-            size: 88646,
-            sha1: '43e72f4f194822303e0a0e896a3008f0cf517036',
-            dateCreated: '2022-10-06T19:34:41.164850Z',
-            type: 'event.attachment',
-            event_id: 'fb9cc67fb2ed4e5799afa9bfed89044e',
-          },
-          {
-            id: '3889714367',
-            name: 'screenshot.png',
-            headers: {
-              'Content-Type': 'image/png',
-            },
-            mimetype: 'image/png',
-            size: 86417,
-            sha1: '3f0677529cce74d5a905f14051f6185d890180f0',
-            dateCreated: '2022-10-06T19:34:35.577470Z',
-            type: 'event.attachment',
-            event_id: '03629b889b5441dca3d73e2811ea989c',
-          },
-        ],
-      });
-    }
   }
 
   handleDelete = async (deletedAttachmentId: string) => {
