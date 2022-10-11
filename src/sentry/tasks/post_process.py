@@ -380,7 +380,7 @@ def post_process_group(
 
         # TODO: Remove this check once we're sending all group ids as `group_states` and treat all
         # events the same way
-        if not is_transaction_event or group_states is None:
+        if not is_transaction_event and group_states is None:
             # error issue
             group_states = [
                 {
