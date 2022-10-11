@@ -269,6 +269,7 @@ class ContextPickerModal extends Component<Props> {
           avatarSize={20}
           displayName={label}
           avatarProps={{consistentWidth: true}}
+          disableLink
         />
       </components.Option>
     );
