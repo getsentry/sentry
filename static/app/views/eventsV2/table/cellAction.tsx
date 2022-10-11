@@ -4,7 +4,7 @@ import {Manager, Popper, Reference} from 'react-popper';
 import styled from '@emotion/styled';
 import color from 'color';
 
-import {IconEllipsis} from 'sentry/icons';
+import {IconEllipsis, IconShow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
@@ -419,7 +419,7 @@ class CellAction extends Component<Props, State> {
         );
 
     return (
-      <MenuRoot>
+      <ActionButton>
         <Manager>
           <Reference>
             {({ref}) => (
@@ -430,7 +430,91 @@ class CellAction extends Component<Props, State> {
           </Reference>
           {menu}
         </Manager>
-      </MenuRoot>
+      </ActionButton>
+    );
+  }
+
+  renderContext() {
+    const {isOpen} = this.state;
+
+    const actions = makeCellActions(this.props);
+
+    if (actions === null) {
+      // do not render the menu if there are no per cell actions
+      return null;
+    }
+
+    const modifiers = [
+      {
+        name: 'hide',
+        enabled: false,
+      },
+      {
+        name: 'preventOverflow',
+        enabled: true,
+        options: {
+          padding: 10,
+          altAxis: true,
+        },
+      },
+      {
+        name: 'offset',
+        options: {
+          offset: [0, ARROW_SIZE / 2],
+        },
+      },
+      {
+        name: 'computeStyles',
+        options: {
+          // Using the `transform` attribute causes our borders to get blurry
+          // in chrome. See [0]. This just causes it to use `top` / `left`
+          // positions, which should be fine.
+          //
+          // [0]: https://stackoverflow.com/questions/29543142/css3-transformation-blurry-borders
+          gpuAcceleration: false,
+        },
+      },
+    ];
+
+    const menu = !isOpen
+      ? null
+      : createPortal(
+          <Popper placement="top" modifiers={modifiers}>
+            {({ref: popperRef, style, placement, arrowProps}) => (
+              <Menu
+                ref={ref => {
+                  (popperRef as Function)(ref);
+                  this.menuEl = ref;
+                }}
+                style={style}
+              >
+                <MenuArrow
+                  ref={arrowProps.ref}
+                  data-placement={placement}
+                  style={arrowProps.style}
+                />
+                <MenuButtons onClick={event => event.stopPropagation()}>
+                  {actions}
+                </MenuButtons>
+              </Menu>
+            )}
+          </Popper>,
+          this.portalEl
+        );
+
+    return (
+      <ActionButton>
+        <Manager>
+          <Reference>
+            {({ref}) => (
+              <MenuButton ref={ref} onClick={this.handleMenuToggle}>
+                <IconShow size="sm" data-test-id="cell-action" color="subText" />
+              </MenuButton>
+            )}
+          </Reference>
+          {menu}
+        </Manager>
+      </ActionButton>
     );
   }
 
@@ -444,7 +528,10 @@ class CellAction extends Component<Props, State> {
         onMouseLeave={this.handleMouseLeave}
       >
         {children}
-        {isHovering && this.renderMenu()}
+        <ActionsRoot>
+          {isHovering && this.renderContext()}
+          {isHovering && this.renderMenu()}
+        </ActionsRoot>
       </Container>
     );
   }
@@ -461,10 +548,17 @@ const Container = styled('div')`
   justify-content: center;
 `;
 
-const MenuRoot = styled('div')`
+const ActionsRoot = styled('div')`
   position: absolute;
   top: 0;
   right: 0;
+  display: flex;
+`;
+
+const ActionButton = styled('div')`
+  & + & {
+    margin-left: ${space(0.5)};
+  }
 `;
 
 const Menu = styled('div')`
