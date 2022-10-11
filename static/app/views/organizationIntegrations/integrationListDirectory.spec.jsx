@@ -1,16 +1,11 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import IntegrationListDirectory from 'sentry/views/organizationIntegrations/integrationListDirectory';
 
 const mockResponse = mocks => {
-  mocks.forEach(([url, body]) =>
-    Client.addMockResponse({
-      url,
-      body,
-    })
-  );
+  mocks.forEach(([url, body]) => Client.addMockResponse({url, body}));
 };
 
 describe('IntegrationListDirectory', function () {
@@ -19,7 +14,6 @@ describe('IntegrationListDirectory', function () {
   });
 
   const {org, routerContext} = initializeOrg();
-  let wrapper;
 
   describe('Renders view', function () {
     beforeEach(() => {
@@ -39,43 +33,43 @@ describe('IntegrationListDirectory', function () {
         [`/organizations/${org.slug}/plugins/configs/`, TestStubs.PluginListConfig()],
         [`/organizations/${org.slug}/repos/?status=unmigratable`, []],
       ]);
-
-      wrapper = mountWithTheme(
-        <IntegrationListDirectory params={{orgId: org.slug}} location={{search: ''}} />,
-        routerContext
-      );
     });
 
     it('shows installed integrations at the top in order of weight', function () {
-      expect(wrapper.find('SearchBar').exists()).toBeTruthy();
-      expect(wrapper.find('PanelBody').exists()).toBeTruthy();
-      expect(wrapper.find('IntegrationRow')).toHaveLength(7);
+      render(
+        <IntegrationListDirectory params={{orgId: org.slug}} location={{search: ''}} />,
+        {context: routerContext}
+      );
+
+      expect(screen.getByRole('textbox', {name: 'Filter'})).toBeInTheDocument();
 
       [
-        'bitbucket', // 10
-        'pagerduty', // 10
-        'my-headband-washer-289499', // 10
-        'sample-doc', // 10
-        'clickup', // 9
-        'amazon-sqs', // 8
-        'la-croix-monitor', // 8
-      ].map((name, index) =>
-        expect(wrapper.find('IntegrationRow').at(index).props().slug).toEqual(name)
-      );
+        'bitbucket',
+        'pagerduty',
+        'my-headband-washer-289499',
+        'sample-doc',
+        'clickup',
+        'amazon-sqs',
+        'la-croix-monitor',
+      ].map(testId => expect(screen.getByTestId(testId)).toBeInTheDocument());
     });
 
     it('does not show legacy plugin that has a First Party Integration if not installed', function () {
-      wrapper.find('IntegrationRow').forEach(node => {
-        expect(node.props().displayName).not.toEqual('Github (Legacy)');
-      });
+      render(
+        <IntegrationListDirectory params={{orgId: org.slug}} location={{search: ''}} />,
+        {context: routerContext}
+      );
+
+      expect(screen.queryByText('GitHub (Legacy)')).not.toBeInTheDocument();
     });
 
     it('shows legacy plugin that has a First Party Integration if installed', function () {
-      const legacyPluginRow = wrapper
-        .find('IntegrationRow')
-        .filterWhere(node => node.props().displayName === 'PagerDuty (Legacy)');
+      render(
+        <IntegrationListDirectory params={{orgId: org.slug}} location={{search: ''}} />,
+        {context: routerContext}
+      );
 
-      expect(legacyPluginRow).toHaveLength(1);
+      expect(screen.getByText('PagerDuty (Legacy)')).toBeInTheDocument();
     });
   });
 });
