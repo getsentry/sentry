@@ -68,15 +68,18 @@ class AuditLogEntry(Model):
     __repr__ = sane_repr("organization_id", "type")
 
     def save(self, *args, **kwargs):
+        # trim label to the max length
+        self._apply_actor_label()
+        self.actor_label = self.actor_label[:MAX_ACTOR_LABEL_LENGTH]
+        super().save(*args, **kwargs)
+
+    def _apply_actor_label(self):
         if not self.actor_label:
             assert self.actor or self.actor_key
             if self.actor:
                 self.actor_label = self.actor.username
             else:
                 self.actor_label = self.actor_key.key
-        # trim label to the max length
-        self.actor_label = self.actor_label[:MAX_ACTOR_LABEL_LENGTH]
-        super().save(*args, **kwargs)
 
     def save_or_write_to_kafka(self):
         """
@@ -102,15 +105,22 @@ class AuditLogEntry(Model):
         written and maintained to ensure the contract of this behavior.
         :return:
         """
+        if self.actor_key:
+            raise ValueError(
+                "ApiKey is a control silo model!  This model should not be serialized for region to control consumption."
+            )
+
+        self._apply_actor_label()
         return AuditLogEvent(
+            actor_label=self.actor_label,
             organization_id=int(
                 self.organization.id
             ),  # prefer raising NoneType here over actually passing through
-            datetime=self.datetime or timezone.now(),
+            time_of_creation=self.datetime or timezone.now(),
             actor_user_id=self.actor and self.actor.id,
-            target_object_id=self.target_object and self.target_object.id,
-            ip_address=str(self.ip_address),
-            event_id=int(self.event),
+            target_object_id=self.target_object,
+            ip_address=self.ip_address and str(self.ip_address),
+            event_id=self.event and int(self.event),
             data=self.data,
         )
 
@@ -125,12 +135,13 @@ class AuditLogEntry(Model):
         """
         return AuditLogEntry(
             organization_id=event.organization_id,
-            datetime=event.datetime,
+            datetime=event.time_of_creation,
             actor_id=event.actor_user_id,
-            target_object_id=event.target_object_id,
+            target_object=event.target_object_id,
             ip_address=event.ip_address,
             event=event.event_id,
             data=event.data,
+            actor_label=event.actor_label,
         )
 
     def get_actor_name(self):

@@ -129,7 +129,7 @@ def create_system_audit_entry(transaction_id=None, logger=None, **kwargs):
     """
     entry = AuditLogEntry(actor_label="Sentry", **kwargs)
     if entry.event is not None:
-        entry.save()
+        entry.save_or_write_to_kafka()
 
     extra = {
         "organization_id": entry.organization_id,
