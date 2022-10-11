@@ -17,7 +17,7 @@ from typing import (
 
 from arroyo.backends.abstract import Consumer
 from arroyo.backends.kafka import KafkaPayload
-from arroyo.commit import CommitCodec
+from arroyo.backends.kafka.commit import CommitCodec
 from arroyo.errors import ConsumerError, EndOfPartition
 from arroyo.types import Message, Partition, Position, Topic, TPayload
 from arroyo.utils.concurrent import execute
