@@ -4,7 +4,7 @@ import {ServerSideSamplingStore} from 'sentry/stores/serverSideSamplingStore';
 import {SamplingRuleOperator} from 'sentry/types/sampling';
 
 import {Rule} from './rule';
-import {mockedSamplingSdkVersions, uniformRule} from './testUtils';
+import {uniformRule} from './testUtils';
 
 export const samplingBreakdownTitle = 'Transaction Breakdown';
 
