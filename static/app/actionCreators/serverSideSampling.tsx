@@ -1,7 +1,7 @@
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import {ServerSideSamplingStore} from 'sentry/stores/serverSideSamplingStore';
-import {Organization, Project} from 'sentry/types';
+import {Organization, Project, SeriesApi} from 'sentry/types';
 import {SamplingDistribution, SamplingSdkVersion} from 'sentry/types/sampling';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 
@@ -14,21 +14,27 @@ export function fetchSamplingSdkVersions({
   orgSlug: Organization['slug'];
   projectID: Project['id'];
 }): Promise<SamplingSdkVersion[]> {
-  const {distribution} = ServerSideSamplingStore.getState();
-  const {startTimestamp, endTimestamp, project_breakdown} = distribution.data ?? {};
+  const sdkVersions = ServerSideSamplingStore.getState().sdkVersions.data;
+
+  if (sdkVersions !== undefined) {
+    return new Promise(resolve => resolve(sdkVersions));
+  }
+
+  const distribution = ServerSideSamplingStore.getState().distribution.data;
+
+  const {startTimestamp, endTimestamp, projectBreakdown} = distribution ?? {};
 
   ServerSideSamplingStore.sdkVersionsRequestLoading();
 
   if (!startTimestamp || !endTimestamp) {
     ServerSideSamplingStore.sdkVersionsRequestSuccess([]);
-    return new Promise(resolve => {
-      resolve([]);
-    });
+    return new Promise(resolve => resolve([]));
   }
 
   const projectIds = [
     projectID,
-    ...(project_breakdown?.map(projectBreakdown => projectBreakdown.project_id) ?? []),
+    ...(projectBreakdown?.map(projectBreakdownObj => projectBreakdownObj.projectId) ??
+      []),
   ];
 
   const promise = api.requestPromise(
@@ -60,7 +66,11 @@ export function fetchSamplingDistribution({
   orgSlug: Organization['slug'];
   projSlug: Project['slug'];
 }): Promise<SamplingDistribution> {
-  ServerSideSamplingStore.reset();
+  const distribution = ServerSideSamplingStore.getState().distribution.data;
+
+  if (distribution !== undefined) {
+    return new Promise(resolve => resolve(distribution));
+  }
 
   ServerSideSamplingStore.distributionRequestLoading();
 
@@ -143,6 +153,15 @@ export function fetchProjectStats(props: {
   api: Client;
   orgSlug: Organization['slug'];
   projId?: Project['id'];
-}) {
+}): Promise<[SeriesApi, SeriesApi]> {
+  const projectStats48h = ServerSideSamplingStore.getState().projectStats48h.data;
+  const projectStats30d = ServerSideSamplingStore.getState().projectStats30d.data;
+
+  if (projectStats48h !== undefined && projectStats30d !== undefined) {
+    return new Promise(resolve => resolve([projectStats48h, projectStats30d]));
+  }
+
+  ServerSideSamplingStore.reset();
+
   return Promise.all([fetchProjectStats48h(props), fetchProjectStats30d(props)]);
 }

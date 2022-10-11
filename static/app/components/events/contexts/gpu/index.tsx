@@ -28,12 +28,14 @@ const gpuIgnoredDataValues = [];
 export function GPUEventContext({event, data}: Props) {
   const meta = event._meta?.contexts?.gpu ?? {};
 
+  const gpuValues = [...gpuKnownDataValues];
+
   if (data.vendor_id > 0) {
-    gpuKnownDataValues.unshift[GPUKnownDataType.VENDOR_ID];
+    gpuValues.unshift(GPUKnownDataType.VENDOR_ID);
   }
 
   if (data.id > 0) {
-    gpuKnownDataValues.unshift[GPUKnownDataType.ID];
+    gpuValues.unshift(GPUKnownDataType.ID);
   }
 
   return (
@@ -42,14 +44,14 @@ export function GPUEventContext({event, data}: Props) {
         data={geKnownData<GPUData, GPUKnownDataType>({
           data,
           meta,
-          knownDataTypes: gpuKnownDataValues,
+          knownDataTypes: gpuValues,
           onGetKnownDataDetails: v => getGPUKnownDataDetails(v),
         })}
       />
       <ContextBlock
         data={getUnknownData({
           allData: data,
-          knownKeys: [...gpuKnownDataValues, ...gpuIgnoredDataValues],
+          knownKeys: [...gpuValues, ...gpuIgnoredDataValues],
           meta,
         })}
       />

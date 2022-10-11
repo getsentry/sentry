@@ -1,12 +1,18 @@
 import {browserHistory} from 'react-router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 
 import {GroupEvents} from 'sentry/views/organizationGroupDetails/groupEvents';
 
 describe('groupEvents', function () {
   let request;
+  let discoverRequest;
 
   const {organization, routerContext} = initializeOrg();
 
@@ -47,8 +53,7 @@ describe('groupEvents', function () {
     });
 
     browserHistory.push = jest.fn();
-
-    MockApiClient.addMockResponse({
+    discoverRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: {
         data: [
@@ -165,14 +170,94 @@ describe('groupEvents', function () {
     );
   });
 
-  it('renders events table if perf issue', function () {
+  describe('When the performance flag is enabled', () => {
+    let org;
+    let group;
+
+    beforeEach(() => {
+      org = initializeOrg({
+        organization: {features: ['performance-issues-all-events-tab']},
+      });
+      group = TestStubs.Group();
+    });
+
+    it('renders new events table for performance', function () {
+      group.issueCategory = 'performance';
+
+      render(
+        <GroupEvents
+          organization={org.organization}
+          api={new MockApiClient()}
+          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+          group={group}
+          location={{query: {environment: ['prod', 'staging']}}}
+        />,
+        {context: routerContext, organization}
+      );
+      expect(discoverRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/events/',
+        expect.objectContaining({
+          query: expect.objectContaining({query: 'performance.issue_ids:1 '}),
+        })
+      );
+      const perfEventsColumn = screen.getByText('transaction');
+      expect(perfEventsColumn).toBeInTheDocument();
+    });
+
+    it('renders event and trace link correctly', async () => {
+      group.issueCategory = 'performance';
+
+      render(
+        <GroupEvents
+          organization={org.organization}
+          api={new MockApiClient()}
+          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+          group={group}
+          location={{query: {environment: ['prod', 'staging']}}}
+        />,
+        {context: routerContext, organization}
+      );
+      await waitForElementToBeRemoved(document.querySelector('div.loading-indicator'));
+      const eventIdATag = screen.getByText('id123').closest('a');
+      const traceIdATag = screen.getByText('trace123').closest('a');
+      expect(eventIdATag).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/issues/1/events/id123/'
+      );
+      expect(traceIdATag).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/performance/trace/trace123/?'
+      );
+    });
+
+    it('renders new events table if error', function () {
+      render(
+        <GroupEvents
+          organization={org.organization}
+          api={new MockApiClient()}
+          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+          group={group}
+          location={{query: {environment: ['prod', 'staging']}}}
+        />,
+        {context: routerContext, organization}
+      );
+      expect(discoverRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/events/',
+        expect.objectContaining({query: expect.objectContaining({query: 'issue.id:1 '})})
+      );
+
+      const perfEventsColumn = screen.getByText('transaction');
+      expect(perfEventsColumn).toBeInTheDocument();
+    });
+  });
+
+  it('does not renders new events table if error', function () {
     const org = initializeOrg();
-    org.features = ['performance-issues-all-events-tab'];
     const group = TestStubs.Group();
-    group.issueCategory = 'performance';
+
     render(
       <GroupEvents
-        organization={org}
+        organization={org.organization}
         api={new MockApiClient()}
         params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
         group={group}
@@ -180,7 +265,8 @@ describe('groupEvents', function () {
       />,
       {context: routerContext, organization}
     );
-    const perfEventsColumn = screen.getByText('transaction');
-    expect(perfEventsColumn).toBeInTheDocument();
+
+    const perfEventsColumn = screen.queryByText('transaction');
+    expect(perfEventsColumn).not.toBeInTheDocument();
   });
 });

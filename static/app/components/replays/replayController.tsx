@@ -1,4 +1,4 @@
-import React, {useCallback, useLayoutEffect, useRef, useState} from 'react';
+import React, {ReactNode, useCallback, useLayoutEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 
@@ -39,6 +39,7 @@ const USER_ACTIONS = [
 ];
 
 interface Props {
+  additionalActions?: ReactNode;
   speedOptions?: number[];
   toggleFullscreen?: () => void;
 }
@@ -170,6 +171,7 @@ function ReplayOptionsMenu({speedOptions}: {speedOptions: number[]}) {
 
 const ReplayControls = ({
   toggleFullscreen,
+  additionalActions,
   speedOptions = [0.1, 0.25, 0.5, 1, 2, 4],
 }: Props) => {
   const config = useLegacyStore(ConfigStore);
@@ -209,8 +211,8 @@ const ReplayControls = ({
       <ReplayPlayPauseBar isCompact={compactLevel > 0} />
       <ReplayCurrentTime />
 
+      <AdditionalActionsContainer>{additionalActions}</AdditionalActionsContainer>
       <ReplayOptionsMenu speedOptions={speedOptions} />
-
       <Button
         size="sm"
         title={isFullscreen ? t('Exit full screen') : t('Enter full screen')}
@@ -225,8 +227,14 @@ const ReplayControls = ({
 const ButtonGrid = styled('div')`
   display: grid;
   grid-column-gap: ${space(1)};
-  grid-template-columns: max-content auto max-content max-content;
+  grid-template-columns: max-content auto max-content max-content max-content;
   align-items: center;
+`;
+
+const AdditionalActionsContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: 0 ${space(1)};
 `;
 
 export default ReplayControls;

@@ -3,7 +3,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {Exception} from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/data/exception';
-import ProjectStore from 'sentry/stores/projectsStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {RouteContext} from 'sentry/views/routeContext';
@@ -23,7 +23,7 @@ describe('Breadcrumb Data Exception', function () {
     projects: [project],
   });
 
-  ProjectStore.loadInitialData([project]);
+  ProjectsStore.loadInitialData([project]);
 
   it('display redacted message', async function () {
     render(

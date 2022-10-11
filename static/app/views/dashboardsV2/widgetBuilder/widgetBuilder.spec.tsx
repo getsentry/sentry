@@ -1666,10 +1666,13 @@ describe('WidgetBuilder', function () {
       );
     });
 
-    it('disables add widget button if widget query condition is invalid', async function () {
+    it('disables add widget button and prevents widget previewing from firing widget query if widget query condition is invalid', async function () {
       renderTestComponent({
         orgFeatures: [...defaultOrgFeatures],
       });
+      userEvent.click(await screen.findByText('Table'));
+      userEvent.click(screen.getByText('Line Chart'));
+      expect(eventsStatsMock).toHaveBeenCalledTimes(1);
 
       userEvent.type(
         screen.getByTestId('smart-search-input'),
@@ -1682,6 +1685,8 @@ describe('WidgetBuilder', function () {
       await waitFor(() =>
         expect(screen.getByText('Add Widget').closest('button')).toBeDisabled()
       );
+      expect(screen.getByText('Widget query condition is invalid.')).toBeInTheDocument();
+      expect(eventsStatsMock).toHaveBeenCalledTimes(1);
     });
 
     describe('Widget Library', function () {

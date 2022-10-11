@@ -1,11 +1,9 @@
 from datetime import timedelta
-from unittest import mock
 
 import pytest
 from django.utils import timezone
 from exam import fixture
 
-from sentry.event_manager import _pull_out_data
 from sentry.models import Environment, EventUser, Release, ReleaseProjectEnvironment, ReleaseStages
 from sentry.search.events.constants import (
     RELEASE_STAGE_ALIAS,
@@ -140,39 +138,33 @@ class TagStorageTest(TestCase, SnubaTestCase):
             "culprit": "app/components/events/eventEntries in map",
             "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
             "environment": env_name,
+            "fingerprint": [f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group"],
         }
         env = Environment.objects.get(name=env_name)
 
-        def hack_pull_out_data(jobs, projects):
-            _pull_out_data(jobs, projects)
-            for job in jobs:
-                job["event"].groups = [perf_group]
-            return jobs, projects
-
-        perf_group = self.create_group(type=GroupType.PERFORMANCE_SLOW_SPAN.value)
-        with mock.patch("sentry.event_manager._pull_out_data", hack_pull_out_data):
-            self.store_event(
-                data={
-                    **transaction_event_data,
-                    "event_id": "a" * 32,
-                    "timestamp": iso_format(self.now - timedelta(seconds=1)),
-                    "start_timestamp": iso_format(self.now - timedelta(seconds=1)),
-                    "tags": {"foo": "bar", "biz": "baz"},
-                    "release": "releaseme",
-                },
-                project_id=self.project.id,
-            )
-            self.store_event(
-                data={
-                    **transaction_event_data,
-                    "event_id": "b" * 32,
-                    "timestamp": iso_format(self.now - timedelta(seconds=2)),
-                    "start_timestamp": iso_format(self.now - timedelta(seconds=2)),
-                    "tags": {"foo": "quux"},
-                    "release": "releaseme",
-                },
-                project_id=self.project.id,
-            )
+        event = self.store_event(
+            data={
+                **transaction_event_data,
+                "event_id": "a" * 32,
+                "timestamp": iso_format(self.now - timedelta(seconds=1)),
+                "start_timestamp": iso_format(self.now - timedelta(seconds=1)),
+                "tags": {"foo": "bar", "biz": "baz"},
+                "release": "releaseme",
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                **transaction_event_data,
+                "event_id": "b" * 32,
+                "timestamp": iso_format(self.now - timedelta(seconds=2)),
+                "start_timestamp": iso_format(self.now - timedelta(seconds=2)),
+                "tags": {"foo": "quux"},
+                "release": "releaseme",
+            },
+            project_id=self.project.id,
+        )
+        perf_group = event.groups[0]
         return perf_group, env
 
     def test_get_group_tag_keys_and_top_values(self):
@@ -908,27 +900,22 @@ class TagStorageTest(TestCase, SnubaTestCase):
 
         group, env = self.perf_group_and_env
 
-        def hack_pull_out_data(jobs, projects):
-            _pull_out_data(jobs, projects)
-            for job in jobs:
-                job["event"].groups = [group]
-            return jobs, projects
-
-        with mock.patch("sentry.event_manager._pull_out_data", hack_pull_out_data):
-            self.store_event(
-                data={
-                    "message": "hello",
-                    "type": "transaction",
-                    "culprit": "app/components/events/eventEntries in map",
-                    "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-                    "environment": env.name,
-                    "event_id": "a" * 32,
-                    "timestamp": iso_format(self.now - timedelta(seconds=1)),
-                    "start_timestamp": iso_format(self.now - timedelta(seconds=1)),
-                    "tags": {"foo": "bar"},
-                },
-                project_id=self.project.id,
-            )
+        self.store_event(
+            data={
+                "message": "hello",
+                "type": "transaction",
+                "culprit": "app/components/events/eventEntries in map",
+                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+                "environment": env.name,
+                "event_id": "a" * 32,
+                "timestamp": iso_format(self.now - timedelta(seconds=1)),
+                "start_timestamp": iso_format(self.now - timedelta(seconds=1)),
+                "tags": {"foo": "bar"},
+                # same fingerprint as group
+                "fingerprint": [f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group"],
+            },
+            project_id=self.project.id,
+        )
 
         assert list(
             self.ts.get_group_tag_value_paginator(
@@ -986,70 +973,70 @@ class PerfTagStorageTest(TestCase, SnubaTestCase, PerfIssueTransactionTestMixin)
         self.ts = SnubaTagStorage()
 
     def test_get_perf_groups_user_counts_simple(self):
-        first_group = self.create_group(
-            project=self.project, first_seen=timezone.now() - timedelta(days=5)
+        first_group_fingerprint = f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group1"
+        first_group_timestamp_start = timezone.now() - timedelta(days=5)
+        self.store_transaction(
+            self.project.id,
+            "user1",
+            [first_group_fingerprint],
+            self.environment.name,
+            timestamp=first_group_timestamp_start + timedelta(minutes=1),
         )
         self.store_transaction(
             self.project.id,
             "user1",
-            [first_group],
-            self.environment,
-            timestamp=first_group.first_seen + timedelta(minutes=1),
-        )
-        self.store_transaction(
-            self.project.id,
-            "user1",
-            [first_group],
-            self.environment,
-            timestamp=first_group.first_seen + timedelta(minutes=2),
+            [first_group_fingerprint],
+            self.environment.name,
+            timestamp=first_group_timestamp_start + timedelta(minutes=2),
         )
         self.store_transaction(
             self.project.id,
             "user2",
-            [first_group],
-            self.environment,
-            timestamp=first_group.first_seen + timedelta(minutes=3),
+            [first_group_fingerprint],
+            self.environment.name,
+            timestamp=first_group_timestamp_start + timedelta(minutes=3),
         )
-        self.store_transaction(
+        event_with_first_group = self.store_transaction(
             self.project.id,
             "user3",
-            [first_group],
-            timestamp=first_group.first_seen + timedelta(minutes=4),
+            [first_group_fingerprint],
+            timestamp=first_group_timestamp_start + timedelta(minutes=4),
         )
+        first_group = event_with_first_group.groups[0]
 
-        second_group = self.create_group(
-            project=self.project, first_seen=timezone.now() - timedelta(hours=5)
+        second_group_fingerprint = f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group2"
+        second_group_timestamp_start = timezone.now() - timedelta(hours=5)
+        self.store_transaction(
+            self.project.id,
+            "user1",
+            [second_group_fingerprint],
+            self.environment.name,
+            timestamp=second_group_timestamp_start + timedelta(minutes=1),
         )
         self.store_transaction(
             self.project.id,
             "user1",
-            [second_group],
-            self.environment,
-            timestamp=second_group.first_seen + timedelta(minutes=1),
-        )
-        self.store_transaction(
-            self.project.id,
-            "user1",
-            [second_group],
-            self.environment,
-            timestamp=second_group.first_seen + timedelta(minutes=2),
+            [second_group_fingerprint],
+            self.environment.name,
+            timestamp=second_group_timestamp_start + timedelta(minutes=2),
         )
         self.store_transaction(
             self.project.id,
             "user2",
-            [second_group],
-            self.environment,
-            timestamp=second_group.first_seen + timedelta(minutes=3),
+            [second_group_fingerprint],
+            self.environment.name,
+            timestamp=second_group_timestamp_start + timedelta(minutes=3),
         )
-        self.store_transaction(
+        event_with_second_group = self.store_transaction(
             self.project.id,
             "user3",
-            [second_group],
-            timestamp=second_group.first_seen + timedelta(minutes=4),
+            [second_group_fingerprint],
+            timestamp=second_group_timestamp_start + timedelta(minutes=4),
         )
+        second_group = event_with_second_group.groups[0]
 
         # should have no effect on user_counts
-        self.store_transaction(self.project.id, "user_nogroup", [], self.environment)
+        self.store_transaction(self.project.id, "user_nogroup", [], self.environment.name)
 
         assert self.ts.get_perf_groups_user_counts(
             [self.project.id],
@@ -1061,31 +1048,39 @@ class PerfTagStorageTest(TestCase, SnubaTestCase, PerfIssueTransactionTestMixin)
         ) == {first_group.id: 3, second_group.id: 3}
 
     def test_get_perf_group_list_tag_value_by_environment(self):
-        new_group = self.create_group(
-            project=self.project, first_seen=timezone.now() - timedelta(hours=1)
-        )
-        first_event_ts = new_group.first_seen + timedelta(minutes=1)
+        group_fingerprint = f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group1"
+        start_timestamp = timezone.now() - timedelta(hours=1)
+        first_event_ts = start_timestamp + timedelta(minutes=1)
         self.store_transaction(
-            self.project.id, "user1", [new_group], self.environment, timestamp=first_event_ts
+            self.project.id,
+            "user1",
+            [group_fingerprint],
+            self.environment.name,
+            timestamp=first_event_ts,
         )
-        last_event_ts = new_group.first_seen + timedelta(hours=1)
-        self.store_transaction(
-            self.project.id, "user1", [new_group], self.environment, timestamp=last_event_ts
+        last_event_ts = start_timestamp + timedelta(hours=1)
+        event = self.store_transaction(
+            self.project.id,
+            "user1",
+            [group_fingerprint],
+            self.environment.name,
+            timestamp=last_event_ts,
         )
+        group = event.groups[0]
 
         group_seen_stats = self.ts.get_perf_group_list_tag_value(
-            [new_group.project_id],
-            [new_group.id],
+            [group.project_id],
+            [group.id],
             [self.environment.id],
             "environment",
             self.environment.name,
         )
 
         assert group_seen_stats == {
-            new_group.id: GroupTagValue(
+            group.id: GroupTagValue(
                 key="environment",
                 value=self.environment.name,
-                group_id=new_group.id,
+                group_id=group.id,
                 times_seen=2,
                 first_seen=first_event_ts.replace(microsecond=0),
                 last_seen=last_event_ts.replace(microsecond=0),

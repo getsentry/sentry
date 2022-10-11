@@ -23,6 +23,7 @@ class RuleGroupHistorySerializerTest(TestCase):
                 "group": serialize(self.group, self.user),
                 "count": group_history.count,
                 "lastTriggered": current_date,
+                "eventId": None,
             }
         ]
 
