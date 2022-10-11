@@ -16,10 +16,6 @@ type Props = {
 function ViewIssueLink({breadcrumb}: Props) {
   const organization = useOrganization();
 
-  if (breadcrumb.category !== 'exception') {
-    return null;
-  }
-
   const {project: projectSlug, groupId, groupShortId, eventId} = breadcrumb.data || {};
   if (!groupId || !groupShortId || !eventId) {
     return null;

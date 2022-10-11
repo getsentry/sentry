@@ -1,6 +1,7 @@
 import type {Crumb} from 'sentry/types/breadcrumbs';
 import {
   breadcrumbFactory,
+  getBreadcrumbsByCategory,
   isMemorySpan,
   isNetworkSpan,
   replayTimestamps,
@@ -74,7 +75,9 @@ export default class ReplayReader {
     const sortedSpans = spansFactory(spans);
     this.networkSpans = sortedSpans.filter(isNetworkSpan);
     this.memorySpans = sortedSpans.filter(isMemorySpan);
+
     this.breadcrumbs = breadcrumbFactory(replayRecord, errors, breadcrumbs, sortedSpans);
+    this.consoleCrumbs = getBreadcrumbsByCategory(this.breadcrumbs, ['console', 'issue']);
 
     this.rrwebEvents = rrwebEventListFactory(replayRecord, rrwebEvents);
 
@@ -84,6 +87,7 @@ export default class ReplayReader {
   private replayRecord: ReplayRecord;
   private rrwebEvents: RecordingEvent[];
   private breadcrumbs: Crumb[];
+  private consoleCrumbs: ReturnType<typeof getBreadcrumbsByCategory>;
   private networkSpans: ReplaySpan[];
   private memorySpans: MemorySpanType[];
 
@@ -104,6 +108,10 @@ export default class ReplayReader {
 
   getRawCrumbs = () => {
     return this.breadcrumbs;
+  };
+
+  getConsoleCrumbs = () => {
+    return this.consoleCrumbs;
   };
 
   getNetworkSpans = () => {
