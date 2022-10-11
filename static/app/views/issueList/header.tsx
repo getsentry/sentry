@@ -8,6 +8,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import QueryCount from 'sentry/components/queryCount';
 import Tooltip from 'sentry/components/tooltip';
+import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconPause, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -72,6 +73,10 @@ function IssueListHeader({
     selectedProjectIds.includes(Number(id))
   );
 
+  const realtimeTitle = realtimeActive
+    ? t('Pause real-time updates')
+    : t('Enable real-time updates');
+
   return (
     <Layout.Header noActionWrap>
       <Layout.HeaderContent>
@@ -81,12 +86,10 @@ function IssueListHeader({
         <Button
           size="sm"
           data-test-id="real-time"
-          title={
-            realtimeActive ? t('Pause real-time updates') : t('Enable real-time updates')
-          }
+          title={realtimeTitle}
+          aria-label={realtimeTitle}
           icon={realtimeActive ? <IconPause size="xs" /> : <IconPlay size="xs" />}
           onClick={() => onRealtimeChange(!realtimeActive)}
-          aria-label={t('Toggle real-time updates')}
         />
       </Layout.HeaderActions>
       <StyledGlobalEventProcessingAlert projects={selectedProjects} />
@@ -109,7 +112,7 @@ function IssueListHeader({
                     title={tooltipTitle}
                     position="bottom"
                     isHoverable={tooltipHoverable}
-                    delay={1000}
+                    delay={SLOW_TOOLTIP_DELAY}
                   >
                     {queryName}{' '}
                     {queryCounts[tabQuery]?.count > 0 && (

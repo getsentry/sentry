@@ -33,11 +33,9 @@ function ReplayTimeline({}: Props) {
 
   const durationMs = replay.getDurationMs();
   const startTimestampMs = replay.getReplay().startedAt.getTime();
-  const crumbs = replay.getRawCrumbs() || [];
-  const spans = replay.getRawSpans() || [];
+  const crumbs = replay.getRawCrumbs();
   const userCrumbs = crumbs.filter(crumb => USER_ACTIONS.includes(crumb.type));
-
-  const networkSpans = spans.filter(replay.isNetworkSpan);
+  const networkSpans = replay.getNetworkSpans();
 
   return (
     <Panel>

@@ -28,12 +28,12 @@ class OrganizationReplayEventsMetaEndpoint(OrganizationEventsV2EndpointBase):
     def get_field_list(self, organization: Organization, request: Request) -> Sequence[str]:
         return [
             "error.type",
-            "error.value",
-            "group.id",
+            "error.value",  # Deprecated, use title instead. See replayDataUtils.tsx
             "id",
             "issue.id",
             "issue",
             "timestamp",
+            "title",
         ]
 
     def get(self, request: Request, organization) -> Response:
