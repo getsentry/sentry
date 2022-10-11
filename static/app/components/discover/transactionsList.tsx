@@ -247,18 +247,20 @@ class _TransactionsList extends Component<Props> {
             size="xs"
           />
         </Header>
-        <TransactionsTable
-          eventView={eventView}
-          organization={organization}
-          location={location}
-          isLoading={isLoading}
-          tableData={tableData}
-          columnOrder={columnOrder}
-          titles={titles}
-          generateLink={generateLink}
-          handleCellAction={handleCellAction}
-          useAggregateAlias={!useEvents}
-        />
+        <GuideAnchor target="transactions_table" position="top-start">
+          <TransactionsTable
+            eventView={eventView}
+            organization={organization}
+            location={location}
+            isLoading={isLoading}
+            tableData={tableData}
+            columnOrder={columnOrder}
+            titles={titles}
+            generateLink={generateLink}
+            handleCellAction={handleCellAction}
+            useAggregateAlias={!useEvents}
+          />
+        </GuideAnchor>
       </Fragment>
     );
 

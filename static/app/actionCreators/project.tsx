@@ -1,7 +1,7 @@
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import ProjectStore from 'sentry/stores/projectsStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {Project} from 'sentry/types';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 
@@ -19,7 +19,7 @@ export function fetchProjectDetails({
 }): Promise<Project> {
   const promise = api.requestPromise(`/projects/${orgSlug}/${projSlug}/`);
 
-  promise.then(ProjectStore.onUpdateSuccess).catch(error => {
+  promise.then(ProjectsStore.onUpdateSuccess).catch(error => {
     const message = t('Unable to fetch project details');
     handleXhrErrorResponse(message)(error);
     addErrorMessage(message);
