@@ -1001,6 +1001,42 @@ class PostProcessGroupPerformanceTest(TestCase, SnubaTestCase, PerfIssueTransact
     @patch("sentry.rules.processor.RuleProcessor")
     @patch("sentry.signals.transaction_processed.send_robust")
     @patch("sentry.signals.event_processed.send_robust")
+    def test_process_transaction_event_with_no_group(
+        self,
+        event_processed_signal_mock,
+        transaction_processed_signal_mock,
+        mock_processor,
+        run_post_process_job_mock,
+    ):
+        min_ago = before_now(minutes=1).replace(tzinfo=pytz.utc)
+        event = self.store_transaction(
+            project_id=self.project.id,
+            user_id=self.create_user(name="user1").name,
+            fingerprint=[],
+            environment=None,
+            timestamp=min_ago,
+        )
+        assert len(event.groups) == 0
+        cache_key = write_event_to_cache(event)
+        post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            cache_key=cache_key,
+            group_id=None,
+            group_states=None,
+        )
+
+        assert transaction_processed_signal_mock.call_count == 1
+        assert event_processed_signal_mock.call_count == 0
+        assert mock_processor.call_count == 0
+        assert run_post_process_job_mock.call_count == 0
+
+    @with_feature("organizations:performance-issues-post-process-group")
+    @patch("sentry.tasks.post_process.run_post_process_job")
+    @patch("sentry.rules.processor.RuleProcessor")
+    @patch("sentry.signals.transaction_processed.send_robust")
+    @patch("sentry.signals.event_processed.send_robust")
     def test_full_pipeline_with_group_states(
         self,
         event_processed_signal_mock,
