@@ -12,6 +12,7 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconEllipsis} from 'sentry/icons';
 import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {t, tn} from 'sentry/locale';
+import {ServerSideSamplingStore} from 'sentry/stores/serverSideSamplingStore';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import {SamplingRule, SamplingRuleOperator} from 'sentry/types/sampling';
@@ -62,10 +63,15 @@ export function Rule({
   loadingRecommendedSdkUpgrades,
   canDemo,
 }: Props) {
+  const processingSamplingSdkVersions =
+    (ServerSideSamplingStore.getState().sdkVersions.data ?? []).length === 0;
   const isUniform = isUniformRule(rule);
   const canDelete = !noPermission && (!isUniform || canDemo);
   const canDrag = !noPermission && !isUniform;
-  const canActivate = !noPermission && (!upgradeSdkForProjects.length || rule.active);
+  const canActivate =
+    !processingSamplingSdkVersions &&
+    !noPermission &&
+    (!upgradeSdkForProjects.length || rule.active);
 
   return (
     <Fragment>
@@ -142,11 +148,15 @@ export function Rule({
               disabled={canActivate}
               title={
                 !canActivate
-                  ? tn(
-                      'To enable the rule, the recommended sdk version have to be updated',
-                      'To enable the rule, the recommended sdk versions have to be updated',
-                      upgradeSdkForProjects.length
-                    )
+                  ? processingSamplingSdkVersions
+                    ? t(
+                        'We are processing sampling information for your project, so you cannot enable the rule yet. Please check again later'
+                      )
+                    : tn(
+                        'To enable the rule, the recommended sdk version have to be updated',
+                        'To enable the rule, the recommended sdk versions have to be updated',
+                        upgradeSdkForProjects.length
+                      )
                   : undefined
               }
             >
