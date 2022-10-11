@@ -95,7 +95,7 @@ describe('commitRow', () => {
       pullRequest: {
         id: '9',
         title: 'cool pr',
-        externalUrl: 'https://github.com',
+        externalUrl: 'https://github.com/getsentry/sentry/pull/1',
         repository: {
           id: '14',
           name: 'example',
@@ -115,5 +115,9 @@ describe('commitRow', () => {
     render(<CommitRow commit={commit} />);
 
     expect(screen.getByRole('button', {name: 'View Pull Request'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'View Pull Request'})).toHaveAttribute(
+      'href',
+      'https://github.com/getsentry/sentry/pull/1'
+    );
   });
 });
