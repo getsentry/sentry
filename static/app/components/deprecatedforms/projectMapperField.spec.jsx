@@ -1,10 +1,10 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {findOption, openMenu, selectByValue} from 'sentry-test/select-new';
+import selectEvent from 'react-select-event';
+
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {RenderField} from 'sentry/components/forms/projectMapperField';
 
 describe('ProjectMapperField', () => {
-  let wrapper;
   const mappedDropdown = {
     placholder: 'hi',
     items: [
@@ -37,12 +37,13 @@ describe('ProjectMapperField', () => {
     };
   });
 
-  it('clicking add updates values with current dropdown values', () => {
-    wrapper = mountWithTheme(<RenderField {...props} />);
-    selectByValue(wrapper, '24', {control: true, name: 'project'});
-    selectByValue(wrapper, '1', {control: true, name: 'mappedDropdown'});
+  it('clicking add updates values with current dropdown values', async () => {
+    render(<RenderField {...props} />);
 
-    wrapper.find('AddProjectWrapper Button').simulate('click');
+    await selectEvent.select(screen.getByText(/Sentry project/), 'beans');
+    await selectEvent.select(screen.getByText(/Select/), 'label 1');
+
+    userEvent.click(screen.getByLabelText('Add project'));
 
     expect(onBlur).toHaveBeenCalledWith(
       [
@@ -65,8 +66,8 @@ describe('ProjectMapperField', () => {
       ['23', '2'],
       ['24', '1'],
     ];
-    wrapper = mountWithTheme(<RenderField {...props} value={existingValues} />);
-    wrapper.find('Button[aria-label="Delete"]').first().simulate('click');
+    render(<RenderField {...props} value={existingValues} />);
+    userEvent.click(screen.getAllByLabelText('Delete')[0]);
 
     expect(onBlur).toHaveBeenCalledWith([['24', '1']], []);
     expect(onChange).toHaveBeenCalledWith([['24', '1']], []);
@@ -74,20 +75,17 @@ describe('ProjectMapperField', () => {
 
   it('allows a single Sentry project to map to multiple items but not the value', () => {
     existingValues = [['24', '1']];
-    wrapper = mountWithTheme(<RenderField {...props} value={existingValues} />);
+    render(<RenderField {...props} value={existingValues} />);
+
     // can find the same project again
-    openMenu(wrapper, {control: true, name: 'project'});
-    expect(
-      findOption(wrapper, {value: '24'}, {control: true, name: 'project'})
-    ).toHaveLength(1);
+    selectEvent.openMenu(screen.getByText(/Sentry project/));
+    expect(screen.getAllByText('beans')).toHaveLength(2);
+
     // but not the value
-    openMenu(wrapper, {control: true, name: 'mappedDropdown'});
-    expect(
-      findOption(wrapper, {value: '1'}, {control: true, name: 'mappedDropdown'})
-    ).toHaveLength(0);
+    selectEvent.openMenu(screen.getByText('Select...'));
+    expect(screen.getByText('label 1')).toBeInTheDocument();
+
     // validate we can still find 2
-    expect(
-      findOption(wrapper, {value: '2'}, {control: true, name: 'mappedDropdown'})
-    ).toHaveLength(1);
+    expect(screen.getByText('label 2')).toBeInTheDocument();
   });
 });
