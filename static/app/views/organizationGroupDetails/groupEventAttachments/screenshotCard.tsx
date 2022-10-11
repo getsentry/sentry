@@ -1,8 +1,11 @@
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import Card from 'sentry/components/card';
 import DateTime from 'sentry/components/dateTime';
-import Screenshot from 'sentry/components/events/eventTagsAndScreenshot/screenshot';
+import ImageVisualization from 'sentry/components/events/eventTagsAndScreenshot/screenshot/imageVisualization';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {PanelBody} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {IssueAttachment, Project} from 'sentry/types';
@@ -16,6 +19,7 @@ type Props = {
 
 export function ScreenshotCard({eventAttachment, projectSlug, eventId}: Props) {
   const organization = useOrganization();
+  const [loadingImage, setLoadingImage] = useState(true);
   if (eventAttachment) {
     return (
       <Card interactive>
@@ -26,15 +30,21 @@ export function ScreenshotCard({eventAttachment, projectSlug, eventId}: Props) {
           </Detail>
         </CardHeader>
         <CardBody>
-          <Screenshot
-            screenshot={eventAttachment}
-            organization={organization}
-            projectSlug={projectSlug}
-            eventId={eventId}
-            onDelete={() => {}}
-            openVisualizationModal={() => {}}
-            hideFooter
-          />
+          <StyledPanelBody>
+            <StyledImageVisualization
+              attachment={eventAttachment}
+              orgId={organization.slug}
+              projectId={projectSlug}
+              eventId={eventId}
+              onLoad={() => setLoadingImage(false)}
+              onError={() => setLoadingImage(false)}
+            />
+            {loadingImage && (
+              <StyledLoadingIndicator>
+                <LoadingIndicator mini />
+              </StyledLoadingIndicator>
+            )}
+          </StyledPanelBody>
         </CardBody>
         <CardFooter>{t('screenshot.png')}</CardFooter>
       </Card>
@@ -64,8 +74,8 @@ const CardHeader = styled('div')`
 const CardBody = styled('div')`
   background: ${p => p.theme.gray100};
   padding: ${space(1.5)} ${space(2)};
-  max-height: 150px;
-  min-height: 150px;
+  max-height: 250px;
+  min-height: 250px;
   overflow: hidden;
   border-bottom: 1px solid ${p => p.theme.gray100};
 `;
@@ -75,4 +85,30 @@ const CardFooter = styled('div')`
   justify-content: space-between;
   align-items: center;
   padding: ${space(1)} ${space(2)};
+`;
+
+const StyledPanelBody = styled(PanelBody)`
+  height: 100%;
+  min-height: 48px;
+  overflow: hidden;
+  cursor: pointer;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+`;
+
+const StyledLoadingIndicator = styled('div')`
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+`;
+
+const StyledImageVisualization = styled(ImageVisualization)`
+  height: 100%;
+  z-index: 1;
+  border: 0;
 `;

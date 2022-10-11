@@ -24,7 +24,7 @@ type Props = {
   organization: Organization;
   projectSlug: Project['slug'];
   screenshot: EventAttachment;
-  hideFooter?: boolean;
+  onlyRenderScreenshot?: boolean;
 };
 
 function Screenshot({
@@ -32,7 +32,7 @@ function Screenshot({
   organization,
   screenshot,
   projectSlug,
-  hideFooter,
+  onlyRenderScreenshot,
   onDelete,
   openVisualizationModal,
 }: Props) {
@@ -63,7 +63,7 @@ function Screenshot({
             </StyledLoadingIndicator>
           )}
         </StyledPanelBody>
-        {!hideFooter && (
+        {!onlyRenderScreenshot && (
           <StyledPanelFooter>
             <StyledButtonbar gap={1}>
               <Button
@@ -117,6 +117,10 @@ function Screenshot({
       {({hasRole}) => {
         if (!hasRole) {
           return null;
+        }
+
+        if (onlyRenderScreenshot) {
+          return <StyledPanel>{renderContent(screenshot)}</StyledPanel>;
         }
 
         return (
