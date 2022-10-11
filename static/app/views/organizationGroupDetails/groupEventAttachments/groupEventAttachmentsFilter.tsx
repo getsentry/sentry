@@ -10,6 +10,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
 const crashReportTypes = ['event.minidump', 'event.applecrashreport'];
+const screenshotType = 'event.screenshot';
 
 const GroupEventAttachmentsFilter = (props: WithRouterProps) => {
   const {query, pathname} = props.location;
@@ -20,10 +21,17 @@ const GroupEventAttachmentsFilter = (props: WithRouterProps) => {
     types: crashReportTypes,
   };
 
+  const onlyScreenshotQuery = {
+    ...query,
+    types: screenshotType,
+  };
+
   let activeButton = '';
 
   if (types === undefined) {
     activeButton = 'all';
+  } else if (types === screenshotType) {
+    activeButton = 'screenshot';
   } else if (xor(crashReportTypes, types).length === 0) {
     activeButton = 'onlyCrash';
   }
@@ -34,6 +42,11 @@ const GroupEventAttachmentsFilter = (props: WithRouterProps) => {
         <Button barId="all" size="sm" to={{pathname, query: allAttachmentsQuery}}>
           {t('All Attachments')}
         </Button>
+        {/* <Feature features={['mobile-screenshot-gallery']}> */}
+        <Button barId="screenshot" size="sm" to={{pathname, query: onlyScreenshotQuery}}>
+          {t('Screenshots')}
+        </Button>
+        {/* </Feature> */}
         <Button barId="onlyCrash" size="sm" to={{pathname, query: onlyCrashReportsQuery}}>
           {t('Only Crash Reports')}
         </Button>
@@ -48,5 +61,5 @@ const FilterWrapper = styled('div')`
   margin-bottom: ${space(3)};
 `;
 
-export {crashReportTypes};
+export {crashReportTypes, screenshotType};
 export default withRouter(GroupEventAttachmentsFilter);

@@ -1,6 +1,8 @@
 // eslint-disable-next-line no-restricted-imports
 import {withRouter, WithRouterProps} from 'react-router';
+import styled from '@emotion/styled';
 import pick from 'lodash/pick';
+import xor from 'lodash/xor';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import AsyncComponent from 'sentry/components/asyncComponent';
@@ -10,15 +12,27 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {IssueAttachment} from 'sentry/types';
+import {decodeList} from 'sentry/utils/queryString';
 
-import GroupEventAttachmentsFilter from './groupEventAttachmentsFilter';
+import GroupEventAttachmentsFilter, {
+  crashReportTypes,
+  screenshotType,
+} from './groupEventAttachmentsFilter';
 import GroupEventAttachmentsTable from './groupEventAttachmentsTable';
+import {ScreenshotCard} from './screenshotCard';
 
 type Props = {
   projectSlug: string;
 } & WithRouterProps<{groupId: string; orgId: string}> &
   AsyncComponent['props'];
+
+enum EventAttachmentFilter {
+  ALL = 'all',
+  CRASH_REPORTS = 'onlyCrash',
+  SCREENSHOTS = 'screenshot',
+}
 
 type State = {
   deletedAttachments: string[];
@@ -33,8 +47,40 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
     };
   }
 
+  getActiveAttachmentsTab() {
+    const {location} = this.props;
+
+    const types = decodeList(location.query.types);
+    if (types.length === 0) {
+      return EventAttachmentFilter.ALL;
+    }
+    if (types[0] === screenshotType) {
+      return EventAttachmentFilter.SCREENSHOTS;
+    }
+    if (xor(crashReportTypes, types).length === 0) {
+      return EventAttachmentFilter.CRASH_REPORTS;
+    }
+    return EventAttachmentFilter.ALL;
+  }
+
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {params, location} = this.props;
+
+    if (this.getActiveAttachmentsTab() === EventAttachmentFilter.SCREENSHOTS) {
+      return [
+        [
+          'eventAttachments',
+          `/issues/${params.groupId}/attachments/`,
+          {
+            query: {
+              ...pick(location.query, ['cursor', 'environment']),
+              query: 'is:screenshot',
+              limit: 50,
+            },
+          },
+        ],
+      ];
+    }
 
     return [
       [
@@ -48,6 +94,54 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
         },
       ],
     ];
+  }
+
+  onRequestSuccess(): void {
+    if (this.getActiveAttachmentsTab() === EventAttachmentFilter.SCREENSHOTS) {
+      this.setState({
+        eventAttachments: [
+          {
+            id: '3889716657',
+            name: 'screenshot.png',
+            headers: {
+              'Content-Type': 'image/png',
+            },
+            mimetype: 'image/png',
+            size: 92191,
+            sha1: '06518c89fd3a1dc3b656537f3520756b7055db8d',
+            dateCreated: '2022-10-06T19:35:52.982126Z',
+            type: 'event.attachment',
+            event_id: '4629f24f955d4f2691744f464b0c890c',
+          },
+          {
+            id: '3889714492',
+            name: 'screenshot.png',
+            headers: {
+              'Content-Type': 'image/png',
+            },
+            mimetype: 'image/png',
+            size: 88646,
+            sha1: '43e72f4f194822303e0a0e896a3008f0cf517036',
+            dateCreated: '2022-10-06T19:34:41.164850Z',
+            type: 'event.attachment',
+            event_id: 'fb9cc67fb2ed4e5799afa9bfed89044e',
+          },
+          {
+            id: '3889714367',
+            name: 'screenshot.png',
+            headers: {
+              'Content-Type': 'image/png',
+            },
+            mimetype: 'image/png',
+            size: 86417,
+            sha1: '3f0677529cce74d5a905f14051f6185d890180f0',
+            dateCreated: '2022-10-06T19:34:35.577470Z',
+            type: 'event.attachment',
+            event_id: '03629b889b5441dca3d73e2811ea989c',
+          },
+        ],
+      });
+    }
   }
 
   handleDelete = async (deletedAttachmentId: string) => {
@@ -83,6 +177,14 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
     );
   }
 
+  renderNoScreenshotsResults() {
+    return (
+      <EmptyStateWarning>
+        <p>{t('No screenshots found')}</p>
+      </EmptyStateWarning>
+    );
+  }
+
   renderEmpty() {
     return (
       <EmptyStateWarning>
@@ -96,7 +198,7 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
   }
 
   renderInnerBody() {
-    const {projectSlug, params, location} = this.props;
+    const {projectSlug, params} = this.props;
     const {loading, eventAttachments, deletedAttachments} = this.state;
 
     if (loading) {
@@ -116,11 +218,42 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
       );
     }
 
-    if (location.query.types) {
+    if (this.getActiveAttachmentsTab() === EventAttachmentFilter.CRASH_REPORTS) {
       return this.renderNoQueryResults();
     }
 
+    if (this.getActiveAttachmentsTab() === EventAttachmentFilter.SCREENSHOTS) {
+      return this.renderNoScreenshotsResults();
+    }
+
     return this.renderEmpty();
+  }
+  renderScreenshotGallery() {
+    const {eventAttachments} = this.state;
+    const {projectSlug} = this.props;
+
+    return (
+      <ScreenshotGrid>
+        {eventAttachments?.map((screenshot, index) => {
+          return (
+            <ScreenshotCard
+              key={`${index}-${screenshot.id}`}
+              eventAttachment={screenshot}
+              eventId={screenshot.event_id}
+              projectSlug={projectSlug}
+            />
+          );
+        })}
+      </ScreenshotGrid>
+    );
+  }
+
+  renderAttachmentsTable() {
+    return (
+      <Panel className="event-list">
+        <PanelBody>{this.renderInnerBody()}</PanelBody>
+      </Panel>
+    );
   }
 
   renderBody() {
@@ -128,9 +261,9 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
       <Layout.Body>
         <Layout.Main fullWidth>
           <GroupEventAttachmentsFilter />
-          <Panel className="event-list">
-            <PanelBody>{this.renderInnerBody()}</PanelBody>
-          </Panel>
+          {this.getActiveAttachmentsTab() === EventAttachmentFilter.SCREENSHOTS
+            ? this.renderScreenshotGallery()
+            : this.renderAttachmentsTable()}
           <Pagination pageLinks={this.state.eventAttachmentsPageLinks} />
         </Layout.Main>
       </Layout.Body>
@@ -139,3 +272,18 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
 }
 
 export default withRouter(GroupEventAttachments);
+
+const ScreenshotGrid = styled('div')`
+  display: grid;
+  grid-template-columns: minmax(100px, 1fr);
+  grid-template-rows: repeat(2, max-content);
+  gap: ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    grid-template-columns: repeat(2, minmax(100px, 1fr));
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
+    grid-template-columns: repeat(3, minmax(100px, 1fr));
+  }
+`;
