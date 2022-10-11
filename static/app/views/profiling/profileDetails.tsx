@@ -100,10 +100,7 @@ function ProfileDetails() {
       if (!queryString) {
         return allFunctions;
       }
-      return searchIndex
-        .search(queryString)
-        .map(result => result.item)
-        .sort((a, b) => b['self weight'] - a['self weight']);
+      return searchIndex.search(queryString).map(result => result.item);
     },
     [searchIndex, allFunctions]
   );
@@ -175,6 +172,83 @@ function ProfileDetails() {
     };
   }, [slowestFunctions]);
 
+  const currentSort = useMemo<{key: TableColumnKey; order: 'asc' | 'desc'}>(() => {
+    const functionsSort = location.query?.functionsSort;
+    if (!functionsSort) {
+      return {
+        key: 'self weight',
+        order: 'desc',
+      };
+    }
+
+    let key = functionsSort;
+
+    const isDesc = key[0] === '-';
+    if (isDesc) {
+      key = key.slice(1);
+    }
+    return {
+      key: key as TableColumnKey,
+      order: isDesc ? 'desc' : 'asc',
+    };
+  }, [location.query]);
+
+  const generateSortLink = useCallback(
+    (column: TableColumnKey) => {
+      if (!SORTABLE_COLUMNS.has(column)) {
+        return () => undefined;
+      }
+      if (!currentSort) {
+        return () => ({
+          ...location,
+          query: {
+            ...location.query,
+            functionsSort: column,
+          },
+        });
+      }
+
+      const direction =
+        currentSort.key !== column
+          ? 'desc'
+          : currentSort.order === 'desc'
+          ? 'asc'
+          : 'desc';
+
+      return () => ({
+        ...location,
+        query: {
+          ...location.query,
+          functionsSort: `${direction === 'desc' ? '-' : ''}${column}`,
+        },
+      });
+    },
+    [location, currentSort]
+  );
+
+  const data = slowestFunctions
+    .filter(row => {
+      let include = true;
+      for (const key in filters) {
+        const values = filters[key];
+        if (!values) {
+          continue;
+        }
+        include = values.includes(row[key]);
+        if (!include) {
+          return false;
+        }
+      }
+      return include;
+    })
+    .sort((a, b) => {
+      if (currentSort.order === 'asc') {
+        return a[currentSort.key] - b[currentSort.key];
+      }
+      return b[currentSort.key] - a[currentSort.key];
+    })
+    .slice(cursor, cursor + RESULTS_PER_PAGE);
+
   return (
     <Fragment>
       <SentryDocumentTitle
@@ -220,7 +294,7 @@ function ProfileDetails() {
                     : undefined
                 }
                 triggerProps={{
-                  prefix: t('Binary'),
+                  prefix: t('Library'),
                 }}
                 multiple
                 onChange={columnFilters.image.onChange}
@@ -232,27 +306,15 @@ function ProfileDetails() {
               title={t('Slowest Functions')}
               isLoading={state.type === 'loading'}
               error={state.type === 'errored'}
-              data={slowestFunctions
-                .filter(row => {
-                  let include = true;
-                  for (const key in filters) {
-                    const values = filters[key];
-                    if (!values) {
-                      continue;
-                    }
-                    include = values.includes(row[key]);
-                    if (!include) {
-                      return false;
-                    }
-                  }
-                  return include;
-                })
-                .slice(cursor, cursor + RESULTS_PER_PAGE)}
+              data={data}
               columnOrder={COLUMN_ORDER.map(key => COLUMNS[key])}
-              columnSortBy={[]}
+              columnSortBy={[currentSort]}
               grid={{
                 renderHeadCell: renderTableHead({
                   rightAlignedColumns: RIGHT_ALIGNED_COLUMNS,
+                  sortableColumns: RIGHT_ALIGNED_COLUMNS,
+                  currentSort,
+                  generateSortLink,
                 }),
                 renderBodyCell: renderFunctionCell,
               }}
@@ -277,6 +339,7 @@ function pluckUniqueValues<T extends Record<string, any>>(collection: T[], key: 
 }
 
 const RIGHT_ALIGNED_COLUMNS = new Set<TableColumnKey>(['self weight', 'total weight']);
+const SORTABLE_COLUMNS = new Set<TableColumnKey>(['self weight', 'total weight']);
 
 const ActionBar = styled('div')`
   display: grid;
@@ -373,7 +436,7 @@ const COLUMNS: Record<TableColumnKey, TableColumn> = {
   },
   image: {
     key: 'image',
-    name: t('Binary'),
+    name: t('Library'),
     width: COL_WIDTH_UNDEFINED,
   },
   thread: {
