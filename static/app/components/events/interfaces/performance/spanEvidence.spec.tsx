@@ -31,22 +31,59 @@ describe('spanEvidence', () => {
   it('renders and highlights the correct data in the span evidence section', () => {
     const builder = new TransactionEventBuilder();
 
-    builder
-      .addSpan(0, 100, {op: 'http', description: 'do a thing'})
-      .addSpan(100, 200, {op: 'db', description: 'SELECT col FROM table'})
-      .addSpan(200, 300, {op: 'db', description: 'SELECT col2 FROM table'})
-      .addSpan(200, 300, {op: 'db', description: 'SELECT col3 FROM table'})
-      .addSpan(200, 300, {
-        op: 'db',
-        description: 'connect',
-        problemSpan: ProblemSpan.PARENT,
-      })
-      .addSpan(300, 600, {
-        op: 'db',
-        description: 'group me',
-        numSpans: 9,
-        problemSpan: ProblemSpan.OFFENDER,
-      });
+    builder.addSpan({
+      startTimestamp: 0,
+      endTimestamp: 100,
+      op: 'http',
+      description: 'do a thing',
+    });
+
+    builder.addSpan({
+      startTimestamp: 100,
+      endTimestamp: 200,
+      op: 'db',
+      description: 'SELECT col FROM table',
+    });
+
+    builder.addSpan({
+      startTimestamp: 200,
+      endTimestamp: 300,
+      op: 'db',
+      description: 'SELECT col2 FROM table',
+    });
+
+    builder.addSpan({
+      startTimestamp: 200,
+      endTimestamp: 300,
+      op: 'db',
+      description: 'SELECT col3 FROM table',
+    });
+
+    builder.addSpan({
+      startTimestamp: 200,
+      endTimestamp: 300,
+      op: 'db',
+      description: 'connect',
+      problemSpan: ProblemSpan.PARENT,
+    });
+
+    builder.addSpan({
+      startTimestamp: 200,
+      endTimestamp: 300,
+      op: 'db',
+      description: 'connect',
+      problemSpan: ProblemSpan.PARENT,
+      childOpts: [
+        {
+          startTimestamp: 300,
+          endTimestamp: 600,
+          op: 'db',
+          description: 'group me',
+          numSpans: 9,
+          problemSpan: ProblemSpan.OFFENDER,
+        },
+      ],
+    });
 
     render(<WrappedComponent event={builder.getEvent()} />);
 
