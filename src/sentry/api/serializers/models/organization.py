@@ -398,9 +398,11 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 "availableRoles": [
                     {"id": r.id, "name": r.name} for r in roles.get_all()
                 ],  # Deprecated
-                "orgRoleList": serialize(roles.get_all(), serializer=OrganizationRoleSerializer()),
+                "orgRoleList": serialize(
+                    roles.get_all(), serializer=OrganizationRoleSerializer(organization=obj)
+                ),
                 "teamRoleList": serialize(
-                    roles.team_roles.get_all(), serializer=TeamRoleSerializer()
+                    roles.team_roles.get_all(), serializer=TeamRoleSerializer(organization=obj)
                 ),
                 "openMembership": bool(obj.flags.allow_joinleave),
                 "require2FA": bool(obj.flags.require_2fa),
