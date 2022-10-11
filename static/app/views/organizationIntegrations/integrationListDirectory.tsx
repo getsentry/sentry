@@ -513,6 +513,7 @@ export class IntegrationListDirectory extends AsyncComponent<
                   query={searchInput || ''}
                   onChange={this.handleSearchChange}
                   placeholder={t('Filter Integrations...')}
+                  aria-label={t('Filter')}
                   width="100%"
                   data-test-id="search-bar"
                 />
