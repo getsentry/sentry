@@ -8,6 +8,8 @@ export enum ProblemSpan {
   OFFENDER = 'offender',
 }
 
+export const EXAMPLE_TRANSACTION_TITLE = '/api/0/transaction-test-endpoint/';
+
 type AddSpanOpts = {
   endTimestamp: number;
   startTimestamp: number;
@@ -35,7 +37,7 @@ export class TransactionEventBuilder {
     this._event = {
       id: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
       eventID: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
-      title: '/api/0/transaction-test-endpoint/',
+      title: EXAMPLE_TRANSACTION_TITLE,
       type: EventOrGroupType.TRANSACTION,
       startTimestamp: 0,
       endTimestamp: 0,

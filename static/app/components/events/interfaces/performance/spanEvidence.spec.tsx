@@ -1,6 +1,10 @@
 import {initializeData} from 'sentry-test/performance/initializePerformanceData';
-import {ProblemSpan, TransactionEventBuilder} from 'sentry-test/performance/utils';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {
+  EXAMPLE_TRANSACTION_TITLE,
+  ProblemSpan,
+  TransactionEventBuilder,
+} from 'sentry-test/performance/utils';
+import {getByRole, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {EventTransaction} from 'sentry/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -65,14 +69,6 @@ describe('spanEvidence', () => {
       op: 'db',
       description: 'connect',
       problemSpan: ProblemSpan.PARENT,
-    });
-
-    builder.addSpan({
-      startTimestamp: 200,
-      endTimestamp: 300,
-      op: 'db',
-      description: 'connect',
-      problemSpan: ProblemSpan.PARENT,
       childOpts: [
         {
           startTimestamp: 300,
@@ -87,7 +83,14 @@ describe('spanEvidence', () => {
 
     render(<WrappedComponent event={builder.getEvent()} />);
 
-    screen.debug();
+    // Verify the surfaced fields in the span evidence section are correct
+    const transactionCells = screen.getAllByRole('cell', {name: /transaction/i});
+    const parentCells = screen.getAllByRole('cell', {name: /parent span/i});
+    const repeatingCells = screen.getAllByRole('cell', {name: /repeating span/i});
+
+    // The first element in the array is the key, the second is the value
+    expect(transactionCells[0]).toHaveTextContent('Transaction');
+    expect(transactionCells[1]).toHaveTextContent(EXAMPLE_TRANSACTION_TITLE);
   });
 
   // it('applies the hatch pattern to span bars related to the issue');
