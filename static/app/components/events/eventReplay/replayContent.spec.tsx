@@ -115,11 +115,10 @@ describe('ReplayContent', () => {
       />
     );
 
-    const detailButton = screen.getByTestId('view-replay-button');
-    expect(detailButton).toBeVisible();
-
-    // Expect the details button to have the correct href
-    expect(detailButton).toHaveAttribute('href', mockButtonHref);
+    const detailButtons = screen.getAllByLabelText('View Full Replay');
+    // Expect the details buttons to have the correct href
+    expect(detailButtons[0]).toHaveAttribute('href', mockButtonHref);
+    expect(detailButtons[1]).toHaveAttribute('href', mockButtonHref);
   });
 
   it('Should render all its elements correctly', () => {

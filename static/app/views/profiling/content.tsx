@@ -7,7 +7,6 @@ import {openModal} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
-import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -144,37 +143,21 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
                 <StyledHeading>{t('Profiling')}</StyledHeading>
                 <HeadingActions>
                   <Button onClick={onSetupProfilingClick}>{t('Set Up Profiling')}</Button>
-                  <FeatureFeedback
-                    buttonProps={{
-                      priority: 'primary',
-                      onClick: () => {
-                        trackAdvancedAnalyticsEvent(
-                          'profiling_views.give_feedback_action',
-                          {
-                            organization,
-                          }
-                        );
-                      },
+                  <Button
+                    priority="primary"
+                    href="https://discord.gg/zrMjKA4Vnz"
+                    external
+                    onClick={() => {
+                      trackAdvancedAnalyticsEvent(
+                        'profiling_views.visit_discord_channel',
+                        {
+                          organization,
+                        }
+                      );
                     }}
-                    featureName="profiling"
-                    secondaryAction={
-                      <Button
-                        priority="link"
-                        href="https://discord.gg/zrMjKA4Vnz"
-                        external
-                        onClick={() => {
-                          trackAdvancedAnalyticsEvent(
-                            'profiling_views.visit_discord_channel',
-                            {
-                              organization,
-                            }
-                          );
-                        }}
-                      >
-                        {t('Visit Discord Channel')}
-                      </Button>
-                    }
-                  />
+                  >
+                    {t('Join Discord')}
+                  </Button>
                 </HeadingActions>
               </StyledLayoutHeaderContent>
             </Layout.Header>

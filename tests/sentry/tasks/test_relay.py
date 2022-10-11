@@ -127,6 +127,7 @@ def test_debounce(
     default_projectkey,
     default_organization,
     debounce_cache,
+    django_cache,
 ):
     tasks = []
 
@@ -150,6 +151,7 @@ def test_generate(
     default_organization,
     default_projectkey,
     redis_cache,
+    django_cache,
 ):
     assert not redis_cache.get(default_projectkey.public_key)
 
@@ -218,7 +220,9 @@ def test_project_delete_option(
 
 
 @pytest.mark.django_db
-def test_project_get_option_does_not_reload(default_project, emulate_transactions, monkeypatch):
+def test_project_get_option_does_not_reload(
+    default_project, emulate_transactions, monkeypatch, django_cache
+):
     ProjectOption.objects._option_cache.clear()
     with emulate_transactions(assert_num_callbacks=0):
         with patch("sentry.utils.cache.cache.get", return_value=None):
@@ -231,7 +235,9 @@ def test_project_get_option_does_not_reload(default_project, emulate_transaction
 
 
 @pytest.mark.django_db
-def test_invalidation_project_deleted(default_project, emulate_transactions, redis_cache):
+def test_invalidation_project_deleted(
+    default_project, emulate_transactions, redis_cache, django_cache
+):
     # Ensure we have a ProjectKey
     project_key = next(_cache_keys_for_project(default_project))
     assert project_key
@@ -253,7 +259,7 @@ def test_invalidation_project_deleted(default_project, emulate_transactions, red
 
 
 @pytest.mark.django_db
-def test_projectkeys(default_project, emulate_transactions, redis_cache):
+def test_projectkeys(default_project, emulate_transactions, redis_cache, django_cache):
     # When a projectkey is deleted the invalidation task should be triggered and the project
     # should be cached as disabled.
 
@@ -288,7 +294,9 @@ def test_projectkeys(default_project, emulate_transactions, redis_cache):
 
 
 @pytest.mark.django_db(transaction=True)
-def test_db_transaction(default_project, default_projectkey, redis_cache, task_runner):
+def test_db_transaction(
+    default_project, default_projectkey, redis_cache, task_runner, django_cache
+):
     # Put something in the cache, otherwise triggers/the invalidation task won't compute
     # anything.
     redis_cache.set_many({default_projectkey.public_key: "dummy"})
@@ -331,6 +339,7 @@ class TestInvalidationTask:
         default_project,
         default_organization,
         invalidation_debounce_cache,
+        django_cache,
     ):
         tasks = []
 
@@ -376,6 +385,7 @@ class TestInvalidationTask:
         default_projectkey,
         task_runner,
         redis_cache,
+        django_cache,
     ):
         cfg = {"dummy-key": "val"}
         redis_cache.set_many({default_projectkey.public_key: cfg})
@@ -399,6 +409,7 @@ class TestInvalidationTask:
         default_projectkey,
         redis_cache,
         task_runner,
+        django_cache,
     ):
         # Currently for org-wide we delete the config instead of computing it.
         cfg = {"dummy-key": "val"}
@@ -425,6 +436,7 @@ def test_invalidate_hierarchy(
     redis_cache,
     debounce_cache,
     invalidation_debounce_cache,
+    django_cache,
 ):
     # Put something in the cache, otherwise the invalidation task won't compute anything.
     redis_cache.set_many({default_projectkey.public_key: "dummy"})

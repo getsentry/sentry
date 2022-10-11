@@ -2,8 +2,9 @@ import {useCallback, useMemo} from 'react';
 
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useFiltersInLocationQuery from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
-import {NetworkSpan, UNKNOWN_STATUS} from 'sentry/views/replays/detail/network/utils';
+import {UNKNOWN_STATUS} from 'sentry/views/replays/detail/network/utils';
 import {filterItems} from 'sentry/views/replays/detail/utils';
+import type {NetworkSpan} from 'sentry/views/replays/types';
 
 export type FilterFields = {
   f_n_search: string;

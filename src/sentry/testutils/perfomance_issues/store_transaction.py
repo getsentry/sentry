@@ -4,7 +4,6 @@ from typing import Sequence
 
 from django.utils import timezone
 
-from sentry.models import Environment
 from sentry.testutils import SnubaTestCase
 
 
@@ -14,7 +13,7 @@ class PerfIssueTransactionTestMixin:
         project_id: int,
         user_id: str,
         fingerprint: Sequence[str],
-        environment: Environment = None,
+        environment: str = None,
         timestamp: datetime = None,
     ):
         from sentry.utils import snuba
@@ -34,13 +33,13 @@ class PerfIssueTransactionTestMixin:
             "start_timestamp": insert_time.timestamp(),
             "received": insert_time.timestamp(),
             # we need to randomize the value here to make sure ingestion doesn't dedupe these transactions
-            "transaction": "transaction: " + str(insert_time) + str(random.randint(0, 1000)),
+            "transaction": "transaction: " + str(insert_time) + str(random.randint(0, 100000000)),
             "fingerprint": fingerprint,
         }
 
         if environment:
-            event_data["environment"] = environment.name
-            event_data["tags"].extend([("environment", environment.name)])
+            event_data["environment"] = environment
+            event_data["tags"].extend([("environment", environment)])
 
         event = self.store_event(
             data=event_data,
@@ -68,7 +67,7 @@ class PerfIssueTransactionTestMixin:
         assert result["data"][0]["project_id"] == project_id
         assert result["data"][0]["group_ids"] == [g.id for g in event.groups]
         assert result["data"][0]["tags[sentry:user]"] == user_id_val
-        assert result["data"][0]["environment"] == (environment.name if environment else None)
+        assert result["data"][0]["environment"] == (environment)
         assert result["data"][0]["timestamp"] == insert_time.isoformat()
 
         return event
