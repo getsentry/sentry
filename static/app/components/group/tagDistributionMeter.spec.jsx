@@ -31,10 +31,10 @@ describe('TagDistributionMeter', function () {
       />
     );
     expect(
-      screen.getByLabelText('Add the Chrome segment tag to the search query')
+      screen.getByLabelText('Add the browser Chrome segment tag to the search query')
     ).toBeInTheDocument();
     expect(
-      screen.getByLabelText('Add the Firefox segment tag to the search query')
+      screen.getByLabelText('Add the browser Firefox segment tag to the search query')
     ).toBeInTheDocument();
     expect(screen.getByLabelText('Other')).toBeInTheDocument();
   });

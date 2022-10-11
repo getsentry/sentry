@@ -1,5 +1,10 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {
+  render,
+  screen,
+  userEvent,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import EventView from 'sentry/utils/discover/eventView';
@@ -44,7 +49,7 @@ describe('Tags', function () {
       query: 'event.type:csp',
     });
 
-    const wrapper = mountWithTheme(
+    render(
       <Tags
         eventView={view}
         api={api}
@@ -58,13 +63,12 @@ describe('Tags', function () {
     );
 
     // component is in loading state
-    expect(wrapper.find('StyledPlaceholder').length).toBeTruthy();
-
-    await tick();
-    wrapper.update();
+    expect(screen.getAllByTestId('loading-placeholder')[0]).toBeInTheDocument();
 
     // component has loaded
-    expect(wrapper.find('StyledPlaceholder')).toHaveLength(0);
+    await waitForElementToBeRemoved(
+      () => screen.queryAllByTestId('loading-placeholder')[0]
+    );
   });
 
   it('creates URLs with generateUrl', async function () {
@@ -83,7 +87,7 @@ describe('Tags', function () {
       },
     });
 
-    const wrapper = mountWithTheme(
+    render(
       <Tags
         eventView={view}
         api={api}
@@ -94,29 +98,17 @@ describe('Tags', function () {
         generateUrl={generateUrl}
         confirmedQuery={false}
       />,
-      initialData.routerContext
+      {context: initialData.routerContext}
     );
 
-    // component is in loading state
-    expect(wrapper.find('StyledPlaceholder').length).toBeTruthy();
-
-    await tick();
-    wrapper.update();
-
     // component has loaded
-    expect(wrapper.find('StyledPlaceholder')).toHaveLength(0);
+    await waitForElementToBeRemoved(
+      () => screen.queryAllByTestId('loading-placeholder')[0]
+    );
 
-    const environmentFacetMap = wrapper
-      .find('TagDistributionMeter')
-      .filterWhere(component => component.props().title === 'environment')
-      .first();
-
-    const clickable = environmentFacetMap.find('Segment').first();
-
-    clickable.simulate('click', {button: 0});
-
-    await tick();
-    wrapper.update();
+    userEvent.click(
+      screen.getByLabelText('Add the environment abcd123 segment tag to the search query')
+    );
 
     expect(initialData.router.push).toHaveBeenCalledWith('/endpoint/environment/abcd123');
   });
