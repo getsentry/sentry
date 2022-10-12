@@ -183,7 +183,7 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
   }
   renderScreenshotGallery() {
     const {eventAttachments} = this.state;
-    const {projectSlug} = this.props;
+    const {projectSlug, params} = this.props;
 
     return (
       <ScreenshotGrid>
@@ -194,6 +194,7 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
               eventAttachment={screenshot}
               eventId={screenshot.event_id}
               projectSlug={projectSlug}
+              groupId={params.groupId}
             />
           );
         })}

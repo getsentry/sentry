@@ -2,9 +2,14 @@ import {useState} from 'react';
 import LazyLoad from 'react-lazyload';
 import styled from '@emotion/styled';
 
+import {openModal} from 'sentry/actionCreators/modal';
 import Card from 'sentry/components/card';
 import DateTime from 'sentry/components/dateTime';
 import ImageVisualization from 'sentry/components/events/eventTagsAndScreenshot/screenshot/imageVisualization';
+import Modal, {
+  modalCss,
+} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/modal';
+import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PanelBody} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
@@ -15,25 +20,46 @@ import useOrganization from 'sentry/utils/useOrganization';
 type Props = {
   eventAttachment: IssueAttachment;
   eventId: string;
+  groupId: string;
   projectSlug: Project['slug'];
 };
 
-export function ScreenshotCard({eventAttachment, projectSlug, eventId}: Props) {
+export function ScreenshotCard({eventAttachment, projectSlug, eventId, groupId}: Props) {
   const organization = useOrganization();
   const [loadingImage, setLoadingImage] = useState(true);
+
+  const downloadUrl = `/api/0/projects/${organization.slug}/${projectSlug}/events/${eventId}/attachments/${eventAttachment.id}/`;
+
+  function openVisualizationModal() {
+    openModal(
+      modalProps => (
+        <Modal
+          {...modalProps}
+          orgSlug={organization.slug}
+          projectSlug={projectSlug}
+          eventAttachment={eventAttachment}
+          downloadUrl={downloadUrl}
+          onDelete={() => {}}
+        />
+      ),
+      {modalCss}
+    );
+  }
+
+  const baseEventsPath = `/organizations/${organization.slug}/issues/${groupId}/events/`;
   if (eventAttachment) {
     return (
       <Card interactive>
         <CardHeader>
           <CardContent>
-            <Title>{eventId}</Title>
+            <Title to={`${baseEventsPath}${eventId}/`}>{eventId}</Title>
             <Detail>
               <DateTime date={eventAttachment.dateCreated} />
             </Detail>
           </CardContent>
         </CardHeader>
         <CardBody>
-          <StyledPanelBody>
+          <StyledPanelBody onClick={() => openVisualizationModal()}>
             <LazyLoad>
               <StyledImageVisualization
                 attachment={eventAttachment}
@@ -58,7 +84,7 @@ export function ScreenshotCard({eventAttachment, projectSlug, eventId}: Props) {
   return null;
 }
 
-const Title = styled('div')`
+const Title = styled(Link)`
   ${p => p.theme.overflowEllipsis};
   font-weight: normal;
 `;
