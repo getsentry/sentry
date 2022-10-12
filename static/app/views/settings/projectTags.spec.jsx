@@ -1,6 +1,11 @@
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
-import GlobalModal from 'sentry/components/globalModal';
 import ProjectTags from 'sentry/views/settings/projectTags';
 
 describe('ProjectTags', function () {
@@ -66,7 +71,7 @@ describe('ProjectTags', function () {
     userEvent.click(screen.getAllByRole('button', {name: 'Remove tag'})[0]);
 
     // Press confirm in modal
-    render(<GlobalModal />);
+    renderGlobalModal();
     userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
     // Wait for the tag to have been removed in the store
