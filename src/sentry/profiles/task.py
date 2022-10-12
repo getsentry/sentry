@@ -535,6 +535,8 @@ def _insert_vroom_profile(profile: Profile) -> bool:
     except RecursionError as e:
         sentry_sdk.capture_exception(e)
         return True
+    except VroomTimeout:
+        raise
     except Exception as e:
         sentry_sdk.capture_exception(e)
         metrics.incr(
