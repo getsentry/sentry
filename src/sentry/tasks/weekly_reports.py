@@ -7,14 +7,9 @@ import zlib
 from collections import OrderedDict, namedtuple
 from datetime import date, datetime, timedelta
 from functools import partial, reduce
-from itertools import zip_longest
-from typing import Iterable, Mapping, NamedTuple, Tuple
 
-import pytz
-import sentry_sdk
 from django.db.models import Count, F
 from django.utils import dateformat, timezone
-from sentry_sdk import set_tag, set_user
 from snuba_sdk import Request
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op
@@ -24,9 +19,7 @@ from snuba_sdk.function import Function
 from snuba_sdk.orderby import Direction, OrderBy
 from snuba_sdk.query import Limit, Query
 
-from sentry import features, tsdb
 from sentry.api.serializers.snuba import zerofill
-from sentry.cache import default_cache
 from sentry.constants import DataCategory
 from sentry.models import (
     Activity,
@@ -225,10 +218,16 @@ def project_event_counts_for_organization(ctx):
 
 def organization_project_issue_summaries(ctx):
     all_issues = Group.objects.exclude(status=GroupStatus.IGNORED)
-    new_issue_counts = all_issues.filter(project__organization_id=ctx.organization.id, first_seen__gte=ctx.start, first_seen__lt=ctx.end).values('project_id').annotate(total=Count('*'))
-    print(new_issue_counts.query)
-    new_issue_counts = {item['project_id']: item['total'] for item in new_issue_counts}
-    print(new_issue_counts)
+    new_issue_counts = (
+        all_issues.filter(
+            project__organization_id=ctx.organization.id,
+            first_seen__gte=ctx.start,
+            first_seen__lt=ctx.end,
+        )
+        .values("project_id")
+        .annotate(total=Count("*"))
+    )
+    new_issue_counts = {item["project_id"]: item["total"] for item in new_issue_counts}
 
     # Fetch all regressions. This is a little weird, since there's no way to
     # tell *when* a group regressed using the Group model. Instead, we query
@@ -237,7 +236,8 @@ def organization_project_issue_summaries(ctx):
     # past week. (In theory, the activity table *could* be used to answer this
     # query without the subselect, but there's no suitable indexes to make it's
     # performance predictable.)
-    reopened_issue_counts = Activity.objects.filter(
+    reopened_issue_counts = (
+        Activity.objects.filter(
             project__organization_id=ctx.organization.id,
             group__in=all_issues.filter(
                 last_seen__gte=ctx.start,
@@ -247,28 +247,37 @@ def organization_project_issue_summaries(ctx):
             type__in=(ActivityType.SET_REGRESSION.value, ActivityType.SET_UNRESOLVED.value),
             datetime__gte=ctx.start,
             datetime__lt=ctx.end,
-        ).values('group__project_id').annotate(total=Count('group_id'))  # TODO: maybe set distinct here?
-    print(reopened_issue_counts.query)
-    reopened_issue_counts = {item['project_id']: item['total'] for item in reopened_issue_counts}
-    print(reopened_issue_counts)
+        )
+        .values("group__project_id")
+        .annotate(total=Count("group_id"))
+    )  # TODO: maybe set distinct here?
+    reopened_issue_counts = {item["project_id"]: item["total"] for item in reopened_issue_counts}
 
     # Issues seen at least once over the past week
-    active_issue_counts = all_issues.filter(
-        project__organization_id=ctx.organization.id,
-        last_seen__gte=ctx.start,
-        last_seen__lt=ctx.end,
-    ).values('project_id').annotate(total=Count('*'))
-    print(active_issue_counts.query)
-    active_issue_counts = {item['project_id']: item['total'] for item in active_issue_counts}
-    print(active_issue_counts)
+    active_issue_counts = (
+        all_issues.filter(
+            project__organization_id=ctx.organization.id,
+            last_seen__gte=ctx.start,
+            last_seen__lt=ctx.end,
+        )
+        .values("project_id")
+        .annotate(total=Count("*"))
+    )
+    active_issue_counts = {item["project_id"]: item["total"] for item in active_issue_counts}
 
     for project_ctx in ctx.projects.values():
         project_id = project_ctx.project.id
         active_issue_count = active_issue_counts.get(project_id, 0)
         project_ctx.reopened_issue_count = reopened_issue_counts.get(project_id, 0)
         project_ctx.new_issue_count = new_issue_counts.get(project_id, 0)
-        project_ctx.existing_issue_count = max(active_issue_count - project_ctx.reopened_issue_count - project_ctx.new_issue_count, 0)
-        project_ctx.all_issue_count = project_ctx.reopened_issue_count + project_ctx.new_issue_count + project_ctx.existing_issue_count
+        project_ctx.existing_issue_count = max(
+            active_issue_count - project_ctx.reopened_issue_count - project_ctx.new_issue_count, 0
+        )
+        project_ctx.all_issue_count = (
+            project_ctx.reopened_issue_count
+            + project_ctx.new_issue_count
+            + project_ctx.existing_issue_count
+        )
 
 
 # Project passes
@@ -643,7 +652,7 @@ def render_template_context(ctx, user):
         "trends": trends(),
         "key_errors": key_errors(),
         "key_transactions": key_transactions(),
-        "issue_summary": issue_summary()
+        "issue_summary": issue_summary(),
     }
 
 
