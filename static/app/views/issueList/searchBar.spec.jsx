@@ -4,6 +4,8 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import TagStore from 'sentry/stores/tagStore';
 import IssueListSearchBar from 'sentry/views/issueList/searchBar';
 
+import {OrganizationContext} from '../organizationContext';
+
 describe('IssueListSearchBar', function () {
   let tagValuePromise;
   let supportedTags;
@@ -61,7 +63,12 @@ describe('IssueListSearchBar', function () {
         supportedTags,
         onSearch: jest.fn(),
       };
-      const searchBar = mountWithTheme(<IssueListSearchBar {...props} />, routerContext);
+      const searchBar = mountWithTheme(
+        <OrganizationContext.Provider value={organization}>
+          <IssueListSearchBar {...props} />
+        </OrganizationContext.Provider>,
+        routerContext
+      );
       mockCursorPosition(searchBar, 5);
 
       searchBar.find('textarea').simulate('click');
@@ -89,7 +96,12 @@ describe('IssueListSearchBar', function () {
         onSearch: jest.fn(),
       };
 
-      const searchBar = mountWithTheme(<IssueListSearchBar {...props} />, routerContext);
+      const searchBar = mountWithTheme(
+        <OrganizationContext.Provider value={organization}>
+          <IssueListSearchBar {...props} />
+        </OrganizationContext.Provider>,
+        routerContext
+      );
 
       mockCursorPosition(searchBar, 5);
 
@@ -117,7 +129,12 @@ describe('IssueListSearchBar', function () {
         supportedTags,
         onSearch: jest.fn(),
       };
-      const searchBar = mountWithTheme(<IssueListSearchBar {...props} />, routerContext);
+      const searchBar = mountWithTheme(
+        <OrganizationContext.Provider value={organization}>
+          <IssueListSearchBar {...props} />
+        </OrganizationContext.Provider>,
+        routerContext
+      );
 
       searchBar.find('textarea').simulate('click');
       searchBar.find('textarea').simulate('focus');
@@ -148,7 +165,12 @@ describe('IssueListSearchBar', function () {
         tagValueLoader: loader,
         supportedTags,
       };
-      const searchBar = mountWithTheme(<IssueListSearchBar {...props} />, routerContext);
+      const searchBar = mountWithTheme(
+        <OrganizationContext.Provider value={organization}>
+          <IssueListSearchBar {...props} />
+        </OrganizationContext.Provider>,
+        routerContext
+      );
       mockCursorPosition(searchBar, 5);
       searchBar.find('textarea').simulate('focus');
       searchBar.find('textarea').simulate('click');
@@ -185,7 +207,12 @@ describe('IssueListSearchBar', function () {
         supportedTags,
       };
       jest.useRealTimers();
-      const wrapper = mountWithTheme(<IssueListSearchBar {...props} />, routerContext);
+      const wrapper = mountWithTheme(
+        <OrganizationContext.Provider value={organization}>
+          <IssueListSearchBar {...props} />
+        </OrganizationContext.Provider>,
+        routerContext
+      );
 
       wrapper.find('textarea').simulate('focus');
       wrapper.find('textarea').simulate('change', {target: {value: 'is:'}});
@@ -214,7 +241,12 @@ describe('IssueListSearchBar', function () {
         supportedTags,
       };
       jest.useRealTimers();
-      const wrapper = mountWithTheme(<IssueListSearchBar {...props} />, routerContext);
+      const wrapper = mountWithTheme(
+        <OrganizationContext.Provider value={organization}>
+          <IssueListSearchBar {...props} />
+        </OrganizationContext.Provider>,
+        routerContext
+      );
 
       wrapper
         .find('textarea')
@@ -276,7 +308,12 @@ describe('IssueListSearchBar', function () {
         supportedTags,
         organization,
       };
-      const searchBar = mountWithTheme(<IssueListSearchBar {...props} />, routerContext);
+      const searchBar = mountWithTheme(
+        <OrganizationContext.Provider value={organization}>
+          <IssueListSearchBar {...props} />
+        </OrganizationContext.Provider>,
+        routerContext
+      );
 
       expect(searchBar.find('ActionButton[data-test-id="pin-icon"]')).toHaveLength(1);
     });
@@ -289,7 +326,12 @@ describe('IssueListSearchBar', function () {
         supportedTags,
         organization,
       };
-      const searchBar = mountWithTheme(<IssueListSearchBar {...props} />, routerContext);
+      const searchBar = mountWithTheme(
+        <OrganizationContext.Provider value={organization}>
+          <IssueListSearchBar {...props} />
+        </OrganizationContext.Provider>,
+        routerContext
+      );
       searchBar.find('ActionButton[data-test-id="pin-icon"] button').simulate('click');
 
       expect(pinSearch).toHaveBeenLastCalledWith(
@@ -313,7 +355,12 @@ describe('IssueListSearchBar', function () {
         organization,
         savedSearch: {id: '1', isPinned: true, query: 'url:"fu"'},
       };
-      const searchBar = mountWithTheme(<IssueListSearchBar {...props} />, routerContext);
+      const searchBar = mountWithTheme(
+        <OrganizationContext.Provider value={organization}>
+          <IssueListSearchBar {...props} />
+        </OrganizationContext.Provider>,
+        routerContext
+      );
 
       searchBar
         .find('ActionButton[aria-label="Unpin this search"] button')
