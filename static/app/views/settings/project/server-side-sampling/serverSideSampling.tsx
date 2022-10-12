@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
+import partition from 'lodash/partition';
 
 import {
   addErrorMessage,
@@ -56,7 +56,7 @@ import {
   ActiveColumn,
   Column,
   ConditionColumn,
-  GrabColumn,
+  DragColumn,
   OperatorColumn,
   RateColumn,
   Rule,
@@ -68,6 +68,7 @@ import {SamplingProjectIncompatibleAlert} from './samplingProjectIncompatibleAle
 import {SamplingPromo} from './samplingPromo';
 import {SamplingSDKClientRateChangeAlert} from './samplingSDKClientRateChangeAlert';
 import {SamplingSDKUpgradesAlert} from './samplingSDKUpgradesAlert';
+import {RulesPanelLayout, UniformRule} from './uniformRule';
 import {isUniformRule, SERVER_SIDE_SAMPLING_DOC_LINK} from './utils';
 
 type Props = {
@@ -475,14 +476,10 @@ export function ServerSideSampling({project}: Props) {
     }
   }
 
-  // Rules without a condition (Else case) always have to be 'pinned' to the bottom of the list
-  // and cannot be sorted
-  const items = rules.map(rule => ({
-    ...rule,
-    id: String(rule.id),
-  }));
+  const [uniformRules, specificRules] = partition(rules, isUniformRule);
 
-  const uniformRule = rules.find(isUniformRule);
+  const uniformRule = uniformRules[0];
+  const items = specificRules.map(rule => ({...rule, id: String(rule.id)}));
 
   return (
     <SentryDocumentTitle title={t('Dynamic Sampling')}>
@@ -558,7 +555,7 @@ export function ServerSideSampling({project}: Props) {
           <RulesPanel>
             <RulesPanelHeader lightText>
               <RulesPanelLayout>
-                <GrabColumn />
+                <DragColumn />
                 <OperatorColumn>{t('Operator')}</OperatorColumn>
                 <ConditionColumn>{t('Condition')}</ConditionColumn>
                 <RateColumn>{t('Rate')}</RateColumn>
@@ -566,6 +563,7 @@ export function ServerSideSampling({project}: Props) {
                 <Column />
               </RulesPanelLayout>
             </RulesPanelHeader>
+
             <DraggableRuleList
               disabled={!hasAccess}
               items={items}
@@ -613,17 +611,13 @@ export function ServerSideSampling({project}: Props) {
                       operator={
                         itemsRule.id === items[0].id
                           ? SamplingRuleOperator.IF
-                          : isUniformRule(currentRule)
-                          ? SamplingRuleOperator.ELSE
                           : SamplingRuleOperator.ELSE_IF
                       }
                       hideGrabButton={items.length === 1}
                       rule={currentRule}
                       onEditRule={() => {
                         navigate(
-                          isUniformRule(currentRule)
-                            ? `${samplingProjectSettingsPath}rules/uniform/`
-                            : `${samplingProjectSettingsPath}rules/${currentRule.id}/`
+                          `${samplingProjectSettingsPath}rules/${currentRule.id}/`
                         );
                       }}
                       canDemo={canDemo}
@@ -643,6 +637,15 @@ export function ServerSideSampling({project}: Props) {
                 );
               }}
             />
+
+            {uniformRule && (
+              <UniformRule
+                rule={uniformRule}
+                loadingRecommendedSdkUpgrades={loadingRecommendedSdkUpgrades}
+                singleRule={rules.length === 1}
+              />
+            )}
+
             <RulesPanelFooter>
               <ButtonBar gap={1}>
                 <Button
@@ -684,26 +687,6 @@ const RulesPanel = styled(Panel)``;
 const RulesPanelHeader = styled(PanelHeader)`
   padding: ${space(0.5)} 0;
   font-size: ${p => p.theme.fontSizeSmall};
-`;
-
-const RulesPanelLayout = styled('div')<{isContent?: boolean}>`
-  width: 100%;
-  display: grid;
-  grid-template-columns: 1fr 0.5fr 74px;
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: 48px 97px 1fr 0.5fr 77px 74px;
-  }
-
-  ${p =>
-    p.isContent &&
-    css`
-      > * {
-        /* match the height of the ellipsis button */
-        line-height: 34px;
-        border-bottom: 1px solid ${p.theme.border};
-      }
-    `}
 `;
 
 const RulesPanelFooter = styled(PanelFooter)`
