@@ -324,7 +324,7 @@ const SPECIAL_FIELDS: SpecialFields = {
       return (
         <Container>
           <DropdownMenuControl
-            placement="end bottom"
+            placement="left"
             triggerProps={{
               showChevron: false,
               icon: (

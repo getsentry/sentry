@@ -14,10 +14,19 @@ export interface Props {
   organization: Organization;
   projectId: string;
   excludedTags?: string[];
+  totalEventCount?: string;
 }
 
 const AllEventsTable = (props: Props) => {
-  const {location, organization, issueId, isPerfIssue, excludedTags, projectId} = props;
+  const {
+    location,
+    organization,
+    issueId,
+    isPerfIssue,
+    excludedTags,
+    projectId,
+    totalEventCount,
+  } = props;
   const [error, setError] = useState<string>('');
   const eventView: EventView = EventView.fromLocation(props.location);
   eventView.sorts = decodeSorts(location);
@@ -62,11 +71,11 @@ const AllEventsTable = (props: Props) => {
       organization={organization}
       excludedTags={excludedTags}
       projectId={projectId}
+      totalEventCount={totalEventCount}
       setError={() => {
         (msg: string) => setError(msg);
       }}
       transactionName=""
-      disablePagination
       columnTitles={columnTitles.slice()}
     />
   );
