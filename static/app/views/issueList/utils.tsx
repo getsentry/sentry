@@ -48,7 +48,9 @@ export function getTabs(organization: Organization) {
       },
     ],
     [
-      Query.FOR_REVIEW,
+      organization.features.includes('organizations:javascript-console-error-tag')
+        ? Query.FOR_REVIEW + ' empty_stacktrace.js_console:False'
+        : Query.FOR_REVIEW,
       {
         name: t('For Review'),
         analyticsName: 'needs_review',
