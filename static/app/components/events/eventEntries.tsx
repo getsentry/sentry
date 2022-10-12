@@ -382,6 +382,7 @@ const EventEntries = ({
         organization={organization}
         route={route}
         router={router}
+        isShare={isShare}
       />
       {hasContext && <EventContexts group={group} event={event} />}
       {event && !objectIsEmpty(event.context) && <EventExtraData event={event} />}
