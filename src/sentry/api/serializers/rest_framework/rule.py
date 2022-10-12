@@ -1,5 +1,3 @@
-from ast import literal_eval
-
 from rest_framework import serializers
 
 from sentry import features
@@ -8,6 +6,7 @@ from sentry.api.serializers.rest_framework.list import ListField
 from sentry.constants import MIGRATED_CONDITIONS, SENTRY_APP_ACTIONS, TICKET_ACTIONS
 from sentry.models import Environment
 from sentry.rules import rules
+from sentry.utils import json
 
 ValidationError = serializers.ValidationError
 
@@ -23,7 +22,7 @@ class RuleNodeField(serializers.Field):
     def to_internal_value(self, data):
         if isinstance(data, str):
             try:
-                data = literal_eval(data)
+                data = json.loads(data.replace("'", '"'))
             except Exception:
                 raise ValidationError("Failed trying to parse dict from string")
         elif not isinstance(data, dict):

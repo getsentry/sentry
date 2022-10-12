@@ -35,7 +35,7 @@ def preview(
     elif len(conditions) > 1 and condition_match == "all":
         return [TimeSeriesValue(start + timedelta(hours=i), 0) for i in range(hours)]
 
-    activity_set = set()
+    activity = []
     for condition in conditions:
         condition_cls = rules.get(condition["id"])
         if condition_cls is None:
@@ -43,12 +43,12 @@ def preview(
         # instantiates a EventCondition subclass and retrieves activities related to it
         condition_inst = condition_cls(project, data=condition)
         try:
-            activity_set.update(condition_inst.get_activity(start, end, CONDITION_ACTIVITY_LIMIT))
+            activity.extend(condition_inst.get_activity(start, end, CONDITION_ACTIVITY_LIMIT))
         except NotImplementedError:
             return None
 
     k = lambda a: a.timestamp
-    activity = sorted(list(activity_set), key=k)
+    activity.sort(key=k)
 
     frequency = timedelta(minutes=frequency_minutes)
     last_fire = start - frequency
