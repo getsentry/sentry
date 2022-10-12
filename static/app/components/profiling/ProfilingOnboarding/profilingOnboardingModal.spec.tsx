@@ -70,7 +70,7 @@ describe('ProfilingOnboarding', function () {
     );
     selectProject(project);
     await act(async () => {
-      await tick();
+      await screen.findByText(/options\.dsn/);
       userEvent.click(screen.getAllByText('Next')[0]);
     });
     expect(screen.getByText(/Step 2 of 2/i)).toBeInTheDocument();
