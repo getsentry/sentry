@@ -1,3 +1,4 @@
+import atexit
 import dataclasses
 from typing import Any, Optional
 
@@ -33,7 +34,7 @@ def produce_audit_log_entry(entry: AuditLogEntry):
 
 
 _publisher: Optional[KafkaProducer] = None
-_empty_headers = tuple()
+_empty_headers = list()
 
 
 # TODO: Would be nice to configure the timeout via a dynamic setting.
@@ -65,6 +66,11 @@ def get_region_to_control_producer() -> KafkaProducer:
         _publisher = KafkaProducer(
             kafka_config.get_kafka_producer_cluster_options(config["cluster"])
         )
+
+        @atexit.register
+        def exit_handler():
+            _publisher.close()
+
     return _publisher
 
 
