@@ -26,7 +26,7 @@ export function ScreenshotCard({eventAttachment, projectSlug, eventId}: Props) {
       <Card interactive>
         <CardHeader>
           <CardContent>
-            <Title>{eventAttachment.sha1}</Title>
+            <Title>{eventId}</Title>
             <Detail>
               <DateTime date={eventAttachment.dateCreated} />
             </Detail>
