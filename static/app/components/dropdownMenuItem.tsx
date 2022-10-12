@@ -12,6 +12,7 @@ import MenuListItem, {
   MenuListItemProps,
 } from 'sentry/components/menuListItem';
 import {IconChevron} from 'sentry/icons';
+import mergeRefs from 'sentry/utils/mergeRefs';
 import usePrevious from 'sentry/utils/usePrevious';
 
 export type MenuItemProps = MenuListItemProps & {
@@ -194,14 +195,7 @@ const BaseDropdownMenuItem: React.ForwardRefRenderFunction<HTMLLIElement, Props>
 
   return (
     <MenuListItem
-      ref={el => {
-        ref.current = el;
-        if (typeof forwardedRef === 'function') {
-          forwardedRef(el);
-        } else if (forwardedRef) {
-          forwardedRef.current = el;
-        }
-      }}
+      ref={mergeRefs([ref, forwardedRef])}
       as={renderAs}
       data-test-id={key}
       label={itemLabel}
