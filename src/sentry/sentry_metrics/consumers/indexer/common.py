@@ -3,6 +3,7 @@ import time
 from typing import Any, List, MutableMapping, Optional, Set
 
 from arroyo.backends.kafka import KafkaPayload
+from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
 from arroyo.processing.strategies import MessageRejected
 from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
@@ -21,20 +22,14 @@ DEFAULT_QUEUED_MIN_MESSAGES = 100000
 
 def get_config(topic: str, group_id: str, auto_offset_reset: str) -> MutableMapping[Any, Any]:
     cluster_name: str = settings.KAFKA_TOPICS[topic]["cluster"]
-    consumer_config: MutableMapping[Any, Any] = kafka_config.get_kafka_consumer_cluster_options(
-        cluster_name,
-        override_params={
-            "auto.offset.reset": auto_offset_reset,
-            "enable.auto.commit": False,
-            "enable.auto.offset.store": False,
-            "group.id": group_id,
-            # `default.topic.config` is now deprecated.
-            # More details: https://docs.confluent.io/platform/current/clients/confluent-kafka-python/html/index.html#kafka-client-configuration)
-            "default.topic.config": {"auto.offset.reset": auto_offset_reset},
-            # overridden to reduce memory usage when there's a large backlog
-            "queued.max.messages.kbytes": DEFAULT_QUEUED_MAX_MESSAGE_KBYTES,
-            "queued.min.messages": DEFAULT_QUEUED_MIN_MESSAGES,
-        },
+    consumer_config: MutableMapping[str, Any] = build_kafka_consumer_configuration(
+        kafka_config.get_kafka_consumer_cluster_options(
+            cluster_name,
+        ),
+        group_id=group_id,
+        auto_offset_reset=auto_offset_reset,
+        queued_max_messages_kbytes=DEFAULT_QUEUED_MAX_MESSAGE_KBYTES,
+        queued_min_messages=DEFAULT_QUEUED_MIN_MESSAGES,
     )
     return consumer_config
 
