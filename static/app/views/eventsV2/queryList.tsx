@@ -110,9 +110,8 @@ class QueryList extends Component<Props> {
     return (
       <DropdownMenuControl
         items={items}
-        trigger={({props: triggerProps, ref: triggerRef}) => (
+        trigger={triggerProps => (
           <DropdownTrigger
-            ref={triggerRef}
             {...triggerProps}
             aria-label={t('Query actions')}
             size="xs"
@@ -127,7 +126,7 @@ class QueryList extends Component<Props> {
             data-test-id="menu-trigger"
           />
         )}
-        placement="bottom right"
+        position="bottom-end"
         offset={4}
       />
     );

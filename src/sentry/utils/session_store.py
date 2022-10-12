@@ -1,5 +1,7 @@
 from uuid import uuid4
 
+import sentry_sdk
+
 from sentry.utils.json import dumps, loads
 from sentry.utils.redis import clusters
 
@@ -92,7 +94,7 @@ class RedisSessionStore:
         self.mark_session()
 
     def is_valid(self):
-        return bool(self.redis_key and self._client.get(self.redis_key))
+        return bool(self.redis_key and self.get_state() is not None)
 
     def get_state(self):
         if not self.redis_key:
@@ -102,7 +104,11 @@ class RedisSessionStore:
         if not state_json:
             return None
 
-        return loads(state_json)
+        try:
+            return loads(state_json)
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+        return None
 
 
 def redis_property(key: str):
