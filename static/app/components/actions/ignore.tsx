@@ -276,9 +276,8 @@ const IgnoreActions = ({
       <DropdownMenuControl
         size="sm"
         placement={dropdownPlacement}
-        trigger={({props: triggerProps, ref: triggerRef}) => (
+        trigger={triggerProps => (
           <DropdownTrigger
-            ref={triggerRef}
             {...triggerProps}
             aria-label={t('Ignore options')}
             size={size}

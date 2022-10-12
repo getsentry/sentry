@@ -199,9 +199,8 @@ class ResolveActions extends Component<Props> {
       <DropdownMenuControl
         items={items}
         placement={dropdownPlacement}
-        trigger={({props: triggerProps, ref: triggerRef}) => (
+        trigger={triggerProps => (
           <DropdownTrigger
-            ref={triggerRef}
             {...triggerProps}
             type="button"
             size={size}
