@@ -90,3 +90,41 @@ def _error_workflow_command(filesystempath, lineno, longrepr):
 
 def _escape(s):
     return s.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+
+
+_MODEL_MANIFEST_FILE_PATH = os.getenv("SENTRY_MODEL_MANIFEST_FILE_PATH")
+_model_manifest = None
+
+
+@pytest.fixture(scope="session", autouse=True)
+def create_model_manifest_file():
+    """Audit which models are touched by each test case and write it to file."""
+
+    # We have to construct the ModelManifest lazily, because importing
+    # sentry.testutils.modelmanifest too early causes a dependency cycle.
+    from sentry.testutils.modelmanifest import ModelManifest
+
+    if not _MODEL_MANIFEST_FILE_PATH:
+        yield
+        return
+
+    global _model_manifest
+    _model_manifest = ModelManifest(_MODEL_MANIFEST_FILE_PATH)
+
+    try:
+        yield
+    finally:
+        _model_manifest.write()
+
+
+@pytest.fixture(scope="class", autouse=True)
+def register_class_in_model_manifest(request: pytest.FixtureRequest):
+    if not _model_manifest:
+        yield
+        return
+
+    teardown_function = _model_manifest.register(request.node.name)
+    try:
+        yield
+    finally:
+        teardown_function()
