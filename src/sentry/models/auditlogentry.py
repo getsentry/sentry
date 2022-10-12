@@ -83,12 +83,12 @@ class AuditLogEntry(Model):
 
     def save_or_write_to_kafka(self):
         """
-        Customer Silos do not have access to the AuditLogEntry table which is specific to the control silo.
+        Region Silos do not have access to the AuditLogEntry table which is specific to the control silo.
         For those silos, this method publishes the attempted audit log write to a durable kafka queue synchronously
         that will eventually be consumed by the control silo.  For the control silo, this method ultimately results
         in a save() call.
 
-        This method is most ideal for shared code paths that may be invoked from either control or customer silos,
+        This method is most ideal for shared code paths that may be invoked from either control or region silos,
         but is not recommended on code paths that should always be invoked from the control silo and depend on the
         synchronous database access.
         """

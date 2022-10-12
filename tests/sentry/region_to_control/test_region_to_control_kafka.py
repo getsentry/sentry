@@ -96,6 +96,10 @@ def test_region_to_control_user_audit_log(
     region_to_control_consumer,
 ):
 
+    # In the case of user audit logs, they should be produced with a synchronous confirmation to ensure durable write.
+    # If this test is 'flakey' wrt message production -> a single _run_once loop at any time, it means that the
+    # durable write logic isn't working!  That's a real bug.  Unfortunately, there isn't a super great way to fake
+    # lag between the confluent client and the kafka queue to make a reliable test of synchronous behavior.
     with override_settings(SILO_MODE=SiloMode.REGION):
         create_audit_entry_from_user(
             user,
@@ -109,15 +113,8 @@ def test_region_to_control_user_audit_log(
     entry = AuditLogEntry.objects.last()
     assert entry is None
 
-    for i in range(MAX_POLL_ITERATIONS):
-        entry = AuditLogEntry.objects.last()
-        if entry:
-            break
-        region_to_control_consumer._run_once()
-    else:
-        raise AssertionError(
-            "region_to_control_consumer never successfully processed audit log entry!"
-        )
+    region_to_control_consumer._run_once()
+    entry = AuditLogEntry.objects.last()
 
     assert entry.actor.id == user.id
     assert entry.ip_address == "9.9.9.9"
