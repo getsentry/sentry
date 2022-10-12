@@ -5,7 +5,6 @@ import {Location} from 'history';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openDebugFileSourceModal} from 'sentry/actionCreators/modal';
-import ProjectActions from 'sentry/actions/projectActions';
 import {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
@@ -18,6 +17,7 @@ import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import AppStoreConnectContext from 'sentry/components/projects/appStoreConnectContext';
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {Organization, Project} from 'sentry/types';
 import {CustomRepo, CustomRepoType} from 'sentry/types/debugFiles';
 import {defined} from 'sentry/utils';
@@ -125,7 +125,7 @@ function CustomRepositories({
     });
 
     promise.then(result => {
-      ProjectActions.updateSuccess(result);
+      ProjectsStore.onUpdateSuccess(result);
       addSuccessMessage(successMessage);
 
       if (refresh) {

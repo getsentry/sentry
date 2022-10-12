@@ -44,16 +44,26 @@ def process_profile(
     project = Project.objects.get_from_cache(id=profile["project_id"])
     event_id = profile["event_id"] if "event_id" in profile else profile["profile_id"]
 
+    sentry_sdk.set_context(
+        "profile",
+        {
+            "organization_id": profile["organization_id"],
+            "project_id": profile["project_id"],
+            "profile_id": event_id,
+        },
+    )
+    sentry_sdk.set_tag("platform", profile["platform"])
+
     try:
         if _should_symbolicate(profile):
             modules, stacktraces = _prepare_frames_from_profile(profile)
-            stacktraces = _symbolicate(
+            modules, stacktraces = _symbolicate(
                 project=project,
                 profile_id=event_id,
                 modules=modules,
                 stacktraces=stacktraces,
             )
-            _process_symbolicator_results(profile=profile, stacktraces=stacktraces)
+            _process_symbolicator_results(profile=profile, modules=modules, stacktraces=stacktraces)
     except Exception as e:
         sentry_sdk.capture_exception(e)
         _track_outcome(
@@ -183,21 +193,19 @@ def _prepare_frames_from_profile(profile: Profile) -> Tuple[List[Any], List[Any]
 @metrics.wraps("process_profile.symbolicate.request")
 def _symbolicate(
     project: Project, profile_id: str, modules: List[Any], stacktraces: List[Any]
-) -> List[Any]:
+) -> Tuple[List[Any], List[Any]]:
     symbolicator = Symbolicator(project=project, event_id=profile_id)
     symbolication_start_time = time()
 
     while True:
         try:
-            return list(
-                symbolicator.process_payload(stacktraces=stacktraces, modules=modules).get(
-                    "stacktraces", stacktraces
-                )
-            )
+            response = symbolicator.process_payload(stacktraces=stacktraces, modules=modules)
+            return (response.get("modules", modules), response.get("stacktraces", stacktraces))
         except RetrySymbolication as e:
             if (
                 time() - symbolication_start_time
             ) > settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT:
+                metrics.incr("process_profile.symbolicate.timeout", sample_rate=1.0)
                 break
             else:
                 sleep_time = (
@@ -209,13 +217,20 @@ def _symbolicate(
                 continue
         except Exception as e:
             sentry_sdk.capture_exception(e)
+            metrics.incr("process_profile.symbolicate.error", sample_rate=1.0)
             break
-    # returns the unsymbolicated stacktraces to avoid errors later
-    return stacktraces
+
+    # returns the unsymbolicated data to avoid errors later
+    return (modules, stacktraces)
 
 
 @metrics.wraps("process_profile.symbolicate.process")
-def _process_symbolicator_results(profile: Profile, stacktraces: List[Any]) -> None:
+def _process_symbolicator_results(
+    profile: Profile, modules: List[Any], stacktraces: List[Any]
+) -> None:
+    # update images with status after symbolication
+    profile["debug_meta"]["images"] = modules
+
     if "version" in profile:
         profile["profile"]["frames"] = stacktraces[0]["frames"]
         _process_symbolicator_results_for_sample(profile, stacktraces)
@@ -492,6 +507,7 @@ def _insert_vroom_profile(profile: Profile) -> bool:
         profile["received"] = (
             datetime.utcfromtimestamp(profile["received"]).replace(tzinfo=timezone.utc).isoformat()
         )
+
         response = get_from_profiling_service(method="POST", path="/profile", json_data=profile)
 
         if response.status == 204:
@@ -500,30 +516,21 @@ def _insert_vroom_profile(profile: Profile) -> bool:
             profile["call_trees"] = json.loads(response.data)["call_trees"]
         else:
             metrics.incr(
-                "profiling.insert_vroom_profile.error",
+                "process_profile.insert_vroom_profile.error",
                 tags={"platform": profile["platform"], "reason": "bad status"},
+                sample_rate=1.0,
             )
             return False
         return True
     except RecursionError as e:
-        sentry_sdk.set_context(
-            "profile",
-            {
-                "organization_id": profile["organization_id"],
-                "project_id": profile["project_id"],
-                "profile_id": profile["event_id"]
-                if "event_id" in profile
-                else profile["profile_id"],
-                "platform": profile["platform"],
-            },
-        )
         sentry_sdk.capture_exception(e)
         return True
     except Exception as e:
         sentry_sdk.capture_exception(e)
         metrics.incr(
-            "profiling.insert_vroom_profile.error",
+            "process_profile.insert_vroom_profile.error",
             tags={"platform": profile["platform"], "reason": "encountered error"},
+            sample_rate=1.0,
         )
         return False
     finally:

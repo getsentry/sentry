@@ -54,6 +54,7 @@ type Props = Pick<
   eventSlug: string;
   eventView: EventView;
   organization: Organization;
+  isHomepage?: boolean;
 };
 
 type State = {
@@ -124,7 +125,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
   }
 
   renderContent(event: Event) {
-    const {organization, location, eventView, route, router} = this.props;
+    const {organization, location, eventView, route, router, isHomepage} = this.props;
     const {isSidebarVisible} = this.state;
 
     // metrics
@@ -162,6 +163,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
               event={event}
               organization={organization}
               location={location}
+              isHomepage={isHomepage}
             />
             <EventHeader event={event} />
           </Layout.HeaderContent>
@@ -246,7 +248,6 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                         event={event}
                         project={projects[0] as Project}
                         location={location}
-                        showExampleCommit={false}
                         showTagSummary={false}
                         api={this.api}
                         router={router}
