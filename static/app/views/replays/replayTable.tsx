@@ -47,6 +47,7 @@ type RowProps = {
   referrer: string;
   replay: ReplayItem;
   showProjectColumn: boolean;
+  showSlowestTxColumn: boolean;
 };
 
 function SortableHeader({
@@ -190,6 +191,7 @@ function ReplayTable({
           referrer={referrer}
           replay={replay}
           showProjectColumn={showProjectColumn}
+          showSlowestTxColumn={showSlowestTxColumn}
         />
       ))}
     </StyledPanelTable>
@@ -202,6 +204,7 @@ function ReplayTableRow({
   referrer,
   replay,
   showProjectColumn,
+  showSlowestTxColumn,
 }: RowProps) {
   const location = useLocation();
   const {projects} = useProjects();
@@ -232,7 +235,7 @@ function ReplayTableRow({
       {showProjectColumn && minWidthIsSmall && (
         <Item>{project ? <ProjectBadge project={project} avatarSize={16} /> : null}</Item>
       )}
-      {minWidthIsSmall && (
+      {minWidthIsSmall && showSlowestTxColumn && (
         <Item>
           {replay.txEvent ? (
             <SpanOperationBreakdown>
