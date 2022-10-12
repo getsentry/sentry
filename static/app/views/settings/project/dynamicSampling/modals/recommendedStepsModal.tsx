@@ -5,8 +5,6 @@ import styled from '@emotion/styled';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
 import {
   OutdatedVersion,
   SdkOutdatedVersion,
@@ -69,37 +67,33 @@ export function RecommendedStepsModal({
         <h4>{t('Important next steps')}</h4>
       </Header>
       <Body>
-        <List symbol="colored-numeric">
-          <ListItem>
-            <h5>{t('Update the following SDK versions')}</h5>
-            <TextBlock>
-              {t(
-                'To have Dynamic Sampling up and running, it’s a requirement to update the following project SDK(s):'
-              )}
-            </TextBlock>
-            <UpgradeSDKfromProjects>
-              {recommendedSdkUpgrades.map(
-                ({project: upgradableProject, latestSDKName, latestSDKVersion}) => {
-                  return (
-                    <div key={upgradableProject.id}>
-                      <SdkProjectBadge
-                        project={upgradableProject}
-                        organization={organization}
-                      />
-                      <SdkOutdatedVersion>
-                        {tct('This project is on [current-version]', {
-                          ['current-version']: (
-                            <OutdatedVersion>{`${latestSDKName}@v${latestSDKVersion}`}</OutdatedVersion>
-                          ),
-                        })}
-                      </SdkOutdatedVersion>
-                    </div>
-                  );
-                }
-              )}
-            </UpgradeSDKfromProjects>
-          </ListItem>
-        </List>
+        <h5>{t('Update the following SDK versions')}</h5>
+        <TextBlock>
+          {t(
+            'To have Dynamic Sampling up and running, it’s a requirement to update the following project SDK(s):'
+          )}
+        </TextBlock>
+        <UpgradeSDKfromProjects>
+          {recommendedSdkUpgrades.map(
+            ({project: upgradableProject, latestSDKName, latestSDKVersion}) => {
+              return (
+                <div key={upgradableProject.id}>
+                  <SdkProjectBadge
+                    project={upgradableProject}
+                    organization={organization}
+                  />
+                  <SdkOutdatedVersion>
+                    {tct('This project is on [current-version]', {
+                      ['current-version']: (
+                        <OutdatedVersion>{`${latestSDKName}@v${latestSDKVersion}`}</OutdatedVersion>
+                      ),
+                    })}
+                  </SdkOutdatedVersion>
+                </div>
+              );
+            }
+          )}
+        </UpgradeSDKfromProjects>
       </Body>
       <Footer>
         <FooterActions>
