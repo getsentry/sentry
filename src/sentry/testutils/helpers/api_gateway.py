@@ -93,7 +93,7 @@ def verify_file_body(file_body, headers):
     """Wrapper for a callback function for responses.add_callback"""
 
     def request_callback(request):
-        assert request.body == file_body
+        assert file_body in request.body
         assert (request.headers[key] == headers[key] for key in headers)
         return 200, {}, json.dumps({"proxy": True})
 
