@@ -16,6 +16,7 @@
 # Diego Nobre <contato@diegonobre.net>, 2015
 # Fábio C. Barrionuevo da Luz <bnafta@gmail.com>, 2014
 # Hugo Tácito <hugotacito@gmail.com>, 2017-2018
+# Igor Ribeiro, 2022
 # Luan Fonseca de Farias <luanfonceca@gmail.com>, 2014
 # Luiz Fernando Barbosa Vital <luiz.vital@znc.com.br>, 2014
 # Marcel Dias <marceldiass@gmail.com>, 2016
@@ -28,15 +29,15 @@ msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-01-04 21:26+0000\n"
-"PO-Revision-Date: 2022-01-04 21:44+0000\n"
-"Last-Translator: Fábio C. Barrionuevo da Luz <bnafta@gmail.com>\n"
+"PO-Revision-Date: 2012-02-17 23:48+0000\n"
+"Last-Translator: Igor Ribeiro, 2022\n"
 "Language-Team: Portuguese (Brazil) (http://www.transifex.com/getsentry/sentry/language/pt_BR/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.9.1\n"
 "Language: pt_BR\n"
-"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"Plural-Forms: nplurals=3; plural=(n == 0 || n == 1) ? 0 : n != 0 && n % 1000000 == 0 ? 1 : 2;\n"
 
 #: admin.py:164 admin.py:178
 #: static/app/components/events/contexts/user/getUserKnownDataDetails.tsx:30
@@ -83,12 +84,12 @@ msgstr "A funcionalidade SSO não está habilitada para esta organização."
 
 #: api/endpoints/organization_code_mappings.py:19
 msgid "Path may not contain spaces or quotations"
-msgstr ""
+msgstr "O caminho não pode conter espaços ou aspas"
 
 #: api/endpoints/organization_request_project_creation.py:31
 #, python-format
 msgid "%s thinks Sentry can help monitor your mobile app"
-msgstr ""
+msgstr "%sacha que o Sentry pode ajudar a monitorar sua aplicativo móvel"
 
 #: api/endpoints/organization_teams.py:45
 #: api/endpoints/sentry_app_installations.py:20
@@ -99,7 +100,7 @@ msgstr "Digite um slug válido contendo letras minúsculas, números, sublinhado
 
 #: api/endpoints/project_codeowners_request.py:18
 msgid "A team member is asking to set up Sentry's Code Owners"
-msgstr ""
+msgstr "Um membro do time está solicitando a configuração do Sentry's Code Owners"
 
 #: api/endpoints/user_details.py:48
 #: static/app/data/forms/accountPreferences.tsx:57
@@ -119,17 +120,17 @@ msgstr "Chamada mais recente primeiro"
 #: api/endpoints/user_details.py:58
 #: static/app/data/forms/accountPreferences.tsx:26
 msgid "Light"
-msgstr ""
+msgstr "Claro"
 
 #: api/endpoints/user_details.py:59
 #: static/app/data/forms/accountPreferences.tsx:27
 msgid "Dark"
-msgstr ""
+msgstr "Escuro"
 
 #: api/endpoints/user_details.py:60
 #: static/app/data/forms/accountPreferences.tsx:28
 msgid "Default to system"
-msgstr ""
+msgstr "Padrão do sistema"
 
 #: api/serializers/rest_framework/json.py:13
 msgid "Value must be valid JSON."
@@ -172,7 +173,7 @@ msgstr "Códigos de recuperação"
 msgid ""
 "Recovery codes are the only way to access your account if you lose your "
 "device and cannot receive two factor authentication codes."
-msgstr ""
+msgstr "Códigos de recuperação são a única maneira de acessar sua conta caso você perca seu dispositivo e não possa utilizar a autenticação de dois fatores."
 
 #: auth/authenticators/recovery_code.py:24
 msgid "Activate"
@@ -198,7 +199,7 @@ msgstr "O autenticador envia mensagem de texto para você para verificação. É
 msgid ""
 "A confirmation code was sent to %(phone_mask)s. It is valid for %(ttl)d "
 "seconds."
-msgstr ""
+msgstr "Um código de confirmação foi enviado para %(phone_mask)s. O código é valido por %(ttl)d segundos."
 
 #: auth/authenticators/sms.py:66
 msgid ""
@@ -232,7 +233,7 @@ msgid ""
 "An authenticator application that supports TOTP (like Google Authenticator "
 "or 1Password) can be used to access your account securely using a token and "
 "secret key. A new token is generated every 30 seconds."
-msgstr ""
+msgstr "Um aplicativo autenticador que suporte TOTP (como o Google Authenticator ou 1Password) pode ser usado para acessar sua conta com segurança utilizando um token e uma chave secreta. Um novo token será gerado a cada 30 segundos."
 
 #: auth/authenticators/totp.py:20
 msgid ""
@@ -240,7 +241,7 @@ msgid ""
 " a new device or application, or to update your secret key, click "
 "\"Confirm\" below. By clicking \"Confirm\", your existing secret key will be"
 " replaced and will no longer work to access your account."
-msgstr ""
+msgstr "Sua conta está atualmente vinculada ao um aplicativo autenticador. Para vincular um novo dispositivo ou aplicativo, ou atualizar sua chave secreta, clique em \"Confirmar\" abaixo. Ao clicar em \"Confirmar\", sua chave secreta atual será substituída e deixará de funcionar para acessar sua conta."
 
 #: auth/authenticators/u2f.py:42
 #: static/app/views/organizationIntegrations/installedIntegration.tsx:152
@@ -285,7 +286,7 @@ msgstr "Você precisa estar autenticado para vincular as contas."
 
 #: auth/helper.py:67
 msgid "The provider did not return a valid user identity."
-msgstr ""
+msgstr "O provedor não retornou uma identidade de usuário válida."
 
 #: auth/password_validation.py:89
 #, python-format
@@ -297,6 +298,7 @@ msgid_plural ""
 "characters."
 msgstr[0] "Esta senha é muito curta. Ela deve conter pelo menos %(min_length)d caracter."
 msgstr[1] "Esta senha é muito curta. Ela deve conter pelo menos %(min_length)d caracteres."
+msgstr[2] "Esta senha é muito curta. Ela deve conter pelo menos %(min_length)d caracteres."
 
 #: auth/password_validation.py:100
 #, python-format
@@ -304,6 +306,7 @@ msgid "Your password must contain at least %(min_length)d character."
 msgid_plural "Your password must contain at least %(min_length)d characters."
 msgstr[0] "Sua senha deve conter pelo menos %(min_length)d caracter."
 msgstr[1] "Sua senha deve conter pelo menos %(min_length)d caracteres."
+msgstr[2] "Sua senha deve conter pelo menos %(min_length)d caracteres."
 
 #: auth/password_validation.py:120
 #, python-format
@@ -313,16 +316,18 @@ msgid ""
 msgid_plural ""
 "This password is too long. It must contain no more than %(max_length)d "
 "characters."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Esta senha é muito longa. Não deve conter mais do que %(max_length)d caractere."
+msgstr[1] "Esta senha é muito longa. Não deve conter mais do que %(max_length)d caracteres."
+msgstr[2] "Esta senha é muito longa. Não deve conter mais do que %(max_length)d caracteres."
 
 #: auth/password_validation.py:131
 #, python-format
 msgid "Your password must contain no more than %(max_length)d character."
 msgid_plural ""
 "Your password must contain no more than %(max_length)d characters."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Sua senha não deve conter mais do que %(max_length)d caractere."
+msgstr[1] "Sua senha não deve conter mais do que %(max_length)d caracteres."
+msgstr[2] "Sua senha não deve conter mais do que %(max_length)d caracteres."
 
 #: auth/password_validation.py:147
 msgid "This password is entirely numeric."
@@ -383,11 +388,11 @@ msgstr "Salvar Atributos"
 
 #: auth/providers/saml2/generic/templates/sentry_auth_saml2/select-idp.html:47
 msgid "Get metadata"
-msgstr ""
+msgstr "Obter metadados"
 
 #: auth/providers/saml2/generic/templates/sentry_auth_saml2/select-idp.html:72
 msgid "Parse Metadata"
-msgstr ""
+msgstr "Analisar Metadados"
 
 #: auth/providers/saml2/generic/templates/sentry_auth_saml2/select-idp.html:99
 msgid "Save Metadata"
@@ -808,13 +813,13 @@ msgstr ""
 
 #: integrations/aws_lambda/integration.py:307
 msgid "Unknown error"
-msgstr ""
+msgstr "Erro desconhecido"
 
 #: integrations/aws_lambda/integration.py:397
 #: static/app/views/settings/organizationDeveloperSettings/sentryApplicationDetails.tsx:196
 #: static/app/views/settings/project/projectProcessingIssues.tsx:268
 msgid "Unknown Error"
-msgstr ""
+msgstr "Erro desconhecido"
 
 #: integrations/bitbucket_server/integration.py:76
 msgid "Bitbucket URL"
@@ -824,7 +829,7 @@ msgstr "URL do Bitbucket"
 msgid ""
 "The base URL for your Bitbucket Server instance, including the host and "
 "protocol."
-msgstr ""
+msgstr "A URL base para sua instância de Servidor Bitbucket, incluindo o host e protocolo."
 
 #: integrations/bitbucket_server/integration.py:84
 #: integrations/github_enterprise/integration.py:177
@@ -878,7 +883,7 @@ msgstr "Nome"
 msgid ""
 "The name for your integration.<br>If you are using GitHub, use the "
 "organization name."
-msgstr ""
+msgstr "O nome da sua integração. <br> Se estiver utilizando o GitHub, utilize o nome da organização."
 
 #: integrations/custom_scm/integration.py:98
 #: static/app/views/settings/project/projectOwnership/ruleBuilder.tsx:142
@@ -893,15 +898,15 @@ msgstr "URL"
 msgid ""
 "The base URL for your instance, including the host and protocol. <br>If "
 "using github.com, enter https://github.com/"
-msgstr ""
+msgstr "A URL base para sua instância, incluindo o host e protocolo. <br>Se estiver utilizando github.com, entre https://github.com/ "
 
 #: integrations/github/integration.py:286
 msgid "GitHub installation pending deletion."
-msgstr ""
+msgstr "Instalação do GitHub está pendente para exclusão."
 
 #: integrations/github/integration.py:309
 msgid "Github installed on another Sentry organization."
-msgstr ""
+msgstr "Github instalado em outra organização do Sentry."
 
 #: integrations/github_enterprise/integration.py:156
 msgid ""
@@ -925,7 +930,7 @@ msgstr "O nome do Github App de sua aplicação Sentry. Ele pode ser encontrado 
 msgid ""
 "By default, we verify SSL certificates when delivering payloads to your "
 "GitHub Enterprise instance"
-msgstr ""
+msgstr "Por padrão, nós verificamos os certificados SSL quando entregamos os payloads para sua instância GitHub Enterprise."
 
 #: integrations/github_enterprise/integration.py:189
 msgid ""
@@ -936,7 +941,7 @@ msgstr "É necessário configurar uma chave secreta para o webhook. Esta chave s
 
 #: integrations/github_enterprise/integration.py:199
 msgid "The Private Key generated for your Sentry GitHub App."
-msgstr ""
+msgstr "A chave privada gerada para seu aplicativo Sentry no GitHub."
 
 #: integrations/gitlab/integration.py:151
 msgid "GitLab URL"
@@ -3288,6 +3293,7 @@ msgid "%s time…"
 msgid_plural "%s times…"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/actions/ignore.tsx:218
 #: static/app/components/actions/ignore.tsx:282
@@ -3308,6 +3314,7 @@ msgid "%s user…"
 msgid_plural "%s users…"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/actions/ignore.tsx:29
 msgid "per hour"
@@ -3527,6 +3534,7 @@ msgid " + %s other"
 msgid_plural " + %s others"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/assigneeSelector.tsx:508
 msgid "You can auto-assign issues by adding [issueOwners:Issue Owner rules]."
@@ -4216,6 +4224,7 @@ msgid "%s item on this page selected."
 msgid_plural "%s items on this page selected."
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/bulkController/bulkNotice.tsx:13
 msgid "Selected all items across all pages."
@@ -4298,6 +4307,7 @@ msgid "Show %s hidden item"
 msgid_plural "Show %s hidden items"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/collapsible.tsx:55
 #: static/app/components/events/errorItem.tsx:152
@@ -5389,6 +5399,7 @@ msgid "There was %s problem processing this event"
 msgid_plural "There were %s problems processing this event"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/events/errors.tsx:155
 #: static/app/views/settings/project/projectEnvironments.tsx:148
@@ -6598,6 +6609,7 @@ msgid "Frame repeated %s time"
 msgid_plural "Frame repeated %s times"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/events/interfaces/frame/openInContextLine.tsx:31
 #: static/app/components/events/interfaces/frame/stacktraceLink.tsx:329
@@ -6774,6 +6786,7 @@ msgid "%s Active Filter"
 msgid_plural "%s Active Filters"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/events/interfaces/searchBarAction/dropDownButton.tsx:36
 #: static/app/views/settings/organizationMembers/components/membersFilter.tsx:74
@@ -6796,6 +6809,7 @@ msgid "%s error in "
 msgid_plural "%s errors in "
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/events/interfaces/spans/index.tsx:184
 msgid "Search for spans"
@@ -6812,6 +6826,7 @@ msgid_plural ""
 "There are %s error events associated with this transaction event."
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/events/interfaces/spans/inlineDocs.tsx:101
 msgid ""
@@ -6893,6 +6908,7 @@ msgid "An error event occurred in this transaction."
 msgid_plural "%s error events occurred in this transaction."
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/events/interfaces/spans/spanDetail.tsx:94
 msgid "No Children"
@@ -7453,6 +7469,7 @@ msgid "%s Participant"
 msgid_plural "%s Participants"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/group/pluginActions.tsx:157
 #: static/app/components/group/sentryAppExternalIssueModal.tsx:56
@@ -7639,6 +7656,7 @@ msgid "%s result"
 msgid_plural "%s results"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/helpSearch.tsx:36
 #, python-format
@@ -8218,6 +8236,7 @@ msgid "%s invite"
 msgid_plural "%s invites"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/modals/inviteMembersModal/index.tsx:258
 msgid "Sent [invites], [failed] failed to send."
@@ -8233,6 +8252,7 @@ msgid "%s invite request"
 msgid_plural "%s invite requests"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/modals/inviteMembersModal/index.tsx:274
 msgid "[inviteRequests] pending approval, [failed] failed to send."
@@ -8959,6 +8979,7 @@ msgid "%s other platform"
 msgid_plural "%s other platforms"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/platformPicker.tsx:125
 msgid "Filter Platforms"
@@ -9084,6 +9105,7 @@ msgid "%s Ancestor"
 msgid_plural "%s Ancestors"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/quickTrace/index.tsx:135
 msgid "Parent"
@@ -9099,6 +9121,7 @@ msgid "%s Child"
 msgid_plural "%s Children"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/quickTrace/index.tsx:232
 #, python-format
@@ -9106,6 +9129,7 @@ msgid "%s Descendant"
 msgid_plural "%s Descendants"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/quickTrace/index.tsx:320
 msgid "View the error for this Transaction"
@@ -9120,6 +9144,7 @@ msgid "Related Error"
 msgid_plural "Related Errors"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/quickTrace/index.tsx:429
 #: static/app/views/performance/transactionSummary/transactionTags/tagsHeatMap.tsx:409
@@ -9247,6 +9272,7 @@ msgid "See %s new event"
 msgid_plural "See %s new events"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/reprocessedBox.tsx:58
 msgid "Events in this issue were successfully reprocessed. [link]"
@@ -9258,6 +9284,7 @@ msgid "See %s reprocessed event"
 msgid_plural "See %s reprocessed events"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/resolutionBox.tsx:111
 msgid "This issue has been marked as resolved."
@@ -9416,6 +9443,7 @@ msgid_plural ""
 "You have %s projects using a deprecated version of the Sentry client"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/sidebar/broadcastSdkUpdates.tsx:80
 msgid "Deprecated"
@@ -9558,6 +9586,7 @@ msgid "%s project"
 msgid_plural "%s projects"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/sidebar/sidebarPanelItem.tsx:41
 msgid "Read More"
@@ -9735,6 +9764,7 @@ msgid "There is %s issue blocking event processing"
 msgid_plural "There are %s issues blocking event processing"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/stream/processingIssueHint.tsx:46
 msgid "last event from [ago]"
@@ -9747,6 +9777,7 @@ msgid "Reprocessing %s event …"
 msgid_plural "Reprocessing %s events …"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/stream/processingIssueHint.tsx:65
 #, python-format
@@ -9754,6 +9785,7 @@ msgid "There is %s event pending reprocessing."
 msgid_plural "There are %s events pending reprocessing."
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/components/stream/processingIssueHint.tsx:85
 msgid "Show details"
@@ -10504,6 +10536,7 @@ msgid "%s minute"
 msgid_plural "%s minutes"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/data/forms/projectGeneralSettings.tsx:102
 msgid ""
@@ -10617,6 +10650,7 @@ msgid "%s day"
 msgid_plural "%s days"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/data/forms/projectGeneralSettings.tsx:99
 #: static/app/views/issueList/testSessionPercent.tsx:171
@@ -10625,6 +10659,7 @@ msgid "%s hour"
 msgid_plural "%s hours"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/data/forms/projectIssueGrouping.tsx:109
 msgid ""
@@ -11412,6 +11447,7 @@ msgid "hour"
 msgid_plural "hours"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/utils/formatters.tsx:109 static/app/utils/formatters.tsx:165
 msgid "min"
@@ -11422,6 +11458,7 @@ msgid "minute"
 msgid_plural "minutes"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/utils/formatters.tsx:117 static/app/utils/formatters.tsx:172
 msgid "s"
@@ -11432,6 +11469,7 @@ msgid "second"
 msgid_plural "seconds"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/utils/formatters.tsx:124 static/app/utils/formatters.tsx:180
 #: static/app/utils/formatters.tsx:189
@@ -11447,6 +11485,7 @@ msgid "week"
 msgid_plural "weeks"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/utils/formatters.tsx:88 static/app/utils/formatters.tsx:151
 msgid "d"
@@ -11457,6 +11496,7 @@ msgid "day"
 msgid_plural "days"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/utils/formatters.tsx:98 static/app/utils/formatters.tsx:158
 msgid "hr"
@@ -11467,6 +11507,7 @@ msgid "millisecond"
 msgid_plural "milliseconds"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/utils/formatters.tsx:189
 msgid "milliseconds"
@@ -11477,12 +11518,14 @@ msgid "mo"
 msgid_plural "mos"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/utils/formatters.tsx:70
 msgid "month"
 msgid_plural "months"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/utils/formatters.tsx:77
 msgid "w"
@@ -13671,6 +13714,7 @@ msgid "%s widget"
 msgid_plural "%s widgets"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/dashboardsV2/manage/dashboardList.tsx:164
 msgid "Duplicate"
@@ -14564,6 +14608,7 @@ msgid "successfully updated %s function"
 msgid_plural "successfully updated %s functions"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/integrationPipeline/awsLambdaFailureDetails.tsx:42
 #, python-format
@@ -14571,6 +14616,7 @@ msgid "Failed to update %s function"
 msgid_plural "Failed to update %s functions"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/integrationPipeline/awsLambdaFailureDetails.tsx:49
 msgid "See [link:Troubleshooting Docs]"
@@ -14611,6 +14657,7 @@ msgid "We found %s function with a Node or Python runtime"
 msgid_plural "We found %s functions with Node or Python runtimes"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/integrationPipeline/awsLambdaProjectSelect.tsx:49
 msgid "Select a project for your AWS Lambdas"
@@ -14725,6 +14772,7 @@ msgid "%s issue on this page selected."
 msgid_plural "%s issues on this page selected."
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/issueList/actions/index.tsx:314
 msgid "Select the first [count] issues that match this search query."
@@ -15403,6 +15451,7 @@ msgid "%2$s migrated %1$s fingerprint from %3$s to %4$s"
 msgid_plural "%2$s migrated %1$s fingerprints from %3$s to %4$s"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/organizationActivity/activityFeedItem.tsx:250
 #: static/app/views/organizationGroupDetails/groupActivityItem.tsx:210
@@ -15697,12 +15746,14 @@ msgid "%2$s migrated %1$s fingerprint to %3$s"
 msgid_plural "%2$s migrated %1$s fingerprints to %3$s"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/organizationGroupDetails/groupActivityItem.tsx:217
 msgid "%2$s migrated %1$s fingerprint from %3$s"
 msgid_plural "%2$s migrated %1$s fingerprints from %3$s"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/organizationGroupDetails/groupActivityItem.tsx:230
 msgid "[author] first saw this issue"
@@ -15717,6 +15768,7 @@ msgid "%2$s merged %1$s issue into this issue"
 msgid_plural "%2$s merged %1$s issues into this issue"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/organizationGroupDetails/groupActivityItem.tsx:248
 msgid "[author] reprocessed the events in this issue. [new-events]"
@@ -15915,6 +15967,7 @@ msgid "result"
 msgid_plural "results"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/organizationGroupDetails/groupMerged/index.tsx:103
 msgid "Unmerging events…"
@@ -16155,6 +16208,7 @@ msgid "event"
 msgid_plural "events"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/organizationGroupDetails/sampleEventAlert.tsx:37
 msgid ""
@@ -17479,6 +17533,7 @@ msgid "%s Transaction"
 msgid_plural "%s Transactions"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/performance/traceDetails/content.tsx:222
 #, python-format
@@ -17486,6 +17541,7 @@ msgid "%s Error"
 msgid_plural "%s Errors"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/performance/traceDetails/content.tsx:224
 #, python-format
@@ -17493,6 +17549,7 @@ msgid "Across %s project"
 msgid_plural "Across %s projects"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/performance/traceDetails/content.tsx:232
 msgid "Total Duration"
@@ -17587,6 +17644,7 @@ msgid " (%s event)"
 msgid_plural " (%s events)"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/performance/transactionDetails/quickTraceMeta.tsx:152
 msgid "Trace Navigator"
@@ -17616,6 +17674,7 @@ msgid "Starred for Team"
 msgid_plural "Starred for Teams"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/performance/transactionSummary/teamKeyTransactionButton.tsx:32
 msgid "Star for Team"
@@ -17929,6 +17988,7 @@ msgid "%s event"
 msgid_plural "%s events"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/performance/transactionSummary/transactionSpans/spanTable.tsx:168
 msgid "Timestamp"
@@ -18275,6 +18335,7 @@ msgid "Show %s collapsed team"
 msgid_plural "Show %s collapsed teams"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/projectDetail/projectTeamAccess.tsx:71
 msgid "Team Access"
@@ -18504,6 +18565,7 @@ msgid "%s file changed"
 msgid_plural "%s files changed"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/releases/detail/commitsAndFiles/filesChanged.tsx:42
 #, python-format
@@ -18550,6 +18612,7 @@ msgid_plural ""
 "projects:"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/releases/detail/header/releaseActions.tsx:180
 #: static/app/views/releases/detail/header/releaseActions.tsx:182
@@ -18567,6 +18630,7 @@ msgid_plural ""
 "projects:"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/releases/detail/header/releaseActions.tsx:88
 #, python-format
@@ -18574,6 +18638,7 @@ msgid "%s other project"
 msgid_plural "%s other projects"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/releases/detail/header/releaseHeader.tsx:62
 msgid "Files Changed"
@@ -18686,6 +18751,7 @@ msgid "Hide %s Other"
 msgid_plural "Hide %s Others"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/releases/detail/overview/releaseComparisonChart/index.tsx:997
 #, python-format
@@ -18693,6 +18759,7 @@ msgid "Show %s Other"
 msgid_plural "Show %s Others"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/releases/detail/overview/releaseComparisonChart/releaseComparisonChartRow.tsx:98
 msgid "Toggle chart group"
@@ -18750,6 +18817,7 @@ msgid "%s commit"
 msgid_plural "%s commits"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/releases/detail/overview/sidebar/commitAuthorBreakdown.tsx:86
 msgid "Commit Author Breakdown"
@@ -18761,12 +18829,14 @@ msgid "Show %s collapsed author"
 msgid_plural "Show %s collapsed authors"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/releases/detail/overview/sidebar/otherProjects.tsx:23
 msgid "Other Project for This Release"
 msgid_plural "Other Projects for This Release"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/releases/detail/overview/sidebar/otherProjects.tsx:32
 #, python-format
@@ -18774,6 +18844,7 @@ msgid "Show %s collapsed project"
 msgid_plural "Show %s collapsed projects"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/releases/detail/overview/sidebar/projectReleaseDetails.tsx:25
 msgid "Project Release Details"
@@ -18796,6 +18867,7 @@ msgid "artifact"
 msgid_plural "artifacts"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/releases/detail/overview/sidebar/releaseAdoption.tsx:235
 #: static/app/views/releases/list/releaseCard/index.tsx:142
@@ -19007,6 +19079,7 @@ msgid "and %s more"
 msgid_plural "and %s more"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/releases/list/releaseCard/index.tsx:140
 msgid "Project Name"
@@ -19048,12 +19121,14 @@ msgid "%s author"
 msgid_plural "%s authors"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/releases/list/releaseCard/releaseCardProjectRow.tsx:141
 msgid "session"
 msgid_plural "sessions"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/releases/list/releaseCard/releaseCardStatsPeriod.tsx:44
 msgid "14d"
@@ -19069,6 +19144,7 @@ msgid "%s Other"
 msgid_plural "%s Others"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/releases/list/releasesAdoptionChart.tsx:280
 msgid "Total [display]"
@@ -21502,6 +21578,7 @@ msgid "%s Member"
 msgid_plural "%s Members"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/settings/organizationTeams/allTeamsRow.tsx:185
 msgid "Leave Team"
@@ -22222,6 +22299,7 @@ msgid "%s error "
 msgid_plural "%s errors "
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/settings/project/projectKeys/details/keyRateLimitsForm.tsx:159
 msgid "no time window"
@@ -22567,6 +22645,7 @@ msgid "Click here to trigger processing for %s pending event"
 msgid_plural "Click here to trigger processing for %s pending events"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/settings/project/projectProcessingIssues.tsx:336
 msgid "Pro Tip"
@@ -23100,6 +23179,7 @@ msgid "%s build pending"
 msgid_plural "%s builds pending"
 msgstr[0] ""
 msgstr[1] ""
+msgstr[2] ""
 
 #: static/app/views/settings/projectDebugFiles/sources/customRepositories/utils.tsx:18
 msgid "aws amazon s3 bucket"

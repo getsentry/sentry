@@ -75,7 +75,7 @@ push-transifex: merge-locale-catalogs install-transifex
 	tx push -s
 
 pull-transifex: install-transifex
-	tx pull -a
+	tx pull -a -t
 
 # Update transifex with new strings that need to be translated
 update-transifex: push-transifex

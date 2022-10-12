@@ -14,14 +14,15 @@
 # Masahiko Asai, 2019
 # Sakito Matsuyama <ponto.matsuyama@gmail.com>, 2015
 # shirou - しろう <shirou.faw@gmail.com>, 2012-2013,2016-2017
+# はらたく, 2022
 # shirou - しろう <shirou.faw@gmail.com>, 2013-2016
 msgid ""
 msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-01-04 21:26+0000\n"
-"PO-Revision-Date: 2022-01-04 21:44+0000\n"
-"Last-Translator: shirou - しろう <shirou.faw@gmail.com>\n"
+"PO-Revision-Date: 2012-02-17 23:48+0000\n"
+"Last-Translator: はらたく, 2022\n"
 "Language-Team: Japanese (http://www.transifex.com/getsentry/sentry/language/ja/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -75,7 +76,7 @@ msgstr "あなたの組織ではSSOが有効になっていません。"
 
 #: api/endpoints/organization_code_mappings.py:19
 msgid "Path may not contain spaces or quotations"
-msgstr ""
+msgstr "パスにはスペースや引用符を含めないでください"
 
 #: api/endpoints/organization_request_project_creation.py:31
 #, python-format
@@ -111,12 +112,12 @@ msgstr "最後の呼び出しを最初に表示"
 #: api/endpoints/user_details.py:58
 #: static/app/data/forms/accountPreferences.tsx:26
 msgid "Light"
-msgstr ""
+msgstr "ライト"
 
 #: api/endpoints/user_details.py:59
 #: static/app/data/forms/accountPreferences.tsx:27
 msgid "Dark"
-msgstr ""
+msgstr "ダーク"
 
 #: api/endpoints/user_details.py:60
 #: static/app/data/forms/accountPreferences.tsx:28
@@ -796,7 +797,7 @@ msgstr ""
 
 #: integrations/aws_lambda/integration.py:307
 msgid "Unknown error"
-msgstr ""
+msgstr "不明なエラー"
 
 #: integrations/aws_lambda/integration.py:397
 #: static/app/views/settings/organizationDeveloperSettings/sentryApplicationDetails.tsx:196
@@ -1307,7 +1308,7 @@ msgstr ""
 
 #: integrations/vsts/issues.py:144
 msgid "Bug"
-msgstr ""
+msgstr "バグ"
 
 #: interfaces/http.py:170
 msgid "Request"
@@ -1426,7 +1427,7 @@ msgstr ""
 #: static/app/views/settings/components/forms/projectMapperField.tsx:140
 #: static/app/views/settings/components/forms/projectMapperField.tsx:154
 msgid "Deleted"
-msgstr ""
+msgstr "削除された"
 
 #: models/grouphistory.py:143
 msgid "Deleted and Discarded"
@@ -1496,7 +1497,7 @@ msgstr "削除は進行中です"
 
 #: models/release.py:398
 msgid "Open"
-msgstr ""
+msgstr "開く"
 
 #: models/release.py:399
 #: static/app/views/releases/list/releasesStatusOptions.tsx:14
@@ -1856,7 +1857,7 @@ msgstr "Identityの確認"
 #: templates/sentry/organization-login.html:54
 #: templates/sentry/organization-login.html:88
 msgid "Sign In"
-msgstr ""
+msgstr "ログイン"
 
 #: templates/sentry/auth-link-identity.html:7
 msgid "Link Identity"
@@ -3208,7 +3209,7 @@ msgstr "次の設定を [configFile:sentry.conf.py] に追加して、\n        
 
 #: static/app/components/acl/featureDisabled.tsx:128
 msgid "Copy to Clipboard"
-msgstr ""
+msgstr "クリップボードにコピー"
 
 #: static/app/components/acl/featureDisabled.tsx:15
 #, python-format
@@ -4266,7 +4267,7 @@ msgstr ""
 
 #: static/app/components/clipboard.tsx:34
 msgid "Copied to clipboard"
-msgstr ""
+msgstr "クリップボードにコピーしました"
 
 #: static/app/components/clipboard.tsx:35
 msgid "Error copying to clipboard"
@@ -4615,7 +4616,7 @@ msgstr ""
 
 #: static/app/components/demo/demoHeader.tsx:74
 msgid "Sign Up"
-msgstr ""
+msgstr "サインアップ"
 
 #: static/app/components/deployBadge.tsx:25
 msgid "Open In Issues"
@@ -5602,7 +5603,7 @@ msgstr ""
 #: static/app/components/events/eventTagsAndScreenshot/screenshot/modal.tsx:44
 #: static/app/components/events/eventTagsAndScreenshot/screenshot/modal.tsx:69
 msgid "Screenshot"
-msgstr ""
+msgstr "スクリーンショット"
 
 #: static/app/components/events/eventTagsAndScreenshot/screenshot/index.tsx:125
 msgid "Screenshot help identify what the user saw when the event happened"

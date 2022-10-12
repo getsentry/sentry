@@ -4,14 +4,14 @@
 # 
 # Translators:
 # Alann Maulana, 2021
-# Chocobo <heagan866@gmail.com>, 2021
+# Chocobo <heagan866@gmail.com>, 2021-2022
 msgid ""
 msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-01-04 21:26+0000\n"
-"PO-Revision-Date: 2022-01-04 21:39+0000\n"
-"Last-Translator: Billy Vong <billy@sentry.io>\n"
+"PO-Revision-Date: 2012-02-17 23:48+0000\n"
+"Last-Translator: Chocobo <heagan866@gmail.com>, 2021-2022\n"
 "Language-Team: Indonesian (http://www.transifex.com/getsentry/sentry/language/id/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -65,12 +65,12 @@ msgstr "Fitur SSO tidak diaktifkan untuk organisasi ini."
 
 #: api/endpoints/organization_code_mappings.py:19
 msgid "Path may not contain spaces or quotations"
-msgstr ""
+msgstr "Jalur tidak boleh ada spasi atau kutipan"
 
 #: api/endpoints/organization_request_project_creation.py:31
 #, python-format
 msgid "%s thinks Sentry can help monitor your mobile app"
-msgstr ""
+msgstr "%s Berpikir bahwa Sentry bisa membantu anda memantau aplikasi seluler anda"
 
 #: api/endpoints/organization_teams.py:45
 #: api/endpoints/sentry_app_installations.py:20
@@ -101,12 +101,12 @@ msgstr "Panggilan terakhir diawal"
 #: api/endpoints/user_details.py:58
 #: static/app/data/forms/accountPreferences.tsx:26
 msgid "Light"
-msgstr ""
+msgstr "Terang"
 
 #: api/endpoints/user_details.py:59
 #: static/app/data/forms/accountPreferences.tsx:27
 msgid "Dark"
-msgstr ""
+msgstr "Gelap"
 
 #: api/endpoints/user_details.py:60
 #: static/app/data/forms/accountPreferences.tsx:28
@@ -214,7 +214,7 @@ msgid ""
 "An authenticator application that supports TOTP (like Google Authenticator "
 "or 1Password) can be used to access your account securely using a token and "
 "secret key. A new token is generated every 30 seconds."
-msgstr ""
+msgstr "Sebuah aplikasi pengautentikasi yang mensupport TOTP (seperti Google Authenticaor atau 1Password) bisa digunakan untuk mengakses akun anda dengan aman dengan menggunakan sebuah token, dan kunci rahasia. Token baru digenerasi setiap 30 detik."
 
 #: auth/authenticators/totp.py:20
 msgid ""
@@ -222,7 +222,7 @@ msgid ""
 " a new device or application, or to update your secret key, click "
 "\"Confirm\" below. By clicking \"Confirm\", your existing secret key will be"
 " replaced and will no longer work to access your account."
-msgstr ""
+msgstr "Akun anda sekarang sudah terhubung dengan aplikasi authenticator. Untuk menghubungkan ke perangkat aplikasi atau perangkat baru, atau untuk mengupdate kunci rahasia anda, klik \"Confirm\" dibawah. Dengan mengklik \"Confirm\", token rahasia yang sudah ada akan diganti dan tidak akan bisa bekerja di akun anda lagi."
 
 #: auth/authenticators/u2f.py:42
 #: static/app/views/organizationIntegrations/installedIntegration.tsx:152
@@ -395,7 +395,7 @@ msgstr "SAML SSO gagal, {reason}"
 msgid ""
 "Failed to map SAML attributes. Assertion returned the following attribute "
 "keys: {error_msg_keys}"
-msgstr ""
+msgstr "Gagal untuk memetakan atribut SAML. Penonjolan mengembalikkan kunci-kunci atribut ini: {error_msg_keys}"
 
 #: auth/providers/saml2/rippling/templates/sentry_auth_rippling/select-idp.html:8
 #: auth/providers/saml2/rippling/templates/sentry_auth_rippling/select-idp.html:11
@@ -782,17 +782,17 @@ msgstr "Instalasi"
 
 #: integrations/aws_lambda/integration.py:297
 msgid "Please validate the Cloudformation stack was created successfully"
-msgstr ""
+msgstr "Tolong validasi bahwa tumpukan Cloudformation sudah dibuat secara sukses."
 
 #: integrations/aws_lambda/integration.py:307
 msgid "Unknown error"
-msgstr ""
+msgstr "Error yang tidak diketahui"
 
 #: integrations/aws_lambda/integration.py:397
 #: static/app/views/settings/organizationDeveloperSettings/sentryApplicationDetails.tsx:196
 #: static/app/views/settings/project/projectProcessingIssues.tsx:268
 msgid "Unknown Error"
-msgstr ""
+msgstr "Error yang tidak diketahui"
 
 #: integrations/bitbucket_server/integration.py:76
 msgid "Bitbucket URL"
@@ -850,13 +850,13 @@ msgstr "Bitbucket Consumer Private Key"
 #: static/app/views/settings/projectPlugins/details.tsx:201
 #: web/forms/accounts.py:154 web/frontend/error_page_embed.py:27
 msgid "Name"
-msgstr ""
+msgstr "Nama"
 
 #: integrations/custom_scm/integration.py:92
 msgid ""
 "The name for your integration.<br>If you are using GitHub, use the "
 "organization name."
-msgstr ""
+msgstr "Nama dari integrasi anda. <br> Kalau anda menggunakan GitHub, gunakanlah nama organisasi."
 
 #: integrations/custom_scm/integration.py:98
 #: static/app/views/settings/project/projectOwnership/ruleBuilder.tsx:142
@@ -865,7 +865,7 @@ msgstr ""
 #: static/app/views/settings/projectPlugins/details.tsx:207
 #: templates/sentry/partial/interfaces/http_email.html:9
 msgid "URL"
-msgstr ""
+msgstr "URL"
 
 #: integrations/custom_scm/integration.py:100
 msgid ""

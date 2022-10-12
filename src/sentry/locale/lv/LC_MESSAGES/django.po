@@ -4,7 +4,7 @@
 # 
 # Translators:
 # aabele <aabele@gmail.com>, 2013
-# NullIsNot0 <nullisnot0@inbox.lv>, 2018,2021
+# Edgars Voroboks <edgars.voroboks@gmail.com>, 2018,2021
 # a9fcf6d60f1c231adc3cc005872d518c_48a7436 <b1c1c2ecbabe95c6df9e7ce9a35283ed_701512>, 2018
 # Vigo Krūmiņš <v.krumins@knot.lv>, 2013
 msgid ""
@@ -12,8 +12,8 @@ msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-01-04 21:26+0000\n"
-"PO-Revision-Date: 2022-01-04 21:44+0000\n"
-"Last-Translator: aabele <aabele@gmail.com>\n"
+"PO-Revision-Date: 2012-02-17 23:48+0000\n"
+"Last-Translator: Edgars Voroboks <edgars.voroboks@gmail.com>, 2018,2021\n"
 "Language-Team: Latvian (http://www.transifex.com/getsentry/sentry/language/lv/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"

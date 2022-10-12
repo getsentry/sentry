@@ -13,6 +13,7 @@
 # Bob <bob.chen.cs@gmail.com>, 2021
 # bukas y <yhz1219@gmail.com>, 2017
 # caimaoy C <caimaoy@gmail.com>, 2018
+# Cecelia Lu <cc2victoria@gmail.com>, 2022
 # chenjau <chenjau@gmail.com>, 2018
 # Chinsyo <619549705@qq.com>, 2020
 # Ji.K <chinajik@gmail.com>, 2015
@@ -22,9 +23,11 @@
 # Hanai, 2014
 # bigpear0201 <bigpear0201@gmail.com>, 2015
 # HAO CHEN <mrhaoji@gmail.com>, 2020
+# hx Tang, 2022
 # caizixian, 2014-2017
 # Jialin GAN <stevegan17@icloud.com>, 2021
 # Ji.K <chinajik@gmail.com>, 2015
+# JinCeon gao, 2022
 # Joey Jiao <joey.jiaojg@gmail.com>, 2014
 # John Joanna <mbcc2006@gmail.com>, 2019-2020
 # Kane Blueriver, 2015,2017
@@ -38,7 +41,7 @@
 # liang xu <xuliag701@163.com>, 2016
 # linzebin <443189390@qq.com>, 2018
 # Aosp T, 2017
-# myonlylonely, 2019
+# myonlylonely, 2019,2022
 # Marsprobe, 2014
 # Marsprobe, 2014
 # Mengxi Duan <mengxidu0111@gmail.com>, 2015
@@ -48,6 +51,7 @@
 # San <github@zhujunsan.net>, 2015-2016
 # Shuning Hong <>, 2012
 # Sky Slahser <skyslahser@gmail.com>, 2017
+# StoneMoe, 2022
 # tommao <istommao@gmail.com>, 2015
 # Voo Deng <voodeng@gmail.com>, 2018
 # Wang Xuerui <idontknw.wang+transifex@gmail.com>, 2014
@@ -61,13 +65,15 @@
 # 文瑞 徐 <WenryXu@outlook.com>, 2015
 # 艺 段 <yiduan@tencent.com>, 2019
 # 菘菘 <rrt467778@gmail.com>, 2021
+# 铸 杨, 2022
+# 颜 伯, 2022
 msgid ""
 msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-01-04 21:26+0000\n"
-"PO-Revision-Date: 2022-01-04 21:44+0000\n"
-"Last-Translator: caizixian\n"
+"PO-Revision-Date: 2012-02-17 23:48+0000\n"
+"Last-Translator: StoneMoe, 2022\n"
 "Language-Team: Chinese (China) (http://www.transifex.com/getsentry/sentry/language/zh_CN/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -121,12 +127,12 @@ msgstr "该组织未启用 SSO 登录功能。"
 
 #: api/endpoints/organization_code_mappings.py:19
 msgid "Path may not contain spaces or quotations"
-msgstr ""
+msgstr "路径不能包含空格或引号"
 
 #: api/endpoints/organization_request_project_creation.py:31
 #, python-format
 msgid "%s thinks Sentry can help monitor your mobile app"
-msgstr ""
+msgstr "%s认为 Sentry 可以帮助监控你的移动端 App"
 
 #: api/endpoints/organization_teams.py:45
 #: api/endpoints/sentry_app_installations.py:20
@@ -137,7 +143,7 @@ msgstr "输入由小写字母，数字，下划线\"_\"或连字符\"-\"组成�
 
 #: api/endpoints/project_codeowners_request.py:18
 msgid "A team member is asking to set up Sentry's Code Owners"
-msgstr ""
+msgstr "一个团队成员正请求设置 Sentry 的代码所有者"
 
 #: api/endpoints/user_details.py:48
 #: static/app/data/forms/accountPreferences.tsx:57
@@ -157,17 +163,17 @@ msgstr "最近的调用最先显示"
 #: api/endpoints/user_details.py:58
 #: static/app/data/forms/accountPreferences.tsx:26
 msgid "Light"
-msgstr ""
+msgstr "亮"
 
 #: api/endpoints/user_details.py:59
 #: static/app/data/forms/accountPreferences.tsx:27
 msgid "Dark"
-msgstr ""
+msgstr "暗"
 
 #: api/endpoints/user_details.py:60
 #: static/app/data/forms/accountPreferences.tsx:28
 msgid "Default to system"
-msgstr ""
+msgstr "系统默认"
 
 #: api/serializers/rest_framework/json.py:13
 msgid "Value must be valid JSON."
@@ -270,7 +276,7 @@ msgid ""
 "An authenticator application that supports TOTP (like Google Authenticator "
 "or 1Password) can be used to access your account securely using a token and "
 "secret key. A new token is generated every 30 seconds."
-msgstr ""
+msgstr "一个支持 TOTP 的验证器应用（如 Google Authenticator 或 1Password）可用于使用令牌和密钥安全地访问您的帐户。每 30 秒生成一个新令牌。"
 
 #: auth/authenticators/totp.py:20
 msgid ""
@@ -278,7 +284,7 @@ msgid ""
 " a new device or application, or to update your secret key, click "
 "\"Confirm\" below. By clicking \"Confirm\", your existing secret key will be"
 " replaced and will no longer work to access your account."
-msgstr ""
+msgstr "你的帐号已经设置了多步认证。如需链接到新设备，或需更新密钥，请点击 \"确认\" 按钮。如果点击确认，您现有的密钥将被重置，且不能访问当前帐号。"
 
 #: auth/authenticators/u2f.py:42
 #: static/app/views/organizationIntegrations/installedIntegration.tsx:152
@@ -451,7 +457,7 @@ msgstr "单点登录SAML SSO失败，{reason}"
 msgid ""
 "Failed to map SAML attributes. Assertion returned the following attribute "
 "keys: {error_msg_keys}"
-msgstr ""
+msgstr "映射 SAML 属性失败。请确保 SAML 服务返回了以下属性键：{error_msg_keys}"
 
 #: auth/providers/saml2/rippling/templates/sentry_auth_rippling/select-idp.html:8
 #: auth/providers/saml2/rippling/templates/sentry_auth_rippling/select-idp.html:11
@@ -838,11 +844,11 @@ msgstr "安装"
 
 #: integrations/aws_lambda/integration.py:297
 msgid "Please validate the Cloudformation stack was created successfully"
-msgstr ""
+msgstr "请确认 Cloudformation 中 stack 已成功创建"
 
 #: integrations/aws_lambda/integration.py:307
 msgid "Unknown error"
-msgstr ""
+msgstr "未知错误"
 
 #: integrations/aws_lambda/integration.py:397
 #: static/app/views/settings/organizationDeveloperSettings/sentryApplicationDetails.tsx:196
@@ -912,7 +918,7 @@ msgstr "姓名"
 msgid ""
 "The name for your integration.<br>If you are using GitHub, use the "
 "organization name."
-msgstr ""
+msgstr "您的集成名称。如果您正使用 GitHub，请使用组织名称。"
 
 #: integrations/custom_scm/integration.py:98
 #: static/app/views/settings/project/projectOwnership/ruleBuilder.tsx:142
@@ -927,15 +933,15 @@ msgstr "URL"
 msgid ""
 "The base URL for your instance, including the host and protocol. <br>If "
 "using github.com, enter https://github.com/"
-msgstr ""
+msgstr "您实例的基础 URL，包括主机名和协议。<br>如使用 github.com，输入 https://github.com/。"
 
 #: integrations/github/integration.py:286
 msgid "GitHub installation pending deletion."
-msgstr ""
+msgstr "Github 安装将被删除"
 
 #: integrations/github/integration.py:309
 msgid "Github installed on another Sentry organization."
-msgstr ""
+msgstr "Github 已安装在另一个 Sentry 组织中。"
 
 #: integrations/github_enterprise/integration.py:156
 msgid ""
@@ -1111,17 +1117,17 @@ msgstr "同步 Jira 任务至 Sentry"
 msgid ""
 "When a ticket is assigned in Jira, assign its linked Sentry issue to the "
 "same user."
-msgstr ""
+msgstr "当一个工单在 Jira 中被指派时，指派其在 Sentry 中关联的问题给同一用户。"
 
 #: integrations/jira/integration.py:187
 msgid "e.g. \"components, security, customfield_10006\""
-msgstr ""
+msgstr "例如：\"components, security, customfield_10006\""
 
 #: integrations/jira/integration.py:189
 msgid ""
 "Comma-separated list of Jira fields that you don't want to show in issue "
 "creation form"
-msgstr ""
+msgstr "您不想在问题创建表单中显示的Jira字段列表"
 
 #: integrations/jira/integration.py:206
 msgid ""
@@ -1135,7 +1141,7 @@ msgstr "您的组织没有权限访问这个特性"
 
 #: integrations/jira/notify_action.py:30
 msgid "Jira integration is a required field."
-msgstr ""
+msgstr "Jira 集成是必填字段。"
 
 #: integrations/jira_server/integration.py:85
 msgid "Jira URL"
@@ -1162,32 +1168,32 @@ msgstr "Jira用户私钥（Jira Consumer Private Key）"
 
 #: integrations/msteams/integration.py:50
 msgid "Teams Marketplace"
-msgstr ""
+msgstr "团队市场"
 
 #: integrations/msteams/notify_action.py:44
 #, python-format
 msgid ""
 "The channel or user \"%(channel)s\" could not be found in the %(team)s Team."
-msgstr ""
+msgstr "在 %(team)s 团队中找不到频道或用户“%(channel)s”。"
 
 #: integrations/pagerduty/notify_action.py:27
 #, python-brace-format
 msgid "Invalid {field}"
-msgstr ""
+msgstr "无效的 {field}"
 
 #: integrations/pagerduty/notify_action.py:61
 #, python-format
 msgid ""
 "The service \"%(service)s\" does not exist in the %(account)s Pagerduty "
 "account."
-msgstr ""
+msgstr "Pagerduty 帐户 “%(account)s” 中不存在服务 “%(service)s”"
 
 #: integrations/pagerduty/notify_action.py:71
 #, python-format
 msgid ""
 "The service \"%(service)s\" has not been granted access in the %(account)s "
 "Pagerduty account."
-msgstr ""
+msgstr "服务%(service)s不存在，或在%(account)s Pageduty 账号中未被允许访问"
 
 #: integrations/pipeline.py:156
 #, python-format
@@ -1203,67 +1209,67 @@ msgstr "工作区"
 
 #: integrations/slack/notify_action.py:73
 msgid "Slack channel name is a required field."
-msgstr ""
+msgstr "Slack 频道名称是必填字段。"
 
 #: integrations/slack/notify_action.py:105
 msgid "Slack workspace is a required field."
-msgstr ""
+msgstr "Slack 工作空间是必填字段。"
 
 #: integrations/slack/notify_action.py:129
 #, python-format
 msgid ""
 "Multiple users were found with display name \"%(channel)s\". Please use your"
 " username, found at %(domain)s/account/settings#username."
-msgstr ""
+msgstr "发现多个用户显示名称为 “%(channel)s”。请使用您在 %(domain)s/account/settings 中的用户名。"
 
 #: integrations/slack/notify_action.py:150
 #, python-format
 msgid ""
 "The slack resource \"%(channel)s\" does not exist or has not been granted "
 "access in the %(workspace)s Slack workspace."
-msgstr ""
+msgstr "Slack 资源 “%(channel)s” 不存在或未在 Slack 工作空间 %(workspace)s 中授权"
 
 #: integrations/vercel/integration.py:37
 msgid ""
 "\n"
 "Vercel is an all-in-one platform with Global CDN supporting static & JAMstack deployment and Serverless Functions.\n"
-msgstr ""
+msgstr "\nVercel 是一个多合一平台，提供有依托于全球 CDN 的静态和 JAMstack 部署，以及 Serverless 函数服务。\n"
 
 #: integrations/vercel/integration.py:52
 msgid ""
 "Visit the Vercel Marketplace to install this integration. After installing "
 "the Sentry integration, you'll be redirected back to Sentry to finish "
 "syncing Vercel and Sentry projects."
-msgstr ""
+msgstr "访问 Vercel 市场以安装此集成。安装 Sentry 集成后，您将被重定向回 Sentry 以完成 Vercel 和 Sentry 项目的同步。"
 
 #: integrations/vercel/integration.py:59
 msgid "Vercel Marketplace"
-msgstr ""
+msgstr "Vercel 市场"
 
 #: integrations/vercel/integration.py:64
 msgid "Connect Your Projects"
-msgstr ""
+msgstr "连接你的项目"
 
 #: integrations/vercel/integration.py:65
 msgid "Don't have a project yet? Click [here]({}) to create one."
-msgstr ""
+msgstr "还没有创建项目？点此创建！ [here]({}) "
 
 #: integrations/vercel/integration.py:67
 msgid ""
 "Install a [source code integration]({}) and configure your repositories."
-msgstr ""
+msgstr "安装 [代码集成]({}) 并配置您的存储库。"
 
 #: integrations/vercel/integration.py:172
 msgid "Vercel project..."
-msgstr ""
+msgstr "Vercel 项目..."
 
 #: integrations/vercel/integration.py:178
 msgid "Link your Sentry projects to complete your installation on Vercel"
-msgstr ""
+msgstr "连接你的Sentry项目以完成Vercel的安装"
 
 #: integrations/vercel/integration.py:180
 msgid "Complete on Vercel"
-msgstr ""
+msgstr "Vercel完成"
 
 #: integrations/vsts/integration.py:203
 msgid "Sync Sentry Status to Azure DevOps"
@@ -1273,7 +1279,7 @@ msgstr "同步Sentry状态到Azure DevOps"
 msgid ""
 "When a Sentry issue changes status, change the status of the linked work "
 "item in Azure DevOps."
-msgstr ""
+msgstr "当Sentry的问题状态变化时同步到Azure Devops的工作项中。"
 
 #: integrations/vsts/integration.py:207
 msgid "Add Azure DevOps Project"
@@ -1295,7 +1301,7 @@ msgstr "同步 Sentry 任务至 Azure DevOps"
 msgid ""
 "When an issue is assigned in Sentry, assign its linked Azure DevOps work "
 "item to the same user."
-msgstr ""
+msgstr "在 Sentry中分配问题时，将其链接的 Azure DevOps 工作项分配给同一用户。"
 
 #: integrations/vsts/integration.py:235
 msgid "Sync Sentry Comments to Azure DevOps"
@@ -1349,11 +1355,11 @@ msgstr "我的项目"
 
 #: integrations/vsts/issues.py:143
 msgid "Work Item Type"
-msgstr ""
+msgstr "工作项类型"
 
 #: integrations/vsts/issues.py:144
 msgid "Bug"
-msgstr ""
+msgstr "Bug"
 
 #: interfaces/http.py:170
 msgid "Request"
@@ -1444,17 +1450,17 @@ msgstr "锁定（Migration中）"
 
 #: models/grouphistory.py:136
 msgid "Automatically Resolved"
-msgstr ""
+msgstr "自动解决"
 
 #: models/grouphistory.py:138
 #: static/app/components/group/inboxBadges/inboxReason.tsx:102
 msgid "Unignored"
-msgstr ""
+msgstr "忽略"
 
 #: models/grouphistory.py:139
 #: static/app/views/releases/detail/overview/releaseIssues.tsx:373
 msgid "Regressed"
-msgstr ""
+msgstr "回归"
 
 #: models/grouphistory.py:140 static/app/views/issueList/searchBar.tsx:39
 msgid "Assigned"
@@ -1465,36 +1471,36 @@ msgstr "已分配"
 #: static/app/utils/discover/fieldRenderers.tsx:457
 #: static/app/views/alerts/rules/teamFilter.tsx:72
 msgid "Unassigned"
-msgstr ""
+msgstr "未分配"
 
 #: models/grouphistory.py:142
 #: static/app/components/events/interfaces/debugMeta-v2/debugImageDetails/candidate/status/index.tsx:27
 #: static/app/views/settings/components/forms/projectMapperField.tsx:140
 #: static/app/views/settings/components/forms/projectMapperField.tsx:154
 msgid "Deleted"
-msgstr ""
+msgstr "删除"
 
 #: models/grouphistory.py:143
 msgid "Deleted and Discarded"
-msgstr ""
+msgstr "删除并丢弃"
 
 #: models/grouphistory.py:144
 #: static/app/views/organizationStats/teamInsights/teamIssuesReviewed.tsx:140
 #: static/app/views/organizationStats/teamInsights/teamIssuesReviewed.tsx:159
 msgid "Reviewed"
-msgstr ""
+msgstr "已审核"
 
 #: models/grouphistory.py:145
 msgid "Resolved in Release"
-msgstr ""
+msgstr "在正式版中解决"
 
 #: models/grouphistory.py:146
 msgid "Resolved in Commit"
-msgstr ""
+msgstr "在提交中解决"
 
 #: models/grouphistory.py:147
 msgid "Resolved in Pull Request"
-msgstr ""
+msgstr "在拉取请求中解决"
 
 #: models/grouplink.py:61
 msgid "Commit"
@@ -1542,12 +1548,12 @@ msgstr "删除进行中"
 
 #: models/release.py:398
 msgid "Open"
-msgstr ""
+msgstr "打开"
 
 #: models/release.py:399
 #: static/app/views/releases/list/releasesStatusOptions.tsx:14
 msgid "Archived"
-msgstr ""
+msgstr "归档"
 
 #: models/savedsearch.py:25 static/app/components/group/releaseChart.tsx:53
 #: static/app/components/stream/groupChart.tsx:54
@@ -1582,7 +1588,7 @@ msgstr "用户"
 
 #: models/savedsearch.py:27 static/app/views/issueList/utils.tsx:134
 msgid "Relative Change"
-msgstr ""
+msgstr "相对变化"
 
 #: models/savedsearch.py:28 static/app/views/issueList/utils.tsx:136
 msgid "Date Added"
@@ -1644,7 +1650,7 @@ msgstr "是Sentry应用"
 msgid ""
 "Designates whether this user is the entity used for Permissionson behalf of "
 "a Sentry App. Cannot login or use Sentry like anormal User would."
-msgstr ""
+msgstr "指定此用户是否为代表 Sentry 应用程序用于 权限 的实体。 无法像普通用户那样登录或使用 Sentry。"
 
 #: models/user.py:159
 msgid "password expired"
@@ -1887,7 +1893,7 @@ msgstr "密码丢失？"
 
 #: templates/sentry/auth-confirm-account.html:7
 msgid "Confirm Account"
-msgstr ""
+msgstr "确认帐号"
 
 #: templates/sentry/auth-confirm-identity.html:7
 #: templates/sentry/auth-confirm-link.html:7
@@ -1902,7 +1908,7 @@ msgstr "验证身份"
 #: templates/sentry/organization-login.html:54
 #: templates/sentry/organization-login.html:88
 msgid "Sign In"
-msgstr ""
+msgstr "登陆"
 
 #: templates/sentry/auth-link-identity.html:7
 msgid "Link Identity"
@@ -1911,7 +1917,7 @@ msgstr "连接身份"
 #: templates/sentry/auth-unlink-identity.html:7
 #: templates/sentry/integrations/msteams/unlink-identity.html:7
 msgid "Unlink Identity"
-msgstr ""
+msgstr "取消身份连接"
 
 #: static/app/components/narrowLayout.tsx:42
 #: static/app/components/sidebar/sidebarDropdown/index.tsx:174
@@ -1922,12 +1928,12 @@ msgstr "退出"
 
 #: templates/sentry/emails/requests/codeowners.html:8
 msgid "Request to Set Up Code Owners"
-msgstr ""
+msgstr "请求设置代码所有者"
 
 #: templates/sentry/emails/requests/codeowners.html:11
 #, python-format
 msgid "Hey %(recipient_name)s,"
-msgstr ""
+msgstr "Hey %(recipient_name)s,"
 
 #: templates/sentry/emails/requests/codeowners.html:14
 #, python-format
@@ -1935,32 +1941,32 @@ msgid ""
 "\n"
 "  Heads up, <strong>%(requester_name)s</strong> requested to set up <a href=\"https://docs.sentry.io/product/issues/issue-owners/#code-owners\">Code Owners</a> for the <strong>%(project_name)s</strong> project in <strong>%(organization_name)s</strong>. They <i>did</i> ask nicely, if that helps.\n"
 "  "
-msgstr ""
+msgstr "\n  注意，<strong>%(requester_name)s</strong> 请求为 <strong>%(organization_name)s</strong> 中的项目 <strong>%(project_name)s</strong> 设置<a href=\"https://docs.sentry.io/product/issues/issue-owners/#code-owners\">代码所有者</a>。另外，TA <i>确实</i>很礼貌的在请求这件事儿了。\n  "
 
 #: templates/sentry/emails/requests/codeowners.html:20
 msgid "Set Up Code Owners Now"
-msgstr ""
+msgstr "设置为代码所有者"
 
 #: templates/sentry/emails/requests/codeowners.html:24
 msgid "To Better Software,"
-msgstr ""
+msgstr "为了更好的软件，"
 
 #: templates/sentry/emails/requests/codeowners.html:26
 #: templates/sentry/emails/requests/organization-project.html:52
 msgid "The Sentry Team"
-msgstr ""
+msgstr "Sentry开发团队"
 
 #: templates/sentry/emails/requests/codeowners.html:30
 msgid ""
 "You are receiving this email because you're listed as an organization Admin,"
 " Manager or Owner."
-msgstr ""
+msgstr "您收到这封电子邮件是因为您被列为组织管理员或所有者。"
 
 #: templates/sentry/emails/requests/organization-project.html:6
 msgid ""
 "Fancy seeing you here. In your own inbox. In this email, we’ve addressed "
 "specifically to you."
-msgstr ""
+msgstr "很高兴认识你"
 
 #: templates/sentry/emails/requests/organization-project.html:9
 #, python-format
@@ -1968,56 +1974,56 @@ msgid ""
 "\n"
 "  %(requester_name)s told us you’d be interested in Sentry App Monitoring for Mobile.\n"
 "  "
-msgstr ""
+msgstr "\n%(requester_name)s 请告诉我们您对Sentry的移动应用监控感兴趣"
 
 #: templates/sentry/emails/requests/organization-project.html:14
 msgid ""
 "\n"
 "  Why? Well, because Sentry for Mobile shows a holistic overview of your application's health in real-time. So you can correlate errors with releases, tags, and devices to solve problems quickly, decrease churn, and improve user retention.\n"
 "  "
-msgstr ""
+msgstr "\n  为什么？好吧，因为移动端的 Sentry 实时显示你的应用程序运行状况的整体概览。所以你可以将错误与发行版本、标签和设备关联起来以快速解决问题，减少客户流失，并提高客户留存。\n  "
 
 #: templates/sentry/emails/requests/organization-project.html:20
 msgid ""
 "\n"
 "    <strong>See</strong> session data, version adoption, and user impact by every release.\n"
 "    "
-msgstr ""
+msgstr "\n    <strong>查看</strong>每个版本的会话数据、版本使用情况和对用户的影响。\n    "
 
 #: templates/sentry/emails/requests/organization-project.html:25
 msgid ""
 "\n"
 "    <strong>Solve</strong> issues quickly with full context: contextualized stack traces, events that lead to the error, client, hardware information and the very commit that introduced the error.\n"
 "    "
-msgstr ""
+msgstr "\n    带着完整的上下文快速的<strong>解决</strong> 问题：上下文化的堆栈跟踪信息，导致了错误的那些事件，客户端，硬件信息和引入错误的具体 commit。\n    "
 
 #: templates/sentry/emails/requests/organization-project.html:30
 msgid ""
 "\n"
 "    <strong>Learn</strong> and analyze event data to reduce regressions and ultimately improve user adoption and engagement.\n"
 "    "
-msgstr ""
+msgstr "\n    <strong>学习</strong>并分析事件数据以减少问题的回归，并最终改善用户接受度和参与度。\n    "
 
 #: templates/sentry/emails/requests/organization-project.html:36
 msgid ""
 "\n"
 "    And guess what? Set up takes less than five minutes.\n"
 "    "
-msgstr ""
+msgstr "\n    而且您猜怎么着？搭起来还不用五分钟。\n    "
 
 #: templates/sentry/emails/requests/organization-project.html:41
 msgid ""
 "\n"
 "    Sorry, but you won’t be able to use “debugging” as an excuse to get out of your second cousin’s Zoom birthday dinner.\n"
 "    "
-msgstr ""
+msgstr "\n    抱歉，但你没法儿用 “在查bug” 作为早退你二表弟生日聚会的借口。\n    "
 
 #: static/app/components/modals/suggestProjectModal.tsx:180
 #: static/app/views/organizationGroupDetails/sampleEventAlert.tsx:55
 #: static/app/views/performance/transactionDetails/finishSetupAlert.tsx:39
 #: templates/sentry/emails/requests/organization-project.html:46
 msgid "Get Started"
-msgstr ""
+msgstr "快速开始"
 
 #: templates/sentry/emails/requests/organization-project.html:49
 msgid "Mobile up,"
@@ -2029,7 +2035,7 @@ msgid ""
 " integration. If they were private channels, you'll have make sure to add "
 "the Sentry bot to these channels. Otherwise you may want update your alert "
 "rules accordingly."
-msgstr ""
+msgstr "在您的旧版 Slack 集成中发现这些渠道丢失或未经授权。 如果它们是您的私人频道，您必须确保将 Sentry 机器人添加到这些频道。 否则，您可能需要更新相应的报警规则。"
 
 #: templates/sentry/error-page-embed.html:283
 msgid "Crash reports powered by <a href=\\"
@@ -2069,11 +2075,11 @@ msgstr "提交"
 
 #: templates/sentry/integrations/custom-scm-config.html:26
 msgid "Custom SCM Setup"
-msgstr ""
+msgstr "自定义 SCM 设置"
 
 #: templates/sentry/integrations/custom-scm-config.html:29
 msgid "Custom Source Control Management Setup"
-msgstr ""
+msgstr "自定义源代码控制管理设置"
 
 #: templates/sentry/integrations/custom-scm-config.html:30
 msgid ""
@@ -2098,7 +2104,7 @@ msgstr "Github企业设置"
 #: templates/sentry/integrations/github-integration-exists-on-another-org.html:6
 #: templates/sentry/integrations/integration-pending-deletion.html:6
 msgid "GitHub Integration Setup Failed"
-msgstr ""
+msgstr "GitHub 集成设置失败"
 
 #: templates/sentry/integrations/github-integration-exists-on-another-org.html:20
 msgid ""
@@ -2193,11 +2199,11 @@ msgstr ""
 
 #: templates/sentry/integrations/jira-issue.html:54
 msgid "Events last 24 hours:"
-msgstr ""
+msgstr "最近24小时事件"
 
 #: templates/sentry/integrations/jira-issue.html:60
 msgid "Events last 14 days:"
-msgstr ""
+msgstr "最近14天事件"
 
 #: templates/sentry/integrations/jira-issue.html:75
 #: templates/sentry/integrations/jira-issue.html:104
@@ -2271,7 +2277,7 @@ msgstr ""
 
 #: templates/sentry/integrations/slack/expired-link.html:5
 msgid "Slack Expired Link"
-msgstr ""
+msgstr "Slack失效链接"
 
 #: static/app/components/events/interfaces/breadcrumbs/breadcrumb/level.tsx:25
 #: static/app/components/events/interfaces/breadcrumbs/utils.tsx:95
@@ -2282,7 +2288,7 @@ msgstr "错误"
 
 #: templates/sentry/integrations/slack/link-team.html:7
 msgid "Link Team"
-msgstr ""
+msgstr "关联团队"
 
 #: templates/sentry/integrations/slack/linked.html:5
 msgid "Slack Linked"
@@ -2297,7 +2303,7 @@ msgstr "你的Slack身份已经关联至你的Sentry账户，现在你可以通�
 #: templates/sentry/integrations/slack/reauth-details.html:10
 #: templates/sentry/integrations/slack/reauth-introduction.html:9
 msgid "Slack Migration"
-msgstr ""
+msgstr "Slack集成"
 
 #: templates/sentry/integrations/slack/reauth-details.html:44
 #: templates/sentry/integrations/slack/reauth-introduction.html:95
@@ -2423,7 +2429,7 @@ msgstr "升级集成后，具有相同工作区的所有其他组织也将升级
 
 #: templates/sentry/integrations/slack/unlink-team.html:7
 msgid "Unlink Team"
-msgstr ""
+msgstr "取消关联团队"
 
 #: templates/sentry/integrations/slack/unlinked-team.html:5
 msgid "Team Unlinked"
@@ -2435,7 +2441,7 @@ msgstr ""
 
 #: templates/sentry/integrations/slack/unlinked.html:11
 msgid "Your Slack identity has been unassociated with your Sentry account."
-msgstr ""
+msgstr "您的Slack身份已与您的Sentry账户取消关联."
 
 #: templates/sentry/integrations/vsts-config.html:9
 msgid "Azure DevOps Setup"
@@ -2482,7 +2488,7 @@ msgstr "没有组织权限"
 
 #: templates/sentry/no-organization-access.html:15
 msgid "You do not have access to any organizations within Sentry."
-msgstr ""
+msgstr "您无权访问Sentry内的任何组织"
 
 #: templates/sentry/no-organization-access.html:17
 msgid ""
@@ -2499,15 +2505,15 @@ msgstr ""
 
 #: templates/sentry/no-organization-access.html:19
 msgid "this guide"
-msgstr ""
+msgstr "这份指引"
 
 #: templates/sentry/no-organization-access.html:21
 msgid "If you need to make changes to your user account, "
-msgstr ""
+msgstr "如果您需要对您的用户账户作出变更，"
 
 #: templates/sentry/no-organization-access.html:21
 msgid "please click here."
-msgstr ""
+msgstr "请点击这里"
 
 #: templates/sentry/oauth-authorize.html:7
 msgid "Authorize Application"
@@ -2638,7 +2644,7 @@ msgstr "如需使用此插件，你的服务器管理员需要用<strong>%(auth_
 msgid ""
 "You still need to <a href=\"%(plugin_link)s\">configure this plugin</a>\n"
 "                before you can use it."
-msgstr ""
+msgstr "您需要<a href=\"%(plugin_link)s\">配置插件</a>来使用它"
 
 #: templates/sentry/plugins/site_configuration.html:5
 msgid "Changes to your configuration were saved successfully."
@@ -2826,7 +2832,7 @@ msgstr "认证码"
 
 #: web/forms/accounts.py:323
 msgid "Authenticator or recovery code"
-msgstr ""
+msgstr "认证或恢复码"
 
 #: web/forms/fields.py:49
 msgid "Invalid username"
@@ -2941,7 +2947,7 @@ msgstr "成员需要使用已有效链接 SSO 的账户来访问该组织"
 
 #: web/frontend/organization_auth_settings.py:40
 msgid "Enable SCIM"
-msgstr ""
+msgstr "启用SCIM"
 
 #: web/frontend/organization_auth_settings.py:41
 msgid "Enable SCIM to manage Memberships and Teams via your Provider"
@@ -2980,23 +2986,23 @@ msgstr "无效的确认码，请重试。"
 
 #: static/app/views/settings/projectPerformance/projectPerformance.tsx:111
 msgid "300"
-msgstr ""
+msgstr "300"
 
 #: static/app/actionCreators/dashboards.tsx:100
 msgid "Unable to update dashboard"
-msgstr ""
+msgstr "无法更新面板"
 
 #: static/app/actionCreators/dashboards.tsx:125
 msgid "Unable to delete dashboard"
-msgstr ""
+msgstr "无法删除面板"
 
 #: static/app/actionCreators/dashboards.tsx:30
 msgid "Unable to create dashboard"
-msgstr ""
+msgstr "无法创建面板"
 
 #: static/app/actionCreators/dashboards.tsx:70
 msgid "Unable to load dashboard"
-msgstr ""
+msgstr "无法加载面板"
 
 #: static/app/actionCreators/deployPreview.tsx:16
 #, python-format
@@ -3006,13 +3012,13 @@ msgstr "%s@%s"
 #: static/app/actionCreators/deployPreview.tsx:26
 msgid ""
 "You are viewing a frontend deploy preview of [commitLink] ([branchLink])"
-msgstr ""
+msgstr "您正在查看 [commitLink] ([branchLink]) 的前端部署视图"
 
 #: static/app/actionCreators/deployPreview.tsx:43
 msgid ""
 "You are developing against production Sentry API, please BE CAREFUL, as your"
 " changes will affect production data."
-msgstr ""
+msgstr "您正在使用生产Sentry API进行开发，请务必小心，因为您的改动将会影响线上数据"
 
 #: static/app/actionCreators/discoverSavedQueries.tsx:108
 msgid "Unable to delete the saved query"
@@ -3095,7 +3101,7 @@ msgstr ""
 #: static/app/views/settings/project/projectServiceHooks.tsx:77
 #: static/app/views/settings/projectPlugins/details.tsx:84
 msgid "Saving changes…"
-msgstr ""
+msgstr "正在保存更改..."
 
 #: static/app/actionCreators/plugins.tsx:112
 #: static/app/views/organizationIntegrations/installedPlugin.tsx:93
@@ -3140,7 +3146,7 @@ msgstr "一个请求已经被发送用于转移项目 [project] 到另一个组�
 
 #: static/app/actionCreators/projects.tsx:191
 msgid "Error transferring [project]. [message]"
-msgstr ""
+msgstr "出现传输错误 [project]. [message]"
 
 #: static/app/actionCreators/projects.tsx:198
 msgid "Error transferring [project]"
@@ -3164,27 +3170,27 @@ msgstr "未能从 [project] 项目中移除 [team]"
 
 #: static/app/actionCreators/release.tsx:107
 msgid "Release was successfully archived."
-msgstr ""
+msgstr "发布版本已成功归档"
 
 #: static/app/actionCreators/release.tsx:112
 msgid "Release could not be be archived."
-msgstr ""
+msgstr "发布版本无法归档"
 
 #: static/app/actionCreators/release.tsx:122
 msgid "Restoring Release…"
-msgstr ""
+msgstr "正在恢复发布版本..."
 
 #: static/app/actionCreators/release.tsx:135
 msgid "Release was successfully restored."
-msgstr ""
+msgstr "发布版本已成功恢复"
 
 #: static/app/actionCreators/release.tsx:140
 msgid "Release could not be be restored."
-msgstr ""
+msgstr "发布版本无法恢复"
 
 #: static/app/actionCreators/release.tsx:94
 msgid "Archiving Release…"
-msgstr ""
+msgstr "正在归档发布版本..."
 
 #: static/app/actionCreators/savedSearches.tsx:27
 msgid "Unable to load saved searches"
@@ -3254,7 +3260,7 @@ msgstr ""
 
 #: static/app/components/acl/featureDisabled.tsx:128
 msgid "Copy to Clipboard"
-msgstr ""
+msgstr "复制到剪贴板"
 
 #: static/app/components/acl/featureDisabled.tsx:15
 #, python-format
@@ -3314,7 +3320,7 @@ msgstr "直到该事件再次出现..."
 
 #: static/app/components/actions/ignore.tsx:202
 msgid "one time…"
-msgstr ""
+msgstr "一次..."
 
 #: static/app/components/actions/ignore.tsx:203
 #, python-format
@@ -3333,7 +3339,7 @@ msgstr "直到该事件影响到另外..."
 
 #: static/app/components/actions/ignore.tsx:266
 msgid "one user…"
-msgstr ""
+msgstr "一个用户..."
 
 #: static/app/components/actions/ignore.tsx:267
 #, python-format
@@ -3359,7 +3365,7 @@ msgstr "更改状态为未解决"
 
 #: static/app/components/actions/ignore.tsx:76
 msgid "Unignore"
-msgstr ""
+msgstr "取消忽略"
 
 #: static/app/components/actions/ignore.tsx:96
 msgid "Ignore this issue until it occurs again…"
@@ -3380,7 +3386,7 @@ msgstr "设置发布跟踪以使用这个新特性"
 
 #: static/app/components/actions/resolve.tsx:147
 msgid "More resolve options"
-msgstr ""
+msgstr "更多处理选项"
 
 #: static/app/components/actions/resolve.tsx:156
 #: static/app/components/customResolutionModal.tsx:72
@@ -3405,7 +3411,7 @@ msgstr "当前版本（%s）"
 #: static/app/components/actions/resolve.tsx:182
 #: static/app/components/actions/resolve.tsx:187
 msgid "Another existing release"
-msgstr ""
+msgstr "另一个已存在的发布版本"
 
 #: static/app/components/actions/resolve.tsx:232
 msgid "Error fetching project"
@@ -3489,11 +3495,11 @@ msgstr "重做"
 
 #: static/app/components/arithmeticInput/parser.tsx:72
 msgid "Division by 0 is not allowed"
-msgstr ""
+msgstr "不允许被0除"
 
 #: static/app/components/arithmeticInput/parser.tsx:9
 msgid "Maximum operators exceeded"
-msgstr ""
+msgstr "最大操作超限"
 
 #: static/app/components/assigneeSelector.tsx:286
 msgid "(Suspect Commit)"
@@ -3517,7 +3523,7 @@ msgstr "团队"
 
 #: static/app/components/assigneeSelector.tsx:324
 msgid "People"
-msgstr ""
+msgstr "人们"
 
 #: static/app/components/assigneeSelector.tsx:332
 msgid "Suggested"
@@ -3525,7 +3531,7 @@ msgstr ""
 
 #: static/app/components/assigneeSelector.tsx:392
 msgid "Based on [commit:commit data]"
-msgstr ""
+msgstr "基于[提交: 提交数据]"
 
 #: static/app/components/assigneeSelector.tsx:397
 msgid "Matching Issue Owners Rule"
@@ -3551,13 +3557,13 @@ msgstr "分配给 [name]"
 
 #: static/app/components/assigneeSelector.tsx:485
 msgid "Suggestion: [name]"
-msgstr ""
+msgstr "建议：[名字]"
 
 #: static/app/components/assigneeSelector.tsx:492
 #, python-format
 msgid " + %s other"
 msgid_plural " + %s others"
-msgstr[0] ""
+msgstr[0] "%s其他"
 
 #: static/app/components/assigneeSelector.tsx:508
 msgid "You can auto-assign issues by adding [issueOwners:Issue Owner rules]."
@@ -3569,11 +3575,11 @@ msgstr ""
 
 #: static/app/components/assistant/getGuidesContent.tsx:116
 msgid "Later"
-msgstr ""
+msgstr "之后"
 
 #: static/app/components/assistant/getGuidesContent.tsx:117
 msgid "Take a Look"
-msgstr ""
+msgstr "仔细看"
 
 #: static/app/components/assistant/getGuidesContent.tsx:128
 msgid ""
@@ -3828,7 +3834,7 @@ msgstr "项目"
 
 #: static/app/components/assistant/getGuidesContent.tsx:386
 msgid "Create a project for any type of application you want to monitor."
-msgstr ""
+msgstr "为需要监控的任何类型应用创建项目"
 
 #: static/app/components/assistant/getGuidesContent.tsx:94
 #: static/app/components/assistant/getGuidesContent.tsx:391
@@ -4411,7 +4417,7 @@ msgstr "这里"
 
 #: static/app/components/contextPickerModal.tsx:327
 msgid "Select a Project to continue"
-msgstr ""
+msgstr "选择一个项目以继续"
 
 #: static/app/components/contextPickerModal.tsx:347
 msgid "[providerName] Configurations"
@@ -4452,11 +4458,11 @@ msgstr ""
 
 #: static/app/components/createAlertButton.tsx:149
 msgid "Select one Project."
-msgstr ""
+msgstr "选择一个项目"
 
 #: static/app/components/createAlertButton.tsx:151
 msgid "Select a single Environment or All Environments."
-msgstr ""
+msgstr "选择一个环境或所有环境"
 
 #: static/app/components/createAlertButton.tsx:155
 msgid ""
@@ -4471,7 +4477,7 @@ msgstr ""
 
 #: static/app/components/createAlertButton.tsx:361
 msgid "Unable to update organization settings"
-msgstr ""
+msgstr "无法更新组织设置"
 
 #: static/app/components/createAlertButton.tsx:365
 msgid ""
@@ -4653,7 +4659,7 @@ msgstr "快速链接"
 
 #: static/app/components/demo/demoHeader.tsx:47
 msgid "Request a Demo"
-msgstr ""
+msgstr "申请演示项目"
 
 #: static/app/components/demo/demoHeader.tsx:71
 msgid "Sign Up for Free"
@@ -4727,11 +4733,11 @@ msgstr ""
 
 #: static/app/components/discover/performanceCardTable.tsx:617
 msgid "Frontend Performance"
-msgstr ""
+msgstr "前端性能"
 
 #: static/app/components/discover/performanceCardTable.tsx:621
 msgid "Backend Performance"
-msgstr ""
+msgstr "后端性能"
 
 #: static/app/components/discover/performanceCardTable.tsx:625
 msgid "Mobile Performance"
@@ -5065,7 +5071,7 @@ msgstr "图形处理单元（GPU）"
 
 #: static/app/components/events/contexts/chunk.tsx:98
 msgid "Runtime"
-msgstr ""
+msgstr "运行时"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:106
 msgid "Free Storage"
@@ -5274,7 +5280,7 @@ msgstr ""
 #: static/app/views/settings/project/filtersAndSampling/modal/transactionRuleModal.tsx:131
 #: static/app/views/settings/project/filtersAndSampling/utils.tsx:69
 msgid "Transaction"
-msgstr ""
+msgstr "事务"
 
 #: static/app/components/events/contexts/trace/getTraceKnownDataDetails.tsx:115
 #: static/app/views/performance/traceDetails/transactionDetail.tsx:111
@@ -7309,7 +7315,7 @@ msgstr ""
 
 #: static/app/components/globalModal/components.tsx:40
 msgid "Close Modal"
-msgstr ""
+msgstr "关闭对话框"
 
 #: static/app/components/globalSdkUpdateAlert.tsx:133
 msgid "Review updates"
@@ -7323,7 +7329,7 @@ msgstr ""
 
 #: static/app/components/globalSdkUpdateAlert.tsx:146
 msgid "Dismiss for the next two weeks"
-msgstr ""
+msgstr "忽略两周"
 
 #: static/app/components/globalSdkUpdateAlert.tsx:149
 msgid "Remind me later"
@@ -12363,7 +12369,7 @@ msgstr ""
 
 #: static/app/views/alerts/incidentRules/ruleConditionsForm.tsx:254
 msgid "Env: "
-msgstr ""
+msgstr "环境"
 
 #: static/app/views/alerts/incidentRules/ruleConditionsForm.tsx:277
 msgid "Events: "
@@ -12431,7 +12437,7 @@ msgstr "24 小时"
 
 #: static/app/views/alerts/incidentRules/ruleConditionsForm.tsx:94
 msgid "Unable to fetch environments"
-msgstr ""
+msgstr "环境变量同步失败"
 
 #: static/app/views/alerts/incidentRules/ruleForm/index.tsx:164
 msgid "Looking for your slack channel (this can take a while)"
@@ -14916,7 +14922,7 @@ msgstr ""
 
 #: static/app/views/issueList/utils.tsx:36
 msgid "All Unresolved"
-msgstr ""
+msgstr "待解决"
 
 #: static/app/views/issueList/utils.tsx:40
 msgid "All unresolved issues."
@@ -16116,7 +16122,7 @@ msgstr ""
 
 #: static/app/views/organizationGroupDetails/quickTrace/issueQuickTrace.tsx:130
 msgid "Dismiss for a month"
-msgstr ""
+msgstr "忽略一个月"
 
 #: static/app/views/organizationGroupDetails/quickTrace/issueQuickTrace.tsx:86
 msgid "View Full Trace"
@@ -23637,7 +23643,7 @@ msgstr ""
 
 #: static/app/views/settings/projectTags.tsx:105
 msgid "Are you sure you want to remove this tag?"
-msgstr ""
+msgstr "您确定要删除这个标签吗？"
 
 #: static/app/views/settings/projectTags.tsx:113
 msgid "Remove tag"

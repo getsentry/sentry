@@ -8,18 +8,19 @@
 # andy <andy@kahyo.de>, 2017
 # mitsuhiko <armin.ronacher@active-4.com>, 2015
 # Benjamin Richter <richter.benjamin@gmail.com>, 2015-2016,2019
-# Billy Vong <billy@sentry.io>, 2020
+# Billy Vong <billy@sentry.io>, 2020,2022
 # Dirk Lachowski <dirk@lacho.net>, 2016
 # e2f_KAZ <e2fKAZ@outlook.com>, 2015
 # Fabian Kochem <fkochem+transifex@gmail.com>, 2013
 # Florian Reuschel <Florian.Reuschel@gmx.de>, 2019
-# Jannis Vajen, 2012
-# Jannis Vajen, 2012,2016
+# jnns, 2012
+# jnns, 2012,2016
 # Jan-Philipp Benecke <jan-philipp.benecke@jpbe.de>, 2015
 # Jess Allen <jallen@sentry.io>, 2019
 # Katharina Moritz <kmo@e2f.com>, 2016,2018
 # 9ec3b6522d68d374ae74bd8247284b49_2b95ea5 <32092dc74777e11158e715231520ffa9_205927>, 2015
 # Manuel Ohlendorf <>, 2012
+# Michael Alt, 2022
 # Nikolai Prokoschenko <nikolai@prokoschenko.de>, 2012
 # Nikolai Wuttke <lethal_guitar128@web.de>, 2016
 # Timo Mühlbach, 2019
@@ -31,8 +32,8 @@ msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-01-04 21:26+0000\n"
-"PO-Revision-Date: 2022-01-04 21:44+0000\n"
-"Last-Translator: Tobias Siebenlist <tobias.siebenlist@gmail.com>\n"
+"PO-Revision-Date: 2012-02-17 23:48+0000\n"
+"Last-Translator: Billy Vong <billy@sentry.io>, 2020,2022\n"
 "Language-Team: German (http://www.transifex.com/getsentry/sentry/language/de/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -86,7 +87,7 @@ msgstr "Die Funktion zum einmaligen Anmelden ist für diese Organisation nicht a
 
 #: api/endpoints/organization_code_mappings.py:19
 msgid "Path may not contain spaces or quotations"
-msgstr ""
+msgstr "Der Pfad darf keine Leerzeichen oder Anführungszeichen enthalten"
 
 #: api/endpoints/organization_request_project_creation.py:31
 #, python-format
@@ -122,21 +123,21 @@ msgstr "Aktuellster Aufruf als erstes"
 #: api/endpoints/user_details.py:58
 #: static/app/data/forms/accountPreferences.tsx:26
 msgid "Light"
-msgstr ""
+msgstr "Hell"
 
 #: api/endpoints/user_details.py:59
 #: static/app/data/forms/accountPreferences.tsx:27
 msgid "Dark"
-msgstr ""
+msgstr "Dunkel"
 
 #: api/endpoints/user_details.py:60
 #: static/app/data/forms/accountPreferences.tsx:28
 msgid "Default to system"
-msgstr ""
+msgstr "Systemeinstellung verwenden"
 
 #: api/serializers/rest_framework/json.py:13
 msgid "Value must be valid JSON."
-msgstr ""
+msgstr "Der Wert muss einem gültigen JSON Format entsprechen."
 
 #: api/validators/email.py:12 web/forms/fields.py:75
 msgid "Enter a valid email address."
@@ -201,7 +202,7 @@ msgstr "Diese Au­then­ti­fi­zie­rungs-Komponente schickt Ihnen Textnachrich
 msgid ""
 "A confirmation code was sent to %(phone_mask)s. It is valid for %(ttl)d "
 "seconds."
-msgstr ""
+msgstr "Es wurde ein Bestätigungscode an %(phone_mask)s gesendet. Der Code ist für %(ttl)dSekunden gültig"
 
 #: auth/authenticators/sms.py:66
 msgid ""
@@ -235,7 +236,7 @@ msgid ""
 "An authenticator application that supports TOTP (like Google Authenticator "
 "or 1Password) can be used to access your account securely using a token and "
 "secret key. A new token is generated every 30 seconds."
-msgstr ""
+msgstr "Eine Zwei- Faktor Authenticator Applikation, die TOTP unterstützt (z. B. Google Authenticator oder 1Password), kann verwendet werden, um mit einem Token und einem geheimen Schlüssel sicher auf Ihr Konto zuzugreifen. Dieser Token wird alle 30 Sekunden neu generiert."
 
 #: auth/authenticators/totp.py:20
 msgid ""
@@ -243,7 +244,7 @@ msgid ""
 " a new device or application, or to update your secret key, click "
 "\"Confirm\" below. By clicking \"Confirm\", your existing secret key will be"
 " replaced and will no longer work to access your account."
-msgstr ""
+msgstr "Ihr Konto ist derzeit mit einer Zwei- Faktor Authenticator Applikation verknüpft. Um eine Verknüpfung mit einem neuen Gerät, Anwendung herzustellen oder Ihren geheimen Schlüssel zu aktualisieren, klicken Sie auf \"Bestätigen\". Wenn Sie auf \"Bestätigen\" klicken, wird Ihr bestehender geheimer Schlüssel  für den Zugriff auf Ihr Konto ersetzt und funktioniert nicht mehr."
 
 #: auth/authenticators/u2f.py:42
 #: static/app/views/organizationIntegrations/installedIntegration.tsx:152
@@ -338,7 +339,7 @@ msgstr "Dein Passwort darf nicht nur aus Zahlen bestehen."
 #: auth/providers/saml2/auth0/templates/sentry_auth_auth0/select-idp.html:8
 #: auth/providers/saml2/auth0/templates/sentry_auth_auth0/select-idp.html:11
 msgid "Register Auth0"
-msgstr ""
+msgstr "Auth0 registrieren"
 
 #: auth/providers/saml2/auth0/templates/sentry_auth_auth0/select-idp.html:24
 #: auth/providers/saml2/okta/templates/sentry_auth_okta/select-idp.html:24
@@ -378,33 +379,33 @@ msgstr ""
 #: auth/providers/saml2/generic/templates/sentry_auth_saml2/map-attributes.html:9
 #: auth/providers/saml2/generic/templates/sentry_auth_saml2/select-idp.html:9
 msgid "SAML2 Setup"
-msgstr ""
+msgstr "SAML2 Einrichtung"
 
 #: auth/providers/saml2/generic/templates/sentry_auth_saml2/map-attributes.html:33
 msgid "Save Attributes"
-msgstr ""
+msgstr "Attribute speichern"
 
 #: auth/providers/saml2/generic/templates/sentry_auth_saml2/select-idp.html:47
 msgid "Get metadata"
-msgstr ""
+msgstr "Metadaten abrufen"
 
 #: auth/providers/saml2/generic/templates/sentry_auth_saml2/select-idp.html:72
 msgid "Parse Metadata"
-msgstr ""
+msgstr "Metadaten parsen"
 
 #: auth/providers/saml2/generic/templates/sentry_auth_saml2/select-idp.html:99
 msgid "Save Metadata"
-msgstr ""
+msgstr "Metadaten speichern"
 
 #: auth/providers/saml2/okta/templates/sentry_auth_okta/select-idp.html:8
 #: auth/providers/saml2/okta/templates/sentry_auth_okta/select-idp.html:11
 msgid "Register Okta"
-msgstr ""
+msgstr "Okta registrieren"
 
 #: auth/providers/saml2/onelogin/templates/sentry_auth_onelogin/select-idp.html:8
 #: auth/providers/saml2/onelogin/templates/sentry_auth_onelogin/select-idp.html:11
 msgid "Register OneLogin"
-msgstr ""
+msgstr "OneLogin registrieren"
 
 #: auth/providers/saml2/provider.py:46
 msgid "The organization does not exist or does not have SAML SSO enabled."
@@ -426,11 +427,11 @@ msgstr ""
 #: auth/providers/saml2/rippling/templates/sentry_auth_rippling/select-idp.html:11
 #: auth/providers/saml2/rippling/templates/sentry_auth_rippling/wait-for-completion.html:8
 msgid "Register Rippling"
-msgstr ""
+msgstr "Rippling registrieren"
 
 #: auth/providers/saml2/rippling/templates/sentry_auth_rippling/wait-for-completion.html:22
 msgid "Complete Setup"
-msgstr ""
+msgstr "Installation abschließen"
 
 #: conf/server.py:181
 msgid "Afrikaans"
@@ -782,7 +783,7 @@ msgstr "Big Integer"
 #: db/models/fields/jsonfield.py:45
 #, python-format
 msgid "'%s' is not a valid JSON string."
-msgstr ""
+msgstr "'%s' ist kein gültiger JSON string."
 
 #: identity/pipeline.py:13
 #, python-brace-format
@@ -807,27 +808,27 @@ msgstr "Installation"
 
 #: integrations/aws_lambda/integration.py:297
 msgid "Please validate the Cloudformation stack was created successfully"
-msgstr ""
+msgstr "Bitte bestätigen Sie, dass der Cloudformation-Stack erfolgreich erstellt wurde"
 
 #: integrations/aws_lambda/integration.py:307
 msgid "Unknown error"
-msgstr ""
+msgstr "Unbekannter Fehler"
 
 #: integrations/aws_lambda/integration.py:397
 #: static/app/views/settings/organizationDeveloperSettings/sentryApplicationDetails.tsx:196
 #: static/app/views/settings/project/projectProcessingIssues.tsx:268
 msgid "Unknown Error"
-msgstr ""
+msgstr "Unbekannter Fehler"
 
 #: integrations/bitbucket_server/integration.py:76
 msgid "Bitbucket URL"
-msgstr ""
+msgstr "Bitbucket URL"
 
 #: integrations/bitbucket_server/integration.py:78
 msgid ""
 "The base URL for your Bitbucket Server instance, including the host and "
 "protocol."
-msgstr ""
+msgstr "Die Basis-URL für Ihre Bitbucket-Server-Instanz, einschließlich des Hosts und des Protokolls."
 
 #: integrations/bitbucket_server/integration.py:84
 #: integrations/github_enterprise/integration.py:177
@@ -840,15 +841,15 @@ msgstr "SSL verifizieren"
 msgid ""
 "By default, we verify SSL certificates when making requests to your "
 "Bitbucket instance."
-msgstr ""
+msgstr "Standardmäßig überprüfen Wir das SSL-Zertifikat Ihrer Bitbucket-Instanz, wenn Anfragen an diese gesendet werden."
 
 #: integrations/bitbucket_server/integration.py:94
 msgid "Bitbucket Consumer Key"
-msgstr ""
+msgstr "Bitbucket Consumer Schlüssel"
 
 #: integrations/bitbucket_server/integration.py:98
 msgid "Bitbucket Consumer Private Key"
-msgstr ""
+msgstr "Privater Bitbucket Consumer Key"
 
 #: integrations/custom_scm/integration.py:90
 #: static/app/components/events/contexts/browser/getBrowserKnownDataDetails.tsx:17
@@ -881,7 +882,7 @@ msgstr "Name"
 msgid ""
 "The name for your integration.<br>If you are using GitHub, use the "
 "organization name."
-msgstr ""
+msgstr "Der Name für Ihre Integration. <br>Wenn Sie GitHub verwenden, verwenden Sie den Namen der Organisation."
 
 #: integrations/custom_scm/integration.py:98
 #: static/app/views/settings/project/projectOwnership/ruleBuilder.tsx:142
@@ -896,50 +897,50 @@ msgstr "URL"
 msgid ""
 "The base URL for your instance, including the host and protocol. <br>If "
 "using github.com, enter https://github.com/"
-msgstr ""
+msgstr "Die Basis-URL für Ihre Instanz, einschließlich des Hosts und des Protokolls. <br>Wenn Sie github.com verwenden, geben Sie https://github.com/ ein."
 
 #: integrations/github/integration.py:286
 msgid "GitHub installation pending deletion."
-msgstr ""
+msgstr "Die GitHub-Installation wartet auf ihre Löschung."
 
 #: integrations/github/integration.py:309
 msgid "Github installed on another Sentry organization."
-msgstr ""
+msgstr "Github ist auf einer anderen Sentry-Organisation installiert."
 
 #: integrations/github_enterprise/integration.py:156
 msgid ""
 "The \"base URL\" for your GitHub enterprise instance, includes the host and "
 "protocol."
-msgstr ""
+msgstr "Die \"Basis-URL\" für Ihre GitHub Enterprise-Instanz enthält den Host und das Protokoll."
 
 #: integrations/github_enterprise/integration.py:163
 msgid ""
 "The App ID of your Sentry app. This can be found on your apps configuration "
 "page."
-msgstr ""
+msgstr "Die App-ID Ihrer Sentry-Anwendung. Diese finden Sie auf der Konfigurationsseite Ihrer App."
 
 #: integrations/github_enterprise/integration.py:170
 msgid ""
 "The GitHub App name of your Sentry app. This can be found on the apps "
 "configuration page."
-msgstr ""
+msgstr "Der GitHub-App-Name Ihrer Sentry-App. Dieser kann auf der Konfigurationsseite der App gefunden werden."
 
 #: integrations/github_enterprise/integration.py:179
 msgid ""
 "By default, we verify SSL certificates when delivering payloads to your "
 "GitHub Enterprise instance"
-msgstr ""
+msgstr "Standardmäßig überprüfen Wir das SSL-Zertifikat Ihrer GitHub Enterprise-Instanz, wenn Anfragen an diese gesendet werden."
 
 #: integrations/github_enterprise/integration.py:189
 msgid ""
 "We require a webhook secret to be configured. This can be generated as any "
 "random string value of your choice and should match your GitHub app "
 "configuration."
-msgstr ""
+msgstr "Es muss ein Webhook-Secret konfiguriert werden. Dieses kann als zufällige Zeichenfolge Ihrer Wahl generiert werden und sollte mit Ihrer GitHub-App-Konfiguration übereinstimmen."
 
 #: integrations/github_enterprise/integration.py:199
 msgid "The Private Key generated for your Sentry GitHub App."
-msgstr ""
+msgstr "Der für Ihre Sentry GitHub App generierte private Schlüssel."
 
 #: integrations/gitlab/integration.py:151
 msgid "GitLab URL"
@@ -949,7 +950,7 @@ msgstr "GitLab URL"
 msgid ""
 "The base URL for your GitLab instance, including the host and protocol. Do "
 "not include group path.<br>If using gitlab.com, enter https://gitlab.com/"
-msgstr ""
+msgstr "Die Basis-URL für Ihre GitLab-Instanz, einschließlich Host und Protokoll. Wenn Sie gitlab.com verwenden, geben Sie https://gitlab.com/ ein."
 
 #: integrations/gitlab/integration.py:161
 msgid "GitLab Group Path"
@@ -960,7 +961,7 @@ msgid ""
 "This can be found in the URL of your group's GitLab page. <br>For example, "
 "if your group can be found at https://gitlab.com/my-group/my-subgroup, enter"
 " `my-group/my-subgroup`."
-msgstr ""
+msgstr "Diese finden Sie in der URL der GitLab-Seite Ihrer Gruppe. <br>Wenn Ihre Gruppe beispielsweise unter https://gitlab.com/my-group/my-subgroup zu finden ist, geben Sie \"my-group/my-subgroup\" ein."
 
 #: integrations/gitlab/integration.py:168
 msgid "my-group/my-subgroup"
@@ -968,11 +969,11 @@ msgstr "meine-gruppe/meine-untergruppe"
 
 #: integrations/gitlab/integration.py:171
 msgid "Include Subgroups"
-msgstr ""
+msgstr "Untergruppen einschließen"
 
 #: integrations/gitlab/integration.py:172
 msgid "Include projects in subgroups of the GitLab group."
-msgstr ""
+msgstr "Projekte in Untergruppen der GitLab-Gruppe einbeziehen."
 
 #: integrations/gitlab/integration.py:180
 msgid ""
@@ -983,15 +984,15 @@ msgstr ""
 
 #: integrations/gitlab/integration.py:190
 msgid "GitLab Application ID"
-msgstr ""
+msgstr "GitLab Anwendungs-ID"
 
 #: integrations/gitlab/integration.py:193
 msgid "5832fc6e14300a0d962240a8144466eef4ee93ef0d218477e55f11cf12fc3737"
-msgstr ""
+msgstr "5832fc6e14300a0d962240a8144466eef4ee93ef0d218477e55f11cf12fc3737"
 
 #: integrations/gitlab/integration.py:198
 msgid "GitLab Application Secret"
-msgstr ""
+msgstr "GitLab Anwendungs-Secret"
 
 #: integrations/gitlab/integration.py:199
 msgid "XXXXXXXXXXXXXXXXXXXXXXXXXXX"
@@ -999,7 +1000,7 @@ msgstr "XXXXXXXXXXXXXXXXXXXXXXXXXXX"
 
 #: integrations/jira/integration.py:85
 msgid "Jira Marketplace"
-msgstr ""
+msgstr "Jira Marktplatz"
 
 #: integrations/jira/integration.py:93
 msgid "Instance"
@@ -1007,13 +1008,13 @@ msgstr "Instanz"
 
 #: integrations/jira/integration.py:131
 msgid "Sync Sentry Status to Jira"
-msgstr ""
+msgstr "Den Status in Sentry mit Jira synchronisieren"
 
 #: integrations/jira/integration.py:133
 msgid ""
 "When a Sentry issue changes status, change the status of the linked ticket "
 "in Jira."
-msgstr ""
+msgstr "Wenn sich der Status eines Sentry-Problems ändert, soll auch der Status des verknüpften Tickets in Jira geändert werden."
 
 #: integrations/jira/integration.py:135
 msgid "Add Jira Project"
@@ -1021,7 +1022,7 @@ msgstr "Jira Projekt hinzufügen"
 
 #: integrations/jira/integration.py:137 integrations/vsts/integration.py:209
 msgid "All projects configured"
-msgstr ""
+msgstr "Alle Projekte konfiguriert"
 
 #: integrations/jira/integration.py:138
 msgid "Could not find Jira project"
@@ -1046,65 +1047,65 @@ msgstr "Jira Projekt"
 
 #: integrations/jira/integration.py:155
 msgid "Sync Sentry Assignment to Jira"
-msgstr ""
+msgstr "Die Zuweisung in Sentry mit Jira synchronisieren"
 
 #: integrations/jira/integration.py:157
 msgid ""
 "When an issue is assigned in Sentry, assign its linked Jira ticket to the "
 "same user."
-msgstr ""
+msgstr "Wenn ein Problem in Sentry zugewiesen wird, soll das damit verknüpfte Jira-Ticket demselben Benutzer zugewiesen werden."
 
 #: integrations/jira/integration.py:163
 msgid "Sync Sentry Comments to Jira"
-msgstr ""
+msgstr "Kommentare in Sentry mit Jira synchronisieren."
 
 #: integrations/jira/integration.py:164
 msgid "Post comments from Sentry issues to linked Jira tickets"
-msgstr ""
+msgstr "Kommentare aus Sentry-Problemen im verknüpfte Jira-Tickets hinzufügen"
 
 #: integrations/jira/integration.py:169
 msgid "Sync Jira Status to Sentry"
-msgstr ""
+msgstr "Den Status in Jira mit Sentry synchronisieren."
 
 #: integrations/jira/integration.py:171
 msgid ""
 "When a Jira ticket is marked done, resolve its linked issue in Sentry. When "
 "a Jira ticket is removed from being done, unresolve its linked Sentry issue."
-msgstr ""
+msgstr "Wenn ein Jira-Ticket als erledigt markiert wird, soll das verknüpfte Problem in Sentry als gelöst markiert werden. Wenn ein Jira-Ticket nicht mehr als erledigt markiert ist, soll das verknüpfte Problem in Sentry nicht mehr als gelöst markiert sein."
 
 #: integrations/jira/integration.py:178
 msgid "Sync Jira Assignment to Sentry"
-msgstr ""
+msgstr "Die Zuweisung in Jira mit Sentry synchronisieren"
 
 #: integrations/jira/integration.py:180
 msgid ""
 "When a ticket is assigned in Jira, assign its linked Sentry issue to the "
 "same user."
-msgstr ""
+msgstr "Wenn ein Problem in Jira zugewiesen wird, soll das damit verknüpfte Sentry-Problem demselben Benutzer zugewiesen werden."
 
 #: integrations/jira/integration.py:187
 msgid "e.g. \"components, security, customfield_10006\""
-msgstr ""
+msgstr "z. B. \"komponenten, sicherheit, customfield_10006\""
 
 #: integrations/jira/integration.py:189
 msgid ""
 "Comma-separated list of Jira fields that you don't want to show in issue "
 "creation form"
-msgstr ""
+msgstr "Komma-getrennte Liste von Jira-Feldern, die im Formular zur Problem Erstellung nicht angezeigt werden sollen."
 
 #: integrations/jira/integration.py:206
 msgid ""
 "Unable to communicate with the Jira instance. You may need to reinstall the "
 "addon."
-msgstr ""
+msgstr "Die Kommunikation mit der Jira-Instanz ist nicht möglich. Möglicherweise müssen Sie das Addon neu installieren."
 
 #: integrations/jira/integration.py:215 integrations/vsts/integration.py:263
 msgid "Your organization does not have access to this feature"
-msgstr ""
+msgstr "Ihre Organisation hat keinen Zugriff auf diese Funktion"
 
 #: integrations/jira/notify_action.py:30
 msgid "Jira integration is a required field."
-msgstr ""
+msgstr "Jira-Integration ist ein Pflichtfeld."
 
 #: integrations/jira_server/integration.py:85
 msgid "Jira URL"
@@ -1113,7 +1114,7 @@ msgstr "Jira URL"
 #: integrations/jira_server/integration.py:86
 msgid ""
 "The base URL for your Jira Server instance, including the host and protocol."
-msgstr ""
+msgstr "Die Basis-URL für Ihre Jira Server-Instanz, einschließlich Host und Protokoll."
 
 #: integrations/jira_server/integration.py:93
 msgid ""
@@ -1142,7 +1143,7 @@ msgstr ""
 #: integrations/pagerduty/notify_action.py:27
 #, python-brace-format
 msgid "Invalid {field}"
-msgstr ""
+msgstr "Ungültiges {field}"
 
 #: integrations/pagerduty/notify_action.py:61
 #, python-format
@@ -1168,15 +1169,15 @@ msgstr ""
 
 #: integrations/slack/integration.py:62
 msgid "Workspace"
-msgstr ""
+msgstr "Arbeitsbereich"
 
 #: integrations/slack/notify_action.py:73
 msgid "Slack channel name is a required field."
-msgstr ""
+msgstr "Der Name des Slack-Kanals ist ein Pflichtfeld."
 
 #: integrations/slack/notify_action.py:105
 msgid "Slack workspace is a required field."
-msgstr ""
+msgstr "Der Slack-Arbeitsbereich ist ein Pflichtfeld."
 
 #: integrations/slack/notify_action.py:129
 #, python-format
@@ -1211,7 +1212,7 @@ msgstr ""
 
 #: integrations/vercel/integration.py:64
 msgid "Connect Your Projects"
-msgstr ""
+msgstr "Verbinden Sie Ihre Projekte"
 
 #: integrations/vercel/integration.py:65
 msgid "Don't have a project yet? Click [here]({}) to create one."
@@ -1220,19 +1221,19 @@ msgstr ""
 #: integrations/vercel/integration.py:67
 msgid ""
 "Install a [source code integration]({}) and configure your repositories."
-msgstr ""
+msgstr "Installieren Sie eine [Quellcode-Integration]({}) und konfigurieren Sie Ihre Repositories."
 
 #: integrations/vercel/integration.py:172
 msgid "Vercel project..."
-msgstr ""
+msgstr "Vercel Projekt..."
 
 #: integrations/vercel/integration.py:178
 msgid "Link your Sentry projects to complete your installation on Vercel"
-msgstr ""
+msgstr "Verknüpfen Sie Ihre Sentry-Projekte, um die Installation auf Vercel abzuschließen"
 
 #: integrations/vercel/integration.py:180
 msgid "Complete on Vercel"
-msgstr ""
+msgstr "In Vercel abschließen"
 
 #: integrations/vsts/integration.py:203
 msgid "Sync Sentry Status to Azure DevOps"
@@ -1246,7 +1247,7 @@ msgstr ""
 
 #: integrations/vsts/integration.py:207
 msgid "Add Azure DevOps Project"
-msgstr ""
+msgstr "Azure DevOps Projekt hinzufügen"
 
 #: integrations/vsts/integration.py:210
 msgid "Could not find Azure DevOps project"
@@ -1322,7 +1323,7 @@ msgstr ""
 
 #: integrations/vsts/issues.py:144
 msgid "Bug"
-msgstr ""
+msgstr "Fehler"
 
 #: interfaces/http.py:170
 msgid "Request"
@@ -1413,17 +1414,17 @@ msgstr "Gesperrt (laufende Migration)"
 
 #: models/grouphistory.py:136
 msgid "Automatically Resolved"
-msgstr ""
+msgstr "Automatisch gelöst"
 
 #: models/grouphistory.py:138
 #: static/app/components/group/inboxBadges/inboxReason.tsx:102
 msgid "Unignored"
-msgstr ""
+msgstr "Nichtmehr ignorieren"
 
 #: models/grouphistory.py:139
 #: static/app/views/releases/detail/overview/releaseIssues.tsx:373
 msgid "Regressed"
-msgstr ""
+msgstr "Regression"
 
 #: models/grouphistory.py:140 static/app/views/issueList/searchBar.tsx:39
 msgid "Assigned"
@@ -1434,14 +1435,14 @@ msgstr "Zugewiesen"
 #: static/app/utils/discover/fieldRenderers.tsx:457
 #: static/app/views/alerts/rules/teamFilter.tsx:72
 msgid "Unassigned"
-msgstr ""
+msgstr "Nicht zugewiesen"
 
 #: models/grouphistory.py:142
 #: static/app/components/events/interfaces/debugMeta-v2/debugImageDetails/candidate/status/index.tsx:27
 #: static/app/views/settings/components/forms/projectMapperField.tsx:140
 #: static/app/views/settings/components/forms/projectMapperField.tsx:154
 msgid "Deleted"
-msgstr ""
+msgstr "Gelöscht"
 
 #: models/grouphistory.py:143
 msgid "Deleted and Discarded"
@@ -1451,19 +1452,19 @@ msgstr ""
 #: static/app/views/organizationStats/teamInsights/teamIssuesReviewed.tsx:140
 #: static/app/views/organizationStats/teamInsights/teamIssuesReviewed.tsx:159
 msgid "Reviewed"
-msgstr ""
+msgstr "Überprüft"
 
 #: models/grouphistory.py:145
 msgid "Resolved in Release"
-msgstr ""
+msgstr "Im Release gelöst"
 
 #: models/grouphistory.py:146
 msgid "Resolved in Commit"
-msgstr ""
+msgstr "Im Commit gelöst"
 
 #: models/grouphistory.py:147
 msgid "Resolved in Pull Request"
-msgstr ""
+msgstr "Im Pull Request gelöst"
 
 #: models/grouplink.py:61
 msgid "Commit"
@@ -1491,15 +1492,15 @@ msgstr "Ausstehend"
 
 #: models/organizationmember.py:128
 msgid "Approved"
-msgstr ""
+msgstr "Genehmigt"
 
 #: models/organizationmember.py:131
 msgid "Organization member requested to invite user"
-msgstr ""
+msgstr "Ein Mitglied der Organisation möchte einen Benutzer einladen"
 
 #: models/organizationmember.py:133
 msgid "User requested to join organization"
-msgstr ""
+msgstr "Benutzer hat beantragt, der Organisation beizutreten"
 
 #: models/project.py:119 models/team.py:139
 msgid "Pending Deletion"
@@ -1511,12 +1512,12 @@ msgstr "Löschung in Arbeit"
 
 #: models/release.py:398
 msgid "Open"
-msgstr ""
+msgstr "Offen"
 
 #: models/release.py:399
 #: static/app/views/releases/list/releasesStatusOptions.tsx:14
 msgid "Archived"
-msgstr ""
+msgstr "Archiviert"
 
 #: models/savedsearch.py:25 static/app/components/group/releaseChart.tsx:53
 #: static/app/components/stream/groupChart.tsx:54
@@ -1551,7 +1552,7 @@ msgstr "Benutzer"
 
 #: models/savedsearch.py:27 static/app/views/issueList/utils.tsx:134
 msgid "Relative Change"
-msgstr ""
+msgstr "Relative Änderung"
 
 #: models/savedsearch.py:28 static/app/views/issueList/utils.tsx:136
 msgid "Date Added"
@@ -1856,7 +1857,7 @@ msgstr "Haben Sie Ihr Passwort vergessen?"
 
 #: templates/sentry/auth-confirm-account.html:7
 msgid "Confirm Account"
-msgstr ""
+msgstr "Konto bestätigen"
 
 #: templates/sentry/auth-confirm-identity.html:7
 #: templates/sentry/auth-confirm-link.html:7
@@ -1871,7 +1872,7 @@ msgstr "Identität bestätigen"
 #: templates/sentry/organization-login.html:54
 #: templates/sentry/organization-login.html:88
 msgid "Sign In"
-msgstr ""
+msgstr "Anmelden"
 
 #: templates/sentry/auth-link-identity.html:7
 msgid "Link Identity"
@@ -1912,24 +1913,24 @@ msgstr ""
 
 #: templates/sentry/emails/requests/codeowners.html:24
 msgid "To Better Software,"
-msgstr ""
+msgstr "Für bessere Software,"
 
 #: templates/sentry/emails/requests/codeowners.html:26
 #: templates/sentry/emails/requests/organization-project.html:52
 msgid "The Sentry Team"
-msgstr ""
+msgstr "Das Sentry Team"
 
 #: templates/sentry/emails/requests/codeowners.html:30
 msgid ""
 "You are receiving this email because you're listed as an organization Admin,"
 " Manager or Owner."
-msgstr ""
+msgstr "Sie erhalten diese E-Mail, weil Sie als Administrator, Manager oder Eigentümer einer Organisation eingetragen sind."
 
 #: templates/sentry/emails/requests/organization-project.html:6
 msgid ""
 "Fancy seeing you here. In your own inbox. In this email, we’ve addressed "
 "specifically to you."
-msgstr ""
+msgstr "Schön, Sie hier zu sehen. In Ihrem eigenen Posteingang. In dieser E-Mail, die wir speziell an Sie gerichtet haben."
 
 #: templates/sentry/emails/requests/organization-project.html:9
 #, python-format
@@ -1986,7 +1987,7 @@ msgstr ""
 #: static/app/views/performance/transactionDetails/finishSetupAlert.tsx:39
 #: templates/sentry/emails/requests/organization-project.html:46
 msgid "Get Started"
-msgstr ""
+msgstr "Los geht's"
 
 #: templates/sentry/emails/requests/organization-project.html:49
 msgid "Mobile up,"
@@ -2006,16 +2007,16 @@ msgstr "Absturzberichte von <a href=\\"
 
 #: templates/sentry/integrations/bitbucket-server-config.html:26
 msgid "Bitbucket-Server Setup"
-msgstr ""
+msgstr "Bitbucket-Server einrichten"
 
 #: templates/sentry/integrations/bitbucket-server-config.html:29
 #: templates/sentry/integrations/jira-server-config.html:29
 msgid "Connect Sentry with your App"
-msgstr ""
+msgstr "Verbinden Sie Sentry mit Ihrer Applikation"
 
 #: templates/sentry/integrations/bitbucket-server-config.html:30
 msgid "Add your Bitbucket Server App credentials to Sentry."
-msgstr ""
+msgstr "Fügen Sie die Anmeldeinformationen  Ihrer Bitbucket Server Applikation hinzu."
 
 #: templates/sentry/integrations/bitbucket-server-config.html:34
 msgid ""
@@ -2038,11 +2039,11 @@ msgstr "Abschicken"
 
 #: templates/sentry/integrations/custom-scm-config.html:26
 msgid "Custom SCM Setup"
-msgstr ""
+msgstr "Benutzerdefiniertes SCM-Setup"
 
 #: templates/sentry/integrations/custom-scm-config.html:29
 msgid "Custom Source Control Management Setup"
-msgstr ""
+msgstr "Benutzerdefiniertes Versionskontrollverwaltung-Setup"
 
 #: templates/sentry/integrations/custom-scm-config.html:30
 msgid ""
@@ -2052,40 +2053,40 @@ msgstr ""
 
 #: templates/sentry/integrations/dialog-complete.html:9
 msgid "Integration Setup Complete"
-msgstr ""
+msgstr "Einrichtung der Integration abgeschlossen"
 
 #: templates/sentry/integrations/dialog-complete.html:21
 #: templates/sentry/integrations/github-integration-exists-on-another-org.html:22
 #: templates/sentry/integrations/integration-pending-deletion.html:22
 msgid "You can safely close this window now."
-msgstr ""
+msgstr "Sie können dieses Fenster jetzt schließen."
 
 #: templates/sentry/integrations/github-enterprise-config.html:9
 msgid "GitHub Enterprise Setup"
-msgstr ""
+msgstr "GitHub Enterprise einrichten"
 
 #: templates/sentry/integrations/github-integration-exists-on-another-org.html:6
 #: templates/sentry/integrations/integration-pending-deletion.html:6
 msgid "GitHub Integration Setup Failed"
-msgstr ""
+msgstr "Die Einrichtung der GitHub Integration ist fehlgeschlagen"
 
 #: templates/sentry/integrations/github-integration-exists-on-another-org.html:20
 msgid ""
 "It seems that your GitHub account has been installed on another Sentry "
 "organization. Please uninstall and try again."
-msgstr ""
+msgstr "Es scheint, dass Ihr GitHub-Konto auf einer anderen Sentry-Organisation installiert wurde. Bitte deinstallieren Sie diese und versuchen Sie es erneut."
 
 #: templates/sentry/integrations/gitlab-config.html:26
 msgid "GitLab Setup"
-msgstr ""
+msgstr "GitLab einrichten"
 
 #: templates/sentry/integrations/gitlab-config.html:30
 msgid "Step 2: Connect Sentry with your App"
-msgstr ""
+msgstr "Schritt 2: Verbinden Sie Sentry mit Ihrer Applikation"
 
 #: templates/sentry/integrations/gitlab-config.html:31
 msgid "Add your GitLab App credentials to Sentry."
-msgstr ""
+msgstr "Fügen Sie die Anmeldeinforamtionen Ihres GitLab Applikation hinzu."
 
 #: templates/sentry/integrations/gitlab-config.html:44
 msgid "Back to instructions"
@@ -2093,7 +2094,7 @@ msgstr "Zurück zu den Anweisungen"
 
 #: templates/sentry/integrations/gitlab-config.html:50
 msgid "Step 1: Create a Sentry App in GitLab"
-msgstr ""
+msgstr "Schritt 1: Erstellen Sie eine Sentry Applikation in GitLab"
 
 #: templates/sentry/integrations/gitlab-config.html:51
 msgid ""
@@ -2162,11 +2163,11 @@ msgstr ""
 
 #: templates/sentry/integrations/jira-issue.html:54
 msgid "Events last 24 hours:"
-msgstr ""
+msgstr "Ereignisse der letzten 24 Stunden:"
 
 #: templates/sentry/integrations/jira-issue.html:60
 msgid "Events last 14 days:"
-msgstr ""
+msgstr "Ereignisse der letzten 14 Tage:"
 
 #: templates/sentry/integrations/jira-issue.html:75
 #: templates/sentry/integrations/jira-issue.html:104
@@ -2180,11 +2181,11 @@ msgstr ""
 
 #: templates/sentry/integrations/jira-server-config.html:26
 msgid "Jira-Server Setup"
-msgstr ""
+msgstr "Jira-Server einrichten"
 
 #: templates/sentry/integrations/jira-server-config.html:30
 msgid "Add your Jira Server App credentials to Sentry."
-msgstr ""
+msgstr "Fügen Sie die Anmeldeinforamtionen Ihrer Jira Server Applikation hinzu."
 
 #: templates/sentry/integrations/jira-server-config.html:34
 msgid ""
@@ -2197,11 +2198,11 @@ msgstr ""
 
 #: templates/sentry/integrations/msteams/expired-link.html:5
 msgid "Microsoft Teams Expired Link"
-msgstr ""
+msgstr "Microsoft Teams Abgelaufener Link"
 
 #: templates/sentry/integrations/msteams/linked.html:5
 msgid "Microsoft Teams Linked"
-msgstr ""
+msgstr "Microsoft Teams Verknüpft"
 
 #: templates/sentry/integrations/msteams/linked.html:11
 msgid ""
@@ -2211,7 +2212,7 @@ msgstr ""
 
 #: templates/sentry/integrations/msteams/no-identity.html:5
 msgid "Microsoft Teams No Identities"
-msgstr ""
+msgstr "Microsoft Teams Keine Identitäten"
 
 #: templates/sentry/integrations/msteams/no-identity.html:11
 msgid ""
@@ -2226,11 +2227,11 @@ msgstr ""
 
 #: templates/sentry/integrations/msteams/unlink-identity.html:19
 msgid "Unlink with Microsoft Teams"
-msgstr ""
+msgstr "Verknüpfung zu Microsoft Teams aufheben"
 
 #: templates/sentry/integrations/msteams/unlinked.html:5
 msgid "Microsoft Teams Unlinked"
-msgstr ""
+msgstr "Verknüpfung zu Microsoft Teams wurde aufgehoben"
 
 #: templates/sentry/integrations/msteams/unlinked.html:11
 msgid ""
@@ -2247,15 +2248,15 @@ msgstr ""
 #: static/app/components/events/interfaces/debugMeta-v2/debugImage/status.tsx:18
 #: templates/sentry/integrations/slack/link-team-error.html:5
 msgid "Error"
-msgstr ""
+msgstr "Fehler"
 
 #: templates/sentry/integrations/slack/link-team.html:7
 msgid "Link Team"
-msgstr ""
+msgstr "Team Verknüpfen"
 
 #: templates/sentry/integrations/slack/linked.html:5
 msgid "Slack Linked"
-msgstr ""
+msgstr "Slack verknüpft"
 
 #: templates/sentry/integrations/slack/linked.html:11
 msgid ""
@@ -2271,11 +2272,11 @@ msgstr ""
 #: templates/sentry/integrations/slack/reauth-details.html:44
 #: templates/sentry/integrations/slack/reauth-introduction.html:95
 msgid "Time For An Upgrade"
-msgstr ""
+msgstr "Zeit für ein Upgrade"
 
 #: templates/sentry/integrations/slack/reauth-details.html:47
 msgid "Well, look who has private channels with alert rules."
-msgstr ""
+msgstr "Schauen Sie mal, wer private Kanäle mit Alarmregeln hat."
 
 #: templates/sentry/integrations/slack/reauth-details.html:49
 msgid ""
@@ -2297,7 +2298,7 @@ msgstr ""
 #: templates/sentry/integrations/slack/reauth-details.html:66
 #: templates/sentry/integrations/slack/reauth-details.html:77
 msgid "Next Steps"
-msgstr ""
+msgstr "Nächste Schritte"
 
 #: templates/sentry/integrations/slack/reauth-details.html:68
 msgid ""
@@ -2324,11 +2325,11 @@ msgstr ""
 #: static/app/views/settings/projectIssueGrouping/upgradeGrouping.tsx:97
 #: templates/sentry/integrations/slack/reauth-details.html:94
 msgid "Upgrade"
-msgstr ""
+msgstr "Aktualisieren"
 
 #: templates/sentry/integrations/slack/reauth-introduction.html:97
 msgid "Farewell to Slack's legacy workspace apps."
-msgstr ""
+msgstr "Abschied von den alten Arbeitsbereich-Apps von Slack."
 
 #: templates/sentry/integrations/slack/reauth-introduction.html:99
 msgid ""
@@ -2352,7 +2353,7 @@ msgstr ""
 
 #: templates/sentry/integrations/slack/reauth-introduction.html:110
 msgid "Your existing alert rules may need some love."
-msgstr ""
+msgstr "Ihre bestehenden Alarmregeln könnten etwas Liebe gebrauchen."
 
 #: templates/sentry/integrations/slack/reauth-introduction.html:112
 msgid ""
@@ -2392,7 +2393,7 @@ msgstr ""
 
 #: templates/sentry/integrations/slack/unlink-team.html:7
 msgid "Unlink Team"
-msgstr ""
+msgstr "Verknüfung mit dem Team aufheben"
 
 #: templates/sentry/integrations/slack/unlinked-team.html:5
 msgid "Team Unlinked"
@@ -2400,15 +2401,15 @@ msgstr ""
 
 #: templates/sentry/integrations/slack/unlinked.html:5
 msgid "Slack Unlinked"
-msgstr ""
+msgstr "Die Verknüfung mit Slack wurde aufgehoben"
 
 #: templates/sentry/integrations/slack/unlinked.html:11
 msgid "Your Slack identity has been unassociated with your Sentry account."
-msgstr ""
+msgstr "Ihre Slack-Identität ist nicht mehr mit Ihrem Sentry-Konto verknüpft."
 
 #: templates/sentry/integrations/vsts-config.html:9
 msgid "Azure DevOps Setup"
-msgstr ""
+msgstr "Azure DevOps einrichten"
 
 #: templates/sentry/integrations/vsts-config.html:15
 msgid ""
@@ -2468,7 +2469,7 @@ msgstr ""
 
 #: templates/sentry/no-organization-access.html:19
 msgid "this guide"
-msgstr ""
+msgstr "diese Anleitung"
 
 #: templates/sentry/no-organization-access.html:21
 msgid "If you need to make changes to your user account, "
@@ -2476,7 +2477,7 @@ msgstr ""
 
 #: templates/sentry/no-organization-access.html:21
 msgid "please click here."
-msgstr ""
+msgstr "Bitte klicken Sie hier."
 
 #: templates/sentry/oauth-authorize.html:7
 msgid "Authorize Application"
@@ -2507,7 +2508,7 @@ msgstr "Authentifikation"
 #: static/app/views/organizationJoinRequest.tsx:81
 #: templates/sentry/organization-login.html:65
 msgid "Request to Join"
-msgstr ""
+msgstr "Beitrittsanfrage"
 
 #: templates/sentry/partial/_form.html:14
 msgid "Test Configuration"
@@ -2791,7 +2792,7 @@ msgstr "Sie müssen Ihr aktuelles Passwort bestätigen, um Änderungen vorzunehm
 
 #: web/forms/accounts.py:320
 msgid "Authenticator code"
-msgstr ""
+msgstr "Authenticator-Code"
 
 #: web/forms/accounts.py:323
 msgid "Authenticator or recovery code"
@@ -2879,7 +2880,7 @@ msgstr "Absturzbericht senden"
 #: static/app/views/auth/registerForm.tsx:108
 #: web/frontend/error_page_embed.py:51
 msgid "Jane Bloggs"
-msgstr ""
+msgstr "Jane Bloggs"
 
 #: web/frontend/error_page_embed.py:55
 msgid "jane@example.com"
@@ -2929,7 +2930,7 @@ msgstr "Die Standardrolle, die neuen Mitgliedern zugewiesen wird, wenn sie sich 
 
 #: web/frontend/pipeline_advancer.py:53
 msgid "Invalid request."
-msgstr ""
+msgstr "Ungültige Anfrage."
 
 #: web/frontend/restore_organization.py:13
 msgid "Deletion already canceled."
@@ -2949,28 +2950,28 @@ msgstr "Ungültiger Bestätigungscode. Versuchen Sie es erneut. "
 
 #: static/app/views/settings/projectPerformance/projectPerformance.tsx:111
 msgid "300"
-msgstr ""
+msgstr "300"
 
 #: static/app/actionCreators/dashboards.tsx:100
 msgid "Unable to update dashboard"
-msgstr ""
+msgstr "Das Dashboard konnte nicht aktualisiert werden"
 
 #: static/app/actionCreators/dashboards.tsx:125
 msgid "Unable to delete dashboard"
-msgstr ""
+msgstr "Das Dashboard konnte nicht gelöscht werden"
 
 #: static/app/actionCreators/dashboards.tsx:30
 msgid "Unable to create dashboard"
-msgstr ""
+msgstr "Das Dashboard konnte nicht erstellt werden"
 
 #: static/app/actionCreators/dashboards.tsx:70
 msgid "Unable to load dashboard"
-msgstr ""
+msgstr "Das Dashboard konnte nicht geladen werden"
 
 #: static/app/actionCreators/deployPreview.tsx:16
 #, python-format
 msgid "%s@%s"
-msgstr ""
+msgstr "%s@%s"
 
 #: static/app/actionCreators/deployPreview.tsx:26
 msgid ""
@@ -3022,7 +3023,7 @@ msgstr ""
 #: static/app/actionCreators/integrations.tsx:30
 #, python-format
 msgid "Disabled %s for %s"
-msgstr ""
+msgstr "%s für %s deaktivieren"
 
 #: static/app/actionCreators/integrations.tsx:33
 #, python-format
@@ -3032,7 +3033,7 @@ msgstr ""
 #: static/app/actionCreators/integrations.tsx:55
 #, python-format
 msgid "Enabled %s for %s"
-msgstr ""
+msgstr "%s für %s aktivieren"
 
 #: static/app/actionCreators/integrations.tsx:58
 #, python-format
@@ -3041,7 +3042,7 @@ msgstr ""
 
 #: static/app/actionCreators/integrations.tsx:80
 msgid "Unable to delete repository."
-msgstr ""
+msgstr "Das Repository konnte nicht gelöscht werden."
 
 #: static/app/actionCreators/performance.tsx:105
 msgid "Unable to update key transaction"
@@ -3097,7 +3098,7 @@ msgstr ""
 
 #: static/app/actionCreators/projects.tsx:148
 msgid "[project] was successfully removed"
-msgstr ""
+msgstr "[project] wurde erfolgreich entfernt"
 
 #: static/app/actionCreators/projects.tsx:153
 msgid "Error removing [project]"
@@ -3228,7 +3229,7 @@ msgstr ""
 #: static/app/components/acl/featureDisabled.tsx:15
 #, python-format
 msgid "Enables the %s feature"
-msgstr ""
+msgstr "Aktiviert das feature %s"
 
 #: static/app/components/acl/featureDisabled.tsx:61
 #: static/app/views/settings/projectDebugFiles/sources/customRepositories/index.tsx:291
@@ -3247,7 +3248,7 @@ msgstr ""
 
 #: static/app/components/actions/ignore.tsx:110
 msgid "Number of users"
-msgstr ""
+msgstr "Anzahl der Nutzer"
 
 #: static/app/components/actions/ignore.tsx:121
 msgid ""
@@ -3267,7 +3268,7 @@ msgstr "Ignorieren"
 
 #: static/app/components/actions/ignore.tsx:152
 msgid "For…"
-msgstr ""
+msgstr "Für..."
 
 #: static/app/components/actions/ignore.tsx:176
 #: static/app/components/actions/ignore.tsx:241
@@ -3279,7 +3280,7 @@ msgstr "Benutzerdefiniert"
 
 #: static/app/components/actions/ignore.tsx:186
 msgid "Until this occurs again…"
-msgstr ""
+msgstr "Bis dies wieder auftritt..."
 
 #: static/app/components/actions/ignore.tsx:202
 msgid "one time…"
@@ -3314,15 +3315,15 @@ msgstr[1] ""
 
 #: static/app/components/actions/ignore.tsx:29
 msgid "per hour"
-msgstr ""
+msgstr "pro Stunde"
 
 #: static/app/components/actions/ignore.tsx:30
 msgid "per day"
-msgstr ""
+msgstr "pro Tag"
 
 #: static/app/components/actions/ignore.tsx:31
 msgid "per week"
-msgstr ""
+msgstr "pro Woche"
 
 #: static/app/components/actions/ignore.tsx:72
 msgid "Change status to unresolved"
@@ -3518,7 +3519,7 @@ msgstr "Mitglied einladen"
 #: static/app/components/assigneeSelector.tsx:463
 #: static/app/components/eventOrGroupExtraDetails.tsx:114
 msgid "Assigned to [name]"
-msgstr ""
+msgstr "[name] zugewiesen"
 
 #: static/app/components/assigneeSelector.tsx:485
 msgid "Suggestion: [name]"
@@ -3742,7 +3743,7 @@ msgstr ""
 
 #: static/app/components/assistant/getGuidesContent.tsx:32
 msgid "Deal With It Later, Or Never"
-msgstr ""
+msgstr "Später oder nie darum kümmern"
 
 #: static/app/components/assistant/getGuidesContent.tsx:326
 #: static/app/components/assistant/getGuidesContent.tsx:368
@@ -4119,15 +4120,15 @@ msgstr ""
 #: static/app/components/tag.tsx:84
 #: static/app/views/organizationGroupDetails/quickTrace/configureDistributedTracing.tsx:179
 msgid "Dismiss"
-msgstr ""
+msgstr "Ablehnen"
 
 #: static/app/components/assistant/guideAnchor.tsx:170
 msgid "Enough Already"
-msgstr ""
+msgstr "Es ist genug"
 
 #: static/app/components/assistant/guideAnchor.tsx:170
 msgid "Got It"
-msgstr ""
+msgstr "Verstanden"
 
 #: static/app/components/assistant/guideAnchor.tsx:186
 msgid "[currentStepCount] of [totalStepCount]"
@@ -4139,7 +4140,7 @@ msgstr ""
 
 #: static/app/components/asyncComponentSearchInput.tsx:64
 msgid "Search..."
-msgstr ""
+msgstr "Suchen..."
 
 #: static/app/components/avatarChooser.tsx:111
 msgid "Successfully saved avatar preferences"
@@ -4155,15 +4156,15 @@ msgstr ""
 
 #: static/app/components/avatarChooser.tsx:196
 msgid "Use initials"
-msgstr ""
+msgstr "Initialen verwenden"
 
 #: static/app/components/avatarChooser.tsx:199
 msgid "Upload an image"
-msgstr ""
+msgstr "Ein Bild hochladen"
 
 #: static/app/components/avatarChooser.tsx:202
 msgid "Use Gravatar"
-msgstr ""
+msgstr "Gravatar benutzen"
 
 #: static/app/components/avatarChooser.tsx:206
 msgid "Avatar"
@@ -4199,7 +4200,7 @@ msgstr "Foto ändern"
 
 #: static/app/components/avatarCropper.tsx:75
 msgid "That is not a supported file type."
-msgstr ""
+msgstr "Dies ist kein unterstützter Dateityp."
 
 #: static/app/components/bases/pluginComponentBase.tsx:116
 msgid "Success!"
@@ -4250,7 +4251,7 @@ msgstr ""
 
 #: static/app/components/charts/eventsChart.tsx:218
 msgid "Current"
-msgstr ""
+msgstr "Aktuell"
 
 #: static/app/components/charts/eventsChart.tsx:219
 #: static/app/components/pagination.tsx:68
@@ -4261,7 +4262,7 @@ msgstr "Zurück"
 #: static/app/components/charts/eventsChart.tsx:521
 #, python-format
 msgid "previous %s"
-msgstr ""
+msgstr "vorherige %s"
 
 #: static/app/components/charts/eventsRequest.tsx:260
 #, python-format
@@ -4272,7 +4273,7 @@ msgstr ""
 #: static/app/views/dashboardsV2/widget/metricWidget/statsRequest.tsx:141
 #: static/app/views/projectDetail/charts/projectSessionsChartRequest.tsx:142
 msgid "Error loading chart data"
-msgstr ""
+msgstr "Fehler beim Laden von Diagrammdaten"
 
 #: static/app/components/charts/releaseSeries.tsx:182
 msgid "Error fetching releases"
@@ -4381,7 +4382,7 @@ msgstr ""
 #: static/app/components/contextPickerModal.tsx:314
 #: static/app/views/alerts/issueRuleEditor/ruleNode.tsx:287
 msgid "here"
-msgstr ""
+msgstr "hier"
 
 #: static/app/components/contextPickerModal.tsx:327
 msgid "Select a Project to continue"
@@ -4393,7 +4394,7 @@ msgstr ""
 
 #: static/app/components/contextPickerModal.tsx:421
 msgid "Select an Organization"
-msgstr ""
+msgstr "Wählen Sie eine Organisation aus"
 
 #: static/app/components/createAlertButton.tsx:126
 msgid "An alert can use data from only one Project. Select one and try again."
@@ -4475,7 +4476,7 @@ msgstr "Bitte geben Sie ein Datum in der Zukunft ein."
 
 #: static/app/components/customIgnoreDurationModal.tsx:14
 msgid "Ignore this issue until …"
-msgstr ""
+msgstr "Dieses Problem ignorieren bis..."
 
 #: static/app/components/customIgnoreDurationModal.tsx:86
 msgid "Date"
@@ -4572,11 +4573,11 @@ msgstr ""
 
 #: static/app/components/dataExport.tsx:107
 msgid "We're working on it..."
-msgstr ""
+msgstr "Wir arbeiten daran..."
 
 #: static/app/components/dataExport.tsx:119
 msgid "Export All to CSV"
-msgstr ""
+msgstr "Alles als CSV exportieren"
 
 #: static/app/components/dataExport.tsx:78
 msgid ""
@@ -4835,7 +4836,7 @@ msgstr ""
 
 #: static/app/components/dropdownAutoComplete/menu.tsx:182
 msgid "No items"
-msgstr ""
+msgstr "Keine Einträge"
 
 #: static/app/components/dropdownAutoComplete/menu.tsx:183
 msgid "Filter search"
@@ -4843,7 +4844,7 @@ msgstr "Suche filtern"
 
 #: static/app/components/dropdownAutoComplete/menu.tsx:324
 msgid "found"
-msgstr ""
+msgstr "gefunden"
 
 #: static/app/components/dropdownAutoComplete/menu.tsx:329
 msgid "Searching…"
@@ -4913,7 +4914,7 @@ msgstr ""
 #: static/app/components/errors/detailedError.tsx:80
 #: static/app/components/sidebar/serviceIncidents.tsx:72
 msgid "Service status"
-msgstr ""
+msgstr "Dienststatus"
 
 #: static/app/components/errors/detailedError.tsx:82
 msgid "Contact support"
@@ -4986,7 +4987,7 @@ msgstr "ID"
 
 #: static/app/components/events/contexts/app/getAppKnownDataDetails.tsx:28
 msgid "Start Time"
-msgstr ""
+msgstr "Startzeit"
 
 #: static/app/components/events/contexts/app/getAppKnownDataDetails.tsx:36
 #: static/app/components/events/contexts/chunk.tsx:90
@@ -4996,15 +4997,15 @@ msgstr "Gerät"
 
 #: static/app/components/events/contexts/app/getAppKnownDataDetails.tsx:41
 msgid "Build Type"
-msgstr ""
+msgstr "Buildtyp"
 
 #: static/app/components/events/contexts/app/getAppKnownDataDetails.tsx:46
 msgid "Build ID"
-msgstr ""
+msgstr "Buildnummer"
 
 #: static/app/components/events/contexts/app/getAppKnownDataDetails.tsx:51
 msgid "Build Name"
-msgstr ""
+msgstr "Build-Name"
 
 #: static/app/components/events/contexts/app/getAppKnownDataDetails.tsx:61
 msgid "App Build"
@@ -5035,65 +5036,65 @@ msgstr "Benutzer"
 
 #: static/app/components/events/contexts/chunk.tsx:96
 msgid "Graphics Processing Unit"
-msgstr ""
+msgstr "Grafikprozessor (GPU)"
 
 #: static/app/components/events/contexts/chunk.tsx:98
 msgid "Runtime"
-msgstr ""
+msgstr "Laufzeit"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:106
 msgid "Free Storage"
-msgstr ""
+msgstr "Freier Speicherplatz"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:112
 msgid "Storage Size"
-msgstr ""
+msgstr "Speicherpaltz"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:118
 msgid "External Storage Size"
-msgstr ""
+msgstr "Externer Speicherplatz"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:126
 msgid "External Free Storage"
-msgstr ""
+msgstr "Freier externer Speicherplatz"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:134
 msgid "Simulator"
-msgstr ""
+msgstr "Simulator"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:139
 msgid "Boot Time"
-msgstr ""
+msgstr "Startzeit"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:147
 #: static/app/data/forms/accountPreferences.tsx:42
 msgid "Timezone"
-msgstr ""
+msgstr "Zeitzonen"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:152
 msgid "Device Type"
-msgstr ""
+msgstr "Gerätetyp"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:157
 msgid "Architectures"
-msgstr ""
+msgstr "Architekturen"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:162
 msgid "Brand"
-msgstr ""
+msgstr "Marke"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:167
 msgid "Charging"
-msgstr ""
+msgstr "Lädt"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:172
 msgid "Connection Type"
-msgstr ""
+msgstr "Verbindungstyp"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:177
 #: static/app/components/events/interfaces/threads/threadSelector/header.tsx:7
 msgid "Id"
-msgstr ""
+msgstr "Id"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:182
 #: static/app/data/forms/accountPreferences.tsx:35
@@ -5102,59 +5103,59 @@ msgstr "Sprache"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:187
 msgid "Low Memory"
-msgstr ""
+msgstr "Wenig Speicher"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:192
 msgid "Free Memory"
-msgstr ""
+msgstr "Freier Speicher"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:197
 msgid "Memory Size"
-msgstr ""
+msgstr "Speichergröße"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:202
 msgid "Usable Memory"
-msgstr ""
+msgstr "Nutzbarer Speicher"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:207
 msgid "Manufacturer"
-msgstr ""
+msgstr "Hersteller"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:212
 msgid "Online"
-msgstr ""
+msgstr "Online"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:217
 msgid "Screen Density"
-msgstr ""
+msgstr "Bildschirm Dichte"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:222
 msgid "Screen DPI"
-msgstr ""
+msgstr "Bildschirm DPI"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:227
 msgid "Screen Height Pixels"
-msgstr ""
+msgstr "Pixel Bildschirmhöhe"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:232
 msgid "Screen Resolution"
-msgstr ""
+msgstr "Bildschirmauflösung"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:237
 msgid "Screen Width Pixels"
-msgstr ""
+msgstr "Pixel Bildschirmbreite"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:32
 msgid "Family"
-msgstr ""
+msgstr "Familie"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:37
 msgid "Model Id"
-msgstr ""
+msgstr "Modellbnummer"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:42
 msgid "Model"
-msgstr ""
+msgstr "Model"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:52
 msgid "Rendered Model"
@@ -5162,74 +5163,74 @@ msgstr ""
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:57
 msgid "CPU Description"
-msgstr ""
+msgstr "CPU Beschreibung"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:62
 #: static/app/components/events/interfaces/debugMeta-v2/debugImageDetails/generalInfo.tsx:38
 #: static/app/components/events/interfaces/debugMeta/debugImage.tsx:231
 msgid "Architecture"
-msgstr ""
+msgstr "Architektur"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:67
 msgid "Battery Level"
-msgstr ""
+msgstr "Batteriestand"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:72
 msgid "Battery Status"
-msgstr ""
+msgstr "Batteriezustand"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:77
 msgid "Orientation"
-msgstr ""
+msgstr "Ausrichtung"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:83
 #: static/app/components/events/contexts/gpu/getGPUKnownDataDetails.tsx:25
 msgid "Memory"
-msgstr ""
+msgstr "Speicher"
 
 #: static/app/components/events/contexts/device/getDeviceKnownDataDetails.tsx:93
 msgid "Capacity"
-msgstr ""
+msgstr "Leistung"
 
 #: static/app/components/events/contexts/gpu/getGPUKnownDataDetails.tsx:30
 msgid "NPOT Support"
-msgstr ""
+msgstr "NPOT-Unterstützung"
 
 #: static/app/components/events/contexts/gpu/getGPUKnownDataDetails.tsx:35
 msgid "Multi-Thread rendering"
-msgstr ""
+msgstr "Multi-Thread-Rendering"
 
 #: static/app/components/events/contexts/gpu/getGPUKnownDataDetails.tsx:40
 msgid "API Type"
-msgstr ""
+msgstr "API-Typ"
 
 #: static/app/components/events/contexts/gpu/getGPUKnownDataDetails.tsx:45
 msgid "Vendor ID"
-msgstr ""
+msgstr "Hersteller ID"
 
 #: static/app/components/events/contexts/gpu/getGPUKnownDataDetails.tsx:50
 msgid "GPU ID"
-msgstr ""
+msgstr "GPU ID"
 
 #: static/app/components/events/contexts/operatingSystem/getOperatingSystemKnownDataDetails.tsx:28
 msgid "Kernel Version"
-msgstr ""
+msgstr "Kernel Version"
 
 #: static/app/components/events/contexts/operatingSystem/getOperatingSystemKnownDataDetails.tsx:33
 msgid "Rooted"
-msgstr ""
+msgstr "Rooted"
 
 #: static/app/components/events/contexts/operatingSystem/getOperatingSystemKnownDataDetails.tsx:34
 #: static/app/components/events/interfaces/threads/content.tsx:47
 #: static/app/components/events/interfaces/threadsV2.tsx:119
 msgid "yes"
-msgstr ""
+msgstr "ja"
 
 #: static/app/components/events/contexts/operatingSystem/getOperatingSystemKnownDataDetails.tsx:34
 #: static/app/components/events/interfaces/threads/content.tsx:47
 #: static/app/components/events/interfaces/threadsV2.tsx:119
 msgid "no"
-msgstr ""
+msgstr "nein"
 
 #: static/app/components/events/contexts/redux.tsx:20
 msgid "Latest State"
@@ -5248,7 +5249,7 @@ msgstr ""
 #: static/app/views/settings/project/filtersAndSampling/modal/transactionRuleModal.tsx:131
 #: static/app/views/settings/project/filtersAndSampling/utils.tsx:69
 msgid "Transaction"
-msgstr ""
+msgstr "Transaktion"
 
 #: static/app/components/events/contexts/trace/getTraceKnownDataDetails.tsx:115
 #: static/app/views/performance/traceDetails/transactionDetail.tsx:111
@@ -5301,7 +5302,7 @@ msgstr "Status"
 #: static/app/views/settings/project/filtersAndSampling/utils.tsx:75
 #: static/app/views/settings/project/projectFilters/projectFiltersChart.tsx:37
 msgid "IP Address"
-msgstr ""
+msgstr "IP Adresse"
 
 #: static/app/components/events/contexts/utils.tsx:58
 msgid "before this event"
@@ -5336,7 +5337,7 @@ msgstr "Version:"
 
 #: static/app/components/events/contextSummary/contextSummaryGPU.tsx:31
 msgid "Unknown GPU"
-msgstr ""
+msgstr "Unbekannte GPU"
 
 #: static/app/components/events/contextSummary/contextSummaryGPU.tsx:46
 #: static/app/components/events/contextSummary/contextSummaryGPU.tsx:53
@@ -5439,7 +5440,7 @@ msgstr "Löschen"
 #: static/app/components/events/interfaces/debugMeta-v2/debugImageDetails/candidate/actions.tsx:26
 #: static/app/views/settings/projectDebugFiles/debugFileRow.tsx:126
 msgid "Are you sure you wish to delete this file?"
-msgstr ""
+msgstr "Sind Sie sicher, dass Sie diese Datei löschen möchten?"
 
 #: static/app/components/events/eventAttachmentActions.tsx:50
 msgid "Insufficient permissions to delete attachments"
@@ -5460,7 +5461,7 @@ msgstr ""
 #: static/app/components/events/traceEventDataSection/index.tsx:145
 #: static/app/views/settings/projectDebugFiles/debugFileRow.tsx:113
 msgid "Download"
-msgstr ""
+msgstr "Herunterladen"
 
 #: static/app/components/events/eventAttachmentActions.tsx:72
 msgid "Insufficient permissions to preview attachments"
@@ -5473,7 +5474,7 @@ msgstr ""
 #: static/app/components/events/eventAttachments.tsx:107
 #, python-format
 msgid "Attachments (%s)"
-msgstr ""
+msgstr "Anhänge (%s)"
 
 #: static/app/components/events/eventAttachments.tsx:127
 msgid "File Name"
@@ -5543,11 +5544,11 @@ msgstr ""
 #: static/app/views/settings/project/projectUserFeedback.tsx:84
 #: static/app/views/userFeedback/userFeedbackEmpty.tsx:107
 msgid "Read the docs"
-msgstr ""
+msgstr "Lesen Sie die Dokumentation"
 
 #: static/app/components/events/eventCauseEmpty.tsx:182
 msgid "Remind me next week"
-msgstr ""
+msgstr "Erinnere mich nächste Woche"
 
 #: static/app/components/events/eventCauseEmpty.tsx:191
 #: static/app/views/organizationGroupDetails/quickTrace/configureDistributedTracing.tsx:166
@@ -5557,7 +5558,7 @@ msgstr "Schlummermodus"
 #: static/app/components/events/eventCauseEmpty.tsx:194
 #: static/app/views/organizationGroupDetails/quickTrace/configureDistributedTracing.tsx:169
 msgid "Dismiss for this project"
-msgstr ""
+msgstr "Für dieses Projekt ablehnen"
 
 #: static/app/components/events/eventCauseEmpty.tsx:78
 msgid "This example commit broke something"
@@ -5594,7 +5595,7 @@ msgstr "Zusätzliche Daten"
 
 #: static/app/components/events/eventExtraData/getEventExtraDataKnownDataDetails.tsx:19
 msgid "Crashed Process"
-msgstr ""
+msgstr "Abgestürzter Prozess"
 
 #: static/app/components/events/eventMetadata.tsx:30
 #: static/app/views/performance/transactionDetails/eventMetas.tsx:103
@@ -5668,11 +5669,11 @@ msgstr ""
 
 #: static/app/components/events/groupingInfo/groupingComponentFrames.tsx:57
 msgid "show [numberOfFrames] similiar"
-msgstr ""
+msgstr "zeige [numberOfFrames] ähnliche"
 
 #: static/app/components/events/groupingInfo/groupingComponentFrames.tsx:76
 msgid "collapse [numberOfFrames] similiar"
-msgstr ""
+msgstr "klappe [numberOfFrames] ähnliche ein"
 
 #: static/app/components/events/groupingInfo/groupingConfigSelect.tsx:54
 msgid "Click here to experiment with other grouping configs"
@@ -5680,7 +5681,7 @@ msgstr ""
 
 #: static/app/components/events/groupingInfo/groupingVariant.tsx:106
 msgid "Hash mismatch"
-msgstr ""
+msgstr "Unterschiedliche Hash-Werte"
 
 #: static/app/components/events/groupingInfo/groupingVariant.tsx:107
 msgid "hashing algorithm produced a hash that does not match the event"
@@ -5706,7 +5707,7 @@ msgstr ""
 #: static/app/components/events/groupingInfo/groupingVariant.tsx:162
 #: static/app/data/forms/projectIssueGrouping.tsx:17
 msgid "Grouping Config"
-msgstr ""
+msgstr "Gruppierungskonfiguration"
 
 #: static/app/components/events/groupingInfo/groupingVariant.tsx:139
 msgid "Overrides the default grouping by a custom fingerprinting rule"
@@ -5721,11 +5722,11 @@ msgstr ""
 #: static/app/components/events/groupingInfo/groupingVariant.tsx:171
 #: static/app/views/organizationGroupDetails/header.tsx:325
 msgid "Grouping"
-msgstr ""
+msgstr "Gruppierung"
 
 #: static/app/components/events/groupingInfo/groupingVariant.tsx:190
 msgid "Contributing variant"
-msgstr ""
+msgstr "Beitragende Variante"
 
 #: static/app/components/events/groupingInfo/groupingVariant.tsx:194
 #, python-format
@@ -5734,23 +5735,23 @@ msgstr ""
 
 #: static/app/components/events/groupingInfo/groupingVariant.tsx:196
 msgid "Non-contributing variant"
-msgstr ""
+msgstr "Nicht beitragende Variante"
 
 #: static/app/components/events/groupingInfo/groupingVariant.tsx:204
 msgid "By"
-msgstr ""
+msgstr "Von"
 
 #: static/app/components/events/groupingInfo/groupingVariant.tsx:208
 msgid "Nothing"
-msgstr ""
+msgstr "Nichts"
 
 #: static/app/components/events/groupingInfo/groupingVariant.tsx:220
 msgid "Contributing values"
-msgstr ""
+msgstr "Beitragende Werte"
 
 #: static/app/components/events/groupingInfo/groupingVariant.tsx:223
 msgid "All values"
-msgstr ""
+msgstr "Alle Werte"
 
 #: static/app/components/events/groupingInfo/groupingVariant.tsx:37
 msgid "Fingerprint rule"
@@ -5762,7 +5763,7 @@ msgstr ""
 
 #: static/app/components/events/groupingInfo/groupingVariant.tsx:49
 msgid "Fingerprint values"
-msgstr ""
+msgstr "Fingerabdruck-Werte"
 
 #: static/app/components/events/groupingInfo/groupingVariant.tsx:53
 msgid "Client fingerprint values"
@@ -5777,11 +5778,11 @@ msgstr ""
 #: static/app/components/events/groupingInfo/groupingVariant.tsx:92
 #: static/app/views/settings/components/dataScrubbing/utils.tsx:47
 msgid "Hash"
-msgstr ""
+msgstr "Hash"
 
 #: static/app/components/events/groupingInfo/groupingVariant.tsx:98
 msgid "Events with the same hash are grouped together"
-msgstr ""
+msgstr "Ereignisse mit demselben Hash werden gruppiert"
 
 #: static/app/components/events/groupingInfo/index.tsx:139
 msgid "Event Grouping Information"
@@ -5789,27 +5790,27 @@ msgstr ""
 
 #: static/app/components/events/groupingInfo/index.tsx:146
 msgid "Hide Details"
-msgstr ""
+msgstr "Details verbergen"
 
 #: static/app/components/events/groupingInfo/index.tsx:146
 msgid "Show Details"
-msgstr ""
+msgstr "Details anzeigen"
 
 #: static/app/components/events/groupingInfo/index.tsx:75
 msgid "grouped by"
-msgstr ""
+msgstr "gruppiert nach"
 
 #: static/app/components/events/groupingInfo/index.tsx:76
 msgid "nothing"
-msgstr ""
+msgstr "nichts"
 
 #: static/app/components/events/interfaces/breadcrumbs/breadcrumb/category.tsx:14
 msgid "generic"
-msgstr ""
+msgstr "generisch"
 
 #: static/app/components/events/interfaces/breadcrumbs/breadcrumb/data/http.tsx:37
 msgid "Invalid URL"
-msgstr ""
+msgstr "Ungültige URL"
 
 #: static/app/components/events/interfaces/breadcrumbs/breadcrumb/data/linkedEvent.tsx:71
 #: static/app/components/events/interfaces/breadcrumbs/breadcrumb/data/linkedEvent.tsx:100
@@ -5841,7 +5842,7 @@ msgstr ""
 
 #: static/app/components/events/interfaces/breadcrumbs/breadcrumbs.tsx:131
 msgid "Category"
-msgstr ""
+msgstr "Kategorie"
 
 #: static/app/components/events/interfaces/breadcrumbs/breadcrumbs.tsx:133
 msgid "Level"
@@ -5850,12 +5851,12 @@ msgstr "Stufe"
 #: static/app/components/events/interfaces/breadcrumbs/breadcrumbs.tsx:138
 #: static/app/components/events/interfaces/frame/togglableAddress.tsx:79
 msgid "Switch to absolute"
-msgstr ""
+msgstr "Umschalten auf absolut"
 
 #: static/app/components/events/interfaces/breadcrumbs/breadcrumbs.tsx:138
 #: static/app/components/events/interfaces/frame/togglableAddress.tsx:79
 msgid "Switch to relative"
-msgstr ""
+msgstr "Umschalten auf relativ"
 
 #: static/app/components/events/interfaces/breadcrumbs/breadcrumbs.tsx:144
 #: static/app/views/settings/organizationAuditLog/auditLogList.tsx:64
@@ -5897,7 +5898,7 @@ msgstr ""
 
 #: static/app/components/events/interfaces/breadcrumbs/utils.tsx:101
 msgid "HTTP request"
-msgstr ""
+msgstr "HTTP-Anfrage"
 
 #: static/app/components/events/interfaces/breadcrumbs/utils.tsx:117
 msgid "System"
@@ -5905,7 +5906,7 @@ msgstr "System"
 
 #: static/app/components/events/interfaces/breadcrumbs/utils.tsx:122
 msgid "Session"
-msgstr ""
+msgstr "Sitzung"
 
 #: static/app/components/events/interfaces/breadcrumbs/utils.tsx:132
 #: static/app/views/settings/account/notifications/fields.tsx:22
@@ -5913,19 +5914,19 @@ msgstr ""
 #: static/app/views/settings/account/notifications/fields.tsx:51
 #: static/app/views/settings/account/notifications/utils.tsx:407
 msgid "Default"
-msgstr ""
+msgstr "Standard"
 
 #: static/app/components/events/interfaces/breadcrumbs/utils.tsx:71
 msgid "User Action"
-msgstr ""
+msgstr "Benutzer Aktion"
 
 #: static/app/components/events/interfaces/breadcrumbs/utils.tsx:77
 msgid "Navigation"
-msgstr ""
+msgstr "Navigation"
 
 #: static/app/components/events/interfaces/breadcrumbs/utils.tsx:83
 msgid "Debug"
-msgstr ""
+msgstr "Debug"
 
 #: static/app/components/events/interfaces/crashContent/exception/mechanism.tsx:69
 msgid "code"
@@ -5941,7 +5942,7 @@ msgstr ""
 
 #: static/app/components/events/interfaces/crashContent/exception/title.tsx:16
 msgid "from [exceptionModule]"
-msgstr ""
+msgstr "von [exceptionModule]"
 
 #: static/app/components/events/interfaces/crashContent/stackTrace/content.tsx:52
 #: static/app/components/events/interfaces/crashContent/stackTrace/contentV2.tsx:108
@@ -6449,7 +6450,7 @@ msgstr ""
 
 #: static/app/components/events/interfaces/debugMeta/debugImage.tsx:200
 msgid "Availability"
-msgstr ""
+msgstr "Verfügbarkeit"
 
 #: static/app/components/events/interfaces/debugMeta/debugImage.tsx:250
 msgid "Search for debug files in settings"
@@ -6457,19 +6458,19 @@ msgstr ""
 
 #: static/app/components/events/interfaces/debugMeta/debugImage.tsx:26
 msgid "ok"
-msgstr ""
+msgstr "ok"
 
 #: static/app/components/events/interfaces/debugMeta/debugImage.tsx:28
 msgid "unused"
-msgstr ""
+msgstr "unbenutzt"
 
 #: static/app/components/events/interfaces/debugMeta/debugImage.tsx:30
 msgid "missing"
-msgstr ""
+msgstr "fehlend"
 
 #: static/app/components/events/interfaces/debugMeta/debugImage.tsx:35
 msgid "failed"
-msgstr ""
+msgstr "fehlgeschlagen"
 
 #: static/app/components/events/interfaces/debugMeta/debugImage.tsx:44
 msgid "Debug information for this image was found and successfully processed."
@@ -6497,11 +6498,11 @@ msgstr ""
 
 #: static/app/components/events/interfaces/debugMeta/imageForBar.tsx:21
 msgid "Image for: "
-msgstr ""
+msgstr "Bild für: "
 
 #: static/app/components/events/interfaces/debugMeta/imageForBar.tsx:25
 msgid "Show all images"
-msgstr ""
+msgstr "Alle Bilder anzeigen"
 
 #: static/app/components/events/interfaces/debugMeta/index.tsx:278
 msgid "No loaded images available."
@@ -6514,19 +6515,19 @@ msgstr ""
 
 #: static/app/components/events/interfaces/debugMeta/index.tsx:290
 msgid "Sorry, no images match your query."
-msgstr ""
+msgstr "Leider passen keine Bilder zu Ihrer Anfrage."
 
 #: static/app/components/events/interfaces/debugMeta/index.tsx:299
 msgid "details"
-msgstr ""
+msgstr "details"
 
 #: static/app/components/events/interfaces/debugMeta/index.tsx:308
 msgid "show unreferenced"
-msgstr ""
+msgstr "nicht referenzierte anzeigen"
 
 #: static/app/components/events/interfaces/debugMeta/index.tsx:314
 msgid "Search images…"
-msgstr ""
+msgstr "Bilder suchen..."
 
 #: static/app/components/events/interfaces/frame/assembly.tsx:28
 msgid "Culture"
@@ -6552,7 +6553,7 @@ msgstr "in Zeile"
 
 #: static/app/components/events/interfaces/frame/defaultTitle/index.tsx:178
 msgid "within"
-msgstr ""
+msgstr "innerhalb"
 
 #: static/app/components/events/interfaces/frame/defaultTitle/originalSourceInfo.tsx:20
 msgid "Source Map"
@@ -6560,7 +6561,7 @@ msgstr "Quellzuordnung"
 
 #: static/app/components/events/interfaces/frame/frameRegisters/index.tsx:28
 msgid "registers"
-msgstr ""
+msgstr "registriert"
 
 #: static/app/components/events/interfaces/frame/frameRegisters/value.tsx:10
 msgid "Hexadecimal"
@@ -6781,7 +6782,7 @@ msgstr[1] ""
 #: static/app/components/events/interfaces/searchBarAction/dropDownButton.tsx:36
 #: static/app/views/settings/organizationMembers/components/membersFilter.tsx:74
 msgid "Filter By"
-msgstr ""
+msgstr "Filtern nach "
 
 #: static/app/components/events/interfaces/spans/filter.tsx:115
 #: static/app/views/performance/transactionSummary/filter.tsx:111
@@ -6871,7 +6872,7 @@ msgstr ""
 
 #: static/app/components/events/interfaces/spans/spanDetail.tsx:141
 msgid "View Children"
-msgstr ""
+msgstr "Kinder-Elemente anzeigen"
 
 #: static/app/components/events/interfaces/spans/spanDetail.tsx:178
 #: static/app/views/performance/traceDetails/transactionDetail.tsx:94
@@ -6899,7 +6900,7 @@ msgstr[1] ""
 
 #: static/app/components/events/interfaces/spans/spanDetail.tsx:94
 msgid "No Children"
-msgstr ""
+msgstr "Keine Kinder-Elemente"
 
 #: static/app/components/events/interfaces/spans/spanGroupBar.tsx:188
 msgid "Autogrouped "
@@ -6949,22 +6950,22 @@ msgstr "Vorlage"
 #: static/app/components/events/interfaces/threads/content.tsx:43
 #: static/app/components/events/interfaces/threadsV2.tsx:114
 msgid "id"
-msgstr ""
+msgstr "id"
 
 #: static/app/components/events/interfaces/threads/content.tsx:45
 #: static/app/components/events/interfaces/threadsV2.tsx:116
 msgid "was active"
-msgstr ""
+msgstr "war aktiv"
 
 #: static/app/components/events/interfaces/threads/content.tsx:46
 #: static/app/components/events/interfaces/threadsV2.tsx:118
 msgid "errored"
-msgstr ""
+msgstr "fehlerhafte"
 
 #: static/app/components/events/interfaces/threads/content.tsx:53
 #: static/app/components/events/interfaces/threadsV2.tsx:185
 msgid "Thread Errored"
-msgstr ""
+msgstr "Prozess fehlgeschlagen"
 
 #: static/app/components/events/interfaces/threads/threadSelector/header.tsx:10
 msgid "Filename"
@@ -6977,7 +6978,7 @@ msgstr "Bezeichnung"
 
 #: static/app/components/events/interfaces/threads/threadSelector/index.tsx:75
 msgid "Filter Threads"
-msgstr ""
+msgstr "Prozesse filtern"
 
 #: static/app/components/events/interfaces/threads/threadSelector/index.tsx:76
 msgid "You have no threads"
@@ -6992,7 +6993,7 @@ msgstr ""
 #: static/app/components/events/interfaces/threads/threadSelector/selectedOption.tsx:20
 #: static/app/views/releases/detail/utils.tsx:62
 msgid "unknown"
-msgstr ""
+msgstr "unbekannte"
 
 #: static/app/components/events/interfaces/threads/threadSelector/option.tsx:65
 msgid "Errored with [crashedInfo]"
@@ -7000,7 +7001,7 @@ msgstr ""
 
 #: static/app/components/events/interfaces/threads/threadSelector/selectedOption.tsx:19
 msgid "Thread #[id]:"
-msgstr ""
+msgstr "Prozess #[id]:"
 
 #: static/app/components/events/meta/annotatedText/index.tsx:63
 #, python-format
@@ -7019,7 +7020,7 @@ msgstr ""
 #: static/app/components/events/meta/annotatedText/utils.tsx:27
 #, python-format
 msgid "%s because of %s"
-msgstr ""
+msgstr "%s aufgrund von %s"
 
 #: static/app/components/events/meta/annotatedText/valueElement.tsx:25
 #: static/app/components/tagsTable.tsx:70
@@ -7177,7 +7178,7 @@ msgstr ""
 #: static/app/components/eventTitleError.tsx:9
 #: static/app/components/events/interfaces/frame/functionName.tsx:52
 msgid "<unknown>"
-msgstr ""
+msgstr "<unknown>"
 
 #: static/app/components/externalIssues/abstractExternalIssueForm.tsx:180
 msgid "This is your current [label]."
@@ -7202,15 +7203,15 @@ msgstr ""
 
 #: static/app/components/featureBadge.tsx:27
 msgid "alpha"
-msgstr ""
+msgstr "Alpha"
 
 #: static/app/components/featureBadge.tsx:28
 msgid "beta"
-msgstr ""
+msgstr "Beta"
 
 #: static/app/components/featureBadge.tsx:29
 msgid "new"
-msgstr ""
+msgstr "Neu"
 
 #: static/app/components/footer.tsx:40
 msgid "Terms of Use"
@@ -9577,7 +9578,7 @@ msgstr "Nachricht protokollieren"
 
 #: static/app/components/similarScoreCard.tsx:14
 msgid "Exception Type"
-msgstr "Exception-Typ"
+msgstr "Exception Type"
 
 #: static/app/components/similarScoreCard.tsx:8
 #: static/app/components/similarScoreCard.tsx:15
@@ -9786,7 +9787,7 @@ msgstr "Keine aktuellen Daten."
 #: static/app/components/tagsTable.tsx:24
 #: static/app/views/organizationGroupDetails/groupTagValues.tsx:231
 msgid "Tag Details"
-msgstr "Tag-Details"
+msgstr "Tag Details"
 
 #: static/app/components/tagsTable.tsx:84
 msgid "This tag is in the current filter conditions"
@@ -9800,15 +9801,15 @@ msgstr ""
 
 #: static/app/components/teams/createTeamForm.tsx:43
 msgid "Team Name"
-msgstr "Teamname"
+msgstr "Team Name"
 
 #: static/app/components/teams/createTeamForm.tsx:44
 msgid "e.g. operations, web-frontend, desktop"
-msgstr ""
+msgstr "z.B. betrieb, web-frontend, desktop"
 
 #: static/app/components/teams/createTeamForm.tsx:45
 msgid "May contain lowercase letters, numbers, dashes and underscores."
-msgstr ""
+msgstr "Darf Kleinbuchstaben, Zahlen, Bindestriche und Unterstriche enthalten."
 
 #: static/app/components/timeSince.tsx:164
 #, python-format
@@ -16049,7 +16050,7 @@ msgstr "Betroffene Benutzer"
 #: static/app/views/performance/transactionSummary/transactionVitals/vitalCard.tsx:407
 #: static/app/views/settings/project/projectKeys/details/keyRateLimitsForm.tsx:176
 msgid "Count"
-msgstr ""
+msgstr "Anzahl"
 
 #: static/app/views/organizationGroupDetails/groupTagValues.tsx:238
 msgid "Export Page to CSV"
@@ -20896,7 +20897,7 @@ msgstr ""
 
 #: static/app/views/settings/organizationDeveloperSettings/sentryApplicationDetails.tsx:372
 msgid "Default logo"
-msgstr ""
+msgstr "Standard Logo"
 
 #: static/app/views/settings/organizationDeveloperSettings/sentryApplicationDetails.tsx:372
 msgid "Default small icon"
@@ -20912,7 +20913,7 @@ msgstr ""
 
 #: static/app/views/settings/organizationDeveloperSettings/sentryApplicationDetails.tsx:45
 msgid "Default Logo"
-msgstr ""
+msgstr "Standard Logo"
 
 #: static/app/views/settings/organizationDeveloperSettings/sentryApplicationDetails.tsx:46
 msgid "The default icon for integrations"
@@ -20924,7 +20925,7 @@ msgstr ""
 
 #: static/app/views/settings/organizationDeveloperSettings/sentryApplicationDetails.tsx:51
 msgid "Default Icon"
-msgstr ""
+msgstr "Standard Icon"
 
 #: static/app/views/settings/organizationDeveloperSettings/sentryApplicationDetails.tsx:52
 msgid "This is a silhouette icon used only for [uiDocs:UI Components]"
@@ -20942,7 +20943,7 @@ msgstr "Arbeitsplatz"
 
 #: static/app/views/settings/organizationDeveloperSettings/sentryApplicationRow/actionButtons.tsx:51
 msgid "Publish"
-msgstr ""
+msgstr "Veröffentlicht"
 
 #: static/app/views/settings/organizationDeveloperSettings/sentryApplicationRow/sentryApplicationRowButtons.tsx:31
 msgid "Published integrations cannot be re-published."
@@ -21002,11 +21003,11 @@ msgstr ""
 
 #: static/app/views/settings/organizationMembers/components/membersFilter.tsx:112
 msgid "SSO Linked"
-msgstr ""
+msgstr "SSO verknüpft"
 
 #: static/app/views/settings/organizationMembers/components/membersFilter.tsx:78
 msgid "User Role"
-msgstr ""
+msgstr "Benutzerrolle"
 
 #: static/app/views/settings/organizationMembers/components/membersFilter.tsx:98
 msgid "Invited"
@@ -21045,44 +21046,44 @@ msgstr ""
 
 #: static/app/views/settings/organizationMembers/organizationMemberDetail.tsx:104
 msgid "Saved"
-msgstr ""
+msgstr "Gespeichert"
 
 #: static/app/views/settings/organizationMembers/organizationMemberDetail.tsx:108
 msgid "Could not save..."
-msgstr ""
+msgstr "Konnte nicht gespeichert werden..."
 
 #: static/app/views/settings/organizationMembers/organizationMemberDetail.tsx:117
 msgid "Sending invite..."
-msgstr ""
+msgstr "Einladung wird gesendet..."
 
 #: static/app/views/settings/organizationMembers/organizationMemberDetail.tsx:128
 msgid "Sent invite!"
-msgstr ""
+msgstr "Einladung wurde gesendet!"
 
 #: static/app/views/settings/organizationMembers/organizationMemberDetail.tsx:134
 msgid "Could not send invite"
-msgstr ""
+msgstr "Die Einladung konnte nicht gesendet werden"
 
 #: static/app/views/settings/organizationMembers/organizationMemberDetail.tsx:170
 msgid "All authenticators have been removed"
-msgstr ""
+msgstr "Alle Authentifikatoren wurden entfernt"
 
 #: static/app/views/settings/organizationMembers/organizationMemberDetail.tsx:172
 msgid "Error removing authenticators"
-msgstr ""
+msgstr "Fehler beim Entfernen des Authentifikators"
 
 #: static/app/views/settings/organizationMembers/organizationMemberDetail.tsx:222
 #: static/app/views/settings/organizationMembers/organizationMemberRow.tsx:85
 msgid "Deactivated"
-msgstr ""
+msgstr "Deaktiviert"
 
 #: static/app/views/settings/organizationMembers/organizationMemberDetail.tsx:227
 msgid "Invitation Expired"
-msgstr ""
+msgstr "Einladung abgelaufen"
 
 #: static/app/views/settings/organizationMembers/organizationMemberDetail.tsx:230
 msgid "Invitation Pending"
-msgstr ""
+msgstr "Einladung ausstehend"
 
 #: static/app/views/settings/organizationMembers/organizationMemberDetail.tsx:257
 msgid "Member Settings"
@@ -21115,7 +21116,7 @@ msgstr "Einladung erneut senden"
 #: static/app/views/settings/organizationMembers/organizationMemberDetail.tsx:327
 #: static/app/views/settings/organizationMembers/organizationMemberDetail.tsx:347
 msgid "Reset two-factor authentication"
-msgstr ""
+msgstr "Zwei Faktor Authentifizierung zurücksetzen"
 
 #: static/app/views/settings/organizationMembers/organizationMemberDetail.tsx:328
 msgid ""
@@ -21127,15 +21128,15 @@ msgstr ""
 msgid ""
 "Are you sure you want to disable all two-factor authentication methods for "
 "[name]?"
-msgstr ""
+msgstr "Sind Sie sicher, dass sie alle Zwei Faktor Authentifizierungen für [name] entfernen wollen?"
 
 #: static/app/views/settings/organizationMembers/organizationMemberDetail.tsx:37
 msgid "Cannot be reset since user is in more than one organization"
-msgstr ""
+msgstr "Kann nicht zurückgesetzt werden, da der Benutzer in mehr als einer Organisation existiert"
 
 #: static/app/views/settings/organizationMembers/organizationMemberDetail.tsx:38
 msgid "Not enrolled in two-factor authentication"
-msgstr ""
+msgstr "Nicht für die Zwei-Faktor-Authentifizierung angemeldet"
 
 #: static/app/views/settings/organizationMembers/organizationMemberDetail.tsx:384
 msgid "Save Member"
@@ -21155,7 +21156,7 @@ msgstr ""
 
 #: static/app/views/settings/organizationMembers/organizationMemberRow.tsx:150
 msgid "Sent!"
-msgstr ""
+msgstr "Gesendet!"
 
 #: static/app/views/settings/organizationMembers/organizationMemberRow.tsx:158
 msgid "Resend invite"
@@ -21163,15 +21164,15 @@ msgstr "Einladung erneut senden"
 
 #: static/app/views/settings/organizationMembers/organizationMemberRow.tsx:158
 msgid "Resend SSO link"
-msgstr ""
+msgstr "SSO Link erneut senden"
 
 #: static/app/views/settings/organizationMembers/organizationMemberRow.tsx:169
 msgid "2FA Enabled"
-msgstr ""
+msgstr "2FA aktiviert"
 
 #: static/app/views/settings/organizationMembers/organizationMemberRow.tsx:169
 msgid "2FA Not Enabled"
-msgstr ""
+msgstr "2FA nicht aktiviert"
 
 #: static/app/views/settings/organizationMembers/organizationMemberRow.tsx:178
 msgid "Are you sure you want to remove [name] from [orgName]?"
@@ -21197,11 +21198,11 @@ msgstr ""
 
 #: static/app/views/settings/organizationMembers/organizationMemberRow.tsx:91
 msgid "Expired Invite"
-msgstr ""
+msgstr "Abgelaufene Einladung"
 
 #: static/app/views/settings/organizationMembers/organizationMemberRow.tsx:91
 msgid "Invited [roleName]"
-msgstr ""
+msgstr "Eingeladen [roleName]"
 
 #: static/app/views/settings/organizationMembers/organizationMembersList.tsx:117
 msgid "Error removing [name] from [orgName]"
@@ -21225,23 +21226,23 @@ msgstr "Fehler beim Senden der Einladung"
 
 #: static/app/views/settings/organizationMembers/organizationMembersList.tsx:222
 msgid "[email] has been invited"
-msgstr ""
+msgstr "[email] wurde eingeladen"
 
 #: static/app/views/settings/organizationMembers/organizationMembersList.tsx:223
 msgid "Error inviting [email]"
-msgstr ""
+msgstr "Fehler beim einladen von [email]"
 
 #: static/app/views/settings/organizationMembers/organizationMembersList.tsx:233
 msgid "Invite request for [email] denied"
-msgstr ""
+msgstr "Die Einladungsanfrage für [email] wurde abgelehnt"
 
 #: static/app/views/settings/organizationMembers/organizationMembersList.tsx:236
 msgid "Error denying invite request for [email]"
-msgstr ""
+msgstr "Es ist ein Fehler beim Ablehnen der Einladungsanfrage für [email] aufgetreten"
 
 #: static/app/views/settings/organizationMembers/organizationMembersList.tsx:290
 msgid "Search Members"
-msgstr ""
+msgstr "Mitglieder suchen"
 
 #: static/app/views/settings/organizationMembers/organizationMembersList.tsx:302
 msgid "Pending Members"
@@ -22868,11 +22869,11 @@ msgstr ""
 #: static/app/views/settings/projectAlerts/settings.tsx:84
 #: static/app/views/settings/projectAlerts/settings.tsx:101
 msgid "Alerts Settings"
-msgstr ""
+msgstr "Alarm Einstellungen"
 
 #: static/app/views/settings/projectAlerts/settings.tsx:110
 msgid "View Alert Rules"
-msgstr ""
+msgstr "Alarm Regeln anzeigen"
 
 #: static/app/views/settings/projectAlerts/settings.tsx:116
 msgid ""
@@ -22915,7 +22916,7 @@ msgstr ""
 
 #: static/app/views/settings/projectDataForwarding.tsx:55
 msgid "Forwarded"
-msgstr ""
+msgstr "Weitergeleitet"
 
 #: static/app/views/settings/projectDataForwarding.tsx:63
 msgid "Forwarded events in the last 30 days (by day)"
@@ -22931,19 +22932,19 @@ msgstr "Ereignisse insgesamt, die an Integrationen von Drittparteien weitergelei
 
 #: static/app/views/settings/projectDebugFiles/debugFileRow.tsx:105
 msgid "You do not have permission to download debug files."
-msgstr ""
+msgstr "Sie verfügen über keine Berechtigung zum Herunterladen von Debug-Dateien."
 
 #: static/app/views/settings/projectDebugFiles/debugFileRow.tsx:122
 msgid "You do not have permission to delete debug files."
-msgstr ""
+msgstr "Sie verfügen nicht über die Berechtigung, Debug-Dateien zu löschen."
 
 #: static/app/views/settings/projectDebugFiles/index.tsx:118
 msgid "An error occurred while fetching project data"
-msgstr ""
+msgstr "Es ist ein Fehler beim Abrufen der Projektdaten aufgetreten"
 
 #: static/app/views/settings/projectDebugFiles/index.tsx:130
 msgid "There are no debug symbols that match your search."
-msgstr ""
+msgstr "Es konnten keine Debug-Symbole, die Ihrer Suche entsprechen gefunden werden"
 
 #: static/app/views/settings/projectDebugFiles/index.tsx:133
 msgid "There are no debug symbols for this project."
@@ -22964,7 +22965,7 @@ msgstr ""
 
 #: static/app/views/settings/projectDebugFiles/index.tsx:214
 msgid "show details"
-msgstr ""
+msgstr "Detail anzeigen"
 
 #: static/app/views/settings/projectDebugFiles/index.tsx:218
 msgid "Search DIFs"
@@ -22978,11 +22979,11 @@ msgstr ""
 
 #: static/app/views/settings/projectDebugFiles/sources/builtInRepositories.tsx:103
 msgid "Select built-in repository"
-msgstr ""
+msgstr "Integriertes Repository auswählen"
 
 #: static/app/views/settings/projectDebugFiles/sources/builtInRepositories.tsx:14
 msgid "Built-in Repositories"
-msgstr ""
+msgstr "Integrierte Repositories"
 
 #: static/app/views/settings/projectDebugFiles/sources/builtInRepositories.tsx:42
 msgid "This field requires at least one built-in repository"
@@ -23375,12 +23376,12 @@ msgstr ""
 
 #: static/app/views/settings/projectProguard/projectProguard.tsx:156
 msgid "Mapping"
-msgstr ""
+msgstr "Zuordnung"
 
 #: static/app/views/settings/projectProguard/projectProguard.tsx:157
 #: static/app/views/settings/projectSourceMaps/detail/index.tsx:211
 msgid "File Size"
-msgstr ""
+msgstr "Dateigröße"
 
 #: static/app/views/settings/projectProguard/projectProguard.tsx:90
 msgid "There are no mappings that match your search."
@@ -23388,33 +23389,33 @@ msgstr ""
 
 #: static/app/views/settings/projectProguard/projectProguard.tsx:93
 msgid "There are no mappings for this project."
-msgstr ""
+msgstr "Es existieren keine Zuordnungen für dieses Projekt."
 
 #: static/app/views/settings/projectProguard/projectProguardRow.tsx:34
 #: static/app/views/settings/projectSourceMaps/detail/sourceMapsArtifactRow.tsx:40
 msgid "empty"
-msgstr ""
+msgstr "leer"
 
 #: static/app/views/settings/projectProguard/projectProguardRow.tsx:48
 msgid "You do not have permission to download mappings."
-msgstr ""
+msgstr "Sie verfügen nicht über die Berechtigung, um Zuordnungen herunterzuladen."
 
 #: static/app/views/settings/projectProguard/projectProguardRow.tsx:56
 msgid "Download Mapping"
-msgstr ""
+msgstr "Zuordnung herunterladen"
 
 #: static/app/views/settings/projectProguard/projectProguardRow.tsx:66
 msgid "You do not have permission to delete mappings."
-msgstr ""
+msgstr "Sie verfügen nicht über die Berechtigung, Zuordnungen zu löschen."
 
 #: static/app/views/settings/projectProguard/projectProguardRow.tsx:69
 msgid "Are you sure you want to remove this mapping?"
-msgstr ""
+msgstr "Sind Sie sicher, dass Sie diese Zuordnung wirklich löschen wollen?"
 
 #: static/app/views/settings/projectProguard/projectProguardRow.tsx:76
 #: static/app/views/settings/projectProguard/projectProguardRow.tsx:77
 msgid "Remove Mapping"
-msgstr ""
+msgstr "Zuordnung entfernen"
 
 #: static/app/views/settings/projectSecurityAndPrivacy/index.tsx:62
 msgid ""
@@ -23450,12 +23451,12 @@ msgstr ""
 
 #: static/app/views/settings/projectSecurityHeaders/csp.tsx:37
 msgid "Content Security Policy (CSP)"
-msgstr ""
+msgstr "Content Security Policy (CSP)"
 
 #: static/app/views/settings/projectSecurityHeaders/csp.tsx:94
 #: static/app/views/settings/projectSecurityHeaders/hpkp.tsx:72
 msgid "About"
-msgstr ""
+msgstr "Über"
 
 #: static/app/views/settings/projectSecurityHeaders/csp.tsx:98
 msgid ""
@@ -23485,7 +23486,7 @@ msgstr ""
 
 #: static/app/views/settings/projectSecurityHeaders/expectCt.tsx:77
 msgid "For more information, see [link:the article on MDN]."
-msgstr ""
+msgstr "Weitere Informationen finden Sie unter [Link:the article on MDN]."
 
 #: static/app/views/settings/projectSecurityHeaders/hpkp.tsx:106
 msgid ""
@@ -23502,11 +23503,11 @@ msgstr ""
 
 #: static/app/views/settings/projectSecurityHeaders/hpkp.tsx:29
 msgid "HTTP Public Key Pinning (HPKP)"
-msgstr ""
+msgstr "HTTP Public Key Pinning (HPKP)"
 
 #: static/app/views/settings/projectSecurityHeaders/hpkp.tsx:65
 msgid "HTTP Public Key Pinning"
-msgstr ""
+msgstr "HTTP Public Key Pinning"
 
 #: static/app/views/settings/projectSecurityHeaders/hpkp.tsx:76
 msgid ""
@@ -23522,15 +23523,15 @@ msgid ""
 "To configure HPKP reports\n"
 "              in Sentry, you'll need to send a header from your server describing your\n"
 "              policy, as well specifying the authenticated Sentry endpoint."
-msgstr ""
+msgstr "Um HPKP-Berichte zu konfigurieren\nin Sentry zu konfigurieren, müssen Sie einen Header von Ihrem Server senden, der Ihre\nRichtlinie beschreibt und den authentifizierten Sentry-Endpunkt angibt."
 
 #: static/app/views/settings/projectSecurityHeaders/index.tsx:58
 msgid "Security Header Reports"
-msgstr ""
+msgstr "Security-Header-Berichte"
 
 #: static/app/views/settings/projectSecurityHeaders/index.tsx:63
 msgid "Additional Configuration"
-msgstr ""
+msgstr "Zusätzliche Konfiguration"
 
 #: static/app/views/settings/projectSecurityHeaders/index.tsx:66
 msgid ""
@@ -23540,15 +23541,15 @@ msgstr ""
 
 #: static/app/views/settings/projectSecurityHeaders/index.tsx:78
 msgid "The environment name (e.g. production)"
-msgstr ""
+msgstr "Der Name der Umgebung (z. B. produktion)"
 
 #: static/app/views/settings/projectSecurityHeaders/index.tsx:84
 msgid "The version of the application."
-msgstr ""
+msgstr "Die Version der Anwendung."
 
 #: static/app/views/settings/projectSecurityHeaders/index.tsx:93
 msgid "Supported Formats"
-msgstr ""
+msgstr "Unterstützte Formate"
 
 #: static/app/views/settings/projectSecurityHeaders/index.tsx:99
 msgid "Instructions"
@@ -23567,50 +23568,50 @@ msgstr ""
 #: static/app/views/settings/projectSourceMaps/detail/index.tsx:104
 #: static/app/views/settings/projectSourceMaps/list/index.tsx:75
 msgid "Artifacts removed."
-msgstr ""
+msgstr "Artefakte entfernt."
 
 #: static/app/views/settings/projectSourceMaps/detail/index.tsx:106
 #: static/app/views/settings/projectSourceMaps/list/index.tsx:77
 msgid "Unable to remove artifacts. Please try again."
-msgstr ""
+msgstr "Artefakte konnten nicht entfernt werden. Bitte versuchen Sie es erneut."
 
 #: static/app/views/settings/projectSourceMaps/detail/index.tsx:118
 msgid "There are no artifacts that match your search."
-msgstr ""
+msgstr "Es existieren keine Artefakte die Ihrer Suche entsprechen."
 
 #: static/app/views/settings/projectSourceMaps/detail/index.tsx:121
 msgid "There are no artifacts in this archive."
-msgstr ""
+msgstr "Ex existieren keine Artefakte in diesem Archiv."
 
 #: static/app/views/settings/projectSourceMaps/detail/index.tsx:173
 msgid "Go to Release"
-msgstr ""
+msgstr "Zur Veröffentlichung"
 
 #: static/app/views/settings/projectSourceMaps/detail/index.tsx:179
 #: static/app/views/settings/projectSourceMaps/detail/sourceMapsArtifactRow.tsx:80
 #: static/app/views/settings/projectSourceMaps/list/sourceMapsArchiveRow.tsx:53
 msgid "You do not have permission to delete artifacts."
-msgstr ""
+msgstr "Sie verfügen nicht über die Berechtigung, Artefakte zu löschen."
 
 #: static/app/views/settings/projectSourceMaps/detail/index.tsx:182
 #: static/app/views/settings/projectSourceMaps/list/sourceMapsArchiveRow.tsx:57
 msgid "Are you sure you want to remove all artifacts in this archive?"
-msgstr ""
+msgstr "Sind Sie sicher, dass Sie alle Artefakte in diesem Archiv entfernen wollen?"
 
 #: static/app/views/settings/projectSourceMaps/detail/index.tsx:190
 #: static/app/views/settings/projectSourceMaps/detail/index.tsx:191
 #: static/app/views/settings/projectSourceMaps/list/sourceMapsArchiveRow.tsx:65
 #: static/app/views/settings/projectSourceMaps/list/sourceMapsArchiveRow.tsx:66
 msgid "Remove All Artifacts"
-msgstr ""
+msgstr "Alle Artefakte entfernen"
 
 #: static/app/views/settings/projectSourceMaps/detail/index.tsx:200
 msgid "Filter artifacts"
-msgstr ""
+msgstr "Artefakte filtern"
 
 #: static/app/views/settings/projectSourceMaps/detail/index.tsx:210
 msgid "Artifact"
-msgstr ""
+msgstr "Artefakt"
 
 #: static/app/views/settings/projectSourceMaps/detail/index.tsx:47
 #, python-format
@@ -23619,7 +23620,7 @@ msgstr ""
 
 #: static/app/views/settings/projectSourceMaps/detail/index.tsx:77
 msgid "Removing artifact…"
-msgstr ""
+msgstr "Entferne Artefakt..."
 
 #: static/app/views/settings/projectSourceMaps/detail/index.tsx:84
 msgid "Artifact removed."
@@ -23632,7 +23633,7 @@ msgstr "Artefakt konnte nicht entfernt werden. Versuchen Sie es erneut."
 #: static/app/views/settings/projectSourceMaps/detail/index.tsx:93
 #: static/app/views/settings/projectSourceMaps/list/index.tsx:68
 msgid "Removing artifacts…"
-msgstr ""
+msgstr "Entferne Artefakte..."
 
 #: static/app/views/settings/projectSourceMaps/detail/sourceMapsArtifactRow.tsx:48
 msgid "No distribution set"
@@ -23640,11 +23641,11 @@ msgstr ""
 
 #: static/app/views/settings/projectSourceMaps/detail/sourceMapsArtifactRow.tsx:62
 msgid "You do not have permission to download artifacts."
-msgstr ""
+msgstr "Sie verfügen nicht über die Berechtigung, Artefakte herunterzuladen."
 
 #: static/app/views/settings/projectSourceMaps/detail/sourceMapsArtifactRow.tsx:70
 msgid "Download Artifact"
-msgstr ""
+msgstr "Artefakt herunterladen"
 
 #: static/app/views/settings/projectSourceMaps/detail/sourceMapsArtifactRow.tsx:83
 msgid "Are you sure you want to remove this artifact?"
@@ -23653,11 +23654,11 @@ msgstr "Sind Sie sicher, dass Sie dieses Artefakt entfernen möchten?"
 #: static/app/views/settings/projectSourceMaps/detail/sourceMapsArtifactRow.tsx:90
 #: static/app/views/settings/projectSourceMaps/detail/sourceMapsArtifactRow.tsx:91
 msgid "Remove Artifact"
-msgstr ""
+msgstr "Artefakt löschen"
 
 #: static/app/views/settings/projectSourceMaps/list/index.tsx:130
 msgid "Filter Archives"
-msgstr ""
+msgstr "Archive filtern"
 
 #: static/app/views/settings/projectSourceMaps/list/index.tsx:139
 msgid ""
@@ -23673,19 +23674,19 @@ msgstr "Elemente"
 
 #: static/app/views/settings/projectSourceMaps/list/index.tsx:89
 msgid "There are no archives that match your search."
-msgstr ""
+msgstr "Es wurden keine Archive gefunden, die Ihrer Suche entsprechen."
 
 #: static/app/views/settings/projectSourceMaps/list/index.tsx:92
 msgid "There are no archives for this project."
-msgstr ""
+msgstr "Es existieren keine Archive für dieses Projekt."
 
 #: static/app/views/settings/projectTags.tsx:105
 msgid "Are you sure you want to remove this tag?"
-msgstr ""
+msgstr "Sind sie sicher, dass Sie das Stichwort wirklich entfernen wollen?"
 
 #: static/app/views/settings/projectTags.tsx:113
 msgid "Remove tag"
-msgstr ""
+msgstr "Stichwort entfernen"
 
 #: static/app/views/settings/projectTags.tsx:115
 msgid "This tag cannot be deleted."
@@ -23693,17 +23694,17 @@ msgstr "Dieser Tag kann nicht gelöscht werden."
 
 #: static/app/views/settings/projectTags.tsx:116
 msgid "You do not have permission to remove tags."
-msgstr ""
+msgstr "Sie verfügen nicht über die Berechtigung, Stichwörter zu entfernen."
 
 #: static/app/views/settings/projectTags.tsx:73
 msgid ""
 "Each event in Sentry may be annotated with various tags (key and value pairs).\n"
 "                 Learn how to [link:add custom tags]."
-msgstr ""
+msgstr "Jedes Ereignis in Sentry kann mit verschiedenen Stichwörtern (Schlüssel- und Wertepaaren) versehen werden.<br>Erfahren Sie, wie man diese verwendet [link:add custom tags]."
 
 #: static/app/views/settings/projectTags.tsx:89
 msgid "There are no tags, [link:learn how to add tags]"
-msgstr ""
+msgstr "Es sind keine Stichwörter vorhanden, [link:learn how to add tags]"
 
 #: static/app/views/settings/settingsIndex.tsx:100
 #: static/app/views/settings/settingsIndex.tsx:143
@@ -23727,7 +23728,7 @@ msgstr "Meinen Avatar ändern"
 
 #: static/app/views/settings/settingsIndex.tsx:138
 msgid "No Organization"
-msgstr ""
+msgstr "Keine Organisation"
 
 #: static/app/views/settings/settingsIndex.tsx:181
 msgid "Quickstart Guide"
@@ -23771,15 +23772,15 @@ msgstr ""
 
 #: static/app/views/setupWizard/index.tsx:43
 msgid "Return to your terminal to complete your setup"
-msgstr ""
+msgstr "Kehren Sie zu Ihrer Konsole zurück, um Ihre Einrichtung abzuschließen."
 
 #: static/app/views/setupWizard/index.tsx:44
 msgid "(This window will close in 10 seconds)"
-msgstr ""
+msgstr "(Dieses Fenster wird sich in 10 Sekunden schließen)"
 
 #: static/app/views/setupWizard/index.tsx:45
 msgid "Close browser tab"
-msgstr ""
+msgstr "Browser-Tab schließen"
 
 #: static/app/views/teamCreate.tsx:32
 msgid "Create a New Team"
@@ -23787,18 +23788,18 @@ msgstr "Ein neues Team erstellen"
 
 #: static/app/views/userFeedback/userFeedbackEmpty.tsx:122
 msgid "See an example"
-msgstr ""
+msgstr "Ein Beispiel ansehen"
 
 #: static/app/views/userFeedback/userFeedbackEmpty.tsx:82
 msgid "Sorry, no user reports match your filters."
-msgstr ""
+msgstr "Es tut uns leid, es konnten keine Benutzerberichte die Ihren Filtern entsprechen gefunden werden."
 
 #: static/app/views/userFeedback/userFeedbackEmpty.tsx:89
 msgid "What do users think?"
-msgstr ""
+msgstr "Was meinen die Nutzer?"
 
 #: static/app/views/userFeedback/userFeedbackEmpty.tsx:91
 msgid ""
 "You can't read minds. At least we hope not. Ask users for feedback on the "
 "impact of their crashes or bugs and you shall receive."
-msgstr ""
+msgstr "Sie können keine Gedanken lesen. Zumindest hoffen wir das. Bitten Sie Ihre Nutzer um Feedback zu den Auswirkungen ihrer Abstürze oder Fehler und Sie werden es wissen."
