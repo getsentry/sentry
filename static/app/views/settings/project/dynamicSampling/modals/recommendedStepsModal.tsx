@@ -258,7 +258,7 @@ const UpgradeSDKfromProjects = styled(UpdatesList)`
   margin-bottom: ${space(3)};
 `;
 
-export const FooterActions = styled('div')`
+const FooterActions = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -266,7 +266,7 @@ export const FooterActions = styled('div')`
   gap: ${space(1)};
 `;
 
-export const Stepper = styled('span')`
+const Stepper = styled('span')`
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.subText};
 `;
