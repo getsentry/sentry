@@ -110,6 +110,6 @@ class ProjectReplayRecordingSegmentIndexEndpoint(ProjectEndpoint):
     def is_compressed(blob):
         first_char = blob.read(1)
         blob.seek(0)
-        if first_char == b"{":
+        if first_char == b"[":
             return False
         return True
