@@ -106,7 +106,7 @@ export class Results extends Component<Props, State> {
     if (
       ((!nextProps.isHomepage || prevState.savedQuery) &&
         (nextProps.savedQuery || !nextProps.loading)) ||
-      nextProps.savedQuery === undefined
+      nextProps.savedQuery === undefined // When user clicks on Discover in sidebar
     ) {
       const eventView = EventView.fromSavedQueryOrLocation(
         nextProps.savedQuery,
@@ -121,7 +121,7 @@ export class Results extends Component<Props, State> {
     // If this is the homepage, force an invalid eventView so we can handle
     // the redirect first
     eventView: this.props.isHomepage
-      ? EventView.fromSavedQuery({...DEFAULT_EVENT_VIEW, fields: []})
+      ? EventView.fromSavedQueryOrLocation(undefined, this.props.location)
       : EventView.fromSavedQueryOrLocation(this.props.savedQuery, this.props.location),
     error: '',
     errorCode: 200,
