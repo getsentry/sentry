@@ -47,11 +47,10 @@ export function getIgnoreActions({
   confirmLabel,
   confirmMessage,
   shouldConfirm,
-  dropdownPlacement,
   onUpdate,
 }: Pick<
   IgnoreActionProps,
-  'shouldConfirm' | 'confirmMessage' | 'confirmLabel' | 'onUpdate' | 'dropdownPlacement'
+  'shouldConfirm' | 'confirmMessage' | 'confirmLabel' | 'onUpdate'
 >) {
   const onIgnore = (
     statusDetails: ResolutionStatusDetails | undefined = {},
@@ -108,13 +107,11 @@ export function getIgnoreActions({
     ));
 
   // Move submenu placement when ignore used in top right menu
-  const submenuPlacement = dropdownPlacement === 'bottom right' ? 'left top' : undefined;
   const dropdownItems: MenuItemProps[] = [
     {
       key: 'for',
       label: t('For\u2026'),
       isSubmenu: true,
-      placement: submenuPlacement,
       children: [
         ...IGNORE_DURATIONS.map(duration => ({
           key: `for-${duration}`,
@@ -132,7 +129,6 @@ export function getIgnoreActions({
       key: 'until-reoccur',
       label: t('Until this occurs again\u2026'),
       isSubmenu: true,
-      placement: submenuPlacement,
       children: [
         ...IGNORE_COUNTS.map(count => ({
           key: `until-reoccur-${count}-times`,
@@ -169,7 +165,6 @@ export function getIgnoreActions({
       key: 'until-affect',
       label: t('Until this affects an additional\u2026'),
       isSubmenu: true,
-      placement: submenuPlacement,
       children: [
         ...IGNORE_COUNTS.map(count => ({
           key: `until-affect-${count}-users`,
@@ -215,7 +210,6 @@ type IgnoreActionProps = {
   ) => React.ReactNode;
   disableTooltip?: boolean;
   disabled?: boolean;
-  dropdownPlacement?: 'bottom right';
   hideIcon?: boolean;
   isIgnored?: boolean;
   shouldConfirm?: boolean;
@@ -228,7 +222,6 @@ const IgnoreActions = ({
   shouldConfirm,
   confirmMessage,
   className,
-  dropdownPlacement,
   hideIcon,
   disableTooltip,
   size = 'xs',
@@ -256,7 +249,6 @@ const IgnoreActions = ({
     onUpdate,
     shouldConfirm,
     confirmMessage,
-    dropdownPlacement,
   });
 
   return (
@@ -275,7 +267,6 @@ const IgnoreActions = ({
       </IgnoreButton>
       <DropdownMenuControl
         size="sm"
-        placement={dropdownPlacement}
         trigger={triggerProps => (
           <DropdownTrigger
             {...triggerProps}

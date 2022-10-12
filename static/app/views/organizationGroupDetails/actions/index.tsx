@@ -310,10 +310,10 @@ class Actions extends Component<Props> {
     openModal(modalProps => (
       <ShareIssueModal
         {...modalProps}
-        loading={this.state.shareBusy}
         organization={organization}
         projectSlug={group.project.slug}
         groupId={group.id}
+        onToggle={this.onToggleShare}
       />
     ));
   };
@@ -387,7 +387,6 @@ class Actions extends Component<Props> {
       return (
         <ActionWrapper>
           <DropdownMenuControl
-            placement="bottom"
             triggerProps={{
               'aria-label': t('More Actions'),
               icon: <IconEllipsis size="xs" />,
@@ -501,7 +500,6 @@ class Actions extends Component<Props> {
                   isIgnored={isIgnored}
                   onUpdate={this.onUpdate}
                   disabled={disabled}
-                  dropdownPlacement="bottom right"
                   size="sm"
                   hideIcon
                   disableTooltip
@@ -522,7 +520,6 @@ class Actions extends Component<Props> {
                   size="sm"
                   hideIcon
                   priority="primary"
-                  dropdownPlacement="bottom right"
                 />
               </GuideAnchor>
             </Fragment>

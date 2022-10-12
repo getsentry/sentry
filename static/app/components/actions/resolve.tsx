@@ -1,6 +1,5 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
-import type {AriaPositionProps} from '@react-aria/overlays';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
@@ -39,7 +38,6 @@ type Props = {
   disableDropdown?: boolean;
   disableTooltip?: boolean;
   disabled?: boolean;
-  dropdownPlacement?: AriaPositionProps['placement'];
   hideIcon?: boolean;
   latestRelease?: Release;
   priority?: 'primary';
@@ -140,7 +138,6 @@ class ResolveActions extends Component<Props> {
       disabled,
       confirmLabel,
       disableDropdown,
-      dropdownPlacement,
       size = 'xs',
       priority,
     } = this.props;
@@ -198,7 +195,6 @@ class ResolveActions extends Component<Props> {
     return (
       <DropdownMenuControl
         items={items}
-        placement={dropdownPlacement}
         trigger={triggerProps => (
           <DropdownTrigger
             {...triggerProps}
