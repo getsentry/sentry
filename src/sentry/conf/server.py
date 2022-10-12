@@ -794,7 +794,7 @@ CELERYBEAT_SCHEDULE = {
         "options": {"expires": 60 * 60 * 3},
     },
     "schedule-weekly-organization-reports-new": {
-        "task": "sentry.tasks.weekly_reports.prepare_reports",
+        "task": "sentry.tasks.weekly_reports.schedule_organizations",
         "schedule": crontab(
             minute=0, hour=12, day_of_week="monday"  # 05:00 PDT, 09:00 EDT, 12:00 UTC
         ),
