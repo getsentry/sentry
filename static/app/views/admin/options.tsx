@@ -87,6 +87,14 @@ const performanceOptionDefinitions: Field[] = [
     ...HIGH_THROUGHPUT_RATE_OPTION,
   },
   {
+    key: 'performance.issues.all.general-availability-rollout',
+    label: t('Performance issues creation GA Rollout'),
+    help: t(
+      'Controls the rate at which performance issues are created for all organizations.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
     key: 'performance.issues.n_plus_one.problem-detection',
     label: t('N+1 detection rate'),
     help: t(
