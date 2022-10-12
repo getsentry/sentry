@@ -25,10 +25,12 @@ export function ScreenshotCard({eventAttachment, projectSlug, eventId}: Props) {
     return (
       <Card interactive>
         <CardHeader>
-          <Title>{eventAttachment.sha1}</Title>
-          <Detail>
-            <DateTime date={eventAttachment.dateCreated} />
-          </Detail>
+          <CardContent>
+            <Title>{eventAttachment.sha1}</Title>
+            <Detail>
+              <DateTime date={eventAttachment.dateCreated} />
+            </Detail>
+          </CardContent>
         </CardHeader>
         <CardBody>
           <StyledPanelBody>
@@ -88,6 +90,12 @@ const CardFooter = styled('div')`
   justify-content: space-between;
   align-items: center;
   padding: ${space(1)} ${space(2)};
+`;
+
+const CardContent = styled('div')`
+  flex-grow: 1;
+  overflow: hidden;
+  margin-right: ${space(1)};
 `;
 
 const StyledPanelBody = styled(PanelBody)`
