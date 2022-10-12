@@ -1,9 +1,17 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
+import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {PageFilters} from 'sentry/types';
 import OrganizationStats from 'sentry/views/organizationStats';
+
+/**
+ * Note: Rather than write tests for new features on the Stats components in
+ * the outdated enzyme syntax, this file is meant to aid in the transition to RTL.
+ * Please add tests here rather than `index.spec.jsx` as we slowly migrate away from enzyme.
+ */
 
 describe('OrganizationStats', function () {
   const defaultSelection: PageFilters = {
@@ -16,29 +24,106 @@ describe('OrganizationStats', function () {
       utc: false,
     },
   };
-  const {organization, router, routerContext} = initializeOrg();
-  organization.features.push('team-insights');
+  const projects = [1, 2, 3].map(id => TestStubs.Project({id, slug: `proj-${id}`}));
+  const {organization, routerContext} = initializeOrg({
+    organization: {features: ['global-views', 'team-insights']},
+    project: undefined,
+    projects,
+    router: {
+      location: {
+        pathname: '/organizations/org-slug/issues/',
+        query: {},
+      },
+      params: {orgId: 'org-slug'},
+    },
+  });
+  let mockRequest;
 
   beforeEach(() => {
     PageFiltersStore.init();
     PageFiltersStore.onInitializeUrlState(defaultSelection, new Set());
-  });
-
-  it('renders', async () => {
-    const mockCall = MockApiClient.addMockResponse({
+    OrganizationStore.onUpdate(organization, {replace: true});
+    ProjectsStore.loadInitialData(organization.projects);
+    mockRequest = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/${organization.slug}/stats_v2/`,
       body: mockStatsResponse,
     });
+  });
 
+  afterEach(() => {
+    PageFiltersStore.reset();
+  });
+
+  it('renders with no projects selected', async () => {
+    render(<OrganizationStats />, {
+      context: routerContext,
+      organization,
+    });
+    expect(await screen.findByText('My Projects')).toBeInTheDocument();
+
+    const usageStatsOrganization = await screen.findByTestId('usage-stats-chart');
+    expect(usageStatsOrganization).toBeInTheDocument();
+    const usageStatsProjects = await screen.findByTestId('usage-stats-table');
+    expect(usageStatsProjects).toBeInTheDocument();
+
+    expect(mockRequest).toHaveBeenCalled();
+
+    mockRequest.mock.calls.forEach(([_path, {query}]) => {
+      // Ignore UsageStatsPerMin's query
+      if (query?.statsPeriod === '5m') {
+        return;
+      }
+      expect(query.project).toEqual(defaultSelection.projects);
+    });
+  });
+
+  it('renders with multiple projects selected', async () => {
     render(<OrganizationStats />, {
       context: routerContext,
       organization,
     });
 
-    // await screen.findByText('Errors');
+    const selectedProjects = new Set([1, 2]);
+    act(() => PageFiltersStore.updateProjects([...selectedProjects], []));
+    expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
 
-    expect(mockCall).toHaveBeenCalled();
+    const usageStatsOrganization = await screen.findByTestId('usage-stats-chart');
+    expect(usageStatsOrganization).toBeInTheDocument();
+    const usageStatsProjects = await screen.findByTestId('usage-stats-table');
+    expect(usageStatsProjects).toBeInTheDocument();
+
+    expect(mockRequest).toHaveBeenCalled();
+    const isQueryingForProjects = mockRequest.mock.calls.some(([_path, {query}]) => {
+      // Grouping by project is specified...
+      const isGrouping = query?.groupBy?.includes('project');
+      // And we're only querying the selected projects
+      const hasSelectedProjects = query?.project?.every(id => selectedProjects.has(id));
+      return isGrouping && hasSelectedProjects;
+    });
+    expect(isQueryingForProjects).toBe(true);
+  });
+
+  it('renders with a single project selected', async () => {
+    render(<OrganizationStats />, {
+      context: routerContext,
+      organization,
+    });
+    const selectedProject = [1];
+    act(() => PageFiltersStore.updateProjects(selectedProject, []));
+    expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
+
+    const usageStatsOrganization = await screen.findByTestId('usage-stats-chart');
+    expect(usageStatsOrganization).toBeInTheDocument();
+    // Doesn't render for single project view
+    const usageStatsProjects = await screen.queryByTestId('usage-stats-table');
+    expect(usageStatsProjects).not.toBeInTheDocument();
+
+    expect(mockRequest).toHaveBeenCalled();
+    const isQueryingForProjects = mockRequest.mock.calls.some(([_path, {query}]) => {
+      return query.project === selectedProject;
+    });
+    expect(isQueryingForProjects).toBe(true);
   });
 });
 
