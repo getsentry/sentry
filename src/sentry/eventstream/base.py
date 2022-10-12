@@ -14,7 +14,7 @@ from typing import (
     Union,
 )
 
-from sentry.tasks.post_process import post_process_group
+from sentry.tasks.post_process import get_post_process_queue, post_process_group
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.services import Service
 
@@ -77,6 +77,8 @@ class EventStream(Service):
         else:
             cache_key = cache_key_for_event({"project": project_id, "event_id": event_id})
 
+            kwargs = {"queue": get_post_process_queue(group_states is not None)}
+
             post_process_group.delay(
                 is_new=is_new,
                 is_regression=is_regression,
@@ -85,6 +87,7 @@ class EventStream(Service):
                 cache_key=cache_key,
                 group_id=group_id,
                 group_states=group_states,
+                **kwargs,
             )
 
     def insert(

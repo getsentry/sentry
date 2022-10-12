@@ -12,7 +12,7 @@ from sentry.eventstream.kafka.protocol import (
     get_task_kwargs_for_message,
     get_task_kwargs_for_message_from_headers,
 )
-from sentry.tasks.post_process import post_process_group
+from sentry.tasks.post_process import get_post_process_queue, post_process_group
 from sentry.utils import metrics
 from sentry.utils.batching_kafka_consumer import AbstractBatchWorker
 from sentry.utils.cache import cache_key_for_event
@@ -81,6 +81,8 @@ def dispatch_post_process_group_task(
     else:
         cache_key = cache_key_for_event({"project": project_id, "event_id": event_id})
 
+        kwargs = {"queue": get_post_process_queue(group_states is not None)}
+
         post_process_group.delay(
             is_new=is_new,
             is_regression=is_regression,
@@ -89,6 +91,7 @@ def dispatch_post_process_group_task(
             cache_key=cache_key,
             group_id=group_id,
             group_states=group_states,
+            **kwargs,
         )
 
 
