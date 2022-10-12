@@ -78,6 +78,7 @@ function ReplaysContent({
         replays={replays}
         showProjectColumn={false}
         sort={first(eventView.sorts) || {field: 'startedAt', kind: 'asc'}}
+        showSlowestTxColumn
       />
       <Pagination pageLinks={pageLinks} />
     </Layout.Main>

@@ -24,30 +24,28 @@ import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useRoutes} from 'sentry/utils/useRoutes';
-import type {ReplayListLocationQuery, ReplayListRecord} from 'sentry/views/replays/types';
-
-type ReplayRow = ReplayListRecord & {
-  txEvent?: {[x: string]: any};
-};
+import type {ReplayItem} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysFromTransaction';
+import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
 
 type Props = {
   isFetching: boolean;
-  replays: undefined | ReplayRow[];
+  replays: undefined | ReplayItem[];
   showProjectColumn: boolean;
   sort: Sort;
   fetchError?: Error;
+  showSlowestTxColumn?: boolean;
 };
 
 type TableProps = {
-  hasTxEvent: boolean;
   showProjectColumn: boolean;
+  showSlowestTxColumn: boolean;
 };
 
 type RowProps = {
   minWidthIsSmall: boolean;
   organization: Organization;
   referrer: string;
-  replay: ReplayRow;
+  replay: ReplayItem;
   showProjectColumn: boolean;
 };
 
@@ -88,14 +86,20 @@ function SortableHeader({
   );
 }
 
-function ReplayTable({isFetching, replays, showProjectColumn, sort, fetchError}: Props) {
+function ReplayTable({
+  isFetching,
+  replays,
+  showProjectColumn,
+  sort,
+  fetchError,
+  showSlowestTxColumn = false,
+}: Props) {
   const routes = useRoutes();
   const referrer = encodeURIComponent(getRouteStringFromRoutes(routes));
 
   const organization = useOrganization();
   const theme = useTheme();
   const minWidthIsSmall = useMedia(`(min-width: ${theme.breakpoints.small})`);
-  const hasTxEvent = Boolean(replays?.some(replay => replay.txEvent));
 
   const tableHeaders = [
     t('Session'),
@@ -107,7 +111,7 @@ function ReplayTable({isFetching, replays, showProjectColumn, sort, fetchError}:
         label={t('Project')}
       />
     ),
-    hasTxEvent && minWidthIsSmall && (
+    showSlowestTxColumn && minWidthIsSmall && (
       <Header key="slowestTransaction">
         {t('Slowest Transaction')}
         <QuestionTooltip
@@ -139,19 +143,16 @@ function ReplayTable({isFetching, replays, showProjectColumn, sort, fetchError}:
       fieldName="countErrors"
       label={t('Errors')}
     />,
-
-    minWidthIsSmall && (
-      <Header key="activity">
-        {t('Activity')}{' '}
-        <QuestionTooltip
-          size="xs"
-          position="top"
-          title={t(
-            'Activity represents how much user activity happened in a replay. It is determined by the number of errors encountered, duration, and UI events.'
-          )}
-        />
-      </Header>
-    ),
+    <Header key="activity">
+      {t('Activity')}{' '}
+      <QuestionTooltip
+        size="xs"
+        position="top"
+        title={t(
+          'Activity represents how much user activity happened in a replay. It is determined by the number of errors encountered, duration, and UI events.'
+        )}
+      />
+    </Header>,
   ].filter(Boolean);
 
   if (fetchError && !isFetching) {
@@ -160,7 +161,7 @@ function ReplayTable({isFetching, replays, showProjectColumn, sort, fetchError}:
         headers={tableHeaders}
         showProjectColumn={showProjectColumn}
         isLoading={false}
-        hasTxEvent={hasTxEvent}
+        showSlowestTxColumn={showSlowestTxColumn}
       >
         <StyledAlert type="error" showIcon>
           {typeof fetchError === 'string'
@@ -178,7 +179,7 @@ function ReplayTable({isFetching, replays, showProjectColumn, sort, fetchError}:
       isLoading={isFetching}
       isEmpty={replays?.length === 0}
       showProjectColumn={showProjectColumn}
-      hasTxEvent={hasTxEvent}
+      showSlowestTxColumn={showSlowestTxColumn}
       headers={tableHeaders}
     >
       {replays?.map(replay => (
@@ -231,17 +232,19 @@ function ReplayTableRow({
       {showProjectColumn && minWidthIsSmall && (
         <Item>{project ? <ProjectBadge project={project} avatarSize={16} /> : null}</Item>
       )}
-      {replay.txEvent && minWidthIsSmall ? (
+      {minWidthIsSmall && (
         <Item>
-          <SpanOperationBreakdown>
-            {txDuration ? <TxDuration>{txDuration}ms</TxDuration> : null}
-            {spanOperationRelativeBreakdownRenderer(replay.txEvent, {
-              organization,
-              location,
-            })}
-          </SpanOperationBreakdown>
+          {replay.txEvent ? (
+            <SpanOperationBreakdown>
+              {txDuration ? <TxDuration>{txDuration}ms</TxDuration> : null}
+              {spanOperationRelativeBreakdownRenderer(replay.txEvent, {
+                organization,
+                location,
+              })}
+            </SpanOperationBreakdown>
+          ) : null}
         </Item>
-      ) : null}
+      )}
       {minWidthIsSmall && (
         <Item>
           <TimeSinceWrapper>
@@ -254,18 +257,16 @@ function ReplayTableRow({
         <Duration seconds={Math.floor(replay.duration)} exact abbreviation />
       </Item>
       <Item data-test-id="replay-table-count-errors">{replay.countErrors || 0}</Item>
-      {minWidthIsSmall && (
-        <Item>
-          <ReplayHighlight replay={replay} />
-        </Item>
-      )}
+      <Item>
+        <ReplayHighlight replay={replay} />
+      </Item>
     </Fragment>
   );
 }
 
 function getColCount(props: TableProps) {
   let colCount = 4;
-  if (props.hasTxEvent) {
+  if (props.showSlowestTxColumn) {
     colCount += 1;
   }
   if (props.showProjectColumn) {
@@ -278,7 +279,7 @@ const StyledPanelTable = styled(PanelTable)<TableProps>`
   ${p => `grid-template-columns: minmax(0, 1fr) repeat(${getColCount(p)}, max-content);`}
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: minmax(0, 1fr) repeat(2, min-content);
+    grid-template-columns: minmax(0, 1fr) repeat(3, min-content);
   }
 `;
 
