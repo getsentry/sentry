@@ -76,7 +76,7 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
               ...location.query,
               types: undefined, // need to explicitly set this to undefined because AsyncComponent adds location query back into the params
               screenshot: 1,
-              limit: 6,
+              per_page: 6,
             },
           },
         ],
@@ -90,7 +90,7 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
         {
           query: {
             ...pick(location.query, ['cursor', 'environment', 'types']),
-            limit: 50,
+            per_page: 50,
           },
         },
       ],

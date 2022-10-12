@@ -59,7 +59,7 @@ describe('GroupEventAttachments > Screenshots', function () {
       expect(getAttachmentsMock).toHaveBeenCalledWith(
         '/issues/group-id/attachments/',
         expect.objectContaining({
-          query: {limit: 6, screenshot: 1, types: undefined},
+          query: {per_page: 6, screenshot: 1, types: undefined},
         })
       );
     });
