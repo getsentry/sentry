@@ -79,7 +79,6 @@ default_manager.add("organizations:dashboards-top-level-filter", OrganizationFea
 default_manager.add("organizations:discover", OrganizationFeature)
 default_manager.add("organizations:discover-events-rate-limit", OrganizationFeature, True)
 default_manager.add("organizations:discover-metrics-baseline", OrganizationFeature, True)
-default_manager.add("organizations:discover-quick-context", OrganizationFeature, True)
 default_manager.add("organizations:discover-frontend-use-events-endpoint", OrganizationFeature, True)
 default_manager.add("organizations:discover-interval-selector", OrganizationFeature, True)
 default_manager.add("organizations:discover-query-builder-as-landing-page", OrganizationFeature, True)
