@@ -101,6 +101,7 @@ const IconWrapper = styled('div')`
 `;
 
 const ActorName = styled('div')`
+  line-height: 1.2;
   ${p => p.theme.overflowEllipsis}
 `;
 
