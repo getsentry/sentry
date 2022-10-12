@@ -64,7 +64,7 @@ export function SamplingSDKUpgradesAlert({
       }
     >
       {t(
-        'To activate sampling rules, it’s a requirement to update the following project SDK(s):'
+        'To have Dynamic Sampling up and running, it’s a requirement to update the following project SDK(s):'
       )}
       <Projects>
         {recommendedSdkUpgrades.map(recommendedSdkUpgrade => (

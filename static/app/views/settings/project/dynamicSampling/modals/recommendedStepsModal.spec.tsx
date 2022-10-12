@@ -1,4 +1,4 @@
-import {renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {renderGlobalModal, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {openModal} from 'sentry/actionCreators/modal';
@@ -10,7 +10,6 @@ import {
   mockedProjects,
   mockedSamplingSdkVersions,
   recommendedSdkUpgrades,
-  uniformRule,
 } from '../testUtils';
 
 describe('Dynamic Sampling - Recommended Steps Modal', function () {
@@ -50,7 +49,7 @@ describe('Dynamic Sampling - Recommended Steps Modal', function () {
 
     expect(
       screen.getByText(
-        'To activate Dynamic Sampling rules, it’s a requirement to update the following project SDK(s):'
+        'To have Dynamic Sampling up and running, it’s a requirement to update the following project SDK(s):'
       )
     ).toBeInTheDocument();
 
@@ -69,112 +68,12 @@ describe('Dynamic Sampling - Recommended Steps Modal', function () {
       )
     ).toBeInTheDocument();
 
-    // Second recommended step
-    expect(
-      screen.getByRole('heading', {
-        name: 'Adjust your Client-Side (SDK) sample rate',
-      })
-    ).toBeInTheDocument();
-
-    expect(
-      screen.getByText(
-        'Here’s the new Client-Side (SDK) sample rate you specified in the previous step. To make this change, find the ‘tracesSampleRate’ option in your SDK Config, modify it’s value to what’s shown below and re-deploy.'
-      )
-    ).toBeInTheDocument();
-
-    expect(screen.getByText(textWithMarkupMatcher(/Sentry.init/))).toBeInTheDocument();
-    expect(screen.getByText('0.5')).toBeInTheDocument();
-    expect(screen.getByText('// 50%')).toBeInTheDocument();
-
     // Footer
     expect(screen.getByRole('button', {name: 'Read Docs'})).toHaveAttribute(
       'href',
       SERVER_SIDE_SAMPLING_DOC_LINK
     );
 
-    expect(screen.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
-
-    expect(screen.getByRole('button', {name: 'Done'})).toBeInTheDocument();
-
-    expect(screen.queryByText('Step 2 of 2')).not.toBeInTheDocument();
-
-    expect(screen.queryByRole('button', {name: 'Back'})).not.toBeInTheDocument();
-  });
-
-  it('render only the last recommended step', function () {
-    const {organization, project} = getMockData();
-
-    renderGlobalModal();
-
-    openModal(modalProps => (
-      <RecommendedStepsModal
-        {...modalProps}
-        organization={organization}
-        projectId={project.id}
-        recommendedSdkUpgrades={[]}
-        onSubmit={jest.fn()}
-        onReadDocs={jest.fn()}
-        clientSampleRate={uniformRule.sampleRate}
-      />
-    ));
-
-    expect(
-      screen.queryByRole('heading', {
-        name: 'Update the following SDK versions',
-      })
-    ).not.toBeInTheDocument();
-
-    expect(
-      screen.getByRole('heading', {
-        name: 'Adjust your Client-Side (SDK) sample rate',
-      })
-    ).toBeInTheDocument();
-  });
-
-  it('render as a second step of a wizard', function () {
-    const {organization, project} = getMockData();
-
-    const onGoBack = jest.fn();
-
-    renderGlobalModal();
-
-    openModal(modalProps => (
-      <RecommendedStepsModal
-        {...modalProps}
-        organization={organization}
-        projectId={project.id}
-        recommendedSdkUpgrades={[]}
-        onGoBack={onGoBack}
-        onSubmit={jest.fn()}
-        onReadDocs={jest.fn()}
-        clientSampleRate={uniformRule.sampleRate}
-      />
-    ));
-
-    expect(screen.getByText('Step 2 of 2')).toBeInTheDocument();
-    userEvent.click(screen.getByRole('button', {name: 'Back'}));
-    expect(onGoBack).toHaveBeenCalled();
-  });
-
-  it('renders 3/3 footer', function () {
-    const {organization, project} = getMockData();
-
-    renderGlobalModal();
-
-    openModal(modalProps => (
-      <RecommendedStepsModal
-        {...modalProps}
-        organization={organization}
-        projectId={project.id}
-        recommendedSdkUpgrades={[]}
-        onGoBack={jest.fn()}
-        onSubmit={jest.fn()}
-        onReadDocs={jest.fn()}
-        clientSampleRate={uniformRule.sampleRate}
-        specifiedClientRate={0.1}
-      />
-    ));
-
-    expect(screen.getByText('Step 3 of 3')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Got it'})).toBeInTheDocument();
   });
 });
