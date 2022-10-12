@@ -181,7 +181,7 @@ function EventCustomPerformanceMetric({
           showChevron: false,
           icon: <IconEllipsis direction="down" size="sm" />,
         }}
-        placement="bottom right"
+        position="bottom-end"
       />
     </StyledPanel>
   );

@@ -175,7 +175,7 @@ export function Rule({
       </ActiveColumn>
       <Column>
         <DropdownMenuControl
-          placement="bottom right"
+          position="bottom-end"
           triggerProps={{
             size: 'xs',
             icon: <IconEllipsis size="xs" />,

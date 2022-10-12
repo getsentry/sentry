@@ -1,17 +1,16 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {useButton} from '@react-aria/button';
 import {AriaMenuOptions, useMenuTrigger} from '@react-aria/menu';
-import {AriaPositionProps, OverlayProps} from '@react-aria/overlays';
 import {useResizeObserver} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
-import {useMenuTriggerState} from '@react-stately/menu';
 import {MenuTriggerProps} from '@react-types/menu';
 
 import DropdownButton, {DropdownButtonProps} from 'sentry/components/dropdownButton';
+import DropdownMenu from 'sentry/components/dropdownMenu';
 import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
-import Menu from 'sentry/components/dropdownMenuV2';
 import {FormSize} from 'sentry/utils/theme';
+import useOverlay, {UseOverlayProps} from 'sentry/utils/useOverlay';
 
 /**
  * Recursively removes hidden items, including those nested in submenus
@@ -44,14 +43,10 @@ function getDisabledKeys(source: MenuItemProps[]): MenuItemProps['key'][] {
   }, []);
 }
 
-type TriggerProps = {
-  props: Omit<React.HTMLAttributes<Element>, 'children'> & {
-    onClick?: (e: MouseEvent) => void;
-  };
-  ref: React.RefObject<HTMLButtonElement>;
-};
-
-type Props = {
+interface Props
+  extends Partial<MenuTriggerProps>,
+    Partial<AriaMenuOptions<MenuItemProps>>,
+    UseOverlayProps {
   /**
    * Items to display inside the dropdown menu. If the item has a `children`
    * prop, it will be rendered as a menu section. If it has a `children` prop
@@ -98,7 +93,11 @@ type Props = {
    * TriggerProps) forwarded its outer wrap, otherwise the accessibility
    * features won't work correctly.
    */
-  trigger?: (props: TriggerProps) => React.ReactNode;
+  trigger?: (
+    props: Omit<React.HTMLAttributes<Element>, 'children'> & {
+      onClick?: (e: MouseEvent) => void;
+    }
+  ) => React.ReactNode;
   /**
    * By default, the menu trigger will be rendered as a button, with
    * triggerLabel as the button label.
@@ -110,41 +109,59 @@ type Props = {
    * component.
    */
   triggerProps?: DropdownButtonProps;
-} & Partial<MenuTriggerProps> &
-  Partial<AriaMenuOptions<MenuItemProps>> &
-  Partial<OverlayProps> &
-  Partial<AriaPositionProps>;
+}
 
 /**
  * A menu component that renders both the trigger button and the dropdown
  * menu. See: https://react-spectrum.adobe.com/react-aria/useMenuTrigger.html
  */
-function MenuControl({
+function DropdownMenuControl({
   items,
   disabledKeys,
   trigger,
   triggerLabel,
   triggerProps = {},
   isDisabled: disabledProp,
+  isOpen: isOpenProp,
   isSubmenu = false,
   closeRootMenu,
   closeCurrentSubmenu,
   renderWrapAs = 'div',
   size = 'md',
   className,
+
+  // Overlay props
+  offset = 8,
+  position = 'bottom-start',
+  isDismissable = true,
+  shouldCloseOnBlur = true,
   ...props
 }: Props) {
-  const ref = useRef<HTMLButtonElement>(null);
   const isDisabled = disabledProp ?? (!items || items.length === 0);
 
-  // Control the menu open state. See:
-  // https://react-spectrum.adobe.com/react-aria/useMenuTrigger.html
-  const state = useMenuTriggerState(props);
+  const {
+    isOpen,
+    state,
+    triggerRef,
+    triggerProps: overlayTriggerProps,
+    overlayProps,
+  } = useOverlay({
+    onClose: closeRootMenu,
+    isOpen: isOpenProp,
+    offset,
+    position,
+    isDismissable: !isSubmenu && isDismissable,
+    shouldCloseOnBlur: !isSubmenu && shouldCloseOnBlur,
+    shouldCloseOnInteractOutside: target =>
+      target && triggerRef.current !== target && !triggerRef.current?.contains(target),
+  });
+
   const {menuTriggerProps, menuProps} = useMenuTrigger(
     {type: 'menu', isDisabled},
-    state,
-    ref
+    {...state, focusStrategy: 'first'},
+    triggerRef
   );
+
   const {buttonProps} = useButton(
     {
       isDisabled,
@@ -157,7 +174,7 @@ function MenuControl({
         onPressEnd: () => null,
       }),
     },
-    ref
+    triggerRef
   );
 
   // Calculate the current trigger element's width. This will be used as
@@ -169,11 +186,11 @@ function MenuControl({
     // ResizeObserver might throw an infinite loop error.
     await new Promise(resolve => window.setTimeout(resolve));
 
-    const newTriggerWidth = ref.current?.offsetWidth;
+    const newTriggerWidth = triggerRef.current?.offsetWidth;
     !isSubmenu && newTriggerWidth && setTriggerWidth(newTriggerWidth);
-  }, [isSubmenu]);
+  }, [isSubmenu, triggerRef]);
 
-  useResizeObserver({ref, onResize: updateTriggerWidth});
+  useResizeObserver({ref: triggerRef, onResize: updateTriggerWidth});
   // If ResizeObserver is not available, manually update the width
   // when any of [trigger, triggerLabel, triggerProps] changes.
   useEffect(() => {
@@ -186,21 +203,19 @@ function MenuControl({
   function renderTrigger() {
     if (trigger) {
       return trigger({
-        props: {
-          size,
-          isOpen: state.isOpen,
-          ...triggerProps,
-          ...buttonProps,
-        },
-        ref,
+        size,
+        isOpen,
+        ...triggerProps,
+        ...overlayTriggerProps,
+        ...buttonProps,
       });
     }
     return (
       <DropdownButton
-        ref={ref}
         size={size}
-        isOpen={state.isOpen}
+        isOpen={isOpen}
         {...triggerProps}
+        {...overlayTriggerProps}
         {...buttonProps}
       >
         {triggerLabel}
@@ -212,23 +227,21 @@ function MenuControl({
   const defaultDisabledKeys = useMemo(() => getDisabledKeys(activeItems), [activeItems]);
 
   function renderMenu() {
-    if (!state.isOpen) {
+    if (!isOpen) {
       return null;
     }
 
     return (
-      <Menu
+      <DropdownMenu
         {...props}
         {...menuProps}
-        triggerRef={ref}
-        triggerWidth={triggerWidth}
         size={size}
+        triggerWidth={triggerWidth}
         isSubmenu={isSubmenu}
-        isDismissable={!isSubmenu && props.isDismissable}
-        shouldCloseOnBlur={!isSubmenu && props.shouldCloseOnBlur}
         closeRootMenu={closeRootMenu ?? state.close}
         closeCurrentSubmenu={closeCurrentSubmenu}
         disabledKeys={disabledKeys ?? defaultDisabledKeys}
+        overlayPositionProps={overlayProps}
         items={activeItems}
       >
         {(item: MenuItemProps) => {
@@ -249,7 +262,7 @@ function MenuControl({
             </Item>
           );
         }}
-      </Menu>
+      </DropdownMenu>
     );
   }
 
@@ -261,7 +274,7 @@ function MenuControl({
   );
 }
 
-export default MenuControl;
+export default DropdownMenuControl;
 
 const MenuControlWrap = styled('div')`
   list-style-type: none;

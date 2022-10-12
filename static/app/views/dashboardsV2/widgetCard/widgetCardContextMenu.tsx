@@ -123,7 +123,7 @@ function WidgetCardContextMenu({
                     showChevron: false,
                     icon: <IconEllipsis direction="down" size="sm" />,
                   }}
-                  placement="bottom right"
+                  position="bottom-end"
                   disabledKeys={[...disabledKeys, 'preview']}
                 />
                 {showWidgetViewerButton && (
@@ -257,7 +257,7 @@ function WidgetCardContextMenu({
                   showChevron: false,
                   icon: <IconEllipsis direction="down" size="sm" />,
                 }}
-                placement="bottom right"
+                position="bottom-end"
                 disabledKeys={[...disabledKeys]}
               />
               {showWidgetViewerButton && (
