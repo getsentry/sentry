@@ -39,7 +39,7 @@ export function ScreenshotCard({
   const organization = useOrganization();
   const [loadingImage, setLoadingImage] = useState(true);
 
-  const downloadUrl = `/api/0/projects/${organization.slug}/${projectSlug}/events/${eventId}/attachments/${eventAttachment.id}/`;
+  const downloadUrl = `/api/0/projects/${organization.slug}/${projectSlug}/events/${eventId}/attachments/${eventAttachment.id}/?download=1`;
 
   function openVisualizationModal() {
     openModal(
@@ -104,11 +104,13 @@ export function ScreenshotCard({
           }
           anchorRight
         >
-          <MenuItemActionLink shouldConfirm={false} href={`${downloadUrl}?download=1`}>
+          <MenuItemActionLink shouldConfirm={false} href={`${downloadUrl}`}>
             {t('Download')}
           </MenuItemActionLink>
           <MenuItemActionLink
             shouldConfirm
+            confirmPriority="danger"
+            confirmLabel={t('Delete')}
             onAction={() => onDelete(eventAttachment.id)}
             header={t('This image was captured around the time that the event occurred.')}
             message={t('Are you sure you wish to delete this image?')}
