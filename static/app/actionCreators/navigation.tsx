@@ -29,9 +29,6 @@ export function navigateTo(
           needOrg={needOrg}
           needProject={needProject}
           configUrl={configUrl}
-          comingFromProjectId={
-            Array.isArray(comingFromProjectId) ? '' : comingFromProjectId || ''
-          }
           onFinish={path => {
             modalProps.closeModal();
             return window.setTimeout(() => router.push(path), 0);
