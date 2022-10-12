@@ -137,6 +137,11 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
             assert_expected_response(response_data["data"], expected_response)
 
     def test_delete(self):
+        # test deleting as a member, as they should be able to
+        user = self.create_user(is_superuser=False)
+        self.create_member(user=user, organization=self.organization, role="member", teams=[])
+        self.login_as(user=user)
+
         file = File.objects.create(name="recording-segment-0", type="application/octet-stream")
         file.putfile(BytesIO(b"replay-recording-segment"))
 
