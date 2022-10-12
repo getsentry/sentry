@@ -17,7 +17,7 @@ import {
 } from 'sentry/types/sampling';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {RouteContext} from 'sentry/views/routeContext';
-import ServerSideSampling from 'sentry/views/settings/project/server-side-sampling';
+import DynamicSampling from 'sentry/views/settings/project/dynamicSampling';
 
 export const outcomesWithoutClientDiscarded = {
   ...TestStubs.OutcomesWithReason(),
@@ -29,7 +29,7 @@ export const outcomesWithoutClientDiscarded = {
 export const uniformRule: SamplingRule = {
   sampleRate: 0.5,
   type: SamplingRuleType.TRACE,
-  active: false,
+  active: true,
   condition: {
     op: SamplingConditionOperator.AND,
     inner: [],
@@ -165,6 +165,7 @@ export function getMockData({
         'server-side-sampling',
         'server-side-sampling-ui',
         'dynamic-sampling-basic',
+        'dynamic-sampling-total-transaction-packaging',
       ],
       access: access ?? initializeOrg().organization.access,
       projects,
@@ -188,7 +189,7 @@ export function TestComponent({
     <Fragment>
       {withModal && <GlobalModal />}
       <OrganizationContext.Provider value={organization}>
-        <ServerSideSampling project={project} />
+        <DynamicSampling project={project} />
       </OrganizationContext.Provider>
     </Fragment>
   );

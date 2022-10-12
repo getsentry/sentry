@@ -1,10 +1,10 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {SamplingSDKClientRateChangeAlert} from 'sentry/views/settings/project/server-side-sampling/samplingSDKClientRateChangeAlert';
+import {SamplingSDKClientRateChangeAlert} from 'sentry/views/settings/project/dynamicSampling/samplingSDKClientRateChangeAlert';
 
 import {getMockData} from './testUtils';
 
-describe('Server-Side Sampling - Client Rate Change Alert', function () {
+describe('Dynamic Sampling - Client Rate Change Alert', function () {
   it('does not render content', function () {
     const {organization, project} = getMockData();
 

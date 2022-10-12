@@ -1,4 +1,4 @@
-import {hasFirstBucketsEmpty} from 'sentry/views/settings/project/server-side-sampling/utils/hasFirstBucketsEmpty';
+import {hasFirstBucketsEmpty} from 'sentry/views/settings/project/dynamicSampling/utils/hasFirstBucketsEmpty';
 
 const stats = {
   start: '2022-07-02T19:00:00Z',

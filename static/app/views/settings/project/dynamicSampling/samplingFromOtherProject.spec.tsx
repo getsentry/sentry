@@ -1,4 +1,4 @@
-import {act, render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {ServerSideSamplingStore} from 'sentry/stores/serverSideSamplingStore';
@@ -8,10 +8,10 @@ import {getMockData, mockedSamplingDistribution} from './testUtils';
 
 export const samplingBreakdownTitle = 'Transaction Breakdown';
 
-describe('Server-Side Sampling - SamplingFromOtherProject', function () {
-  afterEach(function () {
-    act(() => ProjectsStore.reset());
-    act(() => ServerSideSamplingStore.reset());
+describe('Dynamic Sampling - SamplingFromOtherProject', function () {
+  beforeEach(function () {
+    ProjectsStore.reset();
+    ServerSideSamplingStore.reset();
   });
 
   it('renders the parent projects', function () {

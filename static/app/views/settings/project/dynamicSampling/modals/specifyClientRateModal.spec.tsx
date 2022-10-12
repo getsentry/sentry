@@ -6,14 +6,14 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {SpecifyClientRateModal} from 'sentry/views/settings/project/server-side-sampling/modals/specifyClientRateModal';
-import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/server-side-sampling/utils';
+import {SpecifyClientRateModal} from 'sentry/views/settings/project/dynamicSampling/modals/specifyClientRateModal';
+import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/dynamicSampling/utils';
 
 import {getMockData} from '../testUtils';
 
 jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
 
-describe('Server-Side Sampling - Specify Client Rate Modal', function () {
+describe('Dynamic Sampling - Specify Client Rate Modal', function () {
   it('renders', async function () {
     const {organization, project} = getMockData();
     const handleReadDocs = jest.fn();

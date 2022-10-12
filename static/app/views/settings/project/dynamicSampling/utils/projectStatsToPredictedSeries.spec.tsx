@@ -1,4 +1,4 @@
-import {projectStatsToPredictedSeries} from 'sentry/views/settings/project/server-side-sampling/utils/projectStatsToPredictedSeries';
+import {projectStatsToPredictedSeries} from 'sentry/views/settings/project/dynamicSampling/utils/projectStatsToPredictedSeries';
 
 import {outcomesWithoutClientDiscarded} from '../testUtils';
 

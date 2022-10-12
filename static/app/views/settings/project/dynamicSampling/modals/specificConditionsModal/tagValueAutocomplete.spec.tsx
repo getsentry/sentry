@@ -1,7 +1,7 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {TagValueAutocomplete} from 'sentry/views/settings/project/server-side-sampling/modals/specificConditionsModal/tagValueAutocomplete';
+import {TagValueAutocomplete} from 'sentry/views/settings/project/dynamicSampling/modals/specificConditionsModal/tagValueAutocomplete';
 
 describe('TagValueAutocomplete', function () {
   afterEach(function () {

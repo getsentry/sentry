@@ -2,7 +2,7 @@ import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {ServerSideSamplingStore} from 'sentry/stores/serverSideSamplingStore';
-import {useRecommendedSdkUpgrades} from 'sentry/views/settings/project/server-side-sampling/utils/useRecommendedSdkUpgrades';
+import {useRecommendedSdkUpgrades} from 'sentry/views/settings/project/dynamicSampling/utils/useRecommendedSdkUpgrades';
 
 import {mockedSamplingSdkVersions} from '../testUtils';
 

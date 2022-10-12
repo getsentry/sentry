@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {NumberField} from 'sentry/components/forms';
 import {t, tct} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
@@ -11,7 +12,7 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 
 import {isValidSampleRate, SERVER_SIDE_SAMPLING_DOC_LINK} from '../utils';
 
-import {FooterActions, Stepper, StyledNumberField} from './uniformRateModal';
+import {FooterActions, Stepper} from './recommendedStepsModal';
 
 type SpecifyClientRateModalProps = ModalRenderProps & {
   onChange: (value: number | undefined) => void;
@@ -126,4 +127,8 @@ export function SpecifyClientRateModal({
 
 const TextHighlight = styled('span')`
   color: ${p => p.theme.gray300};
+`;
+
+export const StyledNumberField = styled(NumberField)`
+  width: 100%;
 `;

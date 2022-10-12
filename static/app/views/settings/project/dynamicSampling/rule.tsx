@@ -3,7 +3,6 @@ import {DraggableSyntheticListeners, UseDraggableArguments} from '@dnd-kit/core'
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {openConfirmModal} from 'sentry/components/confirm';
 import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
 import NewBooleanField from 'sentry/components/forms/booleanField';
@@ -12,13 +11,12 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconEllipsis} from 'sentry/icons';
 import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {t, tn} from 'sentry/locale';
-import {ServerSideSamplingStore} from 'sentry/stores/serverSideSamplingStore';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import {SamplingRule, SamplingRuleOperator} from 'sentry/types/sampling';
 import {formatPercentage} from 'sentry/utils/formatters';
 
-import {getInnerNameLabel, isUniformRule} from './utils';
+import {getInnerNameLabel} from './utils';
 
 type Props = {
   dragging: boolean;
@@ -63,27 +61,17 @@ export function Rule({
   loadingRecommendedSdkUpgrades,
   canDemo,
 }: Props) {
-  const processingSamplingSdkVersions =
-    (ServerSideSamplingStore.getState().sdkVersions.data ?? []).length === 0;
-  const isUniform = isUniformRule(rule);
-  const canDelete = !noPermission && (!isUniform || canDemo);
-  const canDrag = !noPermission && !isUniform;
-  const canActivate =
-    !processingSamplingSdkVersions &&
-    !noPermission &&
-    (!upgradeSdkForProjects.length || rule.active);
+  const canDelete = !noPermission && canDemo;
+  const canDrag = !noPermission;
+  const canActivate = !noPermission && (!upgradeSdkForProjects.length || rule.active);
 
   return (
     <Fragment>
-      <GrabColumn disabled={!canDrag}>
-        {hideGrabButton ? null : (
+      <DragColumn disabled={!canDrag}>
+        {!hideGrabButton && (
           <Tooltip
             title={
-              noPermission
-                ? t('You do not have permission to reorder rules')
-                : isUniform
-                ? t('Uniform rules cannot be reordered')
-                : undefined
+              noPermission ? t('You do not have permission to reorder rules') : undefined
             }
             containerDisplayMode="flex"
           >
@@ -97,40 +85,33 @@ export function Rule({
             </IconGrabbableWrapper>
           </Tooltip>
         )}
-      </GrabColumn>
+      </DragColumn>
       <OperatorColumn>
         <Operator>
-          {operator === SamplingRuleOperator.IF
-            ? t('If')
-            : operator === SamplingRuleOperator.ELSE_IF
-            ? t('Else if')
-            : t('Else')}
+          {operator === SamplingRuleOperator.IF ? t('If') : t('Else if')}
         </Operator>
       </OperatorColumn>
       <ConditionColumn>
-        {hideGrabButton && !rule.condition.inner.length
-          ? t('All')
-          : rule.condition.inner.map((condition, index) => (
-              <Fragment key={index}>
-                <ConditionName>{getInnerNameLabel(condition.name)}</ConditionName>
-                <ConditionEqualOperator>{'='}</ConditionEqualOperator>
-                {Array.isArray(condition.value) ? (
-                  <div>
-                    {[...condition.value].map((conditionValue, conditionValueIndex) => (
-                      <Fragment key={conditionValue}>
-                        <ConditionValue>{conditionValue}</ConditionValue>
-                        {conditionValueIndex !==
-                          (condition.value as string[]).length - 1 && (
-                          <ConditionSeparator>{'\u002C'}</ConditionSeparator>
-                        )}
-                      </Fragment>
-                    ))}
-                  </div>
-                ) : (
-                  <ConditionValue>{String(condition.value)}</ConditionValue>
-                )}
-              </Fragment>
-            ))}
+        {rule.condition.inner.map((condition, index) => (
+          <Fragment key={index}>
+            <ConditionName>{getInnerNameLabel(condition.name)}</ConditionName>
+            <ConditionEqualOperator>{'='}</ConditionEqualOperator>
+            {Array.isArray(condition.value) ? (
+              <div>
+                {[...condition.value].map((conditionValue, conditionValueIndex) => (
+                  <Fragment key={conditionValue}>
+                    <ConditionValue>{conditionValue}</ConditionValue>
+                    {conditionValueIndex !== (condition.value as string[]).length - 1 && (
+                      <ConditionSeparator>{'\u002C'}</ConditionSeparator>
+                    )}
+                  </Fragment>
+                ))}
+              </div>
+            ) : (
+              <ConditionValue>{String(condition.value)}</ConditionValue>
+            )}
+          </Fragment>
+        ))}
       </ConditionColumn>
       <RateColumn>
         <SampleRate>{formatPercentage(rule.sampleRate)}</SampleRate>
@@ -139,38 +120,28 @@ export function Rule({
         {loadingRecommendedSdkUpgrades ? (
           <ActivateTogglePlaceholder />
         ) : (
-          <GuideAnchor
-            target="sampling_rule_toggle"
-            onFinish={onActivate}
-            disabled={!canActivate || !isUniform}
+          <Tooltip
+            disabled={canActivate}
+            title={
+              !canActivate
+                ? tn(
+                    'To enable the rule, the recommended sdk version have to be updated',
+                    'To enable the rule, the recommended sdk versions have to be updated',
+                    upgradeSdkForProjects.length
+                  )
+                : undefined
+            }
           >
-            <Tooltip
-              disabled={canActivate}
-              title={
-                !canActivate
-                  ? processingSamplingSdkVersions
-                    ? t(
-                        'We are processing sampling information for your project, so you cannot enable the rule yet. Please check again later'
-                      )
-                    : tn(
-                        'To enable the rule, the recommended sdk version have to be updated',
-                        'To enable the rule, the recommended sdk versions have to be updated',
-                        upgradeSdkForProjects.length
-                      )
-                  : undefined
-              }
-            >
-              <ActiveToggle
-                inline={false}
-                hideControlState
-                aria-label={rule.active ? t('Deactivate Rule') : t('Activate Rule')}
-                onClick={onActivate}
-                name="active"
-                disabled={!canActivate}
-                value={rule.active}
-              />
-            </Tooltip>
-          </GuideAnchor>
+            <ActiveToggle
+              inline={false}
+              hideControlState
+              aria-label={rule.active ? t('Deactivate Rule') : t('Activate Rule')}
+              onClick={onActivate}
+              name="active"
+              disabled={!canActivate}
+              value={rule.active}
+            />
+          </Tooltip>
         )}
       </ActiveColumn>
       <Column>
@@ -197,8 +168,6 @@ export function Rule({
               label: t('Delete'),
               details: canDelete
                 ? undefined
-                : isUniform
-                ? t("The uniform rule can't be deleted")
                 : t("You don't have permission to delete rules"),
               onAction: () =>
                 openConfirmModal({
@@ -223,24 +192,22 @@ export const Column = styled('div')`
   word-break: break-all;
 `;
 
-export const GrabColumn = styled(Column)<{disabled?: boolean}>`
-  [role='button'] {
-    cursor: grab;
+export const DragColumn = styled(Column)<{disabled?: boolean}>`
+  display: none;
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    display: flex;
   }
 
   ${p =>
     p.disabled &&
     css`
-      [role='button'] {
-        cursor: not-allowed;
-      }
       color: ${p.theme.disabled};
+      > * {
+        [role='button'] {
+          cursor: not-allowed;
+        }
+      }
     `}
-
-  display: none;
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    display: flex;
-  }
 `;
 
 export const OperatorColumn = styled(Column)`
@@ -277,28 +244,31 @@ const IconGrabbableWrapper = styled('div')`
   align-items: center;
   /* match the height of edit and delete buttons */
   height: 34px;
+  button {
+    cursor: grab;
+  }
 `;
 
 const ConditionEqualOperator = styled('div')`
   color: ${p => p.theme.purple300};
 `;
 
-const Operator = styled('div')`
+export const Operator = styled('div')`
   color: ${p => p.theme.active};
 `;
 
-const SampleRate = styled('div')`
+export const SampleRate = styled('div')`
   white-space: pre-wrap;
   word-break: break-all;
 `;
 
-const ActiveToggle = styled(NewBooleanField)`
+export const ActiveToggle = styled(NewBooleanField)`
   padding: 0;
   height: 34px;
   justify-content: center;
 `;
 
-const ActivateTogglePlaceholder = styled(Placeholder)`
+export const ActivateTogglePlaceholder = styled(Placeholder)`
   height: 24px;
   margin-top: ${space(0.5)};
 `;
