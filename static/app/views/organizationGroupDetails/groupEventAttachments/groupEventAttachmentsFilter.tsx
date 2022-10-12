@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import xor from 'lodash/xor';
 
+import Feature from 'sentry/components/acl/feature';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {t} from 'sentry/locale';
@@ -42,11 +43,15 @@ const GroupEventAttachmentsFilter = (props: WithRouterProps) => {
         <Button barId="all" size="sm" to={{pathname, query: allAttachmentsQuery}}>
           {t('All Attachments')}
         </Button>
-        {/* <Feature features={['mobile-screenshot-gallery']}> */}
-        <Button barId="screenshot" size="sm" to={{pathname, query: onlyScreenshotQuery}}>
-          {t('Screenshots')}
-        </Button>
-        {/* </Feature> */}
+        <Feature features={['mobile-screenshot-gallery']}>
+          <Button
+            barId="screenshot"
+            size="sm"
+            to={{pathname, query: onlyScreenshotQuery}}
+          >
+            {t('Screenshots')}
+          </Button>
+        </Feature>
         <Button barId="onlyCrash" size="sm" to={{pathname, query: onlyCrashReportsQuery}}>
           {t('Only Crash Reports')}
         </Button>
