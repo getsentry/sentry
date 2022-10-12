@@ -219,6 +219,8 @@ def project_event_counts_for_organization(ctx):
 
 # Project passes
 def project_key_errors(ctx, project):
+    if not project.first_event:
+        return
     # Take the 3 most frequently occuring events
     query = Query(
         match=Entity("events"),
@@ -246,6 +248,9 @@ def fetch_key_error_groups(ctx):
     for project_ctx in ctx.projects.values():
         all_key_error_group_ids.extend([group_id for group_id, count in project_ctx.key_errors])
 
+    if len(all_key_error_group_ids) == 0:
+        return
+
     group_id_to_group = {}
     for group in Group.objects.filter(id__in=all_key_error_group_ids).all():
         group_id_to_group[group.id] = group
@@ -268,6 +273,8 @@ def fetch_key_error_groups(ctx):
 
 
 def project_key_transactions(ctx, project):
+    if not project.flags.has_transactions:
+        return
     # Take the 3 most frequently occuring transactions this week
     query = Query(
         match=Entity("transactions"),
