@@ -43,7 +43,7 @@ jobs:
       - name: Set up
         id: info
         run: |
-          echo "::set-output name=yarn-cache-dir::$(yarn cache dir)"
+          echo "yarn-cache-dir=$(yarn cache dir)" >> "$GITHUB_OUTPUT"
 
       # Trick for unattended Docker installations
       # https://github.com/docker/for-mac/issues/2359#issuecomment-943131345

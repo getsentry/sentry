@@ -37,8 +37,9 @@ def _command_vars() -> int:
 
     cache_key = f"{sys.platform}-volta-{VOLTA}-node-{node}-yarn-{yarn}"
 
-    print(f"::set-output name=cache-key::{cache_key}")
-    print(f"::set-output name=volta-dir::{VOLTA_DIR}")
+    with open(os.environ["GITHUB_OUTPUT"], "a+") as f:
+        print(f"cache-key={cache_key}", file=f)
+        print(f"volta-dir={VOLTA_DIR}", file=f)
 
     print(f"adding {VOLTA_BIN} to path")
     with open(os.environ["GITHUB_PATH"], "a+") as f:
@@ -82,7 +83,8 @@ def _command_install() -> int:
 def _command_yarn_cache_dir() -> int:
     out = subprocess.check_output((_volta_bin("yarn"), "cache", "dir"))
     cache_dir = out.decode().strip()
-    print(f"::set-output name=cache-dir::{cache_dir}")
+    with open(os.environ["GITHUB_OUTPUT"], "a+") as f:
+        print(f"cache-dir={cache_dir}", file=f)
     return 0
 
 
