@@ -195,6 +195,7 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
               eventId={screenshot.event_id}
               projectSlug={projectSlug}
               groupId={params.groupId}
+              onDelete={this.handleDelete}
             />
           );
         })}

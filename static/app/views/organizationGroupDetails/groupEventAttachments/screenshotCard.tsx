@@ -3,8 +3,11 @@ import LazyLoad from 'react-lazyload';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
+import MenuItemActionLink from 'sentry/components/actions/menuItemActionLink';
+import Button from 'sentry/components/button';
 import Card from 'sentry/components/card';
 import DateTime from 'sentry/components/dateTime';
+import DropdownLink from 'sentry/components/dropdownLink';
 import ImageVisualization from 'sentry/components/events/eventTagsAndScreenshot/screenshot/imageVisualization';
 import Modal, {
   modalCss,
@@ -12,6 +15,7 @@ import Modal, {
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PanelBody} from 'sentry/components/panels';
+import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {IssueAttachment, Project} from 'sentry/types';
@@ -21,10 +25,17 @@ type Props = {
   eventAttachment: IssueAttachment;
   eventId: string;
   groupId: string;
+  onDelete: (attachmentId: string) => void;
   projectSlug: Project['slug'];
 };
 
-export function ScreenshotCard({eventAttachment, projectSlug, eventId, groupId}: Props) {
+export function ScreenshotCard({
+  eventAttachment,
+  projectSlug,
+  eventId,
+  groupId,
+  onDelete,
+}: Props) {
   const organization = useOrganization();
   const [loadingImage, setLoadingImage] = useState(true);
 
@@ -39,7 +50,7 @@ export function ScreenshotCard({eventAttachment, projectSlug, eventId, groupId}:
           projectSlug={projectSlug}
           eventAttachment={eventAttachment}
           downloadUrl={downloadUrl}
-          onDelete={() => {}}
+          onDelete={() => onDelete(eventAttachment.id)}
         />
       ),
       {modalCss}
@@ -48,7 +59,7 @@ export function ScreenshotCard({eventAttachment, projectSlug, eventId, groupId}:
 
   const baseEventsPath = `/organizations/${organization.slug}/issues/${groupId}/events/`;
   return (
-    <Card interactive>
+    <Card>
       <CardHeader>
         <CardContent>
           <Title to={`${baseEventsPath}${eventId}/`}>{eventId}</Title>
@@ -76,7 +87,33 @@ export function ScreenshotCard({eventAttachment, projectSlug, eventId, groupId}:
           </LazyLoad>
         </StyledPanelBody>
       </CardBody>
-      <CardFooter>{t('screenshot.png')}</CardFooter>
+      <CardFooter>
+        <div>{t('screenshot.png')}</div>
+        <DropdownLink
+          caret={false}
+          customTitle={
+            <Button
+              aria-label={t('Actions')}
+              size="xs"
+              icon={<IconEllipsis direction="down" size="sm" />}
+              borderless
+            />
+          }
+          anchorRight
+        >
+          <MenuItemActionLink shouldConfirm={false} href={`${downloadUrl}?download=1`}>
+            {t('Download')}
+          </MenuItemActionLink>
+          <MenuItemActionLink
+            shouldConfirm
+            onAction={() => onDelete(eventAttachment.id)}
+            header={t('This image was captured around the time that the event occurred.')}
+            message={t('Are you sure you wish to delete this image?')}
+          >
+            {t('Delete')}
+          </MenuItemActionLink>
+        </DropdownLink>
+      </CardFooter>
     </Card>
   );
 }
@@ -113,6 +150,9 @@ const CardFooter = styled('div')`
   justify-content: space-between;
   align-items: center;
   padding: ${space(1)} ${space(2)};
+  .dropdown {
+    height: 24px;
+  }
 `;
 
 const CardContent = styled('div')`
