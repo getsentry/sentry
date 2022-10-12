@@ -763,10 +763,10 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
     )
 
 
-def get_post_process_queue(has_group_states: bool) -> str:
+def get_post_process_queue(has_group_states: bool) -> Optional[str]:
     # performance issues will have a group_states array
     if not has_group_states:
-        return "post_process_errors"
+        return None
     else:
         return "post_process_performance"
 

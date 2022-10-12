@@ -77,7 +77,11 @@ class EventStream(Service):
         else:
             cache_key = cache_key_for_event({"project": project_id, "event_id": event_id})
 
-            kwargs = {"queue": get_post_process_queue(group_states is not None)}
+            kwargs = {}
+
+            queue = get_post_process_queue(group_states is not None)
+            if queue:
+                kwargs["queue"] = queue
 
             post_process_group.delay(
                 is_new=is_new,
