@@ -763,12 +763,13 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
     )
 
 
-def get_post_process_queue(has_group_states: bool) -> Optional[str]:
-    # performance issues will have a group_states array
-    if not has_group_states:
-        return None
-    else:
+def get_post_process_queue(group_category: GroupCategory) -> str:
+    if group_category == GroupCategory.ERROR:
+        return "post_process_errors"
+    elif group_category == GroupCategory.PERFORMANCE:
         return "post_process_performance"
+    else:
+        return "post_process_errors"  # keep default value
 
 
 GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
