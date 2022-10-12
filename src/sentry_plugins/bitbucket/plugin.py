@@ -176,7 +176,7 @@ class BitbucketPlugin(BitbucketMixin, IssuePlugin2):
         client = self.get_client(request.user)
 
         try:
-            response = client.search_issues(repo, query.encode("utf-8"))
+            response = client.search_issues(repo, query)
         except Exception as e:
             return Response(
                 {"error_type": "validation", "errors": [{"__all__": self.message_from_error(e)}]},
