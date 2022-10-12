@@ -1,4 +1,4 @@
-import {fireEvent, render, screen} from 'sentry-test/reactTestingLibrary';
+import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
@@ -112,12 +112,17 @@ describe('commitRow', () => {
       },
     };
 
-    render(<CommitRow commit={commit} />);
+    const handlePullRequestClick = jest.fn();
+    render(<CommitRow commit={commit} onPullRequestClick={handlePullRequestClick} />);
 
-    expect(screen.getByRole('button', {name: 'View Pull Request'})).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'View Pull Request'})).toHaveAttribute(
+    const pullRequestButton = screen.getByRole('button', {name: 'View Pull Request'});
+    expect(pullRequestButton).toBeInTheDocument();
+    expect(pullRequestButton).toHaveAttribute(
       'href',
       'https://github.com/getsentry/sentry/pull/1'
     );
+
+    userEvent.click(pullRequestButton);
+    expect(handlePullRequestClick).toHaveBeenCalledTimes(1);
   });
 });

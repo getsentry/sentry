@@ -29,9 +29,16 @@ function formatCommitMessage(message: string | null) {
 interface CommitRowProps {
   commit: Commit;
   customAvatar?: React.ReactNode;
+  onCommitClick?: () => void;
+  onPullRequestClick?: () => void;
 }
 
-function CommitRow({commit, customAvatar}: CommitRowProps) {
+function CommitRow({
+  commit,
+  customAvatar,
+  onPullRequestClick,
+  onCommitClick,
+}: CommitRowProps) {
   const handleInviteClick = useCallback(() => {
     if (!commit.author?.email) {
       Sentry.captureException(
@@ -88,7 +95,7 @@ function CommitRow({commit, customAvatar}: CommitRowProps) {
 
       <CommitMessage>
         <Message>
-          {tct('[author] last committed [commitLink]', {
+          {tct('[author] committed [commitLink]', {
             author: isUser ? t('You') : commit.author?.name ?? t('Unknown author'),
             commitLink: (
               <CommitLink
@@ -96,6 +103,7 @@ function CommitRow({commit, customAvatar}: CommitRowProps) {
                 showIcon={false}
                 commitId={commit.id}
                 repository={commit.repository}
+                onClick={onCommitClick}
               />
             ),
           })}
@@ -107,7 +115,11 @@ function CommitRow({commit, customAvatar}: CommitRowProps) {
       </CommitMessage>
 
       {commit.pullRequest && commit.pullRequest.externalUrl && (
-        <Button external href={commit.pullRequest.externalUrl}>
+        <Button
+          external
+          href={commit.pullRequest.externalUrl}
+          onClick={onPullRequestClick}
+        >
           {t('View Pull Request')}
         </Button>
       )}

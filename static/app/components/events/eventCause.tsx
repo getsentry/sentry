@@ -68,6 +68,24 @@ function EventCause({group, event, project}: Props) {
     return null;
   }
 
+  const handlePullRequestClick = () => {
+    trackAdvancedAnalyticsEvent('issue_details.suspect_commits.pull_request_clicked', {
+      organization,
+      project_id: parseInt(project.id as string, 10),
+      group_id: parseInt(group?.id as string, 10),
+      issue_category: group?.issueCategory ?? IssueCategory.ERROR,
+    });
+  };
+
+  const handleCommitClick = () => {
+    trackAdvancedAnalyticsEvent('issue_details.suspect_commits.commit_clicked', {
+      organization,
+      project_id: parseInt(project.id as string, 10),
+      group_id: parseInt(group?.id as string, 10),
+      issue_category: group?.issueCategory ?? IssueCategory.ERROR,
+    });
+  };
+
   const commits = getUniqueCommitsWithAuthors();
 
   return (
@@ -92,7 +110,12 @@ function EventCause({group, event, project}: Props) {
       </CauseHeader>
       <Panel>
         {commits.slice(0, isExpanded ? 100 : 1).map(commit => (
-          <CommitRow key={commit.id} commit={commit} />
+          <CommitRow
+            key={commit.id}
+            commit={commit}
+            onCommitClick={handleCommitClick}
+            onPullRequestClick={handlePullRequestClick}
+          />
         ))}
       </Panel>
     </DataSection>
