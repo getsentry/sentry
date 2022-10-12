@@ -110,9 +110,7 @@ class OptionsManagerTest(TestCase):
         """
         TODO: Remove when SENTRY_URL_PREFIX is completely deprecated
         """
-        assert self.manager.get("system.url-prefix") == ""
-        assert settings.SENTRY_URL_PREFIX == ""
-        assert settings.SENTRY_OPTIONS["system.url-prefix"] == ""
+        self.manager.register("system.url-prefix", default="http://testserver")
         self.manager.set("system.url-prefix", "https://sentry.example.com")
         assert self.manager.get("system.url-prefix") == "https://sentry.example.com"
         assert settings.SENTRY_URL_PREFIX == "https://sentry.example.com"
