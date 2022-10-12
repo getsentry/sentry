@@ -66,7 +66,7 @@ _profiling_pool = connection_from_url(
         status_forcelist={502},
         allowed_methods={"GET", "POST"},
     ),
-    timeout=30,
+    timeout=10,
     maxsize=10,
     headers={"Accept-Encoding": "br, gzip"},
 )
