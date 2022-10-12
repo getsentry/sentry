@@ -91,7 +91,7 @@ export function ScreenshotCard({
         </StyledPanelBody>
       </CardBody>
       <CardFooter>
-        <div>{t('screenshot.png')}</div>
+        <div>{eventAttachment.name}</div>
         <DropdownLink
           caret={false}
           customTitle={
