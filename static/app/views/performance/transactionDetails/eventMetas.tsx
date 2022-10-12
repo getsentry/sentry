@@ -88,7 +88,7 @@ class EventMetas extends Component<Props, State> {
     const {isLargeScreen} = this.state;
 
     // Replay preview gets rendered as part of the breadcrumb section. We need
-    // to check for precense of both to show the replay link button here.
+    // to check for presence of both to show the replay link button here.
     const hasReplay =
       organization.features.includes('session-replay-ui') &&
       Boolean(event.entries.find(({type}) => type === 'breadcrumbs')) &&
