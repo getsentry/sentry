@@ -12,8 +12,8 @@ import GlobalModal from 'sentry/components/globalModal';
 import {ServerSideSamplingStore} from 'sentry/stores/serverSideSamplingStore';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {UniformRateModal} from 'sentry/views/settings/project/server-side-sampling/modals/uniformRateModal';
-import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/server-side-sampling/utils';
+import {UniformRateModal} from 'sentry/views/settings/project/dynamicSampling/modals/uniformRateModal';
+import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/dynamicSampling/utils';
 
 import {
   getMockData,
