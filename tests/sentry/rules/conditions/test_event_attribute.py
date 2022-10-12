@@ -247,7 +247,7 @@ class EventAttributeConditionTest(RuleTestCase):
         self.assertPasses(rule, event)
 
         rule = self.get_rule(
-            data={"match": MatchType.EQUAL, "attribute": "http.status_code", "value": "500"}
+            data={"match": MatchType.EQUAL, "attribute": "http.status_code", "value": "400"}
         )
         self.assertDoesNotPass(rule, event)
 
