@@ -29,10 +29,18 @@ CallTrees = Mapping[str, List[Any]]
 processed_profiles_publisher = None
 
 
+class VroomTimeout(Exception):
+    pass
+
+
 @instrumented_task(  # type: ignore
     name="profiles.process",
     queue="profiles.process",
-    default_retry_delay=5,
+    autoretry_for=(VroomTimeout,),  # Retry when vroom returns a GCS timeout
+    retry_backoff=True,
+    retry_backoff_max=60,  # up to 1 min
+    retry_jitter=True,
+    default_retry_delay=5,  # retries after 5s
     max_retries=5,
     acks_late=True,
 )
@@ -514,6 +522,8 @@ def _insert_vroom_profile(profile: Profile) -> bool:
             profile["call_trees"] = {}
         elif response.status == 200:
             profile["call_trees"] = json.loads(response.data)["call_trees"]
+        elif response.status == 429:
+            raise VroomTimeout
         else:
             metrics.incr(
                 "process_profile.insert_vroom_profile.error",
