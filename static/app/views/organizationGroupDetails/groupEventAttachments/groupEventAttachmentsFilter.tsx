@@ -4,11 +4,11 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import xor from 'lodash/xor';
 
-import Feature from 'sentry/components/acl/feature';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import useOrganization from 'sentry/utils/useOrganization';
 
 const crashReportTypes = ['event.minidump', 'event.applecrashreport'];
 const screenshotType = 'event.screenshot';
@@ -21,6 +21,8 @@ const GroupEventAttachmentsFilter = (props: WithRouterProps) => {
     ...query,
     types: crashReportTypes,
   };
+
+  const organization = useOrganization();
 
   const onlyScreenshotQuery = {
     ...query,
@@ -43,7 +45,7 @@ const GroupEventAttachmentsFilter = (props: WithRouterProps) => {
         <Button barId="all" size="sm" to={{pathname, query: allAttachmentsQuery}}>
           {t('All Attachments')}
         </Button>
-        <Feature features={['mobile-screenshot-gallery']}>
+        {organization.features.includes('mobile-screenshot-gallery') && (
           <Button
             barId="screenshot"
             size="sm"
@@ -51,7 +53,7 @@ const GroupEventAttachmentsFilter = (props: WithRouterProps) => {
           >
             {t('Screenshots')}
           </Button>
-        </Feature>
+        )}
         <Button barId="onlyCrash" size="sm" to={{pathname, query: onlyCrashReportsQuery}}>
           {t('Only Crash Reports')}
         </Button>
