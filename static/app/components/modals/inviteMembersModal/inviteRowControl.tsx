@@ -1,9 +1,9 @@
 import {Component} from 'react';
-import {MultiValueProps, StylesConfig} from 'react-select';
+import {MultiValueProps} from 'react-select';
 import {withTheme} from '@emotion/react';
 
 import Button from 'sentry/components/button';
-import SelectControl from 'sentry/components/forms/selectControl';
+import SelectControl, {StylesConfig} from 'sentry/components/forms/selectControl';
 import TeamSelector from 'sentry/components/forms/teamSelector';
 import RoleSelectControl from 'sentry/components/roleSelectControl';
 import {IconClose} from 'sentry/icons/iconClose';
@@ -21,9 +21,9 @@ type Props = {
   disabled: boolean;
   emails: string[];
   inviteStatus: InviteStatus;
-  onChangeEmails: (emails: null | SelectOption[]) => void;
+  onChangeEmails: (emails: SelectOption[]) => void;
   onChangeRole: (role: SelectOption) => void;
-  onChangeTeams: (teams?: SelectOption[] | null) => void;
+  onChangeTeams: (teams: SelectOption[]) => void;
   onRemove: () => void;
   role: string;
   roleDisabledUnallowed: boolean;
@@ -155,10 +155,7 @@ class InviteRowControl extends Component<Props, State> {
  */
 function getStyles(theme: Theme, inviteStatus: Props['inviteStatus']): StylesConfig {
   return {
-    multiValue: (
-      provided: React.CSSProperties,
-      {data}: MultiValueProps<SelectOption>
-    ) => {
+    multiValue: (provided, {data}: MultiValueProps<SelectOption>) => {
       const status = inviteStatus[data.value];
       return {
         ...provided,
@@ -171,10 +168,7 @@ function getStyles(theme: Theme, inviteStatus: Props['inviteStatus']): StylesCon
           : {}),
       };
     },
-    multiValueLabel: (
-      provided: React.CSSProperties,
-      {data}: MultiValueProps<SelectOption>
-    ) => {
+    multiValueLabel: (provided, {data}: MultiValueProps<SelectOption>) => {
       const status = inviteStatus[data.value];
       return {
         ...provided,
@@ -182,10 +176,7 @@ function getStyles(theme: Theme, inviteStatus: Props['inviteStatus']): StylesCon
         ...(status?.error ? {color: theme.red300} : {}),
       };
     },
-    multiValueRemove: (
-      provided: React.CSSProperties,
-      {data}: MultiValueProps<SelectOption>
-    ) => {
+    multiValueRemove: (provided, {data}: MultiValueProps<SelectOption>) => {
       const status = inviteStatus[data.value];
       return {
         ...provided,

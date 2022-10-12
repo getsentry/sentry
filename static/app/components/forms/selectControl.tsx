@@ -6,12 +6,12 @@ import ReactSelect, {
   OptionsType,
   OptionTypeBase,
   Props as ReactSelectProps,
-  StylesConfig,
+  StylesConfig as ReactSelectStylesConfig,
 } from 'react-select';
 import Async from 'react-select/async';
 import AsyncCreatable from 'react-select/async-creatable';
 import Creatable from 'react-select/creatable';
-import {useTheme} from '@emotion/react';
+import {CSSObject, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
@@ -151,6 +151,9 @@ type WrappedControlProps<OptionType extends OptionTypeBase> = ControlProps<Optio
 // controls that have custom option structures
 export type GeneralSelectValue = SelectValue<any>;
 
+// We don't care about any options for the styles config
+export type StylesConfig = ReactSelectStylesConfig<any, boolean>;
+
 function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValue>(
   props: WrappedControlProps<OptionType>
 ) {
@@ -163,7 +166,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
   // Unfortunately we cannot use emotions `css` helper here, since react-select
   // *requires* object styles, which the css helper cannot produce.
   const indicatorStyles = useCallback(
-    ({padding: _padding, ...provided}: React.CSSProperties) => ({
+    ({padding: _padding, ...provided}: CSSObject) => ({
       ...provided,
       padding: '4px',
       alignItems: 'center',
@@ -220,7 +223,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
           : omit(theme.form[size ?? 'md'], 'height')),
       }),
 
-      menu: (provided: React.CSSProperties) => ({
+      menu: provided => ({
         ...provided,
         zIndex: theme.zIndex.dropdown,
         background: theme.backgroundElevated,
@@ -241,7 +244,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
         }),
       }),
 
-      menuList: (provided: React.CSSProperties) => ({
+      menuList: provided => ({
         ...provided,
         ...(isCompact && {
           ...(menuHeight && {
@@ -268,7 +271,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
         overflow: 'hidden',
       }),
 
-      option: (provided: React.CSSProperties) => ({
+      option: provided => ({
         ...provided,
         cursor: 'pointer',
         color: theme.textColor,
@@ -278,7 +281,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
           background: 'transparent',
         },
       }),
-      valueContainer: (provided: React.CSSProperties) => ({
+      valueContainer: provided => ({
         ...provided,
         alignItems: 'center',
         ...(isCompact
@@ -294,7 +297,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
               paddingRight: space(0.5),
             }),
       }),
-      input: (provided: React.CSSProperties) => ({
+      input: provided => ({
         ...provided,
         color: theme.formText,
         margin: 0,
@@ -302,7 +305,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
           padding: 0,
         }),
       }),
-      singleValue: (provided: React.CSSProperties) => ({
+      singleValue: provided => ({
         ...provided,
         color: theme.formText,
         display: 'flex',
@@ -313,7 +316,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
           0.5
         )})`,
       }),
-      placeholder: (provided: React.CSSProperties) => ({
+      placeholder: provided => ({
         ...provided,
         color: theme.formPlaceholder,
         ...(isCompact && {
@@ -321,7 +324,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
           margin: 0,
         }),
       }),
-      multiValue: (provided: React.CSSProperties) => ({
+      multiValue: provided => ({
         ...provided,
         color: '#007eff',
         backgroundColor: '#ebf5ff',
@@ -329,7 +332,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
         border: '1px solid #c2e0ff',
         display: 'flex',
       }),
-      multiValueLabel: (provided: React.CSSProperties) => ({
+      multiValueLabel: provided => ({
         ...provided,
         color: '#007eff',
         padding: '0',
@@ -360,7 +363,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
       clearIndicator: indicatorStyles,
       dropdownIndicator: indicatorStyles,
       loadingIndicator: indicatorStyles,
-      groupHeading: (provided: React.CSSProperties) => ({
+      groupHeading: provided => ({
         ...provided,
         lineHeight: '1.5',
         fontWeight: 600,
@@ -368,7 +371,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
         marginBottom: 0,
         padding: `${space(0.5)} ${space(1.5)}`,
       }),
-      group: (provided: React.CSSProperties) => ({
+      group: provided => ({
         ...provided,
         paddingTop: 0,
         ':last-of-type': {
@@ -433,11 +436,11 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
 
   // Override the default style with in-field labels if they are provided
   const inFieldLabelStyles = {
-    singleValue: (base: React.CSSProperties) => ({
+    singleValue: (base: CSSObject) => ({
       ...base,
       ...getFieldLabelStyle(inFieldLabel),
     }),
-    placeholder: (base: React.CSSProperties) => ({
+    placeholder: (base: CSSObject) => ({
       ...base,
       ...getFieldLabelStyle(inFieldLabel),
     }),
