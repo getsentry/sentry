@@ -106,6 +106,18 @@ class OptionsManagerTest(TestCase):
         assert self.manager.delete("sentry:foo")
         assert self.manager.get("sentry:foo") == ""
 
+    def test_legacy_url_prefix_key(self):
+        """
+        TODO: Remove when SENTRY_URL_PREFIX is completely deprecated
+        """
+        assert self.manager.get("system.url-prefix") == ""
+        assert settings.SENTRY_URL_PREFIX == ""
+        assert settings.SENTRY_OPTIONS["system.url-prefix"] == ""
+        self.manager.set("system.url-prefix", "https://sentry.example.com")
+        assert self.manager.get("system.url-prefix") == "https://sentry.example.com"
+        assert settings.SENTRY_URL_PREFIX == "https://sentry.example.com"
+        assert settings.SENTRY_OPTIONS["system.url-prefix"] == "https://sentry.example.com"
+
     def test_types(self):
         self.manager.register("some-int", type=Int, default=0)
         with pytest.raises(TypeError):
