@@ -1,4 +1,4 @@
-import {browserHistory} from 'react-router';
+import {browserHistory, InjectedRouter} from 'react-router';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -12,6 +12,7 @@ import {
   MEPState,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import TransactionSummary from 'sentry/views/performance/transactionSummary/transactionOverview';
+import {RouteContext} from 'sentry/views/routeContext';
 
 const teams = [
   TestStubs.Team({id: '1', slug: 'team1', name: 'Team 1'}),
@@ -51,12 +52,19 @@ function initializeData({
   return initialData;
 }
 
-const TestComponent = ({...props}: React.ComponentProps<typeof TransactionSummary>) => {
+const TestComponent = ({
+  router,
+  ...props
+}: React.ComponentProps<typeof TransactionSummary> & {
+  router: InjectedRouter<Record<string, string>, any>;
+}) => {
   const client = new QueryClient();
 
   return (
     <QueryClientProvider client={client}>
-      <TransactionSummary {...props} />
+      <RouteContext.Provider value={{router, ...router}}>
+        <TransactionSummary {...props} />
+      </RouteContext.Provider>
     </QueryClientProvider>
   );
 };
@@ -393,7 +401,7 @@ describe('Performance > TransactionSummary', function () {
     it('renders basic UI elements', async function () {
       const {organization, router, routerContext} = initializeData();
 
-      render(<TestComponent location={router.location} />, {
+      render(<TestComponent router={router} location={router.location} />, {
         context: routerContext,
         organization,
       });
@@ -436,7 +444,7 @@ describe('Performance > TransactionSummary', function () {
         features: ['incidents'],
       });
 
-      render(<TestComponent location={router.location} />, {
+      render(<TestComponent router={router} location={router.location} />, {
         context: routerContext,
         organization,
       });
@@ -454,7 +462,7 @@ describe('Performance > TransactionSummary', function () {
         },
       });
 
-      render(<TestComponent location={router.location} />, {
+      render(<TestComponent router={router} location={router.location} />, {
         context: routerContext,
         organization,
       });
@@ -473,7 +481,7 @@ describe('Performance > TransactionSummary', function () {
     it('renders sidebar widgets', async function () {
       const {organization, router, routerContext} = initializeData();
 
-      render(<TestComponent location={router.location} />, {
+      render(<TestComponent router={router} location={router.location} />, {
         context: routerContext,
         organization,
       });
@@ -512,7 +520,7 @@ describe('Performance > TransactionSummary', function () {
         },
       });
 
-      render(<TestComponent location={router.location} />, {
+      render(<TestComponent router={router} location={router.location} />, {
         context: routerContext,
         organization,
       });
@@ -539,7 +547,7 @@ describe('Performance > TransactionSummary', function () {
         },
       });
 
-      render(<TestComponent location={router.location} />, {
+      render(<TestComponent router={router} location={router.location} />, {
         context: routerContext,
         organization,
       });
@@ -553,7 +561,7 @@ describe('Performance > TransactionSummary', function () {
     it('triggers a navigation on search', function () {
       const {organization, router, routerContext} = initializeData();
 
-      render(<TestComponent location={router.location} />, {
+      render(<TestComponent router={router} location={router.location} />, {
         context: routerContext,
         organization,
       });
@@ -578,7 +586,7 @@ describe('Performance > TransactionSummary', function () {
     it('can mark a transaction as key', async function () {
       const {organization, router, routerContext} = initializeData();
 
-      render(<TestComponent location={router.location} />, {
+      render(<TestComponent router={router} location={router.location} />, {
         context: routerContext,
         organization,
       });
@@ -605,7 +613,7 @@ describe('Performance > TransactionSummary', function () {
     it('triggers a navigation on transaction filter', async function () {
       const {organization, router, routerContext} = initializeData();
 
-      render(<TestComponent location={router.location} />, {
+      render(<TestComponent router={router} location={router.location} />, {
         context: routerContext,
         organization,
       });
@@ -634,7 +642,7 @@ describe('Performance > TransactionSummary', function () {
     it('renders pagination buttons', async function () {
       const {organization, router, routerContext} = initializeData();
 
-      render(<TestComponent location={router.location} />, {
+      render(<TestComponent router={router} location={router.location} />, {
         context: routerContext,
         organization,
       });
@@ -667,7 +675,7 @@ describe('Performance > TransactionSummary', function () {
         query: {query: 'tag:value'},
       });
 
-      render(<TestComponent location={router.location} />, {
+      render(<TestComponent router={router} location={router.location} />, {
         context: routerContext,
         organization,
       });
@@ -693,7 +701,7 @@ describe('Performance > TransactionSummary', function () {
         query: {query: 'tag:value event.type:transaction'},
       });
 
-      render(<TestComponent location={router.location} />, {
+      render(<TestComponent router={router} location={router.location} />, {
         context: routerContext,
         organization,
       });
@@ -713,7 +721,7 @@ describe('Performance > TransactionSummary', function () {
         features: ['performance-suspect-spans-view'],
       });
 
-      render(<TestComponent location={router.location} />, {
+      render(<TestComponent router={router} location={router.location} />, {
         context: routerContext,
         organization,
       });
@@ -724,7 +732,7 @@ describe('Performance > TransactionSummary', function () {
     it('adds search condition on transaction status when clicking on status breakdown', async function () {
       const {organization, router, routerContext} = initializeData();
 
-      render(<TestComponent location={router.location} />, {
+      render(<TestComponent router={router} location={router.location} />, {
         context: routerContext,
         organization,
       });
@@ -746,7 +754,7 @@ describe('Performance > TransactionSummary', function () {
     it('appends tag value to existing query when clicked', async function () {
       const {organization, router, routerContext} = initializeData();
 
-      render(<TestComponent location={router.location} />, {
+      render(<TestComponent router={router} location={router.location} />, {
         context: routerContext,
         organization,
       });
@@ -800,7 +808,7 @@ describe('Performance > TransactionSummary', function () {
         features: ['performance-frontend-use-events-endpoint'],
       });
 
-      render(<TestComponent location={router.location} />, {
+      render(<TestComponent router={router} location={router.location} />, {
         context: routerContext,
         organization,
       });
@@ -843,7 +851,7 @@ describe('Performance > TransactionSummary', function () {
         features: ['incidents', 'performance-frontend-use-events-endpoint'],
       });
 
-      render(<TestComponent location={router.location} />, {
+      render(<TestComponent router={router} location={router.location} />, {
         context: routerContext,
         organization,
       });
@@ -862,7 +870,7 @@ describe('Performance > TransactionSummary', function () {
         },
       });
 
-      render(<TestComponent location={router.location} />, {
+      render(<TestComponent router={router} location={router.location} />, {
         context: routerContext,
         organization,
       });
@@ -883,7 +891,7 @@ describe('Performance > TransactionSummary', function () {
         features: ['performance-frontend-use-events-endpoint'],
       });
 
-      render(<TestComponent location={router.location} />, {
+      render(<TestComponent router={router} location={router.location} />, {
         context: routerContext,
         organization,
       });
@@ -924,7 +932,7 @@ describe('Performance > TransactionSummary', function () {
         },
       });
 
-      render(<TestComponent location={router.location} />, {
+      render(<TestComponent router={router} location={router.location} />, {
         context: routerContext,
         organization,
       });
@@ -953,7 +961,7 @@ describe('Performance > TransactionSummary', function () {
         },
       });
 
-      render(<TestComponent location={router.location} />, {
+      render(<TestComponent router={router} location={router.location} />, {
         context: routerContext,
         organization,
       });
@@ -969,7 +977,7 @@ describe('Performance > TransactionSummary', function () {
         features: ['performance-frontend-use-events-endpoint'],
       });
 
-      render(<TestComponent location={router.location} />, {
+      render(<TestComponent router={router} location={router.location} />, {
         context: routerContext,
         organization,
       });
@@ -996,7 +1004,7 @@ describe('Performance > TransactionSummary', function () {
         features: ['performance-frontend-use-events-endpoint'],
       });
 
-      render(<TestComponent location={router.location} />, {
+      render(<TestComponent router={router} location={router.location} />, {
         context: routerContext,
         organization,
       });
@@ -1025,7 +1033,7 @@ describe('Performance > TransactionSummary', function () {
         features: ['performance-frontend-use-events-endpoint'],
       });
 
-      render(<TestComponent location={router.location} />, {
+      render(<TestComponent router={router} location={router.location} />, {
         context: routerContext,
         organization,
       });
@@ -1056,7 +1064,7 @@ describe('Performance > TransactionSummary', function () {
         features: ['performance-frontend-use-events-endpoint'],
       });
 
-      render(<TestComponent location={router.location} />, {
+      render(<TestComponent router={router} location={router.location} />, {
         context: routerContext,
         organization,
       });
@@ -1090,7 +1098,7 @@ describe('Performance > TransactionSummary', function () {
         query: {query: 'tag:value'},
       });
 
-      render(<TestComponent location={router.location} />, {
+      render(<TestComponent router={router} location={router.location} />, {
         context: routerContext,
         organization,
       });
@@ -1117,7 +1125,7 @@ describe('Performance > TransactionSummary', function () {
         query: {query: 'tag:value event.type:transaction'},
       });
 
-      render(<TestComponent location={router.location} />, {
+      render(<TestComponent router={router} location={router.location} />, {
         context: routerContext,
         organization,
       });
@@ -1140,7 +1148,7 @@ describe('Performance > TransactionSummary', function () {
         ],
       });
 
-      render(<TestComponent location={router.location} />, {
+      render(<TestComponent router={router} location={router.location} />, {
         context: routerContext,
         organization,
       });
@@ -1153,7 +1161,7 @@ describe('Performance > TransactionSummary', function () {
         features: ['performance-frontend-use-events-endpoint'],
       });
 
-      render(<TestComponent location={router.location} />, {
+      render(<TestComponent router={router} location={router.location} />, {
         context: routerContext,
         organization,
       });
@@ -1177,7 +1185,7 @@ describe('Performance > TransactionSummary', function () {
         features: ['performance-frontend-use-events-endpoint'],
       });
 
-      render(<TestComponent location={router.location} />, {
+      render(<TestComponent router={router} location={router.location} />, {
         context: routerContext,
         organization,
       });

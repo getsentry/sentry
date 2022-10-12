@@ -1,3 +1,5 @@
+import {InjectedRouter} from 'react-router';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
@@ -6,6 +8,7 @@ import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhan
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import SummaryContent from 'sentry/views/performance/transactionSummary/transactionOverview/content';
+import {RouteContext} from 'sentry/views/routeContext';
 
 function initialize(project, query, additionalFeatures: string[] = []) {
   const features = ['transaction-event', 'performance-view', ...additionalFeatures];
@@ -49,13 +52,18 @@ function initialize(project, query, additionalFeatures: string[] = []) {
 
 const WrappedComponent = ({
   organization,
+  router,
   ...props
-}: React.ComponentProps<typeof SummaryContent>) => {
+}: React.ComponentProps<typeof SummaryContent> & {
+  router: InjectedRouter<Record<string, string>, any>;
+}) => {
   return (
     <OrganizationContext.Provider value={organization}>
-      <MEPSettingProvider>
-        <SummaryContent organization={organization} {...props} />
-      </MEPSettingProvider>
+      <RouteContext.Provider value={{router, ...router}}>
+        <MEPSettingProvider>
+          <SummaryContent organization={organization} {...props} />
+        </MEPSettingProvider>
+      </RouteContext.Provider>
     </OrganizationContext.Provider>
   );
 };
@@ -117,6 +125,7 @@ describe('Transaction Summary Content', function () {
       eventView,
       spanOperationBreakdownFilter,
       transactionName,
+      router,
     } = initialize(project, {});
     const routerContext = TestStubs.routerContext([{organization}]);
 
@@ -132,6 +141,7 @@ describe('Transaction Summary Content', function () {
         spanOperationBreakdownFilter={spanOperationBreakdownFilter}
         error={null}
         onChangeFilter={() => {}}
+        router={router}
       />,
       routerContext
     );
@@ -163,6 +173,7 @@ describe('Transaction Summary Content', function () {
       eventView,
       spanOperationBreakdownFilter,
       transactionName,
+      router,
     } = initialize(project, {}, ['performance-chart-interpolation']);
     const routerContext = TestStubs.routerContext([{organization}]);
 
@@ -178,6 +189,7 @@ describe('Transaction Summary Content', function () {
         spanOperationBreakdownFilter={spanOperationBreakdownFilter}
         error={null}
         onChangeFilter={() => {}}
+        router={router}
       />,
       routerContext
     );
