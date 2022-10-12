@@ -1,11 +1,5 @@
-import bisect
 import heapq
-import logging
-import math
-import operator
-import zlib
-from collections import OrderedDict, namedtuple
-from datetime import date, datetime, timedelta
+from datetime import timedelta
 from functools import partial, reduce
 
 from django.db.models import Count, F
@@ -30,19 +24,14 @@ from sentry.models import (
     Organization,
     OrganizationMember,
     OrganizationStatus,
-    Project,
-    Team,
-    User,
     UserOption,
 )
 from sentry.snuba.dataset import Dataset
 from sentry.tasks.base import instrumented_task
 from sentry.types.activity import ActivityType
-from sentry.utils import json, redis
+from sentry.utils import json
 from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
 from sentry.utils.email import MessageBuilder
-from sentry.utils.iterators import chunked
-from sentry.utils.math import mean
 from sentry.utils.outcomes import Outcome
 from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.snuba import parse_snuba_datetime, raw_snql_query
