@@ -3,7 +3,7 @@ import {Fragment} from 'react';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import GlobalModal from 'sentry/components/globalModal';
-import {SamplingSDKUpgradesAlert} from 'sentry/views/settings/project/server-side-sampling/samplingSDKUpgradesAlert';
+import {SamplingSDKUpgradesAlert} from 'sentry/views/settings/project/serverSideSampling/samplingSDKUpgradesAlert';
 
 import {getMockData, mockedProjects, recommendedSdkUpgrades} from './testUtils';
 

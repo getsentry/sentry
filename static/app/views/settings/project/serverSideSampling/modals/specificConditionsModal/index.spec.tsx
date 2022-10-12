@@ -9,9 +9,9 @@ import {
 import * as indicators from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {SamplingInnerName} from 'sentry/types/sampling';
-import {SpecificConditionsModal} from 'sentry/views/settings/project/server-side-sampling/modals/specificConditionsModal';
-import {distributedTracesConditions} from 'sentry/views/settings/project/server-side-sampling/modals/specificConditionsModal/utils';
-import {getInnerNameLabel} from 'sentry/views/settings/project/server-side-sampling/utils';
+import {SpecificConditionsModal} from 'sentry/views/settings/project/serverSideSampling/modals/specificConditionsModal';
+import {distributedTracesConditions} from 'sentry/views/settings/project/serverSideSampling/modals/specificConditionsModal/utils';
+import {getInnerNameLabel} from 'sentry/views/settings/project/serverSideSampling/utils';
 
 import {getMockData, specificRule, uniformRule} from '../../testUtils';
 

@@ -7,7 +7,7 @@ import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {useOrganizationStats} from 'sentry/utils/useOrganizationStats';
-import {getClientSampleRates} from 'sentry/views/settings/project/server-side-sampling/utils';
+import {getClientSampleRates} from 'sentry/views/settings/project/serverSideSampling/utils';
 
 export const dynamicSamplingMetricsAccuracyMessage = t(
   'The accuracy of performance metrics can be improved by adjusting your client-side sample rate.'

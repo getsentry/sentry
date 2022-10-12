@@ -6,8 +6,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {SpecifyClientRateModal} from 'sentry/views/settings/project/server-side-sampling/modals/specifyClientRateModal';
-import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/server-side-sampling/utils';
+import {SpecifyClientRateModal} from 'sentry/views/settings/project/serverSideSampling/modals/specifyClientRateModal';
+import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/serverSideSampling/utils';
 
 import {getMockData} from '../testUtils';
 

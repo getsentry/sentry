@@ -1,4 +1,4 @@
-import {projectStatsToSeries} from 'sentry/views/settings/project/server-side-sampling/utils/projectStatsToSeries';
+import {projectStatsToSeries} from 'sentry/views/settings/project/serverSideSampling/utils/projectStatsToSeries';
 
 import {outcomesWithoutClientDiscarded} from '../testUtils';
 

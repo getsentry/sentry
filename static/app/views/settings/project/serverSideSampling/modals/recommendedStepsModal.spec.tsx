@@ -2,8 +2,8 @@ import {renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibr
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {RecommendedStepsModal} from 'sentry/views/settings/project/server-side-sampling/modals/recommendedStepsModal';
-import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/server-side-sampling/utils';
+import {RecommendedStepsModal} from 'sentry/views/settings/project/serverSideSampling/modals/recommendedStepsModal';
+import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/serverSideSampling/utils';
 
 import {
   getMockData,

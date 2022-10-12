@@ -17,7 +17,7 @@ import {
 } from 'sentry/types/sampling';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {RouteContext} from 'sentry/views/routeContext';
-import ServerSideSampling from 'sentry/views/settings/project/server-side-sampling';
+import ServerSideSampling from 'sentry/views/settings/project/serverSideSampling';
 
 export const outcomesWithoutClientDiscarded = {
   ...TestStubs.OutcomesWithReason(),

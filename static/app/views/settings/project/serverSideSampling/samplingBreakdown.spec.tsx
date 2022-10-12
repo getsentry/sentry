@@ -2,7 +2,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {ServerSideSamplingStore} from 'sentry/stores/serverSideSamplingStore';
-import {SamplingBreakdown} from 'sentry/views/settings/project/server-side-sampling/samplingBreakdown';
+import {SamplingBreakdown} from 'sentry/views/settings/project/serverSideSampling/samplingBreakdown';
 
 import {getMockData, mockedSamplingDistribution} from './testUtils';
 

@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {SamplingSDKClientRateChangeAlert} from 'sentry/views/settings/project/server-side-sampling/samplingSDKClientRateChangeAlert';
+import {SamplingSDKClientRateChangeAlert} from 'sentry/views/settings/project/serverSideSampling/samplingSDKClientRateChangeAlert';
 
 import {getMockData} from './testUtils';
 

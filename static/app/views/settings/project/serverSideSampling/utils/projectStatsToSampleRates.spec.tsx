@@ -1,4 +1,4 @@
-import {projectStatsToSampleRates} from 'sentry/views/settings/project/server-side-sampling/utils/projectStatsToSampleRates';
+import {projectStatsToSampleRates} from 'sentry/views/settings/project/serverSideSampling/utils/projectStatsToSampleRates';
 
 describe('projectStatsToSampleRates', function () {
   it('returns correct sample rates', function () {
