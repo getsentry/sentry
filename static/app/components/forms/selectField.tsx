@@ -73,7 +73,7 @@ export default class SelectField<OptionType extends SelectValue<any>> extends Co
   handleChange = (
     onBlur: InputFieldProps['onBlur'],
     onChange: InputFieldProps['onChange'],
-    optionObj: ValueType<OptionType>
+    optionObj: ValueType<OptionType, boolean>
   ) => {
     let value: any = undefined;
 

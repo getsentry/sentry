@@ -1,5 +1,6 @@
 import {
   render,
+  renderGlobalModal,
   screen,
   userEvent,
   waitForElementToBeRemoved,
@@ -52,7 +53,7 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
     ServerSideSamplingStore.projectStats30dRequestSuccess(TestStubs.Outcomes());
     ServerSideSamplingStore.projectStats48hRequestSuccess(TestStubs.Outcomes());
 
-    const {container} = render(<GlobalModal />);
+    const {container} = renderGlobalModal();
 
     openModal(modalProps => (
       <UniformRateModal

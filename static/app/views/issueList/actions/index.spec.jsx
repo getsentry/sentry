@@ -11,8 +11,7 @@ import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {IssueCategory} from 'sentry/types';
 import {IssueListActions} from 'sentry/views/issueList/actions';
-
-import {OrganizationContext} from '../organizationContext';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 const organization = TestStubs.Organization();
 

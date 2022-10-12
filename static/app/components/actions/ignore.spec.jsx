@@ -3,6 +3,7 @@ import {
   renderGlobalModal,
   screen,
   userEvent,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import IgnoreActions from 'sentry/components/actions/ignore';
@@ -60,6 +61,33 @@ describe('IgnoreActions', function () {
       userEvent.click(screen.getByTestId('confirm-button'));
 
       expect(spy).toHaveBeenCalled();
+    });
+  });
+
+  describe('custom', function () {
+    it('can ignore until a custom date/time', function () {
+      render(
+        <IgnoreActions onUpdate={spy} shouldConfirm confirmMessage={() => 'confirm me'} />
+      );
+      renderGlobalModal();
+
+      userEvent.click(screen.getByRole('button', {name: 'Ignore options'}));
+      userEvent.hover(screen.getByRole('menuitemradio', {name: 'For…'}));
+      userEvent.click(screen.getByRole('menuitemradio', {name: /Custom/}));
+
+      // opens modal
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+      userEvent.click(
+        within(screen.getByRole('dialog')).getByRole('button', {name: 'Ignore'})
+      );
+
+      expect(spy).toHaveBeenCalledWith({
+        status: 'ignored',
+        statusDetails: {
+          ignoreDuration: expect.any(Number),
+        },
+      });
     });
   });
 });
