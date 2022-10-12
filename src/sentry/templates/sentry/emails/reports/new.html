@@ -295,33 +295,37 @@
 
   <div id="events-by-issue-type">
 
-    {% with report.distribution.total as total %}
+    {% if issue_summary.all_issue_count > 0 %}
     <table class="issue-breakdown">
       <tr class="mobile-full-width">
         <td>
           <h4>Errors by Issue Type</h4>
         </td>
         <td class="legend">
-          {% for type, count in report.distribution.types %}
-            <span class="swatch" style="background-color: {{ type.color }};"></span>{{ type.label }}<span class="quantity">: {% percent count total "0.1f" %}%</span>
-          {% endfor %}
+          <span class="swatch" style="background-color: #DF5120;"></span>New<span class="quantity">: {% percent issue_summary.new_issue_count issue_summary.all_issue_count "0.1f" %}%</span>
+          <span class="swatch" style="background-color: #FF7738;"></span>Reopened<span class="quantity">: {% percent issue_summary.reopened_issue_count issue_summary.all_issue_count "0.1f" %}%</span>
+          <span class="swatch" style="background-color: #F9C7B9;"></span>Existing<span class="quantity">: {% percent issue_summary.existing_issue_count issue_summary.all_issue_count "0.1f" %}%</span>
         </td>
       </tr>
       <tr>
         <td colspan="2">
           <table>
             <tr>
-              {% for type, count in report.distribution.types %}
-                <td width="{% widthratio count total 100 %}%" title="{{ type.label }}: {{ count }} events" style="background-color: {{ type.color }}">
-                  &nbsp;
-                </td>
-              {% endfor %}
+              <td width="{% widthratio issue_summary.new_issue_count issue_summary.all_issue_count 100 %}%" title="New: {{ issue_summary.new_issue_count }} events" style="background-color: #DF5120">
+                &nbsp;
+              </td>
+              <td width="{% widthratio issue_summary.reopened_issue_count issue_summary.all_issue_count 100 %}%" title="Reopened: {{ issue_summary.reopened_issue_count }} events" style="background-color: #FF7738">
+                &nbsp;
+              </td>
+              <td width="{% widthratio issue_summary.existing_issue_count issue_summary.all_issue_count 100 %}%" title="Existing: {{ issue_summary.existing_issue_count }} events" style="background-color: #F9C7B9">
+                &nbsp;
+              </td>
             </tr>
           </table>
         </td>
       </tr>
     </table>
-    {% endwith %}
+    {% endif %}
 
   </div>
 

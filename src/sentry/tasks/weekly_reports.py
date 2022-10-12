@@ -12,7 +12,7 @@ from typing import Iterable, Mapping, NamedTuple, Tuple
 
 import pytz
 import sentry_sdk
-from django.db.models import F
+from django.db.models import Count, F
 from django.utils import dateformat, timezone
 from sentry_sdk import set_tag, set_user
 from snuba_sdk import Request
@@ -83,6 +83,11 @@ class ProjectContext:
     accepted_transaction_count = 0
     dropped_transaction_count = 0
 
+    all_issue_count = 0
+    existing_issue_count = 0
+    reopened_issue_count = 0
+    new_issue_count = 0
+
     def __init__(self, project):
         self.project = project
 
@@ -140,6 +145,7 @@ def prepare_organization_report(timestamp, duration, organization_id, dry_run=Fa
     # Run organization passes
     user_project_ownership(ctx)
     project_event_counts_for_organization(ctx)
+    organization_project_issue_summaries(ctx)
 
     # Run project passes
     for project in organization.project_set.all():
@@ -215,6 +221,54 @@ def project_event_counts_for_organization(ctx):
                 project_ctx.error_count_by_day[timestamp] = (
                     project_ctx.error_count_by_day.get(timestamp, 0) + total
                 )
+
+
+def organization_project_issue_summaries(ctx):
+    all_issues = Group.objects.exclude(status=GroupStatus.IGNORED)
+    new_issue_counts = all_issues.filter(project__organization_id=ctx.organization.id, first_seen__gte=ctx.start, first_seen__lt=ctx.end).values('project_id').annotate(total=Count('*'))
+    print(new_issue_counts.query)
+    new_issue_counts = {item['project_id']: item['total'] for item in new_issue_counts}
+    print(new_issue_counts)
+
+    # Fetch all regressions. This is a little weird, since there's no way to
+    # tell *when* a group regressed using the Group model. Instead, we query
+    # all groups that have been seen in the last week and have ever regressed
+    # and query the Activity model to find out if they regressed within the
+    # past week. (In theory, the activity table *could* be used to answer this
+    # query without the subselect, but there's no suitable indexes to make it's
+    # performance predictable.)
+    reopened_issue_counts = Activity.objects.filter(
+            project__organization_id=ctx.organization.id,
+            group__in=all_issues.filter(
+                last_seen__gte=ctx.start,
+                last_seen__lt=ctx.end,
+                resolved_at__isnull=False,  # signals this has *ever* been resolved
+            ),
+            type__in=(ActivityType.SET_REGRESSION.value, ActivityType.SET_UNRESOLVED.value),
+            datetime__gte=ctx.start,
+            datetime__lt=ctx.end,
+        ).values('group__project_id').annotate(total=Count('group_id'))  # TODO: maybe set distinct here?
+    print(reopened_issue_counts.query)
+    reopened_issue_counts = {item['project_id']: item['total'] for item in reopened_issue_counts}
+    print(reopened_issue_counts)
+
+    # Issues seen at least once over the past week
+    active_issue_counts = all_issues.filter(
+        project__organization_id=ctx.organization.id,
+        last_seen__gte=ctx.start,
+        last_seen__lt=ctx.end,
+    ).values('project_id').annotate(total=Count('*'))
+    print(active_issue_counts.query)
+    active_issue_counts = {item['project_id']: item['total'] for item in active_issue_counts}
+    print(active_issue_counts)
+
+    for project_ctx in ctx.projects.values():
+        project_id = project_ctx.project.id
+        active_issue_count = active_issue_counts.get(project_id, 0)
+        project_ctx.reopened_issue_count = reopened_issue_counts.get(project_id, 0)
+        project_ctx.new_issue_count = new_issue_counts.get(project_id, 0)
+        project_ctx.existing_issue_count = max(active_issue_count - project_ctx.reopened_issue_count - project_ctx.new_issue_count, 0)
+        project_ctx.all_issue_count = project_ctx.reopened_issue_count + project_ctx.new_issue_count + project_ctx.existing_issue_count
 
 
 # Project passes
@@ -388,7 +442,7 @@ group_status_to_color = {
 def render_template_context(ctx, user):
     # Fetch the list of projects associated with the user.
     # Projects owned by teams that the user has membership of.
-    if user:
+    if user and user.id in ctx.project_ownership:
         user_projects = list(
             filter(
                 lambda project_ctx: project_ctx.project.id in ctx.project_ownership[user.id],
@@ -398,7 +452,7 @@ def render_template_context(ctx, user):
         if len(user_projects) == 0:
             return None
     else:
-        # If user is None, we assume that the user was directed to a user who joined all teams.
+        # If user is None, or if the user is not a member of the organization, we assume that the email was directed to a user who joined all teams.
         user_projects = ctx.projects.values()
 
     # Render the first section of the email where we had the table showing the
@@ -565,6 +619,23 @@ def render_template_context(ctx, user):
 
         return heapq.nlargest(3, all_key_transactions(), lambda d: d["count"])
 
+    def issue_summary():
+        all_issue_count = 0
+        existing_issue_count = 0
+        reopened_issue_count = 0
+        new_issue_count = 0
+        for project_ctx in user_projects:
+            all_issue_count += project_ctx.all_issue_count
+            existing_issue_count += project_ctx.existing_issue_count
+            reopened_issue_count += project_ctx.reopened_issue_count
+            new_issue_count += project_ctx.new_issue_count
+        return {
+            "all_issue_count": all_issue_count,
+            "existing_issue_count": existing_issue_count,
+            "reopened_issue_count": reopened_issue_count,
+            "new_issue_count": new_issue_count,
+        }
+
     return {
         "organization": ctx.organization,
         "start": date_format(ctx.start),
@@ -572,6 +643,7 @@ def render_template_context(ctx, user):
         "trends": trends(),
         "key_errors": key_errors(),
         "key_transactions": key_transactions(),
+        "issue_summary": issue_summary()
     }
 
 
