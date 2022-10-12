@@ -26,18 +26,9 @@ class KafkaEventStream(SnubaProtocolEventStream):
     def __init__(self, **options: Any) -> None:
         self.topic = settings.KAFKA_EVENTS
         self.transactions_topic = settings.KAFKA_TRANSACTIONS
-        # TODO: KAFKA_NEW_TRANSACTIONS is temporary and only to be used during
-        # the errors/transactions split process.
-        self.new_transactions_topic = settings.KAFKA_NEW_TRANSACTIONS
         self.assign_transaction_partitions_randomly = True
 
     def get_transactions_topic(self, project_id: int) -> str:
-        use_new_topic = killswitch_matches_context(
-            "kafka.send-project-transactions-to-new-topic",
-            {"project_id": project_id},
-        )
-        if use_new_topic:
-            return self.new_transactions_topic
         return self.transactions_topic
 
     def get_producer(self, topic: str) -> Producer:
