@@ -87,6 +87,7 @@ export type Commit = {
   message: string | null;
   releases: BaseRelease[];
   author?: User;
+  pullRequest?: PullRequest | null;
   repository?: Repository;
 };
 

@@ -996,6 +996,8 @@ SENTRY_FEATURES = {
     "organizations:discover-interval-selector": False,
     # Enable metrics baseline in discover
     "organizations:discover-metrics-baseline": False,
+    # Enable quick context in discover
+    "organizations:discover-quick-context": False,
     # Allows an org to have a larger set of project ownership rules per project
     "organizations:higher-ownership-limit": False,
     # Enable Performance view
@@ -1064,6 +1066,8 @@ SENTRY_FEATURES = {
     # Enable integration functionality to work with alert rules (specifically incident
     # management integrations)
     "organizations:integrations-incident-management": True,
+    # Enable integration functionality to work deployment integrations like Vercel
+    "organizations:integrations-deployment": True,
     # Allow orgs to automatically create Tickets in Issue Alerts
     "organizations:integrations-ticket-rules": True,
     # Allow orgs to use the stacktrace linking feature
@@ -1177,6 +1181,8 @@ SENTRY_FEATURES = {
     "organizations:server-side-sampling": False,
     # Enable the server-side sampling feature (frontend)
     "organizations:server-side-sampling-ui": False,
+    # Enable the updated dynamic sampling UI for the total transaction packaging experience
+    "organizations:dynamic-sampling-total-transaction-packaging": False,
     # Enable creating DS rules on incompatible platforms (used by SDK teams for dev purposes)
     "organizations:server-side-sampling-allow-incompatible-platforms": False,
     # Enable the deletion of sampling uniform rules (used internally for demo purposes)
@@ -2475,10 +2481,6 @@ KAFKA_EVENTS = "events"
 # changes to support different topic, switch this to "transactions" to start
 # producing to the new topic.
 KAFKA_TRANSACTIONS = "events"
-# TODO: KAFKA_NEW_TRANSACTIONS only exists in order to facilitate the errors/transactions
-# split. It is only supposed to exist briefly so we can map transactions of a subset of
-# projects to the new topic first before migrating them all over.
-KAFKA_NEW_TRANSACTIONS = "transactions"
 KAFKA_OUTCOMES = "outcomes"
 KAFKA_OUTCOMES_BILLING = "outcomes-billing"
 KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS = "events-subscription-results"
@@ -2519,7 +2521,6 @@ KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
 KAFKA_TOPICS = {
     KAFKA_EVENTS: {"cluster": "default"},
     KAFKA_TRANSACTIONS: {"cluster": "default"},
-    KAFKA_NEW_TRANSACTIONS: {"cluster": "default"},
     KAFKA_OUTCOMES: {"cluster": "default"},
     # When OUTCOMES_BILLING is None, it inherits from OUTCOMES and does not
     # create a separate producer. Check ``track_outcome`` for details.
