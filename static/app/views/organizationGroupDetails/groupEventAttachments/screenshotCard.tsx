@@ -69,7 +69,10 @@ export function ScreenshotCard({
         </CardContent>
       </CardHeader>
       <CardBody>
-        <StyledPanelBody onClick={() => openVisualizationModal()}>
+        <StyledPanelBody
+          onClick={() => openVisualizationModal()}
+          data-test-id={`screenshot-${eventAttachment.id}`}
+        >
           <LazyLoad>
             <StyledImageVisualization
               attachment={eventAttachment}

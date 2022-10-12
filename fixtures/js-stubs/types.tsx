@@ -35,6 +35,7 @@ type TestStubFixtures = {
   Entries: SimpleStub;
   Environments: OverridableStub;
   Event: OverridableStub;
+  EventAttachment: OverridableStub;
   EventEntry: OverridableStub;
   EventEntryDebugMeta: OverridableStub;
   EventEntryStacktrace: OverridableStub;
