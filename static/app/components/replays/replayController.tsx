@@ -126,10 +126,9 @@ function ReplayOptionsMenu({speedOptions}: {speedOptions: number[]}) {
 
   return (
     <CompositeSelect<SelectValue<string | number>>
-      trigger={({props, ref}) => (
+      trigger={triggerProps => (
         <Button
-          ref={ref}
-          {...props}
+          {...triggerProps}
           size="sm"
           title={t('Settings')}
           aria-label={t('Settings')}
