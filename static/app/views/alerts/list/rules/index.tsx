@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage, addMessage} from 'sentry/actionCreators/indicator';
 import AsyncComponent from 'sentry/components/asyncComponent';
-import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -32,13 +31,9 @@ type Props = RouteComponentProps<{orgId: string}, {}> & {
 };
 
 type State = {
-  alertRuleCount?: number;
-  issueRuleCount?: number;
   ruleList?: CombinedMetricIssueAlerts[] | null;
   teamFilterSearch?: string;
 };
-
-const HookHeader = HookOrDefault({hookName: 'component:alerts-header'});
 
 class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state']> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
@@ -61,17 +56,6 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
         },
       ],
     ];
-  }
-
-  onRequestSuccess({stateKey, resp}) {
-    if (stateKey === 'ruleList') {
-      const issueRuleCount = resp.getResponseHeader('X-Sentry-Issue-Rule-Hits');
-      const alertRuleCount = resp.getResponseHeader('X-Sentry-Alert-Rule-Hits');
-      this.setState({
-        issueRuleCount: parseInt(issueRuleCount, 10),
-        alertRuleCount: parseInt(alertRuleCount, 10),
-      });
-    }
   }
 
   get projectsFromResults() {
@@ -154,13 +138,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
       organization,
       router,
     } = this.props;
-    const {
-      loading,
-      ruleList = [],
-      ruleListPageLinks,
-      issueRuleCount,
-      alertRuleCount,
-    } = this.state;
+    const {loading, ruleList = [], ruleListPageLinks} = this.state;
     const {query} = location;
     const hasEditAccess = organization.access.includes('alerts:write');
 
@@ -181,10 +159,6 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     return (
       <Layout.Body>
         <Layout.Main fullWidth>
-          {issueRuleCount !== undefined &&
-            issueRuleCount > 0 &&
-            alertRuleCount === 0 &&
-            !query.name && <HookHeader organization={organization} />}
           <FilterBar
             location={location}
             onChangeFilter={this.handleChangeFilter}

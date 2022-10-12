@@ -90,7 +90,6 @@ export type TeamInsightsEventParameters = {
   };
   'project_creation_page.created': {
     issue_alert: 'Default' | 'Custom' | 'No Rule';
-    metric_alerts: string;
     project_id: string;
     rule_id: string;
   };
