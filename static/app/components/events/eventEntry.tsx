@@ -158,6 +158,11 @@ function EventEntry({
         />
       );
     case EntryType.SPANS:
+      // XXX: We currently do not show spans in the share view,
+      if (isShare) {
+        return null;
+      }
+
       if (
         group?.issueCategory === IssueCategory.PERFORMANCE &&
         organization?.features?.includes('performance-issues')
