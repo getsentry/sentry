@@ -45,6 +45,7 @@ class OptionsManagerTest(TestCase):
     def test_simple(self):
         assert self.manager.get("foo") == ""
 
+        self.manager.delete("foo")
         with self.settings(SENTRY_OPTIONS={"foo": "bar"}):
             assert self.manager.get("foo") == "bar"
 
