@@ -30,12 +30,9 @@ class DiscoverHomepageQueryEndpoint(OrganizationEndpoint):
     )
 
     def has_feature(self, organization, request):
-        return (
-            features.has("organizations:discover", organization, actor=request.user)
-            or features.has("organizations:discover-query", organization, actor=request.user)
-        ) and features.has(
-            "organizations:discover-query-builder-as-landing-page", organization, actor=request.user
-        )
+        return features.has(
+            "organizations:discover", organization, actor=request.user
+        ) or features.has("organizations:discover-query", organization, actor=request.user)
 
     def get(self, request: Request, organization) -> Response:
         if not self.has_feature(organization, request):
@@ -65,7 +62,8 @@ class DiscoverHomepageQueryEndpoint(OrganizationEndpoint):
             raise ParseError(detail="No Projects found, join a Team")
 
         serializer = DiscoverSavedQuerySerializer(
-            data=request.data,
+            # HACK: To ensure serializer data is valid, pass along a name temporarily
+            data={**request.data, "name": "New Query"},
             context={"params": params},
         )
         if not serializer.is_valid():

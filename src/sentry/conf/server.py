@@ -950,6 +950,8 @@ SENTRY_FEATURES = {
     "organizations:active-release-monitor-alpha": False,
     # Workflow 2.0 Active Release Notifications
     "organizations:active-release-notifications-enable": False,
+    # Enables tagging javascript errors from the browser console.
+    "organizations:javascript-console-error-tag": False,
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
     # Use metrics as the dataset for crash free metric alerts
@@ -1062,6 +1064,8 @@ SENTRY_FEATURES = {
     # Enable integration functionality to work with alert rules (specifically incident
     # management integrations)
     "organizations:integrations-incident-management": True,
+    # Enable integration functionality to work deployment integrations like Vercel
+    "organizations:integrations-deployment": True,
     # Allow orgs to automatically create Tickets in Issue Alerts
     "organizations:integrations-ticket-rules": True,
     # Allow orgs to use the stacktrace linking feature
