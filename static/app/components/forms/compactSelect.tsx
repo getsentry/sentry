@@ -215,16 +215,19 @@ function CompactSelect<
     );
   }, [options, valueProp, internalValue]);
 
-  function onValueChange(option) {
-    const valueMap = onChangeValueMap ?? (opts => opts.map(opt => opt.value));
-    const newValue = Array.isArray(option) ? valueMap(option) : option?.value;
-    setInternalValue(newValue);
-    onChange?.(option);
+  const onValueChange = useCallback(
+    option => {
+      const valueMap = onChangeValueMap ?? (opts => opts.map(opt => opt.value));
+      const newValue = Array.isArray(option) ? valueMap(option) : option?.value;
+      setInternalValue(newValue);
+      onChange?.(option);
 
-    if (closeOnSelect && !multiple) {
-      state.close();
-    }
-  }
+      if (closeOnSelect && !multiple) {
+        state.close();
+      }
+    },
+    [state, closeOnSelect, multiple, onChange, onChangeValueMap]
+  );
 
   // Calculate the current trigger element's width. This will be used as
   // the min width for the menu.
