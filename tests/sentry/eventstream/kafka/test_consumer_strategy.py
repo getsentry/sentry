@@ -1,3 +1,4 @@
+import time
 from datetime import datetime
 from unittest.mock import Mock, patch
 
@@ -46,9 +47,11 @@ def test_dispatch_task(mock_dispatch: Mock) -> None:
     strategy.submit(Message(partition, 1, get_kafka_payload(), datetime.now()))
     strategy.poll()
 
-    import time
-
-    time.sleep(0.1)
+    # Dispatch can take a while
+    for _i in range(0, 5):
+        if mock_dispatch.call_count:
+            break
+        time.sleep(0.1)
 
     mock_dispatch.assert_called_once_with(
         event_id="fe0ee9a2bc3b415497bad68aaf70dc7f",
@@ -58,6 +61,7 @@ def test_dispatch_task(mock_dispatch: Mock) -> None:
         is_new=False,
         is_regression=None,
         is_new_group_environment=False,
+        group_states=None,
     )
 
     strategy.join()
