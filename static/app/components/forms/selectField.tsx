@@ -106,6 +106,7 @@ export default class SelectField<OptionType extends SelectValue<any>> extends Co
                 ...provided,
                 height: 'auto',
               }),
+              ...props.styles,
             }}
             onChange={val => {
               try {
