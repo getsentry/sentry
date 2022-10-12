@@ -112,7 +112,7 @@ class EventsTable extends Component<Props, State> {
       const {eventView, location, organization, excludedTags} = this.props;
 
       trackAnalyticsEvent({
-        eventKey: 'performance_views.transaction Events.cellaction',
+        eventKey: 'performance_views.transactionEvents.cellaction',
         eventName: 'Performance Views: Transaction Events Tab Cell Action Clicked',
         organization_id: parseInt(organization.id, 10),
         action,
@@ -394,6 +394,7 @@ class EventsTable extends Component<Props, State> {
             tableData ??= {data: []};
             const parsedPageLinks = parseLinkHeader(pageLinks);
             const cursor = parsedPageLinks?.next?.cursor;
+            const shouldFetchAttachments = !!this.props.issueId; // Only fetch on issue details page
             let currentEvent = cursor?.split(':')[1] ?? 0;
             if (!parsedPageLinks?.next?.results && totalEventCount) {
               currentEvent = totalEventCount;
@@ -406,7 +407,11 @@ class EventsTable extends Component<Props, State> {
                     totalEventCount,
                   })
                 : undefined;
-            if (cursor && this.state.lastFetchedCursor !== cursor) {
+            if (
+              shouldFetchAttachments &&
+              cursor &&
+              this.state.lastFetchedCursor !== cursor
+            ) {
               fetchAttachments(tableData, cursor);
             }
             joinCustomData(tableData);
