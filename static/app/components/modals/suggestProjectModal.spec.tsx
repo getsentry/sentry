@@ -1,12 +1,11 @@
-import {render} from 'sentry-test/reactTestingLibrary';
+import {renderGlobalModal} from 'sentry-test/reactTestingLibrary';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import GlobalModal from 'sentry/components/globalModal';
 import SuggestProjectModal from 'sentry/components/modals/suggestProjectModal';
 
 describe('SuggestProjectModal', function () {
   it('renders', function () {
-    const {container} = render(<GlobalModal />);
+    const {container} = renderGlobalModal();
 
     openModal(modalProps => (
       <SuggestProjectModal
