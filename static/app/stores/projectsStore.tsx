@@ -1,9 +1,10 @@
 import {createStore} from 'reflux';
 
-import ProjectActions from 'sentry/actions/projectActions';
+import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
+import {Client} from 'sentry/api';
 import {Project, Team} from 'sentry/types';
-import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
+import LatestContextStore from './latestContextStore';
 import {CommonStoreDefinition} from './types';
 
 type State = {
@@ -17,6 +18,7 @@ type StatsData = Record<string, Project['stats']>;
  * Attributes that need typing but aren't part of the external interface,
  */
 type InternalDefinition = {
+  api: Client;
   itemsById: Record<string, Project>;
   loading: boolean;
   removeTeamFromProject(teamSlug: string, project: Project): void;
@@ -33,7 +35,7 @@ interface ProjectsStoreDefinition
   loadInitialData(projects: Project[]): void;
   onAddTeam(team: Team, projectSlug: string): void;
   onChangeSlug(prevSlug: string, newSlug: string): void;
-  onCreateSuccess(project: Project): void;
+  onCreateSuccess(project: Project, orgSlug: string): void;
   onDeleteTeam(slug: string): void;
   onRemoveTeam(teamSlug: string, projectSlug: string): void;
   onStatsLoadSuccess(data: StatsData): void;
@@ -42,35 +44,16 @@ interface ProjectsStoreDefinition
 }
 
 const storeConfig: ProjectsStoreDefinition = {
+  api: new Client(),
+
   itemsById: {},
   loading: true,
-  unsubscribeListeners: [],
 
   init() {
-    this.reset();
+    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
+    // listeners due to their leaky nature in tests.
 
-    this.unsubscribeListeners.push(
-      this.listenTo(ProjectActions.addTeamSuccess, this.onAddTeam)
-    );
-    this.unsubscribeListeners.push(
-      this.listenTo(ProjectActions.changeSlug, this.onChangeSlug)
-    );
-    this.unsubscribeListeners.push(
-      this.listenTo(ProjectActions.createSuccess, this.onCreateSuccess)
-    );
-    this.unsubscribeListeners.push(
-      this.listenTo(ProjectActions.loadProjects, this.loadInitialData)
-    );
-    this.unsubscribeListeners.push(
-      this.listenTo(ProjectActions.loadStatsSuccess, this.onStatsLoadSuccess)
-    );
-    this.unsubscribeListeners.push(
-      this.listenTo(ProjectActions.removeTeamSuccess, this.onRemoveTeam)
-    );
-    this.unsubscribeListeners.push(this.listenTo(ProjectActions.reset, this.reset));
-    this.unsubscribeListeners.push(
-      this.listenTo(ProjectActions.updateSuccess, this.onUpdateSuccess)
-    );
+    this.reset();
   },
 
   reset() {
@@ -100,8 +83,12 @@ const storeConfig: ProjectsStoreDefinition = {
     this.trigger(new Set([prevProject.id]));
   },
 
-  onCreateSuccess(project: Project) {
+  onCreateSuccess(project: Project, orgSlug: string) {
     this.itemsById = {...this.itemsById, [project.id]: project};
+
+    // Reload organization details since we've created a new project
+    fetchOrganizationDetails(this.api, orgSlug, true, false);
+
     this.trigger(new Set([project.id]));
   },
 
@@ -116,6 +103,8 @@ const storeConfig: ProjectsStoreDefinition = {
 
     this.itemsById = {...this.itemsById, [project.id]: newProject};
     this.trigger(new Set([data.id]));
+
+    LatestContextStore.onUpdateProject(newProject);
   },
 
   onStatsLoadSuccess(data) {
@@ -206,5 +195,5 @@ const storeConfig: ProjectsStoreDefinition = {
   },
 };
 
-const ProjectsStore = createStore(makeSafeRefluxStore(storeConfig));
+const ProjectsStore = createStore(storeConfig);
 export default ProjectsStore;

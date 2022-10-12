@@ -210,7 +210,6 @@ const ReplayControls = ({
       <ReplayCurrentTime />
 
       <ReplayOptionsMenu speedOptions={speedOptions} />
-
       <Button
         size="sm"
         title={isFullscreen ? t('Exit full screen') : t('Enter full screen')}

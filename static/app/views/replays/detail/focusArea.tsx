@@ -1,12 +1,8 @@
-import {useMemo} from 'react';
-
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
-import type {Crumb} from 'sentry/types/breadcrumbs';
-import {isBreadcrumbTypeDefault} from 'sentry/types/breadcrumbs';
 import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useOrganization from 'sentry/utils/useOrganization';
 import Console from 'sentry/views/replays/detail/console';
@@ -18,49 +14,34 @@ import Trace from 'sentry/views/replays/detail/trace';
 
 type Props = {};
 
-function getBreadcrumbsByCategory(breadcrumbs: Crumb[], categories: string[]) {
-  return breadcrumbs
-    .filter(isBreadcrumbTypeDefault)
-    .filter(breadcrumb => categories.includes(breadcrumb.category || ''));
-}
-
 function FocusArea({}: Props) {
   const {getActiveTab} = useActiveReplayTab();
   const {currentTime, currentHoverTime, replay, setCurrentTime, setCurrentHoverTime} =
     useReplayContext();
   const organization = useOrganization();
 
-  // Memoize this because re-renders will interfere with the mouse state of the
-  // chart (e.g. on mouse over and out)
-  const memorySpans = useMemo(() => {
-    return replay?.getRawSpans().filter(replay.isMemorySpan);
-  }, [replay]);
-
-  if (!replay || !memorySpans) {
+  if (!replay) {
     return <Placeholder height="150px" />;
   }
 
   const replayRecord = replay.getReplay();
   const startTimestampMs = replayRecord.startedAt.getTime();
 
-  const getNetworkSpans = () => {
-    return replay.getRawSpans().filter(replay.isNetworkSpan);
-  };
-
   switch (getActiveTab()) {
     case 'console':
-      const consoleMessages = getBreadcrumbsByCategory(replay?.getRawCrumbs(), [
-        'console',
-        'exception',
-      ]);
       return (
         <Console
-          breadcrumbs={consoleMessages ?? []}
+          breadcrumbs={replay.getConsoleCrumbs()}
           startTimestampMs={replayRecord.startedAt.getTime()}
         />
       );
     case 'network':
-      return <NetworkList replayRecord={replayRecord} networkSpans={getNetworkSpans()} />;
+      return (
+        <NetworkList
+          replayRecord={replayRecord}
+          networkSpans={replay.getNetworkSpans()}
+        />
+      );
     case 'trace':
       const features = ['organizations:performance-view'];
 
@@ -91,7 +72,7 @@ function FocusArea({}: Props) {
         <MemoryChart
           currentTime={currentTime}
           currentHoverTime={currentHoverTime}
-          memorySpans={memorySpans}
+          memorySpans={replay.getMemorySpans()}
           setCurrentTime={setCurrentTime}
           setCurrentHoverTime={setCurrentHoverTime}
           startTimestampMs={startTimestampMs}

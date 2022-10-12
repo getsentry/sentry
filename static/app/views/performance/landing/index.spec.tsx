@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
 import {addMetricsDataMock} from 'sentry-test/performance/addMetricsDataMock';
 import {initializeData} from 'sentry-test/performance/initializePerformanceData';
@@ -12,32 +13,38 @@ import {PerformanceLanding} from 'sentry/views/performance/landing';
 import {REACT_NATIVE_COLUMN_TITLES} from 'sentry/views/performance/landing/data';
 import {LandingDisplayField} from 'sentry/views/performance/landing/utils';
 
+import {dynamicSamplingMetricsAccuracyMessage} from './dynamicSamplingMetricsAccuracyAlert';
+
 const WrappedComponent = ({data, withStaticFilters = false}) => {
   const eventView = generatePerformanceEventView(data.router.location, data.projects, {
     withStaticFilters,
   });
 
+  const client = new QueryClient();
+
   return (
-    <OrganizationContext.Provider value={data.organization}>
-      <MetricsCardinalityProvider
-        location={data.router.location}
-        organization={data.organization}
-      >
-        <PerformanceLanding
-          router={data.router}
-          organization={data.organization}
+    <QueryClientProvider client={client}>
+      <OrganizationContext.Provider value={data.organization}>
+        <MetricsCardinalityProvider
           location={data.router.location}
-          eventView={eventView}
-          projects={data.projects}
-          selection={eventView.getPageFilters()}
-          onboardingProject={undefined}
-          handleSearch={() => {}}
-          handleTrendsClick={() => {}}
-          setError={() => {}}
-          withStaticFilters={withStaticFilters}
-        />
-      </MetricsCardinalityProvider>
-    </OrganizationContext.Provider>
+          organization={data.organization}
+        >
+          <PerformanceLanding
+            router={data.router}
+            organization={data.organization}
+            location={data.router.location}
+            eventView={eventView}
+            projects={data.projects}
+            selection={eventView.getPageFilters()}
+            onboardingProject={undefined}
+            handleSearch={() => {}}
+            handleTrendsClick={() => {}}
+            setError={() => {}}
+            withStaticFilters={withStaticFilters}
+          />
+        </MetricsCardinalityProvider>
+      </OrganizationContext.Provider>
+    </QueryClientProvider>
   );
 };
 
@@ -249,7 +256,7 @@ describe('Performance > Landing > Index', function () {
 
     wrapper = render(<WrappedComponent data={data} />, data.routerContext);
     expect(screen.getByTestId('frontend-pageload-view')).toBeInTheDocument();
-    userEvent.click(screen.getByTestId('landing-tab-all'));
+    userEvent.click(screen.getByRole('tab', {name: 'All Transactions'}));
 
     expect(browserHistory.push).toHaveBeenNthCalledWith(
       1,
@@ -287,6 +294,77 @@ describe('Performance > Landing > Index', function () {
 
     wrapper = render(<WrappedComponent data={data} />, data.routerContext);
     expect(screen.getByTestId('frontend-pageload-view')).toBeInTheDocument();
+  });
+
+  it('renders DynamicSamplingMetricsAccuracyAlert', async function () {
+    const project = TestStubs.Project({id: 99, platform: 'javascript-react'});
+
+    const data = initializeData({
+      projects: [project],
+      selectedProject: 99,
+      features: [
+        'server-side-sampling',
+        'server-side-sampling-ui',
+        'dynamic-sampling-performance-cta',
+      ],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${data.organization.slug}/stats_v2/`,
+      method: 'GET',
+      body: TestStubs.OutcomesWithLowProcessedEvents(),
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      body: [project],
+    });
+
+    wrapper = render(<WrappedComponent data={data} />, data.routerContext);
+
+    expect(
+      await screen.findByText(dynamicSamplingMetricsAccuracyMessage)
+    ).toBeInTheDocument();
+  });
+
+  it('does not render DynamicSamplingMetricsAccuracyAlert if there are other Dynamic Sampling alerts being rendered', async function () {
+    const project = TestStubs.Project({id: 99, platform: 'javascript-react'});
+
+    const data = initializeData({
+      projects: [project],
+      selectedProject: 99,
+      features: [
+        'server-side-sampling',
+        'server-side-sampling-ui',
+        'dynamic-sampling-performance-cta',
+        'performance-transaction-name-only-search',
+      ],
+    });
+
+    addMetricsDataMock();
+
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: '/organizations/org-slug/metrics/data/',
+      body: TestStubs.MetricsField(),
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      body: [project],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${data.organization.slug}/stats_v2/`,
+      method: 'GET',
+      body: TestStubs.OutcomesWithLowProcessedEvents(),
+    });
+
+    wrapper = render(<WrappedComponent data={data} />, data.routerContext);
+
+    expect(
+      await screen.findByText(dynamicSamplingMetricsAccuracyMessage)
+    ).toBeInTheDocument();
   });
 
   describe('with transaction search feature', function () {

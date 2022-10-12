@@ -1,8 +1,5 @@
-from datetime import datetime
-from unittest import mock
-
-import pytz
 from exam import fixture
+from freezegun import freeze_time
 
 from sentry.api.serializers import serialize
 from sentry.incidents.models import Incident, IncidentActivity, IncidentStatus
@@ -44,10 +41,8 @@ class BaseIncidentDetailsTest:
 
 @region_silo_test
 class OrganizationIncidentDetailsTest(BaseIncidentDetailsTest, APITestCase):
-    @mock.patch("django.utils.timezone.now")
-    def test_simple(self, mock_now):
-        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
-
+    @freeze_time()
+    def test_simple(self):
         incident = self.create_incident(seen_by=[self.user])
         with self.feature("organizations:incidents"):
             resp = self.get_success_response(incident.organization.slug, incident.identifier)

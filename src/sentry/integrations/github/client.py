@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from datetime import datetime
 from typing import Any, Mapping, Sequence
 
@@ -11,12 +12,16 @@ from sentry.models import Integration, Repository
 from sentry.utils import jwt
 from sentry.utils.json import JSONData
 
+logger = logging.getLogger("sentry.integrations.github")
+
 
 class GitHubClientMixin(ApiClient):  # type: ignore
     allow_redirects = True
 
     base_url = "https://api.github.com"
     integration_name = "github"
+    # Github gives us links to navigate, however, let's be safe in case we're fed garbage
+    page_number_limit = 50  # With a default of 100 per page -> 5,000 items
 
     def get_jwt(self) -> str:
         return get_jwt()
@@ -63,12 +68,20 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         return repository
 
     def get_repositories(self) -> Sequence[JSONData]:
+        """
+        This fetches all repositories accessible to the Github App
+        https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
+        """
         # Explicitly typing to satisfy mypy.
-        repositories: JSONData = self.get("/installation/repositories", params={"per_page": 100})
-        repos = repositories["repositories"]
+        repos: JSONData = self.get_with_pagination(
+            "/installation/repositories", response_key="repositories"
+        )
         return [repo for repo in repos if not repo.get("archived")]
 
+    # XXX: Find alternative approach
     def search_repositories(self, query: bytes) -> Mapping[str, Sequence[JSONData]]:
+        """Find repositories matching a query.
+        NOTE: This API is rate limited to 30 requests/minute"""
         # Explicitly typing to satisfy mypy.
         repositories: Mapping[str, Sequence[JSONData]] = self.get(
             "/search/repositories", params={"q": query}
@@ -80,12 +93,14 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         assignees: Sequence[JSONData] = self.get_with_pagination(f"/repos/{repo}/assignees")
         return assignees
 
-    def get_with_pagination(self, path: str, *args: Any, **kwargs: Any) -> Sequence[JSONData]:
+    def get_with_pagination(self, path: str, response_key: str | None = None) -> Sequence[JSONData]:
         """
         Github uses the Link header to provide pagination links. Github
         recommends using the provided link relations and not constructing our
         own URL.
         https://docs.github.com/en/rest/guides/traversing-with-pagination
+
+        Use response_key when the API stores the results within a key.
         """
         with sentry_sdk.configure_scope() as scope:
             if scope.span is not None:
@@ -103,13 +118,14 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             sampled=True,
         ):
             output = []
+
             resp = self.get(path, params={"per_page": self.page_size})
-            output.extend(resp)
+            output.extend(resp) if not response_key else output.extend(resp[response_key])
             page_number = 1
 
             while get_next_link(resp) and page_number < self.page_number_limit:
                 resp = self.get(get_next_link(resp))
-                output.extend(resp)
+                output.extend(resp) if not response_key else output.extend(resp[response_key])
                 page_number += 1
             return output
 
@@ -138,6 +154,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
     def get_user(self, gh_username: str) -> JSONData:
         return self.get(f"/users/{gh_username}")
 
+    # subclassing BaseApiClient request method
     def request(
         self,
         method: str,
@@ -195,13 +212,6 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         )
         return file
 
-    def search_file(
-        self, repo: Repository, filename: str
-    ) -> Mapping[str, Sequence[Mapping[str, Any]]]:
-        query = f"filename:{filename}+repo:{repo}"
-        results: Mapping[str, Any] = self.get(path="/search/code", params={"q": query})
-        return results
-
     def get_file(self, repo: Repository, path: str, ref: str) -> str:
         """Get the contents of a file
 
@@ -218,11 +228,11 @@ class GitHubClientMixin(ApiClient):  # type: ignore
     ) -> Sequence[Mapping[str, Any]]:
         [owner, name] = repo.name.split("/")
         query = f"""query {{
-            repository(name: {name}, owner: {owner}) {{
-                ref(qualifiedName: {ref}) {{
+            repository(name: "{name}", owner: "{owner}") {{
+                ref(qualifiedName: "{ref}") {{
                     target {{
                         ... on Commit {{
-                            blame(path: {path}) {{
+                            blame(path: "{path}") {{
                                 ranges {{
                                         commit {{
                                             oid
@@ -253,7 +263,8 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             .get("repository", {})
             .get("ref", {})
             .get("target", {})
-            .get("blame", [])
+            .get("blame", {})
+            .get("ranges", [])
         )
         return results
 
