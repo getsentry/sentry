@@ -603,8 +603,26 @@ class SnubaQueryBuilder:
 
         if self._metrics_query.include_series:
             series_limit = limit.limit * intervals_len
+
+            if self._use_case_id == UseCaseKey.PERFORMANCE:
+                time_groupby_column = Function(
+                    function="toStartOfInterval",
+                    parameters=[
+                        Column(name="timestamp"),
+                        Function(
+                            function="toIntervalSecond",
+                            parameters=[self._metrics_query.interval],
+                            alias=None,
+                        ),
+                        "Universal",
+                    ],
+                    alias=TS_COL_GROUP,
+                )
+            else:
+                time_groupby_column = Column(TS_COL_GROUP)
+
             rv["series"] = totals_query.set_limit(series_limit).set_groupby(
-                list(totals_query.groupby or []) + [Column(TS_COL_GROUP)]
+                list(totals_query.groupby or []) + [time_groupby_column]
             )
 
         return rv
@@ -733,6 +751,7 @@ class SnubaQueryBuilder:
                             self._metrics_query.start,
                             self._metrics_query.end,
                             self._metrics_query.granularity.granularity,
+                            interval=self._metrics_query.interval,
                         )
                     )
                 ),
