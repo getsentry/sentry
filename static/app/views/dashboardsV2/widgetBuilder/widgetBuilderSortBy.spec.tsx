@@ -260,51 +260,6 @@ describe('WidgetBuilder', function () {
       expect(screen.getAllByText('count()')).toHaveLength(3);
     });
 
-    it('ordering by column uses field form when selecting orderby', async function () {
-      const widget: Widget = {
-        id: '1',
-        title: 'Test Widget',
-        interval: '5m',
-        displayType: DisplayType.TABLE,
-        queries: [
-          {
-            name: 'errors',
-            conditions: 'event.type:error',
-            fields: ['count()'],
-            aggregates: ['count()'],
-            columns: ['project'],
-            orderby: '-project',
-          },
-        ],
-      };
-
-      const dashboard = mockDashboard({widgets: [widget]});
-
-      renderTestComponent({
-        dashboard,
-        params: {
-          widgetIndex: '0',
-        },
-      });
-
-      await waitFor(async () => {
-        expect(await screen.findAllByText('project')).toHaveLength(3);
-      });
-
-      await selectEvent.select(screen.getAllByText('project')[2], 'count()');
-
-      await waitFor(() => {
-        expect(eventsv2Mock).toHaveBeenCalledWith(
-          '/organizations/org-slug/eventsv2/',
-          expect.objectContaining({
-            query: expect.objectContaining({
-              sort: ['-count()'],
-            }),
-          })
-        );
-      });
-    });
-
     it('sortBy defaults to the first field value when changing display type to table', async function () {
       const widget: Widget = {
         id: '1',
@@ -926,11 +881,8 @@ describe('WidgetBuilder', function () {
         },
       });
 
-      await waitFor(async () => {
-        expect(await screen.findAllByText('project')).toHaveLength(3);
-      });
-
-      await selectEvent.select(screen.getAllByText('project')[2], 'count()');
+      const projectElements = screen.getAllByText('project');
+      await selectEvent.select(projectElements[projectElements.length - 1], 'count()');
 
       await waitFor(() => {
         expect(eventsMock).toHaveBeenCalledWith(
