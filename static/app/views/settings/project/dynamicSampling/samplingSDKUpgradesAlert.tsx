@@ -37,6 +37,10 @@ export function SamplingSDKUpgradesAlert({
   }, [recommendedSdkUpgrades.length, organization, projectId]);
 
   function handleOpenRecommendedSteps() {
+    if (recommendedSdkUpgrades.length === 0) {
+      return;
+    }
+
     openModal(modalProps => (
       <RecommendedStepsModal
         {...modalProps}

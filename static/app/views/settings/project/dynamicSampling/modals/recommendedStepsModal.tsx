@@ -70,37 +70,35 @@ export function RecommendedStepsModal({
       </Header>
       <Body>
         <List symbol="colored-numeric">
-          {!!recommendedSdkUpgrades.length && (
-            <ListItem>
-              <h5>{t('Update the following SDK versions')}</h5>
-              <TextBlock>
-                {t(
-                  'To have Dynamic Sampling up and running, it’s a requirement to update the following project SDK(s):'
-                )}
-              </TextBlock>
-              <UpgradeSDKfromProjects>
-                {recommendedSdkUpgrades.map(
-                  ({project: upgradableProject, latestSDKName, latestSDKVersion}) => {
-                    return (
-                      <div key={upgradableProject.id}>
-                        <SdkProjectBadge
-                          project={upgradableProject}
-                          organization={organization}
-                        />
-                        <SdkOutdatedVersion>
-                          {tct('This project is on [current-version]', {
-                            ['current-version']: (
-                              <OutdatedVersion>{`${latestSDKName}@v${latestSDKVersion}`}</OutdatedVersion>
-                            ),
-                          })}
-                        </SdkOutdatedVersion>
-                      </div>
-                    );
-                  }
-                )}
-              </UpgradeSDKfromProjects>
-            </ListItem>
-          )}
+          <ListItem>
+            <h5>{t('Update the following SDK versions')}</h5>
+            <TextBlock>
+              {t(
+                'To have Dynamic Sampling up and running, it’s a requirement to update the following project SDK(s):'
+              )}
+            </TextBlock>
+            <UpgradeSDKfromProjects>
+              {recommendedSdkUpgrades.map(
+                ({project: upgradableProject, latestSDKName, latestSDKVersion}) => {
+                  return (
+                    <div key={upgradableProject.id}>
+                      <SdkProjectBadge
+                        project={upgradableProject}
+                        organization={organization}
+                      />
+                      <SdkOutdatedVersion>
+                        {tct('This project is on [current-version]', {
+                          ['current-version']: (
+                            <OutdatedVersion>{`${latestSDKName}@v${latestSDKVersion}`}</OutdatedVersion>
+                          ),
+                        })}
+                      </SdkOutdatedVersion>
+                    </div>
+                  );
+                }
+              )}
+            </UpgradeSDKfromProjects>
+          </ListItem>
         </List>
       </Body>
       <Footer>
