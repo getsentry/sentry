@@ -1,7 +1,7 @@
 from django.conf import settings
 
 
-def get_frontend_app_asset_url(module, key):
+def get_frontend_app_asset_url(module: str, key: str) -> str:
     """
     Returns an asset URL that is unversioned. These assets should have a
     `Cache-Control: max-age=0, must-revalidate` so that clients must validate with the origin
@@ -16,7 +16,7 @@ def get_frontend_app_asset_url(module, key):
     return "{}/{}/{}".format(*args)
 
 
-def get_asset_url(module, path):
+def get_asset_url(module: str, path: str) -> str:
     """
     Returns a versioned asset URL (located within Sentry's static files).
 
