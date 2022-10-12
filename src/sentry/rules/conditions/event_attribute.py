@@ -21,6 +21,7 @@ ATTR_CHOICES = [
     "user.ip_address",
     "http.method",
     "http.url",
+    "http.status_code",
     "sdk.name",
     "stacktrace.code",
     "stacktrace.module",
