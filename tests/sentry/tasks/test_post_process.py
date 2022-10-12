@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import abc
 from datetime import timedelta
+from typing import Optional
 from unittest import mock
 from unittest.mock import Mock, patch
 
@@ -12,6 +13,7 @@ from django.utils import timezone
 from sentry import buffer
 from sentry.buffer.redis import RedisBuffer
 from sentry.eventstore.processing import event_processing_store
+from sentry.eventstream.base import GroupStates
 from sentry.models import (
     Activity,
     Group,
@@ -29,7 +31,6 @@ from sentry.models.activity import ActivityIntegration
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.rules import init_registry
 from sentry.tasks.merge import merge_groups
-from sentry.tasks.post_process import post_process_group
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.cases import BaseTestCase
 from sentry.testutils.helpers import apply_feature_flag_on_cls, with_feature
@@ -63,11 +64,13 @@ class BasePostProgressGroupMixin(BaseTestCase, metaclass=abc.ABCMeta):
     def create_event(self, data, project_id):
         pass
 
-    @abc.abstractmethod
-    def call_post_process_group(
-        self, is_new, is_regression, is_new_group_environment, cache_key, group_id
-    ):
-        pass
+    def call_post_process_group(self, *args, **kwargs):
+        from sentry.tasks.post_process import post_process_group
+
+        with mock.patch(
+            "sentry.tasks.post_process.post_process_group", wraps=post_process_group, autospec=True
+        ) as spy:
+            spy(*args, **kwargs)
 
 
 class CorePostProcessGroupTestMixin(BasePostProgressGroupMixin):
@@ -1018,17 +1021,6 @@ class PostProcessGroupErrorTest(
     def create_event(self, data, project_id):
         return self.store_event(data=data, project_id=project_id)
 
-    def call_post_process_group(
-        self, is_new, is_regression, is_new_group_environment, cache_key, group_id
-    ):
-        post_process_group(
-            is_new=is_new,
-            is_regression=is_regression,
-            is_new_group_environment=is_new_group_environment,
-            cache_key=cache_key,
-            group_id=group_id,
-        )
-
 
 @region_silo_test
 @apply_feature_flag_on_cls("organizations:performance-issues-post-process-group")
@@ -1041,6 +1033,33 @@ class PostProcessGroupPerformanceTest(
     RuleProcessorTestMixin,
     SnoozeTestMixin,
 ):
+    def call_post_process_group(
+        self,
+        is_new,
+        is_regression,
+        is_new_group_environment,
+        cache_key,
+        group_id=None,
+        group_states: Optional[GroupStates] = None,
+    ):
+        # some already written tests for error issues don't use group_states param
+        # but for processing transaction events in post_process_group, group_states is mandatory and we'll return early
+        # we coerce the data and supply a single group_state to post_process_group only for transaction events
+        # to avoid duplicating tests
+        if group_states is None and group_id is not None:
+            group_states = [
+                dict(
+                    id=group_id,
+                    is_new=is_new,
+                    is_regression=is_regression,
+                    is_new_group_environment=is_new_group_environment,
+                )
+            ]
+
+        super().call_post_process_group(
+            is_new, is_regression, is_new_group_environment, cache_key, group_id, group_states
+        )
+
     def create_event(self, data, project_id):
         fingerprint = data["fingerprint"][0] if data.get("fingerprint") else "some_group"
         fingerprint = f"{GroupType.PERFORMANCE_N_PLUS_ONE.value}-{fingerprint}"
@@ -1051,29 +1070,6 @@ class PostProcessGroupPerformanceTest(
             fingerprint=[fingerprint],
         )
         return event.for_group(event.groups[0])
-
-    def call_post_process_group(
-        self, is_new, is_regression, is_new_group_environment, cache_key, group_id
-    ):
-        group_states = (
-            [
-                {
-                    "id": group_id,
-                    "is_new": is_new,
-                    "is_regression": is_regression,
-                    "is_new_group_environment": is_new_group_environment,
-                }
-            ]
-            if group_id
-            else None
-        )
-        post_process_group(
-            is_new=is_new,
-            is_regression=is_regression,
-            is_new_group_environment=is_new_group_environment,
-            cache_key=cache_key,
-            group_states=group_states,
-        )
 
     @patch("sentry.tasks.post_process.run_post_process_job")
     @patch("sentry.rules.processor.RuleProcessor")
@@ -1096,7 +1092,7 @@ class PostProcessGroupPerformanceTest(
         )
         assert len(event.groups) == 0
         cache_key = write_event_to_cache(event)
-        post_process_group(
+        self.call_post_process_group(
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
@@ -1140,7 +1136,7 @@ class PostProcessGroupPerformanceTest(
             is_regression=False,
             is_new_group_environment=True,
         )
-        post_process_group(
+        self.call_post_process_group(
             **group_state,
             cache_key=cache_key,
             group_id=event.group_id,
