@@ -191,6 +191,9 @@ const storeConfig: GroupingStoreDefinition = {
   api: new Client(),
 
   init() {
+    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
+    // listeners due to their leaky nature in tests.
+
     const state = this.getInitialState();
 
     Object.entries(state).forEach(([key, value]) => {

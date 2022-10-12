@@ -24,6 +24,11 @@ interface SdkUpdatesStoreDefinition
 const storeConfig: SdkUpdatesStoreDefinition = {
   orgSdkUpdates: new Map(),
 
+  init() {
+    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
+    // listeners due to their leaky nature in tests.
+  },
+
   loadSuccess(orgSlug, data) {
     this.orgSdkUpdates.set(orgSlug, data);
     this.trigger(this.orgSdkUpdates);

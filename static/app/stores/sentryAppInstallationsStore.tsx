@@ -9,6 +9,9 @@ interface SentryAppInstallationStoreDefinition extends StoreDefinition {
 
 const storeConfig: SentryAppInstallationStoreDefinition = {
   init() {
+    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
+    // listeners due to their leaky nature in tests.
+
     this.items = [];
   },
 

@@ -1,7 +1,3 @@
-import type {
-  SafeRefluxStore,
-  SafeStoreDefinition,
-} from 'sentry/utils/makeSafeRefluxStore';
 import type {Store, StoreDefinition} from 'reflux';
 
 type RemoveIndex<T> = {
@@ -9,7 +5,7 @@ type RemoveIndex<T> = {
 };
 
 declare module 'reflux' {
-  function createStore<T extends SafeStoreDefinition | StoreDefinition>(
+  function createStore<T extends StoreDefinition>(
     storeDefinition: T
   ): RemoveIndex<Store & T>;
 }

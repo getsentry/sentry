@@ -18,6 +18,9 @@ const storeConfig: MemberListStoreDefinition = {
   state: [],
 
   init() {
+    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
+    // listeners due to their leaky nature in tests.
+
     this.state = [];
     this.loaded = false;
   },

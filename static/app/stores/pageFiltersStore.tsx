@@ -61,6 +61,9 @@ const storeConfig: PageFiltersStoreDefinition = {
   hasInitialState: false,
 
   init() {
+    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
+    // listeners due to their leaky nature in tests.
+
     this.reset(this.selection);
   },
 
