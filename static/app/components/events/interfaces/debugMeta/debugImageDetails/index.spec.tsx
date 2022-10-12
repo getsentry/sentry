@@ -1,9 +1,8 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {renderGlobalModal, screen} from 'sentry-test/reactTestingLibrary';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {DebugImageDetails} from 'sentry/components/events/interfaces/debugMeta/debugImageDetails';
-import GlobalModal from 'sentry/components/globalModal';
 
 describe('Debug Meta - Image Details', function () {
   const eventEntryDebugMeta = TestStubs.EventEntryDebugMeta();
@@ -25,7 +24,7 @@ describe('Debug Meta - Image Details', function () {
   });
 
   it('Candidates correctly sorted', function () {
-    render(<GlobalModal />);
+    renderGlobalModal();
 
     openModal(modalProps => (
       <DebugImageDetails

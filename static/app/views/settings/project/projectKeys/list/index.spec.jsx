@@ -1,6 +1,10 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
 
-import GlobalModal from 'sentry/components/globalModal';
 import ProjectKeys from 'sentry/views/settings/project/projectKeys/list';
 
 describe('ProjectKeys', function () {
@@ -67,7 +71,7 @@ describe('ProjectKeys', function () {
     );
 
     userEvent.click(screen.getByRole('button', {name: 'Delete'}));
-    render(<GlobalModal />);
+    renderGlobalModal();
 
     userEvent.click(screen.getByTestId('confirm-button'));
 

@@ -1,8 +1,7 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import GlobalModal from 'sentry/components/globalModal';
 import {RecommendedStepsModal} from 'sentry/views/settings/project/server-side-sampling/modals/recommendedStepsModal';
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/server-side-sampling/utils';
 
@@ -26,7 +25,7 @@ describe('Server-Side Sampling - Recommended Steps Modal', function () {
   it('render all recommended steps', function () {
     const {organization, project} = getMockData();
 
-    render(<GlobalModal />);
+    renderGlobalModal();
 
     openModal(modalProps => (
       <RecommendedStepsModal
@@ -105,7 +104,7 @@ describe('Server-Side Sampling - Recommended Steps Modal', function () {
   it('render only the last recommended step', function () {
     const {organization, project} = getMockData();
 
-    render(<GlobalModal />);
+    renderGlobalModal();
 
     openModal(modalProps => (
       <RecommendedStepsModal
@@ -137,7 +136,7 @@ describe('Server-Side Sampling - Recommended Steps Modal', function () {
 
     const onGoBack = jest.fn();
 
-    render(<GlobalModal />);
+    renderGlobalModal();
 
     openModal(modalProps => (
       <RecommendedStepsModal
@@ -160,7 +159,7 @@ describe('Server-Side Sampling - Recommended Steps Modal', function () {
   it('renders 3/3 footer', function () {
     const {organization, project} = getMockData();
 
-    render(<GlobalModal />);
+    renderGlobalModal();
 
     openModal(modalProps => (
       <RecommendedStepsModal

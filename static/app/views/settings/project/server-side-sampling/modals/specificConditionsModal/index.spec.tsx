@@ -1,5 +1,5 @@
 import {
-  render,
+  renderGlobalModal,
   screen,
   userEvent,
   waitFor,
@@ -8,7 +8,6 @@ import {
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import GlobalModal from 'sentry/components/globalModal';
 import {SamplingInnerName} from 'sentry/types/sampling';
 import {SpecificConditionsModal} from 'sentry/views/settings/project/server-side-sampling/modals/specificConditionsModal';
 import {distributedTracesConditions} from 'sentry/views/settings/project/server-side-sampling/modals/specificConditionsModal/utils';
@@ -61,7 +60,7 @@ describe('Server-Side Sampling - Specific Conditions Modal', function () {
 
     jest.spyOn(indicators, 'addSuccessMessage');
 
-    render(<GlobalModal />);
+    renderGlobalModal();
 
     openModal(modalProps => (
       <SpecificConditionsModal
@@ -203,7 +202,7 @@ describe('Server-Side Sampling - Specific Conditions Modal', function () {
 
     jest.spyOn(indicators, 'addSuccessMessage');
 
-    render(<GlobalModal />);
+    renderGlobalModal();
 
     openModal(modalProps => (
       <SpecificConditionsModal
@@ -300,7 +299,7 @@ describe('Server-Side Sampling - Specific Conditions Modal', function () {
       }),
     });
 
-    render(<GlobalModal />);
+    renderGlobalModal();
 
     openModal(modalProps => (
       <SpecificConditionsModal
@@ -368,7 +367,7 @@ describe('Server-Side Sampling - Specific Conditions Modal', function () {
       ],
     });
 
-    render(<GlobalModal />);
+    renderGlobalModal();
 
     openModal(modalProps => (
       <SpecificConditionsModal
