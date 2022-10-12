@@ -105,14 +105,6 @@ describe('Dynamic Sampling', function () {
     expect(screen.queryByLabelText('Activate Rule')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Actions')).not.toBeInTheDocument();
 
-    // hover over the rule toggle
-    userEvent.hover(screen.getByRole('checkbox'));
-
-    // Assert that the tooltip is there
-    expect(
-      await screen.findByText('Uniform rule is always active and cannot be toggled')
-    ).toBeInTheDocument();
-
     // Rule Panel Footer
     expect(screen.getByText('Add Rule')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Read Docs'})).toHaveAttribute(

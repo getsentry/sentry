@@ -1,15 +1,12 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {SamplingRule} from 'sentry/types/sampling';
 import {formatPercentage} from 'sentry/utils/formatters';
 
 import {
-  ActivateTogglePlaceholder,
   ActiveColumn,
-  ActiveToggle,
   Column,
   ConditionColumn,
   DragColumn,
@@ -25,7 +22,7 @@ type Props = {
   singleRule: boolean;
 };
 
-export function UniformRule({singleRule, rule, loadingRecommendedSdkUpgrades}: Props) {
+export function UniformRule({singleRule, rule}: Props) {
   return (
     <Wrapper isContent data-test-id="sampling-rule">
       <DragColumn />
@@ -36,21 +33,7 @@ export function UniformRule({singleRule, rule, loadingRecommendedSdkUpgrades}: P
       <RateColumn>
         <SampleRate>{formatPercentage(rule.sampleRate)}</SampleRate>
       </RateColumn>
-      <ActiveColumn>
-        {loadingRecommendedSdkUpgrades ? (
-          <ActivateTogglePlaceholder />
-        ) : (
-          <Tooltip title={t('Uniform rule is always active and cannot be toggled')}>
-            <ActiveToggle
-              inline={false}
-              hideControlState
-              name="uniform-rule-toggle"
-              value={rule.active}
-              disabled
-            />
-          </Tooltip>
-        )}
-      </ActiveColumn>
+      <ActiveColumn />
       <Column />
     </Wrapper>
   );
