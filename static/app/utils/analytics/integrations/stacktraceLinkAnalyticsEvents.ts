@@ -23,6 +23,7 @@ export type StacktraceLinkEventParameters = {
   [key in StacktraceLinkEventsLiterals]: {
     error_reason?: StacktraceErrorMessage;
     platform?: PlatformType;
+    project_id?: string;
     provider?: string;
     setup_type?: 'automatic' | 'manual';
     state?: 'match' | 'no_match' | 'prompt' | 'empty';

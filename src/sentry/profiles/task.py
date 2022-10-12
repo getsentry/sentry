@@ -57,13 +57,13 @@ def process_profile(
     try:
         if _should_symbolicate(profile):
             modules, stacktraces = _prepare_frames_from_profile(profile)
-            stacktraces = _symbolicate(
+            modules, stacktraces = _symbolicate(
                 project=project,
                 profile_id=event_id,
                 modules=modules,
                 stacktraces=stacktraces,
             )
-            _process_symbolicator_results(profile=profile, stacktraces=stacktraces)
+            _process_symbolicator_results(profile=profile, modules=modules, stacktraces=stacktraces)
     except Exception as e:
         sentry_sdk.capture_exception(e)
         _track_outcome(
@@ -193,17 +193,14 @@ def _prepare_frames_from_profile(profile: Profile) -> Tuple[List[Any], List[Any]
 @metrics.wraps("process_profile.symbolicate.request")
 def _symbolicate(
     project: Project, profile_id: str, modules: List[Any], stacktraces: List[Any]
-) -> List[Any]:
+) -> Tuple[List[Any], List[Any]]:
     symbolicator = Symbolicator(project=project, event_id=profile_id)
     symbolication_start_time = time()
 
     while True:
         try:
-            return list(
-                symbolicator.process_payload(stacktraces=stacktraces, modules=modules).get(
-                    "stacktraces", stacktraces
-                )
-            )
+            response = symbolicator.process_payload(stacktraces=stacktraces, modules=modules)
+            return (response.get("modules", modules), response.get("stacktraces", stacktraces))
         except RetrySymbolication as e:
             if (
                 time() - symbolication_start_time
@@ -223,12 +220,17 @@ def _symbolicate(
             metrics.incr("process_profile.symbolicate.error", sample_rate=1.0)
             break
 
-    # returns the unsymbolicated stacktraces to avoid errors later
-    return stacktraces
+    # returns the unsymbolicated data to avoid errors later
+    return (modules, stacktraces)
 
 
 @metrics.wraps("process_profile.symbolicate.process")
-def _process_symbolicator_results(profile: Profile, stacktraces: List[Any]) -> None:
+def _process_symbolicator_results(
+    profile: Profile, modules: List[Any], stacktraces: List[Any]
+) -> None:
+    # update images with status after symbolication
+    profile["debug_meta"]["images"] = modules
+
     if "version" in profile:
         profile["profile"]["frames"] = stacktraces[0]["frames"]
         _process_symbolicator_results_for_sample(profile, stacktraces)
