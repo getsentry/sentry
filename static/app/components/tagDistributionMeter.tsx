@@ -142,7 +142,8 @@ function TagDistributionMeter({
                 ) : (
                   <Segment
                     aria-label={t(
-                      'Add the %s segment tag to the search query',
+                      'Add the %s %s segment tag to the search query',
+                      title,
                       value.value
                     )}
                     {...segmentProps}
