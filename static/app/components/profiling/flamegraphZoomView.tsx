@@ -10,6 +10,10 @@ import {
   useDispatchFlamegraphState,
   useFlamegraphState,
 } from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
+import {
+  Direction,
+  selectNearestFrame,
+} from 'sentry/utils/profiling/flamegraph/selectNearestFrame';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
@@ -802,79 +806,8 @@ const Canvas = styled('canvas')`
   position: absolute;
 `;
 
-function selectNearestFrame(n: FlamegraphFrame, dir: 'up' | 'down' | 'left' | 'right') {
-  if (!n) {
-    return null;
-  }
-
-  const targetDepth = n.depth;
-  let parent = n.parent;
-  let node = n;
-
-  if (dir === 'up' && parent) {
-    return parent;
-  }
-
-  const child = n.children?.[0];
-  if (dir === 'down' && child) {
-    return child;
-  }
-
-  while (parent) {
-    const indexOfChild = parent.children.indexOf(node);
-    if (indexOfChild === -1) {
-      return n;
-    }
-    const hasSiblings =
-      dir === 'right' ? indexOfChild < parent.children.length - 1 : indexOfChild > 0;
-
-    if (hasSiblings) {
-      const siblingOffset = dir === 'right' ? 1 : -1;
-      const sibling = parent.children[indexOfChild + siblingOffset];
-      const foundNode = scanForNearestFrameWithDepth(
-        sibling,
-        targetDepth,
-        dir as 'left' | 'right'
-      );
-      return foundNode;
-    }
-
-    node = parent;
-    parent = parent.parent;
-  }
-  return null;
-}
-
-function scanForNearestFrameWithDepth(
-  n: FlamegraphFrame,
-  depth: number,
-  dir: 'left' | 'right'
-) {
-  const stack = [n];
-
-  while (stack.length) {
-    const node = stack.pop();
-    if (!node) {
-      return node;
-    }
-    if (node.depth === depth) {
-      return node;
-    }
-    if (!node.children) {
-      continue;
-    }
-
-    const nextNode = node.children[dir === 'right' ? 0 : node.children.length - 1];
-    if (!nextNode) {
-      return node;
-    }
-    stack.push(nextNode);
-  }
-
-  return n;
-}
-
-const keyDirectionMap = {
+// loosely based spreadsheet navigation
+const keyDirectionMap: Record<string, Direction> = {
   ArrowUp: 'up',
   ArrowDown: 'down',
   ArrowLeft: 'left',
