@@ -47,41 +47,38 @@ export function ScreenshotCard({eventAttachment, projectSlug, eventId, groupId}:
   }
 
   const baseEventsPath = `/organizations/${organization.slug}/issues/${groupId}/events/`;
-  if (eventAttachment) {
-    return (
-      <Card interactive>
-        <CardHeader>
-          <CardContent>
-            <Title to={`${baseEventsPath}${eventId}/`}>{eventId}</Title>
-            <Detail>
-              <DateTime date={eventAttachment.dateCreated} />
-            </Detail>
-          </CardContent>
-        </CardHeader>
-        <CardBody>
-          <StyledPanelBody onClick={() => openVisualizationModal()}>
-            <LazyLoad>
-              <StyledImageVisualization
-                attachment={eventAttachment}
-                orgId={organization.slug}
-                projectId={projectSlug}
-                eventId={eventId}
-                onLoad={() => setLoadingImage(false)}
-                onError={() => setLoadingImage(false)}
-              />
-              {loadingImage && (
-                <StyledLoadingIndicator>
-                  <LoadingIndicator mini />
-                </StyledLoadingIndicator>
-              )}
-            </LazyLoad>
-          </StyledPanelBody>
-        </CardBody>
-        <CardFooter>{t('screenshot.png')}</CardFooter>
-      </Card>
-    );
-  }
-  return null;
+  return (
+    <Card interactive>
+      <CardHeader>
+        <CardContent>
+          <Title to={`${baseEventsPath}${eventId}/`}>{eventId}</Title>
+          <Detail>
+            <DateTime date={eventAttachment.dateCreated} />
+          </Detail>
+        </CardContent>
+      </CardHeader>
+      <CardBody>
+        <StyledPanelBody onClick={() => openVisualizationModal()}>
+          <LazyLoad>
+            <StyledImageVisualization
+              attachment={eventAttachment}
+              orgId={organization.slug}
+              projectId={projectSlug}
+              eventId={eventId}
+              onLoad={() => setLoadingImage(false)}
+              onError={() => setLoadingImage(false)}
+            />
+            {loadingImage && (
+              <StyledLoadingIndicator>
+                <LoadingIndicator mini />
+              </StyledLoadingIndicator>
+            )}
+          </LazyLoad>
+        </StyledPanelBody>
+      </CardBody>
+      <CardFooter>{t('screenshot.png')}</CardFooter>
+    </Card>
+  );
 }
 
 const Title = styled(Link)`
