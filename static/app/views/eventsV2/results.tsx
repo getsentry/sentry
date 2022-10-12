@@ -103,7 +103,11 @@ function getYAxis(location: Location, eventView: EventView, savedQuery?: SavedQu
 
 export class Results extends Component<Props, State> {
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
-    if (nextProps.savedQuery || !nextProps.loading) {
+    if (
+      ((!nextProps.isHomepage || prevState.savedQuery) &&
+        (nextProps.savedQuery || !nextProps.loading)) ||
+      nextProps.savedQuery === undefined
+    ) {
       const eventView = EventView.fromSavedQueryOrLocation(
         nextProps.savedQuery,
         nextProps.location
@@ -114,10 +118,11 @@ export class Results extends Component<Props, State> {
   }
 
   state: State = {
-    eventView: EventView.fromSavedQueryOrLocation(
-      this.props.savedQuery,
-      this.props.location
-    ),
+    // If this is the homepage, force an invalid eventView so we can handle
+    // the redirect first
+    eventView: this.props.isHomepage
+      ? EventView.fromSavedQuery({...DEFAULT_EVENT_VIEW, fields: []})
+      : EventView.fromSavedQueryOrLocation(this.props.savedQuery, this.props.location),
     error: '',
     errorCode: 200,
     totalValues: null,
@@ -303,6 +308,9 @@ export class Results extends Component<Props, State> {
       nextEventView.query = decodeScalar(location.query.query, '');
     }
 
+    if (isHomepage && !this.state.savedQuery) {
+      this.setState({savedQuery, eventView: nextEventView});
+    }
     browserHistory.replace(
       nextEventView.getResultsViewUrlTarget(organization.slug, isHomepage)
     );
