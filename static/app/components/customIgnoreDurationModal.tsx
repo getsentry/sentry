@@ -48,13 +48,15 @@ export default class CustomIgnoreDurationModal extends Component<Props, State> {
   snoozeClicked = () => {
     const minutes = this.selectedIgnoreMinutes();
 
-    this.setState({
-      dateWarning: minutes <= 0,
-    });
+    if (minutes <= 0) {
+      this.setState({
+        dateWarning: minutes <= 0,
+      });
 
-    if (minutes > 0) {
-      this.props.onSelected({ignoreDuration: minutes});
+      return;
     }
+
+    this.props.onSelected({ignoreDuration: minutes});
     this.props.closeModal();
   };
 
