@@ -1826,11 +1826,10 @@ class SmartSearchBar extends Component<Props, State> {
           {visibleActions}
           {overflowedActions.length > 0 && (
             <OverlowingActionsMenu
-              placement="bottom right"
-              trigger={({props, ref}) => (
+              position="bottom-end"
+              trigger={props => (
                 <ActionButton
                   {...props}
-                  ref={ref}
                   aria-label={t('Show more')}
                   icon={<VerticalEllipsisIcon size="xs" />}
                 />
