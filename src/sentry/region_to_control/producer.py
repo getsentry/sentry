@@ -56,9 +56,8 @@ def write_region_to_control_message(payload: Any, sync=True, timeout=0.1):
 
 def get_region_to_control_producer() -> KafkaProducer:
     """
-    Locks in the configuration for a KafkaProducer on first usage.  KafkaProducers are thread safe in practice
-    due to librdkafka which implements the CPython client, as messages are processed in a separate thread + queue
-    at that level.
+    Creates, if necessary, an arroyo.KafkaProducer client configured for region to control communication and returns
+    it, caching it for future calls.  Installs an exit handler to close the worker thread processes.
     """
     global _publisher
     if _publisher is None:
@@ -72,6 +71,18 @@ def get_region_to_control_producer() -> KafkaProducer:
             _publisher.close()
 
     return _publisher
+
+
+def clear_region_to_control_producer():
+    """
+    In tests, it is necessary to close the publisher after test failures or success for the pytest runner to continue.
+    The atexit handler does not handle this case gracefully, so instead we use a test fixture and call this method to
+    ensure, that the producer is always closed.
+    """
+    global _publisher
+    if _publisher:
+        _publisher.close()
+        _publisher = None
 
 
 def _should_produce_to_kafka():
