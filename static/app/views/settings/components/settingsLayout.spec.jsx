@@ -1,5 +1,5 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {BreadcrumbContextProvider} from 'sentry-test/providers/breadcrumbContextProvider';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
@@ -32,50 +32,45 @@ describe('SettingsLayout', function () {
   });
 
   it('renders', function () {
-    const wrapper = mountWithTheme(
+    const {container} = render(
       <BreadcrumbContextProvider>
         <SettingsLayout router={TestStubs.router()} route={{}} routes={[]} />
       </BreadcrumbContextProvider>
     );
 
-    expect(wrapper).toSnapshot();
+    expect(container).toSnapshot();
   });
 
   it('can render navigation', function () {
-    const Navigation = () => <div>Navigation</div>;
-    const wrapper = mountWithTheme(
+    render(
       <BreadcrumbContextProvider>
         <SettingsLayout
           router={TestStubs.router()}
           route={{}}
           routes={[]}
-          renderNavigation={() => <Navigation />}
+          renderNavigation={() => <nav />}
         />
       </BreadcrumbContextProvider>
     );
 
-    expect(wrapper.find('Navigation')).toHaveLength(1);
+    expect(screen.getByRole('navigation')).toBeInTheDocument();
   });
 
   it('can toggle mobile navigation', function () {
-    const Navigation = () => <div>Navigation</div>;
-    const wrapper = mountWithTheme(
+    render(
       <BreadcrumbContextProvider>
         <SettingsLayout
           router={TestStubs.router()}
           route={{}}
           routes={[]}
-          renderNavigation={() => <Navigation />}
+          renderNavigation={opts => (opts.isMobileNavVisible ? <nav /> : null)}
         />
       </BreadcrumbContextProvider>
     );
 
-    expect(wrapper.find('NavMask').prop('isVisible')).toBeFalsy();
-    expect(wrapper.find('SidebarWrapper').prop('isVisible')).toBeFalsy();
+    expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
 
-    wrapper.find('NavMenuToggle').simulate('click');
-
-    expect(wrapper.find('NavMask').prop('isVisible')).toBeTruthy();
-    expect(wrapper.find('SidebarWrapper').prop('isVisible')).toBeTruthy();
+    userEvent.click(screen.getByRole('button', {name: 'Open the menu'}));
+    expect(screen.queryByRole('navigation')).toBeInTheDocument();
   });
 });
