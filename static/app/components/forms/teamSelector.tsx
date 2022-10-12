@@ -1,5 +1,5 @@
 import {useRef} from 'react';
-import {StylesConfig} from 'react-select';
+import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
@@ -8,6 +8,7 @@ import Button from 'sentry/components/button';
 import SelectControl, {
   ControlProps,
   GeneralSelectValue,
+  StylesConfig,
 } from 'sentry/components/forms/selectControl';
 import IdBadge from 'sentry/components/idBadge';
 import Tooltip from 'sentry/components/tooltip';
@@ -48,30 +49,37 @@ const unassignedOption = {
 
 // Ensures that the svg icon is white when selected
 const unassignedSelectStyles: StylesConfig = {
-  option: (provided, state) => ({
-    ...provided,
-    svg: {
-      color: state.isSelected && state.theme.white,
-    },
-  }),
+  option: (provided, state) => {
+    // XXX: The `state.theme` is an emotion theme object, but it is not typed
+    // as the emotion theme object in react-select
+    const theme = state.theme as unknown as Theme;
+
+    return {...provided, svg: {color: state.isSelected ? theme.white : undefined}};
+  },
 };
 
 const placeholderSelectStyles: StylesConfig = {
-  input: (provided, state) => ({
-    ...provided,
-    display: 'grid',
-    gridTemplateColumns: 'max-content 1fr',
-    alignItems: 'center',
-    gridGap: space(1),
-    ':before': {
-      backgroundColor: state.theme.backgroundSecondary,
-      height: 24,
-      width: 24,
-      borderRadius: 3,
-      content: '""',
-      display: 'block',
-    },
-  }),
+  input: (provided, state) => {
+    // XXX: The `state.theme` is an emotion theme object, but it is not typed
+    // as the emotion theme object in react-select
+    const theme = state.theme as unknown as Theme;
+
+    return {
+      ...provided,
+      display: 'grid',
+      gridTemplateColumns: 'max-content 1fr',
+      alignItems: 'center',
+      gridGap: space(1),
+      ':before': {
+        backgroundColor: theme.backgroundSecondary,
+        height: 24,
+        width: 24,
+        borderRadius: 3,
+        content: '""',
+        display: 'block',
+      },
+    };
+  },
   placeholder: provided => ({
     ...provided,
     paddingLeft: 32,

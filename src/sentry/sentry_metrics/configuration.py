@@ -43,6 +43,7 @@ class MetricsIngestConfiguration:
     writes_limiter_namespace: str
     cardinality_limiter_cluster_options: Mapping[str, Any]
     cardinality_limiter_namespace: str
+    index_tag_values_option_name: Optional[str] = None
 
 
 _METRICS_INGEST_CONFIG_BY_USE_CASE: MutableMapping[
@@ -87,6 +88,7 @@ def get_ingest_config(
                 writes_limiter_namespace=PERFORMANCE_PG_NAMESPACE,
                 cardinality_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS_PERFORMANCE,
                 cardinality_limiter_namespace=PERFORMANCE_PG_NAMESPACE,
+                index_tag_values_option_name="sentry-metrics.performance.index-tag-values",
             )
         )
 
