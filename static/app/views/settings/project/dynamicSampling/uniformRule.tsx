@@ -17,7 +17,6 @@ import {
 } from './rule';
 
 type Props = {
-  loadingRecommendedSdkUpgrades: boolean;
   rule: SamplingRule;
   singleRule: boolean;
 };

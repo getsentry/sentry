@@ -467,11 +467,7 @@ export function DynamicSampling({project}: Props) {
             />
 
             {uniformRule && (
-              <UniformRule
-                rule={uniformRule}
-                loadingRecommendedSdkUpgrades={loadingRecommendedSdkUpgrades}
-                singleRule={rules.length === 1}
-              />
+              <UniformRule rule={uniformRule} singleRule={rules.length === 1} />
             )}
 
             <RulesPanelFooter>
