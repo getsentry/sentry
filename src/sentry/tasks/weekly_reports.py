@@ -86,7 +86,7 @@ class ProjectContext:
     def __init__(self, project):
         self.project = project
 
-        # Array of (group_id, count)
+        # Array of (group_id, group_history, count)
         self.key_errors = []
         # Array of (transaction_name, count_this_week, p95_this_week, count_last_week, p95_last_week)
         self.key_transactions = []
@@ -235,6 +235,8 @@ def project_key_errors(ctx, project):
     request = Request(dataset=Dataset.Events.value, app_id="reports", query=query)
     query_result = raw_snql_query(request, referrer="reports.key_errors")
     key_errors = query_result["data"]
+    # Set project_ctx.key_errors to be an array of (group_id, count) for now.
+    # We will query the group history later on in `fetch_key_error_groups`, batched in a per-organization basis
     ctx.projects[project.id].key_errors = [(e["group_id"], e["count()"]) for e in key_errors]
 
 
@@ -257,7 +259,6 @@ def fetch_key_error_groups(ctx):
         .all()
     )
     group_id_to_group_history = {g.group_id: g for g in group_history}
-    print(group_id_to_group_history)
 
     for project_ctx in ctx.projects.values():
         project_ctx.key_errors = [
@@ -535,9 +536,27 @@ def render_template_context(ctx, user):
                         else group_status_to_color[GroupHistoryStatus.NEW],
                     }
 
-        return heapq.nlargest(
-            3, all_key_errors(), lambda d: d["count"]
-        )  # List of (group_id, count)
+        return heapq.nlargest(3, all_key_errors(), lambda d: d["count"])
+
+    def key_transactions():
+        def all_key_transactions():
+            for project_ctx in user_projects:
+                for (
+                    transaction_name,
+                    count_this_week,
+                    p95_this_week,
+                    count_last_week,
+                    p95_last_week,
+                ) in project_ctx.key_transactions:
+                    yield {
+                        "name": transaction_name,
+                        "count": count_this_week,
+                        "p95": p95_this_week,
+                        "p95_prev_week": p95_last_week,
+                        "project": project_ctx.project,
+                    }
+
+        return heapq.nlargest(3, all_key_transactions(), lambda d: d["count"])
 
     return {
         "organization": ctx.organization,
@@ -545,6 +564,7 @@ def render_template_context(ctx, user):
         "end": date_format(ctx.end),
         "trends": trends(),
         "key_errors": key_errors(),
+        "key_transactions": key_transactions(),
     }
 
 
