@@ -1,10 +1,11 @@
-import {InjectedRouter} from 'react-router';
+import {browserHistory, InjectedRouter} from 'react-router';
 import {Location} from 'history';
 
 import {Client} from 'sentry/api';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {Organization, PageFilters, SavedQuery} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -31,17 +32,19 @@ class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
   shouldReload = true;
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {organization} = this.props;
+    const {organization, location} = this.props;
 
     const endpoints: ReturnType<AsyncComponent['getEndpoints']> = [];
-    if (
-      organization.features.includes('discover-query-builder-as-landing-page') &&
-      organization.features.includes('discover-query')
-    ) {
-      endpoints.push([
-        'savedQuery',
-        `/organizations/${organization.slug}/discover/homepage/`,
-      ]);
+    if (location.search === '') {
+      if (
+        organization.features.includes('discover-query-builder-as-landing-page') &&
+        organization.features.includes('discover-query')
+      ) {
+        endpoints.push([
+          'savedQuery',
+          `/organizations/${organization.slug}/discover/homepage/`,
+        ]);
+      }
     }
     return endpoints;
   }
@@ -61,6 +64,15 @@ class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
         isHomepage
       />
     );
+  }
+
+  onRequestSuccess({data: savedQuery}): void {
+    if (savedQuery) {
+      const eventView = EventView.fromSavedQuery(savedQuery);
+      browserHistory.replace(
+        eventView.getResultsViewUrlTarget(this.props.organization.slug, true)
+      );
+    }
   }
 }
 
