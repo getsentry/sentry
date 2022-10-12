@@ -1676,7 +1676,7 @@ describe('Results', function () {
     const initialData = initializeOrg({
       organization,
       router: {
-        location: {query: {fromMetric: true}},
+        location: {query: {fromMetric: true, id: '1'}},
       },
     });
 
@@ -1707,7 +1707,7 @@ describe('Results', function () {
     const initialData = initializeOrg({
       organization,
       router: {
-        location: {query: {showUnparameterizedBanner: true}},
+        location: {query: {showUnparameterizedBanner: true, id: '1'}},
       },
     });
 
