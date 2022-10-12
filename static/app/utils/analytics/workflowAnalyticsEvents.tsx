@@ -66,6 +66,8 @@ export type TeamInsightsEventParameters = {
   'issue_details.event_json_clicked': {group_id: number};
   'issue_details.event_navigation_clicked': {button: string; project_id: number};
   'issue_details.suspect_commits': IssueDetailsWithAlert & {count: number};
+  'issue_details.suspect_commits.commit_clicked': IssueDetailsWithAlert;
+  'issue_details.suspect_commits.pull_request_clicked': IssueDetailsWithAlert;
   'issue_details.tab_changed': IssueDetailsWithAlert & {
     tab: Tab;
   };
@@ -116,6 +118,9 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'issue_details.event_navigation_clicked': 'Issue Details: Event Navigation Clicked',
   'issue_details.viewed': 'Issue Details: Viewed',
   'issue_details.suspect_commits': 'Issue Details: Suspect Commits',
+  'issue_details.suspect_commits.commit_clicked': 'Issue Details: Suspect Commit Clicked',
+  'issue_details.suspect_commits.pull_request_clicked':
+    'Issue Details: Suspect Pull Request Clicked',
   'issue_details.tab_changed': 'Issue Details: Tab Changed',
   'new_alert_rule.viewed': 'New Alert Rule: Viewed',
   'team_insights.viewed': 'Team Insights: Viewed',
