@@ -126,13 +126,13 @@ class JiraServerClient(ApiClient):
         # Get a list of fields for the issue type and project
         return self.get_cached(self.ISSUE_FIELDS_URL % (project_id, issue_type_id))
 
-    def get_project_key_for_id(self, project_id):
+    def get_project_key_for_id(self, project_id) -> str:
         if not project_id:
             return ""
         projects = self.get_projects_list()
         for project in projects:
             if project["id"] == project_id:
-                return project["key"].encode("utf-8")
+                return project["key"]
         return ""
 
     def get_versions(self, project):
