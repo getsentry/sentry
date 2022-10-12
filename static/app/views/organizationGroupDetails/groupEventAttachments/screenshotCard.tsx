@@ -21,41 +21,38 @@ type Props = {
 export function ScreenshotCard({eventAttachment, projectSlug, eventId}: Props) {
   const organization = useOrganization();
   const [loadingImage, setLoadingImage] = useState(true);
-  if (eventAttachment) {
-    return (
-      <Card interactive>
-        <CardHeader>
-          <CardContent>
-            <Title>{eventId}</Title>
-            <Detail>
-              <DateTime date={eventAttachment.dateCreated} />
-            </Detail>
-          </CardContent>
-        </CardHeader>
-        <CardBody>
-          <StyledPanelBody>
-            <LazyLoad>
-              <StyledImageVisualization
-                attachment={eventAttachment}
-                orgId={organization.slug}
-                projectId={projectSlug}
-                eventId={eventId}
-                onLoad={() => setLoadingImage(false)}
-                onError={() => setLoadingImage(false)}
-              />
-              {loadingImage && (
-                <StyledLoadingIndicator>
-                  <LoadingIndicator mini />
-                </StyledLoadingIndicator>
-              )}
-            </LazyLoad>
-          </StyledPanelBody>
-        </CardBody>
-        <CardFooter>{t('screenshot.png')}</CardFooter>
-      </Card>
-    );
-  }
-  return null;
+  return (
+    <Card interactive>
+      <CardHeader>
+        <CardContent>
+          <Title>{eventId}</Title>
+          <Detail>
+            <DateTime date={eventAttachment.dateCreated} />
+          </Detail>
+        </CardContent>
+      </CardHeader>
+      <CardBody>
+        <StyledPanelBody>
+          <LazyLoad>
+            <StyledImageVisualization
+              attachment={eventAttachment}
+              orgId={organization.slug}
+              projectId={projectSlug}
+              eventId={eventId}
+              onLoad={() => setLoadingImage(false)}
+              onError={() => setLoadingImage(false)}
+            />
+            {loadingImage && (
+              <StyledLoadingIndicator>
+                <LoadingIndicator mini />
+              </StyledLoadingIndicator>
+            )}
+          </LazyLoad>
+        </StyledPanelBody>
+      </CardBody>
+      <CardFooter>{t('screenshot.png')}</CardFooter>
+    </Card>
+  );
 }
 
 const Title = styled('div')`
