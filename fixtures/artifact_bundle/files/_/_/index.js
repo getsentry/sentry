@@ -1,7 +1,7 @@
 /* global exports */
 Object.defineProperty(exports, '__esModule', {value: true});
 const tslib_1 = require('tslib');
-const hub_1 = require('@sentry/hub');
+const hub_1 = require('@sentry/core');
 /**
  * This calls a function on the current hub.
  * @param method function to call on hub.

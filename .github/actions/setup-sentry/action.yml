@@ -101,7 +101,7 @@ runs:
         [ "$GITHUB_REF" = "refs/heads/master" ] && echo "PYTEST_SENTRY_ALWAYS_REPORT=1" >> $GITHUB_ENV || true
 
     - name: Setup python
-      uses: actions/setup-python@b4fe97ecda6b7a5fcd2448cdbf6a8fc76b3bedb0
+      uses: actions/setup-python@13ae5bb136fac2878aff31522b9efb785519f984  # v4.3.0
       with:
         python-version: ${{ inputs.python-version }}
         cache: pip

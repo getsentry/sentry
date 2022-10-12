@@ -6,6 +6,7 @@ import uniq from 'lodash/uniq';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import EventContexts from 'sentry/components/events/contexts';
 import EventContextSummary from 'sentry/components/events/contextSummary';
@@ -360,7 +361,10 @@ const EventEntries = ({
           />
         ) : (
           (!!(event.tags ?? []).length || hasContext) && (
-            <StyledEventDataSection title={t('Tags')} type="tags">
+            <StyledEventDataSection
+              title={<GuideAnchor target="tags">{t('Tags')}</GuideAnchor>}
+              type="tags"
+            >
               {hasContext && <EventContextSummary event={event} />}
               <EventTags
                 event={event}
@@ -378,6 +382,7 @@ const EventEntries = ({
         organization={organization}
         route={route}
         router={router}
+        isShare={isShare}
       />
       {hasContext && <EventContexts group={group} event={event} />}
       {event && !objectIsEmpty(event.context) && <EventExtraData event={event} />}
