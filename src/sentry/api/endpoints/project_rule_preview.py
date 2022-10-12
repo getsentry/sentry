@@ -1,4 +1,3 @@
-from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -37,7 +36,7 @@ class ProjectRulePreviewEndpoint(ProjectEndpoint):
         )
 
         if not serializer.is_valid():
-            return Response(exception=ValidationError, status=status.HTTP_400_BAD_REQUEST)
+            raise ValidationError
 
         data = serializer.validated_data
         results = preview(
@@ -50,8 +49,5 @@ class ProjectRulePreviewEndpoint(ProjectEndpoint):
         )
 
         if results is None:
-            return Response(
-                exception=ValidationError,
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise ValidationError
         return Response(serialize(results, request.user, TimeSeriesValueSerializer()))
