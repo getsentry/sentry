@@ -263,6 +263,11 @@ def get_interface_list(event: Event) -> Sequence[tuple[str, str, str]]:
     return interface_list
 
 
+def get_transaction_data(group: Group) -> Sequence[tuple[str, str, str]]:
+    # similar to above, need same output structure but use different data. not yet sure how to access data
+    pass
+
+
 def send_activity_notification(notification: ActivityNotification | UserReportNotification) -> None:
     participants_by_provider = notification.get_participants_with_group_subscription_reason()
     if not participants_by_provider:

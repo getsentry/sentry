@@ -78,8 +78,8 @@ class DebugPerformanceIssueEmailView(View):
             interface_list.append((interface.get_title(), mark_safe(body), text_body))
 
         return MailPreview(
-            html_template="sentry/emails/error.html",
-            text_template="sentry/emails/error.txt",
+            html_template="sentry/emails/performance.html",
+            text_template="sentry/emails/performance.txt",
             context={
                 "rule": rule,
                 "rules": get_rules([rule], org, project),
@@ -95,5 +95,6 @@ class DebugPerformanceIssueEmailView(View):
                 "tags": perf_event.tags,
                 "project_label": project.slug,
                 "commits": json.loads(COMMIT_EXAMPLE),
+                # "transaction_data": idk_yet
             },
         ).render(request)
