@@ -1004,10 +1004,6 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
         assert GroupSnooze.objects.filter(id=snooze.id).exists()
 
 
-class BasePostProcessGroupTest(TestCase):
-    pass
-
-
 @region_silo_test
 class PostProcessGroupErrorTest(
     TestCase,
