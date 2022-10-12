@@ -76,7 +76,7 @@ function Modal({
           attachment={eventAttachment}
           orgId={orgSlug}
           projectId={projectSlug}
-          event={event}
+          eventId={event.id}
         />
       </Body>
       <Footer>

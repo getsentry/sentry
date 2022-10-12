@@ -78,7 +78,7 @@ class EventAttachments extends Component<Props, State> {
         <AttachmentComponent
           orgId={this.props.orgId}
           projectId={this.props.projectId}
-          event={this.props.event}
+          eventId={this.props.event.id}
           attachment={attachment}
         />
       </AttachmentPreviewWrapper>
