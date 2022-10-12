@@ -8,6 +8,7 @@ from sentry.models import UserIP
 from sentry.region_to_control.consumer import RegionToControlConsumerWorker
 from sentry.region_to_control.messages import RegionToControlMessage, UserIpEvent
 from sentry.testutils.factories import Factories
+from sentry.testutils.silo import control_silo_test
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +23,7 @@ def user():
     return Factories.create_user("admin@localhost")
 
 
+@control_silo_test(stable=True)
 @pytest.mark.django_db(transaction=True)
 def test_user_ip_event_with_deleted_user(region_to_control_consumer_worker, user):
     message = RegionToControlMessage(
