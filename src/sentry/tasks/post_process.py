@@ -778,4 +778,11 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         update_existing_attachments,
         fire_error_processed,
     ],
+    GroupCategory.PERFORMANCE: [
+        process_snoozes,
+        process_inbox_adds,
+        process_rules,
+        # TODO: Uncomment this when we want to send perf issues out via plugins as well
+        # process_plugins,
+    ],
 }
