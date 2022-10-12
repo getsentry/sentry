@@ -26,9 +26,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
     def __init__(self, **options: Any) -> None:
         self.topic = settings.KAFKA_EVENTS
         self.transactions_topic = settings.KAFKA_TRANSACTIONS
-        self.assign_transaction_partitions_randomly = (
-            settings.SENTRY_EVENTSTREAM_PARTITION_TRANSACTIONS_RANDOMLY
-        )
+        self.assign_transaction_partitions_randomly = True
 
     def get_transactions_topic(self, project_id: int) -> str:
         return self.transactions_topic
