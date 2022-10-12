@@ -28,6 +28,8 @@ type HomepageQueryState = AsyncComponent['state'] & {
 };
 
 class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
+  shouldReload = true;
+
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization} = this.props;
 
@@ -47,10 +49,6 @@ class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
   setSavedQuery = (newSavedQuery: SavedQuery) => {
     this.setState({savedQuery: newSavedQuery});
   };
-
-  renderLoading() {
-    return this.renderBody();
-  }
 
   renderBody(): React.ReactNode {
     const {savedQuery, loading} = this.state;
