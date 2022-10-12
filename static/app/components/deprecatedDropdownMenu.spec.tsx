@@ -96,27 +96,12 @@ describe('dropdownMenuDeprecated', function () {
     render(
       <DeprecatedDropdownMenu keepMenuOpen>
         {({getRootProps, getActorProps, getMenuProps, isOpen}) => (
-          <span
-            {...getRootProps({
-              onClick: rootClick,
-            })}
-            data-test-id="root"
-          >
-            <button
-              {...getActorProps({
-                onClick: actorClick,
-              })}
-              data-test-id="actor"
-            >
+          <span {...getRootProps({onClick: rootClick})} data-test-id="root">
+            <button {...getActorProps({onClick: actorClick})} data-test-id="actor">
               Open Dropdown
             </button>
             {isOpen && (
-              <ul
-                {...getMenuProps({
-                  onClick: menuClick,
-                })}
-                data-test-id="menu"
-              >
+              <ul {...getMenuProps({onClick: menuClick})} data-test-id="menu">
                 <li>Dropdown Menu Item 1</li>
               </ul>
             )}
@@ -146,23 +131,9 @@ describe('dropdownMenuDeprecated', function () {
     render(
       <DeprecatedDropdownMenu alwaysRenderMenu>
         {({getRootProps, getActorProps, getMenuProps}) => (
-          <span
-            {...getRootProps({
-              className: 'root',
-            })}
-          >
-            <button
-              {...getActorProps({
-                className: 'actor',
-              })}
-            >
-              Open Dropdown
-            </button>
-            <ul
-              {...getMenuProps({
-                className: 'menu',
-              })}
-            >
+          <span {...getRootProps({className: 'root'})}>
+            <button {...getActorProps({className: 'actor'})}>Open Dropdown</button>
+            <ul {...getMenuProps({className: 'menu'})}>
               <li>Dropdown Menu Item 1</li>
             </ul>
           </span>
