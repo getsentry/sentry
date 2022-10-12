@@ -14,6 +14,7 @@ class CsrfFailureView(View):
     def dispatch(self, request: Request, reason="") -> Response:
         context = {"no_referer": reason == REASON_NO_REFERER}
         with sentry_sdk.configure_scope() as scope:
+            scope.set_context("csrf", {"reason": str(reason)})
             # Emit a sentry request that the incoming request is rejected by the CSRF protection.
             if hasattr(request, "user") and request.user.is_authenticated:
                 is_staff = request.user.is_staff
@@ -24,7 +25,7 @@ class CsrfFailureView(View):
                     scope.set_tag("is_superuser", "yes")
                 if is_staff or is_superuser:
                     scope.set_tag("csrf_failure", "yes")
-                    sentry_sdk.capture_exception("CSRF failure for staff or superuser")
+            sentry_sdk.capture_exception("CSRF failure for staff or superuser")
         return render_to_response("sentry/403-csrf-failure.html", context, request, status=403)
 
 
