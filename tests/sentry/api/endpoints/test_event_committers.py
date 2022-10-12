@@ -5,6 +5,7 @@ from django.urls import reverse
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
+from sentry.models.pullrequest import PullRequest
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
 from sentry.testutils import APITestCase
@@ -269,4 +270,65 @@ class EventCommittersTest(APITestCase):
             assert (
                 response.data["committers"][0]["commits"][0]["message"]
                 == "placeholder commit message"
+            )
+
+    def test_with_commit_context_pull_request(self):
+        with self.feature({"organizations:commit-context": True}):
+            self.login_as(user=self.user)
+            self.repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="example",
+                integration_id=self.integration.id,
+            )
+            commit_author = self.create_commit_author(project=self.project, user=self.user)
+            self.commit = self.create_commit(
+                project=self.project,
+                repo=self.repo,
+                author=commit_author,
+                key="asdfwreqr",
+                message="placeholder commit message",
+            )
+            pull_request = PullRequest.objects.create(
+                organization_id=self.organization.id,
+                repository_id=self.repo.id,
+                key="9",
+                author=commit_author,
+                message="waddap",
+                title="cool pr",
+                merge_commit_sha=self.commit.key,
+            )
+            event = self.store_event(
+                data={
+                    "fingerprint": ["group1"],
+                    "timestamp": iso_format(before_now(minutes=1)),
+                    "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+                },
+                project_id=self.project.id,
+            )
+
+            GroupOwner.objects.create(
+                group=event.group,
+                user=self.user,
+                project=self.project,
+                organization=self.organization,
+                type=GroupOwnerType.SUSPECT_COMMIT.value,
+                context={"commitId": self.commit.id},
+            )
+
+            url = reverse(
+                "sentry-api-0-event-file-committers",
+                kwargs={
+                    "event_id": event.event_id,
+                    "project_slug": event.project.slug,
+                    "organization_slug": event.project.organization.slug,
+                },
+            )
+
+            response = self.client.get(url, format="json")
+            assert response.status_code == 200, response.content
+            assert len(response.data["committers"][0]["commits"]) == 1
+            assert "pullRequest" in response.data["committers"][0]["commits"][0]
+            assert (
+                response.data["committers"][0]["commits"][0]["pullRequest"]["id"]
+                == pull_request.key
             )
