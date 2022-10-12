@@ -1825,7 +1825,7 @@ class SmartSearchBar extends Component<Props, State> {
           )}
           {visibleActions}
           {overflowedActions.length > 0 && (
-            <DropdownMenuControl
+            <OverlowingActionsMenu
               placement="bottom right"
               trigger={({props, ref}) => (
                 <ActionButton
@@ -1986,10 +1986,13 @@ const SearchInput = styled(
 `;
 
 const ActionsBar = styled(ButtonBar)`
-  height: ${space(2)};
-  margin: ${space(0.5)} 0;
+  height: 100%;
 `;
 
 const VerticalEllipsisIcon = styled(IconEllipsis)`
   transform: rotate(90deg);
+`;
+
+const OverlowingActionsMenu = styled(DropdownMenuControl)`
+  display: flex;
 `;
