@@ -18,7 +18,7 @@ import {decodeList} from 'sentry/utils/queryString';
 
 import GroupEventAttachmentsFilter, {
   crashReportTypes,
-  screenshotType,
+  SCREENSHOT_TYPE,
 } from './groupEventAttachmentsFilter';
 import GroupEventAttachmentsTable from './groupEventAttachmentsTable';
 import {ScreenshotCard} from './screenshotCard';
@@ -54,7 +54,7 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
     if (types.length === 0) {
       return EventAttachmentFilter.ALL;
     }
-    if (types[0] === screenshotType) {
+    if (types[0] === SCREENSHOT_TYPE) {
       return EventAttachmentFilter.SCREENSHOTS;
     }
     if (xor(crashReportTypes, types).length === 0) {

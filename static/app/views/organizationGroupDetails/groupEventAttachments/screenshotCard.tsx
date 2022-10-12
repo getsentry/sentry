@@ -7,7 +7,6 @@ import DateTime from 'sentry/components/dateTime';
 import ImageVisualization from 'sentry/components/events/eventTagsAndScreenshot/screenshot/imageVisualization';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PanelBody} from 'sentry/components/panels';
-import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {IssueAttachment, Project} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -50,7 +49,7 @@ export function ScreenshotCard({eventAttachment, projectSlug, eventId}: Props) {
           </LazyLoad>
         </StyledPanelBody>
       </CardBody>
-      <CardFooter>{t('screenshot.png')}</CardFooter>
+      <CardFooter>{eventAttachment.name}</CardFooter>
     </Card>
   );
 }

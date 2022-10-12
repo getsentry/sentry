@@ -11,7 +11,7 @@ import space from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 
 const crashReportTypes = ['event.minidump', 'event.applecrashreport'];
-const screenshotType = 'event.screenshot';
+const SCREENSHOT_TYPE = 'event.screenshot';
 
 const GroupEventAttachmentsFilter = (props: WithRouterProps) => {
   const {query, pathname} = props.location;
@@ -26,14 +26,14 @@ const GroupEventAttachmentsFilter = (props: WithRouterProps) => {
 
   const onlyScreenshotQuery = {
     ...query,
-    types: screenshotType,
+    types: SCREENSHOT_TYPE,
   };
 
   let activeButton = '';
 
   if (types === undefined) {
     activeButton = 'all';
-  } else if (types === screenshotType) {
+  } else if (types === SCREENSHOT_TYPE) {
     activeButton = 'screenshot';
   } else if (xor(crashReportTypes, types).length === 0) {
     activeButton = 'onlyCrash';
@@ -68,5 +68,5 @@ const FilterWrapper = styled('div')`
   margin-bottom: ${space(3)};
 `;
 
-export {crashReportTypes, screenshotType};
+export {crashReportTypes, SCREENSHOT_TYPE};
 export default withRouter(GroupEventAttachmentsFilter);
