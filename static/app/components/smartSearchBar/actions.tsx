@@ -5,14 +5,13 @@ import styled from '@emotion/styled';
 import {openModal} from 'sentry/actionCreators/modal';
 import {pinSearch, unpinSearch} from 'sentry/actionCreators/savedSearches';
 import Button from 'sentry/components/button';
+import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import CreateSavedSearchModal from 'sentry/components/modals/createSavedSearchModal';
 import {IconAdd, IconPin, IconSliders} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {SavedSearch, SavedSearchType} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {useLocation} from 'sentry/utils/useLocation';
-
-import {MenuItemProps} from '../dropdownMenuItem';
 
 import type {ActionBarItem, ActionProps} from './index';
 import {removeSpace} from './utils';
