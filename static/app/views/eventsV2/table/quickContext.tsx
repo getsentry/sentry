@@ -9,9 +9,16 @@ export enum ColumnType {
   ISSUE = 'issue',
 }
 
-export function hasContext(
+function hasIssuContext(
   dataRow: TableDataRow,
   column: TableColumn<keyof TableDataRow>
 ): boolean {
   return column.column.field === ColumnType.ISSUE && dataRow.issue !== UNKNOWN_ISSUE;
+}
+
+export function hasContext(
+  dataRow: TableDataRow,
+  column: TableColumn<keyof TableDataRow>
+): boolean {
+  return hasIssuContext(dataRow, column);
 }

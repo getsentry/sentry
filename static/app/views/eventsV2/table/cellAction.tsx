@@ -4,6 +4,7 @@ import {Manager, Modifier, Popper, Reference} from 'react-popper';
 import styled from '@emotion/styled';
 import color from 'color';
 
+import Feature from 'sentry/components/acl/feature';
 import {IconEllipsis, IconShow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -514,7 +515,7 @@ class CellAction extends Component<Props, State> {
   }
 
   render() {
-    const {children} = this.props;
+    const {children, organization} = this.props;
     const {isHovering, isContextPopperOpen, isMenuPopperOpen} = this.state;
 
     return (
@@ -523,7 +524,9 @@ class CellAction extends Component<Props, State> {
         onMouseLeave={this.handleMouseLeave}
       >
         {children}
-        {isHovering && !isMenuPopperOpen && this.renderContext()}
+        <Feature organization={organization} features={['discover-quick-context']}>
+          {isHovering && !isMenuPopperOpen && this.renderContext()}
+        </Feature>
         {isHovering && !isContextPopperOpen && this.renderMenu()}
       </Container>
     );
