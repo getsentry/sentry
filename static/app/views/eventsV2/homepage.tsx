@@ -46,6 +46,13 @@ class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
     return endpoints;
   }
 
+  onRequestSuccess({stateKey, data}) {
+    // No homepage query results in a 204, returning an empty string
+    if (stateKey === 'savedQuery' && data === '') {
+      this.setState({savedQuery: null});
+    }
+  }
+
   setSavedQuery = (newSavedQuery: SavedQuery) => {
     this.setState({savedQuery: newSavedQuery});
   };
