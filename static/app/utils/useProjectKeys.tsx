@@ -17,7 +17,7 @@ export function useProjectKeys({
   });
   useEffect(() => {
     if (!organization || !project) {
-      return;
+      return () => {};
     }
     setResponse({type: 'loading'});
     const request: Promise<ProjectKey[]> = api.requestPromise(
@@ -38,7 +38,7 @@ export function useProjectKeys({
         })
       );
 
-    () => {
+    return () => {
       api.clear();
     };
   }, [organization, project, api]);
