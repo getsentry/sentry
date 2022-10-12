@@ -1,13 +1,7 @@
 import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {openEditOwnershipRules, openModal} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
@@ -121,25 +115,6 @@ tags.sku_class:enterprise #enterprise`;
     this.setState({
       codeowners: [...codeowners.slice(0, index), data, ...codeowners.slice(index + 1)],
     });
-  };
-
-  handleAddCodeOwnerRequest = async () => {
-    const {organization, project} = this.props;
-    try {
-      addLoadingMessage(t('Requesting\u2026'));
-      await this.api.requestPromise(
-        `/projects/${organization.slug}/${project.slug}/codeowners-request/`,
-        {
-          method: 'POST',
-          data: {},
-        }
-      );
-
-      addSuccessMessage(t('Request Sent'));
-    } catch (err) {
-      addErrorMessage(t('Unable to send request'));
-      Sentry.captureException(err);
-    }
   };
 
   renderCodeOwnerErrors = () => {
@@ -291,16 +266,7 @@ tags.sku_class:enterprise #enterprise`;
                       >
                         {t('Add CODEOWNERS')}
                       </CodeOwnerButton>
-                    ) : (
-                      <CodeOwnerButton
-                        onClick={this.handleAddCodeOwnerRequest}
-                        size="sm"
-                        priority="primary"
-                        data-test-id="add-codeowner-request-button"
-                      >
-                        {t('Request to Add CODEOWNERS File')}
-                      </CodeOwnerButton>
-                    )
+                    ) : null
                   }
                 </Access>
               </Feature>

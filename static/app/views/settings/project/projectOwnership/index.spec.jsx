@@ -91,7 +91,7 @@ describe('Project Ownership', function () {
       expect(openModal).toHaveBeenCalled();
     });
 
-    it('render request to add if no permissions', function () {
+    it('render nothing to add if no permissions', function () {
       org = TestStubs.Organization({features: ['integrations-codeowners'], access: []});
 
       const wrapper = mountWithTheme(
@@ -102,9 +102,9 @@ describe('Project Ownership', function () {
         />,
         TestStubs.routerContext([{organization: org}])
       );
-      expect(
-        wrapper.find('[data-test-id="add-codeowner-request-button"] button').exists()
-      ).toBe(true);
+      expect(wrapper.find('[data-test-id="add-codeowner-button"] button').exists()).toBe(
+        false
+      );
     });
   });
 });
