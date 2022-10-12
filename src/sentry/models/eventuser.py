@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from functools import reduce
 from operator import or_
 
@@ -14,9 +13,12 @@ from sentry.utils.hashlib import md5_text
 # when used in hashing and determining uniqueness. If you change the order
 # you will break stuff.
 KEYWORD_MAP = BidirectionalMapping(
-    OrderedDict(
-        (("ident", "id"), ("username", "username"), ("email", "email"), ("ip_address", "ip"))
-    )
+    {
+        "ident": "id",
+        "username": "username",
+        "email": "email",
+        "ip_address": "ip",
+    }
 )
 
 

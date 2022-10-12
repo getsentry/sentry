@@ -8,6 +8,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.status import HTTP_200_OK, HTTP_410_GONE
 
+from sentry import options
 from sentry.api.base import Endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.options import register
@@ -101,6 +102,8 @@ class TestDeprecationDecorator(APITestCase):
         self.assert_not_deprecated("HEAD")
 
     def test_default_key(self):
+        options.delete("api.deprecation.brownout-cron")
+        options.delete("api.deprecation.brownout-duration")
         settings.SENTRY_OPTIONS.update({"api.deprecation.brownout-cron": custom_cron})
         settings.SENTRY_OPTIONS.update({"api.deprecation.brownout-duration": custom_duration})
 
@@ -144,15 +147,21 @@ class TestDeprecationDecorator(APITestCase):
             self.assert_allowed_request("POST")
 
     def test_bad_schedule_format(self):
+        options.delete("api.deprecation.brownout-duration")
         settings.SENTRY_OPTIONS.update({"api.deprecation.brownout-duration": "bad duration"})
 
         brownout_start = timeiter.get_next(datetime)
         with freeze_time(brownout_start):
             self.assert_allowed_request("GET")
+
+            options.delete("api.deprecation.brownout-duration")
             settings.SENTRY_OPTIONS.update({"api.deprecation.brownout-duration": "PT1M"})
             self.assert_denied_request("GET")
 
+            options.delete("api.deprecation.brownout-cron")
             settings.SENTRY_OPTIONS.update({"api.deprecation.brownout-cron": "bad schedule"})
             self.assert_allowed_request("GET")
+
+            options.delete("api.deprecation.brownout-cron")
             settings.SENTRY_OPTIONS.update({"api.deprecation.brownout-cron": "0 12 * * *"})
             self.assert_denied_request("GET")

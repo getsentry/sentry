@@ -55,6 +55,7 @@ const AllEventsTable = (props: Props) => {
     <EventsTable
       eventView={eventView}
       location={location}
+      issueId={issueId}
       organization={organization}
       excludedTags={excludedTags}
       setError={() => {

@@ -322,6 +322,9 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
 
     truncated_problems = detected_problems[:PERFORMANCE_GROUP_COUNT_LIMIT]
 
+    metrics.incr("performance.performance_issue.pretruncated", len(detected_problems))
+    metrics.incr("performance.performance_issue.truncated", len(truncated_problems))
+
     performance_problems = [
         prepare_problem_for_grouping(problem, data, detector_type)
         for problem, detector_type in truncated_problems
@@ -721,7 +724,8 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
 
         # Only concern ourselves with transactions where the FCP is within the
         # range we care about.
-        fcp_hash = self.event().get("measurements", {}).get("fcp", {})
+        measurements = self.event().get("measurements") or {}
+        fcp_hash = measurements.get("fcp") or {}
         fcp_value = fcp_hash.get("value")
         if fcp_value and ("unit" not in fcp_hash or fcp_hash["unit"] == "millisecond"):
             fcp = timedelta(milliseconds=fcp_value)
@@ -875,6 +879,9 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         self.n_hash = None
         self.n_spans = []
         self.source_span = None
+        root_span = get_path(self._event, "contexts", "trace")
+        if root_span:
+            self.potential_parents[root_span.get("span_id")] = root_span
 
     def visit_span(self, span: Span) -> None:
         span_id = span.get("span_id", None)
@@ -918,10 +925,12 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         self._maybe_store_problem()
 
     def _contains_complete_query(self, span: Span, is_source: Optional[bool] = False) -> bool:
-        # When SDKs truncate span description, they add a "..." suffix (three
-        # full stops, not an ellipsis).
+        # Remove the truncation check from the n_plus_one db detector.
         query = span.get("description", None)
-        return query and not query.endswith("...")
+        if is_source and query:
+            return True
+        else:
+            return query and not query.endswith("...")
 
     def _maybe_use_as_source(self, span: Span):
         parent_span_id = span.get("parent_span_id", None)
@@ -1054,20 +1063,6 @@ class NPlusOneDBSpanDetectorExtended(NPlusOneDBSpanDetector):
         "n_hash",
         "n_spans",
     )
-
-    def init(self):
-        super().init()
-        root_span = get_path(self._event, "contexts", "trace")
-        if root_span:
-            self.potential_parents[root_span.get("span_id")] = root_span
-
-    def _contains_complete_query(self, span: Span, is_source: Optional[bool] = False) -> bool:
-        # Remove the truncation check from the n_plus_one db detector.
-        query = span.get("description", None)
-        if is_source:
-            return bool(query)
-        else:
-            return query and not query.endswith("...")
 
 
 # Reports metrics and creates spans for detection

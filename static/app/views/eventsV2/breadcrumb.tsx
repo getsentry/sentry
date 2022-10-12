@@ -16,6 +16,8 @@ type Props = {
   isHomepage?: boolean;
 };
 
+const HOMEPAGE_DEFAULT_LABEL = t('New Query');
+
 function DiscoverBreadcrumb({
   eventView,
   event,
@@ -45,7 +47,7 @@ function DiscoverBreadcrumb({
   if (eventView && eventView.isValid()) {
     crumbs.push({
       to: eventView.getResultsViewUrlTarget(organization.slug, isHomepage),
-      label: eventView.name || '',
+      label: isHomepage ? HOMEPAGE_DEFAULT_LABEL : eventView.name || '',
     });
   }
 
