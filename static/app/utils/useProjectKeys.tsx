@@ -1,4 +1,5 @@
 import {useEffect, useState} from 'react';
+import * as Sentry from '@sentry/react';
 
 import {Organization, Project, ProjectKey, RequestState} from 'sentry/types';
 
@@ -31,12 +32,13 @@ export function useProjectKeys({
           data,
         });
       })
-      .catch(error =>
+      .catch(error => {
         setResponse({
           type: 'errored',
           error,
-        })
-      );
+        });
+        Sentry.captureException(error);
+      });
 
     return () => {
       api.clear();

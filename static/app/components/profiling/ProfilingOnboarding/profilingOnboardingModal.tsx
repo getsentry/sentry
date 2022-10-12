@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import {PlatformIcon} from 'platformicons';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -257,9 +258,15 @@ function usePublicDSN({
   if (response.type !== 'resolved') {
     return response;
   }
+  const dsn = response[0]?.dsn.public;
+  if (!dsn) {
+    Sentry.captureException(
+      new Error(`public dsn not found for ${organization?.slug}/${project?.slug}`)
+    );
+  }
   return {
     ...response,
-    data: response.data[0]?.dsn.public ?? null,
+    data: dsn,
   };
 }
 
@@ -412,8 +419,7 @@ function IOSInstallSteps({
       ? semverCompare(sdkUpdates.data.sdkVersion, '7.23.0') < 0
       : false;
 
-  const dsn =
-    publicDSN.type === 'resolved' && publicDSN.data !== null ? publicDSN.data : '...';
+  const dsn = publicDSN.type === 'resolved' && publicDSN.data ? publicDSN.data : '...';
   return (
     <Fragment>
       {hasSdkUpdates && requiresSdkUpdates && (
