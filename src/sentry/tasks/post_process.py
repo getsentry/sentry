@@ -769,7 +769,7 @@ def get_post_process_queue(group_category: GroupCategory) -> str:
     elif group_category == GroupCategory.PERFORMANCE:
         return "post_process_performance"
     else:
-        return "post_process_errors"  # keep default value
+        return "post_process_errors"  # use error queue as default
 
 
 GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
