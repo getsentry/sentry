@@ -1,3 +1,9 @@
+import {useState} from 'react';
+import styled from '@emotion/styled';
+
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 
 import {TableColumn} from './types';
@@ -9,16 +15,67 @@ export enum ColumnType {
   ISSUE = 'issue',
 }
 
-function hasIssuContext(
+function isIssueContext(
   dataRow: TableDataRow,
   column: TableColumn<keyof TableDataRow>
 ): boolean {
-  return column.column.field === ColumnType.ISSUE && dataRow.issue !== UNKNOWN_ISSUE;
+  return (
+    column.column.kind === 'field' &&
+    column.column.field === ColumnType.ISSUE &&
+    dataRow.issue !== UNKNOWN_ISSUE
+  );
 }
 
 export function hasContext(
   dataRow: TableDataRow,
   column: TableColumn<keyof TableDataRow>
 ): boolean {
-  return hasIssuContext(dataRow, column);
+  return isIssueContext(dataRow, column);
 }
+
+type Props = {
+  column: TableColumn<keyof TableDataRow>;
+  dataRow: TableDataRow;
+};
+
+export default function QuickContext(props: Props) {
+  // Will add setters.
+  const [loading] = useState(false);
+  const [error] = useState(false);
+
+  return (
+    <ContextContainer>
+      {loading ? (
+        <NoContextWrapper>
+          <LoadingIndicator hideMessage size={32} />
+        </NoContextWrapper>
+      ) : error ? (
+        <NoContextWrapper>{t('Failed to load context for column.')}</NoContextWrapper>
+      ) : isIssueContext(props.dataRow, props.column) ? (
+        <NoContextWrapper>{t('Displaying Context for issue.')}</NoContextWrapper>
+      ) : (
+        <NoContextWrapper>{t('There is no context available.')}</NoContextWrapper>
+      )}
+    </ContextContainer>
+  );
+}
+
+const ContextContainer = styled('div')`
+  background: ${p => p.theme.background};
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  box-shadow: ${p => p.theme.dropShadowHeavy};
+  overflow: hidden;
+  min-width: 200px;
+`;
+
+const NoContextWrapper = styled('div')`
+  color: ${p => p.theme.subText};
+  height: 50px;
+  padding: ${space(1.5)};
+  font-size: ${p => p.theme.fontSizeMedium};
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+`;

@@ -18,7 +18,7 @@ import {
 import {getDuration} from 'sentry/utils/formatters';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
-import {hasContext} from './quickContext';
+import QuickContext, {hasContext} from './quickContext';
 import {TableColumn} from './types';
 
 export enum Actions {
@@ -465,14 +465,11 @@ class CellAction extends Component<Props, State> {
   renderContext() {
     const {isContextPopperOpen: isOpen} = this.state;
 
-    const actions = makeCellActions(this.props);
-
-    if (actions === null || !hasContext(this.props.dataRow, this.props.column)) {
-      // do not render the menu if there are no per cell actions
+    if (!hasContext(this.props.dataRow, this.props.column)) {
       return null;
     }
 
-    const menu = !isOpen
+    const context = !isOpen
       ? null
       : createPortal(
           <Popper placement="top" modifiers={this.modifiers}>
@@ -489,9 +486,7 @@ class CellAction extends Component<Props, State> {
                   data-placement={placement}
                   style={arrowProps.style}
                 />
-                <MenuButtons onClick={event => event.stopPropagation()}>
-                  {actions}
-                </MenuButtons>
+                <QuickContext dataRow={this.props.dataRow} column={this.props.column} />
               </Menu>
             )}
           </Popper>,
@@ -504,11 +499,11 @@ class CellAction extends Component<Props, State> {
           <Reference>
             {({ref}) => (
               <MenuButton ref={ref} onClick={this.handleContextToggle}>
-                <IconShow size="sm" data-test-id="cell-action" color="subText" />
+                <IconShow size="sm" data-test-id="cell-action-context" color="subText" />
               </MenuButton>
             )}
           </Reference>
-          {menu}
+          {context}
         </Manager>
       </ContextActionButton>
     );
