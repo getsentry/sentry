@@ -518,6 +518,9 @@ register(
     "performance.issues.all.early-adopter-rollout", default=0.0
 )  # Only used for EA rollout, bound to the feature flag handler for performance-issue-ingest
 register(
+    "performance.issues.all.general-availability-rollout", default=0.0
+)  # Only used for GA rollout, bound to the feature flag handler for performance-issue-ingest
+register(
     "performance.issues.all.post-process-group-early-adopter-rollout", default=0.0
 )  # EA rollout for processing transactions in post_process_group
 
