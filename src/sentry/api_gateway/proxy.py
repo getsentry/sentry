@@ -7,11 +7,9 @@ from django.http import StreamingHttpResponse
 from requests import Response as ExternalResponse
 from requests import request as external_request
 from requests.exceptions import Timeout
-from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 
 from sentry.api.exceptions import RequestTimeout
-from sentry.models.organization import Organization
 
 # stream 0.5 MB at a time
 PROXY_CHUNK_SIZE = 512 * 1024
@@ -40,17 +38,14 @@ def proxy_request(request: Request, org_slug: str) -> StreamingHttpResponse:
     """Take a django request object and proxy it to a remote location given an org_slug"""
     from sentry.types.region import get_region_for_organization
 
-    try:
-        org = Organization.objects.get(slug=org_slug)
-    except Organization.DoesNotExist:
-        raise NotFound(detail="Resource could not be found")
-    target_url = get_region_for_organization(org).to_url(request.path)
+    target_url = get_region_for_organization(None).to_url(request.path)
 
     # TODO: use requests session for connection pooling capabilities
     query_params = getattr(request, request.method, None)
     request_args = {
         "headers": request.headers,
         "params": dict(query_params) if query_params is not None else None,
+        "data": getattr(request, "body", None),
         "stream": True,
         "timeout": settings.GATEWAY_PROXY_TIMEOUT,
     }

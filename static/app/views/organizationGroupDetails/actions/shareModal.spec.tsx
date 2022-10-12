@@ -8,6 +8,7 @@ import ShareIssueModal from 'sentry/views/organizationGroupDetails/actions/share
 describe('shareModal', () => {
   const project = TestStubs.Project();
   const organization = TestStubs.Organization();
+  const onToggle = jest.fn();
 
   beforeEach(() => {
     GroupStore.init();
@@ -15,6 +16,8 @@ describe('shareModal', () => {
   afterEach(() => {
     ModalStore.reset();
     GroupStore.reset();
+    MockApiClient.clearMockResponses();
+    jest.clearAllMocks();
   });
 
   it('should share on open', async () => {
@@ -34,12 +37,14 @@ describe('shareModal', () => {
         groupId={group.id}
         organization={organization}
         projectSlug={project.slug}
+        onToggle={onToggle}
       />
     ));
 
     expect(screen.getByText('Share Issue')).toBeInTheDocument();
     expect(await screen.findByRole('button', {name: 'Copy Link'})).toBeInTheDocument();
     expect(issuesApi).toHaveBeenCalledTimes(1);
+    expect(onToggle).toHaveBeenCalledTimes(1);
   });
 
   it('should unshare', async () => {
@@ -59,6 +64,7 @@ describe('shareModal', () => {
         groupId={group.id}
         organization={organization}
         projectSlug={project.slug}
+        onToggle={onToggle}
       />
     ));
 
@@ -66,5 +72,6 @@ describe('shareModal', () => {
 
     expect(await screen.findByRole('button', {name: 'Close'})).toBeInTheDocument();
     expect(issuesApi).toHaveBeenCalledTimes(1);
+    expect(onToggle).toHaveBeenCalledTimes(1);
   });
 });

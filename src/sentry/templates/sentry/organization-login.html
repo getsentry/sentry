@@ -33,7 +33,7 @@
     return null;
   }
   setInterval(function() {
-    var csrfCookieVal = getCookie('sc');
+    var csrfCookieVal = getCookie(window.csrfCookieName || 'sc');
     // combine strings for csrf name as some tests grep on the token name :(
     var csrfName = 'csrf'+'middleware'+'token';
     var csrfEls = document.getElementsByName(csrfName);

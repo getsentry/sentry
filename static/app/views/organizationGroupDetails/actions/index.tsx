@@ -4,11 +4,7 @@ import styled from '@emotion/styled';
 import {Query} from 'history';
 
 import {bulkDelete, bulkUpdate} from 'sentry/actionCreators/group';
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  clearIndicators,
-} from 'sentry/actionCreators/indicator';
+import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import {
   ModalRenderProps,
   openModal,
@@ -69,21 +65,7 @@ type Props = {
   query?: Query;
 };
 
-type State = {
-  shareBusy: boolean;
-};
-
-class Actions extends Component<Props, State> {
-  state: State = {
-    shareBusy: false,
-  };
-
-  componentWillReceiveProps(nextProps: Props) {
-    if (this.state.shareBusy && nextProps.group.shareId !== this.props.group.shareId) {
-      this.setState({shareBusy: false});
-    }
-  }
-
+class Actions extends Component<Props> {
   getShareUrl(shareId: string) {
     if (!shareId) {
       return '';
@@ -201,35 +183,6 @@ class Actions extends Component<Props, State> {
     openReprocessEventModal({organization, groupId: group.id});
   };
 
-  onShare(shared: boolean) {
-    const {group, project, organization, api} = this.props;
-    this.setState({shareBusy: true});
-
-    // not sure why this is a bulkUpdate
-    bulkUpdate(
-      api,
-      {
-        orgId: organization.slug,
-        projectId: project.slug,
-        itemIds: [group.id],
-        data: {
-          isPublic: shared,
-        },
-      },
-      {
-        error: () => {
-          addErrorMessage(t('Error sharing'));
-        },
-        complete: () => {
-          // shareBusy marked false in componentWillReceiveProps to sync
-          // busy state update with shareId update
-        },
-      }
-    );
-
-    this.trackIssueAction('shared');
-  }
-
   onToggleShare = () => {
     const newIsPublic = !this.props.group.isPublic;
     if (newIsPublic) {
@@ -237,7 +190,7 @@ class Actions extends Component<Props, State> {
         organization: this.props.organization,
       });
     }
-    this.onShare(newIsPublic);
+    this.trackIssueAction('shared');
   };
 
   onToggleBookmark = () => {
@@ -623,13 +576,11 @@ class Actions extends Component<Props, State> {
         </Feature>
         {orgFeatures.has('shared-issues') && (
           <ShareIssue
+            organization={organization}
+            group={group}
             disabled={disabled || !shareCap.enabled}
             disabledReason={shareCap.disabledReason}
-            loading={this.state.shareBusy}
-            isShared={group.isPublic}
-            shareUrl={this.getShareUrl(group.shareId)}
             onToggle={this.onToggleShare}
-            onReshare={() => this.onShare(true)}
           />
         )}
         <SubscribeAction

@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from unittest import mock
 
 import pytest
 import pytz
@@ -64,6 +65,66 @@ specific_rule_with_all_current_trace_conditions = {
     },
     "sampleRate": 0.3,
 }
+
+
+def mocked_discover_query(project_slug):
+    return {
+        "data": [
+            {
+                "sdk.version": "7.1.5",
+                "sdk.name": "sentry.javascript.react",
+                "project": project_slug,
+                'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 1.0,
+                'count_if(trace.client_sample_rate, notEquals, "")': 7,
+                'equation|count_if(transaction.source, notEquals, "") / count()': 1.0,
+                'count_if(transaction.source, notEquals, "")': 5,
+                "count()": 23,
+            },
+            # Accounts for less than 10% of total count for this project, and so should be discarded
+            {
+                "sdk.version": "7.1.6",
+                "sdk.name": "sentry.javascript.browser",
+                "project": project_slug,
+                'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 1.0,
+                'count_if(trace.client_sample_rate, notEquals, "")': 5,
+                'equation|count_if(transaction.source, notEquals, "") / count()': 1.0,
+                'count_if(transaction.source, notEquals, "")': 3,
+                "count()": 4,
+            },
+            # Accounts for less than 5% of total count for this project and sdk.name so should be
+            # discarded
+            {
+                "sdk.version": "7.1.6",
+                "sdk.name": "sentry.javascript.react",
+                "project": project_slug,
+                'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 1.0,
+                'count_if(trace.client_sample_rate, notEquals, "")': 5,
+                'equation|count_if(transaction.source, notEquals, "") / count()': 0.0,
+                'count_if(transaction.source, notEquals, "")': 0,
+                "count()": 2,
+            },
+            {
+                "sdk.version": "7.1.4",
+                "sdk.name": "sentry.javascript.react",
+                "project": project_slug,
+                'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 0.0,
+                'count_if(trace.client_sample_rate, notEquals, "")': 0,
+                'equation|count_if(transaction.source, notEquals, "") / count()': 0.0,
+                'count_if(transaction.source, notEquals, "")': 0,
+                "count()": 11,
+            },
+            {
+                "sdk.version": "7.1.3",
+                "sdk.name": "sentry.javascript.react",
+                "project": project_slug,
+                'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 0.0,
+                'count_if(trace.client_sample_rate, notEquals, "")': 0,
+                'equation|count_if(transaction.source, notEquals, "") / count()': 0.0,
+                'count_if(transaction.source, notEquals, "")': 0,
+                "count()": 9,
+            },
+        ]
+    }
 
 
 @pytest.mark.snuba
@@ -142,7 +203,11 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
                 key="sentry:dynamic_sampling", project=self.project
             )
             saved_sampling_setting = project_option.value
-            serializer = DynamicSamplingSerializer(data=saved_sampling_setting)
+            serializer = DynamicSamplingSerializer(
+                data=saved_sampling_setting,
+                partial=True,
+                context={"project": self.project, "request": self.make_request(user=self.user)},
+            )
             assert serializer.is_valid()
             assert len(serializer.validated_data["rules"]) == 1
             assert saved_sampling_setting == serializer.validated_data
@@ -194,7 +259,11 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
                 key="sentry:dynamic_sampling", project=self.project
             )
             saved_sampling_setting = project_option.value
-            serializer = DynamicSamplingSerializer(data=saved_sampling_setting)
+            serializer = DynamicSamplingSerializer(
+                data=saved_sampling_setting,
+                partial=True,
+                context={"project": self.project, "request": self.make_request(user=self.user)},
+            )
             assert serializer.is_valid()
             assert len(serializer.validated_data["rules"]) == 1
             assert saved_sampling_setting == serializer.validated_data
@@ -282,7 +351,34 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
                     event=audit_log.get_event_id("PROJECT_EDIT"),
                 )
 
-    def test_activate_uniform_rule(self):
+    @mock.patch("sentry.api.endpoints.project_dynamic_sampling.raw_snql_query")
+    @mock.patch(
+        "sentry.api.endpoints.project_dynamic_sampling.discover.query",
+    )
+    def test_activate_uniform_rule(self, mock_query, mock_querybuilder):
+        mock_query.return_value = mocked_discover_query(self.project.slug)
+        mock_querybuilder.side_effect = [
+            {
+                "data": [
+                    {
+                        "trace": "6503ee33b7bc43aead1facaa625a5dba",
+                        "id": "6ddc83ee612b4e89b95b5278c8fd188f",
+                        "random_number() AS random_number": 4255299100,
+                        "is_root": 1,
+                    }
+                ]
+            },
+            {
+                "data": [
+                    {
+                        "project": self.project.slug,
+                        "project_id": self.project.id,
+                        "count": 2,
+                        "root_count": 2,
+                    },
+                ]
+            },
+        ]
         with self.feature(FEATURE_NAME):
             self.project.update_option(
                 "sentry:dynamic_sampling",
@@ -305,7 +401,11 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
                 key="sentry:dynamic_sampling", project=self.project
             )
             saved_sampling_setting = project_option.value
-            serializer = DynamicSamplingSerializer(data=saved_sampling_setting)
+            serializer = DynamicSamplingSerializer(
+                data=saved_sampling_setting,
+                partial=True,
+                context={"project": self.project, "request": self.make_request(user=self.user)},
+            )
             assert serializer.is_valid()
             assert len(serializer.validated_data["rules"]) == 1
             assert saved_sampling_setting == serializer.validated_data
@@ -331,7 +431,34 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
                     event=audit_log.get_event_id("PROJECT_EDIT"),
                 )
 
-    def test_deactivate_uniform_rule(self):
+    @mock.patch("sentry.api.endpoints.project_dynamic_sampling.raw_snql_query")
+    @mock.patch(
+        "sentry.api.endpoints.project_dynamic_sampling.discover.query",
+    )
+    def test_deactivate_uniform_rule(self, mock_query, mock_querybuilder):
+        mock_query.return_value = mocked_discover_query(self.project.slug)
+        mock_querybuilder.side_effect = [
+            {
+                "data": [
+                    {
+                        "trace": "6503ee33b7bc43aead1facaa625a5dba",
+                        "id": "6ddc83ee612b4e89b95b5278c8fd188f",
+                        "random_number() AS random_number": 4255299100,
+                        "is_root": 1,
+                    }
+                ]
+            },
+            {
+                "data": [
+                    {
+                        "project": self.project.slug,
+                        "project_id": self.project.id,
+                        "count": 2,
+                        "root_count": 2,
+                    },
+                ]
+            },
+        ]
         with self.feature(FEATURE_NAME):
             self.project.update_option(
                 "sentry:dynamic_sampling",
@@ -354,7 +481,11 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
                 key="sentry:dynamic_sampling", project=self.project
             )
             saved_sampling_setting = project_option.value
-            serializer = DynamicSamplingSerializer(data=saved_sampling_setting)
+            serializer = DynamicSamplingSerializer(
+                data=saved_sampling_setting,
+                partial=True,
+                context={"project": self.project, "request": self.make_request(user=self.user)},
+            )
             assert serializer.is_valid()
             assert len(serializer.validated_data["rules"]) == 1
             assert saved_sampling_setting == serializer.validated_data
@@ -440,7 +571,11 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
                 key="sentry:dynamic_sampling", project=self.project
             )
             saved_sampling_setting = project_option.value
-            serializer = DynamicSamplingSerializer(data=saved_sampling_setting)
+            serializer = DynamicSamplingSerializer(
+                data=saved_sampling_setting,
+                partial=True,
+                context={"project": self.project, "request": self.make_request(user=self.user)},
+            )
             assert serializer.is_valid()
             assert len(serializer.validated_data["rules"]) == 2
             assert saved_sampling_setting == serializer.validated_data

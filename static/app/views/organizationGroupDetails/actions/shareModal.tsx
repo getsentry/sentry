@@ -18,6 +18,7 @@ import useApi from 'sentry/utils/useApi';
 
 interface ShareIssueModalProps extends ModalRenderProps {
   groupId: string;
+  onToggle: () => void;
   organization: Organization;
   projectSlug: string;
   disabled?: boolean;
@@ -33,6 +34,7 @@ function ShareIssueModal({
   organization,
   projectSlug,
   groupId,
+  onToggle,
 }: ShareIssueModalProps) {
   const api = useApi({persistInFlight: true});
   const [loading, setLoading] = useState(false);
@@ -52,8 +54,9 @@ function ShareIssueModal({
   const handleShare = useCallback(
     (e: React.MouseEvent<HTMLButtonElement> | null, reshare?: boolean) => {
       e?.preventDefault();
-      // not sure why this is a bulkUpdate
       setLoading(true);
+      onToggle();
+
       bulkUpdate(
         api,
         {
@@ -69,14 +72,12 @@ function ShareIssueModal({
             addErrorMessage(t('Error sharing'));
           },
           complete: () => {
-            // shareBusy marked false in componentWillReceiveProps to sync
-            // busy state update with shareId update
             setLoading(false);
           },
         }
       );
     },
-    [api, setLoading, isShared, organization.slug, projectSlug, groupId]
+    [api, setLoading, onToggle, isShared, organization.slug, projectSlug, groupId]
   );
 
   /**
@@ -88,7 +89,7 @@ function ShareIssueModal({
     }
 
     handleShare(null, true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- we only want to run this on open
   }, []);
 
   return (
@@ -177,10 +178,14 @@ function ShareIssueModal({
 
 export default ShareIssueModal;
 
+/**
+ * min-height reduces layout shift when switching on and off
+ */
 const ModalContent = styled('div')`
   display: flex;
   gap: ${space(2)};
   flex-direction: column;
+  min-height: 100px;
 `;
 
 const SwitchWrapper = styled('div')`

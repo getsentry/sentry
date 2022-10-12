@@ -62,6 +62,7 @@ default_manager.add("organizations:create")
 # Organization scoped features that are in development or in customer trials.
 default_manager.add("organizations:active-release-monitor-alpha", OrganizationFeature, True)
 default_manager.add("organizations:active-release-notifications-enable", OrganizationFeature)
+default_manager.add("organizations:javascript-console-error-tag", OrganizationFeature)
 default_manager.add("organizations:alert-crash-free-metrics", OrganizationFeature, True)
 default_manager.add("organizations:alert-filters", OrganizationFeature)
 default_manager.add("organizations:api-keys", OrganizationFeature)
@@ -81,6 +82,7 @@ default_manager.add("organizations:discover-metrics-baseline", OrganizationFeatu
 default_manager.add("organizations:discover-frontend-use-events-endpoint", OrganizationFeature, True)
 default_manager.add("organizations:discover-interval-selector", OrganizationFeature, True)
 default_manager.add("organizations:discover-query-builder-as-landing-page", OrganizationFeature, True)
+default_manager.add("organizations:dynamic-sampling-total-transaction-packaging", OrganizationFeature, True)
 default_manager.add("organizations:enterprise-perf", OrganizationFeature)
 default_manager.add("organizations:grouping-stacktrace-ui", OrganizationFeature, True)
 default_manager.add("organizations:grouping-title-ui", OrganizationFeature, True)
@@ -119,6 +121,7 @@ default_manager.add("organizations:performance-dry-run-mep", OrganizationFeature
 default_manager.add("organizations:performance-frontend-use-events-endpoint", OrganizationFeature, True)
 default_manager.add("organizations:performance-issues", OrganizationFeature, True)
 default_manager.add("organizations:performance-issues-ingest", OrganizationFeature)
+default_manager.add("organizations:performance-issues-post-process-group", OrganizationFeature)
 default_manager.add("organizations:performance-issues-dev", OrganizationFeature, True)
 default_manager.add("organizations:performance-issues-all-events-tab", OrganizationFeature, True)
 default_manager.add("organizations:performance-onboarding-checklist", OrganizationFeature, True)
@@ -157,7 +160,6 @@ default_manager.add("organizations:widget-library", OrganizationFeature, True)
 default_manager.add("organizations:widget-viewer-modal", OrganizationFeature, True)
 default_manager.add("organizations:widget-viewer-modal-minimap", OrganizationFeature, True)
 default_manager.add("organizations:u2f-superuser-form", OrganizationFeature, True)
-default_manager.add("organizations:enable-snowflake-id", OrganizationFeature, True)
 # NOTE: Don't add features down here! Add them to their specific group and sort
 #       them alphabetically! The order features are registered is not important.
 
@@ -188,6 +190,7 @@ default_manager.add("organizations:integrations-alert-rule", OrganizationFeature
 default_manager.add("organizations:integrations-chat-unfurl", OrganizationFeature)
 default_manager.add("organizations:integrations-codeowners", OrganizationFeature)
 default_manager.add("organizations:integrations-custom-scm", OrganizationFeature)
+default_manager.add("organizations:integrations-deployment", OrganizationFeature)
 default_manager.add("organizations:integrations-event-hooks", OrganizationFeature)
 default_manager.add("organizations:integrations-feature-flag-integration", OrganizationFeature)
 default_manager.add("organizations:integrations-incident-management", OrganizationFeature)
@@ -216,7 +219,7 @@ default_manager.add("projects:similarity-indexing", ProjectFeature)
 default_manager.add("projects:similarity-indexing-v2", ProjectFeature)
 default_manager.add("projects:similarity-view", ProjectFeature)
 default_manager.add("projects:similarity-view-v2", ProjectFeature)
-default_manager.add("projects:sourcemapcache-processor", ProjectFeature, True)
+default_manager.add("projects:sourcemapcache-processor", ProjectFeature)
 default_manager.add("projects:suspect-resolutions", ProjectFeature, True)
 
 # Project plugin features

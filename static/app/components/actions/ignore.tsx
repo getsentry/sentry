@@ -8,7 +8,6 @@ import CustomIgnoreCountModal from 'sentry/components/customIgnoreCountModal';
 import CustomIgnoreDurationModal from 'sentry/components/customIgnoreDurationModal';
 import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
 import type {MenuItemProps} from 'sentry/components/dropdownMenuItem';
-import Duration from 'sentry/components/duration';
 import Tooltip from 'sentry/components/tooltip';
 import {IconChevron, IconMute} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
@@ -18,6 +17,7 @@ import {
   ResolutionStatusDetails,
   SelectValue,
 } from 'sentry/types';
+import {getDuration} from 'sentry/utils/formatters';
 
 const ONE_HOUR = 60;
 
@@ -118,7 +118,7 @@ export function getIgnoreActions({
       children: [
         ...IGNORE_DURATIONS.map(duration => ({
           key: `for-${duration}`,
-          label: <Duration seconds={duration * 60} />,
+          label: getDuration(duration * 60),
           onAction: () => onIgnore({ignoreDuration: duration}),
         })),
         {
