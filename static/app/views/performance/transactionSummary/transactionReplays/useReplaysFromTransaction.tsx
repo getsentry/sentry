@@ -3,7 +3,7 @@ import {Location} from 'history';
 
 import type {Client} from 'sentry/api';
 import type {Organization} from 'sentry/types';
-import {TableData} from 'sentry/utils/discover/discoverQuery';
+import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView, {fromSorts} from 'sentry/utils/discover/eventView';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -15,6 +15,7 @@ import useApi from 'sentry/utils/useApi';
 
 type State = Awaited<ReturnType<typeof fetchReplayList>> & {
   eventView: undefined | EventView;
+  txEvent?: {[x: string]: any};
 };
 
 type Options = {
@@ -38,12 +39,15 @@ function useReplaysFromTransaction({
   });
 
   const load = useCallback(async () => {
-    const replayIds = await fetchReplayIds({
+    const eventsTableData = await fetchReplayIds({
       api,
       eventView: eventsWithReplaysView,
       location,
       organization,
     });
+
+    const replayIds = eventsTableData?.data.map(row => row.replayId);
+
     const eventView = EventView.fromNewQueryWithLocation(
       {
         id: '',
@@ -55,16 +59,39 @@ function useReplaysFromTransaction({
       },
       location
     );
+
     eventView.sorts = fromSorts(decodeScalar(location.query.sort, DEFAULT_SORT));
+
     const listData = await fetchReplayList({
       api,
       eventView,
       location,
       organization,
     });
+
+    const replays = listData.replays?.map(replay => {
+      let slowestEvent: TableDataRow | undefined;
+      for (const event of eventsTableData?.data ?? []) {
+        // attach the slowest tx event to the replay
+        if (
+          event.replayId === replay.id &&
+          (!slowestEvent ||
+            event['transaction.duration'] > slowestEvent['transaction.duration'])
+        ) {
+          slowestEvent = event;
+        }
+      }
+
+      return {
+        ...replay,
+        txEvent: slowestEvent,
+      };
+    });
+
     setData({
       ...listData,
       eventView,
+      replays,
     });
   }, [api, eventsWithReplaysView, location, organization]);
 
@@ -93,7 +120,7 @@ async function fetchReplayIds({
       eventView.getEventsAPIPayload(location)
     );
 
-    return data.data.map(record => String(record.replayId));
+    return data;
   } catch (err) {
     return null;
   }

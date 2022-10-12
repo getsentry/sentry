@@ -16,6 +16,7 @@ import {IconArrow, IconCalendar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
+import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -25,19 +26,28 @@ import useProjects from 'sentry/utils/useProjects';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import type {ReplayListLocationQuery, ReplayListRecord} from 'sentry/views/replays/types';
 
+type ReplayRow = ReplayListRecord & {
+  txEvent?: {[x: string]: any};
+};
+
 type Props = {
   isFetching: boolean;
-  replays: undefined | ReplayListRecord[];
+  replays: undefined | ReplayRow[];
   showProjectColumn: boolean;
   sort: Sort;
   fetchError?: Error;
+};
+
+type TableProps = {
+  hasTxEvent: boolean;
+  showProjectColumn: boolean;
 };
 
 type RowProps = {
   minWidthIsSmall: boolean;
   organization: Organization;
   referrer: string;
-  replay: ReplayListRecord;
+  replay: ReplayRow;
   showProjectColumn: boolean;
 };
 
@@ -85,23 +95,38 @@ function ReplayTable({isFetching, replays, showProjectColumn, sort, fetchError}:
   const organization = useOrganization();
   const theme = useTheme();
   const minWidthIsSmall = useMedia(`(min-width: ${theme.breakpoints.small})`);
+  const hasTxEvent = Boolean(replays?.some(replay => replay.txEvent));
 
   const tableHeaders = [
     t('Session'),
-    showProjectColumn && minWidthIsSmall ? (
+    showProjectColumn && minWidthIsSmall && (
       <SortableHeader
         key="projectId"
         sort={sort}
         fieldName="projectId"
         label={t('Project')}
       />
-    ) : null,
-    <SortableHeader
-      key="startedAt"
-      sort={sort}
-      fieldName="startedAt"
-      label={t('Start Time')}
-    />,
+    ),
+    hasTxEvent && minWidthIsSmall && (
+      <Header key="slowestTransaction">
+        {t('Slowest Transaction')}
+        <QuestionTooltip
+          size="xs"
+          position="top"
+          title={t(
+            'The duration of the slowest transaction operation that was recorded during the replay session.'
+          )}
+        />
+      </Header>
+    ),
+    minWidthIsSmall && (
+      <SortableHeader
+        key="startedAt"
+        sort={sort}
+        fieldName="startedAt"
+        label={t('Start Time')}
+      />
+    ),
     <SortableHeader
       key="duration"
       sort={sort}
@@ -115,16 +140,18 @@ function ReplayTable({isFetching, replays, showProjectColumn, sort, fetchError}:
       label={t('Errors')}
     />,
 
-    <Header key="activity">
-      {t('Activity')}{' '}
-      <QuestionTooltip
-        size="xs"
-        position="top"
-        title={t(
-          'Activity represents how much user activity happened in a replay. It is determined by the number of errors encountered, duration, and UI events.'
-        )}
-      />
-    </Header>,
+    minWidthIsSmall && (
+      <Header key="activity">
+        {t('Activity')}{' '}
+        <QuestionTooltip
+          size="xs"
+          position="top"
+          title={t(
+            'Activity represents how much user activity happened in a replay. It is determined by the number of errors encountered, duration, and UI events.'
+          )}
+        />
+      </Header>
+    ),
   ].filter(Boolean);
 
   if (fetchError && !isFetching) {
@@ -133,6 +160,7 @@ function ReplayTable({isFetching, replays, showProjectColumn, sort, fetchError}:
         headers={tableHeaders}
         showProjectColumn={showProjectColumn}
         isLoading={false}
+        hasTxEvent={hasTxEvent}
       >
         <StyledAlert type="error" showIcon>
           {typeof fetchError === 'string'
@@ -150,6 +178,7 @@ function ReplayTable({isFetching, replays, showProjectColumn, sort, fetchError}:
       isLoading={isFetching}
       isEmpty={replays?.length === 0}
       showProjectColumn={showProjectColumn}
+      hasTxEvent={hasTxEvent}
       headers={tableHeaders}
     >
       {replays?.map(replay => (
@@ -173,8 +202,11 @@ function ReplayTableRow({
   replay,
   showProjectColumn,
 }: RowProps) {
+  const location = useLocation();
   const {projects} = useProjects();
   const project = projects.find(p => p.id === replay.projectId);
+  const txDuration = replay.txEvent?.['transaction.duration'];
+
   return (
     <Fragment>
       <UserBadge
@@ -199,31 +231,54 @@ function ReplayTableRow({
       {showProjectColumn && minWidthIsSmall && (
         <Item>{project ? <ProjectBadge project={project} avatarSize={16} /> : null}</Item>
       )}
-      <Item>
-        <TimeSinceWrapper>
-          {minWidthIsSmall && <StyledIconCalendarWrapper color="gray500" size="sm" />}
-          <TimeSince date={replay.startedAt} />
-        </TimeSinceWrapper>
-      </Item>
+      {replay.txEvent && minWidthIsSmall ? (
+        <Item>
+          <SpanOperationBreakdown>
+            {txDuration ? <TxDuration>{txDuration}ms</TxDuration> : null}
+            {spanOperationRelativeBreakdownRenderer(replay.txEvent, {
+              organization,
+              location,
+            })}
+          </SpanOperationBreakdown>
+        </Item>
+      ) : null}
+      {minWidthIsSmall && (
+        <Item>
+          <TimeSinceWrapper>
+            {minWidthIsSmall && <StyledIconCalendarWrapper color="gray500" size="sm" />}
+            <TimeSince date={replay.startedAt} />
+          </TimeSinceWrapper>
+        </Item>
+      )}
       <Item>
         <Duration seconds={Math.floor(replay.duration)} exact abbreviation />
       </Item>
       <Item data-test-id="replay-table-count-errors">{replay.countErrors || 0}</Item>
-      <Item>
-        <ReplayHighlight replay={replay} />
-      </Item>
+      {minWidthIsSmall && (
+        <Item>
+          <ReplayHighlight replay={replay} />
+        </Item>
+      )}
     </Fragment>
   );
 }
 
-const StyledPanelTable = styled(PanelTable)<{showProjectColumn: boolean}>`
-  ${p =>
-    p.showProjectColumn
-      ? `grid-template-columns: minmax(0, 1fr) repeat(5, max-content);`
-      : `grid-template-columns: minmax(0, 1fr) repeat(4, max-content);`}
+function getColCount(props: TableProps) {
+  let colCount = 4;
+  if (props.hasTxEvent) {
+    colCount += 1;
+  }
+  if (props.showProjectColumn) {
+    colCount += 1;
+  }
+  return colCount;
+}
+
+const StyledPanelTable = styled(PanelTable)<TableProps>`
+  ${p => `grid-template-columns: minmax(0, 1fr) repeat(${getColCount(p)}, max-content);`}
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: minmax(0, 1fr) repeat(4, max-content);
+    grid-template-columns: minmax(0, 1fr) repeat(2, min-content);
   }
 `;
 
@@ -242,6 +297,17 @@ const SortLink = styled(Link)`
 const Item = styled('div')`
   display: flex;
   align-items: center;
+`;
+
+const SpanOperationBreakdown = styled('div')`
+  width: 100%;
+  text-align: right;
+`;
+
+const TxDuration = styled('div')`
+  color: ${p => p.theme.gray500};
+  font-size: ${p => p.theme.fontSizeMedium};
+  margin-bottom: ${space(0.5)};
 `;
 
 const TimeSinceWrapper = styled('div')`
