@@ -979,14 +979,14 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                                         className={classNames({
                                           error: this.hasError('actionMatch'),
                                         })}
-                                        inline={false}
                                         styles={{
                                           control: provided => ({
                                             ...provided,
-                                            minHeight: '20px',
-                                            height: '20px',
+                                            minHeight: '21px',
+                                            height: '21px',
                                           }),
                                         }}
+                                        inline={false}
                                         isSearchable={false}
                                         isClearable={false}
                                         name="actionMatch"
@@ -996,6 +996,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                                         onChange={val =>
                                           this.handleChange('actionMatch', val)
                                         }
+                                        size="xs"
                                         disabled={disabled}
                                       />
                                     </EmbeddedWrapper>
@@ -1042,7 +1043,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
                           <StepContent>
                             <StepLead>
-                              {tct('[if:If] [selector] of these filters match', {
+                              {tct('[if:If][selector] of these filters match', {
                                 if: <Badge />,
                                 selector: (
                                   <EmbeddedWrapper>
@@ -1050,14 +1051,14 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                                       className={classNames({
                                         error: this.hasError('filterMatch'),
                                       })}
-                                      inline={false}
                                       styles={{
                                         control: provided => ({
                                           ...provided,
-                                          minHeight: '20px',
-                                          height: '20px',
+                                          minHeight: '21px',
+                                          height: '21px',
                                         }),
                                       }}
+                                      inline={false}
                                       isSearchable={false}
                                       isClearable={false}
                                       name="filterMatch"
@@ -1067,6 +1068,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                                       onChange={val =>
                                         this.handleChange('filterMatch', val)
                                       }
+                                      size="xs"
                                       disabled={disabled}
                                     />
                                   </EmbeddedWrapper>
@@ -1217,6 +1219,11 @@ const StepConnector = styled('div')`
 
 const StepLead = styled('div')`
   margin-bottom: ${space(0.5)};
+  & > span {
+    display: flex;
+    align-items: center;
+    gap: ${space(0.5)};
+  }
 `;
 
 const ChevronContainer = styled('div')`
@@ -1226,7 +1233,6 @@ const ChevronContainer = styled('div')`
 `;
 
 const Badge = styled('span')`
-  display: inline-block;
   min-width: 56px;
   background-color: ${p => p.theme.purple300};
   padding: 0 ${space(0.75)};
@@ -1240,8 +1246,6 @@ const Badge = styled('span')`
 `;
 
 const EmbeddedWrapper = styled('div')`
-  display: inline-block;
-  margin: 0 ${space(0.5)};
   width: 80px;
 `;
 
