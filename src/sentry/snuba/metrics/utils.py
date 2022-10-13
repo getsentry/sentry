@@ -40,7 +40,7 @@ __all__ = (
 
 import re
 from abc import ABC
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import (
     Collection,
     Dict,
@@ -61,6 +61,7 @@ MAX_POINTS = 10000
 GRANULARITY = 24 * 60 * 60
 TS_COL_QUERY = "timestamp"
 TS_COL_GROUP = "bucketed_time"
+METRICS_LAYER_GRANULARITIES = [86400, 3600, 60]
 
 TAG_REGEX = re.compile(r"^([\w.]+)$")
 
@@ -298,9 +299,15 @@ class OrderByNotSupportedOverCompositeEntityException(NotSupportedOverCompositeE
     ...
 
 
-def get_intervals(start: datetime, end: datetime, granularity: int):
-    assert granularity > 0
-    delta = timedelta(seconds=granularity)
+def get_intervals(start: datetime, end: datetime, granularity: int, interval: Optional[int] = None):
+    if interval is None:
+        assert granularity > 0
+        delta = timedelta(seconds=granularity)
+    else:
+        start = datetime.fromtimestamp(int(start.timestamp() / interval) * interval, timezone.utc)
+        end = datetime.fromtimestamp(int(end.timestamp() / interval) * interval, timezone.utc)
+        assert interval > 0
+        delta = timedelta(seconds=interval)
     while start < end:
         yield start
         start += delta

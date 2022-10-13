@@ -671,7 +671,12 @@ def get_series(
 ) -> dict:
     """Get time series for the given query"""
     intervals = list(
-        get_intervals(metrics_query.start, metrics_query.end, metrics_query.granularity.granularity)
+        get_intervals(
+            metrics_query.start,
+            metrics_query.end,
+            metrics_query.granularity.granularity,
+            interval=metrics_query.interval,
+        )
     )
     results = {}
     meta = []
