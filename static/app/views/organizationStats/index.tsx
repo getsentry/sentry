@@ -18,14 +18,20 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
 import PageHeading from 'sentry/components/pageHeading';
+import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {DATA_CATEGORY_NAMES, DEFAULT_STATS_PERIOD} from 'sentry/constants';
+import {
+  DATA_CATEGORY_NAMES,
+  DEFAULT_RELATIVE_PERIODS,
+  DEFAULT_STATS_PERIOD,
+} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {PageHeader} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
-import {DataCategory, Organization, PageFilters, Project} from 'sentry/types';
+import {DataCategory, DateString, Organization, PageFilters, Project} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import HeaderTabs from 'sentry/views/organizationStats/header';
@@ -42,6 +48,11 @@ export const PAGE_QUERY_PARAMS = [
   'start',
   'end',
   'utc',
+  // TODO(Leander): Remove date selector props once project-stats flag is GA
+  'pageEnd',
+  'pageStart',
+  'pageStatsPeriod',
+  'pageStatsUtc',
   // From data category selector
   'dataCategory',
   // From UsageOrganizationStats
@@ -77,14 +88,16 @@ export class OrganizationStats extends Component<Props> {
   }
 
   get dataDatetime(): DateTimeObject {
-    const {selection} = this.props;
+    const params = this.hasProjectStats
+      ? this.props.selection.datetime
+      : this.props.location?.query ?? {};
 
     const {
       start,
       end,
       statsPeriod,
       utc: utcString,
-    } = normalizeDateTimeParams(selection.datetime, {
+    } = normalizeDateTimeParams(params, {
       allowEmptyPeriod: true,
       allowAbsoluteDatetime: true,
       allowAbsolutePageDatetime: true,
@@ -137,7 +150,11 @@ export class OrganizationStats extends Component<Props> {
 
   // Project selection from GlobalSelectionHeader
   get projectIds(): number[] {
-    return this.props.selection.projects;
+    return this.hasProjectStats ? this.props.selection.projects : [];
+  }
+
+  get hasProjectStats(): boolean {
+    return this.props.organization.features.includes('project-stats');
   }
 
   getNextLocations = (project: Project): Record<string, LocationDescriptorObject> => {
@@ -190,6 +207,12 @@ export class OrganizationStats extends Component<Props> {
     nextState: {
       cursor?: string;
       dataCategory?: DataCategory;
+      // TODO(Leander): Remove date selector props once project-stats flag is GA
+      pageEnd?: DateString;
+      pageStart?: DateString;
+      pageStatsPeriod?: string | null;
+      pageStatsUtc?: string | null;
+      pageUtc?: boolean | null;
       query?: string;
       sort?: string;
       transform?: ChartDataTransform;
@@ -218,7 +241,10 @@ export class OrganizationStats extends Component<Props> {
     return nextLocation;
   };
 
-  renderPageControl = () => {
+  renderProjectPageControl = () => {
+    if (!this.hasProjectStats) {
+      return null;
+    }
     return (
       <PageControl>
         <PageFilterBar>
@@ -237,13 +263,68 @@ export class OrganizationStats extends Component<Props> {
     );
   };
 
+  // TODO(Leander): Remove the following method once the project-stats flag is GA
+  handleUpdateDatetime = (datetime: ChangeData): LocationDescriptorObject => {
+    const {start, end, relative, utc} = datetime;
+
+    if (start && end) {
+      const parser = utc ? moment.utc : moment;
+
+      return this.setStateOnUrl({
+        pageStatsPeriod: undefined,
+        pageStart: parser(start).format(),
+        pageEnd: parser(end).format(),
+        pageUtc: utc ?? undefined,
+      });
+    }
+
+    return this.setStateOnUrl({
+      pageStatsPeriod: relative || undefined,
+      pageStart: undefined,
+      pageEnd: undefined,
+      pageUtc: undefined,
+    });
+  };
+
+  // TODO(Leander): Remove the following method once the project-stats flag is GA
+  renderPageControl = () => {
+    const {organization} = this.props;
+    if (this.hasProjectStats) {
+      return null;
+    }
+
+    const {start, end, period, utc} = this.dataDatetime;
+
+    return (
+      <Fragment>
+        <DropdownDataCategory
+          triggerProps={{prefix: t('Category')}}
+          value={this.dataCategory}
+          options={CHART_OPTIONS_DATACATEGORY}
+          onChange={opt => this.setStateOnUrl({dataCategory: opt.value as DataCategory})}
+        />
+
+        <StyledPageTimeRangeSelector
+          organization={organization}
+          relative={period ?? ''}
+          start={start ?? null}
+          end={end ?? null}
+          utc={utc ?? null}
+          onUpdate={this.handleUpdateDatetime}
+          relativeOptions={omit(DEFAULT_RELATIVE_PERIODS, ['1h'])}
+        />
+      </Fragment>
+    );
+  };
+
   render() {
     const {organization} = this.props;
     const hasTeamInsights = organization.features.includes('team-insights');
 
     // We only show UsageProjectStats if multiple projects are selected
     const shouldRenderProjectStats =
-      this.projectIds.includes(-1) || this.projectIds.length !== 1;
+      this.hasProjectStats &&
+      (this.projectIds.includes(-1) || this.projectIds.length !== 1);
 
     return (
       <SentryDocumentTitle title="Usage Stats">
@@ -266,9 +347,9 @@ export class OrganizationStats extends Component<Props> {
                 </Fragment>
               )}
               <HookHeader organization={organization} />
-
-              {this.renderPageControl()}
+              {this.renderProjectPageControl()}
               <PageGrid>
+                {this.renderPageControl()}
                 <ErrorBoundary mini>
                   <UsageStatsOrg
                     organization={organization}
@@ -348,6 +429,16 @@ const DropdownDataCategory = styled(CompactSelect)`
   }
   @media (min-width: ${p => p.theme.breakpoints.large}) {
     grid-column: auto / span 1;
+  }
+`;
+
+const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
+  grid-column: auto / span 1;
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    grid-column: auto / span 2;
+  }
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
+    grid-column: auto / span 3;
   }
 `;
 
