@@ -6,7 +6,7 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {DataCategory, PageFilters} from 'sentry/types';
-import OrganizationStats, {PAGE_QUERY_PARAMS} from 'sentry/views/organizationStats';
+import {OrganizationStats, PAGE_QUERY_PARAMS} from 'sentry/views/organizationStats';
 
 import {ChartDataTransform} from './usageChart';
 
@@ -17,7 +17,7 @@ describe('OrganizationStats', function () {
     datetime: {
       start: null,
       end: null,
-      period: '24h',
+      period: DEFAULT_STATS_PERIOD,
       utc: false,
     },
   };
@@ -29,6 +29,16 @@ describe('OrganizationStats', function () {
     router: undefined,
   });
   const endpoint = `/organizations/${organization.slug}/stats_v2/`;
+  const defaultProps: OrganizationStats['props'] = {
+    router,
+    organization,
+    ...router,
+    selection: defaultSelection,
+    route: {},
+    params: {orgId: organization.slug as string},
+    routeParams: {},
+  };
+
   let mockRequest;
 
   beforeEach(() => {
@@ -51,18 +61,17 @@ describe('OrganizationStats', function () {
   /**
    * Features and Alerts
    */
-
   it('renders header state wihout tabs', () => {
-    const newContext = initializeOrg();
-    render(<OrganizationStats />, {
-      context: newContext.routerContext,
-      organization: newContext.organization,
+    const newOrg = initializeOrg();
+    render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />, {
+      context: newOrg.routerContext,
+      organization: newOrg.organization,
     });
     expect(screen.getByText('Organization Usage Stats')).toBeInTheDocument();
   });
 
   it('renders header state with tabs', () => {
-    render(<OrganizationStats />, {
+    render(<OrganizationStats {...defaultProps} />, {
       context: routerContext,
       organization,
     });
@@ -73,14 +82,16 @@ describe('OrganizationStats', function () {
   });
 
   it('renders header with dynamic sampling alert', () => {
-    const newContext = initializeOrg();
-    newContext.organization.features = [
-      'server-side-sampling',
-      'server-side-sampling-ui',
-    ];
-    render(<OrganizationStats location={{query: {dataCategory: 'transactions'}}} />, {
-      context: newContext.routerContext,
-      organization: newContext.organization,
+    const newOrg = initializeOrg();
+    newOrg.organization.features = ['server-side-sampling', 'server-side-sampling-ui'];
+    const newProps = {
+      ...defaultProps,
+      organization: newOrg.organization,
+      location: {query: {dataCategory: 'transactions'}} as any,
+    };
+    render(<OrganizationStats {...newProps} />, {
+      context: newOrg.routerContext,
+      organization,
     });
     expect(screen.getByText('Dynamic Sampling Settings')).toBeInTheDocument();
   });
@@ -89,10 +100,11 @@ describe('OrganizationStats', function () {
    * Base + Error Handling
    */
   it('renders the base view', () => {
-    render(<OrganizationStats />, {
+    render(<OrganizationStats {...defaultProps} />, {
       context: routerContext,
       organization,
     });
+
     // Default to Errors category
     expect(screen.getAllByText('Errors')[0]).toBeInTheDocument();
 
@@ -109,10 +121,10 @@ describe('OrganizationStats', function () {
     expect(screen.getByText('6 in last min')).toBeInTheDocument();
 
     expect(screen.getAllByText('Filtered')[0]).toBeInTheDocument();
-    expect(screen.getByText('7')).toBeInTheDocument();
+    expect(screen.getAllByText('7')[0]).toBeInTheDocument();
 
     expect(screen.getAllByText('Dropped')[0]).toBeInTheDocument();
-    expect(screen.getByText('29')).toBeInTheDocument();
+    expect(screen.getAllByText('29')[0]).toBeInTheDocument();
 
     // Correct API Calls
     const mockExpectations = {
@@ -152,7 +164,7 @@ describe('OrganizationStats', function () {
       url: endpoint,
       statusCode: 500,
     });
-    render(<OrganizationStats />, {
+    render(<OrganizationStats {...defaultProps} />, {
       context: routerContext,
       organization,
     });
@@ -169,10 +181,11 @@ describe('OrganizationStats', function () {
       statusCode: 400,
       body: {detail: 'No projects available'},
     });
-    render(<OrganizationStats />, {
+    render(<OrganizationStats {...defaultProps} />, {
       context: routerContext,
       organization,
     });
+
     expect(screen.getByTestId('usage-stats-chart')).toBeInTheDocument();
     expect(screen.getByTestId('usage-stats-table')).toBeInTheDocument();
     expect(screen.getByTestId('empty-message')).toBeInTheDocument();
@@ -182,10 +195,11 @@ describe('OrganizationStats', function () {
    * Router Handling
    */
   it('pushes state changes to the route', () => {
-    render(<OrganizationStats router={router} />, {
+    render(<OrganizationStats {...defaultProps} />, {
       context: routerContext,
       organization,
     });
+
     userEvent.click(screen.getByText('Category'));
     userEvent.click(screen.getByText('Attachments'));
     expect(router.push).toHaveBeenCalledWith(
@@ -222,10 +236,11 @@ describe('OrganizationStats', function () {
       },
       {query: {}}
     );
-    render(<OrganizationStats router={router} location={dummyLocation} />, {
+    render(<OrganizationStats {...defaultProps} location={dummyLocation as any} />, {
       context: routerContext,
       organization,
     });
+
     const projectLinks = screen.getAllByTestId('badge-display-name');
     expect(projectLinks.length).toBeGreaterThan(0);
     const leakingRegex = PAGE_QUERY_PARAMS.join('|');
@@ -241,10 +256,11 @@ describe('OrganizationStats', function () {
    * Project Selection
    */
   it('renders with no projects selected', () => {
-    render(<OrganizationStats />, {
+    render(<OrganizationStats {...defaultProps} />, {
       context: routerContext,
       organization,
     });
+
     expect(screen.getByText('My Projects')).toBeInTheDocument();
     expect(screen.getByTestId('usage-stats-chart')).toBeInTheDocument();
     expect(screen.getByTestId('usage-stats-table')).toBeInTheDocument();
@@ -259,13 +275,17 @@ describe('OrganizationStats', function () {
   });
 
   it('renders with multiple projects selected', () => {
-    render(<OrganizationStats />, {
+    const selectedProjects = [1, 2];
+    const newSelection = {
+      ...defaultSelection,
+      projects: selectedProjects,
+    };
+    render(<OrganizationStats {...defaultProps} selection={newSelection} />, {
       context: routerContext,
       organization,
     });
-
-    const selectedProjects = [1, 2];
     act(() => PageFiltersStore.updateProjects(selectedProjects, []));
+
     expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
     expect(screen.getByTestId('usage-stats-chart')).toBeInTheDocument();
     expect(screen.getByTestId('usage-stats-table')).toBeInTheDocument();
@@ -285,12 +305,17 @@ describe('OrganizationStats', function () {
   });
 
   it('renders with a single project selected', () => {
-    render(<OrganizationStats />, {
+    const selectedProject = [1];
+    const newSelection = {
+      ...defaultSelection,
+      projects: selectedProject,
+    };
+    render(<OrganizationStats {...defaultProps} selection={newSelection} />, {
       context: routerContext,
       organization,
     });
-    const selectedProject = [1];
     act(() => PageFiltersStore.updateProjects(selectedProject, []));
+
     expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
     expect(screen.getByTestId('usage-stats-chart')).toBeInTheDocument();
     // Doesn't render for single project view

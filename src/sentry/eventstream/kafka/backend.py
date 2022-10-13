@@ -9,10 +9,8 @@ from sentry import options
 from sentry.eventstream.base import GroupStates
 from sentry.eventstream.kafka.consumer import SynchronizedConsumer
 from sentry.eventstream.kafka.postprocessworker import (
-    ErrorsPostProcessForwarderWorker,
     PostProcessForwarderType,
     PostProcessForwarderWorker,
-    TransactionsPostProcessForwarderWorker,
 )
 from sentry.eventstream.snuba import KW_SKIP_SEMANTIC_PARTITIONING, SnubaProtocolEventStream
 from sentry.killswitches import killswitch_matches_context
@@ -209,10 +207,8 @@ class KafkaEventStream(SnubaProtocolEventStream):
     ):
         logger.info(f"Starting post process forwarder to consume {entity} messages")
         if entity == PostProcessForwarderType.TRANSACTIONS:
-            worker = TransactionsPostProcessForwarderWorker(concurrency=concurrency)
             default_topic = self.transactions_topic
         elif entity == PostProcessForwarderType.ERRORS:
-            worker = ErrorsPostProcessForwarderWorker(concurrency=concurrency)
             default_topic = self.topic
         else:
             # Default implementation which processes both errors and transactions
@@ -223,9 +219,10 @@ class KafkaEventStream(SnubaProtocolEventStream):
                 settings.KAFKA_TOPICS[settings.KAFKA_EVENTS]["cluster"]
                 == settings.KAFKA_TOPICS[settings.KAFKA_TRANSACTIONS]["cluster"]
             )
-            worker = PostProcessForwarderWorker(concurrency=concurrency)
             default_topic = self.topic
             assert self.topic == self.transactions_topic
+
+        worker = PostProcessForwarderWorker(concurrency=concurrency)
 
         cluster_name = settings.KAFKA_TOPICS[topic or default_topic]["cluster"]
 

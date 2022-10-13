@@ -10,9 +10,9 @@ import {navigateTo} from 'sentry/actionCreators/navigation';
 import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import {DateTimeObject} from 'sentry/components/charts/utils';
+import CompactSelect from 'sentry/components/compactSelect';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import CompactSelect from 'sentry/components/forms/compactSelect';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -290,7 +290,7 @@ export class OrganizationStats extends Component<Props> {
                 {this.dataCategory === DataCategory.TRANSACTIONS && (
                   <Alert type="info" showIcon>
                     {tct(
-                      'Manage your transaction usage in Dynamic Sampling. Go to [link: Dynamic Sampling Settings].',
+                      'Manage your transaction usage with Dynamic Sampling. Go to [link: Dynamic Sampling Settings].',
                       {
                         link: <a href="#" onClick={this.navigateToSamplingSettings} />,
                       }
