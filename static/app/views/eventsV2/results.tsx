@@ -115,7 +115,7 @@ export class Results extends Component<Props, State> {
       );
       return {...prevState, eventView, savedQuery: nextProps.savedQuery};
     }
-    return prevState;
+    return {...prevState, savedQuery: nextProps.savedQuery};
   }
 
   state: State = {
