@@ -1113,6 +1113,8 @@ SENTRY_FEATURES = {
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
+    # Enable project selection on the stats page
+    "organizations:project-stats": False,
     # Enable views for ops breakdown
     "organizations:performance-ops-breakdown": False,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
@@ -1168,8 +1170,6 @@ SENTRY_FEATURES = {
     "organizations:reprocessing-v2": False,
     # Enable the UI for the overage alert settings
     "organizations:slack-overage-notifications": False,
-    # Enable the changes along-side improvements to spike protection (non-ingest only)
-    "organizations:spike-projections": False,
     # Enable basic SSO functionality, providing configurable single sign on
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.
