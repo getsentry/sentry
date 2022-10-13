@@ -210,6 +210,8 @@ class OrganizationEndpoint(Endpoint):
                 ).values_list("id", flat=True)
                 project_ids = set(projects)
 
+                # return early to prevent passing empty set of project_ids to _get_projects_by_id
+                # which would return all projects in the organization
                 if not project_ids:
                     return []
             else:
