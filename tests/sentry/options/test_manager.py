@@ -106,15 +106,25 @@ class OptionsManagerTest(TestCase):
         assert self.manager.delete("sentry:foo")
         assert self.manager.get("sentry:foo") == ""
 
-    def test_legacy_url_prefix_key(self):
+    def test_legacy_url_prefix_key_use_db_setting(self):
         """
         TODO: Remove when SENTRY_URL_PREFIX is completely deprecated
         """
-        self.manager.register("system.url-prefix", default="http://testserver")
-        self.manager.set("system.url-prefix", "https://sentry.example.com")
-        assert self.manager.get("system.url-prefix") == "https://sentry.example.com"
-        assert settings.SENTRY_URL_PREFIX == "https://sentry.example.com"
-        assert settings.SENTRY_OPTIONS["system.url-prefix"] == "https://sentry.example.com"
+        self.manager.register("system.url-prefix", flags=FLAG_PRIORITIZE_DISK)
+        with patch.object(self.store.cache, "get", return_value="https://sentry.example.com"):
+            with self.settings(SENTRY_OPTIONS={}):
+                assert self.manager.get("system.url-prefix") == "https://sentry.example.com"
+                assert settings.SENTRY_URL_PREFIX == "https://sentry.example.com"
+                assert settings.SENTRY_OPTIONS["system.url-prefix"] == "https://sentry.example.com"
+
+    def test_legacy_url_prefix_use_config_setting(self):
+        """
+        TODO: Remove when SENTRY_URL_PREFIX is completely deprecated
+        """
+        self.manager.register("system.url-prefix", flags=FLAG_PRIORITIZE_DISK)
+        with patch.object(self.store.cache, "get", return_value="https://sentry.example.com"):
+            with self.settings(SENTRY_OPTIONS={"system.url-prefix": "https://sentry.updated.com"}):
+                assert self.manager.get("system.url-prefix") == "https://sentry.updated.com"
 
     def test_types(self):
         self.manager.register("some-int", type=Int, default=0)
