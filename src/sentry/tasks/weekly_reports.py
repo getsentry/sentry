@@ -2,6 +2,7 @@ import heapq
 from datetime import timedelta
 from functools import partial, reduce
 
+import sentry_sdk
 from django.db.models import Count, F
 from django.utils import dateformat, timezone
 from snuba_sdk import Request
@@ -122,28 +123,35 @@ def schedule_organizations(dry_run=False, timestamp=None, duration=None):
     max_retries=5,
     acks_late=True,
 )
-def prepare_organization_report(timestamp, duration, organization_id, dry_run=False):
+def prepare_organization_report(
+    timestamp, duration, organization_id, dry_run=False, target_user=None
+):
     organization = Organization.objects.get(id=organization_id)
     ctx = OrganizationReportContext(timestamp, duration, organization)
 
     # Run organization passes
-    user_project_ownership(ctx)
-    project_event_counts_for_organization(ctx)
-    organization_project_issue_summaries(ctx)
+    with sentry_sdk.start_span(op="weekly_reports.user_project_ownership"):
+        user_project_ownership(ctx)
+    with sentry_sdk.start_span(op="weekly_reports.project_event_counts_for_organization"):
+        project_event_counts_for_organization(ctx)
+    with sentry_sdk.start_span(op="weekly_reports.organization_project_issue_summaries"):
+        organization_project_issue_summaries(ctx)
 
-    # Run project passes
-    for project in organization.project_set.all():
-        project_key_errors(ctx, project)
-        project_key_transactions(ctx, project)
-        project_key_performance_issues(ctx, project)
+    with sentry_sdk.start_span(op="weekly_reports.project_passes"):
+        # Run project passes
+        for project in organization.project_set.all():
+            project_key_errors(ctx, project)
+            project_key_transactions(ctx, project)
+            project_key_performance_issues(ctx, project)
 
-    fetch_key_error_groups(ctx)
-    fetch_key_performance_issue_groups(ctx)
-
-    # TODO: Run user passes
+    with sentry_sdk.start_span(op="weekly_reports.fetch_key_error_groups"):
+        fetch_key_error_groups(ctx)
+    with sentry_sdk.start_span(op="weekly_reports.fetch_key_performance_issue_groups"):
+        fetch_key_performance_issue_groups(ctx)
 
     # Finally, deliver the reports
-    deliver_reports(ctx, dry_run=dry_run)
+    with sentry_sdk.start_span(op="weekly_reports.deliver_reports"):
+        deliver_reports(ctx, dry_run=dry_run, target_user=target_user)
 
 
 # Organization Passes
@@ -278,24 +286,25 @@ def project_key_errors(ctx, project):
     if not project.first_event:
         return
     # Take the 3 most frequently occuring events
-    query = Query(
-        match=Entity("events"),
-        select=[Column("group_id"), Function("count", [])],
-        where=[
-            Condition(Column("timestamp"), Op.GTE, ctx.start),
-            Condition(Column("timestamp"), Op.LT, ctx.end + timedelta(days=1)),
-            Condition(Column("project_id"), Op.EQ, project.id),
-        ],
-        groupby=[Column("group_id")],
-        orderby=[OrderBy(Function("count", []), Direction.DESC)],
-        limit=Limit(3),
-    )
-    request = Request(dataset=Dataset.Events.value, app_id="reports", query=query)
-    query_result = raw_snql_query(request, referrer="reports.key_errors")
-    key_errors = query_result["data"]
-    # Set project_ctx.key_errors to be an array of (group_id, count) for now.
-    # We will query the group history later on in `fetch_key_error_groups`, batched in a per-organization basis
-    ctx.projects[project.id].key_errors = [(e["group_id"], e["count()"]) for e in key_errors]
+    with sentry_sdk.start_span(op="weekly_reports.project_key_errors"):
+        query = Query(
+            match=Entity("events"),
+            select=[Column("group_id"), Function("count", [])],
+            where=[
+                Condition(Column("timestamp"), Op.GTE, ctx.start),
+                Condition(Column("timestamp"), Op.LT, ctx.end + timedelta(days=1)),
+                Condition(Column("project_id"), Op.EQ, project.id),
+            ],
+            groupby=[Column("group_id")],
+            orderby=[OrderBy(Function("count", []), Direction.DESC)],
+            limit=Limit(3),
+        )
+        request = Request(dataset=Dataset.Events.value, app_id="reports", query=query)
+        query_result = raw_snql_query(request, referrer="reports.key_errors")
+        key_errors = query_result["data"]
+        # Set project_ctx.key_errors to be an array of (group_id, count) for now.
+        # We will query the group history later on in `fetch_key_error_groups`, batched in a per-organization basis
+        ctx.projects[project.id].key_errors = [(e["group_id"], e["count()"]) for e in key_errors]
 
 
 # Organization pass. Depends on project_key_errors.
@@ -331,59 +340,64 @@ def fetch_key_error_groups(ctx):
 def project_key_transactions(ctx, project):
     if not project.flags.has_transactions:
         return
-    # Take the 3 most frequently occuring transactions this week
-    query = Query(
-        match=Entity("transactions"),
-        select=[
-            Column("transaction_name"),
-            Function("quantile(0.95)", [Column("duration")], "p95"),
-            Function("count", [], "count"),
-        ],
-        where=[
-            Condition(Column("finish_ts"), Op.GTE, ctx.start),
-            Condition(Column("finish_ts"), Op.LT, ctx.end + timedelta(days=1)),
-            Condition(Column("project_id"), Op.EQ, project.id),
-        ],
-        groupby=[Column("transaction_name")],
-        orderby=[OrderBy(Function("count", []), Direction.DESC)],
-        limit=Limit(3),
-    )
-    request = Request(dataset=Dataset.Transactions.value, app_id="reports", query=query)
-    query_result = raw_snql_query(request, referrer="weekly_reports.key_transactions.this_week")
-    key_transactions = query_result["data"]
-    ctx.projects[project.id].key_transactions_this_week = [
-        (i["transaction_name"], i["count"], i["p95"]) for i in key_transactions
-    ]
+    with sentry_sdk.start_span(op="weekly_reports.project_key_transactions"):
+        # Take the 3 most frequently occuring transactions this week
+        query = Query(
+            match=Entity("transactions"),
+            select=[
+                Column("transaction_name"),
+                Function("quantile(0.95)", [Column("duration")], "p95"),
+                Function("count", [], "count"),
+            ],
+            where=[
+                Condition(Column("finish_ts"), Op.GTE, ctx.start),
+                Condition(Column("finish_ts"), Op.LT, ctx.end + timedelta(days=1)),
+                Condition(Column("project_id"), Op.EQ, project.id),
+            ],
+            groupby=[Column("transaction_name")],
+            orderby=[OrderBy(Function("count", []), Direction.DESC)],
+            limit=Limit(3),
+        )
+        request = Request(dataset=Dataset.Transactions.value, app_id="reports", query=query)
+        query_result = raw_snql_query(request, referrer="weekly_reports.key_transactions.this_week")
+        key_transactions = query_result["data"]
+        ctx.projects[project.id].key_transactions_this_week = [
+            (i["transaction_name"], i["count"], i["p95"]) for i in key_transactions
+        ]
 
-    # Query the p95 for those transactions last week
-    query = Query(
-        match=Entity("transactions"),
-        select=[
-            Column("transaction_name"),
-            Function("quantile(0.95)", [Column("duration")], "p95"),
-            Function("count", [], "count"),
-        ],
-        where=[
-            Condition(Column("finish_ts"), Op.GTE, ctx.start - timedelta(days=7)),
-            Condition(Column("finish_ts"), Op.LT, ctx.end - timedelta(days=7)),
-            Condition(Column("project_id"), Op.EQ, project.id),
-            Condition(
-                Column("transaction_name"), Op.IN, [i["transaction_name"] for i in key_transactions]
-            ),
-        ],
-        groupby=[Column("transaction_name")],
-    )
-    request = Request(dataset=Dataset.Transactions.value, app_id="reports", query=query)
-    query_result = raw_snql_query(request, referrer="weekly_reports.key_transactions.last_week")
+        # Query the p95 for those transactions last week
+        query = Query(
+            match=Entity("transactions"),
+            select=[
+                Column("transaction_name"),
+                Function("quantile(0.95)", [Column("duration")], "p95"),
+                Function("count", [], "count"),
+            ],
+            where=[
+                Condition(Column("finish_ts"), Op.GTE, ctx.start - timedelta(days=7)),
+                Condition(Column("finish_ts"), Op.LT, ctx.end - timedelta(days=7)),
+                Condition(Column("project_id"), Op.EQ, project.id),
+                Condition(
+                    Column("transaction_name"),
+                    Op.IN,
+                    [i["transaction_name"] for i in key_transactions],
+                ),
+            ],
+            groupby=[Column("transaction_name")],
+        )
+        request = Request(dataset=Dataset.Transactions.value, app_id="reports", query=query)
+        query_result = raw_snql_query(request, referrer="weekly_reports.key_transactions.last_week")
 
-    # Join this week with last week
-    last_week_data = {i["transaction_name"]: (i["count"], i["p95"]) for i in query_result["data"]}
+        # Join this week with last week
+        last_week_data = {
+            i["transaction_name"]: (i["count"], i["p95"]) for i in query_result["data"]
+        }
 
-    ctx.projects[project.id].key_transactions = [
-        (i["transaction_name"], i["count"], i["p95"])
-        + last_week_data.get(i["transaction_name"], (0, 0))
-        for i in key_transactions
-    ]
+        ctx.projects[project.id].key_transactions = [
+            (i["transaction_name"], i["count"], i["p95"])
+            + last_week_data.get(i["transaction_name"], (0, 0))
+            for i in key_transactions
+        ]
 
 
 def project_key_performance_issues(ctx, project):
@@ -391,63 +405,66 @@ def project_key_performance_issues(ctx, project):
         return
     if not features.has("organizations:performance-issues", ctx.organization):
         return
-    # Pick the 50 top frequent performance issues last seen within a month with the highest event count from all time.
-    groups = Group.objects.filter(
-        project_id=project.id,
-        status=GroupStatus.UNRESOLVED,
-        last_seen__gte=ctx.end - timedelta(days=30),
-        # performance issue range
-        type__gte=1000,
-        type__lt=2000,
-    ).order_by("-times_seen")[:50]
-    groups = list(groups)
-    group_id_to_group = {group.id: group for group in groups}
 
-    if len(group_id_to_group) == 0:
-        return
+    with sentry_sdk.start_span(op="weekly_reports.project_key_performance_issues"):
+        # Pick the 50 top frequent performance issues last seen within a month with the highest event count from all time.
+        groups = Group.objects.filter(
+            project_id=project.id,
+            status=GroupStatus.UNRESOLVED,
+            last_seen__gte=ctx.end - timedelta(days=30),
+            # performance issue range
+            type__gte=1000,
+            type__lt=2000,
+        ).order_by("-times_seen")[:50]
+        groups = list(groups)
+        group_id_to_group = {group.id: group for group in groups}
 
-    # Fine grained query for 3 most frequent events happend during last week
-    query = Query(
-        match=Entity("transactions"),
-        select=[
-            Column("group_ids"),
-            Function("count", []),
-        ],
-        where=[
-            Condition(Column("finish_ts"), Op.GTE, ctx.start),
-            Condition(Column("finish_ts"), Op.LT, ctx.end + timedelta(days=1)),
-            Condition(
-                Function(
-                    "notEmpty",
-                    [
-                        Function(
-                            "arrayIntersect", [Column("group_ids"), list(group_id_to_group.keys())]
-                        )
-                    ],
+        if len(group_id_to_group) == 0:
+            return
+
+        # Fine grained query for 3 most frequent events happend during last week
+        query = Query(
+            match=Entity("transactions"),
+            select=[
+                Column("group_ids"),
+                Function("count", []),
+            ],
+            where=[
+                Condition(Column("finish_ts"), Op.GTE, ctx.start),
+                Condition(Column("finish_ts"), Op.LT, ctx.end + timedelta(days=1)),
+                Condition(
+                    Function(
+                        "notEmpty",
+                        [
+                            Function(
+                                "arrayIntersect",
+                                [Column("group_ids"), list(group_id_to_group.keys())],
+                            )
+                        ],
+                    ),
+                    Op.EQ,
+                    1,
                 ),
-                Op.EQ,
-                1,
-            ),
-            Condition(Column("project_id"), Op.EQ, project.id),
-        ],
-        groupby=[Column("group_ids")],
-        orderby=[OrderBy(Function("count", []), Direction.DESC)],
-        limit=Limit(3),
-    )
-    request = Request(dataset=Dataset.Transactions.value, app_id="reports", query=query)
-    query_result = raw_snql_query(request, referrer="reports.key_performance_issues")["data"]
+                Condition(Column("project_id"), Op.EQ, project.id),
+            ],
+            groupby=[Column("group_ids")],
+            orderby=[OrderBy(Function("count", []), Direction.DESC)],
+            limit=Limit(3),
+        )
+        request = Request(dataset=Dataset.Transactions.value, app_id="reports", query=query)
+        query_result = raw_snql_query(request, referrer="reports.key_performance_issues")["data"]
 
-    key_performance_issues = []
-    for d in query_result:
-        count = d["count()"]
-        group_ids = d["group_ids"]
-        for group_id in group_ids:
-            group = group_id_to_group.get(group_id)
-            if group:
-                key_performance_issues.append((group, count))
-                break
+        key_performance_issues = []
+        for d in query_result:
+            count = d["count()"]
+            group_ids = d["group_ids"]
+            for group_id in group_ids:
+                group = group_id_to_group.get(group_id)
+                if group:
+                    key_performance_issues.append((group, count))
+                    break
 
-    ctx.projects[project.id].key_performance_issues = key_performance_issues
+        ctx.projects[project.id].key_performance_issues = key_performance_issues
 
 
 # Organization pass. Depends on project_key_performance_issue.
@@ -487,16 +504,20 @@ def user_subscribed_to_organization_reports(user, organization):
     )
 
 
-def deliver_reports(ctx, dry_run=False):
-    member_set = ctx.organization.member_set.filter(
-        user_id__isnull=False, user__is_active=True
-    ).exclude(flags=F("flags").bitor(OrganizationMember.flags["member-limit:restricted"]))
+def deliver_reports(ctx, dry_run=False, target_user=None):
+    # Specify a sentry user to send this email.
+    if target_user:
+        send_email(ctx, target_user, dry_run=dry_run)
+    else:
+        member_set = ctx.organization.member_set.filter(
+            user_id__isnull=False, user__is_active=True
+        ).exclude(flags=F("flags").bitor(OrganizationMember.flags["member-limit:restricted"]))
 
-    for member in member_set:
-        user = member.user
-        if not user_subscribed_to_organization_reports(user, ctx.organization):
-            return
-        send_email(ctx, user, dry_run=dry_run)
+        for member in member_set:
+            user = member.user
+            if not user_subscribed_to_organization_reports(user, ctx.organization):
+                return
+            send_email(ctx, user, dry_run=dry_run)
 
 
 project_breakdown_colors = ["#422C6E", "#895289", "#D6567F", "#F38150", "#F2B713"]
