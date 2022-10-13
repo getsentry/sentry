@@ -64,7 +64,7 @@ class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
     }
   }
 
-  setSavedQuery = (newSavedQuery: SavedQuery) => {
+  setSavedQuery = (newSavedQuery?: SavedQuery) => {
     this.setState({savedQuery: newSavedQuery});
   };
 
