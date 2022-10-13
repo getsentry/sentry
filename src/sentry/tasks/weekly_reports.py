@@ -13,6 +13,7 @@ from snuba_sdk.function import Function
 from snuba_sdk.orderby import Direction, OrderBy
 from snuba_sdk.query import Limit, Query
 
+from sentry import features
 from sentry.api.serializers.snuba import zerofill
 from sentry.constants import DataCategory
 from sentry.models import (
@@ -77,6 +78,8 @@ class ProjectContext:
         self.key_errors = []
         # Array of (transaction_name, count_this_week, p95_this_week, count_last_week, p95_last_week)
         self.key_transactions = []
+        # Array of (Group, count)
+        self.key_performance_issues = []
 
         # Dictionary of { timestamp: count }
         self.error_count_by_day = {}
@@ -133,8 +136,10 @@ def prepare_organization_report(timestamp, duration, organization_id, dry_run=Fa
     for project in organization.project_set.all():
         project_key_errors(ctx, project)
         project_key_transactions(ctx, project)
+        project_key_performance_issues(ctx, project)
 
     fetch_key_error_groups(ctx)
+    fetch_key_performance_issue_groups(ctx)
 
     # TODO: Run user passes
 
@@ -180,7 +185,7 @@ def project_event_counts_for_organization(ctx):
         orderby=[OrderBy(Column("time"), Direction.ASC)],
     )
     request = Request(dataset=Dataset.Outcomes.value, app_id="reports", query=query)
-    data = raw_snql_query(request, referrer="reports.outcomes")["data"]
+    data = raw_snql_query(request, referrer="weekly_reports.outcomes")["data"]
 
     for dat in data:
         project_id = dat["project_id"]
@@ -380,6 +385,98 @@ def project_key_transactions(ctx, project):
         + last_week_data.get(i["transaction_name"], (0, 0))
         for i in key_transactions
     ]
+
+
+def project_key_performance_issues(ctx, project):
+    if not project.first_event:
+        return
+    if not features.has("organizations:performance-issues", ctx.organization):
+        return
+    # Pick the 50 top frequent performance issues last seen within a month with the highest event count from all time.
+    groups = Group.objects.filter(
+        project_id=project.id,
+        status=GroupStatus.UNRESOLVED,
+        last_seen__gte=ctx.end - timedelta(days=30),
+        # performance issue range
+        type__gte=1000,
+        type__lt=2000,
+    ).order_by("-times_seen")[:50]
+    groups = list(groups)
+    group_id_to_group = {group.id: group for group in groups}
+
+    if len(group_id_to_group) == 0:
+        return
+
+    # Fine grained query for 3 most frequent events happend during last week
+    query = Query(
+        match=Entity("transactions"),
+        select=[
+            Column("group_ids"),
+            Function("count", []),
+        ],
+        where=[
+            Condition(Column("finish_ts"), Op.GTE, ctx.start),
+            Condition(Column("finish_ts"), Op.LT, ctx.end + timedelta(days=1)),
+            Condition(
+                Function(
+                    "notEmpty",
+                    [
+                        Function(
+                            "arrayIntersect", [Column("group_ids"), list(group_id_to_group.keys())]
+                        )
+                    ],
+                ),
+                Op.EQ,
+                1,
+            ),
+            Condition(Column("project_id"), Op.EQ, project.id),
+        ],
+        groupby=[Column("group_ids")],
+        orderby=[OrderBy(Function("count", []), Direction.DESC)],
+        limit=Limit(3),
+    )
+    request = Request(dataset=Dataset.Transactions.value, app_id="reports", query=query)
+    query_result = raw_snql_query(request, referrer="reports.key_performance_issues")["data"]
+
+    key_performance_issues = []
+    for d in query_result:
+        count = d["count()"]
+        group_ids = d["group_ids"]
+        for group_id in group_ids:
+            group = group_id_to_group.get(group_id)
+            if group:
+                key_performance_issues.append((group, count))
+                break
+
+    ctx.projects[project.id].key_performance_issues = key_performance_issues
+
+
+# Organization pass. Depends on project_key_performance_issue.
+def fetch_key_performance_issue_groups(ctx):
+    all_groups = []
+    for project_ctx in ctx.projects.values():
+        all_groups.extend([group for group, count in project_ctx.key_performance_issues])
+
+    if len(all_groups) == 0:
+        return
+
+    group_id_to_group = {group.id: group for group in all_groups}
+
+    group_history = (
+        GroupHistory.objects.filter(
+            group_id__in=group_id_to_group.keys(), organization_id=ctx.organization.id
+        )
+        .order_by("group_id", "-date_added")
+        .distinct("group_id")
+        .all()
+    )
+    group_id_to_group_history = {g.group_id: g for g in group_history}
+
+    for project_ctx in ctx.projects.values():
+        project_ctx.key_performance_issues = [
+            (group, group_id_to_group_history.get(group.id, None), count)
+            for group, count in project_ctx.key_performance_issues
+        ]
 
 
 # Deliver reports
@@ -617,6 +714,23 @@ def render_template_context(ctx, user):
 
         return heapq.nlargest(3, all_key_transactions(), lambda d: d["count"])
 
+    def key_performance_issues():
+        def all_key_performance_issues():
+            for project_ctx in user_projects:
+                for (group, group_history, count) in project_ctx.key_performance_issues:
+                    yield {
+                        "count": count,
+                        "group": group,
+                        "status": group_history.get_status_display()
+                        if group_history
+                        else "Unresolved",
+                        "status_color": group_status_to_color[group_history.status]
+                        if group_history
+                        else group_status_to_color[GroupHistoryStatus.NEW],
+                    }
+
+        return heapq.nlargest(3, all_key_performance_issues(), lambda d: d["count"])
+
     def issue_summary():
         all_issue_count = 0
         existing_issue_count = 0
@@ -641,6 +755,7 @@ def render_template_context(ctx, user):
         "trends": trends(),
         "key_errors": key_errors(),
         "key_transactions": key_transactions(),
+        "key_performance_issues": key_performance_issues(),
         "issue_summary": issue_summary(),
     }
 
