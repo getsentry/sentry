@@ -1,6 +1,8 @@
+import {useContext} from 'react';
+
 import ConfigStore from 'sentry/stores/configStore';
 import {OrganizationSummary} from 'sentry/types';
-import useOrganization from 'sentry/utils/useOrganization';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import shouldUseLegacyRoute from './shouldUseLegacyRoute';
 
@@ -12,8 +14,8 @@ import shouldUseLegacyRoute from './shouldUseLegacyRoute';
  */
 function useResolveRoute(route: string, organization?: OrganizationSummary) {
   const {sentryUrl} = ConfigStore.get('links');
-  const currentOrganization = useOrganization();
-  const hasCustomerDomain = currentOrganization.features.includes('customer-domains');
+  const currentOrganization = useContext(OrganizationContext);
+  const hasCustomerDomain = currentOrganization?.features.includes('customer-domains');
 
   if (!organization) {
     if (hasCustomerDomain) {

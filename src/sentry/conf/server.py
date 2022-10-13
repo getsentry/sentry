@@ -992,8 +992,6 @@ SENTRY_FEATURES = {
     "organizations:discover-basic": True,
     # Enable discover 2 custom queries and saved queries
     "organizations:discover-query": True,
-    # Enable the interval selector in discover
-    "organizations:discover-interval-selector": False,
     # Enable metrics baseline in discover
     "organizations:discover-metrics-baseline": False,
     # Enable quick context in discover
@@ -1496,12 +1494,6 @@ SENTRY_NEWSLETTER_OPTIONS = {}
 
 SENTRY_EVENTSTREAM = "sentry.eventstream.snuba.SnubaEventStream"
 SENTRY_EVENTSTREAM_OPTIONS = {}
-
-# Send transaction events to random Kafka partitions. Currently
-# this defaults to false as transaction events are partitioned the same
-# as errors (by project ID). Eventually we will flip the default and remove
-# this from settings entirely.
-SENTRY_EVENTSTREAM_PARTITION_TRANSACTIONS_RANDOMLY = False
 
 # rollups must be ordered from highest granularity to lowest
 SENTRY_TSDB_ROLLUPS = (
