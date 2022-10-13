@@ -136,12 +136,29 @@ def _transform_groupby(query_groupby):
                     )
                 )
             elif groupby_field.function == "toStartOfInterval":
+                # Checks against the following snuba function
+                # time_groupby_column = Function(
+                #    function="toStartOfInterval",
+                #    parameters=[
+                #        Column(name="timestamp"),
+                #        Function(
+                #            function="toIntervalSecond",
+                #            parameters=[self._metrics_query.interval],
+                #            alias=None,
+                #        ),
+                #        "Universal",
+                #    ],
+                #    alias=TS_COL_GROUP,
+                # )
                 include_series = True
+
+                # Maps to `toIntervalSecond` function
+                interval_func = groupby_field.parameters[1]
                 assert (
-                    isinstance(groupby_field.parameters[1], Function)
-                    and groupby_field.parameters[1].function == "toIntervalSecond"
+                    isinstance(interval_func, Function)
+                    and interval_func.function == "toIntervalSecond"
                 )
-                interval = groupby_field.parameters[1].parameters[0]
+                interval = interval_func.parameters[0]
                 continue
             else:
                 raise MQBQueryTransformationException(

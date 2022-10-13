@@ -293,14 +293,20 @@ class MetricsQuery(MetricsQueryValidationRunner):
             raise InvalidParams("start must be before end")
 
     def validate_granularity(self) -> None:
-        # Logic specific to how we handle time series in discover
-        if self.use_case_key == UseCaseKey.PERFORMANCE and self.include_series:
-            if self.interval is not None:
-                if self.granularity.granularity > self.interval:
-                    for granularity in METRICS_LAYER_GRANULARITIES:
-                        if granularity < self.interval:
-                            object.__setattr__(self, "granularity", Granularity(granularity))
-                            break
+        # Logic specific to how we handle time series in discover in terms of granularity and interval
+        if (
+            self.use_case_key == UseCaseKey.PERFORMANCE
+            and self.include_series
+            and self.interval is not None
+        ):
+            if self.granularity.granularity > self.interval:
+                # If granularity is greater than interval, then we try to set granularity to the smallest allowed
+                # granularity smaller than that interval
+                # Copied from: sentry/search/events/builder.py::TimeseriesMetricQueryBuilder.__init__()
+                for granularity in METRICS_LAYER_GRANULARITIES:
+                    if granularity < self.interval:
+                        object.__setattr__(self, "granularity", Granularity(granularity))
+                        break
 
         # hard code min. allowed resolution to 10 seconds
         allowed_resolution = AllowedResolution.ten_seconds
@@ -324,10 +330,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
             )
 
     def validate_interval(self) -> None:
-        if self.use_case_key == UseCaseKey.PERFORMANCE:
-            if self.include_series and self.interval is None:
-                raise InvalidParams("Interval is required for timeseries performance queries")
-        else:
+        if self.use_case_key == UseCaseKey.RELEASE_HEALTH:
             if self.interval is not None:
                 raise InvalidParams("Interval is only supported for timeseries performance queries")
 
@@ -338,3 +341,10 @@ class MetricsQuery(MetricsQueryValidationRunner):
             # Cannot set attribute directly because dataclass is frozen:
             # https://docs.python.org/3/library/dataclasses.html#frozen-instances
             object.__setattr__(self, "limit", Limit(self.get_default_limit()))
+
+        if (
+            self.use_case_key == UseCaseKey.PERFORMANCE
+            and self.include_series
+            and self.interval is None
+        ):
+            object.__setattr__(self, "interval", self.granularity.granularity)

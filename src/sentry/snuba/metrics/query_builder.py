@@ -605,18 +605,8 @@ class SnubaQueryBuilder:
             series_limit = limit.limit * intervals_len
 
             if self._use_case_id == UseCaseKey.PERFORMANCE:
-                time_groupby_column = Function(
-                    function="toStartOfInterval",
-                    parameters=[
-                        Column(name="timestamp"),
-                        Function(
-                            function="toIntervalSecond",
-                            parameters=[self._metrics_query.interval],
-                            alias=None,
-                        ),
-                        "Universal",
-                    ],
-                    alias=TS_COL_GROUP,
+                time_groupby_column = self.__generate_time_groupby_column_for_discover_queries(
+                    self._metrics_query.interval
                 )
             else:
                 time_groupby_column = Column(TS_COL_GROUP)
@@ -626,6 +616,22 @@ class SnubaQueryBuilder:
             )
 
         return rv
+
+    @staticmethod
+    def __generate_time_groupby_column_for_discover_queries(interval: int) -> Function:
+        return Function(
+            function="toStartOfInterval",
+            parameters=[
+                Column(name="timestamp"),
+                Function(
+                    function="toIntervalSecond",
+                    parameters=[interval],
+                    alias=None,
+                ),
+                "Universal",
+            ],
+            alias=TS_COL_GROUP,
+        )
 
     def __update_query_dicts_with_component_entities(
         self, component_entities, metric_mri_to_obj_dict, fields_in_entities, parent_alias
