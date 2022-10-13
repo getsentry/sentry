@@ -107,6 +107,7 @@ class AssembleDifTest(BaseAssembleTest):
 
         assert rv is not None
         f, tmp = rv
+        tmp.close()
         assert f.checksum == file_checksum.hexdigest()
         assert f.type == "dummy.type"
 
@@ -116,14 +117,15 @@ class AssembleDifTest(BaseAssembleTest):
         FileBlob.from_files(files, organization=self.organization)
 
         # assemble a second time
-        f = assemble_file(
+        f, tmp = assemble_file(
             AssembleTask.DIF,
             self.project,
             "testfile",
             file_checksum.hexdigest(),
             [x[1] for x in files],
             "dummy.type",
-        )[0]
+        )
+        tmp.close()
         assert f.checksum == file_checksum.hexdigest()
 
     def test_assemble_duplicate_blobs(self):
@@ -157,6 +159,7 @@ class AssembleDifTest(BaseAssembleTest):
 
         assert rv is not None
         f, tmp = rv
+        tmp.close()
         assert f.checksum == file_checksum.hexdigest()
         assert f.type == "dummy.type"
 
