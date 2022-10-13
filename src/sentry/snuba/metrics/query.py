@@ -330,8 +330,10 @@ class MetricsQuery(MetricsQueryValidationRunner):
             )
 
     def validate_interval(self) -> None:
-        if self.use_case_key == UseCaseKey.RELEASE_HEALTH:
-            if self.interval is not None:
+        if self.interval is not None:
+            if self.use_case_key == UseCaseKey.RELEASE_HEALTH or (
+                self.use_case_key == UseCaseKey.PERFORMANCE and not self.include_series
+            ):
                 raise InvalidParams("Interval is only supported for timeseries performance queries")
 
     def __post_init__(self) -> None:
