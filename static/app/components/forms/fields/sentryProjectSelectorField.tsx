@@ -1,7 +1,7 @@
 import {Component} from 'react';
 
-import InputField, {InputFieldProps} from 'sentry/components/forms/inputField';
-import SelectControl from 'sentry/components/forms/selectControl';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
+import InputField, {InputFieldProps} from 'sentry/components/forms/fields/inputField';
 import IdBadge from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
 import {Project} from 'sentry/types';

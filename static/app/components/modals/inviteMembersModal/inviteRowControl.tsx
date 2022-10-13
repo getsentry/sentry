@@ -3,7 +3,9 @@ import {MultiValueProps} from 'react-select';
 import {withTheme} from '@emotion/react';
 
 import Button from 'sentry/components/button';
-import SelectControl, {StylesConfig} from 'sentry/components/forms/selectControl';
+import SelectControl, {
+  StylesConfig,
+} from 'sentry/components/forms/controls/selectControl';
 import TeamSelector from 'sentry/components/forms/teamSelector';
 import RoleSelectControl from 'sentry/components/roleSelectControl';
 import {IconClose} from 'sentry/icons/iconClose';

@@ -6,7 +6,7 @@ import pick from 'lodash/pick';
 import uniq from 'lodash/uniq';
 import moment from 'moment';
 
-import SelectControl from 'sentry/components/forms/selectControl';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 import TeamSelector from 'sentry/components/forms/teamSelector';
 import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
 import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
