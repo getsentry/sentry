@@ -104,27 +104,19 @@ def create_model_manifest_file():
     # sentry.testutils.modelmanifest too early causes a dependency cycle.
     from sentry.testutils.modelmanifest import ModelManifest
 
-    if not _MODEL_MANIFEST_FILE_PATH:
+    if _MODEL_MANIFEST_FILE_PATH:
+        global _model_manifest
+        _model_manifest = ModelManifest()
+        with _model_manifest.open(_MODEL_MANIFEST_FILE_PATH):
+            yield
+    else:
         yield
-        return
-
-    global _model_manifest
-    _model_manifest = ModelManifest(_MODEL_MANIFEST_FILE_PATH)
-
-    try:
-        yield
-    finally:
-        _model_manifest.write()
 
 
 @pytest.fixture(scope="class", autouse=True)
 def register_class_in_model_manifest(request: pytest.FixtureRequest):
-    if not _model_manifest:
+    if _model_manifest:
+        with _model_manifest.register(request.node.name):
+            yield
+    else:
         yield
-        return
-
-    teardown_function = _model_manifest.register(request.node.name)
-    try:
-        yield
-    finally:
-        teardown_function()

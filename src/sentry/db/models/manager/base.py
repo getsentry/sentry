@@ -47,7 +47,6 @@ class ModelManagerTriggerCondition(IntEnum):
 
 
 ModelManagerTriggerAction = Callable[[Type[Model]], None]
-ModelManagerTriggerTeardown = Callable[[], None]
 
 
 class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  # type: ignore
@@ -68,9 +67,8 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
         self._cache_version: Optional[str] = kwargs.pop("cache_version", None)
         self.__local_cache = threading.local()
 
-        self._trigger_id_counter = 0
         self._triggers: Dict[
-            int, Tuple[ModelManagerTriggerCondition, ModelManagerTriggerAction]
+            object, Tuple[ModelManagerTriggerCondition, ModelManagerTriggerAction]
         ] = {}
         super().__init__(*args, **kwargs)
 
@@ -481,13 +479,11 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
             return self._queryset_class(self.model, using=self._db, hints=self._hints)
         return self._queryset_class(self.model, using=self._db)
 
+    @contextmanager
     def register_trigger(
         self, trigger: ModelManagerTriggerCondition, action: ModelManagerTriggerAction
-    ) -> ModelManagerTriggerTeardown:
-        """Register a function to be called when a certain operation is executed.
-
-        Returns a teardown function that, when called one or more times,
-        will unregister the trigger.
+    ) -> Generator[None, None, None]:
+        """Register a callback for when an operation is executed inside the context.
 
         There is no guarantee whether the action will be called before or after the
         triggering operation is executed, nor whether it will or will not be called
@@ -499,14 +495,10 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
         production use.
         """
 
-        self._trigger_id_counter += 1
-        trigger_id = self._trigger_id_counter
-        self._triggers[trigger_id] = (trigger, action)
-
-        def teardown_function() -> None:
-            self._triggers.pop(trigger_id, None)
-
-        return teardown_function
+        key = object()
+        self._triggers[key] = (trigger, action)
+        yield
+        del self._triggers[key]
 
     def _execute_triggers(self, condition: ModelManagerTriggerCondition) -> None:
         for (next_condition, next_action) in self._triggers.values():
