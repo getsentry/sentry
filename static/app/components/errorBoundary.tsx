@@ -107,7 +107,7 @@ class ErrorBoundary extends Component<Props, State> {
     }
 
     return (
-      <Wrapper>
+      <Wrapper data-test-id="error-boundary">
         <DetailedError
           heading={getDynamicText({
             value: getExclamation(),
