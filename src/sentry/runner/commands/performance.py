@@ -2,17 +2,26 @@
 
 import click
 
-from sentry.runner import configure
+from sentry.runner.decorators import configuration
 from sentry.utils import json
 
-configure()
+
+@click.group()
+def performance() -> None:
+    """
+    Performance utilities
+    """
 
 
-@click.command()
+@performance.command()
 @click.argument("filename", type=click.Path(exists=True))
-def main(filename):
-    """Runs performance detection on event data in the supplied filename using
-    default detector settings. Filename should be a JSON file."""
+@configuration
+def detect(filename):
+    """
+    Runs performance detection on event data in the supplied filename using
+    default detector settings. Filename should be a path to a JSON event data
+    file.
+    """
     from sentry.utils.performance_issues.performance_detection import (
         NPlusOneDBSpanDetectorExtended,
         get_detection_settings,
@@ -33,7 +42,3 @@ def main(filename):
 
         for problem in detector.stored_problems.values():
             click.echo(problem.to_dict())
-
-
-if __name__ == "__main__":
-    main()
