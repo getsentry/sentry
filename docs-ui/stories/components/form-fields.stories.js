@@ -16,10 +16,10 @@ import TextareaField from 'sentry/components/forms/fields/textareaField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
-import TextCopyInput from 'sentry/components/forms/textCopyInput';
 import {Panel} from 'sentry/components/panels';
 import {RadioGroupRating} from 'sentry/components/radioGroupRating';
 import Switch from 'sentry/components/switchButton';
+import TextCopyInput from 'sentry/components/textCopyInput';
 
 export default {
   title: 'Components/Forms/Fields',
