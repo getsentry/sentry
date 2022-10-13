@@ -69,7 +69,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         return repository
 
     # https://docs.github.com/en/rest/git/trees#get-a-tree
-    def get_tree(self, repo_full_name: str, tree_sha: str = "master") -> JSONData:
+    def get_tree(self, repo_full_name: str, tree_sha: str) -> JSONData:
         tree = []
         try:
             contents = self.get(
@@ -88,23 +88,15 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                 )
             # tree -> list of mode, path, sha, type and url for file/directory
             # XXX: We should optimize the data structure to be a tree from file to top src dir
-            tree = list(
-                map(
-                    lambda file_meta: file_meta["path"],
-                    filter(
-                        lambda x: x["type"] == "blob"
-                        # This is a Python language optimization and for a smaller data structure
-                        and x["path"].endswith(".py") and not x["path"].startswith("tests/"),
-                        contents["tree"],
-                    ),
-                )
-            )
+            tree = contents["tree"]
         except ApiError as e:
+            json_data: JSONData = e.json
+            msg: str = json_data.get("message")
             # TODO: Add condition for  getsentry/DataForThePeople
             # e.g. getsentry/nextjs-sentry-example
-            if e.json.get("message") == "Git Repository is empty.":
+            if msg == "Git Repository is empty.":
                 logger.warning(f"{repo_full_name} is empty.")
-            elif e.json.get("message") == "Not Found":
+            elif msg == "Not Found":
                 logger.error(f"The Github App does not have access to {repo_full_name}.")
             else:
                 sentry_sdk.capture_exception(e)
