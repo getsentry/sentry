@@ -14,7 +14,7 @@ import {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import EmailField from 'sentry/components/forms/emailField';
+import EmailField from 'sentry/components/forms/fields/emailField';
 import Form from 'sentry/components/forms/form';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
