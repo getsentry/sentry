@@ -3,6 +3,7 @@ import {Fragment} from 'react';
 import FeatureBadge from 'sentry/components/featureBadge';
 import {Field} from 'sentry/components/forms/types';
 import ExternalLink from 'sentry/components/links/externalLink';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
 import {getDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
 
@@ -179,7 +180,12 @@ export const QUOTA_FIELDS = [
   },
   {
     name: 'quotaSpendAllocations',
-    label: t('Spend Allocations'),
+    label: (
+      <Fragment>
+        {t('Spend Allocations')}{' '}
+        <QuestionTooltip position="top" title="Business plan only" size="xs" />
+      </Fragment>
+    ),
     help: t('Receive notifications about your spend allocations.'),
     choices: [
       ['always', t('On')],
