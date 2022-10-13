@@ -2,14 +2,15 @@ import pytz
 from django.utils.safestring import mark_safe
 from django.views.generic import View
 
-from sentry.api.serializers.models.event import get_entries
+from sentry.api.serializers.models.event import get_entries, get_problems
 from sentry.event_manager import EventManager, get_event_type
-from sentry.models import Organization, Project, Rule
+from sentry.models import GroupHash, Organization, Project, Rule
 from sentry.notifications.utils import get_group_settings_link, get_rules
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils import json
 from sentry.utils.samples import load_data
 from sentry.web.helpers import render_to_string
+from sentry.types.issues import GroupType
 
 from .mail import MailPreview, get_random, make_group_generator
 
@@ -47,25 +48,16 @@ COMMIT_EXAMPLE = """[
 ]"""
 
 
-
 class DebugPerformanceIssueEmailView(View):
     def perf_to_email_html(self, transaction_data, **kwargs):
-        # change all the context
         context = {
-            # "user_id": self.id,
-            # "user_email": self.email,
-            # "user_username": self.username,
-            # "user_ip_address": self.ip_address,
-            # "user_data": self.data,
-            # "user": self,
             "transaction_name": transaction_data.get("description"),
-            "parent_span": "idk",
-            "preceding_span": "idk",
-            "repeating spans": "idk",
-            "num_repeating_spans": "idk4",
+            # "parent_span": "idk",
+            # "preceding_span": "idk",
+            # "repeating spans": "idk",
+            # "num_repeating_spans": "idk4",
         }
-        # make a new html file for this I guess, idk if it should live in the same path though
-        return render_to_string("sentry/partial/interfaces/user_email.html", context)
+        return render_to_string("sentry/emails/transactions.html", context)
 
     def get(self, request):
         org = Organization(id=1, slug="example", name="Example")
@@ -73,11 +65,15 @@ class DebugPerformanceIssueEmailView(View):
         random = get_random(request)
 
         perf_group = next(make_group_generator(random, project))
+        perf_group.type = GroupType.PERFORMANCE_N_PLUS_ONE.value
         perf_data = load_data("transaction", timestamp=before_now(minutes=10))
         perf_event_manager = EventManager(perf_data)
         perf_event_manager.normalize()
         perf_data = perf_event_manager.get_data()
         perf_event = perf_event_manager.save(project.id)
+        perf_event.group = perf_group
+        perf_event = perf_event.for_group(perf_event.group)
+
         perf_event.data["timestamp"] = 1504656000.0  # datetime(2017, 9, 6, 0, 0)
         perf_event_type = get_event_type(perf_event.data)
         perf_group.message = perf_event.search_message
@@ -85,15 +81,20 @@ class DebugPerformanceIssueEmailView(View):
             "type": perf_event_type.key,
             "metadata": perf_event_type.get_metadata(perf_data),
         }
+        # GroupHash.objects.create(hash="e" * 32, project=project, group=perf_group)
 
         rule = Rule(id=1, label="Example performance rule")
 
         entries = get_entries(perf_event, None)
         transaction_data = {}
         if len(entries):
-            transaction_data = [entry.get("data") for entry in entries[0] if entry.get("type") == "spans"][0]
+            transaction_data = [
+                entry.get("data") for entry in entries[0] if entry.get("type") == "spans"
+            ][0]
 
-        # print("transaction name: ", transaction_data[0].get("description"))
+        problems = get_problems([perf_event])
+
+        transaction_data = self.perf_to_email_html(transaction_data[0])
 
         # XXX: this interface_list code needs to be the same as in
         #      src/sentry/mail/adapter.py
@@ -123,6 +124,6 @@ class DebugPerformanceIssueEmailView(View):
                 "tags": perf_event.tags,
                 "project_label": project.slug,
                 "commits": json.loads(COMMIT_EXAMPLE),
-                # "transaction_data": idk_yet
+                "transaction_data": [("Span Evidence", mark_safe(transaction_data), None)],
             },
         ).render(request)

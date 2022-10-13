@@ -20,6 +20,7 @@ from sentry.utils.safe import get_path
 CRASH_FILE_TYPES = {"event.minidump"}
 RESERVED_KEYS = frozenset(["user", "sdk", "device", "contexts"])
 
+
 def get_crash_files(events):
     event_ids = [x.event_id for x in events if x.platform == "native"]
     if event_ids:
@@ -72,7 +73,8 @@ def get_tags_with_meta(event):
 
     return (tags, meta_with_chunks(tags, tags_meta))
 
-def get_entries(event, user, is_public=False):
+
+def get_entries(event: Event | GroupEvent, user: User, is_public: bool =False):
     # XXX(dcramer): These are called entries for future-proofing
     platform = event.platform
     meta = event.data.get("_meta") or {}
@@ -105,10 +107,28 @@ def get_entries(event, user, is_public=False):
         {k: {"data": i[2]} for k, i in enumerate(interface_list) if i[2]},
     )
 
+def get_problems(item_list: Sequence[Event | GroupEvent]):
+    group_hashes = {
+    group_hash.group_id: group_hash
+    for group_hash in GroupHash.objects.filter(
+        group__id__in={e.group_id for e in item_list if getattr(e, "group_id", None)},
+        group__type__in=[
+            gt.value for gt in GROUP_CATEGORY_TO_TYPES[GroupCategory.PERFORMANCE]
+        ],
+    )
+    }
+    return EventPerformanceProblem.fetch_multi(
+    [
+        (e, group_hashes[e.group_id].hash)
+        for e in item_list
+        if getattr(e, "group_id", None) in group_hashes
+    ]
+    )
+
+
 @register(GroupEvent)
 @register(Event)
 class EventSerializer(Serializer):
-
     def _get_interface_with_meta(self, event, name, is_public=False):
         interface = event.get_interface(name)
         if not interface:
@@ -315,22 +335,7 @@ class DetailedEventSerializer(EventSerializer):
         results = super().get_attrs(item_list, user, is_public)
         # XXX: Collapse hashes to one hash per group for now. Performance issues currently only have
         # a single hash, so this will work fine for the moment
-        group_hashes = {
-            group_hash.group_id: group_hash
-            for group_hash in GroupHash.objects.filter(
-                group__id__in={e.group_id for e in item_list if getattr(e, "group_id", None)},
-                group__type__in=[
-                    gt.value for gt in GROUP_CATEGORY_TO_TYPES[GroupCategory.PERFORMANCE]
-                ],
-            )
-        }
-        problems = EventPerformanceProblem.fetch_multi(
-            [
-                (e, group_hashes[e.group_id].hash)
-                for e in item_list
-                if getattr(e, "group_id", None) in group_hashes
-            ]
-        )
+        problems = get_problems(item_list)
         for event_problem in problems:
             if event_problem:
                 results[event_problem.event]["perf_problem"] = event_problem.problem.to_dict()

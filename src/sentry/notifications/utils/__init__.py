@@ -265,9 +265,9 @@ def get_interface_list(event: Event) -> Sequence[tuple[str, str, str]]:
 
 
 def get_transaction_data(event: Event) -> Sequence[tuple[str, str, str]]:
-    """Get data about a transaction to populate alert emails.
-    """
+    """Get data about a transaction to populate alert emails."""
     entries = get_entries(event, None)
+    # building this out in the debug view first while developing, need to copy over/share code
 
 
 def send_activity_notification(notification: ActivityNotification | UserReportNotification) -> None:

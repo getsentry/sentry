@@ -170,8 +170,13 @@
       {% endif %}
 
       <div class="performance">
-        {% block main %}
-        {% endblock %}
+        <!-- TODO figure out how to put this in the performance.html template -->
+        {% for label, html, _ in transaction_data %}
+        <div class="interface">
+            <h3 class="title">{{ label }}</h3>
+            {{ html }}
+        </div>
+        {% endfor %}
       </div>
 
       {% for label, html, _ in interfaces %}
