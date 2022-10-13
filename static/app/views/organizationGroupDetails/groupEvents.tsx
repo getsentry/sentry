@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {Component, Fragment} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
@@ -143,6 +143,8 @@ class GroupEvents extends Component<Props, State> {
         isPerfIssue={this.props.group.issueCategory === IssueCategory.PERFORMANCE}
         location={this.props.location}
         organization={this.props.organization}
+        projectId={this.props.group.project.slug}
+        totalEventCount={this.props.group.count}
         excludedTags={excludedTags}
       />
     );
@@ -209,9 +211,12 @@ class GroupEvents extends Component<Props, State> {
     }
 
     return (
-      <Panel className="event-list">
-        <PanelBody>{body}</PanelBody>
-      </Panel>
+      <Fragment>
+        <Panel className="event-list">
+          <PanelBody>{body}</PanelBody>
+        </Panel>
+        <Pagination pageLinks={this.state.pageLinks} />
+      </Fragment>
     );
   }
 
@@ -225,7 +230,6 @@ class GroupEvents extends Component<Props, State> {
               {this.renderSearchBar()}
             </FilterSection>
             {this.renderBody()}
-            <Pagination pageLinks={this.state.pageLinks} />
           </Wrapper>
         </Layout.Main>
       </Layout.Body>

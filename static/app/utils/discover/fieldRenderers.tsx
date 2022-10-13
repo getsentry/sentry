@@ -1,9 +1,12 @@
+import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import partial from 'lodash/partial';
 
 import Count from 'sentry/components/count';
+import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
+import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import Duration from 'sentry/components/duration';
 import FileSize from 'sentry/components/fileSize';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -14,8 +17,9 @@ import {pickBarColor, toPercent} from 'sentry/components/performance/waterfall/u
 import Tooltip from 'sentry/components/tooltip';
 import UserMisery from 'sentry/components/userMisery';
 import Version from 'sentry/components/version';
+import {IconDownload} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {AvatarProject, Organization, Project} from 'sentry/types';
+import {AvatarProject, IssueAttachment, Organization, Project} from 'sentry/types';
 import {defined, isUrl} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView, {EventData, MetaType} from 'sentry/utils/discover/eventView';
@@ -279,6 +283,7 @@ type SpecialField = {
 };
 
 type SpecialFields = {
+  attachments: SpecialField;
   'count_unique(user)': SpecialField;
   'error.handled': SpecialField;
   id: SpecialField;
@@ -296,11 +301,47 @@ type SpecialFields = {
   'user.display': SpecialField;
 };
 
+const DownloadCount = styled('span')`
+  padding-left: 6px;
+`;
+
 /**
  * "Special fields" either do not map 1:1 to an single column in the event database,
  * or they require custom UI formatting that can't be handled by the datatype formatters.
  */
 const SPECIAL_FIELDS: SpecialFields = {
+  // This is a custom renderer for a field outside discover
+  // TODO - refactor code and remove from this file or add ability to query for attachments in Discover
+  attachments: {
+    sortField: null,
+    renderFunc: data => {
+      const attachments: Array<IssueAttachment & {url: string}> = data.attachments;
+
+      const items: MenuItemProps[] = attachments.map(attachment => ({
+        key: attachment.id,
+        label: attachment.name,
+        onAction: () => window.open(attachment.url), // TODO - validate if this works
+      }));
+
+      return (
+        <Container>
+          <DropdownMenuControl
+            position="left"
+            triggerProps={{
+              showChevron: false,
+              icon: (
+                <Fragment>
+                  <IconDownload color="gray500" size="14px" />
+                  <DownloadCount>{attachments.length}</DownloadCount>
+                </Fragment>
+              ),
+            }}
+            items={items}
+          />
+        </Container>
+      );
+    },
+  },
   id: {
     sortField: 'id',
     renderFunc: data => {
