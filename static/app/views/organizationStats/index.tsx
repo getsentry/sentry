@@ -312,7 +312,7 @@ export class OrganizationStats extends Component<Props> {
                 {this.dataCategory === DataCategory.TRANSACTIONS && (
                   <Alert type="info" showIcon>
                     {tct(
-                      'Manage your transaction usage in Dynamic Sampling. Go to [link: Dynamic Sampling Settings].',
+                      'Manage your transaction usage with Dynamic Sampling. Go to [link: Dynamic Sampling Settings].',
                       {
                         link: <a href="#" onClick={this.navigateToSamplingSettings} />,
                       }
