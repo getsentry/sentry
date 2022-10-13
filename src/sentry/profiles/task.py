@@ -64,7 +64,7 @@ def process_profile(
 
     try:
         if _should_symbolicate(profile):
-            if "debug_meta" not in profile:
+            if "debug_meta" not in profile or not profile["debug_meta"]:
                 sentry_sdk.capture_message("profile doesn't have a debug_meta key")
                 return
 
@@ -89,7 +89,7 @@ def process_profile(
 
     try:
         if _should_deobfuscate(profile):
-            if "profile" not in profile:
+            if "profile" not in profile or not profile["profile"]:
                 sentry_sdk.capture_message("profile doesn't have a profile key")
                 return
 
