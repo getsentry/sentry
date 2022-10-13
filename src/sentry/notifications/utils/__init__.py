@@ -10,6 +10,7 @@ from django.utils.http import urlencode
 from django.utils.safestring import mark_safe
 
 from sentry import integrations
+from sentry.api.serializers.models.event import get_entries
 from sentry.incidents.models import AlertRuleTriggerAction
 from sentry.integrations import IntegrationFeatures, IntegrationProvider
 from sentry.models import (
@@ -263,9 +264,10 @@ def get_interface_list(event: Event) -> Sequence[tuple[str, str, str]]:
     return interface_list
 
 
-def get_transaction_data(group: Group) -> Sequence[tuple[str, str, str]]:
-    # similar to above, need same output structure but use different data. not yet sure how to access data
-    pass
+def get_transaction_data(event: Event) -> Sequence[tuple[str, str, str]]:
+    """Get data about a transaction to populate alert emails.
+    """
+    entries = get_entries(event, None)
 
 
 def send_activity_notification(notification: ActivityNotification | UserReportNotification) -> None:

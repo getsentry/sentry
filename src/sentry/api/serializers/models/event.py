@@ -18,7 +18,7 @@ from sentry.utils.performance_issues.performance_detection import EventPerforman
 from sentry.utils.safe import get_path
 
 CRASH_FILE_TYPES = {"event.minidump"}
-
+RESERVED_KEYS = frozenset(["user", "sdk", "device", "contexts"])
 
 def get_crash_files(events):
     event_ids = [x.event_id for x in events if x.platform == "native"]
@@ -72,44 +72,42 @@ def get_tags_with_meta(event):
 
     return (tags, meta_with_chunks(tags, tags_meta))
 
+def get_entries(event, user, is_public=False):
+    # XXX(dcramer): These are called entries for future-proofing
+    platform = event.platform
+    meta = event.data.get("_meta") or {}
+    interface_list = []
+
+    for key, interface in event.interfaces.items():
+        # we treat user as a special contextual item
+        if key in RESERVED_KEYS:
+            continue
+
+        data = interface.get_api_context(is_public=is_public, platform=platform)
+        # data might not be returned for e.g. a public HTTP repr
+        # However, spans can be an empty list and should still be included.
+        if not data and interface.path != "spans":
+            continue
+
+        entry = {"data": data, "type": interface.external_type}
+
+        api_meta = None
+        if meta.get(key):
+            api_meta = interface.get_api_meta(meta[key], is_public=is_public, platform=platform)
+            api_meta = meta_with_chunks(data, api_meta)
+
+        interface_list.append((interface, entry, api_meta))
+
+    interface_list.sort(key=lambda x: x[0].get_display_score(), reverse=True)
+
+    return (
+        [i[1] for i in interface_list],
+        {k: {"data": i[2]} for k, i in enumerate(interface_list) if i[2]},
+    )
 
 @register(GroupEvent)
 @register(Event)
 class EventSerializer(Serializer):
-    _reserved_keys = frozenset(["user", "sdk", "device", "contexts"])
-
-    def _get_entries(self, event, user, is_public=False):
-        # XXX(dcramer): These are called entries for future-proofing
-        platform = event.platform
-        meta = event.data.get("_meta") or {}
-        interface_list = []
-
-        for key, interface in event.interfaces.items():
-            # we treat user as a special contextual item
-            if key in self._reserved_keys:
-                continue
-
-            data = interface.get_api_context(is_public=is_public, platform=platform)
-            # data might not be returned for e.g. a public HTTP repr
-            # However, spans can be an empty list and should still be included.
-            if not data and interface.path != "spans":
-                continue
-
-            entry = {"data": data, "type": interface.external_type}
-
-            api_meta = None
-            if meta.get(key):
-                api_meta = interface.get_api_meta(meta[key], is_public=is_public, platform=platform)
-                api_meta = meta_with_chunks(data, api_meta)
-
-            interface_list.append((interface, entry, api_meta))
-
-        interface_list.sort(key=lambda x: x[0].get_display_score(), reverse=True)
-
-        return (
-            [i[1] for i in interface_list],
-            {k: {"data": i[2]} for k, i in enumerate(interface_list) if i[2]},
-        )
 
     def _get_interface_with_meta(self, event, name, is_public=False):
         interface = event.get_interface(name)
@@ -188,7 +186,7 @@ class EventSerializer(Serializer):
             )
             (sdk_data, sdk_meta) = self._get_interface_with_meta(item, "sdk", is_public)
 
-            (entries, entries_meta) = self._get_entries(item, user, is_public=is_public)
+            (entries, entries_meta) = self.get_entries(item, user, is_public=is_public)
 
             results[item] = {
                 "entries": entries,
