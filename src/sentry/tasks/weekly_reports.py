@@ -28,7 +28,6 @@ from sentry.models import (
     OrganizationMember,
     OrganizationStatus,
     User,
-    UserOption,
 )
 from sentry.snuba.dataset import Dataset
 from sentry.tasks.base import instrumented_task
@@ -499,11 +498,6 @@ def fetch_key_performance_issue_groups(ctx):
 
 # Deliver reports
 # For all users in the organization, we generate the template context for the user, and send the email.
-def user_subscribed_to_organization_reports(user, organization):
-    return organization.id not in (
-        UserOption.objects.get_value(user, key="reports:disabled-organizations")
-        or []  # A small number of users have incorrect data stored
-    )
 
 
 def deliver_reports(ctx, dry_run=False, target_user=None):
@@ -511,6 +505,8 @@ def deliver_reports(ctx, dry_run=False, target_user=None):
     if target_user:
         send_email(ctx, target_user, dry_run=dry_run)
     else:
+        # We save the subscription status of the user in a field in UserOptions.
+        # Here we do a raw query and LEFT JOIN on a subset of UserOption table where sentry_useroption.key = 'reports:disabled-organizations'
         user_set = User.objects.raw(
             """SELECT auth_user.*, sentry_useroption.value as options FROM auth_user
                                        INNER JOIN sentry_organizationmember on sentry_organizationmember.user_id=auth_user.id
@@ -522,6 +518,7 @@ def deliver_reports(ctx, dry_run=False, target_user=None):
         )
 
         for user in user_set:
+            # We manually pick out user.options and use PickledObjectField to deserialize it. We get a list of organizations the user has unsubscribed from user reports
             option = PickledObjectField().to_python(user.options) or []
             user_subscribed_to_organization_reports = ctx.organization.id not in option
             if user_subscribed_to_organization_reports:
