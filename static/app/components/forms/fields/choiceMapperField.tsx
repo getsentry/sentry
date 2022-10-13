@@ -8,11 +8,12 @@ import DropdownButton from 'sentry/components/dropdownButton';
 import SelectControl, {
   ControlProps,
 } from 'sentry/components/forms/controls/selectControl';
-import InputField, {InputFieldProps} from 'sentry/components/forms/fields/inputField';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined, objectIsEmpty} from 'sentry/utils';
+
+import InputField, {InputFieldProps} from './inputField';
 
 interface DefaultProps {
   /**
