@@ -1,6 +1,6 @@
 import set from 'lodash/set';
 
-import {FieldObject} from 'sentry/components/forms/type';
+import {FieldObject} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
 import {OrganizationSummary, Project} from 'sentry/types';
 import {

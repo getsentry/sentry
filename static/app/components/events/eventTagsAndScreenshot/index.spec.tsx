@@ -153,7 +153,7 @@ describe('EventTagsAndScreenshot', function () {
     },
   } as Parameters<typeof initializeOrg>[0]);
 
-  const attachments: Omit<EventAttachment, 'event_id'>[] = [
+  const attachments: EventAttachment[] = [
     {
       id: '1765467044',
       name: 'log.txt',
@@ -163,6 +163,7 @@ describe('EventTagsAndScreenshot', function () {
       sha1: 'aaf4c61ddcc5e8a2dabede0f3b482cd9aea9434d',
       dateCreated: '2021-08-31T15:14:53.113630Z',
       type: 'event.attachment',
+      event_id: 'bbf4c61ddaa7d8b2dbbede0f3b482cd9beb9434d',
     },
     {
       id: '1765467046',
@@ -173,6 +174,7 @@ describe('EventTagsAndScreenshot', function () {
       sha1: '657eae9c13474518a6d0175bd4ab6bb4f81bf40e',
       dateCreated: '2021-08-31T15:14:53.130940Z',
       type: 'event.attachment',
+      event_id: 'bbf4c61ddaa7d8b2dbbede0f3b482cd9beb9434d',
     },
   ];
 

@@ -1,7 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Form, RadioBooleanField} from 'sentry/components/deprecatedforms';
-import NewRadioBooleanField from 'sentry/components/forms/radioBooleanField';
+import NewRadioBooleanField from 'sentry/components/forms/fields/radioBooleanField';
 
 describe('RadioBooleanField', function () {
   it('renders without form context', function () {
