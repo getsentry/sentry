@@ -54,6 +54,12 @@ class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
     if (stateKey === 'savedQuery' && data === '') {
       this.setState({savedQuery: null});
     }
+    if (data && data !== '') {
+      const eventView = EventView.fromSavedQuery(data);
+      browserHistory.replace(
+        eventView.getResultsViewUrlTarget(this.props.organization.slug, true)
+      );
+    }
   }
 
   setSavedQuery = (newSavedQuery: SavedQuery) => {
@@ -72,15 +78,6 @@ class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
         key={`results-${Date.now()}`}
       />
     );
-  }
-
-  onRequestSuccess({data: savedQuery}): void {
-    if (savedQuery) {
-      const eventView = EventView.fromSavedQuery(savedQuery);
-      browserHistory.replace(
-        eventView.getResultsViewUrlTarget(this.props.organization.slug, true)
-      );
-    }
   }
 }
 
