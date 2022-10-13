@@ -31,7 +31,7 @@ function getMockData({projects, access}: {access?: string[]; projects?: Project[
     projects,
   });
 }
-describe('Server-Side Sampling - Specific Conditions Modal', function () {
+describe('Dynamic Sampling - Specific Conditions Modal', function () {
   afterEach(function () {
     MockApiClient.clearMockResponses();
   });

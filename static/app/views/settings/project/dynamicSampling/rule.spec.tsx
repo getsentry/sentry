@@ -7,7 +7,7 @@ import {Rule} from './rule';
 
 export const samplingBreakdownTitle = 'Transaction Breakdown';
 
-describe('Server-Side Sampling - Rule', function () {
+describe('Dynamic Sampling - Rule', function () {
   beforeEach(function () {
     ServerSideSamplingStore.reset();
   });

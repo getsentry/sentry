@@ -21,7 +21,7 @@ function getMockData({projects, access}: {access?: string[]; projects?: Project[
   });
 }
 
-describe('Server-Side Sampling - Client Rate Change Alert', function () {
+describe('Dynamic Sampling - Client Rate Change Alert', function () {
   it('does not render content', function () {
     const {organization, project} = getMockData();
 
