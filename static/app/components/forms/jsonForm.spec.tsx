@@ -153,6 +153,7 @@ describe('JsonForm', function () {
       // slug and platform have no visible prop, that means they will be always visible
       render(
         <JsonForm
+          title={accountDetailsFields[0].title}
           fields={jsonFormFields.map(field => ({...field, visible: () => false}))}
         />
       );
