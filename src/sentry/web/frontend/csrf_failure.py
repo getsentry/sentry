@@ -1,3 +1,5 @@
+import logging
+
 import sentry_sdk
 from django.middleware.csrf import REASON_NO_REFERER
 from django.utils.decorators import method_decorator
@@ -24,7 +26,7 @@ class CsrfFailureView(View):
                     scope.set_tag("is_superuser", "yes")
                 if is_staff or is_superuser:
                     scope.set_tag("csrf_failure", "yes")
-                    sentry_sdk.capture_exception("CSRF failure for staff or superuser")
+                    logging.exception("CSRF failure for staff or superuser")
         return render_to_response("sentry/403-csrf-failure.html", context, request, status=403)
 
 
