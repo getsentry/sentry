@@ -7,6 +7,7 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import CustomIgnoreCountModal from 'sentry/components/customIgnoreCountModal';
 import CustomIgnoreDurationModal from 'sentry/components/customIgnoreDurationModal';
 import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
+import type {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import Tooltip from 'sentry/components/tooltip';
 import {IconChevron, IconMute} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
@@ -39,25 +40,18 @@ const IGNORE_WINDOWS: SelectValue<number>[] = [
   {value: ONE_HOUR * 24 * 7, label: t('per week')},
 ];
 
-type Props = {
-  onUpdate: (params: GroupStatusResolution) => void;
-  confirmLabel?: string;
-  confirmMessage?: (
-    statusDetails: ResolutionStatusDetails | undefined
-  ) => React.ReactNode;
-  disabled?: boolean;
-  isIgnored?: boolean;
-  shouldConfirm?: boolean;
-};
-
-const IgnoreActions = ({
-  onUpdate,
-  disabled,
-  shouldConfirm,
+/**
+ * Create the dropdown submenus
+ */
+export function getIgnoreActions({
+  confirmLabel,
   confirmMessage,
-  confirmLabel = t('Ignore'),
-  isIgnored = false,
-}: Props) => {
+  shouldConfirm,
+  onUpdate,
+}: Pick<
+  IgnoreActionProps,
+  'shouldConfirm' | 'confirmMessage' | 'confirmLabel' | 'onUpdate'
+>) {
   const onIgnore = (
     statusDetails: ResolutionStatusDetails | undefined = {},
     {bypassConfirm} = {bypassConfirm: false}
@@ -77,22 +71,6 @@ const IgnoreActions = ({
   const onCustomIgnore = (statusDetails: ResolutionStatusDetails) => {
     onIgnore(statusDetails, {bypassConfirm: true});
   };
-
-  if (isIgnored) {
-    return (
-      <Tooltip title={t('Change status to unresolved')}>
-        <Button
-          priority="primary"
-          size="xs"
-          onClick={() =>
-            onUpdate({status: ResolutionStatus.UNRESOLVED, statusDetails: {}})
-          }
-          aria-label={t('Unignore')}
-          icon={<IconMute size="xs" />}
-        />
-      </Tooltip>
-    );
-  }
 
   const openCustomIgnoreDuration = () =>
     openModal(deps => (
@@ -128,7 +106,8 @@ const IgnoreActions = ({
       />
     ));
 
-  const dropdownItems = [
+  // Move submenu placement when ignore used in top right menu
+  const dropdownItems: MenuItemProps[] = [
     {
       key: 'for',
       label: t('For\u2026'),
@@ -219,16 +198,68 @@ const IgnoreActions = ({
       ],
     },
   ];
+  return {dropdownItems, onIgnore};
+}
+
+type IgnoreActionProps = {
+  onUpdate: (params: GroupStatusResolution) => void;
+  className?: string;
+  confirmLabel?: string;
+  confirmMessage?: (
+    statusDetails: ResolutionStatusDetails | undefined
+  ) => React.ReactNode;
+  disableTooltip?: boolean;
+  disabled?: boolean;
+  hideIcon?: boolean;
+  isIgnored?: boolean;
+  shouldConfirm?: boolean;
+  size?: 'xs' | 'sm';
+};
+
+const IgnoreActions = ({
+  onUpdate,
+  disabled,
+  shouldConfirm,
+  confirmMessage,
+  className,
+  hideIcon,
+  disableTooltip,
+  size = 'xs',
+  confirmLabel = t('Ignore'),
+  isIgnored = false,
+}: IgnoreActionProps) => {
+  if (isIgnored) {
+    return (
+      <Tooltip title={t('Change status to unresolved')}>
+        <Button
+          priority="primary"
+          size="xs"
+          onClick={() =>
+            onUpdate({status: ResolutionStatus.UNRESOLVED, statusDetails: {}})
+          }
+          aria-label={t('Unignore')}
+          icon={<IconMute size="xs" />}
+        />
+      </Tooltip>
+    );
+  }
+
+  const {dropdownItems, onIgnore} = getIgnoreActions({
+    confirmLabel,
+    onUpdate,
+    shouldConfirm,
+    confirmMessage,
+  });
 
   return (
-    <ButtonBar merged>
+    <ButtonBar className={className} merged>
       <IgnoreButton
-        size="xs"
-        tooltipProps={{delay: 300, disabled}}
+        size={size}
+        tooltipProps={{delay: 300, disabled: disabled || disableTooltip}}
         title={t(
           'Silences alerts for this issue and removes it from the issue stream by default.'
         )}
-        icon={<IconMute size="xs" />}
+        icon={hideIcon ? null : <IconMute size={size} />}
         onClick={() => onIgnore()}
         disabled={disabled}
       >
@@ -240,7 +271,7 @@ const IgnoreActions = ({
           <DropdownTrigger
             {...triggerProps}
             aria-label={t('Ignore options')}
-            size="xs"
+            size={size}
             icon={<IconChevron direction="down" size="xs" />}
             disabled={disabled}
           />

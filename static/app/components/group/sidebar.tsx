@@ -209,9 +209,11 @@ class BaseGroupSidebar extends Component<Props, State> {
 
     return (
       <Container>
-        <PageFiltersContainer>
-          <EnvironmentPageFilter alignDropdown="right" />
-        </PageFiltersContainer>
+        {!organization.features.includes('issue-actions-v2') && (
+          <PageFiltersContainer>
+            <EnvironmentPageFilter alignDropdown="right" />
+          </PageFiltersContainer>
+        )}
 
         <Feature organization={organization} features={['issue-details-owners']}>
           <OwnedBy group={group} project={project} organization={organization} />

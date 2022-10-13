@@ -515,9 +515,14 @@ export const icons: IconData[] = [
     keywords: ['feature', 'promotion', 'fresh', 'new'],
   },
   {
-    id: 'bell',
+    id: 'subscribed',
     groups: ['action'],
-    keywords: ['alert', 'notification', 'ring'],
+    keywords: ['alert', 'notification', 'subscribe', 'bell', 'ring'],
+  },
+  {
+    id: 'unsubscribed',
+    groups: ['action'],
+    keywords: ['alert', 'notification', 'subscribe', 'bell', 'ring'],
   },
   {
     id: 'siren',
