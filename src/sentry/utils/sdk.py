@@ -384,6 +384,9 @@ def configure_sdk():
                     )
 
     sentry_sdk.init(
+        # set back the upstream_dsn popped above since we need a default dsn on the client
+        # for dynamic sampling context public_key population
+        dsn=upstream_dsn,
         transport=MultiplexingTransport(),
         integrations=[
             DjangoAtomicIntegration(),

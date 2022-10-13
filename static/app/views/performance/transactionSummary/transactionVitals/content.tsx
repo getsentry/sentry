@@ -5,10 +5,10 @@ import {Location} from 'history';
 
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
+import CompactSelect from 'sentry/components/compactSelect';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
-import CompactSelect from 'sentry/components/forms/compactSelect';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
