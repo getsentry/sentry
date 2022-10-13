@@ -209,6 +209,9 @@ class OrganizationEndpoint(Endpoint):
                     organization=organization, slug__in=slugs
                 ).values_list("id", flat=True)
                 project_ids = set(projects)
+
+                if not project_ids:
+                    return []
             else:
                 project_ids = self.get_requested_project_ids_unchecked(request)
 
