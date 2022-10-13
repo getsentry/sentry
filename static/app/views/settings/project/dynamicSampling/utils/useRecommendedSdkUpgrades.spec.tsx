@@ -4,7 +4,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {ServerSideSamplingStore} from 'sentry/stores/serverSideSamplingStore';
 import {useRecommendedSdkUpgrades} from 'sentry/views/settings/project/dynamicSampling/utils/useRecommendedSdkUpgrades';
 
-import {mockedSamplingSdkVersions} from '../testUtils';
+import {mockedSamplingSdkVersions} from '../testUtils.spec';
 
 describe('useRecommendedSdkUpgrades', function () {
   it('works', function () {

@@ -13,7 +13,7 @@ import {SpecificConditionsModal} from 'sentry/views/settings/project/dynamicSamp
 import {distributedTracesConditions} from 'sentry/views/settings/project/dynamicSampling/modals/specificConditionsModal/utils';
 import {getInnerNameLabel} from 'sentry/views/settings/project/dynamicSampling/utils';
 
-import {getMockData, specificRule, uniformRule} from '../../testUtils';
+import {getMockData, specificRule, uniformRule} from '../../testUtils.spec';
 
 describe('Server-Side Sampling - Specific Conditions Modal', function () {
   afterEach(function () {

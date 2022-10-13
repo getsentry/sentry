@@ -4,7 +4,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {ServerSideSamplingStore} from 'sentry/stores/serverSideSamplingStore';
 import {SamplingBreakdown} from 'sentry/views/settings/project/dynamicSampling/samplingBreakdown';
 
-import {getMockData, mockedSamplingDistribution} from './testUtils';
+import {getMockData, mockedSamplingDistribution} from './testUtils.spec';
 
 export const samplingBreakdownTitle = 'Transaction Breakdown';
 

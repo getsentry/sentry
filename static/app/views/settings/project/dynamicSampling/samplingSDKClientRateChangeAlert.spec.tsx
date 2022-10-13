@@ -2,7 +2,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {SamplingSDKClientRateChangeAlert} from 'sentry/views/settings/project/dynamicSampling/samplingSDKClientRateChangeAlert';
 
-import {getMockData} from './testUtils';
+import {getMockData} from './testUtils.spec';
 
 describe('Server-Side Sampling - Client Rate Change Alert', function () {
   it('does not render content', function () {

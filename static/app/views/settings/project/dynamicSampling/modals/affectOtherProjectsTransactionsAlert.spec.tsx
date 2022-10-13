@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {getMockData} from '../testUtils';
+import {getMockData} from '../testUtils.spec';
 
 import {AffectOtherProjectsTransactionsAlert} from './affectOtherProjectsTransactionsAlert';
 

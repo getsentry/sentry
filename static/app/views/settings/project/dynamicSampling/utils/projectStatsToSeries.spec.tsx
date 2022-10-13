@@ -1,6 +1,6 @@
 import {projectStatsToSeries} from 'sentry/views/settings/project/dynamicSampling/utils/projectStatsToSeries';
 
-import {outcomesWithoutClientDiscarded} from '../testUtils';
+import {outcomesWithoutClientDiscarded} from '../testUtils.spec';
 
 describe('projectStatsToSeries', function () {
   it('returns correct series', function () {

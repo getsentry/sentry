@@ -30,7 +30,7 @@ import {
   specificRule,
   TestComponent,
   uniformRule,
-} from './testUtils';
+} from './testUtils.spec';
 
 function renderMockRequests({
   organizationSlug,

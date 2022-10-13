@@ -19,7 +19,7 @@ import {
   getMockData,
   mockedSamplingDistribution,
   outcomesWithoutClientDiscarded,
-} from '../testUtils';
+} from '../testUtils.spec';
 
 jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
 
