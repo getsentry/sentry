@@ -1,4 +1,4 @@
-import {Field} from 'sentry/components/forms/type';
+import {Field} from 'sentry/components/forms/types';
 import {t, tn} from 'sentry/locale';
 
 // Export route to make these forms searchable by label/help

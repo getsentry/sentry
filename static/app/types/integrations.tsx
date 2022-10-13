@@ -1,5 +1,5 @@
 import type Alert from 'sentry/components/alert';
-import type {Field} from 'sentry/components/forms/type';
+import type {Field} from 'sentry/components/forms/types';
 import type {PlatformKey} from 'sentry/data/platformCategories';
 import type {
   DISABLED as DISABLED_STATUS,

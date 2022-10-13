@@ -7,7 +7,7 @@ import {
   FeedbackModalProps,
   modalCss,
 } from 'sentry/components/featureFeedback/feedbackModal';
-import {Data} from 'sentry/components/forms/type';
+import {Data} from 'sentry/components/forms/types';
 import {IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
 

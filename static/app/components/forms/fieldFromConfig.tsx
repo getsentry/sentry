@@ -1,6 +1,6 @@
 import {FieldProps} from 'sentry/components/forms/field';
 import SeparatorField from 'sentry/components/forms/fields/separatorField';
-import {Field} from 'sentry/components/forms/type';
+import {Field} from 'sentry/components/forms/types';
 import {Scope} from 'sentry/types';
 
 import BlankField from './fields/blankField';

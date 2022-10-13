@@ -2,7 +2,7 @@ import pick from 'lodash/pick';
 
 import {FieldFromConfig} from 'sentry/components/forms';
 import Form from 'sentry/components/forms/form';
-import {Field} from 'sentry/components/forms/type';
+import {Field} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
 import {
   Integration,

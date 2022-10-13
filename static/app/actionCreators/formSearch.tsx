@@ -1,7 +1,7 @@
 import flatMap from 'lodash/flatMap';
 import flatten from 'lodash/flatten';
 
-import {Field, JsonFormObject} from 'sentry/components/forms/type';
+import {Field, JsonFormObject} from 'sentry/components/forms/types';
 import FormSearchStore, {FormSearchField} from 'sentry/stores/formSearchStore';
 
 type Params = {

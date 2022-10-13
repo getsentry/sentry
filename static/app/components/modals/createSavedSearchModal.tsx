@@ -6,7 +6,7 @@ import {createSavedSearch} from 'sentry/actionCreators/savedSearches';
 import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import {Form, SelectField, TextField} from 'sentry/components/forms';
-import {OnSubmitCallback} from 'sentry/components/forms/type';
+import {OnSubmitCallback} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';

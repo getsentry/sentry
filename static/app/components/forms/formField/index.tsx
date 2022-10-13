@@ -16,7 +16,7 @@ import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 
-import {FieldValue} from '../type';
+import {FieldValue} from '../types';
 
 /**
  * Some fields don't need to implement their own onChange handlers, in

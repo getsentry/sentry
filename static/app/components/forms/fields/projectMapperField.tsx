@@ -7,7 +7,7 @@ import SelectControl from 'sentry/components/forms/controls/selectControl';
 import FieldErrorReason from 'sentry/components/forms/field/fieldErrorReason';
 import FormFieldControlState from 'sentry/components/forms/formField/controlState';
 import FormModel from 'sentry/components/forms/model';
-import {ProjectMapperType} from 'sentry/components/forms/type';
+import {ProjectMapperType} from 'sentry/components/forms/types';
 import IdBadge from 'sentry/components/idBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {PanelAlert} from 'sentry/components/panels';

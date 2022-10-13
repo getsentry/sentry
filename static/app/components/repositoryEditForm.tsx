@@ -1,6 +1,6 @@
 import {FieldFromConfig} from 'sentry/components/forms';
 import Form from 'sentry/components/forms/form';
-import {Field} from 'sentry/components/forms/type';
+import {Field} from 'sentry/components/forms/types';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {Repository} from 'sentry/types';
