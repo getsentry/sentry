@@ -1,4 +1,4 @@
-import {JsonFormObject} from 'sentry/components/forms/type';
+import {JsonFormObject} from 'sentry/components/forms/types';
 
 const getUserIsNotManaged = ({user}) => !user.isManaged;
 

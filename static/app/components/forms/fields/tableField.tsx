@@ -6,7 +6,7 @@ import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import InputField, {InputFieldProps} from 'sentry/components/forms/fields/inputField';
-import {TableType} from 'sentry/components/forms/type';
+import {TableType} from 'sentry/components/forms/types';
 import Input from 'sentry/components/input';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
