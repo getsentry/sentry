@@ -48,28 +48,6 @@ def kafka_message_without_transaction_header(kafka_message_payload):
     return mock_message
 
 
-@pytest.fixture
-def kafka_message_with_transaction_header_false(kafka_message_payload):
-    mock_message = Mock()
-    mock_message.headers = MagicMock(
-        return_value=[("timestamp", b"12345"), ("transaction_forwarder", b"0")]
-    )
-    mock_message.value = MagicMock(return_value=json.dumps(kafka_message_payload))
-    mock_message.partition = MagicMock("1")
-    return mock_message
-
-
-@pytest.fixture
-def kafka_message_with_transaction_header_true(kafka_message_payload):
-    mock_message = Mock()
-    mock_message.headers = MagicMock(
-        return_value=[("timestamp", b"12345"), ("transaction_forwarder", b"1")]
-    )
-    mock_message.value = MagicMock(return_value=json.dumps(kafka_message_payload))
-    mock_message.partition = MagicMock("1")
-    return mock_message
-
-
 @patch("sentry.eventstream.kafka.postprocessworker.dispatch_post_process_group_task", autospec=True)
 def test_post_process_forwarder(
     dispatch_post_process_group_task, kafka_message_without_transaction_header
@@ -155,68 +133,6 @@ def test_post_process_forwarder_bad_message(kafka_message_payload):
 
 
 @pytest.mark.django_db
-@patch("sentry.eventstream.kafka.postprocessworker.dispatch_post_process_group_task", autospec=True)
-def test_post_process_forwarder_missing_headers(
-    dispatch_post_process_group_task, kafka_message_without_transaction_header
-):
-    """
-    Tests that the errors post process forwarder calls dispatch_post_process_group_task
-    when the header "transaction_forwarder" is missing.
-    """
-    forwarder = PostProcessForwarderWorker(concurrency=1)
-    future = forwarder.process_message(kafka_message_without_transaction_header)
-    assert future is not None
-
-    forwarder.flush_batch([future])
-
-    dispatch_post_process_group_task.assert_called_once_with(
-        event_id="fe0ee9a2bc3b415497bad68aaf70dc7f",
-        project_id=1,
-        group_id=43,
-        primary_hash="311ee66a5b8e697929804ceb1c456ffe",
-        is_new=False,
-        is_regression=None,
-        is_new_group_environment=False,
-        group_states=[
-            {"id": 43, "is_new": False, "is_regression": None, "is_new_group_environment": False}
-        ],
-    )
-
-    forwarder.shutdown()
-
-
-@pytest.mark.django_db
-@patch("sentry.eventstream.kafka.postprocessworker.dispatch_post_process_group_task", autospec=True)
-def test_errors_post_process_forwarder_false_headers(
-    dispatch_post_process_group_task, kafka_message_with_transaction_header_false
-):
-    """
-    Test that the errors post process forwarder calls dispatch_post_process_group_task
-    when the header "transaction_forwarder" is set to False.
-    """
-    forwarder = PostProcessForwarderWorker(concurrency=1)
-    future = forwarder.process_message(kafka_message_with_transaction_header_false)
-    assert future is not None
-
-    forwarder.flush_batch([future])
-
-    dispatch_post_process_group_task.assert_called_once_with(
-        event_id="fe0ee9a2bc3b415497bad68aaf70dc7f",
-        project_id=1,
-        group_id=43,
-        primary_hash="311ee66a5b8e697929804ceb1c456ffe",
-        is_new=False,
-        is_regression=None,
-        is_new_group_environment=False,
-        group_states=[
-            {"id": 43, "is_new": False, "is_regression": None, "is_new_group_environment": False}
-        ],
-    )
-
-    forwarder.shutdown()
-
-
-@pytest.mark.django_db
 @patch(
     "sentry.eventstream.kafka.postprocessworker.post_process_group.delay",
     wraps=sentry.tasks.post_process.post_process_group.delay,
@@ -264,14 +180,14 @@ def test_errors_post_process_forwarder_calls_post_process_group(
 )
 def test_transactions_post_process_forwarder_calls_post_process_group(
     post_process_group_spy,
-    kafka_message_with_transaction_header_true,
+    kafka_message_without_transaction_header,
 ):
     forwarder = PostProcessForwarderWorker(concurrency=1)
 
     with TaskRunner():
         assert post_process_group_spy.call_count == 0
 
-        future = forwarder.process_message(kafka_message_with_transaction_header_true)
+        future = forwarder.process_message(kafka_message_without_transaction_header)
 
         assert future is not None
         forwarder.flush_batch([future])
