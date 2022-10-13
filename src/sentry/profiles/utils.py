@@ -25,16 +25,30 @@ class RetrySkipTimeout(urllib3.Retry):
         self, method=None, url=None, response=None, error=None, _pool=None, _stacktrace=None
     ):
         """
-        Just rely on the parent class unless we have a read timeout. In that case
-        immediately give up
+        Just rely on the parent class unless we have a read timeout. In that case,
+        immediately give up. Except when we're inserting a profile to vroom which
+        can timeout due to GCS where we want to retry.
         """
-        if error and isinstance(error, urllib3.exceptions.ReadTimeoutError):
+        if url:
+            # The url is high cardinality because of the ids in it, so strip it
+            # from the path before using it in the metric tags.
+            path = urlparse(url).path
+            parts = path.split("/")
+            if len(parts) > 2:
+                parts[2] = ":orgId"
+            if len(parts) > 4:
+                parts[4] = ":projId"
+            if len(parts) > 6:
+                parts[6] = ":uuid"
+            path = "/".join(parts)
+        else:
+            path = None
+
+        if path != "/profile" and error and isinstance(error, urllib3.exceptions.ReadTimeoutError):
             raise error.with_traceback(_stacktrace)
 
-        metrics.incr(
-            "profiling.client.retry",
-            tags={"method": method, "path": urlparse(url).path if url else None},
-        )
+        metrics.incr("profiling.client.retry", tags={"method": method, "path": path})
+
         return super().increment(
             method=method,
             url=url,
@@ -52,7 +66,7 @@ _profiling_pool = connection_from_url(
         status_forcelist={502},
         allowed_methods={"GET", "POST"},
     ),
-    timeout=30,
+    timeout=10,
     maxsize=10,
     headers={"Accept-Encoding": "br, gzip"},
 )

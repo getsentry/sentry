@@ -35,7 +35,7 @@ class BitbucketSearchEndpoint(IntegrationEndpoint):
             if not repo:
                 return Response({"detail": "repo is a required parameter"}, status=400)
 
-            full_query = f'title~"{query}"'.encode()
+            full_query = f'title~"{query}"'
             try:
                 resp = installation.get_client().search_issues(repo, full_query)
             except ApiError as e:

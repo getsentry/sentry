@@ -129,19 +129,26 @@ export const recommendedSdkUpgrades: RecommendedSdkUpgrade[] = [
 ];
 
 export const mockedSamplingDistribution: SamplingDistribution = {
-  project_breakdown: [
+  projectBreakdown: [
     {
       project: mockedProjects[0].slug,
-      project_id: mockedProjects[0].id,
+      projectId: mockedProjects[0].id,
       'count()': 888,
     },
     {
       project: mockedProjects[1].slug,
-      project_id: mockedProjects[1].id,
+      projectId: mockedProjects[1].id,
       'count()': 100,
     },
   ],
-  sample_size: 100,
+  parentProjectBreakdown: [
+    {
+      percentage: 10,
+      project: 'parent-project',
+      projectId: 10,
+    },
+  ],
+  sampleSize: 100,
   startTimestamp: '2017-08-04T07:52:11Z',
   endTimestamp: '2017-08-05T07:52:11Z',
 };

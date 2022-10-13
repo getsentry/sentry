@@ -189,9 +189,8 @@ class ResolveActions extends Component<Props> {
       <DropdownMenuControl
         size="sm"
         items={items}
-        trigger={({props: triggerProps, ref: triggerRef}) => (
+        trigger={triggerProps => (
           <DropdownTrigger
-            ref={triggerRef}
             {...triggerProps}
             aria-label={t('More resolve options')}
             size="xs"
