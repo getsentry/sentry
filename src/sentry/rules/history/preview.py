@@ -52,9 +52,6 @@ def preview(
 
     frequency = timedelta(minutes=frequency_minutes)
     last_fire = start - frequency
-    # TODO: maintain each group's rolling status while going through the activities
-    # reappearance and regression will both consider UNRESOLVED activity,
-    # but it depends on the previous status which one will trigger
     for event in activity:
         # TODO: check conditions and filters to see if event passes, not needed for just FirstSeenEventCondition
         if last_fire <= event.timestamp - frequency:
