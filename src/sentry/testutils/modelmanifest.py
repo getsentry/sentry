@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Dict, Set, Tuple, Type
+from dataclasses import dataclass
+from typing import Dict, Set, Type
 
 import django.apps
 
@@ -13,7 +14,16 @@ from sentry.utils import json
 class ModelManifest:
     """For auditing which models are touched by each test case."""
 
-    Hit = Tuple[Type[Model], ModelManagerTriggerCondition]
+    @dataclass(frozen=True, eq=True)
+    class Hit:
+        model_class: Type[Model]
+        condition: ModelManagerTriggerCondition
+
+        def as_json_output(self) -> Dict[str, str]:
+            return {
+                "model": self.model_class.__name__,
+                "condition": self.condition.name,
+            }
 
     def __init__(self, path: str) -> None:
         if not path:
@@ -28,7 +38,7 @@ class ModelManifest:
         condition: ModelManagerTriggerCondition,
     ) -> ModelManagerTriggerTeardown:
         def action(model_class: Type[Model]) -> None:
-            self.hits[test_class_name].add((model_class, condition))
+            self.hits[test_class_name].add(self.Hit(model_class, condition))
 
         teardown: ModelManagerTriggerTeardown = model_manager.register_trigger(condition, action)
         return teardown
@@ -51,14 +61,8 @@ class ModelManifest:
 
     def write(self) -> None:
         output = {
-            test_case_name: [
-                {
-                    "model": model_class.__name__,
-                    "condition": condition.name,
-                }
-                for (model_class, condition) in results
-            ]
-            for (test_case_name, results) in self.hits.items()
+            test_case_name: [hit.as_json_output() for hit in hit_values]
+            for (test_case_name, hit_values) in self.hits.items()
         }
 
         with open(self.path, mode="w") as f:
