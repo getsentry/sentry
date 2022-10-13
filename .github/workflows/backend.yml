@@ -107,7 +107,7 @@ jobs:
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
 
-  backend-test-in-silo-modes:
+  silo-mode-backend-tests:
     needs: files-changed
     if: needs.files-changed.outputs.backend == 'true'
       && (
