@@ -18,13 +18,12 @@ import Access from 'sentry/components/acl/access';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Field from 'sentry/components/forms/field';
 import FieldHelp from 'sentry/components/forms/field/fieldHelp';
+import SelectField from 'sentry/components/forms/fields/selectField';
 import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
-import SelectControl from 'sentry/components/forms/selectControl';
-import SelectField from 'sentry/components/forms/selectField';
-import TeamSelector from 'sentry/components/forms/teamSelector';
 import IdBadge from 'sentry/components/idBadge';
 import Input from 'sentry/components/input';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -32,6 +31,7 @@ import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingMask from 'sentry/components/loadingMask';
 import {Panel, PanelBody} from 'sentry/components/panels';
+import TeamSelector from 'sentry/components/teamSelector';
 import {ALL_ENVIRONMENTS_KEY} from 'sentry/constants';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -979,14 +979,14 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                                         className={classNames({
                                           error: this.hasError('actionMatch'),
                                         })}
-                                        inline={false}
                                         styles={{
                                           control: provided => ({
                                             ...provided,
-                                            minHeight: '20px',
-                                            height: '20px',
+                                            minHeight: '21px',
+                                            height: '21px',
                                           }),
                                         }}
+                                        inline={false}
                                         isSearchable={false}
                                         isClearable={false}
                                         name="actionMatch"
@@ -996,6 +996,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                                         onChange={val =>
                                           this.handleChange('actionMatch', val)
                                         }
+                                        size="xs"
                                         disabled={disabled}
                                       />
                                     </EmbeddedWrapper>
@@ -1042,7 +1043,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
                           <StepContent>
                             <StepLead>
-                              {tct('[if:If] [selector] of these filters match', {
+                              {tct('[if:If][selector] of these filters match', {
                                 if: <Badge />,
                                 selector: (
                                   <EmbeddedWrapper>
@@ -1050,14 +1051,14 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                                       className={classNames({
                                         error: this.hasError('filterMatch'),
                                       })}
-                                      inline={false}
                                       styles={{
                                         control: provided => ({
                                           ...provided,
-                                          minHeight: '20px',
-                                          height: '20px',
+                                          minHeight: '21px',
+                                          height: '21px',
                                         }),
                                       }}
+                                      inline={false}
                                       isSearchable={false}
                                       isClearable={false}
                                       name="filterMatch"
@@ -1067,6 +1068,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                                       onChange={val =>
                                         this.handleChange('filterMatch', val)
                                       }
+                                      size="xs"
                                       disabled={disabled}
                                     />
                                   </EmbeddedWrapper>
@@ -1217,6 +1219,11 @@ const StepConnector = styled('div')`
 
 const StepLead = styled('div')`
   margin-bottom: ${space(0.5)};
+  & > span {
+    display: flex;
+    align-items: center;
+    gap: ${space(0.5)};
+  }
 `;
 
 const ChevronContainer = styled('div')`
@@ -1226,7 +1233,6 @@ const ChevronContainer = styled('div')`
 `;
 
 const Badge = styled('span')`
-  display: inline-block;
   min-width: 56px;
   background-color: ${p => p.theme.purple300};
   padding: 0 ${space(0.75)};
@@ -1240,8 +1246,6 @@ const Badge = styled('span')`
 `;
 
 const EmbeddedWrapper = styled('div')`
-  display: inline-block;
-  margin: 0 ${space(0.5)};
   width: 80px;
 `;
 
