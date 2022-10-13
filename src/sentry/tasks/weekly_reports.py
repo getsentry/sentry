@@ -3,7 +3,7 @@ from datetime import timedelta
 from functools import partial, reduce
 
 import sentry_sdk
-from django.db.models import Count, F
+from django.db.models import Count
 from django.utils import dateformat, timezone
 from snuba_sdk import Request
 from snuba_sdk.column import Column
@@ -17,6 +17,7 @@ from snuba_sdk.query import Limit, Query
 from sentry import features
 from sentry.api.serializers.snuba import zerofill
 from sentry.constants import DataCategory
+from sentry.db.models.fields import PickledObjectField
 from sentry.models import (
     Activity,
     Group,
@@ -26,6 +27,7 @@ from sentry.models import (
     Organization,
     OrganizationMember,
     OrganizationStatus,
+    User,
     UserOption,
 )
 from sentry.snuba.dataset import Dataset
@@ -509,15 +511,21 @@ def deliver_reports(ctx, dry_run=False, target_user=None):
     if target_user:
         send_email(ctx, target_user, dry_run=dry_run)
     else:
-        member_set = ctx.organization.member_set.filter(
-            user_id__isnull=False, user__is_active=True
-        ).exclude(flags=F("flags").bitor(OrganizationMember.flags["member-limit:restricted"]))
+        user_set = User.objects.raw(
+            """SELECT auth_user.*, sentry_useroption.value as options FROM auth_user
+                                       INNER JOIN sentry_organizationmember on sentry_organizationmember.user_id=auth_user.id
+                                       LEFT JOIN sentry_useroption on sentry_useroption.user_id = auth_user.id and sentry_useroption.key = 'reports:disabled-organizations'
+                                       WHERE auth_user.is_active = true
+                                         AND "sentry_organizationmember"."flags" & %s = 0
+                                         AND "sentry_organizationmember"."organization_id"= %s """,
+            [OrganizationMember.flags["member-limit:restricted"], ctx.organization.id],
+        )
 
-        for member in member_set:
-            user = member.user
-            if not user_subscribed_to_organization_reports(user, ctx.organization):
-                return
-            send_email(ctx, user, dry_run=dry_run)
+        for user in user_set:
+            option = PickledObjectField().to_python(user.options) or []
+            user_subscribed_to_organization_reports = ctx.organization.id not in option
+            if user_subscribed_to_organization_reports:
+                send_email(ctx, user, dry_run=dry_run)
 
 
 project_breakdown_colors = ["#422C6E", "#895289", "#D6567F", "#F38150", "#F2B713"]
