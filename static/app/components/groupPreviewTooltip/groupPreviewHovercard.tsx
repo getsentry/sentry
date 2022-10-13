@@ -1,4 +1,4 @@
-import {ComponentProps, Fragment} from 'react';
+import {ComponentProps, Fragment, useCallback} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -10,12 +10,18 @@ interface GroupPreviewHovercardProps extends ComponentProps<typeof Hovercard> {
   hide?: boolean;
 }
 
-const GroupPreviewHovercard = ({
+export const GroupPreviewHovercard = ({
   className,
   children,
   hide,
+  body,
   ...props
 }: GroupPreviewHovercardProps) => {
+  const handleStackTracePreviewClick = useCallback(
+    (e: React.MouseEvent) => void e.stopPropagation(),
+    []
+  );
+
   // No need to preview on hover for small devices
   const shouldNotPreview = useMedia(`(max-width: ${theme.breakpoints.medium})`);
   if (shouldNotPreview) {
@@ -31,6 +37,7 @@ const GroupPreviewHovercard = ({
       tipBorderColor="border"
       tipColor="background"
       hide={hide}
+      body={<div onClick={handleStackTracePreviewClick}>{body}</div>}
       {...props}
     >
       {children}
@@ -74,5 +81,3 @@ const StyledHovercard = styled(Hovercard)<{hide?: boolean}>`
     }
   }
 `;
-
-export default GroupPreviewHovercard;

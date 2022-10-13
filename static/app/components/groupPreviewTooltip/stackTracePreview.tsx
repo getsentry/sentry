@@ -8,6 +8,8 @@ import StackTraceContentV3 from 'sentry/components/events/interfaces/crashConten
 import findBestThread from 'sentry/components/events/interfaces/threads/threadSelector/findBestThread';
 import getThreadStacktrace from 'sentry/components/events/interfaces/threads/threadSelector/getThreadStacktrace';
 import {isStacktraceNewestFirst} from 'sentry/components/events/interfaces/utils';
+import {GroupPreviewHovercard} from 'sentry/components/groupPreviewTooltip/groupPreviewHovercard';
+import {useDelayedLoadingState} from 'sentry/components/groupPreviewTooltip/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -18,9 +20,6 @@ import {defined} from 'sentry/utils';
 import {isNativePlatform} from 'sentry/utils/platform';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-
-import GroupPreviewHovercard from './groupPreviewHovercard';
-import {useDelayedLoadingState} from './utils';
 
 function getStacktrace(event: Event): StacktraceType | null {
   const exceptionsWithStacktrace =
@@ -178,33 +177,23 @@ function StackTracePreviewBody({
     };
   }, [fetchData, onUnmount]);
 
-  // Not sure why we need to stop propagation, maybe to prevent the
-  // hovercard from closing? If we are doing this often, maybe it should be
-  // part of the hovercard component.
-  const handleStackTracePreviewClick = useCallback(
-    (e: React.MouseEvent) => void e.stopPropagation(),
-    []
-  );
-
   const stacktrace = useMemo(() => (event ? getStacktrace(event) : null), [event]);
 
   switch (status) {
     case 'loading':
       return (
-        <NoStackTraceWrapper onClick={handleStackTracePreviewClick}>
+        <NoStackTraceWrapper>
           <LoadingIndicator hideMessage size={32} />
         </NoStackTraceWrapper>
       );
     case 'error':
       return (
-        <NoStackTraceWrapper onClick={handleStackTracePreviewClick}>
-          {t('Failed to load stack trace.')}
-        </NoStackTraceWrapper>
+        <NoStackTraceWrapper>{t('Failed to load stack trace.')}</NoStackTraceWrapper>
       );
     case 'loaded': {
       if (stacktrace && event) {
         return (
-          <StackTracePreviewWrapper onClick={handleStackTracePreviewClick}>
+          <StackTracePreviewWrapper>
             <StackTracePreviewContent
               event={event}
               stacktrace={stacktrace}
@@ -216,7 +205,7 @@ function StackTracePreviewBody({
       }
 
       return (
-        <NoStackTraceWrapper onClick={handleStackTracePreviewClick}>
+        <NoStackTraceWrapper>
           {t('There is no stack trace available for this issue.')}
         </NoStackTraceWrapper>
       );
