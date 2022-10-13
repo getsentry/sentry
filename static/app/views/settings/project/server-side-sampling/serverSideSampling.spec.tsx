@@ -1,11 +1,24 @@
 import {
+  createMemoryHistory,
+  IndexRoute,
+  Route,
+  Router,
+  RouterContext,
+} from 'react-router';
+
+import {
   render,
   screen,
   userEvent,
   waitFor,
+  waitForElementToBeRemoved,
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {ServerSideSamplingStore} from 'sentry/stores/serverSideSamplingStore';
+import {Organization, Project} from 'sentry/types';
+import {SamplingSdkVersion} from 'sentry/types/sampling';
+import {RouteContext} from 'sentry/views/routeContext';
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/server-side-sampling/utils';
 
 import {samplingBreakdownTitle} from './samplingBreakdown.spec';
@@ -19,49 +32,85 @@ import {
   uniformRule,
 } from './testUtils';
 
-describe('Server-Side Sampling', function () {
-  let distributionMock: ReturnType<typeof MockApiClient.addMockResponse> | undefined =
-    undefined;
-  let sdkVersionsMock: ReturnType<typeof MockApiClient.addMockResponse> | undefined =
-    undefined;
-
-  beforeEach(function () {
-    distributionMock = MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/dynamic-sampling/distribution/',
-      method: 'GET',
-      body: mockedSamplingDistribution,
-    });
-
-    sdkVersionsMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/dynamic-sampling/sdk-versions/',
-      method: 'GET',
-      body: mockedSamplingSdkVersions,
-    });
-
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/projects/',
-      method: 'GET',
-      body: mockedSamplingDistribution.project_breakdown!.map(p =>
-        TestStubs.Project({id: p.project_id, slug: p.project})
-      ),
-    });
-
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/stats_v2/',
-      method: 'GET',
-      body: TestStubs.Outcomes(),
-    });
+function renderMockRequests({
+  organizationSlug,
+  projectSlug,
+  mockedSdkVersionsResponse = mockedSamplingSdkVersions,
+}: {
+  organizationSlug: Organization['slug'];
+  projectSlug: Project['slug'];
+  mockedSdkVersionsResponse?: SamplingSdkVersion[];
+}) {
+  const distribution = MockApiClient.addMockResponse({
+    url: `/projects/${organizationSlug}/${projectSlug}/dynamic-sampling/distribution/`,
+    method: 'GET',
+    body: mockedSamplingDistribution,
   });
 
-  afterEach(() => {
+  const sdkVersions = MockApiClient.addMockResponse({
+    url: `/organizations/${organizationSlug}/dynamic-sampling/sdk-versions/`,
+    method: 'GET',
+    body: mockedSdkVersionsResponse,
+  });
+
+  const projects = MockApiClient.addMockResponse({
+    url: `/organizations/${organizationSlug}/projects/`,
+    method: 'GET',
+    body: mockedSamplingDistribution.projectBreakdown!.map(p =>
+      TestStubs.Project({id: p.projectId, slug: p.project})
+    ),
+  });
+
+  const statsV2 = MockApiClient.addMockResponse({
+    url: `/organizations/${organizationSlug}/stats_v2/`,
+    method: 'GET',
+    body: TestStubs.Outcomes(),
+  });
+
+  return {distribution, sdkVersions, projects, statsV2};
+}
+
+describe('Server-Side Sampling', function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders onboarding promo', async function () {
-    const {router, organization, project} = getMockData();
+  it('renders onboarding promo and open uniform rule modal', async function () {
+    const {organization, project} = getMockData();
+
+    const mockRequests = renderMockRequests({
+      organizationSlug: organization.slug,
+      projectSlug: project.slug,
+    });
+
+    const memoryHistory = createMemoryHistory();
+
+    memoryHistory.push(
+      `/settings/${organization.slug}/projects/${project.slug}/dynamic-sampling/`
+    );
+
+    function Component() {
+      return <TestComponent organization={organization} project={project} withModal />;
+    }
 
     const {container} = render(
-      <TestComponent router={router} organization={organization} project={project} />
+      <Router
+        history={memoryHistory}
+        render={props => {
+          return (
+            <RouteContext.Provider value={props}>
+              <RouterContext {...props} />
+            </RouteContext.Provider>
+          );
+        }}
+      >
+        <Route
+          path={`/settings/${organization.slug}/projects/${project.slug}/dynamic-sampling/`}
+        >
+          <IndexRoute component={Component} />
+          <Route path="rules/:rule/" component={Component} />
+        </Route>
+      </Router>
     );
 
     expect(screen.getByRole('heading', {name: /Dynamic Sampling/})).toBeInTheDocument();
@@ -86,7 +135,20 @@ describe('Server-Side Sampling', function () {
       SERVER_SIDE_SAMPLING_DOC_LINK
     );
 
-    expect(screen.getByRole('button', {name: 'Start Setup'})).toBeInTheDocument();
+    // Open Modal
+    userEvent.click(screen.getByRole('button', {name: 'Start Setup'}));
+
+    expect(
+      await screen.findByRole('heading', {name: 'Set a global sample rate'})
+    ).toBeInTheDocument();
+
+    expect(mockRequests.statsV2).toHaveBeenCalledTimes(2);
+    expect(mockRequests.distribution).toHaveBeenCalledTimes(1);
+    expect(mockRequests.sdkVersions).toHaveBeenCalledTimes(1);
+
+    // Close Modal
+    userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
+    await waitForElementToBeRemoved(() => screen.getByRole('dialog'));
 
     expect(container).toSnapshot();
   });
@@ -100,6 +162,11 @@ describe('Server-Side Sampling', function () {
           },
         }),
       ],
+    });
+
+    renderMockRequests({
+      organizationSlug: organization.slug,
+      projectSlug: project.slug,
     });
 
     const {container} = render(
@@ -173,6 +240,11 @@ describe('Server-Side Sampling', function () {
       ],
     });
 
+    renderMockRequests({
+      organizationSlug: organization.slug,
+      projectSlug: project.slug,
+    });
+
     render(
       <TestComponent router={router} organization={organization} project={project} />
     );
@@ -199,6 +271,11 @@ describe('Server-Side Sampling', function () {
       projects: mockedProjects,
     });
 
+    const mockRequests = renderMockRequests({
+      organizationSlug: organization.slug,
+      projectSlug: projects[2].slug,
+    });
+
     render(
       <TestComponent
         organization={organization}
@@ -208,10 +285,10 @@ describe('Server-Side Sampling', function () {
       />
     );
 
-    expect(distributionMock).toHaveBeenCalled();
+    expect(mockRequests.distribution).toHaveBeenCalled();
 
     await waitFor(() => {
-      expect(sdkVersionsMock).toHaveBeenCalled();
+      expect(mockRequests.sdkVersions).toHaveBeenCalled();
     });
 
     const recommendedSdkUpgradesAlert = await screen.findByTestId(
@@ -240,11 +317,13 @@ describe('Server-Side Sampling', function () {
       })
     );
 
-    expect(await screen.findByRole('heading', {name: 'Next steps'})).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', {name: 'Important next steps'})
+    ).toBeInTheDocument();
   });
 
-  it('Open specific conditions modal', async function () {
-    const {router, project, organization} = getMockData({
+  it('open specific conditions modal when adding rule', async function () {
+    const {project, organization} = getMockData({
       projects: [
         TestStubs.Project({
           dynamicSampling: {
@@ -265,19 +344,78 @@ describe('Server-Side Sampling', function () {
       ],
     });
 
-    render(
-      <TestComponent
-        organization={organization}
-        project={project}
-        router={router}
-        withModal
-      />
+    const mockRequests = renderMockRequests({
+      organizationSlug: organization.slug,
+      projectSlug: project.slug,
+    });
+
+    const memoryHistory = createMemoryHistory();
+
+    memoryHistory.push(
+      `/settings/${organization.slug}/projects/${project.slug}/dynamic-sampling/`
     );
 
-    // Open Modal
+    function DynamicSamplingPage() {
+      return <TestComponent organization={organization} project={project} withModal />;
+    }
+
+    function AlternativePage() {
+      return <div>alternative page</div>;
+    }
+
+    render(
+      <Router
+        history={memoryHistory}
+        render={props => {
+          return (
+            <RouteContext.Provider value={props}>
+              <RouterContext {...props} />
+            </RouteContext.Provider>
+          );
+        }}
+      >
+        <Route
+          path={`/settings/${organization.slug}/projects/${project.slug}/dynamic-sampling/`}
+        >
+          <IndexRoute component={DynamicSamplingPage} />
+          <Route path="rules/:rule/" component={DynamicSamplingPage} />
+        </Route>
+        <Route path="mock-path" component={AlternativePage} />
+      </Router>
+    );
+
+    // Store is reset on the first load
+    expect(ServerSideSamplingStore.getState().projectStats48h.data).toBe(undefined);
+    expect(ServerSideSamplingStore.getState().projectStats30d.data).toBe(undefined);
+    expect(ServerSideSamplingStore.getState().distribution.data).toBe(undefined);
+    expect(ServerSideSamplingStore.getState().sdkVersions.data).toBe(undefined);
+
+    // Store is updated with request responses on first load
+    await waitFor(() => {
+      expect(ServerSideSamplingStore.getState().sdkVersions.data).not.toBe(undefined);
+    });
+    expect(ServerSideSamplingStore.getState().projectStats48h.data).not.toBe(undefined);
+    expect(ServerSideSamplingStore.getState().projectStats30d.data).not.toBe(undefined);
+    expect(ServerSideSamplingStore.getState().distribution.data).not.toBe(undefined);
+
+    // Open Modal (new route)
     userEvent.click(screen.getByLabelText('Add Rule'));
 
     expect(await screen.findByRole('heading', {name: 'Add Rule'})).toBeInTheDocument();
+
+    // In a new route, if the store contains the required values, no further requests are sent
+    expect(mockRequests.statsV2).toHaveBeenCalledTimes(2);
+    expect(mockRequests.distribution).toHaveBeenCalledTimes(1);
+    expect(mockRequests.sdkVersions).toHaveBeenCalledTimes(1);
+
+    // Leave dynamic sampling's page
+    memoryHistory.push(`mock-path`);
+
+    // When leaving dynamic sampling's page the ServerSideSamplingStore is reset
+    expect(ServerSideSamplingStore.getState().projectStats48h.data).toBe(undefined);
+    expect(ServerSideSamplingStore.getState().projectStats30d.data).toBe(undefined);
+    expect(ServerSideSamplingStore.getState().distribution.data).toBe(undefined);
+    expect(ServerSideSamplingStore.getState().sdkVersions.data).toBe(undefined);
   });
 
   it('does not let user add without permissions', async function () {
@@ -292,6 +430,11 @@ describe('Server-Side Sampling', function () {
       access: [],
     });
 
+    const mockRequests = renderMockRequests({
+      organizationSlug: organization.slug,
+      projectSlug: project.slug,
+    });
+
     render(
       <TestComponent organization={organization} project={project} router={router} />
     );
@@ -302,8 +445,8 @@ describe('Server-Side Sampling', function () {
       await screen.findByText("You don't have permission to add a rule")
     ).toBeInTheDocument();
 
-    expect(distributionMock).not.toHaveBeenCalled();
-    expect(sdkVersionsMock).not.toHaveBeenCalled();
+    expect(mockRequests.distribution).not.toHaveBeenCalled();
+    expect(mockRequests.sdkVersions).not.toHaveBeenCalled();
   });
 
   it('does not let the user activate a rule if sdk updates exists', async function () {
@@ -315,6 +458,11 @@ describe('Server-Side Sampling', function () {
           },
         }),
       ],
+    });
+
+    renderMockRequests({
+      organizationSlug: organization.slug,
+      projectSlug: project.slug,
     });
 
     render(
@@ -334,7 +482,7 @@ describe('Server-Side Sampling', function () {
     ).toBeInTheDocument();
   });
 
-  it('open uniform rate modal when editing a uniform rule', async function () {
+  it('does not let the user activate an uniform rule if still processing', async function () {
     const {organization, router, project} = getMockData({
       projects: [
         TestStubs.Project({
@@ -345,25 +493,85 @@ describe('Server-Side Sampling', function () {
       ],
     });
 
+    renderMockRequests({
+      organizationSlug: organization.slug,
+      projectSlug: project.slug,
+      mockedSdkVersionsResponse: [],
+    });
+
     render(
-      <TestComponent
-        organization={organization}
-        project={project}
-        router={router}
-        withModal
-      />
+      <TestComponent router={router} organization={organization} project={project} />
     );
 
-    userEvent.click(screen.getByLabelText('Actions'));
+    expect(await screen.findByRole('checkbox', {name: 'Activate Rule'})).toBeDisabled();
+
+    userEvent.hover(screen.getByLabelText('Activate Rule'));
+
+    expect(
+      await screen.findByText(
+        'We are processing sampling information for your project, so you cannot enable the rule yet. Please check again later'
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('open uniform rate modal when editing a uniform rule', async function () {
+    const {organization, project} = getMockData({
+      projects: [
+        TestStubs.Project({
+          dynamicSampling: {
+            rules: [uniformRule],
+          },
+        }),
+      ],
+    });
+
+    const mockRequests = renderMockRequests({
+      organizationSlug: organization.slug,
+      projectSlug: project.slug,
+    });
+
+    const memoryHistory = createMemoryHistory();
+
+    memoryHistory.push(
+      `/settings/${organization.slug}/projects/${project.slug}/dynamic-sampling/`
+    );
+
+    function Component() {
+      return <TestComponent organization={organization} project={project} withModal />;
+    }
+
+    render(
+      <Router
+        history={memoryHistory}
+        render={props => {
+          return (
+            <RouteContext.Provider value={props}>
+              <RouterContext {...props} />
+            </RouteContext.Provider>
+          );
+        }}
+      >
+        <Route
+          path={`/settings/${organization.slug}/projects/${project.slug}/dynamic-sampling/`}
+        >
+          <IndexRoute component={Component} />
+          <Route path="rules/:rule/" component={Component} />
+        </Route>
+      </Router>
+    );
+
+    userEvent.click(await screen.findByLabelText('Actions'));
 
     // Open Modal
     userEvent.click(screen.getByLabelText('Edit'));
 
     expect(
-      await screen.findByRole('heading', {
-        name: 'Set a global sample rate',
-      })
+      await screen.findByRole('heading', {name: 'Set a global sample rate'})
     ).toBeInTheDocument();
+
+    expect(mockRequests.statsV2).toHaveBeenCalledTimes(2);
+    expect(mockRequests.distribution).toHaveBeenCalledTimes(1);
+    expect(mockRequests.sdkVersions).toHaveBeenCalledTimes(1);
   });
 
   it('does not let user reorder uniform rule', async function () {
@@ -375,6 +583,11 @@ describe('Server-Side Sampling', function () {
           },
         }),
       ],
+    });
+
+    renderMockRequests({
+      organizationSlug: organization.slug,
+      projectSlug: project.slug,
     });
 
     render(

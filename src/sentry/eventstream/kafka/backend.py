@@ -1,11 +1,12 @@
 import logging
 import signal
-from typing import Any, Literal, Mapping, MutableMapping, Optional, Tuple, Union
+from typing import Any, Literal, Mapping, MutableMapping, Optional, Sequence, Tuple, Union
 
 from confluent_kafka import Producer
 from django.conf import settings
 
 from sentry import options
+from sentry.eventstream.base import GroupStates
 from sentry.eventstream.kafka.consumer import SynchronizedConsumer
 from sentry.eventstream.kafka.postprocessworker import (
     ErrorsPostProcessForwarderWorker,
@@ -25,20 +26,9 @@ class KafkaEventStream(SnubaProtocolEventStream):
     def __init__(self, **options: Any) -> None:
         self.topic = settings.KAFKA_EVENTS
         self.transactions_topic = settings.KAFKA_TRANSACTIONS
-        # TODO: KAFKA_NEW_TRANSACTIONS is temporary and only to be used during
-        # the errors/transactions split process.
-        self.new_transactions_topic = settings.KAFKA_NEW_TRANSACTIONS
-        self.assign_transaction_partitions_randomly = (
-            settings.SENTRY_EVENTSTREAM_PARTITION_TRANSACTIONS_RANDOMLY
-        )
+        self.assign_transaction_partitions_randomly = True
 
     def get_transactions_topic(self, project_id: int) -> str:
-        use_new_topic = killswitch_matches_context(
-            "kafka.send-project-transactions-to-new-topic",
-            {"project_id": project_id},
-        )
-        if use_new_topic:
-            return self.new_transactions_topic
         return self.transactions_topic
 
     def get_producer(self, topic: str) -> Producer:
@@ -57,6 +47,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         primary_hash,
         received_timestamp: float,
         skip_consume,
+        group_states: Optional[GroupStates] = None,
     ) -> Mapping[str, str]:
 
         # HACK: We are putting all this extra information that is required by the
@@ -68,6 +59,9 @@ class KafkaEventStream(SnubaProtocolEventStream):
             if value is None:
                 value = False
             return str(int(value))
+
+        def encode_list(value: Sequence[Any]) -> str:
+            return json.dumps(value)
 
         # we strip `None` values here so later in the pipeline they can be
         # cleanly encoded without nullability checks
@@ -93,6 +87,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
                     "is_regression": encode_bool(is_regression),
                     "skip_consume": encode_bool(skip_consume),
                     "transaction_forwarder": encode_bool(transaction_forwarder),
+                    "group_states": encode_list(group_states) if group_states is not None else None,
                 }
             )
         else:
@@ -117,6 +112,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         primary_hash,
         received_timestamp: float,
         skip_consume=False,
+        group_states: Optional[GroupStates] = None,
         **kwargs,
     ):
         message_type = "transaction" if self._is_transaction_event(event) else "error"
@@ -140,6 +136,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
             primary_hash,
             received_timestamp,
             skip_consume,
+            group_states,
             **kwargs,
         )
 

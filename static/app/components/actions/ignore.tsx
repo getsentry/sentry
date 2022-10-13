@@ -7,7 +7,6 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import CustomIgnoreCountModal from 'sentry/components/customIgnoreCountModal';
 import CustomIgnoreDurationModal from 'sentry/components/customIgnoreDurationModal';
 import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
-import Duration from 'sentry/components/duration';
 import Tooltip from 'sentry/components/tooltip';
 import {IconChevron, IconMute} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
@@ -17,6 +16,7 @@ import {
   ResolutionStatusDetails,
   SelectValue,
 } from 'sentry/types';
+import {getDuration} from 'sentry/utils/formatters';
 
 const ONE_HOUR = 60;
 
@@ -58,9 +58,12 @@ const IgnoreActions = ({
   confirmLabel = t('Ignore'),
   isIgnored = false,
 }: Props) => {
-  const onIgnore = (statusDetails: ResolutionStatusDetails | undefined = {}) => {
+  const onIgnore = (
+    statusDetails: ResolutionStatusDetails | undefined = {},
+    {bypassConfirm} = {bypassConfirm: false}
+  ) => {
     openConfirmModal({
-      bypass: !shouldConfirm,
+      bypass: bypassConfirm || !shouldConfirm,
       onConfirm: () =>
         onUpdate({
           status: ResolutionStatus.IGNORED,
@@ -72,7 +75,7 @@ const IgnoreActions = ({
   };
 
   const onCustomIgnore = (statusDetails: ResolutionStatusDetails) => {
-    onIgnore(statusDetails);
+    onIgnore(statusDetails, {bypassConfirm: true});
   };
 
   if (isIgnored) {
@@ -133,7 +136,7 @@ const IgnoreActions = ({
       children: [
         ...IGNORE_DURATIONS.map(duration => ({
           key: `for-${duration}`,
-          label: <Duration seconds={duration * 60} />,
+          label: getDuration(duration * 60),
           onAction: () => onIgnore({ignoreDuration: duration}),
         })),
         {
@@ -233,9 +236,8 @@ const IgnoreActions = ({
       </IgnoreButton>
       <DropdownMenuControl
         size="sm"
-        trigger={({props: triggerProps, ref: triggerRef}) => (
+        trigger={triggerProps => (
           <DropdownTrigger
-            ref={triggerRef}
             {...triggerProps}
             aria-label={t('Ignore options')}
             size="xs"

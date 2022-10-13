@@ -1,13 +1,19 @@
 import {browserHistory} from 'react-router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 
 import {GroupEvents} from 'sentry/views/organizationGroupDetails/groupEvents';
 
 describe('groupEvents', function () {
   let request;
   let discoverRequest;
+  let attachmentsRequest;
 
   const {organization, routerContext} = initializeOrg();
 
@@ -50,6 +56,9 @@ describe('groupEvents', function () {
     browserHistory.push = jest.fn();
     discoverRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
+      headers: {
+        Link: `<https://sentry.io/api/0/issues/1/events/?limit=50&cursor=0:0:1>; rel="previous"; results="true"; cursor="0:0:1", <https://sentry.io/api/0/issues/1/events/?limit=50&cursor=0:200:0>; rel="next"; results="true"; cursor="0:200:0"`,
+      },
       body: {
         data: [
           {
@@ -90,6 +99,13 @@ describe('groupEvents', function () {
           isMetricsData: false,
           tips: {query: null, columns: null},
         },
+      },
+    });
+
+    attachmentsRequest = MockApiClient.addMockResponse({
+      url: '/api/0/issues/1/attachments/?event_id=id123',
+      body: {
+        data: [],
       },
     });
   });
@@ -166,12 +182,19 @@ describe('groupEvents', function () {
   });
 
   describe('When the performance flag is enabled', () => {
-    it('renders new events table for performance', function () {
-      const org = initializeOrg({
+    let org;
+    let group;
+
+    beforeEach(() => {
+      org = initializeOrg({
         organization: {features: ['performance-issues-all-events-tab']},
       });
-      const group = TestStubs.Group();
+      group = TestStubs.Group();
+    });
+
+    it('renders new events table for performance', function () {
       group.issueCategory = 'performance';
+
       render(
         <GroupEvents
           organization={org.organization}
@@ -192,11 +215,86 @@ describe('groupEvents', function () {
       expect(perfEventsColumn).toBeInTheDocument();
     });
 
-    it('renders new events table if error', function () {
-      const org = initializeOrg({
-        organization: {features: ['performance-issues-all-events-tab']},
+    it('renders event and trace link correctly', async () => {
+      group.issueCategory = 'performance';
+
+      render(
+        <GroupEvents
+          organization={org.organization}
+          api={new MockApiClient()}
+          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+          group={group}
+          location={{query: {environment: ['prod', 'staging']}}}
+        />,
+        {context: routerContext, organization}
+      );
+      await waitForElementToBeRemoved(document.querySelector('div.loading-indicator'));
+      const eventIdATag = screen.getByText('id123').closest('a');
+      const traceIdATag = screen.getByText('trace123').closest('a');
+      expect(eventIdATag).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/issues/1/events/id123/'
+      );
+      expect(traceIdATag).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/performance/trace/trace123/?'
+      );
+    });
+
+    it('does not display attachments column with no attachments', async () => {
+      render(
+        <GroupEvents
+          organization={org.organization}
+          api={new MockApiClient()}
+          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+          group={group}
+          location={{query: {environment: ['prod', 'staging']}}}
+        />,
+        {context: routerContext, organization}
+      );
+      await waitForElementToBeRemoved(document.querySelector('div.loading-indicator'));
+      const attachmentsColumn = screen.queryByText('attachments');
+      expect(attachmentsColumn).not.toBeInTheDocument();
+      expect(attachmentsRequest).toHaveBeenCalled();
+    });
+
+    it('displays attachments', async () => {
+      attachmentsRequest = MockApiClient.addMockResponse({
+        url: '/api/0/issues/1/attachments/?event_id=id123',
+        body: [
+          {
+            id: 'id123',
+            name: 'dc42a8b9-fc22-4de1-8a29-45b3006496d8.dmp',
+            headers: {
+              'Content-Type': 'application/octet-stream',
+            },
+            mimetype: 'application/octet-stream',
+            size: 1294340,
+            sha1: '742127552a1191f71fcf6ba7bc5afa0a837350e2',
+            dateCreated: '2022-09-28T09:04:38.659307Z',
+            type: 'event.minidump',
+            event_id: 'd54cb9246ee241ffbdb39bf7a9fafbb7',
+          },
+        ],
       });
-      const group = TestStubs.Group();
+
+      render(
+        <GroupEvents
+          organization={org.organization}
+          api={new MockApiClient()}
+          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+          group={group}
+          location={{query: {environment: ['prod', 'staging']}}}
+        />,
+        {context: routerContext, organization}
+      );
+      await waitForElementToBeRemoved(document.querySelector('div.loading-indicator'));
+      const attachmentsColumn = screen.queryByText('attachments');
+      expect(attachmentsColumn).toBeInTheDocument();
+      expect(attachmentsRequest).toHaveBeenCalled();
+    });
+
+    it('renders new events table if error', function () {
       render(
         <GroupEvents
           organization={org.organization}
@@ -215,11 +313,29 @@ describe('groupEvents', function () {
       const perfEventsColumn = screen.getByText('transaction');
       expect(perfEventsColumn).toBeInTheDocument();
     });
+
+    it('removes sort if unsupported by the events table', function () {
+      render(
+        <GroupEvents
+          organization={org.organization}
+          api={new MockApiClient()}
+          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+          group={group}
+          location={{query: {environment: ['prod', 'staging'], sort: 'user'}}}
+        />,
+        {context: routerContext, organization}
+      );
+      expect(discoverRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/events/',
+        expect.objectContaining({query: expect.not.objectContaining({sort: 'user'})})
+      );
+    });
   });
 
   it('does not renders new events table if error', function () {
     const org = initializeOrg();
     const group = TestStubs.Group();
+
     render(
       <GroupEvents
         organization={org.organization}

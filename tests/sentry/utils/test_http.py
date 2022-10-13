@@ -13,8 +13,20 @@ class AbsoluteUriTest(unittest.TestCase):
     def test_without_path(self):
         assert absolute_uri() == options.get("system.url-prefix")
 
+    def test_override_url_prefix(self):
+        assert absolute_uri("/foo/bar", url_prefix="http://foobar/") == "http://foobar/foo/bar"
+
     def test_with_path(self):
         assert absolute_uri("/foo/bar") == "{}/foo/bar".format(options.get("system.url-prefix"))
+
+    def test_hostname_present(self):
+        assert (
+            absolute_uri("https://orgslug.sentry.io/foo/bar") == "https://orgslug.sentry.io/foo/bar"
+        )
+        assert (
+            absolute_uri("https://orgslug.sentry.io/foo/bar", url_prefix="http://foobar/")
+            == "https://orgslug.sentry.io/foo/bar"
+        )
 
 
 class GetOriginsTestCase(TestCase):
@@ -181,8 +193,6 @@ class IsValidOriginTestCase(unittest.TestCase):
         result = self.isValidOrigin("http://xn--lcalhost-54a", ["*.xn--lcalhost-54a"])
         assert result is True
         result = self.isValidOrigin("http://l\xf8calhost", ["*.xn--lcalhost-54a"])
-        assert result is True
-        result = self.isValidOrigin(b"http://l\xc3\xb8calhost", ["*.xn--lcalhost-54a"])
         assert result is True
         result = self.isValidOrigin("http://xn--lcalhost-54a", ["l\xf8calhost"])
         assert result is True

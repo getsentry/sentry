@@ -1,4 +1,4 @@
-import CompactSelect from 'sentry/components/forms/compactSelect';
+import CompactSelect from 'sentry/components/compactSelect';
 
 type DropdownItemProps = Omit<
   React.ComponentProps<typeof CompactSelect>['options'][0],

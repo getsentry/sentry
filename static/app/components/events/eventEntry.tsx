@@ -31,6 +31,7 @@ type Props = Pick<React.ComponentProps<typeof Breadcrumbs>, 'route' | 'router'> 
   organization: SharedViewOrganization | Organization;
   projectSlug: Project['slug'];
   group?: Group;
+  isShare?: boolean;
 };
 
 function EventEntry({
@@ -39,6 +40,7 @@ function EventEntry({
   event,
   organization,
   group,
+  isShare,
   route,
   router,
 }: Props) {
@@ -121,6 +123,8 @@ function EventEntry({
           event={event}
           router={router}
           route={route}
+          isShare={isShare}
+          projectSlug={projectSlug}
         />
       );
     }
@@ -154,6 +158,11 @@ function EventEntry({
         />
       );
     case EntryType.SPANS:
+      // XXX: We currently do not show spans in the share view,
+      if (isShare) {
+        return null;
+      }
+
       if (
         group?.issueCategory === IssueCategory.PERFORMANCE &&
         organization?.features?.includes('performance-issues')

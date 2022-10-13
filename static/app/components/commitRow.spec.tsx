@@ -1,9 +1,9 @@
-import {fireEvent, render, screen} from 'sentry-test/reactTestingLibrary';
+import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {CommitRow} from 'sentry/components/commitRow';
-import {Commit, Repository, User} from 'sentry/types';
+import {Commit, Repository, RepositoryStatus, User} from 'sentry/types';
 
 jest.mock('sentry/components/hovercard', () => {
   return {
@@ -87,5 +87,42 @@ describe('commitRow', () => {
     render(<CommitRow commit={commit} />);
 
     expect(screen.getByText(/ref\(commitRow\): refactor to fc/)).toBeInTheDocument();
+  });
+
+  it('renders pull request', () => {
+    const commit: Commit = {
+      ...baseCommit,
+      pullRequest: {
+        id: '9',
+        title: 'cool pr',
+        externalUrl: 'https://github.com/getsentry/sentry/pull/1',
+        repository: {
+          id: '14',
+          name: 'example',
+          url: '',
+          provider: {
+            id: 'unknown',
+            name: 'Unknown Provider',
+          },
+          status: RepositoryStatus.ACTIVE,
+          dateCreated: '2022-10-07T19:35:27.370422Z',
+          integrationId: '14',
+          externalSlug: 'org-slug',
+        },
+      },
+    };
+
+    const handlePullRequestClick = jest.fn();
+    render(<CommitRow commit={commit} onPullRequestClick={handlePullRequestClick} />);
+
+    const pullRequestButton = screen.getByRole('button', {name: 'View Pull Request'});
+    expect(pullRequestButton).toBeInTheDocument();
+    expect(pullRequestButton).toHaveAttribute(
+      'href',
+      'https://github.com/getsentry/sentry/pull/1'
+    );
+
+    userEvent.click(pullRequestButton);
+    expect(handlePullRequestClick).toHaveBeenCalledTimes(1);
   });
 });

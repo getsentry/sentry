@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useContext, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
@@ -21,7 +21,7 @@ import Link from 'sentry/components/links/link';
 import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
 import SeenByList from 'sentry/components/seenByList';
 import ShortId from 'sentry/components/shortId';
-import {Item, TabList} from 'sentry/components/tabs';
+import {Item, TabList, TabsContext} from 'sentry/components/tabs';
 import Tooltip from 'sentry/components/tooltip';
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -144,6 +144,10 @@ function GroupHeader({
     return [];
   }, [organization, groupReprocessingStatus]);
 
+  const {
+    rootProps: {onChange},
+  } = useContext(TabsContext);
+
   const errorIssueTabs = useMemo(() => {
     const projectFeatures = new Set(project ? project.features : []);
     const organizationFeatures = new Set(organization ? organization.features : []);
@@ -153,8 +157,28 @@ function GroupHeader({
     const hasEventAttachments = organizationFeatures.has('event-attachments');
     const hasSessionReplay = organizationFeatures.has('session-replay-ui');
 
+    const analyticsData = event
+      ? event.tags
+          .filter(({key}) => ['device', 'os', 'browser'].includes(key))
+          .reduce((acc, {key, value}) => {
+            acc[key] = value;
+            return acc;
+          }, {})
+      : {};
+
     return (
-      <StyledTabList>
+      <StyledTabList
+        hideBorder
+        onSelectionChange={key => {
+          trackAdvancedAnalyticsEvent('issue_group_details.tab.clicked', {
+            organization,
+            tab: key.toString(),
+            platform: project.platform,
+            ...analyticsData,
+          });
+          return onChange?.(key);
+        }}
+      >
         <Item key={Tab.DETAILS} disabled={disabledTabs.includes(Tab.DETAILS)}>
           {t('Details')}
         </Item>
@@ -220,6 +244,8 @@ function GroupHeader({
     organization,
     project,
     replaysCount,
+    onChange,
+    event,
   ]);
 
   const performanceIssueTabs = useMemo(() => {
@@ -467,6 +493,5 @@ const IconBadge = styled(Badge)`
 `;
 
 const StyledTabList = styled(TabList)`
-  border-bottom: none;
   margin-top: ${space(2)};
 `;
