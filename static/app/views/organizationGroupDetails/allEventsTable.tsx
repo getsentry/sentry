@@ -1,5 +1,4 @@
 import {useState} from 'react';
-import {} from 'react-router';
 import {Location} from 'history';
 
 import LoadingError from 'sentry/components/loadingError';
