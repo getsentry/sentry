@@ -44,7 +44,7 @@ class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
         `/organizations/${organization.slug}/discover/homepage/`,
       ]);
     }
-    if (location.search === '') {
+    if (location.search === '' && this.state) {
       this.setState({key: Date.now()});
     }
     return endpoints;
