@@ -18,7 +18,7 @@ export function DynamicSamplingConfig(params = {}) {
       id: 1,
     },
     specificRule: {
-      sampleRate: 0.2,
+      sampleRate: 0.6,
       active: false,
       type: SamplingRuleType.TRACE,
       condition: {

@@ -3,12 +3,8 @@ import {DraggableSyntheticListeners, UseDraggableArguments} from '@dnd-kit/core'
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {openConfirmModal} from 'sentry/components/confirm';
-import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
 import NewBooleanField from 'sentry/components/forms/fields/booleanField';
-import Placeholder from 'sentry/components/placeholder';
 import Tooltip from 'sentry/components/tooltip';
-import {IconEllipsis} from 'sentry/icons';
 import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -16,6 +12,8 @@ import {Project} from 'sentry/types';
 import {SamplingRule, SamplingRuleOperator} from 'sentry/types/sampling';
 import {formatPercentage} from 'sentry/utils/formatters';
 
+import {RuleActions} from './ruleActions';
+import {RuleToggle} from './ruleToggle';
 import {getInnerNameLabel} from './utils';
 
 type Props = {
@@ -61,9 +59,9 @@ export function Rule({
   loadingRecommendedSdkUpgrades,
   canDemo,
 }: Props) {
-  const canDelete = !noPermission && canDemo;
+  const canDelete = !noPermission && !!canDemo;
   const canDrag = !noPermission;
-  const canActivate = !noPermission && (!upgradeSdkForProjects.length || rule.active);
+  const canActivate = !noPermission && (!upgradeSdkForProjects.length || !!rule.active);
 
   return (
     <Fragment>
@@ -117,67 +115,28 @@ export function Rule({
         <SampleRate>{formatPercentage(rule.sampleRate)}</SampleRate>
       </RateColumn>
       <ActiveColumn>
-        {loadingRecommendedSdkUpgrades ? (
-          <ActivateTogglePlaceholder />
-        ) : (
-          <Tooltip
-            disabled={canActivate}
-            title={
-              !canActivate
-                ? tn(
-                    'To enable the rule, the recommended sdk version have to be updated',
-                    'To enable the rule, the recommended sdk versions have to be updated',
-                    upgradeSdkForProjects.length
-                  )
-                : undefined
-            }
-          >
-            <ActiveToggle
-              inline={false}
-              hideControlState
-              aria-label={rule.active ? t('Deactivate Rule') : t('Activate Rule')}
-              onClick={onActivate}
-              name="active"
-              disabled={!canActivate}
-              value={rule.active}
-            />
-          </Tooltip>
-        )}
+        <RuleToggle
+          loadingRecommendedSdkUpgrades={loadingRecommendedSdkUpgrades}
+          onClick={onActivate}
+          value={rule.active}
+          disabled={!canActivate}
+          disabledReason={
+            !canActivate
+              ? tn(
+                  'To enable the rule, the recommended sdk version have to be updated',
+                  'To enable the rule, the recommended sdk versions have to be updated',
+                  upgradeSdkForProjects.length
+                )
+              : undefined
+          }
+        />
       </ActiveColumn>
       <Column>
-        <DropdownMenuControl
-          position="bottom-end"
-          triggerProps={{
-            size: 'xs',
-            icon: <IconEllipsis size="xs" />,
-            showChevron: false,
-            'aria-label': t('Actions'),
-          }}
-          items={[
-            {
-              key: 'edit',
-              label: t('Edit'),
-              details: noPermission
-                ? t("You don't have permission to edit rules")
-                : undefined,
-              onAction: onEditRule,
-              disabled: noPermission,
-            },
-            {
-              key: 'delete',
-              label: t('Delete'),
-              details: canDelete
-                ? undefined
-                : t("You don't have permission to delete rules"),
-              onAction: () =>
-                openConfirmModal({
-                  onConfirm: onDeleteRule,
-                  message: t('Are you sure you wish to delete this rule?'),
-                }),
-              disabled: !canDelete,
-              priority: 'danger',
-            },
-          ]}
+        <RuleActions
+          onDelete={onDeleteRule}
+          canDelete={canDelete}
+          noPermission={noPermission}
+          onEditRule={onEditRule}
         />
       </Column>
     </Fragment>
@@ -249,7 +208,7 @@ const IconGrabbableWrapper = styled('div')`
   }
 `;
 
-const ConditionEqualOperator = styled('div')`
+export const ConditionEqualOperator = styled('div')`
   color: ${p => p.theme.purple300};
 `;
 
@@ -268,19 +227,14 @@ export const ActiveToggle = styled(NewBooleanField)`
   justify-content: center;
 `;
 
-export const ActivateTogglePlaceholder = styled(Placeholder)`
-  height: 24px;
-  margin-top: ${space(0.5)};
-`;
-
-const ConditionName = styled('div')`
+export const ConditionName = styled('div')`
   color: ${p => p.theme.gray400};
 `;
 
-const ConditionValue = styled('span')`
+export const ConditionValue = styled('span')`
   color: ${p => p.theme.gray300};
 `;
 
-const ConditionSeparator = styled(ConditionValue)`
+export const ConditionSeparator = styled(ConditionValue)`
   padding-right: ${space(0.5)};
 `;

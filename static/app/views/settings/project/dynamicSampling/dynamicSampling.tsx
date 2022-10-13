@@ -43,6 +43,7 @@ import {SpecificConditionsModal} from './modals/specificConditionsModal';
 import {responsiveModal} from './modals/styles';
 import {useRecommendedSdkUpgrades} from './utils/useRecommendedSdkUpgrades';
 import {DraggableRuleList, DraggableRuleListUpdateItemsProps} from './draggableRuleList';
+import {InvalidRule} from './invalidRule';
 import {
   ActiveColumn,
   Column,
@@ -58,7 +59,7 @@ import {SamplingFromOtherProject} from './samplingFromOtherProject';
 import {SamplingProjectIncompatibleAlert} from './samplingProjectIncompatibleAlert';
 import {SamplingSDKUpgradesAlert} from './samplingSDKUpgradesAlert';
 import {RulesPanelLayout, UniformRule} from './uniformRule';
-import {isUniformRule, SERVER_SIDE_SAMPLING_DOC_LINK} from './utils';
+import {isUniformRule, isValidSampleRate, SERVER_SIDE_SAMPLING_DOC_LINK} from './utils';
 
 type Props = {
   project: Project;
@@ -307,7 +308,13 @@ export function DynamicSampling({project}: Props) {
   const [uniformRules, specificRules] = partition(rules, isUniformRule);
 
   const uniformRule = uniformRules[0];
-  const items = specificRules.map(rule => ({...rule, id: String(rule.id)}));
+
+  const [invalidSpecificRules, validSpecificRules] = partition(
+    specificRules,
+    rule => !isValidSampleRate(uniformRule.sampleRate, rule.sampleRate)
+  );
+
+  const items = validSpecificRules.map(rule => ({...rule, id: String(rule.id)}));
 
   return (
     <SentryDocumentTitle title={t('Dynamic Sampling')}>
@@ -456,6 +463,21 @@ export function DynamicSampling({project}: Props) {
             {uniformRule && (
               <UniformRule rule={uniformRule} singleRule={rules.length === 1} />
             )}
+
+            {invalidSpecificRules.map(invalidSpecificRule => (
+              <InvalidRule
+                rule={invalidSpecificRule}
+                key={invalidSpecificRule.id}
+                loadingRecommendedSdkUpgrades={loadingRecommendedSdkUpgrades}
+                noPermission={!hasAccess}
+                onDeleteRule={() => handleDeleteRule(invalidSpecificRule)}
+                onEditRule={() => {
+                  navigate(
+                    `${samplingProjectSettingsPath}rules/${invalidSpecificRule.id}/`
+                  );
+                }}
+              />
+            ))}
 
             <RulesPanelFooter>
               <ButtonBar gap={1}>

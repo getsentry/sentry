@@ -23,7 +23,7 @@ type Props = {
 
 export function UniformRule({singleRule, rule}: Props) {
   return (
-    <Wrapper isContent data-test-id="sampling-rule">
+    <RulesPanelLayout isContent data-test-id="sampling-rule">
       <DragColumn />
       <OperatorColumn>
         <Operator>{singleRule ? t('If') : t('Else')}</Operator>
@@ -34,7 +34,7 @@ export function UniformRule({singleRule, rule}: Props) {
       </RateColumn>
       <ActiveColumn />
       <Column />
-    </Wrapper>
+    </RulesPanelLayout>
   );
 }
 
@@ -56,9 +56,4 @@ export const RulesPanelLayout = styled('div')<{isContent?: boolean}>`
         border-bottom: 1px solid ${p.theme.border};
       }
     `}
-`;
-
-const Wrapper = styled(RulesPanelLayout)`
-  color: ${p => p.theme.disabled};
-  background: ${p => p.theme.backgroundSecondary};
 `;
