@@ -102,13 +102,13 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
                 return None
 
             try:
-                headers, part = self._process_headers(recording_segment_parts[0])
+                headers, parsed_first_part = self._process_headers(recording_segment_parts[0])
             except MissingRecordingSegmentHeaders:
                 logger.warning(f"missing header on {message_dict['replay_id']}")
                 return
 
             # Replace the first part with itself but the headers removed.
-            recording_segment_parts[0] = part
+            recording_segment_parts[0] = parsed_first_part
 
             # The parts were gzipped by the SDK and disassembled by Relay. In this step we can
             # blindly merge the bytes objects into a single bytes object.
