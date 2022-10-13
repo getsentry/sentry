@@ -25,6 +25,7 @@ type Props = {
 };
 
 type HomepageQueryState = AsyncComponent['state'] & {
+  key: number;
   savedQuery?: SavedQuery | null;
 };
 
@@ -35,16 +36,17 @@ class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
     const {organization, location} = this.props;
 
     const endpoints: ReturnType<AsyncComponent['getEndpoints']> = [];
+    if (
+      organization.features.includes('discover-query-builder-as-landing-page') &&
+      organization.features.includes('discover-query')
+    ) {
+      endpoints.push([
+        'savedQuery',
+        `/organizations/${organization.slug}/discover/homepage/`,
+      ]);
+    }
     if (location.search === '') {
-      if (
-        organization.features.includes('discover-query-builder-as-landing-page') &&
-        organization.features.includes('discover-query')
-      ) {
-        endpoints.push([
-          'savedQuery',
-          `/organizations/${organization.slug}/discover/homepage/`,
-        ]);
-      }
+      this.setState({key: Date.now()});
     }
     return endpoints;
   }
@@ -75,7 +77,7 @@ class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
         loading={loading}
         setSavedQuery={this.setSavedQuery}
         isHomepage
-        key={`results-${Date.now()}`}
+        key={`results-${this.state.key}`}
       />
     );
   }
