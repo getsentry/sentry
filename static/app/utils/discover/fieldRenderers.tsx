@@ -343,8 +343,8 @@ const SPECIAL_FIELDS: SpecialFields = {
     sortField: 'replayId',
     renderFunc: data => {
       const replayId = data?.replayId;
-      if (typeof replayId !== 'string') {
-        return null;
+      if (typeof replayId !== 'string' || !replayId) {
+        return <Container>{t('N/A')}</Container>;
       }
 
       return (
