@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {selectByValue} from 'sentry-test/select-new';
 
-import SentryProjectSelectorField from 'sentry/components/forms/sentryProjectSelectorField';
+import SentryProjectSelectorField from './sentryProjectSelectorField';
 
 describe('SentryProjectSelectorField', () => {
   it('can change values', () => {

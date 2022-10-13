@@ -2,8 +2,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import findKey from 'lodash/findKey';
 
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 import FormField from 'sentry/components/forms/formField';
-import SelectControl from 'sentry/components/forms/selectControl';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
