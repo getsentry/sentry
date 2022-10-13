@@ -159,8 +159,8 @@ describe('Dynamic Sampling', function () {
     expect(screen.getByTestId('sampling-rule')).toHaveTextContent('If');
     expect(screen.getByTestId('sampling-rule')).toHaveTextContent('All');
     expect(screen.getByTestId('sampling-rule')).toHaveTextContent('100%');
-    expect(screen.getByLabelText('Activate Rule')).toBeInTheDocument();
-    expect(screen.getByLabelText('Actions')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Activate Rule')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Actions')).not.toBeInTheDocument();
 
     // Rule Panel Footer
     expect(screen.getByText('Add Rule')).toBeInTheDocument();
@@ -170,76 +170,6 @@ describe('Dynamic Sampling', function () {
     );
 
     expect(container).toSnapshot();
-  });
-
-  it('does not let you delete the base rule', async function () {
-    const {organization, router, project} = initializeOrg({
-      ...initializeOrg(),
-      organization: {
-        ...initializeOrg().organization,
-        features,
-      },
-      projects: [
-        TestStubs.Project({
-          dynamicSampling: {
-            rules: [
-              {
-                sampleRate: 0.2,
-                type: 'trace',
-                active: false,
-                condition: {
-                  op: 'and',
-                  inner: [
-                    {
-                      op: 'glob',
-                      name: 'trace.release',
-                      value: ['1.2.3'],
-                    },
-                  ],
-                },
-                id: 2,
-              },
-              {
-                sampleRate: 0.2,
-                type: 'trace',
-                active: false,
-                condition: {
-                  op: 'and',
-                  inner: [],
-                },
-                id: 1,
-              },
-            ],
-            next_id: 3,
-          },
-        }),
-      ],
-    });
-
-    renderMockRequests({
-      organizationSlug: organization.slug,
-      projectSlug: project.slug,
-    });
-
-    render(
-      <TestComponent router={router} organization={organization} project={project} />
-    );
-
-    // Assert that project breakdown is there (avoids 'act' warnings)
-    expect(await screen.findByText(samplingBreakdownTitle)).toBeInTheDocument();
-
-    userEvent.click(screen.getAllByLabelText('Actions')[0]);
-    expect(screen.getByRole('menuitemradio', {name: 'Delete'})).toHaveAttribute(
-      'aria-disabled',
-      'false'
-    );
-
-    userEvent.click(screen.getAllByLabelText('Actions')[0]);
-    userEvent.click(screen.getAllByLabelText('Actions')[1]);
-    expect(screen.getByRole('menuitemradio', {name: 'Delete'})).toHaveAttribute(
-      'aria-disabled',
-      'true'
-    );
   });
 
   it('display "update sdk versions" alert and open "recommended next step" modal', async function () {
@@ -490,7 +420,10 @@ describe('Dynamic Sampling', function () {
       projects: [
         TestStubs.Project({
           dynamicSampling: {
-            rules: [TestStubs.DynamicSamplingConfig().uniformRule],
+            rules: [
+              TestStubs.DynamicSamplingConfig().uniformRule,
+              TestStubs.DynamicSamplingConfig().specificRule,
+            ],
           },
         }),
       ],
@@ -515,89 +448,6 @@ describe('Dynamic Sampling', function () {
       await screen.findByText(
         'To enable the rule, the recommended sdk version have to be updated'
       )
-    ).toBeInTheDocument();
-  });
-
-  it('does not let the user activate an uniform rule if still processing', async function () {
-    const {organization, router, project} = initializeOrg({
-      ...initializeOrg(),
-      organization: {
-        ...initializeOrg().organization,
-        features,
-      },
-      projects: [
-        TestStubs.Project({
-          dynamicSampling: {
-            rules: [TestStubs.DynamicSamplingConfig().uniformRule],
-          },
-        }),
-      ],
-    });
-
-    renderMockRequests({
-      organizationSlug: organization.slug,
-      projectSlug: project.slug,
-      mockedSdkVersionsResponse: [],
-    });
-
-    render(
-      <TestComponent router={router} organization={organization} project={project} />
-    );
-
-    expect(await screen.findByRole('checkbox', {name: 'Activate Rule'})).toBeDisabled();
-
-    userEvent.hover(screen.getByLabelText('Activate Rule'));
-
-    expect(
-      await screen.findByText(
-        'We are processing sampling information for your project, so you cannot enable the rule yet. Please check again later'
-      )
-    ).toBeInTheDocument();
-  });
-
-  it('does not let user reorder uniform rule', async function () {
-    const {organization, router, project} = initializeOrg({
-      ...initializeOrg(),
-      organization: {
-        ...initializeOrg().organization,
-        features,
-      },
-      projects: [
-        TestStubs.Project({
-          dynamicSampling: {
-            rules: [
-              TestStubs.DynamicSamplingConfig().specificRule,
-              TestStubs.DynamicSamplingConfig().uniformRule,
-            ],
-          },
-        }),
-      ],
-    });
-
-    renderMockRequests({
-      organizationSlug: organization.slug,
-      projectSlug: project.slug,
-    });
-
-    render(
-      <TestComponent
-        organization={organization}
-        project={project}
-        router={router}
-        withModal
-      />
-    );
-
-    const samplingUniformRule = screen.getAllByTestId('sampling-rule')[1];
-
-    expect(
-      within(samplingUniformRule).getByRole('button', {name: 'Drag Rule'})
-    ).toHaveAttribute('aria-disabled', 'true');
-
-    userEvent.hover(within(samplingUniformRule).getByLabelText('Drag Rule'));
-
-    expect(
-      await screen.findByText('Uniform rules cannot be reordered')
     ).toBeInTheDocument();
   });
 });
