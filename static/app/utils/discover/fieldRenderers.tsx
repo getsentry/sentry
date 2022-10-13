@@ -344,7 +344,7 @@ const SPECIAL_FIELDS: SpecialFields = {
     renderFunc: data => {
       const replayId = data?.replayId;
       if (typeof replayId !== 'string' || !replayId) {
-        return <Container>{t('N/A')}</Container>;
+        return emptyValue;
       }
 
       return (
