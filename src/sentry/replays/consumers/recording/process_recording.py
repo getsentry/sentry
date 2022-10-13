@@ -17,9 +17,8 @@ from arroyo.processing.strategies.abstract import ProcessingStrategy
 from arroyo.types import Message, Position
 from django.conf import settings
 
-from sentry.attachments import MissingAttachmentChunks, attachment_cache
-from sentry.attachments.base import CachedAttachment
 from sentry.models import File
+from sentry.replays.cache import RecordingSegmentPart, RecordingSegmentParts
 from sentry.replays.consumers.recording.types import (
     RecordingSegmentChunkMessage,
     RecordingSegmentHeaders,
@@ -66,22 +65,14 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
     def _process_chunk(
         self, message_dict: RecordingSegmentChunkMessage, message: Message[KafkaPayload]
     ) -> None:
-        # TODO: implement threaded chunk sets, and wait for an individual segment's
-        # futures to finish before trying to read from redis in the final kafka message
-        # https://github.com/getsentry/replay-backend/pull/38/files
-        recording_segment_uuid = message_dict["id"]
-        replay_id = message_dict["replay_id"]
-        project_id = message_dict["project_id"]
-        chunk_index = message_dict["chunk_index"]
-        cache_key = replay_recording_segment_cache_id(project_id, replay_id)
-
-        attachment_cache.set_chunk(
-            key=cache_key,
-            id=recording_segment_uuid,
-            chunk_index=chunk_index,
-            chunk_data=message_dict["payload"],
-            timeout=CACHE_TIMEOUT,
+        cache_prefix = replay_recording_segment_cache_id(
+            project_id=message_dict["project_id"],
+            replay_id=message_dict["replay_id"],
+            segment_id=message_dict["id"],
         )
+
+        part = RecordingSegmentPart(cache_prefix)
+        part[message_dict["chunk_index"]] = message_dict["payload"]
 
     def _process_headers(
         self, recording_segment_with_headers: bytes
@@ -97,7 +88,7 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
     def _store(
         self,
         message_dict: RecordingSegmentMessage,
-        cached_replay_recording_segment: CachedAttachment,
+        parts: RecordingSegmentParts,
     ) -> None:
         with sentry_sdk.start_transaction(
             op="replays.consumer", name="replays.consumer.flush_batch"
@@ -105,12 +96,23 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
             sentry_sdk.set_extra("replay_id", message_dict["replay_id"])
 
             try:
-                headers, recording_segment = self._process_headers(
-                    cached_replay_recording_segment.data
-                )
+                recording_segment_parts = list(parts)
+            except ValueError:
+                logger.exception("Missing recording-segment.")
+                return None
+
+            try:
+                headers, parsed_first_part = self._process_headers(recording_segment_parts[0])
             except MissingRecordingSegmentHeaders:
                 logger.warning(f"missing header on {message_dict['replay_id']}")
                 return
+
+            # Replace the first part with itself but the headers removed.
+            recording_segment_parts[0] = parsed_first_part
+
+            # The parts were gzipped by the SDK and disassembled by Relay. In this step we can
+            # blindly merge the bytes objects into a single bytes object.
+            recording_segment = b"".join(recording_segment_parts)
 
             # create a File for our recording segment.
             recording_segment_file_name = f"rr:{message_dict['replay_id']}:{headers['segment_id']}"
@@ -130,33 +132,22 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
                 file_id=file.id,
             )
             # delete the recording segment from cache after we've stored it
-            cached_replay_recording_segment.delete()
+            parts.drop()
 
             # TODO: how to handle failures in the above calls. what should happen?
             # also: handling same message twice?
 
-    @metrics.wraps("replays.process_recording.get_from_cache")
-    def _get_from_cache(self, message_dict: RecordingSegmentMessage) -> CachedAttachment | None:
-        cache_id = replay_recording_segment_cache_id(
-            message_dict["project_id"], message_dict["replay_id"]
-        )
-        cached_replay_recording = attachment_cache.get_from_chunks(
-            key=cache_id, **message_dict["replay_recording"]
-        )
-        try:
-            # try accessing data to ensure that it exists, which loads it
-            cached_replay_recording.data
-        except MissingAttachmentChunks:
-            logger.warning("missing replay recording chunks!")
-            return None
-        return cached_replay_recording
-
     def _process_recording(
         self, message_dict: RecordingSegmentMessage, message: Message[KafkaPayload]
     ) -> None:
-        cached_replay_recording = self._get_from_cache(message_dict)
-        if cached_replay_recording is None:
-            return
+        cache_prefix = replay_recording_segment_cache_id(
+            project_id=message_dict["project_id"],
+            replay_id=message_dict["replay_id"],
+            segment_id=message_dict["replay_recording"]["id"],
+        )
+        parts = RecordingSegmentParts(
+            prefix=cache_prefix, num_parts=message_dict["replay_recording"]["chunks"]
+        )
 
         # in a thread, upload the recording segment and delete the cached version
         self.__futures.append(
@@ -165,7 +156,7 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
                 self.__threadpool.submit(
                     self._store,
                     message_dict=message_dict,
-                    cached_replay_recording_segment=cached_replay_recording,
+                    parts=parts,
                 ),
             )
         )
@@ -269,5 +260,5 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
             # TODO: add replay sdk version once added
 
 
-def replay_recording_segment_cache_id(project_id: int, replay_id: str) -> str:
-    return f"{project_id}:{replay_id}"
+def replay_recording_segment_cache_id(project_id: int, replay_id: str, segment_id: str) -> str:
+    return f"{project_id}:{replay_id}:{segment_id}"
