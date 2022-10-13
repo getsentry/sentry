@@ -149,27 +149,34 @@ function PageLayout(props: Props) {
     [location.query, organization.slug, projectId, transactionName]
   );
 
+  const onTabChange = useCallback(
+    (newTab: Tab) => {
+      // Prevent infinite rerenders
+      if (newTab === tab) {
+        return;
+      }
+
+      const analyticKeys = TAB_ANALYTICS[newTab];
+      if (analyticKeys) {
+        trackAnalyticsEvent({
+          ...analyticKeys,
+          organization_id: organization.id,
+          project_platforms: getSelectedProjectPlatforms(location, projects),
+        });
+      }
+
+      browserHistory.push(getNewRoute(newTab));
+    },
+    [getNewRoute, tab, organization, location, projects]
+  );
+
   if (!defined(projectId) || !defined(transactionName)) {
     redirectToPerformanceHomepage(organization, location);
     return null;
   }
 
   const project = projects.find(p => p.id === projectId);
-
   const eventView = generateEventView({location, transactionName, organization});
-
-  function trackTabClick(newTab: Tab) {
-    const analyticKeys = TAB_ANALYTICS[newTab];
-    if (!analyticKeys) {
-      return;
-    }
-
-    trackAnalyticsEvent({
-      ...analyticKeys,
-      organization_id: organization.id,
-      project_platforms: getSelectedProjectPlatforms(location, projects),
-    });
-  }
 
   return (
     <SentryDocumentTitle
@@ -188,17 +195,7 @@ function PageLayout(props: Props) {
             forceProject={project}
             specificProjectSlugs={defined(project) ? [project.slug] : []}
           >
-            <Tabs
-              value={tab}
-              onChange={newTab => {
-                // Prevent infinite rerenders
-                if (newTab === tab) {
-                  return;
-                }
-                trackTabClick(newTab);
-                browserHistory.push(getNewRoute(newTab));
-              }}
-            >
+            <Tabs value={tab} onChange={onTabChange}>
               <StyledPageContent>
                 <NoProjectMessage organization={organization}>
                   <TransactionHeader
