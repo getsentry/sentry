@@ -62,6 +62,7 @@ class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
         loading={loading}
         setSavedQuery={this.setSavedQuery}
         isHomepage
+        key={`results-${Date.now()}`}
       />
     );
   }
