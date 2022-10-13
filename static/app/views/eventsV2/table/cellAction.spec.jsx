@@ -22,12 +22,21 @@ const defaultData = {
   issue: 'SENTRY-VYR',
 };
 
-function makeWrapper(eventView, handleCellAction, columnIndex = 0, data = defaultData) {
+const features = ['discover-quick-context'];
+
+function makeWrapper(
+  eventView,
+  handleCellAction,
+  columnIndex = 0,
+  data = defaultData,
+  organization = null
+) {
   return mountWithTheme(
     <CellAction
       dataRow={data}
       eventView={eventView}
       column={eventView.getColumns()[columnIndex]}
+      organization={organization}
       handleCellAction={handleCellAction}
     >
       <strong>some content</strong>
@@ -82,7 +91,8 @@ describe('Discover -> CellAction', function () {
   });
 
   describe('hover context button', function () {
-    let wrapper = makeWrapper(view, jest.fn(), 9);
+    const organization = TestStubs.Organization({features});
+    let wrapper = makeWrapper(view, jest.fn(), 9, defaultData, organization);
 
     it('shows no context button by default', function () {
       expect(wrapper.find('button[data-test-id="context-button"]')).toHaveLength(0);
@@ -118,7 +128,8 @@ describe('Discover -> CellAction', function () {
   });
 
   describe('opening and closing the context popover', function () {
-    const wrapper = makeWrapper(view, jest.fn(), 9);
+    const organization = TestStubs.Organization({features});
+    const wrapper = makeWrapper(view, jest.fn(), 9, defaultData, organization);
     wrapper.find('Container').simulate('mouseEnter');
 
     it('toggles the context popover on click', function () {
