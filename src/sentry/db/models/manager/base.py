@@ -481,7 +481,7 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
 
     @contextmanager
     def register_trigger(
-        self, trigger: ModelManagerTriggerCondition, action: ModelManagerTriggerAction
+        self, condition: ModelManagerTriggerCondition, action: ModelManagerTriggerAction
     ) -> Generator[None, None, None]:
         """Register a callback for when an operation is executed inside the context.
 
@@ -496,7 +496,7 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
         """
 
         key = object()
-        self._triggers[key] = (trigger, action)
+        self._triggers[key] = (condition, action)
         yield
         del self._triggers[key]
 
