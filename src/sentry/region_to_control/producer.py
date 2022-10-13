@@ -38,7 +38,7 @@ _empty_headers = list()
 
 
 # TODO: Would be nice to configure the timeout via a dynamic setting.
-def write_region_to_control_message(payload: Any, sync=True, timeout=0.1):
+def write_region_to_control_message(payload: Any, sync=True, timeout=1):
     future = get_region_to_control_producer().produce(
         Topic(settings.KAFKA_REGION_TO_CONTROL),
         KafkaPayload(
