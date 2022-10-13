@@ -58,7 +58,7 @@ const MonitorStats = ({monitor}: Props) => {
     const timestamp = p.ts * 1000;
     success.data.push({name: timestamp, value: p.ok});
     failed.data.push({name: timestamp, value: p.error});
-    durationData.push([timestamp, p.duration]);
+    durationData.push([timestamp, Math.trunc(p.duration)]);
   });
   const colors = [theme.green300, theme.red300];
 
