@@ -245,12 +245,9 @@ describe('OrganizationStats', function () {
       context: routerContext,
       organization,
     });
-    expect(await screen.findByText('My Projects')).toBeInTheDocument();
-
-    const usageStatsOrganization = await screen.findByTestId('usage-stats-chart');
-    expect(usageStatsOrganization).toBeInTheDocument();
-    const usageStatsProjects = await screen.findByTestId('usage-stats-table');
-    expect(usageStatsProjects).toBeInTheDocument();
+    expect(screen.getByText('My Projects')).toBeInTheDocument();
+    expect(screen.getByTestId('usage-stats-chart')).toBeInTheDocument();
+    expect(screen.getByTestId('usage-stats-table')).toBeInTheDocument();
 
     mockRequest.mock.calls.forEach(([_path, {query}]) => {
       // Ignore UsageStatsPerMin's query
@@ -270,11 +267,8 @@ describe('OrganizationStats', function () {
     const selectedProjects = [1, 2];
     act(() => PageFiltersStore.updateProjects(selectedProjects, []));
     expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
-
-    const usageStatsOrganization = await screen.findByTestId('usage-stats-chart');
-    expect(usageStatsOrganization).toBeInTheDocument();
-    const usageStatsProjects = await screen.findByTestId('usage-stats-table');
-    expect(usageStatsProjects).toBeInTheDocument();
+    expect(screen.getByTestId('usage-stats-chart')).toBeInTheDocument();
+    expect(screen.getByTestId('usage-stats-table')).toBeInTheDocument();
 
     expect(mockRequest).toHaveBeenCalledWith(
       endpoint,
@@ -298,12 +292,9 @@ describe('OrganizationStats', function () {
     const selectedProject = [1];
     act(() => PageFiltersStore.updateProjects(selectedProject, []));
     expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
-
-    const usageStatsOrganization = await screen.findByTestId('usage-stats-chart');
-    expect(usageStatsOrganization).toBeInTheDocument();
+    expect(screen.getByTestId('usage-stats-chart')).toBeInTheDocument();
     // Doesn't render for single project view
-    const usageStatsProjects = await screen.queryByTestId('usage-stats-table');
-    expect(usageStatsProjects).not.toBeInTheDocument();
+    expect(screen.queryByTestId('usage-stats-table')).not.toBeInTheDocument();
 
     expect(mockRequest).toHaveBeenCalledWith(
       endpoint,
