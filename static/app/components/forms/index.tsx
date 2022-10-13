@@ -12,10 +12,10 @@ export {default as RangeField} from './fields/rangeField';
 export {default as SelectField} from './fields/selectField';
 export {default as TextareaField} from './fields/textareaField';
 export {default as TextField} from './fields/textField';
+export {default as SeparatorField} from './fields/separatorField';
 
 export {default as Form} from './form';
 export {default as ApiForm} from './apiForm';
 export {default as JSONForm} from './jsonForm';
 export {default as FormPanel} from './formPanel';
 export {default as FieldFromConfig} from './fieldFromConfig';
-export {default as FieldSeparator} from './fieldSeparator';

@@ -1,5 +1,5 @@
 import {FieldProps} from 'sentry/components/forms/field';
-import FieldSeparator from 'sentry/components/forms/fieldSeparator';
+import SeparatorField from 'sentry/components/forms/fields/separatorField';
 import {Field} from 'sentry/components/forms/type';
 import {Scope} from 'sentry/types';
 
@@ -48,7 +48,7 @@ function FieldFromConfig(props: FieldFromConfigProps): React.ReactElement | null
 
   switch (field.type) {
     case 'separator':
-      return <FieldSeparator />;
+      return <SeparatorField />;
     case 'secret':
       return <InputField {...(componentProps as InputFieldProps)} type="password" />;
     case 'range':
