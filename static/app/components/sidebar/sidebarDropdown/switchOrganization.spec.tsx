@@ -122,4 +122,27 @@ describe('SwitchOrganization', function () {
     expect(screen.getByTestId('pending-deletion-icon')).toBeInTheDocument();
     jest.useRealTimers();
   });
+
+  it('renders when there is no current organization', function () {
+    // This can occur when disabled members of an organization will not have a current organization.
+    jest.useFakeTimers();
+    render(
+      <SwitchOrganization
+        canCreateOrganization={false}
+        organizations={[
+          TestStubs.Organization({name: 'Organization 1'}),
+          TestStubs.Organization({name: 'Organization 2', slug: 'org2'}),
+        ]}
+      />
+    );
+
+    userEvent.hover(screen.getByTestId('sidebar-switch-org'));
+    act(() => void jest.advanceTimersByTime(500));
+
+    expect(screen.getByRole('list')).toBeInTheDocument();
+
+    expect(screen.getByText('Organization 1')).toBeInTheDocument();
+    expect(screen.getByText('Organization 2')).toBeInTheDocument();
+    jest.useRealTimers();
+  });
 });

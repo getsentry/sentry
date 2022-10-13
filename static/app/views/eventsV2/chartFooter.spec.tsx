@@ -1,8 +1,6 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
 import {DisplayModes} from 'sentry/utils/discover/types';
 import ChartFooter from 'sentry/views/eventsV2/chartFooter';
@@ -59,16 +57,18 @@ describe('EventsV2 > ChartFooter', function () {
       />
     );
 
-    const wrapper = mountWithTheme(chartFooter, initialData.routerContext);
+    render(chartFooter, {context: initialData.routerContext});
 
-    wrapper.update();
-
-    const optionCheckboxSelector = wrapper.find('OptionSelector').last();
-    expect(optionCheckboxSelector.props().title).toEqual(t('Y-Axis'));
-    expect(optionCheckboxSelector.props().selected).toEqual(yAxisValue);
+    expect(
+      screen.getByRole('button', {
+        name: `Y-Axis ${yAxisValue[0]} +${
+          yAxisValue.filter(v => v !== yAxisValue[0]).length
+        }`,
+      })
+    ).toBeInTheDocument();
   });
 
-  it('renders display limits with default limit when top 5 mode is selected', async function () {
+  it('renders display limits with default limit when top 5 mode is selected', function () {
     const organization = TestStubs.Organization({
       features,
     });
@@ -82,6 +82,8 @@ describe('EventsV2 > ChartFooter', function () {
       projects: [],
     });
 
+    const limit = '5';
+
     const chartFooter = (
       <ChartFooter
         organization={organization}
@@ -94,20 +96,16 @@ describe('EventsV2 > ChartFooter', function () {
         onDisplayChange={() => undefined}
         onTopEventsChange={() => undefined}
         onIntervalChange={() => undefined}
-        topEvents="5"
+        topEvents={limit}
         showBaseline={false}
         setShowBaseline={() => undefined}
         eventView={eventView}
       />
     );
 
-    const wrapper = mountWithTheme(chartFooter, initialData.routerContext);
+    render(chartFooter, {context: initialData.routerContext});
 
-    await tick();
-    wrapper.update();
-
-    const optionSelector = wrapper.find('OptionSelector[title="Limit"]');
-    expect(optionSelector.props().selected).toEqual('5');
+    expect(screen.getByRole('button', {name: `Limit ${limit}`})).toBeInTheDocument();
   });
 
   it('renders multi value y-axis dropdown selector on a non-Top display', function () {

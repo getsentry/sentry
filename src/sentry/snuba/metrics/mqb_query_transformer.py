@@ -95,6 +95,7 @@ def _transform_select(query_select):
 
 def _transform_groupby(query_groupby):
     mq_groupby = []
+    interval = None
     include_series = False
     for groupby_field in query_groupby:
         if isinstance(groupby_field, (Column, AliasedExpression)):
@@ -105,9 +106,6 @@ def _transform_groupby(query_groupby):
                 column_field = groupby_field
                 column_alias = None
 
-            if column_field.name == "bucketed_time":
-                include_series = True
-                continue
             if column_field.name in FIELD_ALIAS_MAPPINGS.keys() | FIELD_ALIAS_MAPPINGS.values():
                 mq_groupby.append(
                     MetricGroupByField(
@@ -137,13 +135,38 @@ def _transform_groupby(query_groupby):
                         alias=groupby_field.alias,
                     )
                 )
+            elif groupby_field.function == "toStartOfInterval":
+                # Checks against the following snuba function
+                # time_groupby_column = Function(
+                #    function="toStartOfInterval",
+                #    parameters=[
+                #        Column(name="timestamp"),
+                #        Function(
+                #            function="toIntervalSecond",
+                #            parameters=[self._metrics_query.interval],
+                #            alias=None,
+                #        ),
+                #        "Universal",
+                #    ],
+                #    alias=TS_COL_GROUP,
+                # )
+                include_series = True
+
+                # Maps to `toIntervalSecond` function
+                interval_func = groupby_field.parameters[1]
+                assert (
+                    isinstance(interval_func, Function)
+                    and interval_func.function == "toIntervalSecond"
+                )
+                interval = interval_func.parameters[0]
+                continue
             else:
                 raise MQBQueryTransformationException(
                     f"Cannot group by function {groupby_field.function}"
                 )
         else:
             raise MQBQueryTransformationException(f"Unsupported groupby field {groupby_field}")
-    return mq_groupby if len(mq_groupby) > 0 else None, include_series
+    return mq_groupby if len(mq_groupby) > 0 else None, include_series, interval
 
 
 def _get_mq_dict_params_from_where(query_where):
@@ -215,7 +238,7 @@ def tranform_mqb_query_to_metrics_query(query: Query) -> MetricsQuery:
             "Having clauses are not supported by the metrics layer"
         )
     # Handle groupby
-    groupby, include_series = _transform_groupby(query.groupby)
+    groupby, include_series, interval = _transform_groupby(query.groupby)
 
     mq_dict = {
         "select": _transform_select(query.select),
@@ -226,6 +249,7 @@ def tranform_mqb_query_to_metrics_query(query: Query) -> MetricsQuery:
         "include_series": include_series,
         "granularity": query.granularity if query.granularity is not None else Granularity(3600),
         "orderby": _transform_orderby(query.orderby),
+        "interval": interval,
         **_get_mq_dict_params_from_where(query.where),
     }
     return MetricsQuery(**mq_dict)
