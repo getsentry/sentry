@@ -113,10 +113,10 @@ describe('OrganizationStats', function () {
     expect(screen.getByText('6 in last min')).toBeInTheDocument();
 
     expect(screen.getAllByText('Filtered')[0]).toBeInTheDocument();
-    // expect(screen.getByText('7')).toBeInTheDocument();
+    expect(screen.getAllByText('7')[0]).toBeInTheDocument();
 
     expect(screen.getAllByText('Dropped')[0]).toBeInTheDocument();
-    // expect(screen.getByText('29')).toBeInTheDocument();
+    expect(screen.getAllByText('29')[0]).toBeInTheDocument();
 
     // Correct API Calls
     const mockExpectations = {
