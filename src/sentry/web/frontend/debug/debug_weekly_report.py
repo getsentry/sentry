@@ -98,6 +98,10 @@ class DebugWeeklyReportView(MailPreviewView):
                 )
                 for _ in range(0, 3)
             ]
+            project_context.key_performance_issues = [
+                (g, None, random.randint(0, 1000))
+                for g in Group.objects.filter(type__gte=1000, type__lt=2000).all()[:3]
+            ]
             ctx.projects[project.id] = project_context
 
         return render_template_context(ctx, None)
