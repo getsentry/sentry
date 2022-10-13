@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {useButton} from '@react-aria/button';
 import {AriaMenuOptions, useMenuTrigger} from '@react-aria/menu';
