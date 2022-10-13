@@ -36,7 +36,7 @@ def get_installation_metadata(event, host):
             provider="github_enterprise",
         )
     except Integration.DoesNotExist:
-        logger.exception()  # This creates an error in Sentry
+        logger.exception()
         return
     return integration.metadata["installation"]
 
@@ -124,7 +124,7 @@ class GitHubEnterpriseWebhookBase(View):
             handler = self.get_handler(request.META["HTTP_X_GITHUB_EVENT"])
         except KeyError:
             logger.warning("github_enterprise.webhook.missing-event", extra=self.get_logging_data())
-            logger.exception()  # This creates an error in Sentry
+            logger.exception()
             return HttpResponse(status=400)
 
         if not handler:
@@ -138,14 +138,14 @@ class GitHubEnterpriseWebhookBase(View):
                 extra=self.get_logging_data(),
                 exc_info=True,
             )
-            logger.exception()  # This creates an error in Sentry
+            logger.exception()
             return HttpResponse(status=400)
 
         try:
             host = request.META["HTTP_X_GITHUB_ENTERPRISE_HOST"]
         except KeyError:
             logger.warning("github_enterprise.webhook.missing-enterprise-host")
-            logger.exception()  # This creates an error in Sentry
+            logger.exception()
             return HttpResponse(status=400)
 
         secret = self.get_secret(event, host)
@@ -167,7 +167,7 @@ class GitHubEnterpriseWebhookBase(View):
                 "github_enterprise.webhook.missing-signature",
                 extra={"host": host, "error": str(e)},
             )
-            logger.exception()  # This creates an error in Sentry
+            logger.exception()
         handler()(event, host)
         return HttpResponse(status=204)
 
