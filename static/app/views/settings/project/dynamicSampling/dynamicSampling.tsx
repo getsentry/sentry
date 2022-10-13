@@ -41,7 +41,6 @@ import PermissionAlert from 'sentry/views/settings/organization/permissionAlert'
 
 import {SpecificConditionsModal} from './modals/specificConditionsModal';
 import {responsiveModal} from './modals/styles';
-import {useProjectStats} from './utils/useProjectStats';
 import {useRecommendedSdkUpgrades} from './utils/useRecommendedSdkUpgrades';
 import {DraggableRuleList, DraggableRuleListUpdateItemsProps} from './draggableRuleList';
 import {
@@ -57,7 +56,6 @@ import {SamplingBreakdown} from './samplingBreakdown';
 import {SamplingFeedback} from './samplingFeedback';
 import {SamplingFromOtherProject} from './samplingFromOtherProject';
 import {SamplingProjectIncompatibleAlert} from './samplingProjectIncompatibleAlert';
-import {SamplingSDKClientRateChangeAlert} from './samplingSDKClientRateChangeAlert';
 import {SamplingSDKUpgradesAlert} from './samplingSDKUpgradesAlert';
 import {RulesPanelLayout, UniformRule} from './uniformRule';
 import {isUniformRule, SERVER_SIDE_SAMPLING_DOC_LINK} from './utils';
@@ -199,8 +197,6 @@ export function DynamicSampling({project}: Props) {
     router.location.pathname,
     samplingProjectSettingsPath,
   ]);
-
-  const {projectStats48h} = useProjectStats();
 
   async function handleActivateToggle(rule: SamplingRule) {
     if (isProjectIncompatible) {
@@ -359,15 +355,6 @@ export function DynamicSampling({project}: Props) {
             projectId={project.id}
             recommendedSdkUpgrades={recommendedSdkUpgrades}
             onReadDocs={handleReadDocs}
-          />
-        )}
-
-        {!!rules.length && !recommendedSdkUpgrades.length && (
-          <SamplingSDKClientRateChangeAlert
-            onReadDocs={handleReadDocs}
-            projectStats={projectStats48h.data}
-            organization={organization}
-            projectId={project.id}
           />
         )}
 
