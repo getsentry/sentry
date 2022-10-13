@@ -992,8 +992,6 @@ SENTRY_FEATURES = {
     "organizations:discover-basic": True,
     # Enable discover 2 custom queries and saved queries
     "organizations:discover-query": True,
-    # Enable the interval selector in discover
-    "organizations:discover-interval-selector": False,
     # Enable metrics baseline in discover
     "organizations:discover-metrics-baseline": False,
     # Enable quick context in discover
@@ -2470,11 +2468,7 @@ KAFKA_CLUSTERS = {
 #     pick up the change.
 
 KAFKA_EVENTS = "events"
-# TODO: KAFKA_TRANSACTIONS is temporarily mapped to "events" since events
-# transactions curently share a Kafka topic. Once we are ready with the code
-# changes to support different topic, switch this to "transactions" to start
-# producing to the new topic.
-KAFKA_TRANSACTIONS = "events"
+KAFKA_TRANSACTIONS = "transactions"
 KAFKA_OUTCOMES = "outcomes"
 KAFKA_OUTCOMES_BILLING = "outcomes-billing"
 KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS = "events-subscription-results"

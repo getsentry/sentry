@@ -5,7 +5,7 @@ import isEqual from 'lodash/isEqual';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
-import SelectControl from 'sentry/components/forms/selectControl';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Input from 'sentry/components/input';
 import PageHeading from 'sentry/components/pageHeading';
 import {t} from 'sentry/locale';

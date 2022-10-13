@@ -1,11 +1,11 @@
 enum Tab {
-  TransactionSummary,
-  WebVitals,
-  Tags,
-  Events,
-  Spans,
-  Anomalies,
-  Replays,
+  TransactionSummary = 'summary',
+  WebVitals = 'vitals',
+  Tags = 'tags',
+  Events = 'events',
+  Spans = 'spans',
+  Anomalies = 'anomalies',
+  Replays = 'replays',
 }
 
 export default Tab;
