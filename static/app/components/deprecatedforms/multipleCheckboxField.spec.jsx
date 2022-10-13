@@ -1,8 +1,6 @@
 import {render} from 'sentry-test/reactTestingLibrary';
 
 import {MultipleCheckboxField} from 'sentry/components/deprecatedforms';
-import Form from 'sentry/components/forms/form';
-import FormModel from 'sentry/components/forms/model';
 
 describe('MultipleCheckboxField', function () {
   it('renders without form context', function () {
@@ -17,22 +15,5 @@ describe('MultipleCheckboxField', function () {
       />
     );
     expect(container).toSnapshot();
-  });
-
-  it('renders with form context', function () {
-    const model = new FormModel({initialData: {fieldName: ['1']}});
-    const {container} = render(
-      <Form value={model}>
-        <MultipleCheckboxField
-          name="fieldName"
-          choices={[
-            ['1', 'On'],
-            ['2', 'Off'],
-          ]}
-        />
-      </Form>
-    );
-    expect(container).toSnapshot();
-    expect(model.fields.get('fieldName')).toEqual(['1']);
   });
 });

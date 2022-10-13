@@ -95,6 +95,9 @@ def build_repository_query(metadata: Mapping[str, Any], name: str, query: str) -
     return f"{account_type}:{name} {query}".encode()
 
 
+# Github App docs and list of available endpoints
+# https://docs.github.com/en/rest/apps/installations
+# https://docs.github.com/en/rest/overview/endpoints-available-for-github-apps
 class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMixin, CommitContextMixin):  # type: ignore
     repo_search = True
     codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
@@ -103,6 +106,12 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         return GitHubAppsClient(integration=self.model)
 
     def get_repositories(self, query: str | None = None) -> Sequence[Mapping[str, Any]]:
+        """
+        This fetches all repositories accessible to a Github App
+        https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
+
+        per_page: The number of results per page (max 100; default 30).
+        """
         if not query:
             return [
                 {"name": i["name"], "identifier": i["full_name"]}

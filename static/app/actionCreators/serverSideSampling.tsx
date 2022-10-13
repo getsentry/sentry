@@ -22,7 +22,7 @@ export function fetchSamplingSdkVersions({
 
   const distribution = ServerSideSamplingStore.getState().distribution.data;
 
-  const {startTimestamp, endTimestamp, project_breakdown} = distribution ?? {};
+  const {startTimestamp, endTimestamp, projectBreakdown} = distribution ?? {};
 
   ServerSideSamplingStore.sdkVersionsRequestLoading();
 
@@ -33,7 +33,8 @@ export function fetchSamplingSdkVersions({
 
   const projectIds = [
     projectID,
-    ...(project_breakdown?.map(projectBreakdown => projectBreakdown.project_id) ?? []),
+    ...(projectBreakdown?.map(projectBreakdownObj => projectBreakdownObj.projectId) ??
+      []),
   ];
 
   const promise = api.requestPromise(
