@@ -2,7 +2,6 @@ import pytz
 from django.utils.safestring import mark_safe
 from django.views.generic import View
 
-from fixtures.github import COMMIT_EXAMPLE
 from sentry.api.serializers.models.event import get_entries  # , get_problems
 from sentry.event_manager import EventManager, get_event_type
 from sentry.models import Organization, Project, Rule
@@ -72,11 +71,19 @@ class DebugPerformanceIssueEmailView(View):
 
         perf_group = next(make_group_generator(random, project))
         perf_group.type = GroupType.PERFORMANCE_N_PLUS_ONE.value
-        perf_data = load_data("transaction", timestamp=before_now(minutes=10))
-        perf_event_manager = EventManager(perf_data)
-        perf_event_manager.normalize()
-        perf_data = perf_event_manager.get_data()
-        perf_event = perf_event_manager.save(project.id)
+        with override_options(
+            {
+                "performance.issues.all.problem-creation": 1.0,
+                "performance.issues.all.problem-detection": 1.0,
+                "performance.issues.n_plus_one_db.problem-creation": 1.0,
+            }
+        ):
+            perf_data = load_data("transaction-n-plus-one", timestamp=before_now(minutes=10))
+            perf_event_manager = EventManager(perf_data)
+            perf_event_manager.normalize()
+            perf_data = perf_event_manager.get_data()
+            perf_event = perf_event_manager.save(project.id)
+        print("perf event", perf_event, perf_event.groups)
         perf_event.group = perf_group
         perf_event = perf_event.for_group(perf_event.group)
 
