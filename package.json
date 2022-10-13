@@ -166,6 +166,7 @@
   "devDependencies": {
     "@babel/plugin-transform-react-jsx-source": "^7.19.6",
     "@pmmmwh/react-refresh-webpack-plugin": "0.5.7",
+    "@sentry/jest-environment": "4.0.0-alpha",
     "@size-limit/preset-small-lib": "^5.0.5",
     "@storybook/addon-a11y": "6.5.12",
     "@storybook/addon-actions": "6.5.12",
@@ -195,8 +196,12 @@
     "jest-environment-jsdom": "^29.2.0",
     "jest-fail-on-console": "^3.0.2",
     "jest-fetch-mock": "^3.0.3",
+<<<<<<< HEAD
     "jest-junit": "14.0.1",
     "jest-sentry-environment": "3.0.0",
+=======
+    "jest-junit": "13.2.0",
+>>>>>>> abe5a22ca1 (feat(jest): enable profiling tests)
     "postcss-jsx": "0.36.4",
     "postcss-syntax": "0.36.2",
     "react-refresh": "0.13.0",
@@ -232,8 +237,8 @@
   "proxyURL": "http://localhost:8000",
   "scripts": {
     "test-wrap": "node scripts/test.js",
-    "test": "yarn test-wrap --watch",
-    "test-ci": "yarn test-wrap --ci --coverage --runInBand --colors",
+    "test": "yarn test-wrap",
+    "test-ci": "yarn test-wrap --ci --coverage --runInBand",
     "test-debug": "node --inspect-brk scripts/test.js --runInBand",
     "test-precommit": "yarn test-wrap --bail --findRelatedTests -u",
     "test-staged": "yarn test-wrap --findRelatedTests $(git diff --name-only --cached)",
