@@ -143,14 +143,6 @@ def convert_query_values(search_filters, projects, user, environments):
     """
 
     def convert_search_filter(search_filter, organization):
-        if search_filter.key.name == "empty_stacktrace.js_console":
-            if not features.has(
-                "organizations:javascript-console-error-tag", organization, actor=None
-            ):
-                raise InvalidSearchQuery(
-                    "The empty_stacktrace.js_console filter is not supported for this organization"
-                )
-
         if search_filter.key.name in value_converters:
             converter = value_converters[search_filter.key.name]
             new_value = converter(
