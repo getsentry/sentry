@@ -81,7 +81,6 @@ default_manager.add("organizations:discover-events-rate-limit", OrganizationFeat
 default_manager.add("organizations:discover-metrics-baseline", OrganizationFeature, True)
 default_manager.add("organizations:discover-quick-context", OrganizationFeature, True)
 default_manager.add("organizations:discover-frontend-use-events-endpoint", OrganizationFeature, True)
-default_manager.add("organizations:discover-interval-selector", OrganizationFeature, True)
 default_manager.add("organizations:discover-query-builder-as-landing-page", OrganizationFeature, True)
 default_manager.add("organizations:dynamic-sampling-total-transaction-packaging", OrganizationFeature, True)
 default_manager.add("organizations:enterprise-perf", OrganizationFeature)
