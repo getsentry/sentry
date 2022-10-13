@@ -177,4 +177,13 @@ export const QUOTA_FIELDS = [
       ['never', t('Off')],
     ] as const,
   },
+  {
+    name: 'quotaSpendAllocations',
+    label: t('Spend Allocations'),
+    help: t('Receive notifications about your spend allocations.'),
+    choices: [
+      ['always', t('On')],
+      ['never', t('Off')],
+    ] as const,
+  },
 ];
