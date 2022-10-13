@@ -46,7 +46,7 @@ describe('Dynamic Sampling - Sdk Upgrades Alert', function () {
 
     expect(
       screen.getByText(
-        'To activate sampling rules, it’s a requirement to update the following project SDK(s):'
+        'To have Dynamic Sampling up and running, it’s a requirement to update the following project SDK(s):'
       )
     ).toBeInTheDocument();
 
