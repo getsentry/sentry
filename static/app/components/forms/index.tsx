@@ -11,7 +11,6 @@ export {default as RadioBooleanField} from './fields/radioBooleanField';
 export {default as RangeField} from './fields/rangeField';
 export {default as SelectField} from './fields/selectField';
 export {default as TextareaField} from './fields/textareaField';
-export {default as TestCopyInput} from './textCopyInput';
 export {default as TextField} from './fields/textField';
 
 export {default as Form} from './form';
