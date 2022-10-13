@@ -30,8 +30,6 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import HeaderTabs from 'sentry/views/organizationStats/header';
 
-import {SearchContainer} from '../issueList/filters';
-
 import {CHART_OPTIONS_DATACATEGORY, ChartDataTransform} from './usageChart';
 import UsageStatsOrg from './usageStatsOrg';
 import UsageStatsProjects from './usageStatsProjects';
@@ -222,7 +220,7 @@ export class OrganizationStats extends Component<Props> {
 
   renderPageControl = () => {
     return (
-      <SearchContainer>
+      <PageControl>
         <PageFilterBar>
           <ProjectPageFilter />
           <DropdownDataCategory
@@ -235,7 +233,7 @@ export class OrganizationStats extends Component<Props> {
           />
           <DatePageFilter alignDropdown="left" />
         </PageFilterBar>
-      </SearchContainer>
+      </PageControl>
     );
   };
 
@@ -356,5 +354,15 @@ const DropdownDataCategory = styled(CompactSelect)`
 const Body = styled(Layout.Body)`
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     display: block;
+  }
+`;
+
+const PageControl = styled('div')`
+  display: grid;
+  width: 100%;
+  margin-bottom: ${space(2)};
+  grid-template-columns: minmax(0, max-content);
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    grid-template-columns: minmax(0, 1fr);
   }
 `;

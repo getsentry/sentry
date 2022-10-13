@@ -56,7 +56,7 @@ function IssueListFilters({
   );
 }
 
-export const SearchContainer = styled('div')`
+const SearchContainer = styled('div')`
   display: grid;
   gap: ${space(2)};
   width: 100%;
