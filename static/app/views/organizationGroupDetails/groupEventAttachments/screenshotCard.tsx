@@ -2,11 +2,21 @@ import {useState} from 'react';
 import LazyLoad from 'react-lazyload';
 import styled from '@emotion/styled';
 
+import {openModal} from 'sentry/actionCreators/modal';
+import MenuItemActionLink from 'sentry/components/actions/menuItemActionLink';
+import Button from 'sentry/components/button';
 import Card from 'sentry/components/card';
 import DateTime from 'sentry/components/dateTime';
+import DropdownLink from 'sentry/components/dropdownLink';
 import ImageVisualization from 'sentry/components/events/eventTagsAndScreenshot/screenshot/imageVisualization';
+import Modal, {
+  modalCss,
+} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/modal';
+import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PanelBody} from 'sentry/components/panels';
+import {IconEllipsis} from 'sentry/icons/iconEllipsis';
+import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {IssueAttachment, Project} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -14,24 +24,55 @@ import useOrganization from 'sentry/utils/useOrganization';
 type Props = {
   eventAttachment: IssueAttachment;
   eventId: string;
+  groupId: string;
+  onDelete: (attachmentId: string) => void;
   projectSlug: Project['slug'];
 };
 
-export function ScreenshotCard({eventAttachment, projectSlug, eventId}: Props) {
+export function ScreenshotCard({
+  eventAttachment,
+  projectSlug,
+  eventId,
+  groupId,
+  onDelete,
+}: Props) {
   const organization = useOrganization();
   const [loadingImage, setLoadingImage] = useState(true);
+
+  const downloadUrl = `/api/0/projects/${organization.slug}/${projectSlug}/events/${eventId}/attachments/${eventAttachment.id}/?download=1`;
+
+  function openVisualizationModal() {
+    openModal(
+      modalProps => (
+        <Modal
+          {...modalProps}
+          orgSlug={organization.slug}
+          projectSlug={projectSlug}
+          eventAttachment={eventAttachment}
+          downloadUrl={downloadUrl}
+          onDelete={() => onDelete(eventAttachment.id)}
+        />
+      ),
+      {modalCss}
+    );
+  }
+
+  const baseEventsPath = `/organizations/${organization.slug}/issues/${groupId}/events/`;
   return (
-    <Card interactive>
+    <Card>
       <CardHeader>
         <CardContent>
-          <Title>{eventId}</Title>
+          <Title to={`${baseEventsPath}${eventId}/`}>{eventId}</Title>
           <Detail>
             <DateTime date={eventAttachment.dateCreated} />
           </Detail>
         </CardContent>
       </CardHeader>
       <CardBody>
-        <StyledPanelBody>
+        <StyledPanelBody
+          onClick={() => openVisualizationModal()}
+          data-test-id={`screenshot-${eventAttachment.id}`}
+        >
           <LazyLoad>
             <StyledImageVisualization
               attachment={eventAttachment}
@@ -49,12 +90,40 @@ export function ScreenshotCard({eventAttachment, projectSlug, eventId}: Props) {
           </LazyLoad>
         </StyledPanelBody>
       </CardBody>
-      <CardFooter>{eventAttachment.name}</CardFooter>
+      <CardFooter>
+        <div>{eventAttachment.name}</div>
+        <DropdownLink
+          caret={false}
+          customTitle={
+            <Button
+              aria-label={t('Actions')}
+              size="xs"
+              icon={<IconEllipsis direction="down" size="sm" />}
+              borderless
+            />
+          }
+          anchorRight
+        >
+          <MenuItemActionLink shouldConfirm={false} href={`${downloadUrl}`}>
+            {t('Download')}
+          </MenuItemActionLink>
+          <MenuItemActionLink
+            shouldConfirm
+            confirmPriority="danger"
+            confirmLabel={t('Delete')}
+            onAction={() => onDelete(eventAttachment.id)}
+            header={t('This image was captured around the time that the event occurred.')}
+            message={t('Are you sure you wish to delete this image?')}
+          >
+            {t('Delete')}
+          </MenuItemActionLink>
+        </DropdownLink>
+      </CardFooter>
     </Card>
   );
 }
 
-const Title = styled('div')`
+const Title = styled(Link)`
   ${p => p.theme.overflowEllipsis};
   font-weight: normal;
 `;
@@ -86,6 +155,9 @@ const CardFooter = styled('div')`
   justify-content: space-between;
   align-items: center;
   padding: ${space(1)} ${space(2)};
+  .dropdown {
+    height: 24px;
+  }
 `;
 
 const CardContent = styled('div')`

@@ -35,17 +35,16 @@ describe('SmartSearchBar', () => {
     });
 
     it('does not pin when query is empty', function () {
-      const {Action} = makePinSearchAction({sort: ''});
+      const {makeAction} = makePinSearchAction({sort: '', location});
 
-      render(
-        <Action
-          api={api}
-          organization={organization}
-          query=""
-          savedSearchType={0}
-          location={location}
-        />
-      );
+      const Action = makeAction({
+        api,
+        organization,
+        query: '',
+        savedSearchType: 0,
+      }).Button;
+
+      render(<Action />);
 
       userEvent.click(screen.getByRole('button'));
 
@@ -53,17 +52,16 @@ describe('SmartSearchBar', () => {
     });
 
     it('adds pins', function () {
-      const {Action} = makePinSearchAction({sort: ''});
+      const {makeAction} = makePinSearchAction({sort: '', location});
 
-      render(
-        <Action
-          api={api}
-          organization={organization}
-          query="is:unresolved"
-          savedSearchType={0}
-          location={location}
-        />
-      );
+      const Action = makeAction({
+        api,
+        organization,
+        query: 'is:unresolved',
+        savedSearchType: 0,
+      }).Button;
+
+      render(<Action />);
 
       userEvent.click(screen.getByRole('button'));
 
@@ -73,17 +71,16 @@ describe('SmartSearchBar', () => {
 
     it('removes pins', function () {
       const pinnedSearch = TestStubs.Search({isPinned: true});
-      const {Action} = makePinSearchAction({pinnedSearch, sort: ''});
+      const {makeAction} = makePinSearchAction({pinnedSearch, sort: '', location});
 
-      render(
-        <Action
-          api={api}
-          organization={organization}
-          query="is:unresolved"
-          savedSearchType={0}
-          location={location}
-        />
-      );
+      const Action = makeAction({
+        api,
+        organization,
+        query: 'is:unresolved',
+        savedSearchType: 0,
+      }).Button;
+
+      render(<Action />);
 
       userEvent.click(screen.getByRole('button'));
 
