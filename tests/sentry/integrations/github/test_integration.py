@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, patch
 from urllib.parse import urlencode, urlparse
 
+import pytest
 import responses
 from django.urls import reverse
 
@@ -13,6 +14,47 @@ from sentry.plugins.bases import IssueTrackingPlugin2
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils import IntegrationTestCase
 
+# XXX: The branch value should be retrieved from the get_repositories() logic
+TREE_RESPONSES = {
+    "getsentry/sentry": {
+        "default_branch": "master",
+        "status_code": 200,
+        "body": {
+            # The latest sha for a specific branch
+            "sha": "a4e587563cb5dbb46192b5962cbadc8c532a8455",
+            "url": "https://api.github.com/repos/getsentry/sentry/git/trees/a4e587563cb5dbb46192b5962cbadc8c532a8455",
+            "tree": [
+                {
+                    "path": ".artifacts",
+                    "mode": "040000",
+                    "type": "tree",  # A directory
+                    "sha": "44813f92a105143eff565d14d2054c2ea90eb62e",
+                    "url": "https://api.github.com/repos/getsentry/sentry/git/trees/44813f92a105143eff565d14d2054c2ea90eb62e",
+                },
+                {
+                    "path": "src/sentry/api/endpoints/auth_login.py",
+                    "mode": "100644",
+                    "type": "blob",  # A file
+                    "sha": "517899e22ada047336cab4ecbbf8c27b151f190c",
+                    "size": 2711,
+                    "url": "https://api.github.com/repos/getsentry/sentry/git/blobs/517899e22ada047336cab4ecbbf8c27b151f190c",
+                },
+            ],
+            "truncated": False,  # If this is True, we have reached the limit of what we can get with the recursive option
+        },
+    },
+    "getsentry/nextjs-sentry-example": {
+        "default_branch": "main",
+        "status_code": 409,
+        "body": {"message": "Git Repository is empty."},
+    },
+    "getsentry/no-access": {
+        "default_branch": "main",
+        "status_code": 404,
+        "body": {"message": "Not Found"},
+    },
+}
+
 
 class GitHubPlugin(IssueTrackingPlugin2):
     slug = "github"
@@ -23,6 +65,10 @@ class GitHubPlugin(IssueTrackingPlugin2):
 class GitHubIntegrationTest(IntegrationTestCase):
     provider = GitHubIntegrationProvider
     base_url = "https://api.github.com"
+
+    @pytest.fixture(autouse=True)
+    def inject_fixtures(self, caplog):
+        self._caplog = caplog
 
     def setUp(self):
         super().setUp()
@@ -103,6 +149,16 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
 
         responses.add(responses.GET, self.base_url + "/repos/Test-Organization/foo/hooks", json=[])
+
+        # Logic to get a tree for a repo
+        # https://api.github.com/repos/getsentry/sentry/git/trees/master?recursive=1
+        for repo_full_name, values in TREE_RESPONSES.items():
+            responses.add(
+                responses.GET,
+                f"{self.base_url}/repos/{repo_full_name}/git/trees/{values['default_branch']}?recursive=1",
+                json=values["body"],
+                status=values["status_code"],
+            )
 
     def assert_setup_flow(self):
         resp = self.client.get(self.init_path)
@@ -489,3 +545,23 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert OrganizationIntegration.objects.filter(
             organization=self.organization, integration=integration
         ).exists()
+
+    @responses.activate
+    def test_get_tree_for_repo(self):
+        """Fetch the tree representation of a repo"""
+        with self.tasks():
+            self.assert_setup_flow()
+
+        integration = Integration.objects.get(provider=self.provider.key)
+        installation = integration.get_installation(self.organization)
+        for repo_full_name in TREE_RESPONSES.keys():
+            # XXX: This test should be iterating get_repositories() to grab the branch from there
+            installation.get_client().get_tree(
+                repo_full_name, TREE_RESPONSES[repo_full_name]["default_branch"]
+            )
+        # This check is specially useful since it will be available in the GCP logs
+        assert (
+            self._caplog.records[0].message
+            == "The Github App does not have access to getsentry/no-access."
+        )
+        assert self._caplog.records[0].levelname == "ERROR"
