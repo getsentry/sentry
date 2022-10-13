@@ -44,6 +44,9 @@ class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
         `/organizations/${organization.slug}/discover/homepage/`,
       ]);
     }
+    // HACK: We're using state here to manage a component key so we can force remounting the entire discover result
+    // This is because we need <Results> to rerun its constructor with the new homepage query to get it to display properly
+    // We're checking to see that location.search is empty because that is the only time we should be fetching the homepage query
     if (location.search === '' && this.state) {
       this.setState({key: Date.now()});
     }
