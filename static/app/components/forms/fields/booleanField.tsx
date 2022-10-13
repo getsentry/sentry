@@ -1,11 +1,9 @@
 import {Component} from 'react';
 
 import Confirm from 'sentry/components/confirm';
-import InputField, {
-  InputFieldProps,
-  onEvent,
-} from 'sentry/components/forms/fields/inputField';
 import Switch from 'sentry/components/switchButton';
+
+import InputField, {InputFieldProps, onEvent} from './inputField';
 
 export interface BooleanFieldProps extends InputFieldProps {
   confirm?: {

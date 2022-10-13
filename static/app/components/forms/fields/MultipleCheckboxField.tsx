@@ -1,10 +1,9 @@
 import {Key} from 'react';
 import styled from '@emotion/styled';
 
+import CheckboxFancy from 'sentry/components/checkboxFancy/checkboxFancy';
 import Field, {FieldProps} from 'sentry/components/forms/field';
 import space from 'sentry/styles/space';
-
-import CheckboxFancy from '../../checkboxFancy/checkboxFancy';
 
 type CheckboxOption<T> = {
   title: string;
