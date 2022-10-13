@@ -1,11 +1,10 @@
-import {browserHistory, InjectedRouter} from 'react-router';
+import {InjectedRouter} from 'react-router';
 import {Location} from 'history';
 
 import {Client} from 'sentry/api';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {Organization, PageFilters, SavedQuery} from 'sentry/types';
-import EventView from 'sentry/utils/discover/eventView';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -55,12 +54,6 @@ class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
     // No homepage query results in a 204, returning an empty string
     if (stateKey === 'savedQuery' && data === '') {
       this.setState({savedQuery: null});
-    }
-    if (data && data !== '') {
-      const eventView = EventView.fromSavedQuery(data);
-      browserHistory.replace(
-        eventView.getResultsViewUrlTarget(this.props.organization.slug, true)
-      );
     }
   }
 
