@@ -1,4 +1,4 @@
-import render, {
+import displayRawContent, {
   getJavaFrame,
   getJavaPreamble,
 } from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
@@ -83,7 +83,7 @@ describe('RawStacktraceContent', function () {
       };
 
     it('renders java example', () => {
-      expect(render(data, 'java', exception)).toEqual(
+      expect(displayRawContent(data, 'java', exception)).toEqual(
         `example.application.Error: an error occurred
     at example.application.doThing(application:2)
     at example.application.main(application:1)`
@@ -91,7 +91,7 @@ describe('RawStacktraceContent', function () {
     });
 
     it('renders python example', () => {
-      expect(render(data, 'python', exception)).toEqual(
+      expect(displayRawContent(data, 'python', exception)).toEqual(
         `Error: an error occurred
   File "application", line 1, in main
   File "application", line 2, in doThing`
