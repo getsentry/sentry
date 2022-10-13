@@ -12,6 +12,7 @@ from sentry.testutils.silo import region_silo_test
 @region_silo_test
 class ProjectRulePreviewEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-rule-preview"
+    method = "post"
 
     def setUp(self):
         self.login_as(self.user)

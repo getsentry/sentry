@@ -16,8 +16,9 @@ class ProjectRulePreviewEndpoint(ProjectEndpoint):
     private = True
     permission_classes = (ProjectAlertRulePermission,)
 
+    # a post endpoint because it's too hard to pass a list of objects from the frontend
     @transaction_start("ProjectRulePreviewEndpoint")
-    def get(self, request: Request, project) -> Response:
+    def post(self, request: Request, project) -> Response:
         """
         Get a list of alert triggers in past 2 weeks for given rules
 
@@ -32,7 +33,7 @@ class ProjectRulePreviewEndpoint(ProjectEndpoint):
 
         """
         serializer = RuleSetSerializer(
-            context={"project": project, "organization": project.organization}, data=request.GET
+            context={"project": project, "organization": project.organization}, data=request.data
         )
 
         if not serializer.is_valid():
