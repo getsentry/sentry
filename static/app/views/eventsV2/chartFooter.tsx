@@ -162,7 +162,14 @@ export default function ChartFooter({
             onChange={onTopEventsChange}
           />
         )}
-        {TOP_EVENT_MODES.includes(displayMode) ? null : (
+        {TOP_EVENT_MODES.includes(displayMode) ? (
+          <OptionSelector
+            title={t('Y-Axis')}
+            selected={yAxisValue[0]}
+            options={yAxisOptions}
+            onChange={yAxis => onAxisChange([yAxis])}
+          />
+        ) : (
           <OptionSelector
             multiple
             isClearable
