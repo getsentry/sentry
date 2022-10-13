@@ -1,17 +1,14 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {PageFilters} from 'sentry/types';
-import OrganizationStats from 'sentry/views/organizationStats';
+import {DataCategory, PageFilters} from 'sentry/types';
+import OrganizationStats, {PAGE_QUERY_PARAMS} from 'sentry/views/organizationStats';
 
-/**
- * Note: Rather than write tests for new features on the Stats components in
- * the outdated enzyme syntax, this file is meant to aid in the transition to RTL.
- * Please add tests here rather than `index.spec.jsx` as we slowly migrate away from enzyme.
- */
+import {ChartDataTransform} from './usageChart';
 
 describe('OrganizationStats', function () {
   const defaultSelection: PageFilters = {
@@ -24,29 +21,25 @@ describe('OrganizationStats', function () {
       utc: false,
     },
   };
-  const projects = [1, 2, 3].map(id => TestStubs.Project({id, slug: `proj-${id}`}));
-  const {organization, routerContext} = initializeOrg({
+  const projects = ['1', '2', '3'].map(id => TestStubs.Project({id, slug: `proj-${id}`}));
+  const {organization, router, routerContext} = initializeOrg({
     organization: {features: ['global-views', 'team-insights']},
-    project: undefined,
     projects,
-    router: {
-      location: {
-        pathname: '/organizations/org-slug/issues/',
-        query: {},
-      },
-      params: {orgId: 'org-slug'},
-    },
+    project: undefined,
+    router: undefined,
   });
+  const endpoint = `/organizations/${organization.slug}/stats_v2/`;
   let mockRequest;
 
   beforeEach(() => {
+    MockApiClient.clearMockResponses();
     PageFiltersStore.init();
     PageFiltersStore.onInitializeUrlState(defaultSelection, new Set());
     OrganizationStore.onUpdate(organization, {replace: true});
-    ProjectsStore.loadInitialData(organization.projects);
+    ProjectsStore.loadInitialData(projects);
     mockRequest = MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/${organization.slug}/stats_v2/`,
+      url: endpoint,
       body: mockStatsResponse,
     });
   });
@@ -55,7 +48,199 @@ describe('OrganizationStats', function () {
     PageFiltersStore.reset();
   });
 
-  it('renders with no projects selected', async () => {
+  /**
+   * Features and Alerts
+   */
+
+  it('renders header state wihout tabs', () => {
+    const newContext = initializeOrg();
+    render(<OrganizationStats />, {
+      context: newContext.routerContext,
+      organization: newContext.organization,
+    });
+    expect(screen.getByText('Organization Usage Stats')).toBeInTheDocument();
+  });
+
+  it('renders header state with tabs', () => {
+    render(<OrganizationStats />, {
+      context: routerContext,
+      organization,
+    });
+    expect(screen.getByText('Stats')).toBeInTheDocument();
+    expect(screen.getByText('Usage')).toBeInTheDocument();
+    expect(screen.getByText('Issues')).toBeInTheDocument();
+    expect(screen.getByText('Health')).toBeInTheDocument();
+  });
+
+  it('renders header with dynamic sampling alert', () => {
+    const newContext = initializeOrg();
+    newContext.organization.features = [
+      'server-side-sampling',
+      'server-side-sampling-ui',
+    ];
+    render(<OrganizationStats location={{query: {dataCategory: 'transactions'}}} />, {
+      context: newContext.routerContext,
+      organization: newContext.organization,
+    });
+    expect(screen.getByText('Dynamic Sampling Settings')).toBeInTheDocument();
+  });
+
+  /**
+   * Base + Error Handling
+   */
+  it('renders the base view', () => {
+    render(<OrganizationStats />, {
+      context: routerContext,
+      organization,
+    });
+    // Default to Errors category
+    expect(screen.getAllByText('Errors')[0]).toBeInTheDocument();
+
+    // Render the chart and project table
+    expect(screen.getByTestId('usage-stats-chart')).toBeInTheDocument();
+    expect(screen.getByTestId('usage-stats-table')).toBeInTheDocument();
+
+    // Render the cards
+    expect(screen.getAllByText('Total')[0]).toBeInTheDocument();
+    expect(screen.getByText('64')).toBeInTheDocument();
+
+    expect(screen.getAllByText('Accepted')[0]).toBeInTheDocument();
+    expect(screen.getByText('28')).toBeInTheDocument();
+    expect(screen.getByText('6 in last min')).toBeInTheDocument();
+
+    expect(screen.getAllByText('Filtered')[0]).toBeInTheDocument();
+    expect(screen.getByText('7')).toBeInTheDocument();
+
+    expect(screen.getAllByText('Dropped')[0]).toBeInTheDocument();
+    expect(screen.getByText('29')).toBeInTheDocument();
+
+    // Correct API Calls
+    const mockExpectations = {
+      UsageStatsOrg: {
+        statsPeriod: DEFAULT_STATS_PERIOD,
+        interval: '1h',
+        groupBy: ['category', 'outcome'],
+        project: [],
+        field: ['sum(quantity)'],
+      },
+      UsageStatsPerMin: {
+        statsPeriod: '5m',
+        interval: '1m',
+        groupBy: ['category', 'outcome'],
+        field: ['sum(quantity)'],
+      },
+      UsageStatsProjects: {
+        statsPeriod: DEFAULT_STATS_PERIOD,
+        interval: '1h',
+        groupBy: ['outcome', 'project'],
+        project: [],
+        field: ['sum(quantity)'],
+        category: 'error',
+      },
+    };
+    for (const query of Object.values(mockExpectations)) {
+      expect(mockRequest).toHaveBeenCalledWith(
+        endpoint,
+        expect.objectContaining({query})
+      );
+    }
+  });
+
+  it('renders with an error on stats endpoint', () => {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: endpoint,
+      statusCode: 500,
+    });
+    render(<OrganizationStats />, {
+      context: routerContext,
+      organization,
+    });
+
+    expect(screen.getByTestId('usage-stats-chart')).toBeInTheDocument();
+    expect(screen.getByTestId('usage-stats-table')).toBeInTheDocument();
+    expect(screen.getByTestId('error-messages')).toBeInTheDocument();
+  });
+
+  it('renders with an error when user has no projects', () => {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: endpoint,
+      statusCode: 400,
+      body: {detail: 'No projects available'},
+    });
+    render(<OrganizationStats />, {
+      context: routerContext,
+      organization,
+    });
+    expect(screen.getByTestId('usage-stats-chart')).toBeInTheDocument();
+    expect(screen.getByTestId('usage-stats-table')).toBeInTheDocument();
+    expect(screen.getByTestId('empty-message')).toBeInTheDocument();
+  });
+
+  /**
+   * Router Handling
+   */
+  it('pushes state changes to the route', () => {
+    render(<OrganizationStats router={router} />, {
+      context: routerContext,
+      organization,
+    });
+    userEvent.click(screen.getByText('Category'));
+    userEvent.click(screen.getByText('Attachments'));
+    expect(router.push).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: {dataCategory: DataCategory.ATTACHMENTS},
+      })
+    );
+
+    userEvent.click(screen.getByText('Periodic'));
+    userEvent.click(screen.getByText('Cumulative'));
+    expect(router.push).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: {transform: ChartDataTransform.CUMULATIVE},
+      })
+    );
+
+    const inputQuery = 'proj-1';
+    userEvent.type(
+      screen.getByPlaceholderText('Filter your projects'),
+      `${inputQuery}{enter}`
+    );
+    expect(router.push).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: {query: inputQuery},
+      })
+    );
+  });
+
+  it('does not leak query params onto next page links', () => {
+    const dummyLocation = PAGE_QUERY_PARAMS.reduce(
+      (location, param) => {
+        location.query[param] = '';
+        return location;
+      },
+      {query: {}}
+    );
+    render(<OrganizationStats router={router} location={dummyLocation} />, {
+      context: routerContext,
+      organization,
+    });
+    const projectLinks = screen.getAllByTestId('badge-display-name');
+    expect(projectLinks.length).toBeGreaterThan(0);
+    const leakingRegex = PAGE_QUERY_PARAMS.join('|');
+    for (const projectLink of projectLinks) {
+      expect(projectLink.closest('a')).toHaveAttribute(
+        'href',
+        expect.not.stringMatching(leakingRegex)
+      );
+    }
+  });
+
+  /**
+   * Project Selection
+   */
+  it('renders with no projects selected', () => {
     render(<OrganizationStats />, {
       context: routerContext,
       organization,
@@ -67,8 +252,6 @@ describe('OrganizationStats', function () {
     const usageStatsProjects = await screen.findByTestId('usage-stats-table');
     expect(usageStatsProjects).toBeInTheDocument();
 
-    expect(mockRequest).toHaveBeenCalled();
-
     mockRequest.mock.calls.forEach(([_path, {query}]) => {
       // Ignore UsageStatsPerMin's query
       if (query?.statsPeriod === '5m') {
@@ -78,14 +261,14 @@ describe('OrganizationStats', function () {
     });
   });
 
-  it('renders with multiple projects selected', async () => {
+  it('renders with multiple projects selected', () => {
     render(<OrganizationStats />, {
       context: routerContext,
       organization,
     });
 
-    const selectedProjects = new Set([1, 2]);
-    act(() => PageFiltersStore.updateProjects([...selectedProjects], []));
+    const selectedProjects = [1, 2];
+    act(() => PageFiltersStore.updateProjects(selectedProjects, []));
     expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
 
     const usageStatsOrganization = await screen.findByTestId('usage-stats-chart');
@@ -93,18 +276,21 @@ describe('OrganizationStats', function () {
     const usageStatsProjects = await screen.findByTestId('usage-stats-table');
     expect(usageStatsProjects).toBeInTheDocument();
 
-    expect(mockRequest).toHaveBeenCalled();
-    const isQueryingForProjects = mockRequest.mock.calls.some(([_path, {query}]) => {
-      // Grouping by project is specified...
-      const isGrouping = query?.groupBy?.includes('project');
-      // And we're only querying the selected projects
-      const hasSelectedProjects = query?.project?.every(id => selectedProjects.has(id));
-      return isGrouping && hasSelectedProjects;
-    });
-    expect(isQueryingForProjects).toBe(true);
+    expect(mockRequest).toHaveBeenCalledWith(
+      endpoint,
+      expect.objectContaining({
+        query: {
+          statsPeriod: DEFAULT_STATS_PERIOD,
+          interval: '1h',
+          groupBy: ['category', 'outcome'],
+          project: selectedProjects,
+          field: ['sum(quantity)'],
+        },
+      })
+    );
   });
 
-  it('renders with a single project selected', async () => {
+  it('renders with a single project selected', () => {
     render(<OrganizationStats />, {
       context: routerContext,
       organization,
@@ -119,11 +305,18 @@ describe('OrganizationStats', function () {
     const usageStatsProjects = await screen.queryByTestId('usage-stats-table');
     expect(usageStatsProjects).not.toBeInTheDocument();
 
-    expect(mockRequest).toHaveBeenCalled();
-    const isQueryingForProjects = mockRequest.mock.calls.some(([_path, {query}]) => {
-      return query.project === selectedProject;
-    });
-    expect(isQueryingForProjects).toBe(true);
+    expect(mockRequest).toHaveBeenCalledWith(
+      endpoint,
+      expect.objectContaining({
+        query: {
+          statsPeriod: DEFAULT_STATS_PERIOD,
+          interval: '1h',
+          groupBy: ['category', 'outcome'],
+          project: selectedProject,
+          field: ['sum(quantity)'],
+        },
+      })
+    );
   });
 });
 
@@ -142,6 +335,7 @@ const mockStatsResponse = {
   groups: [
     {
       by: {
+        project: 1,
         category: 'attachment',
         outcome: 'accepted',
       },
@@ -154,6 +348,7 @@ const mockStatsResponse = {
     },
     {
       by: {
+        project: 1,
         outcome: 'accepted',
         category: 'transaction',
       },
@@ -166,6 +361,7 @@ const mockStatsResponse = {
     },
     {
       by: {
+        project: 1,
         category: 'error',
         outcome: 'accepted',
       },
@@ -178,6 +374,7 @@ const mockStatsResponse = {
     },
     {
       by: {
+        project: 1,
         category: 'error',
         outcome: 'filtered',
       },
@@ -190,6 +387,7 @@ const mockStatsResponse = {
     },
     {
       by: {
+        project: 1,
         category: 'error',
         outcome: 'rate_limited',
       },
@@ -202,6 +400,7 @@ const mockStatsResponse = {
     },
     {
       by: {
+        project: 1,
         category: 'error',
         outcome: 'invalid',
       },
@@ -214,6 +413,7 @@ const mockStatsResponse = {
     },
     {
       by: {
+        project: 1,
         category: 'error',
         outcome: 'client_discard',
       },

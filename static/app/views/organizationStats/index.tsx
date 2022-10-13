@@ -18,7 +18,6 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
 import PageHeading from 'sentry/components/pageHeading';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -26,7 +25,7 @@ import {DATA_CATEGORY_NAMES, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {PageHeader} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
-import {DataCategory, DateString, Organization, PageFilters, Project} from 'sentry/types';
+import {DataCategory, Organization, PageFilters, Project} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import HeaderTabs from 'sentry/views/organizationStats/header';
@@ -39,13 +38,17 @@ import UsageStatsProjects from './usageStatsProjects';
 
 const HookHeader = HookOrDefault({hookName: 'component:org-stats-banner'});
 
-const PAGE_QUERY_PARAMS = [
-  'pageStatsPeriod',
-  'pageStart',
-  'pageEnd',
-  'pageUtc',
+export const PAGE_QUERY_PARAMS = [
+  // From DatePageFilter
+  'statsPeriod',
+  'start',
+  'end',
+  'utc',
+  // From data category selector
   'dataCategory',
+  // From UsageOrganizationStats
   'transform',
+  // From UsageProjectStats
   'sort',
   'query',
   'cursor',
@@ -171,28 +174,6 @@ export class OrganizationStats extends Component<Props> {
     };
   };
 
-  handleUpdateDatetime = (datetime: ChangeData): LocationDescriptorObject => {
-    const {start, end, relative, utc} = datetime;
-
-    if (start && end) {
-      const parser = utc ? moment.utc : moment;
-
-      return this.setStateOnUrl({
-        pageStatsPeriod: undefined,
-        pageStart: parser(start).format(),
-        pageEnd: parser(end).format(),
-        pageUtc: utc ?? undefined,
-      });
-    }
-
-    return this.setStateOnUrl({
-      pageStatsPeriod: relative || undefined,
-      pageStart: undefined,
-      pageEnd: undefined,
-      pageUtc: undefined,
-    });
-  };
-
   navigateToSamplingSettings = (e: React.MouseEvent) => {
     e.preventDefault?.();
 
@@ -211,10 +192,6 @@ export class OrganizationStats extends Component<Props> {
     nextState: {
       cursor?: string;
       dataCategory?: DataCategory;
-      pageEnd?: DateString;
-      pageStart?: DateString;
-      pageStatsPeriod?: string | null;
-      pageUtc?: boolean | null;
       query?: string;
       sort?: string;
       transform?: ChartDataTransform;
@@ -306,7 +283,6 @@ export class OrganizationStats extends Component<Props> {
                   />
                 </ErrorBoundary>
               </PageGrid>
-
               <Feature
                 features={['server-side-sampling', 'server-side-sampling-ui']}
                 organization={organization}
