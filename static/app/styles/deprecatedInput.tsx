@@ -25,7 +25,7 @@ type Props = {
  * - [Strongly Recommended] Use the existing form components, such as:
  *   + <Input /> from 'sentry/components/input'
  *   + <Textarea /> from 'sentry/components/forms/controls/textarea'
- *   + <TextCopyInput /> from 'sentry/components/forms/textCopyInput'
+ *   + <TextCopyInput /> from 'sentry/components/textCopyInput'
  *   + …
  *
  * - Import `inputStyles` as a named import from 'sentry/components/input'.

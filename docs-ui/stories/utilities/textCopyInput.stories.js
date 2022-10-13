@@ -1,6 +1,6 @@
 import {action} from '@storybook/addon-actions';
 
-import TextCopyInput from 'sentry/components/forms/textCopyInput';
+import TextCopyInput from 'sentry/components/textCopyInput';
 
 export default {
   title: 'Utilities/Copy/Input',

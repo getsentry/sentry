@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import TextCopyInput from 'sentry/components/forms/textCopyInput';
+import TextCopyInput from 'sentry/components/textCopyInput';
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
