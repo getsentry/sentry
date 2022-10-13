@@ -3,11 +3,10 @@ import {components} from 'react-select';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 import FieldErrorReason from 'sentry/components/forms/field/fieldErrorReason';
 import FormFieldControlState from 'sentry/components/forms/formField/controlState';
-import InputField, {InputFieldProps} from 'sentry/components/forms/inputField';
 import FormModel from 'sentry/components/forms/model';
-import SelectControl from 'sentry/components/forms/selectControl';
 import {ProjectMapperType} from 'sentry/components/forms/type';
 import IdBadge from 'sentry/components/idBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -24,6 +23,8 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {safeGetQsParam} from 'sentry/utils/integrationUtil';
 import {removeAtArrayIndex} from 'sentry/utils/removeAtArrayIndex';
+
+import InputField, {InputFieldProps} from './inputField';
 
 type MappedValue = string | number;
 

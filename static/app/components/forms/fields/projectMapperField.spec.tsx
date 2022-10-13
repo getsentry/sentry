@@ -3,9 +3,9 @@ import selectEvent from 'react-select-event';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {RenderField} from 'sentry/components/forms/projectMapperField';
+import FormModel from 'sentry/components/forms/model';
 
-import FormModel from '../forms/model';
+import {RenderField} from './projectMapperField';
 
 describe('ProjectMapperField', () => {
   const defaultProps: ComponentProps<typeof RenderField> = {

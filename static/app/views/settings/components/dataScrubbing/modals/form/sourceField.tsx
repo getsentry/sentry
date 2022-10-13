@@ -1,7 +1,7 @@
 import {Component, createRef, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import InputField from 'sentry/components/forms/inputField';
+import InputField from 'sentry/components/forms/fields/inputField';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';

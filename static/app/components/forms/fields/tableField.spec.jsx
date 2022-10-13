@@ -3,7 +3,8 @@ import {mountGlobalModal} from 'sentry-test/modal';
 
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
-import TableField from 'sentry/components/forms/tableField';
+
+import TableField from './tableField';
 
 const mockSubmit = jest.fn();
 

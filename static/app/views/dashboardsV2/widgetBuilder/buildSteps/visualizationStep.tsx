@@ -6,8 +6,8 @@ import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 
 import {TableCell} from 'sentry/components/charts/simpleTableChart';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Field from 'sentry/components/forms/field';
-import SelectControl from 'sentry/components/forms/selectControl';
 import {PanelAlert} from 'sentry/components/panels';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';

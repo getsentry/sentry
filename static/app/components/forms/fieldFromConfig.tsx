@@ -1,26 +1,28 @@
+import {FieldProps} from 'sentry/components/forms/field';
+import FieldSeparator from 'sentry/components/forms/fieldSeparator';
+import {Field} from 'sentry/components/forms/type';
 import {Scope} from 'sentry/types';
 
-import BlankField from './blankField';
-import BooleanField, {BooleanFieldProps} from './booleanField';
-import ChoiceMapperField, {ChoiceMapperFieldProps} from './choiceMapperField';
-import DateTimeField, {DateTimeFieldProps} from './dateTimeField';
-import EmailField, {EmailFieldProps} from './emailField';
-import {FieldProps} from './field';
-import FieldSeparator from './fieldSeparator';
-import FileField, {FileFieldProps} from './fileField';
-import HiddenField, {HiddenFieldProps} from './hiddenField';
-import InputField, {InputFieldProps} from './inputField';
-import NumberField from './numberField';
-import ProjectMapperField from './projectMapperField';
-import RadioField, {RadioFieldProps} from './radioField';
-import RangeField, {RangeFieldProps} from './rangeField';
-import SelectAsyncField, {SelectAsyncFieldProps} from './selectAsyncField';
-import SelectField, {SelectFieldProps} from './selectField';
-import SentryProjectSelectorField, {RenderFieldProps} from './sentryProjectSelectorField';
-import TableField from './tableField';
-import TextareaField, {TextareaFieldProps} from './textareaField';
-import TextField from './textField';
-import {Field} from './type';
+import BlankField from './fields/blankField';
+import BooleanField, {BooleanFieldProps} from './fields/booleanField';
+import ChoiceMapperField, {ChoiceMapperFieldProps} from './fields/choiceMapperField';
+import DateTimeField, {DateTimeFieldProps} from './fields/dateTimeField';
+import EmailField, {EmailFieldProps} from './fields/emailField';
+import FileField, {FileFieldProps} from './fields/fileField';
+import HiddenField, {HiddenFieldProps} from './fields/hiddenField';
+import InputField, {InputFieldProps} from './fields/inputField';
+import NumberField from './fields/numberField';
+import ProjectMapperField from './fields/projectMapperField';
+import RadioField, {RadioFieldProps} from './fields/radioField';
+import RangeField, {RangeFieldProps} from './fields/rangeField';
+import SelectAsyncField, {SelectAsyncFieldProps} from './fields/selectAsyncField';
+import SelectField, {SelectFieldProps} from './fields/selectField';
+import SentryProjectSelectorField, {
+  RenderFieldProps,
+} from './fields/sentryProjectSelectorField';
+import TableField from './fields/tableField';
+import TextareaField, {TextareaFieldProps} from './fields/textareaField';
+import TextField from './fields/textField';
 
 interface FieldFromConfigProps {
   field: Field;

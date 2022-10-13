@@ -1,9 +1,9 @@
-import NewBooleanField from 'sentry/components/forms/booleanField';
+import NewBooleanField from 'sentry/components/forms/fields/booleanField';
+import RadioField from 'sentry/components/forms/fields/radioField';
+import RangeField from 'sentry/components/forms/fields/rangeField';
+import SelectField from 'sentry/components/forms/fields/selectField';
+import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
-import RadioField from 'sentry/components/forms/radioField';
-import RangeField from 'sentry/components/forms/rangeField';
-import SelectField from 'sentry/components/forms/selectField';
-import TextField from 'sentry/components/forms/textField';
 
 export default {
   title: 'Components/Forms/Form',

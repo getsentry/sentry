@@ -5,7 +5,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
-import InputField from 'sentry/components/forms/inputField';
+import InputField from 'sentry/components/forms/fields/inputField';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {Integration, Organization, Project} from 'sentry/types';

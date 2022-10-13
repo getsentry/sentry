@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import Field, {FieldProps} from 'sentry/components/forms/field';
 import space from 'sentry/styles/space';
 
-import CheckboxFancy from '../checkboxFancy/checkboxFancy';
+import CheckboxFancy from '../../checkboxFancy/checkboxFancy';
 
 type CheckboxOption<T> = {
   title: string;

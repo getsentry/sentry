@@ -19,7 +19,7 @@ import DropdownButton, {DropdownButtonProps} from 'sentry/components/dropdownBut
 import SelectControl, {
   ControlProps,
   GeneralSelectValue,
-} from 'sentry/components/forms/selectControl';
+} from 'sentry/components/forms/controls/selectControl';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import space from 'sentry/styles/space';
 import {FormSize} from 'sentry/utils/theme';

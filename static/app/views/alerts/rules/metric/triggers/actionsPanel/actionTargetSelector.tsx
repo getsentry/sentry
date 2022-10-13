@@ -1,4 +1,4 @@
-import SelectControl from 'sentry/components/forms/selectControl';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 import TeamSelector from 'sentry/components/forms/teamSelector';
 import Input from 'sentry/components/input';
 import SelectMembers from 'sentry/components/selectMembers';

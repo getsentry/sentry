@@ -4,10 +4,10 @@ import debounce from 'lodash/debounce';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
+import {GeneralSelectValue} from 'sentry/components/forms/controls/selectControl';
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
-import {GeneralSelectValue} from 'sentry/components/forms/selectControl';
 import {Field, FieldValue} from 'sentry/components/forms/type';
 import {t} from 'sentry/locale';
 import {replaceAtArrayIndex} from 'sentry/utils/replaceAtArrayIndex';

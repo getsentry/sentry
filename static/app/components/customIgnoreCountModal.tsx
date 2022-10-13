@@ -3,8 +3,8 @@ import {Component, Fragment} from 'react';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import InputField from 'sentry/components/forms/inputField';
-import SelectField from 'sentry/components/forms/selectField';
+import InputField from 'sentry/components/forms/fields/inputField';
+import SelectField from 'sentry/components/forms/fields/selectField';
 import {t} from 'sentry/locale';
 import {ResolutionStatusDetails, SelectValue} from 'sentry/types';
 

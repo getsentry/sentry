@@ -17,7 +17,7 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Textarea from 'sentry/components/forms/controls/textarea';
 import Field from 'sentry/components/forms/field';
-import SelectField from 'sentry/components/forms/selectField';
+import SelectField from 'sentry/components/forms/fields/selectField';
 import {Data} from 'sentry/components/forms/type';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';

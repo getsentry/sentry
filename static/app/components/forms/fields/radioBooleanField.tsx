@@ -1,6 +1,7 @@
 import omit from 'lodash/omit';
 
-import RadioBoolean from './controls/radioBoolean';
+import RadioBoolean from 'sentry/components/forms/controls/radioBoolean';
+
 import InputField, {InputFieldProps} from './inputField';
 
 export default function RadioBooleanField(props: Omit<InputFieldProps, 'field'>) {

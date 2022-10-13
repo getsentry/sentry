@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
 import FieldRequiredBadge from 'sentry/components/forms/field/fieldRequiredBadge';
-import TextareaField from 'sentry/components/forms/textareaField';
+import TextareaField from 'sentry/components/forms/fields/textareaField';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';

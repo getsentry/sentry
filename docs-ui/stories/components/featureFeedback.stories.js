@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {BrowserClient} from '@sentry/react';
 
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
-import TextField from 'sentry/components/forms/textField';
+import TextField from 'sentry/components/forms/fields/textField';
 import GlobalModal from 'sentry/components/globalModal';
 import IndicatorContainer from 'sentry/components/indicators';
 import {RouteContext} from 'sentry/views/routeContext';

@@ -9,7 +9,7 @@ import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {IconCalendar} from 'sentry/icons';
 import useOverlay from 'sentry/utils/useOverlay';
 
-import {DatePicker} from '../calendar';
+import {DatePicker} from '../../calendar';
 
 import InputField, {InputFieldProps, onEvent} from './inputField';
 
