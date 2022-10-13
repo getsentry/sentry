@@ -65,7 +65,11 @@ def process_profile(
     try:
         if _should_symbolicate(profile):
             if "debug_meta" not in profile or not profile["debug_meta"]:
-                sentry_sdk.capture_message("profile doesn't have a debug_meta key")
+                metrics.incr(
+                    "process_profile.missing_keys.debug_meta",
+                    tags={"platform": profile["platform"]},
+                    sample_rate=1.0,
+                )
                 return
 
             modules, stacktraces = _prepare_frames_from_profile(profile)
@@ -90,7 +94,11 @@ def process_profile(
     try:
         if _should_deobfuscate(profile):
             if "profile" not in profile or not profile["profile"]:
-                sentry_sdk.capture_message("profile doesn't have a profile key")
+                metrics.incr(
+                    "process_profile.missing_keys.profile",
+                    tags={"platform": profile["platform"]},
+                    sample_rate=1.0,
+                )
                 return
 
             _deobfuscate(profile=profile, project=project)
