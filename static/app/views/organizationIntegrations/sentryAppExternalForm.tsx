@@ -8,7 +8,7 @@ import {GeneralSelectValue} from 'sentry/components/forms/controls/selectControl
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
-import {Field, FieldValue} from 'sentry/components/forms/type';
+import {Field, FieldValue} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
 import {replaceAtArrayIndex} from 'sentry/utils/replaceAtArrayIndex';
 import withApi from 'sentry/utils/withApi';
