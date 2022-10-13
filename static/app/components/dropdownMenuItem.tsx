@@ -1,7 +1,6 @@
 import {forwardRef, Fragment, useEffect, useRef, useState} from 'react';
 import {useHover, useKeyboard} from '@react-aria/interactions';
 import {useMenuItem} from '@react-aria/menu';
-import type {AriaPositionProps} from '@react-aria/overlays';
 import {mergeProps} from '@react-aria/utils';
 import {TreeState} from '@react-stately/tree';
 import {Node} from '@react-types/shared';
@@ -46,10 +45,6 @@ export type MenuItemProps = MenuListItemProps & {
    * item's key is passed as an argument.
    */
   onAction?: (key: MenuItemProps['key']) => void;
-  /**
-   * Submenu placement
-   */
-  placement?: AriaPositionProps['placement'];
   /**
    * Whether to show a line divider below this menu item
    */

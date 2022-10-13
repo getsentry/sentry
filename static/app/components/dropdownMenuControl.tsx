@@ -78,7 +78,7 @@ interface Props
   /**
    * Title for the current menu.
    */
-  menuTitle?: React.ReactNode;
+  menuTitle?: string;
   /**
    * Tag name for the outer wrap, defaults to `div`
    */

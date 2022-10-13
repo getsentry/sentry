@@ -39,7 +39,7 @@ type Props = {
   /*
    * Title to display on top of the menu
    */
-  menuTitle?: React.ReactNode;
+  menuTitle?: string;
   onClose?: () => void;
   size?: MenuItemProps['size'];
   /**
