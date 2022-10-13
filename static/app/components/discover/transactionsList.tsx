@@ -5,8 +5,8 @@ import {Location, LocationDescriptor, Query} from 'history';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Button from 'sentry/components/button';
+import CompactSelect from 'sentry/components/compactSelect';
 import DiscoverButton from 'sentry/components/discoverButton';
-import CompactSelect from 'sentry/components/forms/compactSelect';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';

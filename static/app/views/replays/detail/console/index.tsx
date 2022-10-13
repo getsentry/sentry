@@ -1,8 +1,8 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
 
+import CompactSelect from 'sentry/components/compactSelect';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import CompactSelect from 'sentry/components/forms/compactSelect';
 import {Panel} from 'sentry/components/panels';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';

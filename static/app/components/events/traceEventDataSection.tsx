@@ -9,8 +9,8 @@ import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import CompactSelect from 'sentry/components/forms/compactSelect';
-import CompositeSelect from 'sentry/components/forms/compositeSelect';
+import CompactSelect from 'sentry/components/compactSelect';
+import CompositeSelect from 'sentry/components/compositeSelect';
 import Tooltip from 'sentry/components/tooltip';
 import {IconEllipsis, IconLink, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';

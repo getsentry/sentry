@@ -4,7 +4,7 @@ import debounce from 'lodash/debounce';
 
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import Badge from 'sentry/components/badge';
-import CompactSelect from 'sentry/components/forms/compactSelect';
+import CompactSelect from 'sentry/components/compactSelect';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';

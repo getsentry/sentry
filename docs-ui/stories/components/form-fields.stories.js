@@ -1,7 +1,7 @@
 import {action} from '@storybook/addon-actions';
 
-import CompactSelect from 'sentry/components/forms/compactSelect';
-import CompositeSelect from 'sentry/components/forms/compositeSelect';
+import CompactSelect from 'sentry/components/compactSelect';
+import CompositeSelect from 'sentry/components/compositeSelect';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
 import NewBooleanField from 'sentry/components/forms/fields/booleanField';

@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import CompactSelect from 'sentry/components/forms/compactSelect';
+import CompactSelect from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import useReplayLayout, {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';

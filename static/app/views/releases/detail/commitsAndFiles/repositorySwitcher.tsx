@@ -3,7 +3,7 @@ import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import CompactSelect from 'sentry/components/forms/compactSelect';
+import CompactSelect from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Repository} from 'sentry/types';

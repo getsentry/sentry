@@ -9,7 +9,7 @@ import Alert from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
-import CompactSelect from 'sentry/components/forms/compactSelect';
+import CompactSelect from 'sentry/components/compactSelect';
 import {Title} from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import SearchBar from 'sentry/components/searchBar';
