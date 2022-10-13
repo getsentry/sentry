@@ -10,6 +10,7 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
+import {objectIsEmpty} from 'sentry/utils';
 import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView, {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -141,7 +142,7 @@ class TransactionsTable extends PureComponent<Props> {
 
       const target = generateLink?.[field]?.(organization, row, location.query);
 
-      if (target) {
+      if (target && !objectIsEmpty(target)) {
         rendered = (
           <Link data-test-id={`view-${fields[index]}`} to={target}>
             {rendered}
