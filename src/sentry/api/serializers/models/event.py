@@ -74,7 +74,7 @@ def get_tags_with_meta(event):
     return (tags, meta_with_chunks(tags, tags_meta))
 
 
-def get_entries(event: Event | GroupEvent, user: User, is_public: bool =False):
+def get_entries(event: Event | GroupEvent, user: User, is_public: bool = False):
     # XXX(dcramer): These are called entries for future-proofing
     platform = event.platform
     meta = event.data.get("_meta") or {}
@@ -107,22 +107,21 @@ def get_entries(event: Event | GroupEvent, user: User, is_public: bool =False):
         {k: {"data": i[2]} for k, i in enumerate(interface_list) if i[2]},
     )
 
+
 def get_problems(item_list: Sequence[Event | GroupEvent]):
     group_hashes = {
-    group_hash.group_id: group_hash
-    for group_hash in GroupHash.objects.filter(
-        group__id__in={e.group_id for e in item_list if getattr(e, "group_id", None)},
-        group__type__in=[
-            gt.value for gt in GROUP_CATEGORY_TO_TYPES[GroupCategory.PERFORMANCE]
-        ],
-    )
+        group_hash.group_id: group_hash
+        for group_hash in GroupHash.objects.filter(
+            group__id__in={e.group_id for e in item_list if getattr(e, "group_id", None)},
+            group__type__in=[gt.value for gt in GROUP_CATEGORY_TO_TYPES[GroupCategory.PERFORMANCE]],
+        )
     }
     return EventPerformanceProblem.fetch_multi(
-    [
-        (e, group_hashes[e.group_id].hash)
-        for e in item_list
-        if getattr(e, "group_id", None) in group_hashes
-    ]
+        [
+            (e, group_hashes[e.group_id].hash)
+            for e in item_list
+            if getattr(e, "group_id", None) in group_hashes
+        ]
     )
 
 

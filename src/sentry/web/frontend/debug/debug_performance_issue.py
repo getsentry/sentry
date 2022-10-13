@@ -7,10 +7,10 @@ from sentry.event_manager import EventManager, get_event_type
 from sentry.models import GroupHash, Organization, Project, Rule
 from sentry.notifications.utils import get_group_settings_link, get_rules
 from sentry.testutils.helpers.datetime import before_now
+from sentry.types.issues import GroupType
 from sentry.utils import json
 from sentry.utils.samples import load_data
 from sentry.web.helpers import render_to_string
-from sentry.types.issues import GroupType
 
 from .mail import MailPreview, get_random, make_group_generator
 
