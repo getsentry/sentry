@@ -125,6 +125,9 @@ class OptionsManagerTest(TestCase):
         with patch.object(self.store.cache, "get", return_value="https://sentry.example.com"):
             with self.settings(SENTRY_OPTIONS={"system.url-prefix": "https://sentry.updated.com"}):
                 assert self.manager.get("system.url-prefix") == "https://sentry.updated.com"
+                # SENTRY_URL_PREFIX is set on initialization, then not modified if config settings change
+                assert settings.SENTRY_URL_PREFIX == "http://testserver"
+                assert settings.SENTRY_OPTIONS["system.url-prefix"] == "https://sentry.updated.com"
 
     def test_types(self):
         self.manager.register("some-int", type=Int, default=0)
