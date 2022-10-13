@@ -1113,6 +1113,8 @@ SENTRY_FEATURES = {
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
+    # Enable project selection on the stats page
+    "organizations:project-stats": False,
     # Enable views for ops breakdown
     "organizations:performance-ops-breakdown": False,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
