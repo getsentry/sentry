@@ -51,7 +51,12 @@ import Tooltip, {TooltipSubLabel} from './components/tooltip';
 import XAxis from './components/xAxis';
 import YAxis from './components/yAxis';
 import LineSeries from './series/lineSeries';
-import {getDiffInMinutes, getDimensionValue, lightenHexToRgb, useAria} from './utils';
+import {
+  getDiffInMinutes,
+  getDimensionValue,
+  lightenHexToRgb,
+  useEchartsAriaLabels,
+} from './utils';
 
 // TODO(ts): What is the series type? EChartOption.Series's data cannot have
 // `onClick` since it's typically an array.
@@ -485,7 +490,7 @@ function BaseChartUnwrapped({
         })
       : undefined;
 
-  const aria = useAria(
+  const aria = useEchartsAriaLabels(
     {
       ...options,
       series: resolvedSeries,

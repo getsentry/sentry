@@ -293,7 +293,7 @@ function formatList(items: Array<string | number | undefined>) {
     .join(' and ');
 }
 
-export function useAria(
+export function useEchartsAriaLabels(
   {series, useUTC}: Omit<EChartsOption, 'series'>,
   isGroupedByDate: boolean
 ) {
