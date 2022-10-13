@@ -433,15 +433,13 @@ class Actions extends Component<Props> {
                 disabled: !group.inbox || disabled,
                 onAction: () => this.onUpdate({inbox: false}),
               },
-              ...(orgFeatures.has('shared-issues')
-                ? [
-                    {
-                      key: 'share',
-                      label: t('Share'),
-                      onAction: this.openShareModal,
-                    },
-                  ]
-                : []),
+              {
+                key: 'share',
+                label: t('Share'),
+                disabled: disabled || !shareCap.enabled,
+                hidden: !orgFeatures.has('shared-issues'),
+                onAction: this.openShareModal,
+              },
               ...sharedMenuItems,
             ]}
           />
