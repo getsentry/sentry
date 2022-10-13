@@ -35,8 +35,8 @@ def get_installation_metadata(event, host):
             external_id="{}:{}".format(host, event["installation"]["id"]),
             provider="github_enterprise",
         )
-    except Integration.DoesNotExist as e:
-        logger.exception(e)  # This creates an error in Sentry
+    except Integration.DoesNotExist:
+        logger.exception()  # This creates an error in Sentry
         return
     return integration.metadata["installation"]
 
@@ -122,9 +122,9 @@ class GitHubEnterpriseWebhookBase(View):
 
         try:
             handler = self.get_handler(request.META["HTTP_X_GITHUB_EVENT"])
-        except KeyError as e:
+        except KeyError:
             logger.warning("github_enterprise.webhook.missing-event", extra=self.get_logging_data())
-            logger.exception(e)  # This creates an error in Sentry
+            logger.exception()  # This creates an error in Sentry
             return HttpResponse(status=400)
 
         if not handler:
@@ -132,20 +132,20 @@ class GitHubEnterpriseWebhookBase(View):
 
         try:
             event = json.loads(body.decode("utf-8"))
-        except json.JSONDecodeError as e:
+        except json.JSONDecodeError:
             logger.warning(
                 "github_enterprise.webhook.invalid-json",
                 extra=self.get_logging_data(),
                 exc_info=True,
             )
-            logger.exception(e)  # This creates an error in Sentry
+            logger.exception()  # This creates an error in Sentry
             return HttpResponse(status=400)
 
         try:
             host = request.META["HTTP_X_GITHUB_ENTERPRISE_HOST"]
-        except KeyError as e:
+        except KeyError:
             logger.warning("github_enterprise.webhook.missing-enterprise-host")
-            logger.exception(e)  # This creates an error in Sentry
+            logger.exception()  # This creates an error in Sentry
             return HttpResponse(status=400)
 
         secret = self.get_secret(event, host)
@@ -167,7 +167,7 @@ class GitHubEnterpriseWebhookBase(View):
                 "github_enterprise.webhook.missing-signature",
                 extra={"host": host, "error": str(e)},
             )
-            logger.exception(e)  # This creates an error in Sentry
+            logger.exception()  # This creates an error in Sentry
         handler()(event, host)
         return HttpResponse(status=204)
 
