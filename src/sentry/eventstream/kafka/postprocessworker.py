@@ -21,7 +21,6 @@ logger = logging.getLogger(__name__)
 Message = Any
 _DURATION_METRIC = "eventstream.duration"
 _MESSAGES_METRIC = "eventstream.messages"
-_TRANSACTION_FORWARDER_HEADER = "transaction_forwarder"
 
 
 class PostProcessForwarderType(str, Enum):
