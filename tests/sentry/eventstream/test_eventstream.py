@@ -52,10 +52,11 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
 
         produce_args, produce_kwargs = list(producer.produce.call_args)
         assert not produce_args
-        assert produce_kwargs["topic"] == settings.KAFKA_EVENTS
         if is_transaction_event:
+            assert produce_kwargs["topic"] == settings.KAFKA_TRANSACTIONS
             assert produce_kwargs["key"] is None
         else:
+            assert produce_kwargs["topic"] == settings.KAFKA_EVENTS
             assert produce_kwargs["key"] == str(self.project.id).encode("utf-8")
 
         version, type_, payload1, payload2 = json.loads(produce_kwargs["value"])
