@@ -311,12 +311,6 @@ class EventsTable extends Component<Props, State> {
     this.setState({...this.state, widths});
   };
 
-  getAttachementsUrl = ({data}: TableData) => {
-    const eventIdsQuery = `event_id=${data.map(row => row.id).join('&event_id=')}`;
-    const baseUrl = `/api/0/issues/${this.props.issueId}/attachments`;
-    return `${baseUrl}/?${eventIdsQuery}`;
-  };
-
   render() {
     const {eventView, organization, location, setError, totalEventCount} = this.props;
 
@@ -355,7 +349,7 @@ class EventsTable extends Component<Props, State> {
         const {projectId} = this.props;
         const attachmentsWithUrl = this.state.attachments.map(attachment => ({
           ...attachment,
-          url: `/api/0/projects/${organization.slug}/${projectId}/events/${attachment.event_id}/attachments/${attachment.id}/`,
+          url: `/api/0/projects/${organization.slug}/${projectId}/events/${attachment.event_id}/attachments/${attachment.id}/?download=1`,
         }));
         const eventIdMap = {};
         data.forEach(event => {

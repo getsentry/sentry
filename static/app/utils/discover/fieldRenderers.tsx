@@ -311,7 +311,7 @@ const DownloadCount = styled('span')`
  */
 const SPECIAL_FIELDS: SpecialFields = {
   // This is a custom renderer for a field outside discover
-  // TODO - refactor code and remove from this file or add ability to query for attachments in
+  // TODO - refactor code and remove from this file or add ability to query for attachments in Discover
   attachments: {
     sortField: null,
     renderFunc: data => {
