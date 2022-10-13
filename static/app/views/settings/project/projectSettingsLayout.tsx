@@ -1,4 +1,4 @@
-import {cloneElement, isValidElement, useMemo} from 'react';
+import {cloneElement, isValidElement} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import * as AppStoreConnectContext from 'sentry/components/projects/appStoreConnectContext';
@@ -25,16 +25,10 @@ function InnerProjectSettingsLayout({
   ...props
 }: InnerProps) {
   // set analytics params for route based analytics
-  useRouteAnalyticsParams(
-    // use memoized value to avoid re-rendering
-    useMemo(
-      () => ({
-        project_id: project.id,
-        project_platform: project.platform,
-      }),
-      [project.id, project.platform]
-    )
-  );
+  useRouteAnalyticsParams({
+    project_id: project.id,
+    project_platform: project.platform,
+  });
   return (
     <AppStoreConnectContext.Provider project={project} organization={organization}>
       <SettingsLayout
