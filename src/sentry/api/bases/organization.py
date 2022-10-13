@@ -209,6 +209,11 @@ class OrganizationEndpoint(Endpoint):
                     organization=organization, slug__in=slugs
                 ).values_list("id", flat=True)
                 project_ids = set(projects)
+
+                # return early to prevent passing empty set of project_ids to _get_projects_by_id
+                # which would return all projects in the organization
+                if not project_ids:
+                    return []
             else:
                 project_ids = self.get_requested_project_ids_unchecked(request)
 
