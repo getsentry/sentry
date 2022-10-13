@@ -1,7 +1,5 @@
 import {projectStatsToPredictedSeries} from 'sentry/views/settings/project/dynamicSampling/utils/projectStatsToPredictedSeries';
 
-import {outcomesWithoutClientDiscarded} from '../testUtils.spec';
-
 describe('projectStatsToPredictedSeries', function () {
   it('returns correct series', function () {
     expect(
@@ -183,7 +181,12 @@ describe('projectStatsToPredictedSeries', function () {
 
   it('handles outcomes without client reports', function () {
     expect(
-      projectStatsToPredictedSeries(outcomesWithoutClientDiscarded, 0.3, 0.1, 0.2)
+      projectStatsToPredictedSeries(
+        TestStubs.OutcomesWithoutClientDiscarded(),
+        0.3,
+        0.1,
+        0.2
+      )
     ).toEqual([
       {
         seriesName: 'Indexed and Processed',

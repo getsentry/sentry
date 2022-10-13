@@ -1,19 +1,30 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {openModal} from 'sentry/actionCreators/modal';
+import {Project} from 'sentry/types';
 import {RecommendedStepsModal} from 'sentry/views/settings/project/dynamicSampling/modals/recommendedStepsModal';
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/dynamicSampling/utils';
 
-import {
-  getMockData,
-  mockedProjects,
-  mockedSamplingSdkVersions,
-  recommendedSdkUpgrades,
-  uniformRule,
-} from '../testUtils.spec';
+function getMockData({projects, access}: {access?: string[]; projects?: Project[]} = {}) {
+  return initializeOrg({
+    ...initializeOrg(),
+    organization: {
+      ...initializeOrg().organization,
+      features: [
+        'server-side-sampling',
+        'server-side-sampling-ui',
+        'dynamic-sampling-basic',
+      ],
+      access: access ?? initializeOrg().organization.access,
+      projects,
+    },
+    projects,
+  });
+}
 
-describe('Server-Side Sampling - Recommended Steps Modal', function () {
+describe('Dynamic Sampling - Recommended Steps Modal', function () {
   beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/release/values/',
@@ -23,7 +34,9 @@ describe('Server-Side Sampling - Recommended Steps Modal', function () {
   });
 
   it('render all recommended steps', function () {
-    const {organization, project} = getMockData();
+    const {organization, projects} = getMockData({
+      projects: TestStubs.DynamicSamplingConfig().projects,
+    });
 
     renderGlobalModal();
 
@@ -31,8 +44,8 @@ describe('Server-Side Sampling - Recommended Steps Modal', function () {
       <RecommendedStepsModal
         {...modalProps}
         organization={organization}
-        projectId={project.id}
-        recommendedSdkUpgrades={recommendedSdkUpgrades}
+        projectId={projects[0].id}
+        recommendedSdkUpgrades={TestStubs.DynamicSamplingConfig().recommendedSdkUpgrades}
         onReadDocs={jest.fn()}
         onSubmit={jest.fn()}
         clientSampleRate={0.5}
@@ -54,9 +67,9 @@ describe('Server-Side Sampling - Recommended Steps Modal', function () {
       )
     ).toBeInTheDocument();
 
-    expect(screen.getByRole('link', {name: mockedProjects[1].slug})).toHaveAttribute(
+    expect(screen.getByRole('link', {name: projects[1].slug})).toHaveAttribute(
       'href',
-      `/organizations/org-slug/projects/sentry/?project=${mockedProjects[1].id}`
+      `/organizations/org-slug/projects/sentry/?project=${projects[1].id}`
     );
 
     expect(screen.getByTestId('platform-icon-python')).toBeInTheDocument();
@@ -64,7 +77,9 @@ describe('Server-Side Sampling - Recommended Steps Modal', function () {
     expect(
       screen.getByText(
         textWithMarkupMatcher(
-          `This project is on ${mockedSamplingSdkVersions[1].latestSDKName}@v${mockedSamplingSdkVersions[1].latestSDKVersion}`
+          `This project is on ${
+            TestStubs.DynamicSamplingConfig().samplingSdkVersions[1].latestSDKName
+          }@v${TestStubs.DynamicSamplingConfig().samplingSdkVersions[1].latestSDKVersion}`
         )
       )
     ).toBeInTheDocument();
@@ -114,7 +129,7 @@ describe('Server-Side Sampling - Recommended Steps Modal', function () {
         recommendedSdkUpgrades={[]}
         onSubmit={jest.fn()}
         onReadDocs={jest.fn()}
-        clientSampleRate={uniformRule.sampleRate}
+        clientSampleRate={TestStubs.DynamicSamplingConfig().uniformRule.sampleRate}
       />
     ));
 
@@ -147,7 +162,7 @@ describe('Server-Side Sampling - Recommended Steps Modal', function () {
         onGoBack={onGoBack}
         onSubmit={jest.fn()}
         onReadDocs={jest.fn()}
-        clientSampleRate={uniformRule.sampleRate}
+        clientSampleRate={TestStubs.DynamicSamplingConfig().uniformRule.sampleRate}
       />
     ));
 
@@ -170,7 +185,7 @@ describe('Server-Side Sampling - Recommended Steps Modal', function () {
         onGoBack={jest.fn()}
         onSubmit={jest.fn()}
         onReadDocs={jest.fn()}
-        clientSampleRate={uniformRule.sampleRate}
+        clientSampleRate={TestStubs.DynamicSamplingConfig().uniformRule.sampleRate}
         specifiedClientRate={0.1}
       />
     ));

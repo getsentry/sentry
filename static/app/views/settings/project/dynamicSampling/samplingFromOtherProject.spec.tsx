@@ -1,22 +1,41 @@
-import {act, render, screen} from 'sentry-test/reactTestingLibrary';
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {ServerSideSamplingStore} from 'sentry/stores/serverSideSamplingStore';
+import {Project} from 'sentry/types';
 
 import {SamplingFromOtherProject} from './samplingFromOtherProject';
-import {getMockData, mockedSamplingDistribution} from './testUtils.spec';
+
+function getMockData({projects, access}: {access?: string[]; projects?: Project[]} = {}) {
+  return initializeOrg({
+    ...initializeOrg(),
+    organization: {
+      ...initializeOrg().organization,
+      features: [
+        'server-side-sampling',
+        'server-side-sampling-ui',
+        'dynamic-sampling-basic',
+      ],
+      access: access ?? initializeOrg().organization.access,
+      projects,
+    },
+    projects,
+  });
+}
 
 export const samplingBreakdownTitle = 'Transaction Breakdown';
 
-describe('Server-Side Sampling - SamplingFromOtherProject', function () {
-  afterEach(function () {
-    act(() => ProjectsStore.reset());
-    act(() => ServerSideSamplingStore.reset());
+describe('Dynamic Sampling - SamplingFromOtherProject', function () {
+  beforeEach(function () {
+    ProjectsStore.reset();
+    ServerSideSamplingStore.reset();
   });
 
   it('renders the parent projects', function () {
     const {organization} = getMockData();
-    const parentProjectBreakdown = mockedSamplingDistribution.parentProjectBreakdown;
+    const parentProjectBreakdown =
+      TestStubs.DynamicSamplingConfig().samplingDistribution.parentProjectBreakdown;
 
     ProjectsStore.loadInitialData(
       parentProjectBreakdown!.map(p =>
@@ -24,7 +43,9 @@ describe('Server-Side Sampling - SamplingFromOtherProject', function () {
       )
     );
 
-    ServerSideSamplingStore.distributionRequestSuccess(mockedSamplingDistribution);
+    ServerSideSamplingStore.distributionRequestSuccess(
+      TestStubs.DynamicSamplingConfig().samplingDistribution
+    );
 
     render(<SamplingFromOtherProject orgSlug={organization.slug} projectSlug="abc" />);
 
@@ -38,7 +59,8 @@ describe('Server-Side Sampling - SamplingFromOtherProject', function () {
 
   it('does not render if there are no parent projects', function () {
     const {organization} = getMockData();
-    const parentProjectBreakdown = mockedSamplingDistribution.parentProjectBreakdown;
+    const parentProjectBreakdown =
+      TestStubs.DynamicSamplingConfig().samplingDistribution.parentProjectBreakdown;
 
     ProjectsStore.loadInitialData(
       parentProjectBreakdown!.map(p =>
@@ -47,7 +69,7 @@ describe('Server-Side Sampling - SamplingFromOtherProject', function () {
     );
 
     ServerSideSamplingStore.distributionRequestSuccess({
-      ...mockedSamplingDistribution,
+      ...TestStubs.DynamicSamplingConfig().samplingDistribution,
       parentProjectBreakdown: [],
     });
 

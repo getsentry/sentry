@@ -1,3 +1,4 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   renderGlobalModal,
   screen,
@@ -8,13 +9,28 @@ import {
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
+import {Project} from 'sentry/types';
 import {SamplingInnerName} from 'sentry/types/sampling';
 import {SpecificConditionsModal} from 'sentry/views/settings/project/dynamicSampling/modals/specificConditionsModal';
 import {distributedTracesConditions} from 'sentry/views/settings/project/dynamicSampling/modals/specificConditionsModal/utils';
 import {getInnerNameLabel} from 'sentry/views/settings/project/dynamicSampling/utils';
 
-import {getMockData, specificRule, uniformRule} from '../../testUtils.spec';
-
+function getMockData({projects, access}: {access?: string[]; projects?: Project[]} = {}) {
+  return initializeOrg({
+    ...initializeOrg(),
+    organization: {
+      ...initializeOrg().organization,
+      features: [
+        'server-side-sampling',
+        'server-side-sampling-ui',
+        'dynamic-sampling-basic',
+      ],
+      access: access ?? initializeOrg().organization.access,
+      projects,
+    },
+    projects,
+  });
+}
 describe('Server-Side Sampling - Specific Conditions Modal', function () {
   afterEach(function () {
     MockApiClient.clearMockResponses();
@@ -31,7 +47,7 @@ describe('Server-Side Sampling - Specific Conditions Modal', function () {
       projects: [
         TestStubs.Project({
           dynamicSampling: {
-            rules: [uniformRule],
+            rules: [TestStubs.DynamicSamplingConfig().uniformRule],
           },
         }),
       ],
@@ -53,7 +69,7 @@ describe('Server-Side Sampling - Specific Conditions Modal', function () {
       method: 'PUT',
       body: TestStubs.Project({
         dynamicSampling: {
-          rules: [newRule, uniformRule],
+          rules: [newRule, TestStubs.DynamicSamplingConfig().uniformRule],
         },
       }),
     });
@@ -67,7 +83,7 @@ describe('Server-Side Sampling - Specific Conditions Modal', function () {
         {...modalProps}
         organization={organization}
         project={project}
-        rules={[uniformRule]}
+        rules={[TestStubs.DynamicSamplingConfig().uniformRule]}
       />
     ));
 
@@ -147,7 +163,7 @@ describe('Server-Side Sampling - Specific Conditions Modal', function () {
       expect.objectContaining({
         data: {
           dynamicSampling: {
-            rules: [newRule, uniformRule],
+            rules: [newRule, TestStubs.DynamicSamplingConfig().uniformRule],
           },
         },
       })
@@ -169,21 +185,24 @@ describe('Server-Side Sampling - Specific Conditions Modal', function () {
       projects: [
         TestStubs.Project({
           dynamicSampling: {
-            rules: [specificRule, uniformRule],
+            rules: [
+              TestStubs.DynamicSamplingConfig().specificRule,
+              TestStubs.DynamicSamplingConfig().uniformRule,
+            ],
           },
         }),
       ],
     });
 
     const newRule = {
-      ...specificRule,
+      ...TestStubs.DynamicSamplingConfig().specificRule,
       id: 0,
       sampleRate: 0.6,
       condition: {
-        ...specificRule.condition,
+        ...TestStubs.DynamicSamplingConfig().specificRule.condition,
         inner: [
           {
-            ...specificRule.condition.inner[0],
+            ...TestStubs.DynamicSamplingConfig().specificRule.condition.inner[0],
             value: ['1.2.3'],
           },
         ],
@@ -195,7 +214,7 @@ describe('Server-Side Sampling - Specific Conditions Modal', function () {
       method: 'PUT',
       body: TestStubs.Project({
         dynamicSampling: {
-          rules: [newRule, uniformRule],
+          rules: [newRule, TestStubs.DynamicSamplingConfig().uniformRule],
         },
       }),
     });
@@ -209,8 +228,11 @@ describe('Server-Side Sampling - Specific Conditions Modal', function () {
         {...modalProps}
         organization={organization}
         project={project}
-        rule={specificRule}
-        rules={[uniformRule, specificRule]}
+        rule={TestStubs.DynamicSamplingConfig().specificRule}
+        rules={[
+          TestStubs.DynamicSamplingConfig().uniformRule,
+          TestStubs.DynamicSamplingConfig().specificRule,
+        ]}
       />
     ));
 
@@ -243,7 +265,7 @@ describe('Server-Side Sampling - Specific Conditions Modal', function () {
       expect.objectContaining({
         data: {
           dynamicSampling: {
-            rules: [newRule, uniformRule],
+            rules: [newRule, TestStubs.DynamicSamplingConfig().uniformRule],
           },
         },
       })
@@ -283,7 +305,10 @@ describe('Server-Side Sampling - Specific Conditions Modal', function () {
       projects: [
         TestStubs.Project({
           dynamicSampling: {
-            rules: [specificRule, uniformRule],
+            rules: [
+              TestStubs.DynamicSamplingConfig().specificRule,
+              TestStubs.DynamicSamplingConfig().uniformRule,
+            ],
           },
         }),
       ],
@@ -294,7 +319,11 @@ describe('Server-Side Sampling - Specific Conditions Modal', function () {
       method: 'PUT',
       body: TestStubs.Project({
         dynamicSampling: {
-          rules: [specificRule, newRule, uniformRule],
+          rules: [
+            TestStubs.DynamicSamplingConfig().specificRule,
+            newRule,
+            TestStubs.DynamicSamplingConfig().uniformRule,
+          ],
         },
       }),
     });
@@ -306,7 +335,10 @@ describe('Server-Side Sampling - Specific Conditions Modal', function () {
         {...modalProps}
         organization={organization}
         project={project}
-        rules={[specificRule, uniformRule]}
+        rules={[
+          TestStubs.DynamicSamplingConfig().specificRule,
+          TestStubs.DynamicSamplingConfig().uniformRule,
+        ]}
       />
     ));
 
@@ -336,7 +368,11 @@ describe('Server-Side Sampling - Specific Conditions Modal', function () {
         expect.objectContaining({
           data: {
             dynamicSampling: {
-              rules: [specificRule, newRule, uniformRule],
+              rules: [
+                TestStubs.DynamicSamplingConfig().specificRule,
+                newRule,
+                TestStubs.DynamicSamplingConfig().uniformRule,
+              ],
             },
           },
         })
@@ -361,7 +397,7 @@ describe('Server-Side Sampling - Specific Conditions Modal', function () {
       projects: [
         TestStubs.Project({
           dynamicSampling: {
-            rules: [uniformRule],
+            rules: [TestStubs.DynamicSamplingConfig().uniformRule],
           },
         }),
       ],
@@ -374,7 +410,7 @@ describe('Server-Side Sampling - Specific Conditions Modal', function () {
         {...modalProps}
         organization={organization}
         project={project}
-        rules={[uniformRule]}
+        rules={[TestStubs.DynamicSamplingConfig().uniformRule]}
       />
     ));
 

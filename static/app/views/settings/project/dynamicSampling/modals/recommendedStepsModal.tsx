@@ -33,8 +33,6 @@ import {projectStatsToSampleRates} from '../utils/projectStatsToSampleRates';
 import {useProjectStats} from '../utils/useProjectStats';
 import {useRecommendedSdkUpgrades} from '../utils/useRecommendedSdkUpgrades';
 
-import {FooterActions, Stepper} from './uniformRateModal';
-
 export type RecommendedStepsModalProps = ModalRenderProps & {
   onReadDocs: () => void;
   organization: Organization;
@@ -258,4 +256,17 @@ export function RecommendedStepsModal({
 const UpgradeSDKfromProjects = styled(UpdatesList)`
   margin-top: 0;
   margin-bottom: ${space(3)};
+`;
+
+const FooterActions = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex: 1;
+  gap: ${space(1)};
+`;
+
+const Stepper = styled('span')`
+  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.subText};
 `;

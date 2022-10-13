@@ -1,41 +1,85 @@
+import {Fragment} from 'react';
 import {
   createMemoryHistory,
   IndexRoute,
+  InjectedRouter,
   Route,
   Router,
   RouterContext,
 } from 'react-router';
 
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
   screen,
   userEvent,
   waitFor,
-  waitForElementToBeRemoved,
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import GlobalModal from 'sentry/components/globalModal';
 import {ServerSideSamplingStore} from 'sentry/stores/serverSideSamplingStore';
 import {Organization, Project} from 'sentry/types';
 import {SamplingSdkVersion} from 'sentry/types/sampling';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 import {RouteContext} from 'sentry/views/routeContext';
+import DynamicSampling from 'sentry/views/settings/project/dynamicSampling';
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/dynamicSampling/utils';
 
 import {samplingBreakdownTitle} from './samplingBreakdown.spec';
-import {
-  getMockData,
-  mockedProjects,
-  mockedSamplingDistribution,
-  mockedSamplingSdkVersions,
-  specificRule,
-  TestComponent,
-  uniformRule,
-} from './testUtils.spec';
+
+const features = [
+  'server-side-sampling',
+  'server-side-sampling-ui',
+  'dynamic-sampling-basic',
+  'dynamic-sampling-total-transaction-packaging',
+];
+
+function TestComponent({
+  router,
+  project,
+  organization,
+  withModal,
+}: {
+  organization: Organization;
+  project: Project;
+  router?: InjectedRouter;
+  withModal?: boolean;
+}) {
+  const children = (
+    <Fragment>
+      {withModal && <GlobalModal />}
+      <OrganizationContext.Provider value={organization}>
+        <DynamicSampling project={project} />
+      </OrganizationContext.Provider>
+    </Fragment>
+  );
+
+  if (router) {
+    return (
+      <RouteContext.Provider
+        value={{
+          router,
+          location: router.location,
+          params: {
+            orgId: organization.slug,
+            projectId: project.slug,
+          },
+          routes: [],
+        }}
+      >
+        {children}
+      </RouteContext.Provider>
+    );
+  }
+
+  return children;
+}
 
 function renderMockRequests({
   organizationSlug,
   projectSlug,
-  mockedSdkVersionsResponse = mockedSamplingSdkVersions,
+  mockedSdkVersionsResponse = TestStubs.DynamicSamplingConfig().samplingSdkVersions,
 }: {
   organizationSlug: Organization['slug'];
   projectSlug: Project['slug'];
@@ -44,7 +88,7 @@ function renderMockRequests({
   const distribution = MockApiClient.addMockResponse({
     url: `/projects/${organizationSlug}/${projectSlug}/dynamic-sampling/distribution/`,
     method: 'GET',
-    body: mockedSamplingDistribution,
+    body: TestStubs.DynamicSamplingConfig().samplingDistribution,
   });
 
   const sdkVersions = MockApiClient.addMockResponse({
@@ -56,8 +100,8 @@ function renderMockRequests({
   const projects = MockApiClient.addMockResponse({
     url: `/organizations/${organizationSlug}/projects/`,
     method: 'GET',
-    body: mockedSamplingDistribution.projectBreakdown!.map(p =>
-      TestStubs.Project({id: p.projectId, slug: p.project})
+    body: TestStubs.DynamicSamplingConfig().samplingDistribution.projectBreakdown!.map(
+      p => TestStubs.Project({id: p.projectId, slug: p.project})
     ),
   });
 
@@ -75,90 +119,17 @@ describe('Dynamic Sampling', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders onboarding promo and open uniform rule modal', async function () {
-    const {organization, project} = getMockData();
-
-    const mockRequests = renderMockRequests({
-      organizationSlug: organization.slug,
-      projectSlug: project.slug,
-    });
-
-    const memoryHistory = createMemoryHistory();
-
-    memoryHistory.push(
-      `/settings/${organization.slug}/projects/${project.slug}/dynamic-sampling/`
-    );
-
-    function Component() {
-      return <TestComponent organization={organization} project={project} withModal />;
-    }
-
-    const {container} = render(
-      <Router
-        history={memoryHistory}
-        render={props => {
-          return (
-            <RouteContext.Provider value={props}>
-              <RouterContext {...props} />
-            </RouteContext.Provider>
-          );
-        }}
-      >
-        <Route
-          path={`/settings/${organization.slug}/projects/${project.slug}/dynamic-sampling/`}
-        >
-          <IndexRoute component={Component} />
-          <Route path="rules/:rule/" component={Component} />
-        </Route>
-      </Router>
-    );
-
-    expect(screen.getByRole('heading', {name: /Dynamic Sampling/})).toBeInTheDocument();
-
-    expect(screen.getByText(/Improve the accuracy of your/)).toBeInTheDocument();
-
-    // Assert that project breakdown is there
-    expect(await screen.findByText(samplingBreakdownTitle)).toBeInTheDocument();
-
-    expect(
-      screen.getByRole('heading', {name: 'Sample for relevancy'})
-    ).toBeInTheDocument();
-
-    expect(
-      screen.getByText(
-        'Create rules to sample transactions under specific conditions, keeping what you need and dropping what you don’t.'
-      )
-    ).toBeInTheDocument();
-
-    expect(screen.getByRole('button', {name: 'Read Docs'})).toHaveAttribute(
-      'href',
-      SERVER_SIDE_SAMPLING_DOC_LINK
-    );
-
-    // Open Modal
-    userEvent.click(screen.getByRole('button', {name: 'Start Setup'}));
-
-    expect(
-      await screen.findByRole('heading', {name: 'Set a global sample rate'})
-    ).toBeInTheDocument();
-
-    expect(mockRequests.statsV2).toHaveBeenCalledTimes(2);
-    expect(mockRequests.distribution).toHaveBeenCalledTimes(1);
-    expect(mockRequests.sdkVersions).toHaveBeenCalledTimes(1);
-
-    // Close Modal
-    userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
-    await waitForElementToBeRemoved(() => screen.getByRole('dialog'));
-
-    expect(container).toSnapshot();
-  });
-
   it('renders rules panel', async function () {
-    const {router, organization, project} = getMockData({
+    const {organization, router, project} = initializeOrg({
+      ...initializeOrg(),
+      organization: {
+        ...initializeOrg().organization,
+        features,
+      },
       projects: [
         TestStubs.Project({
           dynamicSampling: {
-            rules: [{...uniformRule, sampleRate: 1}],
+            rules: [{...TestStubs.DynamicSamplingConfig().uniformRule, sampleRate: 1}],
           },
         }),
       ],
@@ -202,7 +173,12 @@ describe('Dynamic Sampling', function () {
   });
 
   it('does not let you delete the base rule', async function () {
-    const {router, organization, project} = getMockData({
+    const {organization, router, project} = initializeOrg({
+      ...initializeOrg(),
+      organization: {
+        ...initializeOrg().organization,
+        features,
+      },
       projects: [
         TestStubs.Project({
           dynamicSampling: {
@@ -267,8 +243,42 @@ describe('Dynamic Sampling', function () {
   });
 
   it('display "update sdk versions" alert and open "recommended next step" modal', async function () {
-    const {organization, projects, router} = getMockData({
-      projects: mockedProjects,
+    const {organization, router, projects} = initializeOrg({
+      ...initializeOrg(),
+      organization: {
+        ...initializeOrg().organization,
+        features,
+      },
+      projects: [
+        TestStubs.Project({
+          name: 'javascript',
+          slug: 'javascript',
+          id: 1,
+        }),
+        TestStubs.Project({
+          name: 'sentry',
+          slug: 'sentry',
+          platform: 'python',
+          id: 2,
+        }),
+        TestStubs.Project({
+          id: 4,
+          dynamicSampling: {
+            rules: [
+              {
+                sampleRate: 1,
+                type: 'trace',
+                active: false,
+                condition: {
+                  op: 'and',
+                  inner: [],
+                },
+                id: 1,
+              },
+            ],
+          },
+        }),
+      ],
     });
 
     const mockRequests = renderMockRequests({
@@ -303,11 +313,11 @@ describe('Dynamic Sampling', function () {
 
     expect(
       within(recommendedSdkUpgradesAlert).getByRole('link', {
-        name: mockedProjects[1].slug,
+        name: projects[1].slug,
       })
     ).toHaveAttribute(
       'href',
-      `/organizations/org-slug/projects/sentry/?project=${mockedProjects[1].id}`
+      `/organizations/org-slug/projects/sentry/?project=${projects[1].id}`
     );
 
     // Open Modal
@@ -323,7 +333,12 @@ describe('Dynamic Sampling', function () {
   });
 
   it('open specific conditions modal when adding rule', async function () {
-    const {project, organization} = getMockData({
+    const {organization, project} = initializeOrg({
+      ...initializeOrg(),
+      organization: {
+        ...initializeOrg().organization,
+        features,
+      },
       projects: [
         TestStubs.Project({
           dynamicSampling: {
@@ -419,15 +434,31 @@ describe('Dynamic Sampling', function () {
   });
 
   it('does not let user add without permissions', async function () {
-    const {organization, router, project} = getMockData({
+    const {organization, router, project} = initializeOrg({
+      ...initializeOrg(),
+      organization: {
+        ...initializeOrg().organization,
+        features,
+        access: [],
+      },
       projects: [
         TestStubs.Project({
           dynamicSampling: {
-            rules: [uniformRule],
+            rules: [
+              {
+                sampleRate: 1,
+                type: 'trace',
+                active: false,
+                condition: {
+                  op: 'and',
+                  inner: [],
+                },
+                id: 1,
+              },
+            ],
           },
         }),
       ],
-      access: [],
     });
 
     const mockRequests = renderMockRequests({
@@ -450,11 +481,16 @@ describe('Dynamic Sampling', function () {
   });
 
   it('does not let the user activate a rule if sdk updates exists', async function () {
-    const {organization, router, project} = getMockData({
+    const {organization, router, project} = initializeOrg({
+      ...initializeOrg(),
+      organization: {
+        ...initializeOrg().organization,
+        features,
+      },
       projects: [
         TestStubs.Project({
           dynamicSampling: {
-            rules: [uniformRule],
+            rules: [TestStubs.DynamicSamplingConfig().uniformRule],
           },
         }),
       ],
@@ -483,11 +519,16 @@ describe('Dynamic Sampling', function () {
   });
 
   it('does not let the user activate an uniform rule if still processing', async function () {
-    const {organization, router, project} = getMockData({
+    const {organization, router, project} = initializeOrg({
+      ...initializeOrg(),
+      organization: {
+        ...initializeOrg().organization,
+        features,
+      },
       projects: [
         TestStubs.Project({
           dynamicSampling: {
-            rules: [uniformRule],
+            rules: [TestStubs.DynamicSamplingConfig().uniformRule],
           },
         }),
       ],
@@ -514,72 +555,20 @@ describe('Dynamic Sampling', function () {
     ).toBeInTheDocument();
   });
 
-  it('open uniform rate modal when editing a uniform rule', async function () {
-    const {organization, project} = getMockData({
-      projects: [
-        TestStubs.Project({
-          dynamicSampling: {
-            rules: [uniformRule],
-          },
-        }),
-      ],
-    });
-
-    const mockRequests = renderMockRequests({
-      organizationSlug: organization.slug,
-      projectSlug: project.slug,
-    });
-
-    const memoryHistory = createMemoryHistory();
-
-    memoryHistory.push(
-      `/settings/${organization.slug}/projects/${project.slug}/dynamic-sampling/`
-    );
-
-    function Component() {
-      return <TestComponent organization={organization} project={project} withModal />;
-    }
-
-    render(
-      <Router
-        history={memoryHistory}
-        render={props => {
-          return (
-            <RouteContext.Provider value={props}>
-              <RouterContext {...props} />
-            </RouteContext.Provider>
-          );
-        }}
-      >
-        <Route
-          path={`/settings/${organization.slug}/projects/${project.slug}/dynamic-sampling/`}
-        >
-          <IndexRoute component={Component} />
-          <Route path="rules/:rule/" component={Component} />
-        </Route>
-      </Router>
-    );
-
-    userEvent.click(await screen.findByLabelText('Actions'));
-
-    // Open Modal
-    userEvent.click(screen.getByLabelText('Edit'));
-
-    expect(
-      await screen.findByRole('heading', {name: 'Set a global sample rate'})
-    ).toBeInTheDocument();
-
-    expect(mockRequests.statsV2).toHaveBeenCalledTimes(2);
-    expect(mockRequests.distribution).toHaveBeenCalledTimes(1);
-    expect(mockRequests.sdkVersions).toHaveBeenCalledTimes(1);
-  });
-
   it('does not let user reorder uniform rule', async function () {
-    const {organization, router, project} = getMockData({
+    const {organization, router, project} = initializeOrg({
+      ...initializeOrg(),
+      organization: {
+        ...initializeOrg().organization,
+        features,
+      },
       projects: [
         TestStubs.Project({
           dynamicSampling: {
-            rules: [specificRule, uniformRule],
+            rules: [
+              TestStubs.DynamicSamplingConfig().specificRule,
+              TestStubs.DynamicSamplingConfig().uniformRule,
+            ],
           },
         }),
       ],

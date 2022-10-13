@@ -27,13 +27,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {ServerSideSamplingStore} from 'sentry/stores/serverSideSamplingStore';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
-import {
-  SamplingConditionOperator,
-  SamplingRule,
-  SamplingRuleOperator,
-  SamplingRuleType,
-  UniformModalsSubmit,
-} from 'sentry/types/sampling';
+import {SamplingRule, SamplingRuleOperator} from 'sentry/types/sampling';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
@@ -48,7 +42,6 @@ import PermissionAlert from 'sentry/views/settings/organization/permissionAlert'
 
 import {SpecificConditionsModal} from './modals/specificConditionsModal';
 import {responsiveModal} from './modals/styles';
-import {UniformRateModal} from './modals/uniformRateModal';
 import {useProjectStats} from './utils/useProjectStats';
 import {useRecommendedSdkUpgrades} from './utils/useRecommendedSdkUpgrades';
 import {DraggableRuleList, DraggableRuleListUpdateItemsProps} from './draggableRuleList';
@@ -157,125 +150,6 @@ export function DynamicSampling({project}: Props) {
     projectId: project.id,
   });
 
-  const saveUniformRule = useCallback(
-    async ({
-      sampleRate,
-      uniformRateModalOrigin,
-      onError,
-      onSuccess,
-      rule,
-    }: Parameters<UniformModalsSubmit>[0]) => {
-      if (isProjectIncompatible) {
-        addErrorMessage(
-          t('Your project is currently incompatible with Dynamic Sampling.')
-        );
-        return;
-      }
-
-      const newRule: SamplingRule = {
-        // All new/updated rules must have id equal to 0
-        id: 0,
-        active: rule ? rule.active : false,
-        type: SamplingRuleType.TRACE,
-        condition: {
-          op: SamplingConditionOperator.AND,
-          inner: [],
-        },
-        sampleRate,
-      };
-
-      trackAdvancedAnalyticsEvent(
-        uniformRateModalOrigin
-          ? 'sampling.settings.modal.uniform.rate_done'
-          : 'sampling.settings.modal.recommended.next.steps_done',
-        {
-          organization,
-          project_id: project.id,
-        }
-      );
-
-      trackAdvancedAnalyticsEvent(
-        rule
-          ? 'sampling.settings.rule.uniform_update'
-          : 'sampling.settings.rule.uniform_create',
-        {
-          organization,
-          project_id: project.id,
-          sampling_rate: newRule.sampleRate,
-          old_sampling_rate: rule ? rule.sampleRate : null,
-        }
-      );
-
-      trackAdvancedAnalyticsEvent('sampling.settings.rule.uniform_save', {
-        organization,
-        project_id: project.id,
-        sampling_rate: newRule.sampleRate,
-        old_sampling_rate: rule ? rule.sampleRate : null,
-      });
-
-      const newRules = rule
-        ? rules.map(existingRule =>
-            existingRule.id === rule.id ? newRule : existingRule
-          )
-        : [...rules, newRule];
-
-      try {
-        const response = await api.requestPromise(
-          `/projects/${organization.slug}/${project.slug}/`,
-          {method: 'PUT', data: {dynamicSampling: {rules: newRules}}}
-        );
-        ProjectsStore.onUpdateSuccess(response);
-        addSuccessMessage(
-          rule
-            ? t('Successfully edited sampling rule')
-            : t('Successfully added sampling rule')
-        );
-        onSuccess?.(response.dynamicSampling?.rules ?? []);
-      } catch (error) {
-        addErrorMessage(
-          typeof error === 'string'
-            ? error
-            : error.message || t('Failed to save sampling rule')
-        );
-        onError?.();
-      }
-    },
-    [api, project.slug, project.id, organization, isProjectIncompatible, rules]
-  );
-
-  const handleOpenUniformRateModal = useCallback(
-    (rule?: SamplingRule) => {
-      openModal(
-        modalProps => (
-          <UniformRateModal
-            {...modalProps}
-            organization={organization}
-            project={project}
-            rules={rules}
-            onSubmit={saveUniformRule}
-            onReadDocs={handleReadDocs}
-            uniformRule={rule}
-          />
-        ),
-        {
-          modalCss: responsiveModal,
-          onClose: () => {
-            navigate(samplingProjectSettingsPath);
-          },
-        }
-      );
-    },
-    [
-      navigate,
-      organization,
-      project,
-      rules,
-      saveUniformRule,
-      handleReadDocs,
-      samplingProjectSettingsPath,
-    ]
-  );
-
   const handleOpenSpecificConditionsModal = useCallback(
     (rule?: SamplingRule) => {
       openModal(
@@ -306,12 +180,6 @@ export function DynamicSampling({project}: Props) {
       return;
     }
 
-    if (router.location.pathname === `${samplingProjectSettingsPath}rules/uniform/`) {
-      const uniformRule = rules.find(isUniformRule);
-      handleOpenUniformRateModal(uniformRule);
-      return;
-    }
-
     if (router.location.pathname === `${samplingProjectSettingsPath}rules/new/`) {
       handleOpenSpecificConditionsModal();
       return;
@@ -324,15 +192,9 @@ export function DynamicSampling({project}: Props) {
       return;
     }
 
-    if (isUniformRule(rule)) {
-      handleOpenUniformRateModal(rule);
-      return;
-    }
-
     handleOpenSpecificConditionsModal(rule);
   }, [
     params.rule,
-    handleOpenUniformRateModal,
     handleOpenSpecificConditionsModal,
     rules,
     router.location.pathname,
