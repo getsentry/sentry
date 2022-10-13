@@ -1,8 +1,8 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import CompactSelect from 'sentry/components/compactSelect';
 import FeatureBadge from 'sentry/components/featureBadge';
-import CompactSelect from 'sentry/components/forms/compactSelect';
 import Truncate from 'sentry/components/truncate';
 import {SelectValue} from 'sentry/types';
 import {defined} from 'sentry/utils';

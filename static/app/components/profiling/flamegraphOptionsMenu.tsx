@@ -1,7 +1,7 @@
 import {Fragment, useMemo} from 'react';
 
 import Button from 'sentry/components/button';
-import CompositeSelect from 'sentry/components/forms/compositeSelect';
+import CompositeSelect from 'sentry/components/compositeSelect';
 import {IconSliders} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';

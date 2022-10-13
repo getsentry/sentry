@@ -56,7 +56,6 @@ based on time bounds provided and if this behaviour is intended to be different,
 the metrics layer. However, passing granularity is abstracted to metrics layer (There is an ongoing discussion about
 specifically this)
 """
-# ToDo Test Invalid queries:= Transform Function, Tags in the select, Ordering by bucketed_time
 
 VALID_QUERIES_INTEGRATION_TEST_CASES = [
     # Totals Query
@@ -646,7 +645,21 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                     alias="count_unique_user",
                 )
             ],
-            groupby=[AliasedExpression(Column("bucketed_time"), "time")],
+            groupby=[
+                Function(
+                    function="toStartOfInterval",
+                    parameters=[
+                        Column(name="timestamp"),
+                        Function(
+                            function="toIntervalSecond",
+                            parameters=[3600],
+                            alias=None,
+                        ),
+                        "Universal",
+                    ],
+                    alias="time",
+                )
+            ],
             array_join=None,
             where=[
                 Condition(
@@ -705,6 +718,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             include_totals=True,
             limit=Limit(limit=50),
             offset=Offset(offset=0),
+            interval=3600,
         ),
         id="series query test case",
     ),
