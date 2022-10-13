@@ -1,5 +1,9 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {mountGlobalModal} from 'sentry-test/modal';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import AccountIdentities from 'sentry/views/settings/account/accountIdentities';
@@ -18,9 +22,8 @@ describe('AccountIdentities', function () {
       body: [],
     });
 
-    const wrapper = mountWithTheme(<AccountIdentities />);
-
-    expect(wrapper).toSnapshot();
+    const {container} = render(<AccountIdentities />);
+    expect(container).toSnapshot();
   });
 
   it('renders list', function () {
@@ -41,11 +44,11 @@ describe('AccountIdentities', function () {
       ],
     });
 
-    const wrapper = mountWithTheme(<AccountIdentities />);
-    expect(wrapper).toSnapshot();
+    const {container} = render(<AccountIdentities />);
+    expect(container).toSnapshot();
   });
 
-  it('disconnects identity', async function () {
+  it('disconnects identity', function () {
     Client.addMockResponse({
       url: ENDPOINT,
       method: 'GET',
@@ -63,7 +66,7 @@ describe('AccountIdentities', function () {
       ],
     });
 
-    const wrapper = mountWithTheme(<AccountIdentities />);
+    render(<AccountIdentities />);
 
     const disconnectRequest = {
       url: `${ENDPOINT}social-identity/1/`,
@@ -74,9 +77,10 @@ describe('AccountIdentities', function () {
 
     expect(mock).not.toHaveBeenCalled();
 
-    wrapper.find('Button').first().simulate('click');
-    const modal = await mountGlobalModal();
-    modal.find('Button[priority="danger"]').simulate('click');
+    userEvent.click(screen.getByRole('button', {name: 'Disconnect'}));
+
+    renderGlobalModal();
+    userEvent.click(screen.getByTestId('confirm-button'));
 
     expect(mock).toHaveBeenCalledTimes(1);
     expect(mock).toHaveBeenCalledWith(

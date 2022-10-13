@@ -3,7 +3,6 @@ import {Location} from 'history';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
 import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
-import FeatureBadge from 'sentry/components/featureBadge';
 import {Panel} from 'sentry/components/panels';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -54,7 +53,6 @@ export default function EventCustomPerformanceMetrics({
   return (
     <Container>
       <SectionHeading>{t('Custom Performance Metrics')}</SectionHeading>
-      <FeatureBadge type="beta" />
       <Measurements>
         {measurementNames.map(name => {
           return (
@@ -183,7 +181,7 @@ function EventCustomPerformanceMetric({
           showChevron: false,
           icon: <IconEllipsis direction="down" size="sm" />,
         }}
-        placement="bottom right"
+        position="bottom-end"
       />
     </StyledPanel>
   );

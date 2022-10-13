@@ -5,8 +5,8 @@ import {Location, LocationDescriptor, Query} from 'history';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Button from 'sentry/components/button';
+import CompactSelect from 'sentry/components/compactSelect';
 import DiscoverButton from 'sentry/components/discoverButton';
-import CompactSelect from 'sentry/components/forms/compactSelect';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -247,18 +247,20 @@ class _TransactionsList extends Component<Props> {
             size="xs"
           />
         </Header>
-        <TransactionsTable
-          eventView={eventView}
-          organization={organization}
-          location={location}
-          isLoading={isLoading}
-          tableData={tableData}
-          columnOrder={columnOrder}
-          titles={titles}
-          generateLink={generateLink}
-          handleCellAction={handleCellAction}
-          useAggregateAlias={!useEvents}
-        />
+        <GuideAnchor target="transactions_table" position="top-start">
+          <TransactionsTable
+            eventView={eventView}
+            organization={organization}
+            location={location}
+            isLoading={isLoading}
+            tableData={tableData}
+            columnOrder={columnOrder}
+            titles={titles}
+            generateLink={generateLink}
+            handleCellAction={handleCellAction}
+            useAggregateAlias={!useEvents}
+          />
+        </GuideAnchor>
       </Fragment>
     );
 
