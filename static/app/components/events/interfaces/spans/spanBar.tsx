@@ -475,7 +475,7 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
   }
 
   renderTitle(errors: TraceError[] | null) {
-    const {generateContentSpanBarRef} = this.props;
+    const {generateContentSpanBarRef, spanBarHatch} = this.props;
     const {
       span,
       treeDepth,
@@ -539,7 +539,10 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
             width: '100%',
           }}
         >
-          <RowTitleContent errored={errored}>
+          <RowTitleContent
+            errored={errored}
+            data-test-id={`row-title-content${spanBarHatch ? `-${spanBarHatch}` : ''}`}
+          >
             <strong>{titleFragments}</strong>
             {description}
           </RowTitleContent>
@@ -908,7 +911,6 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
     return (
       <RowCellContainer showDetail={this.state.showDetail}>
         <RowCell
-          data-test-id={`row-cell-${spanBarHatch}`}
           data-type="span-row-cell"
           showDetail={this.state.showDetail}
           style={{

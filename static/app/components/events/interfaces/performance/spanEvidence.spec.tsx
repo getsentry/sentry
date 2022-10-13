@@ -4,7 +4,7 @@ import {
   ProblemSpan,
   TransactionEventBuilder,
 } from 'sentry-test/performance/utils';
-import {getByRole, render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {EventTransaction} from 'sentry/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -84,14 +84,24 @@ describe('spanEvidence', () => {
     render(<WrappedComponent event={builder.getEvent()} />);
 
     // Verify the surfaced fields in the span evidence section are correct
-    const transactionCells = screen.getAllByRole('cell', {name: /transaction/i});
-    const parentCells = screen.getAllByRole('cell', {name: /parent span/i});
-    const repeatingCells = screen.getAllByRole('cell', {name: /repeating span/i});
+    const transactionKey = screen.getByRole('cell', {name: 'Transaction'});
+    const transactionVal = screen.getByRole('cell', {name: EXAMPLE_TRANSACTION_TITLE});
+    expect(transactionKey).toBeInTheDocument();
+    expect(transactionVal).toBeInTheDocument();
 
-    // The first element in the array is the key, the second is the value
-    expect(transactionCells[0]).toHaveTextContent('Transaction');
-    expect(transactionCells[1]).toHaveTextContent(EXAMPLE_TRANSACTION_TITLE);
+    const parentKey = screen.getByRole('cell', {name: 'Parent Span'});
+    const parentVal = screen.getByRole('cell', {name: 'db - connect'});
+    expect(parentKey).toBeInTheDocument();
+    expect(parentVal).toBeInTheDocument();
+
+    const repeatingKey = screen.getByRole('cell', {name: 'Repeating Span'});
+    const repeatingVal = screen.getByRole('cell', {name: 'db - group me'});
+    expect(repeatingKey).toBeInTheDocument();
+    expect(repeatingVal).toBeInTheDocument();
+
+    // Verify that the correct spans are hi-lighted on the span tree as affected spans
+    const affectedSpan = screen.getByTestId('row-title-content-affected');
+    expect(affectedSpan).toBeInTheDocument();
+    expect(affectedSpan).toHaveTextContent('db — connect');
   });
-
-  // it('applies the hatch pattern to span bars related to the issue');
 });
