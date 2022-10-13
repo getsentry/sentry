@@ -108,7 +108,7 @@ class OptionsManagerTest(TestCase):
 
     def test_legacy_url_prefix_key_use_db_setting(self):
         """
-        TODO: Remove when SENTRY_URL_PREFIX is completely deprecated
+        TODO: Remove when SENTRY_URL_PREFIX is completely removed
         """
         self.manager.register("system.url-prefix", flags=FLAG_PRIORITIZE_DISK)
         with patch.object(self.store.cache, "get", return_value="https://sentry.example.com"):
