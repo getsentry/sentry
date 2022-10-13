@@ -2,12 +2,11 @@ import {Fragment} from 'react';
 import {BrowserClient} from '@sentry/react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {FeedbackModal} from 'sentry/components/featureFeedback/feedbackModal';
-import GlobalModal from 'sentry/components/globalModal';
 import {RouteContext} from 'sentry/views/routeContext';
 
 import {TextField} from '../forms';
@@ -34,7 +33,7 @@ describe('FeatureFeedback', function () {
     it('submits modal on click', function () {
       jest.spyOn(indicators, 'addSuccessMessage');
 
-      render(<GlobalModal />);
+      renderGlobalModal();
 
       openModal(modalProps => (
         <ComponentProviders>
@@ -81,7 +80,7 @@ describe('FeatureFeedback', function () {
     });
 
     it('renders provided feedbackTypes', function () {
-      render(<GlobalModal />);
+      renderGlobalModal();
 
       openModal(modalProps => (
         <ComponentProviders>
@@ -104,7 +103,7 @@ describe('FeatureFeedback', function () {
     });
 
     it('renders an arbitrary secondary action', function () {
-      render(<GlobalModal />);
+      renderGlobalModal();
 
       openModal(modalProps => (
         <ComponentProviders>
@@ -133,7 +132,7 @@ describe('FeatureFeedback', function () {
       // Mock implementation of the Sentry Browser SDK
       BrowserClient.prototype.captureEvent = jest.fn();
 
-      render(<GlobalModal />);
+      renderGlobalModal();
 
       openModal(modalProps => (
         <ComponentProviders>

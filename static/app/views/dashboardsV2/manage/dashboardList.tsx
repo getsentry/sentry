@@ -108,9 +108,8 @@ function DashboardList({
     return (
       <DropdownMenuControl
         items={menuItems}
-        trigger={({props: triggerProps, ref: triggerRef}) => (
+        trigger={triggerProps => (
           <DropdownTrigger
-            ref={triggerRef}
             {...triggerProps}
             aria-label={t('Dashboard actions')}
             size="xs"
@@ -124,7 +123,7 @@ function DashboardList({
             icon={<IconEllipsis direction="down" size="sm" />}
           />
         )}
-        placement="bottom right"
+        position="bottom-end"
         disabledKeys={dashboards && dashboards.length <= 1 ? ['dashboard-delete'] : []}
         offset={4}
       />

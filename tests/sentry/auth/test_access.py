@@ -503,6 +503,16 @@ class FromSentryAppTest(TestCase):
         assert not result.has_project_access(self.out_of_scope_project)
         assert not result.permissions
 
+    def test_no_access_due_to_no_app(self):
+        user = self.create_user("integration2@example.com")
+        request = self.make_request(user=user)
+        result = access.from_request(request, self.org)
+        assert not result.has_team_access(self.team)
+        assert not result.has_team_access(self.team2)
+        assert not result.has_team_access(self.out_of_scope_team)
+        assert not result.has_project_access(self.project)
+        assert not result.has_project_access(self.out_of_scope_project)
+
     def test_no_access_due_to_no_installation_unowned(self):
         request = self.make_request(user=self.proxy_user)
         result = access.from_request(request, self.out_of_scope_org)

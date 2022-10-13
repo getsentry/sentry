@@ -51,6 +51,7 @@ import {
   FlexContainer,
   NumberContainer,
   OverflowLink,
+  StyledIconPlay,
   UserIcon,
   VersionContainer,
 } from './styles';
@@ -290,6 +291,7 @@ type SpecialFields = {
   'issue.id': SpecialField;
   project: SpecialField;
   release: SpecialField;
+  replayId: SpecialField;
   team_key_transaction: SpecialField;
   'timestamp.to_day': SpecialField;
   'timestamp.to_hour': SpecialField;
@@ -375,6 +377,22 @@ const SPECIAL_FIELDS: SpecialFields = {
             {data['issue.id']}
           </OverflowLink>
         </Container>
+      );
+    },
+  },
+  replayId: {
+    sortField: 'replayId',
+    renderFunc: data => {
+      const replayId = data?.replayId;
+      if (typeof replayId !== 'string') {
+        return null;
+      }
+
+      return (
+        <FlexContainer>
+          <StyledIconPlay size="xs" />
+          <Container>{getShortEventId(replayId)}</Container>
+        </FlexContainer>
       );
     },
   },

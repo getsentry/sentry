@@ -313,6 +313,23 @@ describe('groupEvents', function () {
       const perfEventsColumn = screen.getByText('transaction');
       expect(perfEventsColumn).toBeInTheDocument();
     });
+
+    it('removes sort if unsupported by the events table', function () {
+      render(
+        <GroupEvents
+          organization={org.organization}
+          api={new MockApiClient()}
+          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+          group={group}
+          location={{query: {environment: ['prod', 'staging'], sort: 'user'}}}
+        />,
+        {context: routerContext, organization}
+      );
+      expect(discoverRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/events/',
+        expect.objectContaining({query: expect.not.objectContaining({sort: 'user'})})
+      );
+    });
   });
 
   it('does not renders new events table if error', function () {

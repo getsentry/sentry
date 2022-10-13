@@ -380,7 +380,7 @@ def post_process_group(
 
         # TODO: Remove this check once we're sending all group ids as `group_states` and treat all
         # events the same way
-        if not is_transaction_event or group_states is None:
+        if not is_transaction_event and group_states is None:
             # error issue
             group_states = [
                 {
@@ -400,7 +400,9 @@ def post_process_group(
         }
 
         multi_groups: Sequence[Tuple[GroupEvent, GroupState]] = [
-            (group_events.get(gs.get("id")), gs) for gs in group_states if gs.get("id") is not None
+            (group_events.get(gs.get("id")), gs)
+            for gs in (group_states or ())
+            if gs.get("id") is not None
         ]
 
         group_jobs: Sequence[PostProcessJob] = [
@@ -775,5 +777,12 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         process_similarity,
         update_existing_attachments,
         fire_error_processed,
+    ],
+    GroupCategory.PERFORMANCE: [
+        process_snoozes,
+        process_inbox_adds,
+        process_rules,
+        # TODO: Uncomment this when we want to send perf issues out via plugins as well
+        # process_plugins,
     ],
 }
