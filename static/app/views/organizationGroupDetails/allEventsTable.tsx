@@ -38,6 +38,7 @@ const AllEventsTable = (props: Props) => {
     'user.display',
     ...(isPerfIssue ? ['transaction.duration'] : []),
     'timestamp',
+    'attachments',
   ];
 
   const eventView: EventView = EventView.fromLocation(props.location);
