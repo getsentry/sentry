@@ -38,10 +38,6 @@ type State = AsyncView['state'] & {
 class Monitors extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {params, location} = this.props;
-
-    trackAdvancedAnalyticsEvent('monitors.page_viewed', {
-      organization: params.orgId,
-    });
     return [
       [
         'monitorList',
@@ -55,6 +51,12 @@ class Monitors extends AsyncView<Props, State> {
 
   getTitle() {
     return `Monitors - ${this.props.params.orgId}`;
+  }
+
+  componentDidMount() {
+    trackAdvancedAnalyticsEvent('monitors.page_viewed', {
+      organization: this.props.organization.id,
+    });
   }
 
   handleSearch = (query: string) => {
