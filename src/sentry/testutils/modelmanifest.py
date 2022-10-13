@@ -22,7 +22,7 @@ class ModelManifest:
 
         def as_json_output(self) -> Dict[str, str]:
             return {
-                "model": self.model_class.__name__,
+                "model": self.model_class.__qualname__,
                 "condition": self.condition.name,
             }
 

@@ -116,7 +116,7 @@ def create_model_manifest_file():
 @pytest.fixture(scope="class", autouse=True)
 def register_class_in_model_manifest(request: pytest.FixtureRequest):
     if _model_manifest:
-        with _model_manifest.register(request.node.name):
+        with _model_manifest.register(request.node.nodeid):
             yield
     else:
         yield
