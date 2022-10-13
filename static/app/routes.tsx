@@ -474,15 +474,11 @@ function buildRoutes() {
       </Route>
       <Route path="dynamic-sampling/" name={t('Dynamic Sampling')}>
         <IndexRoute
-          component={make(
-            () => import('sentry/views/settings/project/server-side-sampling')
-          )}
+          component={make(() => import('sentry/views/settings/project/dynamicSampling'))}
         />
         <Route
           path="rules/:rule/"
-          component={make(
-            () => import('sentry/views/settings/project/server-side-sampling')
-          )}
+          component={make(() => import('sentry/views/settings/project/dynamicSampling'))}
         />
       </Route>
       <Redirect from="server-side-sampling/" to="dynamic-sampling/" />
