@@ -140,7 +140,7 @@ jobs:
 
       - name: Step configurations
         id: config
-        run: echo "::set-output name=webpack-path::.webpack_cache"
+        run: echo "webpack-path=.webpack_cache" >> "$GITHUB_OUTPUT"
 
       - name: webpack cache
         uses: actions/cache@56046cbc4743437ac40542086317b1561d7705f8  # v3.0.8

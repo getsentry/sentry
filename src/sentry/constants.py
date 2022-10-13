@@ -105,6 +105,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "demo",
         "docs",
         "enterprise",
+        "events",
         "ext",
         "extension",
         "extensions",

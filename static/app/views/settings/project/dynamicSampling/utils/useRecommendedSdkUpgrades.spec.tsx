@@ -4,8 +4,6 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {ServerSideSamplingStore} from 'sentry/stores/serverSideSamplingStore';
 import {useRecommendedSdkUpgrades} from 'sentry/views/settings/project/dynamicSampling/utils/useRecommendedSdkUpgrades';
 
-import {mockedSamplingSdkVersions} from '../testUtils';
-
 describe('useRecommendedSdkUpgrades', function () {
   it('works', function () {
     ProjectsStore.loadInitialData([
@@ -15,7 +13,9 @@ describe('useRecommendedSdkUpgrades', function () {
       TestStubs.Project({id: '4', slug: 'javascript'}),
     ]);
 
-    ServerSideSamplingStore.sdkVersionsRequestSuccess(mockedSamplingSdkVersions);
+    ServerSideSamplingStore.sdkVersionsRequestSuccess(
+      TestStubs.DynamicSamplingConfig().samplingSdkVersions
+    );
 
     const {result} = reactHooks.renderHook(() =>
       useRecommendedSdkUpgrades({organization: TestStubs.Organization(), projectId: '3'})

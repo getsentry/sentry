@@ -1,11 +1,28 @@
 import {Fragment} from 'react';
 
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import GlobalModal from 'sentry/components/globalModal';
+import {Project} from 'sentry/types';
 import {SamplingSDKUpgradesAlert} from 'sentry/views/settings/project/dynamicSampling/samplingSDKUpgradesAlert';
 
-import {getMockData, mockedProjects, recommendedSdkUpgrades} from './testUtils';
+function getMockData({projects, access}: {access?: string[]; projects?: Project[]} = {}) {
+  return initializeOrg({
+    ...initializeOrg(),
+    organization: {
+      ...initializeOrg().organization,
+      features: [
+        'server-side-sampling',
+        'server-side-sampling-ui',
+        'dynamic-sampling-basic',
+      ],
+      access: access ?? initializeOrg().organization.access,
+      projects,
+    },
+    projects,
+  });
+}
 
 describe('Dynamic Sampling - Sdk Upgrades Alert', function () {
   it('does not render content', function () {
@@ -26,16 +43,20 @@ describe('Dynamic Sampling - Sdk Upgrades Alert', function () {
   });
 
   it('renders content with update sdks info', function () {
-    const {organization, project} = getMockData();
+    const {organization, projects} = getMockData({
+      projects: TestStubs.DynamicSamplingConfig().projects,
+    });
 
     render(
       <Fragment>
         <GlobalModal />
         <SamplingSDKUpgradesAlert
           organization={organization}
-          projectId={project.id}
+          projectId={projects[2].id}
           onReadDocs={jest.fn()}
-          recommendedSdkUpgrades={recommendedSdkUpgrades}
+          recommendedSdkUpgrades={
+            TestStubs.DynamicSamplingConfig().recommendedSdkUpgrades
+          }
         />
       </Fragment>
     );
@@ -46,15 +67,15 @@ describe('Dynamic Sampling - Sdk Upgrades Alert', function () {
 
     expect(
       screen.getByText(
-        'To have Dynamic Sampling up and running, it’s a requirement to update the following project SDK(s):'
+        'To activate sampling rules, it’s a requirement to update the following project SDK(s):'
       )
     ).toBeInTheDocument();
 
-    expect(screen.getByTestId('platform-icon-python')).toBeInTheDocument();
+    // expect(screen.getByTestId('platform-icon-sentry')).toBeInTheDocument();
     expect(screen.getByTestId('badge-display-name')).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: mockedProjects[1].slug})).toHaveAttribute(
+    expect(screen.getByRole('link', {name: projects[1].slug})).toHaveAttribute(
       'href',
-      `/organizations/org-slug/projects/sentry/?project=${mockedProjects[1].id}`
+      `/organizations/org-slug/projects/sentry/?project=${projects[1].id}`
     );
 
     // Click on learn more button

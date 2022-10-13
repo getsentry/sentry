@@ -1,8 +1,25 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {Project} from 'sentry/types';
 import {SamplingSDKClientRateChangeAlert} from 'sentry/views/settings/project/dynamicSampling/samplingSDKClientRateChangeAlert';
 
-import {getMockData} from './testUtils';
+function getMockData({projects, access}: {access?: string[]; projects?: Project[]} = {}) {
+  return initializeOrg({
+    ...initializeOrg(),
+    organization: {
+      ...initializeOrg().organization,
+      features: [
+        'server-side-sampling',
+        'server-side-sampling-ui',
+        'dynamic-sampling-basic',
+      ],
+      access: access ?? initializeOrg().organization.access,
+      projects,
+    },
+    projects,
+  });
+}
 
 describe('Dynamic Sampling - Client Rate Change Alert', function () {
   it('does not render content', function () {

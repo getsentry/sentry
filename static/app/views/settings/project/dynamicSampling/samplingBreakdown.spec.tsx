@@ -1,12 +1,29 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {ServerSideSamplingStore} from 'sentry/stores/serverSideSamplingStore';
+import {Project} from 'sentry/types';
 import {SamplingBreakdown} from 'sentry/views/settings/project/dynamicSampling/samplingBreakdown';
 
-import {getMockData, mockedSamplingDistribution} from './testUtils';
-
 export const samplingBreakdownTitle = 'Transaction Breakdown';
+
+function getMockData({projects, access}: {access?: string[]; projects?: Project[]} = {}) {
+  return initializeOrg({
+    ...initializeOrg(),
+    organization: {
+      ...initializeOrg().organization,
+      features: [
+        'server-side-sampling',
+        'server-side-sampling-ui',
+        'dynamic-sampling-basic',
+      ],
+      access: access ?? initializeOrg().organization.access,
+      projects,
+    },
+    projects,
+  });
+}
 
 describe('Dynamic Sampling - SamplingBreakdown', function () {
   beforeEach(function () {
@@ -23,13 +40,16 @@ describe('Dynamic Sampling - SamplingBreakdown', function () {
 
   it('renders project breakdown', function () {
     const {organization} = getMockData();
-    const projectBreakdown = mockedSamplingDistribution.projectBreakdown;
+    const projectBreakdown =
+      TestStubs.DynamicSamplingConfig().samplingDistribution.projectBreakdown;
 
     ProjectsStore.loadInitialData(
       projectBreakdown!.map(p => TestStubs.Project({id: p.projectId, slug: p.project}))
     );
 
-    ServerSideSamplingStore.distributionRequestSuccess(mockedSamplingDistribution);
+    ServerSideSamplingStore.distributionRequestSuccess(
+      TestStubs.DynamicSamplingConfig().samplingDistribution
+    );
 
     render(<SamplingBreakdown orgSlug={organization.slug} />);
 

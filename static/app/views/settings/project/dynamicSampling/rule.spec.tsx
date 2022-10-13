@@ -4,11 +4,10 @@ import {ServerSideSamplingStore} from 'sentry/stores/serverSideSamplingStore';
 import {SamplingRuleOperator} from 'sentry/types/sampling';
 
 import {Rule} from './rule';
-import {uniformRule} from './testUtils';
 
 export const samplingBreakdownTitle = 'Transaction Breakdown';
 
-describe('Server-Side Sampling - Rule', function () {
+describe('Dynamic Sampling - Rule', function () {
   beforeEach(function () {
     ServerSideSamplingStore.reset();
   });
@@ -18,7 +17,7 @@ describe('Server-Side Sampling - Rule', function () {
       <Rule
         operator={SamplingRuleOperator.IF}
         hideGrabButton={false}
-        rule={uniformRule}
+        rule={TestStubs.DynamicSamplingConfig().uniformRule}
         onEditRule={() => {}}
         onDeleteRule={() => {}}
         onActivate={() => {}}
@@ -50,7 +49,7 @@ describe('Server-Side Sampling - Rule', function () {
       <Rule
         operator={SamplingRuleOperator.IF}
         hideGrabButton={false}
-        rule={{...uniformRule, active: true}}
+        rule={{...TestStubs.DynamicSamplingConfig().uniformRule, active: true}}
         onEditRule={() => {}}
         onDeleteRule={() => {}}
         onActivate={() => {}}

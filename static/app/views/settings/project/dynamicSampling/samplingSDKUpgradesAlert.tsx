@@ -37,10 +37,6 @@ export function SamplingSDKUpgradesAlert({
   }, [recommendedSdkUpgrades.length, organization, projectId]);
 
   function handleOpenRecommendedSteps() {
-    if (recommendedSdkUpgrades.length === 0) {
-      return;
-    }
-
     openModal(modalProps => (
       <RecommendedStepsModal
         {...modalProps}
@@ -68,7 +64,7 @@ export function SamplingSDKUpgradesAlert({
       }
     >
       {t(
-        'To have Dynamic Sampling up and running, it’s a requirement to update the following project SDK(s):'
+        'To activate sampling rules, it’s a requirement to update the following project SDK(s):'
       )}
       <Projects>
         {recommendedSdkUpgrades.map(recommendedSdkUpgrade => (
