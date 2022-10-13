@@ -1,7 +1,7 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
-import SelectControl from 'sentry/components/forms/selectControl';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 import TeamSelector from 'sentry/components/forms/teamSelector';
 import {PanelItem} from 'sentry/components/panels';
 import SelectMembers from 'sentry/components/selectMembers';

@@ -4,12 +4,10 @@ import debounce from 'lodash/debounce';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import SelectControl, {
-  ControlProps,
-  GeneralSelectValue,
-} from 'sentry/components/forms/selectControl';
 import {t} from 'sentry/locale';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
+
+import SelectControl, {ControlProps, GeneralSelectValue} from './selectControl';
 
 export type Result = {
   label: string;
