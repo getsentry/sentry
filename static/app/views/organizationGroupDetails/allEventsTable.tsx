@@ -18,18 +18,22 @@ export interface Props {
 const AllEventsTable = (props: Props) => {
   const {location, organization, issueId, isPerfIssue, excludedTags} = props;
   const [error, setError] = useState<string>('');
-  const eventView: EventView = EventView.fromLocation(props.location);
-  eventView.sorts = decodeSorts(location);
-  eventView.fields = [
-    {field: 'id'},
-    {field: 'transaction'},
-    {field: 'trace'},
-    {field: 'release'},
-    {field: 'environment'},
-    {field: 'user.display'},
-    ...(isPerfIssue ? [{field: 'transaction.duration'}] : []),
-    {field: 'timestamp'},
+
+  const fields: string[] = [
+    'id',
+    'transaction',
+    'trace',
+    'release',
+    'environment',
+    'user.display',
+    ...(isPerfIssue ? ['transaction.duration'] : []),
+    'timestamp',
   ];
+
+  const eventView: EventView = EventView.fromLocation(props.location);
+  eventView.fields = fields.map(fieldName => ({field: fieldName}));
+
+  eventView.sorts = decodeSorts(location).filter(sort => fields.includes(sort.field));
 
   const idQuery = isPerfIssue
     ? `performance.issue_ids:${issueId}`
