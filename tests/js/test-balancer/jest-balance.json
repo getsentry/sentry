@@ -389,7 +389,7 @@
   "/static/app/components/breadcrumbs.spec.jsx": 1592,
   "/static/app/utils/withExperiment.spec.jsx": 1564,
   "/static/app/components/repositoryRow.spec.jsx": 1475,
-  "/static/app/components/forms/teamSelector.spec.jsx": 1473,
+  "/static/app/components/teamSelector.spec.jsx": 1473,
   "/static/app/components/forms/compactSelect.spec.tsx": 1472,
   "/static/app/components/stream/streamGroup.spec.jsx": 1468,
   "/static/app/actionCreators/navigation.spec.jsx": 1468,

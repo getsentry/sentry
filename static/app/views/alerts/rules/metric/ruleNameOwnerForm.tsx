@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import TextField from 'sentry/components/forms/fields/textField';
 import FormField from 'sentry/components/forms/formField';
-import TeamSelector from 'sentry/components/forms/teamSelector';
 import ListItem from 'sentry/components/list/listItem';
+import TeamSelector from 'sentry/components/teamSelector';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Project, Team} from 'sentry/types';
