@@ -76,7 +76,11 @@ export type ChildProps = {
 
 type Props = {
   childComponent: (props: ChildProps) => JSX.Element;
-  generateEventView: (props: {location: Location; transactionName: string}) => EventView;
+  generateEventView: (props: {
+    location: Location;
+    organization: Organization;
+    transactionName: string;
+  }) => EventView;
   getDocumentTitle: (name: string) => string;
   location: Location;
   organization: Organization;
@@ -152,7 +156,7 @@ function PageLayout(props: Props) {
 
   const project = projects.find(p => p.id === projectId);
 
-  const eventView = generateEventView({location, transactionName});
+  const eventView = generateEventView({location, transactionName, organization});
 
   function trackTabClick(newTab: Tab) {
     const analyticKeys = TAB_ANALYTICS[newTab];

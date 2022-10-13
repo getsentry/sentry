@@ -1676,7 +1676,7 @@ describe('Results', function () {
     const initialData = initializeOrg({
       organization,
       router: {
-        location: {query: {fromMetric: true}},
+        location: {query: {fromMetric: true, id: '1'}},
       },
     });
 
@@ -1707,7 +1707,7 @@ describe('Results', function () {
     const initialData = initializeOrg({
       organization,
       router: {
-        location: {query: {showUnparameterizedBanner: true}},
+        location: {query: {showUnparameterizedBanner: true, id: '1'}},
       },
     });
 
@@ -1785,7 +1785,7 @@ describe('Results', function () {
       statusCode: 200,
       body: {
         id: '2',
-        name: 'new',
+        name: '',
         projects: [],
         version: 2,
         expired: false,
@@ -1857,7 +1857,7 @@ describe('Results', function () {
       url: '/organizations/org-slug/discover/homepage/',
       method: 'PUT',
       statusCode: 200,
-      body: TRANSACTION_VIEWS[0],
+      body: {...TRANSACTION_VIEWS[0], name: ''},
     });
     const organization = TestStubs.Organization({
       features: [

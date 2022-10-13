@@ -209,7 +209,7 @@ function ReleaseActions({
           icon: <IconEllipsis />,
           'aria-label': t('Actions'),
         }}
-        placement="bottom right"
+        position="bottom-end"
       />
     </ButtonBar>
   );
