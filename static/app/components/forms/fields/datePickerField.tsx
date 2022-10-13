@@ -4,12 +4,11 @@ import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import moment from 'moment';
 
+import {DatePicker} from 'sentry/components/calendar';
 import Input from 'sentry/components/input';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {IconCalendar} from 'sentry/icons';
 import useOverlay from 'sentry/utils/useOverlay';
-
-import {DatePicker} from '../../calendar';
 
 import InputField, {InputFieldProps, onEvent} from './inputField';
 
