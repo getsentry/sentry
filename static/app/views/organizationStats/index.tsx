@@ -37,7 +37,7 @@ import UsageStatsProjects from './usageStatsProjects';
 
 const HookHeader = HookOrDefault({hookName: 'component:org-stats-banner'});
 
-const PAGE_QUERY_PARAMS = [
+export const PAGE_QUERY_PARAMS = [
   'pageStatsPeriod',
   'pageStart',
   'pageEnd',
