@@ -50,6 +50,7 @@ const AllEventsTable = (props: Props) => {
     ? `performance.issue_ids:${issueId}`
     : `issue.id:${issueId}`;
   eventView.query = `${idQuery} ${props.location.query.query || ''}`;
+  eventView.statsPeriod = '90d';
 
   const columnTitles: Readonly<string[]> = [
     t('event id'),
