@@ -2,7 +2,7 @@ import pytz
 from django.utils.safestring import mark_safe
 from django.views.generic import View
 
-from sentry.api.serializers.models.event import get_entries  # , get_problems
+from sentry.api.serializers.models.event import get_entries, get_problems  # , get_problems
 from sentry.event_manager import EventManager, get_event_type
 from sentry.models import Organization, Project, Rule
 from sentry.notifications.utils import get_group_settings_link, get_rules
@@ -84,10 +84,8 @@ class DebugPerformanceIssueEmailView(View):
             perf_data = perf_event_manager.get_data()
             perf_event = perf_event_manager.save(project.id)
         print("perf event", perf_event, perf_event.groups)
-        perf_event.group = perf_group
-        perf_event = perf_event.for_group(perf_event.group)
+        perf_event = perf_event.for_group(perf_event.groups[0])
 
-        perf_event.data["timestamp"] = 1504656000.0  # datetime(2017, 9, 6, 0, 0)
         perf_event_type = get_event_type(perf_event.data)
         perf_group.message = perf_event.search_message
         perf_group.data = {
@@ -104,7 +102,8 @@ class DebugPerformanceIssueEmailView(View):
                 entry.get("data") for entry in entries[0] if entry.get("type") == "spans"
             ][0]
 
-        # problems = get_problems([perf_event])
+        problems = get_problems([perf_event])
+        print("problems", problems)
 
         transaction_data = self.perf_to_email_html(transaction_data[0])
 
