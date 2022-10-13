@@ -64,6 +64,10 @@ def process_profile(
 
     try:
         if _should_symbolicate(profile):
+            if "debug_meta" not in profile:
+                sentry_sdk.capture_message("profile doesn't have a debug_meta key")
+                return
+
             modules, stacktraces = _prepare_frames_from_profile(profile)
             modules, stacktraces = _symbolicate(
                 project=project,
@@ -85,6 +89,10 @@ def process_profile(
 
     try:
         if _should_deobfuscate(profile):
+            if "profile" not in profile:
+                sentry_sdk.capture_message("profile doesn't have a profile key")
+                return
+
             _deobfuscate(profile=profile, project=project)
     except Exception as e:
         sentry_sdk.capture_exception(e)
