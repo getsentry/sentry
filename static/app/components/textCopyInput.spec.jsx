@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import TextCopyInput from 'sentry/components/forms/textCopyInput';
+import TextCopyInput from 'sentry/components/textCopyInput';
 
 describe('TextCopyInput', function () {
   it('renders', function () {
