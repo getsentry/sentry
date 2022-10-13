@@ -431,6 +431,7 @@ class CellAction extends Component<Props, State> {
                   this.menuEl = ref;
                 }}
                 style={style}
+                data-test-id="action-menu"
               >
                 <MenuArrow
                   ref={arrowProps.ref}
@@ -451,7 +452,11 @@ class CellAction extends Component<Props, State> {
         <Manager>
           <Reference>
             {({ref}) => (
-              <MenuButton ref={ref} onClick={this.handleMenuToggle}>
+              <MenuButton
+                ref={ref}
+                data-test-id="action-menu-button"
+                onClick={this.handleMenuToggle}
+              >
                 <IconEllipsis size="sm" data-test-id="cell-action" color="blue300" />
               </MenuButton>
             )}
@@ -480,6 +485,7 @@ class CellAction extends Component<Props, State> {
                   this.contextEl = ref;
                 }}
                 style={style}
+                data-test-id="context-menu"
               >
                 <MenuArrow
                   ref={arrowProps.ref}
@@ -498,8 +504,12 @@ class CellAction extends Component<Props, State> {
         <Manager>
           <Reference>
             {({ref}) => (
-              <MenuButton ref={ref} onClick={this.handleContextToggle}>
-                <IconShow size="sm" data-test-id="cell-action-context" color="subText" />
+              <MenuButton
+                ref={ref}
+                data-test-id="context-button"
+                onClick={this.handleContextToggle}
+              >
+                <IconShow size="sm" color="subText" />
               </MenuButton>
             )}
           </Reference>
