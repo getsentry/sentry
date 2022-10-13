@@ -2,8 +2,9 @@ import {useEffect} from 'react';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import withRouteAnalytics from 'sentry/utils/withRouteAnalytics';
 import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
+
+import withRouteAnalytics from './withRouteAnalytics';
 
 function TestComponent({setRouteAnalyticsParams}) {
   useEffect(() => {

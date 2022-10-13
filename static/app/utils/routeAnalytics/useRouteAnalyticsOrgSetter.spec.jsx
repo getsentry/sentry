@@ -1,9 +1,10 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import useRouteAnalyticsOrgSetter from 'sentry/utils/useRouteAnalyticsOrgSetter';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
+
+import useRouteAnalyticsOrgSetter from './useRouteAnalyticsOrgSetter';
 
 function TestComponent() {
   useRouteAnalyticsOrgSetter();

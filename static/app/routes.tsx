@@ -29,7 +29,7 @@ import RouteNotFound from 'sentry/views/routeNotFound';
 import SettingsWrapper from 'sentry/views/settings/components/settingsWrapper';
 
 import Feature from './components/acl/feature';
-import useRouteAnalyticsOrgSetter from './utils/useRouteAnalyticsOrgSetter';
+import useRouteAnalyticsOrgSetter from './utils/routeAnalytics/useRouteAnalyticsOrgSetter';
 
 type CustomProps = {
   name?: string;

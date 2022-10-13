@@ -35,10 +35,10 @@ import {getAnalyicsDataForEvent, getMessage, getTitle} from 'sentry/utils/events
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import Projects from 'sentry/utils/projects';
 import recreateRoute from 'sentry/utils/recreateRoute';
-import withApi from 'sentry/utils/withApi';
 import withRouteAnalytics, {
   WithRouteAnalyticsProps,
-} from 'sentry/utils/withRouteAnalytics';
+} from 'sentry/utils/routeAnalytics/withRouteAnalytics';
+import withApi from 'sentry/utils/withApi';
 
 import {ERROR_TYPES} from './constants';
 import GroupHeader from './header';

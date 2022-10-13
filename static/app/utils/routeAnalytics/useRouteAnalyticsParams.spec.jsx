@@ -1,7 +1,8 @@
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import useRouteAnalyticsParams from 'sentry/utils/useRouteAnalyticsParams';
 import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
+
+import useRouteAnalyticsParams from './useRouteAnalyticsParams';
 
 function TestComponent() {
   useRouteAnalyticsParams({foo: 'bar'});

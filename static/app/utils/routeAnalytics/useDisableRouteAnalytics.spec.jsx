@@ -1,7 +1,8 @@
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import useDisableRouteAnalytics from 'sentry/utils/useDisableRouteAnalytics';
 import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
+
+import useDisableRouteAnalytics from './useDisableRouteAnalytics';
 
 function TestComponent() {
   useDisableRouteAnalytics();
