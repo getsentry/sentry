@@ -126,6 +126,7 @@ class OptionsManagerTest(TestCase):
             with self.settings(SENTRY_OPTIONS={"system.url-prefix": "https://sentry.updated.com"}):
                 assert self.manager.get("system.url-prefix") == "https://sentry.updated.com"
                 # SENTRY_URL_PREFIX is set on initialization, then not modified if config settings change
+                # This seems non-ideal but it's the current behavior and out of scope to fix right now.
                 assert settings.SENTRY_URL_PREFIX == "http://testserver"
                 assert settings.SENTRY_OPTIONS["system.url-prefix"] == "https://sentry.updated.com"
 
