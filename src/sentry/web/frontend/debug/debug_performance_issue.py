@@ -2,10 +2,12 @@ import pytz
 from django.utils.safestring import mark_safe
 from django.views.generic import View
 
-from sentry.api.serializers.models.event import get_entries, get_problems
+from fixtures.github import COMMIT_EXAMPLE
+from sentry.api.serializers.models.event import get_entries  # , get_problems
 from sentry.event_manager import EventManager, get_event_type
-from sentry.models import GroupHash, Organization, Project, Rule
+from sentry.models import Organization, Project, Rule
 from sentry.notifications.utils import get_group_settings_link, get_rules
+from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now
 from sentry.types.issues import GroupType
 from sentry.utils import json
@@ -52,17 +54,21 @@ class DebugPerformanceIssueEmailView(View):
     def perf_to_email_html(self, transaction_data, **kwargs):
         context = {
             "transaction_name": transaction_data.get("description"),
-            # "parent_span": "idk",
-            # "preceding_span": "idk",
-            # "repeating spans": "idk",
-            # "num_repeating_spans": "idk4",
+            "parent_span": "idk",
+            "preceding_span": "SELECT idk FROM idk",
+            "repeating_spans": "SELECT idk FROM idk WHERE i_truly_dont_know AND idk_man",
+            "num_repeating_spans": "4",
         }
         return render_to_string("sentry/emails/transactions.html", context)
 
+    @override_options({"performance.issues.all.problem-creation": 1.0})
+    @override_options({"performance.issues.all.problem-detection": 1.0})
+    @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def get(self, request):
         org = Organization(id=1, slug="example", name="Example")
         project = Project(id=1, slug="example", name="Example", organization=org)
         random = get_random(request)
+        project.update_option("sentry:performance_issue_creation_rate", 1.0)
 
         perf_group = next(make_group_generator(random, project))
         perf_group.type = GroupType.PERFORMANCE_N_PLUS_ONE.value
@@ -81,7 +87,6 @@ class DebugPerformanceIssueEmailView(View):
             "type": perf_event_type.key,
             "metadata": perf_event_type.get_metadata(perf_data),
         }
-        # GroupHash.objects.create(hash="e" * 32, project=project, group=perf_group)
 
         rule = Rule(id=1, label="Example performance rule")
 
@@ -92,7 +97,7 @@ class DebugPerformanceIssueEmailView(View):
                 entry.get("data") for entry in entries[0] if entry.get("type") == "spans"
             ][0]
 
-        problems = get_problems([perf_event])
+        # problems = get_problems([perf_event])
 
         transaction_data = self.perf_to_email_html(transaction_data[0])
 

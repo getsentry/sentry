@@ -20,5 +20,21 @@
             </td>
         </tr>
         {% endif %}
+        {% if preceding_span %}
+        <tr>
+            <th>{% trans "Preceding Span" %}</th>
+            <td>
+                <code>{{ preceding_span|truncatechars:50 }}</code>
+            </td>
+        </tr>
+        {% endif %}
+        {% if repeating_spans and num_repeating_spans %}
+        <tr>
+            <th>{% blocktrans %} Repeating Spans ({{ num_repeating_spans }}) {% endblocktrans %}</th>
+            <td>
+                <code>{{ repeating_spans|truncatechars:50 }}</code>
+            </td>
+        </tr>
+        {% endif %}
     </tbody>
 </table>
