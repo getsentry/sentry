@@ -1,9 +1,11 @@
-import sortBy from 'lodash/sortBy';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
-
-import {openModal} from 'sentry/actionCreators/modal';
-import GlobalModal from 'sentry/components/globalModal';
+import {
+  makeClosableHeader,
+  makeCloseButton,
+  ModalBody,
+  ModalFooter,
+} from 'sentry/components/globalModal/components';
 import {convertRelayPiiConfig} from 'sentry/views/settings/components/dataScrubbing/convertRelayPiiConfig';
 import Add from 'sentry/views/settings/components/dataScrubbing/modals/add';
 import {MethodType, RuleType} from 'sentry/views/settings/components/dataScrubbing/types';
@@ -22,225 +24,157 @@ const projectId = 'foo';
 const endpoint = `/projects/${organizationSlug}/${projectId}/`;
 const api = new MockApiClient();
 
-async function renderComponent() {
-  const wrapper = mountWithTheme(<GlobalModal />);
+describe('Add Modal', function () {
+  it('open Add Rule Modal', async function () {
+    const handleCloseModal = jest.fn();
 
-  openModal(modalProps => (
-    <Add
-      {...modalProps}
-      projectId={projectId}
-      savedRules={rules}
-      api={api}
-      endpoint={endpoint}
-      orgSlug={organizationSlug}
-      onSubmitSuccess={successfullySaved}
-    />
-  ));
-
-  await tick();
-  wrapper.update();
-
-  return wrapper;
-}
-
-describe('Add Modal', () => {
-  it('open Add Rule Modal', async () => {
-    const wrapper = await renderComponent();
-
-    expect(wrapper.find('Header').text()).toEqual('Add an advanced data scrubbing rule');
-
-    const fieldGroup = wrapper.find('FieldGroup');
-    expect(fieldGroup).toHaveLength(2);
-
-    // Method Field
-    const methodGroup = fieldGroup.at(0).find('Field');
-    expect(methodGroup.find('FieldLabel').text()).toEqual('Method');
-    const methodFieldHelp = 'What to do';
-    expect(methodGroup.find('QuestionTooltip').prop('title')).toEqual(methodFieldHelp);
-    expect(methodGroup.find('Tooltip').prop('title')).toEqual(methodFieldHelp);
-    const methodField = methodGroup.find('SelectField');
-    expect(methodField.exists()).toBe(true);
-    const methodFieldProps = methodField.props();
-    expect(methodFieldProps.value).toEqual(MethodType.MASK);
-    const methodFieldOptions = sortBy(Object.values(MethodType)).map(value => ({
-      ...getMethodLabel(value),
-      value,
-    }));
-    expect(methodFieldProps.options).toEqual(methodFieldOptions);
-
-    // Type Field
-    const typeGroup = fieldGroup.at(1).find('Field');
-    expect(typeGroup.find('FieldLabel').text()).toEqual('Data Type');
-    const typeFieldHelp =
-      'What to look for. Use an existing pattern or define your own using regular expressions.';
-    expect(typeGroup.find('QuestionTooltip').prop('title')).toEqual(typeFieldHelp);
-    expect(typeGroup.find('Tooltip').prop('title')).toEqual(typeFieldHelp);
-    const typeField = typeGroup.find('SelectField');
-    expect(typeField.exists()).toBe(true);
-    const typeFieldProps = typeField.props();
-    expect(typeFieldProps.value).toEqual(RuleType.CREDITCARD);
-
-    const typeFieldOptions = sortBy(Object.values(RuleType)).map(value => ({
-      label: getRuleLabel(value),
-      value,
-    }));
-    expect(typeFieldProps.options).toEqual(typeFieldOptions);
-
-    // Event ID
-    expect(wrapper.find('Toggle').text()).toEqual('Use event ID for auto-completion');
-
-    // Source Field
-    const sourceGroup = wrapper.find('SourceGroup');
-    expect(sourceGroup.exists()).toBe(true);
-    expect(sourceGroup.find('EventIdField')).toHaveLength(0);
-    const sourceField = sourceGroup.find('Field');
-    expect(sourceField.find('FieldLabel').text()).toEqual('Source');
-    const sourceFieldHelp =
-      'Where to look. In the simplest case this can be an attribute name.';
-    expect(sourceField.find('QuestionTooltip').prop('title')).toEqual(sourceFieldHelp);
-    expect(sourceField.find('Tooltip').prop('title')).toEqual(sourceFieldHelp);
-
-    // Close Modal
-    const cancelButton = wrapper.find('[aria-label="Cancel"]').hostNodes();
-    expect(cancelButton.exists()).toBe(true);
-    cancelButton.simulate('click');
-
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('GlobalModal[visible=true]').exists()).toBe(false);
-  });
-
-  it('Display placeholder field', async () => {
-    const wrapper = await renderComponent();
-
-    const fieldGroup = wrapper.find('FieldGroup');
-    expect(fieldGroup).toHaveLength(2);
-
-    // Method Field
-    const methodGroup = fieldGroup.at(0).find('Field');
-    expect(methodGroup).toHaveLength(1);
-
-    const methodField = methodGroup.find('[data-test-id="method-field"]');
-
-    const methodFieldInput = methodField.find('input').at(1);
-    methodFieldInput.simulate('keyDown', {key: 'ArrowDown'});
-
-    const methodFieldMenuOptions = wrapper.find(
-      '[data-test-id="method-field"] MenuList Option'
+    render(
+      <Add
+        Header={makeClosableHeader(handleCloseModal)}
+        Body={ModalBody}
+        Footer={ModalFooter}
+        closeModal={handleCloseModal}
+        CloseButton={makeCloseButton(handleCloseModal)}
+        projectId={projectId}
+        savedRules={rules}
+        api={api}
+        endpoint={endpoint}
+        orgSlug={organizationSlug}
+        onSubmitSuccess={successfullySaved}
+      />
     );
-    expect(methodFieldMenuOptions).toHaveLength(4);
-    const replaceOption = methodFieldMenuOptions.at(3);
-
-    expect(replaceOption.find('Label').text()).toEqual('Replace');
-    expect(replaceOption.find('Details').text()).toEqual('(Replace with Placeholder)');
-
-    // After the click the placeholder field MUST be in the DOM
-    replaceOption.simulate('click');
-    wrapper.update();
 
     expect(
-      wrapper.find('[data-test-id="method-field"] input').at(1).prop('value')
-    ).toEqual(MethodType.REPLACE);
+      screen.getByRole('heading', {name: 'Add an advanced data scrubbing rule'})
+    ).toBeInTheDocument();
 
-    const updatedMethodGroup = wrapper.find('FieldGroup').at(0).find('Field');
+    // Method Field
+    expect(screen.getByText('Method')).toBeInTheDocument();
 
-    expect(updatedMethodGroup).toHaveLength(2);
+    userEvent.hover(screen.getAllByTestId('more-information')[0]);
+    expect(await screen.findByText('What to do')).toBeInTheDocument();
 
-    const placeholderField = updatedMethodGroup.at(1);
-    expect(placeholderField.find('FieldLabel').text()).toEqual(
-      'Custom Placeholder (Optional)'
-    );
-    const placeholderFieldHelp = 'It will replace the default placeholder [Filtered]';
-    expect(placeholderField.find('QuestionTooltip').prop('title')).toEqual(
-      placeholderFieldHelp
-    );
-    expect(placeholderField.find('Tooltip').prop('title')).toEqual(placeholderFieldHelp);
+    userEvent.click(screen.getByText(getMethodLabel(MethodType.MASK).label));
 
-    // After the click, the placeholder field MUST NOT be in the DOM
-
-    wrapper
-      .find('[data-test-id="method-field"]')
-      .find('input')
-      .at(1)
-      .simulate('keyDown', {key: 'ArrowDown'});
-
-    const hashOption = wrapper
-      .find('[data-test-id="method-field"] MenuList Option')
-      .at(0);
-
-    hashOption.simulate('click');
-
-    expect(wrapper.find('[data-test-id="method-field"] input').at(1).prop('value')).toBe(
-      MethodType.HASH
-    );
-
-    expect(wrapper.find('FieldGroup').at(0).find('Field')).toHaveLength(1);
-  });
-
-  it('Display regex field', async () => {
-    const wrapper = await renderComponent();
-
-    const fieldGroup = wrapper.find('FieldGroup');
-    expect(fieldGroup).toHaveLength(2);
+    Object.values(MethodType).forEach(method => {
+      if (method === MethodType.MASK) {
+        return;
+      }
+      expect(screen.getByText(getMethodLabel(method).label)).toBeInTheDocument();
+    });
 
     // Type Field
-    const typeGroup = fieldGroup.at(1).find('Field');
-    expect(typeGroup).toHaveLength(1);
+    expect(screen.getByText('Data Type')).toBeInTheDocument();
 
-    const typeField = typeGroup.find('[data-test-id="type-field"]');
+    userEvent.hover(screen.getAllByTestId('more-information')[1]);
+    expect(
+      await screen.findByText(
+        'What to look for. Use an existing pattern or define your own using regular expressions.'
+      )
+    ).toBeInTheDocument();
 
-    const typeFieldInput = typeField.find('input').at(1);
-    typeFieldInput.simulate('keyDown', {key: 'ArrowDown'});
+    userEvent.click(screen.getByText(getRuleLabel(RuleType.CREDITCARD)));
 
-    const typeFieldMenuOptions = wrapper.find(
-      '[data-test-id="type-field"] MenuList Option'
-    );
+    Object.values(RuleType).forEach(rule => {
+      if (rule === RuleType.CREDITCARD) {
+        return;
+      }
+      expect(screen.getByText(getRuleLabel(rule))).toBeInTheDocument();
+    });
 
-    expect(typeFieldMenuOptions).toHaveLength(13);
-    const regexOption = typeFieldMenuOptions.at(7);
+    // Event ID
+    expect(
+      screen.getByRole('button', {name: 'Use event ID for auto-completion'})
+    ).toBeInTheDocument();
 
-    expect(regexOption.find('Label').text()).toEqual('Regex matches');
+    // Source Field
+    screen.getByRole('textbox', {name: 'Source'});
 
-    // After the click, the regex matches field MUST be in the DOM
-    regexOption.simulate('click');
-    wrapper.update();
+    userEvent.hover(screen.getAllByTestId('more-information')[2]);
 
-    expect(wrapper.find('[data-test-id="type-field"] input').at(1).prop('value')).toEqual(
-      RuleType.PATTERN
-    );
+    expect(
+      await screen.findByText(
+        'Where to look. In the simplest case this can be an attribute name.'
+      )
+    ).toBeInTheDocument();
 
-    const updatedTypeGroup = wrapper.find('FieldGroup').at(1).find('Field');
+    // Close Modal
+    userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
 
-    expect(updatedTypeGroup).toHaveLength(2);
-
-    const regexField = updatedTypeGroup.at(1);
-    expect(regexField.find('FieldLabel').text()).toEqual('Regex matches');
-    const regexFieldHelp = 'Custom regular expression (see documentation)';
-    expect(regexField.find('QuestionTooltip').prop('title')).toEqual(regexFieldHelp);
-    expect(regexField.find('Tooltip').prop('title')).toEqual(regexFieldHelp);
-
-    // After the click, the regex matches field MUST NOT be in the DOM
-    wrapper
-      .find('[data-test-id="type-field"]')
-      .find('input')
-      .at(1)
-      .simulate('keyDown', {key: 'ArrowDown'});
-
-    const creditCardOption = wrapper
-      .find('[data-test-id="type-field"] MenuList Option')
-      .at(1);
-
-    creditCardOption.simulate('click');
-
-    expect(wrapper.find('[data-test-id="type-field"] input').at(1).prop('value')).toBe(
-      RuleType.CREDITCARD
-    );
-
-    expect(wrapper.find('FieldGroup').at(1).find('Field')).toHaveLength(1);
+    expect(handleCloseModal).toHaveBeenCalled();
   });
 
-  it('Display Event Id', async () => {
+  it('Display placeholder field', async function () {
+    render(
+      <Add
+        Header={makeClosableHeader(jest.fn())}
+        Body={ModalBody}
+        Footer={ModalFooter}
+        closeModal={jest.fn()}
+        CloseButton={makeCloseButton(jest.fn())}
+        projectId={projectId}
+        savedRules={rules}
+        api={api}
+        endpoint={endpoint}
+        orgSlug={organizationSlug}
+        onSubmitSuccess={successfullySaved}
+      />
+    );
+
+    expect(screen.queryByText('Custom Placeholder (Optional)')).not.toBeInTheDocument();
+
+    userEvent.click(screen.getByText(getMethodLabel(MethodType.MASK).label));
+
+    userEvent.keyboard('{arrowdown}{arrowdown}{enter}');
+
+    expect(screen.getByText('Custom Placeholder (Optional)')).toBeInTheDocument();
+
+    expect(screen.getByPlaceholderText('[Filtered]')).toBeInTheDocument();
+
+    userEvent.hover(screen.getAllByTestId('more-information')[1]);
+
+    expect(
+      await screen.findByText('It will replace the default placeholder [Filtered]')
+    ).toBeInTheDocument();
+  });
+
+  it('Display regex field', async function () {
+    render(
+      <Add
+        Header={makeClosableHeader(jest.fn())}
+        Body={ModalBody}
+        Footer={ModalFooter}
+        closeModal={jest.fn()}
+        CloseButton={makeCloseButton(jest.fn())}
+        projectId={projectId}
+        savedRules={rules}
+        api={api}
+        endpoint={endpoint}
+        orgSlug={organizationSlug}
+        onSubmitSuccess={successfullySaved}
+      />
+    );
+
+    expect(screen.queryByText('Regex matches')).not.toBeInTheDocument();
+
+    userEvent.click(screen.getByText(getRuleLabel(RuleType.CREDITCARD)));
+
+    userEvent.keyboard(
+      '{arrowdown}{arrowdown}{arrowdown}{arrowdown}{arrowdown}{arrowdown}{enter}'
+    );
+
+    expect(screen.getAllByText('Regex matches')).toHaveLength(2);
+
+    expect(screen.getByPlaceholderText('[a-zA-Z0-9]+')).toBeInTheDocument();
+
+    userEvent.hover(screen.getAllByTestId('more-information')[2]);
+
+    expect(
+      await screen.findByText('Custom regular expression (see documentation)')
+    ).toBeInTheDocument();
+  });
+
+  it('Display Event Id', async function () {
     const eventId = '12345678901234567890123456789012';
 
     MockApiClient.addMockResponse({
@@ -253,24 +187,38 @@ describe('Add Modal', () => {
       },
     });
 
-    const wrapper = await renderComponent();
-    const eventIdToggle = wrapper.find('Toggle');
-    eventIdToggle.simulate('click');
+    render(
+      <Add
+        Header={makeClosableHeader(jest.fn())}
+        Body={ModalBody}
+        Footer={ModalFooter}
+        closeModal={jest.fn()}
+        CloseButton={makeCloseButton(jest.fn())}
+        projectId={projectId}
+        savedRules={rules}
+        api={api}
+        endpoint={endpoint}
+        orgSlug={organizationSlug}
+        onSubmitSuccess={successfullySaved}
+      />
+    );
 
-    const eventIdFieldInput = wrapper.find('[data-test-id="event-id-field"] input');
-    eventIdFieldInput.simulate('change', {
-      target: {value: eventId},
-    });
+    userEvent.click(
+      screen.getByRole('button', {name: 'Use event ID for auto-completion'})
+    );
 
-    eventIdFieldInput.simulate('blur');
+    userEvent.click(screen.getByRole('textbox', {name: 'Source'}));
 
-    await tick();
+    expect(screen.getAllByRole('listitem')).toHaveLength(18);
 
-    // Loading
-    expect(wrapper.find('[data-test-id="event-id-field"] FormSpinner')).toHaveLength(1);
-    wrapper.update();
+    expect(screen.getByText('Event ID (Optional)')).toBeInTheDocument();
 
-    // Fetched new suggestions successfully through the informed event ID
-    expect(wrapper.find('[data-test-id="event-id-field"] IconCheckmark')).toHaveLength(1);
+    userEvent.type(screen.getByPlaceholderText('XXXXXXXXXXXXXX'), `${eventId}{enter}`);
+
+    expect(await screen.findByTestId('icon-check-mark')).toBeInTheDocument();
+
+    userEvent.click(screen.getByRole('textbox', {name: 'Source'}));
+
+    expect(screen.getAllByRole('listitem')).toHaveLength(3);
   });
 });
