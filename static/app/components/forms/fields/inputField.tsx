@@ -45,7 +45,7 @@ function defaultField({
 }
 
 /**
- * InputField should be tohught of as a "base" field, and generally not used
+ * InputField should be thought of as a "base" field, and generally not used
  * within the Form itself.
  */
 function InputField(props: InputFieldProps) {
