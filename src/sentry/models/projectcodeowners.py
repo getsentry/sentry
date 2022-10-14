@@ -10,7 +10,7 @@ from sentry.db.models import (
     DefaultFieldsModel,
     FlexibleForeignKey,
     JSONField,
-    region_silo_model,
+    region_silo_only_model,
     sane_repr,
 )
 from sentry.ownership.grammar import convert_codeowners_syntax, create_schema_from_issue_owners
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 READ_CACHE_DURATION = 3600
 
 
-@region_silo_model
+@region_silo_only_model
 class ProjectCodeOwners(DefaultFieldsModel):
 
     __include_in_export__ = False

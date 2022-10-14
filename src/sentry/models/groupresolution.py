@@ -8,14 +8,14 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_model,
+    region_silo_only_model,
     sane_repr,
 )
 from sentry.models.release import DB_VERSION_LENGTH, Release, follows_semver_versioning_scheme
 from sentry.utils import metrics
 
 
-@region_silo_model
+@region_silo_only_model
 class GroupResolution(Model):
     """
     Describes when a group was marked as resolved.

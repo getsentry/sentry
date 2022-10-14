@@ -13,7 +13,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     Model,
     UUIDField,
-    region_silo_model,
+    region_silo_only_model,
     sane_repr,
 )
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
@@ -124,7 +124,7 @@ class ScheduleType:
         return dict(cls.as_choices())[value]
 
 
-@region_silo_model
+@region_silo_only_model
 class Monitor(Model):
     __include_in_export__ = True
 

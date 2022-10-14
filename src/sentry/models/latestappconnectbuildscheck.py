@@ -1,4 +1,4 @@
-from sentry.db.models import region_silo_model
+from sentry.db.models import region_silo_only_model
 
 """Database models to keep track of the App Store Connect builds for a project.
 
@@ -12,7 +12,7 @@ from django.utils import timezone
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey
 
 
-@region_silo_model
+@region_silo_only_model
 class LatestAppConnectBuildsCheck(DefaultFieldsModel):
     """
     The last date and time Sentry checked App Store Connect for new builds associated with a

@@ -1,10 +1,10 @@
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_model
+from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model
 
 
-@region_silo_model
+@region_silo_only_model
 class ProjectRedirect(Model):
     __include_in_export__ = True
 

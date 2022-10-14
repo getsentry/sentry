@@ -9,7 +9,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     GzippedDictField,
     Model,
-    region_silo_model,
+    region_silo_only_model,
     sane_repr,
 )
 
@@ -94,7 +94,7 @@ class ProcessingIssueManager(BaseManager):
         EventProcessingIssue.objects.get_or_create(raw_event=raw_event, processing_issue=issue)
 
 
-@region_silo_model
+@region_silo_only_model
 class ProcessingIssue(Model):
     __include_in_export__ = False
 
@@ -122,7 +122,7 @@ class ProcessingIssue(Model):
         return self.data["_object"]
 
 
-@region_silo_model
+@region_silo_only_model
 class EventProcessingIssue(Model):
     __include_in_export__ = False
 

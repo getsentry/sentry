@@ -7,14 +7,14 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     DefaultFieldsModel,
     FlexibleForeignKey,
-    region_silo_model,
+    region_silo_only_model,
 )
 from sentry.types.integrations import ExternalProviders
 
 logger = logging.getLogger(__name__)
 
 
-@region_silo_model
+@region_silo_only_model
 class ExternalActor(DefaultFieldsModel):
     __include_in_export__ = False
 

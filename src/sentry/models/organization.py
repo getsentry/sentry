@@ -24,7 +24,7 @@ from sentry.db.models import (
     BaseManager,
     BoundedPositiveIntegerField,
     Model,
-    region_silo_model,
+    region_silo_only_model,
     sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
@@ -119,7 +119,7 @@ class OrganizationManager(BaseManager):
         return [r.organization for r in results]
 
 
-@region_silo_model
+@region_silo_only_model
 class Organization(Model, SnowflakeIdMixin):
     """
     An organization represents a group of individuals which maintain ownership of projects.

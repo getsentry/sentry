@@ -6,12 +6,12 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_model,
+    region_silo_only_model,
 )
 from sentry.types.releaseactivity import CHOICES
 
 
-@region_silo_model
+@region_silo_only_model
 class ReleaseActivity(Model):
     __include_in_export__ = False
 

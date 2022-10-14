@@ -1,12 +1,12 @@
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import FlexibleForeignKey, control_silo_model
+from sentry.db.models import FlexibleForeignKey, control_silo_with_replication_model
 
 from . import AvatarBase
 
 
-@control_silo_model
+@control_silo_with_replication_model
 class DocIntegrationAvatar(AvatarBase):
     """
     A DocIntegrationAvatar associates a DocIntegration with a logo photo File.

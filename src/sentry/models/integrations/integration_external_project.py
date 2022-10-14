@@ -1,10 +1,14 @@
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import BoundedPositiveIntegerField, DefaultFieldsModel, control_silo_model
+from sentry.db.models import (
+    BoundedPositiveIntegerField,
+    DefaultFieldsModel,
+    control_silo_with_replication_model,
+)
 
 
-@control_silo_model
+@control_silo_with_replication_model
 class IntegrationExternalProject(DefaultFieldsModel):
     __include_in_export__ = False
 

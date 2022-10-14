@@ -5,7 +5,7 @@ import jsonschema
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import FlexibleForeignKey, JSONField, Model, region_silo_model
+from sentry.db.models import FlexibleForeignKey, JSONField, Model, region_silo_only_model
 from sentry.models import Activity
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.signals import inbox_in, inbox_out
@@ -39,7 +39,7 @@ class GroupInboxRemoveAction(Enum):
     MARK_REVIEWED = "mark_reviewed"
 
 
-@region_silo_model
+@region_silo_only_model
 class GroupInbox(Model):
     """
     A Group that is in the inbox.

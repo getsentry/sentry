@@ -2,10 +2,10 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.db.models import CIEmailField, Model, control_silo_model, sane_repr
+from sentry.db.models import CIEmailField, Model, control_silo_with_replication_model, sane_repr
 
 
-@control_silo_model
+@control_silo_with_replication_model
 class Email(Model):
     """
     Email represents a unique email. Email settings (unsubscribe state) should be associated here.

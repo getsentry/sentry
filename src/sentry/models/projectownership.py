@@ -4,7 +4,7 @@ from django.db import models
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 
-from sentry.db.models import Model, region_silo_model, sane_repr
+from sentry.db.models import Model, region_silo_only_model, sane_repr
 from sentry.db.models.fields import FlexibleForeignKey, JSONField
 from sentry.models import ActorTuple
 from sentry.ownership.grammar import Rule, load_schema, resolve_actors
@@ -14,7 +14,7 @@ from sentry.utils.cache import cache
 READ_CACHE_DURATION = 3600
 
 
-@region_silo_model
+@region_silo_only_model
 class ProjectOwnership(Model):
     __include_in_export__ = True
 

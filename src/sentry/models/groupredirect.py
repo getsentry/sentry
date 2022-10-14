@@ -1,9 +1,9 @@
 from django.db import models
 
-from sentry.db.models import BoundedBigIntegerField, Model, region_silo_model, sane_repr
+from sentry.db.models import BoundedBigIntegerField, Model, region_silo_only_model, sane_repr
 
 
-@region_silo_model
+@region_silo_only_model
 class GroupRedirect(Model):
     """
     Maintains a reference from a group that has been merged (and subsequently
