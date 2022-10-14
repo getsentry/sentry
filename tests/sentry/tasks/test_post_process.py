@@ -610,7 +610,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             "assigneeEmail": self.user.email,
             "assigneeType": "user",
             "integration": ActivityIntegration.PROJECT_OWNERSHIP.value,
-            "rule": str(Rule(Matcher("path", "src/app/*"), [Owner("team", self.team.name)])),
+            "rule": str(Rule(Matcher("path", "src/*"), [Owner("user", self.user.email)])),
         }
 
     def test_owner_assignment_extra_groups(self):
