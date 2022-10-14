@@ -163,7 +163,7 @@ class EventsTable extends Component<Props, State> {
       Actions.SHOW_LESS_THAN,
     ];
 
-    if (['attachments', 'minidumps'].includes(field)) {
+    if (['attachments', 'minidump'].includes(field)) {
       return rendered;
     }
 
@@ -377,6 +377,20 @@ class EventsTable extends Component<Props, State> {
       const res: IssueAttachment[] = await this.api.requestPromise(
         `/api/0/issues/${this.props.issueId}/attachments/?${eventIdQuery}`
       );
+
+      res.push({
+        id: 'id123',
+        name: 'dc42a8b9-fc22-4de1-8a29-45b3006496d8.dmp',
+        headers: {
+          'Content-Type': 'application/octet-stream',
+        },
+        mimetype: 'application/octet-stream',
+        size: 1294340,
+        sha1: '742127552a1191f71fcf6ba7bc5afa0a837350e2',
+        dateCreated: '2022-09-28T09:04:38.659307Z',
+        type: 'event.minidump',
+        event_id: res[0].event_id,
+      });
 
       let hasMinidumps = false;
       res.forEach(attachment => {
