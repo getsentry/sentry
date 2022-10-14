@@ -51,7 +51,7 @@ def _dyn_sampling_data(multiple_uniform_rules=False, uniform_rule_last_position=
                     {"op": "glob", "name": "field1", "value": ["val"]},
                 ],
             },
-            "id": 0,
+            "id": -1,
         },
         {
             "sampleRate": 0.8,
@@ -63,7 +63,7 @@ def _dyn_sampling_data(multiple_uniform_rules=False, uniform_rule_last_position=
                     {"op": "eq", "name": "field1", "value": ["val"]},
                 ],
             },
-            "id": 0,
+            "id": -1,
         },
     ]
     if uniform_rule_last_position:
@@ -76,7 +76,7 @@ def _dyn_sampling_data(multiple_uniform_rules=False, uniform_rule_last_position=
                     "op": "and",
                     "inner": [],
                 },
-                "id": 0,
+                "id": -1,
             },
         )
     if multiple_uniform_rules:
@@ -87,7 +87,7 @@ def _dyn_sampling_data(multiple_uniform_rules=False, uniform_rule_last_position=
                 "op": "and",
                 "inner": [],
             },
-            "id": 0,
+            "id": -1,
         }
         rules.insert(0, new_rule_1)
 
@@ -1179,7 +1179,7 @@ class ProjectUpdateTest(APITestCase):
                             {"op": "eq", "name": "field1", "value": ["val"]},
                         ],
                     },
-                    "id": 0,
+                    "id": -1,
                 },
                 {
                     "sampleRate": 0.8,
@@ -1190,7 +1190,7 @@ class ProjectUpdateTest(APITestCase):
                             {"op": "eq", "name": "field1", "value": ["val"]},
                         ],
                     },
-                    "id": 0,
+                    "id": -1,
                 },
                 {
                     "sampleRate": 0.9,
@@ -1199,7 +1199,7 @@ class ProjectUpdateTest(APITestCase):
                         "op": "and",
                         "inner": [],
                     },
-                    "id": 0,
+                    "id": -1,
                 },
             ]
         }
@@ -1232,7 +1232,7 @@ class ProjectUpdateTest(APITestCase):
                     {"op": "eq", "name": "field1", "value": ["val"]},
                 ],
             },
-            "id": 0,
+            "id": -1,
         }
 
         saved_config["rules"].insert(0, new_rule_1)
@@ -1244,7 +1244,7 @@ class ProjectUpdateTest(APITestCase):
                 "op": "and",
                 "inner": [],
             },
-            "id": 0,
+            "id": -1,
         }
 
         saved_config["rules"].append(new_rule_2)
@@ -1796,7 +1796,7 @@ class TestDynamicSamplingSerializers(BaseTestCase):
                     },
                 },
             ],
-            "next_id": 22,
+            "next_id": 3,
         }
 
         serializer = DynamicSamplingSerializer(
