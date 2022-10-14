@@ -1796,7 +1796,7 @@ class TestDynamicSamplingSerializers(BaseTestCase):
                     },
                 },
             ],
-            "next_id": 22,
+            "next_id": 3,
         }
 
         serializer = DynamicSamplingSerializer(
