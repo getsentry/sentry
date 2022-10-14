@@ -75,7 +75,8 @@ export default class SentryAppPublishRequestModal extends Component<Props> {
         <PermissionLabel>{permissionQuestionBaseText}</PermissionLabel>
         {permissions.map((permission, i) => (
           <Fragment key={permission}>
-            {i > 0 && ', '} <Permission>{permission}</Permission>
+            {i > 0 && ', '}
+            <Permission>{permission}</Permission>
           </Fragment>
         ))}
         .
@@ -119,6 +120,7 @@ export default class SentryAppPublishRequestModal extends Component<Props> {
         type: 'textarea',
         required: true,
         label: permissionLabel,
+        labelText: permissionQuestionPlainText,
         autosize: true,
         rows: 1,
         inline: false,
