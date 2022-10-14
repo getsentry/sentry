@@ -757,7 +757,7 @@ class EventSubjectTemplateData:
         elif name == "title":
             return self.event.title
         elif name == "issueType":
-            return cast(str, GROUP_TYPE_TO_TEXT[self.event.group.issue_type])
+            return cast(str, GROUP_TYPE_TO_TEXT.get(self.event.group.issue_type, "Issue"))
         raise KeyError
 
 
