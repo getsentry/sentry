@@ -1,10 +1,8 @@
 import {Component} from 'react';
 
 import RadioGroup, {RadioGroupProps} from 'sentry/components/forms/controls/radioGroup';
-import InputField, {
-  InputFieldProps,
-  onEvent,
-} from 'sentry/components/forms/fields/inputField';
+
+import InputField, {InputFieldProps, OnEvent} from './inputField';
 
 export interface RadioFieldProps extends Omit<InputFieldProps, 'type'> {
   choices?: RadioGroupProps<any>['choices'];
@@ -14,8 +12,8 @@ export interface RadioFieldProps extends Omit<InputFieldProps, 'type'> {
 class RadioField extends Component<RadioFieldProps> {
   onChange = (
     id: string,
-    onChange: onEvent,
-    onBlur: onEvent,
+    onChange: OnEvent,
+    onBlur: OnEvent,
     e: React.FormEvent<HTMLInputElement>
   ) => {
     onChange(id, e);

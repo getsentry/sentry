@@ -1,8 +1,11 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountGlobalModal} from 'sentry-test/modal';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
 
-import ProjectSourceMapsDetail from 'sentry/views/settings/projectSourceMaps/detail';
 import ProjectSourceMaps from 'sentry/views/settings/projectSourceMaps/list';
 
 describe('ProjectSourceMaps', function () {
@@ -16,6 +19,10 @@ describe('ProjectSourceMaps', function () {
     router,
   };
 
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
+  });
+
   it('renders', function () {
     MockApiClient.addMockResponse({
       url: endpoint,
@@ -25,12 +32,12 @@ describe('ProjectSourceMaps', function () {
       ],
     });
 
-    const wrapper = mountWithTheme(<ProjectSourceMaps {...props} />);
+    render(<ProjectSourceMaps {...props} />);
 
-    const items = wrapper.find('SourceMapsArchiveRow');
+    const rows = screen.getAllByLabelText('Remove All Artifacts');
+    expect(rows).toHaveLength(2);
 
-    expect(items).toHaveLength(2);
-    expect(items.at(0).find('VersionText').text()).toBe('1234');
+    expect(screen.getByText('1234')).toBeInTheDocument();
   });
 
   it('renders empty', function () {
@@ -39,14 +46,14 @@ describe('ProjectSourceMaps', function () {
       body: [],
     });
 
-    const wrapper = mountWithTheme(<ProjectSourceMaps {...props} />);
+    render(<ProjectSourceMaps {...props} />);
 
-    expect(wrapper.find('EmptyStateWarning').text()).toBe(
-      'There are no archives for this project.'
-    );
+    expect(
+      screen.getByText('There are no archives for this project.')
+    ).toBeInTheDocument();
   });
 
-  it('deletes the archive', async function () {
+  it('deletes the archive', function () {
     const archive = TestStubs.SourceMapArchive();
 
     MockApiClient.addMockResponse({
@@ -59,13 +66,13 @@ describe('ProjectSourceMaps', function () {
       url: endpoint,
     });
 
-    const wrapper = mountWithTheme(<ProjectSourceMaps {...props} />);
+    render(<ProjectSourceMaps {...props} />);
+    renderGlobalModal();
 
-    wrapper.find('button[aria-label="Remove All Artifacts"]').simulate('click');
+    userEvent.click(screen.getByRole('button', {name: 'Remove All Artifacts'}));
 
     // Confirm Modal
-    const modal = await mountGlobalModal();
-    modal.find('Button[data-test-id="confirm-button"]').simulate('click');
+    userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
     expect(deleteMock).toHaveBeenCalledWith(
       endpoint,
@@ -80,7 +87,7 @@ describe('ProjectSourceMaps', function () {
       body: [],
     });
 
-    const wrapper = mountWithTheme(
+    render(
       <ProjectSourceMaps
         {...props}
         location={{query: {query: 'abc'}}}
@@ -95,154 +102,12 @@ describe('ProjectSourceMaps', function () {
       })
     );
 
-    wrapper
-      .find('SearchBar input')
-      .simulate('change', {target: {value: 'defg'}})
-      .simulate('submit', {preventDefault() {}});
+    const filterInput = screen.getByPlaceholderText('Filter Archives');
+    userEvent.clear(filterInput);
+    userEvent.type(filterInput, 'defg{enter}');
 
     expect(mockRouter.push).toHaveBeenCalledWith({
       query: {cursor: undefined, query: 'defg'},
     });
-  });
-});
-
-describe('ProjectSourceMapsDetail', function () {
-  const {organization, project, routerContext, router} = initializeOrg({});
-  const archiveName = '1234';
-  const endpoint = `/projects/${organization.slug}/${project.slug}/releases/${archiveName}/files/`;
-  const props = {
-    organization,
-    project,
-    params: {orgId: organization.slug, projectId: project.slug, name: archiveName},
-    location: routerContext.context.location,
-    router,
-  };
-
-  it('renders', function () {
-    MockApiClient.addMockResponse({
-      url: endpoint,
-      body: [
-        TestStubs.SourceMapArtifact(),
-        TestStubs.SourceMapArtifact({name: 'abc', id: '2'}),
-      ],
-    });
-
-    const wrapper = mountWithTheme(<ProjectSourceMapsDetail {...props} />);
-
-    const items = wrapper.find('SourceMapsArtifactRow');
-
-    expect(items).toHaveLength(2);
-    expect(items.at(1).find('Name').text()).toBe('abc');
-  });
-
-  it('renders empty', function () {
-    MockApiClient.addMockResponse({
-      url: endpoint,
-      body: [],
-    });
-
-    const wrapper = mountWithTheme(<ProjectSourceMapsDetail {...props} />);
-
-    expect(wrapper.find('EmptyStateWarning').text()).toBe(
-      'There are no artifacts in this archive.'
-    );
-  });
-
-  it('links to release', function () {
-    MockApiClient.addMockResponse({
-      url: endpoint,
-      body: [],
-    });
-
-    const wrapper = mountWithTheme(<ProjectSourceMapsDetail {...props} />);
-
-    expect(wrapper.find('Link[aria-label="Go to Release"]').prop('to')).toBe(
-      `/organizations/${organization.slug}/releases/${archiveName}/?project=${project.id}`
-    );
-  });
-
-  it('deletes all artifacts', async function () {
-    MockApiClient.addMockResponse({
-      url: endpoint,
-      body: [],
-    });
-    const archiveDeleteEndpoint = `/projects/${organization.slug}/${project.slug}/files/source-maps/`;
-    const deleteMock = MockApiClient.addMockResponse({
-      method: 'DELETE',
-      url: archiveDeleteEndpoint,
-    });
-
-    const wrapper = mountWithTheme(<ProjectSourceMapsDetail {...props} />);
-
-    wrapper.find('button[aria-label="Remove All Artifacts"]').simulate('click');
-
-    // Confirm Modal
-    const modal = await mountGlobalModal();
-    modal.find('Button[data-test-id="confirm-button"]').simulate('click');
-
-    expect(deleteMock).toHaveBeenCalledWith(
-      archiveDeleteEndpoint,
-      expect.objectContaining({
-        query: {name: archiveName},
-      })
-    );
-  });
-
-  it('filters artifacts', function () {
-    const mockRouter = {push: jest.fn()};
-    const mock = MockApiClient.addMockResponse({
-      url: endpoint,
-      body: [],
-    });
-
-    const wrapper = mountWithTheme(
-      <ProjectSourceMapsDetail
-        {...props}
-        location={{query: {query: 'abc'}}}
-        router={mockRouter}
-      />
-    );
-
-    expect(mock).toHaveBeenCalledWith(
-      endpoint,
-      expect.objectContaining({
-        query: {query: 'abc'},
-      })
-    );
-
-    wrapper
-      .find('SearchBar input')
-      .simulate('change', {target: {value: 'defg'}})
-      .simulate('submit', {preventDefault() {}});
-
-    expect(mockRouter.push).toHaveBeenCalledWith({
-      query: {cursor: undefined, query: 'defg'},
-    });
-  });
-
-  it('deletes single artifact', async function () {
-    const artifact = TestStubs.SourceMapArtifact();
-
-    MockApiClient.addMockResponse({
-      url: endpoint,
-      body: [artifact],
-    });
-
-    const deleteMock = MockApiClient.addMockResponse({
-      method: 'DELETE',
-      url: `${endpoint}${artifact.id}/`,
-    });
-
-    const wrapper = mountWithTheme(<ProjectSourceMapsDetail {...props} />);
-
-    wrapper
-      .find('SourceMapsArtifactRow button[aria-label="Remove Artifact"]')
-      .simulate('click');
-
-    // Confirm Modal
-    const modal = await mountGlobalModal();
-    modal.find('Button[data-test-id="confirm-button"]').simulate('click');
-
-    expect(deleteMock).toHaveBeenCalled();
   });
 });

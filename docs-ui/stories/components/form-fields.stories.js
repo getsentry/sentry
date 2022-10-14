@@ -8,7 +8,6 @@ import NewBooleanField from 'sentry/components/forms/fields/booleanField';
 import CheckboxField from 'sentry/components/forms/fields/checkboxField';
 import DatePickerField from 'sentry/components/forms/fields/datePickerField';
 import FileField from 'sentry/components/forms/fields/fileField';
-import MultipleCheckboxField from 'sentry/components/forms/fields/MultipleCheckboxField';
 import RadioBooleanField from 'sentry/components/forms/fields/radioBooleanField';
 import RadioField from 'sentry/components/forms/fields/radioField';
 import SelectField from 'sentry/components/forms/fields/selectField';
@@ -161,11 +160,9 @@ __BooleanField.storyName = 'Boolean';
 
 export const _CheckboxField = () => (
   <Form>
-    <CheckboxField key="agree" name="agree" id="agree" label="Do you agree?" />
+    <CheckboxField name="agree" label="Do you agree?" />
     <CheckboxField
-      key="compelled"
       name="compelled"
-      id="compelled"
       label="You are compelled to agree"
       help="More content to help you decide."
       required
@@ -174,28 +171,6 @@ export const _CheckboxField = () => (
 );
 
 _CheckboxField.storyName = 'Checkbox';
-
-export const _MultipleCheckboxField = () => (
-  <Form>
-    <MultipleCheckboxField
-      choices={[
-        {title: 'Checkbox', value: 0},
-        {title: 'Disabled Checkbox', value: 1},
-        {title: 'Checked Checkbox', value: 2, checked: true},
-        {title: 'Intermediate Checkbox', value: 3, intermediate: true},
-        {title: 'Disabled Checked Checkbox', value: 4, checked: true, disabled: true},
-        {
-          title: 'Disabled Intermediate Checkbox',
-          value: 5,
-          intermediate: true,
-          disabled: true,
-        },
-      ]}
-    />
-  </Form>
-);
-
-_MultipleCheckboxField.storyName = 'MultipleCheckbox';
 
 export const _DatePickerField = () => (
   <Form>
