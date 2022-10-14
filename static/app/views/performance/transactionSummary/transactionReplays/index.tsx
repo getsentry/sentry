@@ -119,20 +119,13 @@ function generateEventView({
   location: Location;
   transactionName: string;
 }) {
-  const fields = [
-    'replayId',
-    'count()',
-    SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
-    'transaction.duration',
-    'trace',
-    'timestamp',
-  ];
+  const fields = ['replayId', 'count()', 'transaction.duration', 'trace', 'timestamp'];
 
   const breakdown = decodeFilterFromLocation(location);
   if (breakdown !== SpanOperationBreakdownFilter.None) {
-    fields.splice(2, 1, `spans.${breakdown}`);
+    fields.push(`spans.${breakdown}`);
   } else {
-    fields.push(...SPAN_OP_BREAKDOWN_FIELDS);
+    fields.push(...SPAN_OP_BREAKDOWN_FIELDS, SPAN_OP_RELATIVE_BREAKDOWN_FIELD);
   }
 
   const query = decodeScalar(location.query.query, '');
