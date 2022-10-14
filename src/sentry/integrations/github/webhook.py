@@ -69,6 +69,7 @@ class Webhook:
                     "external_id": str(external_id),
                 },
             )
+            logger.exception("Integration does not exist.")
             return
 
         if "repository" in event:
@@ -137,6 +138,7 @@ class InstallationEventWebhook(Webhook):
                         "external_id": str(external_id),
                     },
                 )
+                logger.exception("Installation is missing.")
 
     def _handle_delete(self, event: Mapping[str, Any], integration: Integration) -> None:
         organizations = integration.organizations.all()
@@ -237,8 +239,8 @@ class PushEventWebhook(Webhook):
                         else:
                             try:
                                 gh_user = client.get_user(gh_username)
-                            except ApiError as exc:
-                                logger.exception(str(exc))
+                            except ApiError:
+                                logger.exception("Github user is missing.")
                             else:
                                 # even if we can't find a user, set to none so we
                                 # don't re-query
@@ -469,6 +471,7 @@ class GitHubWebhookBase(View):  # type: ignore
             handler = self.get_handler(request.META["HTTP_X_GITHUB_EVENT"])
         except KeyError:
             logger.error("github.webhook.missing-event", extra=self.get_logging_data())
+            logger.exception("Missing Github event in webhook.")
             return HttpResponse(status=400)
 
         if not handler:
@@ -478,6 +481,7 @@ class GitHubWebhookBase(View):  # type: ignore
             method, signature = request.META["HTTP_X_HUB_SIGNATURE"].split("=", 1)
         except (KeyError, IndexError):
             logger.error("github.webhook.missing-signature", extra=self.get_logging_data())
+            logger.exception("Missing webhook secret.")
             return HttpResponse(status=400)
 
         if not self.is_valid_signature(method, body, secret, signature):
@@ -490,6 +494,7 @@ class GitHubWebhookBase(View):  # type: ignore
             logger.error(
                 "github.webhook.invalid-json", extra=self.get_logging_data(), exc_info=True
             )
+            logger.exception("Invalid JSON.")
             return HttpResponse(status=400)
 
         handler()(event)
