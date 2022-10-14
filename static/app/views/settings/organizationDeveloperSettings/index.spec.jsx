@@ -147,7 +147,7 @@ describe('Organization Developer Settings', function () {
       ];
 
       for (const {question, answer} of questionnaire) {
-        const element = within(dialog).getByLabelText(question);
+        const element = within(dialog).getByRole('textbox', {name: question});
         userEvent.paste(element, answer);
       }
 

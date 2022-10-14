@@ -27,12 +27,14 @@ interface DefaultProps {
   allowEmpty: boolean;
 }
 
+export interface TableFieldProps extends Omit<InputFieldProps, 'type'> {}
+
+interface RenderProps extends TableFieldProps, DefaultProps, Omit<TableType, 'type'> {}
+
 const DEFAULT_PROPS: DefaultProps = {
   addButtonText: t('Add Item'),
   allowEmpty: false,
 };
-
-interface RenderProps extends InputFieldProps, DefaultProps, Omit<TableType, 'type'> {}
 
 export default class TableField extends Component<InputFieldProps> {
   static defaultProps = DEFAULT_PROPS;
