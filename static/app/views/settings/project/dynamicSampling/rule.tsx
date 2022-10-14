@@ -276,15 +276,15 @@ const IconGrabbableWrapper = styled('div')`
   }
 `;
 
-export const ConditionEqualOperator = styled('div')`
+const ConditionEqualOperator = styled('div')`
   color: ${p => p.theme.purple300};
 `;
 
-export const Operator = styled('div')`
+const Operator = styled('div')`
   color: ${p => p.theme.active};
 `;
 
-export const SampleRate = styled('div')`
+const SampleRate = styled('div')`
   white-space: pre-wrap;
   word-break: break-all;
   display: grid;
@@ -293,15 +293,15 @@ export const SampleRate = styled('div')`
   gap: ${space(1)};
 `;
 
-export const ConditionName = styled('div')`
+const ConditionName = styled('div')`
   color: ${p => p.theme.gray400};
 `;
 
-export const ConditionValue = styled('span')`
+const ConditionValue = styled('span')`
   color: ${p => p.theme.gray300};
 `;
 
-export const ConditionSeparator = styled(ConditionValue)`
+const ConditionSeparator = styled(ConditionValue)`
   padding-right: ${space(0.5)};
 `;
 
