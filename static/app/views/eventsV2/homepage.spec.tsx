@@ -157,7 +157,7 @@ describe('Discover > Homepage', () => {
     expect(screen.queryByText(/Last edited:/)).not.toBeInTheDocument();
   });
 
-  it('shows the Reset Default button on initial load', async () => {
+  it('shows the Remove Default button on initial load', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/discover/homepage/',
       method: 'GET',
@@ -195,7 +195,7 @@ describe('Discover > Homepage', () => {
       {context: initialData.routerContext, organization: initialData.organization}
     );
 
-    expect(await screen.findByText('Reset Default')).toBeInTheDocument();
+    expect(await screen.findByText('Remove Default')).toBeInTheDocument();
     expect(screen.queryByText('Set As Default')).not.toBeInTheDocument();
   });
 

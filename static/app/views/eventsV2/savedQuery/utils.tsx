@@ -237,10 +237,10 @@ export function handleResetHomepageQuery(api: Client, organization: Organization
 
   return promise
     .then(() => {
-      addSuccessMessage(t('Successfully reset Discover default'));
+      addSuccessMessage(t('Successfully removed Discover default'));
     })
     .catch(() => {
-      addErrorMessage(t('Unable to reset Discover default'));
+      addErrorMessage(t('Unable to remove Discover default'));
     });
 }
 

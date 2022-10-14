@@ -434,7 +434,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
           icon={<IconBookmark isSolid />}
           disabled={buttonDisabled}
         >
-          {t('Reset Default')}
+          {t('Remove Default')}
           <FeatureBadge type="alpha" />
         </Button>
       );

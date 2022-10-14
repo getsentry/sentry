@@ -1831,7 +1831,7 @@ describe('Results', function () {
       expect(screen.getByRole('button', {name: /set as default/i})).toBeEnabled()
     );
     userEvent.click(screen.getByText('Set As Default'));
-    expect(await screen.findByText('Reset Default')).toBeInTheDocument();
+    expect(await screen.findByText('Remove Default')).toBeInTheDocument();
 
     userEvent.click(screen.getByText('Total Period'));
     userEvent.click(screen.getByText('Previous Period'));
@@ -1895,7 +1895,7 @@ describe('Results', function () {
 
     await screen.findAllByText(TRANSACTION_VIEWS[0].name);
     userEvent.click(screen.getByText('Set As Default'));
-    expect(await screen.findByText('Reset Default')).toBeInTheDocument();
+    expect(await screen.findByText('Remove Default')).toBeInTheDocument();
 
     userEvent.click(screen.getByText('Total Period'));
     userEvent.click(screen.getByText('Previous Period'));
