@@ -1,6 +1,6 @@
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
 
-import InputField, {InputFieldProps, onEvent} from './inputField';
+import InputField, {InputFieldProps, OnEvent} from './inputField';
 
 interface DefaultProps {
   formatMessageValue?: false | Function;
@@ -32,7 +32,7 @@ export interface RangeFieldProps
 }
 
 function onChange(
-  fieldOnChange: onEvent,
+  fieldOnChange: OnEvent,
   value: number | '',
   e: React.FormEvent<HTMLInputElement>
 ) {
