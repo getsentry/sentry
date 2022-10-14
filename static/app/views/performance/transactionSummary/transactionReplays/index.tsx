@@ -141,6 +141,7 @@ function generateEventView({
       fields,
       query: conditions.formatString(),
       projects: [],
+      orderby: decodeScalar(location.query.sort, '-timestamp'),
     },
     location
   );
