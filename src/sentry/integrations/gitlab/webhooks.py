@@ -36,7 +36,7 @@ class Webhook:
             logger.info(
                 "gitlab.webhook.missing-projectid", extra={"integration_id": integration.id}
             )
-            logger.exception()
+            logger.exception("Missing project ID.")
             raise Http404()
 
         external_id = "{}:{}".format(integration.metadata["instance"], project_id)
@@ -101,7 +101,7 @@ class MergeEventWebhook(Webhook):
                 "gitlab.webhook.invalid-merge-data",
                 extra={"integration_id": integration.id, "error": str(e)},
             )
-            logger.exception()
+            logger.exception("Invalid merge data.")
             # TODO(mgaeta): This try/catch is full of reportUnboundVariable errors.
             return
 
@@ -215,17 +215,17 @@ class GitlabWebhookEndpoint(View):
         except KeyError:
             logger.info("gitlab.webhook.missing-gitlab-token")
             extra["reason"] = "The customer needs to set a Secret Token in their webhook."
-            logger.exception()
+            logger.exception(extra["reason"])
             return HttpResponse(status=400, reason=extra["reason"])
         except ValueError:
             logger.info("gitlab.webhook.malformed-gitlab-token", extra=extra)
             extra["reason"] = "The customer's Secret Token is malformed."
-            logger.exception()
+            logger.exception(extra["reason"])
             return HttpResponse(status=400, reason=extra["reason"])
         except Exception:
             logger.info("gitlab.webhook.invalid-token", extra=extra)
             extra["reason"] = "Generic catch-all error."
-            logger.exception()
+            logger.exception(extra["reason"])
             return HttpResponse(status=400, reason=extra["reason"])
 
         try:
@@ -257,11 +257,13 @@ class GitlabWebhookEndpoint(View):
         except Integration.DoesNotExist:
             logger.info("gitlab.webhook.invalid-organization", extra=extra)
             extra["reason"] = "There is no integration that matches your organization."
-            logger.exception()
+            logger.exception(extra["reason"])
             return HttpResponse(status=400, reason=extra["reason"])
 
         try:
             if not constant_time_compare(secret, integration.metadata["webhook_secret"]):
+                # Summary and potential workaround mentioned here:
+                # https://github.com/getsentry/sentry/issues/34903#issuecomment-1262754478
                 # This forces a stack trace to be produced
                 raise Exception("The webhook secrets do not match.")
         except Exception:
@@ -269,7 +271,7 @@ class GitlabWebhookEndpoint(View):
             extra[
                 "reason"
             ] = "Gitlab's webhook secret does not match. Refresh token (or re-install the integration) by following this https://docs.sentry.io/product/integrations/integration-platform/public-integration/#refreshing-tokens."
-            logger.exception()
+            logger.exception(extra["reason"])
             return HttpResponse(status=400, reason=extra["reason"])
 
         try:
@@ -277,7 +279,7 @@ class GitlabWebhookEndpoint(View):
         except json.JSONDecodeError:
             logger.info("gitlab.webhook.invalid-json", extra=extra)
             extra["reason"] = "Data received is not JSON."
-            logger.exception()
+            logger.exception(extra["reason"])
             return HttpResponse(status=400, reason=extra["reason"])
 
         try:
@@ -289,7 +291,7 @@ class GitlabWebhookEndpoint(View):
             extra[
                 "reason"
             ] = "The customer has edited the webhook in Gitlab to include other types of events."
-            logger.exception()
+            logger.exception(extra["reason"])
             return HttpResponse(status=400, reason=extra["reason"])
 
         for organization in integration.organizations.all():
