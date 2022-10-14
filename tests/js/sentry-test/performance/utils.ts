@@ -1,8 +1,6 @@
 import {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import {EntryType, EventOrGroupType, EventTransaction} from 'sentry/types';
 
-import {PerformanceDetectorData} from './../../../../static/app/types/event';
-
 export enum ProblemSpan {
   PARENT = 'parent',
   OFFENDER = 'offender',
@@ -25,16 +23,11 @@ type AddSpanOpts = {
 export class TransactionEventBuilder {
   TRACE_ID = '8cbbc19c0f54447ab702f00263262726';
   ROOT_SPAN_ID = '0000000000000000';
-  _event: EventTransaction;
-  _spans: RawSpanType[] = [];
-  _perfDetectorData: PerformanceDetectorData = {
-    causeSpanIds: [],
-    offenderSpanIds: [],
-    parentSpanIds: [],
-  };
+  #event: EventTransaction;
+  #spans: RawSpanType[] = [];
 
   constructor(id?: string, title?: string) {
-    this._event = {
+    this.#event = {
       id: id ?? 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
       eventID: id ?? 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
       title: title ?? EXAMPLE_TRANSACTION_TITLE,
@@ -52,7 +45,7 @@ export class TransactionEventBuilder {
       },
       entries: [
         {
-          data: this._spans,
+          data: this.#spans,
           type: EntryType.SPANS,
         },
       ],
@@ -123,7 +116,7 @@ export class TransactionEventBuilder {
 
     for (let i = 0; i < numSpans; i++) {
       // Convert the num of spans to a hex string to get its ID
-      const spanId = (this._spans.length + 1).toString(16).padStart(16, '0');
+      const spanId = (this.#spans.length + 1).toString(16).padStart(16, '0');
 
       const span: RawSpanType = {
         op,
@@ -137,21 +130,21 @@ export class TransactionEventBuilder {
         parent_span_id: parentSpanId ?? this.ROOT_SPAN_ID,
       };
 
-      this._event.entries[0].data.push(span);
+      this.#event.entries[0].data.push(span);
 
       switch (problemSpan) {
         case ProblemSpan.PARENT:
-          this._event.perfProblem?.parentSpanIds.push(spanId);
+          this.#event.perfProblem?.parentSpanIds.push(spanId);
           break;
         case ProblemSpan.OFFENDER:
-          this._event.perfProblem?.offenderSpanIds.push(spanId);
+          this.#event.perfProblem?.offenderSpanIds.push(spanId);
           break;
         default:
           break;
       }
 
-      if (endTimestamp > this._event.endTimestamp) {
-        this._event.endTimestamp = endTimestamp;
+      if (endTimestamp > this.#event.endTimestamp) {
+        this.#event.endTimestamp = endTimestamp;
       }
 
       if (childOpts) {
@@ -161,6 +154,6 @@ export class TransactionEventBuilder {
   }
 
   getEvent() {
-    return this._event;
+    return this.#event;
   }
 }
