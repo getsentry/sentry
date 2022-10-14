@@ -231,7 +231,7 @@ class ProjectOwnership(Model):
                 if len(committer) > 0:
                     queue.append(
                         (
-                            committer[0].user,
+                            committer[0].owner(),
                             {
                                 "integration": ActivityIntegration.SUSPECT_COMMITTER.value,
                             },
