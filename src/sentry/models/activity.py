@@ -14,7 +14,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     GzippedDictField,
     Model,
-    region_silo_model,
+    region_silo_only_model,
     sane_repr,
 )
 from sentry.tasks import activity
@@ -76,7 +76,7 @@ class ActivityManager(BaseManager):
         return activity
 
 
-@region_silo_model
+@region_silo_only_model
 class Activity(Model):
     __include_in_export__ = False
 
@@ -145,3 +145,4 @@ class ActivityIntegration(Enum):
     PROJECT_OWNERSHIP = "projectOwnership"
     SLACK = "slack"
     MSTEAMS = "msteams"
+    SUSPECT_COMMITTER = "suspectCommitter"

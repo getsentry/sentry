@@ -40,12 +40,17 @@ const AllEventsTable = (props: Props) => {
     ...(isPerfIssue ? ['transaction.duration'] : []),
     'timestamp',
     'attachments',
+    'minidump',
   ];
 
   const eventView: EventView = EventView.fromLocation(props.location);
   eventView.fields = fields.map(fieldName => ({field: fieldName}));
 
   eventView.sorts = decodeSorts(location).filter(sort => fields.includes(sort.field));
+
+  if (!eventView.sorts.length) {
+    eventView.sorts = [{field: 'timestamp', kind: 'desc'}];
+  }
 
   const idQuery = isPerfIssue
     ? `performance.issue_ids:${issueId}`
@@ -63,6 +68,7 @@ const AllEventsTable = (props: Props) => {
     ...(isPerfIssue ? [t('total duration')] : []),
     t('timestamp'),
     t('attachments'),
+    t('minidump'),
   ];
 
   if (error) {

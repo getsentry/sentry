@@ -96,6 +96,7 @@ type Props = {
 
 type State = {
   attachments: IssueAttachment[];
+  hasMinidumps: boolean;
   lastFetchedCursor: string;
   widths: number[];
 };
@@ -105,6 +106,7 @@ class EventsTable extends Component<Props, State> {
     widths: [],
     lastFetchedCursor: '',
     attachments: [],
+    hasMinidumps: true,
   };
 
   api = new Client();
@@ -164,7 +166,7 @@ class EventsTable extends Component<Props, State> {
       Actions.SHOW_LESS_THAN,
     ];
 
-    if (field === 'attachments') {
+    if (['attachments', 'minidump'].includes(field)) {
       return rendered;
     }
 
@@ -350,7 +352,10 @@ class EventsTable extends Component<Props, State> {
       .getColumns()
       .filter(col => {
         if (!this.state.attachments.length) {
-          return col.key !== 'attachments';
+          return col.key !== 'attachments' && col.key !== 'minidump';
+        }
+        if (!this.state.hasMinidumps) {
+          return col.key !== 'minidump';
         }
         return true;
       })
@@ -372,6 +377,7 @@ class EventsTable extends Component<Props, State> {
           ...attachment,
           url: `/api/0/projects/${organization.slug}/${projectId}/events/${attachment.event_id}/attachments/${attachment.id}/?download=1`,
         }));
+
         const eventIdMap = {};
         data.forEach(event => {
           event.attachments = [] as any;
@@ -389,10 +395,23 @@ class EventsTable extends Component<Props, State> {
     const fetchAttachments = async ({data}: TableData, cursor: string) => {
       const eventIds = data.map(value => value.id);
       const eventIdQuery = `event_id=${eventIds.join('&event_id=')}`;
-      const res = await this.api.requestPromise(
+      const res: IssueAttachment[] = await this.api.requestPromise(
         `/api/0/issues/${this.props.issueId}/attachments/?${eventIdQuery}`
       );
-      this.setState({...this.state, lastFetchedCursor: cursor, attachments: res});
+
+      let hasMinidumps = false;
+
+      res.forEach(attachment => {
+        if (attachment.type === 'event.minidump') {
+          hasMinidumps = true;
+        }
+      });
+      this.setState({
+        ...this.state,
+        lastFetchedCursor: cursor,
+        attachments: res,
+        hasMinidumps,
+      });
     };
 
     return (
