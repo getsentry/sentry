@@ -203,7 +203,8 @@ def bootstrap_options(settings: Any, config: str | None = None) -> None:
     for k, v in options.items():
         settings.SENTRY_OPTIONS[k] = v
         # If SENTRY_URL_PREFIX is used in config, show deprecation warning and
-        # set the newer SENTRY_OPTIONS['system.url-prefix']
+        # set the newer SENTRY_OPTIONS['system.url-prefix']. Needs to be here
+        # to check from the config file directly before the django setup is done.
         # TODO: delete when SENTRY_URL_PREFIX is removed
         if k == "SENTRY_URL_PREFIX":
             warnings.warn(
