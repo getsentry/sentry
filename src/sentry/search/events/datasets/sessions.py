@@ -70,6 +70,7 @@ class SessionsDatasetConfig(DatasetConfig):
             ]
         }
 
+    @property
     def orderby_converter(self) -> Mapping[str, OrderBy]:
         return {}
 

@@ -938,7 +938,7 @@ class QueryBuilder:
 
         return {p.slug: p.id for p in project_slugs}
 
-    @cached_property
+    @cached_property  # type: ignore
     def project_ids(self) -> Mapping[int, str]:
         return {project_id: slug for slug, project_id in self.project_slugs.items()}
 

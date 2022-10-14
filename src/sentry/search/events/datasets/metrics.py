@@ -632,6 +632,7 @@ class MetricsDatasetConfig(DatasetConfig):
 
         return function_converter
 
+    @property
     def orderby_converter(self) -> Mapping[str, OrderBy]:
         return {}
 
