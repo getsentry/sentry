@@ -125,7 +125,6 @@ export function Rule({
         <SampleRate>
           {!valid && (
             <Tooltip
-              containerDisplayMode="inline-flex"
               title={t(
                 "It looks like the uniform rule's sample rate has been updated and is now higher than this rule's sample rate, so this rule is no longer valid."
               )}
@@ -289,8 +288,8 @@ const SampleRate = styled('div')`
   word-break: break-all;
   display: grid;
   grid-template-columns: max-content max-content;
-  align-items: center;
-  gap: ${space(1)};
+  height: 34px;
+  line-height: 34px;
 `;
 
 const ConditionName = styled('div')`
@@ -310,6 +309,8 @@ const StyledIconWarning = styled(IconWarning)`
   :hover {
     color: ${p => p.theme.alert.warning.iconHoverColor};
   }
+  vertical-align: middle;
+  margin-right: ${space(1)};
 `;
 
 const ActivateTogglePlaceholder = styled(Placeholder)`
