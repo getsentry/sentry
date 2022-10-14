@@ -163,7 +163,7 @@ class EventsTable extends Component<Props, State> {
       Actions.SHOW_LESS_THAN,
     ];
 
-    if (['attachments', 'minidumps'].includes(field)) {
+    if (['attachments', 'minidump'].includes(field)) {
       return rendered;
     }
 
