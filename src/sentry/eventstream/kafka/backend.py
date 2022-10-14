@@ -209,25 +209,10 @@ class KafkaEventStream(SnubaProtocolEventStream):
         initial_offset_reset: Union[Literal["latest"], Literal["earliest"]],
     ):
         logger.info(f"Starting post process forwarder to consume {entity} messages")
-        if entity == PostProcessForwarderType.TRANSACTIONS:
-            default_topic = self.transactions_topic
-        elif entity == PostProcessForwarderType.ERRORS:
-            default_topic = self.topic
-        else:
-            # Default implementation which processes both errors and transactions
-            # irrespective of values in the header. This would most likely be the case
-            # for development environments. For the combined post process forwarder
-            # to work KAFKA_EVENTS and KAFKA_TRANSACTIONS must be the same currently.
-            assert (
-                settings.KAFKA_TOPICS[settings.KAFKA_EVENTS]["cluster"]
-                == settings.KAFKA_TOPICS[settings.KAFKA_TRANSACTIONS]["cluster"]
-            )
-            default_topic = self.topic
-            assert self.topic == self.transactions_topic
 
         worker = PostProcessForwarderWorker(concurrency=concurrency)
 
-        cluster_name = settings.KAFKA_TOPICS[topic or default_topic]["cluster"]
+        cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
 
         synchronized_consumer = SynchronizedConsumer(
             cluster_name=cluster_name,
