@@ -155,7 +155,8 @@ class ProxyTestCase(ApiGatewayTestCase):
         foo = dict(test="a", file="b", what="c")
         contents = json.dumps(foo).encode()
         request_body = {
-            "test.js": SimpleUploadedFile("test.js", contents, content_type="application/json")
+            "test.js": SimpleUploadedFile("test.js", contents, content_type="application/json"),
+            "foo": "bar",
         }
 
         responses.add_callback(
@@ -165,6 +166,28 @@ class ProxyTestCase(ApiGatewayTestCase):
         )
         request = RequestFactory().post(
             "http://sentry.io/post", data=request_body, format="multipart"
+        )
+        resp = proxy_request(request, self.organization.slug)
+        resp_json = json.loads(b"".join(resp.streaming_content))
+
+        assert resp.status_code == 200
+        assert resp_json["proxy"]
+
+    @responses.activate
+    def test_alternate_content_type(self, _):
+        # Check form encoded files also work
+        foo = dict(test="a", file="b", what="c")
+        contents = urlencode(foo, doseq=True).encode("utf-8")
+        request_body = contents
+        responses.add_callback(
+            responses.POST,
+            "http://region1.testserver/post",
+            verify_request_body(contents, {"test": "header"}),
+        )
+        request = RequestFactory().post(
+            "http://sentry.io/post",
+            data=request_body,
+            content_type="application/x-www-form-urlencoded",
         )
         resp = proxy_request(request, self.organization.slug)
         resp_json = json.loads(b"".join(resp.streaming_content))

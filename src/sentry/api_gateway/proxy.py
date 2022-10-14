@@ -46,9 +46,7 @@ def proxy_request(request: Request, org_slug: str) -> StreamingHttpResponse:
         "headers": request.headers,
         "params": dict(query_params) if query_params is not None else None,
         "files": getattr(request, "FILES", None),
-        "data": getattr(request, "body", None)
-        if request.content_type == "application/json"
-        else None,
+        "data": getattr(request, "body", None) if not getattr(request, "FILES", None) else None,
         "stream": True,
         "timeout": settings.GATEWAY_PROXY_TIMEOUT,
     }
