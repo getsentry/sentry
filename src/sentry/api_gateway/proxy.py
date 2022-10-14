@@ -45,12 +45,13 @@ def proxy_request(request: Request, org_slug: str) -> StreamingHttpResponse:
     request_args = {
         "headers": request.headers,
         "params": dict(query_params) if query_params is not None else None,
-        "data": getattr(request, "body", None),
+        "files": getattr(request, "FILES", None),
+        "data": getattr(request, "body", None) if not getattr(request, "FILES", None) else None,
         "stream": True,
         "timeout": settings.GATEWAY_PROXY_TIMEOUT,
     }
     try:
-        resp: ExternalResponse = external_request(request.method, target_url, **request_args)
+        resp: ExternalResponse = external_request(request.method, url=target_url, **request_args)
     except Timeout:
         # remote silo timeout. Use DRF timeout instead
         raise RequestTimeout()
