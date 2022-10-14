@@ -5,7 +5,7 @@ from sentry.db.models import (
     DefaultFieldsModel,
     EncryptedJsonField,
     FlexibleForeignKey,
-    region_silo_model,
+    region_silo_only_model,
 )
 from sentry.db.models.fields.array import ArrayField
 
@@ -16,7 +16,7 @@ class SentryFunctionManager(BaseManager):
         return functions
 
 
-@region_silo_model
+@region_silo_only_model
 class SentryFunction(DefaultFieldsModel):
     __include_in_export__ = False
 

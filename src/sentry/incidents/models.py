@@ -14,8 +14,8 @@ from sentry.db.models import (
     Model,
     OneToOneCascadeDeletes,
     UUIDField,
-    control_silo_model,
-    region_silo_model,
+    control_silo_with_replication_model,
+    region_silo_only_model,
     sane_repr,
 )
 from sentry.db.models.manager import BaseManager
@@ -25,7 +25,7 @@ from sentry.utils import metrics
 from sentry.utils.retries import TimedRetryPolicy
 
 
-@region_silo_model
+@region_silo_only_model
 class IncidentProject(Model):
     __include_in_export__ = False
 
@@ -38,7 +38,7 @@ class IncidentProject(Model):
         unique_together = (("project", "incident"),)
 
 
-@region_silo_model
+@region_silo_only_model
 class IncidentSeen(Model):
     __include_in_export__ = False
 
@@ -149,7 +149,7 @@ INCIDENT_STATUS = {
 }
 
 
-@region_silo_model
+@region_silo_only_model
 class Incident(Model):
     __include_in_export__ = True
 
@@ -196,7 +196,7 @@ class Incident(Model):
         return self.current_end_date - self.date_started
 
 
-@region_silo_model
+@region_silo_only_model
 class PendingIncidentSnapshot(Model):
     __include_in_export__ = True
 
@@ -209,7 +209,7 @@ class PendingIncidentSnapshot(Model):
         db_table = "sentry_pendingincidentsnapshot"
 
 
-@region_silo_model
+@region_silo_only_model
 class IncidentSnapshot(Model):
     __include_in_export__ = True
 
@@ -224,7 +224,7 @@ class IncidentSnapshot(Model):
         db_table = "sentry_incidentsnapshot"
 
 
-@control_silo_model
+@control_silo_with_replication_model
 class TimeSeriesSnapshot(Model):
     __include_in_export__ = True
 
@@ -246,7 +246,7 @@ class IncidentActivityType(Enum):
     DETECTED = 4
 
 
-@region_silo_model
+@region_silo_only_model
 class IncidentActivity(Model):
     __include_in_export__ = True
 
@@ -263,7 +263,7 @@ class IncidentActivity(Model):
         db_table = "sentry_incidentactivity"
 
 
-@region_silo_model
+@region_silo_only_model
 class IncidentSubscription(Model):
     __include_in_export__ = True
 
@@ -341,7 +341,7 @@ class AlertRuleManager(BaseManager):
             )
 
 
-@region_silo_model
+@region_silo_only_model
 class AlertRuleExcludedProjects(Model):
     __include_in_export__ = True
 
@@ -355,7 +355,7 @@ class AlertRuleExcludedProjects(Model):
         unique_together = (("alert_rule", "project"),)
 
 
-@region_silo_model
+@region_silo_only_model
 class AlertRule(Model):
     __include_in_export__ = True
 
@@ -440,7 +440,7 @@ class IncidentTriggerManager(BaseManager):
         cache.delete(cls._build_cache_key(instance.incident_id))
 
 
-@region_silo_model
+@region_silo_only_model
 class IncidentTrigger(Model):
     __include_in_export__ = True
 
@@ -486,7 +486,7 @@ class AlertRuleTriggerManager(BaseManager):
         cache.delete(cls._build_trigger_cache_key(instance.id))
 
 
-@region_silo_model
+@region_silo_only_model
 class AlertRuleTrigger(Model):
     __include_in_export__ = True
 
@@ -508,7 +508,7 @@ class AlertRuleTrigger(Model):
         unique_together = (("alert_rule", "label"),)
 
 
-@region_silo_model
+@region_silo_only_model
 class AlertRuleTriggerExclusion(Model):
     __include_in_export__ = True
 
@@ -522,7 +522,7 @@ class AlertRuleTriggerExclusion(Model):
         unique_together = (("alert_rule_trigger", "query_subscription"),)
 
 
-@region_silo_model
+@region_silo_only_model
 class AlertRuleTriggerAction(Model):
     """
     This model represents an action that occurs when a trigger is fired. This is
@@ -650,7 +650,7 @@ class AlertRuleActivityType(Enum):
     SNAPSHOT = 6
 
 
-@region_silo_model
+@region_silo_only_model
 class AlertRuleActivity(Model):
     __include_in_export__ = True
 

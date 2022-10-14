@@ -4,7 +4,7 @@ from typing import Any, Sequence
 from django.db import IntegrityError, models
 
 from sentry.constants import ObjectStatus
-from sentry.db.models import BoundedPositiveIntegerField, DefaultFieldsModel, region_silo_model
+from sentry.db.models import BoundedPositiveIntegerField, DefaultFieldsModel, region_silo_only_model
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.manager import BaseManager
 from sentry.models.integrations.organization_integration import OrganizationIntegration
@@ -23,7 +23,7 @@ class IntegrationManager(BaseManager):
         )
 
 
-@region_silo_model
+@region_silo_only_model
 class Integration(DefaultFieldsModel):
     __include_in_export__ = False
 
