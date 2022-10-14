@@ -116,8 +116,8 @@ describe('Project Ownership', () => {
       );
 
       // Switch to Assign To Issue Owner
-      userEvent.click(screen.getByText('Auto assign to suspect commits'));
-      userEvent.click(screen.getByText('Assign to issue owner'));
+      userEvent.click(screen.getByText('Auto-assign to suspect commits'));
+      userEvent.click(screen.getByText('Auto-assign to issue owner'));
 
       await waitFor(() => {
         expect(updateOwnership).toHaveBeenCalledWith(

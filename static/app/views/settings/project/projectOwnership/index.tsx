@@ -339,9 +339,9 @@ tags.sku_class:enterprise #enterprise`;
                       choices: [
                         [
                           'Auto Assign to Suspect Commits',
-                          t('Auto assign to suspect commits'),
+                          t('Auto-assign to suspect commits'),
                         ],
-                        ['Auto Assign to Issue Owner', t('Auto assign to issue owner')],
+                        ['Auto Assign to Issue Owner', t('Auto-assign to issue owner')],
                         ['Turn off Auto-Assignment', t('Turn off auto-assignment')],
                       ],
                       disabled,
