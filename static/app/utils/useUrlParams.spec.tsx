@@ -29,26 +29,33 @@ describe('useUrlParams', () => {
   });
 
   it('should read query values from the url', () => {
-    const {result} = reactHooks.renderHook(() => useUrlParams());
+    const {result} = reactHooks.renderHook(useUrlParams);
 
     expect(result.current.getParamValue('page')).toBe('3');
     expect(result.current.getParamValue('limit')).toBe('50');
   });
 
   it('should read a specific query value if the defaultKey is passed along', () => {
-    const {result} = reactHooks.renderHook(() => useUrlParams('page'));
+    const {result} = reactHooks.renderHook((args: [string]) => useUrlParams(args[0]), {
+      initialProps: ['page'],
+    });
 
     expect(result.current.getParamValue()).toBe('3');
   });
 
   it('should read the default value for the defaultKey', () => {
-    const {result} = reactHooks.renderHook(() => useUrlParams('foo', 'bar'));
+    const {result} = reactHooks.renderHook(
+      (args: [string, string]) => useUrlParams(args[0], args[1]),
+      {
+        initialProps: ['foo', 'bar'],
+      }
+    ); // Prefer TS function overloading, not initialProps
 
     expect(result.current.getParamValue()).toBe('bar');
   });
 
   it('should update browser history with new values', () => {
-    const {result} = reactHooks.renderHook(() => useUrlParams());
+    const {result} = reactHooks.renderHook(useUrlParams);
 
     result.current.setParamValue('page', '4');
 
@@ -61,7 +68,9 @@ describe('useUrlParams', () => {
   });
 
   it('should update browser history with new values for the defaultKey', () => {
-    const {result} = reactHooks.renderHook(() => useUrlParams('page'));
+    const {result} = reactHooks.renderHook((args: [string]) => useUrlParams(args[0]), {
+      initialProps: ['page'],
+    });
 
     result.current.setParamValue('4');
 
@@ -74,7 +83,7 @@ describe('useUrlParams', () => {
   });
 
   it('uses the same function reference after each render', () => {
-    const {result, rerender} = reactHooks.renderHook(() => useUrlParams());
+    const {result, rerender} = reactHooks.renderHook(useUrlParams);
 
     const firstResult = result.current;
     rerender();

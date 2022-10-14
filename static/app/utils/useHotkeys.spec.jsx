@@ -31,7 +31,9 @@ describe('useHotkeys', function () {
   it('handles a simple match', function () {
     const callback = jest.fn();
 
-    reactHooks.renderHook(() => useHotkeys([{match: 'ctrl+s', callback}]));
+    reactHooks.renderHook(useHotkeys, {
+      initialProps: [{match: 'ctrl+s', callback}],
+    });
 
     expect(events.keydown).toBeDefined();
     expect(callback).not.toHaveBeenCalled();
@@ -46,7 +48,9 @@ describe('useHotkeys', function () {
   it('handles multiple matches', function () {
     const callback = jest.fn();
 
-    reactHooks.renderHook(() => useHotkeys([{match: ['ctrl+s', 'cmd+m'], callback}]));
+    reactHooks.renderHook(useHotkeys, {
+      initialProps: [{match: ['ctrl+s', 'cmd+m'], callback}],
+    });
 
     expect(events.keydown).toBeDefined();
     expect(callback).not.toHaveBeenCalled();
@@ -64,9 +68,9 @@ describe('useHotkeys', function () {
   it('handles a complex match', function () {
     const callback = jest.fn();
 
-    reactHooks.renderHook(() =>
-      useHotkeys([{match: ['cmd+control+option+shift+x'], callback}])
-    );
+    reactHooks.renderHook(useHotkeys, {
+      initialProps: [{match: ['cmd+control+option+shift+x'], callback}],
+    });
 
     expect(events.keydown).toBeDefined();
     expect(callback).not.toHaveBeenCalled();
@@ -113,7 +117,7 @@ describe('useHotkeys', function () {
   it('skips input and textarea', function () {
     const callback = jest.fn();
 
-    reactHooks.renderHook(() => useHotkeys([{match: ['/'], callback}]));
+    reactHooks.renderHook(useHotkeys, {initialProps: [{match: ['/'], callback}]});
 
     events.keydown(makeKeyEvent('/', {target: document.createElement('input')}));
 
@@ -123,9 +127,9 @@ describe('useHotkeys', function () {
   it('does not skips input and textarea with includesInputs', function () {
     const callback = jest.fn();
 
-    reactHooks.renderHook(() =>
-      useHotkeys([{match: ['/'], callback, includeInputs: true}])
-    );
+    reactHooks.renderHook(useHotkeys, {
+      initialProps: [{match: ['/'], callback, includeInputs: true}],
+    });
 
     events.keydown(makeKeyEvent('/', {target: document.createElement('input')}));
 
@@ -135,9 +139,9 @@ describe('useHotkeys', function () {
   it('skips preventDefault', function () {
     const callback = jest.fn();
 
-    reactHooks.renderHook(() =>
-      useHotkeys([{match: 'ctrl+s', callback, skipPreventDefault: true}])
-    );
+    reactHooks.renderHook(useHotkeys, {
+      initialProps: [{match: 'ctrl+s', callback, skipPreventDefault: true}],
+    });
 
     const evt = makeKeyEvent('s', {ctrlKey: true});
     events.keydown(evt);

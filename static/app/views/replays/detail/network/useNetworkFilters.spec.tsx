@@ -144,7 +144,9 @@ describe('useDomFilters', () => {
         query: {f_n_type: TYPE_FILTER, f_n_status: STATUS_FILTER},
       } as Location<FilterFields>);
 
-    const {result, rerender} = reactHooks.renderHook(() => useDomFilters({networkSpans}));
+    const {result, rerender} = reactHooks.renderHook(useDomFilters, {
+      initialProps: {networkSpans},
+    });
 
     result.current.setType(TYPE_FILTER);
     expect(browserHistory.push).toHaveBeenLastCalledWith({
@@ -184,7 +186,7 @@ describe('useDomFilters', () => {
       query: {},
     } as Location<FilterFields>);
 
-    const {result} = reactHooks.renderHook(() => useDomFilters({networkSpans}));
+    const {result} = reactHooks.renderHook(useDomFilters, {initialProps: {networkSpans}});
     expect(result.current.items.length).toEqual(9);
   });
 
@@ -196,7 +198,7 @@ describe('useDomFilters', () => {
       },
     } as Location<FilterFields>);
 
-    const {result} = reactHooks.renderHook(() => useDomFilters({networkSpans}));
+    const {result} = reactHooks.renderHook(useDomFilters, {initialProps: {networkSpans}});
     expect(result.current.items.length).toEqual(2);
   });
 
@@ -208,7 +210,7 @@ describe('useDomFilters', () => {
       },
     } as Location<FilterFields>);
 
-    const {result} = reactHooks.renderHook(() => useDomFilters({networkSpans}));
+    const {result} = reactHooks.renderHook(useDomFilters, {initialProps: {networkSpans}});
     expect(result.current.items.length).toEqual(3);
   });
 
@@ -220,7 +222,7 @@ describe('useDomFilters', () => {
       },
     } as Location<FilterFields>);
 
-    const {result} = reactHooks.renderHook(() => useDomFilters({networkSpans}));
+    const {result} = reactHooks.renderHook(useDomFilters, {initialProps: {networkSpans}});
     expect(result.current.items.length).toEqual(1);
   });
 
@@ -234,7 +236,7 @@ describe('useDomFilters', () => {
       },
     } as Location<FilterFields>);
 
-    const {result} = reactHooks.renderHook(() => useDomFilters({networkSpans}));
+    const {result} = reactHooks.renderHook(useDomFilters, {initialProps: {networkSpans}});
     expect(result.current.items.length).toEqual(1);
   });
 });

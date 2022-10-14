@@ -12,7 +12,7 @@ describe('useProjects', function () {
   it('provides projects from the team store', function () {
     reactHooks.act(() => void ProjectsStore.loadInitialData(mockProjects));
 
-    const {result} = reactHooks.renderHook(() => useProjects());
+    const {result} = reactHooks.renderHook(useProjects);
     const {projects} = result.current;
 
     expect(projects).toEqual(mockProjects);
@@ -31,7 +31,7 @@ describe('useProjects', function () {
       body: [newProject3, newProject4],
     });
 
-    const {result, waitFor} = reactHooks.renderHook(() => useProjects());
+    const {result, waitFor} = reactHooks.renderHook(useProjects);
     const {onSearch} = result.current;
 
     // Works with append
@@ -67,7 +67,7 @@ describe('useProjects', function () {
       body: [projectFoo],
     });
 
-    const {result, waitFor} = reactHooks.renderHook(props => useProjects(props), {
+    const {result, waitFor} = reactHooks.renderHook(useProjects, {
       initialProps: {slugs: ['foo']},
     });
 
@@ -83,7 +83,7 @@ describe('useProjects', function () {
   it('only loads slugs when needed', function () {
     reactHooks.act(() => void ProjectsStore.loadInitialData(mockProjects));
 
-    const {result} = reactHooks.renderHook(props => useProjects(props), {
+    const {result} = reactHooks.renderHook(useProjects, {
       initialProps: {slugs: [mockProjects[0].slug]},
     });
 

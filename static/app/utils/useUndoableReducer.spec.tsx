@@ -62,7 +62,13 @@ describe('makeUndoableReducer', () => {
           action === 'add' ? state + 1 : state - 1
         );
 
-      const {result} = reactHooks.renderHook(() => useUndoableReducer(reducer, 100));
+      const {result} = reactHooks.renderHook(
+        (args: Parameters<typeof useUndoableReducer>) =>
+          useUndoableReducer(args[0], args[1]),
+        {
+          initialProps: [reducer, 100],
+        }
+      );
       expect(reducer).not.toHaveBeenCalled();
       expect(result.current[0]).toEqual(100);
     });
@@ -74,7 +80,11 @@ describe('makeUndoableReducer', () => {
           action === 'add' ? state + 1 : state - 1
         );
 
-      const {result} = reactHooks.renderHook(() => useUndoableReducer(reducer, 0));
+      const {result} = reactHooks.renderHook(
+        (args: Parameters<typeof useUndoableReducer>) =>
+          useUndoableReducer(args[0], args[1]),
+        {initialProps: [reducer, 0]}
+      );
       reactHooks.act(() => result.current[1]('add'));
 
       expect(result.current[0]).toEqual(1);
@@ -86,11 +96,10 @@ describe('makeUndoableReducer', () => {
     });
 
     it('can undo state', () => {
-      const {result} = reactHooks.renderHook(() =>
-        useUndoableReducer(
-          jest.fn().mockImplementation(s => s + 1),
-          0
-        )
+      const {result} = reactHooks.renderHook(
+        (args: Parameters<typeof useUndoableReducer>) =>
+          useUndoableReducer(args[0], args[1]),
+        {initialProps: [jest.fn().mockImplementation(s => s + 1), 0]}
       );
 
       reactHooks.act(() => result.current[1](0));
@@ -101,13 +110,10 @@ describe('makeUndoableReducer', () => {
     });
 
     it('can redo state', () => {
-      const {result} = reactHooks.renderHook(() =>
-        useUndoableReducer(
-          jest.fn().mockImplementation(s => {
-            return s + 1;
-          }),
-          0
-        )
+      const {result} = reactHooks.renderHook(
+        (args: Parameters<typeof useUndoableReducer>) =>
+          useUndoableReducer(args[0], args[1]),
+        {initialProps: [jest.fn().mockImplementation(s => s + 1), 0]}
       );
 
       reactHooks.act(() => result.current[1](0)); // 0 + 1
@@ -127,10 +133,16 @@ describe('makeUndoableReducer', () => {
   });
 
   it('can peek previous and next state', () => {
-    const simpleReducer = (state: number, action: {type: 'add'} | {type: 'subtract'}) =>
+    const simpleReducer = (state, action) =>
       action.type === 'add' ? state + 1 : state - 1;
 
-    const {result} = reactHooks.renderHook(() => useUndoableReducer(simpleReducer, 0));
+    const {result} = reactHooks.renderHook(
+      (args: Parameters<typeof useUndoableReducer>) =>
+        useUndoableReducer(args[0], args[1]),
+      {
+        initialProps: [simpleReducer, 0],
+      }
+    );
 
     reactHooks.act(() => result.current[1]({type: 'add'}));
     expect(result.current?.[2].previousState).toEqual(0);
@@ -143,14 +155,20 @@ describe('makeUndoableReducer', () => {
     const simpleReducer = (state: number, action: {type: 'add'} | {type: 'subtract'}) =>
       action.type === 'add' ? state + 1 : state - 1;
 
-    const {result} = reactHooks.renderHook(() =>
-      useReducer(makeUndoableReducer(makeCombinedReducers({simple: simpleReducer})), {
-        previous: undefined,
-        current: {
-          simple: 0,
-        },
-        next: undefined,
-      })
+    const {result} = reactHooks.renderHook(
+      (args: Parameters<typeof useReducer>) => useReducer(args[0], args[1]),
+      {
+        initialProps: [
+          makeUndoableReducer(makeCombinedReducers({simple: simpleReducer})),
+          {
+            previous: undefined,
+            current: {
+              simple: 0,
+            },
+            next: undefined,
+          },
+        ],
+      }
     );
 
     reactHooks.act(() => result.current[1]({type: 'add'}));
@@ -168,14 +186,20 @@ describe('makeUndoableReducer', () => {
       math: (state: number, action: {type: 'add'} | {type: 'subtract'}) =>
         action.type === 'add' ? state + 1 : state - 1,
     });
-    const {result} = reactHooks.renderHook(() =>
-      useReducer(makeUndoableReducer(combinedReducers), {
-        previous: undefined,
-        current: {
-          math: 0,
-        },
-        next: undefined,
-      })
+    const {result} = reactHooks.renderHook(
+      (args: Parameters<typeof useReducer>) => useReducer(args[0], args[1]),
+      {
+        initialProps: [
+          makeUndoableReducer(combinedReducers),
+          {
+            previous: undefined,
+            current: {
+              math: 0,
+            },
+            next: undefined,
+          },
+        ],
+      }
     );
 
     reactHooks.act(() => result.current[1]({type: 'add'}));
