@@ -163,7 +163,7 @@ function getFrame(frame: Frame, frameIdx: number, platform: string | undefined):
   }
 }
 
-export default function render(
+export default function displayRawContent(
   data: StacktraceType,
   platform?: string,
   exception?: ExceptionValue
