@@ -4,10 +4,11 @@ import styled from '@emotion/styled';
 import Fuse from 'fuse.js';
 import * as qs from 'query-string';
 
-import CompactSelect from 'sentry/components/forms/compactSelect';
+import CompactSelect from 'sentry/components/compactSelect';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnOrder,
+  GridColumnSortBy,
 } from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Pagination from 'sentry/components/pagination';
@@ -172,26 +173,45 @@ function ProfileDetails() {
     };
   }, [slowestFunctions]);
 
-  const currentSort = useMemo<{key: TableColumnKey; order: 'asc' | 'desc'}>(() => {
-    const functionsSort = location.query?.functionsSort;
-    if (!functionsSort) {
-      return {
-        key: 'self weight',
-        order: 'desc',
-      };
-    }
+  const currentSort = useMemo<GridColumnSortBy<TableColumnKey>>(() => {
+    let key = location.query?.functionsSort ?? '';
 
-    let key = functionsSort;
+    const defaultSort = {
+      key: 'self weight',
+      order: 'desc',
+    } as GridColumnSortBy<TableColumnKey>;
 
     const isDesc = key[0] === '-';
     if (isDesc) {
       key = key.slice(1);
     }
+
+    if (!key || !tableColumnKey.includes(key as TableColumnKey)) {
+      return defaultSort;
+    }
+
     return {
-      key: key as TableColumnKey,
+      key,
       order: isDesc ? 'desc' : 'asc',
-    };
+    } as GridColumnSortBy<TableColumnKey>;
   }, [location.query]);
+
+  useEffect(() => {
+    const removeListener = browserHistory.listenBefore((nextLocation, next) => {
+      if (location.pathname === nextLocation.pathname) {
+        next(nextLocation);
+        return;
+      }
+
+      if ('functionsSort' in nextLocation.query) {
+        delete nextLocation.query.functionsSort;
+      }
+
+      next(nextLocation);
+    });
+
+    return removeListener;
+  });
 
   const generateSortLink = useCallback(
     (column: TableColumnKey) => {
@@ -294,7 +314,7 @@ function ProfileDetails() {
                     : undefined
                 }
                 triggerProps={{
-                  prefix: t('Library'),
+                  prefix: t('Package'),
                 }}
                 multiple
                 onChange={columnFilters.image.onChange}
@@ -407,13 +427,17 @@ function ProfilingFunctionsTableCell({
   }
 }
 
-type TableColumnKey =
-  | 'symbol'
-  | 'image'
-  | 'self weight'
-  | 'total weight'
-  | 'thread'
-  | 'type';
+const tableColumnKey = [
+  'symbol',
+  'image',
+  'thread',
+  'type',
+  'self weight',
+  'total weight',
+] as const;
+
+type TableColumnKey = typeof tableColumnKey[number];
+
 type TableDataRow = Record<TableColumnKey, any>;
 
 type TableColumn = GridColumnOrder<TableColumnKey>;
@@ -436,7 +460,7 @@ const COLUMNS: Record<TableColumnKey, TableColumn> = {
   },
   image: {
     key: 'image',
-    name: t('Library'),
+    name: t('Package'),
     width: COL_WIDTH_UNDEFINED,
   },
   thread: {
