@@ -191,13 +191,13 @@ export type SuggestedOwner = {
 };
 
 export type IssueOwnership = {
-  autoAssignment: boolean;
+  autoAssignment: 'Auto Assign to Suspect Commits' | 'Auto Assign to Issue Owner';
   codeownersAutoSync: boolean;
-  dateCreated: string;
+  dateCreated: string | null;
   fallthrough: boolean;
   isActive: boolean;
-  lastUpdated: string;
-  raw: string;
+  lastUpdated: string | null;
+  raw: string | null;
 };
 
 export enum GroupActivityType {

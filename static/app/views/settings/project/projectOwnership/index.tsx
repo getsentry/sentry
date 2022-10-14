@@ -318,8 +318,8 @@ tags.sku_class:enterprise #enterprise`;
             apiMethod="PUT"
             saveOnBlur
             initialData={{
-              fallthrough: ownership.fallthrough,
               autoAssignment: ownership.autoAssignment,
+              fallthrough: ownership.fallthrough,
               codeownersAutoSync: ownership.codeownersAutoSync,
             }}
             hideFooter
@@ -331,9 +331,18 @@ tags.sku_class:enterprise #enterprise`;
                   fields: [
                     {
                       name: 'autoAssignment',
-                      type: 'boolean',
-                      label: t('Automatically assign issues'),
-                      help: t('Assign issues when a new event matches the rules above.'),
+                      type: 'choice',
+                      label: t('Prioritize Auto Assignment'),
+                      help: t(
+                        "When there's a conflict between suspect commit and ownership rules."
+                      ),
+                      choices: [
+                        [
+                          'Auto Assign to Suspect Commits',
+                          t('Auto assign to suspect commits'),
+                        ],
+                        ['Assign To Issue Owner', t('Assign to issue owner')],
+                      ],
                       disabled,
                     },
                     {
