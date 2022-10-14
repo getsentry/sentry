@@ -146,7 +146,11 @@ class AbstractBatchWorker(metaclass=abc.ABCMeta):
 
 
 class BatchingKafkaConsumer:
-    """The `BatchingKafkaConsumer` is an abstraction over most Kafka consumer's main event
+    """
+    This consumer is deprecated and will eventually be removed. If you are writing a new
+    consumer, use Arroyo.
+
+    The `BatchingKafkaConsumer` is an abstraction over most Kafka consumer's main event
     loops. For this reason it uses inversion of control: the user provides an implementation
     for the `AbstractBatchWorker` and then the `BatchingKafkaConsumer` handles the rest.
 
