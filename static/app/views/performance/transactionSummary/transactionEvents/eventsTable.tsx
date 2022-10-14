@@ -415,7 +415,7 @@ class EventsTable extends Component<Props, State> {
     };
 
     return (
-      <div>
+      <div data-test-id="events-table">
         <DiscoverQuery
           eventView={eventView}
           orgSlug={organization.slug}

@@ -146,6 +146,7 @@ function Search(props: Props) {
         organization={organization}
         currentFilter={spanOperationBreakdownFilter}
         onChangeFilter={onChangeSpanOperationBreakdownFilter}
+        testId="span-operation-breakdown-filter"
       />
       <PageFilterBar condensed>
         <EnvironmentPageFilter />
