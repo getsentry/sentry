@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
-import {InputField} from 'sentry/components/forms';
+import {TextField} from 'sentry/components/forms';
 import {PanelBody, PanelHeader} from 'sentry/components/panels';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -66,9 +66,8 @@ function SentryFunctionEnvironmentVariables(props: Props) {
         {envVariables.map((envVariable, i) => {
           return (
             <EnvironmentVariableWrapper key={i}>
-              <InputField
+              <TextField
                 name={`env-variable-name-${i}`}
-                type="text"
                 required={false}
                 inline={false}
                 defaultValue={envVariable.name}
@@ -76,9 +75,8 @@ function SentryFunctionEnvironmentVariables(props: Props) {
                 stacked
                 onChange={e => handleNameChange(e, i)}
               />
-              <InputField
+              <TextField
                 name={`env-variable-value-${i}`}
-                type="text"
                 required={false}
                 inline={false}
                 defaultValue={envVariable.value}
