@@ -422,7 +422,7 @@ describe('Dynamic Sampling', function () {
           dynamicSampling: {
             rules: [
               TestStubs.DynamicSamplingConfig().uniformRule,
-              {...TestStubs.DynamicSamplingConfig().specificRule},
+              TestStubs.DynamicSamplingConfig().specificRule,
             ],
           },
         }),
