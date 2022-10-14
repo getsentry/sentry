@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {logout} from 'sentry/actionCreators/account';
 import AcceptOrganizationInvite from 'sentry/views/acceptOrganizationInvite';
@@ -14,6 +14,9 @@ const addMock = body =>
     body,
   });
 
+const getJoinButton = () =>
+  screen.queryByRole('button', {name: 'Join the test-org organization'});
+
 describe('AcceptOrganizationInvite', function () {
   it('can accept invitation', async function () {
     addMock({
@@ -25,28 +28,22 @@ describe('AcceptOrganizationInvite', function () {
       existingMember: false,
     });
 
-    const wrapper = mountWithTheme(
-      <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />
-    );
-
-    const joinButton = wrapper.find('Button[aria-label="join-organization"]');
-
-    expect(joinButton.exists()).toBe(true);
-    expect(joinButton.text()).toBe('Join the test-org organization');
+    render(<AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />);
 
     const acceptMock = MockApiClient.addMockResponse({
       url: '/accept-invite/1/abc/',
       method: 'POST',
     });
 
-    joinButton.simulate('click');
-    expect(acceptMock).toHaveBeenCalled();
-    expect(wrapper.find('Button[aria-label="join-organization"]').props().disabled).toBe(
-      true
-    );
+    const joinButton = getJoinButton();
 
-    await tick();
-    expect(browserHistory.replace).toHaveBeenCalledWith('/test-org/');
+    userEvent.click(joinButton);
+    expect(acceptMock).toHaveBeenCalled();
+    expect(joinButton).toBeDisabled();
+
+    await waitFor(() =>
+      expect(browserHistory.replace).toHaveBeenCalledWith('/test-org/')
+    );
   });
 
   it('requires authentication to join', function () {
@@ -59,19 +56,19 @@ describe('AcceptOrganizationInvite', function () {
       existingMember: false,
     });
 
-    const wrapper = mountWithTheme(
-      <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />
-    );
+    render(<AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />);
 
-    const joinButton = wrapper.find('Button[aria-label="join-organization"]');
-    expect(joinButton.exists()).toBe(false);
+    expect(getJoinButton()).not.toBeInTheDocument();
 
-    expect(wrapper.find('[data-test-id="action-info-general"]').exists()).toBe(true);
-    expect(wrapper.find('[data-test-id="action-info-sso"]').exists()).toBe(false);
+    expect(screen.getByTestId('action-info-general')).toBeInTheDocument();
+    expect(screen.queryByTestId('action-info-sso')).not.toBeInTheDocument();
 
-    expect(wrapper.find('Button[aria-label="sso-login"]').exists()).toBe(false);
-    expect(wrapper.find('Button[aria-label="create-account"]').exists()).toBe(true);
-    expect(wrapper.find('[data-test-id="link-with-existing"]').exists()).toBe(true);
+    expect(
+      screen.getByRole('button', {name: 'Create a new account'})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', {name: 'Login using an existing account'})
+    ).toBeInTheDocument();
   });
 
   it('suggests sso authentication to login', function () {
@@ -82,21 +79,23 @@ describe('AcceptOrganizationInvite', function () {
       hasAuthProvider: true,
       requireSso: false,
       existingMember: false,
+      ssoProvider: 'SSO',
     });
 
-    const wrapper = mountWithTheme(
-      <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />
-    );
+    render(<AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />);
 
-    const joinButton = wrapper.find('Button[aria-label="join-organization"]');
-    expect(joinButton.exists()).toBe(false);
+    expect(getJoinButton()).not.toBeInTheDocument();
 
-    expect(wrapper.find('[data-test-id="action-info-general"]').exists()).toBe(true);
-    expect(wrapper.find('[data-test-id="action-info-sso"]').exists()).toBe(true);
+    expect(screen.getByTestId('action-info-general')).toBeInTheDocument();
+    expect(screen.getByTestId('action-info-sso')).toBeInTheDocument();
 
-    expect(wrapper.find('Button[aria-label="sso-login"]').exists()).toBe(true);
-    expect(wrapper.find('Button[aria-label="create-account"]').exists()).toBe(true);
-    expect(wrapper.find('[data-test-id="link-with-existing"]').exists()).toBe(true);
+    expect(screen.getByRole('button', {name: 'Join with SSO'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Create a new account'})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', {name: 'Login using an existing account'})
+    ).toBeInTheDocument();
   });
 
   it('enforce required sso authentication', function () {
@@ -107,21 +106,23 @@ describe('AcceptOrganizationInvite', function () {
       hasAuthProvider: true,
       requireSso: true,
       existingMember: false,
+      ssoProvider: 'SSO',
     });
 
-    const wrapper = mountWithTheme(
-      <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />
-    );
+    render(<AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />);
 
-    const joinButton = wrapper.find('Button[aria-label="join-organization"]');
-    expect(joinButton.exists()).toBe(false);
+    expect(getJoinButton()).not.toBeInTheDocument();
 
-    expect(wrapper.find('[data-test-id="action-info-general"]').exists()).toBe(false);
-    expect(wrapper.find('[data-test-id="action-info-sso"]').exists()).toBe(true);
+    expect(screen.queryByTestId('action-info-general')).not.toBeInTheDocument();
+    expect(screen.getByTestId('action-info-sso')).toBeInTheDocument();
 
-    expect(wrapper.find('Button[aria-label="sso-login"]').exists()).toBe(true);
-    expect(wrapper.find('Button[aria-label="create-account"]').exists()).toBe(false);
-    expect(wrapper.find('[data-test-id="link-with-existing"]').exists()).toBe(false);
+    expect(screen.getByRole('button', {name: 'Join with SSO'})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Create a new account'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', {name: 'Login using an existing account'})
+    ).not.toBeInTheDocument();
   });
 
   it('enforce required sso authentication for logged in users', function () {
@@ -132,21 +133,23 @@ describe('AcceptOrganizationInvite', function () {
       hasAuthProvider: true,
       requireSso: true,
       existingMember: false,
+      ssoProvider: 'SSO',
     });
 
-    const wrapper = mountWithTheme(
-      <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />
-    );
+    render(<AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />);
 
-    const joinButton = wrapper.find('Button[aria-label="join-organization"]');
-    expect(joinButton.exists()).toBe(false);
+    expect(getJoinButton()).not.toBeInTheDocument();
 
-    expect(wrapper.find('[data-test-id="action-info-general"]').exists()).toBe(false);
-    expect(wrapper.find('[data-test-id="action-info-sso"]').exists()).toBe(true);
+    expect(screen.queryByTestId('action-info-general')).not.toBeInTheDocument();
+    expect(screen.getByTestId('action-info-sso')).toBeInTheDocument();
 
-    expect(wrapper.find('Button[aria-label="sso-login"]').exists()).toBe(true);
-    expect(wrapper.find('Button[aria-label="create-account"]').exists()).toBe(false);
-    expect(wrapper.find('[data-test-id="link-with-existing"]').exists()).toBe(false);
+    expect(screen.getByRole('button', {name: 'Join with SSO'})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Create a new account'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', {name: 'Login using an existing account'})
+    ).not.toBeInTheDocument();
   });
 
   it('show logout button for logged in users w/ sso and membership', async function () {
@@ -157,25 +160,20 @@ describe('AcceptOrganizationInvite', function () {
       hasAuthProvider: true,
       requireSso: true,
       existingMember: true,
+      ssoProvider: 'SSO',
     });
 
-    const wrapper = mountWithTheme(
-      <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />
-    );
+    render(<AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />);
 
-    const existingMember = wrapper.find('[data-test-id="existing-member"]');
-    expect(existingMember.exists()).toBe(true);
+    expect(screen.getByTestId('existing-member')).toBeInTheDocument();
 
     const {replace} = window.location;
     window.location.replace = jest.fn();
 
-    existingMember
-      .find('[data-test-id="existing-member-link"]')
-      .hostNodes()
-      .simulate('click');
+    userEvent.click(screen.getByTestId('existing-member-link'));
+
     expect(logout).toHaveBeenCalled();
-    await tick();
-    expect(window.location.replace).toHaveBeenCalled();
+    await waitFor(() => expect(window.location.replace).toHaveBeenCalled());
 
     window.location.replace = replace;
   });
@@ -188,17 +186,14 @@ describe('AcceptOrganizationInvite', function () {
       hasAuthProvider: true,
       requireSso: false,
       existingMember: false,
+      ssoProvider: 'SSO',
     });
 
-    const wrapper = mountWithTheme(
-      <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />
-    );
+    render(<AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />);
 
-    const ssoLink = wrapper.find('[data-test-id="action-info-sso"]');
-    expect(ssoLink.exists()).toBe(true);
+    expect(screen.getByTestId('action-info-sso')).toBeInTheDocument();
 
-    const joinButton = wrapper.find('Button[aria-label="join-organization"]');
-    expect(joinButton.exists()).toBe(true);
+    expect(getJoinButton()).toBeInTheDocument();
   });
 
   it('shows a logout button for existing members', async function () {
@@ -211,23 +206,17 @@ describe('AcceptOrganizationInvite', function () {
       existingMember: true,
     });
 
-    const wrapper = mountWithTheme(
-      <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />
-    );
+    render(<AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />);
 
-    const existingMember = wrapper.find('[data-test-id="existing-member"]');
-    expect(existingMember.exists()).toBe(true);
+    expect(screen.getByTestId('existing-member')).toBeInTheDocument();
 
     const {replace} = window.location;
     window.location.replace = jest.fn();
 
-    existingMember
-      .find('[data-test-id="existing-member-link"]')
-      .hostNodes()
-      .simulate('click');
+    userEvent.click(screen.getByTestId('existing-member-link'));
+
     expect(logout).toHaveBeenCalled();
-    await tick();
-    expect(window.location.replace).toHaveBeenCalled();
+    await waitFor(() => expect(window.location.replace).toHaveBeenCalled());
 
     window.location.replace = replace;
   });
@@ -242,10 +231,10 @@ describe('AcceptOrganizationInvite', function () {
       existingMember: false,
     });
 
-    const wrapper = mountWithTheme(
-      <AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />
-    );
+    render(<AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />);
 
-    expect(wrapper.find('[data-test-id="2fa-warning"]').exists()).toBe(true);
+    expect(
+      screen.getByRole('button', {name: 'Configure Two-Factor Auth'})
+    ).toBeInTheDocument();
   });
 });
