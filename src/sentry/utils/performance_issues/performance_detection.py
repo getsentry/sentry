@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import logging
 import random
+import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import timedelta
@@ -34,6 +35,8 @@ INTEGRATIONS_OF_INTEREST = [
     "Postgres",  # Node
 ]
 
+PARAMETERIZED_SQL_QUERY_REGEX = re.compile(r"\?|\$1|%s")
+
 
 class DetectorType(Enum):
     SLOW_SPAN = "slow_span"
@@ -45,6 +48,8 @@ class DetectorType(Enum):
     N_PLUS_ONE_SPANS = "n_plus_one"
     N_PLUS_ONE_DB_QUERIES = "n_plus_one_db"
     N_PLUS_ONE_DB_QUERIES_EXTENDED = "n_plus_one_db_ext"
+    N_PLUS_ONE_DB_QUERIES_NO_REDIS = "n_plus_one_db_noredis"
+    N_PLUS_ONE_DB_QUERIES_PARAMETERIZED = "n_plus_one_db_param"
 
 
 DETECTOR_TYPE_TO_GROUP_TYPE = {
@@ -58,6 +63,8 @@ DETECTOR_TYPE_TO_GROUP_TYPE = {
     DetectorType.N_PLUS_ONE_SPANS: GroupType.PERFORMANCE_N_PLUS_ONE,
     DetectorType.N_PLUS_ONE_DB_QUERIES: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
     DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+    DetectorType.N_PLUS_ONE_DB_QUERIES_NO_REDIS: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+    DetectorType.N_PLUS_ONE_DB_QUERIES_PARAMETERIZED: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
 }
 
 # Detector and the corresponding system option must be added to this list to have issues created.
@@ -277,6 +284,14 @@ def get_detection_settings(project_id: str):
             "count": settings["n_plus_one_db_count"],
             "duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
         },
+        DetectorType.N_PLUS_ONE_DB_QUERIES_NO_REDIS: {
+            "count": settings["n_plus_one_db_count"],
+            "duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
+        },
+        DetectorType.N_PLUS_ONE_DB_QUERIES_PARAMETERIZED: {
+            "count": settings["n_plus_one_db_count"],
+            "duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
+        },
     }
 
 
@@ -298,6 +313,12 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
         DetectorType.N_PLUS_ONE_SPANS: NPlusOneSpanDetector(detection_settings, data),
         DetectorType.N_PLUS_ONE_DB_QUERIES: NPlusOneDBSpanDetector(detection_settings, data),
         DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: NPlusOneDBSpanDetectorExtended(
+            detection_settings, data
+        ),
+        DetectorType.N_PLUS_ONE_DB_QUERIES_NO_REDIS: NPlusOneDBSpanDetectorWithoutRedis(
+            detection_settings, data
+        ),
+        DetectorType.N_PLUS_ONE_DB_QUERIES_PARAMETERIZED: NPlusOneDBSpanDetectorWithoutUnparameterizedQueries(
             detection_settings, data
         ),
     }
@@ -1063,6 +1084,368 @@ class NPlusOneDBSpanDetectorExtended(NPlusOneDBSpanDetector):
         "n_hash",
         "n_spans",
     )
+
+
+class NPlusOneDBSpanDetectorWithoutRedis(PerformanceDetector):
+    """
+    A clone of the N+1 detector that excludes Redis.
+
+    This is a quick hack to gather comparative metrics to see how many fewer
+    issues get created when we turn this on.
+    """
+
+    __slots__ = (
+        "stored_problems",
+        "potential_parents",
+        "source_span",
+        "n_hash",
+        "n_spans",
+    )
+
+    settings_key = DetectorType.N_PLUS_ONE_DB_QUERIES
+
+    def init(self):
+        self.stored_problems = {}
+        self.potential_parents = {}
+        self.n_hash = None
+        self.n_spans = []
+        self.source_span = None
+        root_span = get_path(self._event, "contexts", "trace")
+        if root_span:
+            self.potential_parents[root_span.get("span_id")] = root_span
+
+    def visit_span(self, span: Span) -> None:
+        span_id = span.get("span_id", None)
+        op = span.get("op", None)
+        if not span_id or not op:
+            return
+
+        if op.startswith("db.redis") or not op.startswith("db"):
+            # This breaks up the N+1 we're currently tracking.
+            self._maybe_store_problem()
+            self._reset_detection()
+            # Treat it as a potential parent as long as it isn't the root span.
+            if span.get("parent_span_id", None):
+                self.potential_parents[span_id] = span
+            return
+
+        if not self.source_span:
+            # We aren't currently tracking an N+1. Maybe this span triggers one!
+            self._maybe_use_as_source(span)
+            return
+
+        # If we got this far, we know we're a DB span and we're looking for a
+        # sequence of N identical DB spans.
+        if self._continues_n_plus_1(span):
+            self.n_spans.append(span)
+        else:
+            previous_span = self.n_spans[-1] if self.n_spans else None
+            self._maybe_store_problem()
+            self._reset_detection()
+
+            # Maybe this DB span starts a whole new N+1!
+            if previous_span:
+                self._maybe_use_as_source(previous_span)
+            if self.source_span and self._continues_n_plus_1(span):
+                self.n_spans.append(span)
+            else:
+                self.source_span = None
+                self._maybe_use_as_source(span)
+
+    def on_complete(self) -> None:
+        self._maybe_store_problem()
+
+    def _contains_complete_query(self, span: Span, is_source: Optional[bool] = False) -> bool:
+        # Remove the truncation check from the n_plus_one db detector.
+        query = span.get("description", None)
+        if is_source and query:
+            return True
+        else:
+            return query and not query.endswith("...")
+
+    def _maybe_use_as_source(self, span: Span):
+        parent_span_id = span.get("parent_span_id", None)
+        if not parent_span_id or parent_span_id not in self.potential_parents:
+            return
+
+        self.source_span = span
+
+    def _continues_n_plus_1(self, span: Span):
+        if self._overlaps_last_span(span):
+            return False
+
+        expected_parent_id = self.source_span.get("parent_span_id", None)
+        parent_id = span.get("parent_span_id", None)
+        if not parent_id or parent_id != expected_parent_id:
+            return False
+
+        span_hash = span.get("hash", None)
+        if not span_hash:
+            return False
+
+        if span_hash == self.source_span.get("hash", None):
+            # The source span and n repeating spans must have different queries.
+            return False
+
+        if not self.n_hash:
+            self.n_hash = span_hash
+            return True
+
+        return span_hash == self.n_hash
+
+    def _overlaps_last_span(self, span: Span) -> bool:
+        last_span = self.source_span
+        if self.n_spans:
+            last_span = self.n_spans[-1]
+
+        last_span_ends = timedelta(seconds=last_span.get("timestamp", 0))
+        current_span_begins = timedelta(seconds=span.get("start_timestamp", 0))
+        return last_span_ends > current_span_begins
+
+    def _maybe_store_problem(self):
+        if not self.source_span or not self.n_spans:
+            return
+
+        count = self.settings.get("count")
+        duration_threshold = timedelta(milliseconds=self.settings.get("duration_threshold"))
+
+        # Do we have enough spans?
+        if len(self.n_spans) < count:
+            return
+
+        # Do the spans take enough total time?
+        total_duration = timedelta()
+        for span in self.n_spans:
+            total_duration += get_span_duration(span)
+        if total_duration < duration_threshold:
+            return
+
+        # We require a parent span in order to improve our fingerprint accuracy.
+        parent_span_id = self.source_span.get("parent_span_id", None)
+        if not parent_span_id:
+            return
+        parent_span = self.potential_parents[parent_span_id]
+        if not parent_span:
+            return
+
+        # Track how many N+1-looking problems we found but dropped because we
+        # couldn't be sure (maybe the truncated part of the query differs).
+        if not self._contains_complete_query(
+            self.source_span, is_source=True
+        ) or not self._contains_complete_query(self.n_spans[0]):
+            return
+
+        fingerprint = self._fingerprint(
+            parent_span.get("op", None),
+            parent_span.get("hash", None),
+            self.source_span.get("hash", None),
+            self.n_spans[0].get("hash", None),
+        )
+        if fingerprint not in self.stored_problems:
+            self.stored_problems[fingerprint] = PerformanceProblem(
+                fingerprint=fingerprint,
+                op="db",
+                desc=self.n_spans[0].get("description", ""),
+                type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+                parent_span_ids=[parent_span_id],
+                cause_span_ids=[self.source_span.get("span_id", None)],
+                offender_span_ids=[span.get("span_id", None) for span in self.n_spans],
+            )
+
+    def _reset_detection(self):
+        self.source_span = None
+        self.n_hash = None
+        self.n_spans = []
+
+    def _fingerprint(self, parent_op, parent_hash, source_hash, n_hash) -> str:
+        problem_class = GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES
+        full_fingerprint = hashlib.sha1(
+            (str(parent_op) + str(parent_hash) + str(source_hash) + str(n_hash)).encode("utf8"),
+        ).hexdigest()
+        return f"1-{problem_class}-{full_fingerprint}"
+
+
+class NPlusOneDBSpanDetectorWithoutUnparameterizedQueries(PerformanceDetector):
+    """
+    A clone of the N+1 detector that excludes unparameterized queries.
+
+    This is a quick hack to gather comparative metrics to see how many fewer
+    issues get created when we turn this on.
+    """
+
+    __slots__ = (
+        "stored_problems",
+        "potential_parents",
+        "source_span",
+        "n_hash",
+        "n_spans",
+    )
+
+    settings_key = DetectorType.N_PLUS_ONE_DB_QUERIES
+
+    def init(self):
+        self.stored_problems = {}
+        self.potential_parents = {}
+        self.n_hash = None
+        self.n_spans = []
+        self.source_span = None
+        root_span = get_path(self._event, "contexts", "trace")
+        if root_span:
+            self.potential_parents[root_span.get("span_id")] = root_span
+
+    def visit_span(self, span: Span) -> None:
+        span_id = span.get("span_id", None)
+        op = span.get("op", None)
+        if not span_id or not op:
+            return
+
+        if not op.startswith("db"):
+            # This breaks up the N+1 we're currently tracking.
+            self._maybe_store_problem()
+            self._reset_detection()
+            # Treat it as a potential parent as long as it isn't the root span.
+            if span.get("parent_span_id", None):
+                self.potential_parents[span_id] = span
+            return
+
+        if not self.source_span:
+            # We aren't currently tracking an N+1. Maybe this span triggers one!
+            self._maybe_use_as_source(span)
+            return
+
+        # If we got this far, we know we're a DB span and we're looking for a
+        # sequence of N identical DB spans.
+        if self._continues_n_plus_1(span):
+            self.n_spans.append(span)
+        else:
+            previous_span = self.n_spans[-1] if self.n_spans else None
+            self._maybe_store_problem()
+            self._reset_detection()
+
+            # Maybe this DB span starts a whole new N+1!
+            if previous_span:
+                self._maybe_use_as_source(previous_span)
+            if self.source_span and self._continues_n_plus_1(span):
+                self.n_spans.append(span)
+            else:
+                self.source_span = None
+                self._maybe_use_as_source(span)
+
+    def on_complete(self) -> None:
+        self._maybe_store_problem()
+
+    def _contains_valid_query(self, span: Span, is_source: Optional[bool] = False) -> bool:
+        query = span.get("description", None)
+
+        # For the source, we only care if the query is present.
+        if is_source:
+            return bool(query)
+
+        if not query or query.endswith("..."):
+            return False
+
+        return PARAMETERIZED_SQL_QUERY_REGEX.search(query)
+
+    def _maybe_use_as_source(self, span: Span):
+        parent_span_id = span.get("parent_span_id", None)
+        if not parent_span_id or parent_span_id not in self.potential_parents:
+            return
+
+        self.source_span = span
+
+    def _continues_n_plus_1(self, span: Span):
+        if self._overlaps_last_span(span):
+            return False
+
+        expected_parent_id = self.source_span.get("parent_span_id", None)
+        parent_id = span.get("parent_span_id", None)
+        if not parent_id or parent_id != expected_parent_id:
+            return False
+
+        span_hash = span.get("hash", None)
+        if not span_hash:
+            return False
+
+        if span_hash == self.source_span.get("hash", None):
+            # The source span and n repeating spans must have different queries.
+            return False
+
+        if not self.n_hash:
+            self.n_hash = span_hash
+            return True
+
+        return span_hash == self.n_hash
+
+    def _overlaps_last_span(self, span: Span) -> bool:
+        last_span = self.source_span
+        if self.n_spans:
+            last_span = self.n_spans[-1]
+
+        last_span_ends = timedelta(seconds=last_span.get("timestamp", 0))
+        current_span_begins = timedelta(seconds=span.get("start_timestamp", 0))
+        return last_span_ends > current_span_begins
+
+    def _maybe_store_problem(self):
+        if not self.source_span or not self.n_spans:
+            return
+
+        count = self.settings.get("count")
+        duration_threshold = timedelta(milliseconds=self.settings.get("duration_threshold"))
+
+        # Do we have enough spans?
+        if len(self.n_spans) < count:
+            return
+
+        # Do the spans take enough total time?
+        total_duration = timedelta()
+        for span in self.n_spans:
+            total_duration += get_span_duration(span)
+        if total_duration < duration_threshold:
+            return
+
+        # We require a parent span in order to improve our fingerprint accuracy.
+        parent_span_id = self.source_span.get("parent_span_id", None)
+        if not parent_span_id:
+            return
+        parent_span = self.potential_parents[parent_span_id]
+        if not parent_span:
+            return
+
+        # Track how many N+1-looking problems we found but dropped because we
+        # couldn't be sure (maybe the truncated part of the query differs).
+        if not self._contains_valid_query(
+            self.source_span, is_source=True
+        ) or not self._contains_valid_query(self.n_spans[0]):
+            return
+
+        fingerprint = self._fingerprint(
+            parent_span.get("op", None),
+            parent_span.get("hash", None),
+            self.source_span.get("hash", None),
+            self.n_spans[0].get("hash", None),
+        )
+        if fingerprint not in self.stored_problems:
+            self.stored_problems[fingerprint] = PerformanceProblem(
+                fingerprint=fingerprint,
+                op="db",
+                desc=self.n_spans[0].get("description", ""),
+                type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+                parent_span_ids=[parent_span_id],
+                cause_span_ids=[self.source_span.get("span_id", None)],
+                offender_span_ids=[span.get("span_id", None) for span in self.n_spans],
+            )
+
+    def _reset_detection(self):
+        self.source_span = None
+        self.n_hash = None
+        self.n_spans = []
+
+    def _fingerprint(self, parent_op, parent_hash, source_hash, n_hash) -> str:
+        problem_class = GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES
+        full_fingerprint = hashlib.sha1(
+            (str(parent_op) + str(parent_hash) + str(source_hash) + str(n_hash)).encode("utf8"),
+        ).hexdigest()
+        return f"1-{problem_class}-{full_fingerprint}"
 
 
 # Reports metrics and creates spans for detection
