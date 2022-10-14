@@ -102,7 +102,7 @@ export type IssueAttachment = {
 };
 
 // endpoint: /api/0/projects/:orgSlug/:projSlug/events/:eventId/attachments/
-export type EventAttachment = Omit<IssueAttachment, 'event_id'>;
+export type EventAttachment = IssueAttachment;
 
 /**
  * Issue Tags

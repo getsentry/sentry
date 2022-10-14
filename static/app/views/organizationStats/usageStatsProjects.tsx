@@ -408,8 +408,7 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
             onSearch={this.handleSearch}
           />
         </Container>
-
-        <Container>
+        <Container data-test-id="usage-stats-table">
           <UsageTable
             isLoading={loading || loadingProjects}
             isError={error}
