@@ -1167,7 +1167,7 @@ SENTRY_FEATURES = {
     # Enable performance issues dev options, includes changing detection thresholds and other parts of issues that we're using for development.
     "organizations:performance-issues-dev": False,
     # Enables updated all events tab in a performance issue
-    "organizations:performance-issues-all-events-tab": True,
+    "organizations:performance-issues-all-events-tab": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
     # Enable the UI for the overage alert settings
