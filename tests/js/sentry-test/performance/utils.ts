@@ -118,11 +118,8 @@ export class TransactionEventBuilder {
       problemSpan,
       parentSpanId,
       childOpts,
+      numSpans = 1,
     } = opts;
-
-    if (!opts.numSpans) {
-      opts.numSpans = 1;
-    }
 
     for (let i = 0; i < opts.numSpans; i++) {
       // Convert the num of spans to a hex string to get its ID
