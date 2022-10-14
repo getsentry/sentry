@@ -4,6 +4,7 @@ const BOOTSTRAP_URL = '/api/client-config/';
 
 const bootApplication = (data: Config) => {
   window.csrfCookieName = data.csrfCookieName;
+  window.superUserCookieName = data.superUserCookieName;
 
   return data;
 };
