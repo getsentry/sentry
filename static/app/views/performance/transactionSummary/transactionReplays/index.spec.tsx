@@ -2,6 +2,10 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {
+  SPAN_OP_BREAKDOWN_FIELDS,
+  SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
+} from 'sentry/utils/discover/fields';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import TransactionReplays from 'sentry/views/performance/transactionSummary/transactionReplays';
 import {RouteContext} from 'sentry/views/routeContext';
@@ -15,6 +19,11 @@ type InitializeOrgProps = {
     features?: string[];
   };
 };
+
+jest.mock('sentry/utils/useMedia', () => ({
+  __esModule: true,
+  default: jest.fn(() => true),
+}));
 
 const mockUrl = '/organizations/org-slug/replays/';
 
@@ -115,7 +124,15 @@ describe('TransactionReplays', () => {
             statsPeriod: '14d',
             project: ['1'],
             environment: [],
-            field: ['replayId', 'count()'],
+            field: expect.arrayContaining([
+              'replayId',
+              'count()',
+              ...SPAN_OP_BREAKDOWN_FIELDS,
+              SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
+              'transaction.duration',
+              'trace',
+              'timestamp',
+            ]),
             per_page: 50,
             query: 'transaction:transaction !replayId:""',
           }),

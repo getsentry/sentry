@@ -700,7 +700,7 @@ const isDurationValue = (data: EventData, field: string): boolean => {
   return field in data && typeof data[field] === 'number';
 };
 
-const spanOperationRelativeBreakdownRenderer = (
+export const spanOperationRelativeBreakdownRenderer = (
   data: EventData,
   {location, organization, eventView}: RenderFunctionBaggage
 ): React.ReactNode => {

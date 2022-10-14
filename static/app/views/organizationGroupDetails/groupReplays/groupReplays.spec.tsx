@@ -16,6 +16,11 @@ type InitializeOrgProps = {
   };
 };
 
+jest.mock('sentry/utils/useMedia', () => ({
+  __esModule: true,
+  default: jest.fn(() => true),
+}));
+
 const mockUrl = '/organizations/org-slug/replays/';
 
 const mockProps = {
