@@ -195,8 +195,11 @@ describe('IssueListActions', function () {
 
         const modal = screen.getByRole('dialog');
 
-        userEvent.clear(within(modal).getByLabelText('Number of users'));
-        userEvent.type(within(modal).getByLabelText('Number of users'), '300');
+        userEvent.clear(within(modal).getByRole('spinbutton', {name: 'Number of users'}));
+        userEvent.type(
+          within(modal).getByRole('spinbutton', {name: 'Number of users'}),
+          '300'
+        );
 
         userEvent.click(within(modal).getByRole('textbox'));
         userEvent.click(within(modal).getByText('per week'));

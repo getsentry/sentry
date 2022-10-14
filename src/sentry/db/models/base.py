@@ -20,6 +20,7 @@ __all__ = (
     "sane_repr",
     "get_model_if_available",
     "control_silo_with_replication_model",
+    "control_silo_only_model",
     "region_silo_only_model",
 )
 

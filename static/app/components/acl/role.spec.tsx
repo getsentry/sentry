@@ -66,7 +66,7 @@ describe('Role', function () {
     });
 
     it('gives access to a superuser with insufficient role', function () {
-      ConfigStore.config.user = {isSuperuser: true};
+      ConfigStore.config.user = TestStubs.User({isSuperuser: true});
       Cookies.set = jest.fn();
 
       render(<Role role="owner">{childrenMock}</Role>, {context: routerContext});
@@ -74,8 +74,8 @@ describe('Role', function () {
       expect(childrenMock).toHaveBeenCalledWith({
         hasRole: true,
       });
-      expect(Cookies.set).toHaveBeenCalledWith('su', 'test');
-      ConfigStore.config.user = {isSuperuser: false};
+      expect(Cookies.set).toHaveBeenCalledWith('su-test-cookie', 'test');
+      ConfigStore.config.user = TestStubs.User({isSuperuser: false});
     });
 
     it('does not give access to a made up role', function () {
@@ -90,7 +90,7 @@ describe('Role', function () {
 
     it('handles no user', function () {
       const user = {...ConfigStore.config.user};
-      ConfigStore.config.user = undefined;
+      ConfigStore.config.user = undefined as any;
       render(<Role role="member">{childrenMock}</Role>, {context: routerContext});
 
       expect(childrenMock).toHaveBeenCalledWith({
@@ -101,7 +101,7 @@ describe('Role', function () {
 
     it('updates if user changes', function () {
       const user = {...ConfigStore.config.user};
-      ConfigStore.config.user = undefined;
+      ConfigStore.config.user = undefined as any;
       const {rerender} = render(<Role role="member">{childrenMock}</Role>, {
         context: routerContext,
       });
