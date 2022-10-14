@@ -38,8 +38,6 @@ const AllEventsTable = (props: Props) => {
     'user.display',
     ...(isPerfIssue ? ['transaction.duration'] : []),
     'timestamp',
-    'attachments',
-    'minidump',
   ];
 
   const eventView: EventView = EventView.fromLocation(props.location);
@@ -88,6 +86,7 @@ const AllEventsTable = (props: Props) => {
       }}
       transactionName=""
       columnTitles={columnTitles.slice()}
+      referrer="api.issues.issue_events"
     />
   );
 };
