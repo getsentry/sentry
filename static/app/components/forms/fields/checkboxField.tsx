@@ -1,12 +1,13 @@
 import styled from '@emotion/styled';
 
 import Checkbox from 'sentry/components/checkbox';
-import FieldDescription from 'sentry/components/forms/field/fieldDescription';
-import FieldHelp from 'sentry/components/forms/field/fieldHelp';
-import FieldLabel from 'sentry/components/forms/field/fieldLabel';
-import FieldRequiredBadge from 'sentry/components/forms/field/fieldRequiredBadge';
-import FormField from 'sentry/components/forms/formField';
 import space from 'sentry/styles/space';
+
+import FieldDescription from '../field/fieldDescription';
+import FieldHelp from '../field/fieldHelp';
+import FieldLabel from '../field/fieldLabel';
+import FieldRequiredBadge from '../field/fieldRequiredBadge';
+import FormField from '../formField';
 
 type FormFieldProps = Omit<
   React.ComponentProps<typeof FormField>,
@@ -27,10 +28,6 @@ type Props = {
    */
   help?: React.ReactNode | React.ReactElement | ((props: Props) => React.ReactNode);
   /**
-   * The control's `id` property
-   */
-  id?: string;
-  /**
    * User visible field label
    */
   label?: React.ReactNode;
@@ -41,13 +38,14 @@ type Props = {
 } & FormFieldProps;
 
 function CheckboxField(props: Props) {
-  const {name, disabled, stacked, id, required, label, help} = props;
+  const {name, disabled, stacked, required, label, help} = props;
 
   const helpElement = typeof help === 'function' ? help(props) : help;
+  const ariaLabel = typeof label === 'string' ? label : undefined;
 
   return (
     <FormField name={name} inline={false} stacked={stacked}>
-      {({onChange, value}) => {
+      {({onChange, value, id}) => {
         function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
           const newValue = e.target.checked;
           onChange?.(newValue, e);
@@ -64,7 +62,7 @@ function CheckboxField(props: Props) {
                 onChange={handleChange}
               />
             </ControlWrapper>
-            <FieldDescription htmlFor={id}>
+            <FieldDescription htmlFor={id} aria-label={ariaLabel}>
               {label && (
                 <FieldLabel disabled={disabled}>
                   <span>
