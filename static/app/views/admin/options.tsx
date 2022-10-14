@@ -103,7 +103,7 @@ const performanceOptionDefinitions: Field[] = [
     ...HIGH_THROUGHPUT_RATE_OPTION,
   },
   {
-    key: 'performance.issues.all.post-process-group-general-availability-rollout',
+    key: 'performance.issues.all.post-process-group-ga-rollout',
     label: t('Performance issues post process group GA Rollout'),
     help: t(
       'Controls the rate at which performance issues sent through post process group for all organizations.'
