@@ -8,13 +8,13 @@ from sentry.db.models import (
     ArrayField,
     DefaultFieldsModel,
     get_model_if_available,
-    region_silo_model,
+    region_silo_only_model,
     sane_repr,
 )
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 
 
-@region_silo_model
+@region_silo_only_model
 class UserRole(DefaultFieldsModel):
     """
     Roles are applied to administrative users and apply a set of `UserPermission`.
@@ -44,7 +44,7 @@ class UserRole(DefaultFieldsModel):
         )
 
 
-@region_silo_model
+@region_silo_only_model
 class UserRoleUser(DefaultFieldsModel):
     __include_in_export__ = True
 

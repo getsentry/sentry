@@ -9,9 +9,9 @@ from sentry.db.models import (
     FlexibleForeignKey,
     GzippedDictField,
     Model,
-    all_silo_model,
     sane_repr,
 )
+from sentry.db.models.base import control_silo_only_model
 
 MAX_ACTOR_LABEL_LENGTH = 64
 
@@ -30,7 +30,7 @@ def format_scim_token_actor_name(actor):
     return "SCIM Internal Integration (" + uuid_prefix + ")"
 
 
-@all_silo_model
+@control_silo_only_model
 class AuditLogEntry(Model):
     __include_in_export__ = False
 
