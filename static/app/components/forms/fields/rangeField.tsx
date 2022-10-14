@@ -1,6 +1,6 @@
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
 
-import InputField, {InputFieldProps, onEvent} from './inputField';
+import InputField, {InputFieldProps, OnEvent} from './inputField';
 
 type DisabledFunction = (props: Omit<RangeFieldProps, 'formatMessageValue'>) => boolean;
 type PlaceholderFunction = (props: any) => React.ReactNode;
@@ -28,7 +28,7 @@ export interface RangeFieldProps
 }
 
 function onChange(
-  fieldOnChange: onEvent,
+  fieldOnChange: OnEvent,
   value: number | '',
   e: React.FormEvent<HTMLInputElement>
 ) {
