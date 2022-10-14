@@ -7,7 +7,7 @@ from django.test import override_settings
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint, control_silo_endpoint, pending_silo_endpoint
+from sentry.api.base import control_silo_endpoint, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.testutils import APITestCase
 from sentry.types.region import Region, RegionCategory
@@ -24,12 +24,14 @@ SENTRY_REGION_CONFIG = [
 
 
 @control_silo_endpoint
-class ControlEndpoint(Endpoint):
-    def get(self, request):
+class ControlEndpoint(OrganizationEndpoint):
+    permission_classes = (AllowAny,)
+
+    def get(self, request, organization):
         return Response({"proxy": False})
 
 
-@pending_silo_endpoint
+@region_silo_endpoint
 class RegionEndpoint(OrganizationEndpoint):
     permission_classes = (AllowAny,)
 

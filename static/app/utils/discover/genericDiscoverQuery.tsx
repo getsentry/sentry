@@ -266,7 +266,6 @@ class _GenericDiscoverQuery<T, P> extends Component<Props<T, P>, State<T>> {
 
       const tableData = afterFetch ? afterFetch(data, this.props) : data;
       didFetch?.(tableData);
-
       this.setState(prevState => ({
         isLoading: false,
         tableFetchID: undefined,

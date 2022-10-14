@@ -182,13 +182,6 @@ ALL_KILLSWITCH_OPTIONS = {
             "message_type": "message type to randomly partition",
         },
     ),
-    "kafka.send-project-transactions-to-new-topic": KillswitchInfo(
-        description="""
-        Temporary killswitch for rolling out events/transactions split to a subset of projects first
-        The new topic is hardcoded to "transactions".
-        """,
-        fields={"project_id": "project ID to send to the new `transactions` topic"},
-    ),
     "relay.drop-transaction-metrics": KillswitchInfo(
         description="""
         Tell Relay via project config to stop extracting metrics from transactions.
