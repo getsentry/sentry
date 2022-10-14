@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import partial from 'lodash/partial';
 
+import Button from 'sentry/components/button';
 import Count from 'sentry/components/count';
 import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
 import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
@@ -289,6 +290,7 @@ type SpecialFields = {
   id: SpecialField;
   issue: SpecialField;
   'issue.id': SpecialField;
+  minidump: SpecialField;
   project: SpecialField;
   release: SpecialField;
   replayId: SpecialField;
@@ -317,16 +319,19 @@ const SPECIAL_FIELDS: SpecialFields = {
     renderFunc: data => {
       const attachments: Array<IssueAttachment & {url: string}> = data.attachments;
 
-      const items: MenuItemProps[] = attachments.map(attachment => ({
-        key: attachment.id,
-        label: attachment.name,
-        onAction: () => window.open(attachment.url), // TODO - validate if this works
-      }));
+      const items: MenuItemProps[] = attachments
+        .filter(attachment => attachment.type !== 'event.minidump')
+        .map(attachment => ({
+          key: attachment.id,
+          label: attachment.name,
+          onAction: () => window.open(attachment.url),
+        }));
 
       return (
         <Container>
           <DropdownMenuControl
             position="left"
+            size="xs"
             triggerProps={{
               showChevron: false,
               icon: (
@@ -338,6 +343,28 @@ const SPECIAL_FIELDS: SpecialFields = {
             }}
             items={items}
           />
+        </Container>
+      );
+    },
+  },
+  minidump: {
+    sortField: null,
+    renderFunc: data => {
+      const attachments: Array<IssueAttachment & {url: string}> = data.attachments;
+
+      const minidump = attachments.find(
+        attachment => attachment.type === 'event.minidump'
+      );
+
+      return (
+        <Container>
+          <Button size="xs" disabled={!minidump ? true : false}>
+            <IconDownload
+              onClick={() => window.open(minidump?.url)}
+              color="gray500"
+              size="14px"
+            />
+          </Button>
         </Container>
       );
     },
