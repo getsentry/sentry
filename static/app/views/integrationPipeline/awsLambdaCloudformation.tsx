@@ -5,8 +5,8 @@ import * as qs from 'query-string';
 
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import Button from 'sentry/components/actions/button';
-import SelectField from 'sentry/components/forms/selectField';
-import TextField from 'sentry/components/forms/textField';
+import SelectField from 'sentry/components/forms/fields/selectField';
+import TextField from 'sentry/components/forms/fields/textField';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {t} from 'sentry/locale';

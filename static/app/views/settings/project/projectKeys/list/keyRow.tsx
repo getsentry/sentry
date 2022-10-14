@@ -36,14 +36,21 @@ function KeyRow({data, onRemove, onToggle, access, routes, location, params}: Pr
     <Button key="edit" to={editUrl} size="sm">
       {t('Configure')}
     </Button>,
-    <Button
+    <Confirm
       key="toggle"
-      size="sm"
-      onClick={data.isActive ? handleDisable : handleEnable}
+      onConfirm={data.isActive ? handleDisable : handleEnable}
       disabled={!controlActive}
+      confirmText={data.isActive ? t('Disable Key') : t('Enable Key')}
+      message={
+        data.isActive
+          ? t('Are you sure you want to disable this key?')
+          : t('Are you sure you want to re-enable this key?')
+      }
     >
-      {data.isActive ? t('Disable') : t('Enable')}
-    </Button>,
+      <Button key="toggle" size="sm">
+        {data.isActive ? t('Disable') : t('Enable')}
+      </Button>
+    </Confirm>,
     <Confirm
       key="remove"
       priority="danger"
