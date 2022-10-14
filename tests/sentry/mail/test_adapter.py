@@ -321,13 +321,10 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             "Repeating Spans (10)",
             "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author`",
         ]
-        # print(msg.alternatives[0][0])
         for checked_value in checked_values:
             assert (
                 checked_value in msg.alternatives[0][0]
             ), f"{checked_value} not present in message"
-
-        assert False
 
     @mock.patch("sentry.interfaces.stacktrace.Stacktrace.get_title")
     @mock.patch("sentry.interfaces.stacktrace.Stacktrace.to_email_html")

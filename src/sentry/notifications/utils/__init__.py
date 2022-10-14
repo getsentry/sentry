@@ -3,7 +3,18 @@ from __future__ import annotations
 import logging
 import time
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequence, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Iterable,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Union,
+    cast,
+)
 
 from django.db.models import Count
 from django.utils.http import urlencode
@@ -35,6 +46,10 @@ from sentry.notifications.notify import notify
 from sentry.notifications.utils.participants import split_participants_and_context
 from sentry.utils.committers import get_serialized_event_file_committers
 from sentry.utils.http import absolute_uri
+from sentry.utils.performance_issues.performance_detection import (
+    EventPerformanceProblem,
+    PerformanceProblem,
+)
 from sentry.web.helpers import render_to_string
 
 if TYPE_CHECKING:
@@ -266,10 +281,14 @@ def get_interface_list(event: Event) -> Sequence[tuple[str, str, str]]:
     return interface_list
 
 
-def perf_to_email_html(spans, problem):
+def perf_to_email_html(
+    spans: Sequence[Dict[str, str | int]], problem: Optional[PerformanceProblem] = None
+) -> Any:
     # I'm aware this is not great duplication
-    def get_span_evidence_value_problem(problem):
+    def get_span_evidence_value_problem(problem: PerformanceProblem) -> str:
         value = "no value"
+        if not problem:
+            return value
         if not problem.op and problem.desc:
             value = problem.desc
         if problem.op and not problem.desc:
@@ -278,8 +297,10 @@ def perf_to_email_html(spans, problem):
             value = f"{problem.op} - {problem.desc}"
         return value
 
-    def get_span_evidence_value(span):
+    def get_span_evidence_value(span: Optional[Dict[str, Union[str, float, None]]] = None) -> str:
         value = "no value"
+        if not span:
+            return value
         if not span.get("op") and span.get("description"):
             value = span.get("description")
         if span.get("op") and not span.get("description"):
@@ -310,14 +331,14 @@ def perf_to_email_html(spans, problem):
     return render_to_string("sentry/emails/transactions.html", context)
 
 
-def get_transaction_data(event: Event) -> Sequence[tuple[str, str, str]]:
+def get_transaction_data(event: Event) -> Any:
     """Get data about a transaction to populate alert emails."""
     entries = get_entries(event, None)
     spans = []
     if len(entries):
         spans = [entry.get("data") for entry in entries[0] if entry.get("type") == "spans"][0]
 
-    matched_problem = None
+    matched_problem: Union[EventPerformanceProblem, None] = None
     for problem in get_problems([event]):
         if problem.problem.fingerprint == GroupHash.objects.get(group=event.group).hash:
             matched_problem = problem

@@ -205,7 +205,7 @@ class EventSerializer(Serializer):
             )
             (sdk_data, sdk_meta) = self._get_interface_with_meta(item, "sdk", is_public)
 
-            (entries, entries_meta) = self.get_entries(item, user, is_public=is_public)
+            (entries, entries_meta) = get_entries(item, user, is_public=is_public)
 
             results[item] = {
                 "entries": entries,
