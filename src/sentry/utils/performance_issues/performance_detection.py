@@ -1021,6 +1021,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
             return
 
         if not self._contains_valid_repeating_query(self.n_spans[0]):
+            metrics.incr("performance.performance_issue.unparametrized_first_span")
             return
 
         fingerprint = self._fingerprint(
