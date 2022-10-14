@@ -2,6 +2,7 @@ import base64
 from unittest.mock import patch
 
 from django.test import RequestFactory, override_settings
+from django.utils import timezone
 from exam import fixture
 from freezegun import freeze_time
 
@@ -9,7 +10,6 @@ from sentry.middleware.auth import AuthenticationMiddleware
 from sentry.models import ApiKey, ApiToken, UserIP
 from sentry.silo import SiloMode
 from sentry.testutils import TestCase
-from sentry.utils import json
 from sentry.utils.auth import login
 
 
@@ -47,7 +47,7 @@ class AuthenticationMiddlewareTestCase(TestCase):
         assert login(request, self.user)
 
         with override_settings(SILO_MODE=SiloMode.REGION), patch(
-            "sentry.utils.pubsub.KafkaPublisher.publish"
+            "sentry.region_to_control.producer.write_region_to_control_message"
         ) as publish, freeze_time("2000-01-01"):
             self.middleware.process_request(request)
 
@@ -59,18 +59,17 @@ class AuthenticationMiddlewareTestCase(TestCase):
             assert not UserIP.objects.filter(user=self.user, ip_address="127.0.0.1").exists()
 
             publish.assert_called_with(
-                "region-to-control",
-                json.dumps(
-                    dict(
-                        user_ip_event=dict(
-                            user_id=self.user.id,
-                            ip_address="127.0.0.1",
-                            last_seen="2000-01-01T00:00:00.000000Z",
-                            country_code=None,
-                            region_code=None,
-                        ),
+                dict(
+                    user_ip_event=dict(
+                        user_id=self.user.id,
+                        ip_address="127.0.0.1",
+                        last_seen=timezone.now(),
+                        country_code=None,
+                        region_code=None,
                     ),
+                    audit_log_event=None,
                 ),
+                sync=False,
             )
 
     def test_process_request_good_nonce(self):
