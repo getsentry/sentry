@@ -10,13 +10,13 @@ import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {IconCalendar} from 'sentry/icons';
 import useOverlay from 'sentry/utils/useOverlay';
 
-import InputField, {InputFieldProps, onEvent} from './inputField';
+import InputField, {InputFieldProps, OnEvent} from './inputField';
 
 interface DatePickerFieldProps extends Omit<InputFieldProps, 'field'> {}
 
 function handleChangeDate(
-  onChange: onEvent,
-  onBlur: onEvent,
+  onChange: OnEvent,
+  onBlur: OnEvent,
   date: Date,
   close: Function
 ) {
