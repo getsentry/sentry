@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import time
 from collections import deque
@@ -102,7 +104,7 @@ class MetricsBucket(TypedDict):
 
 
 class MetricsBucketBilling(NamedTuple):
-    billing_future: Future  # Apparently, adding the type of the future doesn't make Python happy
+    billing_future: Future[Message[KafkaPayload]]
     metrics_msg: Message[KafkaPayload]
 
 
@@ -238,7 +240,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
             # outcomes, since the consumer has already processed them. To keep
             # the offset order when committing, we still need to go through the
             # futures queue.
-            future: Future = Future()
+            future: Future[Message[KafkaPayload]] = Future()
             future.set_result(True)  # Mark the future as completed
         else:
             value = json.dumps(
