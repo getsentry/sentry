@@ -15,7 +15,7 @@ describe('Project Ownership', () => {
       method: 'GET',
       body: {
         fallthrough: false,
-        autoAssignment: false,
+        autoAssignment: 'Auto Assign to Suspect Commits',
         codeownersAutoSync: false,
       },
     });
@@ -86,17 +86,6 @@ describe('Project Ownership', () => {
 
   describe('issue owners settings', () => {
     it('should set autoAssignment with commit-context string', async () => {
-      MockApiClient.addMockResponse({
-        url: `/projects/${org.slug}/${project.slug}/ownership/`,
-        method: 'GET',
-        body: {
-          fallthrough: false,
-          // String instead of boolean
-          autoAssignment: 'Auto Assign to Suspect Commits',
-          codeownersAutoSync: false,
-        },
-      });
-
       const updateOwnership = MockApiClient.addMockResponse({
         url: `/projects/${org.slug}/${project.slug}/ownership/`,
         method: 'PUT',
