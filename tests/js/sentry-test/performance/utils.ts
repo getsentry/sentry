@@ -33,11 +33,11 @@ export class TransactionEventBuilder {
     parentSpanIds: [],
   };
 
-  constructor() {
+  constructor(id?: string, title?: string) {
     this._event = {
-      id: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
-      eventID: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
-      title: EXAMPLE_TRANSACTION_TITLE,
+      id: id ?? 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      eventID: id ?? 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      title: title ?? EXAMPLE_TRANSACTION_TITLE,
       type: EventOrGroupType.TRANSACTION,
       startTimestamp: 0,
       endTimestamp: 0,
@@ -121,7 +121,7 @@ export class TransactionEventBuilder {
       numSpans = 1,
     } = opts;
 
-    for (let i = 0; i < opts.numSpans; i++) {
+    for (let i = 0; i < numSpans; i++) {
       // Convert the num of spans to a hex string to get its ID
       const spanId = (this._spans.length + 1).toString(16).padStart(16, '0');
 
