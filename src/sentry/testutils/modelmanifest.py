@@ -65,7 +65,7 @@ class ModelManifest:
     def open(cls, file_path: str) -> ModelManifest:
         manifest = cls(file_path)
         if os.path.exists(file_path):
-            with open(file_path, mode="w") as f:
+            with open(file_path) as f:
                 content = json.load(f)
             manifest._load_json(content)
         return manifest
