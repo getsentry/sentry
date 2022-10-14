@@ -494,14 +494,12 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
     def get_email_subject(self) -> str:
         template = self.project.get_option("mail:subject_template")
-
         if template:
             template = EventSubjectTemplate(template)
         elif self.group.issue_category == GroupCategory.PERFORMANCE:
             template = EventSubjectTemplate("$shortID - $issueType")
         else:
             template = DEFAULT_SUBJECT_TEMPLATE
-
         return cast(
             str, truncatechars(template.safe_substitute(EventSubjectTemplateData(self)), 128)
         )
