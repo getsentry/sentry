@@ -27,25 +27,11 @@ const RESOURCE_LINKS: Record<IssueType, PlatformSpecificResources> = {
         text: t('Finding and Fixing Django N+1 Problems'),
         link: 'https://blog.sentry.io/2020/09/14/finding-and-fixing-django-n-1-problems',
       },
-      {
-        text: t('Django select_related and prefetch_related'),
-        link: 'https://betterprogramming.pub/django-select-related-and-prefetch-related-f23043fd635d',
-      },
     ],
     'python-django': [
       {
         text: t('Finding and Fixing Django N+1 Problems'),
         link: 'https://blog.sentry.io/2020/09/14/finding-and-fixing-django-n-1-problems',
-      },
-      {
-        text: t('Django select_related and prefetch_related'),
-        link: 'https://betterprogramming.pub/django-select-related-and-prefetch-related-f23043fd635d',
-      },
-    ],
-    'ruby-rails': [
-      {
-        text: t('Rails Guide: Active Record Query Interface'),
-        link: 'https://guides.rubyonrails.org/active_record_querying.html#eager-loading-associations',
       },
     ],
   },
