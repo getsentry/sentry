@@ -352,7 +352,7 @@ export function ServerSideSampling({project}: Props) {
       if (r.id === rule.id) {
         return {
           ...r,
-          id: 0,
+          id: -1,
           active: !r.active,
         };
       }
