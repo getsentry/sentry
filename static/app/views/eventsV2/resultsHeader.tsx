@@ -150,7 +150,6 @@ class ResultsHeader extends Component<Props, State> {
             isHomepage={isHomepage}
             setHomepageQuery={updatedHomepageQuery => {
               this.setState({homepageQuery: updatedHomepageQuery});
-              setSavedQuery(updatedHomepageQuery);
             }}
             homepageQuery={homepageQuery}
           />
