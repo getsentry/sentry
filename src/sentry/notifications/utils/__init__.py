@@ -314,10 +314,12 @@ def perf_to_email_html(
     parent_span = None
     repeating_spans = None
     for span in spans:
-        if problem.parent_span_ids[0] == span.get("span_id"):
-            parent_span = span
-        if problem.offender_span_ids[0] == span.get("span_id"):
-            repeating_spans = span
+        if problem.parent_span_ids:
+            if problem.parent_span_ids[0] == span.get("span_id"):
+                parent_span = span
+        if problem.offender_span_ids:
+            if problem.offender_span_ids[0] == span.get("span_id"):
+                repeating_spans = span
         if parent_span is not None and repeating_spans is not None:
             break
 
@@ -326,7 +328,9 @@ def perf_to_email_html(
         "parent_span": get_span_evidence_value(parent_span),
         # "preceding_span": "SELECT idk FROM idk_what_a_preceding_span_is",
         "repeating_spans": get_span_evidence_value(repeating_spans),
-        "num_repeating_spans": str(len(problem.offender_span_ids)),
+        "num_repeating_spans": str(len(problem.offender_span_ids))
+        if problem.offender_span_ids
+        else "",
     }
     return render_to_string("sentry/emails/transactions.html", context)
 
