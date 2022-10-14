@@ -107,7 +107,9 @@ class AlertRuleNotification(ProjectNotification):
             context.update({"tags": self.event.tags, "interfaces": get_interface_list(self.event)})
 
         if self.group.issue_category == GroupCategory.PERFORMANCE:
-            context.update({"transaction_data": get_transaction_data(self.group)})
+            context.update(
+                {"transaction_data": [("Span Evidence", get_transaction_data(self.event), None)]}
+            )
 
         return context
 
