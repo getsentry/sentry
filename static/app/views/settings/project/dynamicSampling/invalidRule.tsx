@@ -56,7 +56,7 @@ export function InvalidRule({
             "It looks like the uniform rule's sample rate has been updated and is now higher than this rule's sample rate, so this rule is no longer valid."
           )}
         >
-          <StyledIconWarning />
+          <StyledIconWarning data-test-id="icon-warning" />
         </Tooltip>
       </WarningColumn>
       <ConditionColumn>
