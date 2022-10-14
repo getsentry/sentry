@@ -29,7 +29,8 @@ function makeWrapper(
   handleCellAction,
   columnIndex = 0,
   data = defaultData,
-  organization = null
+  organization = null,
+  showQuickContextMenu = true
 ) {
   return mountWithTheme(
     <CellAction
@@ -38,6 +39,7 @@ function makeWrapper(
       column={eventView.getColumns()[columnIndex]}
       organization={organization}
       handleCellAction={handleCellAction}
+      showQuickContextMenu={showQuickContextMenu}
     >
       <strong>some content</strong>
     </CellAction>
@@ -108,6 +110,12 @@ describe('Discover -> CellAction', function () {
 
     it('does not show context button on hover for non-issue column', function () {
       wrapper = makeWrapper(view, jest.fn(), 1);
+      wrapper.find('Container').simulate('mouseEnter');
+      expect(wrapper.find('button[data-test-id="context-button"]')).toHaveLength(0);
+    });
+
+    it('does not show context button on hover for with showQuickContextMenu prop set to false', function () {
+      wrapper = makeWrapper(view, jest.fn(), 9, defaultData, organization, false);
       wrapper.find('Container').simulate('mouseEnter');
       expect(wrapper.find('button[data-test-id="context-button"]')).toHaveLength(0);
     });

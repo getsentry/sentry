@@ -123,6 +123,7 @@ type CellActionsOpts = {
    */
   allowActions?: Actions[];
   organization?: Organization;
+  showQuickContextMenu?: boolean;
 };
 
 function makeCellActions({
@@ -520,7 +521,7 @@ class CellAction extends Component<Props, State> {
   }
 
   render() {
-    const {children, organization} = this.props;
+    const {children, organization, showQuickContextMenu} = this.props;
     const {isHovering, isContextPopperOpen, isMenuPopperOpen} = this.state;
 
     return (
@@ -530,7 +531,10 @@ class CellAction extends Component<Props, State> {
       >
         {children}
         <Feature organization={organization} features={['discover-quick-context']}>
-          {isHovering && !isMenuPopperOpen && this.renderContext()}
+          {showQuickContextMenu &&
+            isHovering &&
+            !isMenuPopperOpen &&
+            this.renderContext()}
         </Feature>
         {isHovering && !isContextPopperOpen && this.renderMenu()}
       </Container>

@@ -323,6 +323,7 @@ class TableView extends Component<TableViewProps> {
             dataRow={dataRow}
             handleCellAction={this.handleCellAction(dataRow, column)}
             organization={organization}
+            showQuickContextMenu
           >
             {cell}
           </CellAction>
@@ -338,6 +339,7 @@ class TableView extends Component<TableViewProps> {
           dataRow={dataRow}
           handleCellAction={this.handleCellAction(dataRow, column)}
           organization={organization}
+          showQuickContextMenu
         >
           {cell}
         </CellAction>
