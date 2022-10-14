@@ -20,6 +20,7 @@ from sentry.interfaces.base import Interface, get_interfaces
 from sentry.models import EventDict
 from sentry.snuba.events import Column, Columns
 from sentry.spans.grouping.api import load_span_grouping_config
+from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupCategory
 from sentry.utils import json
 from sentry.utils.cache import memoize
 from sentry.utils.canonical import CanonicalKeyView
@@ -495,6 +496,8 @@ class BaseEvent(metaclass=abc.ABCMeta):
         template = self.project.get_option("mail:subject_template")
         if template:
             template = EventSubjectTemplate(template)
+        elif self.group.issue_category == GroupCategory.PERFORMANCE:
+            template = EventSubjectTemplate("$shortID - $issueType")
         else:
             template = DEFAULT_SUBJECT_TEMPLATE
         return cast(
@@ -753,6 +756,8 @@ class EventSubjectTemplateData:
             return cast(str, self.event.organization.slug)
         elif name == "title":
             return self.event.title
+        elif name == "issueType":
+            return cast(str, GROUP_TYPE_TO_TEXT.get(self.event.group.issue_type, "Issue"))
         raise KeyError
 
 
