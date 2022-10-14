@@ -1,5 +1,5 @@
-from sentry.models import ActorTuple, ProjectOwnership, Team, User
-from sentry.models.groupowner import GroupOwner, OwnerRuleType
+from sentry.models import ActorTuple, GroupAssignee, ProjectOwnership, Repository, Team, User
+from sentry.models.groupowner import GroupOwner, GroupOwnerType, OwnerRuleType
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema, resolve_actors
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -223,8 +223,8 @@ class ProjectOwnershipTestCase(TestCase):
         assert ProjectOwnership.get_issue_owners(
             self.project.id, {"stacktrace": {"frames": [{"filename": "src/foo.py"}]}}
         ) == [
-            (rule_a, [self.team], OwnerRuleType.OWNERSHIP_RULE.value),
             (rule_b, [self.user], OwnerRuleType.OWNERSHIP_RULE.value),
+            (rule_a, [self.team], OwnerRuleType.OWNERSHIP_RULE.value),
         ]
 
     def test_handle_auto_assignment_when_codeowners_and_issueowners_exists(self):
@@ -243,15 +243,16 @@ class ProjectOwnershipTestCase(TestCase):
         rule_b = Rule(Matcher("path", "src/*"), [Owner("user", self.user.email)])
         rule_c = Rule(Matcher("path", "*.py"), [Owner("team", self.team2.slug)])
 
-        ProjectOwnership.objects.create(
-            project_id=self.project.id, schema=dump_schema([rule_a, rule_b]), fallthrough=True
+        self.ownership = ProjectOwnership.objects.create(
+            project_id=self.project.id,
+            schema=dump_schema([rule_a, rule_b]),
+            fallthrough=True,
+            auto_assignment=False,
+            suspect_committer_auto_assignment=False,
         )
 
         self.create_codeowners(
             self.project, self.code_mapping, raw="*.py @tiger-team", schema=dump_schema([rule_c])
-        )
-        self.group = self.create_group(
-            project=self.project, message="Kaboom!", first_release=self.release
         )
 
         self.event = self.store_event(
@@ -280,47 +281,163 @@ class ProjectOwnershipTestCase(TestCase):
                     ]
                 },
                 "tags": {"sentry:release": self.release.version},
-                "fingerprint": ["put-me-in-the-control-group"],
             },
             project_id=self.project.id,
         )
+
+        GroupOwner.objects.create(
+            group=self.event.group,
+            type=GroupOwnerType.OWNERSHIP_RULE.value,
+            user_id=None,
+            team_id=self.team.id,
+            project=self.project,
+            organization=self.project.organization,
+            context={"rule": str(rule_a)},
+        )
+
+        GroupOwner.objects.create(
+            group=self.event.group,
+            type=GroupOwnerType.CODEOWNERS.value,
+            user_id=self.user.id,
+            team_id=None,
+            project=self.project,
+            organization=self.project.organization,
+            context={"rule": str(rule_c)},
+        )
+
         ProjectOwnership.handle_auto_assignment(self.project.id, self.event)
-        assert GroupOwner.objects.all() == []
-        # # No autoassignment on match
-        # assert ProjectOwnership.get_autoassign_owners(
-        #     self.project.id, {"stacktrace": {"frames": [{"filename": "api/foo.py"}]}}
-        # ) == (
-        #     True,
-        #     [self.team, self.team2],
-        #     False,
-        #     rule_a,
-        #     [OwnerRuleType.OWNERSHIP_RULE.value, OwnerRuleType.CODEOWNERS.value],
-        # )
-        # # autoassignment is True
-        # owner = ProjectOwnership.objects.get(project_id=self.project.id)
-        # owner.auto_assignment = True
-        # owner.save()
+        assert len(GroupAssignee.objects.all()) == 0
 
-        # assert ProjectOwnership.get_autoassign_owners(
-        #     self.project.id, {"stacktrace": {"frames": [{"filename": "api/foo.py"}]}}
-        # ) == (
-        #     True,
-        #     [self.team, self.team2],
-        #     False,
-        #     rule_a,
-        #     [OwnerRuleType.OWNERSHIP_RULE.value, OwnerRuleType.CODEOWNERS.value],
-        # )
+        # Turn on auto assignment
+        self.ownership.auto_assignment = True
+        self.ownership.suspect_committer_auto_assignment = True
+        self.ownership.save()
+        ProjectOwnership.handle_auto_assignment(self.project.id, self.event)
+        assert len(GroupAssignee.objects.all()) == 1
+        assignee = GroupAssignee.objects.get(group=self.event.group)
+        assert assignee.team_id == self.team.id
 
-        # # # more than 2 matches
-        # assert ProjectOwnership.get_autoassign_owners(
-        #     self.project.id, {"stacktrace": {"frames": [{"filename": "src/foo.py"}]}}
-        # ) == (
-        #     True,
-        #     [self.user, self.team],
-        #     False,
-        #     rule_a,
-        #     [OwnerRuleType.OWNERSHIP_RULE.value, OwnerRuleType.OWNERSHIP_RULE.value],
-        # )
+    def test_handle_auto_assignment_when_suspect_committer_and_codeowners_and_issueowners_exists(
+        self,
+    ):
+        self.user_2 = self.create_user("bar@localhost", username="bar")
+        self.organization.member_set.create(user=self.user_2)
+
+        self.team = self.create_team(
+            organization=self.organization, slug="tiger-team", members=[self.user]
+        )
+        self.team2 = self.create_team(
+            organization=self.organization, slug="dolphin-team", members=[self.user_2]
+        )
+
+        self.project = self.create_project(
+            organization=self.organization, teams=[self.team, self.team2]
+        )
+        self.repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="example",
+            integration_id=self.integration.id,
+        )
+        self.code_mapping = self.create_code_mapping(
+            repo=self.repo,
+            project=self.project,
+        )
+        self.commit_author = self.create_commit_author(project=self.project, user=self.user_2)
+        self.commit = self.create_commit(
+            project=self.project,
+            repo=self.repo,
+            author=self.commit_author,
+            key="asdfwreqr",
+            message="placeholder commit message",
+        )
+
+        rule_a = Rule(Matcher("path", "*.py"), [Owner("team", self.team.slug)])
+        rule_b = Rule(Matcher("path", "src/*"), [Owner("user", self.user.email)])
+        rule_c = Rule(Matcher("path", "*.py"), [Owner("team", self.team2.slug)])
+
+        self.ownership = ProjectOwnership.objects.create(
+            project_id=self.project.id,
+            schema=dump_schema([rule_a, rule_b]),
+            fallthrough=True,
+            auto_assignment=False,
+            suspect_committer_auto_assignment=False,
+        )
+
+        self.create_codeowners(
+            self.project, self.code_mapping, raw="*.py @tiger-team", schema=dump_schema([rule_c])
+        )
+
+        self.event = self.store_event(
+            data={
+                "message": "Kaboom!",
+                "platform": "python",
+                "timestamp": iso_format(before_now(seconds=10)),
+                "stacktrace": {
+                    "frames": [
+                        {
+                            "function": "handle_set_commits",
+                            "abs_path": "/usr/src/sentry/src/sentry/api/foo.py",
+                            "module": "sentry.api",
+                            "in_app": True,
+                            "lineno": 30,
+                            "filename": "sentry/api/foo.py",
+                        },
+                        {
+                            "function": "set_commits",
+                            "abs_path": "/usr/src/sentry/src/sentry/models/release.py",
+                            "module": "sentry.models.release",
+                            "in_app": True,
+                            "lineno": 39,
+                            "filename": "sentry/models/release.py",
+                        },
+                    ]
+                },
+                "tags": {"sentry:release": self.release.version},
+            },
+            project_id=self.project.id,
+        )
+
+        GroupOwner.objects.create(
+            group=self.event.group,
+            project=self.project,
+            user_id=self.user_2.id,
+            team_id=None,
+            organization=self.project.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            context={"commitId": self.commit.id},
+        )
+
+        GroupOwner.objects.create(
+            group=self.event.group,
+            type=GroupOwnerType.OWNERSHIP_RULE.value,
+            user_id=None,
+            team_id=self.team.id,
+            project=self.project,
+            organization=self.project.organization,
+            context={"rule": str(rule_a)},
+        )
+
+        GroupOwner.objects.create(
+            group=self.event.group,
+            type=GroupOwnerType.CODEOWNERS.value,
+            user_id=self.user.id,
+            team_id=None,
+            project=self.project,
+            organization=self.project.organization,
+            context={"rule": str(rule_c)},
+        )
+
+        ProjectOwnership.handle_auto_assignment(self.project.id, self.event)
+        assert len(GroupAssignee.objects.all()) == 0
+
+        # Turn on auto assignment
+        self.ownership.auto_assignment = True
+        self.ownership.suspect_committer_auto_assignment = True
+        self.ownership.save()
+        ProjectOwnership.handle_auto_assignment(self.project.id, self.event)
+        assert len(GroupAssignee.objects.all()) == 1
+        assignee = GroupAssignee.objects.get(group=self.event.group)
+        assert assignee.user_id == self.user_2.id
 
     def test_abs_path_when_filename_present(self):
         frame = {
