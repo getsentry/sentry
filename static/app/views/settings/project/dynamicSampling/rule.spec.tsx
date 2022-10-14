@@ -1,4 +1,4 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ServerSideSamplingStore} from 'sentry/stores/serverSideSamplingStore';
 import {SamplingRuleOperator} from 'sentry/types/sampling';
@@ -27,6 +27,7 @@ describe('Dynamic Sampling - Rule', function () {
         dragging={false}
         sorting={false}
         loadingRecommendedSdkUpgrades
+        valid
       />
     );
 
@@ -45,11 +46,12 @@ describe('Dynamic Sampling - Rule', function () {
         isSupportedPlatform: false,
       },
     ]);
+
     render(
       <Rule
         operator={SamplingRuleOperator.IF}
         hideGrabButton={false}
-        rule={{...TestStubs.DynamicSamplingConfig().uniformRule, active: true}}
+        rule={TestStubs.DynamicSamplingConfig().uniformRule}
         onEditRule={() => {}}
         onDeleteRule={() => {}}
         onActivate={() => {}}
@@ -59,11 +61,58 @@ describe('Dynamic Sampling - Rule', function () {
         dragging={false}
         sorting={false}
         loadingRecommendedSdkUpgrades={false}
+        valid
       />
     );
 
     expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
     expect(screen.getByLabelText('Deactivate Rule')).toBeInTheDocument();
     expect(screen.getByRole('checkbox', {name: 'Deactivate Rule'})).toBeEnabled();
+  });
+
+  it('renders invalid rule', async function () {
+    render(
+      <Rule
+        operator={SamplingRuleOperator.IF}
+        hideGrabButton={false}
+        rule={{...TestStubs.DynamicSamplingConfig().specificRule, active: false}}
+        onEditRule={() => {}}
+        onDeleteRule={() => {}}
+        onActivate={() => {}}
+        noPermission={false}
+        upgradeSdkForProjects={['javascript']}
+        listeners={undefined}
+        dragging={false}
+        sorting={false}
+        loadingRecommendedSdkUpgrades={false}
+        valid={false}
+      />
+    );
+
+    expect(screen.getByTestId('icon-warning')).toBeInTheDocument();
+
+    userEvent.hover(screen.getByTestId('icon-warning'));
+
+    expect(
+      await screen.findByText(
+        "It looks like the uniform rule's sample rate has been updated and is now higher than this rule's sample rate, so this rule is no longer valid."
+      )
+    ).toBeInTheDocument();
+
+    expect(screen.getByRole('checkbox', {name: 'Activate Rule'})).not.toBeChecked();
+
+    userEvent.click(screen.getByRole('checkbox', {name: 'Activate Rule'}));
+
+    expect(
+      await screen.findByText(
+        'To enable this rule, its sample rate must be updated with a value greater than the uniform rule (Else) sample rate.'
+      )
+    ).toBeInTheDocument();
+
+    userEvent.click(screen.getByRole('button', {name: 'Actions'}));
+
+    expect(screen.getByRole('menuitemradio', {name: 'Edit'})).toBeEnabled();
+
+    expect(screen.getByRole('menuitemradio', {name: 'Delete'})).toBeEnabled();
   });
 });

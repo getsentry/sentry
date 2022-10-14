@@ -8,7 +8,7 @@ import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
 import NewBooleanField from 'sentry/components/forms/fields/booleanField';
 import Placeholder from 'sentry/components/placeholder';
 import Tooltip from 'sentry/components/tooltip';
-import {IconEllipsis} from 'sentry/icons';
+import {IconEllipsis, IconWarning} from 'sentry/icons';
 import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -42,7 +42,7 @@ type Props = {
    * If not empty, the activate rule toggle will be disabled.
    */
   upgradeSdkForProjects: Project['slug'][];
-  canDemo?: boolean;
+  valid: boolean;
   grabAttributes?: UseDraggableArguments['attributes'];
 };
 
@@ -59,11 +59,12 @@ export function Rule({
   hideGrabButton,
   upgradeSdkForProjects,
   loadingRecommendedSdkUpgrades,
-  canDemo,
+  valid,
 }: Props) {
-  const canDelete = !noPermission && canDemo;
+  const canDelete = !noPermission;
   const canDrag = !noPermission;
-  const canActivate = !noPermission && (!upgradeSdkForProjects.length || rule.active);
+  const canActivate =
+    !noPermission && valid && (!upgradeSdkForProjects.length || !!rule.active);
 
   return (
     <Fragment>
@@ -88,97 +89,122 @@ export function Rule({
       </DragColumn>
       <OperatorColumn>
         <Operator>
-          {operator === SamplingRuleOperator.IF ? t('If') : t('Else if')}
+          {operator === SamplingRuleOperator.IF
+            ? t('If')
+            : operator === SamplingRuleOperator.ELSE_IF
+            ? t('Else if')
+            : t('Else ')}
         </Operator>
       </OperatorColumn>
       <ConditionColumn>
-        {rule.condition.inner.map((condition, index) => (
-          <Fragment key={index}>
-            <ConditionName>{getInnerNameLabel(condition.name)}</ConditionName>
-            <ConditionEqualOperator>{'='}</ConditionEqualOperator>
-            {Array.isArray(condition.value) ? (
-              <div>
-                {[...condition.value].map((conditionValue, conditionValueIndex) => (
-                  <Fragment key={conditionValue}>
-                    <ConditionValue>{conditionValue}</ConditionValue>
-                    {conditionValueIndex !== (condition.value as string[]).length - 1 && (
-                      <ConditionSeparator>{'\u002C'}</ConditionSeparator>
-                    )}
-                  </Fragment>
-                ))}
-              </div>
-            ) : (
-              <ConditionValue>{String(condition.value)}</ConditionValue>
-            )}
-          </Fragment>
-        ))}
+        {hideGrabButton && !rule.condition.inner.length
+          ? t('All')
+          : rule.condition.inner.map((condition, index) => (
+              <Fragment key={index}>
+                <ConditionName>{getInnerNameLabel(condition.name)}</ConditionName>
+                <ConditionEqualOperator>{'='}</ConditionEqualOperator>
+                {Array.isArray(condition.value) ? (
+                  <div>
+                    {[...condition.value].map((conditionValue, conditionValueIndex) => (
+                      <Fragment key={conditionValue}>
+                        <ConditionValue>{conditionValue}</ConditionValue>
+                        {conditionValueIndex !==
+                          (condition.value as string[]).length - 1 && (
+                          <ConditionSeparator>{'\u002C'}</ConditionSeparator>
+                        )}
+                      </Fragment>
+                    ))}
+                  </div>
+                ) : (
+                  <ConditionValue>{String(condition.value)}</ConditionValue>
+                )}
+              </Fragment>
+            ))}
       </ConditionColumn>
       <RateColumn>
-        <SampleRate>{formatPercentage(rule.sampleRate)}</SampleRate>
+        <SampleRate>
+          {!valid && (
+            <Tooltip
+              title={t(
+                "It looks like the uniform rule's sample rate has been updated and is now higher than this rule's sample rate, so this rule is no longer valid."
+              )}
+            >
+              <StyledIconWarning data-test-id="icon-warning" />
+            </Tooltip>
+          )}
+          {formatPercentage(rule.sampleRate)}
+        </SampleRate>
       </RateColumn>
       <ActiveColumn>
-        {loadingRecommendedSdkUpgrades ? (
-          <ActivateTogglePlaceholder />
-        ) : (
-          <Tooltip
-            disabled={canActivate}
-            title={
-              !canActivate
-                ? tn(
-                    'To enable the rule, the recommended sdk version have to be updated',
-                    'To enable the rule, the recommended sdk versions have to be updated',
-                    upgradeSdkForProjects.length
-                  )
-                : undefined
-            }
-          >
-            <ActiveToggle
-              inline={false}
-              hideControlState
-              aria-label={rule.active ? t('Deactivate Rule') : t('Activate Rule')}
-              onClick={onActivate}
-              name="active"
-              disabled={!canActivate}
-              value={rule.active}
-            />
-          </Tooltip>
-        )}
+        {!hideGrabButton &&
+          (loadingRecommendedSdkUpgrades ? (
+            <ActivateTogglePlaceholder />
+          ) : (
+            <Tooltip
+              disabled={canActivate}
+              title={
+                !canActivate
+                  ? !valid
+                    ? t(
+                        'To enable this rule, its sample rate must be updated with a value greater than the uniform rule (Else) sample rate.'
+                      )
+                    : tn(
+                        'To enable the rule, the recommended sdk version have to be updated',
+                        'To enable the rule, the recommended sdk versions have to be updated',
+                        upgradeSdkForProjects.length
+                      )
+                  : undefined
+              }
+            >
+              <ActiveToggle
+                inline={false}
+                hideControlState
+                aria-label={rule.active ? t('Deactivate Rule') : t('Activate Rule')}
+                onClick={onActivate}
+                name="active"
+                disabled={!canActivate}
+                value={rule.active}
+              />
+            </Tooltip>
+          ))}
       </ActiveColumn>
       <Column>
-        <DropdownMenuControl
-          position="bottom-end"
-          triggerProps={{
-            size: 'xs',
-            icon: <IconEllipsis size="xs" />,
-            showChevron: false,
-            'aria-label': t('Actions'),
-          }}
-          items={[
-            {
-              key: 'edit',
-              label: t('Edit'),
-              details: noPermission
-                ? t("You don't have permission to edit rules")
-                : undefined,
-              onAction: onEditRule,
-              disabled: noPermission,
-            },
-            {
-              key: 'delete',
-              label: t('Delete'),
-              details: canDelete
-                ? undefined
-                : t("You don't have permission to delete rules"),
-              onAction: () =>
-                openConfirmModal({
-                  onConfirm: onDeleteRule,
-                  message: t('Are you sure you wish to delete this rule?'),
-                }),
-              disabled: !canDelete,
-              priority: 'danger',
-            },
-          ]}
-        />
+        {!hideGrabButton && (
+          <DropdownMenuControl
+            position="bottom-end"
+            triggerProps={{
+              size: 'xs',
+              icon: <IconEllipsis size="xs" />,
+              showChevron: false,
+              'aria-label': t('Actions'),
+            }}
+            items={[
+              {
+                key: 'edit',
+                label: t('Edit'),
+                details: noPermission
+                  ? t("You don't have permission to edit rules")
+                  : undefined,
+                onAction: onEditRule,
+                disabled: noPermission,
+              },
+              {
+                key: 'delete',
+                label: t('Delete'),
+                details: canDelete
+                  ? undefined
+                  : t("You don't have permission to delete rules"),
+                onAction: () =>
+                  openConfirmModal({
+                    onConfirm: onDeleteRule,
+                    message: t('Are you sure you wish to delete this rule?'),
+                  }),
+                disabled: !canDelete,
+                priority: 'danger',
+              },
+            ]}
+          />
+        )}
       </Column>
     </Fragment>
   );
@@ -253,24 +279,17 @@ const ConditionEqualOperator = styled('div')`
   color: ${p => p.theme.purple300};
 `;
 
-export const Operator = styled('div')`
+const Operator = styled('div')`
   color: ${p => p.theme.active};
 `;
 
-export const SampleRate = styled('div')`
+const SampleRate = styled('div')`
   white-space: pre-wrap;
   word-break: break-all;
-`;
-
-export const ActiveToggle = styled(NewBooleanField)`
-  padding: 0;
+  display: grid;
+  grid-template-columns: max-content max-content;
   height: 34px;
-  justify-content: center;
-`;
-
-export const ActivateTogglePlaceholder = styled(Placeholder)`
-  height: 24px;
-  margin-top: ${space(0.5)};
+  line-height: 34px;
 `;
 
 const ConditionName = styled('div')`
@@ -283,4 +302,24 @@ const ConditionValue = styled('span')`
 
 const ConditionSeparator = styled(ConditionValue)`
   padding-right: ${space(0.5)};
+`;
+
+const StyledIconWarning = styled(IconWarning)`
+  color: ${p => p.theme.alert.warning.iconColor};
+  :hover {
+    color: ${p => p.theme.alert.warning.iconHoverColor};
+  }
+  vertical-align: middle;
+  margin-right: ${space(1)};
+`;
+
+const ActivateTogglePlaceholder = styled(Placeholder)`
+  height: 24px;
+  margin-top: ${space(0.5)};
+`;
+
+const ActiveToggle = styled(NewBooleanField)`
+  padding: 0;
+  height: 34px;
+  justify-content: center;
 `;

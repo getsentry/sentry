@@ -342,7 +342,7 @@ export function SpecificConditionsModal({
               flexibleControlStateSize
               inline={false}
               error={
-                sampleRateEdited && !validSampleRate
+                (sampleRateEdited && !validSampleRate) || (rule && !validSampleRate)
                   ? tct('Sample rate shall be betweeen [floorRate]% and 100%', {
                       floorRate: rateToPercentage(uniformRuleSampleRate),
                     })
@@ -360,7 +360,11 @@ export function SpecificConditionsModal({
             <Button
               priority="primary"
               onClick={handleSubmit}
-              title={submitDisabled ? t('Required fields must be filled out') : undefined}
+              title={
+                submitDisabled
+                  ? t('Required fields must be filled out with valid values')
+                  : undefined
+              }
               disabled={isSaving || submitDisabled}
             >
               {t('Save Rule')}

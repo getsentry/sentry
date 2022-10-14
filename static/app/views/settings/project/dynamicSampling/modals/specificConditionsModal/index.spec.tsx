@@ -107,7 +107,7 @@ describe('Dynamic Sampling - Specific Conditions Modal', function () {
     userEvent.hover(screen.getByText('Save Rule'));
 
     expect(
-      await screen.findByText('Required fields must be filled out')
+      await screen.findByText('Required fields must be filled out with valid values')
     ).toBeInTheDocument();
 
     // Click on 'Add condition'

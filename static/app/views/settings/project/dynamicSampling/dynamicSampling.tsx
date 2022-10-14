@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
-import partition from 'lodash/partition';
 
 import {
   addErrorMessage,
@@ -57,8 +57,7 @@ import {SamplingFeedback} from './samplingFeedback';
 import {SamplingFromOtherProject} from './samplingFromOtherProject';
 import {SamplingProjectIncompatibleAlert} from './samplingProjectIncompatibleAlert';
 import {SamplingSDKUpgradesAlert} from './samplingSDKUpgradesAlert';
-import {RulesPanelLayout, UniformRule} from './uniformRule';
-import {isUniformRule, SERVER_SIDE_SAMPLING_DOC_LINK} from './utils';
+import {isUniformRule, isValidSampleRate, SERVER_SIDE_SAMPLING_DOC_LINK} from './utils';
 
 type Props = {
   project: Project;
@@ -69,7 +68,6 @@ export function DynamicSampling({project}: Props) {
   const api = useApi();
 
   const hasAccess = organization.access.includes('project:write');
-  const canDemo = organization.features.includes('dynamic-sampling-demo');
   const currentRules = project.dynamicSampling?.rules;
 
   const previousRules = usePrevious(currentRules);
@@ -250,8 +248,14 @@ export function DynamicSampling({project}: Props) {
   }
 
   async function handleSortRules({
+    overIndex,
     reorderedItems: ruleIds,
   }: DraggableRuleListUpdateItemsProps) {
+    if (!rules[overIndex].condition.inner.length) {
+      addErrorMessage(t('Conditional rules cannot be below uniform rules'));
+      return;
+    }
+
     const sortedRules = ruleIds
       .map(ruleId => rules.find(rule => String(rule.id) === ruleId))
       .filter(rule => !!rule) as SamplingRule[];
@@ -304,10 +308,14 @@ export function DynamicSampling({project}: Props) {
     }
   }
 
-  const [uniformRules, specificRules] = partition(rules, isUniformRule);
+  // Rules without a condition (Else case) always have to be 'pinned' to the bottom of the list
+  // and cannot be sorted
+  const items = rules.map(rule => ({
+    ...rule,
+    id: String(rule.id),
+  }));
 
-  const uniformRule = uniformRules[0];
-  const items = specificRules.map(rule => ({...rule, id: String(rule.id)}));
+  const uniformRule = rules.find(isUniformRule);
 
   return (
     <SentryDocumentTitle title={t('Dynamic Sampling')}>
@@ -420,22 +428,28 @@ export function DynamicSampling({project}: Props) {
                   id: Number(itemsRule.id),
                 };
 
+                const operator =
+                  itemsRule.id === items[0].id
+                    ? SamplingRuleOperator.IF
+                    : isUniformRule(currentRule)
+                    ? SamplingRuleOperator.ELSE
+                    : SamplingRuleOperator.ELSE_IF;
+
                 return (
                   <RulesPanelLayout isContent>
                     <Rule
-                      operator={
-                        itemsRule.id === items[0].id
-                          ? SamplingRuleOperator.IF
-                          : SamplingRuleOperator.ELSE_IF
-                      }
-                      hideGrabButton={items.length === 1}
+                      valid={isValidSampleRate(
+                        uniformRule?.sampleRate,
+                        currentRule.sampleRate
+                      )}
+                      operator={operator}
+                      hideGrabButton={items.length === 1 || isUniformRule(currentRule)}
                       rule={currentRule}
                       onEditRule={() => {
                         navigate(
                           `${samplingProjectSettingsPath}rules/${currentRule.id}/`
                         );
                       }}
-                      canDemo={canDemo}
                       onDeleteRule={() => handleDeleteRule(currentRule)}
                       onActivate={() => handleActivateToggle(currentRule)}
                       noPermission={!hasAccess}
@@ -452,11 +466,6 @@ export function DynamicSampling({project}: Props) {
                 );
               }}
             />
-
-            {uniformRule && (
-              <UniformRule rule={uniformRule} singleRule={rules.length === 1} />
-            )}
-
             <RulesPanelFooter>
               <ButtonBar gap={1}>
                 <Button
@@ -506,4 +515,24 @@ const AddRuleButton = styled(Button)`
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     width: 100%;
   }
+`;
+
+const RulesPanelLayout = styled('div')<{isContent?: boolean}>`
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 0.5fr 74px;
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    grid-template-columns: 48px 97px 1fr 0.5fr 77px 74px;
+  }
+
+  ${p =>
+    p.isContent &&
+    css`
+      > * {
+        /* match the height of the ellipsis button */
+        line-height: 34px;
+        border-bottom: 1px solid ${p.theme.border};
+      }
+    `}
 `;
