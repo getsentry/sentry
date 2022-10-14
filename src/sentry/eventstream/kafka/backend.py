@@ -198,7 +198,6 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
     def _build_consumer(
         self,
-        entity: Union[Literal["all"], Literal["errors"], Literal["transactions"]],
         consumer_group: str,
         topic: str,
         commit_log_topic: str,
@@ -208,8 +207,6 @@ class KafkaEventStream(SnubaProtocolEventStream):
         concurrency: int,
         initial_offset_reset: Union[Literal["latest"], Literal["earliest"]],
     ):
-        logger.info(f"Starting post process forwarder to consume {entity} messages")
-
         worker = PostProcessForwarderWorker(concurrency=concurrency)
 
         cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
@@ -234,7 +231,6 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
     def _build_streaming_consumer(
         self,
-        entity: Union[Literal["all"], Literal["errors"], Literal["transactions"]],
         consumer_group: str,
         topic: str,
         commit_log_topic: str,
@@ -301,7 +297,6 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
         if use_streaming_consumer:
             consumer = self._build_streaming_consumer(
-                entity,
                 consumer_group,
                 topic or default_topic,
                 commit_log_topic,
@@ -314,7 +309,6 @@ class KafkaEventStream(SnubaProtocolEventStream):
             )
         else:
             consumer = self._build_consumer(
-                entity,
                 consumer_group,
                 topic or default_topic,
                 commit_log_topic,
