@@ -42,7 +42,7 @@ describe('Server-Side Sampling - Specific Conditions Modal', function () {
         inner: [{name: 'trace.release', op: 'glob', value: ['1.2.3']}],
         op: 'and',
       },
-      id: 0,
+      id: -1,
       sampleRate: 0.2,
       type: 'trace',
       active: false,
@@ -177,7 +177,7 @@ describe('Server-Side Sampling - Specific Conditions Modal', function () {
 
     const newRule = {
       ...specificRule,
-      id: 0,
+      id: -1,
       sampleRate: 0.6,
       condition: {
         ...specificRule.condition,
@@ -273,7 +273,7 @@ describe('Server-Side Sampling - Specific Conditions Modal', function () {
         ],
         op: 'and',
       },
-      id: 0,
+      id: -1,
       sampleRate: 0.5,
       type: 'trace',
       active: false,
