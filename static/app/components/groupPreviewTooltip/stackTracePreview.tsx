@@ -20,6 +20,7 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import GroupPreviewHovercard from './groupPreviewHovercard';
+import {useDelayedLoadingState} from './utils';
 
 function getStacktrace(event: Event): StacktraceType | null {
   const exceptionsWithStacktrace =
@@ -104,16 +105,24 @@ type StackTracePreviewProps = {
   projectSlug?: string;
 };
 
-type StackTracePreviewBodyProps = Pick<
-  StackTracePreviewProps,
-  'issueId' | 'eventId' | 'groupingCurrentLevel' | 'projectSlug'
->;
+interface StackTracePreviewBodyProps
+  extends Pick<
+    StackTracePreviewProps,
+    'issueId' | 'eventId' | 'groupingCurrentLevel' | 'projectSlug'
+  > {
+  onRequestBegin: () => void;
+  onRequestEnd: () => void;
+  onUnmount: () => void;
+}
 
 function StackTracePreviewBody({
   issueId,
   eventId,
   groupingCurrentLevel,
   projectSlug,
+  onRequestBegin,
+  onRequestEnd,
+  onUnmount,
 }: StackTracePreviewBodyProps) {
   const api = useApi();
   const organization = useOrganization();
@@ -122,13 +131,17 @@ function StackTracePreviewBody({
   const [event, setEvent] = useState<Event | null>(null);
 
   const fetchData = useCallback(async () => {
+    onRequestBegin();
+
     // Data is already loaded
     if (event) {
+      onRequestEnd();
       return;
     }
 
     // These are required props to load data
     if (issueId && eventId && !projectSlug) {
+      onRequestEnd();
       return;
     }
 
@@ -143,12 +156,27 @@ function StackTracePreviewBody({
     } catch {
       setEvent(null);
       setStatus('error');
+    } finally {
+      onRequestEnd();
     }
-  }, [event, api, organization.slug, projectSlug, eventId, issueId]);
+  }, [
+    event,
+    issueId,
+    eventId,
+    projectSlug,
+    onRequestEnd,
+    onRequestBegin,
+    api,
+    organization.slug,
+  ]);
 
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+
+    return () => {
+      onUnmount();
+    };
+  }, [fetchData, onUnmount]);
 
   // Not sure why we need to stop propagation, maybe to prevent the
   // hovercard from closing? If we are doing this often, maybe it should be
@@ -201,6 +229,8 @@ function StackTracePreviewBody({
 
 function StackTracePreview({children, ...props}: StackTracePreviewProps) {
   const organization = useOrganization();
+  const {shouldShowLoadingState, onRequestBegin, onRequestEnd, reset} =
+    useDelayedLoadingState();
 
   const hasGroupingStacktraceUI = organization.features.includes(
     'grouping-stacktrace-ui'
@@ -211,7 +241,17 @@ function StackTracePreview({children, ...props}: StackTracePreviewProps) {
       data-testid="stacktrace-preview"
       hasGroupingStacktraceUI={hasGroupingStacktraceUI}
     >
-      <GroupPreviewHovercard body={<StackTracePreviewBody {...props} />}>
+      <GroupPreviewHovercard
+        hide={!shouldShowLoadingState}
+        body={
+          <StackTracePreviewBody
+            onRequestBegin={onRequestBegin}
+            onRequestEnd={onRequestEnd}
+            onUnmount={reset}
+            {...props}
+          />
+        }
+      >
         {children}
       </GroupPreviewHovercard>
     </Wrapper>

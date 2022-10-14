@@ -1,5 +1,5 @@
 import {ComponentProps, Fragment, ReactChild} from 'react';
-import {useTheme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Body, Hovercard} from 'sentry/components/hovercard';
@@ -8,11 +8,13 @@ import useMedia from 'sentry/utils/useMedia';
 interface GroupPreviewHovercardProps extends ComponentProps<typeof Hovercard> {
   children: ReactChild;
   className?: string;
+  hide?: boolean;
 }
 
 const GroupPreviewHovercard = ({
   className,
   children,
+  hide,
   ...props
 }: GroupPreviewHovercardProps) => {
   const theme = useTheme();
@@ -30,6 +32,7 @@ const GroupPreviewHovercard = ({
       position="right"
       tipBorderColor="border"
       tipColor="background"
+      hide={hide}
       {...props}
     >
       {children}
@@ -37,10 +40,16 @@ const GroupPreviewHovercard = ({
   );
 };
 
-const StyledHovercard = styled(Hovercard)`
+const StyledHovercard = styled(Hovercard)<{hide?: boolean}>`
   /* Lower z-index to match the modals (10000 vs 10002) to allow stackTraceLinkModal be on top of stack trace preview. */
   z-index: ${p => p.theme.zIndex.modal};
   width: auto;
+
+  ${p =>
+    p.hide &&
+    css`
+      visibility: hidden;
+    `}
 
   ${Body} {
     padding: 0;
