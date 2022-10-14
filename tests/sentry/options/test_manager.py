@@ -106,30 +106,6 @@ class OptionsManagerTest(TestCase):
         assert self.manager.delete("sentry:foo")
         assert self.manager.get("sentry:foo") == ""
 
-    def test_legacy_url_prefix_key_use_db_setting(self):
-        """
-        TODO: Remove when SENTRY_URL_PREFIX is completely removed
-        """
-        self.manager.register("system.url-prefix", flags=FLAG_PRIORITIZE_DISK)
-        with patch.object(self.store.cache, "get", return_value="https://sentry.example.com"):
-            with self.settings(SENTRY_OPTIONS={}):
-                assert self.manager.get("system.url-prefix") == "https://sentry.example.com"
-                assert settings.SENTRY_URL_PREFIX == "https://sentry.example.com"
-                assert settings.SENTRY_OPTIONS["system.url-prefix"] == "https://sentry.example.com"
-
-    def test_legacy_url_prefix_use_config_setting(self):
-        """
-        TODO: Remove when SENTRY_URL_PREFIX is completely deprecated
-        """
-        self.manager.register("system.url-prefix", flags=FLAG_PRIORITIZE_DISK)
-        with patch.object(self.store.cache, "get", return_value="https://sentry.example.com"):
-            with self.settings(SENTRY_OPTIONS={"system.url-prefix": "https://sentry.updated.com"}):
-                assert self.manager.get("system.url-prefix") == "https://sentry.updated.com"
-                # SENTRY_URL_PREFIX is set on initialization, then not modified if config settings change
-                # This seems non-ideal but it's the current behavior and out of scope to fix right now.
-                assert settings.SENTRY_URL_PREFIX == "http://testserver"
-                assert settings.SENTRY_OPTIONS["system.url-prefix"] == "https://sentry.updated.com"
-
     def test_types(self):
         self.manager.register("some-int", type=Int, default=0)
         with pytest.raises(TypeError):

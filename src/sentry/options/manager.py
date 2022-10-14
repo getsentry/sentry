@@ -144,11 +144,9 @@ class OptionsManager:
             if result is not None:
                 # HACK(mattrobenolt): SENTRY_URL_PREFIX must be kept in sync
                 # when reading values from the database. This should
-                # be replaced by a signal. We also want to keep the SENTRY_OPTIONS["system.url-prefix"]
-                # in sync with SENTRY_URL_PREFIX to avoid warnings
+                # be replaced by a signal.
                 if key == "system.url-prefix":
                     settings.SENTRY_URL_PREFIX = result
-                    settings.SENTRY_OPTIONS["system.url-prefix"] = result
                 return result
 
         # Some values we don't want to allow them to be configured through
