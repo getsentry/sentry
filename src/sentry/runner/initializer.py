@@ -208,9 +208,7 @@ def bootstrap_options(settings: Any, config: str | None = None) -> None:
         # TODO: delete when SENTRY_URL_PREFIX is removed
         if k == "SENTRY_URL_PREFIX":
             warnings.warn(
-                DeprecatedSettingWarning(
-                    "SENTRY_URL_PREFIX", "SENTRY_OPTIONS['%s']" % "system.url-prefix"
-                )
+                DeprecatedSettingWarning("SENTRY_URL_PREFIX", "SENTRY_OPTIONS['system.url-prefix']")
             )
             settings.SENTRY_OPTIONS["system.url-prefix"] = v
 
