@@ -106,8 +106,8 @@ def create_model_manifest_file():
 
     if _MODEL_MANIFEST_FILE_PATH:
         global _model_manifest
-        _model_manifest = ModelManifest()
-        with _model_manifest.open(_MODEL_MANIFEST_FILE_PATH):
+        _model_manifest = ModelManifest.open(_MODEL_MANIFEST_FILE_PATH)
+        with _model_manifest.write():
             yield
     else:
         yield
