@@ -27,6 +27,8 @@ class ProxyTestCase(ApiGatewayTestCase):
         assert resp_json["proxy"]
         assert resp.has_header("test")
         assert resp["test"] == "header"
+        assert resp.has_header("X-Sentry-Proxy-URL")
+        assert resp["X-Sentry-Proxy-URL"] == "http://region1.testserver/get"
 
         request = RequestFactory().get("http://sentry.io/error")
         resp = proxy_request(request, self.organization.slug)
@@ -35,6 +37,8 @@ class ProxyTestCase(ApiGatewayTestCase):
         assert resp_json["proxy"]
         assert resp.has_header("test")
         assert resp["test"] == "header"
+        assert resp.has_header("X-Sentry-Proxy-URL")
+        assert resp["X-Sentry-Proxy-URL"] == "http://region1.testserver/error"
 
     @responses.activate
     def test_query_params(self, _):
@@ -75,6 +79,8 @@ class ProxyTestCase(ApiGatewayTestCase):
 
         assert resp.status_code == 200
         assert resp_json["proxy"]
+        assert resp.has_header("X-Sentry-Proxy-URL")
+        assert resp["X-Sentry-Proxy-URL"] == "http://region1.testserver/post"
 
     @responses.activate
     def test_put(self, _):
@@ -93,6 +99,8 @@ class ProxyTestCase(ApiGatewayTestCase):
 
         assert resp.status_code == 200
         assert resp_json["proxy"]
+        assert resp.has_header("X-Sentry-Proxy-URL")
+        assert resp["X-Sentry-Proxy-URL"] == "http://region1.testserver/put"
 
     @responses.activate
     def test_patch(self, _):
@@ -111,6 +119,8 @@ class ProxyTestCase(ApiGatewayTestCase):
 
         assert resp.status_code == 200
         assert resp_json["proxy"]
+        assert resp.has_header("X-Sentry-Proxy-URL")
+        assert resp["X-Sentry-Proxy-URL"] == "http://region1.testserver/patch"
 
     @responses.activate
     def test_head(self, _):
@@ -129,6 +139,8 @@ class ProxyTestCase(ApiGatewayTestCase):
 
         assert resp.status_code == 200
         assert resp_json["proxy"]
+        assert resp.has_header("X-Sentry-Proxy-URL")
+        assert resp["X-Sentry-Proxy-URL"] == "http://region1.testserver/head"
 
     @responses.activate
     def test_delete(self, _):
@@ -147,3 +159,5 @@ class ProxyTestCase(ApiGatewayTestCase):
 
         assert resp.status_code == 200
         assert resp_json["proxy"]
+        assert resp.has_header("X-Sentry-Proxy-URL")
+        assert resp["X-Sentry-Proxy-URL"] == "http://region1.testserver/delete"
