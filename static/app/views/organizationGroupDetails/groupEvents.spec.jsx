@@ -256,7 +256,7 @@ describe('groupEvents', function () {
       expect(attachmentsRequest).toHaveBeenCalled();
     });
 
-    it('does not display minidmp column with no minidumps', async () => {
+    it('does not display minidump column with no minidumps', async () => {
       render(
         <GroupEvents
           organization={org.organization}
