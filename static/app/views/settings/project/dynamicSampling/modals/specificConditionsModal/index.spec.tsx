@@ -1,36 +1,22 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {
-  renderGlobalModal,
-  screen,
-  userEvent,
-  waitFor,
-  waitForElementToBeRemoved,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import * as indicators from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
-import {Project} from 'sentry/types';
+import {
+  makeClosableHeader,
+  makeCloseButton,
+  ModalBody,
+  ModalFooter,
+} from 'sentry/components/globalModal/components';
 import {SamplingInnerName} from 'sentry/types/sampling';
 import {SpecificConditionsModal} from 'sentry/views/settings/project/dynamicSampling/modals/specificConditionsModal';
 import {distributedTracesConditions} from 'sentry/views/settings/project/dynamicSampling/modals/specificConditionsModal/utils';
-import {getInnerNameLabel} from 'sentry/views/settings/project/dynamicSampling/utils';
+import {
+  getInnerNameLabel,
+  rateToPercentage,
+} from 'sentry/views/settings/project/dynamicSampling/utils';
 
-function getMockData({projects, access}: {access?: string[]; projects?: Project[]} = {}) {
-  return initializeOrg({
-    ...initializeOrg(),
-    organization: {
-      ...initializeOrg().organization,
-      features: [
-        'server-side-sampling',
-        'server-side-sampling-ui',
-        'dynamic-sampling-basic',
-      ],
-      access: access ?? initializeOrg().organization.access,
-      projects,
-    },
-    projects,
-  });
-}
 describe('Dynamic Sampling - Specific Conditions Modal', function () {
   afterEach(function () {
     MockApiClient.clearMockResponses();
@@ -43,7 +29,12 @@ describe('Dynamic Sampling - Specific Conditions Modal', function () {
       body: [{value: '1.2.3', count: 97}],
     });
 
-    const {organization, project} = getMockData({
+    const {organization, project} = initializeOrg({
+      ...initializeOrg(),
+      organization: {
+        ...initializeOrg().organization,
+        features: ['server-side-sampling', 'server-side-sampling-ui'],
+      },
       projects: [
         TestStubs.Project({
           dynamicSampling: {
@@ -58,8 +49,8 @@ describe('Dynamic Sampling - Specific Conditions Modal', function () {
         inner: [{name: 'trace.release', op: 'glob', value: ['1.2.3']}],
         op: 'and',
       },
-      id: 0,
-      sampleRate: 0.2,
+      id: -1,
+      sampleRate: 0.6,
       type: 'trace',
       active: false,
     };
@@ -74,18 +65,22 @@ describe('Dynamic Sampling - Specific Conditions Modal', function () {
       }),
     });
 
+    const handleCloseModal = jest.fn();
+
     jest.spyOn(indicators, 'addSuccessMessage');
 
-    renderGlobalModal();
-
-    openModal(modalProps => (
+    render(
       <SpecificConditionsModal
-        {...modalProps}
+        Header={makeClosableHeader(handleCloseModal)}
+        Body={ModalBody}
+        Footer={ModalFooter}
+        closeModal={handleCloseModal}
+        CloseButton={makeCloseButton(handleCloseModal)}
         organization={organization}
         project={project}
         rules={[TestStubs.DynamicSamplingConfig().uniformRule]}
       />
-    ));
+    );
 
     // Dialog Header
     expect(screen.getByRole('heading', {name: 'Add Rule'})).toBeInTheDocument();
@@ -112,7 +107,7 @@ describe('Dynamic Sampling - Specific Conditions Modal', function () {
     userEvent.hover(screen.getByText('Save Rule'));
 
     expect(
-      await screen.findByText('Required fields must be filled out')
+      await screen.findByText('Required fields must be filled out with valid values')
     ).toBeInTheDocument();
 
     // Click on 'Add condition'
@@ -145,7 +140,7 @@ describe('Dynamic Sampling - Specific Conditions Modal', function () {
     expect(screen.getByLabelText('Save Rule')).toBeDisabled();
 
     // Fill sample rate field
-    userEvent.paste(screen.getByPlaceholderText('\u0025'), '20');
+    userEvent.paste(screen.getByPlaceholderText('\u0025'), '60');
 
     // Save button is now enabled
     expect(screen.getByLabelText('Save Rule')).toBeEnabled();
@@ -153,8 +148,7 @@ describe('Dynamic Sampling - Specific Conditions Modal', function () {
     // Click on save button
     userEvent.click(screen.getByLabelText('Save Rule'));
 
-    // Dialog should close
-    await waitForElementToBeRemoved(() => screen.queryByText('Save Rule'));
+    await waitFor(() => expect(handleCloseModal).toHaveBeenCalled());
 
     expect(saveMock).toHaveBeenCalledTimes(1);
 
@@ -181,7 +175,12 @@ describe('Dynamic Sampling - Specific Conditions Modal', function () {
       body: [{value: '1.2.3'}],
     });
 
-    const {organization, project} = getMockData({
+    const {organization, project} = initializeOrg({
+      ...initializeOrg(),
+      organization: {
+        ...initializeOrg().organization,
+        features: ['server-side-sampling', 'server-side-sampling-ui'],
+      },
       projects: [
         TestStubs.Project({
           dynamicSampling: {
@@ -196,7 +195,7 @@ describe('Dynamic Sampling - Specific Conditions Modal', function () {
 
     const newRule = {
       ...TestStubs.DynamicSamplingConfig().specificRule,
-      id: 0,
+      id: -1,
       sampleRate: 0.6,
       condition: {
         ...TestStubs.DynamicSamplingConfig().specificRule.condition,
@@ -221,11 +220,15 @@ describe('Dynamic Sampling - Specific Conditions Modal', function () {
 
     jest.spyOn(indicators, 'addSuccessMessage');
 
-    renderGlobalModal();
+    const handleCloseModal = jest.fn();
 
-    openModal(modalProps => (
+    render(
       <SpecificConditionsModal
-        {...modalProps}
+        Header={makeClosableHeader(jest.fn())}
+        Body={ModalBody}
+        Footer={ModalFooter}
+        closeModal={handleCloseModal}
+        CloseButton={makeCloseButton(jest.fn())}
         organization={organization}
         project={project}
         rule={TestStubs.DynamicSamplingConfig().specificRule}
@@ -234,7 +237,7 @@ describe('Dynamic Sampling - Specific Conditions Modal', function () {
           TestStubs.DynamicSamplingConfig().specificRule,
         ]}
       />
-    ));
+    );
 
     expect(screen.getByRole('heading', {name: 'Edit Rule'})).toBeInTheDocument();
 
@@ -255,8 +258,7 @@ describe('Dynamic Sampling - Specific Conditions Modal', function () {
     // Click on save button
     userEvent.click(screen.getByRole('button', {name: 'Save Rule'}));
 
-    // Modal will close
-    await waitForElementToBeRemoved(() => screen.queryByText('Save Rule'));
+    await waitFor(() => expect(handleCloseModal).toHaveBeenCalled());
 
     expect(saveMock).toHaveBeenCalledTimes(1);
 
@@ -274,6 +276,52 @@ describe('Dynamic Sampling - Specific Conditions Modal', function () {
     expect(indicators.addSuccessMessage).toHaveBeenCalledWith(
       'Successfully edited sampling rule'
     );
+  });
+
+  it('shows warning when sample rate is not valid', function () {
+    const {organization, project} = initializeOrg({
+      ...initializeOrg(),
+      organization: {
+        ...initializeOrg().organization,
+        features: ['server-side-sampling', 'server-side-sampling-ui'],
+      },
+      projects: [
+        TestStubs.Project({
+          dynamicSampling: {
+            rules: [TestStubs.DynamicSamplingConfig().uniformRule],
+          },
+        }),
+      ],
+    });
+
+    render(
+      <SpecificConditionsModal
+        Header={makeClosableHeader(jest.fn())}
+        Body={ModalBody}
+        Footer={ModalFooter}
+        closeModal={jest.fn()}
+        CloseButton={makeCloseButton(jest.fn())}
+        organization={organization}
+        project={project}
+        rules={[TestStubs.DynamicSamplingConfig().uniformRule]}
+      />
+    );
+
+    const warningMessage = `Sample rate shall be betweeen ${rateToPercentage(
+      TestStubs.DynamicSamplingConfig().uniformRule.sampleRate
+    )}% and 100%`;
+
+    expect(screen.queryByText(warningMessage)).not.toBeInTheDocument();
+
+    // Edit sample rate field with an invalid rate
+    userEvent.paste(screen.getByPlaceholderText('\u0025'), '20');
+
+    expect(screen.getByText(textWithMarkupMatcher(warningMessage))).toBeInTheDocument();
+
+    // Edit sample rate field with a valid rate
+    userEvent.paste(screen.getByPlaceholderText('\u0025'), '60');
+
+    expect(screen.queryByText(warningMessage)).not.toBeInTheDocument();
   });
 
   it('uniform rules are always submit in the last place', async function () {
@@ -295,13 +343,18 @@ describe('Dynamic Sampling - Specific Conditions Modal', function () {
         ],
         op: 'and',
       },
-      id: 0,
+      id: -1,
       sampleRate: 0.5,
       type: 'trace',
       active: false,
     };
 
-    const {organization, project} = getMockData({
+    const {organization, project} = initializeOrg({
+      ...initializeOrg(),
+      organization: {
+        ...initializeOrg().organization,
+        features: ['server-side-sampling', 'server-side-sampling-ui'],
+      },
       projects: [
         TestStubs.Project({
           dynamicSampling: {
@@ -328,11 +381,13 @@ describe('Dynamic Sampling - Specific Conditions Modal', function () {
       }),
     });
 
-    renderGlobalModal();
-
-    openModal(modalProps => (
+    render(
       <SpecificConditionsModal
-        {...modalProps}
+        Header={makeClosableHeader(jest.fn())}
+        Body={ModalBody}
+        Footer={ModalFooter}
+        closeModal={jest.fn()}
+        CloseButton={makeCloseButton(jest.fn())}
         organization={organization}
         project={project}
         rules={[
@@ -340,7 +395,7 @@ describe('Dynamic Sampling - Specific Conditions Modal', function () {
           TestStubs.DynamicSamplingConfig().uniformRule,
         ]}
       />
-    ));
+    );
 
     // Click on 'Add condition'
     userEvent.click(screen.getByText('Add Condition'));
@@ -393,7 +448,12 @@ describe('Dynamic Sampling - Specific Conditions Modal', function () {
       body: [{value: 'staging', count: 97}],
     });
 
-    const {organization, project} = getMockData({
+    const {organization, project} = initializeOrg({
+      ...initializeOrg(),
+      organization: {
+        ...initializeOrg().organization,
+        features: ['server-side-sampling', 'server-side-sampling-ui'],
+      },
       projects: [
         TestStubs.Project({
           dynamicSampling: {
@@ -403,16 +463,18 @@ describe('Dynamic Sampling - Specific Conditions Modal', function () {
       ],
     });
 
-    renderGlobalModal();
-
-    openModal(modalProps => (
+    render(
       <SpecificConditionsModal
-        {...modalProps}
+        Header={makeClosableHeader(jest.fn())}
+        Body={ModalBody}
+        Footer={ModalFooter}
+        closeModal={jest.fn()}
+        CloseButton={makeCloseButton(jest.fn())}
         organization={organization}
         project={project}
         rules={[TestStubs.DynamicSamplingConfig().uniformRule]}
       />
-    ));
+    );
 
     // Click on 'Add condition'
     userEvent.click(screen.getByText('Add Condition'));

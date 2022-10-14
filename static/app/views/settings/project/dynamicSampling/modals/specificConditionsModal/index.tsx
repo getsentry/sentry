@@ -1,4 +1,4 @@
-import {Fragment, KeyboardEvent, useEffect, useState} from 'react';
+import {Fragment, KeyboardEvent, useState} from 'react';
 import {createFilter} from 'react-select';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
@@ -16,7 +16,7 @@ import NumberField from 'sentry/components/forms/fields/numberField';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {IconAdd} from 'sentry/icons';
 import {IconSearch} from 'sentry/icons/iconSearch';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
 import {Organization, Project, SelectValue} from 'sentry/types';
@@ -28,28 +28,25 @@ import {
 } from 'sentry/types/sampling';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-import {isUniformRule, percentageToRate, rateToPercentage} from '../../utils';
+import {
+  isUniformRule,
+  isValidSampleRate,
+  percentageToRate,
+  rateToPercentage,
+} from '../../utils';
 
 import {Condition, Conditions} from './conditions';
 import {
   distributedTracesConditions,
   generateConditionCategoriesOptions,
-  getErrorMessage,
   getNewCondition,
 } from './utils';
 
 const conditionAlreadyAddedTooltip = t('This condition has already been added');
-
-type State = {
-  conditions: Condition[];
-  errors: {
-    sampleRate?: string;
-  };
-  samplePercentage: number | null;
-};
 
 type Props = ModalRenderProps & {
   organization: Organization;
@@ -71,79 +68,51 @@ export function SpecificConditionsModal({
 }: Props) {
   const api = useApi();
 
-  const [data, setData] = useState<State>(getInitialState());
+  const [conditions, setConditions] = useState<Condition[]>(() => {
+    if (rule) {
+      return rule.condition.inner.map(innerItem => {
+        const {name, value} = innerItem;
+
+        if (Array.isArray(value)) {
+          return {
+            category: name,
+            match: value.join('\n'),
+          };
+        }
+        return {category: name};
+      });
+    }
+
+    return [];
+  });
+
+  const [samplePercentage, setSamplePercentage] = useState<number | undefined>(
+    rateToPercentage(rule?.sampleRate)
+  );
+
   const [isSaving, setIsSaving] = useState(false);
+
+  const uniformRuleSampleRate = rules.find(isUniformRule)?.sampleRate;
+
+  const validSampleRate = isValidSampleRate(
+    uniformRuleSampleRate,
+    percentageToRate(samplePercentage)
+  );
 
   const conditionCategories = generateConditionCategoriesOptions(
     distributedTracesConditions
   );
 
-  useEffect(() => {
-    setData(d => {
-      if (d.errors.sampleRate) {
-        return {...d, errors: {...d.errors, sampleRate: undefined}};
-      }
-
-      return d;
-    });
-  }, [data.samplePercentage]);
-
-  function getInitialState(): State {
-    if (rule) {
-      const {condition: conditions, sampleRate} = rule;
-
-      const {inner} = conditions;
-
-      return {
-        conditions: inner.map(innerItem => {
-          const {name, value} = innerItem;
-
-          if (Array.isArray(value)) {
-            return {
-              category: name,
-              match: value.join('\n'),
-            };
-          }
-          return {category: name};
-        }),
-        samplePercentage: rateToPercentage(sampleRate) ?? null,
-        errors: {},
-      };
-    }
-
-    return {
-      conditions: [],
-      samplePercentage: null,
-      errors: {},
-    };
-  }
-
-  const {errors, conditions, samplePercentage} = data;
-
-  function convertRequestErrorResponse(error: ReturnType<typeof getErrorMessage>) {
-    if (typeof error === 'string') {
-      addErrorMessage(error);
-      return;
-    }
-
-    switch (error.type) {
-      case 'sampleRate':
-        setData({...data, errors: {...errors, sampleRate: error.message}});
-        break;
-      default:
-        addErrorMessage(error.message);
-    }
-  }
-
   async function handleSubmit() {
-    if (!defined(samplePercentage)) {
+    if (!validSampleRate) {
       return;
     }
     const sampleRate = percentageToRate(samplePercentage)!;
 
     const newRule: SamplingRule = {
-      // All new/updated rules must have id equal to 0
-      id: 0,
+      // All new rules must have the default id set to -1, signaling to the backend that a proper id should
+      // be assigned.
+      id: -1,
       active: rule ? rule.active : false,
       type: SamplingRuleType.TRACE,
       condition: {
@@ -178,8 +147,9 @@ export function SpecificConditionsModal({
       );
       closeModal();
     } catch (error) {
-      const currentRuleIndex = newRules.findIndex(newR => newR === newRule);
-      convertRequestErrorResponse(getErrorMessage(error, currentRuleIndex));
+      const message = t('Unable to save conditional sampling rule');
+      handleXhrErrorResponse(message)(error);
+      addErrorMessage(message);
     }
 
     setIsSaving(false);
@@ -233,19 +203,16 @@ export function SpecificConditionsModal({
       conditions: addedCategories,
     });
 
-    setData({
-      ...data,
-      conditions: [
-        ...conditions,
-        ...addedCategories.map(addedCategory => ({category: addedCategory, match: ''})),
-      ],
-    });
+    setConditions([
+      ...conditions,
+      ...addedCategories.map(addedCategory => ({category: addedCategory, match: ''})),
+    ]);
   }
 
   function handleDeleteCondition(index: number) {
     const newConditions = [...conditions];
     newConditions.splice(index, 1);
-    setData({...data, conditions: newConditions});
+    setConditions(newConditions);
   }
 
   function handleChangeCondition<T extends keyof Condition>(
@@ -267,7 +234,7 @@ export function SpecificConditionsModal({
       });
     }
 
-    setData({...data, conditions: newConditions});
+    setConditions(newConditions);
   }
 
   const predefinedConditionsOptions = conditionCategories.map(([value, label]) => {
@@ -280,8 +247,12 @@ export function SpecificConditionsModal({
     };
   });
 
+  const sampleRateEdited = rule
+    ? samplePercentage !== rateToPercentage(rule?.sampleRate)
+    : samplePercentage !== undefined;
+
   const submitDisabled =
-    !defined(samplePercentage) ||
+    !validSampleRate ||
     !conditions.length ||
     conditions.some(condition => !condition.match);
 
@@ -358,7 +329,7 @@ export function SpecificConditionsModal({
               label={`${t('Sample Rate')} \u0025`}
               name="sampleRate"
               onChange={value => {
-                setData({...data, samplePercentage: value ? Number(value) : null});
+                setSamplePercentage(value ? Number(value) : undefined);
               }}
               onKeyDown={(_value: string, e: KeyboardEvent) => {
                 if (e.key === 'Enter') {
@@ -367,10 +338,16 @@ export function SpecificConditionsModal({
               }}
               placeholder={'\u0025'}
               step="10"
-              value={samplePercentage}
+              value={samplePercentage ?? null}
+              flexibleControlStateSize
               inline={false}
-              hideControlState={!errors.sampleRate}
-              error={errors.sampleRate}
+              error={
+                (sampleRateEdited && !validSampleRate) || (rule && !validSampleRate)
+                  ? tct('Sample rate shall be betweeen [floorRate]% and 100%', {
+                      floorRate: rateToPercentage(uniformRuleSampleRate),
+                    })
+                  : undefined
+              }
               showHelpInTooltip
               stacked
               required
@@ -383,7 +360,11 @@ export function SpecificConditionsModal({
             <Button
               priority="primary"
               onClick={handleSubmit}
-              title={submitDisabled ? t('Required fields must be filled out') : undefined}
+              title={
+                submitDisabled
+                  ? t('Required fields must be filled out with valid values')
+                  : undefined
+              }
               disabled={isSaving || submitDisabled}
             >
               {t('Save Rule')}
