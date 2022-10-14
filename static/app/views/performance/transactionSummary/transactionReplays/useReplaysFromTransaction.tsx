@@ -14,13 +14,13 @@ import fetchReplayList, {
 import useApi from 'sentry/utils/useApi';
 import {ReplayListRecord} from 'sentry/views/replays/types';
 
-export type ReplayRecordWithTx = ReplayListRecord & {
+export type ReplayListRecordWithTx = ReplayListRecord & {
   txEvent: {[x: string]: any};
 };
 
 type State = Awaited<ReturnType<typeof fetchReplayList>> & {
   eventView: undefined | EventView;
-  replays?: ReplayRecordWithTx[];
+  replays?: ReplayListRecordWithTx[];
 };
 
 type Options = {
@@ -74,24 +74,26 @@ function useReplaysFromTransaction({
       organization,
     });
 
-    const replays: ReplayRecordWithTx[] | undefined = listData.replays?.map(replay => {
-      let slowestEvent: TableDataRow | undefined;
-      for (const event of eventsData ?? []) {
-        // attach the slowest tx event to the replay
-        if (
-          event.replayId === replay.id &&
-          (!slowestEvent ||
-            event['transaction.duration'] > slowestEvent['transaction.duration'])
-        ) {
-          slowestEvent = event;
+    const replays: ReplayListRecordWithTx[] | undefined = listData.replays?.map(
+      replay => {
+        let slowestEvent: TableDataRow | undefined;
+        for (const event of eventsData ?? []) {
+          // attach the slowest tx event to the replay
+          if (
+            event.replayId === replay.id &&
+            (!slowestEvent ||
+              event['transaction.duration'] > slowestEvent['transaction.duration'])
+          ) {
+            slowestEvent = event;
+          }
         }
-      }
 
-      return {
-        ...replay,
-        txEvent: slowestEvent ?? {},
-      };
-    });
+        return {
+          ...replay,
+          txEvent: slowestEvent ?? {},
+        };
+      }
+    );
 
     setData({
       ...listData,

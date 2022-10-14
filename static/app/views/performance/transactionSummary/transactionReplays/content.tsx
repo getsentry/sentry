@@ -18,7 +18,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import ReplayTable from 'sentry/views/replays/replayTable';
 import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
 
-import type {ReplayRecordWithTx} from './useReplaysFromTransaction';
+import type {ReplayListRecordWithTx} from './useReplaysFromTransaction';
 
 type Props = {
   eventView: EventView;
@@ -26,7 +26,7 @@ type Props = {
   location: Location<ReplayListLocationQuery>;
   organization: Organization;
   pageLinks: string | null;
-  replays: ReplayRecordWithTx[];
+  replays: ReplayListRecordWithTx[];
 };
 
 function ReplaysContent({

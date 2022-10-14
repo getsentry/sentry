@@ -24,12 +24,12 @@ import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useRoutes} from 'sentry/utils/useRoutes';
-import type {ReplayRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysFromTransaction';
-import type {ReplayListLocationQuery, ReplayRecord} from 'sentry/views/replays/types';
+import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysFromTransaction';
+import type {ReplayListLocationQuery, ReplayListRecord} from 'sentry/views/replays/types';
 
 type Props = {
   isFetching: boolean;
-  replays: undefined | ReplayRecord[] | ReplayRecordWithTx[];
+  replays: undefined | ReplayListRecord[] | ReplayListRecordWithTx[];
   showProjectColumn: boolean;
   sort: Sort;
   fetchError?: Error;
@@ -45,7 +45,7 @@ type RowProps = {
   minWidthIsSmall: boolean;
   organization: Organization;
   referrer: string;
-  replay: ReplayRecord | ReplayRecordWithTx;
+  replay: ReplayListRecord | ReplayListRecordWithTx;
   showProjectColumn: boolean;
   showSlowestTxColumn: boolean;
 };
