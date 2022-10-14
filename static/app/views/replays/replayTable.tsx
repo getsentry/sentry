@@ -24,12 +24,12 @@ import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useRoutes} from 'sentry/utils/useRoutes';
-import type {ReplayItem} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysFromTransaction';
-import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
+import type {ReplayRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysFromTransaction';
+import type {ReplayListLocationQuery, ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
   isFetching: boolean;
-  replays: undefined | ReplayItem[];
+  replays: undefined | ReplayRecord[] | ReplayRecordWithTx[];
   showProjectColumn: boolean;
   sort: Sort;
   fetchError?: Error;
@@ -45,7 +45,7 @@ type RowProps = {
   minWidthIsSmall: boolean;
   organization: Organization;
   referrer: string;
-  replay: ReplayItem;
+  replay: ReplayRecord | ReplayRecordWithTx;
   showProjectColumn: boolean;
   showSlowestTxColumn: boolean;
 };
@@ -209,7 +209,8 @@ function ReplayTableRow({
   const location = useLocation();
   const {projects} = useProjects();
   const project = projects.find(p => p.id === replay.projectId);
-  const txDuration = replay.txEvent?.['transaction.duration'];
+  const hasTxEvent = 'txEvent' in replay;
+  const txDuration = hasTxEvent ? replay.txEvent?.['transaction.duration'] : undefined;
 
   return (
     <Fragment>
@@ -237,7 +238,7 @@ function ReplayTableRow({
       )}
       {minWidthIsSmall && showSlowestTxColumn && (
         <Item>
-          {replay.txEvent ? (
+          {hasTxEvent ? (
             <SpanOperationBreakdown>
               {txDuration ? <TxDuration>{txDuration}ms</TxDuration> : null}
               {spanOperationRelativeBreakdownRenderer(replay.txEvent, {

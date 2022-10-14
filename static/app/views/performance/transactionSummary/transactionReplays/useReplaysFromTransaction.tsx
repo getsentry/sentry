@@ -14,12 +14,13 @@ import fetchReplayList, {
 import useApi from 'sentry/utils/useApi';
 import {ReplayListRecord} from 'sentry/views/replays/types';
 
-export type ReplayItem = ReplayListRecord & {
-  txEvent?: {[x: string]: any};
+export type ReplayRecordWithTx = ReplayListRecord & {
+  txEvent: {[x: string]: any};
 };
 
 type State = Awaited<ReturnType<typeof fetchReplayList>> & {
   eventView: undefined | EventView;
+  replays?: ReplayRecordWithTx[];
 };
 
 type Options = {
@@ -73,7 +74,7 @@ function useReplaysFromTransaction({
       organization,
     });
 
-    const replays: ReplayItem[] | undefined = listData.replays?.map(replay => {
+    const replays: ReplayRecordWithTx[] | undefined = listData.replays?.map(replay => {
       let slowestEvent: TableDataRow | undefined;
       for (const event of eventsData ?? []) {
         // attach the slowest tx event to the replay
@@ -88,7 +89,7 @@ function useReplaysFromTransaction({
 
       return {
         ...replay,
-        txEvent: slowestEvent,
+        txEvent: slowestEvent ?? {},
       };
     });
 
