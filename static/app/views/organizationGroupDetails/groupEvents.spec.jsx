@@ -9,6 +9,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {GroupEvents} from 'sentry/views/organizationGroupDetails/groupEvents';
+import {RouteContext} from 'sentry/views/routeContext';
 
 describe('groupEvents', function () {
   let request;
@@ -117,13 +118,15 @@ describe('groupEvents', function () {
 
   it('renders', function () {
     const wrapper = render(
-      <GroupEvents
-        organization={organization}
-        api={new MockApiClient()}
-        group={TestStubs.Group()}
-        params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
-        location={{query: {}}}
-      />,
+      <RouteContext.Provider value={routerContext}>
+        <GroupEvents
+          organization={organization}
+          api={new MockApiClient()}
+          group={TestStubs.Group()}
+          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+          location={{query: {}}}
+        />
+      </RouteContext.Provider>,
       {context: routerContext, organization}
     );
 
@@ -132,13 +135,15 @@ describe('groupEvents', function () {
 
   it('handles search', function () {
     render(
-      <GroupEvents
-        organization={organization}
-        api={new MockApiClient()}
-        params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
-        group={TestStubs.Group()}
-        location={{query: {}}}
-      />,
+      <RouteContext.Provider value={routerContext}>
+        <GroupEvents
+          organization={organization}
+          api={new MockApiClient()}
+          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+          group={TestStubs.Group()}
+          location={{query: {}}}
+        />
+      </RouteContext.Provider>,
       {context: routerContext, organization}
     );
 
@@ -164,13 +169,15 @@ describe('groupEvents', function () {
 
   it('handles environment filtering', function () {
     render(
-      <GroupEvents
-        organization={organization}
-        api={new MockApiClient()}
-        params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
-        group={TestStubs.Group()}
-        location={{query: {environment: ['prod', 'staging']}}}
-      />,
+      <RouteContext.Provider value={routerContext}>
+        <GroupEvents
+          organization={organization}
+          api={new MockApiClient()}
+          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+          group={TestStubs.Group()}
+          location={{query: {environment: ['prod', 'staging']}}}
+        />
+      </RouteContext.Provider>,
       {context: routerContext, organization}
     );
     expect(request).toHaveBeenCalledWith(
@@ -196,13 +203,15 @@ describe('groupEvents', function () {
       group.issueCategory = 'performance';
 
       render(
-        <GroupEvents
-          organization={org.organization}
-          api={new MockApiClient()}
-          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
-          group={group}
-          location={{query: {environment: ['prod', 'staging']}}}
-        />,
+        <RouteContext.Provider value={routerContext}>
+          <GroupEvents
+            organization={org.organization}
+            api={new MockApiClient()}
+            params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+            group={group}
+            location={{query: {environment: ['prod', 'staging']}}}
+          />
+        </RouteContext.Provider>,
         {context: routerContext, organization}
       );
       expect(discoverRequest).toHaveBeenCalledWith(
@@ -219,13 +228,15 @@ describe('groupEvents', function () {
       group.issueCategory = 'performance';
 
       render(
-        <GroupEvents
-          organization={org.organization}
-          api={new MockApiClient()}
-          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
-          group={group}
-          location={{query: {environment: ['prod', 'staging']}}}
-        />,
+        <RouteContext.Provider value={routerContext}>
+          <GroupEvents
+            organization={org.organization}
+            api={new MockApiClient()}
+            params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+            group={group}
+            location={{query: {environment: ['prod', 'staging']}}}
+          />
+        </RouteContext.Provider>,
         {context: routerContext, organization}
       );
       await waitForElementToBeRemoved(document.querySelector('div.loading-indicator'));
@@ -243,13 +254,15 @@ describe('groupEvents', function () {
 
     it('does not display attachments column with no attachments', async () => {
       render(
-        <GroupEvents
-          organization={org.organization}
-          api={new MockApiClient()}
-          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
-          group={group}
-          location={{query: {environment: ['prod', 'staging']}}}
-        />,
+        <RouteContext.Provider value={routerContext}>
+          <GroupEvents
+            organization={org.organization}
+            api={new MockApiClient()}
+            params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+            group={group}
+            location={{query: {environment: ['prod', 'staging']}}}
+          />
+        </RouteContext.Provider>,
         {context: routerContext, organization}
       );
       await waitForElementToBeRemoved(document.querySelector('div.loading-indicator'));
@@ -279,13 +292,15 @@ describe('groupEvents', function () {
       });
 
       render(
-        <GroupEvents
-          organization={org.organization}
-          api={new MockApiClient()}
-          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
-          group={group}
-          location={{query: {environment: ['prod', 'staging']}}}
-        />,
+        <RouteContext.Provider value={routerContext}>
+          <GroupEvents
+            organization={org.organization}
+            api={new MockApiClient()}
+            params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+            group={group}
+            location={{query: {environment: ['prod', 'staging']}}}
+          />
+        </RouteContext.Provider>,
         {context: routerContext, organization}
       );
       await waitForElementToBeRemoved(document.querySelector('div.loading-indicator'));
@@ -296,13 +311,15 @@ describe('groupEvents', function () {
 
     it('renders new events table if error', function () {
       render(
-        <GroupEvents
-          organization={org.organization}
-          api={new MockApiClient()}
-          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
-          group={group}
-          location={{query: {environment: ['prod', 'staging']}}}
-        />,
+        <RouteContext.Provider value={routerContext}>
+          <GroupEvents
+            organization={org.organization}
+            api={new MockApiClient()}
+            params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+            group={group}
+            location={{query: {environment: ['prod', 'staging']}}}
+          />
+        </RouteContext.Provider>,
         {context: routerContext, organization}
       );
       expect(discoverRequest).toHaveBeenCalledWith(
@@ -316,13 +333,15 @@ describe('groupEvents', function () {
 
     it('removes sort if unsupported by the events table', function () {
       render(
-        <GroupEvents
-          organization={org.organization}
-          api={new MockApiClient()}
-          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
-          group={group}
-          location={{query: {environment: ['prod', 'staging'], sort: 'user'}}}
-        />,
+        <RouteContext.Provider value={routerContext}>
+          <GroupEvents
+            organization={org.organization}
+            api={new MockApiClient()}
+            params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+            group={group}
+            location={{query: {environment: ['prod', 'staging'], sort: 'user'}}}
+          />
+        </RouteContext.Provider>,
         {context: routerContext, organization}
       );
       expect(discoverRequest).toHaveBeenCalledWith(
@@ -337,13 +356,15 @@ describe('groupEvents', function () {
     const group = TestStubs.Group();
 
     render(
-      <GroupEvents
-        organization={org.organization}
-        api={new MockApiClient()}
-        params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
-        group={group}
-        location={{query: {environment: ['prod', 'staging']}}}
-      />,
+      <RouteContext.Provider value={routerContext}>
+        <GroupEvents
+          organization={org.organization}
+          api={new MockApiClient()}
+          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+          group={group}
+          location={{query: {environment: ['prod', 'staging']}}}
+        />
+      </RouteContext.Provider>,
       {context: routerContext, organization}
     );
 
