@@ -124,7 +124,7 @@ describe('Project Ownership', () => {
           expect.anything(),
           expect.objectContaining({
             data: {
-              autoAssignment: 'Assign To Issue Owner',
+              autoAssignment: 'Auto Assign to Issue Owner',
             },
           })
         );
