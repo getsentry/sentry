@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import logging
 import random
+import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import timedelta
@@ -33,6 +34,7 @@ INTEGRATIONS_OF_INTEREST = [
     "Mongo",  # Node
     "Postgres",  # Node
 ]
+PARAMETERIZED_SQL_QUERY_REGEX = re.compile(r"\?|\$1|%s")
 
 
 class DetectorType(Enum):
@@ -45,6 +47,8 @@ class DetectorType(Enum):
     N_PLUS_ONE_SPANS = "n_plus_one"
     N_PLUS_ONE_DB_QUERIES = "n_plus_one_db"
     N_PLUS_ONE_DB_QUERIES_EXTENDED = "n_plus_one_db_ext"
+    N_PLUS_ONE_DB_QUERIES_NO_REDIS = "n_plus_one_db_noredis"
+    N_PLUS_ONE_DB_QUERIES_PARAMETERIZED = "n_plus_one_db_param"
 
 
 DETECTOR_TYPE_TO_GROUP_TYPE = {
@@ -58,6 +62,8 @@ DETECTOR_TYPE_TO_GROUP_TYPE = {
     DetectorType.N_PLUS_ONE_SPANS: GroupType.PERFORMANCE_N_PLUS_ONE,
     DetectorType.N_PLUS_ONE_DB_QUERIES: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
     DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+    DetectorType.N_PLUS_ONE_DB_QUERIES_NO_REDIS: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+    DetectorType.N_PLUS_ONE_DB_QUERIES_PARAMETERIZED: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
 }
 
 # Detector and the corresponding system option must be added to this list to have issues created.
@@ -298,6 +304,12 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
         DetectorType.N_PLUS_ONE_SPANS: NPlusOneSpanDetector(detection_settings, data),
         DetectorType.N_PLUS_ONE_DB_QUERIES: NPlusOneDBSpanDetector(detection_settings, data),
         DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: NPlusOneDBSpanDetectorExtended(
+            detection_settings, data
+        ),
+        DetectorType.N_PLUS_ONE_DB_QUERIES_NO_REDIS: NPlusOneDBSpanDetectorWithoutRedis(
+            detection_settings, data
+        ),
+        DetectorType.N_PLUS_ONE_DB_QUERIES_PARAMETERIZED: NPlusOneDBSpanDetectorWithoutUnparameterizedQueries(
             detection_settings, data
         ),
     }
@@ -889,7 +901,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         if not span_id or not op:
             return
 
-        if not op.startswith("db"):
+        if not self._is_db_op(op):
             # This breaks up the N+1 we're currently tracking.
             self._maybe_store_problem()
             self._reset_detection()
@@ -923,6 +935,9 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
 
     def on_complete(self) -> None:
         self._maybe_store_problem()
+
+    def _is_db_op(self, op: str) -> bool:
+        return op.startswith("db")
 
     def _contains_complete_query(self, span: Span, is_source: Optional[bool] = False) -> bool:
         # Remove the truncation check from the n_plus_one db detector.
@@ -1005,6 +1020,9 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
             metrics.incr("performance.performance_issue.truncated_np1_db")
             return
 
+        if not self._contains_valid_repeating_query(self.n_spans[0]):
+            return
+
         fingerprint = self._fingerprint(
             parent_span.get("op", None),
             parent_span.get("hash", None),
@@ -1023,6 +1041,9 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
                 cause_span_ids=[self.source_span.get("span_id", None)],
                 offender_span_ids=[span.get("span_id", None) for span in self.n_spans],
             )
+
+    def _contains_valid_repeating_query(self, span: Span) -> bool:
+        return True
 
     def _metrics_for_extra_matching_spans(self):
         # Checks for any extra spans that match the detected problem but are not part of affected spans.
@@ -1063,6 +1084,43 @@ class NPlusOneDBSpanDetectorExtended(NPlusOneDBSpanDetector):
         "n_hash",
         "n_spans",
     )
+
+
+class NPlusOneDBSpanDetectorWithoutRedis(NPlusOneDBSpanDetector):
+    """
+    A temporary detector to collect metrics on how many fewer issues we create
+    with Redis excluded.
+    """
+
+    __slots__ = (
+        "stored_problems",
+        "potential_parents",
+        "source_span",
+        "n_hash",
+        "n_spans",
+    )
+
+    def _is_db_op(self, op: str) -> bool:
+        return op.startswith("db") and not op.startswith("db.redis")
+
+
+class NPlusOneDBSpanDetectorWithoutUnparameterizedQueries(NPlusOneDBSpanDetector):
+    """
+    A temporary detector to collect metrics on how many fewer issues we create
+    with unparameterized queries excluded.
+    """
+
+    __slots__ = (
+        "stored_problems",
+        "potential_parents",
+        "source_span",
+        "n_hash",
+        "n_spans",
+    )
+
+    def _contains_valid_repeating_query(self, span: Span) -> bool:
+        query = span.get("description", None)
+        return query and PARAMETERIZED_SQL_QUERY_REGEX.search(query)
 
 
 # Reports metrics and creates spans for detection
