@@ -211,6 +211,7 @@ describe('groupEvents', function () {
       );
       const perfEventsColumn = screen.getByText('transaction');
       expect(perfEventsColumn).toBeInTheDocument();
+      expect(request).not.toHaveBeenCalled();
     });
 
     it('renders event and trace link correctly', async () => {
