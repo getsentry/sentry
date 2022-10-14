@@ -1,5 +1,6 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {selectByQuery, selectByValue} from 'sentry-test/select-new';
+import selectEvent from 'react-select-event';
+
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Form, SelectAsyncField} from 'sentry/components/deprecatedforms';
 
@@ -19,56 +20,43 @@ describe('SelectAsyncField', function () {
     });
   });
 
+  const defaultProps = {
+    url: '/foo/bar/',
+    name: 'fieldName',
+    label: 'Select me',
+  };
+
   it('supports autocomplete arguments from an integration', async function () {
-    const wrapper = mountWithTheme(<SelectAsyncField url="/foo/bar/" name="fieldName" />);
-    await selectByQuery(wrapper, 'baz', {control: true});
+    render(<SelectAsyncField {...defaultProps} />);
+
+    selectEvent.openMenu(screen.getByText('Select me'));
+    userEvent.type(screen.getByRole('textbox'), 'baz');
 
     expect(api).toHaveBeenCalled();
 
-    await tick();
-    wrapper.update();
-
     // Is in select menu
-    expect(wrapper.find('Select').prop('options')).toEqual([
-      expect.objectContaining({
-        value: 'baz',
-        label: 'Baz Label',
-      }),
-    ]);
+    await screen.findByText('Baz Label');
   });
 
   it('with Form context', async function () {
     const submitMock = jest.fn();
-    const wrapper = mountWithTheme(
-      <Form onSubmit={submitMock}>
-        <SelectAsyncField url="/foo/bar/" name="fieldName" />
-      </Form>,
-      {}
+    render(
+      <Form onSubmit={submitMock} aria-label="form">
+        <SelectAsyncField {...defaultProps} />
+      </Form>
     );
-    await selectByQuery(wrapper, 'baz', {control: true});
-    await tick();
-    wrapper.update();
 
-    // Is in select menu
-    expect(wrapper.find('Select').prop('options')).toEqual([
-      expect.objectContaining({
-        value: 'baz',
-        label: 'Baz Label',
-      }),
-    ]);
+    selectEvent.openMenu(screen.getByText('Select me'));
+    userEvent.type(screen.getByRole('textbox'), 'baz');
 
-    // Select item
-    selectByValue(wrapper, 'baz', {control: true});
+    await selectEvent.select(screen.getByText('Select me'), 'Baz Label');
 
-    // SelectControl MUST have the value object, not just a simple value
-    // otherwise it means that selecting an item that has been populated in the menu by
-    // an async request will not work (nothing will appear selected).
-    expect(wrapper.find('SelectControl').prop('value')).toEqual({
-      value: 'baz',
-      label: expect.anything(),
+    expect(screen.getByLabelText('form')).toHaveFormValues({
+      fieldName: 'baz',
     });
 
-    wrapper.find('Form').simulate('submit');
+    userEvent.click(screen.getByRole('button', {name: /save/i}));
+
     expect(submitMock).toHaveBeenCalledWith(
       {
         fieldName: 'baz',
