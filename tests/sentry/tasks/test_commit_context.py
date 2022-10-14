@@ -156,3 +156,51 @@ class TestCommitContext(TestCase):
 
             assert GroupOwner.objects.filter(group=self.event.group).count() == 1
             assert GroupOwner.objects.filter(group=self.event.group, user=self.user).exists()
+
+    def test_no_inapp_frame_in_stacktrace(self):
+        with self.tasks():
+            assert not GroupOwner.objects.filter(group=self.event.group).exists()
+            self.event_2 = self.store_event(
+                data={
+                    "message": "Kaboom!",
+                    "platform": "python",
+                    "timestamp": iso_format(before_now(seconds=10)),
+                    "stacktrace": {
+                        "frames": [
+                            {
+                                "function": "handle_set_commits",
+                                "abs_path": "/usr/src/sentry/src/sentry/tasks.py",
+                                "module": "sentry.tasks",
+                                "in_app": False,
+                                "lineno": 30,
+                                "filename": "sentry/tasks.py",
+                            },
+                            {
+                                "function": "set_commits",
+                                "abs_path": "/usr/src/sentry/src/sentry/models/release.py",
+                                "module": "sentry.models.release",
+                                "in_app": False,
+                                "lineno": 39,
+                                "filename": "sentry/models/release.py",
+                            },
+                        ]
+                    },
+                    "tags": {"sentry:release": self.release.version},
+                    "fingerprint": ["put-me-in-the-control-group"],
+                },
+                project_id=self.project.id,
+            )
+            event_frames = get_frame_paths(self.event_2)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+        assert not GroupOwner.objects.filter(
+            group=self.event.group,
+            project=self.event.project,
+            organization=self.event.project.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+        ).exists()

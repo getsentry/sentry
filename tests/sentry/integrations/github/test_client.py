@@ -245,7 +245,7 @@ class GitHubAppsClientTest(TestCase):
             json={"query": query},
             content_type="application/json",
         )
-        resp = self.client.get_blame_for_file(self.repo, path, ref)
+        resp = self.client.get_blame_for_file(self.repo, path, ref, 1)
         assert (
             responses.calls[1].request.body
             == b'{"query": "query {\\n            repository(name: \\"foo\\", owner: \\"Test-Organization\\") {\\n                ref(qualifiedName: \\"master\\") {\\n                    target {\\n                        ... on Commit {\\n                            blame(path: \\"src/sentry/integrations/github/client.py\\") {\\n                                ranges {\\n                                        commit {\\n                                            oid\\n                                            author {\\n                                                name\\n                                                email\\n                                            }\\n                                            message\\n                                            committedDate\\n                                        }\\n                                    startingLine\\n                                    endingLine\\n                                    age\\n                                }\\n                            }\\n                        }\\n                    }\\n                }\\n            }\\n        }"}'

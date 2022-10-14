@@ -12,7 +12,9 @@ class CommitContextMixin:
     # dynamically given a search query
     repo_search = False
 
-    def get_blame_for_file(self, repo: Repository, filepath: str, ref: str) -> str | None:
+    def get_blame_for_file(
+        self, repo: Repository, filepath: str, ref: str, lineno: int
+    ) -> str | None:
         """
         Calls the client's `get_blame_for_file` method to see if the file has a blame list.
 
@@ -26,7 +28,7 @@ class CommitContextMixin:
         except Identity.DoesNotExist:
             return None
         try:
-            response = client.get_blame_for_file(repo, filepath, ref)
+            response = client.get_blame_for_file(repo, filepath, ref, lineno)
             if response is None:
                 return None
         except IdentityNotValid:
