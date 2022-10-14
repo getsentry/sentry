@@ -238,7 +238,8 @@ class ProjectOwnership(Model):
                         )
                     )
 
-            if ownership.auto_assignment:
+            # Skip if we already found a Suspect Committer
+            if ownership.auto_assignment and len(queue) == 0:
                 ownership_rules = GroupOwner.objects.filter(
                     group=event.group,
                     type=GroupOwnerType.OWNERSHIP_RULE.value,
