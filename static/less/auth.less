@@ -201,17 +201,18 @@ div.u2f-box {
   div.device-failed {
     display: none;
     position: absolute;
-    top: 35%;
+    top: 50%;
     left: 50%;
-    width: 100px;
+    transform: translate(-50%, -50%);
+    padding-right: 4px;
+
     text-align: center;
-    margin-left: -50px;
-    &:after {
-      content: ':-(';
-    }
     font-size: 46px;
     font-weight: bold;
     color: @red;
+    &:after {
+      content: ':-(';
+    }
   }
 
   div.inner {
