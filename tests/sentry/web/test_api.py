@@ -1,8 +1,10 @@
 from unittest import mock
 
+from django.conf import settings
 from django.urls import reverse
 from exam import fixture
 
+from sentry.auth import superuser
 from sentry.models import (
     ApiToken,
     Organization,
@@ -77,6 +79,17 @@ class ClientConfigViewTest(TestCase):
     @fixture
     def path(self):
         return reverse("sentry-api-client-config")
+
+    def test_cookie_names(self):
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        assert resp["Content-Type"] == "application/json"
+
+        data = json.loads(resp.content)
+        assert data["csrfCookieName"] == "sc"
+        assert data["csrfCookieName"] == settings.CSRF_COOKIE_NAME
+        assert data["superUserCookieName"] == "su"
+        assert data["superUserCookieName"] == superuser.COOKIE_NAME
 
     def test_unauthenticated(self):
         resp = self.client.get(self.path)
