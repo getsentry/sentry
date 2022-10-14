@@ -3,7 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import control_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.bases.organization import OrganizationAuditPermission
 from sentry.api.paginator import DateTimePaginator
@@ -25,7 +25,7 @@ class AuditLogQueryParamSerializer(serializers.Serializer):
             return None
 
 
-@region_silo_endpoint
+@control_silo_endpoint
 class OrganizationAuditLogsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationAuditPermission,)
 
