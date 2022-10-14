@@ -90,7 +90,7 @@ def dispatch_post_process_group_task(
         )
 
 
-def _get_task_kwargs_and_dispatch(message: Message):
+def _get_task_kwargs_and_dispatch(message: Message) -> None:
     task_kwargs = _get_task_kwargs(message)
     if not task_kwargs:
         return None

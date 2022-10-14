@@ -2,20 +2,28 @@ import logging
 import signal
 from typing import Any, Literal, Mapping, MutableMapping, Optional, Sequence, Tuple, Union
 
+from arroyo import Topic
+from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
+from arroyo.backends.kafka.consumer import KafkaConsumer, KafkaPayload
+from arroyo.commit import ONCE_PER_SECOND
+from arroyo.processing.processor import StreamProcessor
 from confluent_kafka import Producer
 from django.conf import settings
 
 from sentry import options
 from sentry.eventstream.base import GroupStates
 from sentry.eventstream.kafka.consumer import SynchronizedConsumer
+from sentry.eventstream.kafka.consumer_strategy import PostProcessForwarderStrategyFactory
 from sentry.eventstream.kafka.postprocessworker import (
     PostProcessForwarderType,
     PostProcessForwarderWorker,
 )
+from sentry.eventstream.kafka.synchronized import SynchronizedConsumer as ArroyoSynchronizedConsumer
 from sentry.eventstream.snuba import KW_SKIP_SEMANTIC_PARTITIONING, SnubaProtocolEventStream
 from sentry.killswitches import killswitch_matches_context
 from sentry.utils import json, kafka
 from sentry.utils.batching_kafka_consumer import BatchingKafkaConsumer
+from sentry.utils.kafka_config import get_kafka_consumer_cluster_options
 
 logger = logging.getLogger(__name__)
 
@@ -192,7 +200,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         self,
         entity: Union[Literal["all"], Literal["errors"], Literal["transactions"]],
         consumer_group: str,
-        topic: Optional[str],
+        topic: str,
         commit_log_topic: str,
         synchronize_commit_group: str,
         commit_batch_size: int,
@@ -230,7 +238,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         )
 
         consumer = BatchingKafkaConsumer(
-            topics=topic or default_topic,
+            topics=topic,
             worker=worker,
             max_batch_size=commit_batch_size,
             max_batch_time=commit_batch_timeout_ms,
@@ -239,7 +247,43 @@ class KafkaEventStream(SnubaProtocolEventStream):
         )
         return consumer
 
-    def run_batched_consumer(
+    def _build_streaming_consumer(
+        self,
+        entity: Union[Literal["all"], Literal["errors"], Literal["transactions"]],
+        consumer_group: str,
+        topic: str,
+        commit_log_topic: str,
+        synchronize_commit_group: str,
+        commit_batch_size: int,
+        commit_batch_timeout_ms: int,
+        concurrency: int,
+        initial_offset_reset: Union[Literal["latest"], Literal["earliest"]],
+        strict_offset_reset: Optional[bool],
+    ) -> StreamProcessor[KafkaPayload]:
+
+        cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
+
+        configuration = build_kafka_consumer_configuration(
+            get_kafka_consumer_cluster_options(cluster_name),
+            group_id=consumer_group,
+            auto_offset_reset=initial_offset_reset,
+            strict_offset_reset=strict_offset_reset,
+        )
+
+        synchronized_consumer = ArroyoSynchronizedConsumer(
+            consumer=KafkaConsumer(configuration),
+            commit_log_consumer=KafkaConsumer(configuration),
+            commit_log_topic=Topic(commit_log_topic),
+            commit_log_groups={synchronize_commit_group},
+        )
+
+        strategy_factory = PostProcessForwarderStrategyFactory(concurrency)
+
+        return StreamProcessor(
+            synchronized_consumer, Topic(topic), strategy_factory, ONCE_PER_SECOND
+        )
+
+    def run_consumer(
         self,
         entity: Union[Literal["all"], Literal["errors"], Literal["transactions"]],
         consumer_group: str,
@@ -250,18 +294,51 @@ class KafkaEventStream(SnubaProtocolEventStream):
         commit_batch_timeout_ms: int,
         concurrency: int,
         initial_offset_reset: Union[Literal["latest"], Literal["earliest"]],
-    ):
-        consumer = self._build_consumer(
-            entity,
-            consumer_group,
-            topic,
-            commit_log_topic,
-            synchronize_commit_group,
-            commit_batch_size,
-            commit_batch_timeout_ms,
-            concurrency,
-            initial_offset_reset,
-        )
+        strict_offset_reset: Optional[bool],
+        use_streaming_consumer: bool,
+    ) -> None:
+
+        if entity == PostProcessForwarderType.TRANSACTIONS:
+            default_topic = self.transactions_topic
+        elif entity == PostProcessForwarderType.ERRORS:
+            default_topic = self.topic
+        else:
+            # Default implementation which processes both errors and transactions
+            # irrespective of values in the header. This would most likely be the case
+            # for development environments. For the combined post process forwarder
+            # to work KAFKA_EVENTS and KAFKA_TRANSACTIONS must be the same currently.
+            assert (
+                settings.KAFKA_TOPICS[settings.KAFKA_EVENTS]["cluster"]
+                == settings.KAFKA_TOPICS[settings.KAFKA_TRANSACTIONS]["cluster"]
+            )
+            default_topic = self.topic
+            assert self.topic == self.transactions_topic
+
+        if use_streaming_consumer:
+            consumer = self._build_streaming_consumer(
+                entity,
+                consumer_group,
+                topic or default_topic,
+                commit_log_topic,
+                synchronize_commit_group,
+                commit_batch_size,
+                commit_batch_timeout_ms,
+                concurrency,
+                initial_offset_reset,
+                bool(strict_offset_reset),
+            )
+        else:
+            consumer = self._build_consumer(
+                entity,
+                consumer_group,
+                topic or default_topic,
+                commit_log_topic,
+                synchronize_commit_group,
+                commit_batch_size,
+                commit_batch_timeout_ms,
+                concurrency,
+                initial_offset_reset,
+            )
 
         def handler(signum, frame):
             consumer.signal_shutdown()
@@ -282,10 +359,12 @@ class KafkaEventStream(SnubaProtocolEventStream):
         commit_batch_timeout_ms: int,
         concurrency: int,
         initial_offset_reset: Union[Literal["latest"], Literal["earliest"]],
+        strict_offset_reset: bool,
+        use_streaming_consumer: bool,
     ):
         logger.debug("Starting post-process forwarder...")
 
-        self.run_batched_consumer(
+        self.run_consumer(
             entity,
             consumer_group,
             topic,
@@ -295,4 +374,6 @@ class KafkaEventStream(SnubaProtocolEventStream):
             commit_batch_timeout_ms,
             concurrency,
             initial_offset_reset,
+            strict_offset_reset,
+            use_streaming_consumer,
         )
