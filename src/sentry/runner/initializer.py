@@ -202,7 +202,8 @@ def bootstrap_options(settings: Any, config: str | None = None) -> None:
     # these will be validated later after bootstrapping
     for k, v in options.items():
         settings.SENTRY_OPTIONS[k] = v
-        # If SENTRY_URL_PREFIX is used in config, show deprecation warning
+        # If SENTRY_URL_PREFIX is used in config, show deprecation warning and
+        # set the newer SENTRY_OPTIONS['system.url-prefix']
         # TODO: delete when SENTRY_URL_PREFIX is removed
         if k == "SENTRY_URL_PREFIX":
             warnings.warn(
