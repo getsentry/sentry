@@ -1,10 +1,11 @@
 import {Component} from 'react';
 
 import SelectControl from 'sentry/components/forms/controls/selectControl';
-import InputField, {InputFieldProps} from 'sentry/components/forms/fields/inputField';
 import IdBadge from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
 import {Project} from 'sentry/types';
+
+import InputField, {InputFieldProps} from './inputField';
 
 const defaultProps = {
   avatarSize: 20,

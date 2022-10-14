@@ -1,18 +1,14 @@
 import omit from 'lodash/omit';
 
 import Textarea, {TextAreaProps} from 'sentry/components/forms/controls/textarea';
-import InputField, {InputFieldProps} from 'sentry/components/forms/fields/inputField';
+
+import InputField, {InputFieldProps} from './inputField';
 
 export interface TextareaFieldProps
   extends Omit<InputFieldProps, 'field'>,
     Pick<TextAreaProps, 'monospace' | 'autosize' | 'rows' | 'maxRows'> {}
 
-export default function TextareaField({
-  monospace,
-  rows,
-  autosize,
-  ...props
-}: TextareaFieldProps) {
+function TextareaField({monospace, rows, autosize, ...props}: TextareaFieldProps) {
   return (
     <InputField
       {...props}
@@ -26,3 +22,5 @@ export default function TextareaField({
     />
   );
 }
+
+export default TextareaField;
