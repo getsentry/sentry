@@ -191,7 +191,10 @@ export type SuggestedOwner = {
 };
 
 export type IssueOwnership = {
-  autoAssignment: 'Auto Assign to Suspect Commits' | 'Auto Assign to Issue Owner';
+  autoAssignment:
+    | 'Auto Assign to Suspect Commits'
+    | 'Auto Assign to Issue Owner'
+    | 'Turn Off Auto-Assignment';
   codeownersAutoSync: boolean;
   dateCreated: string | null;
   fallthrough: boolean;
