@@ -11,11 +11,9 @@ from sentry.testutils.helpers.api_gateway import (
     ApiGatewayTestCase,
     verify_request_params,
 )
-from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
 
-@control_silo_test(stable=True)
 class ApiGatewayTest(ApiGatewayTestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @responses.activate

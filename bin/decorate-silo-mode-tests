@@ -71,12 +71,14 @@ class TestVisitor(ast.NodeVisitor):
                         self.import_match_line = (node.lineno, node.col_offset)
 
     def visit_ClassDef(self, node: ast.ClassDef) -> Any:
-        if len(self.target_symbol_parts) == 2:
+        if len(self.target_symbol_parts) == 2 and self.target_test_silo_mode[0] == node.name:
             self.class_node = node
             self.generic_visit(node)
             self.class_node = None
         elif len(self.target_symbol_parts) == 1:
-            if self.target_symbol_parts[-1] == node.name:
+            if self.target_symbol_parts[-1] == node.name or self.target_symbol_parts[-1] in {
+                e.id for e in node.bases if isinstance(e, ast.Name)
+            }:
                 self.mark_target(node)
 
     def visit_FunctionDef(self, node: Union[ast.FunctionDef, ast.ClassDef]) -> Any:
@@ -131,7 +133,11 @@ class TestVisitor(ast.NodeVisitor):
                         continue
 
                     if newline := self._decorate(i, self.decorator_match_line):
-                        tf.write(newline)
+                        # If the decorator type is not changing, keep the original line.
+                        if self.target_test_silo_mode in line:
+                            tf.write(line.encode("utf8"))
+                        else:
+                            tf.write(newline)
                         continue
 
                     if not self.decorator_match_line and (
