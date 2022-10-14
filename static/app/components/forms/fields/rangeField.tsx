@@ -2,16 +2,11 @@ import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
 
 import InputField, {InputFieldProps, onEvent} from './inputField';
 
-interface DefaultProps {
-  formatMessageValue?: false | Function;
-}
-
 type DisabledFunction = (props: Omit<RangeFieldProps, 'formatMessageValue'>) => boolean;
 type PlaceholderFunction = (props: any) => React.ReactNode;
 
 export interface RangeFieldProps
-  extends DefaultProps,
-    Omit<
+  extends Omit<
       React.ComponentProps<typeof RangeSlider>,
       'value' | 'disabled' | 'placeholder' | 'css'
     >,
@@ -28,6 +23,7 @@ export interface RangeFieldProps
       | 'formatMessageValue'
     > {
   disabled?: boolean | DisabledFunction;
+  formatMessageValue?: false | Function;
   placeholder?: string | PlaceholderFunction;
 }
 
@@ -39,11 +35,11 @@ function onChange(
   fieldOnChange(value, e);
 }
 
-function defaultFormatMessageValue(value, props: RangeFieldProps) {
-  return (typeof props.formatLabel === 'function' && props.formatLabel(value)) || value;
+function defaultFormatMessageValue(value: number | '', {formatLabel}: RangeFieldProps) {
+  return formatLabel?.(value) ?? value;
 }
 
-export default function RangeField({
+function RangeField({
   formatMessageValue = defaultFormatMessageValue,
   disabled,
   ...otherProps
@@ -71,3 +67,5 @@ export default function RangeField({
     />
   );
 }
+
+export default RangeField;
