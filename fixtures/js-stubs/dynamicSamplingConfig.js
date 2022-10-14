@@ -10,7 +10,7 @@ export function DynamicSamplingConfig(params = {}) {
     uniformRule: {
       sampleRate: 0.5,
       type: SamplingRuleType.TRACE,
-      active: false,
+      active: true,
       condition: {
         op: SamplingConditionOperator.AND,
         inner: [],

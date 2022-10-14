@@ -450,42 +450,4 @@ describe('Dynamic Sampling', function () {
       )
     ).toBeInTheDocument();
   });
-
-  it('display invalid rules in the bottom of the panel', async function () {
-    const {organization, router, project} = initializeOrg({
-      ...initializeOrg(),
-      organization: {
-        ...initializeOrg().organization,
-        features,
-      },
-      projects: [
-        TestStubs.Project({
-          dynamicSampling: {
-            rules: [
-              TestStubs.DynamicSamplingConfig().uniformRule,
-              TestStubs.DynamicSamplingConfig().specificRule,
-              {...TestStubs.DynamicSamplingConfig().specificRule, sampleRate: 0.4},
-            ],
-          },
-        }),
-      ],
-    });
-
-    renderMockRequests({
-      organizationSlug: organization.slug,
-      projectSlug: project.slug,
-    });
-
-    const {container} = render(
-      <TestComponent router={router} organization={organization} project={project} />
-    );
-
-    await waitFor(() => expect(screen.getAllByTestId('sampling-rule')).toHaveLength(3));
-
-    expect(
-      within(screen.getAllByTestId('sampling-rule')[2]).getByTestId('icon-warning')
-    ).toBeInTheDocument();
-
-    expect(container).toSnapshot();
-  });
 });
