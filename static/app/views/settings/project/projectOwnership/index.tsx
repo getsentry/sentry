@@ -318,8 +318,8 @@ tags.sku_class:enterprise #enterprise`;
             apiMethod="PUT"
             saveOnBlur
             initialData={{
-              autoAssignment: ownership.autoAssignment,
               fallthrough: ownership.fallthrough,
+              autoAssignment: ownership.autoAssignment,
               codeownersAutoSync: ownership.codeownersAutoSync,
             }}
             hideFooter
