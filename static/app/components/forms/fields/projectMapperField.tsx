@@ -26,11 +26,13 @@ import {removeAtArrayIndex} from 'sentry/utils/removeAtArrayIndex';
 
 import InputField, {InputFieldProps} from './inputField';
 
-type MappedValue = string | number;
+export interface ProjectMapperProps extends Omit<InputFieldProps, 'type'> {}
 
-interface RenderProps extends Omit<InputFieldProps, 'type'>, ProjectMapperType {
+interface RenderProps extends ProjectMapperProps, ProjectMapperType {
   model: FormModel;
 }
+
+type MappedValue = string | number;
 
 type State = {
   selectedMappedValue: MappedValue | null;
