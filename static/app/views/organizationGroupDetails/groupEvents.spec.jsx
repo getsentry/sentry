@@ -272,13 +272,15 @@ describe('groupEvents', function () {
 
     it('does not display minidump column with no minidumps', async () => {
       render(
-        <GroupEvents
-          organization={org.organization}
-          api={new MockApiClient()}
-          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
-          group={group}
-          location={{query: {environment: ['prod', 'staging']}}}
-        />,
+        <RouteContext.Provider value={routerContext}>
+          <GroupEvents
+            organization={org.organization}
+            api={new MockApiClient()}
+            params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+            group={group}
+            location={{query: {environment: ['prod', 'staging']}}}
+          />
+        </RouteContext.Provider>,
         {context: routerContext, organization}
       );
       await waitForElementToBeRemoved(document.querySelector('div.loading-indicator'));
@@ -307,13 +309,15 @@ describe('groupEvents', function () {
       });
 
       render(
-        <GroupEvents
-          organization={org.organization}
-          api={new MockApiClient()}
-          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
-          group={group}
-          location={{query: {environment: ['prod', 'staging']}}}
-        />,
+        <RouteContext.Provider value={routerContext}>
+          <GroupEvents
+            organization={org.organization}
+            api={new MockApiClient()}
+            params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+            group={group}
+            location={{query: {environment: ['prod', 'staging']}}}
+          />
+        </RouteContext.Provider>,
         {context: routerContext, organization}
       );
       await waitForElementToBeRemoved(document.querySelector('div.loading-indicator'));
