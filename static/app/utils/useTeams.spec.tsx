@@ -82,7 +82,7 @@ describe('useTeams', function () {
       body: [teamFoo],
     });
 
-    const {result, waitFor} = reactHooks.renderHook(props => useTeams(props), {
+    const {result, waitFor} = reactHooks.renderHook(useTeams, {
       initialProps: {slugs: ['foo']},
     });
 
@@ -98,7 +98,7 @@ describe('useTeams', function () {
   it('only loads slugs when needed', function () {
     TeamStore.loadInitialData(mockTeams);
 
-    const {result} = reactHooks.renderHook(props => useTeams(props), {
+    const {result} = reactHooks.renderHook(useTeams, {
       initialProps: {slugs: [mockTeams[0].slug]},
     });
 
@@ -117,7 +117,7 @@ describe('useTeams', function () {
 
     TeamStore.loadInitialData(mockTeams);
 
-    const {result, waitFor} = reactHooks.renderHook(props => useTeams(props), {
+    const {result, waitFor} = reactHooks.renderHook(useTeams, {
       initialProps: {ids: ['2']},
     });
 
@@ -133,7 +133,7 @@ describe('useTeams', function () {
   it('only loads ids when needed', function () {
     TeamStore.loadInitialData(mockTeams);
 
-    const {result} = reactHooks.renderHook(props => useTeams(props), {
+    const {result} = reactHooks.renderHook(useTeams, {
       initialProps: {ids: [mockTeams[0].id]},
     });
 

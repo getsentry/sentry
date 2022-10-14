@@ -1,9 +1,9 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import CompactSelect from 'sentry/components/compactSelect';
 import DateTime from 'sentry/components/dateTime';
 import FileSize from 'sentry/components/fileSize';
-import CompactSelect from 'sentry/components/forms/compactSelect';
 import {PanelTable, PanelTableHeader} from 'sentry/components/panels';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs, showPlayerTime} from 'sentry/components/replays/utils';
@@ -20,10 +20,9 @@ import {
   getResourceTypes,
   getStatusTypes,
   ISortConfig,
-  NetworkSpan,
   sortNetwork,
 } from 'sentry/views/replays/detail/network/utils';
-import type {ReplayRecord} from 'sentry/views/replays/types';
+import type {NetworkSpan, ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
   networkSpans: NetworkSpan[];
@@ -31,9 +30,6 @@ type Props = {
 };
 
 type SortDirection = 'asc' | 'desc';
-
-const createSpanId = (span: NetworkSpan) =>
-  `${span.description ?? span.op}-${span.startTimestamp}-${span.endTimestamp}`;
 
 function NetworkList({replayRecord, networkSpans}: Props) {
   const startTimestampMs = replayRecord.startedAt.getTime();
@@ -57,11 +53,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
   const networkData = useMemo(() => sortNetwork(items, sortConfig), [items, sortConfig]);
 
   const currentNetworkSpan = getPrevReplayEvent({
-    items: networkData.map(span => ({
-      ...span,
-      id: createSpanId(span),
-      timestamp: span.startTimestamp * 1000,
-    })),
+    items: networkData,
     targetTimestampMs: startTimestampMs + currentTime,
     allowEqual: true,
     allowExact: true,
@@ -164,7 +156,6 @@ function NetworkList({replayRecord, networkSpans}: Props) {
   ];
 
   const renderTableRow = (network: NetworkSpan) => {
-    const spanId = createSpanId(network);
     const networkStartTimestamp = network.startTimestamp * 1000;
     const networkEndTimestamp = network.endTimestamp * 1000;
     const statusCode = network.data.statusCode;
@@ -172,7 +163,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
     const columnHandlers = getColumnHandlers(networkStartTimestamp);
     const columnProps = {
       isStatusError: typeof statusCode === 'number' && statusCode >= 400,
-      isCurrent: currentNetworkSpan?.id === spanId,
+      isCurrent: currentNetworkSpan?.id === network.id,
       hasOccurred:
         currentTime >= relativeTimeInMs(networkStartTimestamp, startTimestampMs),
       timestampSortDir:
@@ -182,7 +173,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
     };
 
     return (
-      <Fragment key={spanId}>
+      <Fragment key={network.id}>
         <Item {...columnHandlers} {...columnProps} isStatusCode>
           {statusCode ? statusCode : <EmptyText>---</EmptyText>}
         </Item>
@@ -263,7 +254,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
         disablePadding
         stickyHeaders
       >
-        {networkData.map(renderTableRow) || null}
+        {networkData.map(renderTableRow)}
       </StyledPanelTable>
     </NetworkContainer>
   );

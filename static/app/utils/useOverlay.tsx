@@ -11,7 +11,7 @@ import {mergeProps} from '@react-aria/utils';
 import {useOverlayTriggerState} from '@react-stately/overlays';
 import {OverlayTriggerProps as OverlayTriggerStateProps} from '@react-types/overlays';
 
-interface UseOverlayProps
+export interface UseOverlayProps
   extends Partial<OverlayProps>,
     Partial<OverlayTriggerProps>,
     Partial<OverlayTriggerStateProps> {
@@ -27,6 +27,7 @@ interface UseOverlayProps
 
 function useOverlay({
   isOpen,
+  onClose,
   defaultOpen,
   onOpenChange,
   type = 'dialog',
@@ -58,7 +59,10 @@ function useOverlay({
   // Get props for overlay element
   const {overlayProps} = useAriaOverlay(
     {
-      onClose: openState.close,
+      onClose: () => {
+        onClose?.();
+        openState.close();
+      },
       isOpen: openState.isOpen,
       isDismissable,
       shouldCloseOnBlur,
@@ -104,7 +108,7 @@ function useOverlay({
         name: 'preventOverflow',
         enabled: true,
         options: {
-          padding: 12,
+          padding: 16,
           altAxis: true,
         },
       },
@@ -120,10 +124,12 @@ function useOverlay({
   return {
     isOpen: openState.isOpen,
     state: openState,
+    triggerRef,
     triggerProps: {
       ref: setTriggerElement,
       ...mergeProps(buttonProps, triggerProps),
     },
+    overlayRef,
     overlayProps: {
       ref: setOverlayElement,
       style: popperStyles.popper,

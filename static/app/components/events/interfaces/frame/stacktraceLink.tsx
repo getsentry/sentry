@@ -20,6 +20,7 @@ import {
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {StacktraceLinkEvents} from 'sentry/utils/analytics/integrations/stacktraceLinkAnalyticsEvents';
+import {getAnalyicsDataForEvent} from 'sentry/utils/events';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import {
   getIntegrationIcon,
@@ -115,6 +116,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     trackIntegrationAnalytics('integrations.stacktrace_link_cta_dismissed', {
       view: 'stacktrace_issue_details',
       organization,
+      ...getAnalyicsDataForEvent(this.props.event),
     });
 
     this.setState({isDismissed: true});
@@ -153,6 +155,8 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     trackIntegrationAnalytics('integrations.stacktrace_link_viewed', {
       view: 'stacktrace_issue_details',
       organization: this.props.organization,
+      platform: this.project?.platform,
+      project_id: this.project?.id,
       state:
         // Should follow the same logic in render
         config && sourceUrl
@@ -162,6 +166,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
           : !this.state.isDismissed
           ? 'prompt'
           : 'empty',
+      ...getAnalyicsDataForEvent(this.props.event),
     });
   }
 
@@ -189,6 +194,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
           view: 'stacktrace_issue_details',
           provider: provider.key,
           organization: this.props.organization,
+          ...getAnalyicsDataForEvent(this.props.event),
         },
         {startSession: true}
       );
@@ -206,6 +212,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
           provider: provider.key,
           error_reason: error,
           organization: this.props.organization,
+          ...getAnalyicsDataForEvent(this.props.event),
         },
         {startSession: true}
       );
@@ -245,6 +252,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
                       view: 'stacktrace_issue_details',
                       platform,
                       organization,
+                      ...getAnalyicsDataForEvent(this.props.event),
                     },
                     {startSession: true}
                   );

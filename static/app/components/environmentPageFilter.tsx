@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import {updateEnvironments} from 'sentry/actionCreators/pageFilters';
 import Badge from 'sentry/components/badge';
+import type {ButtonProps} from 'sentry/components/button';
 import EnvironmentSelector from 'sentry/components/organizations/environmentSelector';
 import PageFilterDropdownButton from 'sentry/components/organizations/pageFilters/pageFilterDropdownButton';
 import PageFilterPinIndicator from 'sentry/components/organizations/pageFilters/pageFilterPinIndicator';
@@ -30,6 +31,7 @@ type Props = {
    * Reset these URL params when we fire actions (custom routing only)
    */
   resetParamsOnChange?: string[];
+  size?: ButtonProps['size'];
 };
 
 function EnvironmentPageFilter({
@@ -38,6 +40,7 @@ function EnvironmentPageFilter({
   alignDropdown,
   disabled,
   maxTitleLength = 20,
+  size = 'md',
 }: Props) {
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const organization = useOrganization();
@@ -68,6 +71,7 @@ function EnvironmentPageFilter({
         highlighted={desyncedFilters.has('environments')}
         data-test-id="page-filter-environment-selector"
         disabled={disabled}
+        size={size}
       >
         <DropdownTitle>
           <PageFilterPinIndicator filter="environments">
@@ -109,8 +113,6 @@ function EnvironmentPageFilter({
       customLoadingIndicator={customLoadingIndicator}
       alignDropdown={alignDropdown}
       disabled={disabled}
-      detached
-      showPin
     />
   );
 }

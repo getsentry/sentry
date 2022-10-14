@@ -9,6 +9,7 @@ __all__ = (
     "MetricType",
     "OP_TO_SNUBA_FUNCTION",
     "AVAILABLE_OPERATIONS",
+    "AVAILABLE_GENERIC_OPERATIONS",
     "OPERATIONS_TO_ENTITY",
     "METRIC_TYPE_TO_ENTITY",
     "FIELD_ALIAS_MAPPINGS",
@@ -33,12 +34,13 @@ __all__ = (
     "OP_REGEX",
     "CUSTOM_MEASUREMENT_DATASETS",
     "DATASET_COLUMNS",
+    "NON_RESOLVABLE_TAG_VALUES",
 )
 
 
 import re
 from abc import ABC
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import (
     Collection,
     Dict,
@@ -59,6 +61,7 @@ MAX_POINTS = 10000
 GRANULARITY = 24 * 60 * 60
 TS_COL_QUERY = "timestamp"
 TS_COL_GROUP = "bucketed_time"
+METRICS_LAYER_GRANULARITIES = [86400, 3600, 60]
 
 TAG_REGEX = re.compile(r"^([\w.]+)$")
 
@@ -79,6 +82,7 @@ MetricOperationType = Literal[
     "rate",
     "count_web_vitals",
     "count_transaction_name",
+    "team_key_transaction",
 ]
 MetricUnit = Literal[
     "nanosecond",
@@ -175,6 +179,9 @@ METRIC_TYPE_TO_ENTITY: Mapping[MetricType, EntityKey] = {
 }
 
 FIELD_ALIAS_MAPPINGS = {"project": "project_id"}
+NON_RESOLVABLE_TAG_VALUES = (
+    {"team_key_transaction"} | set(FIELD_ALIAS_MAPPINGS.keys()) | set(FIELD_ALIAS_MAPPINGS.values())
+)
 
 
 class Tag(TypedDict):
@@ -205,7 +212,13 @@ OPERATIONS_PERCENTILES = (
     "p95",
     "p99",
 )
-DERIVED_OPERATIONS = ("histogram", "rate", "count_web_vitals", "count_transaction_name")
+DERIVED_OPERATIONS = (
+    "histogram",
+    "rate",
+    "count_web_vitals",
+    "count_transaction_name",
+    "team_key_transaction",
+)
 OPERATIONS = (
     (
         "avg",
@@ -232,12 +245,12 @@ DEFAULT_AGGREGATES: Dict[MetricOperationType, Optional[Union[int, List[Tuple[flo
     "p99": None,
     "sum": 0,
     "percentage": None,
-    "histogram": [],
-    "rate": 0,
-    "count_web_vitals": 0,
-    "count_transaction_name": 0,
 }
-UNIT_TO_TYPE = {"sessions": "count", "percentage": "percentage", "users": "count"}
+UNIT_TO_TYPE = {
+    "sessions": "count",
+    "percentage": "percentage",
+    "users": "count",
+}
 UNALLOWED_TAGS = {"session.status"}
 DATASET_COLUMNS = {"project_id", "metric_id"}
 
@@ -286,9 +299,15 @@ class OrderByNotSupportedOverCompositeEntityException(NotSupportedOverCompositeE
     ...
 
 
-def get_intervals(start: datetime, end: datetime, granularity: int):
-    assert granularity > 0
-    delta = timedelta(seconds=granularity)
+def get_intervals(start: datetime, end: datetime, granularity: int, interval: Optional[int] = None):
+    if interval is None:
+        assert granularity > 0
+        delta = timedelta(seconds=granularity)
+    else:
+        start = datetime.fromtimestamp(int(start.timestamp() / interval) * interval, timezone.utc)
+        end = datetime.fromtimestamp(int(end.timestamp() / interval) * interval, timezone.utc)
+        assert interval > 0
+        delta = timedelta(seconds=interval)
     while start < end:
         yield start
         start += delta

@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
 
-import FieldControlState from 'sentry/components/forms/field/fieldControlState';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import space from 'sentry/styles/space';
+
+import FieldControlState from './fieldControlState';
 
 export interface FieldControlProps {
   children: React.ReactNode;

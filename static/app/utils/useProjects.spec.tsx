@@ -67,7 +67,7 @@ describe('useProjects', function () {
       body: [projectFoo],
     });
 
-    const {result, waitFor} = reactHooks.renderHook(props => useProjects(props), {
+    const {result, waitFor} = reactHooks.renderHook(useProjects, {
       initialProps: {slugs: ['foo']},
     });
 
@@ -83,7 +83,7 @@ describe('useProjects', function () {
   it('only loads slugs when needed', function () {
     reactHooks.act(() => void ProjectsStore.loadInitialData(mockProjects));
 
-    const {result} = reactHooks.renderHook(props => useProjects(props), {
+    const {result} = reactHooks.renderHook(useProjects, {
       initialProps: {slugs: [mockProjects[0].slug]},
     });
 
