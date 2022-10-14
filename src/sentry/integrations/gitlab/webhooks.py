@@ -206,8 +206,6 @@ class GitlabWebhookEndpoint(View):
             # gitlab hook payloads don't give us enough unique context
             # to find data on our side so we embed one in the token.
             token = request.META["HTTP_X_GITLAB_TOKEN"]
-            # This is an intentional circumvention of data scrubbing in order to debug customer issues
-            extra["tooken_from_gitlab"] = token
             # e.g. "example.gitlab.com:group-x:webhook_secret_from_sentry_integration_table"
             instance, group_path, secret = token.split(":")
             external_id = f"{instance}:{group_path}"
@@ -239,8 +237,6 @@ class GitlabWebhookEndpoint(View):
             extra = {
                 **extra,
                 **{
-                    # I'm naming it like this to have both side by side in the breadcrumbs
-                    "tooken_from_sentry": f"{integration.external_id}:{integration.metadata['webhook_secret']}",
                     "integration": {
                         # The metadata could be useful to debug
                         # domain_name -> gitlab.com/getsentry-ecosystem/foo'
