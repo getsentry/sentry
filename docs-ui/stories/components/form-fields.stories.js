@@ -161,11 +161,9 @@ __BooleanField.storyName = 'Boolean';
 
 export const _CheckboxField = () => (
   <Form>
-    <CheckboxField key="agree" name="agree" id="agree" label="Do you agree?" />
+    <CheckboxField name="agree" label="Do you agree?" />
     <CheckboxField
-      key="compelled"
       name="compelled"
-      id="compelled"
       label="You are compelled to agree"
       help="More content to help you decide."
       required
