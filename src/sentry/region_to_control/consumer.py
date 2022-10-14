@@ -86,10 +86,8 @@ class RegionToControlConsumerWorker(AbstractBatchWorker[KafkaPayload, RegionToCo
                 metrics.incr("region_to_control.consumer.audit_log_entry.stale_event")
                 with sentry_sdk.push_scope() as scope:
                     scope.level = "warning"
-                    scope.set_tag("error_message", error_message)
                     scope.set_tag("organization_id", audit_log_entry.organization_id)
                     scope.set_tag("event_id", audit_log_entry.event_id)
-                    scope.set_tag("actor_label", audit_log_entry.actor_label)
                     sentry_sdk.capture_message(
                         "Stale organization in audit log entry detected, org may be deleted."
                     )
