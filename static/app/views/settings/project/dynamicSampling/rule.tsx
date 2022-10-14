@@ -69,7 +69,7 @@ export function Rule({
   return (
     <Fragment>
       <DragColumn disabled={!canDrag}>
-        {!hideGrabButton && operator !== SamplingRuleOperator.ELSE && (
+        {!hideGrabButton && (
           <Tooltip
             title={
               noPermission ? t('You do not have permission to reorder rules') : undefined

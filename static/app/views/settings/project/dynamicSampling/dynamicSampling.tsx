@@ -443,7 +443,7 @@ export function DynamicSampling({project}: Props) {
                         currentRule.sampleRate
                       )}
                       operator={operator}
-                      hideGrabButton={items.length === 1}
+                      hideGrabButton={items.length === 1 || isUniformRule(currentRule)}
                       rule={currentRule}
                       onEditRule={() => {
                         navigate(
