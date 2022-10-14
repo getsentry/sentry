@@ -21,6 +21,7 @@ import type {
   XAXisComponentOption,
   YAXisComponentOption,
 } from 'echarts';
+import {AriaComponent} from 'echarts/components';
 import * as echarts from 'echarts/core';
 import ReactEchartsCore from 'echarts-for-react/lib/core';
 
@@ -50,7 +51,12 @@ import Tooltip, {TooltipSubLabel} from './components/tooltip';
 import XAxis from './components/xAxis';
 import YAxis from './components/yAxis';
 import LineSeries from './series/lineSeries';
-import {getDiffInMinutes, getDimensionValue, lightenHexToRgb} from './utils';
+import {
+  getDiffInMinutes,
+  getDimensionValue,
+  lightenHexToRgb,
+  useEchartsAriaLabels,
+} from './utils';
 
 // TODO(ts): What is the series type? EChartOption.Series's data cannot have
 // `onClick` since it's typically an array.
@@ -66,6 +72,8 @@ const handleClick = (clickSeries: any, instance: ECharts) => {
     clickSeries.data.onClick?.(clickSeries, instance);
   }
 };
+
+echarts.use(AriaComponent);
 
 type ReactEchartProps = React.ComponentProps<typeof ReactEchartsCore>;
 type ReactEChartOpts = NonNullable<ReactEchartProps['opts']>;
@@ -482,6 +490,15 @@ function BaseChartUnwrapped({
         })
       : undefined;
 
+  const aria = useEchartsAriaLabels(
+    {
+      ...options,
+      series: resolvedSeries,
+      useUTC: utc,
+    },
+    isGroupedByDate
+  );
+
   const chartOption = {
     ...options,
     animation: IS_ACCEPTANCE_TEST ? false : options.animation ?? true,
@@ -497,6 +514,7 @@ function BaseChartUnwrapped({
     axisPointer,
     dataZoom,
     graphic,
+    aria,
   };
 
   const chartStyles = {
