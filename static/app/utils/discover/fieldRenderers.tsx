@@ -307,6 +307,11 @@ const DownloadCount = styled('span')`
   padding-left: 6px;
 `;
 
+const RightAlignedContainer = styled('span')`
+  margin-left: auto;
+  margin-right: 0;
+`;
+
 /**
  * "Special fields" either do not map 1:1 to an single column in the event database,
  * or they require custom UI formatting that can't be handled by the datatype formatters.
@@ -328,7 +333,7 @@ const SPECIAL_FIELDS: SpecialFields = {
         }));
 
       return (
-        <Container>
+        <RightAlignedContainer>
           <DropdownMenuControl
             position="left"
             size="xs"
@@ -343,7 +348,7 @@ const SPECIAL_FIELDS: SpecialFields = {
             }}
             items={items}
           />
-        </Container>
+        </RightAlignedContainer>
       );
     },
   },
@@ -357,15 +362,16 @@ const SPECIAL_FIELDS: SpecialFields = {
       );
 
       return (
-        <Container>
+        <RightAlignedContainer>
           <Button size="xs" disabled={!minidump ? true : false}>
             <IconDownload
               onClick={() => window.open(minidump?.url)}
               color="gray500"
               size="14px"
             />
+            <DownloadCount>{minidump ? 1 : 0}</DownloadCount>
           </Button>
-        </Container>
+        </RightAlignedContainer>
       );
     },
   },
