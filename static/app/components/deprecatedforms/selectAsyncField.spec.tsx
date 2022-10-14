@@ -10,10 +10,6 @@ describe('SelectAsyncField', function () {
   beforeEach(function () {
     api = MockApiClient.addMockResponse({
       url: '/foo/bar/',
-      query: {
-        autocomplete_query: 'baz',
-        autocomplete_field: 'fieldName',
-      },
       body: {
         fieldName: [{id: 'baz', text: 'Baz Label'}],
       },
