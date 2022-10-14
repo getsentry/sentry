@@ -5,7 +5,7 @@ from django.conf import settings
 from django.db import connections, models, router
 from django.utils import timezone
 
-from sentry.db.models import Model, control_silo_model, region_silo_model
+from sentry.db.models import Model, control_silo_with_replication_model, region_silo_only_model
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
 from sentry.db.models.manager.base import BaseManager
 from sentry.sentry_metrics.configuration import UseCaseKey
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 from typing import Mapping, Type
 
 
-@control_silo_model
+@control_silo_with_replication_model
 class MetricsKeyIndexer(Model):  # type: ignore
     __include_in_export__ = False
 
@@ -55,7 +55,7 @@ class BaseIndexer(Model):  # type: ignore
         abstract = True
 
 
-@region_silo_model
+@region_silo_only_model
 class StringIndexer(BaseIndexer):
     __include_in_export__ = False
 
@@ -67,7 +67,7 @@ class StringIndexer(BaseIndexer):
         ]
 
 
-@region_silo_model
+@region_silo_only_model
 class PerfStringIndexer(BaseIndexer):
     __include_in_export__ = False
 
