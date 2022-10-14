@@ -7,7 +7,7 @@ import {IconChevron} from 'sentry/icons';
 import {Scope} from 'sentry/types';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 
-import {FieldObject, JsonFormObject} from './type';
+import {FieldObject, JsonFormObject} from './types';
 
 type Props = {
   /**

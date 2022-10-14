@@ -3,9 +3,11 @@ import {MultiValueProps} from 'react-select';
 import {withTheme} from '@emotion/react';
 
 import Button from 'sentry/components/button';
-import SelectControl, {StylesConfig} from 'sentry/components/forms/selectControl';
-import TeamSelector from 'sentry/components/forms/teamSelector';
+import SelectControl, {
+  StylesConfig,
+} from 'sentry/components/forms/controls/selectControl';
 import RoleSelectControl from 'sentry/components/roleSelectControl';
+import TeamSelector from 'sentry/components/teamSelector';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import {OrgRole, SelectValue} from 'sentry/types';

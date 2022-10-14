@@ -32,6 +32,7 @@ type TestStubFixtures = {
   DetailedEvents: SimpleStub;
   DiscoverSavedQuery: OverridableStub;
   DocIntegration: OverridableStub;
+  DynamicSamplingConfig: OverridableStub;
   Entries: SimpleStub;
   Environments: OverridableStub;
   Event: OverridableStub;
@@ -80,6 +81,7 @@ type TestStubFixtures = {
   Outcomes: SimpleStub;
   OutcomesWithLowProcessedEvents: SimpleStub;
   OutcomesWithReason: SimpleStub;
+  OutcomesWithoutClientDiscarded: SimpleStub;
   PhabricatorCreate: SimpleStub;
   PhabricatorPlugin: SimpleStub;
   PlatformExternalIssue: OverridableStub;

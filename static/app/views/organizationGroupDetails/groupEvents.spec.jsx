@@ -13,6 +13,7 @@ import {GroupEvents} from 'sentry/views/organizationGroupDetails/groupEvents';
 describe('groupEvents', function () {
   let request;
   let discoverRequest;
+  let attachmentsRequest;
 
   const {organization, routerContext} = initializeOrg();
 
@@ -55,6 +56,9 @@ describe('groupEvents', function () {
     browserHistory.push = jest.fn();
     discoverRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
+      headers: {
+        Link: `<https://sentry.io/api/0/issues/1/events/?limit=50&cursor=0:0:1>; rel="previous"; results="true"; cursor="0:0:1", <https://sentry.io/api/0/issues/1/events/?limit=50&cursor=0:200:0>; rel="next"; results="true"; cursor="0:200:0"`,
+      },
       body: {
         data: [
           {
@@ -95,6 +99,13 @@ describe('groupEvents', function () {
           isMetricsData: false,
           tips: {query: null, columns: null},
         },
+      },
+    });
+
+    attachmentsRequest = MockApiClient.addMockResponse({
+      url: '/api/0/issues/1/attachments/?event_id=id123',
+      body: {
+        data: [],
       },
     });
   });
@@ -230,6 +241,59 @@ describe('groupEvents', function () {
       );
     });
 
+    it('does not display attachments column with no attachments', async () => {
+      render(
+        <GroupEvents
+          organization={org.organization}
+          api={new MockApiClient()}
+          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+          group={group}
+          location={{query: {environment: ['prod', 'staging']}}}
+        />,
+        {context: routerContext, organization}
+      );
+      await waitForElementToBeRemoved(document.querySelector('div.loading-indicator'));
+      const attachmentsColumn = screen.queryByText('attachments');
+      expect(attachmentsColumn).not.toBeInTheDocument();
+      expect(attachmentsRequest).toHaveBeenCalled();
+    });
+
+    it('displays attachments', async () => {
+      attachmentsRequest = MockApiClient.addMockResponse({
+        url: '/api/0/issues/1/attachments/?event_id=id123',
+        body: [
+          {
+            id: 'id123',
+            name: 'dc42a8b9-fc22-4de1-8a29-45b3006496d8.dmp',
+            headers: {
+              'Content-Type': 'application/octet-stream',
+            },
+            mimetype: 'application/octet-stream',
+            size: 1294340,
+            sha1: '742127552a1191f71fcf6ba7bc5afa0a837350e2',
+            dateCreated: '2022-09-28T09:04:38.659307Z',
+            type: 'event.minidump',
+            event_id: 'd54cb9246ee241ffbdb39bf7a9fafbb7',
+          },
+        ],
+      });
+
+      render(
+        <GroupEvents
+          organization={org.organization}
+          api={new MockApiClient()}
+          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+          group={group}
+          location={{query: {environment: ['prod', 'staging']}}}
+        />,
+        {context: routerContext, organization}
+      );
+      await waitForElementToBeRemoved(document.querySelector('div.loading-indicator'));
+      const attachmentsColumn = screen.queryByText('attachments');
+      expect(attachmentsColumn).toBeInTheDocument();
+      expect(attachmentsRequest).toHaveBeenCalled();
+    });
+
     it('renders new events table if error', function () {
       render(
         <GroupEvents
@@ -248,6 +312,23 @@ describe('groupEvents', function () {
 
       const perfEventsColumn = screen.getByText('transaction');
       expect(perfEventsColumn).toBeInTheDocument();
+    });
+
+    it('removes sort if unsupported by the events table', function () {
+      render(
+        <GroupEvents
+          organization={org.organization}
+          api={new MockApiClient()}
+          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+          group={group}
+          location={{query: {environment: ['prod', 'staging'], sort: 'user'}}}
+        />,
+        {context: routerContext, organization}
+      );
+      expect(discoverRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/events/',
+        expect.objectContaining({query: expect.not.objectContaining({sort: 'user'})})
+      );
     });
   });
 

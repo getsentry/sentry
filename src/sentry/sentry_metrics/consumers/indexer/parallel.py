@@ -9,7 +9,7 @@ from arroyo.processing import StreamProcessor
 from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
 from arroyo.processing.strategies import ProcessingStrategyFactory
-from arroyo.processing.strategies.streaming.transform import ParallelTransformStep
+from arroyo.processing.strategies.transform import ParallelTransformStep
 from arroyo.types import Message, Partition, Position, Topic
 from django.conf import settings
 
