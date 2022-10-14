@@ -14,7 +14,7 @@ import Button from '../button';
 import ButtonBar from '../buttonBar';
 import BreakdownBars from '../charts/breakdownBars';
 
-export const MOBILE_TAGS = ['os', 'release', 'device'];
+export const MOBILE_TAGS = ['os', 'device', 'release'];
 
 type Props = {
   environments: Environment[];
@@ -49,37 +49,41 @@ export function TagFacets({groupId, tagKeys, environments}: Props) {
     });
   }, [api, environments, groupId, tagKeys]);
 
+  const availableTagKeys = tagKeys.filter(tagKey => tagsData[tagKey]!!);
   const points = tagsData[selectedTag]?.topValues.map(({name, count}) => {
     return {label: name, value: count};
   });
 
-  if (Object.keys(tagsData).length > 0 && !loading) {
-    return (
-      <SidebarSection.Wrap>
-        <SidebarSection.Title>{t('Tag Summary')}</SidebarSection.Title>
-        <TagFacetsContainer>
-          <ButtonBar merged active={selectedTag}>
-            {tagKeys.map(tagKey => {
-              return (
-                <Button
-                  size="xs"
-                  key={tagKey}
-                  barId={tagKey}
-                  onClick={() => {
-                    setSelectedTag(tagKey);
-                  }}
-                >
-                  {tagKey}
-                </Button>
-              );
-            })}
-          </ButtonBar>
-          <BreakdownBarsContainer>
-            <BreakdownBars data={points ?? []} />
-          </BreakdownBarsContainer>
-        </TagFacetsContainer>
-      </SidebarSection.Wrap>
-    );
+  if (!loading) {
+    if (availableTagKeys.length > 0) {
+      return (
+        <SidebarSection.Wrap>
+          <SidebarSection.Title>{t('Tag Summary')}</SidebarSection.Title>
+          <TagFacetsContainer>
+            <ButtonBar merged active={selectedTag}>
+              {availableTagKeys.map(tagKey => {
+                return (
+                  <Button
+                    size="xs"
+                    key={tagKey}
+                    barId={tagKey}
+                    onClick={() => {
+                      setSelectedTag(tagKey);
+                    }}
+                  >
+                    {tagKey}
+                  </Button>
+                );
+              })}
+            </ButtonBar>
+            <BreakdownBarsContainer>
+              <BreakdownBars data={points ?? []} />
+            </BreakdownBarsContainer>
+          </TagFacetsContainer>
+        </SidebarSection.Wrap>
+      );
+    }
+    return null;
   }
   return <Placeholder height="60px" />;
 }
