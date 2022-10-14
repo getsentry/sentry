@@ -10,7 +10,7 @@ from django.utils.http import urlencode
 from django.utils.safestring import mark_safe
 
 from sentry import integrations
-from sentry.api.serializers.models.event import get_entries
+from sentry.api.serializers.models.event import get_entries, get_problems
 from sentry.incidents.models import AlertRuleTriggerAction
 from sentry.integrations import IntegrationFeatures, IntegrationProvider
 from sentry.models import (
@@ -20,6 +20,7 @@ from sentry.models import (
     Environment,
     EventError,
     Group,
+    GroupHash,
     GroupLink,
     Integration,
     Organization,
@@ -34,6 +35,7 @@ from sentry.notifications.notify import notify
 from sentry.notifications.utils.participants import split_participants_and_context
 from sentry.utils.committers import get_serialized_event_file_committers
 from sentry.utils.http import absolute_uri
+from sentry.web.helpers import render_to_string
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event
@@ -264,10 +266,63 @@ def get_interface_list(event: Event) -> Sequence[tuple[str, str, str]]:
     return interface_list
 
 
+def perf_to_email_html(spans, problem):
+    # I'm aware this is not great duplication
+    def get_span_evidence_value_problem(problem):
+        value = "no value"
+        if not problem.op and problem.desc:
+            value = problem.desc
+        if problem.op and not problem.desc:
+            value = problem.op
+        if problem.op and problem.desc:
+            value = f"{problem.op} - {problem.desc}"
+        return value
+
+    def get_span_evidence_value(span):
+        value = "no value"
+        if not span.get("op") and span.get("description"):
+            value = span.get("description")
+        if span.get("op") and not span.get("description"):
+            value = span.get("op")
+        if span.get("op") and span.get("description"):
+            op = span.get("op")
+            desc = span.get("description")
+            value = f"{op} - {desc}"
+        return value
+
+    parent_span = None
+    repeating_spans = None
+    for span in spans:
+        if problem.parent_span_ids[0] == span.get("span_id"):
+            parent_span = span
+        if problem.offender_span_ids[0] == span.get("span_id"):
+            repeating_spans = span
+        if parent_span is not None and repeating_spans is not None:
+            break
+
+    context = {
+        "transaction_name": get_span_evidence_value_problem(problem),
+        "parent_span": get_span_evidence_value(parent_span),
+        # "preceding_span": "SELECT idk FROM idk_what_a_preceding_span_is",
+        "repeating_spans": get_span_evidence_value(repeating_spans),
+        "num_repeating_spans": str(len(problem.offender_span_ids)),
+    }
+    return render_to_string("sentry/emails/transactions.html", context)
+
+
 def get_transaction_data(event: Event) -> Sequence[tuple[str, str, str]]:
     """Get data about a transaction to populate alert emails."""
     entries = get_entries(event, None)
-    # building this out in the debug view first while developing, need to copy over/share code
+    spans = []
+    if len(entries):
+        spans = [entry.get("data") for entry in entries[0] if entry.get("type") == "spans"][0]
+
+    matched_problem = None
+    for problem in get_problems([event]):
+        if problem.problem.fingerprint == GroupHash.objects.get(group=event.group).hash:
+            matched_problem = problem
+
+    return perf_to_email_html(spans, matched_problem.problem)
 
 
 def send_activity_notification(notification: ActivityNotification | UserReportNotification) -> None:
