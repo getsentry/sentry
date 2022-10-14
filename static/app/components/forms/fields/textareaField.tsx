@@ -8,12 +8,7 @@ export interface TextareaFieldProps
   extends Omit<InputFieldProps, 'field'>,
     Pick<TextAreaProps, 'monospace' | 'autosize' | 'rows' | 'maxRows'> {}
 
-export default function TextareaField({
-  monospace,
-  rows,
-  autosize,
-  ...props
-}: TextareaFieldProps) {
+function TextareaField({monospace, rows, autosize, ...props}: TextareaFieldProps) {
   return (
     <InputField
       {...props}
@@ -27,3 +22,5 @@ export default function TextareaField({
     />
   );
 }
+
+export default TextareaField;
