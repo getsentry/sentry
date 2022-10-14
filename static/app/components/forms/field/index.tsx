@@ -176,6 +176,9 @@ function Field({
   // aria label contains the entire description.
   const ariaLabel = labelText ?? (typeof label === 'string' ? label : undefined);
 
+  // The help ID is used for the input element to have an `aria-describedby`
+  const helpId = `${id}_help`;
+
   return (
     <FieldWrapper
       className={className}
@@ -201,7 +204,7 @@ function Field({
             </FieldLabel>
           )}
           {helpElement && !showHelpInTooltip && (
-            <FieldHelp stacked={stacked} inline={inline}>
+            <FieldHelp id={helpId} stacked={stacked} inline={inline}>
               {helpElement}
             </FieldHelp>
           )}
