@@ -282,7 +282,7 @@ def get_interface_list(event: Event) -> Sequence[tuple[str, str, str]]:
 
 
 def perf_to_email_html(
-    spans: Sequence[Dict[str, str | int]], problem: Optional[PerformanceProblem] = None
+    spans: Sequence[Dict[str, Union[str, float, None]]], problem: PerformanceProblem = None
 ) -> Any:
     # I'm aware this is not great duplication
     def get_span_evidence_value_problem(problem: PerformanceProblem) -> str:
@@ -302,12 +302,12 @@ def perf_to_email_html(
         if not span:
             return value
         if not span.get("op") and span.get("description"):
-            value = span.get("description")
+            value = cast(str, span["description"])
         if span.get("op") and not span.get("description"):
-            value = span.get("op")
+            value = cast(str, span["op"])
         if span.get("op") and span.get("description"):
-            op = span.get("op")
-            desc = span.get("description")
+            op = span["op"]
+            desc = span["description"]
             value = f"{op} - {desc}"
         return value
 
@@ -338,7 +338,7 @@ def get_transaction_data(event: Event) -> Any:
     if len(entries):
         spans = [entry.get("data") for entry in entries[0] if entry.get("type") == "spans"][0]
 
-    matched_problem: Union[EventPerformanceProblem, None] = None
+    matched_problem: EventPerformanceProblem = None
     for problem in get_problems([event]):
         if problem.problem.fingerprint == GroupHash.objects.get(group=event.group).hash:
             matched_problem = problem

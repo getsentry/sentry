@@ -4,7 +4,12 @@ from django.views.generic import View
 
 from sentry.event_manager import EventManager
 from sentry.models import Organization, Project, Rule
-from sentry.notifications.utils import get_group_settings_link, get_rules, get_transaction_data
+from sentry.notifications.utils import (
+    get_group_settings_link,
+    get_interface_list,
+    get_rules,
+    get_transaction_data,
+)
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils import json
@@ -73,16 +78,7 @@ class DebugPerformanceIssueEmailView(View):
         rule = Rule(id=1, label="Example performance rule")
 
         transaction_data = get_transaction_data(perf_event)
-
-        # XXX: this interface_list code needs to be the same as in
-        # get_interface_list in src/sentry/notifications/utils/__init__.py
-        interface_list = []
-        for interface in perf_event.interfaces.values():
-            body = interface.to_email_html(perf_event)
-            if not body:
-                continue
-            text_body = interface.to_string(perf_event)
-            interface_list.append((interface.get_title(), mark_safe(body), text_body))
+        interface_list = get_interface_list(perf_event)
 
         return MailPreview(
             html_template="sentry/emails/performance.html",
