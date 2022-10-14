@@ -1,0 +1,40 @@
+{% load i18n %}
+<table>
+    <colgroup>
+      <col style="width:130px;">
+    </colgroup>
+    <tbody>
+        {% if transaction_name %}
+        <tr>
+            <th>{% trans "Transaction Name" %}</th>
+            <td>
+                <code>{{ transaction_name|truncatechars:50 }}</code>
+            </td>
+        </tr>
+        {% endif %}
+        {% if parent_span %}
+        <tr>
+            <th>{% trans "Parent Span" %}</th>
+            <td>
+                <code>{{ parent_span|truncatechars:50 }}</code>
+            </td>
+        </tr>
+        {% endif %}
+        {% if preceding_span %}
+        <tr>
+            <th>{% trans "Preceding Span" %}</th>
+            <td>
+                <code>{{ preceding_span|truncatechars:50 }}</code>
+            </td>
+        </tr>
+        {% endif %}
+        {% if repeating_spans and num_repeating_spans %}
+        <tr>
+            <th>{% blocktrans %} Repeating Spans ({{ num_repeating_spans }}) {% endblocktrans %}</th>
+            <td>
+                <code>{{ repeating_spans|truncatechars:75 }}</code>
+            </td>
+        </tr>
+        {% endif %}
+    </tbody>
+</table>
