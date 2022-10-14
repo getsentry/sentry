@@ -53,9 +53,11 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.types.issues import GroupType
 from sentry.types.releaseactivity import ReleaseActivityType
 from sentry.types.rules import RuleFuture
 from sentry.utils.email import MessageBuilder, get_email_addresses
+from sentry.utils.samples import load_data
 from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
 from tests.sentry.mail import make_event_data, send_notification
 
@@ -1139,6 +1141,23 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
         futures = [RuleFuture(rule, {})]
         self.adapter.rule_notify(event, futures, ActionTargetType.ISSUE_OWNERS)
         assert digests.add.call_count == 1
+
+    @mock.patch("sentry.mail.adapter.digests")
+    def test_digest_errors_only(self, digests):
+        digests.enabled.return_value = True
+        event = self.store_event(
+            data=load_data(
+                "transaction",
+                fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
+            ),
+            project_id=self.project.id,
+        )
+        event = event.for_group(event.groups[0])
+        rule = Rule.objects.create(project=self.project, label="my rule")
+
+        futures = [RuleFuture(rule, {})]
+        self.adapter.rule_notify(event, futures, ActionTargetType.ISSUE_OWNERS)
+        assert digests.add.call_count == 0
 
 
 class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
