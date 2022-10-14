@@ -70,7 +70,7 @@ def get_default_context(request, existing_context=None, team=None):
     return context
 
 
-def render_to_string(template, context=None, request=None):
+def render_to_string(template, context=None, request=None) -> str:
 
     # HACK: set team session value for dashboard redirect
     if context and "team" in context and isinstance(context["team"], Team):
