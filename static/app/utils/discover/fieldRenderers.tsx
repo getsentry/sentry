@@ -365,7 +365,7 @@ const SPECIAL_FIELDS: SpecialFields = {
         <RightAlignedContainer>
           <Button
             size="xs"
-            disabled={!minidump ? true : false}
+            disabled={!minidump}
             onClick={() => window.open(minidump?.url)}
           >
             <IconDownload color="gray500" size="14px" />
