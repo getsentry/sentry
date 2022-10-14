@@ -74,6 +74,7 @@ export type TeamInsightsEventParameters = {
   'issue_details.viewed': IssueDetailsWithAlert &
     BaseEventAnalyticsParams & {
       error_count: number;
+      error_has_replay: boolean;
       event_errors: string;
       has_owner: boolean;
       is_assigned: boolean;
