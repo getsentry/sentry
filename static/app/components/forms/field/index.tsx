@@ -1,20 +1,14 @@
-import ControlState, {
-  ControlStateProps,
-} from 'sentry/components/forms/field/controlState';
-import FieldControl, {
-  FieldControlProps,
-} from 'sentry/components/forms/field/fieldControl';
-import FieldDescription from 'sentry/components/forms/field/fieldDescription';
-import FieldErrorReason from 'sentry/components/forms/field/fieldErrorReason';
-import FieldHelp from 'sentry/components/forms/field/fieldHelp';
-import FieldLabel from 'sentry/components/forms/field/fieldLabel';
-import FieldRequiredBadge from 'sentry/components/forms/field/fieldRequiredBadge';
-import FieldWrapper, {
-  FieldWrapperProps,
-} from 'sentry/components/forms/field/fieldWrapper';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 
+import ControlState, {ControlStateProps} from './controlState';
+import FieldControl, {FieldControlProps} from './fieldControl';
+import FieldDescription from './fieldDescription';
+import FieldErrorReason from './fieldErrorReason';
+import FieldHelp from './fieldHelp';
+import FieldLabel from './fieldLabel';
 import FieldQuestion from './fieldQuestion';
+import FieldRequiredBadge from './fieldRequiredBadge';
+import FieldWrapper, {FieldWrapperProps} from './fieldWrapper';
 
 interface InheritedFieldWrapperProps
   extends Pick<

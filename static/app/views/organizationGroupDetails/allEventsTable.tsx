@@ -12,29 +12,45 @@ export interface Props {
   issueId: string;
   location: Location;
   organization: Organization;
+  projectId: string;
   excludedTags?: string[];
+  totalEventCount?: string;
 }
 
 const AllEventsTable = (props: Props) => {
-  const {location, organization, issueId, isPerfIssue, excludedTags} = props;
+  const {
+    location,
+    organization,
+    issueId,
+    isPerfIssue,
+    excludedTags,
+    projectId,
+    totalEventCount,
+  } = props;
   const [error, setError] = useState<string>('');
-  const eventView: EventView = EventView.fromLocation(props.location);
-  eventView.sorts = decodeSorts(location);
-  eventView.fields = [
-    {field: 'id'},
-    {field: 'transaction'},
-    {field: 'trace'},
-    {field: 'release'},
-    {field: 'environment'},
-    {field: 'user.display'},
-    ...(isPerfIssue ? [{field: 'transaction.duration'}] : []),
-    {field: 'timestamp'},
+
+  const fields: string[] = [
+    'id',
+    'transaction',
+    'trace',
+    'release',
+    'environment',
+    'user.display',
+    ...(isPerfIssue ? ['transaction.duration'] : []),
+    'timestamp',
+    'attachments',
   ];
+
+  const eventView: EventView = EventView.fromLocation(props.location);
+  eventView.fields = fields.map(fieldName => ({field: fieldName}));
+
+  eventView.sorts = decodeSorts(location).filter(sort => fields.includes(sort.field));
 
   const idQuery = isPerfIssue
     ? `performance.issue_ids:${issueId}`
     : `issue.id:${issueId}`;
   eventView.query = `${idQuery} ${props.location.query.query || ''}`;
+  eventView.statsPeriod = '90d';
 
   const columnTitles: Readonly<string[]> = [
     t('event id'),
@@ -45,6 +61,7 @@ const AllEventsTable = (props: Props) => {
     t('user'),
     ...(isPerfIssue ? [t('total duration')] : []),
     t('timestamp'),
+    t('attachments'),
   ];
 
   if (error) {
@@ -58,11 +75,12 @@ const AllEventsTable = (props: Props) => {
       issueId={issueId}
       organization={organization}
       excludedTags={excludedTags}
+      projectId={projectId}
+      totalEventCount={totalEventCount}
       setError={() => {
         (msg: string) => setError(msg);
       }}
       transactionName=""
-      disablePagination
       columnTitles={columnTitles.slice()}
     />
   );
