@@ -76,11 +76,12 @@ class DispatchTask(ProcessingStrategy[KafkaPayload]):
     def __init__(
         self,
         concurrency: int,
+        max_pending_futures: int,
         commit: Commit,
     ) -> None:
         self.__executor = ThreadPoolExecutor(max_workers=concurrency)
         self.__futures: Deque[Tuple[Message[KafkaPayload], Future[None]]] = deque()
-        self.__max_pending_futures = concurrency * 2
+        self.__max_pending_futures = max_pending_futures
         self.__commit = commit
         self.__closed = False
 
@@ -135,12 +136,14 @@ class PostProcessForwarderStrategyFactory(ProcessingStrategyFactory[KafkaPayload
     def __init__(
         self,
         concurrency: int,
+        max_pending_futures: int,
     ):
         self.__concurrency = concurrency
+        self.__max_pending_futures = max_pending_futures
 
     def create_with_partitions(
         self,
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-        return DispatchTask(self.__concurrency, commit)
+        return DispatchTask(self.__concurrency, self.__max_pending_futures, commit)
