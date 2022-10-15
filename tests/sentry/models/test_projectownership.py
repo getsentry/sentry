@@ -162,7 +162,7 @@ class ProjectOwnershipTestCase(TestCase):
             {"stacktrace": {"frames": [{"filename": "foo.py"}]}},
         ) == [(rule_a, [self.team], OwnerRuleType.OWNERSHIP_RULE.value)]
 
-    def test_get_issue_owners_only_codeowners_exists(self):
+    def test_get_issue_owners_only_codeowners_exists_with_default_assignment_settings(self):
         # This case will never exist bc we create a ProjectOwnership record if none exists when creating a ProjectCodeOwner record.
         # We have this testcase for potential corrupt data.
         self.team = self.create_team(
@@ -226,6 +226,65 @@ class ProjectOwnershipTestCase(TestCase):
             (rule_b, [self.user], OwnerRuleType.OWNERSHIP_RULE.value),
             (rule_a, [self.team], OwnerRuleType.OWNERSHIP_RULE.value),
         ]
+
+    def test_handle_auto_assignment_when_only_codeowners_exists(self):
+        self.team = self.create_team(
+            organization=self.organization, slug="tiger-team", members=[self.user]
+        )
+
+        self.project = self.create_project(organization=self.organization, teams=[self.team])
+        self.code_mapping = self.create_code_mapping(project=self.project)
+
+        rule_c = Rule(Matcher("path", "*.py"), [Owner("team", self.team.slug)])
+
+        self.create_codeowners(
+            self.project, self.code_mapping, raw="*.py @tiger-team", schema=dump_schema([rule_c])
+        )
+
+        self.event = self.store_event(
+            data={
+                "message": "Kaboom!",
+                "platform": "python",
+                "timestamp": iso_format(before_now(seconds=10)),
+                "stacktrace": {
+                    "frames": [
+                        {
+                            "function": "handle_set_commits",
+                            "abs_path": "/usr/src/sentry/src/sentry/api/foo.py",
+                            "module": "sentry.api",
+                            "in_app": True,
+                            "lineno": 30,
+                            "filename": "sentry/api/foo.py",
+                        },
+                        {
+                            "function": "set_commits",
+                            "abs_path": "/usr/src/sentry/src/sentry/models/release.py",
+                            "module": "sentry.models.release",
+                            "in_app": True,
+                            "lineno": 39,
+                            "filename": "sentry/models/release.py",
+                        },
+                    ]
+                },
+                "tags": {"sentry:release": self.release.version},
+            },
+            project_id=self.project.id,
+        )
+
+        GroupOwner.objects.create(
+            group=self.event.group,
+            type=GroupOwnerType.CODEOWNERS.value,
+            user_id=None,
+            team_id=self.team.id,
+            project=self.project,
+            organization=self.project.organization,
+            context={"rule": str(rule_c)},
+        )
+
+        ProjectOwnership.handle_auto_assignment(self.project.id, self.event)
+        assert len(GroupAssignee.objects.all()) == 1
+        assignee = GroupAssignee.objects.get(group=self.event.group)
+        assert assignee.team_id == self.team.id
 
     def test_handle_auto_assignment_when_codeowners_and_issueowners_exists(self):
         self.team = self.create_team(
@@ -298,8 +357,8 @@ class ProjectOwnershipTestCase(TestCase):
         GroupOwner.objects.create(
             group=self.event.group,
             type=GroupOwnerType.CODEOWNERS.value,
-            user_id=self.user.id,
-            team_id=None,
+            user_id=None,
+            team_id=self.team2.id,
             project=self.project,
             organization=self.project.organization,
             context={"rule": str(rule_c)},
@@ -420,8 +479,8 @@ class ProjectOwnershipTestCase(TestCase):
         GroupOwner.objects.create(
             group=self.event.group,
             type=GroupOwnerType.CODEOWNERS.value,
-            user_id=self.user.id,
-            team_id=None,
+            user_id=None,
+            team_id=self.team2.id,
             project=self.project,
             organization=self.project.organization,
             context={"rule": str(rule_c)},
