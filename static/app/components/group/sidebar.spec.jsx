@@ -29,11 +29,6 @@ describe('GroupSidebar', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: '/issues/1/participants/',
-      body: [],
-    });
-
-    MockApiClient.addMockResponse({
       url: '/issues/1/',
       body: group,
     });
@@ -103,10 +98,10 @@ describe('GroupSidebar', function () {
         {organization}
       );
       expect(await screen.findByText('browser')).toBeInTheDocument();
-      expect(await screen.getByText('device')).toBeInTheDocument();
-      expect(await screen.getByText('url')).toBeInTheDocument();
-      expect(await screen.getByText('environment')).toBeInTheDocument();
-      expect(await screen.getByText('user')).toBeInTheDocument();
+      expect(screen.getByText('device')).toBeInTheDocument();
+      expect(screen.getByText('url')).toBeInTheDocument();
+      expect(screen.getByText('environment')).toBeInTheDocument();
+      expect(screen.getByText('user')).toBeInTheDocument();
     });
   });
 
@@ -176,5 +171,37 @@ describe('GroupSidebar', function () {
         await screen.findByText('No tags found in the selected environments')
       ).toBeInTheDocument();
     });
+  });
+
+  it('renders participants and viewers', () => {
+    const users = [
+      TestStubs.User({
+        id: '2',
+        name: 'John Smith',
+        email: 'johnsmith@example.com',
+      }),
+      TestStubs.User({
+        id: '3',
+        name: 'Sohn Jmith',
+        email: 'sohnjmith@example.com',
+      }),
+    ];
+    render(
+      <GroupSidebar
+        group={{
+          group,
+          participants: users,
+          seenBy: users,
+        }}
+        project={project}
+        organization={organization}
+        event={TestStubs.Event()}
+        environments={[]}
+      />,
+      {organization}
+    );
+
+    expect(screen.getByText('Participants (1)')).toBeInTheDocument();
+    expect(screen.getByText('Viewers (1)')).toBeInTheDocument();
   });
 });
