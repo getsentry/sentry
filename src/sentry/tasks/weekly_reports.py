@@ -112,8 +112,9 @@ def schedule_organizations(dry_run=False, timestamp=None, duration=None):
     for i, organization in enumerate(
         RangeQuerySetWrapper(organizations, step=10000, result_value_getter=lambda item: item.id)
     ):
-
-        prepare_organization_report.delay(timestamp, duration, organization.id, dry_run=dry_run)
+        if features.has("organizations:weekly-email-refresh", organization):
+            # Create a celery task per organization
+            prepare_organization_report.delay(timestamp, duration, organization.id, dry_run=dry_run)
 
 
 # This task is launched per-organization.
