@@ -112,9 +112,8 @@ def schedule_organizations(dry_run=False, timestamp=None, duration=None):
     for i, organization in enumerate(
         RangeQuerySetWrapper(organizations, step=10000, result_value_getter=lambda item: item.id)
     ):
-        if features.has("organizations:weekly-email-refresh", organization):
-            # Create a celery task per organization
-            prepare_organization_report.delay(timestamp, duration, organization.id, dry_run=dry_run)
+
+        prepare_organization_report.delay(timestamp, duration, organization.id, dry_run=dry_run)
 
 
 # This task is launched per-organization.
@@ -156,6 +155,9 @@ def prepare_organization_report(
 
 
 # Organization Passes
+
+# Find the projects associated with an user.
+# Populates context.project_ownership which is { user_id: set<project_id> }
 def user_project_ownership(ctx):
     for (project_id, user_id) in OrganizationMember.objects.filter(
         organization_id=ctx.organization.id, teams__projectteam__project__isnull=False
@@ -163,6 +165,7 @@ def user_project_ownership(ctx):
         ctx.project_ownership.setdefault(user_id, set()).add(project_id)
 
 
+# Populates context.projects which is { project_id: ProjectContext }
 def project_event_counts_for_organization(ctx):
     def zerofill_data(data):
         return zerofill(data, ctx.start, ctx.end, ONE_DAY, fill_default=0)
@@ -177,7 +180,6 @@ def project_event_counts_for_organization(ctx):
         where=[
             Condition(Column("timestamp"), Op.GTE, ctx.start),
             Condition(Column("timestamp"), Op.LT, ctx.end + timedelta(days=1)),
-            Condition(Column("project_id"), Op.EQ, 1),
             Condition(Column("org_id"), Op.EQ, ctx.organization.id),
             Condition(
                 Column("outcome"), Op.IN, [Outcome.ACCEPTED, Outcome.FILTERED, Outcome.RATE_LIMITED]
@@ -251,9 +253,11 @@ def organization_project_issue_summaries(ctx):
             datetime__lt=ctx.end,
         )
         .values("group__project_id")
-        .annotate(total=Count("group_id"))
-    )  # TODO: maybe set distinct here?
-    reopened_issue_counts = {item["project_id"]: item["total"] for item in reopened_issue_counts}
+        .annotate(total=Count("group_id", distinct=True))
+    )
+    reopened_issue_counts = {
+        item["group__project_id"]: item["total"] for item in reopened_issue_counts
+    }
 
     # Issues seen at least once over the past week
     active_issue_counts = (
