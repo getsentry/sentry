@@ -192,6 +192,8 @@ class User(BaseModel, AbstractBaseUser):
     date_joined = models.DateTimeField(_("date joined"), default=timezone.now)
     last_active = models.DateTimeField(_("last active"), default=timezone.now, null=True)
 
+    bio = models.TextField(null=True)
+
     objects = UserManager(cache_fields=["pk"])
 
     USERNAME_FIELD = "username"
