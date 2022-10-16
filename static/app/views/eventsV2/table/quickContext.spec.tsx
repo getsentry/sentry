@@ -1,5 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {t} from 'sentry/locale';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 
 import QuickContext from './quickContext';
@@ -36,15 +37,72 @@ const renderComponent = (
 
 // TO-DO: Expand test suite to cover error state.
 describe('Quick Context Container', function () {
-  it('Loading indicator is rendered before data loads', () => {
-    renderComponent(defaultRow, defaultColumn);
-    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+  afterEach(function () {
+    MockApiClient.clearMockResponses();
   });
 
-  it('Render issue context when data is loaded', async () => {
-    renderComponent(defaultRow, defaultColumn);
+  describe('Quick Context default behaviour', function () {
+    it('Loading/Error states render for Quick Context.', async () => {
+      MockApiClient.addMockResponse({
+        url: '/issues/3512441874/',
+        statusCode: 500,
+      });
+      renderComponent(defaultRow, defaultColumn);
 
-    expect(await screen.findByText(/Displaying Context for issue./i)).toBeInTheDocument();
-    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+      expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+      expect(
+        await screen.findByText(t('Failed to load context for column.'))
+      ).toBeInTheDocument();
+      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Quick Context for Issue Column', function () {
+    describe('Quick Context for Issue Column - Status', function () {
+      it('Render Ignored Issue status context when data is loaded', async () => {
+        MockApiClient.addMockResponse({
+          url: '/issues/3512441874/',
+          body: {
+            status: 'ignored',
+          },
+        });
+        renderComponent(defaultRow, defaultColumn);
+
+        expect(await screen.findByText(/Issue Status/i)).toBeInTheDocument();
+        expect(screen.getByText(/Ignored/i)).toBeInTheDocument();
+        expect(screen.getByTestId('quick-context-mute-icon')).toBeInTheDocument();
+        expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+      });
+
+      it('Render Resolved Issue status context when data is loaded', async () => {
+        MockApiClient.addMockResponse({
+          url: '/issues/3512441874/',
+          body: {
+            status: 'resolved',
+          },
+        });
+        renderComponent(defaultRow, defaultColumn);
+
+        expect(await screen.findByText(/Issue Status/i)).toBeInTheDocument();
+        expect(screen.getByText(/Resolved/i)).toBeInTheDocument();
+        expect(screen.getByTestId('icon-check-mark')).toBeInTheDocument();
+        expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+      });
+
+      it('Render Unresolved Issue status context when data is loaded', async () => {
+        MockApiClient.addMockResponse({
+          url: '/issues/3512441874/',
+          body: {
+            status: 'unresolved',
+          },
+        });
+        renderComponent(defaultRow, defaultColumn);
+
+        expect(await screen.findByText(/Issue Status/i)).toBeInTheDocument();
+        expect(screen.getByText(/Unresolved/i)).toBeInTheDocument();
+        expect(screen.getByTestId('quick-context-not-icon')).toBeInTheDocument();
+        expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+      });
+    });
   });
 });
