@@ -350,6 +350,7 @@ def get_matched_problem(event: Event) -> Optional[EventPerformanceProblem]:
     for problem in problems:
         if problem.problem.fingerprint == GroupHash.objects.get(group=event.group).hash:
             return problem.problem
+    return None
 
 
 def get_transaction_data(event: Event) -> Any:
