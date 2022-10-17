@@ -2,15 +2,12 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {MOBILE_TAGS, TagFacets} from 'sentry/components/group/tagFacets';
-import OrganizationStore from 'sentry/stores/organizationStore';
 
 const {organization} = initializeOrg();
 describe('TagDistributionMeter', function () {
   let tagsMock;
 
   beforeEach(function () {
-    OrganizationStore.init();
-    OrganizationStore.onUpdate(organization, {replace: true});
     tagsMock = MockApiClient.addMockResponse({
       url: '/issues/1/tags/',
       body: {
