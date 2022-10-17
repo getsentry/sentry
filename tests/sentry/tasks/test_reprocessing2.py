@@ -213,6 +213,7 @@ def test_concurrent_events_go_into_new_group(
     process_and_save,
     burst_task_runner,
     default_user,
+    django_cache,
 ):
     """
     Assert that both unmodified and concurrently inserted events go into "the
