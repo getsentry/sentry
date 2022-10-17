@@ -5,7 +5,7 @@ from typing import Tuple, TypedDict
 from django.conf import settings
 
 from sentry.models import File
-from sentry.replays.cache import RecordingSegmentParts
+from sentry.replays.cache import RecordingSegmentPart, RecordingSegmentParts
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.utils import json
 
@@ -25,10 +25,18 @@ class RecordingSegmentMessage(TypedDict):
     replay_recording: ReplayRecordingChunkSegment
 
 
+class RecordingSegmentChunkMessage(TypedDict):
+    id: str  # a uuid that individualy identifies a recording segment
+    chunk_index: int  # each segment is split into chunks to fit into kafka
+    payload: bytes
+    replay_id: str  # the uuid of the encompassing replay event
+    project_id: int
+
+
 def ingest_recording_segment(message_dict: RecordingSegmentMessage) -> None:
     logger = logging.getLogger("sentry.replays")
 
-    cache_prefix = make_replay_recording_segment_cache_id(
+    cache_prefix = _make_replay_recording_segment_cache_id(
         project_id=message_dict["project_id"],
         replay_id=message_dict["replay_id"],
         segment_id=message_dict["replay_recording"]["id"],
@@ -44,7 +52,7 @@ def ingest_recording_segment(message_dict: RecordingSegmentMessage) -> None:
         return None
 
     try:
-        headers, parsed_first_part = process_headers(recording_segment_parts[0])
+        headers, parsed_first_part = _process_headers(recording_segment_parts[0])
     except MissingRecordingSegmentHeaders:
         logger.warning(f"missing header on {message_dict['replay_id']}")
         return
@@ -57,7 +65,7 @@ def ingest_recording_segment(message_dict: RecordingSegmentMessage) -> None:
     recording_segment = b"".join(recording_segment_parts)
 
     # Upload the recording segment to blob storage.
-    recording_segment_file_name = make_recording_segment_filename(
+    recording_segment_file_name = _make_recording_segment_filename(
         message_dict["replay_id"], headers["segment_id"]
     )
     file = File.objects.create(
@@ -79,7 +87,18 @@ def ingest_recording_segment(message_dict: RecordingSegmentMessage) -> None:
     parts.drop()
 
 
-def process_headers(recording_segment_with_headers: bytes) -> Tuple[dict, bytes]:
+def ingest_recording_segment_chunk(message_dict: RecordingSegmentChunkMessage):
+    cache_prefix = _make_replay_recording_segment_cache_id(
+        project_id=message_dict["project_id"],
+        replay_id=message_dict["replay_id"],
+        segment_id=message_dict["id"],
+    )
+
+    part = RecordingSegmentPart(cache_prefix)
+    part[message_dict["chunk_index"]] = message_dict["payload"]
+
+
+def _process_headers(recording_segment_with_headers: bytes) -> Tuple[dict, bytes]:
     try:
         recording_headers, recording_segment = recording_segment_with_headers.split(b"\n", 1)
     except ValueError:
@@ -88,9 +107,11 @@ def process_headers(recording_segment_with_headers: bytes) -> Tuple[dict, bytes]
     return json.loads(recording_headers), recording_segment
 
 
-def make_recording_segment_filename(replay_id: str, segment_id: int):
+def _make_recording_segment_filename(replay_id: str, segment_id: int):
     return f"rr:{replay_id}:{segment_id}"
 
 
-def make_replay_recording_segment_cache_id(project_id: int, replay_id: str, segment_id: str) -> str:
+def _make_replay_recording_segment_cache_id(
+    project_id: int, replay_id: str, segment_id: str
+) -> str:
     return f"{project_id}:{replay_id}:{segment_id}"

@@ -16,15 +16,11 @@ from arroyo.processing.strategies.abstract import ProcessingStrategy
 from arroyo.types import Message, Position
 from django.conf import settings
 
-from sentry.replays.cache import RecordingSegmentPart
 from sentry.replays.consumers.recording.types import (
     RecordingSegmentChunkMessage,
     RecordingSegmentMessage,
 )
-from sentry.replays.usecases.ingest import (
-    ingest_recording_segment,
-    make_replay_recording_segment_cache_id,
-)
+from sentry.replays.usecases.ingest import ingest_recording_segment, ingest_recording_segment_chunk
 from sentry.utils import metrics
 from sentry.utils.sdk import configure_scope
 
@@ -62,17 +58,8 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
         self.__last_committed: float = 0
 
     @metrics.wraps("replays.process_recording.process_chunk")
-    def _process_chunk(
-        self, message_dict: RecordingSegmentChunkMessage, message: Message[KafkaPayload]
-    ) -> None:
-        cache_prefix = make_replay_recording_segment_cache_id(
-            project_id=message_dict["project_id"],
-            replay_id=message_dict["replay_id"],
-            segment_id=message_dict["id"],
-        )
-
-        part = RecordingSegmentPart(cache_prefix)
-        part[message_dict["chunk_index"]] = message_dict["payload"]
+    def _process_chunk(self, message_dict: RecordingSegmentChunkMessage) -> None:
+        ingest_recording_segment_chunk(message_dict)
 
     @metrics.wraps("replays.process_recording.store_recording")
     def _store(
@@ -116,9 +103,7 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
                 if message_dict["type"] == "replay_recording_chunk":
                     sentry_sdk.set_extra("replay_id", message_dict["replay_id"])
                     with sentry_sdk.start_span(op="replay_recording_chunk"):
-                        self._process_chunk(
-                            cast(RecordingSegmentChunkMessage, message_dict), message
-                        )
+                        self._process_chunk(cast(RecordingSegmentChunkMessage, message_dict))
                 if message_dict["type"] == "replay_recording":
                     sentry_sdk.set_extra("replay_id", message_dict["replay_id"])
                     with sentry_sdk.start_span(op="replay_recording"):
