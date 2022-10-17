@@ -86,7 +86,7 @@ type Props = {
   setError: (msg: string | undefined) => void;
   transactionName: string;
   columnTitles?: string[];
-  customColumns?: string[];
+  customColumns?: ('attachments' | 'minidump')[];
   excludedTags?: string[];
   issueId?: string;
   projectId?: string;
@@ -148,7 +148,7 @@ class EventsTable extends Component<Props, State> {
     column: TableColumn<keyof TableDataRow>,
     dataRow: TableDataRow
   ): React.ReactNode {
-    const {eventView, organization, location, transactionName} = this.props;
+    const {eventView, organization, location, transactionName, projectId} = this.props;
 
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
@@ -156,7 +156,12 @@ class EventsTable extends Component<Props, State> {
     const tableMeta = tableData.meta;
     const field = String(column.key);
     const fieldRenderer = getFieldRenderer(field, tableMeta);
-    const rendered = fieldRenderer(dataRow, {organization, location, eventView});
+    const rendered = fieldRenderer(dataRow, {
+      organization,
+      location,
+      eventView,
+      projectId,
+    });
 
     const allowActions = [
       Actions.ADD,
@@ -343,7 +348,10 @@ class EventsTable extends Component<Props, State> {
         return col;
       });
 
-    if (this.props.customColumns?.length && this.state.attachments.length) {
+    if (
+      this.props.customColumns?.includes('attachments') &&
+      this.state.attachments.length
+    ) {
       columnOrder.push({
         isSortable: false,
         key: 'attachments',
@@ -351,44 +359,46 @@ class EventsTable extends Component<Props, State> {
         type: 'never',
         column: {field: 'attachments', kind: 'field', alias: undefined},
       });
-      if (this.state.hasMinidumps) {
-        columnOrder.push({
-          isSortable: false,
-          key: 'minidump',
-          name: 'minidump',
-          type: 'never',
-          column: {field: 'minidump', kind: 'field', alias: undefined},
-        });
-      }
+    }
+
+    if (this.props.customColumns?.includes('minidump') && this.state.hasMinidumps) {
+      columnOrder.push({
+        isSortable: false,
+        key: 'minidump',
+        name: 'minidump',
+        type: 'never',
+        column: {field: 'minidump', kind: 'field', alias: undefined},
+      });
     }
 
     const joinCustomData = ({data}: TableData) => {
-      if (this.state.attachments.length) {
-        const {projectId} = this.props;
-        const attachmentsWithUrl = this.state.attachments.map(attachment => ({
-          ...attachment,
-          url: `/api/0/projects/${organization.slug}/${projectId}/events/${attachment.event_id}/attachments/${attachment.id}/?download=1`,
-        }));
+      const eventIdMap = {};
 
-        const eventIdMap = {};
-        data.forEach(event => {
-          event.attachments = [] as any;
-          eventIdMap[event.id] = event;
-        });
-        attachmentsWithUrl.forEach(attachment => {
-          const eventAttachments = eventIdMap[attachment.event_id]?.attachments;
-          if (eventAttachments) {
-            eventAttachments.push(attachment);
-          }
-        });
-      }
+      data.forEach(event => {
+        event.attachments = [] as any;
+        eventIdMap[event.id] = event;
+      });
+
+      this.state.attachments.forEach(attachment => {
+        const eventAttachments = eventIdMap[attachment.event_id]?.attachments;
+        if (eventAttachments) {
+          eventAttachments.push(attachment);
+        }
+      });
     };
 
     const fetchAttachments = async ({data}: TableData, cursor: string) => {
       const eventIds = data.map(value => value.id);
-      const eventIdQuery = `event_id=${eventIds.join('&event_id=')}`;
+      const fetchOnlyMinidumps = !this.props.customColumns?.includes('attachments');
+
+      const queries: string = [
+        'per_page=50',
+        ...(fetchOnlyMinidumps ? ['types=event.minidump'] : []),
+        ...eventIds.map(eventId => `event_id=${eventId}`),
+      ].join('&');
+
       const res: IssueAttachment[] = await this.api.requestPromise(
-        `/api/0/issues/${this.props.issueId}/attachments/?${eventIdQuery}`
+        `/api/0/issues/${this.props.issueId}/attachments/?${queries}`
       );
 
       let hasMinidumps = false;
@@ -398,6 +408,7 @@ class EventsTable extends Component<Props, State> {
           hasMinidumps = true;
         }
       });
+
       this.setState({
         ...this.state,
         lastFetchedCursor: cursor,
