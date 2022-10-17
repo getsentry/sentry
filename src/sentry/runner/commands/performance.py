@@ -17,8 +17,9 @@ def performance() -> None:
 
 @performance.command()
 @click.argument("filename", type=click.Path(exists=True))
+@click.option("-v", "--verbose", count=True)
 @configuration
-def detect(filename):
+def detect(filename, verbose):
     """
     Runs performance problem detection on event data in the supplied filename
     using default detector settings with every detector. Filename should be a
@@ -51,10 +52,11 @@ def detect(filename):
             else:
                 click.echo(f"Found {len(detector.stored_problems)} problems")
 
-            for problem in detector.stored_problems.values():
-                try:
-                    click.echo(problem.to_dict())
-                except AttributeError:
-                    click.echo(problem)
+            if verbose > 0:
+                for problem in detector.stored_problems.values():
+                    try:
+                        click.echo(problem.to_dict())
+                    except AttributeError:
+                        click.echo(problem)
 
             click.echo("\n")
