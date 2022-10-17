@@ -3,11 +3,11 @@ from collections import defaultdict
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import Model, region_silo_model, sane_repr
+from sentry.db.models import Model, region_silo_only_model, sane_repr
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 
 
-@region_silo_model
+@region_silo_only_model
 class PlatformExternalIssue(Model):
     __include_in_export__ = False
 

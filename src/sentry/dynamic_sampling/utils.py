@@ -3,6 +3,7 @@ from typing import Any, List, TypedDict
 from sentry import quotas
 from sentry.models import Project
 
+
 UNIFORM_RULE_RESERVED_ID = 0
 
 

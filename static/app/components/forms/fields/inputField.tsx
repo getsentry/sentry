@@ -22,7 +22,7 @@ export interface InputFieldProps
   value?: any;
 }
 
-export type onEvent = (value, event?: React.FormEvent<HTMLInputElement>) => void;
+export type OnEvent = (value, event?: React.FormEvent<HTMLInputElement>) => void;
 
 function defaultField({
   onChange,
@@ -30,9 +30,9 @@ function defaultField({
   onKeyDown,
   ...rest
 }: {
-  onBlur: onEvent;
-  onChange: onEvent;
-  onKeyDown: onEvent;
+  onBlur: OnEvent;
+  onChange: OnEvent;
+  onKeyDown: OnEvent;
 }) {
   return (
     <Input
@@ -44,6 +44,10 @@ function defaultField({
   );
 }
 
+/**
+ * InputField should be thought of as a "base" field, and generally not used
+ * within the Form itself.
+ */
 function InputField(props: InputFieldProps) {
   return (
     <FormField className={props.className} {...props}>

@@ -59,11 +59,7 @@ describe('ProjectCspReports', function () {
     expect(mock).not.toHaveBeenCalled();
 
     // Click Regenerate Token
-    userEvent.click(
-      screen.getByRole('checkbox', {
-        name: 'Use default ignored sources Our default list will attempt to ignore common issues and reduce noise.',
-      })
-    );
+    userEvent.click(screen.getByRole('checkbox', {name: 'Use default ignored sources'}));
 
     expect(mock).toHaveBeenCalledWith(
       projectUrl,
@@ -98,9 +94,7 @@ describe('ProjectCspReports', function () {
     expect(mock).not.toHaveBeenCalled();
 
     userEvent.type(
-      screen.getByRole('textbox', {
-        name: 'Additional ignored sources Discard reports about requests from the given sources. Separate multiple entries with a newline.',
-      }),
+      screen.getByRole('textbox', {name: 'Additional ignored sources'}),
       'test\ntest2'
     );
 
