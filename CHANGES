@@ -1,3 +1,43 @@
+22.10.0
+-------
+
+### Automatic code mappings for Python/Github projects (ongoing)
+
+This milestones add support for creating Python code mappings automatically for orgs with the Github integration installed.
+
+Future work described in this RFC: https://github.com/getsentry/rfcs/blob/main/text/0016-auto-code-mappings.md
+
+By: @armenzg (#39975, #39750)
+
+### Various fixes & improvements
+
+- Revert "feat(commit-context): Refactor Issue Owner auto-assignment (#40048)" (#40081) by @wedamija
+- ref(emails): Update perf issue email subject (#40072) by @ceorourke
+- test(js): Convert AcceptOrganizationInvite to RTL (#39809) by @evanpurkhiser
+- ref: improve pin_github_action ref matching (#40067) by @asottile-sentry
+- test(ui): Convert SelectAsyncField test to RTL (#40060) by @malwilley
+- test(js): Convert TableField test to RTL (#40064) by @malwilley
+- deps(ui): Upgrade to jest v29 (#40070) by @scttcper
+- test: Use initialProps when testing hooks with reactHooks.renderHook (#39532) by @ryan953
+- feat(hybrid-cloud): Add a test for file upload (#39931) by @AniketDas-Tekky
+- feat(ui): Add aria-describedby to form inputs (#40037) by @evanpurkhiser
+- feat(commit-context): Refactor Issue Owner auto-assignment (#40048) by @NisanthanNanthakumar
+- chore(hybrid-cloud): ORM decorators updated. (#40022) by @corps
+- ref(email): Add performance issue alert email template (#39948) by @ceorourke
+- test(js): Rebalance tests (#40036) by @evanpurkhiser
+- fix(all-events) issue where events tab makes extra api call (#40056) by @DominikB2014
+- feat(all-events) Add minidump all events (#40049) by @DominikB2014
+- feat(perf_issues): Only send error issues to digests system (#40050) by @wedamija
+- feat(commit-context): Support GitLab (#39381) by @NisanthanNanthakumar
+- ref: Mark batching kafka consumer as deprecated (#40044) by @lynnagara
+- ref(gitlab): No need to show token (#40045) by @armenzg
+- Add all inclusive resources (#40047) by @0Calories
+- feat(charts): Add auto-generated aria labels (#39653) by @vuluongj20
+- fix(auth): Fix `device-failed` position (#40011) by @vuluongj20
+- feat(replays): Add Slowest Transaction Column To Transaction Replay Table (#39930) by @danecando
+
+_Plus 916 more_
+
 22.9.0
 ------
 
