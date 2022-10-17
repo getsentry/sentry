@@ -339,11 +339,14 @@ def perf_to_email_html(
 
 def get_matched_problem(event: Event) -> EventPerformanceProblem:
     """Get the matching performance problem for a given event"""
-    matched_problem: EventPerformanceProblem = None
-    for problem in get_problems([event]):
+    # matched_problem: EventPerformanceProblem = None
+    problems = get_problems([event])
+    if not problems:
+        return None
+
+    for problem in problems:
         if problem.problem.fingerprint == GroupHash.objects.get(group=event.group).hash:
-            matched_problem = problem
-    return matched_problem.problem
+            return problem.problem
 
 
 def get_transaction_data(event: Event) -> Any:
@@ -355,7 +358,7 @@ def get_transaction_data(event: Event) -> Any:
 
     matched_problem = get_matched_problem(event)
 
-    return perf_to_email_html(spans, matched_problem.problem)
+    return perf_to_email_html(spans, matched_problem)
 
 
 def send_activity_notification(notification: ActivityNotification | UserReportNotification) -> None:
