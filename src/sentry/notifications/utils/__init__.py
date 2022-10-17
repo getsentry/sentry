@@ -313,8 +313,12 @@ def perf_to_email_html(
     spans: Sequence[Dict[str, Union[str, float, None]]], problem: PerformanceProblem = None
 ) -> Any:
 
+    if not problem:
+        return ""
+
     parent_span = None
     repeating_spans = None
+
     for span in spans:
         if problem.parent_span_ids:
             if problem.parent_span_ids[0] == span.get("span_id"):
@@ -337,7 +341,7 @@ def perf_to_email_html(
     return render_to_string("sentry/emails/transactions.html", context)
 
 
-def get_matched_problem(event: Event) -> EventPerformanceProblem:
+def get_matched_problem(event: Event) -> Optional[EventPerformanceProblem]:
     """Get the matching performance problem for a given event"""
     problems = get_problems([event])
     if not problems:
