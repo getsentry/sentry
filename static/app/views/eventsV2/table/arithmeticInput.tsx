@@ -285,8 +285,6 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
 }
 
 const Container = styled('div')<{isOpen: boolean}>`
-  border: 1px solid ${p => p.theme.border};
-  box-shadow: inset ${p => p.theme.dropShadowLight};
   background: ${p => p.theme.background};
   position: relative;
 
@@ -300,18 +298,7 @@ const Container = styled('div')<{isOpen: boolean}>`
   }
 `;
 
-const StyledInput = styled(Input)`
-  height: 40px;
-  padding: 7px 10px;
-  border: 0;
-  box-shadow: none;
-
-  &:hover,
-  &:focus {
-    border: 0;
-    box-shadow: none;
-  }
-`;
+const StyledInput = styled(Input)``;
 
 type TermDropdownProps = {
   handleSelect: (option: DropdownOption) => void;
@@ -419,10 +406,11 @@ const DropdownContainer = styled('div')<{isOpen: boolean}>`
   left: -1px;
   right: -1px;
   z-index: ${p => p.theme.zIndex.dropdown};
-  background: ${p => p.theme.background};
-  box-shadow: ${p => p.theme.dropShadowLight};
+  background: ${p => p.theme.backgroundElevated};
+  box-shadow: ${p => p.theme.dropShadowHeavy};
   border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadiusBottom};
+  border-radius: ${p => p.theme.borderRadius};
+  margin-top: ${space(1)};
   max-height: 300px;
   overflow-y: auto;
 `;
