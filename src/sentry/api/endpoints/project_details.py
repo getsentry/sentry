@@ -105,8 +105,8 @@ class DynamicSamplingSerializer(serializers.Serializer):
 
     # This negative integer represents the rule id that will be sent by the frontend on every rule creation/update.
     #
-    # We decided to opt for -1 as NO_ID because we decided to reserve 0 for the uniform rule id in order to
-    # avoid making changes in Relay's validation mechanism that supports only positive integers (unsigned integer).
+    # We decided to opt for -1 as UNASSIGNED_ID_VALUE because we decided to reserve 0 for the uniform rule id in order
+    # to avoid making changes in Relay's validation mechanism that supports only positive integers (unsigned integer).
     UNASSIGNED_ID_VALUE = -1
 
     @staticmethod
@@ -138,9 +138,9 @@ class DynamicSamplingSerializer(serializers.Serializer):
             rules = raw_dynamic_sampling.get("rules", [])
 
             for rule in rules:
-                # For each rule we will try to get the id, in case we fall back to NO_ID which is a special reserved id
-                # for rules that are created/updated as explained above. In this case we use NO_ID because we treat a
-                # rule with no id as a rule that has been created.
+                # For each rule we will try to get the id, in case we fall back to UNASSIGNED_ID_VALUE which is a
+                # special reserved id for rules that are created/updated as explained above. In this case we use
+                # UNASSIGNED_ID_VALUE because we treat a rule with no id as a rule that has been created.
                 rid = rule.get("id", DynamicSamplingSerializer.UNASSIGNED_ID_VALUE)
                 original_rule = original_rules_dict.get(rid)
 
