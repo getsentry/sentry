@@ -720,13 +720,16 @@ class GroupEvent(BaseEvent):
 
     @classmethod
     def from_event(cls, event: Event, group: Group):
-        return cls(
+        group_event = cls(
             project_id=event.project_id,
             event_id=event.event_id,
             group=group,
             data=deepcopy(event.data),
             snuba_data=deepcopy(event._snuba_data),
         )
+        if hasattr(event, "_project_cache"):
+            group_event.project = event.project
+        return group_event
 
 
 class EventSubjectTemplate(string.Template):
