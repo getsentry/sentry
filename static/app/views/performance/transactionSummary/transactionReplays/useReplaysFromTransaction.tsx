@@ -4,7 +4,7 @@ import {Location} from 'history';
 
 import type {Client} from 'sentry/api';
 import type {Organization} from 'sentry/types';
-import {TableData} from 'sentry/utils/discover/discoverQuery';
+import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView, {fromSorts} from 'sentry/utils/discover/eventView';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -13,6 +13,11 @@ import fetchReplayList, {
   REPLAY_LIST_FIELDS,
 } from 'sentry/utils/replays/fetchReplayList';
 import useApi from 'sentry/utils/useApi';
+import {ReplayListRecord} from 'sentry/views/replays/types';
+
+export type ReplayListRecordWithTx = ReplayListRecord & {
+  txEvent: {[x: string]: any};
+};
 
 import {
   getPercentilesEventView,
@@ -22,6 +27,7 @@ import {
 
 type State = Awaited<ReturnType<typeof fetchReplayList>> & {
   eventView: undefined | EventView;
+  replays?: ReplayListRecordWithTx[];
 };
 
 type Options = {
@@ -57,12 +63,14 @@ function useReplaysFromTransaction({
     const percentiles = mapPercentileValues(percentileData);
     const filteredEventView = getFilteredEventView(percentiles);
 
-    const replayIds = await fetchReplayIds({
+    const eventsData = await fetchEventsWithReplay({
       api,
       eventView: filteredEventView ?? eventsWithReplaysView,
       location,
       organization,
     });
+
+    const replayIds = eventsData?.map(row => row.replayId);
 
     const eventView = EventView.fromNewQueryWithLocation(
       {
@@ -75,16 +83,41 @@ function useReplaysFromTransaction({
       },
       location
     );
+
     eventView.sorts = fromSorts(decodeScalar(location.query.sort, DEFAULT_SORT));
+
     const listData = await fetchReplayList({
       api,
       eventView,
       location,
       organization,
     });
+
+    const replays: ReplayListRecordWithTx[] | undefined = listData.replays?.map(
+      replay => {
+        let slowestEvent: TableDataRow | undefined;
+        for (const event of eventsData ?? []) {
+          // attach the slowest tx event to the replay
+          if (
+            event.replayId === replay.id &&
+            (!slowestEvent ||
+              event['transaction.duration'] > slowestEvent['transaction.duration'])
+          ) {
+            slowestEvent = event;
+          }
+        }
+
+        return {
+          ...replay,
+          txEvent: slowestEvent ?? {},
+        };
+      }
+    );
+
     setData({
       ...listData,
       eventView,
+      replays,
     });
   }, [api, eventsWithReplaysView, location, organization, getFilteredEventView]);
 
@@ -95,7 +128,7 @@ function useReplaysFromTransaction({
   return data;
 }
 
-async function fetchReplayIds({
+async function fetchEventsWithReplay({
   api,
   eventView,
   location,
@@ -113,7 +146,7 @@ async function fetchReplayIds({
       eventView.getEventsAPIPayload(location)
     );
 
-    return data.data.map(record => String(record.replayId));
+    return data.data;
   } catch (err) {
     Sentry.captureException(err);
     return null;
