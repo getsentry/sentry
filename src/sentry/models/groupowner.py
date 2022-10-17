@@ -7,7 +7,7 @@ from django.db import models
 from django.utils import timezone
 
 from sentry import features
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_model
+from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.group import Group
@@ -46,7 +46,7 @@ class OwnersSerializedWithCommits(TypedDict):
     commits: List[ReleaseCommit]
 
 
-@region_silo_model
+@region_silo_only_model
 class GroupOwner(Model):
     """
     Tracks the "owners" or "suggested assignees" of a group.
