@@ -9,7 +9,7 @@ from django.utils import timezone
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_relay.processing import validate_sampling_condition, validate_sampling_configuration
+from sentry_relay.processing import validate_sampling_condition
 
 from sentry import audit_log, features
 from sentry.api.base import region_silo_endpoint
@@ -22,6 +22,11 @@ from sentry.api.serializers.rest_framework.list import EmptyListField, ListField
 from sentry.api.serializers.rest_framework.origin import OriginField
 from sentry.constants import RESERVED_PROJECT_SLUGS
 from sentry.datascrubbing import validate_pii_config_update
+from sentry.dynamic_sampling.utils import (
+    DynamicSamplingDetails,
+    DynamicSamplingDetailsV1,
+    DynamicSamplingDetailsV2,
+)
 from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig
 from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
 from sentry.ingest.inbound_filters import FilterTypes
@@ -104,82 +109,13 @@ class DynamicSamplingSerializer(serializers.Serializer):
     next_id = serializers.IntegerField(min_value=0, required=False)
 
     @staticmethod
-    def fix_rule_ids(project, raw_dynamic_sampling):
-        """
-        Fixes rule ids in sampling configuration
-
-        When rules are changed or new rules are introduced they will get
-        new ids
-        :pparam raw_dynamic_sampling: the dynamic sampling config coming from UI
-            validated but without adjusted rule ids
-        :return: the dynamic sampling config with the rule ids adjusted to be
-        unique and with the next_id updated
-        """
-        # get the existing configuration for comparison.
-        original = project.get_option("sentry:dynamic_sampling")
-        original_rules = []
-
-        if original is None:
-            next_id = 1
+    def inject_dynamic_sampling_details_impl(
+        project: Project, request: Request, data
+    ) -> DynamicSamplingDetails:
+        if features.has("has-old-ds-sampling", project.organization, actor=request.user):
+            return DynamicSamplingDetailsV1(project, data)
         else:
-            next_id = original.get("next_id", 1)
-            original_rules = original.get("rules", [])
-
-        # make a dictionary with the old rules to compare for changes
-        original_rules_dict = {rule["id"]: rule for rule in original_rules}
-
-        if raw_dynamic_sampling is not None:
-            rules = raw_dynamic_sampling.get("rules", [])
-
-            for rule in rules:
-                # We are setting the unassigned id to -1. It used to be 0 but we are modifying the behavior as 0 is a
-                # valid id according to relay's rule validation which states the a rule id is an unsigned integer.
-                rid = rule.get("id", -1)
-                original_rule = original_rules_dict.get(rid)
-                # ToDo(ahmed): Temporarily allowing for 0 to be the unassigned rule id for backwards compatibility,
-                #  and will remove that once the UI changes are deployed.
-                if rid in {0, -1} or original_rule is None:
-                    # a new or unknown rule give it a new id
-                    rule["id"] = next_id
-                    next_id += 1
-                else:
-                    if original_rule != rule:
-                        # something changed in this rule, give it a new id
-                        rule["id"] = next_id
-                        next_id += 1
-
-        raw_dynamic_sampling["next_id"] = next_id
-        return raw_dynamic_sampling
-
-    @staticmethod
-    def _is_uniform_sampling_rule(rule):
-        # A uniform sampling rule must be an 'and' with no rules. An 'or' with no rules will not
-        # match anything.
-        assert rule["condition"]["op"] == "and"
-        # Matching the uniform sampling rule check on UI because currently we only support
-        # uniform rules on traces, not on single transactions. If we change this spec in the
-        # future, we will have to update this to also support single transactions.
-        return len(rule["condition"]["inner"]) == 0 and rule["type"] == "trace"
-
-    def validate_uniform_sampling_rule(self, rules):
-        # Guards against deletion of uniform sampling rule i.e. sending a payload with no rules
-        if len(rules) == 0:
-            raise serializers.ValidationError(
-                "Payload must contain a uniform dynamic sampling rule"
-            )
-
-        uniform_rule = rules[-1]
-        # Guards against placing uniform sampling rule not in last position or adding multiple
-        # uniform sampling rules
-        for rule in rules[:-1]:
-            if self._is_uniform_sampling_rule(rule):
-                raise serializers.ValidationError("Uniform rule must be in the last position only")
-
-        # Ensures last rule in rules is always a uniform sampling rule
-        if not self._is_uniform_sampling_rule(uniform_rule):
-            raise serializers.ValidationError(
-                "Last rule is reserved for uniform rule which must have no conditions"
-            )
+            return DynamicSamplingDetailsV2(project, data)
 
     def validate(self, data):
         """
@@ -189,26 +125,21 @@ class DynamicSamplingSerializer(serializers.Serializer):
         :return: the validated data or raise in case of error
         """
         try:
-            data = self.fix_rule_ids(self.context["project"], data)
-            config_str = json.dumps(data)
-            validate_sampling_configuration(config_str)
+            details = DynamicSamplingSerializer.inject_dynamic_sampling_details_impl(
+                self.context["project"], data
+            )
 
-            # If the feature flag 'organizations:dynamic-sampling-demo' is enabled, we skip the uniform rule validation.
-            # This is useful for product demos, as the user will be able to delete uniform rules.
-            if (
-                features.has(
-                    "organizations:dynamic-sampling-demo",
-                    self.context["project"].organization,
-                    actor=self.context["request"].user,
-                )
-                is False
-            ):
-                self.validate_uniform_sampling_rule(data.get("rules", []))
+            details.inject_floored_uniform_sampling_rule()
+
+            details.validate_configuration_with_relay()
+            details.validate_configuration_with_floored_sample_rate()
+
+            details.update_rules_ids()
+
+            return details.data
         except ValueError as err:
             reason = err.args[0] if len(err.args) > 0 else "invalid configuration"
             raise serializers.ValidationError(reason)
-
-        return data
 
 
 class ProjectMemberSerializer(serializers.Serializer):
