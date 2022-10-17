@@ -1,3 +1,5 @@
+import os
+from typing import Any, Dict
 from unittest.mock import MagicMock, patch
 from urllib.parse import urlencode, urlparse
 
@@ -13,6 +15,7 @@ from sentry.plugins.base import plugins
 from sentry.plugins.bases import IssueTrackingPlugin2
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils import IntegrationTestCase
+from sentry.utils import json
 
 TREE_RESPONSES = {
     "foo": {
@@ -20,24 +23,8 @@ TREE_RESPONSES = {
         "body": {
             # The latest sha for a specific branch
             "sha": "a4e587563cb5dbb46192b5962cbadc8c532a8455",
+            "tree": [],
             "url": "https://api.github.com/repos/Test-Organization/foo/git/trees/a4e587563cb5dbb46192b5962cbadc8c532a8455",
-            "tree": [
-                {
-                    "path": ".artifacts",
-                    "mode": "040000",
-                    "type": "tree",  # A directory
-                    "sha": "44813f92a105143eff565d14d2054c2ea90eb62e",
-                    "url": "https://api.github.com/repos/Test-Organization/foo/git/trees/44813f92a105143eff565d14d2054c2ea90eb62e",
-                },
-                {
-                    "path": "src/sentry/api/endpoints/auth_login.py",
-                    "mode": "100644",
-                    "type": "blob",  # A file
-                    "sha": "517899e22ada047336cab4ecbbf8c27b151f190c",
-                    "size": 2711,
-                    "url": "https://api.github.com/repos/Test-Organization/foo/git/blobs/517899e22ada047336cab4ecbbf8c27b151f190c",
-                },
-            ],
             "truncated": False,  # If this is True, we have reached the limit of what we can get with the recursive option
         },
     },
@@ -50,6 +37,116 @@ TREE_RESPONSES = {
         "body": {"message": "Not Found"},
     },
 }
+
+with open(
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures/sentry_tree.json")
+) as fd:
+    sentry_tree = json.load(fd)
+
+# The tree responses have a lot more fields but this is the minimum required
+for path in sentry_tree:
+    TREE_RESPONSES["foo"]["body"]["tree"].append({"type": "blob", "path": path})
+
+CODE_MAPPINGS: Dict[str, Any] = {}
+
+
+# XXX: These functions will have to move somewhere else
+def stacktrace_to_source(stacktrace_frame_file_path: str, code_mapping):
+    if code_mapping:
+        return stacktrace_frame_file_path.replace(
+            code_mapping["stacktrace_root"], code_mapping["src_path"]
+        )
+
+
+def breakdown_stacktrace_frame_file_path(stacktrace_frame_file_path):
+    stacktrace_root, file_and_dir_path = stacktrace_frame_file_path.split("/", 1)
+    if file_and_dir_path.find("/") > -1:
+        dir_path, file_name = file_and_dir_path.rsplit("/", 1)
+    else:
+        # e.g. requests/models.py
+        dir_path, file_name = "", file_and_dir_path
+    return (stacktrace_root, file_and_dir_path, dir_path, file_name)
+
+
+def potential_match(src_file: str, stacktrace_no_root: str):
+    """Tries to see if the stacktrace without the root matches the file from the source code"""
+    # In some cases, once we have derived a code mapping we can exclude files that start with
+    # that source path.
+    # For instance sentry_plugins/slack/client.py matches these files
+    # - "src/sentry_plugins/slack/client.py",
+    # - "src/sentry/integrations/slack/client.py",
+    matches_code_path = list(
+        filter(
+            lambda code_mapping: src_file.startswith(f"{code_mapping['src_path']}/"),
+            CODE_MAPPINGS.values(),
+        )
+    )
+    if len(matches_code_path) > 0:
+        return False
+    # It has to have at least one directory with
+    # e.g. requests/models.py matches all files with models.py
+    if stacktrace_no_root.find("/") > -1:
+        return src_file.rfind(stacktrace_no_root) > -1
+
+
+def find_code_mapping(stacktrace_frame_file_path: str, trees: Dict[str, Any]):
+    try:
+        (
+            stacktrace_root,
+            file_and_dir_path,
+            dir_path,
+            file_name,
+        ) = breakdown_stacktrace_frame_file_path(stacktrace_frame_file_path)
+    except ValueError:
+        # print(f"We cannot breakdown this stacktrace path: {stacktrace_frame_file_path}")
+        return
+
+    def code_mapping_from_file_path(file_path: str):
+        return {
+            "repo": repo_full_name,
+            "stacktrace_root": stacktrace_root,
+            "src_path": file_path.rsplit(dir_path)[0].rstrip("/"),
+        }
+
+    code_mappings = []
+    for repo_full_name, tree in trees.items():
+        matched_files = list(
+            filter(
+                lambda file_path: potential_match(file_path, file_and_dir_path),
+                tree,
+            )
+        )
+        # It is too risky trying to generate code mappings when there's more than one file
+        # potentially matching
+        if len(matched_files) == 1:
+            code_mappings += list(
+                map(
+                    lambda x: code_mapping_from_file_path(x),
+                    matched_files,
+                )
+            )
+
+    if len(code_mappings) == 0:
+        # print(f"No files matched for {stacktrace_frame_file_path}")
+        return None
+    # This means that the file has been found in more than one repo
+    elif len(code_mappings) > 1:
+        # print(f"More than one file matched for {stacktrace_frame_file_path}")
+        return None
+    return code_mappings[0]
+
+
+def derive_code_mappings(stacktraces, trees):
+    """From a list of stack trace frames, produce the code mappings for it"""
+    for line in stacktraces:
+        stacktrace_root = line.split("/", 1)[0]
+        # Once we store a code mapping in this dictionary, we don't need to search anymore
+        if not CODE_MAPPINGS.get(stacktrace_root):
+            code_mapping = find_code_mapping(line, trees)
+            if code_mapping:
+                CODE_MAPPINGS[stacktrace_root] = code_mapping
+
+    return CODE_MAPPINGS
 
 
 class GitHubPlugin(IssueTrackingPlugin2):
@@ -558,21 +655,50 @@ class GitHubIntegrationTest(IntegrationTestCase):
         ).exists()
 
     @responses.activate
-    def test_get_trees_for_org(self):
+    def test_derive_code_mappings(self):
         """Fetch the tree representation of a repo"""
+        # All stacktraces have to belong to a specific project. We cannot mix them
+        STACKTRACES = [
+            "sentry/identity/oauth2.py",
+            "sentry/identity/gitlab/provider.py",
+            "sentry/integrations/gitlab/client.py",
+            "sentry/shared_integrations/client/base.py",
+            "sentry/integrations/gitlab/client.py",
+            "sentry/integrations/gitlab/repository.py",
+            # More than one file matches for sentry_plugins/slack/client.py
+            # - "src/sentry_plugins/slack/client.py",
+            # - "src/sentry/integrations/slack/client.py",
+            "sentry_plugins/slack/client.py",
+            "getsentry/billing/tax/manager.py",
+            "requests/models.py",
+            "urllib3/connectionpool.py",
+            "ssl.py",
+        ]
+
         with self.tasks():
             self.assert_setup_flow()
 
         integration = Integration.objects.get(provider=self.provider.key)
         installation = integration.get_installation(self.organization)
         with patch.object(sentry.integrations.github.client.GitHubClientMixin, "page_size", 1):
-            # XXX: Does the installation already have the org stored?
-            installation.get_client().get_trees_for_org(self.organization.slug)
+            trees = installation.get_client().get_trees_for_org(self.organization.slug)
+            # This check is useful since it will be available in the GCP logs
+            assert (
+                self._caplog.records[0].message
+                == "The Github App does not have access to Test-Organization/baz."
+            )
+            assert self._caplog.records[0].levelname == "ERROR"
 
-        # XXX: We need to search filenames in the stack trace
-        # This check is specially useful since it will be available in the GCP logs
-        assert (
-            self._caplog.records[0].message
-            == "The Github App does not have access to Test-Organization/baz."
-        )
-        assert self._caplog.records[0].levelname == "ERROR"
+        code_mappings = derive_code_mappings(STACKTRACES, trees)
+        assert code_mappings == {
+            "sentry": {
+                "repo": "Test-Organization/foo",
+                "stacktrace_root": "sentry",
+                "src_path": "src/sentry",
+            },
+            "sentry_plugins": {
+                "repo": "Test-Organization/foo",
+                "stacktrace_root": "sentry_plugins",
+                "src_path": "src/sentry_plugins",
+            },
+        }

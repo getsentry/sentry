@@ -70,6 +70,10 @@ class GitHubClientMixin(ApiClient):  # type: ignore
 
     # https://docs.github.com/en/rest/git/trees#get-a-tree
     def get_tree(self, repo_full_name: str, tree_sha: str) -> JSONData:
+        def should_include_file(file_path: str) -> bool:
+            # Currently only Python related files
+            return file_path.endswith(".py") and not file_path.startswith("tests/")
+
         tree = []
         try:
             contents = self.get(
@@ -87,8 +91,20 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                     f"The tree for {repo_full_name} has been truncated. Use different a approach for retrieving contents of tree."
                 )
             # tree -> list of mode, path, sha, type and url for file/directory
+            from typing import Callable
+
+            # This helps with error: Returning Any from function declared to return "object"  [no-any-return]
+            # func: Callable[[str], str] = lambda file_meta: file_meta["path"]
             # XXX: We should optimize the data structure to be a tree from file to top src dir
-            tree = contents["tree"]
+            tree = list(
+                map(
+                    lambda file_meta: file_meta["path"],
+                    filter(
+                        lambda x: x["type"] == "blob" and should_include_file(x["path"]),
+                        contents["tree"],
+                    ),
+                )
+            )
         except ApiError as e:
             json_data: JSONData = e.json
             msg: str = json_data.get("message")
