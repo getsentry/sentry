@@ -1,12 +1,9 @@
 from __future__ import annotations
 
-import concurrent.futures
 import logging
 import random
 import time
-from collections import deque
-from concurrent.futures import Future
-from typing import Any, Callable, Deque, Mapping, MutableMapping, NamedTuple, Optional, cast
+from typing import Callable, Mapping, MutableMapping, Optional, cast
 
 import msgpack
 import sentry_sdk
@@ -20,29 +17,12 @@ from sentry.replays.consumers.recording.types import (
     RecordingSegmentChunkMessage,
     RecordingSegmentMessage,
 )
-from sentry.replays.usecases.ingest import ingest_recording_segment, ingest_recording_segment_chunk
-from sentry.utils import metrics
+from sentry.replays.tasks import ingest_recording_segment
+from sentry.replays.usecases.ingest import ingest_recording_segment_chunk
+from sentry.utils import json, metrics
 from sentry.utils.sdk import configure_scope
 
-logger = logging.getLogger("sentry.replays")
-
-CACHE_TIMEOUT = 3600
 COMMIT_FREQUENCY_SEC = 1
-
-
-class MissingRecordingSegmentHeaders(ValueError):
-    pass
-
-
-class ReplayRecordingMessageFuture(NamedTuple):
-    """
-    Map a submitted message to a Future returned by the Producer.
-    This is useful for being able to commit the latest offset back
-    to the original consumer.
-    """
-
-    message: Message[KafkaPayload]
-    future: Future[None]
 
 
 class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
@@ -51,120 +31,25 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
         commit: Callable[[Mapping[Partition, Position]], None],
     ) -> None:
         self.__closed = False
-        self.__futures: Deque[ReplayRecordingMessageFuture] = deque()
-        self.__threadpool = concurrent.futures.ThreadPoolExecutor()
         self.__commit = commit
         self.__commit_data: MutableMapping[Partition, Position] = {}
         self.__last_committed: float = 0
 
-    @metrics.wraps("replays.process_recording.process_chunk")
-    def _process_chunk(self, message_dict: RecordingSegmentChunkMessage) -> None:
-        ingest_recording_segment_chunk(message_dict)
-
-    @metrics.wraps("replays.process_recording.store_recording")
-    def _store(
-        self,
-        message_dict: RecordingSegmentMessage,
-    ) -> None:
-        with sentry_sdk.start_transaction(
-            op="replays.consumer", name="replays.consumer.flush_batch"
-        ):
-            sentry_sdk.set_extra("replay_id", message_dict["replay_id"])
-            ingest_recording_segment(message_dict)
-
-    def _process_recording(
-        self, message_dict: RecordingSegmentMessage, message: Message[KafkaPayload]
-    ) -> None:
-        # in a thread, upload the recording segment and delete the cached version
-        self.__futures.append(
-            ReplayRecordingMessageFuture(
-                message,
-                self.__threadpool.submit(
-                    self._store,
-                    message_dict=message_dict,
-                ),
-            )
-        )
-
-    @metrics.wraps("replays.process_recording.submit")
     def submit(self, message: Message[KafkaPayload]) -> None:
         assert not self.__closed
-
-        try:
-            with sentry_sdk.start_transaction(
-                name="replays.consumer.process_recording",
-                op="replays.consumer",
-                sampled=random.random()
-                < getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0),
-            ):
-                message_dict = msgpack.unpackb(message.payload.value)
-                self._configure_sentry_scope(message_dict)
-
-                if message_dict["type"] == "replay_recording_chunk":
-                    sentry_sdk.set_extra("replay_id", message_dict["replay_id"])
-                    with sentry_sdk.start_span(op="replay_recording_chunk"):
-                        self._process_chunk(cast(RecordingSegmentChunkMessage, message_dict))
-                if message_dict["type"] == "replay_recording":
-                    sentry_sdk.set_extra("replay_id", message_dict["replay_id"])
-                    with sentry_sdk.start_span(op="replay_recording"):
-                        self._process_recording(
-                            cast(RecordingSegmentMessage, message_dict), message
-                        )
-        except Exception:
-            # avoid crash looping on bad messsages for now
-            logger.exception(
-                "Failed to process replay recording message", extra={"offset": message.offset}
-            )
+        process_message(message)
+        self.__commit_data[message.partition] = Position(message.next_offset, message.timestamp)
 
     def close(self) -> None:
         self.__closed = True
 
     def terminate(self) -> None:
         self.close()
-        self.__threadpool.shutdown(wait=False)
 
-    def join(self, timeout: Optional[float] = None) -> None:
-        start = time.time()
-
-        # Immediately commit all the offsets we have popped from the queue.
+    def join(self, _: Optional[float] = None) -> None:
         self.__throttled_commit(force=True)
 
-        # Any remaining items in the queue are flushed until the process is terminated.
-        while self.__futures:
-            remaining = timeout - (time.time() - start) if timeout is not None else None
-            if remaining is not None and remaining <= 0:
-                logger.warning(f"Timed out with {len(self.__futures)} futures in queue")
-                break
-
-            # Pop the future from the queue.  If it succeeds great but if not it will be discarded
-            # on the next loop iteration without commit.  An error will be logged.
-            message, future = self.__futures.popleft()
-
-            try:
-                future.result(remaining)
-                self.__commit({message.partition: Position(message.offset, message.timestamp)})
-            except Exception:
-                logger.exception(
-                    "Async future failed in replays recording-segment consumer.",
-                    extra={"offset": message.offset},
-                )
-
     def poll(self) -> None:
-        while self.__futures:
-            message, future = self.__futures[0]
-            if not future.done():
-                break
-
-            if future.exception():
-                logger.error(
-                    "Async future failed in replays recording-segment consumer.",
-                    exc_info=future.exception(),
-                    extra={"offset": message.offset},
-                )
-
-            self.__futures.popleft()
-            self.__commit_data[message.partition] = Position(message.next_offset, message.timestamp)
-
         self.__throttled_commit()
 
     def __throttled_commit(self, force: bool = False) -> None:
@@ -176,8 +61,43 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
                 self.__last_committed = now
                 self.__commit_data = {}
 
-    def _configure_sentry_scope(self, message_dict: dict[str, Any]) -> None:
-        with configure_scope() as scope:
-            scope.set_tag("replay_id", message_dict["replay_id"])
-            scope.set_tag("project_id", message_dict["project_id"])
-            # TODO: add replay sdk version once added
+
+def process_message(message: bytes) -> None:
+    try:
+        with sentry_sdk.start_transaction(
+            name="replays.consumer.process_recording",
+            op="replays.consumer",
+            sampled=random.random()
+            < getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0),
+        ):
+            message_dict = msgpack.unpackb(message.payload.value)
+
+            with configure_scope() as scope:
+                # TODO: add replay sdk version once added
+                scope.set_tag("replay_id", message_dict["replay_id"])
+                scope.set_tag("project_id", message_dict["project_id"])
+
+            if message_dict["type"] == "replay_recording_chunk":
+                process_chunk(cast(RecordingSegmentChunkMessage, message_dict))
+            elif message_dict["type"] == "replay_recording":
+                process_recording(cast(RecordingSegmentMessage, message_dict))
+    except Exception:
+        # avoid crash looping on bad messsages for now
+        logger = logging.getLogger("sentry.replays")
+        logger.exception(
+            "Failed to process replay recording message", extra={"offset": message.offset}
+        )
+
+
+@metrics.wraps("replays.consumer.process_chunk")
+def process_chunk(message_dict: RecordingSegmentChunkMessage) -> None:
+    sentry_sdk.set_extra("replay_id", message_dict["replay_id"])
+    with sentry_sdk.start_span(op="process_chunk"):
+        ingest_recording_segment_chunk(message_dict)
+
+
+@metrics.wraps("replays.consumer.process_recording")
+def process_recording(message_dict: RecordingSegmentMessage) -> None:
+    sentry_sdk.set_extra("replay_id", message_dict["replay_id"])
+    with sentry_sdk.start_span(op="process_recording"):
+        ingest_recording_segment.delay(msgpack.packb(json.dumps(message_dict)))

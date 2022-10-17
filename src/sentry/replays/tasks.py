@@ -32,7 +32,7 @@ def ingest_recording_segment(message: bytes) -> None:
         name="replays.tasks.ingest_recording_segment",
     ):
         # Parse the message bytes to typed dict.
-        message_load = json.loads(msgpack.unpackb(message.payload.value))
+        message_load = json.loads(msgpack.unpackb(message))
         message_dict = cast(RecordingSegmentMessage, message_load)
 
         # Configure SDK related tracking here. No SDK usage is allowed in the usecase.
