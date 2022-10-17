@@ -107,8 +107,13 @@ jobs:
 
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
+
+      - name: Save model manifest artifact
+        uses: actions/upload-artifact@82c141cc518b40d92cc801eee768e7aafc9c2fa2  # v2
         with:
-          files: "./.artifacts/model-manifest.json"
+          retention-days: 1
+          name: model-manifest.${{ matrix.setup.outputs.matrix-instance-number }}.json
+          path: .artifacts/model-manifest.json
 
   backend-test-snuba-contains-metrics-tag-values:
     if: needs.files-changed.outputs.backend == 'true'
