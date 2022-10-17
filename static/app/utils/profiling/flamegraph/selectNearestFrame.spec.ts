@@ -85,4 +85,11 @@ describe('selectNearestFrame', () => {
     const next = selectNearestFrame(root as any, 'up');
     expect(next).toBe(null);
   });
+
+  it('returns current node when at max depth', () => {
+    const root = new Node();
+    const grandChild = root.addChildrenToDepth(2);
+    const next = selectNearestFrame(grandChild as any, 'down');
+    expect(next).toBe(grandChild);
+  });
 });
