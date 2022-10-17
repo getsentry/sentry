@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, cleanup, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -256,9 +256,16 @@ describe('OrganizationStats', function () {
    * Project Selection
    */
   it('renders with no projects selected', () => {
-    render(<OrganizationStats {...defaultProps} />, {
-      context: routerContext,
-      organization,
+    const newOrg = initializeOrg();
+    newOrg.organization.features = [
+      'global-views',
+      'team-insights',
+      // TODO(Leander): Remove the following check once the project-stats flag is GA
+      'project-stats',
+    ];
+    render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />, {
+      context: newOrg.routerContext,
+      organization: newOrg.organization,
     });
 
     expect(screen.getByText('My Projects')).toBeInTheDocument();
@@ -275,15 +282,31 @@ describe('OrganizationStats', function () {
   });
 
   it('renders with multiple projects selected', () => {
+    const newOrg = initializeOrg();
+    newOrg.organization.features = [
+      'global-views',
+      'team-insights',
+      // TODO(Leander): Remove the following check once the project-stats flag is GA
+      'project-stats',
+    ];
+
     const selectedProjects = [1, 2];
     const newSelection = {
       ...defaultSelection,
       projects: selectedProjects,
     };
-    render(<OrganizationStats {...defaultProps} selection={newSelection} />, {
-      context: routerContext,
-      organization,
-    });
+
+    render(
+      <OrganizationStats
+        {...defaultProps}
+        organization={newOrg.organization}
+        selection={newSelection}
+      />,
+      {
+        context: newOrg.routerContext,
+        organization: newOrg.organization,
+      }
+    );
     act(() => PageFiltersStore.updateProjects(selectedProjects, []));
 
     expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
@@ -305,15 +328,30 @@ describe('OrganizationStats', function () {
   });
 
   it('renders with a single project selected', () => {
+    const newOrg = initializeOrg();
+    newOrg.organization.features = [
+      'global-views',
+      'team-insights',
+      // TODO(Leander): Remove the following check once the project-stats flag is GA
+      'project-stats',
+    ];
     const selectedProject = [1];
     const newSelection = {
       ...defaultSelection,
       projects: selectedProject,
     };
-    render(<OrganizationStats {...defaultProps} selection={newSelection} />, {
-      context: routerContext,
-      organization,
-    });
+
+    render(
+      <OrganizationStats
+        {...defaultProps}
+        organization={newOrg.organization}
+        selection={newSelection}
+      />,
+      {
+        context: newOrg.routerContext,
+        organization: newOrg.organization,
+      }
+    );
     act(() => PageFiltersStore.updateProjects(selectedProject, []));
 
     expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
@@ -333,6 +371,40 @@ describe('OrganizationStats', function () {
         },
       })
     );
+  });
+
+  /**
+   * Feature Flagging
+   */
+  it('renders legacy organization stats without appropriate flags', () => {
+    const selectedProject = [1];
+    const newSelection = {
+      ...defaultSelection,
+      projects: selectedProject,
+    };
+    for (const features of [
+      ['team-insights'],
+      ['team-insights', 'project-stats'],
+      ['team-insights', 'global-views'],
+    ]) {
+      const newOrg = initializeOrg();
+      newOrg.organization.features = features;
+      render(
+        <OrganizationStats
+          {...defaultProps}
+          organization={newOrg.organization}
+          selection={newSelection}
+        />,
+        {
+          context: newOrg.routerContext,
+          organization: newOrg.organization,
+        }
+      );
+      act(() => PageFiltersStore.updateProjects(selectedProject, []));
+      expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
+      expect(screen.getByTestId('usage-stats-table')).toBeInTheDocument();
+      cleanup();
+    }
   });
 });
 

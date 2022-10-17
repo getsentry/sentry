@@ -153,8 +153,16 @@ export class OrganizationStats extends Component<Props> {
     return this.hasProjectStats ? this.props.selection.projects : [];
   }
 
+  /**
+   * Note: For now, we're checking for both project-stats and global-views to enable this new UI
+   * This may change once we GA the project-stats feature flag. These are the planned scenarios:
+   *  - w/o global-views: Project Selector defaults to first project, hence no more 'Org Stats' w/o global-views
+   *  - w/ global-views: Project Selector defaults to 'My Projects', behaviour for 'Org Stats' is preserved
+   */
   get hasProjectStats(): boolean {
-    return this.props.organization.features.includes('project-stats');
+    return ['project-stats', 'global-views'].every(flag =>
+      this.props.organization.features.includes(flag)
+    );
   }
 
   getNextLocations = (project: Project): Record<string, LocationDescriptorObject> => {
@@ -322,9 +330,10 @@ export class OrganizationStats extends Component<Props> {
     const hasTeamInsights = organization.features.includes('team-insights');
 
     // We only show UsageProjectStats if multiple projects are selected
-    const shouldRenderProjectStats =
-      this.hasProjectStats &&
-      (this.projectIds.includes(-1) || this.projectIds.length !== 1);
+    const shouldRenderProjectStats = this.hasProjectStats
+      ? this.projectIds.includes(-1) || this.projectIds.length !== 1
+      : // Always render if they don't have the proper flags
+        true;
 
     return (
       <SentryDocumentTitle title="Usage Stats">
