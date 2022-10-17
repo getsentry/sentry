@@ -62,7 +62,7 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
                 self.__commit_data = {}
 
 
-def process_message(message: bytes) -> None:
+def process_message(message: Message[KafkaPayload]) -> None:
     try:
         with sentry_sdk.start_transaction(
             name="replays.consumer.process_recording",
