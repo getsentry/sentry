@@ -60,7 +60,6 @@ function ReplayContent({orgSlug, replaySlug, event}: Props) {
     pathname: `/organizations/${orgSlug}/replays/${replaySlug}/`,
     query: {
       t_main: 'console',
-      f_c_search: undefined,
       t: initialTimeOffset,
     },
   };
