@@ -11,14 +11,6 @@ interface ContainerProps extends React.HTMLAttributes<HTMLDivElement> {
   orientInline?: boolean;
 }
 
-const Container = styled('div')<ContainerProps>`
-  display: grid;
-  gap: ${p => space(p.orientInline ? 3 : 1)};
-  grid-auto-flow: ${p => (p.orientInline ? 'column' : 'row')};
-  grid-auto-rows: max-content;
-  grid-auto-columns: max-content;
-`;
-
 interface BaseRadioGroupProps<C extends string> {
   /**
    * An array of [id, name, description]
@@ -92,6 +84,12 @@ const RadioGroup = <C extends string>({
     })}
   </Container>
 );
+
+const Container = styled('div')<ContainerProps>`
+  display: flex;
+  gap: ${p => space(p.orientInline ? 3 : 1)};
+  flex-direction: ${p => (p.orientInline ? 'row' : 'column')};
+`;
 
 const shouldForwardProp = (p: PropertyKey) =>
   typeof p === 'string' && !['disabled', 'animate'].includes(p) && isPropValid(p);

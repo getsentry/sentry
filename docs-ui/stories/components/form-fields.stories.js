@@ -8,7 +8,6 @@ import NewBooleanField from 'sentry/components/forms/fields/booleanField';
 import CheckboxField from 'sentry/components/forms/fields/checkboxField';
 import DatePickerField from 'sentry/components/forms/fields/datePickerField';
 import FileField from 'sentry/components/forms/fields/fileField';
-import RadioBooleanField from 'sentry/components/forms/fields/radioBooleanField';
 import RadioField from 'sentry/components/forms/fields/radioField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import TextareaField from 'sentry/components/forms/fields/textareaField';
@@ -212,23 +211,6 @@ export const __FileField = () => (
 __FileField.storyName = 'File';
 
 _RadioField.storyName = 'Radio';
-
-export const _RadioBooleanField = ({disabled}) => (
-  <Form>
-    <RadioBooleanField
-      name="subscribe"
-      yesLabel="Yes, I would like to receive updates via email"
-      noLabel="No, I'd prefer not to receive these updates"
-      help="Help text for making an informed decision"
-      disabled={disabled}
-    />
-  </Form>
-);
-
-_RadioBooleanField.storyName = 'Radio - Boolean';
-_RadioBooleanField.args = {
-  disabled: false,
-};
 
 export const _SelectField = () => (
   <Form>
