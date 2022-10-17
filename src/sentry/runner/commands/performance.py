@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from inspect import isclass
+
 import click
 
 from sentry.runner.decorators import configuration
@@ -18,27 +20,41 @@ def performance() -> None:
 @configuration
 def detect(filename):
     """
-    Runs performance detection on event data in the supplied filename using
-    default detector settings. Filename should be a path to a JSON event data
-    file.
+    Runs performance problem detection on event data in the supplied filename
+    using default detector settings with every detector. Filename should be a
+    path to a JSON event data file.
     """
-    from sentry.utils.performance_issues.performance_detection import (
-        NPlusOneDBSpanDetectorExtended,
-        get_detection_settings,
-        run_detector_on_data,
-    )
+    from sentry.utils.performance_issues import performance_detection
 
-    settings = get_detection_settings()
+    detector_classes = [
+        cls
+        for _, cls in performance_detection.__dict__.items()
+        if isclass(cls)
+        and issubclass(cls, performance_detection.PerformanceDetector)
+        and cls != performance_detection.PerformanceDetector
+    ]
+
+    settings = performance_detection.get_detection_settings()
 
     with open(filename) as file:
         data = json.loads(file.read())
+        click.echo(f"Event ID: {data['event_id']}")
 
-        detector = NPlusOneDBSpanDetectorExtended(settings, data)
+        detectors = [cls(settings, data) for cls in detector_classes]
 
-        run_detector_on_data(detector, data)
+        for detector in detectors:
+            click.echo(f"Detecting using {detector.__class__.__name__}")
+            performance_detection.run_detector_on_data(detector, data)
 
-        if len(detector.stored_problems) == 0:
-            click.echo("No problems detected")
+            if len(detector.stored_problems) == 0:
+                click.echo("No problems detected")
+            else:
+                click.echo(f"Found {len(detector.stored_problems)} problems")
 
-        for problem in detector.stored_problems.values():
-            click.echo(problem.to_dict())
+            for problem in detector.stored_problems.values():
+                try:
+                    click.echo(problem.to_dict())
+                except AttributeError:
+                    click.echo(problem)
+
+            click.echo("\n")
