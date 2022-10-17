@@ -22,6 +22,7 @@ from sentry.api.serializers.rest_framework.list import EmptyListField, ListField
 from sentry.api.serializers.rest_framework.origin import OriginField
 from sentry.constants import RESERVED_PROJECT_SLUGS
 from sentry.datascrubbing import validate_pii_config_update
+from sentry.dynamic_sampling.utils import DynamicSamplingV2Builder
 from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig
 from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
 from sentry.ingest.inbound_filters import FilterTypes
@@ -136,9 +137,12 @@ class DynamicSamplingSerializer(serializers.Serializer):
                 # valid id according to relay's rule validation which states the a rule id is an unsigned integer.
                 rid = rule.get("id", -1)
                 original_rule = original_rules_dict.get(rid)
-                # ToDo(ahmed): Temporarily allowing for 0 to be the unassigned rule id for backwards compatibility,
-                #  and will remove that once the UI changes are deployed.
-                if rid in {0, -1} or original_rule is None:
+
+                # When the rule has id = 0, it means that it is a uniform rule and we shouldn't assign to it a next id.
+                if rid == 0:
+                    continue
+
+                if rid == -1 or original_rule is None:
                     # a new or unknown rule give it a new id
                     rule["id"] = next_id
                     next_id += 1
@@ -152,7 +156,7 @@ class DynamicSamplingSerializer(serializers.Serializer):
         return raw_dynamic_sampling
 
     @staticmethod
-    def _is_uniform_sampling_rule(rule):
+    def is_uniform_sampling_rule(rule):
         # A uniform sampling rule must be an 'and' with no rules. An 'or' with no rules will not
         # match anything.
         assert rule["condition"]["op"] == "and"
@@ -172,11 +176,11 @@ class DynamicSamplingSerializer(serializers.Serializer):
         # Guards against placing uniform sampling rule not in last position or adding multiple
         # uniform sampling rules
         for rule in rules[:-1]:
-            if self._is_uniform_sampling_rule(rule):
+            if self.is_uniform_sampling_rule(rule):
                 raise serializers.ValidationError("Uniform rule must be in the last position only")
 
         # Ensures last rule in rules is always a uniform sampling rule
-        if not self._is_uniform_sampling_rule(uniform_rule):
+        if not self.is_uniform_sampling_rule(uniform_rule):
             raise serializers.ValidationError(
                 "Last rule is reserved for uniform rule which must have no conditions"
             )
@@ -490,6 +494,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         :pparam string project_slug: the slug of the project to retrieve.
         :auth: required
         """
+
         data = serialize(project, request.user, DetailedProjectSerializer())
 
         # TODO: should switch to expand and move logic into the serializer
@@ -500,6 +505,55 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         expand = request.GET.getlist("expand", [])
         if "hasAlertIntegration" in expand:
             data["hasAlertIntegrationInstalled"] = has_alert_integration(project)
+
+        is_am2_basic = features.has(
+            "organizations:dynamic-sampling-basic", project.organization, actor=request.user
+        )
+        # is_dynamic_sampling_old = features.has(
+        #     "organizations:server-side-sampling", project.organization, actor=request.user
+        # )
+
+        # We check if we have uniform/conditional rules stored in the options because depending on the feature flags
+        # we expect or not to have data inside.
+        if is_am2_basic:
+            if data["dynamicSampling"] is not None:
+                # We should check if there is a uniform DS rule and if there is delete any uniform rule in project
+                # options, return uniform rule
+                assert len(data["dynamicSampling"]["rules"]) >= 1
+                has_uniform_rule = DynamicSamplingSerializer.is_uniform_sampling_rule(
+                    data["dynamicSampling"]["rules"][-1]
+                )
+
+                ds_config = data["dynamicSampling"]
+                if has_uniform_rule:
+                    ds_config = {
+                        # We take all rules except the last one, which must always be a uniform rule.
+                        "rules": data["dynamicSampling"]["rules"][:-1],
+                        "next_id": data["dynamicSampling"]["next_id"],
+                    }
+                    if len(ds_config["rules"]) == 0:
+                        project.delete_option("sentry:dynamic_sampling")
+                    else:
+                        project.update_option("sentry:dynamic_sampling", ds_config)
+
+                ds_v2_rules = list(ds_config["rules"]) + [
+                    DynamicSamplingV2Builder.generate_uniform_rule(project)
+                ]
+                next_id = ds_config["next_id"]
+            else:
+                ds_v2_rules = [DynamicSamplingV2Builder.generate_uniform_rule(project)]
+                next_id = None
+
+            # Handles the case where the project started on the AM2 plan
+            ds_v2_config = {"rules": ds_v2_rules}
+            if next_id is not None:
+                ds_v2_config.update({"next_id": next_id})
+
+            ds_serializer = DynamicSamplingSerializer(
+                data=ds_v2_config, context={"project": project, "request": request}
+            )
+            ds_serializer.is_valid(raise_exception=True)
+            data["dynamicSampling"] = ds_serializer.data
 
         return Response(data)
 
@@ -524,7 +578,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         :param int digestsMaxDelay:
         :auth: required
         """
-
+        # ToDo(ahmed): This will have old data which should not have DS data here for v2
         old_data = serialize(project, request.user, DetailedProjectSerializer())
 
         has_project_write = request.access and request.access.has_scope("project:write")
@@ -721,6 +775,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         if "dynamicSampling" in result:
             fixed_rules = result["dynamicSampling"]
+            # ToDo(ahmed): Pop the uniform sampling rule from here before storing it
             if project.update_option("sentry:dynamic_sampling", fixed_rules):
                 changed_proj_settings["sentry:dynamic_sampling"] = result["dynamicSampling"]
 
@@ -846,6 +901,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 )
                 if len(changed_proj_settings) == 1:
                     data = serialize(project, request.user, DetailedProjectSerializer())
+                    # ToDo(ahmed): Check for uniform in v2 here
                     return Response(data)
 
         self.create_audit_entry(
@@ -857,6 +913,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         )
 
         data = serialize(project, request.user, DetailedProjectSerializer())
+        # ToDo(ahmed): Check for uniform in v2 here
+        data["dynamicSampling"] = data.get("dynamicSampling")
         return Response(data)
 
     @sudo_required

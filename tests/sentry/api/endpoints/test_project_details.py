@@ -1805,3 +1805,97 @@ class TestDynamicSamplingSerializers(BaseTestCase):
         )
         assert serializer.is_valid()
         assert data == serializer.validated_data
+
+
+class TestProjectDetailsDynamicSampling(APITestCase):
+    endpoint = "sentry-api-0-project-details"
+
+    def setUp(self):
+        ...
+
+    def test_dynamic_sampling_v1_when_no_previous_rules(self):
+        ...
+
+    @mock.patch("sentry.dynamic_sampling.utils.quotas.get_blended_sample_rate")
+    def test_dynamic_sampling_v2_when_no_previous_rules(self, mocked_get_blended_sample_rate):
+        """
+        basic feature flag is enabled, and this in turn returns DS uniform rule even though no rules exist in the
+        database
+        """
+        mocked_get_blended_sample_rate.return_value = 0.8
+
+        dynamic_sampling_rules = self.project.get_option("sentry:dynamic_sampling")
+        assert dynamic_sampling_rules is None
+        self.login_as(user=self.user)
+        with Feature({"organizations:dynamic-sampling-basic": True}):
+            response = self.get_success_response(
+                self.organization.slug, self.project.slug, method="get"
+            )
+            assert response.data["dynamicSampling"] == {
+                "rules": [
+                    {
+                        "sampleRate": 0.8,
+                        "type": "trace",
+                        "active": True,
+                        "condition": {
+                            "op": "and",
+                            "inner": [],
+                        },
+                        "id": 0,
+                    }
+                ],
+                "next_id": 1,
+            }
+
+    @mock.patch("sentry.dynamic_sampling.utils.quotas.get_blended_sample_rate")
+    def test_dynamic_sampling_v2_when_previous_uniform_rule(self, mocked_blended_sample_rate):
+        mocked_blended_sample_rate.return_value = 0.5
+        # Create a uniform rule with old v1 Dynamic Sampling
+        project = self.project  # force creation
+        old_dynamic_sampling_data = {
+            "rules": [
+                {
+                    "sampleRate": 0.8,
+                    "type": "trace",
+                    "active": True,
+                    "condition": {
+                        "op": "and",
+                        "inner": [],
+                    },
+                    "id": 1,
+                },
+            ],
+            "next_id": 2,
+        }
+        project.update_option("sentry:dynamic_sampling", old_dynamic_sampling_data)
+        self.login_as(user=self.user)
+
+        response = self.get_success_response(project.organization.slug, project.slug)
+        assert response.data["dynamicSampling"] == old_dynamic_sampling_data
+
+        # Do a GET request with dynamic sampling basic enabled.
+        self.login_as(user=self.user)
+        with Feature({"organizations:dynamic-sampling-basic": True}):
+            response = self.get_success_response(
+                self.organization.slug, self.project.slug, method="get"
+            )
+            assert response.data["dynamicSampling"] == {
+                "rules": [
+                    {
+                        "sampleRate": 0.5,
+                        "type": "trace",
+                        "active": True,
+                        "condition": {
+                            "op": "and",
+                            "inner": [],
+                        },
+                        "id": 0,
+                    }
+                ],
+                "next_id": 1,
+            }
+            dynamic_sampling_rules = self.project.get_option("sentry:dynamic_sampling")
+            assert dynamic_sampling_rules is None
+
+    def test_simple_where_blended_floor_rate_is_none(self):
+        ...
