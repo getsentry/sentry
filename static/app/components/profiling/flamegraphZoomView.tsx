@@ -190,7 +190,8 @@ function FlamegraphZoomView({
       if (evt.target === flamegraphCanvasRef) {
         const nextSelected = handleFlamegraphKeyboardNavigation(
           evt,
-          selectedFramesRef.current?.[0]
+          selectedFramesRef.current?.[0],
+          flamegraph.inverted
         );
         if (nextSelected) {
           selectedFramesRef.current = [nextSelected];
@@ -212,6 +213,7 @@ function FlamegraphZoomView({
     flamegraphView,
     scheduler,
     flamegraphCanvasRef,
+    flamegraph.inverted,
   ]);
 
   const previousInteraction = usePrevious(lastInteraction);
@@ -824,12 +826,22 @@ const keyDirectionMap: Record<string, Direction> = {
 
 function handleFlamegraphKeyboardNavigation(
   evt: KeyboardEvent,
-  currentFrame: FlamegraphFrame | undefined
+  currentFrame: FlamegraphFrame | undefined,
+  inverted: boolean = false
 ) {
   if (!currentFrame) {
     return null;
   }
-  const key = evt.shiftKey ? `Shift+${evt.key}` : evt.key;
+
+  const keyboardKey = !inverted
+    ? evt.key
+    : evt.key === 'ArrowUp'
+    ? 'ArrowDown'
+    : evt.key === 'ArrowDown'
+    ? 'ArrowUp'
+    : evt.key;
+
+  const key = evt.shiftKey ? `Shift+${keyboardKey}` : keyboardKey;
   const direction = keyDirectionMap[key];
   if (!direction) {
     return currentFrame;

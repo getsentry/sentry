@@ -26,12 +26,18 @@ export function selectNearestFrame(n: FlamegraphFrame, dir: Direction) {
   let parent = n.parent;
   let node = n;
 
-  if (dir === 'up' && parent) {
+  if (dir === 'up') {
+    if (!parent) {
+      return node;
+    }
     return parent;
   }
 
   const child = n.children?.[0];
-  if (dir === 'down' && child) {
+  if (dir === 'down') {
+    if (!child) {
+      return node;
+    }
     return child;
   }
 
