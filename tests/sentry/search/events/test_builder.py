@@ -1293,13 +1293,13 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         assert get_granularity(start, end) == 86400, "3d at boundary"
 
         # Near 3d, but 1 hour before the boundary for end
-        start = datetime.datetime(2015, 5, 1, 0, 30, 0, tzinfo=timezone.utc)
-        end = datetime.datetime(2015, 5, 3, 23, 29, 0, tzinfo=timezone.utc)
+        start = datetime.datetime(2015, 5, 1, 0, 13, 0, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 3, 23, 45, 0, tzinfo=timezone.utc)
         assert get_granularity(start, end) == 3600, "near 3d, but 1 hour before boundary for end"
 
         # Near 3d, but 1 hour after the boundary for start
-        start = datetime.datetime(2015, 5, 1, 1, 30, 0, tzinfo=timezone.utc)
-        end = datetime.datetime(2015, 5, 4, 0, 30, 0, tzinfo=timezone.utc)
+        start = datetime.datetime(2015, 5, 1, 1, 46, 0, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 4, 0, 46, 0, tzinfo=timezone.utc)
         assert get_granularity(start, end) == 3600, "near 3d, but 1 hour after boundary for start"
 
         # exactly 12 hours

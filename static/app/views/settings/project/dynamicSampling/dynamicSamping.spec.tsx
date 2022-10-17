@@ -274,7 +274,7 @@ describe('Dynamic Sampling', function () {
           dynamicSampling: {
             rules: [
               {
-                sampleRate: 1,
+                sampleRate: 0.5,
                 type: 'trace',
                 active: false,
                 condition: {
@@ -447,6 +447,42 @@ describe('Dynamic Sampling', function () {
     expect(
       await screen.findByText(
         'To enable the rule, the recommended sdk version have to be updated'
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('does not let user add conditional rules, if the sample rate of the uniform rule is 100%', async function () {
+    const {organization, router, project} = initializeOrg({
+      ...initializeOrg(),
+      organization: {
+        ...initializeOrg().organization,
+        features,
+      },
+      projects: [
+        TestStubs.Project({
+          dynamicSampling: {
+            rules: [{...TestStubs.DynamicSamplingConfig().uniformRule, sampleRate: 1}],
+          },
+        }),
+      ],
+    });
+
+    renderMockRequests({
+      organizationSlug: organization.slug,
+      projectSlug: project.slug,
+    });
+
+    render(
+      <TestComponent router={router} organization={organization} project={project} />
+    );
+
+    expect(await screen.findByRole('button', {name: 'Add Rule'})).toBeDisabled();
+
+    userEvent.hover(screen.getByText('Add Rule'));
+
+    expect(
+      await screen.findByText(
+        /Conditional rules are only available for projects with uniform rules with sample rate below 100%/
       )
     ).toBeInTheDocument();
   });
