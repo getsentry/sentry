@@ -6,7 +6,6 @@ import random
 import time
 from collections import deque
 from concurrent.futures import Future
-from io import BytesIO
 from typing import Any, Callable, Deque, Mapping, MutableMapping, NamedTuple, Optional, cast
 
 import msgpack
@@ -17,14 +16,13 @@ from arroyo.processing.strategies.abstract import ProcessingStrategy
 from arroyo.types import Message, Position
 from django.conf import settings
 
-from sentry.models import File
-from sentry.replays.cache import RecordingSegmentPart, RecordingSegmentParts
+from sentry.replays.cache import RecordingSegmentPart
 from sentry.replays.consumers.recording.types import (
     RecordingSegmentChunkMessage,
     RecordingSegmentHeaders,
     RecordingSegmentMessage,
 )
-from sentry.replays.models import ReplayRecordingSegment
+from sentry.replays.usecases.ingest import ingest_recording_segment
 from sentry.utils import json, metrics
 from sentry.utils.sdk import configure_scope
 
@@ -88,67 +86,16 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
     def _store(
         self,
         message_dict: RecordingSegmentMessage,
-        parts: RecordingSegmentParts,
     ) -> None:
         with sentry_sdk.start_transaction(
             op="replays.consumer", name="replays.consumer.flush_batch"
         ):
             sentry_sdk.set_extra("replay_id", message_dict["replay_id"])
-
-            try:
-                recording_segment_parts = list(parts)
-            except ValueError:
-                logger.exception("Missing recording-segment.")
-                return None
-
-            try:
-                headers, parsed_first_part = self._process_headers(recording_segment_parts[0])
-            except MissingRecordingSegmentHeaders:
-                logger.warning(f"missing header on {message_dict['replay_id']}")
-                return
-
-            # Replace the first part with itself but the headers removed.
-            recording_segment_parts[0] = parsed_first_part
-
-            # The parts were gzipped by the SDK and disassembled by Relay. In this step we can
-            # blindly merge the bytes objects into a single bytes object.
-            recording_segment = b"".join(recording_segment_parts)
-
-            # create a File for our recording segment.
-            recording_segment_file_name = f"rr:{message_dict['replay_id']}:{headers['segment_id']}"
-            file = File.objects.create(
-                name=recording_segment_file_name,
-                type="replay.recording",
-            )
-            file.putfile(
-                BytesIO(recording_segment),
-                blob_size=settings.SENTRY_ATTACHMENT_BLOB_SIZE,
-            )
-            # associate this file with an indexable replay_id via ReplayRecordingSegment
-            ReplayRecordingSegment.objects.create(
-                replay_id=message_dict["replay_id"],
-                project_id=message_dict["project_id"],
-                segment_id=headers["segment_id"],
-                file_id=file.id,
-            )
-            # delete the recording segment from cache after we've stored it
-            parts.drop()
-
-            # TODO: how to handle failures in the above calls. what should happen?
-            # also: handling same message twice?
+            ingest_recording_segment(message_dict)
 
     def _process_recording(
         self, message_dict: RecordingSegmentMessage, message: Message[KafkaPayload]
     ) -> None:
-        cache_prefix = replay_recording_segment_cache_id(
-            project_id=message_dict["project_id"],
-            replay_id=message_dict["replay_id"],
-            segment_id=message_dict["replay_recording"]["id"],
-        )
-        parts = RecordingSegmentParts(
-            prefix=cache_prefix, num_parts=message_dict["replay_recording"]["chunks"]
-        )
-
         # in a thread, upload the recording segment and delete the cached version
         self.__futures.append(
             ReplayRecordingMessageFuture(
@@ -156,7 +103,6 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
                 self.__threadpool.submit(
                     self._store,
                     message_dict=message_dict,
-                    parts=parts,
                 ),
             )
         )

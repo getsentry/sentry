@@ -6,6 +6,7 @@ from django.conf import settings
 
 from sentry.models import File
 from sentry.replays.cache import RecordingSegmentParts
+from sentry.replays.models import ReplayRecordingSegment
 from sentry.utils import json
 
 
@@ -13,7 +14,7 @@ class MissingRecordingSegmentHeaders(ValueError):
     pass
 
 
-class ReplayRecordingSegment(TypedDict):
+class ReplayRecordingChunkSegment(TypedDict):
     id: str
     chunks: int
 
@@ -21,7 +22,7 @@ class ReplayRecordingSegment(TypedDict):
 class RecordingSegmentMessage(TypedDict):
     replay_id: str
     project_id: int
-    replay_recording: ReplayRecordingSegment
+    replay_recording: ReplayRecordingChunkSegment
 
 
 def ingest_recording_segment(message_dict: RecordingSegmentMessage) -> None:
@@ -36,9 +37,10 @@ def ingest_recording_segment(message_dict: RecordingSegmentMessage) -> None:
         prefix=cache_prefix, num_parts=message_dict["replay_recording"]["chunks"]
     )
 
-    recording_segment_parts = parts.get_all()
-    if not all(recording_segment_parts):
-        logger.error(f"Missing recording-segments for: {parts.prefix}")
+    try:
+        recording_segment_parts = list(parts)
+    except ValueError:
+        logger.exception("Missing recording-segment.")
         return None
 
     try:
@@ -54,7 +56,7 @@ def ingest_recording_segment(message_dict: RecordingSegmentMessage) -> None:
     # blindly merge the bytes objects into a single bytes object.
     recording_segment = b"".join(recording_segment_parts)
 
-    # Upload the recording segment to the blob store.
+    # Upload the recording segment to blob storage.
     recording_segment_file_name = make_recording_segment_filename(
         message_dict["replay_id"], headers["segment_id"]
     )
