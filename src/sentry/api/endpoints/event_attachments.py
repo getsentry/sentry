@@ -1,4 +1,3 @@
-from django.db.models import Q
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -7,7 +6,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.models import EventAttachment
+from sentry.models import EventAttachment, event_attachment_screenshot_filter
 from sentry.search.utils import tokenize_query
 
 
@@ -46,9 +45,7 @@ class EventAttachmentsEndpoint(ProjectEndpoint):
                 elif key == "is":
                     value = " ".join(value)
                     if value in ["screenshot"]:
-                        queryset = queryset.filter(
-                            Q(name="screenshot.jpg") | Q(name="screenshot.png")
-                        )
+                        queryset = event_attachment_screenshot_filter(queryset)
                 else:
                     queryset = queryset.none()
 

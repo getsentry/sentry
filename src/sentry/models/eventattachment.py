@@ -20,6 +20,16 @@ def get_crashreport_key(group_id):
     return f"cr:{group_id}"
 
 
+def event_attachment_screenshot_filter(queryset):
+    # Intentionally a hardcoded list instead of a regex since current usecases do not have more 3 screenshots
+    return queryset.filter(
+        name__in=[
+            *[f"screenshot{f'-{i}' if i > 0 else ''}.jpg" for i in range(4)],
+            *[f"screenshot{f'-{i}' if i > 0 else ''}.png" for i in range(4)],
+        ]
+    )
+
+
 @region_silo_only_model
 class EventAttachment(Model):
     __include_in_export__ = False
