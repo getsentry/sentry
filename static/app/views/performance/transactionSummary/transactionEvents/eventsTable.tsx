@@ -90,6 +90,7 @@ type Props = {
   excludedTags?: string[];
   issueId?: string;
   projectId?: string;
+  referrer?: string;
   totalEventCount?: string;
 };
 
@@ -315,7 +316,8 @@ class EventsTable extends Component<Props, State> {
   };
 
   render() {
-    const {eventView, organization, location, setError, totalEventCount} = this.props;
+    const {eventView, organization, location, setError, totalEventCount, referrer} =
+      this.props;
 
     const totalTransactionsView = eventView.clone();
     totalTransactionsView.sorts = [];
@@ -411,7 +413,7 @@ class EventsTable extends Component<Props, State> {
           orgSlug={organization.slug}
           location={location}
           setError={error => setError(error?.message)}
-          referrer="api.performance.transaction-events"
+          referrer={referrer || 'api.performance.transaction-events'}
           useEvents
         >
           {({pageLinks, isLoading: isDiscoverQueryLoading, tableData}) => {
