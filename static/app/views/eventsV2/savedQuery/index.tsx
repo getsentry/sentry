@@ -530,7 +530,6 @@ const SaveAsButton = styled(Button)`
 `;
 
 const SaveAsInput = styled(InputControl)`
-  height: 40px;
   margin-bottom: ${space(1)};
 `;
 
