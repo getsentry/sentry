@@ -18,12 +18,22 @@ from sentry.replays.serializers import ReplaySerializer
 class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
     private = True
 
+    def get_replay_filter_params(self, request, organization):
+        filter_params = self.get_filter_params(request, organization)
+
+        has_global_views = features.has(
+            "organizations:global-views", organization, actor=request.user
+        )
+        if not has_global_views and len(filter_params.get("project_id", [])) > 1:
+            raise ParseError(detail="You cannot view events from multiple projects.")
+
+        return filter_params
+
     def get(self, request: Request, organization: Organization) -> Response:
         if not features.has("organizations:session-replay", organization, actor=request.user):
             return Response(status=404)
-
         try:
-            filter_params = self.get_filter_params(request, organization)
+            filter_params = self.get_replay_filter_params(request, organization)
         except NoProjects:
             return Response({"data": []}, status=200)
 
