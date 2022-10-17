@@ -31,7 +31,7 @@ describe('RadioGroup', function () {
     );
     expect(container).toSnapshot();
 
-    expect(screen.getByRole('radio', {name: 'Select Choice One'})).toBeDisabled();
+    expect(screen.getByRole('radio', {name: 'Choice One'})).toBeDisabled();
   });
 
   it('renders disabled choice', async function () {
@@ -50,10 +50,10 @@ describe('RadioGroup', function () {
 
     expect(container).toSnapshot();
 
-    expect(screen.getByRole('radio', {name: 'Select Choice One'})).toBeEnabled();
-    expect(screen.getByRole('radio', {name: 'Select Choice Two'})).toBeDisabled();
+    expect(screen.getByRole('radio', {name: 'Choice One'})).toBeEnabled();
+    expect(screen.getByRole('radio', {name: 'Choice Two'})).toBeDisabled();
 
-    userEvent.hover(screen.getByRole('radio', {name: 'Select Choice Two'}));
+    userEvent.hover(screen.getByRole('radio', {name: 'Choice Two'}));
     expect(
       await screen.findByText('Reason why choice two is disabled')
     ).toBeInTheDocument();
@@ -91,7 +91,7 @@ describe('RadioGroup', function () {
       />
     );
 
-    userEvent.click(screen.getByRole('radio', {name: 'Select Choice Three'}));
+    userEvent.click(screen.getByRole('radio', {name: 'Choice Three'}));
     expect(mock).toHaveBeenCalledTimes(1);
   });
 });

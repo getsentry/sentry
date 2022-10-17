@@ -202,9 +202,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             title_input = self.browser.element(WIDGET_TITLE_FIELD)
             title_input.clear()
             title_input.send_keys(widget_title)
-            self.browser.element(
-                '[aria-label="Select Issues (States, Assignment, Time, etc.)"]'
-            ).click()
+            self.browser.element('[aria-label="Issues (States, Assignment, Time, etc.)"]').click()
             button = self.browser.element('[aria-label="Add Widget"]')
             button.click()
 
