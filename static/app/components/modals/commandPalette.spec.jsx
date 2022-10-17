@@ -88,6 +88,10 @@ describe('Command Palette Modal', function () {
     openCommandPalette({params: {orgId: 'org-slug'}});
     await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument());
 
+    // NOTE: The `debounce` in `ApiSource` surprisingly only fires for the
+    // first two typed characters of a sequence in most cases. This test only
+    // types two characters to match in-app behaviour even though it's unclear
+    // why it works that way
     userEvent.type(screen.getByRole('textbox'), 'bi');
 
     expect(orgsMock).toHaveBeenLastCalledWith(
