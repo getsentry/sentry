@@ -1,11 +1,16 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {MOBILE_TAGS, TagFacets} from 'sentry/components/group/tagFacets';
+import OrganizationStore from 'sentry/stores/organizationStore';
 
+const {organization} = initializeOrg();
 describe('TagDistributionMeter', function () {
   let tagsMock;
 
   beforeEach(function () {
+    OrganizationStore.init();
+    OrganizationStore.onUpdate(organization, {replace: true});
     tagsMock = MockApiClient.addMockResponse({
       url: '/issues/1/tags/',
       body: {
@@ -46,6 +51,14 @@ describe('TagDistributionMeter', function () {
               name: 'iPhone12',
               count: 13,
             },
+            {
+              name: 'iPhone11',
+              count: 15,
+            },
+            {
+              name: 'iPhone10',
+              count: 18,
+            },
           ],
         },
       },
@@ -57,7 +70,9 @@ describe('TagDistributionMeter', function () {
       url: '/issues/1/tags/',
       body: {},
     });
-    render(<TagFacets environments={[]} groupId="1" tagKeys={MOBILE_TAGS} />);
+    render(<TagFacets environments={[]} groupId="1" tagKeys={MOBILE_TAGS} />, {
+      organization,
+    });
     await waitFor(() => {
       expect(tagsMock).toHaveBeenCalled();
     });
@@ -67,7 +82,9 @@ describe('TagDistributionMeter', function () {
   });
 
   it('displays os, device, and release tags', async function () {
-    render(<TagFacets environments={[]} groupId="1" tagKeys={MOBILE_TAGS} />);
+    render(<TagFacets environments={[]} groupId="1" tagKeys={MOBILE_TAGS} />, {
+      organization,
+    });
     await waitFor(() => {
       expect(tagsMock).toHaveBeenCalled();
     });
@@ -80,15 +97,44 @@ describe('TagDistributionMeter', function () {
     expect(screen.getByText('iOS 16.0')).toBeInTheDocument();
 
     userEvent.click(screen.getByText('device'));
-    expect(screen.getByText('23%')).toBeInTheDocument();
+    expect(screen.getByText('11%')).toBeInTheDocument();
     expect(screen.getByText('iPhone15')).toBeInTheDocument();
-    expect(screen.getByText('33%')).toBeInTheDocument();
+    expect(screen.getByText('16%')).toBeInTheDocument();
     expect(screen.getByText('Android Phone')).toBeInTheDocument();
-    expect(screen.getByText('43%')).toBeInTheDocument();
+    expect(screen.getByText('21%')).toBeInTheDocument();
     expect(screen.getByText('iPhone12')).toBeInTheDocument();
+    expect(screen.getByText('24%')).toBeInTheDocument();
+    expect(screen.getByText('iPhone11')).toBeInTheDocument();
+    expect(screen.queryByText('29%')).not.toBeInTheDocument();
+    expect(screen.queryByText('iPhone10')).not.toBeInTheDocument();
 
     userEvent.click(screen.getByText('release'));
     expect(screen.getByText('100%')).toBeInTheDocument();
     expect(screen.getByText('org.mozilla.ios.Fennec@106.0')).toBeInTheDocument();
+  });
+
+  it('shows more device tag values when Show more is clicked', async function () {
+    render(<TagFacets environments={[]} groupId="1" tagKeys={MOBILE_TAGS} />, {
+      organization,
+    });
+    await waitFor(() => {
+      expect(tagsMock).toHaveBeenCalled();
+    });
+
+    userEvent.click(screen.getByText('device'));
+    expect(screen.getByText('11%')).toBeInTheDocument();
+    expect(screen.getByText('iPhone15')).toBeInTheDocument();
+    expect(screen.getByText('16%')).toBeInTheDocument();
+    expect(screen.getByText('Android Phone')).toBeInTheDocument();
+    expect(screen.getByText('21%')).toBeInTheDocument();
+    expect(screen.getByText('iPhone12')).toBeInTheDocument();
+    expect(screen.getByText('24%')).toBeInTheDocument();
+    expect(screen.getByText('iPhone11')).toBeInTheDocument();
+    expect(screen.queryByText('29%')).not.toBeInTheDocument();
+    expect(screen.queryByText('iPhone10')).not.toBeInTheDocument();
+
+    userEvent.click(screen.getByText('Show more'));
+    expect(screen.getByText('29%')).toBeInTheDocument();
+    expect(screen.getByText('iPhone10')).toBeInTheDocument();
   });
 });
