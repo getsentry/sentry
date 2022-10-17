@@ -509,6 +509,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         is_am2_basic = features.has(
             "organizations:dynamic-sampling-basic", project.organization, actor=request.user
         )
+        is_am2_advanced = features.has(
+            "organizations:dynamic-sampling-advanced", project.organization, actor=request.user
+        )
         # is_dynamic_sampling_old = features.has(
         #     "organizations:server-side-sampling", project.organization, actor=request.user
         # )
@@ -525,29 +528,30 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 )
 
                 ds_config = data["dynamicSampling"]
+                # We check if the uniform rule is still saved into the options, which is the case for EA users. In
+                # this case we want to remove this rule because the new floored uniform is not stored into the options.
                 if has_uniform_rule:
                     ds_config = {
                         # We take all rules except the last one, which must always be a uniform rule.
                         "rules": data["dynamicSampling"]["rules"][:-1],
                         "next_id": data["dynamicSampling"]["next_id"],
                     }
-                    if len(ds_config["rules"]) == 0:
-                        project.delete_option("sentry:dynamic_sampling")
-                    else:
-                        project.update_option("sentry:dynamic_sampling", ds_config)
 
-                ds_v2_rules = list(ds_config["rules"]) + [
-                    DynamicSamplingV2Builder.generate_uniform_rule(project)
-                ]
-                next_id = ds_config["next_id"]
+                ds_v2_config = {"next_id": ds_config["next_id"]}
+                if len(ds_config["rules"]) > 0 and is_am2_advanced:
+                    # ToDo(ahmed): Make sure that the rules are above the floor else disable them
+                    project.update_option("sentry:dynamic_sampling", ds_config)
+                    ds_v2_config["rules"] = list(ds_config["rules"]) + [
+                        DynamicSamplingV2Builder.generate_uniform_rule(project)
+                    ]
+                else:
+                    project.delete_option("sentry:dynamic_sampling")
+                    ds_v2_config["rules"] = [
+                        DynamicSamplingV2Builder.generate_uniform_rule(project)
+                    ]
             else:
-                ds_v2_rules = [DynamicSamplingV2Builder.generate_uniform_rule(project)]
-                next_id = None
-
-            # Handles the case where the project started on the AM2 plan
-            ds_v2_config = {"rules": ds_v2_rules}
-            if next_id is not None:
-                ds_v2_config.update({"next_id": next_id})
+                # If no conditional rules are stored, we just inject the floored uniform sampling rule.
+                ds_v2_config = {"rules": [DynamicSamplingV2Builder.generate_uniform_rule(project)]}
 
             ds_serializer = DynamicSamplingSerializer(
                 data=ds_v2_config, context={"project": project, "request": request}

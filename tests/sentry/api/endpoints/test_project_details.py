@@ -1899,3 +1899,180 @@ class TestProjectDetailsDynamicSampling(APITestCase):
 
     def test_simple_where_blended_floor_rate_is_none(self):
         ...
+
+    @mock.patch("sentry.dynamic_sampling.utils.quotas.get_blended_sample_rate")
+    def test_ds_v2_valid_conditional_rule_and_uniform_rule_created_previously(
+        self, mocked_blended_sample_rate
+    ):
+        """
+        Test behaviour when you have created a uniform rule and valid conditional rule (meaning it is above the floor
+        blended rate when you were on v1 and now you are on v2 advanced
+        """
+        mocked_blended_sample_rate.return_value = 0.25
+        # Create a uniform rule with old v1 Dynamic Sampling
+        project = self.project
+
+        old_dynamic_sampling_data = {
+            "rules": [
+                {
+                    "sampleRate": 0.7,
+                    "type": "trace",
+                    "active": True,
+                    "condition": {
+                        "op": "and",
+                        "inner": [
+                            {"op": "eq", "name": "field1", "value": ["val"]},
+                            {"op": "glob", "name": "field1", "value": ["val"]},
+                        ],
+                    },
+                    "id": 1,
+                },
+                {
+                    "sampleRate": 0.8,
+                    "type": "trace",
+                    "active": True,
+                    "condition": {
+                        "op": "and",
+                        "inner": [],
+                    },
+                    "id": 2,
+                },
+            ],
+            "next_id": 3,
+        }
+
+        project.update_option("sentry:dynamic_sampling", old_dynamic_sampling_data)
+        self.login_as(user=self.user)
+
+        response = self.get_success_response(project.organization.slug, project.slug)
+        assert response.data["dynamicSampling"] == old_dynamic_sampling_data
+
+        # Do a GET request with dynamic sampling basic enabled.
+        self.login_as(user=self.user)
+        with Feature(
+            {
+                "organizations:dynamic-sampling-basic": True,
+                "organizations:dynamic-sampling-advanced": True,
+            }
+        ):
+            response = self.get_success_response(
+                self.organization.slug, self.project.slug, method="get"
+            )
+            assert response.data["dynamicSampling"] == {
+                "rules": [
+                    {
+                        "sampleRate": 0.7,
+                        "type": "trace",
+                        "active": True,
+                        "condition": {
+                            "op": "and",
+                            "inner": [
+                                {"op": "eq", "name": "field1", "value": ["val"]},
+                                {"op": "glob", "name": "field1", "value": ["val"]},
+                            ],
+                        },
+                        "id": 1,
+                    },
+                    {
+                        "sampleRate": 0.25,
+                        "type": "trace",
+                        "active": True,
+                        "condition": {
+                            "op": "and",
+                            "inner": [],
+                        },
+                        "id": 0,
+                    },
+                ],
+                "next_id": 3,
+            }
+            dynamic_sampling_rules = self.project.get_option("sentry:dynamic_sampling")
+            assert dynamic_sampling_rules == {
+                "rules": [
+                    {
+                        "sampleRate": 0.7,
+                        "type": "trace",
+                        "active": True,
+                        "condition": {
+                            "op": "and",
+                            "inner": [
+                                {"op": "eq", "name": "field1", "value": ["val"]},
+                                {"op": "glob", "name": "field1", "value": ["val"]},
+                            ],
+                        },
+                        "id": 1,
+                    }
+                ],
+                "next_id": 3,
+            }
+
+    @mock.patch("sentry.dynamic_sampling.utils.quotas.get_blended_sample_rate")
+    def test_ds_v2_valid_conditional_rule_and_uniform_rule_created_previous_when_on_basic(
+        self, mocked_blended_sample_rate
+    ):
+        """
+        Test behaviour when you have created a uniform rule and valid conditional rule (meaning it is above the floor
+        blended rate when you were on v1 and now you are on v2 basic
+        """
+        mocked_blended_sample_rate.return_value = 0.25
+        # Create a uniform rule with old v1 Dynamic Sampling
+        project = self.project
+
+        old_dynamic_sampling_data = {
+            "rules": [
+                {
+                    "sampleRate": 0.7,
+                    "type": "trace",
+                    "active": True,
+                    "condition": {
+                        "op": "and",
+                        "inner": [
+                            {"op": "eq", "name": "field1", "value": ["val"]},
+                            {"op": "glob", "name": "field1", "value": ["val"]},
+                        ],
+                    },
+                    "id": 1,
+                },
+                {
+                    "sampleRate": 0.8,
+                    "type": "trace",
+                    "active": True,
+                    "condition": {
+                        "op": "and",
+                        "inner": [],
+                    },
+                    "id": 2,
+                },
+            ],
+            "next_id": 3,
+        }
+
+        project.update_option("sentry:dynamic_sampling", old_dynamic_sampling_data)
+        self.login_as(user=self.user)
+
+        response = self.get_success_response(project.organization.slug, project.slug)
+        assert response.data["dynamicSampling"] == old_dynamic_sampling_data
+
+        # Do a GET request with dynamic sampling basic enabled.
+        self.login_as(user=self.user)
+        with Feature({"organizations:dynamic-sampling-basic": True}):
+            response = self.get_success_response(
+                self.organization.slug, self.project.slug, method="get"
+            )
+            assert response.data["dynamicSampling"] == {
+                "rules": [
+                    {
+                        "sampleRate": 0.25,
+                        "type": "trace",
+                        "active": True,
+                        "condition": {
+                            "op": "and",
+                            "inner": [],
+                        },
+                        "id": 0,
+                    },
+                ],
+                "next_id": 1,
+            }
+            dynamic_sampling_rules = self.project.get_option("sentry:dynamic_sampling")
+            assert dynamic_sampling_rules is None
