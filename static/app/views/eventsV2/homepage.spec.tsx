@@ -157,7 +157,7 @@ describe('Discover > Homepage', () => {
     expect(screen.queryByText(/Last edited:/)).not.toBeInTheDocument();
   });
 
-  it('shows the Reset Discover Home button on initial load', async () => {
+  it('shows the Remove Default button on initial load', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/discover/homepage/',
       method: 'GET',
@@ -195,11 +195,11 @@ describe('Discover > Homepage', () => {
       {context: initialData.routerContext, organization: initialData.organization}
     );
 
-    expect(await screen.findByText('Reset Discover Home')).toBeInTheDocument();
-    expect(screen.queryByText('Use as Discover Home')).not.toBeInTheDocument();
+    expect(await screen.findByText('Remove Default')).toBeInTheDocument();
+    expect(screen.queryByText('Set As Default')).not.toBeInTheDocument();
   });
 
-  it('Disables the Use as Discover Home button when no saved homepage', () => {
+  it('Disables the Set As Default button when no saved homepage', () => {
     initialData = initializeOrg({
       ...initializeOrg(),
       organization,
@@ -230,7 +230,7 @@ describe('Discover > Homepage', () => {
     );
 
     expect(mockHomepage).toHaveBeenCalled();
-    expect(screen.getByRole('button', {name: /use as discover home/i})).toBeDisabled();
+    expect(screen.getByRole('button', {name: /set as default/i})).toBeDisabled();
   });
 
   it('follows absolute date selection', async () => {
