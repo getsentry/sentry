@@ -12,11 +12,21 @@ export interface Props {
   issueId: string;
   location: Location;
   organization: Organization;
+  projectId: string;
   excludedTags?: string[];
+  totalEventCount?: string;
 }
 
 const AllEventsTable = (props: Props) => {
-  const {location, organization, issueId, isPerfIssue, excludedTags} = props;
+  const {
+    location,
+    organization,
+    issueId,
+    isPerfIssue,
+    excludedTags,
+    projectId,
+    totalEventCount,
+  } = props;
   const [error, setError] = useState<string>('');
 
   const fields: string[] = [
@@ -35,10 +45,15 @@ const AllEventsTable = (props: Props) => {
 
   eventView.sorts = decodeSorts(location).filter(sort => fields.includes(sort.field));
 
+  if (!eventView.sorts.length) {
+    eventView.sorts = [{field: 'timestamp', kind: 'desc'}];
+  }
+
   const idQuery = isPerfIssue
     ? `performance.issue_ids:${issueId}`
     : `issue.id:${issueId}`;
   eventView.query = `${idQuery} ${props.location.query.query || ''}`;
+  eventView.statsPeriod = '90d';
 
   const columnTitles: Readonly<string[]> = [
     t('event id'),
@@ -49,6 +64,8 @@ const AllEventsTable = (props: Props) => {
     t('user'),
     ...(isPerfIssue ? [t('total duration')] : []),
     t('timestamp'),
+    t('attachments'),
+    t('minidump'),
   ];
 
   if (error) {
@@ -62,12 +79,15 @@ const AllEventsTable = (props: Props) => {
       issueId={issueId}
       organization={organization}
       excludedTags={excludedTags}
+      projectId={projectId}
+      totalEventCount={totalEventCount}
+      customColumns={['attachments', 'minidump']}
       setError={() => {
         (msg: string) => setError(msg);
       }}
       transactionName=""
-      disablePagination
       columnTitles={columnTitles.slice()}
+      referrer="api.issues.issue_events"
     />
   );
 };

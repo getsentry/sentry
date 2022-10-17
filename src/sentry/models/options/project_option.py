@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, Mapping, Sequence
 from django.db import models, transaction
 
 from sentry import projectoptions
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model, sane_repr
 from sentry.db.models.fields import PickledObjectField
 from sentry.db.models.manager import OptionManager, ValidateFunction, Value
 from sentry.tasks.relay import schedule_invalidate_project_config
@@ -143,7 +143,7 @@ class ProjectOptionManager(OptionManager["Project"]):
         self.reload_cache(instance.project_id, "projectoption.post_delete")
 
 
-@region_silo_model
+@region_silo_only_model
 class ProjectOption(Model):  # type: ignore
     """
     Project options apply only to an instance of a project.

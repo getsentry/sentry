@@ -1,11 +1,9 @@
 import {Component} from 'react';
 
 import Confirm from 'sentry/components/confirm';
-import InputField, {
-  InputFieldProps,
-  onEvent,
-} from 'sentry/components/forms/fields/inputField';
 import Switch from 'sentry/components/switchButton';
+
+import InputField, {InputFieldProps, OnEvent} from './inputField';
 
 export interface BooleanFieldProps extends InputFieldProps {
   confirm?: {
@@ -21,8 +19,8 @@ export default class BooleanField extends Component<BooleanFieldProps> {
 
   handleChange = (
     value: any,
-    onChange: onEvent,
-    onBlur: onEvent,
+    onChange: OnEvent,
+    onBlur: OnEvent,
     e: React.FormEvent<HTMLInputElement>
   ) => {
     // We need to toggle current value because Switch is not an input
@@ -46,8 +44,8 @@ export default class BooleanField extends Component<BooleanFieldProps> {
           ...props
         }: {
           disabled: boolean;
-          onBlur: onEvent;
-          onChange: onEvent;
+          onBlur: OnEvent;
+          onChange: OnEvent;
           type: string;
           value: any;
         }) => {
