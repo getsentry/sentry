@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {LocationDescriptorObject} from 'history';
+import isEqual from 'lodash/isEqual';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
 import {DateTimeObject, getSeriesApiInterval} from 'sentry/components/charts/utils';
@@ -58,15 +59,24 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
   static MAX_ROWS_USAGE_TABLE = 25;
 
   componentDidUpdate(prevProps: Props) {
-    const {dataDatetime: prevDateTime, dataCategory: prevDataCategory} = prevProps;
-    const {dataDatetime: currDateTime, dataCategory: currDataCategory} = this.props;
+    const {
+      dataDatetime: prevDateTime,
+      dataCategory: prevDataCategory,
+      projectIds: prevProjectIds,
+    } = prevProps;
+    const {
+      dataDatetime: currDateTime,
+      dataCategory: currDataCategory,
+      projectIds: currProjectIds,
+    } = this.props;
 
     if (
       prevDateTime.start !== currDateTime.start ||
       prevDateTime.end !== currDateTime.end ||
       prevDateTime.period !== currDateTime.period ||
       prevDateTime.utc !== currDateTime.utc ||
-      currDataCategory !== prevDataCategory
+      prevDataCategory !== currDataCategory ||
+      !isEqual(prevProjectIds, currProjectIds)
     ) {
       this.reloadData();
     }

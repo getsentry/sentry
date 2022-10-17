@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import isEqual from 'lodash/isEqual';
 import moment from 'moment';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
@@ -57,7 +58,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
       prevDateTime.end !== currDateTime.end ||
       prevDateTime.period !== currDateTime.period ||
       prevDateTime.utc !== currDateTime.utc ||
-      prevProjectIds !== currProjectIds
+      !isEqual(prevProjectIds, currProjectIds)
     ) {
       this.reloadData();
     }
