@@ -567,10 +567,8 @@ class GitHubIntegrationTest(IntegrationTestCase):
         installation = integration.get_installation(self.organization)
         with patch.object(sentry.integrations.github.client.GitHubClientMixin, "page_size", 1):
             # XXX: Does the installation already have the org stored?
-            trees = installation.get_client().get_trees_for_org(self.organization.slug)
-            import pprint
+            installation.get_client().get_trees_for_org(self.organization.slug)
 
-            pprint.pp(trees)
         # XXX: We need to search filenames in the stack trace
         # This check is specially useful since it will be available in the GCP logs
         assert (

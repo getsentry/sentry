@@ -103,11 +103,11 @@ class GitHubClientMixin(ApiClient):  # type: ignore
 
         return tree
 
-    def get_trees_for_org(self, org_name: str) -> Sequence[JSONData]:
+    def get_trees_for_org(self, org_name: str) -> JSONData:
         """
         This fetches tree representations of all repos for an org.
         """
-        trees = {}
+        trees: JSONData = {}
         repositories = self.get_repositories()
         # XXX: In order to speed up this function we will need to parallelize this
         # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
@@ -150,6 +150,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         https://docs.github.com/en/rest/guides/traversing-with-pagination
 
         Use response_key when the API stores the results within a key.
+        For instance, the repositories API returns the list of repos under the "repositories" key
         """
         with sentry_sdk.configure_scope() as scope:
             if scope.span is not None:
