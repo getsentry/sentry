@@ -66,7 +66,7 @@ describe('TagDistributionMeter', function () {
     expect(screen.queryByText('release')).not.toBeInTheDocument();
   });
 
-  it('displays os tags', async function () {
+  it('displays os, device, and release tags', async function () {
     render(<TagFacets environments={[]} groupId="1" tagKeys={MOBILE_TAGS} />);
     await waitFor(() => {
       expect(tagsMock).toHaveBeenCalled();
@@ -78,16 +78,7 @@ describe('TagDistributionMeter', function () {
     expect(screen.getByText('Android 12')).toBeInTheDocument();
     expect(screen.getByText('33%')).toBeInTheDocument();
     expect(screen.getByText('iOS 16.0')).toBeInTheDocument();
-  });
 
-  it('displays device tags', async function () {
-    render(<TagFacets environments={[]} groupId="1" tagKeys={MOBILE_TAGS} />);
-    await waitFor(() => {
-      expect(tagsMock).toHaveBeenCalled();
-    });
-    expect(screen.getByText('os')).toBeInTheDocument();
-    expect(screen.getByText('device')).toBeInTheDocument();
-    expect(screen.getByText('release')).toBeInTheDocument();
     userEvent.click(screen.getByText('device'));
     expect(screen.getByText('23%')).toBeInTheDocument();
     expect(screen.getByText('iPhone15')).toBeInTheDocument();
@@ -95,16 +86,7 @@ describe('TagDistributionMeter', function () {
     expect(screen.getByText('Android Phone')).toBeInTheDocument();
     expect(screen.getByText('43%')).toBeInTheDocument();
     expect(screen.getByText('iPhone12')).toBeInTheDocument();
-  });
 
-  it('displays release tags', async function () {
-    render(<TagFacets environments={[]} groupId="1" tagKeys={MOBILE_TAGS} />);
-    await waitFor(() => {
-      expect(tagsMock).toHaveBeenCalled();
-    });
-    expect(screen.getByText('os')).toBeInTheDocument();
-    expect(screen.getByText('device')).toBeInTheDocument();
-    expect(screen.getByText('release')).toBeInTheDocument();
     userEvent.click(screen.getByText('release'));
     expect(screen.getByText('100%')).toBeInTheDocument();
     expect(screen.getByText('org.mozilla.ios.Fennec@106.0')).toBeInTheDocument();

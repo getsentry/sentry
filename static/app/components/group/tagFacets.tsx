@@ -1,7 +1,6 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
-import pickBy from 'lodash/pickBy';
 
 import Placeholder from 'sentry/components/placeholder';
 import * as SidebarSection from 'sentry/components/sidebarSection';
@@ -34,10 +33,10 @@ export function TagFacets({groupId, tagKeys, environments}: Props) {
     const fetchData = async () => {
       // Fetch the top values for the current group's top tags.
       const data = await api.requestPromise(`/issues/${groupId}/tags/`, {
-        query: pickBy({
+        query: {
           key: tagKeys,
           environment: environments.map(env => env.name),
-        }),
+        },
       });
       setTagsData(keyBy(data, 'key'));
       setLoading(false);
@@ -49,43 +48,44 @@ export function TagFacets({groupId, tagKeys, environments}: Props) {
     });
   }, [api, environments, groupId, tagKeys]);
 
-  const availableTagKeys = tagKeys.filter(tagKey => tagsData[tagKey]!!);
-  const points = tagsData[selectedTag]?.topValues.map(({name, count}) => {
-    return {label: name, value: count};
-  });
+  const availableTagKeys = tagKeys.filter(tagKey => !!tagsData[tagKey]);
+  const points =
+    tagsData[selectedTag]?.topValues.map(({name, count}) => {
+      return {label: name, value: count};
+    }) ?? [];
 
-  if (!loading) {
-    if (availableTagKeys.length > 0) {
-      return (
-        <SidebarSection.Wrap>
-          <SidebarSection.Title>{t('Tag Summary')}</SidebarSection.Title>
-          <TagFacetsContainer>
-            <ButtonBar merged active={selectedTag}>
-              {availableTagKeys.map(tagKey => {
-                return (
-                  <Button
-                    size="xs"
-                    key={tagKey}
-                    barId={tagKey}
-                    onClick={() => {
-                      setSelectedTag(tagKey);
-                    }}
-                  >
-                    {tagKey}
-                  </Button>
-                );
-              })}
-            </ButtonBar>
-            <BreakdownBarsContainer>
-              <BreakdownBars data={points ?? []} />
-            </BreakdownBarsContainer>
-          </TagFacetsContainer>
-        </SidebarSection.Wrap>
-      );
-    }
-    return null;
+  if (loading) {
+    return <Placeholder height="60px" />;
   }
-  return <Placeholder height="60px" />;
+  if (availableTagKeys.length > 0) {
+    return (
+      <SidebarSection.Wrap>
+        <SidebarSection.Title>{t('Tag Summary')}</SidebarSection.Title>
+        <TagFacetsContainer>
+          <ButtonBar merged active={selectedTag}>
+            {availableTagKeys.map(tagKey => {
+              return (
+                <Button
+                  size="xs"
+                  key={tagKey}
+                  barId={tagKey}
+                  onClick={() => {
+                    setSelectedTag(tagKey);
+                  }}
+                >
+                  {tagKey}
+                </Button>
+              );
+            })}
+          </ButtonBar>
+          <BreakdownBarsContainer>
+            <BreakdownBars data={points} />
+          </BreakdownBarsContainer>
+        </TagFacetsContainer>
+      </SidebarSection.Wrap>
+    );
+  }
+  return null;
 }
 
 const TagFacetsContainer = styled('div')`
