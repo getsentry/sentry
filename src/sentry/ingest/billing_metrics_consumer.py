@@ -196,7 +196,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
 
     def _bulk_commit(self) -> None:
         """Commits and clears the ready to commit queue."""
-        if self._messages_ready_since_last_commit == 0:
+        if not self._ready_to_commit:
             return
         self._commit(self._ready_to_commit)
         self._clear_ready_queue()
