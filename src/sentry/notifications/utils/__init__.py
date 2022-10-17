@@ -339,7 +339,6 @@ def perf_to_email_html(
 
 def get_matched_problem(event: Event) -> EventPerformanceProblem:
     """Get the matching performance problem for a given event"""
-    # matched_problem: EventPerformanceProblem = None
     problems = get_problems([event])
     if not problems:
         return None
