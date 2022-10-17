@@ -40,7 +40,7 @@ class ModelManifest:
         for (test_id, entry_input) in content.items():
             entry_objects.append(entry := ModelManifest.Entry())
 
-            for (model_name, condition_names) in entry_input:
+            for (model_name, condition_names) in entry_input.items():
                 model_class = models[model_name]
                 for condition_name in condition_names:
                     condition = conditions[condition_name]

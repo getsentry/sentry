@@ -155,6 +155,14 @@ class DecoratorVisitor(ast.NodeVisitor):
     def __init__(self, target_test_silo_mode: str):
         self.target_test_silo_mode = target_test_silo_mode
         self.match_line = None
+        self.is_stable = True
+
+    def visit_keyword(self, node: ast.keyword) -> Any:
+        if node.arg:
+            if node.arg == "stable":
+                if isinstance(node.value, ast.Constant):
+                    if node.value.value is True:
+                        self.is_stable = True
 
     def visit_Name(self, node: ast.Name) -> Any:
         if node.id.endswith("_silo_test"):
