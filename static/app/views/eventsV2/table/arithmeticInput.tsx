@@ -261,7 +261,7 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
     const {dropdownVisible, dropdownOptionGroups} = this.state;
     return (
       <Container isOpen={dropdownVisible}>
-        <StyledInput
+        <Input
           {...props}
           ref={this.input}
           autoComplete="off"
@@ -297,8 +297,6 @@ const Container = styled('div')<{isOpen: boolean}>`
     background: ${p => p.theme.backgroundSecondary};
   }
 `;
-
-const StyledInput = styled(Input)``;
 
 type TermDropdownProps = {
   handleSelect: (option: DropdownOption) => void;
