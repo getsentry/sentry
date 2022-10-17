@@ -139,12 +139,11 @@ function BaseTabList({hideBorder = false, className, ...props}: TabListProps) {
           value={[...state.selectionManager.selectedKeys][0]}
           onChange={opt => state.setSelectedKey(opt.value)}
           isDisabled={disabled}
-          placement="bottom end"
+          position="bottom-end"
           size="sm"
           offset={4}
-          trigger={({props: triggerProps, ref: triggerRef}) => (
+          trigger={triggerProps => (
             <OverflowMenuTrigger
-              ref={triggerRef}
               {...triggerProps}
               borderless
               showChevron={false}
