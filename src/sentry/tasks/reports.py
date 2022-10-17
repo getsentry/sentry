@@ -700,7 +700,7 @@ def prepare_reports(dry_run=False, *args, **kwargs):
     # Get org ids of all visible organizations
     organizations = _get_organization_queryset()
     for i, organization in enumerate(
-        RangeQuerySetWrapper(organizations, step=10000, result_value_getter=lambda item: item)
+        RangeQuerySetWrapper(organizations, step=10000, result_value_getter=lambda item: item.id)
     ):
         if not features.has("organizations:weekly-email-refresh", organization):
             # Create a celery task per organization
