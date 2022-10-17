@@ -7,22 +7,35 @@ from typing import Callable, Mapping, MutableMapping, Optional, cast
 
 import msgpack
 import sentry_sdk
-from arroyo import Partition
 from arroyo.backends.kafka.consumer import KafkaPayload
-from arroyo.processing.strategies.abstract import ProcessingStrategy
-from arroyo.types import Message, Position
+from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
+from arroyo.types import Message, Partition, Position
 from django.conf import settings
 
-from sentry.replays.consumers.recording.types import (
+from sentry.replays.tasks import ingest_recording_segment
+from sentry.replays.usecases.ingest import (
     RecordingSegmentChunkMessage,
     RecordingSegmentMessage,
+    ingest_recording_segment_chunk,
 )
-from sentry.replays.tasks import ingest_recording_segment
-from sentry.replays.usecases.ingest import ingest_recording_segment_chunk
 from sentry.utils import json, metrics
 from sentry.utils.sdk import configure_scope
 
 COMMIT_FREQUENCY_SEC = 1
+
+
+class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
+    """
+    This consumer processes replay recordings, which are compressed payloads split up into
+    chunks.
+    """
+
+    def create_with_partitions(
+        self,
+        commit: Callable[[Mapping[Partition, Position]], None],
+        partitions: Mapping[Partition, int],
+    ) -> ProcessingStrategy[KafkaPayload]:
+        return ProcessRecordingSegmentStrategy(commit)
 
 
 class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):

@@ -8,7 +8,7 @@ from arroyo import Message, Partition, Topic
 from arroyo.backends.kafka import KafkaPayload
 
 from sentry.models import File
-from sentry.replays.consumers.recording.factory import ProcessReplayRecordingStrategyFactory
+from sentry.replays.consumer import ProcessReplayRecordingStrategyFactory
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.testutils import TransactionTestCase
 from sentry.testutils.helpers import TaskRunner
