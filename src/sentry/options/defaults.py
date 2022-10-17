@@ -523,6 +523,9 @@ register(
 register(
     "performance.issues.all.post-process-group-early-adopter-rollout", default=0.0
 )  # EA rollout for processing transactions in post_process_group
+register(
+    "performance.issues.all.post-process-group-ga-rollout", default=0.0
+)  # GA rollout for processing transactions in post_process_group
 
 # Individual system-wide options in case we need to turn off specific detectors for load concerns, ignoring the set project options.
 register("performance.issues.n_plus_one_db.problem-detection", default=0.0)
