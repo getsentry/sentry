@@ -186,23 +186,24 @@ describe('GroupSidebar', function () {
         email: 'sohnjmith@example.com',
       }),
     ];
+    const org = {...organization, features: ['issue-actions-v2']};
     render(
       <GroupSidebar
         group={{
-          group,
+          ...group,
           participants: users,
           seenBy: users,
         }}
         project={project}
-        organization={organization}
+        organization={org}
         event={TestStubs.Event()}
         environments={[]}
       />,
-      {organization}
+      {organization: org}
     );
 
-    expect(screen.getByText('Participants (1)')).toBeInTheDocument();
-    expect(screen.getByText('Viewers (1)')).toBeInTheDocument();
+    expect(screen.getByText('Participants (2)')).toBeInTheDocument();
+    expect(screen.getByText('Viewers (2)')).toBeInTheDocument();
   });
 
   describe('displays mobile tags when issue platform is mobile', function () {
