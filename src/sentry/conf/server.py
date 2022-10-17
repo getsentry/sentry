@@ -1163,7 +1163,7 @@ SENTRY_FEATURES = {
     # Enable performance issues
     "organizations:performance-issues": False,
     # Enable the creation of performance issues in the ingest pipeline. Turning this on will eventually make performance issues be created with default settings.
-    "organizations:performance-issues-ingest": False,
+    "organizations:performance-issues-ingest": True,
     # Enable performance issues dev options, includes changing detection thresholds and other parts of issues that we're using for development.
     "organizations:performance-issues-dev": False,
     # Enables updated all events tab in a performance issue
@@ -1225,7 +1225,7 @@ SENTRY_FEATURES = {
     # then in the group UI.
     "projects:minidump": True,
     # Enable ingestion for suspect spans
-    "projects:performance-suspect-spans-ingestion": False,
+    "projects:performance-suspect-spans-ingestion": True,
     # Enable functionality for project plugins.
     "projects:plugins": True,
     # Enable alternative version of group creation that is supposed to be less racy.
@@ -1872,7 +1872,7 @@ SENTRY_WATCHERS = (
 # generate fake data for local testing. You can also manually enable relay with the `--ingest` flag to `devserver`.
 # XXX: This is disabled by default as typical development workflows do not require end-to-end services running
 # and disabling optional services reduces resource consumption and complexity
-SENTRY_USE_RELAY = False
+SENTRY_USE_RELAY = True
 SENTRY_RELAY_PORT = 7899
 
 # Controls whether we'll run the snuba subscription processor. If enabled, we'll run

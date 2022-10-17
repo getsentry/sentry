@@ -21,7 +21,11 @@ from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
-
+from sentry.utils.samples import load_data
+from sentry.event_manager import EventManager
+from sentry.testutils.helpers import override_options
+from sentry.testutils.helpers.datetime import before_now
+from sentry.types.issues import GroupType
 
 def build_test_message(
     teams: set[Team],
@@ -161,6 +165,39 @@ class BuildGroupAttachmentTest(TestCase):
         assert attachments["title"] == f"Release <{release_link}|{release.version}> has a new issue"
         assert attachments["text"] == f"<{group_link}|*{group.title}*> \nFirst line of Text"
         assert "title_link" not in attachments
+
+    def test_build_performance_issue(self):
+        event_data = load_data(
+            "transaction-n-plus-one",
+            timestamp=before_now(minutes=10),
+            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE.value}-group1"],
+        )
+        perf_event_manager = EventManager(event_data)
+        perf_event_manager.normalize()
+        with override_options(
+            {
+                "performance.issues.all.problem-creation": 1.0,
+                "performance.issues.all.problem-detection": 1.0,
+                "performance.issues.n_plus_one_db.problem-creation": 1.0,
+            }
+        ), self.feature(
+            [
+                "organizations:performance-issues-ingest",
+                "projects:performance-suspect-spans-ingestion",
+            ]
+        ):
+            event = perf_event_manager.save(self.project.id)
+        # group = event.groups[0]
+        event = event.for_group(event.groups[0])
+        print("test event: ", event)
+
+        attachments = SlackIssuesMessageBuilder(event).build()
+        # group_link = f"http://testserver/organizations/{group.organization.slug}/issues/{group.id}/?referrer=alert_slack_release"
+
+        assert attachments["title"] == "N+1 DB Queries"
+        assert attachments["text"] == "idk"
+        print(attachments)
+        assert False
 
     def test_build_group_release_with_commits_attachment(self):
         group = self.create_group(project=self.project)
