@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useState} from 'react';
+import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 
 import type {Client} from 'sentry/api';
@@ -13,12 +14,19 @@ import fetchReplayList, {
 } from 'sentry/utils/replays/fetchReplayList';
 import useApi from 'sentry/utils/useApi';
 
+import {
+  getPercentilesEventView,
+  mapPercentileValues,
+  PercentileValues,
+} from '../transactionEvents/utils';
+
 type State = Awaited<ReturnType<typeof fetchReplayList>> & {
   eventView: undefined | EventView;
 };
 
 type Options = {
   eventsWithReplaysView: EventView;
+  getFilteredEventView: (percentiles: PercentileValues) => EventView | undefined;
   location: Location;
   organization: Organization;
 };
@@ -27,6 +35,7 @@ function useReplaysFromTransaction({
   eventsWithReplaysView,
   location,
   organization,
+  getFilteredEventView,
 }: Options) {
   const api = useApi();
   const [data, setData] = useState<State>({
@@ -38,12 +47,23 @@ function useReplaysFromTransaction({
   });
 
   const load = useCallback(async () => {
-    const replayIds = await fetchReplayIds({
+    const percentilesView = getPercentilesEventView(eventsWithReplaysView.clone());
+    const percentileData = await fetchPercentiles({
       api,
-      eventView: eventsWithReplaysView,
+      eventView: percentilesView,
       location,
       organization,
     });
+    const percentiles = mapPercentileValues(percentileData);
+    const filteredEventView = getFilteredEventView(percentiles);
+
+    const replayIds = await fetchReplayIds({
+      api,
+      eventView: filteredEventView ?? eventsWithReplaysView,
+      location,
+      organization,
+    });
+
     const eventView = EventView.fromNewQueryWithLocation(
       {
         id: '',
@@ -66,7 +86,7 @@ function useReplaysFromTransaction({
       ...listData,
       eventView,
     });
-  }, [api, eventsWithReplaysView, location, organization]);
+  }, [api, eventsWithReplaysView, location, organization, getFilteredEventView]);
 
   useEffect(() => {
     load();
@@ -95,6 +115,32 @@ async function fetchReplayIds({
 
     return data.data.map(record => String(record.replayId));
   } catch (err) {
+    Sentry.captureException(err);
+    return null;
+  }
+}
+
+async function fetchPercentiles({
+  api,
+  eventView,
+  location,
+  organization,
+}: {
+  api: Client;
+  eventView: EventView;
+  location: Location;
+  organization: Organization;
+}) {
+  try {
+    const [data] = await doDiscoverQuery<TableData>(
+      api,
+      `/organizations/${organization.slug}/events/`,
+      eventView.getEventsAPIPayload(location)
+    );
+
+    return data.data[0];
+  } catch (err) {
+    Sentry.captureException(err);
     return null;
   }
 }
