@@ -1905,7 +1905,7 @@ class MetricsQueryBuilder(QueryBuilder):
         near_midnight: Callable[[datetime], bool] = lambda time: (
             time.minute <= 30 and time.hour == 0
         ) or (time.minute >= 30 and time.hour == 23)
-        near_hour: Callable[[datetime], bool] = lambda time: time.minute <= 15 or time.minute >= 15
+        near_hour: Callable[[datetime], bool] = lambda time: time.minute <= 15 or time.minute >= 45
 
         if (
             # precisely going hour to hour
