@@ -18,10 +18,21 @@ _DEFAULT_DAEMONS = {
         "sentry",
         "run",
         "post-process-forwarder",
-        "--entity=all",
+        "--entity=errors",
         "--loglevel=debug",
         "--commit-batch-size=100",
         "--commit-batch-timeout-ms=1000",
+    ],
+    "post-process-forwarder-transactions": [
+        "sentry",
+        "run",
+        "post-process-forwarder",
+        "--entity=transactions",
+        "--loglevel=debug",
+        "--commit-batch-size=100",
+        "--commit-batch-timeout-ms=1000",
+        "--commit-log-topic=snuba-transactions-commit-log",
+        "--synchronize-commit-group=transactions_group",
     ],
     "ingest": ["sentry", "run", "ingest-consumer", "--all-consumer-types"],
     "region_to_control": ["sentry", "run", "region-to-control-consumer", "--region-name", "_local"],
@@ -250,6 +261,7 @@ and run `sentry devservices up kafka zookeeper`.
 
         if eventstream.requires_post_process_forwarder():
             daemons += [_get_daemon("post-process-forwarder")]
+            daemons += [_get_daemon("post-process-forwarder-transactions")]
 
         if settings.SENTRY_EXTRA_WORKERS:
             daemons.extend([_get_daemon(name) for name in settings.SENTRY_EXTRA_WORKERS])
