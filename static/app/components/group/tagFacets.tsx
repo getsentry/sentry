@@ -7,6 +7,7 @@ import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Environment, TagWithTopValues} from 'sentry/types';
+import {Event} from 'sentry/types/event';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -23,6 +24,7 @@ type Props = {
   environments: Environment[];
   groupId: string;
   tagKeys: string[];
+  event?: Event;
 };
 
 type State = {
@@ -32,7 +34,7 @@ type State = {
   tagsData: Record<string, TagWithTopValues>;
 };
 
-export function TagFacets({groupId, tagKeys, environments}: Props) {
+export function TagFacets({groupId, tagKeys, environments, event}: Props) {
   const [state, setState] = useState<State>({
     tagsData: {},
     selectedTag: tagKeys.length > 0 ? tagKeys[0] : '',
@@ -64,7 +66,16 @@ export function TagFacets({groupId, tagKeys, environments}: Props) {
   const availableTagKeys = tagKeys.filter(tagKey => !!state.tagsData[tagKey]);
   const points =
     state.tagsData[state.selectedTag]?.topValues.map(({name, count}) => {
-      return {label: name, value: count};
+      const isTagValueOfCurrentEvent =
+        event?.tags.find(({key}) => key === state.selectedTag)?.value === name;
+      return {
+        label: name,
+        value: count,
+        active: isTagValueOfCurrentEvent,
+        tooltip: isTagValueOfCurrentEvent
+          ? t('This is also the tag value of the error event you are viewing.')
+          : undefined,
+      };
     }) ?? [];
 
   if (state.loading) {
