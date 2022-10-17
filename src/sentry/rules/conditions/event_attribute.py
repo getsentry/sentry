@@ -129,10 +129,16 @@ class EventAttributeCondition(EventCondition):
             return [getattr(event.interfaces["user"].data, path[1])]
 
         elif path[0] == "http":
-            if path[1] not in ("url", "method"):
-                return []
+            if path[1] in ("url", "method"):
+                return [getattr(event.interfaces["request"], path[1])]
+            elif path[1] in ("status_code"):
+                contexts = event.interfaces["contexts"]
+                response = contexts.get("response")
+                if response is None:
+                    response = []
+                return [getattr(response, path[1])]
 
-            return [getattr(event.interfaces["request"], path[1])]
+            return []
 
         elif path[0] == "sdk":
             if path[1] != "name":
