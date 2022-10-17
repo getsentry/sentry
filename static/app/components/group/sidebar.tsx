@@ -227,6 +227,7 @@ class BaseGroupSidebar extends Component<Props, State> {
               environments={environments}
               groupId={group.id}
               tagKeys={MOBILE_TAGS}
+              event={event}
             />
           )}
         </Feature>
