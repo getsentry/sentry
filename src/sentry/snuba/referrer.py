@@ -79,6 +79,7 @@ class Referrer(Enum):
     API_ORGANIZATION_EVENTS_V2 = "api.organization-events-v2"
     API_ORGANIZATION_SDK_UPDATES = "api.organization-sdk-updates"
     API_ORGANIZATION_SPANS_HISTOGRAM_MIN_MAX = "api.organization-spans-histogram-min-max"
+    API_ISSUES_ISSUE_EVENTS = "api.issues.issue_events"
     API_PERFORMANCE_DURATIONPERCENTILECHART = "api.performance.durationpercentilechart"
     API_PERFORMANCE_GENERIC_WIDGET_CHART_APDEX_AREA = (
         "api.performance.generic-widget-chart.apdex-area"
