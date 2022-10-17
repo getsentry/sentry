@@ -247,8 +247,6 @@ const StyledTeamSelector = styled(TeamSelector)`
 `;
 
 const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
-  height: 40px;
-
   div {
     min-height: unset;
   }
