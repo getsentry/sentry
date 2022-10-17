@@ -992,10 +992,10 @@ SENTRY_FEATURES = {
     "organizations:discover-basic": True,
     # Enable discover 2 custom queries and saved queries
     "organizations:discover-query": True,
-    # Enable the interval selector in discover
-    "organizations:discover-interval-selector": False,
     # Enable metrics baseline in discover
     "organizations:discover-metrics-baseline": False,
+    # Enable quick context in discover
+    "organizations:discover-quick-context": False,
     # Allows an org to have a larger set of project ownership rules per project
     "organizations:higher-ownership-limit": False,
     # Enable Performance view
@@ -1020,6 +1020,8 @@ SENTRY_FEATURES = {
     "organizations:rule-page": False,
     # Enable incidents feature
     "organizations:incidents": False,
+    # Enable issue alert previews
+    "organizations:issue-alert-preview": False,
     # Whether to allow issue only search on the issue list
     "organizations:issue-search-allow-postgres-only-search": False,
     # Flags for enabling CdcEventsDatasetSnubaSearchBackend in sentry.io. No effect in open-source
@@ -1113,6 +1115,8 @@ SENTRY_FEATURES = {
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
+    # Enable project selection on the stats page
+    "organizations:project-stats": False,
     # Enable views for ops breakdown
     "organizations:performance-ops-breakdown": False,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
@@ -1179,6 +1183,8 @@ SENTRY_FEATURES = {
     "organizations:server-side-sampling": False,
     # Enable the server-side sampling feature (frontend)
     "organizations:server-side-sampling-ui": False,
+    # Enable the updated dynamic sampling UI for the total transaction packaging experience
+    "organizations:dynamic-sampling-total-transaction-packaging": False,
     # Enable creating DS rules on incompatible platforms (used by SDK teams for dev purposes)
     "organizations:server-side-sampling-allow-incompatible-platforms": False,
     # Enable the deletion of sampling uniform rules (used internally for demo purposes)
@@ -1195,6 +1201,8 @@ SENTRY_FEATURES = {
     "organizations:mobile-screenshots": False,
     # Enable the mobile screenshot gallery in the attachments tab
     "organizations:mobile-screenshot-gallery": False,
+    # Enable tag improvements in the issue details page
+    "organizations:issue-details-tag-improvements": False,
     # Enable the release details performance section
     "organizations:release-comparison-performance": False,
     # Enable team insights page
@@ -1492,12 +1500,6 @@ SENTRY_NEWSLETTER_OPTIONS = {}
 
 SENTRY_EVENTSTREAM = "sentry.eventstream.snuba.SnubaEventStream"
 SENTRY_EVENTSTREAM_OPTIONS = {}
-
-# Send transaction events to random Kafka partitions. Currently
-# this defaults to false as transaction events are partitioned the same
-# as errors (by project ID). Eventually we will flip the default and remove
-# this from settings entirely.
-SENTRY_EVENTSTREAM_PARTITION_TRANSACTIONS_RANDOMLY = False
 
 # rollups must be ordered from highest granularity to lowest
 SENTRY_TSDB_ROLLUPS = (
@@ -2472,15 +2474,7 @@ KAFKA_CLUSTERS = {
 #     pick up the change.
 
 KAFKA_EVENTS = "events"
-# TODO: KAFKA_TRANSACTIONS is temporarily mapped to "events" since events
-# transactions curently share a Kafka topic. Once we are ready with the code
-# changes to support different topic, switch this to "transactions" to start
-# producing to the new topic.
-KAFKA_TRANSACTIONS = "events"
-# TODO: KAFKA_NEW_TRANSACTIONS only exists in order to facilitate the errors/transactions
-# split. It is only supposed to exist briefly so we can map transactions of a subset of
-# projects to the new topic first before migrating them all over.
-KAFKA_NEW_TRANSACTIONS = "transactions"
+KAFKA_TRANSACTIONS = "transactions"
 KAFKA_OUTCOMES = "outcomes"
 KAFKA_OUTCOMES_BILLING = "outcomes-billing"
 KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS = "events-subscription-results"
@@ -2521,7 +2515,6 @@ KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
 KAFKA_TOPICS = {
     KAFKA_EVENTS: {"cluster": "default"},
     KAFKA_TRANSACTIONS: {"cluster": "default"},
-    KAFKA_NEW_TRANSACTIONS: {"cluster": "default"},
     KAFKA_OUTCOMES: {"cluster": "default"},
     # When OUTCOMES_BILLING is None, it inherits from OUTCOMES and does not
     # create a separate producer. Check ``track_outcome`` for details.
@@ -2860,7 +2853,7 @@ SENTRY_FUNCTIONS_REGION = "us-central1"
 # Settings related to SiloMode
 SILO_MODE = os.environ.get("SENTRY_SILO_MODE", None)
 FAIL_ON_UNAVAILABLE_API_CALL = False
-SILO_MODE_SPLICE_TESTS = bool(os.environ.get("SENTRY_SILO_MODE_SPLICE_TESTS", False))
+SILO_MODE_UNSTABLE_TESTS = bool(os.environ.get("SENTRY_SILO_MODE_UNSTABLE_TESTS", False))
 
 DISALLOWED_CUSTOMER_DOMAINS = []
 

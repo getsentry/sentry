@@ -3,6 +3,7 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptor, LocationDescriptorObject} from 'history';
 
+import {Client} from 'sentry/api';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumn,
@@ -13,7 +14,7 @@ import Pagination from 'sentry/components/pagination';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import Tooltip from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import {IssueAttachment, Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import DiscoverQuery, {
@@ -85,20 +86,28 @@ type Props = {
   setError: (msg: string | undefined) => void;
   transactionName: string;
   columnTitles?: string[];
-  disablePagination?: boolean;
   excludedTags?: string[];
   issueId?: string;
+  projectId?: string;
   totalEventCount?: string;
 };
 
 type State = {
+  attachments: IssueAttachment[];
+  hasMinidumps: boolean;
+  lastFetchedCursor: string;
   widths: number[];
 };
 
 class EventsTable extends Component<Props, State> {
   state: State = {
     widths: [],
+    lastFetchedCursor: '',
+    attachments: [],
+    hasMinidumps: true,
   };
+
+  api = new Client();
 
   handleCellAction = (column: TableColumn<keyof TableDataRow>) => {
     return (action: Actions, value: React.ReactText) => {
@@ -153,6 +162,10 @@ class EventsTable extends Component<Props, State> {
       Actions.SHOW_GREATER_THAN,
       Actions.SHOW_LESS_THAN,
     ];
+
+    if (['attachments', 'minidump'].includes(field)) {
+      return rendered;
+    }
 
     if (field === 'id' || field === 'trace') {
       const {issueId} = this.props;
@@ -297,7 +310,7 @@ class EventsTable extends Component<Props, State> {
     widths[columnIndex] = nextColumn.width
       ? Number(nextColumn.width)
       : COL_WIDTH_UNDEFINED;
-    this.setState({widths});
+    this.setState({...this.state, widths});
   };
 
   render() {
@@ -316,6 +329,15 @@ class EventsTable extends Component<Props, State> {
       );
     const columnOrder = eventView
       .getColumns()
+      .filter(col => {
+        if (!this.state.attachments.length) {
+          return col.key !== 'attachments' && col.key !== 'minidump';
+        }
+        if (!this.state.hasMinidumps) {
+          return col.key !== 'minidump';
+        }
+        return true;
+      })
       .filter(
         (col: TableColumn<React.ReactText>) =>
           !containsSpanOpsBreakdown || !isSpanOperationBreakdownField(col.name)
@@ -326,6 +348,51 @@ class EventsTable extends Component<Props, State> {
         }
         return col;
       });
+
+    const joinCustomData = ({data}: TableData) => {
+      if (this.state.attachments.length) {
+        const {projectId} = this.props;
+        const attachmentsWithUrl = this.state.attachments.map(attachment => ({
+          ...attachment,
+          url: `/api/0/projects/${organization.slug}/${projectId}/events/${attachment.event_id}/attachments/${attachment.id}/?download=1`,
+        }));
+
+        const eventIdMap = {};
+        data.forEach(event => {
+          event.attachments = [] as any;
+          eventIdMap[event.id] = event;
+        });
+        attachmentsWithUrl.forEach(attachment => {
+          const eventAttachments = eventIdMap[attachment.event_id]?.attachments;
+          if (eventAttachments) {
+            eventAttachments.push(attachment);
+          }
+        });
+      }
+    };
+
+    const fetchAttachments = async ({data}: TableData, cursor: string) => {
+      const eventIds = data.map(value => value.id);
+      const eventIdQuery = `event_id=${eventIds.join('&event_id=')}`;
+      const res: IssueAttachment[] = await this.api.requestPromise(
+        `/api/0/issues/${this.props.issueId}/attachments/?${eventIdQuery}`
+      );
+
+      let hasMinidumps = false;
+
+      res.forEach(attachment => {
+        if (attachment.type === 'event.minidump') {
+          hasMinidumps = true;
+        }
+      });
+      this.setState({
+        ...this.state,
+        lastFetchedCursor: cursor,
+        attachments: res,
+        hasMinidumps,
+      });
+    };
+
     return (
       <div>
         <DiscoverQuery
@@ -336,12 +403,16 @@ class EventsTable extends Component<Props, State> {
           referrer="api.performance.transaction-events"
           useEvents
         >
-          {({pageLinks, isLoading, tableData}) => {
+          {({pageLinks, isLoading: isDiscoverQueryLoading, tableData}) => {
+            tableData ??= {data: []};
             const parsedPageLinks = parseLinkHeader(pageLinks);
-            let currentEvent = parsedPageLinks?.next?.cursor.split(':')[1] ?? 0;
+            const cursor = parsedPageLinks?.next?.cursor;
+            const shouldFetchAttachments = !!this.props.issueId; // Only fetch on issue details page
+            let currentEvent = cursor?.split(':')[1] ?? 0;
             if (!parsedPageLinks?.next?.results && totalEventCount) {
               currentEvent = totalEventCount;
             }
+
             const paginationCaption =
               totalEventCount && currentEvent
                 ? tct('Showing [currentEvent] of [totalEventCount] events', {
@@ -349,11 +420,18 @@ class EventsTable extends Component<Props, State> {
                     totalEventCount,
                   })
                 : undefined;
-
+            if (
+              shouldFetchAttachments &&
+              cursor &&
+              this.state.lastFetchedCursor !== cursor
+            ) {
+              fetchAttachments(tableData, cursor);
+            }
+            joinCustomData(tableData);
             return (
               <Fragment>
                 <GridEditable
-                  isLoading={isLoading}
+                  isLoading={isDiscoverQueryLoading}
                   data={tableData?.data ?? []}
                   columnOrder={columnOrder}
                   columnSortBy={eventView.getSorts()}
@@ -364,13 +442,11 @@ class EventsTable extends Component<Props, State> {
                   }}
                   location={location}
                 />
-                {!this.props.disablePagination && (
-                  <Pagination
-                    disabled={isLoading}
-                    caption={paginationCaption}
-                    pageLinks={pageLinks}
-                  />
-                )}
+                <Pagination
+                  disabled={isDiscoverQueryLoading}
+                  caption={paginationCaption}
+                  pageLinks={pageLinks}
+                />
               </Fragment>
             );
           }}

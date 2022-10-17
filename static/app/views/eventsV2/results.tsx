@@ -19,6 +19,7 @@ import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -64,7 +65,7 @@ type Props = {
   organization: Organization;
   router: InjectedRouter;
   selection: PageFilters;
-  setSavedQuery: (savedQuery: SavedQuery) => void;
+  setSavedQuery: (savedQuery?: SavedQuery) => void;
   isHomepage?: boolean;
   savedQuery?: SavedQuery;
 };
@@ -103,21 +104,28 @@ function getYAxis(location: Location, eventView: EventView, savedQuery?: SavedQu
 
 export class Results extends Component<Props, State> {
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
-    if (nextProps.savedQuery || !nextProps.loading) {
+    if (
+      !nextProps.isHomepage ||
+      prevState.savedQuery ||
+      nextProps.savedQuery === undefined // When user clicks on Discover in sidebar
+    ) {
       const eventView = EventView.fromSavedQueryOrLocation(
         nextProps.savedQuery,
         nextProps.location
       );
       return {...prevState, eventView, savedQuery: nextProps.savedQuery};
     }
+
     return prevState;
   }
 
   state: State = {
-    eventView: EventView.fromSavedQueryOrLocation(
-      this.props.savedQuery,
-      this.props.location
-    ),
+    // If this is the homepage, force an invalid eventView so we can handle
+    // the redirect first. This can't rely on the location because the
+    // location may have a valid eventView configuration
+    eventView: this.props.isHomepage
+      ? EventView.fromSavedQuery({...DEFAULT_EVENT_VIEW, fields: []})
+      : EventView.fromSavedQueryOrLocation(this.props.savedQuery, this.props.location),
     error: '',
     errorCode: 200,
     totalValues: null,
@@ -303,6 +311,9 @@ export class Results extends Component<Props, State> {
       nextEventView.query = decodeScalar(location.query.query, '');
     }
 
+    if (isHomepage && !this.state.savedQuery) {
+      this.setState({savedQuery, eventView: nextEventView});
+    }
     browserHistory.replace(
       nextEventView.getResultsViewUrlTarget(organization.slug, isHomepage)
     );
@@ -546,6 +557,10 @@ export class Results extends Component<Props, State> {
     const title = this.getDocumentTitle();
     const yAxisArray = getYAxis(location, eventView, savedQuery);
 
+    if (!eventView.isValid()) {
+      return <LoadingIndicator />;
+    }
+
     return (
       <SentryDocumentTitle title={title} orgSlug={organization.slug}>
         <StyledPageContent>
@@ -676,6 +691,8 @@ type SavedQueryState = AsyncComponent['state'] & {
 };
 
 class SavedQueryAPI extends AsyncComponent<Props, SavedQueryState> {
+  shouldReload = true;
+
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization, location} = this.props;
 
@@ -690,13 +707,9 @@ class SavedQueryAPI extends AsyncComponent<Props, SavedQueryState> {
     return endpoints;
   }
 
-  setSavedQuery = (newSavedQuery: SavedQuery) => {
+  setSavedQuery = (newSavedQuery?: SavedQuery) => {
     this.setState({savedQuery: newSavedQuery});
   };
-
-  renderLoading() {
-    return this.renderBody();
-  }
 
   renderBody(): React.ReactNode {
     const {savedQuery, loading} = this.state;

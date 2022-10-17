@@ -10,7 +10,13 @@ from django.db.models import QuerySet
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.db.models import BaseManager, FlexibleForeignKey, Model, region_silo_model, sane_repr
+from sentry.db.models import (
+    BaseManager,
+    FlexibleForeignKey,
+    Model,
+    control_silo_with_replication_model,
+    sane_repr,
+)
 from sentry.db.models.query import in_iexact
 from sentry.utils.security import get_secure_token
 
@@ -50,7 +56,7 @@ class UserEmailManager(BaseManager):
         }
 
 
-@region_silo_model
+@control_silo_with_replication_model
 class UserEmail(Model):
     __include_in_export__ = True
 

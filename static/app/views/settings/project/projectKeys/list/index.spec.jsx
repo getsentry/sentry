@@ -1,12 +1,15 @@
-import * as PropTypes from 'prop-types';
-
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {mountGlobalModal} from 'sentry-test/modal';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 
 import ProjectKeys from 'sentry/views/settings/project/projectKeys/list';
 
 describe('ProjectKeys', function () {
-  let org, project, wrapper;
+  let org, project;
   let deleteMock;
   let projectKeys;
 
@@ -25,18 +28,6 @@ describe('ProjectKeys', function () {
       url: `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0].id}/`,
       method: 'DELETE',
     });
-
-    wrapper = mountWithTheme(
-      <ProjectKeys routes={[]} params={{orgId: org.slug, projectId: project.slug}} />,
-      {
-        context: {
-          project: TestStubs.Project(),
-        },
-        childContextTypes: {
-          project: PropTypes.object,
-        },
-      }
-    );
   });
 
   it('renders empty', function () {
@@ -47,39 +38,66 @@ describe('ProjectKeys', function () {
       body: [],
     });
 
-    wrapper = mountWithTheme(
+    render(
       <ProjectKeys routes={[]} params={{orgId: org.slug, projectId: project.slug}} />
     );
 
-    expect(wrapper.find('EmptyMessage')).toHaveLength(1);
+    expect(
+      screen.getByText('There are no keys active for this project.')
+    ).toBeInTheDocument();
   });
 
   it('has clippable box', function () {
-    const clipFade = wrapper.find('ClipFade');
-    expect(clipFade).toHaveLength(1);
-    const clipFadeButton = clipFade.find('button');
-    expect(clipFadeButton).toHaveLength(1);
-    clipFadeButton.simulate('click');
-    expect(wrapper.find('ClipFade button')).toHaveLength(0);
+    render(
+      <ProjectKeys
+        routes={[]}
+        params={{orgId: org.slug, projectId: project.slug}}
+        project={TestStubs.Project()}
+      />
+    );
+
+    const expandButton = screen.getByRole('button', {name: 'Expand'});
+    userEvent.click(expandButton);
+
+    expect(expandButton).not.toBeInTheDocument();
   });
 
-  it('deletes key', async function () {
-    wrapper.find('PanelHeader Button').last().simulate('click');
+  it('deletes key', function () {
+    render(
+      <ProjectKeys
+        routes={[]}
+        params={{orgId: org.slug, projectId: project.slug}}
+        project={TestStubs.Project()}
+      />
+    );
 
-    // Confirm modal
-    const modal = await mountGlobalModal();
-    modal.find('Button[priority="danger"]').simulate('click');
+    userEvent.click(screen.getByRole('button', {name: 'Delete'}));
+    renderGlobalModal();
+    userEvent.click(screen.getByTestId('confirm-button'));
 
     expect(deleteMock).toHaveBeenCalled();
   });
 
-  it('disable and enables key', function () {
+  it('disable and enables key', async function () {
+    render(
+      <ProjectKeys
+        routes={[]}
+        params={{orgId: org.slug, projectId: project.slug}}
+        project={TestStubs.Project()}
+      />
+    );
+
     const enableMock = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0].id}/`,
       method: 'PUT',
     });
 
-    wrapper.find('PanelHeader Button').at(1).simulate('click');
+    renderGlobalModal();
+
+    userEvent.click(screen.getByRole('button', {name: 'Disable'}));
+    userEvent.click(screen.getByTestId('confirm-button'));
+
+    await waitForElementToBeRemoved(() => screen.getByRole('dialog'));
 
     expect(enableMock).toHaveBeenCalledWith(
       expect.anything(),
@@ -88,7 +106,8 @@ describe('ProjectKeys', function () {
       })
     );
 
-    wrapper.find('PanelHeader Button').at(1).simulate('click');
+    userEvent.click(screen.getByRole('button', {name: 'Enable'}));
+    userEvent.click(screen.getByTestId('confirm-button'));
 
     expect(enableMock).toHaveBeenCalledWith(
       expect.anything(),

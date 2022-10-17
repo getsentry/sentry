@@ -9,6 +9,8 @@ import {WebVital} from 'sentry/utils/fields';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import TransactionEvents from 'sentry/views/performance/transactionSummary/transactionEvents';
 
+// XXX(epurkhiser): This appears to also be tested by ./transactionSummary/transactionEvents/index.spec.tsx
+
 type Data = {
   features?: string[];
   query?: {
@@ -187,9 +189,7 @@ describe('Performance > TransactionSummary', function () {
     await tick();
     wrapper.update();
 
-    expect(
-      wrapper.find('NavTabs').find({children: 'All Events'}).find('Link')
-    ).toHaveLength(1);
+    expect(wrapper.find('TabList').find("TabWrap[data-key='events']")).toHaveLength(1);
     expect(wrapper.find('SentryDocumentTitle')).toHaveLength(1);
     expect(wrapper.find('SearchBar')).toHaveLength(1);
     expect(wrapper.find('GridEditable')).toHaveLength(1);

@@ -6,7 +6,7 @@ from django.db import models
 from django.utils import timezone
 from django.utils.functional import cached_property
 
-from sentry.db.models import BoundedBigIntegerField, Model, region_silo_model, sane_repr
+from sentry.db.models import BoundedBigIntegerField, Model, region_silo_only_model, sane_repr
 
 # Attachment file types that are considered a crash report (PII relevant)
 CRASH_REPORT_TYPES = ("event.minidump", "event.applecrashreport")
@@ -30,7 +30,7 @@ def event_attachment_screenshot_filter(queryset):
     )
 
 
-@region_silo_model
+@region_silo_only_model
 class EventAttachment(Model):
     __include_in_export__ = False
 

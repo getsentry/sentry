@@ -1,10 +1,9 @@
-import {browserHistory, InjectedRouter} from 'react-router';
+import {InjectedRouter} from 'react-router';
 import {Location} from 'history';
 
 import {Client} from 'sentry/api';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {Organization, PageFilters, SavedQuery} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -25,14 +24,15 @@ type Props = {
 };
 
 type HomepageQueryState = AsyncComponent['state'] & {
-  // Used to trigger intial redirect for the saved query
-  hasLoaded: boolean;
+  key: number;
   savedQuery?: SavedQuery | null;
 };
 
 class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
+  shouldReload = true;
+
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {organization} = this.props;
+    const {organization, location} = this.props;
 
     const endpoints: ReturnType<AsyncComponent['getEndpoints']> = [];
     if (
@@ -44,40 +44,25 @@ class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
         `/organizations/${organization.slug}/discover/homepage/`,
       ]);
     }
+    // HACK: We're using state here to manage a component key so we can force remounting the entire discover result
+    // This is because we need <Results> to rerun its constructor with the new homepage query to get it to display properly
+    // We're checking to see that location.search is empty because that is the only time we should be fetching the homepage query
+    if (location.search === '' && this.state) {
+      this.setState({key: Date.now()});
+    }
     return endpoints;
   }
 
-  onRequestSuccess = ({stateKey, data}) => {
-    const {location} = this.props;
-    const {hasLoaded} = this.state;
-    if (stateKey === 'savedQuery' && !hasLoaded) {
-      this.setState({hasLoaded: true});
-      const normalizedDateTime = normalizeDateTimeParams({
-        start: data.start,
-        end: data.end,
-        statsPeriod: data.range,
-        utc: data.utc,
-      });
-
-      browserHistory.replace({
-        pathname: location.pathname,
-        query: {
-          project: data.projects ?? [],
-          environment: data.environment ?? [],
-          ...normalizedDateTime,
-          ...location.query,
-        },
-      });
+  onRequestSuccess({stateKey, data}) {
+    // No homepage query results in a 204, returning an empty string
+    if (stateKey === 'savedQuery' && data === '') {
+      this.setState({savedQuery: null});
     }
-  };
+  }
 
-  setSavedQuery = (newSavedQuery: SavedQuery) => {
+  setSavedQuery = (newSavedQuery?: SavedQuery) => {
     this.setState({savedQuery: newSavedQuery});
   };
-
-  renderLoading() {
-    return this.renderBody();
-  }
 
   renderBody(): React.ReactNode {
     const {savedQuery, loading} = this.state;
@@ -88,6 +73,7 @@ class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
         loading={loading}
         setSavedQuery={this.setSavedQuery}
         isHomepage
+        key={`results-${this.state.key}`}
       />
     );
   }
