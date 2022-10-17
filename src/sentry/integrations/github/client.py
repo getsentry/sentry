@@ -103,6 +103,19 @@ class GitHubClientMixin(ApiClient):  # type: ignore
 
         return tree
 
+    def get_trees_for_org(self, org_name: str) -> Sequence[JSONData]:
+        """
+        This fetches tree representations of all repos for an org.
+        """
+        trees = {}
+        repositories = self.get_repositories()
+        # XXX: In order to speed up this function we will need to parallelize this
+        # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
+        for repo_info in repositories:
+            full_name = repo_info["full_name"]
+            trees[full_name] = self.get_tree(full_name, repo_info["default_branch"])
+        return trees
+
     def get_repositories(self) -> Sequence[JSONData]:
         """
         This fetches all repositories accessible to the Github App
@@ -159,6 +172,8 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             output.extend(resp) if not response_key else output.extend(resp[response_key])
             page_number = 1
 
+            # XXX: In order to speed up this function we will need to parallelize this
+            # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
             while get_next_link(resp) and page_number < self.page_number_limit:
                 resp = self.get(get_next_link(resp))
                 output.extend(resp) if not response_key else output.extend(resp[response_key])
