@@ -147,10 +147,6 @@ const ContextContainer = styled('div')`
   display: flex;
   flex-direction: column;
   margin: ${space(1.5)};
-
-  & + & {
-    margin-top: ${space(1.5)};
-  }
 `;
 
 const ContextTitle = styled('h6')`
