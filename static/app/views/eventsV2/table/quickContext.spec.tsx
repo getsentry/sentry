@@ -1,6 +1,5 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {t} from 'sentry/locale';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 
 import QuickContext from './quickContext';
@@ -51,7 +50,7 @@ describe('Quick Context Container', function () {
 
       expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
       expect(
-        await screen.findByText(t('Failed to load context for column.'))
+        await screen.findByText(/Failed to load context for column./i)
       ).toBeInTheDocument();
       expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
     });
@@ -70,7 +69,7 @@ describe('Quick Context Container', function () {
 
         expect(await screen.findByText(/Issue Status/i)).toBeInTheDocument();
         expect(screen.getByText(/Ignored/i)).toBeInTheDocument();
-        expect(screen.getByTestId('quick-context-mute-icon')).toBeInTheDocument();
+        expect(screen.getByTestId('quick-context-ignored-icon')).toBeInTheDocument();
         expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
       });
 
@@ -100,7 +99,7 @@ describe('Quick Context Container', function () {
 
         expect(await screen.findByText(/Issue Status/i)).toBeInTheDocument();
         expect(screen.getByText(/Unresolved/i)).toBeInTheDocument();
-        expect(screen.getByTestId('quick-context-not-icon')).toBeInTheDocument();
+        expect(screen.getByTestId('quick-context-unresolved-icon')).toBeInTheDocument();
         expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
       });
     });

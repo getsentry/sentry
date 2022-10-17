@@ -127,11 +127,15 @@ function IssueContext(props: {data: IssueData}) {
       <ContextTitle>{statusTitle}</ContextTitle>
       <ContextBody>
         {status === 'ignored' ? (
-          <IconMute data-test-id="quick-context-mute-icon" color="gray500" size="sm" />
+          <IconMute data-test-id="quick-context-ignored-icon" color="gray500" size="sm" />
         ) : status === 'resolved' ? (
           <IconCheckmark color="gray500" size="sm" />
         ) : (
-          <IconNot data-test-id="quick-context-not-icon" color="gray500" size="sm" />
+          <IconNot
+            data-test-id="quick-context-unresolved-icon"
+            color="gray500"
+            size="sm"
+          />
         )}
         <StatusText>{status}</StatusText>
       </ContextBody>
@@ -168,7 +172,6 @@ const ContextBody = styled('div')`
 const StatusText = styled('span')`
   margin-left: ${space(1)};
   text-transform: capitalize;
-  color: 'purple400';
 `;
 
 const Wrapper = styled('div')`
