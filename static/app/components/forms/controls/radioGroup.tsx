@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 
 import Radio from 'sentry/components/radio';
 import Tooltip from 'sentry/components/tooltip';
-import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
 interface ContainerProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -13,9 +12,12 @@ interface ContainerProps extends React.HTMLAttributes<HTMLDivElement> {
 
 interface BaseRadioGroupProps<C extends string> {
   /**
-   * An array of [id, name, description]
+   * The choices availiable in the group
    */
-  choices: [C, React.ReactNode, React.ReactNode?][];
+  choices: [id: C, label: React.ReactNode, description?: React.ReactNode][];
+  /**
+   * Labels the radio group.
+   */
   label: string;
   onChange: (id: C, e: React.FormEvent<HTMLInputElement>) => void;
   value: string | number | null;
@@ -49,11 +51,21 @@ const RadioGroup = <C extends string>({
       const disabledChoice = disabledChoices.find(([choiceId]) => choiceId === id);
       const disabledChoiceReason = disabledChoice?.[1];
       const disabled = !!disabledChoice || groupDisabled;
-      const content = (
-        <Fragment>
+
+      // TODO(epurkhiser): There should be a `name` and `label` attribute in
+      // the options type to allow for the aria label to work correctly. For
+      // now we slap a `toString` on there, but it may sometimes return
+      // [object Object] if the name is a react node.
+
+      return (
+        <Tooltip
+          key={index}
+          disabled={!disabledChoiceReason}
+          title={disabledChoiceReason}
+        >
           <RadioLineItem index={index} aria-checked={value === id} disabled={disabled}>
             <Radio
-              aria-label={t('Select %s', name)}
+              aria-label={name?.toString()}
               disabled={disabled}
               checked={value === id}
               onChange={(e: React.FormEvent<HTMLInputElement>) =>
@@ -69,18 +81,8 @@ const RadioGroup = <C extends string>({
               </Fragment>
             )}
           </RadioLineItem>
-        </Fragment>
+        </Tooltip>
       );
-
-      if (disabledChoiceReason) {
-        return (
-          <Tooltip key={index} title={disabledChoiceReason}>
-            {content}
-          </Tooltip>
-        );
-      }
-
-      return <Fragment key={index}>{content}</Fragment>;
     })}
   </Container>
 );
