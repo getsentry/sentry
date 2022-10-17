@@ -13,7 +13,6 @@ type AddSpanOpts = {
   startTimestamp: number;
   childOpts?: AddSpanOpts[];
   description?: string;
-  numSpans?: number;
   op?: string;
   parentSpanId?: string;
   problemSpan?: ProblemSpan;
@@ -88,72 +87,96 @@ export class TransactionEventBuilder {
     };
   }
 
-  /**
-   *
-   * @param opts.startTimestamp
-   * @param opts.endTimestamp
-   * @param opts.op The operation of the span
-   * @param opts.description The description of the span
-   * @param opts.status Optional span specific status, defaults to 'ok'
-   * @param opts.numSpans If provided, will create the same span numSpan times
-   * @param opts.problemSpan If this span should be part of a performance problem, indicates the type of problem span (i.e ProblemSpan.OFFENDER, ProblemSpan.PARENT)
-   * @param opts.parentSpanId When provided, will explicitly set this span's parent ID. If you are creating nested spans via `childOpts`, this will be handled automatically and you do not need to provide an ID.
-   * Defaults to the root span's ID.
-   * @param opts.childOpts An array containing options for direct children of the current span. Will create direct child spans for each set of options provided
-   */
-  addSpan(opts: AddSpanOpts) {
-    const {
-      startTimestamp,
-      endTimestamp,
-      op,
-      description,
-      status,
-      problemSpan,
-      parentSpanId,
-      childOpts,
-      numSpans = 1,
-    } = opts;
+  addSpanV2(mSpan: MockSpan, parentSpanId?: string) {
+    // Convert the num of spans to a hex string to get its ID
+    const spanId = (this.#spans.length + 1).toString(16).padStart(16, '0');
+    const {span} = mSpan;
+    span.span_id = spanId;
+    span.trace_id = this.TRACE_ID;
+    span.parent_span_id = parentSpanId ?? this.ROOT_SPAN_ID;
 
-    for (let i = 0; i < numSpans; i++) {
-      // Convert the num of spans to a hex string to get its ID
-      const spanId = (this.#spans.length + 1).toString(16).padStart(16, '0');
+    this.#event.entries[0].data.push(span);
 
-      const span: RawSpanType = {
-        op,
-        description,
-        start_timestamp: startTimestamp,
-        timestamp: endTimestamp,
-        status: status ?? 'ok',
-        data: {},
-        span_id: spanId,
-        trace_id: this.TRACE_ID,
-        parent_span_id: parentSpanId ?? this.ROOT_SPAN_ID,
-      };
-
-      this.#event.entries[0].data.push(span);
-
-      switch (problemSpan) {
-        case ProblemSpan.PARENT:
-          this.#event.perfProblem?.parentSpanIds.push(spanId);
-          break;
-        case ProblemSpan.OFFENDER:
-          this.#event.perfProblem?.offenderSpanIds.push(spanId);
-          break;
-        default:
-          break;
-      }
-
-      if (endTimestamp > this.#event.endTimestamp) {
-        this.#event.endTimestamp = endTimestamp;
-      }
-
-      if (childOpts) {
-        childOpts.forEach(o => this.addSpan({...o, parentSpanId: spanId}));
-      }
+    switch (mSpan.problemSpan) {
+      case ProblemSpan.PARENT:
+        this.#event.perfProblem?.parentSpanIds.push(spanId);
+        break;
+      case ProblemSpan.OFFENDER:
+        this.#event.perfProblem?.offenderSpanIds.push(spanId);
+        break;
+      default:
+        break;
     }
+
+    if (span.timestamp > this.#event.endTimestamp) {
+      this.#event.endTimestamp = span.timestamp;
+    }
+
+    mSpan.children.forEach(child => this.addSpanV2(child, spanId));
   }
 
   getEvent() {
     return this.#event;
+  }
+}
+
+/**
+ * A MockSpan object to be used for testing. This object is intended to be used in tandem with `TransactionEventBuilder`
+ *
+ * @param opts.startTimestamp
+ * @param opts.endTimestamp
+ * @param opts.op The operation of the span
+ * @param opts.description The description of the span
+ * @param opts.status Optional span specific status, defaults to 'ok'
+ * @param opts.problemSpan If this span should be part of a performance problem, indicates the type of problem span (i.e ProblemSpan.OFFENDER, ProblemSpan.PARENT)
+ * @param opts.parentSpanId When provided, will explicitly set this span's parent ID. If you are creating nested spans via `childOpts`, this will be handled automatically and you do not need to provide an ID.
+ * Defaults to the root span's ID.
+ * @param opts.childOpts An array containing options for direct children of the current span. Will create direct child spans for each set of options provided
+ */
+export class MockSpan {
+  span: RawSpanType;
+  children: MockSpan[] = [];
+  problemSpan: ProblemSpan | undefined;
+
+  constructor(opts: Omit<AddSpanOpts, 'numSpans' | 'parentSpanId'>) {
+    const {startTimestamp, endTimestamp, op, description, status, problemSpan} = opts;
+
+    this.span = {
+      start_timestamp: startTimestamp,
+      timestamp: endTimestamp,
+      op,
+      description,
+      status: status ?? 'ok',
+      data: {},
+      // These values are automatically assigned by the TransactionEventBuilder when the spans are added
+      span_id: '',
+      trace_id: '',
+      parent_span_id: '',
+    };
+
+    this.problemSpan = problemSpan;
+  }
+
+  /**
+   *
+   * @param opts.numSpans If provided, will create the same span numSpan times
+   * @returns
+   */
+  addChild(opts: AddSpanOpts, numSpans = 1) {
+    const {startTimestamp, endTimestamp, op, description, status, problemSpan} = opts;
+
+    for (let i = 0; i < numSpans; i++) {
+      const span = new MockSpan({
+        startTimestamp,
+        endTimestamp,
+        op,
+        description,
+        status,
+        problemSpan,
+      });
+      this.children.push(span);
+    }
+
+    return this.children[0];
   }
 }
