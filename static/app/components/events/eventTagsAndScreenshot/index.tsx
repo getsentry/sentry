@@ -5,6 +5,7 @@ import {DataSection} from 'sentry/components/events/styles';
 import space from 'sentry/styles/space';
 import {EventAttachment} from 'sentry/types/group';
 import {objectIsEmpty} from 'sentry/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
 import Modal, {modalCss} from './screenshot/modal';
 import Screenshot from './screenshot';
@@ -53,6 +54,16 @@ function EventTagsAndScreenshots({
     eventAttachment: EventAttachment,
     downloadUrl: string
   ) {
+    trackAdvancedAnalyticsEvent('issue_details.issue_tab.screenshot_modal_opened', {
+      organization,
+    });
+    function handleDelete() {
+      trackAdvancedAnalyticsEvent('issue_details.issue_tab.screenshot_modal_deleted', {
+        organization,
+      });
+      onDeleteScreenshot(eventAttachment.id);
+    }
+
     openModal(
       modalProps => (
         <Modal
@@ -62,7 +73,15 @@ function EventTagsAndScreenshots({
           projectSlug={projectSlug}
           eventAttachment={eventAttachment}
           downloadUrl={downloadUrl}
-          onDelete={() => onDeleteScreenshot(eventAttachment.id)}
+          onDelete={handleDelete}
+          onDownload={() =>
+            trackAdvancedAnalyticsEvent(
+              'issue_details.issue_tab.screenshot_modal_download',
+              {
+                organization,
+              }
+            )
+          }
         />
       ),
       {modalCss}
