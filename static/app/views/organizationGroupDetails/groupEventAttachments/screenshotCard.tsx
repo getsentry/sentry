@@ -84,7 +84,7 @@ export function ScreenshotCard({
           <Title
             onClick={() =>
               trackAdvancedAnalyticsEvent(
-                'issue_details.attachment_tab.screenshot_card_clicked',
+                'issue_details.attachment_tab.screenshot_title_clicked',
                 {
                   organization,
                 }

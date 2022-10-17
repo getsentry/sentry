@@ -63,10 +63,10 @@ export type TeamInsightsEventParameters = {
       | ResolutionStatus;
     assigned_suggestion_reason?: string;
   };
-  'issue_details.attachment_tab.screenshot_card_clicked': {};
   'issue_details.attachment_tab.screenshot_modal_deleted': {};
   'issue_details.attachment_tab.screenshot_modal_download': {};
   'issue_details.attachment_tab.screenshot_modal_opened': {};
+  'issue_details.attachment_tab.screenshot_title_clicked': {};
   'issue_details.event_json_clicked': {group_id: number};
   'issue_details.event_navigation_clicked': {button: string; project_id: number};
   'issue_details.issue_tab.screenshot_dropdown_deleted': {};
@@ -123,8 +123,8 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'issue_alert_rule_details.edit_clicked': 'Issue Alert Rule Details: Edit Clicked',
   'issue_alert_rule_details.viewed': 'Issue Alert Rule Details: Viewed',
   'issue_details.action_clicked': 'Issue Details: Action Clicked',
-  'issue_details.attachment_tab.screenshot_card_clicked':
-    'Attachment Tab: Screenshot card clicked',
+  'issue_details.attachment_tab.screenshot_title_clicked':
+    'Attachment Tab: Screenshot title clicked',
   'issue_details.attachment_tab.screenshot_modal_deleted':
     'Attachment Tab: Screenshot deleted from modal',
   'issue_details.attachment_tab.screenshot_modal_download':
