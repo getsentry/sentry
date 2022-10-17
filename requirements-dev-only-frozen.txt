@@ -34,7 +34,7 @@ mccabe==0.7.0
 mock==4.0.3
 more-itertools==8.13.0
 msgpack-types==0.2.0
-mypy==0.971
+mypy==0.982
 mypy-extensions==0.4.3
 nodeenv==1.6.0
 openapi-core==0.14.2
