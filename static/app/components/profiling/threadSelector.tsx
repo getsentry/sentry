@@ -1,14 +1,13 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import CompactSelect from 'sentry/components/forms/compactSelect';
-import {ControlProps, GeneralSelectValue} from 'sentry/components/forms/selectControl';
+import CompactSelect from 'sentry/components/compactSelect';
 import {IconList} from 'sentry/icons';
 import {tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {SelectValue} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {FlamegraphState} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/index';
+import {FlamegraphState} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContext';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {Profile} from 'sentry/utils/profiling/profile/profile';
 import {makeFormatter} from 'sentry/utils/profiling/units/units';
@@ -19,27 +18,32 @@ interface ThreadSelectorProps {
   threadId: FlamegraphState['profiles']['threadId'];
 }
 
-function ThreadMenuSelector<OptionType extends GeneralSelectValue = GeneralSelectValue>({
+function ThreadMenuSelector({
   threadId,
   onThreadIdChange,
   profileGroup,
 }: ThreadSelectorProps) {
   const options: SelectValue<number>[] = useMemo(() => {
-    return [...profileGroup.profiles].sort(compareProfiles).map(profile => ({
-      label: profile.name
-        ? `tid (${profile.threadId}): ${profile.name}`
-        : `tid (${profile.threadId})`,
-      value: profile.threadId,
-      details: (
-        <ThreadLabelDetails
-          duration={makeFormatter(profile.unit)(profile.duration)}
-          samples={profile.samples.length}
-        />
-      ),
-    }));
+    return [...profileGroup.profiles].sort(compareProfiles).map(profile => {
+      return {
+        label: profile.name
+          ? `tid (${profile.threadId}): ${profile.name}`
+          : `tid (${profile.threadId})`,
+        value: profile.threadId,
+        disabled: profile.samples.length === 0,
+        details: (
+          <ThreadLabelDetails
+            duration={makeFormatter(profile.unit)(profile.duration)}
+            // plus 1 because the last sample always has a weight of 0
+            // and is not included in the raw weights
+            samples={profile.rawWeights.length + 1}
+          />
+        ),
+      };
+    });
   }, [profileGroup]);
 
-  const handleChange: NonNullable<ControlProps<OptionType>['onChange']> = useCallback(
+  const handleChange: (opt: SelectValue<number>) => void = useCallback(
     opt => {
       if (defined(opt)) {
         onThreadIdChange(opt.value);

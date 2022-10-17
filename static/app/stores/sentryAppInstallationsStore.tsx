@@ -1,7 +1,6 @@
 import {createStore, StoreDefinition} from 'reflux';
 
 import {SentryAppInstallation} from 'sentry/types';
-import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 interface SentryAppInstallationStoreDefinition extends StoreDefinition {
   getInitialState(): SentryAppInstallation[];
@@ -10,6 +9,9 @@ interface SentryAppInstallationStoreDefinition extends StoreDefinition {
 
 const storeConfig: SentryAppInstallationStoreDefinition = {
   init() {
+    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
+    // listeners due to their leaky nature in tests.
+
     this.items = [];
   },
 
@@ -32,5 +34,5 @@ const storeConfig: SentryAppInstallationStoreDefinition = {
   },
 };
 
-const SentryAppInstallationStore = createStore(makeSafeRefluxStore(storeConfig));
+const SentryAppInstallationStore = createStore(storeConfig);
 export default SentryAppInstallationStore;

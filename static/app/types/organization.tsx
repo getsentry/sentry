@@ -1,3 +1,5 @@
+import {AggregationOutputType} from 'sentry/utils/discover/fields';
+
 import type {Actor, Avatar, ObjectStatus, Scope} from './core';
 import type {OrgExperiments} from './experiments';
 import type {ExternalTeam} from './integrations';
@@ -184,30 +186,24 @@ export type SavedQueryVersions = 1 | 2;
 
 export interface NewQuery {
   fields: Readonly<string[]>;
-  id: string | undefined;
   name: string;
-  // GlobalSelectionHeader
   projects: Readonly<number[]>;
-
   version: SavedQueryVersions;
   createdBy?: User;
   display?: string;
   end?: string;
   environment?: Readonly<string[]>;
-
   expired?: boolean;
+  id?: string;
+  interval?: string;
   orderby?: string;
-  // Query and Table
   query?: string;
   range?: string;
   start?: string;
-
   teams?: Readonly<('myteams' | number)[]>;
   topEvents?: string;
   utc?: boolean | string;
   widths?: Readonly<string[]>;
-
-  // Graph
   yAxis?: string[];
 }
 
@@ -232,7 +228,7 @@ export type EventsStats = {
   end?: number;
   isMetricsData?: boolean;
   meta?: {
-    fields: Record<string, string>;
+    fields: Record<string, AggregationOutputType>;
     isMetricsData: boolean;
     tips: {columns?: string; query?: string};
     units: Record<string, string>;

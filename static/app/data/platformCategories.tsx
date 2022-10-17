@@ -45,6 +45,7 @@ export const frontend = [
   'javascript-vue',
   'javascript-nextjs',
   'javascript-remix',
+  'javascript-svelte',
   'unity',
 ] as const;
 
@@ -167,7 +168,7 @@ export const tracing = [
   'react-native-tracing',
 ] as const;
 
-export const performance: PlatformKey[] = [
+export const performance = [
   'javascript',
   'javascript-ember',
   'javascript-react',
@@ -217,6 +218,7 @@ export const releaseHealth: PlatformKey[] = [
   'javascript-vue',
   'javascript-nextjs',
   'javascript-remix',
+  'javascript-svelte',
   // mobile
   'android',
   'apple-ios',

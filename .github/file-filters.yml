@@ -16,16 +16,24 @@ yarn_lockfile: &yarn_lockfile
 eslint_config: &eslint_config
   - '.eslint*'
 
-frontend: &frontend
+# `frontend_src` filters on files that are frontend changes excluding
+# changes to the tests/ directory.
+# If you want to filter on *all* frontend files, use the `frontend_all` filter.
+frontend_src: &frontend_src
   - *yarn_lockfile
-  - *frontend_lintable
   - *eslint_config
+  - '!(tests)/**/*.[tj]{s,sx}'
+  - '**/tsconfig*.json'
+  - '{package,now,vercel}.json'
   - '**/*.less'
   - 'docs-ui/**'
   - 'static/**'
-  - 'tests/js/**'
   - 'fixtures/search-syntax/**/*'
   - '.github/workflows/frontend.yml'
+
+frontend_all: &frontend_all
+  - *frontend_src
+  - '**/*.[tj]{s,sx}'
 
 frontend_modified_lintable:
   - added|modified: *frontend_lintable
@@ -37,10 +45,6 @@ frontend_components_modified_lintable:
 backend_dependencies: &backend_dependencies
   - 'requirements-*.txt'
 
-backend_lintable: &backend_lintable
-  - '**/*.py'
-  - *backend_dependencies
-
 backend_build_changes: &backend_build_changes
   # If you change this line make sure that workflows using this action (e.g. acceptance, api_docs)
   # *and* file-filters would be updated as well
@@ -50,9 +54,13 @@ backend_build_changes: &backend_build_changes
   - 'Makefile'
   - 'pyproject.toml'
 
-backend: &backend
+# `backend_src` filters on files that are backend changes excluding
+# changes to the tests/ directory.
+# If you want to filter on *all* backend files, use the `backend_all` filter.
+backend_src: &backend_src
   - *backend_build_changes
-  - *backend_lintable
+  - *backend_dependencies
+  - '!(tests)/**/*.py'
   - '**/*.sh'
   - '**/*.pysnap'
   - 'src/sentry/!(static)/**'
@@ -60,26 +68,31 @@ backend: &backend
   - 'config/**/*'
   - 'fixtures/search-syntax/**/*'
 
+backend_all: &backend_all
+  - *backend_src
+  - '**/*.py'
+  - '**/*.pyi'
+
 # This is the ultimate controller for acceptance.yml
 acceptance: &acceptance
-  - *backend
-  - *frontend
+  - *backend_all
+  - *frontend_all
   # This is verbose because backend_build_changes includes it, however,
   - '.github/actions/setup-sentry/action.yml'
   - '.github/workflows/acceptance.yml'
 
 plugins: &plugins
-  - *backend
+  - *backend_all
   - 'src/sentry_plugins/**/*.html'
 
 api_docs: &api_docs
-  - *backend
+  - *backend_all
   - 'api-docs/**'
   - 'tests/apidocs/**'
 
 # This is the ultimate controller for backend.yml
 backend_any_type: &backend_any_type
-  - *backend
+  - *backend_all
   - *api_docs
   - *plugins
 
@@ -92,6 +105,7 @@ migrations_modified:
 # These files will trigger our wokrflow to check if lockfile
 # updates are needed
 migration_lockfile:
-  - *backend_lintable
+  - *backend_dependencies
+  - '**/*.py'
   - .github/workflows/check-if-migration-is-required.yml
   - .github/workflows/scripts/migration-check.sh

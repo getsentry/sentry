@@ -11,8 +11,8 @@ import {
   GroupRelease,
   GroupStats,
 } from 'sentry/types';
-import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
+import SelectedGroupStore from './selectedGroupStore';
 import {CommonStoreDefinition} from './types';
 
 function showAlert(msg: string, type: Indicator['type']) {
@@ -39,6 +39,7 @@ interface InternalDefinition {
   removeActivity: (groupId: string, id: string) => number;
   statuses: Record<string, Record<string, boolean>>;
   updateActivity: (groupId: string, id: string, data: Partial<Activity>) => void;
+  updateItems: (itemIds: ItemIds) => void;
 }
 
 interface GroupStoreDefinition extends CommonStoreDefinition<Item[]>, InternalDefinition {
@@ -92,6 +93,9 @@ const storeConfig: GroupStoreDefinition = {
   statuses: {},
 
   init() {
+    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
+    // listeners due to their leaky nature in tests.
+
     this.reset();
   },
 
@@ -112,6 +116,12 @@ const storeConfig: GroupStoreDefinition = {
     });
 
     this.trigger(itemIds);
+  },
+
+  updateItems(itemIds: ItemIds) {
+    const idSet = new Set(itemIds);
+    this.trigger(idSet);
+    SelectedGroupStore.onGroupChange(idSet);
   },
 
   mergeItems(items: Item[]) {
@@ -143,7 +153,7 @@ const storeConfig: GroupStoreDefinition = {
 
     this.items = [...this.items, ...newItems];
 
-    this.trigger(new Set(items.map(item => item.id)));
+    this.updateItems(items.map(item => item.id));
   },
 
   /**
@@ -158,7 +168,7 @@ const storeConfig: GroupStoreDefinition = {
 
     this.items = [...items, ...this.items.filter(item => !itemMap[item.id])];
 
-    this.trigger(new Set(items.map(item => item.id)));
+    this.updateItems(items.map(item => item.id));
   },
 
   /**
@@ -171,7 +181,7 @@ const storeConfig: GroupStoreDefinition = {
   remove(itemIds) {
     this.items = this.items.filter(item => !itemIds?.includes(item.id));
 
-    this.trigger(new Set(itemIds));
+    this.updateItems(itemIds);
   },
 
   addStatus(id, status) {
@@ -222,7 +232,7 @@ const storeConfig: GroupStoreDefinition = {
       group.numComments++;
     }
 
-    this.trigger(new Set([id]));
+    this.updateItems([id]);
   },
 
   updateActivity(groupId, id, data) {
@@ -240,7 +250,7 @@ const storeConfig: GroupStoreDefinition = {
     // into the existing `data` object. This effectively
     // allows passing in an object of only changes.
     group.activity[index].data = Object.assign(group.activity[index].data, data);
-    this.trigger(new Set([group.id]));
+    this.updateItems([group.id]);
   },
 
   removeActivity(groupId, id) {
@@ -260,7 +270,7 @@ const storeConfig: GroupStoreDefinition = {
       group.numComments--;
     }
 
-    this.trigger(new Set([group.id]));
+    this.updateItems([group.id]);
     return index;
   },
 
@@ -301,7 +311,7 @@ const storeConfig: GroupStoreDefinition = {
 
   onAssignTo(_changeId, itemId, _data) {
     this.addStatus(itemId, 'assignTo');
-    this.trigger(new Set([itemId]));
+    this.updateItems([itemId]);
   },
 
   // TODO(dcramer): This is not really the best place for this
@@ -317,13 +327,13 @@ const storeConfig: GroupStoreDefinition = {
     }
     item.assignedTo = response.assignedTo;
     this.clearStatus(itemId, 'assignTo');
-    this.trigger(new Set([itemId]));
+    this.updateItems([itemId]);
   },
 
   onDelete(_changeId, itemIds) {
     const ids = this.itemIdsOrAll(itemIds);
     ids.forEach(itemId => this.addStatus(itemId, 'delete'));
-    this.trigger(new Set(ids));
+    this.updateItems(ids);
   },
 
   onDeleteError(_changeId, itemIds, _response) {
@@ -334,7 +344,7 @@ const storeConfig: GroupStoreDefinition = {
     }
 
     itemIds.forEach(itemId => this.clearStatus(itemId, 'delete'));
-    this.trigger(new Set(itemIds));
+    this.updateItems(itemIds);
   },
 
   onDeleteSuccess(_changeId, itemIds, _response) {
@@ -353,18 +363,18 @@ const storeConfig: GroupStoreDefinition = {
       this.clearStatus(itemId, 'delete');
     });
     this.items = this.items.filter(item => !itemIdSet.has(item.id));
-    this.trigger(new Set(ids));
+    this.updateItems(ids);
   },
 
   onDiscard(_changeId, itemId) {
     this.addStatus(itemId, 'discard');
-    this.trigger(new Set([itemId]));
+    this.updateItems([itemId]);
   },
 
   onDiscardError(_changeId, itemId, _response) {
     this.clearStatus(itemId, 'discard');
     showAlert(t('Unable to discard event. Please try again.'), 'error');
-    this.trigger(new Set([itemId]));
+    this.updateItems([itemId]);
   },
 
   onDiscardSuccess(_changeId, itemId, _response) {
@@ -372,7 +382,7 @@ const storeConfig: GroupStoreDefinition = {
     this.clearStatus(itemId, 'discard');
     this.items = this.items.filter(item => item.id !== itemId);
     showAlert(t('Similar events will be filtered and discarded.'), 'success');
-    this.trigger(new Set([itemId]));
+    this.updateItems([itemId]);
   },
 
   onMerge(_changeId, itemIds) {
@@ -381,7 +391,7 @@ const storeConfig: GroupStoreDefinition = {
     ids.forEach(itemId => this.addStatus(itemId, 'merge'));
     // XXX(billy): Not sure if this is a bug or not but do we need to publish all itemIds?
     // Seems like we only need to publish parent id
-    this.trigger(new Set(ids));
+    this.updateItems(ids);
   },
 
   onMergeError(_changeId, itemIds, _response) {
@@ -389,7 +399,7 @@ const storeConfig: GroupStoreDefinition = {
 
     ids.forEach(itemId => this.clearStatus(itemId, 'merge'));
     showAlert(t('Unable to merge events. Please try again.'), 'error');
-    this.trigger(new Set(ids));
+    this.updateItems(ids);
   },
 
   onMergeSuccess(_changeId, itemIds, response) {
@@ -412,7 +422,7 @@ const storeConfig: GroupStoreDefinition = {
       showAlert(t(`Merged ${ids.length} Issues`), 'success');
     }
 
-    this.trigger(new Set(ids));
+    this.updateItems(ids);
   },
 
   onUpdate(changeId, itemIds, data) {
@@ -423,7 +433,7 @@ const storeConfig: GroupStoreDefinition = {
     });
     this.pendingChanges.set(changeId, {itemIds: ids, data});
 
-    this.trigger(new Set(ids));
+    this.updateItems(ids);
   },
 
   onUpdateError(changeId, itemIds, failSilently) {
@@ -436,7 +446,7 @@ const storeConfig: GroupStoreDefinition = {
       showAlert(t('Unable to update events. Please try again.'), 'error');
     }
 
-    this.trigger(new Set(ids));
+    this.updateItems(ids);
   },
 
   onUpdateSuccess(changeId, itemIds, response) {
@@ -452,7 +462,7 @@ const storeConfig: GroupStoreDefinition = {
       }
     });
     this.pendingChanges.delete(changeId);
-    this.trigger(new Set(ids));
+    this.updateItems(ids);
   },
 
   onPopulateStats(itemIds, response) {
@@ -470,7 +480,7 @@ const storeConfig: GroupStoreDefinition = {
         };
       }
     });
-    this.trigger(new Set(itemIds));
+    this.updateItems(itemIds);
   },
 
   onPopulateReleases(itemId, releaseData) {
@@ -482,9 +492,9 @@ const storeConfig: GroupStoreDefinition = {
         };
       }
     });
-    this.trigger(new Set([itemId]));
+    this.updateItems([itemId]);
   },
 };
 
-const GroupStore = createStore(makeSafeRefluxStore(storeConfig));
+const GroupStore = createStore(storeConfig);
 export default GroupStore;

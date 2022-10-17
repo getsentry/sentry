@@ -2,7 +2,7 @@ import {browserHistory, InjectedRouter} from 'react-router';
 import {Location} from 'history';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import CommitterStore from 'sentry/stores/committerStore';
 import {Event, Group} from 'sentry/types';
@@ -182,7 +182,6 @@ describe('groupEventDetails', () => {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
-    CommitterStore.teardown();
     (browserHistory.replace as jest.Mock).mockClear();
   });
 
@@ -218,7 +217,7 @@ describe('groupEventDetails', () => {
     expect(browserHistory.replace).not.toHaveBeenCalled();
   });
 
-  it('next/prev links', function () {
+  it('next/prev links', async function () {
     const props = makeDefaultMockData();
 
     mockGroupApis(
@@ -243,16 +242,19 @@ describe('groupEventDetails', () => {
 
     const routerContext = TestStubs.routerContext();
 
-    render(
-      <TestComponent
-        {...props}
-        location={{query: {environment: 'dev'}} as Location<any>}
-      />,
-      {
-        context: routerContext,
-        organization: props.organization,
-      }
-    );
+    await act(async () => {
+      render(
+        <TestComponent
+          {...props}
+          location={{query: {environment: 'dev'}} as Location<any>}
+        />,
+        {
+          context: routerContext,
+          organization: props.organization,
+        }
+      );
+      await tick();
+    });
 
     expect(screen.getByLabelText(/Oldest/)).toBeInTheDocument();
     expect(screen.getByLabelText(/Older/)).toBeInTheDocument();
@@ -288,7 +290,7 @@ describe('groupEventDetails', () => {
   });
 });
 
-describe('EventCauseEmpty', () => {
+describe('EventCause', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     CommitterStore.init();
@@ -297,44 +299,6 @@ describe('EventCauseEmpty', () => {
   afterEach(function () {
     MockApiClient.clearMockResponses();
     (browserHistory.replace as jest.Mock).mockClear();
-    CommitterStore.teardown();
-  });
-
-  it('renders empty state', async function () {
-    const props = makeDefaultMockData(
-      undefined,
-      TestStubs.Project({firstEvent: TestStubs.Event()})
-    );
-
-    mockGroupApis(
-      props.organization,
-      props.project,
-      props.group,
-      TestStubs.Event({
-        size: 1,
-        dateCreated: '2019-03-20T00:00:00.000Z',
-        errors: [],
-        entries: [],
-        tags: [{key: 'environment', value: 'dev'}],
-        previousEventID: 'prev-event-id',
-        nextEventID: 'next-event-id',
-      })
-    );
-
-    MockApiClient.addMockResponse({
-      url: `/projects/${props.organization.slug}/${props.project.slug}/releases/completion/`,
-      body: [
-        {
-          step: 'commit',
-          complete: false,
-        },
-      ],
-    });
-
-    render(<TestComponent project={props.project} />, {organization: props.organization});
-
-    expect(await screen.findByTestId(/loaded-event-cause-empty/)).toBeInTheDocument();
-    expect(screen.queryByText(/event-cause/)).not.toBeInTheDocument();
   });
 
   it('renders suspect commit', async function () {
@@ -386,7 +350,7 @@ describe('EventCauseEmpty', () => {
     expect(screen.queryByTestId(/loaded-event-cause-empty/)).not.toBeInTheDocument();
   });
 
-  it('renders suspect commit if `releasesCompletion` empty', function () {
+  it('renders suspect commit if `releasesCompletion` empty', async function () {
     const props = makeDefaultMockData(
       undefined,
       TestStubs.Project({firstEvent: TestStubs.Event()})
@@ -412,7 +376,12 @@ describe('EventCauseEmpty', () => {
       body: [],
     });
 
-    render(<TestComponent project={props.project} />, {organization: props.organization});
+    await act(async () => {
+      render(<TestComponent project={props.project} />, {
+        organization: props.organization,
+      });
+      await tick();
+    });
 
     expect(screen.queryByTestId(/loaded-event-cause-empty/)).not.toBeInTheDocument();
   });
@@ -425,7 +394,7 @@ describe('Platform Integrations', () => {
     MockApiClient.clearMockResponses();
   });
 
-  it('loads Integration UI components', () => {
+  it('loads Integration UI components', async () => {
     const props = makeDefaultMockData();
 
     const unpublishedIntegration = TestStubs.SentryApp({status: 'unpublished'});
@@ -478,7 +447,10 @@ describe('Platform Integrations', () => {
       body: [component],
     });
 
-    render(<TestComponent />, {organization: props.organization});
+    await act(async () => {
+      render(<TestComponent />, {organization: props.organization});
+      await tick();
+    });
 
     expect(componentsRequest).toHaveBeenCalled();
   });

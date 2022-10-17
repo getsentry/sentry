@@ -15,6 +15,7 @@ from datetime import datetime
 import pytest
 import requests
 import yaml
+from django.core.cache import cache
 
 import sentry
 
@@ -442,3 +443,9 @@ def set_sentry_option(request):
         request.addfinalizer(lambda: ctx_mgr.__exit__(None, None, None))
 
     return inner
+
+
+@pytest.fixture
+def django_cache():
+    yield cache
+    cache.clear()

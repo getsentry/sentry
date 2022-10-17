@@ -16,9 +16,13 @@ from sentry.models import (
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils import TestCase
+from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import ExternalProviders
+from sentry.types.issues import GroupType
 
 
+@region_silo_test
 class GroupSerializerTest(TestCase):
     def test_project(self):
         user = self.create_user()
@@ -350,3 +354,25 @@ class GroupSerializerTest(TestCase):
                 "dateCreated": result["statusDetails"]["info"]["dateCreated"],
             },
         }
+
+    def test_perf_issue(self):
+        cur_time = before_now(minutes=1)
+        event_data = {
+            "type": "transaction",
+            "level": "info",
+            "message": "transaction message",
+            "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+            "timestamp": cur_time.timestamp(),
+            "start_timestamp": cur_time.timestamp(),
+            "received": cur_time.timestamp(),
+            "fingerprint": [f"{GroupType.PERFORMANCE_N_PLUS_ONE.value}-group1"],
+        }
+        event = self.store_event(
+            data=event_data,
+            project_id=self.project.id,
+        )
+        perf_group = event.groups[0]
+        serialized = serialize(perf_group)
+        assert serialized["count"] == "1"
+        assert serialized["issueCategory"] == "performance"
+        assert serialized["issueType"] == "performance_n_plus_one"

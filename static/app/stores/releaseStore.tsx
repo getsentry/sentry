@@ -1,8 +1,6 @@
 import {createStore, StoreDefinition} from 'reflux';
 
-import OrganizationActions from 'sentry/actions/organizationActions';
 import {Deploy, Organization, Release} from 'sentry/types';
-import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 type StoreRelease = Map<string, Release>;
 type StoreDeploys = Map<string, Array<Deploy>>;
@@ -63,12 +61,10 @@ const storeConfig: ReleaseStoreDefinition = {
     deploysError: new Map() as StoreError,
   },
 
-  unsubscribeListeners: [],
-
   init() {
-    this.unsubscribeListeners.push(
-      this.listenTo(OrganizationActions.update, this.updateOrganization)
-    );
+    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
+    // listeners due to their leaky nature in tests.
+
     this.reset();
   },
 
@@ -232,5 +228,5 @@ const storeConfig: ReleaseStoreDefinition = {
   },
 };
 
-const ReleaseStore = createStore(makeSafeRefluxStore(storeConfig));
+const ReleaseStore = createStore(storeConfig);
 export default ReleaseStore;

@@ -1,34 +1,34 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectUserFeedback from 'sentry/views/settings/project/projectUserFeedback';
 
 describe('ProjectUserFeedback', function () {
-  const org = TestStubs.Organization();
-  const project = TestStubs.ProjectDetails();
+  const {org, project, routerContext} = initializeOrg();
   const url = `/projects/${org.slug}/${project.slug}/`;
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/`,
+      url,
       method: 'GET',
       body: TestStubs.Project(),
     });
     MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/keys/`,
+      url: `${url}keys/`,
       method: 'GET',
       body: [],
     });
   });
 
   it('can toggle sentry branding option', function () {
-    const wrapper = mountWithTheme(
+    render(
       <ProjectUserFeedback
-        organization={org}
+        organizatigon={org}
         project={project}
         params={{orgId: org.slug, projectId: project.slug}}
       />,
-      TestStubs.routerContext()
+      {context: routerContext}
     );
 
     const mock = MockApiClient.addMockResponse({
@@ -36,10 +36,8 @@ describe('ProjectUserFeedback', function () {
       method: 'PUT',
     });
 
-    expect(mock).not.toHaveBeenCalled();
-
     // Click Regenerate Token
-    wrapper.find('Switch').simulate('click');
+    userEvent.click(screen.getByRole('checkbox', {name: 'Show Sentry Branding'}));
 
     expect(mock).toHaveBeenCalledWith(
       url,

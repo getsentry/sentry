@@ -1,8 +1,11 @@
 import {
   BaseGroup,
+  EntryException,
+  EntryThreads,
   EventMetadata,
   EventOrGroupType,
   GroupTombstone,
+  IssueCategory,
   TreeLabelPart,
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
@@ -26,6 +29,7 @@ export function getMessage(
 
   switch (type) {
     case EventOrGroupType.ERROR:
+    case EventOrGroupType.TRANSACTION:
       return metadata.value;
     case EventOrGroupType.CSP:
       return metadata.message;
@@ -102,7 +106,7 @@ export function getTitle(
   features: string[] = [],
   grouping = false
 ) {
-  const {metadata, type, culprit} = event;
+  const {metadata, type, culprit, title} = event;
 
   const customTitle =
     features.includes('custom-event-title') && metadata?.title
@@ -151,7 +155,7 @@ export function getTitle(
       // (https://github.com/getsentry/sentry/pull/19794) so we need to fall
       // back to the computed title for these.
       return {
-        title: customTitle ?? (metadata.message || event.title),
+        title: customTitle ?? (metadata.message || title),
         subtitle: metadata.origin ?? '',
         treeLabel: undefined,
       };
@@ -161,9 +165,16 @@ export function getTitle(
         subtitle: '',
         treeLabel: undefined,
       };
+    case EventOrGroupType.TRANSACTION:
+      const isPerfIssue = event.issueCategory === IssueCategory.PERFORMANCE;
+      return {
+        title: isPerfIssue ? metadata.title : customTitle ?? title,
+        subtitle: isPerfIssue ? culprit : '',
+        treeLabel: undefined,
+      };
     default:
       return {
-        title: customTitle ?? event.title,
+        title: customTitle ?? title,
         subtitle: '',
         treeLabel: undefined,
       };
@@ -175,4 +186,98 @@ export function getTitle(
  */
 export function getShortEventId(eventId: string) {
   return eventId.substring(0, 8);
+}
+
+/**
+ * Returns a comma delineated list of errors
+ */
+function getEventErrorString(event: Event) {
+  return event.errors?.map(error => error.type).join(',') || '';
+}
+
+function hasTrace(event: Event) {
+  if (event.type !== 'error') {
+    return false;
+  }
+  return !!event.contexts?.trace;
+}
+
+/**
+ * Function to determine if an event has source maps
+ */
+function eventHasSourceMaps(event: Event) {
+  return event.entries?.some(entry => {
+    return (
+      entry.type === 'exception' &&
+      entry.data.values?.some(value => !!value.rawStacktrace && !!value.stacktrace)
+    );
+  });
+}
+
+function getExceptionEntries(event: Event) {
+  return event.entries?.filter(entry => entry.type === 'exception') as EntryException[];
+}
+
+function getNumberOfStackFrames(event: Event) {
+  const entries = getExceptionEntries(event);
+  // for each entry, go through each frame and get the max
+  const frameLengths =
+    entries?.map(entry =>
+      (entry.data.values || []).reduce((best, exception) => {
+        // find the max number of frames in this entry
+        const frameCount = exception.stacktrace?.frames?.length || 0;
+        return Math.max(best, frameCount);
+      }, 0)
+    ) || [];
+  if (!frameLengths.length) {
+    return 0;
+  }
+  return Math.max(...frameLengths);
+}
+
+function getNumberOfInAppStackFrames(event: Event) {
+  const entries = getExceptionEntries(event);
+  // for each entry, go through each frame
+  const frameLengths =
+    entries?.map(entry =>
+      (entry.data.values || []).reduce((best, exception) => {
+        // find the max number of frames in this entry
+        const frames = exception.stacktrace?.frames?.filter(f => f.inApp) || [];
+        return Math.max(best, frames.length);
+      }, 0)
+    ) || [];
+  if (!frameLengths.length) {
+    return 0;
+  }
+  return Math.max(...frameLengths);
+}
+
+function getNumberOfThreadsWithNames(event: Event) {
+  const threadLengths =
+    (
+      (event.entries?.filter(entry => entry.type === 'threads') || []) as EntryThreads[]
+    ).map(entry => entry.data?.values?.filter(thread => !!thread.name).length || 0) || [];
+  if (!threadLengths.length) {
+    return 0;
+  }
+  return Math.max(...threadLengths);
+}
+
+export function getAnalyicsDataForEvent(event?: Event) {
+  return {
+    event_id: event?.eventID || '-1',
+    num_commits: event?.release?.commitCount || 0,
+    num_stack_frames: event ? getNumberOfStackFrames(event) : 0,
+    num_in_app_stack_frames: event ? getNumberOfInAppStackFrames(event) : 0,
+    num_threads_with_names: event ? getNumberOfThreadsWithNames(event) : 0,
+    event_platform: event?.platform,
+    event_type: event?.type,
+    has_release: !!event?.release,
+    has_source_maps: event ? eventHasSourceMaps(event) : false,
+    has_trace: event ? hasTrace(event) : false,
+    has_commit: !!event?.release?.lastCommit,
+    event_errors: event ? getEventErrorString(event) : '',
+    sdk_name: event?.sdk?.name,
+    sdk_version: event?.sdk?.version,
+  };
 }

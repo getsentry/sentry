@@ -3,8 +3,10 @@ from django.urls import reverse
 from sentry.api.endpoints.organization_code_mappings import BRANCH_NAME_ERROR_MESSAGE
 from sentry.models import Integration, Repository
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test
 class OrganizationCodeMappingsTest(APITestCase):
     def setUp(self):
         super().setUp()
@@ -229,6 +231,11 @@ class OrganizationCodeMappingsTest(APITestCase):
             "sourceRoot": "/source/root",
             "defaultBranch": "master",
         }
+
+    def test_basic_post_from_member_permissions(self):
+        self.login_as(user=self.user2)
+        response = self.make_post()
+        assert response.status_code == 201, response.content
 
     def test_basic_post_with_invalid_integrationId(self):
         response = self.make_post({"integrationId": 100})

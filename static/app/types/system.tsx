@@ -101,11 +101,14 @@ declare global {
      */
     adblockSuspected?: boolean;
     /**
-     * The CSRF cookie ised on the backend
+     * The CSRF cookie used on the backend
      */
     csrfCookieName?: string;
-
     sentryEmbedCallback?: ((embed: any) => void) | null;
+    /**
+     * The superuser cookie used on the backend
+     */
+    superUserCookieName?: string;
   }
 }
 
@@ -113,14 +116,15 @@ export interface Config {
   apmSampling: number;
   csrfCookieName: string;
   demoMode: boolean;
+  disableU2FForSUForm: boolean;
   distPrefix: string;
   dsn: string;
   enableAnalytics: boolean;
   features: Set<string>;
   gravatarBaseUrl: string;
   invitesEnabled: boolean;
-
   isAuthenticated: boolean;
+
   // Maintain isOnPremise key for backcompat (plugins?).
   isOnPremise: boolean;
   isSelfHosted: boolean;
@@ -136,14 +140,15 @@ export interface Config {
    */
   messages: {level: keyof Theme['alert']; message: string}[];
   needsUpgrade: boolean;
-
   privacyUrl: string | null;
+
   sentryConfig: {
     dsn: string;
     release: string;
     whitelistUrls: string[];
   };
   singleOrganization: boolean;
+  superUserCookieName: string;
   supportEmail: string;
   termsUrl: string | null;
   theme: 'light' | 'dark';

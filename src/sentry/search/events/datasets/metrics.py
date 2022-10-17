@@ -144,6 +144,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     snql_distribution=lambda args, alias: Function(
                         "countIf",
                         [
+                            Column("value"),
                             Function(
                                 "and",
                                 [
@@ -162,7 +163,7 @@ class MetricsDatasetConfig(DatasetConfig):
                                         ],
                                     ),
                                 ],
-                            )
+                            ),
                         ],
                         alias,
                     ),
@@ -175,6 +176,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     snql_distribution=lambda args, alias: Function(
                         "countIf",
                         [
+                            Column("value"),
                             Function(
                                 "and",
                                 [
@@ -193,7 +195,7 @@ class MetricsDatasetConfig(DatasetConfig):
                                         ],
                                     ),
                                 ],
-                            )
+                            ),
                         ],
                         alias,
                     ),
@@ -204,6 +206,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     snql_distribution=lambda args, alias: Function(
                         "countIf",
                         [
+                            Column("value"),
                             Function(
                                 "and",
                                 [
@@ -238,7 +241,7 @@ class MetricsDatasetConfig(DatasetConfig):
                                         ],
                                     ),
                                 ],
-                            )
+                            ),
                         ],
                         alias,
                     ),

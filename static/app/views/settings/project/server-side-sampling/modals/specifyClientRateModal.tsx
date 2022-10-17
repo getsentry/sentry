@@ -35,6 +35,13 @@ export function SpecifyClientRateModal({
   onChange,
 }: SpecifyClientRateModalProps) {
   useEffect(() => {
+    trackAdvancedAnalyticsEvent('sampling.settings.modal.specify.client.open', {
+      organization,
+      project_id: projectId,
+    });
+  }, [organization, projectId]);
+
+  useEffect(() => {
     onChange(0.1);
   }, [onChange]);
 
@@ -75,7 +82,6 @@ export function SpecifyClientRateModal({
               textHighlight: <TextHighlight />,
             }
           )}
-          type="number"
           name="current-client-sampling"
           placeholder="0.1"
           step="0.1"

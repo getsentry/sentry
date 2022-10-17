@@ -5,8 +5,10 @@ from rest_framework.exceptions import ErrorDetail
 
 from sentry.models import ProjectOwnership
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test
 class ProjectOwnershipEndpointTestCase(APITestCase):
     endpoint = "sentry-api-0-project-ownership"
     method = "put"
@@ -33,7 +35,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         assert resp.data == {
             "raw": None,
             "fallthrough": True,
-            "autoAssignment": False,
+            "autoAssignment": True,
             "isActive": True,
             "dateCreated": None,
             "lastUpdated": None,
@@ -44,7 +46,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         resp = self.client.put(self.path, {"raw": "*.js admin@localhost #tiger-team"})
         assert resp.status_code == 200
         assert resp.data["fallthrough"] is True
-        assert resp.data["autoAssignment"] is False
+        assert resp.data["autoAssignment"] is True
         assert resp.data["raw"] == "*.js admin@localhost #tiger-team"
         assert resp.data["dateCreated"] is not None
         assert resp.data["lastUpdated"] is not None
@@ -53,7 +55,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         resp = self.client.put(self.path, {"fallthrough": False})
         assert resp.status_code == 200
         assert resp.data["fallthrough"] is False
-        assert resp.data["autoAssignment"] is False
+        assert resp.data["autoAssignment"] is True
         assert resp.data["raw"] == "*.js admin@localhost #tiger-team"
         assert resp.data["dateCreated"] is not None
         assert resp.data["lastUpdated"] is not None
@@ -62,7 +64,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         assert resp.data["fallthrough"] is False
-        assert resp.data["autoAssignment"] is False
+        assert resp.data["autoAssignment"] is True
         assert resp.data["raw"] == "*.js admin@localhost #tiger-team"
         assert resp.data["dateCreated"] is not None
         assert resp.data["lastUpdated"] is not None

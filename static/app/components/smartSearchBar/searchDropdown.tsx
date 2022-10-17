@@ -5,16 +5,19 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import HotkeysLabel from 'sentry/components/hotkeysLabel';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {parseSearch} from 'sentry/components/searchSyntax/parser';
+import {Overlay} from 'sentry/components/overlay';
+import {parseSearch, SearchConfig} from 'sentry/components/searchSyntax/parser';
 import HighlightQuery from 'sentry/components/searchSyntax/renderer';
 import Tag from 'sentry/components/tag';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {TagCollection} from 'sentry/types';
+import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {FieldKind} from 'sentry/utils/fields';
 
-import SearchBarFlyout from './searchBarFlyout';
 import {ItemType, SearchGroup, SearchItem, Shortcut} from './types';
+import {getSearchConfigFromCustomPerformanceMetrics} from './utils';
 
 const getDropdownItemKey = (item: SearchItem) =>
   `${item.value || item.desc || item.title}-${
@@ -27,9 +30,11 @@ type Props = {
   onClick: (value: string, item: SearchItem) => void;
   searchSubstring: string;
   className?: string;
+  customPerformanceMetrics?: CustomMeasurementCollection;
   maxMenuHeight?: number;
   onIconClick?: (value: string) => void;
   runShortcut?: (shortcut: Shortcut) => void;
+  supportedTags?: TagCollection;
   visibleShortcuts?: Shortcut[];
 };
 
@@ -43,8 +48,10 @@ const SearchDropdown = ({
   onIconClick,
   searchSubstring = '',
   onClick = () => {},
+  customPerformanceMetrics,
+  supportedTags,
 }: Props) => (
-  <SearchBarFlyout className={className} fullWidth data-test-id="smart-search-dropdown">
+  <SearchDropdownOverlay className={className} data-test-id="smart-search-dropdown">
     {loading ? (
       <LoadingWrapper key="loading" data-test-id="search-autocomplete-loading">
         <LoadingIndicator mini />
@@ -66,6 +73,12 @@ const SearchDropdown = ({
                     searchSubstring={searchSubstring}
                     onClick={onClick}
                     onIconClick={onIconClick}
+                    additionalSearchConfig={{
+                      ...getSearchConfigFromCustomPerformanceMetrics(
+                        customPerformanceMetrics
+                      ),
+                      supportedTags,
+                    }}
                   />
                 ))}
               {isEmpty && <Info>{t('No items found')}</Info>}
@@ -95,11 +108,15 @@ const SearchDropdown = ({
             </Button>
           ))}
       </ButtonBar>
-      <Button size="xs" href="https://docs.sentry.io/product/sentry-basics/search/">
+      <Button
+        size="xs"
+        href="https://docs.sentry.io/product/sentry-basics/search/"
+        external
+      >
         Read the docs
       </Button>
     </DropdownFooter>
-  </SearchBarFlyout>
+  </SearchDropdownOverlay>
 );
 
 export default SearchDropdown;
@@ -253,6 +270,7 @@ type DropdownItemProps = {
   item: SearchItem;
   onClick: (value: string, item: SearchItem) => void;
   searchSubstring: string;
+  additionalSearchConfig?: Partial<SearchConfig>;
   isChild?: boolean;
   onIconClick?: any;
 };
@@ -263,12 +281,13 @@ const DropdownItem = ({
   searchSubstring,
   onClick,
   onIconClick,
+  additionalSearchConfig,
 }: DropdownItemProps) => {
   const isDisabled = item.value === null;
 
   let children: React.ReactNode;
   if (item.type === ItemType.RECENT_SEARCH) {
-    children = <QueryItem item={item} />;
+    children = <QueryItem item={item} additionalSearchConfig={additionalSearchConfig} />;
   } else if (item.type === ItemType.INVALID_TAG) {
     children = (
       <Invalid>
@@ -316,6 +335,7 @@ const DropdownItem = ({
   return (
     <Fragment>
       <SearchListItem
+        role="option"
         className={`${isChild ? 'group-child' : ''} ${item.active ? 'active' : ''}`}
         data-test-id="search-autocomplete-item"
         onClick={
@@ -335,6 +355,7 @@ const DropdownItem = ({
             onClick={onClick}
             searchSubstring={searchSubstring}
             isChild
+            additionalSearchConfig={additionalSearchConfig}
           />
         ))}
     </Fragment>
@@ -370,14 +391,17 @@ const DropdownDocumentation = ({
   return <Documentation>{documentation}</Documentation>;
 };
 
-type QueryItemProps = {item: SearchItem};
+type QueryItemProps = {
+  item: SearchItem;
+  additionalSearchConfig?: Partial<SearchConfig>;
+};
 
-const QueryItem = ({item}: QueryItemProps) => {
+const QueryItem = ({item, additionalSearchConfig}: QueryItemProps) => {
   if (!item.value) {
     return null;
   }
 
-  const parsedQuery = parseSearch(item.value);
+  const parsedQuery = parseSearch(item.value, additionalSearchConfig);
 
   if (!parsedQuery) {
     return null;
@@ -389,6 +413,15 @@ const QueryItem = ({item}: QueryItemProps) => {
     </QueryItemWrapper>
   );
 };
+
+const SearchDropdownOverlay = styled(Overlay)`
+  position: absolute;
+  top: 100%;
+  left: -1px;
+  right: -1px;
+  overflow: hidden;
+  margin-top: ${space(1)};
+`;
 
 const LoadingWrapper = styled('div')`
   display: flex;

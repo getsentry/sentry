@@ -19,8 +19,8 @@ import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import SelectControl from 'sentry/components/forms/selectControl';
-import Option from 'sentry/components/forms/selectOption';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
+import Option from 'sentry/components/forms/controls/selectOption';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnOrder,
@@ -45,6 +45,8 @@ import {
   isEquationAlias,
 } from 'sentry/utils/discover/fields';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
+import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {decodeInteger, decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -56,7 +58,6 @@ import {
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
   getWidgetReleasesUrl,
-  isCustomMeasurementWidget,
 } from 'sentry/views/dashboardsV2/utils';
 import WidgetCardChart, {
   AugmentedEChartDataZoomHandler,
@@ -72,6 +73,8 @@ import ReleaseWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/releaseWi
 import {WidgetCardChartContainer} from 'sentry/views/dashboardsV2/widgetCard/widgetCardChartContainer';
 import WidgetQueries from 'sentry/views/dashboardsV2/widgetCard/widgetQueries';
 import {decodeColumnOrder} from 'sentry/views/eventsV2/utils';
+import {OrganizationContext} from 'sentry/views/organizationContext';
+import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
 import {WidgetViewerQueryField} from './widgetViewerModal/utils';
 import {
@@ -947,43 +950,64 @@ function WidgetViewerModal(props: Props) {
 
   return (
     <Fragment>
-      <DashboardsMEPProvider>
-        <Header closeButton>
-          <h3>{widget.title}</h3>
-        </Header>
-        <Body>{renderWidgetViewer()}</Body>
-        <Footer>
-          <ResultsContainer>
-            {renderTotalResults(totalResults, widget.widgetType)}
-            <ButtonBar gap={1}>
-              {onEdit && widget.id && (
-                <Button
-                  type="button"
-                  onClick={() => {
-                    closeModal();
-                    onEdit();
-                    trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.edit', {
-                      organization,
-                      widget_type: widget.widgetType ?? WidgetType.DISCOVER,
-                      display_type: widget.displayType,
-                    });
-                  }}
+      <OrganizationContext.Provider value={organization}>
+        <DashboardsMEPProvider>
+          <MetricsCardinalityProvider organization={organization} location={location}>
+            <MetricsDataSwitcher
+              organization={organization}
+              eventView={eventView}
+              location={location}
+              hideLoadingIndicator
+            >
+              {metricsDataSide => (
+                <MEPSettingProvider
+                  location={location}
+                  forceTransactions={metricsDataSide.forceTransactionsOnly}
                 >
-                  {t('Edit Widget')}
-                </Button>
+                  <Header closeButton>
+                    <h3>{widget.title}</h3>
+                  </Header>
+                  <Body>{renderWidgetViewer()}</Body>
+                  <Footer>
+                    <ResultsContainer>
+                      {renderTotalResults(totalResults, widget.widgetType)}
+                      <ButtonBar gap={1}>
+                        {onEdit && widget.id && (
+                          <Button
+                            type="button"
+                            onClick={() => {
+                              closeModal();
+                              onEdit();
+                              trackAdvancedAnalyticsEvent(
+                                'dashboards_views.widget_viewer.edit',
+                                {
+                                  organization,
+                                  widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                                  display_type: widget.displayType,
+                                }
+                              );
+                            }}
+                          >
+                            {t('Edit Widget')}
+                          </Button>
+                        )}
+                        {widget.widgetType && (
+                          <OpenButton
+                            widget={primaryWidget}
+                            organization={organization}
+                            selection={modalTableSelection}
+                            selectedQueryIndex={selectedQueryIndex}
+                          />
+                        )}
+                      </ButtonBar>
+                    </ResultsContainer>
+                  </Footer>
+                </MEPSettingProvider>
               )}
-              {widget.widgetType && (
-                <OpenButton
-                  widget={primaryWidget}
-                  organization={organization}
-                  selection={modalTableSelection}
-                  selectedQueryIndex={selectedQueryIndex}
-                />
-              )}
-            </ButtonBar>
-          </ResultsContainer>
-        </Footer>
-      </DashboardsMEPProvider>
+            </MetricsDataSwitcher>
+          </MetricsCardinalityProvider>
+        </DashboardsMEPProvider>
+      </OrganizationContext.Provider>
     </Fragment>
   );
 }
@@ -1032,12 +1056,6 @@ function OpenButton({
       to={path}
       priority="primary"
       type="button"
-      disabled={isCustomMeasurementWidget(widget)}
-      title={
-        isCustomMeasurementWidget(widget)
-          ? t('Widgets using custom performance metrics cannot be opened in Discover.')
-          : undefined
-      }
       onClick={() => {
         trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.open_source', {
           organization,

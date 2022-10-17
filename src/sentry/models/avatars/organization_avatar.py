@@ -1,10 +1,11 @@
 from django.db import models
 
-from sentry.db.models import FlexibleForeignKey
+from sentry.db.models import FlexibleForeignKey, region_silo_only_model
 
 from . import AvatarBase
 
 
+@region_silo_only_model
 class OrganizationAvatar(AvatarBase):
     """
     An OrganizationAvatar associates an Organization with their avatar photo File

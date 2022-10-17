@@ -2,8 +2,10 @@ from django.db.models import F
 
 from sentry.models import AuthProvider, Organization
 from sentry.testutils import AcceptanceTestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test
 class AcceptOrganizationInviteTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
@@ -23,12 +25,12 @@ class AcceptOrganizationInviteTest(AcceptanceTestCase):
         self.browser.get(self.member.get_invite_link().split("/", 3)[-1])
         self.browser.wait_until('[data-test-id="accept-invite"]')
         self.browser.snapshot(name="accept organization invite")
-        assert self.browser.element_exists('[aria-label="join-organization"]')
+        assert self.browser.element_exists('[data-test-id="join-organization"]')
 
     def test_invite_not_authenticated(self):
         self.browser.get(self.member.get_invite_link().split("/", 3)[-1])
         self.browser.wait_until('[data-test-id="accept-invite"]')
-        assert self.browser.element_exists('[aria-label="create-account"]')
+        assert self.browser.element_exists('[data-test-id="create-account"]')
 
     def test_invite_2fa_enforced_org(self):
         self.org.update(flags=F("flags").bitor(Organization.flags.require_2fa))
@@ -47,4 +49,4 @@ class AcceptOrganizationInviteTest(AcceptanceTestCase):
         self.browser.get(self.member.get_invite_link().split("/", 3)[-1])
         self.browser.wait_until('[data-test-id="accept-invite"]')
         assert self.browser.element_exists_by_test_id("action-info-sso")
-        assert self.browser.element_exists('[aria-label="sso-login"]')
+        assert self.browser.element_exists('[data-test-id="sso-login"]')

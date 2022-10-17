@@ -2,13 +2,15 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import eventstore, features
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.models import EventAttachment
+from sentry.models import EventAttachment, event_attachment_screenshot_filter
 from sentry.search.utils import tokenize_query
 
 
+@region_silo_endpoint
 class EventAttachmentsEndpoint(ProjectEndpoint):
     def get(self, request: Request, project, event_id) -> Response:
         """
@@ -40,6 +42,10 @@ class EventAttachmentsEndpoint(ProjectEndpoint):
                 if key == "query":
                     value = " ".join(value)
                     queryset = queryset.filter(name__icontains=value)
+                elif key == "is":
+                    value = " ".join(value)
+                    if value in ["screenshot"]:
+                        queryset = event_attachment_screenshot_filter(queryset)
                 else:
                     queryset = queryset.none()
 

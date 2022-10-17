@@ -16,6 +16,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log, roles
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organizationmember import OrganizationMemberEndpoint
 from sentry.api.endpoints.organization_member.index import OrganizationMemberSerializer
 from sentry.api.exceptions import ConflictError
@@ -103,6 +104,7 @@ def _scim_member_serializer_with_expansion(organization):
     return OrganizationMemberSCIMSerializer(expand=expand)
 
 
+@region_silo_endpoint
 class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
     permission_classes = (OrganizationSCIMMemberPermission,)
     public = {"GET", "DELETE", "PATCH"}
@@ -246,6 +248,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         return Response(status=204)
 
 
+@region_silo_endpoint
 class OrganizationSCIMMemberIndex(SCIMEndpoint):
     permission_classes = (OrganizationSCIMMemberPermission,)
     public = {"GET", "POST"}
@@ -392,17 +395,27 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
 
         result = serializer.validated_data
         with transaction.atomic():
-            member = OrganizationMember(
-                organization=organization,
-                email=result["email"],
-                role=result["role"],
-                inviter=request.user,
+            member_query = OrganizationMember.objects.filter(
+                organization=organization, email=result["email"], role=result["role"]
             )
 
-            # TODO: are invite tokens needed for SAML orgs?
-            if settings.SENTRY_ENABLE_INVITES:
-                member.token = member.generate_token()
-            member.save()
+            if member_query.exists():
+                member = member_query.first()
+                if member.token_expired:
+                    member.regenerate_token()
+
+            else:
+                member = OrganizationMember(
+                    organization=organization,
+                    email=result["email"],
+                    role=result["role"],
+                    inviter=request.user,
+                )
+
+                # TODO: are invite tokens needed for SAML orgs?
+                if settings.SENTRY_ENABLE_INVITES:
+                    member.token = member.generate_token()
+                member.save()
 
         self.create_audit_entry(
             request=request,

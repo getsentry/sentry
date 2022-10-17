@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import {STACKTRACE_PREVIEW_TOOLTIP_DELAY} from 'sentry/components/stacktracePreview';
 import Tooltip from 'sentry/components/tooltip';
+import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconFilter} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -69,7 +69,7 @@ function TogglableAddress({
 
   const formattedAddress = !relativeAddress || isAbsolute ? address : relativeAddress;
   const tooltipTitle = getAddressTooltip();
-  const tooltipDelay = isHoverPreviewed ? STACKTRACE_PREVIEW_TOOLTIP_DELAY : undefined;
+  const tooltipDelay = isHoverPreviewed ? SLOW_TOOLTIP_DELAY : undefined;
 
   return (
     <Wrapper className={className}>

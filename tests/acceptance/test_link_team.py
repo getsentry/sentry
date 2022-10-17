@@ -10,8 +10,10 @@ from sentry.models import (
     Integration,
 )
 from sentry.testutils import AcceptanceTestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test
 class SlackLinkTeamTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()

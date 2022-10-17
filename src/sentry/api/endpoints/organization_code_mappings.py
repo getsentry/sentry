@@ -4,7 +4,11 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
+from sentry.api.base import region_silo_endpoint
+from sentry.api.bases.organization import (
+    OrganizationEndpoint,
+    OrganizationIntegrationsLoosePermission,
+)
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
@@ -117,8 +121,9 @@ class OrganizationIntegrationMixin:
             raise Http404
 
 
+@region_silo_endpoint
 class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegrationMixin):
-    permission_classes = (OrganizationIntegrationsPermission,)
+    permission_classes = (OrganizationIntegrationsLoosePermission,)
 
     def get(self, request: Request, organization) -> Response:
         """

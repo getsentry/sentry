@@ -2,6 +2,7 @@ import {cloneElement, Component, Fragment, isValidElement} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import omit from 'lodash/omit';
 import * as PropTypes from 'prop-types';
 
 import {Client} from 'sentry/api';
@@ -10,19 +11,28 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import MissingProjectMembership from 'sentry/components/projects/missingProjectMembership';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {Item, TabPanels, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import SentryTypes from 'sentry/sentryTypes';
 import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
-import {AvatarProject, Group, Organization, Project} from 'sentry/types';
-import {EntrySpanTree, EntryType, Event} from 'sentry/types/event';
+import {
+  AvatarProject,
+  Group,
+  GroupActivityAssigned,
+  GroupActivityType,
+  IssueCategory,
+  Organization,
+  Project,
+} from 'sentry/types';
+import {Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {callIfFunction} from 'sentry/utils/callIfFunction';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
-import {getMessage, getTitle} from 'sentry/utils/events';
+import {getAnalyicsDataForEvent, getMessage, getTitle} from 'sentry/utils/events';
+import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import Projects from 'sentry/utils/projects';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import withApi from 'sentry/utils/withApi';
@@ -30,13 +40,29 @@ import withApi from 'sentry/utils/withApi';
 import {ERROR_TYPES} from './constants';
 import GroupHeader from './header';
 import SampleEventAlert from './sampleEventAlert';
-import {Tab} from './types';
+import {Tab, TabPaths} from './types';
 import {
   fetchGroupEvent,
   getGroupReprocessingStatus,
   markEventSeen,
   ReprocessingStatus,
 } from './utils';
+
+/**
+ * Return the integration type for the first assignment via integration
+ */
+function getAssignmentIntegration(group: Group) {
+  if (!group.activity) {
+    return '';
+  }
+  const assignmentAcitivies = group.activity.filter(
+    activity => activity.type === GroupActivityType.ASSIGNED
+  ) as GroupActivityAssigned[];
+  const integrationAssignments = assignmentAcitivies.find(
+    activity => !!activity.data.integration
+  );
+  return integrationAssignments?.data.integration || '';
+}
 
 type Error = typeof ERROR_TYPES[keyof typeof ERROR_TYPES] | null;
 
@@ -57,9 +83,9 @@ type State = {
   loading: boolean;
   loadingEvent: boolean;
   loadingGroup: boolean;
-  loadingReplaysCount: boolean;
+  loadingReplayIds: boolean;
   project: null | (Pick<Project, 'id' | 'slug'> & Partial<Pick<Project, 'platform'>>);
-  replaysCount: number | null;
+  replayIds: null | string[];
   event?: Event;
 };
 
@@ -79,8 +105,11 @@ class GroupDetails extends Component<Props, State> {
   }
 
   componentDidMount() {
-    this.fetchData(true);
-    this.fetchReplaysCount();
+    // only track the view if we are loading the event early
+    this.fetchData(this.canLoadEventEarly(this.props));
+    if (this.props.organization.features.includes('session-replay-ui')) {
+      this.fetchReplayIds();
+    }
     this.updateReprocessingProgress();
   }
 
@@ -93,20 +122,23 @@ class GroupDetails extends Component<Props, State> {
       prevProps.location.pathname !== this.props.location.pathname
     ) {
       // Skip tracking for other navigation events like switching events
-      this.fetchData(globalSelectionReadyChanged);
+      this.fetchData(globalSelectionReadyChanged && this.canLoadEventEarly(this.props));
     }
 
     if (
       (!this.canLoadEventEarly(prevProps) && !prevState?.group && this.state.group) ||
       (prevProps.params?.eventId !== this.props.params?.eventId && this.state.group)
     ) {
-      this.getEvent(this.state.group);
+      // if we are loading events we should record analytics after it's loaded
+      this.getEvent(this.state.group).then(
+        () => this.state.group?.project && this.trackView(this.state.group?.project)
+      );
     }
   }
 
   componentWillUnmount() {
     GroupStore.reset();
-    callIfFunction(this.listener);
+    this.listener?.();
     if (this.refetchInterval) {
       window.clearInterval(this.refetchInterval);
     }
@@ -118,24 +150,39 @@ class GroupDetails extends Component<Props, State> {
     return {
       group: null,
       loading: true,
+      loadingReplayIds: true,
       loadingEvent: true,
       loadingGroup: true,
-      loadingReplaysCount: true,
       error: false,
       eventError: false,
       errorType: null,
       project: null,
-      replaysCount: null,
+      replayIds: null,
     };
   }
 
   trackView(project: Project) {
+    const {group, event} = this.state;
     const {organization, params, location} = this.props;
     const {alert_date, alert_rule_id, alert_type} = location.query;
     trackAdvancedAnalyticsEvent('issue_details.viewed', {
       organization,
       project_id: parseInt(project.id, 10),
       group_id: parseInt(params.groupId, 10),
+      // group properties
+      issue_category: group?.issueCategory ?? IssueCategory.ERROR,
+      issue_status: group?.status,
+      issue_age: group?.firstSeen ? getDaysSinceDate(group.firstSeen) : -1,
+      issue_level: group?.level,
+      is_assigned: !!group?.assignedTo,
+      error_count: Number(group?.count || -1),
+      num_comments: group ? group.numComments : -1,
+      project_platform: group?.project.platform,
+      has_external_issue: group?.annotations ? group?.annotations.length > 0 : false,
+      has_owner: group?.owners ? group?.owners.length > 0 : false,
+      integration_assignment_source: group ? getAssignmentIntegration(group) : '',
+      // event properties
+      ...getAnalyicsDataForEvent(event),
       // Alert properties track if the user came from email/slack alerts
       alert_date:
         typeof alert_date === 'string' ? getUtcDateString(Number(alert_date)) : undefined,
@@ -161,40 +208,18 @@ class GroupDetails extends Component<Props, State> {
     return `/issues/${this.props.params.groupId}/first-last-release/`;
   }
 
-  addPerformanceSpecificEntries(event: Event) {
-    const performanceData = event.contexts.performance_issue;
-
-    const spanTreeEntry: EntrySpanTree = {
-      data: {
-        affectedSpanIds: performanceData.spans,
-      },
-      type: EntryType.SPANTREE,
-    };
-
-    const performanceEntry = {
-      data: {},
-      type: EntryType.PERFORMANCE,
-    };
-
-    const updatedEvent = {
-      ...event,
-      entries: [performanceEntry, spanTreeEntry, ...event.entries],
-    };
-    return updatedEvent;
-  }
-
   async getEvent(group?: Group) {
     if (group) {
       this.setState({loadingEvent: true, eventError: false});
     }
 
-    const {params, environments, api, organization} = this.props;
+    const {params, environments, api} = this.props;
     const orgSlug = params.orgId;
     const groupId = params.groupId;
-    const eventId = params?.eventId || 'latest';
+    const eventId = params.eventId ?? 'latest';
     const projectId = group?.project?.slug;
     try {
-      let event = await fetchGroupEvent(
+      const event = await fetchGroupEvent(
         api,
         orgSlug,
         groupId,
@@ -202,15 +227,6 @@ class GroupDetails extends Component<Props, State> {
         environments,
         projectId
       );
-
-      // add extra perf issue specific entries like span tree and duration and span count charts
-      if (
-        organization.features.includes('performance-issues') &&
-        event.contexts.performance_issue
-      ) {
-        const updatedEvent = this.addPerformanceSpecificEntries(event);
-        event = updatedEvent as Event;
-      }
 
       this.setState({event, loading: false, eventError: false, loadingEvent: false});
     } catch (err) {
@@ -221,21 +237,26 @@ class GroupDetails extends Component<Props, State> {
   }
 
   getCurrentRouteInfo(group: Group): {baseUrl: string; currentTab: Tab} {
-    const {routes, organization} = this.props;
+    const {organization, router, routes} = this.props;
     const {event} = this.state;
 
-    // All the routes under /organizations/:orgId/issues/:groupId have a defined props
-    const {currentTab, isEventRoute} = routes[routes.length - 1].props as {
-      currentTab: Tab;
-      isEventRoute: boolean;
-    };
+    const currentRoute = routes[routes.length - 1];
 
-    const baseUrl =
-      isEventRoute && event
-        ? `/organizations/${organization.slug}/issues/${group.id}/events/${event.id}/`
-        : `/organizations/${organization.slug}/issues/${group.id}/`;
+    let currentTab: Tab;
+    // If we're in the tag details page ("/tags/:tagKey/")
+    if (router.params.tagKey) {
+      currentTab = Tab.TAGS;
+    } else {
+      currentTab =
+        Object.values(Tab).find(tab => currentRoute.path === TabPaths[tab]) ??
+        Tab.DETAILS;
+    }
 
-    return {currentTab, baseUrl};
+    const baseUrl = `/organizations/${organization.slug}/issues/${group.id}/${
+      router.params.eventId && event ? `events/${event.id}/` : ''
+    }`;
+
+    return {baseUrl, currentTab};
   }
 
   updateReprocessingProgress() {
@@ -318,7 +339,7 @@ class GroupDetails extends Component<Props, State> {
     // Note, we do not want to include the environment key at all if there are no environments
     const query: Record<string, string | string[]> = {
       ...(environments ? {environment: environments} : {}),
-      expand: 'inbox',
+      expand: ['inbox', 'owners'],
       collapse: 'release',
     };
 
@@ -393,20 +414,23 @@ class GroupDetails extends Component<Props, State> {
     GroupStore.onPopulateReleases(this.props.params.groupId, releases);
   }
 
-  async fetchReplaysCount() {
+  async fetchReplayIds() {
     const {api, location, organization, params} = this.props;
     const {groupId} = params;
 
-    this.setState({loadingReplaysCount: true});
+    this.setState({loadingReplayIds: true});
 
-    const eventView = EventView.fromSavedQuery({
-      id: '',
-      name: `Replays in issue ${groupId}`,
-      version: 2,
-      fields: ['count()'],
-      query: `issue.id:${groupId}`,
-      projects: [],
-    });
+    const eventView = EventView.fromNewQueryWithLocation(
+      {
+        id: '',
+        name: `Errors within replay`,
+        version: 2,
+        fields: ['replayId', 'count()'],
+        query: `issue.id:${groupId} !replayId:""`,
+        projects: [],
+      },
+      location
+    );
 
     try {
       const [data] = await doDiscoverQuery<TableData>(
@@ -415,14 +439,13 @@ class GroupDetails extends Component<Props, State> {
         eventView.getEventsAPIPayload(location)
       );
 
-      const replaysCount = data.data[0]['count()'].toString();
-
+      const replayIds = data.data.map(record => String(record.replayId));
       this.setState({
-        replaysCount: parseInt(replaysCount, 10),
-        loadingReplaysCount: false,
+        replayIds,
+        loadingReplayIds: false,
       });
     } catch (err) {
-      this.setState({loadingReplaysCount: false});
+      this.setState({loadingReplayIds: false});
     }
   }
 
@@ -444,7 +467,7 @@ class GroupDetails extends Component<Props, State> {
       });
 
       const [data] = await Promise.all([groupPromise, eventPromise]);
-      this.fetchGroupReleases();
+      const groupReleasePromise = this.fetchGroupReleases();
 
       const reprocessingNewRoute = this.getReprocessingNewRoute(data);
 
@@ -493,7 +516,8 @@ class GroupDetails extends Component<Props, State> {
       GroupStore.loadInitialData([data]);
 
       if (trackView) {
-        this.trackView(project);
+        // make sure releases have loaded before we track the view
+        groupReleasePromise.then(() => this.trackView(project));
       }
     } catch (error) {
       this.handleRequestError(error);
@@ -542,6 +566,23 @@ class GroupDetails extends Component<Props, State> {
     return `${title || message || defaultTitle} - ${eventDetails}`;
   }
 
+  tabClickAnalyticsEvent(tab: Tab) {
+    const {organization} = this.props;
+    const {project, group} = this.state;
+
+    if (!project || !group) {
+      return;
+    }
+
+    trackAdvancedAnalyticsEvent('issue_details.tab_changed', {
+      organization,
+      group_id: parseInt(group.id, 10),
+      issue_category: group.issueCategory,
+      project_id: parseInt(project.id, 10),
+      tab,
+    });
+  }
+
   renderError() {
     const {projects, location} = this.props;
     const projectId = location.query.project;
@@ -569,8 +610,8 @@ class GroupDetails extends Component<Props, State> {
   }
 
   renderContent(project: AvatarProject, group: Group) {
-    const {children, environments, organization} = this.props;
-    const {loadingEvent, eventError, event, replaysCount} = this.state;
+    const {children, environments, organization, location, router} = this.props;
+    const {loadingEvent, eventError, event, replayIds} = this.state;
 
     const {currentTab, baseUrl} = this.getCurrentRouteInfo(group);
     const groupReprocessingStatus = getGroupReprocessingStatus(group);
@@ -585,7 +626,7 @@ class GroupDetails extends Component<Props, State> {
       if (group.id !== event?.groupID && !eventError) {
         // if user pastes only the event id into the url, but it's from another group, redirect to correct group/event
         const redirectUrl = `/organizations/${organization.slug}/issues/${event?.groupID}/events/${event?.id}/`;
-        this.props.router.push(redirectUrl);
+        router.push(redirectUrl);
       } else {
         childProps = {
           ...childProps,
@@ -600,21 +641,37 @@ class GroupDetails extends Component<Props, State> {
 
     if (currentTab === Tab.TAGS) {
       childProps = {...childProps, event, baseUrl};
+    } else if (currentTab === Tab.REPLAYS) {
+      childProps = {...childProps, replayIds};
     }
 
     return (
-      <Fragment>
+      <Tabs
+        value={currentTab}
+        onChange={tab => {
+          this.tabClickAnalyticsEvent(tab);
+
+          router.push({
+            pathname: `${baseUrl}${TabPaths[tab]}`,
+            query: tab === Tab.EVENTS ? omit(location.query, 'query') : location.query,
+          });
+        }}
+      >
         <GroupHeader
+          organization={organization}
           groupReprocessingStatus={groupReprocessingStatus}
-          project={project as Project}
           event={event}
           group={group}
-          replaysCount={replaysCount}
-          currentTab={currentTab}
+          replaysCount={replayIds?.length}
           baseUrl={baseUrl}
+          project={project as Project}
         />
-        {isValidElement(children) ? cloneElement(children, childProps) : children}
-      </Fragment>
+        <GroupTabPanels>
+          <Item key={currentTab}>
+            {isValidElement(children) ? cloneElement(children, childProps) : children}
+          </Item>
+        </GroupTabPanels>
+      </Tabs>
     );
   }
 
@@ -682,4 +739,11 @@ export default withApi(Sentry.withProfiler(GroupDetails));
 
 const StyledLoadingError = styled(LoadingError)`
   margin: ${space(2)};
+`;
+
+const GroupTabPanels = styled(TabPanels)`
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: stretch;
 `;

@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
@@ -111,14 +112,16 @@ function UserStats({
           <SidebarSpacer />
         </Fragment>
       )}
-      <SectionHeading>
-        {t('User Misery')}
-        <QuestionTooltip
-          position="top"
-          title={getTermHelp(organization, PERFORMANCE_TERM.USER_MISERY)}
-          size="sm"
-        />
-      </SectionHeading>
+      <GuideAnchor target="user_misery" position="left">
+        <SectionHeading>
+          {t('User Misery')}
+          <QuestionTooltip
+            position="top"
+            title={getTermHelp(organization, PERFORMANCE_TERM.USER_MISERY)}
+            size="sm"
+          />
+        </SectionHeading>
+      </GuideAnchor>
       {userMisery}
       <SidebarSpacer />
     </Fragment>

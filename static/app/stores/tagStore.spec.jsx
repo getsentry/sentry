@@ -19,7 +19,7 @@ describe('TagStore', function () {
         {key: 'other', name: 'Other'},
       ]);
 
-      const tags = TagStore.getStateTags();
+      const tags = TagStore.getState();
       expect(tags.mytag).toEqual({
         key: 'mytag',
         name: 'My Custom Tag',

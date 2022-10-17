@@ -1,42 +1,37 @@
+import React from 'react';
+
 import {openModal} from 'sentry/actionCreators/modal';
 import Button, {ButtonProps} from 'sentry/components/button';
+import {
+  FeedbackModal,
+  FeedbackModalProps,
+  modalCss,
+} from 'sentry/components/featureFeedback/feedbackModal';
+import {Data} from 'sentry/components/forms/types';
 import {IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-import {FeedBackModalProps} from './feedbackModal';
-
-export interface FeatureFeedbackProps extends FeedBackModalProps {
+export type FeatureFeedbackProps<T extends Data> = FeedbackModalProps<T> & {
   buttonProps?: Partial<ButtonProps>;
-}
+  secondaryAction?: React.ReactNode;
+};
 
 // Provides a button that, when clicked, opens a modal with a form that,
 // when filled and submitted, will send feedback to Sentry (feedbacks project).
-export function FeatureFeedback({
-  feedbackTypes,
-  featureName,
+export function FeatureFeedback<T extends Data>({
   buttonProps = {},
-}: FeatureFeedbackProps) {
-  async function handleClick() {
-    const mod = await import('sentry/components/featureFeedback/feedbackModal');
+  ...props
+}: FeatureFeedbackProps<T>) {
+  function handleClick(e: React.MouseEvent) {
+    openModal(modalProps => <FeedbackModal {...modalProps} {...props} />, {
+      modalCss,
+    });
 
-    const {FeedbackModal, modalCss} = mod;
-
-    openModal(
-      deps => (
-        <FeedbackModal
-          {...deps}
-          featureName={featureName}
-          feedbackTypes={feedbackTypes}
-        />
-      ),
-      {
-        modalCss,
-      }
-    );
+    buttonProps.onClick?.(e);
   }
 
   return (
-    <Button icon={<IconMegaphone />} onClick={handleClick} {...buttonProps}>
+    <Button {...buttonProps} icon={<IconMegaphone />} onClick={handleClick}>
       {t('Give Feedback')}
     </Button>
   );

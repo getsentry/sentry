@@ -7,6 +7,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import InvalidParams
@@ -42,6 +43,7 @@ ALLOWED_EVENTS_REFERRERS = {
     Referrer.API_TRACE_VIEW_SPAN_DETAIL.value,
     Referrer.API_TRACE_VIEW_ERRORS_VIEW.value,
     Referrer.API_TRACE_VIEW_HOVER_CARD.value,
+    Referrer.API_ISSUES_ISSUE_EVENTS.value,
 }
 
 ALLOWED_EVENTS_GEO_REFERRERS = {
@@ -98,6 +100,7 @@ def rate_limit_events(request: Request, organization_slug=None, *args, **kwargs)
 
 
 @extend_schema(tags=["Discover"])
+@region_silo_endpoint
 class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
     public = {"GET"}
 
@@ -244,6 +247,8 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 "use_aggregate_conditions": True,
                 "allow_metric_aggregates": allow_metric_aggregates,
                 "transform_alias_to_input_format": True,
+                # Whether the flag is enabled or not, regardless of the referrer
+                "has_metrics": use_metrics,
             }
             if not metrics_enhanced and performance_dry_run_mep:
                 sentry_sdk.set_tag("query.mep_compatible", False)
@@ -276,6 +281,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 )
 
 
+@region_silo_endpoint
 class OrganizationEventsGeoEndpoint(OrganizationEventsV2EndpointBase):
     def has_feature(self, request: Request, organization):
         return features.has("organizations:dashboards-basic", organization, actor=request.user)

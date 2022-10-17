@@ -3,6 +3,8 @@ import type {RouteComponentProps} from 'react-router';
 
 import DetailedError from 'sentry/components/errors/detailedError';
 import NotFound from 'sentry/components/errors/notFound';
+import List from 'sentry/components/list';
+import ListItem from 'sentry/components/list/listItem';
 import {
   Provider as ReplayContextProvider,
   useReplayContext,
@@ -11,8 +13,10 @@ import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import useReplayLayout from 'sentry/utils/replays/hooks/useReplayLayout';
+import useReplayPageview from 'sentry/utils/replays/hooks/useReplayPageview';
 import Layout from 'sentry/views/replays/detail/layout';
 import Page from 'sentry/views/replays/detail/page';
+import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = RouteComponentProps<
   {orgId: string; replaySlug: string},
@@ -29,7 +33,9 @@ function ReplayDetails({
   },
   params: {orgId: orgSlug, replaySlug},
 }: Props) {
-  const {fetching, onRetry, replay, fetchError} = useReplayData({
+  useReplayPageview();
+
+  const {fetching, onRetry, replay, replayRecord, fetchError} = useReplayData({
     replaySlug,
     orgSlug,
   });
@@ -37,7 +43,7 @@ function ReplayDetails({
   if (!fetching && !replay && fetchError) {
     if (fetchError.statusText === 'Not Found') {
       return (
-        <Page orgSlug={orgSlug}>
+        <Page orgSlug={orgSlug} replayRecord={replayRecord}>
           <PageContent>
             <NotFound />
           </PageContent>
@@ -50,7 +56,7 @@ function ReplayDetails({
       t('There is an internal systems error or active issue'),
     ];
     return (
-      <Page orgSlug={orgSlug}>
+      <Page orgSlug={orgSlug} replayRecord={replayRecord}>
         <PageContent>
           <DetailedError
             onRetry={onRetry}
@@ -59,11 +65,11 @@ function ReplayDetails({
             message={
               <Fragment>
                 <p>{t('This could be due to a couple of reasons:')}</p>
-                <ol className="detailed-error-list">
+                <List symbol="bullet">
                   {reasons.map((reason, i) => (
-                    <li key={i}>{reason}</li>
+                    <ListItem key={i}>{reason}</ListItem>
                   ))}
-                </ol>
+                </List>
               </Fragment>
             }
           />
@@ -74,7 +80,7 @@ function ReplayDetails({
 
   if (!fetching && replay && replay.getRRWebEvents().length < 2) {
     return (
-      <Page orgSlug={orgSlug} replayRecord={replay.getReplay()}>
+      <Page orgSlug={orgSlug} replayRecord={replayRecord}>
         <DetailedError
           hideSupportLinks
           heading={t('Expected two or more replay events')}
@@ -95,21 +101,23 @@ function ReplayDetails({
 
   return (
     <ReplayContextProvider replay={replay} initialTimeOffset={initialTimeOffset}>
-      <LoadedDetails orgSlug={orgSlug} />
+      <LoadedDetails orgSlug={orgSlug} replayRecord={replayRecord} />
     </ReplayContextProvider>
   );
 }
 
-function LoadedDetails({orgSlug}: {orgSlug: string}) {
+function LoadedDetails({
+  orgSlug,
+  replayRecord,
+}: {
+  orgSlug: string;
+  replayRecord: ReplayRecord | undefined;
+}) {
   const {getLayout} = useReplayLayout();
   const {replay} = useReplayContext();
 
   return (
-    <Page
-      orgSlug={orgSlug}
-      crumbs={replay?.getRawCrumbs()}
-      replayRecord={replay?.getReplay()}
-    >
+    <Page orgSlug={orgSlug} crumbs={replay?.getRawCrumbs()} replayRecord={replayRecord}>
       <Layout layout={getLayout()} />
     </Page>
   );

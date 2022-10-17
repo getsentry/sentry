@@ -20,6 +20,7 @@ from sentry.api.endpoints.project_transaction_threshold_override import (
 )
 from sentry.data_export.endpoints.data_export import DataExportEndpoint
 from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
+from sentry.discover.endpoints.discover_homepage_query import DiscoverHomepageQueryEndpoint
 from sentry.discover.endpoints.discover_key_transactions import (
     KeyTransactionEndpoint,
     KeyTransactionListEndpoint,
@@ -64,6 +65,9 @@ from sentry.incidents.endpoints.project_alert_rule_index import (
 )
 from sentry.incidents.endpoints.project_alert_rule_task_details import (
     ProjectAlertRuleTaskDetailsEndpoint,
+)
+from sentry.replays.endpoints.organization_replay_events_meta import (
+    OrganizationReplayEventsMetaEndpoint,
 )
 from sentry.replays.endpoints.organization_replay_index import OrganizationReplayIndexEndpoint
 from sentry.replays.endpoints.project_replay_details import ProjectReplayDetailsEndpoint
@@ -296,11 +300,6 @@ from .endpoints.organization_member import (
     OrganizationMemberIndexEndpoint,
 )
 from .endpoints.organization_member.team_details import OrganizationMemberTeamDetailsEndpoint
-from .endpoints.organization_member_issues_assigned import OrganizationMemberIssuesAssignedEndpoint
-from .endpoints.organization_member_issues_bookmarked import (
-    OrganizationMemberIssuesBookmarkedEndpoint,
-)
-from .endpoints.organization_member_issues_viewed import OrganizationMemberIssuesViewedEndpoint
 from .endpoints.organization_member_unreleased_commits import (
     OrganizationMemberUnreleasedCommitsEndpoint,
 )
@@ -363,7 +362,6 @@ from .endpoints.organization_transaction_anomaly_detection import (
     OrganizationTransactionAnomalyDetectionEndpoint,
 )
 from .endpoints.organization_user_details import OrganizationUserDetailsEndpoint
-from .endpoints.organization_user_issues import OrganizationUserIssuesEndpoint
 from .endpoints.organization_user_issues_search import OrganizationUserIssuesSearchEndpoint
 from .endpoints.organization_user_reports import OrganizationUserReportsEndpoint
 from .endpoints.organization_user_teams import OrganizationUserTeamsEndpoint
@@ -398,6 +396,7 @@ from .endpoints.project_key_stats import ProjectKeyStatsEndpoint
 from .endpoints.project_keys import ProjectKeysEndpoint
 from .endpoints.project_member_index import ProjectMemberIndexEndpoint
 from .endpoints.project_ownership import ProjectOwnershipEndpoint
+from .endpoints.project_performance_issue_settings import ProjectPerformanceIssueSettingsEndpoint
 from .endpoints.project_platforms import ProjectPlatformsEndpoint
 from .endpoints.project_plugin_details import ProjectPluginDetailsEndpoint
 from .endpoints.project_plugins import ProjectPluginsEndpoint
@@ -425,6 +424,7 @@ from .endpoints.project_releases_token import ProjectReleasesTokenEndpoint
 from .endpoints.project_repo_path_parsing import ProjectRepoPathParsingEndpoint
 from .endpoints.project_reprocessing import ProjectReprocessingEndpoint
 from .endpoints.project_rule_details import ProjectRuleDetailsEndpoint
+from .endpoints.project_rule_preview import ProjectRulePreviewEndpoint
 from .endpoints.project_rule_task_details import ProjectRuleTaskDetailsEndpoint
 from .endpoints.project_rules import ProjectRulesEndpoint
 from .endpoints.project_rules_configuration import ProjectRulesConfigurationEndpoint
@@ -968,6 +968,11 @@ urlpatterns = [
                     name="sentry-api-0-discover-query",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/discover/homepage/$",
+                    DiscoverHomepageQueryEndpoint.as_view(),
+                    name="sentry-api-0-discover-homepage-query",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/discover/saved/$",
                     DiscoverSavedQueriesEndpoint.as_view(),
                     name="sentry-api-0-discover-saved-queries",
@@ -1348,11 +1353,6 @@ urlpatterns = [
                     name="sentry-api-0-organization-issue-search",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/users/(?P<user_id>[^\/]+)/issues/$",
-                    OrganizationUserIssuesEndpoint.as_view(),
-                    name="sentry-api-0-organization-user-issues",
-                ),
-                url(
                     r"^(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/resolved/$",
                     OrganizationIssuesResolvedInReleaseEndpoint.as_view(),
                     name="sentry-api-0-organization-release-resolved",
@@ -1366,21 +1366,6 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/unreleased-commits/$",
                     OrganizationMemberUnreleasedCommitsEndpoint.as_view(),
                     name="sentry-api-0-organization-member-unreleased-commits",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/issues/assigned/$",
-                    OrganizationMemberIssuesAssignedEndpoint.as_view(),
-                    name="sentry-api-0-organization-member-issues-assigned",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/issues/bookmarked/$",
-                    OrganizationMemberIssuesBookmarkedEndpoint.as_view(),
-                    name="sentry-api-0-organization-member-issues-bookmarked",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/issues/viewed/$",
-                    OrganizationMemberIssuesViewedEndpoint.as_view(),
-                    name="sentry-api-0-organization-member-issues-viewed",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/teams/(?P<team_slug>[^\/]+)/$",
@@ -1587,6 +1572,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/replays/$",
                     OrganizationReplayIndexEndpoint.as_view(),
                     name="sentry-api-0-organization-replay-index",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/replays-events-meta/$",
+                    OrganizationReplayEventsMetaEndpoint.as_view(),
+                    name="sentry-api-0-organization-replay-events-meta",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/functions/$",
@@ -2109,6 +2099,11 @@ urlpatterns = [
                     name="sentry-api-0-project-rule-details",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/preview$",
+                    ProjectRulePreviewEndpoint.as_view(),
+                    name="sentry-api-0-project-rule-preview",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/(?P<rule_id>[^\/]+)/group-history/$",
                     ProjectRuleGroupHistoryIndexEndpoint.as_view(),
                     name="sentry-api-0-project-rule-group-history-index",
@@ -2232,6 +2227,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/transaction-threshold/configure/$",
                     ProjectTransactionThresholdEndpoint.as_view(),
                     name="sentry-api-0-project-transaction-threshold",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/performance-issues/configure/$",
+                    ProjectPerformanceIssueSettingsEndpoint.as_view(),
+                    name="sentry-api-0-project-performance-issue-settings",
                 ),
                 # Load plugin project urls
                 url(

@@ -1,25 +1,21 @@
 import {createStore, StoreDefinition} from 'reflux';
 
 import {Repository} from 'sentry/types';
-import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
+
+type State = {
+  orgSlug?: string;
+  repositories?: Repository[];
+  repositoriesError?: Error;
+  repositoriesLoading?: boolean;
+};
 
 interface RepositoryStoreDefinition extends StoreDefinition {
-  get(): {
-    orgSlug?: string;
-    repositories?: Repository[];
-    repositoriesError?: Error;
-    repositoriesLoading?: boolean;
-  };
+  get(): State;
   loadRepositories(orgSlug: string): void;
   loadRepositoriesError(error: Error): void;
   loadRepositoriesSuccess(data: Repository[]): void;
   resetRepositories(): void;
-  state: {
-    orgSlug?: string;
-    repositories?: Repository[];
-    repositoriesError?: Error;
-    repositoriesLoading?: boolean;
-  };
+  state: State;
 }
 
 const storeConfig: RepositoryStoreDefinition = {
@@ -31,6 +27,9 @@ const storeConfig: RepositoryStoreDefinition = {
   },
 
   init() {
+    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
+    // listeners due to their leaky nature in tests.
+
     this.resetRepositories();
   },
 
@@ -79,5 +78,5 @@ const storeConfig: RepositoryStoreDefinition = {
   },
 };
 
-const RepositoryStore = createStore(makeSafeRefluxStore(storeConfig));
+const RepositoryStore = createStore(storeConfig);
 export default RepositoryStore;

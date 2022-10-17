@@ -1,9 +1,11 @@
 import logging
 
+import pytz
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.http import HttpResponse
 from django.template import loader
+from django.utils import timezone
 
 from sentry.auth import access
 from sentry.models import Team
@@ -68,7 +70,7 @@ def get_default_context(request, existing_context=None, team=None):
     return context
 
 
-def render_to_string(template, context=None, request=None):
+def render_to_string(template, context=None, request=None) -> str:
 
     # HACK: set team session value for dashboard redirect
     if context and "team" in context and isinstance(context["team"], Team):
@@ -84,7 +86,13 @@ def render_to_string(template, context=None, request=None):
         context = dict(context)
         context.update(default_context)
 
-    return loader.render_to_string(template, context=context, request=request)
+    if "timezone" in context and context["timezone"] in pytz.all_timezones_set:
+        timezone.activate(context["timezone"])
+
+    rendered = loader.render_to_string(template, context=context, request=request)
+    timezone.deactivate()
+
+    return rendered
 
 
 def render_to_response(template, context=None, request=None, status=200, content_type="text/html"):

@@ -1,7 +1,6 @@
 import {createStore} from 'reflux';
 
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
-import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 import {CommonStoreDefinition} from './types';
 
@@ -17,7 +16,11 @@ interface SidebarPanelStoreDefinition extends CommonStoreDefinition<ActivePanelT
 
 const storeConfig: SidebarPanelStoreDefinition = {
   activePanel: '',
-  unsubscribeListeners: [],
+
+  init() {
+    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
+    // listeners due to their leaky nature in tests.
+  },
 
   activatePanel(panel: SidebarPanelKey) {
     this.activePanel = panel;
@@ -46,5 +49,5 @@ const storeConfig: SidebarPanelStoreDefinition = {
  * This store is used to hold local user preferences
  * Side-effects (like reading/writing to cookies) are done in associated actionCreators
  */
-const SidebarPanelStore = createStore(makeSafeRefluxStore(storeConfig));
+const SidebarPanelStore = createStore(storeConfig);
 export default SidebarPanelStore;

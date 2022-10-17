@@ -15,6 +15,7 @@ from sentry.auth.providers.saml2.provider import HAS_SAML2, Attributes, SAML2Pro
 from sentry.models import AuditLogEntry, AuthProvider, Organization
 from sentry.testutils import AuthProviderTestCase
 from sentry.testutils.helpers import Feature
+from sentry.testutils.silo import control_silo_test
 
 dummy_provider_config = {
     "idp": {
@@ -43,6 +44,7 @@ class DummySAML2Provider(SAML2Provider):
 
 
 @pytest.mark.skipif(not HAS_SAML2, reason="SAML2 library is not installed")
+@control_silo_test
 class AuthSAML2Test(AuthProviderTestCase):
     provider = DummySAML2Provider
     provider_name = "saml2_dummy"
@@ -138,6 +140,29 @@ class AuthSAML2Test(AuthProviderTestCase):
 
         assert auth.status_code == 200
         assert auth.context["existing_user"] == self.user
+
+    def test_auth_sp_initiated_invalid_step_index_from_session(self):
+        from sentry.auth.helper import AuthHelper
+
+        # Start auth process from SP side
+        self.client.post(self.login_path, {"init": True})
+
+        original_get_for_request = AuthHelper.get_for_request
+
+        def side_effect(request):
+            helper = original_get_for_request(request)
+            # This could occur if redis state has expired
+            helper.state.step_index = None
+            return helper
+
+        with mock.patch(
+            "sentry.auth.helper.AuthHelper.get_for_request",
+            side_effect=side_effect,
+            autospec=True,
+        ):
+            response = self.accept_auth()
+            assert response.status_code == 302
+            assert response["Location"] == "/auth/login/saml2-org/"
 
     @mock.patch("sentry.auth.helper.logger")
     def test_auth_setup(self, auth_log):

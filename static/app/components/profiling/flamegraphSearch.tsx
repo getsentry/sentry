@@ -7,8 +7,9 @@ import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import type {FlamegraphSearch as FlamegraphSearchResults} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphSearch';
-import {useFlamegraphSearch} from 'sentry/utils/profiling/flamegraph/useFlamegraphSearch';
+import type {FlamegraphSearch as FlamegraphSearchResults} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
+import {useFlamegraphSearch} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphSearch';
+import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
 import {
   FlamegraphFrame,
   getFlamegraphFrameSearchId,
@@ -38,10 +39,10 @@ function findBestMatchFromFuseMatches(
   let bestMatchStart = -1;
 
   for (let i = 0; i < matches.length; i++) {
-    const match = matches[i];
+    const match = matches[i]!; // iterating over a non empty array
 
     for (let j = 0; j < match.indices.length; j++) {
-      const index = match.indices[j];
+      const index = match.indices[j]!; // iterating over a non empty array
       const matchLength = index[1] - index[0];
 
       if (matchLength < 0) {
@@ -74,7 +75,12 @@ function findBestMatchFromRegexpMatchArray(
   let bestMatchStart = -1;
 
   for (let i = 0; i < matches.length; i++) {
-    const index = matches[i].index;
+    const match = matches[i]; // iterating over a non empty array
+    if (match === undefined) {
+      continue;
+    }
+
+    const index = match.index;
     if (index === undefined) {
       continue;
     }
@@ -82,11 +88,11 @@ function findBestMatchFromRegexpMatchArray(
     // We only override the match if the match is longer than the current best match
     // or if the matches are the same length, but the start is earlier in the string
     if (
-      matches[i].length > bestMatchLength ||
-      (matches[i].length === bestMatchLength && index[0] > bestMatchStart)
+      match.length > bestMatchLength ||
+      (match.length === bestMatchLength && index[0] > bestMatchStart)
     ) {
-      bestMatch = [index, index + matches[i].length];
-      bestMatchLength = matches[i].length;
+      bestMatch = [index, index + match.length];
+      bestMatchLength = match.length;
       bestMatchStart = index;
     }
   }
@@ -105,7 +111,6 @@ function frameSearch(
 
   if (isRegExpString(query)) {
     const [_, lookup, flags] = parseRegExp(query) ?? [];
-
     let matches = 0;
 
     try {
@@ -114,7 +119,7 @@ function frameSearch(
       }
 
       for (let i = 0; i < frames.length; i++) {
-        const frame = frames[i];
+        const frame = frames[i]!; // iterating over a non empty array
 
         const re = new RegExp(lookup, flags ?? 'g');
         const reMatches = Array.from(frame.frame.name.trim().matchAll(re));
@@ -148,7 +153,7 @@ function frameSearch(
   }
 
   for (let i = 0; i < fuseResults.length; i++) {
-    const fuseFrameResult = fuseResults[i];
+    const fuseFrameResult = fuseResults[i]!; // iterating over a non empty array
     const frame = fuseFrameResult.item;
     const frameId = getFlamegraphFrameSearchId(frame);
     const match = findBestMatchFromFuseMatches(fuseFrameResult.matches ?? []);
@@ -191,7 +196,8 @@ function FlamegraphSearch({
   flamegraphs,
   canvasPoolManager,
 }: FlamegraphSearchProps): React.ReactElement | null {
-  const [search, dispatchSearch] = useFlamegraphSearch();
+  const search = useFlamegraphSearch();
+  const dispatch = useDispatchFlamegraphState();
   const [didInitialSearch, setDidInitialSearch] = useState(!search.query);
 
   const allFrames = useMemo(() => {
@@ -218,7 +224,7 @@ function FlamegraphSearch({
   const onZoomIntoFrame = useCallback(
     (frame: FlamegraphFrame) => {
       canvasPoolManager.dispatch('zoom at frame', [frame, 'min']);
-      canvasPoolManager.dispatch('highlight frame', [frame, 'selected']);
+      canvasPoolManager.dispatch('highlight frame', [[frame], 'selected']);
     },
     [canvasPoolManager]
   );
@@ -229,19 +235,20 @@ function FlamegraphSearch({
     }
 
     const frames = memoizedSortFrameResults(search.results);
-    if (frames[search.index]) {
-      onZoomIntoFrame(frames[search.index]);
+    const frame = frames[search.index];
+    if (frame) {
+      onZoomIntoFrame(frame);
     }
   }, [search.results, search.index, onZoomIntoFrame]);
 
   const handleChange: (value: string) => void = useCallback(
     value => {
       if (!value) {
-        dispatchSearch({type: 'clear search'});
+        dispatch({type: 'clear search'});
         return;
       }
 
-      dispatchSearch({
+      dispatch({
         type: 'set results',
         payload: {
           results: frameSearch(value, allFrames, searchIndex),
@@ -249,7 +256,7 @@ function FlamegraphSearch({
         },
       });
     },
-    [dispatchSearch, allFrames, searchIndex]
+    [dispatch, allFrames, searchIndex]
   );
 
   useEffect(() => {
@@ -267,15 +274,15 @@ function FlamegraphSearch({
     }
 
     if (search.index === null || search.index === frames.length - 1) {
-      dispatchSearch({type: 'set search index position', payload: 0});
+      dispatch({type: 'set search index position', payload: 0});
       return;
     }
 
-    dispatchSearch({
+    dispatch({
       type: 'set search index position',
       payload: search.index + 1,
     });
-  }, [search.results, search.index, dispatchSearch]);
+  }, [search.results, search.index, dispatch]);
 
   const onPreviousSearchClick = useCallback(() => {
     const frames = memoizedSortFrameResults(search.results);
@@ -284,18 +291,18 @@ function FlamegraphSearch({
     }
 
     if (search.index === null || search.index === 0) {
-      dispatchSearch({
+      dispatch({
         type: 'set search index position',
         payload: frames.length - 1,
       });
       return;
     }
 
-    dispatchSearch({
+    dispatch({
       type: 'set search index position',
       payload: search.index - 1,
     });
-  }, [search.results, search.index, dispatchSearch]);
+  }, [search.results, search.index, dispatch]);
 
   const handleKeyDown = useCallback(
     (evt: React.KeyboardEvent<HTMLInputElement>) => {

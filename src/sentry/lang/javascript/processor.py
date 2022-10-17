@@ -16,10 +16,11 @@ from django.conf import settings
 from django.utils import timezone
 from django.utils.encoding import force_bytes, force_text
 from requests.utils import get_encoding_from_headers
+from symbolic import SourceMapCache as SmCache
 from symbolic import SourceMapView
 
-from sentry import http, options
-from sentry.interfaces.stacktrace import Stacktrace
+from sentry import features, http, options
+from sentry.event_manager import set_tag
 from sentry.models import EventError, Organization, ReleaseFile
 from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME, ReleaseArchive, read_artifact_index
 from sentry.stacktraces.processing import StacktraceProcessor
@@ -33,7 +34,7 @@ from sentry.utils.files import compress_file
 from sentry.utils.hashlib import md5_text
 from sentry.utils.http import is_valid_origin
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
-from sentry.utils.safe import get_path
+from sentry.utils.safe import get_path, set_path
 from sentry.utils.urls import non_standard_url_join
 
 from .cache import SourceCache, SourceMapCache
@@ -46,6 +47,9 @@ LINES_OF_CONTEXT = 5
 BASE64_SOURCEMAP_PREAMBLE = "data:application/json;base64,"
 BASE64_PREAMBLE_LENGTH = len(BASE64_SOURCEMAP_PREAMBLE)
 UNKNOWN_MODULE = "<unknown module>"
+# Names that do not provide any reasonable value, and that can possibly obstruct
+# better available names. In case we encounter one, we fallback to current frame fn name if available.
+USELESS_FN_NAMES = ["<anonymous>", "__webpack_require__", "__webpack_modules__"]
 CLEAN_MODULE_RE = re.compile(
     r"""^
 (?:/|  # Leading slashes
@@ -80,6 +84,13 @@ logger = logging.getLogger(__name__)
 
 class UnparseableSourcemap(http.BadSource):
     error_type = EventError.JS_INVALID_SOURCEMAP
+
+
+# TODO(smcache): Remove this function and all its usages.
+def should_run_smcache(cls):
+    return cls.has_smcache_feature is True and not isinstance(
+        cls, JavaScriptSmCacheStacktraceProcessor
+    )
 
 
 def trim_line(line, column=0):
@@ -117,6 +128,7 @@ def trim_line(line, column=0):
     return line
 
 
+# TODO(smcache): Remove in favor of `get_raw_source_context` (remove _raw from its name too).
 def get_source_context(source, lineno, colno, context=LINES_OF_CONTEXT):
     if not source:
         return None, None, None
@@ -141,6 +153,36 @@ def get_source_context(source, lineno, colno, context=LINES_OF_CONTEXT):
 
     try:
         post_context = [trim_line(x) for x in source[(lineno + 1) : upper_bound]]
+    except IndexError:
+        post_context = []
+
+    return pre_context or None, context_line, post_context or None
+
+
+def get_raw_source_context(source, lineno, context=LINES_OF_CONTEXT):
+    if not source:
+        return None, None, None
+
+    # lineno's in JS are 1-indexed
+    # just in case. sometimes math is hard
+    if lineno > 0:
+        lineno -= 1
+
+    lower_bound = max(0, lineno - context)
+    upper_bound = min(lineno + 1 + context, len(source))
+
+    try:
+        pre_context = source[lower_bound:lineno]
+    except IndexError:
+        pre_context = []
+
+    try:
+        context_line = source[lineno]
+    except IndexError:
+        context_line = ""
+
+    try:
+        post_context = source[(lineno + 1) : upper_bound]
     except IndexError:
         post_context = []
 
@@ -739,7 +781,10 @@ def get_max_age(headers):
     return min(max_age, CACHE_CONTROL_MAX)
 
 
-def fetch_sourcemap(url, project=None, release=None, dist=None, allow_scraping=True):
+# TODO(smcache): Remove unnecessary `use_smcache` flag.
+def fetch_sourcemap(
+    url, source=b"", project=None, release=None, dist=None, allow_scraping=True, use_smcache=True
+):
     if is_data_uri(url):
         try:
             body = base64.b64decode(
@@ -763,10 +808,18 @@ def fetch_sourcemap(url, project=None, release=None, dist=None, allow_scraping=T
             )
         body = result.body
     try:
-        with sentry_sdk.start_span(
-            op="JavaScriptStacktraceProcessor.fetch_sourcemap.SourceMapView.from_json_bytes"
-        ):
-            return SourceMapView.from_json_bytes(body)
+        # TODO(smcache): Remove unnecessary `use_smcache` flag and use `SmCache` only.
+        if use_smcache:
+            with sentry_sdk.start_span(
+                op="JavaScriptStacktraceProcessor.fetch_sourcemap.SmCache.from_bytes"
+            ):
+                return SmCache.from_bytes(source, body)
+        else:
+            with sentry_sdk.start_span(
+                op="JavaScriptStacktraceProcessor.fetch_sourcemap.SourceMapView.from_json_bytes"
+            ):
+                return SourceMapView.from_json_bytes(body)
+
     except Exception as exc:
         # This is in debug because the product shows an error already.
         logger.debug(str(exc), exc_info=True)
@@ -808,6 +861,22 @@ def is_valid_frame(frame):
     return frame is not None and frame.get("lineno") is not None
 
 
+def get_function_for_token(frame, token):
+    """
+    Get function name for a given frame, based on the looked up token.
+    Return tokens name if we have a usable value from symbolic or we have no initial function name at all,
+    otherwise, fallback to frames current function name.
+    """
+
+    frame_function_name = frame.get("function")
+    token_function_name = token.function_name
+
+    if token_function_name not in USELESS_FN_NAMES or not frame_function_name:
+        return token_function_name
+
+    return frame_function_name
+
+
 class JavaScriptStacktraceProcessor(StacktraceProcessor):
     """
     Attempts to fetch source code for javascript frames.
@@ -832,6 +901,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         if not organization:
             organization = Organization.objects.get_from_cache(id=self.project.organization_id)
 
+        self.organization = organization
         self.max_fetches = MAX_RESOURCE_FETCHES
         self.allow_scraping = organization.get_option(
             "sentry:scrape_javascript", True
@@ -850,14 +920,17 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         self.release = None
         self.dist = None
 
-    def get_stacktraces(self, data):
-        exceptions = get_path(data, "exception", "values", filter=True, default=())
-        stacktraces = [e["stacktrace"] for e in exceptions if e.get("stacktrace")]
+        # We only want to check the feature flag for this specific class, and not for
+        # `JavaScriptSmCacheStacktraceProcessor`., as it's asking remote Flagr for that data.
+        if not isinstance(self, JavaScriptSmCacheStacktraceProcessor):
+            self.has_smcache_feature = features.has(
+                "projects:sourcemapcache-processor", self.project
+            )
+        else:
+            self.has_smcache_feature = False
 
-        if "stacktrace" in data:
-            stacktraces.append(data["stacktrace"])
-
-        return [(s, Stacktrace.to_python(s)) for s in stacktraces]
+        if should_run_smcache(self):
+            self.smcache_processor = JavaScriptSmCacheStacktraceProcessor(*args, **kwargs)
 
     def get_valid_frames(self):
         # build list of frames that we can actually grab source for
@@ -886,6 +959,10 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             op="JavaScriptStacktraceProcessor.preprocess_step.populate_source_cache"
         ):
             self.populate_source_cache(frames)
+
+        if should_run_smcache(self):
+            self.smcache_processor.preprocess_step(None)
+
         return True
 
     def handles_frame(self, frame, stacktrace_info):
@@ -1112,9 +1189,44 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 new_frame["in_app"] = in_app
                 raw_frame["in_app"] = in_app
 
+            # Run new processor only for frames that were actually modified in any way.
+            if should_run_smcache(self) and new_frame != raw_frame:
+                smcache_rv = self.smcache_processor.process_frame(processable_frame, None)
+                set_path(new_frame, "data", "smcache_frame", value=smcache_rv[0][0])
+
             new_frames = [new_frame]
             raw_frames = [raw_frame] if changed_raw else None
+
+            self.tag_suspected_console_errors(new_frames)
             return new_frames, raw_frames, all_errors
+
+    def tag_suspected_console_errors(self, new_frames):
+        def tag_error(new_frames):
+            suspected_console_errors = None
+            try:
+                suspected_console_errors = self.suspected_console_errors(new_frames)
+            except Exception as exc:
+                logger.error(
+                    "Failed to evaluate event for suspected JavaScript browser console error",
+                    exc_info=exc,
+                )
+
+            try:
+                set_tag(self.data, "empty_stacktrace.js_console", suspected_console_errors)
+            except Exception as exc:
+                logger.error(
+                    "Failed to tag event with empty_stacktrace.js_console=%s for suspected JavaScript browser console error",
+                    suspected_console_errors,
+                    exc_info=exc,
+                )
+
+        try:
+            if features.has(
+                "organizations:javascript-console-error-tag", self.organization, actor=None
+            ):
+                tag_error(new_frames)
+        except Exception as exc:
+            logger.exception("Failed to tag suspected console errors", exc_info=exc)
 
     def expand_frame(self, frame, source=None):
         """
@@ -1202,10 +1314,13 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 span.set_data("sourcemap_url", sourcemap_url)
                 sourcemap_view = fetch_sourcemap(
                     sourcemap_url,
+                    source=result.body,
                     project=self.project,
                     release=self.release,
                     dist=self.dist,
                     allow_scraping=self.allow_scraping,
+                    # TODO(smcache): Remove unnecessary `use_smcache` flag.
+                    use_smcache=isinstance(self, JavaScriptSmCacheStacktraceProcessor),
                 )
         except http.BadSource as exc:
             # we don't perform the same check here as above, because if someone has
@@ -1220,15 +1335,18 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         with sentry_sdk.start_span(
             op="JavaScriptStacktraceProcessor.cache_source.cache_sourcemap_view"
         ) as span:
-            span.set_data("source_count", sourcemap_view.source_count)
-
             sourcemaps.add(sourcemap_url, sourcemap_view)
 
-            # cache any inlined sources
-            for src_id, source_name in sourcemap_view.iter_sources():
-                source_view = sourcemap_view.get_sourceview(src_id)
-                if source_view is not None:
-                    self.cache.add(non_standard_url_join(sourcemap_url, source_name), source_view)
+            # TODO(smcache): Remove this whole iteration block
+            if not isinstance(self, JavaScriptSmCacheStacktraceProcessor):
+                span.set_data("source_count", sourcemap_view.source_count)
+                # cache any inlined sources
+                for src_id, source_name in sourcemap_view.iter_sources():
+                    source_view = sourcemap_view.get_sourceview(src_id)
+                    if source_view is not None:
+                        self.cache.add(
+                            non_standard_url_join(sourcemap_url, source_name), source_view
+                        )
 
     def populate_source_cache(self, frames):
         """
@@ -1264,3 +1382,278 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             metrics.incr(
                 "sourcemaps.processed", amount=len(self.sourcemaps_touched), skip_internal=True
             )
+
+    def suspected_console_errors(self, frames):
+        def is_suspicious_frame(frame) -> bool:
+            function = frame.get("function", None)
+            filename = frame.get("filename", None)
+            return function == "?" and filename == "<anonymous>"
+
+        def has_suspicious_frames(frames) -> bool:
+            if len(frames) == 2 and is_suspicious_frame(frames[0]):
+                return True
+            return all(is_suspicious_frame(frame) for frame in frames)
+
+        for info in self.stacktrace_infos:
+            is_exception = info.is_exception and info.container
+            mechanism = info.container.get("mechanism") if is_exception else None
+            error_type = info.container.get("type") if is_exception else None
+
+            if (
+                not frames
+                or not mechanism
+                or mechanism.get("type") != "onerror"
+                or mechanism.get("handled")
+            ):
+                return False
+
+            has_short_stacktrace = len(frames) <= 2
+            is_suspicious_error = error_type.lower() in [
+                "syntaxerror",
+                "referenceerror",
+                "typeerror",
+            ]
+
+            return has_short_stacktrace and is_suspicious_error and has_suspicious_frames(frames)
+        return False
+
+
+class JavaScriptSmCacheStacktraceProcessor(JavaScriptStacktraceProcessor):
+    """
+    Modern SourceMap processor using symbolic-sourcemapcache.
+    Subclass of `JavaScriptStacktraceProcessor` with only changed methods overwritten.
+    To make it a default, change replace all `JavaScriptStacktraceProcessor` methods with
+    those from this class instead.
+    """
+
+    def __init__(self, *args, **kwargs):
+        JavaScriptStacktraceProcessor.__init__(self, *args, **kwargs)
+
+    def process_frame(self, processable_frame, processing_task):
+        """
+        Attempt to demangle the given frame.
+        """
+        frame = processable_frame.frame
+        token = None
+
+        cache = self.cache
+        sourcemaps = self.sourcemaps
+        all_errors = []
+        sourcemap_applied = False
+
+        # can't demangle if there's no filename or line number present
+        if not frame.get("abs_path") or not frame.get("lineno"):
+            return
+
+        # also can't demangle node's internal modules
+        # therefore we only process user-land frames (starting with /)
+        # or those created by bundle/webpack internals
+        if self.data.get("platform") == "node" and not frame.get("abs_path").startswith(
+            ("/", "app:", "webpack:")
+        ):
+            return
+
+        errors = cache.get_errors(frame["abs_path"])
+        if errors:
+            all_errors.extend(errors)
+
+        # `source` is used for pre/post and `context_line` frame expansion.
+        # Here it's pointing to minified source, however the variable can be shadowed with the original sourceview
+        # (or `None` if the token doesnt provide us with the `context_line`) down the road.
+        source = self.get_sourceview(frame["abs_path"])
+        source_context = None
+
+        in_app = None
+        new_frame = dict(frame)
+        raw_frame = dict(frame)
+
+        sourcemap_url, sourcemap_cache = sourcemaps.get_link(frame["abs_path"])
+        self.sourcemaps_touched.add(sourcemap_url)
+
+        if sourcemap_cache and frame.get("colno") is None:
+            all_errors.append(
+                {"type": EventError.JS_NO_COLUMN, "url": http.expose_url(frame["abs_path"])}
+            )
+        elif sourcemap_cache:
+            if is_data_uri(sourcemap_url):
+                sourcemap_label = frame["abs_path"]
+            else:
+                sourcemap_label = sourcemap_url
+
+            sourcemap_label = http.expose_url(sourcemap_label)
+
+            try:
+                # Errors are 1-indexed in the frames.
+                assert frame["lineno"] > 0, "line numbers are 1-indexed"
+                token = sourcemap_cache.lookup(frame["lineno"], frame["colno"], LINES_OF_CONTEXT)
+            except Exception:
+                token = None
+                all_errors.append(
+                    {
+                        "type": EventError.JS_INVALID_SOURCEMAP_LOCATION,
+                        "column": frame.get("colno"),
+                        "row": frame.get("lineno"),
+                        "source": frame["abs_path"],
+                        "sourcemap": sourcemap_label,
+                    }
+                )
+
+            # Store original data in annotation
+            new_frame["data"] = dict(frame.get("data") or {}, sourcemap=sourcemap_label)
+
+            sourcemap_applied = True
+
+            if token is not None:
+                if token.src is not None:
+                    abs_path = non_standard_url_join(sourcemap_url, token.src)
+                else:
+                    abs_path = frame["abs_path"]
+
+                logger.debug(
+                    "Mapping compressed source %r to mapping in %r", frame["abs_path"], abs_path
+                )
+
+                if token.context_line is not None:
+                    source_context = token.pre_context, token.context_line, token.post_context
+                else:
+                    source = self.get_sourceview(abs_path)
+
+                if source is None:
+                    errors = cache.get_errors(abs_path)
+                    if errors:
+                        all_errors.extend(errors)
+                    else:
+                        all_errors.append(
+                            {"type": EventError.JS_MISSING_SOURCE, "url": http.expose_url(abs_path)}
+                        )
+
+                # The tokens are 1-indexed.
+                new_frame["lineno"] = token.line
+                new_frame["colno"] = token.col
+                new_frame["function"] = get_function_for_token(new_frame, token)
+
+                filename = token.src
+                # special case webpack support
+                # abs_path will always be the full path with webpack:/// prefix.
+                # filename will be relative to that
+                if abs_path.startswith("webpack:"):
+                    filename = abs_path
+                    # webpack seems to use ~ to imply "relative to resolver root"
+                    # which is generally seen for third party deps
+                    # (i.e. node_modules)
+                    if "/~/" in filename:
+                        filename = "~/" + abs_path.split("/~/", 1)[-1]
+                    elif WEBPACK_NAMESPACE_RE.match(filename):
+                        filename = re.sub(WEBPACK_NAMESPACE_RE, "./", abs_path)
+                    else:
+                        filename = filename.split("webpack:///", 1)[-1]
+
+                    # As noted above:
+                    # * [js/node] '~/' means they're coming from node_modules, so these are not app dependencies
+                    # * [node] sames goes for `./node_modules/` and '../node_modules/', which is used when bundling node apps
+                    # * [node] and webpack, which includes it's own code to bootstrap all modules and its internals
+                    #   eg. webpack:///webpack/bootstrap, webpack:///external
+                    if (
+                        filename.startswith("~/")
+                        or "/node_modules/" in filename
+                        or not filename.startswith("./")
+                    ):
+                        in_app = False
+                    # And conversely, local dependencies start with './'
+                    elif filename.startswith("./"):
+                        in_app = True
+                    # We want to explicitly generate a webpack module name
+                    new_frame["module"] = generate_module(filename)
+
+                # while you could technically use a subpath of 'node_modules' for your libraries,
+                # it would be an extremely complicated decision and we've not seen anyone do it
+                # so instead we assume if node_modules is in the path its part of the vendored code
+                elif "/node_modules/" in abs_path:
+                    in_app = False
+
+                if abs_path.startswith("app:"):
+                    if filename and NODE_MODULES_RE.search(filename):
+                        in_app = False
+                    else:
+                        in_app = True
+
+                new_frame["abs_path"] = abs_path
+                new_frame["filename"] = filename
+                if not frame.get("module") and abs_path.startswith(
+                    ("http:", "https:", "webpack:", "app:")
+                ):
+                    new_frame["module"] = generate_module(abs_path)
+
+        elif sourcemap_url:
+            new_frame["data"] = dict(
+                new_frame.get("data") or {}, sourcemap=http.expose_url(sourcemap_url)
+            )
+
+        changed_frame = self.expand_frame(new_frame, source_context=source_context, source=source)
+
+        # If we did not manage to match but we do have a line or column
+        # we want to report an error here.
+        if not new_frame.get("context_line") and source and new_frame.get("colno") is not None:
+            all_errors.append(
+                {
+                    "type": EventError.JS_INVALID_SOURCEMAP_LOCATION,
+                    "column": new_frame["colno"],
+                    "row": new_frame["lineno"],
+                    "source": new_frame["abs_path"],
+                }
+            )
+
+        changed_raw = sourcemap_applied and self.expand_frame(raw_frame)
+
+        if sourcemap_applied or all_errors or changed_frame or changed_raw:
+            # In case we are done processing, we iterate over all errors that we got
+            # and we filter out all `JS_MISSING_SOURCE` errors since we consider if we have
+            # a `context_line` we have a symbolicated frame and we don't need to show the error
+            has_context_line = bool(new_frame.get("context_line"))
+            if has_context_line:
+                all_errors[:] = [
+                    x for x in all_errors if x.get("type") is not EventError.JS_MISSING_SOURCE
+                ]
+
+            if in_app is not None:
+                new_frame["in_app"] = in_app
+                raw_frame["in_app"] = in_app
+
+            new_frames = [new_frame]
+            raw_frames = [raw_frame] if changed_raw else None
+
+            try:
+                if features.has(
+                    "organizations:javascript-console-error-tag", self.organization, actor=None
+                ):
+                    self.tag_suspected_console_errors(new_frames)
+            except Exception as exc:
+                logger.exception("Failed to tag suspected console errors", exc_info=exc)
+            return new_frames, raw_frames, all_errors
+
+    def expand_frame(self, frame, source_context=None, source=None):
+        """
+        Mutate the given frame to include pre- and post-context lines.
+        """
+
+        if frame.get("lineno") is None:
+            return False
+
+        if source_context is None:
+            source = source or self.get_sourceview(frame["abs_path"])
+            if source is None:
+                logger.debug("No source found for %s", frame["abs_path"])
+                return False
+
+        (pre_context, context_line, post_context) = source_context or get_raw_source_context(
+            source=source, lineno=frame["lineno"]
+        )
+
+        if pre_context is not None and len(pre_context) > 0:
+            frame["pre_context"] = [trim_line(x) for x in pre_context]
+        if context_line is not None:
+            frame["context_line"] = trim_line(context_line, frame.get("colno") or 0)
+        if post_context is not None and len(post_context) > 0:
+            frame["post_context"] = [trim_line(x) for x in post_context]
+
+        return True

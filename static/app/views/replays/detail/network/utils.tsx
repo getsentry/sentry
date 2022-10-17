@@ -1,16 +1,13 @@
-export type NetworkSpan = {
-  data: Record<string, any>;
-  endTimestamp: number;
-  op: string;
-  startTimestamp: number;
-  description?: string;
-};
+import {defined} from 'sentry/utils';
+import type {NetworkSpan} from 'sentry/views/replays/types';
 
 export interface ISortConfig {
   asc: boolean;
   by: keyof NetworkSpan | string;
   getValue: (row: NetworkSpan) => any;
 }
+
+export const UNKNOWN_STATUS = 'unknown';
 
 export function sortNetwork(
   network: NetworkSpan[],
@@ -23,6 +20,15 @@ export function sortNetwork(
     valueA = typeof valueA === 'string' ? valueA.toUpperCase() : valueA;
     valueB = typeof valueB === 'string' ? valueB.toUpperCase() : valueB;
 
+    // if the values are not defined, we want to push them to the bottom of the list
+    if (!defined(valueA)) {
+      return 1;
+    }
+
+    if (!defined(valueB)) {
+      return -1;
+    }
+
     if (valueA === valueB) {
       return 0;
     }
@@ -34,3 +40,17 @@ export function sortNetwork(
     return valueB > valueA ? 1 : -1;
   });
 }
+
+export const getResourceTypes = (networkSpans: NetworkSpan[]) =>
+  Array.from(
+    new Set(networkSpans.map(networkSpan => networkSpan.op.replace('resource.', '')))
+  ).sort();
+
+export const getStatusTypes = (networkSpans: NetworkSpan[]) =>
+  Array.from(
+    new Set(
+      networkSpans
+        .map(networkSpan => networkSpan.data.statusCode ?? UNKNOWN_STATUS)
+        .map(String)
+    )
+  ).sort();

@@ -42,33 +42,32 @@ function KeyValueList({
             subjectIcon,
             subjectDataTestId,
             actionButton,
+            isContextData: valueIsContextData,
           }) => {
+            const valueProps = {
+              isContextData: valueIsContextData || isContextData,
+              meta,
+              subjectIcon,
+              value,
+              raw,
+            };
+
             return (
               <tr key={`${key}.${value}`}>
                 <TableSubject className="key" wide={longKeys}>
                   {subject}
                 </TableSubject>
                 <td className="val" data-test-id={subjectDataTestId}>
-                  {actionButton ? (
-                    <ValueWithButtonContainer>
-                      <Value
-                        isContextData={isContextData}
-                        meta={meta}
-                        subjectIcon={subjectIcon}
-                        value={value}
-                        raw={raw}
-                      />
-                      <ActionButtonWrapper>{actionButton}</ActionButtonWrapper>
-                    </ValueWithButtonContainer>
-                  ) : (
-                    <Value
-                      isContextData={isContextData}
-                      meta={meta}
-                      subjectIcon={subjectIcon}
-                      value={value}
-                      raw={raw}
-                    />
-                  )}
+                  <Tablevalue>
+                    {actionButton ? (
+                      <ValueWithButtonContainer>
+                        <Value {...valueProps} />
+                        <ActionButtonWrapper>{actionButton}</ActionButtonWrapper>
+                      </ValueWithButtonContainer>
+                    ) : (
+                      <Value {...valueProps} />
+                    )}
+                  </Tablevalue>
                 </td>
               </tr>
             );
@@ -87,6 +86,16 @@ const TableSubject = styled('td')<{wide?: boolean}>`
   }
 `;
 
+const Tablevalue = styled('div')`
+  pre {
+    && {
+      word-break: break-all;
+    }
+  }
+  pre > pre {
+    display: inline-block;
+  }
+`;
 const ValueWithButtonContainer = styled('div')`
   display: grid;
   align-items: center;

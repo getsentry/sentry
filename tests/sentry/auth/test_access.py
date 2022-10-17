@@ -16,8 +16,10 @@ from sentry.models import (
 )
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test
 class FromUserTest(TestCase):
     def test_no_access(self):
         organization = self.create_organization()
@@ -501,6 +503,16 @@ class FromSentryAppTest(TestCase):
         assert not result.has_project_access(self.out_of_scope_project)
         assert not result.permissions
 
+    def test_no_access_due_to_no_app(self):
+        user = self.create_user("integration2@example.com")
+        request = self.make_request(user=user)
+        result = access.from_request(request, self.org)
+        assert not result.has_team_access(self.team)
+        assert not result.has_team_access(self.team2)
+        assert not result.has_team_access(self.out_of_scope_team)
+        assert not result.has_project_access(self.project)
+        assert not result.has_project_access(self.out_of_scope_project)
+
     def test_no_access_due_to_no_installation_unowned(self):
         request = self.make_request(user=self.proxy_user)
         result = access.from_request(request, self.out_of_scope_org)
@@ -576,6 +588,7 @@ class DefaultAccessTest(TestCase):
         assert not result.permissions
 
 
+@control_silo_test
 class GetPermissionsForUserTest(TestCase):
     def test_combines_roles_and_perms(self):
         user = self.user

@@ -1,8 +1,12 @@
 import {Link} from 'react-router';
 
+import Button from 'sentry/components/button';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {Breadcrumb} from 'sentry/components/profiling/breadcrumb';
 import {t} from 'sentry/locale';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
+import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {
   generateProfileDetailsRouteWithQuery,
   generateProfileFlamechartRouteWithQuery,
@@ -12,7 +16,11 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
-function ProfileHeader() {
+interface ProfileHeaderProps {
+  profiles: ProfileGroup | null;
+}
+
+function ProfileHeader({profiles}: ProfileHeaderProps) {
   const params = useParams();
   const location = useLocation();
   const organization = useOrganization();
@@ -22,19 +30,31 @@ function ProfileHeader() {
   const profileId = params.eventId ?? '';
   const projectSlug = params.projectId ?? '';
 
+  const transactionId = profiles?.metadata?.transactionID;
+  const transactionTarget = transactionId
+    ? getTransactionDetailsUrl(organization.slug, `${projectSlug}:${transactionId}`)
+    : null;
+
+  function handleGoToTransaction() {
+    trackAdvancedAnalyticsEvent('profiling_views.go_to_transaction', {
+      organization,
+      source: 'transaction_details',
+    });
+  }
+
   return (
-    <Layout.Header style={{gridTemplateColumns: 'minmax(0, 1fr)'}}>
-      <Layout.HeaderContent style={{marginBottom: 0}}>
+    <Layout.Header>
+      <Layout.HeaderContent>
         <Breadcrumb
-          location={location}
           organization={organization}
           trails={[
-            {type: 'landing'},
+            {type: 'landing', payload: {query: location.query}},
             {
               type: 'profile summary',
               payload: {
                 projectSlug,
                 transaction,
+                query: location.query,
               },
             },
             {
@@ -43,12 +63,20 @@ function ProfileHeader() {
                 transaction,
                 profileId,
                 projectSlug,
+                query: location.query,
                 tab: location.pathname.endsWith('details/') ? 'details' : 'flamechart',
               },
             },
           ]}
         />
       </Layout.HeaderContent>
+      <Layout.HeaderActions>
+        {transactionTarget && (
+          <Button onClick={handleGoToTransaction} to={transactionTarget}>
+            {t('Go to Transaction')}
+          </Button>
+        )}
+      </Layout.HeaderActions>
       <Layout.HeaderNavTabs underlined>
         <li className={location.pathname.endsWith('flamechart/') ? 'active' : undefined}>
           <Link
@@ -56,7 +84,7 @@ function ProfileHeader() {
               orgSlug: organization.slug,
               projectSlug,
               profileId,
-              location,
+              query: location.query,
             })}
           >
             {t('Flamechart')}
@@ -68,7 +96,7 @@ function ProfileHeader() {
               orgSlug: organization.slug,
               projectSlug,
               profileId,
-              location,
+              query: location.query,
             })}
           >
             {t('Details')}

@@ -33,7 +33,7 @@ class Columns(Enum):
         group_name=None,
         event_name="group_ids",
         transaction_name="group_ids",
-        discover_name=None,
+        discover_name="group_ids",
         alias="performance.issue_ids",
     )
     PROJECT_ID = Column(
@@ -373,6 +373,13 @@ class Columns(Enum):
         discover_name="exception_stacks.mechanism_handled",
         alias="error.handled",
     )
+    ERROR_RECEIVED = Column(
+        group_name=None,
+        event_name="received",
+        transaction_name=None,
+        discover_name="received",
+        alias="error.received",
+    )
     STACK_ABS_PATH = Column(
         group_name="events.exception_frames.abs_path",
         event_name="exception_frames.abs_path",
@@ -565,4 +572,12 @@ class Columns(Enum):
         transaction_name="contexts[trace.client_sample_rate]",
         discover_name="contexts[trace.client_sample_rate]",
         alias="trace.client_sample_rate",
+    )
+
+    APP_START_TYPE = Column(
+        group_name=None,
+        event_name=None,
+        transaction_name="app_start_type",
+        discover_name="app_start_type",
+        alias="app_start_type",
     )

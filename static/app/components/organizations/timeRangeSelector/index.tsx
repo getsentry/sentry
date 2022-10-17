@@ -72,6 +72,10 @@ const defaultProps = {
    */
   defaultPeriod: DEFAULT_STATS_PERIOD,
   /**
+   * This matches Sentry's retention limit of 90 days
+   */
+  maxPickableDays: 90,
+  /**
    * Callback when value changes
    */
   onChange: (() => {}) as (data: ChangeData) => void,
@@ -408,9 +412,18 @@ class TimeRangeSelector extends PureComponent<Props, State> {
     this.setState({inputValue});
   };
 
+  autoCompleteFilter: typeof autoCompleteFilter = (...args) => {
+    if (this.props.disallowArbitraryRelativeRanges) {
+      return autoCompleteFilter(...args);
+    }
+
+    return timeRangeAutoCompleteFilter(...args, {
+      maxDays: this.props.maxPickableDays,
+    });
+  };
+
   render() {
     const {
-      disallowArbitraryRelativeRanges,
       defaultPeriod,
       showAbsolute,
       showRelative,
@@ -453,11 +466,7 @@ class TimeRangeSelector extends PureComponent<Props, State> {
             {({css}) => (
               <StyledDropdownAutoComplete
                 allowActorToggle
-                autoCompleteFilter={
-                  disallowArbitraryRelativeRanges
-                    ? autoCompleteFilter
-                    : timeRangeAutoCompleteFilter
-                }
+                autoCompleteFilter={this.autoCompleteFilter}
                 alignMenu={alignDropdown ?? (isAbsoluteSelected ? 'right' : 'left')}
                 isOpen={this.state.isOpen}
                 inputValue={this.state.inputValue}
@@ -478,7 +487,13 @@ class TimeRangeSelector extends PureComponent<Props, State> {
                   height: 100%;
                 `}
                 inputActions={
-                  showPin ? <StyledPinButton size="xs" filter="datetime" /> : undefined
+                  showPin ? (
+                    <StyledPinButton
+                      organization={organization}
+                      filter="datetime"
+                      size="xs"
+                    />
+                  ) : undefined
                 }
                 onSelect={this.handleSelect}
                 subPanel={

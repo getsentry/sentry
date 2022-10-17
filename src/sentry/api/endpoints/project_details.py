@@ -12,6 +12,7 @@ from rest_framework.response import Response
 from sentry_relay.processing import validate_sampling_condition, validate_sampling_configuration
 
 from sentry import audit_log, features
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import sudo_required
 from sentry.api.fields.empty_integer import EmptyIntegerField
@@ -46,6 +47,11 @@ from sentry.notifications.utils import has_alert_integration
 from sentry.notifications.utils.legacy_mappings import get_option_value_from_boolean
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
+
+#: Maximum total number of characters in sensitiveFields.
+#: Relay compiles this list into a regex which cannot exceed a certain size.
+#: Limit determined experimentally here: https://github.com/getsentry/relay/blob/3105d8544daca3a102c74cefcd77db980306de71/relay-general/src/pii/convert.rs#L289
+MAX_SENSITIVE_FIELD_CHARS = 4000
 
 
 def clean_newline_inputs(value, case_insensitive=True):
@@ -89,12 +95,61 @@ class DynamicSamplingRuleSerializer(serializers.Serializer):
     )
     condition = DynamicSamplingConditionSerializer()
     active = serializers.BooleanField(default=False)
-    id = serializers.IntegerField(min_value=0, required=False)
+    # Setting the min value here to -1 because -1 is the rule id value for unassigned rules.
+    id = serializers.IntegerField(min_value=-1, required=False)
 
 
 class DynamicSamplingSerializer(serializers.Serializer):
     rules = serializers.ListSerializer(child=DynamicSamplingRuleSerializer())
     next_id = serializers.IntegerField(min_value=0, required=False)
+
+    @staticmethod
+    def fix_rule_ids(project, raw_dynamic_sampling):
+        """
+        Fixes rule ids in sampling configuration
+
+        When rules are changed or new rules are introduced they will get
+        new ids
+        :pparam raw_dynamic_sampling: the dynamic sampling config coming from UI
+            validated but without adjusted rule ids
+        :return: the dynamic sampling config with the rule ids adjusted to be
+        unique and with the next_id updated
+        """
+        # get the existing configuration for comparison.
+        original = project.get_option("sentry:dynamic_sampling")
+        original_rules = []
+
+        if original is None:
+            next_id = 1
+        else:
+            next_id = original.get("next_id", 1)
+            original_rules = original.get("rules", [])
+
+        # make a dictionary with the old rules to compare for changes
+        original_rules_dict = {rule["id"]: rule for rule in original_rules}
+
+        if raw_dynamic_sampling is not None:
+            rules = raw_dynamic_sampling.get("rules", [])
+
+            for rule in rules:
+                # We are setting the unassigned id to -1. It used to be 0 but we are modifying the behavior as 0 is a
+                # valid id according to relay's rule validation which states the a rule id is an unsigned integer.
+                rid = rule.get("id", -1)
+                original_rule = original_rules_dict.get(rid)
+                # ToDo(ahmed): Temporarily allowing for 0 to be the unassigned rule id for backwards compatibility,
+                #  and will remove that once the UI changes are deployed.
+                if rid in {0, -1} or original_rule is None:
+                    # a new or unknown rule give it a new id
+                    rule["id"] = next_id
+                    next_id += 1
+                else:
+                    if original_rule != rule:
+                        # something changed in this rule, give it a new id
+                        rule["id"] = next_id
+                        next_id += 1
+
+        raw_dynamic_sampling["next_id"] = next_id
+        return raw_dynamic_sampling
 
     @staticmethod
     def _is_uniform_sampling_rule(rule):
@@ -134,9 +189,21 @@ class DynamicSamplingSerializer(serializers.Serializer):
         :return: the validated data or raise in case of error
         """
         try:
+            data = self.fix_rule_ids(self.context["project"], data)
             config_str = json.dumps(data)
             validate_sampling_configuration(config_str)
-            self.validate_uniform_sampling_rule(data.get("rules", []))
+
+            # If the feature flag 'organizations:dynamic-sampling-demo' is enabled, we skip the uniform rule validation.
+            # This is useful for product demos, as the user will be able to delete uniform rules.
+            if (
+                features.has(
+                    "organizations:dynamic-sampling-demo",
+                    self.context["project"].organization,
+                    actor=self.context["request"].user,
+                )
+                is False
+            ):
+                self.validate_uniform_sampling_rule(data.get("rules", []))
         except ValueError as err:
             reason = err.args[0] if len(err.args) > 0 else "invalid configuration"
             raise serializers.ValidationError(reason)
@@ -191,6 +258,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     platform = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     copy_from_project = serializers.IntegerField(required=False)
     dynamicSampling = DynamicSamplingSerializer(required=False)
+    performanceIssueCreationRate = serializers.FloatField(required=False, min_value=0, max_value=1)
 
     def validate(self, data):
         max_delay = (
@@ -379,6 +447,11 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             return value
         raise serializers.ValidationError("Invalid platform")
 
+    def validate_sensitiveFields(self, value):
+        if sum(map(len, value)) > MAX_SENSITIVE_FIELD_CHARS:
+            raise serializers.ValidationError("List of sensitive fields is too long.")
+        return value
+
 
 class RelaxedProjectPermission(ProjectPermission):
     scope_map = {
@@ -390,6 +463,7 @@ class RelaxedProjectPermission(ProjectPermission):
     }
 
 
+@region_silo_endpoint
 class ProjectDetailsEndpoint(ProjectEndpoint):
     permission_classes = [RelaxedProjectPermission]
 
@@ -450,6 +524,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         :param int digestsMaxDelay:
         :auth: required
         """
+
+        old_data = serialize(project, request.user, DetailedProjectSerializer())
+
         has_project_write = request.access and request.access.has_scope("project:write")
 
         changed_proj_settings = {}
@@ -554,7 +631,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:secondary_grouping_config"] = result[
                     "secondaryGroupingConfig"
                 ]
-
         if result.get("secondaryGroupingExpiry") is not None:
             if project.update_option(
                 "sentry:secondary_grouping_expiry", result["secondaryGroupingExpiry"]
@@ -644,10 +720,17 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             )
 
         if "dynamicSampling" in result:
-            raw_dynamic_sampling = result["dynamicSampling"]
-            fixed_rules = self._fix_rule_ids(project, raw_dynamic_sampling)
-            project.update_option("sentry:dynamic_sampling", fixed_rules)
+            fixed_rules = result["dynamicSampling"]
+            if project.update_option("sentry:dynamic_sampling", fixed_rules):
+                changed_proj_settings["sentry:dynamic_sampling"] = result["dynamicSampling"]
 
+        if "performanceIssueCreationRate" in result:
+            if project.update_option(
+                "sentry:performance_issue_creation_rate", result["performanceIssueCreationRate"]
+            ):
+                changed_proj_settings["sentry:performance_issue_creation_rate"] = result[
+                    "performanceIssueCreationRate"
+                ]
         # TODO(dcramer): rewrite options to use standard API config
         if has_project_write:
             options = request.data.get("options", {})
@@ -754,13 +837,24 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 if not project.copy_settings_from(result["copy_from_project"]):
                     return Response({"detail": ["Copy project settings failed."]}, status=409)
 
-            self.create_audit_entry(
-                request=request,
-                organization=project.organization,
-                target_object=project.id,
-                event=audit_log.get_event_id("PROJECT_EDIT"),
-                data=changed_proj_settings,
-            )
+            if "sentry:dynamic_sampling" in changed_proj_settings:
+                self.dynamic_sampling_audit_log(
+                    project,
+                    request,
+                    old_data.get("dynamicSampling"),
+                    result.get("dynamicSampling"),
+                )
+                if len(changed_proj_settings) == 1:
+                    data = serialize(project, request.user, DetailedProjectSerializer())
+                    return Response(data)
+
+        self.create_audit_entry(
+            request=request,
+            organization=project.organization,
+            target_object=project.id,
+            event=audit_log.get_event_id("PROJECT_EDIT"),
+            data={**changed_proj_settings, **project.get_audit_log_data()},
+        )
 
         data = serialize(project, request.user, DetailedProjectSerializer())
         return Response(data)
@@ -806,52 +900,73 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         return Response(status=204)
 
-    def _fix_rule_ids(self, project, raw_dynamic_sampling):
+    def dynamic_sampling_audit_log(
+        self, project, request, old_raw_dynamic_sampling, new_raw_dynamic_sampling
+    ):
         """
-        Fixes rule ids in sampling configuration
+        Compares the previous and next dynamic sampling object, triggering audit logs according to the changes and early returns.
 
-        When rules are changed or new rules are introduced they will get
-        new ids
-        :pparam raw_dynamic_sampling: the dynamic sampling config coming from UI
-            validated but without adjusted rule ids
-        :return: the dynamic sampling config with the rule ids adjusted to be
-        unique and with the next_id updated
+        We are currently verifying the following cases:
+
+        Creation
+            Triggered when the next dynamic sampling object contains more rules than the previous
+
+        Deletion
+            Triggered when the next dynamic sampling object contains less rules than the previous
+
+        Activation
+            We make a loop through the whole object, comparing next with previous rules.
+            If we detect that the rule is different from the another and that the next rule is positive, this is triggered
+
+        Deactivation
+            We make a loop through the whole object, comparing next with previous rules.
+            If we detect that the rule is different from the another and that the next rule is negative, this is triggered
+
+        Other Changes
+            Triggered when all other changes have been made to the next dynamic sampling object
+
+        :old_raw_dynamic_sampling: The dynamic sampling object before the changes
+        :new_raw_dynamic_sampling: The updated dynamic sampling object
+
         """
-        # get the existing configuration for comparison.
-        original = project.get_option("sentry:dynamic_sampling")
-        original_rules = []
 
-        if original is None:
-            next_id = 1
-        else:
-            next_id = original.get("next_id", 1)
-            original_rules = original.get("rules", [])
+        common_audit_data = {
+            "request": request,
+            "organization": project.organization,
+            "target_object": project.id,
+            "data": project.get_audit_log_data(),
+        }
 
-        # make a dictionary with the old rules to compare for changes
-        original_rules_dict = {rule["id"]: rule for rule in original_rules}
+        def create_audit_entry_for_event(audit_data, event_text):
+            self.create_audit_entry(**audit_data, event=audit_log.get_event_id(event_text))
 
-        if raw_dynamic_sampling is not None:
-            rules = raw_dynamic_sampling.get("rules", [])
+        if old_raw_dynamic_sampling is None:
+            if new_raw_dynamic_sampling is not None:
+                create_audit_entry_for_event(common_audit_data, "SAMPLING_RULE_ADD")
+            return
 
-            for rule in rules:
-                rid = rule.get("id", 0)
-                original_rule = original_rules_dict.get(rid)
-                if rid == 0 or original_rule is None:
-                    # a new or unknown rule give it a new id
-                    rule["id"] = next_id
-                    next_id += 1
-                else:
-                    if original_rule != rule:
-                        # something changed in this rule, give it a new id
-                        rule["id"] = next_id
-                        next_id += 1
+        old_rules = old_raw_dynamic_sampling.get("rules", [])
+        new_rules = new_raw_dynamic_sampling.get("rules", [])
 
-        raw_dynamic_sampling["next_id"] = next_id
-        return raw_dynamic_sampling
+        if len(new_rules) > len(old_rules):
+            create_audit_entry_for_event(common_audit_data, "SAMPLING_RULE_ADD")
+            return
 
-    def _dynamic_sampling_contains_error_rule(self, raw_dynamic_sampling):
-        if raw_dynamic_sampling is not None:
-            rules = raw_dynamic_sampling.get("rules", [])
-            for rule in rules:
-                if rule["type"] == "error":
-                    return True
+        if len(new_rules) < len(old_rules):
+            create_audit_entry_for_event(common_audit_data, "SAMPLING_RULE_REMOVE")
+            return
+
+        for index, rule in enumerate(new_rules):
+            if rule["active"] != old_rules[index]["active"]:
+                create_audit_entry_for_event(
+                    common_audit_data,
+                    "SAMPLING_RULE_ACTIVATE" if rule["active"] else "SAMPLING_RULE_DEACTIVATE",
+                )
+                return
+
+        common_audit_data["data"].update(new_raw_dynamic_sampling)
+
+        create_audit_entry_for_event(
+            common_audit_data,
+            "SAMPLING_RULE_EDIT",
+        )

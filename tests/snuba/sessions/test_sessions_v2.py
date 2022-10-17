@@ -244,8 +244,6 @@ def test_filter_proj_slug_in_query(default_project):
     )
     assert query_def.query == f"project:{default_project.slug}"
     assert query_def.params["project_id"] == [default_project.id]
-    assert query_def.conditions == [["project_id", "=", default_project.id]]
-    assert query_def.filter_keys == {"project_id": [default_project.id]}
 
 
 @pytest.mark.django_db
@@ -258,8 +256,6 @@ def test_filter_proj_slug_in_top_filter(default_project):
     )
     assert query_def.query == ""
     assert query_def.params["project_id"] == [default_project.id]
-    assert query_def.conditions == []
-    assert query_def.filter_keys == {"project_id": [default_project.id]}
 
 
 @pytest.mark.django_db
@@ -272,8 +268,6 @@ def test_filter_proj_slug_in_top_filter_and_query(default_project):
     )
     assert query_def.query == f"project:{default_project.slug}"
     assert query_def.params["project_id"] == [default_project.id]
-    assert query_def.conditions == [["project_id", "=", default_project.id]]
-    assert query_def.filter_keys == {"project_id": [default_project.id]}
 
 
 @pytest.mark.django_db
@@ -285,8 +279,6 @@ def test_proj_neither_in_top_filter_nor_query(default_project):
     )
     assert query_def.query == ""
     assert "project_id" not in query_def.params
-    assert query_def.conditions == []
-    assert query_def.filter_keys == {}
 
 
 @pytest.mark.django_db
@@ -298,7 +290,6 @@ def test_filter_env_in_query(default_project):
         params=params,
     )
     assert query_def.query == f"environment:{env}"
-    assert query_def.conditions == [[["environment", "=", env]]]
 
 
 @pytest.mark.django_db
@@ -311,7 +302,6 @@ def test_filter_env_in_top_filter(default_project):
         params=params,
     )
     assert query_def.query == ""
-    assert query_def.conditions == [[["environment", "=", "prod"]]]
 
 
 @pytest.mark.django_db
@@ -324,10 +314,6 @@ def test_filter_env_in_top_filter_and_query(default_project):
         params=params,
     )
     assert query_def.query == f"environment:{env}"
-    assert query_def.conditions == [
-        [["environment", "=", "prod"]],
-        [["environment", "=", "prod"]],
-    ]
 
 
 @pytest.mark.django_db
@@ -338,7 +324,6 @@ def test_env_neither_in_top_filter_nor_query(default_project):
         params=params,
     )
     assert query_def.query == ""
-    assert query_def.conditions == []
 
 
 @freeze_time("2020-12-18T11:14:17.105Z")

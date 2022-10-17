@@ -127,8 +127,8 @@ value_converters = {
     "release": convert_release_value,
     "status": convert_status_value,
     "regressed_in_release": convert_first_release_value,
-    "category": convert_category_value,
-    "type": convert_type_value,
+    "issue.category": convert_category_value,
+    "issue.type": convert_type_value,
 }
 
 
@@ -142,7 +142,15 @@ def convert_query_values(search_filters, projects, user, environments):
     :return: New collection of `SearchFilters`, which may have converted values.
     """
 
-    def convert_search_filter(search_filter):
+    def convert_search_filter(search_filter, organization):
+        if search_filter.key.name == "empty_stacktrace.js_console":
+            if not features.has(
+                "organizations:javascript-console-error-tag", organization, actor=None
+            ):
+                raise InvalidSearchQuery(
+                    "The empty_stacktrace.js_console filter is not supported for this organization"
+                )
+
         if search_filter.key.name in value_converters:
             converter = value_converters[search_filter.key.name]
             new_value = converter(
@@ -162,4 +170,5 @@ def convert_query_values(search_filters, projects, user, environments):
             )
         return search_filter
 
-    return [convert_search_filter(search_filter) for search_filter in search_filters]
+    organization = projects[0].organization
+    return [convert_search_filter(search_filter, organization) for search_filter in search_filters]

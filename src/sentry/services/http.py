@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import os
 import sys
+from typing import Any, Generator, MutableMapping, NoReturn
 
 from sentry.services.base import Service
 
@@ -18,7 +21,7 @@ pyuwsgi.run()
 """
 
 
-def convert_options_to_env(options):
+def convert_options_to_env(options: dict[str, Any]) -> Generator[tuple[str, str], None, None]:
     for k, v in options.items():
         if v is None:
             continue
@@ -40,8 +43,14 @@ class SentryHTTPServer(Service):
     name = "http"
 
     def __init__(
-        self, host=None, port=None, debug=False, workers=None, validate=True, extra_options=None
-    ):
+        self,
+        host: str | None = None,
+        port: int | None = None,
+        debug: bool = False,
+        workers: int | None = None,
+        validate: bool = True,
+        extra_options: dict[str, Any] | None = None,
+    ) -> None:
         from django.conf import settings
 
         from sentry import options as sentry_options
@@ -137,14 +146,14 @@ class SentryHTTPServer(Service):
         self.options = options
         self.debug = debug
 
-    def validate_settings(self):
+    def validate_settings(self) -> None:
         from django.conf import settings as django_settings
 
         from sentry.utils.settings import validate_settings
 
         validate_settings(django_settings)
 
-    def prepare_environment(self, env=None):
+    def prepare_environment(self, env: MutableMapping[str, str] | None = None) -> None:
         from django.conf import settings
 
         if env is None:
@@ -170,7 +179,7 @@ class SentryHTTPServer(Service):
         if virtualenv_path not in current_path:
             env["PATH"] = f"{virtualenv_path}:{current_path}"
 
-    def run(self):
+    def run(self) -> NoReturn:
         self.prepare_environment()
         if self.debug or os.environ.get("SENTRY_RUNNING_UWSGI") == "0":
             from wsgiref.simple_server import make_server
@@ -182,6 +191,7 @@ class SentryHTTPServer(Service):
             host, port = os.environ["UWSGI_HTTP_SOCKET"].split(":")
             httpd = make_server(host, int(port), application)
             httpd.serve_forever()
+            raise AssertionError("unreachable")
         else:
             # TODO: https://github.com/lincolnloop/pyuwsgi-wheels/pull/17
             cmd = (sys.executable, "-c", PYUWSGI_PROG)

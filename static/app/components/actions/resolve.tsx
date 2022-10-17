@@ -8,6 +8,7 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import CustomCommitsResolutionModal from 'sentry/components/customCommitsResolutionModal';
 import CustomResolutionModal from 'sentry/components/customResolutionModal';
 import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
+import type {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import Tooltip from 'sentry/components/tooltip';
 import {IconCheckmark, IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -35,11 +36,15 @@ type Props = {
   organization: Organization;
   confirmMessage?: React.ReactNode;
   disableDropdown?: boolean;
+  disableTooltip?: boolean;
   disabled?: boolean;
+  hideIcon?: boolean;
   latestRelease?: Release;
+  priority?: 'primary';
   projectFetchError?: boolean;
   projectSlug?: string;
   shouldConfirm?: boolean;
+  size?: 'xs' | 'sm';
 } & Partial<typeof defaultProps>;
 
 class ResolveActions extends Component<Props> {
@@ -133,6 +138,8 @@ class ResolveActions extends Component<Props> {
       disabled,
       confirmLabel,
       disableDropdown,
+      size = 'xs',
+      priority,
     } = this.props;
 
     if (isResolved) {
@@ -152,7 +159,7 @@ class ResolveActions extends Component<Props> {
       });
     };
 
-    const items = [
+    const items: MenuItemProps[] = [
       {
         key: 'next-release',
         label: t('The next release'),
@@ -187,14 +194,14 @@ class ResolveActions extends Component<Props> {
 
     return (
       <DropdownMenuControl
-        size="sm"
         items={items}
-        trigger={({props: triggerProps, ref: triggerRef}) => (
+        trigger={triggerProps => (
           <DropdownTrigger
-            ref={triggerRef}
             {...triggerProps}
+            type="button"
+            size={size}
+            priority={priority}
             aria-label={t('More resolve options')}
-            size="xs"
             icon={<IconChevron direction="down" size="xs" />}
             disabled={isDisabled}
           />
@@ -249,6 +256,10 @@ class ResolveActions extends Component<Props> {
       disabled,
       confirmLabel,
       projectFetchError,
+      disableTooltip,
+      priority,
+      size = 'xs',
+      hideIcon = false,
     } = this.props;
 
     if (isResolved) {
@@ -267,12 +278,14 @@ class ResolveActions extends Component<Props> {
       <Tooltip disabled={!projectFetchError} title={t('Error fetching project')}>
         <ButtonBar merged>
           <ResolveButton
-            size="xs"
+            type="button"
+            priority={priority}
+            size={size}
             title={t(
               'Resolves the issue. The issue will get unresolved if it happens again.'
             )}
-            tooltipProps={{delay: 300, disabled}}
-            icon={<IconCheckmark size="xs" />}
+            tooltipProps={{delay: 300, disabled: disabled || disableTooltip}}
+            icon={hideIcon ? null : <IconCheckmark size={size} />}
             onClick={onResolve}
             disabled={disabled}
           >
@@ -287,9 +300,10 @@ class ResolveActions extends Component<Props> {
 
 export default withOrganization(ResolveActions);
 
-const ResolveButton = styled(Button)`
+const ResolveButton = styled(Button)<{priority?: 'primary'}>`
   box-shadow: none;
   border-radius: ${p => p.theme.borderRadiusLeft};
+  ${p => (p.priority === 'primary' ? `border-right-color: ${p.theme.background};` : '')}
 `;
 
 const DropdownTrigger = styled(Button)`

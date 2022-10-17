@@ -69,6 +69,7 @@ def query(
     functions_acl=None,
     dry_run=False,
     transform_alias_to_input_format=False,
+    has_metrics: bool = True,
 ):
     with sentry_sdk.start_span(op="mep", description="MetricQueryBuilder"):
         metrics_query = MetricsQueryBuilder(
@@ -128,6 +129,7 @@ def timeseries_query(
     comparison_delta: Optional[timedelta] = None,
     functions_acl: Optional[List[str]] = None,
     dry_run: bool = False,
+    has_metrics: bool = True,
 ) -> SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries against events.

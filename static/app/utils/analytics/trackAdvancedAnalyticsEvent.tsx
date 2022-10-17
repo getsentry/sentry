@@ -4,12 +4,14 @@ import {discoverEventMap, DiscoverEventParameters} from './discoverAnalyticsEven
 import {growthEventMap, GrowthEventParameters} from './growthAnalyticsEvents';
 import {issueEventMap, IssueEventParameters} from './issueAnalyticsEvents';
 import makeAnalyticsFunction from './makeAnalyticsFunction';
+import {monitorsEventMap, MonitorsEventParameters} from './monitorsAnalyticsEvents';
 import {
   performanceEventMap,
   PerformanceEventParameters,
 } from './performanceAnalyticsEvents';
 import {profilingEventMap, ProfilingEventParameters} from './profilingAnalyticsEvents';
 import {releasesEventMap, ReleasesEventParameters} from './releasesAnalyticsEvents';
+import {replayEventMap, ReplayEventParameters} from './replayAnalyticsEvents';
 import {samplingEventMap, SamplingEventParameters} from './samplingAnalyticsEvents';
 import {searchEventMap, SearchEventParameters} from './searchAnalyticsEvents';
 import {settingsEventMap, SettingsEventParameters} from './settingsAnalyticsEvents';
@@ -20,13 +22,15 @@ type EventParameters = GrowthEventParameters &
   DashboardsEventParameters &
   DiscoverEventParameters &
   IssueEventParameters &
+  MonitorsEventParameters &
   PerformanceEventParameters &
   ProfilingEventParameters &
+  ReleasesEventParameters &
+  ReplayEventParameters &
+  SamplingEventParameters &
   SearchEventParameters &
   SettingsEventParameters &
-  SamplingEventParameters &
-  TeamInsightsEventParameters &
-  ReleasesEventParameters;
+  TeamInsightsEventParameters;
 
 const allEventMap: Record<string, string | null> = {
   ...coreUIEventMap,
@@ -34,13 +38,15 @@ const allEventMap: Record<string, string | null> = {
   ...discoverEventMap,
   ...growthEventMap,
   ...issueEventMap,
+  ...monitorsEventMap,
   ...performanceEventMap,
   ...profilingEventMap,
+  ...releasesEventMap,
+  ...replayEventMap,
   ...samplingEventMap,
   ...searchEventMap,
   ...settingsEventMap,
   ...workflowEventMap,
-  ...releasesEventMap,
 };
 
 /**

@@ -7,13 +7,14 @@ from rest_framework.response import Response
 
 import sentry
 from sentry import options
-from sentry.api.base import Endpoint
+from sentry.api.base import Endpoint, pending_silo_endpoint
 from sentry.api.permissions import SuperuserPermission
 from sentry.utils.email import is_smtp_enabled
 
 logger = logging.getLogger("sentry")
 
 
+@pending_silo_endpoint
 class SystemOptionsEndpoint(Endpoint):
     permission_classes = (SuperuserPermission,)
 

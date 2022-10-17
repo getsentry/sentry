@@ -3,8 +3,8 @@ import {Component, Fragment} from 'react';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import InputField from 'sentry/components/forms/inputField';
-import SelectField from 'sentry/components/forms/selectField';
+import NumberField from 'sentry/components/forms/fields/numberField';
+import SelectField from 'sentry/components/forms/fields/selectField';
 import {t} from 'sentry/locale';
 import {ResolutionStatusDetails, SelectValue} from 'sentry/types';
 
@@ -51,19 +51,19 @@ class CustomIgnoreCountModal extends Component<Props, State> {
     const {Header, Footer, Body, countLabel, label, closeModal, windowOptions} =
       this.props;
     const {count, window} = this.state;
+
     return (
       <Fragment>
         <Header>
           <h4>{label}</h4>
         </Header>
         <Body>
-          <InputField
+          <NumberField
             inline={false}
             flexibleControlStateSize
             stacked
             label={countLabel}
             name="count"
-            type="number"
             value={count}
             onChange={val => this.handleChange('count' as 'count', Number(val))}
             required

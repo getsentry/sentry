@@ -1,15 +1,9 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
-import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {
-  openAddDashboardWidgetModal,
-  openAddToDashboardModal,
-} from 'sentry/actionCreators/modal';
 import {NewQuery} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {DisplayModes} from 'sentry/utils/discover/types';
-import {DashboardWidgetSource, DisplayType} from 'sentry/views/dashboardsV2/types';
 import DiscoverBanner from 'sentry/views/eventsV2/banner';
 import {ALL_VIEWS} from 'sentry/views/eventsV2/data';
 import SavedQueryButtonGroup from 'sentry/views/eventsV2/savedQuery';
@@ -42,7 +36,9 @@ function mount(
       updateCallback={() => {}}
       yAxis={yAxis}
       router={router}
-      savedQueryLoading={false}
+      queryDataLoading={false}
+      setSavedQuery={jest.fn()}
+      setHomepageQuery={jest.fn()}
     />
   );
 }
@@ -55,19 +51,25 @@ function generateWrappedComponent(
   yAxis,
   disabled = false
 ) {
-  return mountWithTheme(
-    <SavedQueryButtonGroup
-      location={location}
-      organization={organization}
-      eventView={eventView}
-      savedQuery={savedQuery}
-      disabled={disabled}
-      updateCallback={() => {}}
-      yAxis={yAxis}
-      router={router}
-      savedQueryLoading={false}
-    />
-  );
+  const mockSetSavedQuery = jest.fn();
+  return {
+    mockSetSavedQuery,
+    wrapper: mountWithTheme(
+      <SavedQueryButtonGroup
+        location={location}
+        organization={organization}
+        eventView={eventView}
+        savedQuery={savedQuery}
+        disabled={disabled}
+        updateCallback={() => {}}
+        yAxis={yAxis}
+        router={router}
+        queryDataLoading={false}
+        setSavedQuery={mockSetSavedQuery}
+        setHomepageQuery={jest.fn()}
+      />
+    ),
+  };
 }
 
 describe('EventsV2 > SaveQueryButtonGroup', function () {
@@ -120,7 +122,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
     });
 
     it('renders disabled buttons when disabled prop is used', () => {
-      const wrapper = generateWrappedComponent(
+      const {wrapper} = generateWrappedComponent(
         location,
         organization,
         router,
@@ -135,7 +137,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
     });
 
     it('renders the correct set of buttons', () => {
-      const wrapper = generateWrappedComponent(
+      const {wrapper} = generateWrappedComponent(
         location,
         organization,
         router,
@@ -228,7 +230,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
     });
 
     it('renders the correct set of buttons', () => {
-      const wrapper = generateWrappedComponent(
+      const {wrapper} = generateWrappedComponent(
         location,
         organization,
         router,
@@ -249,7 +251,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
     });
 
     it('treats undefined yAxis the same as count() when checking for changes', () => {
-      const wrapper = generateWrappedComponent(
+      const {wrapper} = generateWrappedComponent(
         location,
         organization,
         router,
@@ -270,7 +272,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
     });
 
     it('converts string yAxis values to array when checking for changes', () => {
-      const wrapper = generateWrappedComponent(
+      const {wrapper} = generateWrappedComponent(
         location,
         organization,
         router,
@@ -291,7 +293,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
     });
 
     it('deletes the saved query', async () => {
-      const wrapper = generateWrappedComponent(
+      const {wrapper} = generateWrappedComponent(
         location,
         organization,
         router,
@@ -309,126 +311,13 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
         expect.objectContaining({id: '1'})
       );
     });
-
-    it('opens a modal with the correct params for top 5 display mode', async function () {
-      const featuredOrganization = TestStubs.Organization({
-        features: ['dashboards-edit', 'new-widget-builder-experience-design'],
-      });
-      const testData = initializeOrg({
-        ...initializeOrg(),
-        organization: featuredOrganization,
-      });
-      const savedTopNQuery = TestStubs.DiscoverSavedQuery({
-        display: DisplayModes.TOP5,
-        orderby: 'test',
-        fields: ['test', 'count()'],
-        topEvents: '2',
-      });
-      mount(
-        testData.router.location,
-        testData.organization,
-        testData.router,
-        EventView.fromSavedQuery(savedTopNQuery),
-        savedTopNQuery,
-        ['count()']
-      );
-      userEvent.click(screen.getByText('Add to Dashboard'));
-      expect(openAddDashboardWidgetModal).not.toHaveBeenCalled();
-
-      await waitFor(() => {
-        expect(openAddToDashboardModal).toHaveBeenCalledWith(
-          expect.objectContaining({
-            widget: {
-              title: 'Saved query #1',
-              displayType: DisplayType.AREA,
-              limit: 2,
-              queries: [
-                {
-                  aggregates: ['count()'],
-                  columns: ['test'],
-                  conditions: '',
-                  fields: ['test', 'count()', 'count()'],
-                  name: '',
-                  orderby: 'test',
-                },
-              ],
-            },
-            widgetAsQueryParams: expect.objectContaining({
-              defaultTableColumns: ['test', 'count()'],
-              defaultTitle: 'Saved query #1',
-              defaultWidgetQuery:
-                'name=&aggregates=count()&columns=test&fields=test%2Ccount()%2Ccount()&conditions=&orderby=test',
-              displayType: DisplayType.AREA,
-              source: DashboardWidgetSource.DISCOVERV2,
-            }),
-          })
-        );
-      });
-    });
-
-    it('opens a modal with the correct params for default display mode', async function () {
-      const featuredOrganization = TestStubs.Organization({
-        features: ['dashboards-edit', 'new-widget-builder-experience-design'],
-      });
-      const testData = initializeOrg({
-        ...initializeOrg(),
-        organization: featuredOrganization,
-      });
-      const savedDefaultQuery = TestStubs.DiscoverSavedQuery({
-        display: DisplayModes.DEFAULT,
-        orderby: 'count()',
-        fields: ['test', 'count()'],
-        yAxis: ['count()'],
-      });
-      mount(
-        testData.router.location,
-        testData.organization,
-        testData.router,
-        EventView.fromSavedQuery(savedDefaultQuery),
-        savedDefaultQuery,
-        ['count()']
-      );
-      userEvent.click(screen.getByText('Add to Dashboard'));
-      expect(openAddDashboardWidgetModal).not.toHaveBeenCalled();
-
-      await waitFor(() => {
-        expect(openAddToDashboardModal).toHaveBeenCalledWith(
-          expect.objectContaining({
-            widget: {
-              title: 'Saved query #1',
-              displayType: DisplayType.LINE,
-              queries: [
-                {
-                  aggregates: ['count()'],
-                  columns: [],
-                  conditions: '',
-                  fields: ['count()'],
-                  name: '',
-                  // Orderby gets dropped because ordering only applies to
-                  // Top-N and tables
-                  orderby: '',
-                },
-              ],
-            },
-            widgetAsQueryParams: expect.objectContaining({
-              defaultTableColumns: ['test', 'count()'],
-              defaultTitle: 'Saved query #1',
-              defaultWidgetQuery:
-                'name=&aggregates=count()&columns=&fields=count()&conditions=&orderby=',
-              displayType: DisplayType.LINE,
-              source: DashboardWidgetSource.DISCOVERV2,
-            }),
-          })
-        );
-      });
-    });
   });
 
   describe('modifying a saved query', () => {
     let mockUtils;
 
     it('renders the correct set of buttons', () => {
-      const wrapper = generateWrappedComponent(
+      const {wrapper} = generateWrappedComponent(
         location,
         organization,
         router,
@@ -460,7 +349,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
       });
 
       it('accepts a well-formed query', async () => {
-        const wrapper = generateWrappedComponent(
+        const {mockSetSavedQuery, wrapper} = generateWrappedComponent(
           location,
           organization,
           router,
@@ -481,6 +370,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
           }),
           yAxis
         );
+        expect(mockSetSavedQuery).toHaveBeenCalled();
       });
     });
 
@@ -526,7 +416,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
         ...organization,
         features: ['incidents'],
       };
-      const wrapper = generateWrappedComponent(
+      const {wrapper} = generateWrappedComponent(
         location,
         metricAlertOrg,
         router,
@@ -539,7 +429,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
       expect(buttonCreateAlert.exists()).toBe(true);
     });
     it('does not render create alert button without metric alerts', () => {
-      const wrapper = generateWrappedComponent(
+      const {wrapper} = generateWrappedComponent(
         location,
         organization,
         router,
@@ -550,120 +440,6 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
       const buttonCreateAlert = wrapper.find(SELECTOR_BUTTON_CREATE_ALERT);
 
       expect(buttonCreateAlert.exists()).toBe(false);
-    });
-  });
-
-  describe('add dashboard widget', () => {
-    let initialData;
-    beforeEach(() => {
-      initialData = initializeOrg({
-        organization: {
-          features: ['discover-query', 'widget-viewer-modal', 'dashboards-edit'],
-          apdexThreshold: 400,
-        },
-        router: {
-          location: {query: {}},
-        },
-        project: 1,
-        projects: [],
-      });
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/events-stats/',
-        body: [],
-      });
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/dashboards/',
-        body: [],
-      });
-    });
-
-    afterEach(() => {
-      MockApiClient.clearMockResponses();
-    });
-
-    it('opens widget modal when add to dashboard is clicked', () => {
-      mount(
-        initialData.router.location,
-        initialData.organization,
-        initialData.router,
-        errorsViewModified,
-        savedQuery,
-        ['count()']
-      );
-      userEvent.click(screen.getByText('Add to Dashboard'));
-      expect(openAddDashboardWidgetModal).toHaveBeenCalledWith(
-        expect.objectContaining({
-          defaultTableColumns: ['title', 'count()', 'count_unique(user)', 'project'],
-          defaultTitle: 'Errors by Title',
-          defaultWidgetQuery: {
-            conditions: 'event.type:error',
-            fields: ['count()'],
-            aggregates: ['count()'],
-            columns: [],
-            name: '',
-            orderby: '-count()',
-          },
-          displayType: 'line',
-        })
-      );
-    });
-
-    it('populates dashboard widget modal with saved query data if created from discover', () => {
-      mount(
-        initialData.router.location,
-        initialData.organization,
-        initialData.router,
-        errorsViewModified,
-        savedQuery,
-        yAxis
-      );
-      userEvent.click(screen.getByText('Add to Dashboard'));
-      expect(openAddDashboardWidgetModal).toHaveBeenCalledWith(
-        expect.objectContaining({
-          defaultTableColumns: ['title', 'count()', 'count_unique(user)', 'project'],
-          defaultTitle: 'Errors by Title',
-          defaultWidgetQuery: {
-            conditions: 'event.type:error',
-            fields: ['count()', 'failure_count()'],
-            aggregates: ['count()', 'failure_count()'],
-            columns: [],
-            name: '',
-            orderby: '-count()',
-          },
-          displayType: 'line',
-        })
-      );
-    });
-
-    it('adds equation to query fields if yAxis includes comprising functions', () => {
-      mount(
-        initialData.router.location,
-        initialData.organization,
-        initialData.router,
-        errorsViewModified,
-        savedQuery,
-        [...yAxis, 'equation|count() + failure_count()']
-      );
-      userEvent.click(screen.getByText('Add to Dashboard'));
-      expect(openAddDashboardWidgetModal).toHaveBeenCalledWith(
-        expect.objectContaining({
-          defaultTableColumns: ['title', 'count()', 'count_unique(user)', 'project'],
-          defaultTitle: 'Errors by Title',
-          defaultWidgetQuery: {
-            conditions: 'event.type:error',
-            fields: ['count()', 'failure_count()', 'equation|count() + failure_count()'],
-            aggregates: [
-              'count()',
-              'failure_count()',
-              'equation|count() + failure_count()',
-            ],
-            columns: [],
-            name: '',
-            orderby: '-count()',
-          },
-          displayType: 'line',
-        })
-      );
     });
   });
 });

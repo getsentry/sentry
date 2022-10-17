@@ -7,7 +7,7 @@ from django.utils import timezone
 from pytz import UTC
 from rest_framework import status
 
-from sentry import audit_log
+from sentry import audit_log, options
 from sentry.api.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
 from sentry.auth.authenticators import TotpInterface
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS
@@ -25,6 +25,7 @@ from sentry.models import (
 )
 from sentry.signals import project_created
 from sentry.testutils import APITestCase, TwoFactorAPITestCase, pytest
+from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
 # some relay keys
@@ -53,6 +54,7 @@ class OrganizationDetailsTestBase(APITestCase):
         self.login_as(self.user)
 
 
+@region_silo_test
 class OrganizationDetailsTest(OrganizationDetailsTestBase):
     def test_simple(self):
         response = self.get_success_response(self.organization.slug)
@@ -120,13 +122,15 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         )
 
         # TODO(dcramer): We need to pare this down. Lots of duplicate queries for membership data.
-        expected_queries = 35
+        expected_queries = 36
 
-        # TODO(mgaeta): Extra query while we're "dual reading" from UserOptions and NotificationSettings.
-        expected_queries += 1
+        # make sure options are not cached the first time to get predictable number of database queries
+        options.delete("system.rate-limit")
+        options.delete("hc.region-to-control.monolith-publish")
+        options.delete("store.symbolicate-event-lpq-always")
+        options.delete("store.symbolicate-event-lpq-never")
 
-        # Symbolication Low Priority Queue stats reads two killswitches
-        expected_queries += 8
+        expected_queries += 4
 
         with self.assertNumQueries(expected_queries, using="default"):
             response = self.get_success_response(self.organization.slug)
@@ -216,7 +220,17 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
             created = parse_date(response_data[i]["created"])
             assert start_time < created < end_time
 
+    def test_has_auth_provider(self):
+        response = self.get_success_response(self.organization.slug)
+        assert response.data["hasAuthProvider"] is False
 
+        AuthProvider.objects.create(organization=self.organization, provider="dummy")
+
+        response = self.get_success_response(self.organization.slug)
+        assert response.data["hasAuthProvider"] is True
+
+
+@region_silo_test
 class OrganizationUpdateTest(OrganizationDetailsTestBase):
     method = "put"
 
@@ -671,6 +685,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert b"storeCrashReports" in resp.content
 
 
+@region_silo_test
 class OrganizationDeleteTest(OrganizationDetailsTestBase):
     method = "delete"
 
@@ -733,6 +748,7 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         ).exists()
 
 
+@region_silo_test
 class OrganizationSettings2FATest(TwoFactorAPITestCase):
     endpoint = "sentry-api-0-organization-details"
 

@@ -1,3 +1,5 @@
+import styled from '@emotion/styled';
+
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -46,7 +48,7 @@ export function getUserKnownDataDetails({data, type}: Props): Output | undefined
         value: data.email,
         subjectIcon: defined(data.email) && EMAIL_REGEX.test(data.email) && (
           <ExternalLink href={`mailto:${data.email}`} className="external-icon">
-            <IconMail size="xs" />
+            <StyledIconMail size="xs" />
           </ExternalLink>
         ),
       };
@@ -54,3 +56,7 @@ export function getUserKnownDataDetails({data, type}: Props): Output | undefined
       return undefined;
   }
 }
+
+const StyledIconMail = styled(IconMail)`
+  vertical-align: middle;
+`;

@@ -1,5 +1,4 @@
 import {forwardRef as reactForwardRef, useEffect, useState} from 'react';
-import {useId} from '@react-aria/utils';
 
 import Input from 'sentry/components/input';
 import {t} from 'sentry/locale';
@@ -30,13 +29,18 @@ type SliderProps = {
   className?: string;
 
   disabled?: boolean;
+
   /**
    * Render prop for slider's label
    * Is passed the value as an argument
    */
   formatLabel?: (value: number | '') => React.ReactNode;
-
   forwardRef?: React.Ref<HTMLDivElement>;
+
+  /**
+   * HTML id of the range input
+   */
+  id?: string;
 
   /**
    * max allowed value, not needed if using `allowedValues`
@@ -77,6 +81,7 @@ type SliderProps = {
 };
 
 function RangeSlider({
+  id,
   value,
   allowedValues,
   showCustomInput,
@@ -91,7 +96,6 @@ function RangeSlider({
   showLabel = true,
   ...props
 }: SliderProps) {
-  const elementId = useId();
   const [sliderValue, setSliderValue] = useState(
     allowedValues ? allowedValues.indexOf(Number(value || 0)) : value
   );
@@ -127,13 +131,13 @@ function RangeSlider({
   }
 
   function handleInput(e: React.ChangeEvent<HTMLInputElement>) {
-    const newSliderValue = parseInt(e.target.value, 10);
+    const newSliderValue = parseFloat(e.target.value);
     setSliderValue(newSliderValue);
     onChange?.(getActualValue(newSliderValue), e);
   }
 
   function handleCustomInputChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setSliderValue(parseInt(e.target.value, 10) || 0);
+    setSliderValue(parseFloat(e.target.value) || 0);
   }
 
   function handleBlur(
@@ -170,19 +174,16 @@ function RangeSlider({
   }
 
   const {min, max, step, actualValue, displayValue} = getSliderData();
+  const labelText = formatLabel?.(actualValue) ?? displayValue;
 
   return (
     <div className={className} ref={forwardRef}>
-      {!showCustomInput && showLabel && (
-        <SliderLabel htmlFor={elementId}>
-          {formatLabel?.(actualValue) ?? displayValue}
-        </SliderLabel>
-      )}
+      {!showCustomInput && showLabel && <SliderLabel>{labelText}</SliderLabel>}
       <SliderAndInputWrapper showCustomInput={showCustomInput}>
         <Slider
           type="range"
-          id={elementId}
           name={name}
+          id={id}
           min={min}
           max={max}
           step={step}
@@ -193,6 +194,7 @@ function RangeSlider({
           onKeyUp={handleBlur}
           value={sliderValue}
           hasLabel={!showCustomInput}
+          aria-valuetext={labelText}
         />
         {showCustomInput && (
           <Input

@@ -41,10 +41,6 @@ describe('Sudo Modal', function () {
     });
   });
 
-  afterEach(() => {
-    ConfigStore.teardown();
-  });
-
   it('can delete an org with sudo flow', async function () {
     setHasPasswordAuth(true);
 
@@ -87,7 +83,7 @@ describe('Sudo Modal', function () {
     expect(sudoMock).not.toHaveBeenCalled();
 
     // "Sudo" auth
-    userEvent.type(screen.getByLabelText('Password'), 'password');
+    userEvent.type(screen.getByRole('textbox', {name: 'Password'}), 'password');
     userEvent.click(screen.getByRole('button', {name: 'Confirm Password'}));
 
     expect(sudoMock).toHaveBeenCalledWith(

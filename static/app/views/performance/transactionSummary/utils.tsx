@@ -1,3 +1,4 @@
+import {PlainRoute} from 'react-router';
 import styled from '@emotion/styled';
 import {LocationDescriptor, Query} from 'history';
 
@@ -5,6 +6,7 @@ import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
+import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
@@ -18,7 +20,7 @@ export enum TransactionFilterOptions {
   RECENT = 'recent',
 }
 
-export function generateTransactionSummaryRoute({orgSlug}: {orgSlug: String}): string {
+export function generateTransactionSummaryRoute({orgSlug}: {orgSlug: string}): string {
   return `/organizations/${orgSlug}/performance/summary/`;
 }
 
@@ -130,6 +132,29 @@ export function generateTransactionLink(transactionName: string) {
       query,
       spanId
     );
+  };
+}
+
+export function generateReplayLink(routes: PlainRoute<any>[]) {
+  return (
+    organization: Organization,
+    tableRow: TableDataRow,
+    _query: Query
+  ): LocationDescriptor => {
+    const replayId = tableRow.replayId;
+    if (!replayId) {
+      return {};
+    }
+
+    const replaySlug = `${tableRow['project.name']}:${replayId}`;
+    const referrer = encodeURIComponent(getRouteStringFromRoutes(routes));
+
+    return {
+      pathname: `/organizations/${organization.slug}/replays/${replaySlug}`,
+      query: {
+        referrer,
+      },
+    };
   };
 }
 

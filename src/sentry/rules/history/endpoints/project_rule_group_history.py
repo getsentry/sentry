@@ -8,6 +8,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.rule import RuleEndpoint
 from sentry.api.serializers import Serializer, serialize
 from sentry.api.serializers.models.group import BaseGroupSerializerResponse
@@ -23,6 +24,7 @@ class RuleGroupHistoryResponse(TypedDict):
     group: BaseGroupSerializerResponse
     count: int
     lastTriggered: datetime
+    eventId: str | None
 
 
 class RuleGroupHistorySerializer(Serializer):  # type: ignore
@@ -43,10 +45,12 @@ class RuleGroupHistorySerializer(Serializer):  # type: ignore
             "group": attrs["group"],
             "count": obj.count,
             "lastTriggered": obj.last_triggered,
+            "eventId": obj.event_id,
         }
 
 
 @extend_schema(tags=["issue_alerts"])
+@region_silo_endpoint
 class ProjectRuleGroupHistoryIndexEndpoint(RuleEndpoint):
     @extend_schema(
         operation_id="Retrieve a group firing history for an issue alert",

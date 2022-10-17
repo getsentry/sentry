@@ -321,7 +321,7 @@ class Rule:
 
         # 1 - Check if exception matchers match
         for m in self._exception_matchers:
-            if not m.matches_frame(frames, -1, platform, exception_data, cache):
+            if not m.matches_frame(frames, None, platform, exception_data, cache):
                 return []
 
         rv = []

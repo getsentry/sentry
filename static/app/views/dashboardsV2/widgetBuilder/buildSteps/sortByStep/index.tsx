@@ -2,8 +2,8 @@ import {useEffect} from 'react';
 import styled from '@emotion/styled';
 import trimStart from 'lodash/trimStart';
 
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Field from 'sentry/components/forms/field';
-import SelectControl from 'sentry/components/forms/selectControl';
 import Tooltip from 'sentry/components/tooltip';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -30,7 +30,6 @@ interface Props {
   organization: Organization;
   queries: WidgetQuery[];
   tags: TagCollection;
-  widgetBuilderNewDesign: boolean;
   widgetType: WidgetType;
   error?: string;
   limit?: number;

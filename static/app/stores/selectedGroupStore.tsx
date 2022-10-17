@@ -1,7 +1,6 @@
 import {createStore} from 'reflux';
 
 import GroupStore from 'sentry/stores/groupStore';
-import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 import {CommonStoreDefinition} from './types';
 
@@ -18,7 +17,7 @@ interface InternalDefinition {
 }
 
 interface SelectedGroupStoreDefinition
-  extends CommonStoreDefinition<Map<string, boolean>>,
+  extends CommonStoreDefinition<Record<string, boolean>>,
     InternalDefinition {
   add(ids: string[]): void;
   allSelected(): boolean;
@@ -42,11 +41,10 @@ const storeConfig: SelectedGroupStoreDefinition = {
   unsubscribeListeners: [],
 
   init() {
-    this.reset();
+    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
+    // listeners due to their leaky nature in tests.
 
-    this.unsubscribeListeners.push(
-      this.listenTo(GroupStore, this.onGroupChange, this.onGroupChange)
-    );
+    this.reset();
   },
 
   reset() {
@@ -55,7 +53,7 @@ const storeConfig: SelectedGroupStoreDefinition = {
   },
 
   getState() {
-    return this.records;
+    return Object.fromEntries(this.records);
   },
 
   onGroupChange(itemIds) {
@@ -120,10 +118,8 @@ const storeConfig: SelectedGroupStoreDefinition = {
 
     const newState = !this.records.get(itemId);
     this.records.set(itemId, newState);
+    this.lastSelected = itemId;
 
-    if (newState) {
-      this.lastSelected = itemId;
-    }
     this.trigger();
   },
 
@@ -167,5 +163,5 @@ const storeConfig: SelectedGroupStoreDefinition = {
   },
 };
 
-const SelectedGroupStore = createStore(makeSafeRefluxStore(storeConfig));
+const SelectedGroupStore = createStore(storeConfig);
 export default SelectedGroupStore;

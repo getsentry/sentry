@@ -9,9 +9,9 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import SearchBar from 'sentry/components/events/searchBar';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
+import SelectField from 'sentry/components/forms/fields/selectField';
 import FormField from 'sentry/components/forms/formField';
-import SelectControl from 'sentry/components/forms/selectControl';
-import SelectField from 'sentry/components/forms/selectField';
 import IdBadge from 'sentry/components/idBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
 import ListItem from 'sentry/components/list/listItem';
@@ -320,7 +320,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                 // if the current owner/team isn't part of project selected, update to the first available team
                 const nextSelectedProject =
                   projects.find(({id}) => id === value) ?? selectedProject;
-                const ownerId: String | undefined = model
+                const ownerId: string | undefined = model
                   .getValue('owner')
                   ?.split(':')[1];
                 if (
@@ -452,7 +452,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                 'Filtering by these conditions automatically switch you to indexed events. [link:Learn more].',
                 {
                   link: (
-                    <ExternalLink href="https://docs.sentry.io/product/sentry-basics/metrics/" />
+                    <ExternalLink href="https://docs.sentry.io/product/sentry-basics/search/searchable-properties/#processed-event-properties" />
                   ),
                 }
               )}

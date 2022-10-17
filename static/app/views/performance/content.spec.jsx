@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
 import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -17,21 +18,25 @@ import {RouteContext} from 'sentry/views/routeContext';
 const FEATURES = ['performance-view'];
 
 function WrappedComponent({organization, isMEPEnabled = false, router}) {
+  const client = new QueryClient();
+
   return (
-    <RouteContext.Provider
-      value={{
-        location,
-        params: {},
-        router,
-        routes: [],
-      }}
-    >
-      <OrganizationContext.Provider value={organization}>
-        <MEPSettingProvider _isMEPEnabled={isMEPEnabled}>
-          <PerformanceContent organization={organization} location={router.location} />
-        </MEPSettingProvider>
-      </OrganizationContext.Provider>
-    </RouteContext.Provider>
+    <QueryClientProvider client={client}>
+      <RouteContext.Provider
+        value={{
+          location,
+          params: {},
+          router,
+          routes: [],
+        }}
+      >
+        <OrganizationContext.Provider value={organization}>
+          <MEPSettingProvider _isMEPEnabled={isMEPEnabled}>
+            <PerformanceContent organization={organization} location={router.location} />
+          </MEPSettingProvider>
+        </OrganizationContext.Provider>
+      </RouteContext.Provider>
+    </QueryClientProvider>
   );
 }
 

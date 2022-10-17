@@ -7,6 +7,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, features
+from sentry.api.base import region_silo_endpoint
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder.help import SlackHelpMessageBuilder
 from sentry.integrations.slack.message_builder.prompt import SlackPromptLinkMessageBuilder
@@ -25,6 +26,7 @@ from .base import SlackDMEndpoint
 from .command import LINK_FROM_CHANNEL_MESSAGE
 
 
+@region_silo_endpoint
 class SlackEventEndpoint(SlackDMEndpoint):
     """
     XXX(dcramer): a lot of this is copied from sentry-plugins right now, and will need refactoring
@@ -35,7 +37,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
 
     def reply(self, slack_request: SlackDMRequest, message: str) -> Response:
         headers = {"Authorization": f"Bearer {self._get_access_token(slack_request.integration)}"}
-        payload = {"channel": slack_request.channel_name, "text": message}
+        payload = {"channel": slack_request.channel_id, "text": message}
         client = SlackClient()
         try:
             client.post("/chat.postMessage", headers=headers, data=payload, json=True)
@@ -71,12 +73,12 @@ class SlackEventEndpoint(SlackDMEndpoint):
             channel_id=slack_request.channel_id,
             response_url=slack_request.response_url,
         )
-        if not slack_request.channel_name:
+        if not slack_request.channel_id:
             return
 
         payload = {
             "token": self._get_access_token(slack_request.integration),
-            "channel": slack_request.channel_name,
+            "channel": slack_request.channel_id,
             "user": slack_request.user_id,
             "text": "Link your Slack identity to Sentry to unfurl Discover charts.",
             **SlackPromptLinkMessageBuilder(associate_url).as_payload(),
@@ -95,7 +97,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
 
         headers = {"Authorization": f"Bearer {self._get_access_token(slack_request.integration)}"}
         payload = {
-            "channel": slack_request.channel_name,
+            "channel": slack_request.channel_id,
             **SlackHelpMessageBuilder(command).as_payload(),
         }
         client = SlackClient()
@@ -210,6 +212,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
                 return self.respond()
 
             command, _ = slack_request.get_command_and_args()
+
             if command in COMMANDS:
                 resp = super().post_dispatcher(slack_request)
 

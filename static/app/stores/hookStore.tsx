@@ -1,7 +1,6 @@
 import {createStore, StoreDefinition} from 'reflux';
 
 import {HookName, Hooks} from 'sentry/types/hooks';
-import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 interface Internals {
   // XXX(epurkhiser): We could type this as {[H in HookName]?:
@@ -20,6 +19,9 @@ const storeConfig: HookStoreDefinition = {
   hooks: {},
 
   init() {
+    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
+    // listeners due to their leaky nature in tests.
+
     this.hooks = {};
   },
 
@@ -52,5 +54,5 @@ const storeConfig: HookStoreDefinition = {
  * This functionality is primarily used by the SASS sentry.io product.
  */
 
-const HookStore = createStore(makeSafeRefluxStore(storeConfig));
+const HookStore = createStore(storeConfig);
 export default HookStore;

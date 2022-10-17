@@ -23,6 +23,8 @@ from sentry.api.issue_search import (
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.group import STATUS_QUERY_CHOICES
 from sentry.testutils import TestCase
+from sentry.testutils.silo import control_silo_test
+from sentry.types.issues import GROUP_CATEGORY_TO_TYPES, GroupCategory
 
 
 class ParseSearchQueryTest(unittest.TestCase):
@@ -156,6 +158,22 @@ class ParseSearchQueryTest(unittest.TestCase):
         ]
 
 
+class ConvertJavaScriptConsoleTagTest(TestCase):
+    def test_valid(self):
+        filters = [SearchFilter(SearchKey("empty_stacktrace.js_console"), "=", SearchValue(True))]
+        with self.feature("organizations:javascript-console-error-tag"):
+            result = convert_query_values(filters, [self.project], self.user, None)
+            assert result[0].value.raw_value is True
+
+    def test_invalid(self):
+        filters = [SearchFilter(SearchKey("empty_stacktrace.js_console"), "=", SearchValue(True))]
+        with self.feature({"organizations:javascript-console-error-tag": False}) and pytest.raises(
+            InvalidSearchQuery,
+            match="The empty_stacktrace.js_console filter is not supported for this organization",
+        ):
+            convert_query_values(filters, [self.project], self.user, None)
+
+
 class ConvertQueryValuesTest(TestCase):
     def test_valid_converter(self):
         filters = [SearchFilter(SearchKey("assigned_to"), "=", SearchValue("me"))]
@@ -217,6 +235,7 @@ class ConvertActorOrNoneValueTest(TestCase):
         )
 
 
+@control_silo_test
 class ConvertUserValueTest(TestCase):
     def test_me(self):
         assert convert_user_value(["me"], [self.project], self.user, None) == [self.user]
@@ -254,14 +273,19 @@ class ConvertFirstReleaseValueTest(TestCase):
 class ConvertCategoryValueTest(TestCase):
     def test(self):
         with self.feature("organizations:performance-issues"):
-            assert convert_category_value(["error"], [self.project], self.user, None) == [1]
-            assert convert_category_value(["performance"], [self.project], self.user, None) == [
-                1000,
-                1001,
-            ]
-            assert convert_category_value(
-                ["error", "performance"], [self.project], self.user, None
-            ) == [1, 1000, 1001]
+            assert set(convert_category_value(["error"], [self.project], self.user, None)) == {
+                gt.value for gt in GROUP_CATEGORY_TO_TYPES[GroupCategory.ERROR]
+            }
+            assert set(
+                convert_category_value(["performance"], [self.project], self.user, None)
+            ) == {gt.value for gt in GROUP_CATEGORY_TO_TYPES[GroupCategory.PERFORMANCE]}
+            assert set(
+                convert_category_value(["error", "performance"], [self.project], self.user, None)
+            ) == {
+                gt.value
+                for gt in GROUP_CATEGORY_TO_TYPES[GroupCategory.ERROR]
+                + GROUP_CATEGORY_TO_TYPES[GroupCategory.PERFORMANCE]
+            }
             with pytest.raises(InvalidSearchQuery):
                 convert_category_value(["hellboy"], [self.project], self.user, None)
 

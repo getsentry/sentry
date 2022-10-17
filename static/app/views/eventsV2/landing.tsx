@@ -9,7 +9,7 @@ import Alert from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
-import CompactSelect from 'sentry/components/forms/compactSelect';
+import CompactSelect from 'sentry/components/compactSelect';
 import {Title} from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import SearchBar from 'sentry/components/searchBar';
@@ -19,7 +19,7 @@ import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Organization, SavedQuery, SelectValue} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -169,13 +169,8 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
   };
 
   handleSortChange = (value: string) => {
-    const {location} = this.props;
-    trackAnalyticsEvent({
-      eventKey: 'discover_v2.change_sort',
-      eventName: 'Discoverv2: Sort By Changed',
-      organization_id: parseInt(this.props.organization.id, 10),
-      sort: value,
-    });
+    const {location, organization} = this.props;
+    trackAdvancedAnalyticsEvent('discover_v2.change_sort', {organization, sort: value});
     browserHistory.push({
       pathname: location.pathname,
       query: {
@@ -221,7 +216,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
           value={activeSort.value}
           options={SORT_OPTIONS}
           onChange={opt => this.handleSortChange(opt.value)}
-          placement="bottom right"
+          position="bottom-end"
         />
       </StyledActions>
     );
@@ -288,10 +283,8 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
                     to={to}
                     priority="primary"
                     onClick={() => {
-                      trackAnalyticsEvent({
-                        eventKey: 'discover_v2.build_new_query',
-                        eventName: 'Discoverv2: Build a new Discover Query',
-                        organization_id: parseInt(this.props.organization.id, 10),
+                      trackAdvancedAnalyticsEvent('discover_v2.build_new_query', {
+                        organization,
                       });
                     }}
                   >

@@ -8,7 +8,7 @@ import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
 import {EventTag} from 'sentry/types/event';
 
-import AnnotatedText from './events/meta/annotatedText';
+import {AnnotatedText} from './events/meta/annotatedText';
 
 interface Props {
   generateUrl: (tag: EventTag) => LocationDescriptor;

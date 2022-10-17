@@ -196,3 +196,33 @@ class GetFacetsTest(SnubaTestCase, TestCase):
         keys = {r.key for r in result}
         assert "color" in keys
         assert "toy" not in keys
+
+    def test_count_sorting(self):
+        for _ in range(5):
+            self.store_event(
+                data={
+                    "message": "very bad",
+                    "type": "default",
+                    "timestamp": iso_format(before_now(minutes=2)),
+                    "tags": {"color": "zzz"},
+                },
+                project_id=self.project.id,
+            )
+        # aaa is before zzz, but there's more zzz so it should show up first
+        self.store_event(
+            data={
+                "message": "oh my",
+                "type": "default",
+                "timestamp": iso_format(before_now(minutes=2)),
+                "tags": {"color": "aaa"},
+            },
+            project_id=self.project.id,
+        )
+        params = {"project_id": [self.project.id], "start": self.day_ago, "end": self.min_ago}
+        result = discover.get_facets("", params, "testing.get-facets-test")
+        first = result[0]
+        assert first.key == "color"
+        assert first.value == "zzz"
+        second = result[1]
+        assert second.key == "color"
+        assert second.value == "aaa"

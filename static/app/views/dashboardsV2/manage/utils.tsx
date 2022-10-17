@@ -1,3 +1,5 @@
+import localStorage from 'sentry/utils/localStorage';
+
 const SHOW_TEMPLATES_KEY = 'dashboards-show-templates';
 
 export function shouldShowTemplates(): boolean {

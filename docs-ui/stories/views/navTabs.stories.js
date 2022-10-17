@@ -1,7 +1,7 @@
 import NavTabs from 'sentry/components/navTabs';
 
 export default {
-  title: 'Views/Tabs',
+  title: 'Views/Nav Tabs',
   component: NavTabs,
 };
 

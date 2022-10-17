@@ -1,19 +1,75 @@
+import {InjectedRouter} from 'react-router';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import Breadcrumbs from 'sentry/components/events/interfaces/breadcrumbs';
+import {Organization} from 'sentry/types';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
+import ReplayReader from 'sentry/utils/replays/replayReader';
+import {OrganizationContext} from 'sentry/views/organizationContext';
+import {RouteContext} from 'sentry/views/routeContext';
+
+const mockReplay = ReplayReader.factory(TestStubs.ReplayReaderParams());
+
+jest.mock('screenfull', () => ({
+  enabled: true,
+  isFullscreen: false,
+  request: jest.fn(),
+  exit: jest.fn(),
+  on: jest.fn(),
+  off: jest.fn(),
+}));
+
+jest.mock('sentry/utils/replays/hooks/useReplayData', () => {
+  return {
+    __esModule: true,
+    default: jest.fn(() => {
+      return {
+        replay: mockReplay,
+        fetching: false,
+      };
+    }),
+  };
+});
+
+function TestComponent({
+  organization,
+  router,
+  children,
+}: {
+  children: React.ReactNode;
+  organization: Organization;
+  router: InjectedRouter;
+}) {
+  return (
+    <OrganizationContext.Provider value={organization}>
+      <RouteContext.Provider
+        value={{
+          router,
+          location: router.location,
+          params: {},
+          routes: [],
+        }}
+      >
+        {children}
+      </RouteContext.Provider>
+    </OrganizationContext.Provider>
+  );
+}
 
 describe('Breadcrumbs', () => {
   let props: React.ComponentProps<typeof Breadcrumbs>;
-  const {router} = initializeOrg();
+  const {router, organization} = initializeOrg();
 
   beforeEach(() => {
     props = {
       route: {},
       router,
       organization: TestStubs.Organization(),
+      projectSlug: 'project-slug',
+      isShare: false,
       event: TestStubs.Event({entries: []}),
       data: {
         values: [
@@ -66,7 +122,11 @@ describe('Breadcrumbs', () => {
 
   describe('filterCrumbs', function () {
     it('should filter crumbs based on crumb message', async function () {
-      render(<Breadcrumbs {...props} />);
+      render(
+        <TestComponent organization={organization} router={router}>
+          <Breadcrumbs {...props} />
+        </TestComponent>
+      );
 
       userEvent.type(screen.getByPlaceholderText('Search breadcrumbs'), 'hi');
 
@@ -86,7 +146,11 @@ describe('Breadcrumbs', () => {
     });
 
     it('should filter crumbs based on crumb level', function () {
-      render(<Breadcrumbs {...props} />);
+      render(
+        <TestComponent organization={organization} router={router}>
+          <Breadcrumbs {...props} />
+        </TestComponent>
+      );
 
       userEvent.type(screen.getByPlaceholderText('Search breadcrumbs'), 'war');
 
@@ -96,7 +160,11 @@ describe('Breadcrumbs', () => {
     });
 
     it('should filter crumbs based on crumb category', function () {
-      render(<Breadcrumbs {...props} />);
+      render(
+        <TestComponent organization={organization} router={router}>
+          <Breadcrumbs {...props} />
+        </TestComponent>
+      );
 
       userEvent.type(screen.getByPlaceholderText('Search breadcrumbs'), 'error');
 
@@ -108,7 +176,11 @@ describe('Breadcrumbs', () => {
     it('should display the correct number of crumbs with no filter', function () {
       props.data.values = props.data.values.slice(0, 4);
 
-      render(<Breadcrumbs {...props} />);
+      render(
+        <TestComponent organization={organization} router={router}>
+          <Breadcrumbs {...props} />
+        </TestComponent>
+      );
 
       // data.values + virtual crumb
       expect(screen.getAllByTestId('crumb')).toHaveLength(4);
@@ -119,7 +191,11 @@ describe('Breadcrumbs', () => {
     it('should display the correct number of crumbs with a filter', function () {
       props.data.values = props.data.values.slice(0, 4);
 
-      render(<Breadcrumbs {...props} />);
+      render(
+        <TestComponent organization={organization} router={router}>
+          <Breadcrumbs {...props} />
+        </TestComponent>
+      );
 
       const searchInput = screen.getByPlaceholderText('Search breadcrumbs');
 
@@ -145,12 +221,38 @@ describe('Breadcrumbs', () => {
         },
       ];
 
-      render(<Breadcrumbs {...props} />);
+      render(
+        <TestComponent organization={organization} router={router}>
+          <Breadcrumbs {...props} />
+        </TestComponent>
+      );
 
       // data.values + virtual crumb
       expect(screen.getByTestId('crumb')).toBeInTheDocument();
 
       expect(screen.getByTestId('last-crumb')).toBeInTheDocument();
+    });
+
+    it('should render a replay when there is a replayId', async function () {
+      render(
+        <TestComponent organization={organization} router={router}>
+          <Breadcrumbs
+            {...props}
+            event={TestStubs.Event({
+              entries: [],
+              tags: [{key: 'replayId', value: '761104e184c64d439ee1014b72b4d83b'}],
+            })}
+            organization={TestStubs.Organization({
+              features: ['session-replay-ui'],
+            })}
+          />
+        </TestComponent>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Replays')).toBeVisible();
+        expect(screen.getByTestId('player-container')).toBeInTheDocument();
+      });
     });
   });
 });

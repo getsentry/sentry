@@ -1,22 +1,25 @@
 import zlib
 from concurrent.futures import ThreadPoolExecutor
 
+from django.db.models import Prefetch
 from django.http import StreamingHttpResponse
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.models.file import File
+from sentry.models.file import File, FileBlobIndex
+from sentry.replays.lib.segment_file import get_chunked_blob_from_indexes
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.replays.serializers import ReplayRecordingSegmentSerializer
 
-CHUNKSIZE = 4096
 FILE_FETCH_THREADPOOL_SIZE = 4
 
 
+@region_silo_endpoint
 class ProjectReplayRecordingSegmentIndexEndpoint(ProjectEndpoint):
     private = True
 
@@ -61,12 +64,24 @@ class ProjectReplayRecordingSegmentIndexEndpoint(ProjectEndpoint):
         get the files associated with the segment range requested. prefetch the files
         in a threadpool.
         """
-        recording_segment_files = File.objects.filter(id__in=[r.file_id for r in results])
+
         # TODO: deflate files as theyre fetched, instead of having
         # to wait untill all of them are complete before starting work.
+
+        recording_segment_files = File.objects.filter(
+            id__in=[r.file_id for r in results]
+        ).prefetch_related(
+            Prefetch(
+                "blobs",
+                queryset=FileBlobIndex.objects.select_related("blob").order_by("offset"),
+                to_attr="file_blob_indexes",
+            )
+        )
         with ThreadPoolExecutor(max_workers=4) as exe:
+
             file_objects = exe.map(
-                lambda file: file.getfile(prefetch=True), recording_segment_files
+                lambda file: get_chunked_blob_from_indexes(file.file_blob_indexes),
+                recording_segment_files,
             )
 
         return iter(self.segment_generator(list(file_objects)))
@@ -81,7 +96,8 @@ class ProjectReplayRecordingSegmentIndexEndpoint(ProjectEndpoint):
 
         for i, file in enumerate(recording_segments):
             if self.is_compressed(file):
-                yield from self.decompress_blob_stream(file)
+                buffer = file.read()
+                yield zlib.decompress(buffer, zlib.MAX_WBITS | 32)
             else:
                 yield file.read().decode("utf-8")
 
@@ -94,14 +110,6 @@ class ProjectReplayRecordingSegmentIndexEndpoint(ProjectEndpoint):
     def is_compressed(blob):
         first_char = blob.read(1)
         blob.seek(0)
-        if first_char == b"{":
+        if first_char == b"[":
             return False
         return True
-
-    @staticmethod
-    def decompress_blob_stream(blob):
-        decompressobj = zlib.decompressobj()
-        buffer = blob.read(CHUNKSIZE)
-        while buffer:
-            yield decompressobj.decompress(buffer).decode("utf-8")
-            buffer = blob.read(CHUNKSIZE)

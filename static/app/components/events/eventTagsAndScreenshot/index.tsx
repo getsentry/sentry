@@ -1,9 +1,12 @@
 import styled from '@emotion/styled';
 
+import {openModal} from 'sentry/actionCreators/modal';
 import {DataSection} from 'sentry/components/events/styles';
 import space from 'sentry/styles/space';
+import {EventAttachment} from 'sentry/types/group';
 import {objectIsEmpty} from 'sentry/utils';
 
+import Modal, {modalCss} from './screenshot/modal';
 import Screenshot from './screenshot';
 import Tags from './tags';
 import TagsHighlight from './tagsHighlight';
@@ -46,16 +49,37 @@ function EventTagsAndScreenshots({
   const hasEventContext = hasContext && !objectIsEmpty(event.contexts);
   const showTags = !!tags.length || hasContext;
 
+  function handleOpenVisualizationModal(
+    eventAttachment: EventAttachment,
+    downloadUrl: string
+  ) {
+    openModal(
+      modalProps => (
+        <Modal
+          {...modalProps}
+          event={event}
+          orgSlug={organization.slug}
+          projectSlug={projectSlug}
+          eventAttachment={eventAttachment}
+          downloadUrl={downloadUrl}
+          onDelete={() => onDeleteScreenshot(eventAttachment.id)}
+        />
+      ),
+      {modalCss}
+    );
+  }
+
   return (
     <Wrapper showScreenshot={showScreenshot} showTags={showTags}>
       {showScreenshot && (
         <ScreenshotWrapper>
           <Screenshot
             organization={organization}
-            event={event}
+            eventId={event.id}
             projectSlug={projectSlug}
             screenshot={screenshot}
             onDelete={onDeleteScreenshot}
+            openVisualizationModal={handleOpenVisualizationModal}
           />
         </ScreenshotWrapper>
       )}
@@ -66,7 +90,6 @@ function EventTagsAndScreenshots({
             <TagsHighlight event={event} />
           </TagsHighlightWrapper>
         )}
-        {hasEventContext && showTags && <HorizontalDivider />}
         {showTags && (
           <Tags
             organization={organization}
@@ -133,13 +156,7 @@ const TagsHighlightWrapper = styled('div')`
   overflow: hidden;
   padding: 0 ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     padding: 0 ${space(4)};
   }
-`;
-
-const HorizontalDivider = styled('div')`
-  height: 1px;
-  width: 100%;
-  background: ${p => p.theme.innerBorder};
 `;

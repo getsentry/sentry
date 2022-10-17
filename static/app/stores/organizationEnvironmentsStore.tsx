@@ -2,7 +2,6 @@ import {createStore} from 'reflux';
 
 import {Environment} from 'sentry/types';
 import {getDisplayName, getUrlRoutingName} from 'sentry/utils/environment';
-import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 import {CommonStoreDefinition} from './types';
 
@@ -25,14 +24,15 @@ interface OrganizationEnvironmentsStoreDefinition extends CommonStoreDefinition<
 }
 
 const storeConfig: OrganizationEnvironmentsStoreDefinition = {
-  unsubscribeListeners: [],
-
   state: {
     environments: null,
     error: null,
   },
 
   init() {
+    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
+    // listeners due to their leaky nature in tests.
+
     this.state = {environments: null, error: null};
   },
 
@@ -69,6 +69,5 @@ const storeConfig: OrganizationEnvironmentsStoreDefinition = {
   },
 };
 
-const OrganizationEnvironmentsStore = createStore(makeSafeRefluxStore(storeConfig));
-
+const OrganizationEnvironmentsStore = createStore(storeConfig);
 export default OrganizationEnvironmentsStore;

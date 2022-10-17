@@ -2,7 +2,6 @@ import findIndex from 'lodash/findIndex';
 import {createStore, StoreDefinition} from 'reflux';
 
 import {SavedSearch, SavedSearchType} from 'sentry/types';
-import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 type State = {
   hasError: boolean;
@@ -31,8 +30,6 @@ interface SavedSearchesStoreDefinition extends StoreDefinition {
 }
 
 const storeConfig: SavedSearchesStoreDefinition = {
-  unsubscribeListeners: [],
-
   state: {
     savedSearches: [],
     hasError: false,
@@ -40,6 +37,9 @@ const storeConfig: SavedSearchesStoreDefinition = {
   },
 
   init() {
+    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
+    // listeners due to their leaky nature in tests.
+
     this.reset();
   },
 
@@ -221,5 +221,5 @@ const storeConfig: SavedSearchesStoreDefinition = {
   },
 };
 
-const SavedSearchesStore = createStore(makeSafeRefluxStore(storeConfig));
+const SavedSearchesStore = createStore(storeConfig);
 export default SavedSearchesStore;

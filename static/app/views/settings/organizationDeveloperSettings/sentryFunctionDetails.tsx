@@ -12,7 +12,7 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import FormModel from 'sentry/components/forms/model';
-import {Field} from 'sentry/components/forms/type';
+import {Field} from 'sentry/components/forms/types';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import {SentryFunction} from 'sentry/types';
@@ -20,43 +20,39 @@ import {SentryFunction} from 'sentry/types';
 import SentryFunctionEnvironmentVariables from './sentryFunctionsEnvironmentVariables';
 import SentryFunctionSubscriptions from './sentryFunctionSubscriptions';
 
-class SentryFunctionFormModel extends FormModel {
-  getTransformedData() {
-    const data = super.getTransformedData() as Record<string, any>;
-
-    const events: string[] = [];
-    if (data.onIssue) {
-      events.push('issue');
-    }
-    if (data.onError) {
-      events.push('error');
-    }
-    if (data.onComment) {
-      events.push('comment');
-    }
-    delete data.onIssue;
-    delete data.onError;
-    delete data.onComment;
-    data.events = events;
-
-    const envVariables: EnvVariable[] = [];
-    let i = 0;
-    while (data[`env-variable-name-${i}`]) {
-      if (data[`env-variable-value-${i}`]) {
-        envVariables.push({
-          name: data[`env-variable-name-${i}`],
-          value: data[`env-variable-value-${i}`],
-        });
-      }
-      delete data[`env-variable-name-${i}`];
-      delete data[`env-variable-value-${i}`];
-      i++;
-    }
-    data.envVariables = envVariables;
-
-    const {...output} = data;
-    return output;
+function transformData(data: Record<string, any>) {
+  const events: string[] = [];
+  if (data.onIssue) {
+    events.push('issue');
   }
+  if (data.onError) {
+    events.push('error');
+  }
+  if (data.onComment) {
+    events.push('comment');
+  }
+  delete data.onIssue;
+  delete data.onError;
+  delete data.onComment;
+  data.events = events;
+
+  const envVariables: EnvVariable[] = [];
+  let i = 0;
+  while (data[`env-variable-name-${i}`]) {
+    if (data[`env-variable-value-${i}`]) {
+      envVariables.push({
+        name: data[`env-variable-name-${i}`],
+        value: data[`env-variable-value-${i}`],
+      });
+    }
+    delete data[`env-variable-name-${i}`];
+    delete data[`env-variable-value-${i}`];
+    i++;
+  }
+  data.envVariables = envVariables;
+
+  const {...output} = data;
+  return output;
 }
 
 type Props = {
@@ -93,7 +89,7 @@ const formFields: Field[] = [
 ];
 
 function SentryFunctionDetails(props: Props) {
-  const [form] = useState(() => new SentryFunctionFormModel());
+  const [form] = useState(() => new FormModel({transformData}));
 
   const {orgId, functionSlug} = props.params;
   const {sentryFunction} = props;

@@ -1,3 +1,4 @@
+import Feature from 'sentry/components/acl/feature';
 import {Form} from 'sentry/components/forms';
 import {Panel, PanelHeader} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
@@ -16,6 +17,16 @@ const optionsAvailable = [
   'auth.user-rate-limit',
   'api.rate-limit.org-create',
   'beacon.anonymous',
+  'performance.issues.all.problem-detection',
+  'performance.issues.all.problem-creation',
+  'performance.issues.all.early-adopter-rollout',
+  'performance.issues.all.general-availability-rollout',
+  'performance.issues.all.post-process-group-early-adopter-rollout',
+  'performance.issues.all.post-process-group-ga-rollout',
+  'performance.issues.n_plus_one_db.problem-creation',
+  'performance.issues.n_plus_one_db_ext.problem-creation',
+  'performance.issues.n_plus_one_db.count_threshold',
+  'performance.issues.n_plus_one_db.duration_threshold',
 ];
 
 type Field = ReturnType<typeof getOption>;
@@ -87,6 +98,25 @@ export default class AdminSettings extends AsyncView<{}, State> {
             <PanelHeader>Beacon</PanelHeader>
             {fields['beacon.anonymous']}
           </Panel>
+
+          <Feature features={['organizations:performance-issues-dev']}>
+            <Panel>
+              <PanelHeader>Performance Issues - All</PanelHeader>
+              {fields['performance.issues.all.problem-detection']}
+              {fields['performance.issues.all.problem-creation']}
+              {fields['performance.issues.all.early-adopter-rollout']}
+              {fields['performance.issues.all.general-availability-rollout']}
+              {fields['performance.issues.all.post-process-group-early-adopter-rollout']}
+              {fields['performance.issues.all.post-process-group-ga-rollout']}
+            </Panel>
+            <Panel>
+              <PanelHeader>Performance Issues - Detectors</PanelHeader>
+              {fields['performance.issues.n_plus_one_db.problem-creation']}
+              {fields['performance.issues.n_plus_one_db_ext.problem-creation']}
+              {fields['performance.issues.n_plus_one_db.count_threshold']}
+              {fields['performance.issues.n_plus_one_db.duration_threshold']}
+            </Panel>
+          </Feature>
         </Form>
       </div>
     );

@@ -1,8 +1,7 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {t} from 'sentry/locale';
+import EventView from 'sentry/utils/discover/eventView';
 import {DisplayModes} from 'sentry/utils/discover/types';
 import ChartFooter from 'sentry/views/eventsV2/chartFooter';
 
@@ -13,10 +12,18 @@ describe('EventsV2 > ChartFooter', function () {
     {label: 'count()', value: 'count()'},
     {label: 'failure_count()', value: 'failure_count()'},
   ];
+  const project = TestStubs.Project();
+  const eventView = EventView.fromSavedQuery({
+    id: '',
+    name: 'test query',
+    version: 2,
+    fields: ['transaction', 'count()'],
+    projects: [project.id],
+  });
 
   afterEach(function () {});
 
-  it('renders yAxis option using OptionCheckboxSelector using entire yAxisValue', async function () {
+  it('renders yAxis option using OptionCheckboxSelector using entire yAxisValue', function () {
     const organization = TestStubs.Organization({
       features: [...features],
     });
@@ -31,7 +38,7 @@ describe('EventsV2 > ChartFooter', function () {
       projects: [],
     });
 
-    const wrapper = mountWithTheme(
+    const chartFooter = (
       <ChartFooter
         organization={organization}
         total={100}
@@ -42,20 +49,26 @@ describe('EventsV2 > ChartFooter', function () {
         displayOptions={[{label: DisplayModes.DEFAULT, value: DisplayModes.DEFAULT}]}
         onDisplayChange={() => undefined}
         onTopEventsChange={() => undefined}
+        onIntervalChange={() => undefined}
         topEvents="5"
-      />,
-      initialData.routerContext
+        showBaseline={false}
+        setShowBaseline={() => undefined}
+        eventView={eventView}
+      />
     );
 
-    await tick();
-    wrapper.update();
+    render(chartFooter, {context: initialData.routerContext});
 
-    const optionCheckboxSelector = wrapper.find('OptionSelector').last();
-    expect(optionCheckboxSelector.props().title).toEqual(t('Y-Axis'));
-    expect(optionCheckboxSelector.props().selected).toEqual(yAxisValue);
+    expect(
+      screen.getByRole('button', {
+        name: `Y-Axis ${yAxisValue[0]} +${
+          yAxisValue.filter(v => v !== yAxisValue[0]).length
+        }`,
+      })
+    ).toBeInTheDocument();
   });
 
-  it('renders display limits with default limit when top 5 mode is selected', async function () {
+  it('renders display limits with default limit when top 5 mode is selected', function () {
     const organization = TestStubs.Organization({
       features,
     });
@@ -69,7 +82,9 @@ describe('EventsV2 > ChartFooter', function () {
       projects: [],
     });
 
-    const wrapper = mountWithTheme(
+    const limit = '5';
+
+    const chartFooter = (
       <ChartFooter
         organization={organization}
         total={100}
@@ -80,42 +95,17 @@ describe('EventsV2 > ChartFooter', function () {
         displayOptions={[{label: DisplayModes.DEFAULT, value: DisplayModes.DEFAULT}]}
         onDisplayChange={() => undefined}
         onTopEventsChange={() => undefined}
-        topEvents="5"
-      />,
-      initialData.routerContext
-    );
-
-    await tick();
-    wrapper.update();
-
-    const optionSelector = wrapper.find('OptionSelector[title="Limit"]');
-    expect(optionSelector.props().selected).toEqual('5');
-  });
-
-  it('renders single value y-axis dropdown selector on a Top display', function () {
-    const organization = TestStubs.Organization({
-      features,
-    });
-    let yAxis = ['count()'];
-
-    render(
-      <ChartFooter
-        organization={organization}
-        total={100}
-        yAxisValue={yAxis}
-        yAxisOptions={yAxisOptions}
-        onAxisChange={newYAxis => (yAxis = newYAxis)}
-        displayMode={DisplayModes.TOP5}
-        displayOptions={[{label: DisplayModes.TOP5, value: DisplayModes.TOP5}]}
-        onDisplayChange={() => undefined}
-        onTopEventsChange={() => undefined}
-        topEvents="5"
+        onIntervalChange={() => undefined}
+        topEvents={limit}
+        showBaseline={false}
+        setShowBaseline={() => undefined}
+        eventView={eventView}
       />
     );
 
-    userEvent.click(screen.getByText('count()'));
-    userEvent.click(screen.getByText('failure_count()'));
-    expect(yAxis).toEqual(['failure_count()']);
+    render(chartFooter, {context: initialData.routerContext});
+
+    expect(screen.getByRole('button', {name: `Limit ${limit}`})).toBeInTheDocument();
   });
 
   it('renders multi value y-axis dropdown selector on a non-Top display', function () {
@@ -124,7 +114,7 @@ describe('EventsV2 > ChartFooter', function () {
     });
     let yAxis = ['count()'];
 
-    render(
+    const chartFooter = (
       <ChartFooter
         organization={organization}
         total={100}
@@ -135,9 +125,15 @@ describe('EventsV2 > ChartFooter', function () {
         displayOptions={[{label: DisplayModes.DEFAULT, value: DisplayModes.DEFAULT}]}
         onDisplayChange={() => undefined}
         onTopEventsChange={() => undefined}
+        onIntervalChange={() => undefined}
         topEvents="5"
+        showBaseline={false}
+        setShowBaseline={() => undefined}
+        eventView={eventView}
       />
     );
+
+    render(chartFooter);
 
     userEvent.click(screen.getByText('count()'));
     userEvent.click(screen.getByText('failure_count()'));

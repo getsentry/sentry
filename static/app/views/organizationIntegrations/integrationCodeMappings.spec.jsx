@@ -29,9 +29,6 @@ describe('IntegrationCodeMappings', function () {
   ProjectsStore.loadInitialData(projects);
 
   const org = TestStubs.Organization();
-  const invalidOrg = TestStubs.Organization({
-    access: [],
-  });
   const integration = TestStubs.GitHubIntegration();
   const repos = [
     TestStubs.Repository({
@@ -45,26 +42,22 @@ describe('IntegrationCodeMappings', function () {
     }),
   ];
 
-  const pathConfig1 = TestStubs.RepositoryProjectPathConfig(
-    projects[0],
-    repos[0],
+  const pathConfig1 = TestStubs.RepositoryProjectPathConfig({
+    project: projects[0],
+    repo: repos[0],
     integration,
-    {
-      stackRoot: 'stack/root',
-      sourceRoot: 'source/root',
-    }
-  );
+    stackRoot: 'stack/root',
+    sourceRoot: 'source/root',
+  });
 
-  const pathConfig2 = TestStubs.RepositoryProjectPathConfig(
-    projects[1],
-    repos[1],
+  const pathConfig2 = TestStubs.RepositoryProjectPathConfig({
+    project: projects[1],
+    repo: repos[1],
     integration,
-    {
-      id: '12',
-      stackRoot: 'one/path',
-      sourceRoot: 'another/root',
-    }
-  );
+    id: '12',
+    stackRoot: 'one/path',
+    sourceRoot: 'another/root',
+  });
 
   let wrapper;
 
@@ -85,7 +78,6 @@ describe('IntegrationCodeMappings', function () {
   afterEach(() => {
     // Clear the fields from the GlobalModal after every test
     ModalStore.reset();
-    ModalStore.teardown();
   });
 
   it('shows the paths', () => {
@@ -106,28 +98,6 @@ describe('IntegrationCodeMappings', function () {
     expect(modal.find('input[name="stackRoot"]')).toHaveLength(1);
   });
 
-  it('requires permissions to click', async () => {
-    const invalidContext = TestStubs.routerContext([{organization: invalidOrg}]);
-    wrapper = mountWithTheme(
-      <IntegrationCodeMappings organization={invalidOrg} integration={integration} />,
-      invalidContext
-    );
-    const modal = await mountGlobalModal(invalidContext);
-
-    expect(modal.find('input[name="stackRoot"]')).toHaveLength(0);
-
-    const addMappingButton = wrapper
-      .find('Button[data-test-id="add-mapping-button"]')
-      .first();
-    expect(addMappingButton.prop('disabled')).toBe(true);
-    addMappingButton.simulate('click');
-
-    await tick();
-    modal.update();
-
-    expect(modal.find('input[name="stackRoot"]')).toHaveLength(0);
-  });
-
   it('create new config', async () => {
     const stackRoot = 'my/root';
     const sourceRoot = 'hey/dude';
@@ -136,7 +106,10 @@ describe('IntegrationCodeMappings', function () {
     const createMock = Client.addMockResponse({
       url,
       method: 'POST',
-      body: TestStubs.RepositoryProjectPathConfig(projects[1], repos[1], integration, {
+      body: TestStubs.RepositoryProjectPathConfig({
+        project: projects[1],
+        repo: repos[1],
+        integration,
         stackRoot,
         sourceRoot,
         defaultBranch,
@@ -183,7 +156,10 @@ describe('IntegrationCodeMappings', function () {
     const editMock = Client.addMockResponse({
       url,
       method: 'PUT',
-      body: TestStubs.RepositoryProjectPathConfig(projects[0], repos[0], integration, {
+      body: TestStubs.RepositoryProjectPathConfig({
+        project: projects[0],
+        repo: repos[0],
+        integration,
         stackRoot,
         sourceRoot,
         defaultBranch,

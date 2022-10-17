@@ -13,7 +13,7 @@ import {TagValueLoader} from './types';
 type Props = {
   isSearchDisabled: boolean;
   onSearch: (query: string) => void;
-  onSidebarToggle: (event: React.MouseEvent) => void;
+  onSidebarToggle: () => void;
   organization: Organization;
   query: string;
   savedSearch: SavedSearch;
@@ -46,7 +46,7 @@ function IssueListFilters({
         sort={sort}
         onSearch={onSearch}
         disabled={isSearchDisabled}
-        excludeEnvironment
+        excludedTags={['environment']}
         supportedTags={tags}
         tagValueLoader={tagValueLoader}
         savedSearch={savedSearch}

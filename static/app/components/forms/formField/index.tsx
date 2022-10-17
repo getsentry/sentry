@@ -16,7 +16,7 @@ import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 
-import {FieldValue} from '../type';
+import {FieldValue} from '../types';
 
 /**
  * Some fields don't need to implement their own onChange handlers, in
@@ -76,6 +76,9 @@ interface ResolvedObservableProps {
   visible?: FieldProps['visible'];
 }
 
+// XXX(epurkhiser): Many of these props are duplicated in form types. The forms
+// interfaces need some serious consolidation
+
 interface BaseProps {
   /**
    * Used to render the actual control
@@ -113,18 +116,22 @@ interface BaseProps {
    * The alert type to use when saveOnBlur is false
    */
   saveMessageAlertType?: React.ComponentProps<typeof Alert>['type'];
-
   /**
    * When the field is blurred should it automatically persist its value into
    * the model. Will show a confirm button 'save' otherwise.
    */
   saveOnBlur?: boolean;
+
   /**
    * A function producing an optional component with extra information.
    */
   selectionInfoFunction?: (
     props: PassthroughProps & {value: FieldValue; error?: string}
   ) => React.ReactNode;
+  /**
+   * Used in the form model to transform the value
+   */
+  setValue?: (value: FieldValue, props?: any) => any;
   /**
    * Extra styles to apply to the field
    */
@@ -365,6 +372,7 @@ class FormField extends Component<FormFieldProps> {
                           error,
                           disabled,
                           initialData: model.initialData,
+                          'aria-describedby': `${id}_help`,
                         })}
                         {showReturnButton && <StyledReturnButton />}
                       </Fragment>

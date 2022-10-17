@@ -10,11 +10,17 @@ import space from 'sentry/styles/space';
 
 type DefaultProps = {
   btnText?: string;
+  /**
+   * The "show more" button is 28px tall.
+   * Do not clip if there is only a few more pixels
+   */
+  clipFlex?: number;
   clipHeight?: number;
   defaultClipped?: boolean;
 };
 
 type Props = {
+  clipFlex: number;
   clipHeight: number;
   className?: string;
   /**
@@ -43,6 +49,7 @@ class ClippedBox extends PureComponent<Props, State> {
   static defaultProps: DefaultProps = {
     defaultClipped: false,
     clipHeight: 200,
+    clipFlex: 28,
     btnText: t('Show More'),
   };
 
@@ -93,7 +100,10 @@ class ClippedBox extends PureComponent<Props, State> {
       return;
     }
 
-    if (!this.state.isClipped && renderedHeight > this.props.clipHeight) {
+    if (
+      !this.state.isClipped &&
+      renderedHeight > this.props.clipHeight + this.props.clipFlex
+    ) {
       /* eslint react/no-did-mount-set-state:0 */
       // okay if this causes re-render; cannot determine until
       // rendered first anyways
@@ -159,15 +169,7 @@ const Wrapper = styled('div', {
     prop !== 'clipHeight' && prop !== 'isClipped' && prop !== 'isRevealed',
 })<State & {clipHeight: number}>`
   position: relative;
-  border-top: 1px solid ${p => p.theme.backgroundSecondary};
-  margin-left: -${space(3)};
-  margin-right: -${space(3)};
-  padding: ${space(2)} ${space(3)} 0;
-
-  :first-of-type {
-    margin-top: -${space(2)};
-    border: 0;
-  }
+  padding: ${space(1.5)} 0;
 
   /* For "Show More" animation */
   ${p =>
@@ -186,7 +188,7 @@ const Wrapper = styled('div', {
 `;
 
 const Title = styled('h5')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${space(1)};
 `;
 
 const ClipFade = styled('div')`

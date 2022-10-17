@@ -1,7 +1,6 @@
 import {createStore} from 'reflux';
 
 import type {Committer, ReleaseCommitter} from 'sentry/types';
-import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 type State = {
   // Use `getCommitterStoreKey` to generate key
@@ -44,6 +43,9 @@ export const storeConfig: CommitterStoreDefinition = {
   state: {},
 
   init() {
+    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
+    // listeners due to their leaky nature in tests.
+
     this.reset();
   },
 
@@ -119,5 +121,5 @@ export function getCommitterStoreKey(
   return `${orgSlug} ${projectSlug} ${eventId}`;
 }
 
-const CommitterStore = createStore(makeSafeRefluxStore(storeConfig));
+const CommitterStore = createStore(storeConfig);
 export default CommitterStore;

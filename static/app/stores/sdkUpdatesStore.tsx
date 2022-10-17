@@ -1,7 +1,6 @@
 import {createStore} from 'reflux';
 
 import {ProjectSdkUpdates} from 'sentry/types';
-import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 import {CommonStoreDefinition} from './types';
 
@@ -24,7 +23,11 @@ interface SdkUpdatesStoreDefinition
 
 const storeConfig: SdkUpdatesStoreDefinition = {
   orgSdkUpdates: new Map(),
-  unsubscribeListeners: [],
+
+  init() {
+    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
+    // listeners due to their leaky nature in tests.
+  },
 
   loadSuccess(orgSlug, data) {
     this.orgSdkUpdates.set(orgSlug, data);
@@ -44,5 +47,5 @@ const storeConfig: SdkUpdatesStoreDefinition = {
   },
 };
 
-const SdkUpdatesStore = createStore(makeSafeRefluxStore(storeConfig));
+const SdkUpdatesStore = createStore(storeConfig);
 export default SdkUpdatesStore;

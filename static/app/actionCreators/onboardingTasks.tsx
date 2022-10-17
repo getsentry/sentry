@@ -1,7 +1,7 @@
-import OrganizationActions from 'sentry/actions/organizationActions';
 import {Client} from 'sentry/api';
 import ConfigStore from 'sentry/stores/configStore';
-import {OnboardingTask, Organization} from 'sentry/types';
+import OrganizationStore from 'sentry/stores/organizationStore';
+import {OnboardingTask, OnboardingTaskStatus, Organization} from 'sentry/types';
 
 /**
  * Update an onboarding task.
@@ -37,7 +37,7 @@ export function updateOnboardingTask(
     ? organization.onboardingTasks.map(task =>
         task.task === updatedTask.task ? {...task, ...updatedTask} : task
       )
-    : [...organization.onboardingTasks, {...updatedTask, user}];
+    : [...organization.onboardingTasks, {...updatedTask, user} as OnboardingTaskStatus];
 
-  OrganizationActions.update({onboardingTasks});
+  OrganizationStore.onUpdate({onboardingTasks});
 }

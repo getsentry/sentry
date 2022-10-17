@@ -3,24 +3,17 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import File
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.replays.serializers import ReplayRecordingSegmentSerializer
-from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
+@region_silo_endpoint
 class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectEndpoint):
     private = True
-
-    rate_limits = {
-        "GET": {
-            RateLimitCategory.IP: RateLimit(1000, 1),
-            RateLimitCategory.USER: RateLimit(200, 1),
-            RateLimitCategory.ORGANIZATION: RateLimit(1000, 1),
-        }
-    }
 
     def get(self, request: Request, project, replay_id, segment_id) -> Response:
         if not features.has(

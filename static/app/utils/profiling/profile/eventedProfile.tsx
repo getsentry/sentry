@@ -15,14 +15,14 @@ export class EventedProfile extends Profile {
     eventedProfile: Profiling.EventedProfile,
     frameIndex: ReturnType<typeof createFrameIndex>
   ): EventedProfile {
-    const profile = new EventedProfile(
-      eventedProfile.endValue - eventedProfile.startValue,
-      eventedProfile.startValue,
-      eventedProfile.endValue,
-      eventedProfile.name,
-      eventedProfile.unit,
-      eventedProfile.threadID
-    );
+    const profile = new EventedProfile({
+      duration: eventedProfile.endValue - eventedProfile.startValue,
+      startedAt: eventedProfile.startValue,
+      endedAt: eventedProfile.endValue,
+      name: eventedProfile.name,
+      unit: eventedProfile.unit,
+      threadId: eventedProfile.threadID,
+    });
 
     // If frames are offset, we need to set lastValue to profile start, so that delta between
     // samples is correctly offset by the start value.
@@ -81,9 +81,17 @@ export class EventedProfile extends Profile {
     }
   }
 
+  recordRawWeight(at: number) {
+    const weight = at - this.lastValue;
+    if (weight > 0) {
+      this.rawWeights.push(weight);
+    }
+  }
+
   enterFrame(frame: Frame, at: number): void {
     this.addWeightToFrames(at);
     this.addWeightsToNodes(at);
+    this.recordRawWeight(at);
 
     const lastTop = lastOfArray(this.appendOrderStack);
 
@@ -138,6 +146,7 @@ export class EventedProfile extends Profile {
     this.addWeightToFrames(at);
     this.addWeightsToNodes(at);
     this.trackSampleStats(at);
+    this.recordRawWeight(at);
 
     const leavingStackTop = this.appendOrderStack.pop();
 

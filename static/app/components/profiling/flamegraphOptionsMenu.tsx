@@ -1,12 +1,13 @@
 import {Fragment, useMemo} from 'react';
 
 import Button from 'sentry/components/button';
-import CompositeSelect from 'sentry/components/forms/compositeSelect';
+import CompositeSelect from 'sentry/components/compositeSelect';
 import {IconSliders} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
-import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphPreferences';
-import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/useFlamegraphPreferences';
+import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
+import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
+import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
 
 interface FlamegraphOptionsMenuProps {
   canvasPoolManager: CanvasPoolManager;
@@ -15,7 +16,8 @@ interface FlamegraphOptionsMenuProps {
 function FlamegraphOptionsMenu({
   canvasPoolManager,
 }: FlamegraphOptionsMenuProps): React.ReactElement {
-  const [{colorCoding, xAxis}, dispatch] = useFlamegraphPreferences();
+  const {colorCoding, xAxis} = useFlamegraphPreferences();
+  const dispatch = useDispatchFlamegraphState();
 
   const options = useMemo(() => {
     return [
@@ -64,7 +66,7 @@ function FlamegraphOptionsMenu({
           icon: <IconSliders size="xs" />,
           size: 'xs',
         }}
-        placement="bottom right"
+        position="bottom-end"
         sections={options}
       />
     </Fragment>
@@ -78,7 +80,7 @@ const X_AXIS: Record<FlamegraphPreferences['xAxis'], string> = {
 
 const COLOR_CODINGS: Record<FlamegraphPreferences['colorCoding'], string> = {
   'by symbol name': t('By Symbol Name'),
-  'by library': t('By Library'),
+  'by library': t('By Package'),
   'by system / application': t('By System / Application'),
   'by recursion': t('By Recursion'),
   'by frequency': t('By Frequency'),

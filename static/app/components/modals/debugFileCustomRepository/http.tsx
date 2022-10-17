@@ -5,7 +5,7 @@ import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import ActionButton from 'sentry/components/actions/button';
 import Button from 'sentry/components/button';
 import Field from 'sentry/components/forms/field';
-import SelectField from 'sentry/components/forms/selectField';
+import SelectField from 'sentry/components/forms/fields/selectField';
 import Input from 'sentry/components/input';
 import {
   DEBUG_SOURCE_CASINGS,
@@ -14,12 +14,10 @@ import {
 } from 'sentry/data/debugFileSources';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct} from 'sentry/locale';
-import {INPUT_PADDING} from 'sentry/styles/input';
 import space from 'sentry/styles/space';
 import {uniqueId} from 'sentry/utils/guid';
 
 const CLEAR_PASSWORD_BUTTON_SIZE = 22;
-const PASSWORD_INPUT_PADDING_RIGHT = INPUT_PADDING + CLEAR_PASSWORD_BUTTON_SIZE;
 
 type InitialData = {
   id: string;
@@ -263,7 +261,8 @@ const StyledSelectField = styled(SelectField)`
 `;
 
 const PasswordInput = styled(Input)`
-  padding-right: ${PASSWORD_INPUT_PADDING_RIGHT}px;
+  padding-right: ${p =>
+    p.theme.formPadding.md.paddingRight + CLEAR_PASSWORD_BUTTON_SIZE}px;
 `;
 
 const ClearPasswordButton = styled(ActionButton)`

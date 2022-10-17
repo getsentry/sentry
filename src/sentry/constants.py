@@ -5,7 +5,7 @@ web-server
 
 import logging
 import os.path
-from collections import OrderedDict, namedtuple
+from collections import namedtuple
 from datetime import timedelta
 from typing import Dict, List, Optional, Sequence, Tuple, cast
 
@@ -40,18 +40,18 @@ COMMIT_RANGE_DELIMITER = ".."
 # semver constants
 SEMVER_FAKE_PACKAGE = "__sentry_fake__"
 
-SORT_OPTIONS = OrderedDict(
-    (
-        ("priority", _("Priority")),
-        ("date", _("Last Seen")),
-        ("new", _("First Seen")),
-        ("freq", _("Frequency")),
-    )
-)
+SORT_OPTIONS = {
+    "priority": _("Priority"),
+    "date": _("Last Seen"),
+    "new": _("First Seen"),
+    "freq": _("Frequency"),
+}
 
-SEARCH_SORT_OPTIONS = OrderedDict(
-    (("score", _("Score")), ("date", _("Last Seen")), ("new", _("First Seen")))
-)
+SEARCH_SORT_OPTIONS = {
+    "score": _("Score"),
+    "date": _("Last Seen"),
+    "new": _("First Seen"),
+}
 
 # XXX: Deprecated: use GroupStatus instead
 STATUS_UNRESOLVED = 0
@@ -82,75 +82,76 @@ MAX_ROLLUP_POINTS = 10000
 # which we don't want to worry about conflicts on.
 RESERVED_ORGANIZATION_SLUGS = frozenset(
     (
-        "admin",
-        "manage",
-        "login",
-        "account",
-        "register",
-        "api",
-        "accept",
-        "organizations",
-        "teams",
-        "projects",
-        "help",
-        "docs",
-        "logout",
         "404",
         "500",
-        "_static",
-        "out",
-        "debug",
-        "remote",
-        "get-cli",
-        "blog",
-        "welcome",
-        "features",
-        "customers",
-        "integrations",
-        "signup",
-        "pricing",
-        "subscribe",
-        "enterprise",
-        "about",
-        "jobs",
-        "thanks",
-        "guide",
-        "privacy",
-        "security",
-        "terms",
-        "from",
-        "sponsorship",
-        "for",
-        "at",
-        "platforms",
-        "branding",
-        "vs",
-        "answers",
         "_admin",
-        "support",
+        "_experiment",
+        "_static",
+        "about",
+        "accept",
+        "account",
+        "admin",
+        "answers",
+        "api",
+        "at",
+        "avatar",
+        "blog",
+        "branding",
+        "careers",
+        "community",
         "contact",
-        "onboarding",
+        "customers",
+        "debug",
+        "demo",
+        "docs",
+        "enterprise",
+        "events",
         "ext",
         "extension",
         "extensions",
-        "plugins",
-        "themonitor",
-        "settings",
-        "legal",
-        "avatar",
-        "organization-avatar",
-        "project-avatar",
-        "team-avatar",
-        "careers",
-        "_experiment",
-        "sentry-apps",
-        "resources",
+        "features",
+        "for",
+        "from",
+        "get-cli",
+        "guide",
+        "help",
         "integration-platform",
-        "trust",
+        "integrations",
+        "jobs",
         "legal",
-        "community",
+        "legal",
+        "login",
+        "logout",
+        "manage",
+        "onboarding",
+        "organization-avatar",
+        "organizations",
+        "out",
+        "platforms",
+        "plugins",
+        "pricing",
+        "privacy",
+        "project-avatar",
+        "projects",
         "referrals",
-        "demo",
+        "register",
+        "remote",
+        "resources",
+        "security",
+        "sentry-apps",
+        "settings",
+        "signup",
+        "sponsorship",
+        "subscribe",
+        "support",
+        "team-avatar",
+        "teams",
+        "terms",
+        "thanks",
+        "themonitor",
+        "trust",
+        "vs",
+        "welcome",
     )
 )
 
@@ -291,6 +292,7 @@ KNOWN_DIF_FORMATS: Dict[str, str] = {
     "application/x-bcsymbolmap": "bcsymbolmap",
     "application/x-debugid-map": "uuidmap",
     "application/x-il2cpp-json": "il2cpp",
+    "application/x-portable-pdb": "portablepdb",
 }
 
 NATIVE_UNKNOWN_STRING = "<unknown>"

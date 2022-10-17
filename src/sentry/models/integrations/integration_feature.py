@@ -5,7 +5,12 @@ from typing import List, Union
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import BoundedBigIntegerField, BoundedPositiveIntegerField, Model
+from sentry.db.models import (
+    BoundedBigIntegerField,
+    BoundedPositiveIntegerField,
+    Model,
+    control_silo_with_replication_model,
+)
 from sentry.db.models.manager import BaseManager
 from sentry.models.integrations.doc_integration import DocIntegration
 from sentry.models.integrations.sentry_app import SentryApp
@@ -170,6 +175,7 @@ class IntegrationFeatureManager(BaseManager):
             )
 
 
+@control_silo_with_replication_model
 class IntegrationFeature(Model):
     __include_in_export__ = False
 

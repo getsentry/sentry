@@ -24,6 +24,7 @@ import {FieldKey, FieldKind} from 'sentry/utils/fields';
 import Measurements from 'sentry/utils/measurements/measurements';
 import useApi from 'sentry/utils/useApi';
 import withTags from 'sentry/utils/withTags';
+import {isCustomMeasurement} from 'sentry/views/dashboardsV2/utils';
 
 const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   `^${NEGATION_OPERATOR}|\\${SEARCH_WILDCARD}`,
@@ -34,7 +35,10 @@ const getFunctionTags = (fields: Readonly<Field[]>) =>
   Object.fromEntries(
     fields
       .filter(
-        item => !Object.keys(FIELD_TAGS).includes(item.field) && !isEquation(item.field)
+        item =>
+          !Object.keys(FIELD_TAGS).includes(item.field) &&
+          !isEquation(item.field) &&
+          !isCustomMeasurement(item.field)
       )
       .map(item => [
         item.field,
@@ -215,8 +219,9 @@ function SearchBar(props: SearchBarProps) {
             return query.replace(SEARCH_SPECIAL_CHARS_REGEXP, '');
           }}
           maxSearchItems={maxSearchItems}
-          excludeEnvironment
+          excludedTags={['environment']}
           maxMenuHeight={maxMenuHeight ?? 300}
+          customPerformanceMetrics={customMeasurements}
           {...props}
         />
       )}
