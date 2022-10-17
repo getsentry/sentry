@@ -86,14 +86,17 @@ type Props = {
   setError: (msg: string | undefined) => void;
   transactionName: string;
   columnTitles?: string[];
+  customColumns?: string[];
   excludedTags?: string[];
   issueId?: string;
   projectId?: string;
+  referrer?: string;
   totalEventCount?: string;
 };
 
 type State = {
   attachments: IssueAttachment[];
+  hasMinidumps: boolean;
   lastFetchedCursor: string;
   widths: number[];
 };
@@ -103,6 +106,7 @@ class EventsTable extends Component<Props, State> {
     widths: [],
     lastFetchedCursor: '',
     attachments: [],
+    hasMinidumps: true,
   };
 
   api = new Client();
@@ -161,7 +165,7 @@ class EventsTable extends Component<Props, State> {
       Actions.SHOW_LESS_THAN,
     ];
 
-    if (field === 'attachments') {
+    if (['attachments', 'minidump'].includes(field)) {
       return rendered;
     }
 
@@ -312,7 +316,8 @@ class EventsTable extends Component<Props, State> {
   };
 
   render() {
-    const {eventView, organization, location, setError, totalEventCount} = this.props;
+    const {eventView, organization, location, setError, totalEventCount, referrer} =
+      this.props;
 
     const totalTransactionsView = eventView.clone();
     totalTransactionsView.sorts = [];
@@ -327,12 +332,6 @@ class EventsTable extends Component<Props, State> {
       );
     const columnOrder = eventView
       .getColumns()
-      .filter(col => {
-        if (!this.state.attachments.length) {
-          return col.key !== 'attachments';
-        }
-        return true;
-      })
       .filter(
         (col: TableColumn<React.ReactText>) =>
           !containsSpanOpsBreakdown || !isSpanOperationBreakdownField(col.name)
@@ -344,6 +343,25 @@ class EventsTable extends Component<Props, State> {
         return col;
       });
 
+    if (this.props.customColumns?.length && this.state.attachments.length) {
+      columnOrder.push({
+        isSortable: false,
+        key: 'attachments',
+        name: 'attachments',
+        type: 'never',
+        column: {field: 'attachments', kind: 'field', alias: undefined},
+      });
+      if (this.state.hasMinidumps) {
+        columnOrder.push({
+          isSortable: false,
+          key: 'minidump',
+          name: 'minidump',
+          type: 'never',
+          column: {field: 'minidump', kind: 'field', alias: undefined},
+        });
+      }
+    }
+
     const joinCustomData = ({data}: TableData) => {
       if (this.state.attachments.length) {
         const {projectId} = this.props;
@@ -351,6 +369,7 @@ class EventsTable extends Component<Props, State> {
           ...attachment,
           url: `/api/0/projects/${organization.slug}/${projectId}/events/${attachment.event_id}/attachments/${attachment.id}/?download=1`,
         }));
+
         const eventIdMap = {};
         data.forEach(event => {
           event.attachments = [] as any;
@@ -368,10 +387,23 @@ class EventsTable extends Component<Props, State> {
     const fetchAttachments = async ({data}: TableData, cursor: string) => {
       const eventIds = data.map(value => value.id);
       const eventIdQuery = `event_id=${eventIds.join('&event_id=')}`;
-      const res = await this.api.requestPromise(
+      const res: IssueAttachment[] = await this.api.requestPromise(
         `/api/0/issues/${this.props.issueId}/attachments/?${eventIdQuery}`
       );
-      this.setState({...this.state, lastFetchedCursor: cursor, attachments: res});
+
+      let hasMinidumps = false;
+
+      res.forEach(attachment => {
+        if (attachment.type === 'event.minidump') {
+          hasMinidumps = true;
+        }
+      });
+      this.setState({
+        ...this.state,
+        lastFetchedCursor: cursor,
+        attachments: res,
+        hasMinidumps,
+      });
     };
 
     return (
@@ -381,7 +413,7 @@ class EventsTable extends Component<Props, State> {
           orgSlug={organization.slug}
           location={location}
           setError={error => setError(error?.message)}
-          referrer="api.performance.transaction-events"
+          referrer={referrer || 'api.performance.transaction-events'}
           useEvents
         >
           {({pageLinks, isLoading: isDiscoverQueryLoading, tableData}) => {

@@ -1,8 +1,8 @@
 import {useEffect} from 'react';
 
-import {ApiForm, InputField} from 'sentry/components/forms';
-import RadioBoolean from 'sentry/components/forms/controls/radioBoolean';
+import {ApiForm} from 'sentry/components/forms';
 import FieldWrapper from 'sentry/components/forms/field/fieldWrapper';
+import RadioField from 'sentry/components/forms/fields/radioField';
 import ExternalLink from 'sentry/components/links/externalLink';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
@@ -30,9 +30,12 @@ function NewsletterConsent({onSubmitSuccess}: Props) {
         <FieldWrapper stacked={false} hasControlState={false}>
           {t('Pardon the interruption, we just need to get a quick answer from you.')}
         </FieldWrapper>
-        <InputField
+        <RadioField
           name="subscribed"
-          key="subscribed"
+          choices={[
+            ['true', t('Yes, I would like to receive updates via email')],
+            ['false', t("No, I'd prefer not to receive these updates")],
+          ]}
           label={t('Email Updates')}
           required
           inline={false}
@@ -43,14 +46,6 @@ function NewsletterConsent({onSubmitSuccess}: Props) {
                parties. See our [link:Privacy Policy] for more details.
                `,
             {link: <ExternalLink href="https://sentry.io/privacy/" />}
-          )}
-          field={fieldProps => (
-            <RadioBoolean
-              {...fieldProps}
-              label={t('Email Updates')}
-              yesLabel={t('Yes, I would like to receive updates via email')}
-              noLabel={t("No, I'd prefer not to receive these updates")}
-            />
           )}
         />
       </ApiForm>

@@ -23,7 +23,9 @@ const Modal = ({
   closeModal,
 }: Props) => (
   <Fragment>
-    <Header closeButton>{title}</Header>
+    <Header closeButton>
+      <h5>{title}</h5>
+    </Header>
     <Body>{content}</Body>
     <Footer>
       <ButtonBar gap={1.5}>

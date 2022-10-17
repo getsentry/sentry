@@ -12,6 +12,7 @@ import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Event, EventAttachment, Organization, Project} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
 import DataSection from '../dataSection';
 
@@ -38,6 +39,13 @@ function Screenshot({
 }: Props) {
   const orgSlug = organization.slug;
   const [loadingImage, setLoadingImage] = useState(true);
+
+  function handleDelete(screenshotAttachment) {
+    trackAdvancedAnalyticsEvent('issue_details.issue_tab.screenshot_dropdown_deleted', {
+      organization,
+    });
+    onDelete(screenshotAttachment.id);
+  }
 
   function renderContent(screenshotAttachment: EventAttachment) {
     const downloadUrl = `/api/0/projects/${organization.slug}/${projectSlug}/events/${eventId}/attachments/${screenshotAttachment.id}/`;
@@ -90,13 +98,21 @@ function Screenshot({
               >
                 <MenuItemActionLink
                   shouldConfirm={false}
+                  onAction={() =>
+                    trackAdvancedAnalyticsEvent(
+                      'issue_details.issue_tab.screenshot_dropdown_download',
+                      {
+                        organization,
+                      }
+                    )
+                  }
                   href={`${downloadUrl}?download=1`}
                 >
                   {t('Download')}
                 </MenuItemActionLink>
                 <MenuItemActionLink
                   shouldConfirm
-                  onAction={() => onDelete(screenshotAttachment.id)}
+                  onAction={() => handleDelete(screenshotAttachment.id)}
                   header={t(
                     'This image was captured around the time that the event occurred.'
                   )}
