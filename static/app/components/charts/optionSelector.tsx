@@ -68,7 +68,7 @@ function OptionSelector<MultipleType extends boolean>({
           </Fragment>
         ),
       }}
-      placement="bottom right"
+      position="bottom-end"
       {...rest}
     />
   );
