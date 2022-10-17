@@ -214,6 +214,7 @@ class Quota(Service):
         "refund",
         "get_event_retention",
         "get_quotas",
+        "get_blended_sample_rate",
     )
 
     def __init__(self, **options):
