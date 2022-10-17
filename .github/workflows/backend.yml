@@ -47,7 +47,7 @@ jobs:
     steps:
       - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
 
-      - uses: ./.github/actions/setup-volta
+      - uses: getsentry/action-setup-volta@d6f6ebfc4046feb3cfb6049e885185a01afd82b7  # v1.0.0
 
       - name: Setup sentry python env
         uses: ./.github/actions/setup-sentry
