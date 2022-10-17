@@ -210,7 +210,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
                 items_left = self._messages_ready_since_last_commit + len(
                     self._ongoing_billing_outcomes
                 )
-                logger.warning(f"join timed out, items in the queue left: {items_left}")
+                logger.warning(f"join timed out, items left in the queue: {items_left}")
                 break
             self._mark_commit_ready()
             self._bulk_commit()
