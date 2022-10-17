@@ -81,6 +81,7 @@ jobs:
       # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
       MATRIX_INSTANCE_TOTAL: 4
       MIGRATIONS_TEST_MIGRATE: 1
+      SENTRY_MODEL_MANIFEST_FILE_PATH: .artifacts/model-manifest.json
 
     steps:
       - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
@@ -106,6 +107,8 @@ jobs:
 
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
+        with:
+          files: "./.artifacts/model-manifest.json"
 
   backend-test-snuba-contains-metrics-tag-values:
     if: needs.files-changed.outputs.backend == 'true'
