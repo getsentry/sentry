@@ -152,7 +152,7 @@ describe('SentryAppDetailsModal', function () {
     expect(screen.getByRole('button', {name: 'Accept & Install'})).toBeDisabled();
   });
 
-  it('when the Integration requires no permissions, does not render permissions', function () {
+  it('does not render permissions, when the Integration requires no permissions', function () {
     renderMockRequests({sentryAppSlug: sentryApp.slug});
 
     render(
