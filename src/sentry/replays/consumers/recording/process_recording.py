@@ -19,11 +19,13 @@ from django.conf import settings
 from sentry.replays.cache import RecordingSegmentPart
 from sentry.replays.consumers.recording.types import (
     RecordingSegmentChunkMessage,
-    RecordingSegmentHeaders,
     RecordingSegmentMessage,
 )
-from sentry.replays.usecases.ingest import ingest_recording_segment
-from sentry.utils import json, metrics
+from sentry.replays.usecases.ingest import (
+    ingest_recording_segment,
+    make_replay_recording_segment_cache_id,
+)
+from sentry.utils import metrics
 from sentry.utils.sdk import configure_scope
 
 logger = logging.getLogger("sentry.replays")
@@ -63,7 +65,7 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
     def _process_chunk(
         self, message_dict: RecordingSegmentChunkMessage, message: Message[KafkaPayload]
     ) -> None:
-        cache_prefix = replay_recording_segment_cache_id(
+        cache_prefix = make_replay_recording_segment_cache_id(
             project_id=message_dict["project_id"],
             replay_id=message_dict["replay_id"],
             segment_id=message_dict["id"],
@@ -71,16 +73,6 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
 
         part = RecordingSegmentPart(cache_prefix)
         part[message_dict["chunk_index"]] = message_dict["payload"]
-
-    def _process_headers(
-        self, recording_segment_with_headers: bytes
-    ) -> tuple[RecordingSegmentHeaders, bytes]:
-        # split the recording payload by a newline into the headers and the recording
-        try:
-            recording_headers, recording_segment = recording_segment_with_headers.split(b"\n", 1)
-        except ValueError:
-            raise MissingRecordingSegmentHeaders
-        return json.loads(recording_headers), recording_segment
 
     @metrics.wraps("replays.process_recording.store_recording")
     def _store(
@@ -204,7 +196,3 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
             scope.set_tag("replay_id", message_dict["replay_id"])
             scope.set_tag("project_id", message_dict["project_id"])
             # TODO: add replay sdk version once added
-
-
-def replay_recording_segment_cache_id(project_id: int, replay_id: str, segment_id: str) -> str:
-    return f"{project_id}:{replay_id}:{segment_id}"
