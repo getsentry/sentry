@@ -497,8 +497,10 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
 
         key = object()
         self._triggers[key] = (condition, action)
-        yield
-        del self._triggers[key]
+        try:
+            yield
+        finally:
+            del self._triggers[key]
 
     def _execute_triggers(self, condition: ModelManagerTriggerCondition) -> None:
         for (next_condition, next_action) in self._triggers.values():
