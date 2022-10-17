@@ -252,7 +252,7 @@ export function TraceEventDataSection({
                     title: sortByTooltip,
                   }}
                   isDisabled={!!sortByTooltip}
-                  placement="bottom right"
+                  position="bottom-end"
                   onChange={selectedOption => {
                     setState({...state, sortBy: selectedOption.value});
                   }}
@@ -270,7 +270,7 @@ export function TraceEventDataSection({
                     'aria-label': t('Options'),
                   }}
                   triggerLabel=""
-                  placement="bottom right"
+                  position="bottom-end"
                   sections={[
                     {
                       label: t('Display'),

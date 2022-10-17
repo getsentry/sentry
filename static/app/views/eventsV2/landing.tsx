@@ -216,7 +216,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
           value={activeSort.value}
           options={SORT_OPTIONS}
           onChange={opt => this.handleSortChange(opt.value)}
-          placement="bottom right"
+          position="bottom-end"
         />
       </StyledActions>
     );

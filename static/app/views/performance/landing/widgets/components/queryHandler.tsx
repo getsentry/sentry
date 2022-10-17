@@ -97,7 +97,8 @@ function QueryResultSaver<T extends WidgetDataConstraint>(
   useEffect(() => {
     const isMetricsData =
       results?.seriesAdditionalInfo?.[props.queryProps.fields[0]]?.isMetricsData ??
-      results?.histograms?.meta?.isMetricsData;
+      results?.histograms?.meta?.isMetricsData ??
+      results?.tableData?.meta?.isMetricsData;
     mepContext.setIsMetricsData(isMetricsData);
     props.setWidgetDataForKey(query.queryKey, transformed);
   }, [transformed?.hasData, transformed?.isLoading, transformed?.isErrored]);

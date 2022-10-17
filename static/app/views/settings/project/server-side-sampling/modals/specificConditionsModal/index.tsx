@@ -311,7 +311,7 @@ export function SpecificConditionsModal({
                   <FieldRequiredBadge />
                 </div>
                 <StyledCompactSelect
-                  placement="bottom right"
+                  position="bottom-end"
                   triggerProps={{
                     size: 'sm',
                     'aria-label': t('Add Condition'),

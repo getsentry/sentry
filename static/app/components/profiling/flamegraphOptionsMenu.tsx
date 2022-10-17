@@ -66,7 +66,7 @@ function FlamegraphOptionsMenu({
           icon: <IconSliders size="xs" />,
           size: 'xs',
         }}
-        placement="bottom right"
+        position="bottom-end"
         sections={options}
       />
     </Fragment>

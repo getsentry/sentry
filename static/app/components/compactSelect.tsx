@@ -1,17 +1,12 @@
-import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {components as selectComponents, OptionTypeBase} from 'react-select';
+import isPropValid from '@emotion/is-prop-valid';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useButton} from '@react-aria/button';
 import {FocusScope} from '@react-aria/focus';
 import {useMenuTrigger} from '@react-aria/menu';
-import {
-  AriaPositionProps,
-  OverlayProps,
-  useOverlay,
-  useOverlayPosition,
-} from '@react-aria/overlays';
-import {mergeProps, useResizeObserver} from '@react-aria/utils';
-import {useMenuTriggerState} from '@react-stately/menu';
+import {useResizeObserver} from '@react-aria/utils';
 
 import Badge from 'sentry/components/badge';
 import Button from 'sentry/components/button';
@@ -21,24 +16,14 @@ import SelectControl, {
   GeneralSelectValue,
 } from 'sentry/components/forms/controls/selectControl';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import space from 'sentry/styles/space';
 import {FormSize} from 'sentry/utils/theme';
-
-interface TriggerRenderingProps {
-  props: Omit<DropdownButtonProps, 'children'>;
-  ref: React.RefObject<HTMLButtonElement>;
-}
-
-interface MenuProps extends OverlayProps, Omit<AriaPositionProps, 'overlayRef'> {
-  children: (maxHeight: number | string) => React.ReactNode;
-  maxMenuHeight?: number;
-  minMenuWidth?: number;
-}
+import useOverlay, {UseOverlayProps} from 'sentry/utils/useOverlay';
 
 interface Props<OptionType extends OptionTypeBase, MultipleType extends boolean>
   extends Omit<ControlProps<OptionType>, 'choices' | 'multiple' | 'onChange'>,
-    Partial<OverlayProps>,
-    Partial<AriaPositionProps> {
+    UseOverlayProps {
   options: Array<OptionType & {options?: OptionType[]}>;
   /**
    * Pass class name to the outer wrap
@@ -68,7 +53,7 @@ interface Props<OptionType extends OptionTypeBase, MultipleType extends boolean>
    * TriggerProps) forwarded its outer wrap, otherwise the accessibility
    * features won't work correctly.
    */
-  trigger?: (props: TriggerRenderingProps) => React.ReactNode;
+  trigger?: (props: Omit<DropdownButtonProps, 'children'>) => React.ReactNode;
   /**
    * By default, the menu trigger will be rendered as a button, with
    * triggerLabel as the button label.
@@ -143,62 +128,6 @@ export const CompactSelectControl = ({
   );
 };
 
-// TODO(vl): Turn this into a reusable component
-function Menu({
-  // Trigger & trigger state
-  targetRef,
-  onClose,
-  // Overlay props
-  offset = 8,
-  crossOffset = 0,
-  containerPadding = 8,
-  placement = 'bottom left',
-  shouldCloseOnBlur = true,
-  isDismissable = true,
-  maxMenuHeight = 400,
-  minMenuWidth,
-  children,
-}: MenuProps) {
-  // Control the overlay's position
-  const overlayRef = useRef<HTMLDivElement>(null);
-  const {overlayProps} = useOverlay(
-    {
-      isOpen: true,
-      onClose,
-      shouldCloseOnBlur,
-      isDismissable,
-      shouldCloseOnInteractOutside: target =>
-        target && targetRef.current !== target && !targetRef.current?.contains(target),
-    },
-    overlayRef
-  );
-  const {overlayProps: positionProps} = useOverlayPosition({
-    targetRef,
-    overlayRef,
-    offset,
-    crossOffset,
-    placement,
-    containerPadding,
-    isOpen: true,
-  });
-
-  const menuHeight = positionProps.style?.maxHeight
-    ? Math.min(+positionProps.style?.maxHeight, maxMenuHeight)
-    : 'none';
-
-  return (
-    <Overlay
-      ref={overlayRef}
-      minWidth={minMenuWidth}
-      {...mergeProps(overlayProps, positionProps)}
-    >
-      <FocusScope restoreFocus autoFocus>
-        {children(menuHeight)}
-      </FocusScope>
-    </Overlay>
-  );
-}
-
 /**
  * A select component with a more compact trigger button. Accepts the same
  * props as SelectControl, plus some more for the trigger button & overlay.
@@ -221,34 +150,55 @@ function CompactSelect<
   trigger,
   triggerLabel,
   triggerProps,
+  isOpen: isOpenProp,
   size = 'md',
   className,
   renderWrapAs,
   closeOnSelect = true,
   menuTitle,
   onClose,
+  // Overlay props
+  offset = 8,
+  position = 'bottom-start',
+  shouldCloseOnBlur = true,
+  isDismissable = true,
+  maxMenuHeight = 400,
   ...props
 }: Props<OptionType, MultipleType>) {
   // Manage the dropdown menu's open state
   const isDisabled = disabledProp || options?.length === 0;
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const state = useMenuTriggerState(props);
+
+  const {
+    isOpen,
+    state,
+    triggerProps: overlayTriggerProps,
+    triggerRef,
+    overlayProps,
+  } = useOverlay({
+    isOpen: isOpenProp,
+    onClose,
+    offset,
+    position,
+    isDismissable,
+    shouldCloseOnBlur,
+    shouldCloseOnInteractOutside: target =>
+      target && triggerRef.current !== target && !triggerRef.current?.contains(target),
+  });
+
   const {menuTriggerProps} = useMenuTrigger(
     {type: 'listbox', isDisabled},
-    state,
+    {...state, focusStrategy: 'first'},
     triggerRef
   );
-  const {buttonProps} = useButton(
-    {onPress: () => state.toggle(), isDisabled, ...menuTriggerProps},
-    triggerRef
-  );
+
+  const {buttonProps} = useButton({isDisabled, ...menuTriggerProps}, triggerRef);
 
   // Keep an internal copy of the current select value and update the control
   // button's label when the value changes
   const [internalValue, setInternalValue] = useState(valueProp ?? defaultValue);
 
-  // Update the button label when the value changes
-  const getLabel = useCallback((): React.ReactNode => {
+  // Keep track of the default trigger label when the value changes
+  const defaultTriggerLabel = useMemo(() => {
     const newValue = valueProp ?? internalValue;
     const valueSet = Array.isArray(newValue) ? newValue : [newValue];
     const selectedOptions = valueSet
@@ -265,21 +215,19 @@ function CompactSelect<
     );
   }, [options, valueProp, internalValue]);
 
-  const [label, setLabel] = useState<React.ReactNode>(null);
-  useEffect(() => {
-    setLabel(getLabel());
-  }, [getLabel]);
+  const onValueChange = useCallback(
+    option => {
+      const valueMap = onChangeValueMap ?? (opts => opts.map(opt => opt.value));
+      const newValue = Array.isArray(option) ? valueMap(option) : option?.value;
+      setInternalValue(newValue);
+      onChange?.(option);
 
-  function onValueChange(option) {
-    const valueMap = onChangeValueMap ?? (opts => opts.map(opt => opt.value));
-    const newValue = Array.isArray(option) ? valueMap(option) : option?.value;
-    setInternalValue(newValue);
-    onChange?.(option);
-
-    if (closeOnSelect && !multiple) {
-      state.close();
-    }
-  }
+      if (closeOnSelect && !multiple) {
+        state.close();
+      }
+    },
+    [state, closeOnSelect, multiple, onChange, onChangeValueMap]
+  );
 
   // Calculate the current trigger element's width. This will be used as
   // the min width for the menu.
@@ -305,71 +253,69 @@ function CompactSelect<
   function renderTrigger() {
     if (trigger) {
       return trigger({
-        props: {
-          size,
-          isOpen: state.isOpen,
-          ...triggerProps,
-          ...buttonProps,
-        },
-        ref: triggerRef,
+        size,
+        isOpen,
+        ...triggerProps,
+        ...overlayTriggerProps,
+        ...buttonProps,
       });
     }
     return (
       <DropdownButton
-        ref={triggerRef}
         size={size}
-        isOpen={state.isOpen}
+        isOpen={isOpen}
         {...triggerProps}
+        {...overlayTriggerProps}
         {...buttonProps}
       >
-        {triggerLabel ?? label}
+        {triggerLabel ?? defaultTriggerLabel}
       </DropdownButton>
     );
   }
 
-  function onMenuClose() {
-    onClose?.();
-    state.close();
-  }
-
+  const theme = useTheme();
+  const menuHeight = useMemo(
+    () =>
+      overlayProps.style?.maxHeight
+        ? Math.min(+overlayProps.style?.maxHeight, maxMenuHeight)
+        : maxMenuHeight,
+    [overlayProps, maxMenuHeight]
+  );
   function renderMenu() {
-    if (!state.isOpen) {
+    if (!isOpen) {
       return null;
     }
 
     return (
-      <Menu
-        targetRef={triggerRef}
-        onClose={onMenuClose}
-        minMenuWidth={triggerWidth}
-        {...props}
-      >
-        {menuHeight => (
-          <SelectControl
-            components={{Control: CompactSelectControl, ClearIndicator: null}}
-            {...props}
-            options={options}
-            value={valueProp ?? internalValue}
-            multiple={multiple}
-            onChange={onValueChange}
-            size={size}
-            menuTitle={menuTitle}
-            placeholder={placeholder}
-            isSearchable={isSearchable}
-            menuHeight={menuHeight}
-            menuPlacement="bottom"
-            menuIsOpen
-            isCompact
-            controlShouldRenderValue={false}
-            hideSelectedOptions={false}
-            menuShouldScrollIntoView={false}
-            blurInputOnSelect={false}
-            closeMenuOnSelect={false}
-            closeMenuOnScroll={false}
-            openMenuOnFocus
-          />
-        )}
-      </Menu>
+      <FocusScope restoreFocus autoFocus>
+        <PositionWrapper zIndex={theme.zIndex.dropdown} {...overlayProps}>
+          <StyledOverlay minWidth={triggerWidth}>
+            <SelectControl
+              components={{Control: CompactSelectControl, ClearIndicator: null}}
+              {...props}
+              options={options}
+              value={valueProp ?? internalValue}
+              multiple={multiple}
+              onChange={onValueChange}
+              size={size}
+              menuTitle={menuTitle}
+              placeholder={placeholder}
+              isSearchable={isSearchable}
+              menuHeight={menuHeight}
+              menuPlacement="bottom"
+              menuIsOpen
+              isCompact
+              controlShouldRenderValue={false}
+              hideSelectedOptions={false}
+              menuShouldScrollIntoView={false}
+              blurInputOnSelect={false}
+              closeMenuOnSelect={false}
+              closeMenuOnScroll={false}
+              openMenuOnFocus
+            />
+          </StyledOverlay>
+        </PositionWrapper>
+      </FocusScope>
     );
   }
 
@@ -395,17 +341,11 @@ const StyledBadge = styled(Badge)`
   top: auto;
 `;
 
-const Overlay = styled('div')<{minWidth?: number}>`
-  max-width: calc(100% - ${space(2)});
-  border-radius: ${p => p.theme.borderRadius};
-  background: ${p => p.theme.backgroundElevated};
-  box-shadow: 0 0 0 1px ${p => p.theme.translucentBorder}, ${p => p.theme.dropShadowHeavy};
-  font-size: ${p => p.theme.fontSizeMedium};
+const StyledOverlay = styled(Overlay, {
+  shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop),
+})<{minWidth?: number}>`
+  max-width: calc(100vw - ${space(2)} * 2);
   overflow: hidden;
-
-  /* Override z-index from useOverlayPosition */
-  z-index: ${p => p.theme.zIndex.dropdown} !important;
-
   ${p => p.minWidth && `min-width: ${p.minWidth}px;`}
 `;
 
@@ -414,7 +354,7 @@ const MenuHeader = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: ${space(0.75)} ${space(1)} ${space(0.75)} ${space(1.5)};
+  padding: ${space(0.25)} ${space(1)} ${space(0.25)} ${space(1.5)};
   box-shadow: 0 1px 0 ${p => p.theme.translucentInnerBorder};
   z-index: 1;
 `;
@@ -424,7 +364,7 @@ const MenuTitle = styled('span')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.headingColor};
   white-space: nowrap;
-  margin-right: ${space(2)};
+  margin: ${space(0.5)} ${space(2)} ${space(0.5)} 0;
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`

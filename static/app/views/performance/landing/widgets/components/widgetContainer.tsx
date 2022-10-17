@@ -187,19 +187,6 @@ export const WidgetContainerActions = ({
 
   const chartDefinition = WIDGET_DEFINITIONS({organization})[chartSetting];
 
-  function trigger({props, ref}) {
-    return (
-      <DropdownButton
-        ref={ref}
-        {...props}
-        size="xs"
-        borderless
-        showChevron={false}
-        icon={<IconEllipsis aria-label={t('More')} />}
-      />
-    );
-  }
-
   function handleWidgetActionChange(value) {
     if (value === 'open_in_discover') {
       browserHistory.push(getEventViewDiscoverPath(organization, eventView));
@@ -226,8 +213,16 @@ export const WidgetContainerActions = ({
             : null,
         ].filter(Boolean) as React.ComponentProps<typeof CompositeSelect>['sections']
       }
-      trigger={trigger}
-      placement="bottom right"
+      trigger={triggerProps => (
+        <DropdownButton
+          {...triggerProps}
+          size="xs"
+          borderless
+          showChevron={false}
+          icon={<IconEllipsis aria-label={t('More')} />}
+        />
+      )}
+      position="bottom-end"
     />
   );
 };
