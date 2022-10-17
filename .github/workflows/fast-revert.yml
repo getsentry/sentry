@@ -34,7 +34,7 @@ jobs:
         curl \
             --silent \
             -X POST \
-            -H 'Authorization: token ${{ secrets.SENTRY_BUMP_TOKEN }}' \
+            -H 'Authorization: token ${{ secrets.BUMP_SENTRY_TOKEN }}' \
             -d'{"body": "revert failed (conflict? already reverted?) -- [check the logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})"}' \
             https://api.github.com/repositories/${{ github.event.repository.id }}/issues/${{ github.event.number || github.event.inputs.pr }}/comments
       if: failure()
