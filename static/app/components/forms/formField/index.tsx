@@ -372,6 +372,7 @@ class FormField extends Component<FormFieldProps> {
                           error,
                           disabled,
                           initialData: model.initialData,
+                          'aria-describedby': `${id}_help`,
                         })}
                         {showReturnButton && <StyledReturnButton />}
                       </Fragment>

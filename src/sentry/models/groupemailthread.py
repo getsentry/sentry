@@ -1,10 +1,16 @@
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import BaseManager, FlexibleForeignKey, Model, region_silo_model, sane_repr
+from sentry.db.models import (
+    BaseManager,
+    FlexibleForeignKey,
+    Model,
+    region_silo_only_model,
+    sane_repr,
+)
 
 
-@region_silo_model
+@region_silo_only_model
 class GroupEmailThread(Model):
     """
     Keep track of the original Message-Id that was sent
