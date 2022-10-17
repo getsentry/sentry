@@ -8,7 +8,7 @@ from sentry.db.models import (
     BoundedBigIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_model,
+    region_silo_only_model,
     sane_repr,
 )
 
@@ -20,7 +20,7 @@ class CommitFileChangeManager(BaseManager):
         return int(self.filter(commit__in=commits).values("filename").distinct().count())
 
 
-@region_silo_model
+@region_silo_only_model
 class CommitFileChange(Model):
     __include_in_export__ = False
 

@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import partial from 'lodash/partial';
 
+import Button from 'sentry/components/button';
 import Count from 'sentry/components/count';
 import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
 import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
@@ -289,6 +290,7 @@ type SpecialFields = {
   id: SpecialField;
   issue: SpecialField;
   'issue.id': SpecialField;
+  minidump: SpecialField;
   project: SpecialField;
   release: SpecialField;
   replayId: SpecialField;
@@ -305,6 +307,11 @@ const DownloadCount = styled('span')`
   padding-left: 6px;
 `;
 
+const RightAlignedContainer = styled('span')`
+  margin-left: auto;
+  margin-right: 0;
+`;
+
 /**
  * "Special fields" either do not map 1:1 to an single column in the event database,
  * or they require custom UI formatting that can't be handled by the datatype formatters.
@@ -317,28 +324,54 @@ const SPECIAL_FIELDS: SpecialFields = {
     renderFunc: data => {
       const attachments: Array<IssueAttachment & {url: string}> = data.attachments;
 
-      const items: MenuItemProps[] = attachments.map(attachment => ({
-        key: attachment.id,
-        label: attachment.name,
-        onAction: () => window.open(attachment.url), // TODO - validate if this works
-      }));
+      const items: MenuItemProps[] = attachments
+        .filter(attachment => attachment.type !== 'event.minidump')
+        .map(attachment => ({
+          key: attachment.id,
+          label: attachment.name,
+          onAction: () => window.open(attachment.url),
+        }));
 
       return (
-        <Container>
+        <RightAlignedContainer>
           <DropdownMenuControl
             position="left"
+            size="xs"
             triggerProps={{
               showChevron: false,
               icon: (
                 <Fragment>
                   <IconDownload color="gray500" size="14px" />
-                  <DownloadCount>{attachments.length}</DownloadCount>
+                  <DownloadCount>{items.length}</DownloadCount>
                 </Fragment>
               ),
             }}
             items={items}
           />
-        </Container>
+        </RightAlignedContainer>
+      );
+    },
+  },
+  minidump: {
+    sortField: null,
+    renderFunc: data => {
+      const attachments: Array<IssueAttachment & {url: string}> = data.attachments;
+
+      const minidump = attachments.find(
+        attachment => attachment.type === 'event.minidump'
+      );
+
+      return (
+        <RightAlignedContainer>
+          <Button
+            size="xs"
+            disabled={!minidump}
+            onClick={() => window.open(minidump?.url)}
+          >
+            <IconDownload color="gray500" size="14px" />
+            <DownloadCount>{minidump ? 1 : 0}</DownloadCount>
+          </Button>
+        </RightAlignedContainer>
       );
     },
   },
@@ -700,7 +733,7 @@ const isDurationValue = (data: EventData, field: string): boolean => {
   return field in data && typeof data[field] === 'number';
 };
 
-const spanOperationRelativeBreakdownRenderer = (
+export const spanOperationRelativeBreakdownRenderer = (
   data: EventData,
   {location, organization, eventView}: RenderFunctionBaggage
 ): React.ReactNode => {

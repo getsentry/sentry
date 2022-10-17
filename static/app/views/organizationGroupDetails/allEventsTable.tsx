@@ -39,6 +39,7 @@ const AllEventsTable = (props: Props) => {
     ...(isPerfIssue ? ['transaction.duration'] : []),
     'timestamp',
     'attachments',
+    'minidump',
   ];
 
   const eventView: EventView = EventView.fromLocation(props.location);
@@ -46,10 +47,15 @@ const AllEventsTable = (props: Props) => {
 
   eventView.sorts = decodeSorts(location).filter(sort => fields.includes(sort.field));
 
+  if (!eventView.sorts.length) {
+    eventView.sorts = [{field: 'timestamp', kind: 'desc'}];
+  }
+
   const idQuery = isPerfIssue
     ? `performance.issue_ids:${issueId}`
     : `issue.id:${issueId}`;
   eventView.query = `${idQuery} ${props.location.query.query || ''}`;
+  eventView.statsPeriod = '90d';
 
   const columnTitles: Readonly<string[]> = [
     t('event id'),
@@ -61,6 +67,7 @@ const AllEventsTable = (props: Props) => {
     ...(isPerfIssue ? [t('total duration')] : []),
     t('timestamp'),
     t('attachments'),
+    t('minidump'),
   ];
 
   if (error) {
