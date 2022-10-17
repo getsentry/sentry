@@ -638,162 +638,6 @@ class PerformanceDetectionTest(unittest.TestCase):
 
         perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock)
 
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 14
-        sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
-            [
-                call(
-                    "_pi_all_issue_count",
-                    7,
-                ),
-                call(
-                    "_pi_sdk_name",
-                    "",
-                ),
-                call(
-                    "_pi_transaction",
-                    "da78af6000a6400aaa87cf6e14ddeb40",
-                ),
-                call(
-                    "_pi_duplicates",
-                    "86d2ede57bbf48d4",
-                ),
-                call("_pi_slow_span", "82428e8ef4c5a539"),
-                call(
-                    "_pi_sequential",
-                    "b409e78a092e642f",
-                ),
-                call(
-                    "_pi_n_plus_one_db_fp",
-                    "1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-8d86357da4d8a866b19c97670edee38d037a7bc8",
-                ),
-                call("_pi_n_plus_one_db", "b8be6138369491dd"),
-                call(
-                    "_pi_n_plus_one_db_ext_fp",
-                    "1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-8d86357da4d8a866b19c97670edee38d037a7bc8",
-                ),
-                call("_pi_n_plus_one_db_ext", "b8be6138369491dd"),
-                call(
-                    "_pi_n_plus_one_db_noredis_fp",
-                    "1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-8d86357da4d8a866b19c97670edee38d037a7bc8",
-                ),
-                call("_pi_n_plus_one_db_noredis", "b8be6138369491dd"),
-                call(
-                    "_pi_n_plus_one_db_param_fp",
-                    "1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-8d86357da4d8a866b19c97670edee38d037a7bc8",
-                ),
-                call("_pi_n_plus_one_db_param", "b8be6138369491dd"),
-            ],
-        )
-        assert_n_plus_one_db_problem(perf_problems)
-
-    def test_does_not_detect_n_plus_one_with_unparameterized_query_with_parameterized_detector(
-        self,
-    ):
-        n_plus_one_event = EVENTS["n-plus-one-in-django-index-view-unparameterized"]
-        sdk_span_mock = Mock()
-
-        _detect_performance_problems(n_plus_one_event, sdk_span_mock)
-
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 12
-        sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
-            [
-                call(
-                    "_pi_all_issue_count",
-                    6,
-                ),
-                call(
-                    "_pi_sdk_name",
-                    "",
-                ),
-                call(
-                    "_pi_transaction",
-                    "da78af6000a6400aaa87cf6e14ddeb40",
-                ),
-                call(
-                    "_pi_duplicates",
-                    "86d2ede57bbf48d4",
-                ),
-                call("_pi_slow_span", "82428e8ef4c5a539"),
-                call(
-                    "_pi_sequential",
-                    "b409e78a092e642f",
-                ),
-                call(
-                    "_pi_n_plus_one_db_fp",
-                    "1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-8d86357da4d8a866b19c97670edee38d037a7bc8",
-                ),
-                call("_pi_n_plus_one_db", "b8be6138369491dd"),
-                call(
-                    "_pi_n_plus_one_db_ext_fp",
-                    "1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-8d86357da4d8a866b19c97670edee38d037a7bc8",
-                ),
-                call("_pi_n_plus_one_db_ext", "b8be6138369491dd"),
-                call(
-                    "_pi_n_plus_one_db_noredis_fp",
-                    "1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-8d86357da4d8a866b19c97670edee38d037a7bc8",
-                ),
-                call("_pi_n_plus_one_db_noredis", "b8be6138369491dd"),
-            ],
-        )
-
-    def test_does_not_detect_n_plus_one_with_source_redis_query_with_noredis_detector(
-        self,
-    ):
-        n_plus_one_event = EVENTS["n-plus-one-in-django-index-view-source-redis"]
-        sdk_span_mock = Mock()
-
-        _detect_performance_problems(n_plus_one_event, sdk_span_mock)
-
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 12
-        sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
-            [
-                call(
-                    "_pi_all_issue_count",
-                    6,
-                ),
-                call(
-                    "_pi_sdk_name",
-                    "",
-                ),
-                call(
-                    "_pi_transaction",
-                    "da78af6000a6400aaa87cf6e14ddeb40",
-                ),
-                call(
-                    "_pi_duplicates",
-                    "86d2ede57bbf48d4",
-                ),
-                call("_pi_slow_span", "82428e8ef4c5a539"),
-                call(
-                    "_pi_sequential",
-                    "8e554c84cdc9731e",
-                ),
-                call(
-                    "_pi_n_plus_one_db_fp",
-                    "1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-8d86357da4d8a866b19c97670edee38d037a7bc8",
-                ),
-                call("_pi_n_plus_one_db", "b8be6138369491dd"),
-                call(
-                    "_pi_n_plus_one_db_ext_fp",
-                    "1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-8d86357da4d8a866b19c97670edee38d037a7bc8",
-                ),
-                call("_pi_n_plus_one_db_ext", "b8be6138369491dd"),
-                call(
-                    "_pi_n_plus_one_db_param_fp",
-                    "1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-8d86357da4d8a866b19c97670edee38d037a7bc8",
-                ),
-                call("_pi_n_plus_one_db_param", "b8be6138369491dd"),
-            ],
-        )
-
-    def test_does_not_detect_n_plus_one_with_repeating_redis_query_with_noredis_detector(
-        self,
-    ):
-        n_plus_one_event = EVENTS["n-plus-one-in-django-index-view-repeating-redis"]
-        sdk_span_mock = Mock()
-
-        _detect_performance_problems(n_plus_one_event, sdk_span_mock)
-
         assert sdk_span_mock.containing_transaction.set_tag.call_count == 10
         sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
             [
@@ -816,7 +660,7 @@ class PerformanceDetectionTest(unittest.TestCase):
                 call("_pi_slow_span", "82428e8ef4c5a539"),
                 call(
                     "_pi_sequential",
-                    "8e554c84cdc9731e",
+                    "b409e78a092e642f",
                 ),
                 call(
                     "_pi_n_plus_one_db_fp",
@@ -828,6 +672,112 @@ class PerformanceDetectionTest(unittest.TestCase):
                     "1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-8d86357da4d8a866b19c97670edee38d037a7bc8",
                 ),
                 call("_pi_n_plus_one_db_ext", "b8be6138369491dd"),
+            ],
+        )
+        assert_n_plus_one_db_problem(perf_problems)
+
+    def test_does_not_detect_n_plus_one_with_unparameterized_query_with_parameterized_detector(
+        self,
+    ):
+        n_plus_one_event = EVENTS["n-plus-one-in-django-index-view-unparameterized"]
+        sdk_span_mock = Mock()
+
+        _detect_performance_problems(n_plus_one_event, sdk_span_mock)
+
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 6
+        sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
+            [
+                call(
+                    "_pi_all_issue_count",
+                    3,
+                ),
+                call(
+                    "_pi_sdk_name",
+                    "",
+                ),
+                call(
+                    "_pi_transaction",
+                    "da78af6000a6400aaa87cf6e14ddeb40",
+                ),
+                call(
+                    "_pi_duplicates",
+                    "86d2ede57bbf48d4",
+                ),
+                call("_pi_slow_span", "82428e8ef4c5a539"),
+                call(
+                    "_pi_sequential",
+                    "b409e78a092e642f",
+                ),
+            ],
+        )
+
+    def test_does_not_detect_n_plus_one_with_source_redis_query_with_noredis_detector(
+        self,
+    ):
+        n_plus_one_event = EVENTS["n-plus-one-in-django-index-view-source-redis"]
+        sdk_span_mock = Mock()
+
+        _detect_performance_problems(n_plus_one_event, sdk_span_mock)
+
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 6
+        sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
+            [
+                call(
+                    "_pi_all_issue_count",
+                    3,
+                ),
+                call(
+                    "_pi_sdk_name",
+                    "",
+                ),
+                call(
+                    "_pi_transaction",
+                    "da78af6000a6400aaa87cf6e14ddeb40",
+                ),
+                call(
+                    "_pi_duplicates",
+                    "86d2ede57bbf48d4",
+                ),
+                call("_pi_slow_span", "82428e8ef4c5a539"),
+                call(
+                    "_pi_sequential",
+                    "8e554c84cdc9731e",
+                ),
+            ],
+        )
+
+    def test_does_not_detect_n_plus_one_with_repeating_redis_query_with_noredis_detector(
+        self,
+    ):
+        n_plus_one_event = EVENTS["n-plus-one-in-django-index-view-repeating-redis"]
+        sdk_span_mock = Mock()
+
+        _detect_performance_problems(n_plus_one_event, sdk_span_mock)
+
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 6
+        sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
+            [
+                call(
+                    "_pi_all_issue_count",
+                    3,
+                ),
+                call(
+                    "_pi_sdk_name",
+                    "",
+                ),
+                call(
+                    "_pi_transaction",
+                    "da78af6000a6400aaa87cf6e14ddeb40",
+                ),
+                call(
+                    "_pi_duplicates",
+                    "86d2ede57bbf48d4",
+                ),
+                call("_pi_slow_span", "82428e8ef4c5a539"),
+                call(
+                    "_pi_sequential",
+                    "8e554c84cdc9731e",
+                ),
             ],
         )
 
