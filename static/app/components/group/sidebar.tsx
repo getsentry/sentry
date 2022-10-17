@@ -35,7 +35,10 @@ import {
 import {Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {isMobilePlatform} from 'sentry/utils/platform';
 import withApi from 'sentry/utils/withApi';
+
+import {MOBILE_TAGS, TagFacets} from './tagFacets';
 
 type Props = WithRouterProps & {
   api: Client;
@@ -214,6 +217,19 @@ class BaseGroupSidebar extends Component<Props, State> {
             <EnvironmentPageFilter alignDropdown="right" />
           </PageFiltersContainer>
         )}
+
+        <Feature
+          organization={organization}
+          features={['issue-details-tag-improvements']}
+        >
+          {isMobilePlatform(project.platform) && (
+            <TagFacets
+              environments={environments}
+              groupId={group.id}
+              tagKeys={MOBILE_TAGS}
+            />
+          )}
+        </Feature>
 
         <Feature organization={organization} features={['issue-details-owners']}>
           <OwnedBy group={group} project={project} organization={organization} />

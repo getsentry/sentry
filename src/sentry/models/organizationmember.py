@@ -23,7 +23,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_model,
+    region_silo_only_model,
     sane_repr,
 )
 from sentry.db.models.manager import BaseManager
@@ -102,7 +102,7 @@ class OrganizationMemberManager(BaseManager):
         return user_teams
 
 
-@region_silo_model
+@region_silo_only_model
 class OrganizationMember(Model):
     """
     Identifies relationships between organizations and users.
