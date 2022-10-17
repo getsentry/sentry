@@ -30,7 +30,7 @@ function ChooseLayout({}: Props) {
         </Fragment>
       }
       value={getLayout()}
-      placement="bottom right"
+      position="bottom-end"
       onChange={opt => setLayout(opt?.value)}
       options={Object.entries(layoutToLabel).map(([value, label]) => ({
         value,

@@ -11,6 +11,9 @@
 - name: trigger-getsentry-external
   color: '3E5E06'
   description: 'once code is reviewed: apply label to PR to trigger getsentry tests'
+- name: 'Trigger: Revert'
+  color: '3E5E06'
+  description: 'add to a merged PR to revert it (skips CI)'
 
 # Dependabot
 - name: dependencies
