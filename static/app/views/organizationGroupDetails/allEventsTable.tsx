@@ -88,6 +88,7 @@ const AllEventsTable = (props: Props) => {
       }}
       transactionName=""
       columnTitles={columnTitles.slice()}
+      referrer="api.issues.issue_events"
     />
   );
 };
