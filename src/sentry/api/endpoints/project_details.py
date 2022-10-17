@@ -107,7 +107,7 @@ class DynamicSamplingSerializer(serializers.Serializer):
     #
     # We decided to opt for -1 as NO_ID because we decided to reserve 0 for the uniform rule id in order to
     # avoid making changes in Relay's validation mechanism that supports only positive integers (unsigned integer).
-    NO_ID = -1
+    UNASSIGNED_ID_VALUE = -1
 
     @staticmethod
     def fix_rule_ids(project, raw_dynamic_sampling):
@@ -141,12 +141,12 @@ class DynamicSamplingSerializer(serializers.Serializer):
                 # For each rule we will try to get the id, in case we fall back to NO_ID which is a special reserved id
                 # for rules that are created/updated as explained above. In this case we use NO_ID because we treat a
                 # rule with no id as a rule that has been created.
-                rid = rule.get("id", DynamicSamplingSerializer.NO_ID)
+                rid = rule.get("id", DynamicSamplingSerializer.UNASSIGNED_ID_VALUE)
                 original_rule = original_rules_dict.get(rid)
 
                 # If the incoming rule is created/updated/has no id, or we didn't find any matching rule in the saved
                 # configuration then we will assign it a new monotonically increasing id.
-                if rid == DynamicSamplingSerializer.NO_ID or original_rule is None:
+                if rid == DynamicSamplingSerializer.UNASSIGNED_ID_VALUE or original_rule is None:
                     # a new or unknown rule give it a new id
                     rule["id"] = next_id
                     next_id += 1
