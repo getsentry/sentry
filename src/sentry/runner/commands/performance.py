@@ -3,6 +3,7 @@
 from inspect import isclass
 
 import click
+from django.template.defaultfilters import pluralize
 
 from sentry.runner.decorators import configuration
 from sentry.utils import json
@@ -50,7 +51,9 @@ def detect(filename, verbose):
             if len(detector.stored_problems) == 0:
                 click.echo("No problems detected")
             else:
-                click.echo(f"Found {len(detector.stored_problems)} problems")
+                click.echo(
+                    f"Found {len(detector.stored_problems)} {pluralize(len(detector.stored_problems), 'problem,problems')}"
+                )
 
             if verbose > 0:
                 for problem in detector.stored_problems.values():
