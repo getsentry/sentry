@@ -212,15 +212,37 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
     def join(self, timeout: Optional[float] = None) -> None:
         deadline = time.time() + timeout if timeout else None
         self._bulk_commit()
+
         while self._ongoing_billing_outcomes:
-            if deadline and deadline > time.time():
+            now = time.time()
+            time_left = now - deadline if deadline else None
+
+            if deadline and time_left and time_left > 0:
                 items_left = self._messages_ready_since_last_commit + len(
                     self._ongoing_billing_outcomes
                 )
                 logger.warning(f"join timed out, items left in the queue: {items_left}")
                 break
-            self._mark_commit_ready()
-            self._bulk_commit()
+
+            future, metrics_msg = self._ongoing_billing_outcomes[0]
+            try:
+                if future:
+                    future.result(time_left)
+            except Exception:
+                if not future:
+                    continue
+                logger.error(
+                    "Async future failed in billing metrics consumer.",
+                    exc_info=future.exception(),
+                    extra={"offset": metrics_msg.offset},
+                )
+                # Don't commit the future when it fails -- if no futher messages
+                # are committed before shutting down the consumer, new consumers
+                # will process the current offset again.
+                self._ongoing_billing_outcomes.popleft()
+            else:
+                self._mark_commit_ready()
+                self._bulk_commit()
 
     def terminate(self) -> None:
         self.close()
