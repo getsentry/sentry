@@ -41,12 +41,12 @@ describe('InstallWizard', function () {
     render(<InstallWizard onConfigured={jest.fn()} />);
     expect(
       screen.getByRole('radio', {
-        name: 'Please keep my usage information anonymous',
+        name: 'Select Please keep my usage information anonymous',
       })
     ).not.toBeChecked();
     expect(
       screen.getByRole('radio', {
-        name: 'Send my contact information along with usage statistics',
+        name: 'Select Send my contact information along with usage statistics',
       })
     ).not.toBeChecked();
   });
@@ -71,12 +71,12 @@ describe('InstallWizard', function () {
     render(<InstallWizard onConfigured={jest.fn()} />);
     expect(
       screen.getByRole('radio', {
-        name: 'Please keep my usage information anonymous',
+        name: 'Select Please keep my usage information anonymous',
       })
     ).not.toBeChecked();
     expect(
       screen.getByRole('radio', {
-        name: 'Send my contact information along with usage statistics',
+        name: 'Select Send my contact information along with usage statistics',
       })
     ).not.toBeChecked();
   });
