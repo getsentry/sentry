@@ -112,7 +112,7 @@ jobs:
         uses: actions/upload-artifact@82c141cc518b40d92cc801eee768e7aafc9c2fa2  # v2
         with:
           retention-days: 1
-          name: model-manifest.${{ matrix.setup.outputs.matrix-instance-number }}.json
+          name: model-manifest.${{ steps.setup.outputs.matrix-instance-number }}.json
           path: .artifacts/model-manifest.json
 
   backend-test-snuba-contains-metrics-tag-values:
