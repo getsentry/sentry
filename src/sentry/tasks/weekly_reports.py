@@ -414,6 +414,8 @@ def project_key_performance_issues(ctx, project):
 
     with sentry_sdk.start_span(op="weekly_reports.project_key_performance_issues"):
         # Pick the 50 top frequent performance issues last seen within a month with the highest event count from all time.
+        # Then, we use this to join with snuba, hoping that the top 3 issue by volume counted in snuba would be within this list.
+        # We do this to limit the number of group_ids snuba has to join with.
         groups = Group.objects.filter(
             project_id=project.id,
             status=GroupStatus.UNRESOLVED,
@@ -422,6 +424,7 @@ def project_key_performance_issues(ctx, project):
             type__gte=1000,
             type__lt=2000,
         ).order_by("-times_seen")[:50]
+        # Django doesn't have a .limit function, and this will actually do its magic to use the LIMIT statement.
         groups = list(groups)
         group_id_to_group = {group.id: group for group in groups}
 
@@ -438,6 +441,9 @@ def project_key_performance_issues(ctx, project):
             where=[
                 Condition(Column("finish_ts"), Op.GTE, ctx.start),
                 Condition(Column("finish_ts"), Op.LT, ctx.end + timedelta(days=1)),
+                # transactions.group_ids is a list of group_ids that the transaction was associated with.
+                # We want to find the transactions associated with group_id_to_group.keys()
+                # That means group_ids must intersect with group_id_to_group.keys() in order for the transaction to be counted.
                 Condition(
                     Function(
                         "notEmpty",
