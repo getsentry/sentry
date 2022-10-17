@@ -14,7 +14,6 @@ type AddSpanOpts = {
   childOpts?: AddSpanOpts[];
   description?: string;
   op?: string;
-  parentSpanId?: string;
   problemSpan?: ProblemSpan;
   status?: string;
 };
@@ -122,23 +121,25 @@ export class TransactionEventBuilder {
 
 /**
  * A MockSpan object to be used for testing. This object is intended to be used in tandem with `TransactionEventBuilder`
- *
- * @param opts.startTimestamp
- * @param opts.endTimestamp
- * @param opts.op The operation of the span
- * @param opts.description The description of the span
- * @param opts.status Optional span specific status, defaults to 'ok'
- * @param opts.problemSpan If this span should be part of a performance problem, indicates the type of problem span (i.e ProblemSpan.OFFENDER, ProblemSpan.PARENT)
- * @param opts.parentSpanId When provided, will explicitly set this span's parent ID. If you are creating nested spans via `childOpts`, this will be handled automatically and you do not need to provide an ID.
- * Defaults to the root span's ID.
- * @param opts.childOpts An array containing options for direct children of the current span. Will create direct child spans for each set of options provided
  */
 export class MockSpan {
   span: RawSpanType;
   children: MockSpan[] = [];
   problemSpan: ProblemSpan | undefined;
 
-  constructor(opts: Omit<AddSpanOpts, 'numSpans' | 'parentSpanId'>) {
+  /**
+   *
+   * @param opts.startTimestamp
+   * @param opts.endTimestamp
+   * @param opts.op The operation of the span
+   * @param opts.description The description of the span
+   * @param opts.status Optional span specific status, defaults to 'ok'
+   * @param opts.problemSpan If this span should be part of a performance problem, indicates the type of problem span (i.e ProblemSpan.OFFENDER, ProblemSpan.PARENT)
+   * @param opts.parentSpanId When provided, will explicitly set this span's parent ID. If you are creating nested spans via `childOpts`, this will be handled automatically and you do not need to provide an ID.
+   * Defaults to the root span's ID.
+   * @param opts.childOpts An array containing options for direct children of the current span. Will create direct child spans for each set of options provided
+   */
+  constructor(opts: AddSpanOpts) {
     const {startTimestamp, endTimestamp, op, description, status, problemSpan} = opts;
 
     this.span = {
@@ -160,7 +161,7 @@ export class MockSpan {
   /**
    *
    * @param opts.numSpans If provided, will create the same span numSpan times
-   * @returns
+   * @returns The MockSpan that was added. If numSpans > 1, will return the first new instance
    */
   addChild(opts: AddSpanOpts, numSpans = 1) {
     const {startTimestamp, endTimestamp, op, description, status, problemSpan} = opts;
