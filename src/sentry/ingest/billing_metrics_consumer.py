@@ -104,7 +104,9 @@ class MetricsBucket(TypedDict):
 
 
 class MetricsBucketBilling(NamedTuple):
-    billing_future: Future[Message[KafkaPayload]]
+    #: None represents no billing outcomes. The instance still exists to commit
+    # the metric bucket.
+    billing_future: Union[Future[Message[KafkaPayload]], None]
     metrics_msg: Message[KafkaPayload]
 
 
@@ -162,15 +164,16 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         """
         while self._ongoing_billing_outcomes:
             produce_billing, metrics_msg = self._ongoing_billing_outcomes[0]
-            if not produce_billing.done():
-                break
 
-            if produce_billing.exception():
-                logger.error(
-                    "Async future failed in billing metrics consumer.",
-                    exc_info=produce_billing.exception(),
-                    extra={"offset": metrics_msg.offset},
-                )
+            if produce_billing:
+                if not produce_billing.done():
+                    break
+                if produce_billing.exception():
+                    logger.error(
+                        "Async future failed in billing metrics consumer.",
+                        exc_info=produce_billing.exception(),
+                        extra={"offset": metrics_msg.offset},
+                    )
 
             self._ongoing_billing_outcomes.popleft()
             self._ready_to_commit[metrics_msg.partition] = Position(
@@ -220,7 +223,8 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         amount_dropped = len(self._ongoing_billing_outcomes)
         while self._ongoing_billing_outcomes:
             ongoing_work, _ = self._ongoing_billing_outcomes.popleft()
-            ongoing_work.cancel()
+            if ongoing_work:
+                ongoing_work.cancel()
         amount_dropped += self._clear_ready_queue()
         if amount_dropped > 0:
             logger.warning(f"terminated, items dropped: {amount_dropped}")
@@ -240,8 +244,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
             # outcomes, since the consumer has already processed them. To keep
             # the offset order when committing, we still need to go through the
             # futures queue.
-            future: Future[Message[KafkaPayload]] = Future()
-            future.set_result(True)  # Mark the future as completed
+            future = None
         else:
             value = json.dumps(
                 {
