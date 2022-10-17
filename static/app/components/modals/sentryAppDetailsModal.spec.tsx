@@ -118,7 +118,7 @@ describe('SentryAppDetailsModal', function () {
     expect(handleOnInstall).toHaveBeenCalled();
   });
 
-  it('when the User does not have permission to install Integrations, does not display the Install button', function () {
+  it('does not display the Install button, when the User does not have permission to install Integrations', function () {
     renderMockRequests({sentryAppSlug: sentryApp.slug});
 
     render(
