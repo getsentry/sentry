@@ -12,7 +12,9 @@ import {IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Event} from 'sentry/types/event';
+import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
+import {useRoutes} from 'sentry/utils/useRoutes';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 type Props = {
@@ -22,6 +24,7 @@ type Props = {
 };
 
 function ReplayContent({orgSlug, replaySlug, event}: Props) {
+  const routes = useRoutes();
   const {fetching, replay, fetchError} = useReplayData({
     orgSlug,
     replaySlug,
@@ -59,8 +62,8 @@ function ReplayContent({orgSlug, replaySlug, event}: Props) {
   const fullReplayUrl = {
     pathname: `/organizations/${orgSlug}/replays/${replaySlug}/`,
     query: {
+      referrer: encodeURIComponent(getRouteStringFromRoutes(routes)),
       t_main: 'console',
-      f_c_search: undefined,
       t: initialTimeOffset,
     },
   };
