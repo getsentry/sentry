@@ -14,8 +14,8 @@ describe('AwsLambdaFunctionSelect', () => {
       />
     );
     expect(container).toSnapshot();
-    expect(screen.getByLabelText('lambdaB')).toBeInTheDocument();
-    expect(screen.getByLabelText('Finish Setup')).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', {name: 'lambdaB'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Finish Setup'})).toBeInTheDocument();
     // TODO: add assertion for form post
   });
 });

@@ -1270,6 +1270,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         type: Optional[str] = None,
         org_id: Optional[int] = None,
         project_id: Optional[int] = None,
+        days_before_now: int = 0,
         hours_before_now: int = 0,
         minutes_before_now: int = 0,
         seconds_before_now: int = 0,
@@ -1290,6 +1291,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
             timestamp=(
                 self.now
                 - timedelta(
+                    days=days_before_now,
                     hours=hours_before_now,
                     minutes=minutes_before_now,
                     # We subtract 1 second -(+1) in order to account for right non-inclusivity in the queries.
@@ -1323,6 +1325,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         type: Optional[str] = None,
         org_id: Optional[int] = None,
         project_id: Optional[int] = None,
+        days_before_now: int = 0,
         hours_before_now: int = 0,
         minutes_before_now: int = 0,
         seconds_before_now: int = 0,
@@ -1335,6 +1338,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
             org_id=org_id,
             project_id=project_id,
             use_case_id=UseCaseKey.PERFORMANCE,
+            days_before_now=days_before_now,
             hours_before_now=hours_before_now,
             minutes_before_now=minutes_before_now,
             seconds_before_now=seconds_before_now,
@@ -1348,6 +1352,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         type: Optional[str] = None,
         org_id: Optional[int] = None,
         project_id: Optional[int] = None,
+        days_before_now: int = 0,
         hours_before_now: int = 0,
         minutes_before_now: int = 0,
         seconds_before_now: int = 0,
@@ -1360,6 +1365,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
             org_id=org_id,
             project_id=project_id,
             use_case_id=UseCaseKey.RELEASE_HEALTH,
+            days_before_now=days_before_now,
             hours_before_now=hours_before_now,
             minutes_before_now=minutes_before_now,
             seconds_before_now=seconds_before_now,
