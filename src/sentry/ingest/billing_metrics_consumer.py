@@ -151,9 +151,19 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         )
 
     def poll(self) -> None:
-        self._mark_commit_ready()
         if self._should_commit():
             self._bulk_commit()
+
+    def _should_commit(self) -> bool:
+        self._mark_commit_ready()
+
+        if not self._ready_to_commit:
+            return False
+        if self._messages_ready_since_last_commit >= self._max_batch_size:
+            return True
+        if self._last_commit_time + self._max_batch_time <= datetime.now():
+            return True
+        return False
 
     def _mark_commit_ready(self) -> None:
         """Removes completed futures at the beginning of
@@ -184,15 +194,6 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
                 metrics_msg.next_offset, datetime.now()
             )
             self._messages_ready_since_last_commit += 1
-
-    def _should_commit(self) -> bool:
-        if not self._ready_to_commit:
-            return False
-        if self._messages_ready_since_last_commit >= self._max_batch_size:
-            return True
-        if self._last_commit_time + self._max_batch_time <= datetime.now():
-            return True
-        return False
 
     def _bulk_commit(self) -> None:
         """Commits and clears the ready to commit queue."""
