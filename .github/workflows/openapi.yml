@@ -47,7 +47,7 @@ jobs:
           path: sentry-api-schema
           token: ${{ steps.getsentry.outputs.token }}
 
-      - uses: ./.github/actions/setup-volta
+      - uses: getsentry/action-setup-volta@d6f6ebfc4046feb3cfb6049e885185a01afd82b7  # v1.0.0
         if: steps.changes.outputs.api_docs == 'true'
 
       - name: Build OpenAPI Derefed JSON
