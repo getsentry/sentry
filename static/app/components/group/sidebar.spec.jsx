@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import GroupSidebar from 'sentry/components/group/sidebar';
 
@@ -203,5 +203,51 @@ describe('GroupSidebar', function () {
 
     expect(screen.getByText('Participants (1)')).toBeInTheDocument();
     expect(screen.getByText('Viewers (1)')).toBeInTheDocument();
+  });
+
+  describe('displays mobile tags when issue platform is mobile', function () {
+    beforeEach(function () {
+      group = TestStubs.Group();
+
+      MockApiClient.addMockResponse({
+        url: '/issues/1/',
+        body: group,
+      });
+    });
+
+    it('renders mobile tags on mobile platform', async function () {
+      render(
+        <GroupSidebar
+          group={group}
+          project={{...project, platform: 'android'}}
+          organization={{
+            ...organization,
+            features: [...organization.features, 'issue-details-tag-improvements'],
+          }}
+          event={TestStubs.Event()}
+          environments={[environment]}
+        />,
+        {organization}
+      );
+      expect(await screen.findByText('device')).toBeInTheDocument();
+    });
+
+    it('does not render mobile tags on non mobile platform', async function () {
+      render(
+        <GroupSidebar
+          group={group}
+          project={project}
+          organization={{
+            ...organization,
+            features: [...organization.features, 'issue-details-tag-improvements'],
+          }}
+          event={TestStubs.Event()}
+          environments={[environment]}
+        />,
+        {organization}
+      );
+      await waitFor(() => expect(tagsMock).toHaveBeenCalled());
+      expect(screen.queryByText('device')).not.toBeInTheDocument();
+    });
   });
 });
