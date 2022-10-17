@@ -1899,10 +1899,11 @@ export default withApi(withRouter(withOrganization(SmartSearchBarContainer)));
 export {SmartSearchBar, Props as SmartSearchBarProps};
 
 const Container = styled('div')<{inputHasFocus: boolean}>`
+  height: ${p => p.theme.form.md.height}px;
   border: 1px solid ${p => p.theme.border};
   box-shadow: inset ${p => p.theme.dropShadowLight};
   background: ${p => p.theme.background};
-  padding: 7px ${space(1)};
+  padding: 6px ${space(1)};
   position: relative;
   display: grid;
   grid-template-columns: max-content 1fr max-content;
