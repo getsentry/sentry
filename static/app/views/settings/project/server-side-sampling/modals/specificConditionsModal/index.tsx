@@ -8,11 +8,11 @@ import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import CompactSelect from 'sentry/components/compactSelect';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import CompactSelect from 'sentry/components/forms/compactSelect';
+import Option from 'sentry/components/forms/controls/selectOption';
 import FieldRequiredBadge from 'sentry/components/forms/field/fieldRequiredBadge';
-import NumberField from 'sentry/components/forms/numberField';
-import Option from 'sentry/components/forms/selectOption';
+import NumberField from 'sentry/components/forms/fields/numberField';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {IconAdd} from 'sentry/icons';
 import {IconSearch} from 'sentry/icons/iconSearch';
@@ -142,8 +142,9 @@ export function SpecificConditionsModal({
     const sampleRate = percentageToRate(samplePercentage)!;
 
     const newRule: SamplingRule = {
-      // All new/updated rules must have id equal to 0
-      id: 0,
+      // All new rules must have the default id set to -1, signaling to the backend that a proper id should
+      // be assigned.
+      id: -1,
       active: rule ? rule.active : false,
       type: SamplingRuleType.TRACE,
       condition: {

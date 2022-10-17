@@ -128,7 +128,11 @@ class Pipeline(abc.ABC):
         return views
 
     def is_valid(self) -> bool:
-        _is_valid: bool = self.state.is_valid() and self.state.signature == self.signature
+        _is_valid: bool = (
+            self.state.is_valid()
+            and self.state.signature == self.signature
+            and self.state.step_index is not None
+        )
         return _is_valid
 
     def initialize(self) -> None:

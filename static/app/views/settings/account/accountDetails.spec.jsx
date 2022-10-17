@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import AccountDetails from 'sentry/views/settings/account/accountDetails';
 
@@ -20,41 +20,35 @@ describe('AccountDetails', function () {
   });
 
   it('renders', function () {
-    const wrapper = mountWithTheme(<AccountDetails location={{}} />);
+    render(<AccountDetails location={{}} />);
 
-    expect(wrapper.find('input[name="name"]')).toHaveLength(1);
+    expect(screen.getByRole('textbox', {name: 'Name'})).toBeEnabled();
 
-    // Stacktrace order, language, timezone, theme
-    expect(wrapper.find('SelectControl')).toHaveLength(4);
-
-    expect(wrapper.find('BooleanField')).toHaveLength(1);
-    expect(wrapper.find('RadioGroup')).toHaveLength(1);
+    expect(screen.getByRole('checkbox', {name: 'Use a 24-hour clock'})).toBeEnabled();
+    expect(screen.getByRole('radiogroup', {name: 'Avatar Type'})).toBeEnabled();
   });
 
   it('has username field if it is different than email', function () {
     mockUserDetails({username: 'different@example.com'});
-    const wrapper = mountWithTheme(<AccountDetails location={{}} />);
+    render(<AccountDetails location={{}} />);
 
-    expect(wrapper.find('input[name="username"]')).toHaveLength(1);
-    expect(wrapper.find('input[name="username"]').prop('disabled')).toBe(false);
+    expect(screen.getByRole('textbox', {name: 'Username'})).toBeEnabled();
   });
 
   describe('Managed User', function () {
     it('does not have password fields', function () {
       mockUserDetails({isManaged: true});
-      const wrapper = mountWithTheme(<AccountDetails location={{}} />);
+      render(<AccountDetails location={{}} />);
 
-      expect(wrapper.find('input[name="name"]')).toHaveLength(1);
-      expect(wrapper.find('input[name="password"]')).toHaveLength(0);
-      expect(wrapper.find('input[name="passwordVerify"]')).toHaveLength(0);
+      expect(screen.getByRole('textbox', {name: 'Name'})).toBeEnabled();
+      expect(screen.queryByRole('textbox', {name: 'Password'})).not.toBeInTheDocument();
     });
 
     it('has disabled username field if it is different than email', function () {
       mockUserDetails({isManaged: true, username: 'different@example.com'});
-      const wrapper = mountWithTheme(<AccountDetails location={{}} />);
+      render(<AccountDetails location={{}} />);
 
-      expect(wrapper.find('input[name="username"]')).toHaveLength(1);
-      expect(wrapper.find('input[name="username"]').prop('disabled')).toBe(true);
+      expect(screen.getByRole('textbox', {name: 'Username'})).toBeDisabled();
     });
   });
 });
