@@ -8,7 +8,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     GzippedDictField,
     Model,
-    region_silo_model,
+    region_silo_only_model,
     sane_repr,
 )
 from sentry.db.models.manager import BaseManager
@@ -23,7 +23,7 @@ class RuleStatus:
     DELETION_IN_PROGRESS = 3
 
 
-@region_silo_model
+@region_silo_only_model
 class Rule(Model):
     __include_in_export__ = True
 
@@ -103,7 +103,7 @@ class RuleActivityType(Enum):
     DISABLED = 5
 
 
-@region_silo_model
+@region_silo_only_model
 class RuleActivity(Model):
     __include_in_export__ = True
 

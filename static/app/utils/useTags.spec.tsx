@@ -13,7 +13,7 @@ describe('useTags', function () {
       () => void TagStore.loadTagsSuccess([{name: 'Mechanism', key: 'mechanism'}])
     );
 
-    const {result} = reactHooks.renderHook(() => useTags());
+    const {result} = reactHooks.renderHook(useTags);
     const {tags} = result.current;
 
     const expected = {mechanism: {name: 'Mechanism', key: 'mechanism', values: []}};
