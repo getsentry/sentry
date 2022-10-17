@@ -11,6 +11,7 @@ from sentry.models import File
 from sentry.replays.consumers.recording.factory import ProcessReplayRecordingStrategyFactory
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.testutils import TransactionTestCase
+from sentry.testutils.helpers import TaskRunner
 
 
 class TestRecordingsConsumerEndToEnd(TransactionTestCase):
@@ -52,15 +53,17 @@ class TestRecordingsConsumerEndToEnd(TransactionTestCase):
                 "project_id": self.project.id,
             },
         ]
-        for message in consumer_messages:
-            processing_strategy.submit(
-                Message(
-                    Partition(Topic("ingest-replay-recordings"), 1),
-                    1,
-                    KafkaPayload(b"key", msgpack.packb(message), [("should_drop", b"1")]),
-                    datetime.now(),
+        with TaskRunner():
+            for message in consumer_messages:
+                processing_strategy.submit(
+                    Message(
+                        Partition(Topic("ingest-replay-recordings"), 1),
+                        1,
+                        KafkaPayload(b"key", msgpack.packb(message), [("should_drop", b"1")]),
+                        datetime.now(),
+                    )
                 )
-            )
+
         processing_strategy.poll()
         processing_strategy.join(1)
         processing_strategy.terminate()
@@ -101,15 +104,17 @@ class TestRecordingsConsumerEndToEnd(TransactionTestCase):
                 "project_id": self.project.id,
             },
         ]
-        for message in consumer_messages:
-            processing_strategy.submit(
-                Message(
-                    Partition(Topic("ingest-replay-recordings"), 1),
-                    1,
-                    KafkaPayload(b"key", msgpack.packb(message), [("should_drop", b"1")]),
-                    datetime.now(),
+        with TaskRunner():
+            for message in consumer_messages:
+                processing_strategy.submit(
+                    Message(
+                        Partition(Topic("ingest-replay-recordings"), 1),
+                        1,
+                        KafkaPayload(b"key", msgpack.packb(message), [("should_drop", b"1")]),
+                        datetime.now(),
+                    )
                 )
-            )
+
         processing_strategy.poll()
         processing_strategy.join(1)
         processing_strategy.terminate()
