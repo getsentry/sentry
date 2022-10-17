@@ -153,7 +153,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         if self._should_commit():
             self._bulk_commit()
 
-    def _mark_commit_ready(self):
+    def _mark_commit_ready(self) -> None:
         """Removes completed futures at the beginning of
         ongoing_billing_outcomes and adds them to ready_to_commit.
 
