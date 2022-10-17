@@ -168,7 +168,11 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
             if produce_billing:
                 if not produce_billing.done():
                     break
-                if produce_billing.exception():
+                # XXX(iker): in tests .exception() may return a mock, which
+                # resolves to a truthy value. Explicitly checking if it's an
+                # exception removes this log from tests. We may want to improve
+                # mocking in the tests and only check for a None value here.
+                if isinstance(produce_billing.exception(), Exception):
                     logger.error(
                         "Async future failed in billing metrics consumer.",
                         exc_info=produce_billing.exception(),
