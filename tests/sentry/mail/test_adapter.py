@@ -49,13 +49,16 @@ from sentry.ownership.grammar import Matcher, Owner, dump_schema
 from sentry.plugins.base import Notification
 from sentry.rules import EventState
 from sentry.testutils import TestCase
+from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.types.issues import GroupType
 from sentry.types.releaseactivity import ReleaseActivityType
 from sentry.types.rules import RuleFuture
 from sentry.utils.email import MessageBuilder, get_email_addresses
+from sentry.utils.samples import load_data
 from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
 from tests.sentry.mail import make_event_data, send_notification
 
@@ -98,6 +101,7 @@ class MailAdapterActiveReleaseTest(BaseMailAdapterTest):
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=new_project.id
         )
+        ProjectOwnership.objects.create(project=new_project, fallthrough=True)
         GroupOwner.objects.create(
             group_id=event.group.id,
             project=event.project,
@@ -264,6 +268,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         )
 
         rule = Rule.objects.create(project=self.project, label="my rule")
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
         notification = Notification(event=event, rule=rule)
 
@@ -273,6 +278,53 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         msg = mail.outbox[0]
         assert msg.subject == "[Sentry] BAR-1 - Hello world"
         assert "my rule" in msg.alternatives[0][0]
+
+    def test_simple_notification_perf(self):
+        event_data = load_data(
+            "transaction-n-plus-one",
+            timestamp=before_now(minutes=10),
+            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE.value}-group1"],
+        )
+        perf_event_manager = EventManager(event_data)
+        perf_event_manager.normalize()
+        with override_options(
+            {
+                "performance.issues.all.problem-creation": 1.0,
+                "performance.issues.all.problem-detection": 1.0,
+                "performance.issues.n_plus_one_db.problem-creation": 1.0,
+            }
+        ), self.feature(
+            [
+                "organizations:performance-issues-ingest",
+                "projects:performance-suspect-spans-ingestion",
+            ]
+        ):
+            event = perf_event_manager.save(self.project.id)
+        event = event.for_group(event.groups[0])
+
+        rule = Rule.objects.create(project=self.project, label="my rule")
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
+
+        notification = Notification(event=event, rule=rule)
+
+        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
+            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
+
+        msg = mail.outbox[0]
+        assert msg.subject == "[Sentry] BAR-1 - N+1 DB Queries"
+        checked_values = [
+            "Transaction Name",
+            # TODO: Not sure if this is right
+            "db - SELECT `books_author`.`id`, `books_author`.`",
+            "Parent Span",
+            "django.view - index",
+            "Repeating Spans (10)",
+            "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author`",
+        ]
+        for checked_value in checked_values:
+            assert (
+                checked_value in msg.alternatives[0][0]
+            ), f"{checked_value} not present in message"
 
     @mock.patch("sentry.interfaces.stacktrace.Stacktrace.get_title")
     @mock.patch("sentry.interfaces.stacktrace.Stacktrace.to_email_html")
@@ -286,6 +338,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         )
 
         notification = Notification(event=event)
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
         with self.options({"system.url-prefix": "http://example.com"}):
             self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
@@ -312,6 +365,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             NotificationSettingOptionValues.NEVER,
             user=self.user,
         )
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
         with self.tasks():
             AlertRuleNotification(Notification(event=event), ActionTargetType.ISSUE_OWNERS).send()
@@ -352,6 +406,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             NotificationSettingOptionValues.NEVER,
             user=user,
         )
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
         # New secondary email is created
         useremail = UserEmail.objects.create(user=user, email="ahmed@ahmed.io", is_verified=True)
@@ -403,6 +458,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             NotificationSettingOptionValues.NEVER,
             user=self.user,
         )
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
         event = event_manager.save(self.project.id)
         with self.tasks():
@@ -419,6 +475,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         )
 
         notification = Notification(event=event)
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
@@ -445,6 +502,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         )
 
         notification = Notification(event=event)
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
@@ -457,6 +515,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         repo = Repository.objects.create(
             organization_id=self.organization.id, name=self.organization.id
         )
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         release = self.create_release(project=self.project, version="v12")
         release.set_commits(
             [
@@ -519,6 +578,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         project = self.project
         organization = project.organization
         event = self.store_event(data=make_event_data("foo.jx"), project_id=project.id)
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
         with self.tasks():
             notification = Notification(event=event)
@@ -536,6 +596,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         project = self.project
         organization = project.organization
         event = self.store_event(data=make_event_data("foo.jx"), project_id=project.id)
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
         integration = Integration.objects.create(provider="msteams")
         integration.add_organization(organization)
@@ -556,6 +617,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         project = self.project
         organization = project.organization
         event = self.store_event(data=make_event_data("foo.jx"), project_id=project.id)
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
         OpsGeniePlugin().enable(project)
 
@@ -1014,6 +1076,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest):
         )
 
         rule = project.rule_set.all()[0]
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         digest = build_digest(
             project, (event_to_record(event, (rule,)), event_to_record(event2, (rule,)))
         )[0]
@@ -1032,6 +1095,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest):
     def test_notify_digest_single_record(self, send_async, notify):
         event = self.store_event(data={}, project_id=self.project.id)
         rule = self.project.rule_set.all()[0]
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         digest = build_digest(self.project, (event_to_record(event, (rule,)),))[0]
         self.adapter.notify_digest(self.project, digest, ActionTargetType.ISSUE_OWNERS)
         assert send_async.call_count == 1
@@ -1041,6 +1105,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest):
         ProjectOption.objects.set_value(
             project=self.project, key="mail:subject_prefix", value="[Example prefix] "
         )
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         event = self.store_event(
             data={"timestamp": iso_format(before_now(minutes=1)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
@@ -1124,6 +1189,23 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
         futures = [RuleFuture(rule, {})]
         self.adapter.rule_notify(event, futures, ActionTargetType.ISSUE_OWNERS)
         assert digests.add.call_count == 1
+
+    @mock.patch("sentry.mail.adapter.digests")
+    def test_digest_errors_only(self, digests):
+        digests.enabled.return_value = True
+        event = self.store_event(
+            data=load_data(
+                "transaction",
+                fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
+            ),
+            project_id=self.project.id,
+        )
+        event = event.for_group(event.groups[0])
+        rule = Rule.objects.create(project=self.project, label="my rule")
+
+        futures = [RuleFuture(rule, {})]
+        self.adapter.rule_notify(event, futures, ActionTargetType.ISSUE_OWNERS)
+        assert digests.add.call_count == 0
 
 
 class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):

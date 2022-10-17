@@ -1,10 +1,10 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {Project} from 'sentry/types';
 import NotificationSettingsByProjects from 'sentry/views/settings/account/notifications/notificationSettingsByProjects';
 
-const createWrapper = (projects: Project[]) => {
+const renderComponent = (projects: Project[]) => {
   const {routerContext} = initializeOrg();
 
   MockApiClient.addMockResponse({
@@ -22,23 +22,22 @@ const createWrapper = (projects: Project[]) => {
     },
   };
 
-  return mountWithTheme(
+  render(
     <NotificationSettingsByProjects
       notificationType="alerts"
       notificationSettings={notificationSettings}
       onChange={jest.fn()}
       onSubmitSuccess={jest.fn()}
     />,
-    routerContext
+    {context: routerContext}
   );
 };
 
 describe('NotificationSettingsByProjects', function () {
   it('should render when there are no projects', function () {
-    const wrapper = createWrapper([]);
-    expect(wrapper.find('EmptyMessage').text()).toEqual('No projects found');
-    expect(wrapper.find('AsyncComponentSearchInput')).toHaveLength(0);
-    expect(wrapper.find('Pagination')).toHaveLength(0);
+    renderComponent([]);
+    expect(screen.getByTestId('empty-message')).toHaveTextContent('No projects found');
+    expect(screen.queryByPlaceholderText('Search Projects')).not.toBeInTheDocument();
   });
 
   it('should show search bar when there are enough projects', function () {
@@ -47,7 +46,7 @@ describe('NotificationSettingsByProjects', function () {
       TestStubs.Project({organization, id})
     );
 
-    const wrapper = createWrapper(projects);
-    expect(wrapper.find('AsyncComponentSearchInput')).toHaveLength(1);
+    renderComponent(projects);
+    expect(screen.getByPlaceholderText('Search Projects')).toBeInTheDocument();
   });
 });

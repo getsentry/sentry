@@ -191,6 +191,9 @@ const storeConfig: GroupingStoreDefinition = {
   api: new Client(),
 
   init() {
+    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
+    // listeners due to their leaky nature in tests.
+
     const state = this.getInitialState();
 
     Object.entries(state).forEach(([key, value]) => {
@@ -447,6 +450,7 @@ const storeConfig: GroupingStoreDefinition = {
       this.mergedItems.size <= 1 ||
       this.unmergeList.size === 0 ||
       this.isAllUnmergedSelected();
+
     this.enableFingerprintCompare = this.unmergeList.size === 2;
 
     this.triggerUnmergeState();
@@ -631,7 +635,26 @@ const storeConfig: GroupingStoreDefinition = {
   },
 
   getState(): State {
-    return this.state;
+    return {
+      ...pick(this, [
+        'enableFingerprintCompare',
+        'error',
+        'filteredSimilarItems',
+        'loading',
+        'mergeDisabled',
+        'mergeList',
+        'mergeState',
+        'mergeState',
+        'mergedItems',
+        'mergedLinks',
+        'similarItems',
+        'similarLinks',
+        'unmergeDisabled',
+        'unmergeLastCollapsed',
+        'unmergeList',
+        'unmergeState',
+      ]),
+    };
   },
 };
 

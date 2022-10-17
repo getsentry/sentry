@@ -5,12 +5,12 @@ from sentry.db.models import (
     BoundedBigIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_model,
+    region_silo_only_model,
     sane_repr,
 )
 
 
-@region_silo_model
+@region_silo_only_model
 class Distribution(Model):
     __include_in_export__ = False
 

@@ -89,7 +89,7 @@ class DownloadSegmentsTestCase(TransactionTestCase):
     def test_index_download_basic_compressed(self):
         for i in range(0, 3):
             f = File.objects.create(name=f"rr:{i}", type="replay.recording")
-            f.putfile(BytesIO(zlib.compress(f'{{"test":"hello {i}"}}'.encode())))
+            f.putfile(BytesIO(zlib.compress(f'[{{"test":"hello {i}"}}]'.encode())))
             ReplayRecordingSegment.objects.create(
                 replay_id=self.replay_id,
                 project_id=self.project.id,
@@ -103,7 +103,7 @@ class DownloadSegmentsTestCase(TransactionTestCase):
         assert response.status_code == 200
 
         assert response.get("Content-Type") == "application/json"
-        assert b'[{"test":"hello 0"},{"test":"hello 1"},{"test":"hello 2"}]' == b"".join(
+        assert b'[[{"test":"hello 0"}],[{"test":"hello 1"}],[{"test":"hello 2"}]]' == b"".join(
             response.streaming_content
         )
 
@@ -129,7 +129,7 @@ class DownloadSegmentsTestCase(TransactionTestCase):
     def test_index_download_basic_not_compressed(self):
         for i in range(0, 3):
             f = File.objects.create(name=f"rr:{i}", type="replay.recording")
-            f.putfile(BytesIO(f'{{"test":"hello {i}"}}'.encode()))
+            f.putfile(BytesIO(f'[{{"test":"hello {i}"}}]'.encode()))
             ReplayRecordingSegment.objects.create(
                 replay_id=self.replay_id,
                 project_id=self.project.id,
@@ -143,14 +143,14 @@ class DownloadSegmentsTestCase(TransactionTestCase):
         assert response.status_code == 200
 
         assert response.get("Content-Type") == "application/json"
-        assert b'[{"test":"hello 0"},{"test":"hello 1"},{"test":"hello 2"}]' == b"".join(
+        assert b'[[{"test":"hello 0"}],[{"test":"hello 1"}],[{"test":"hello 2"}]]' == b"".join(
             response.streaming_content
         )
 
     def test_index_download_paginate(self):
         for i in range(0, 3):
             f = File.objects.create(name=f"rr:{i}", type="replay.recording")
-            f.putfile(BytesIO(zlib.compress(f'{{"test":"hello {i}"}}'.encode())))
+            f.putfile(BytesIO(zlib.compress(f'[{{"test":"hello {i}"}}]'.encode())))
             ReplayRecordingSegment.objects.create(
                 replay_id=self.replay_id,
                 project_id=self.project.id,
@@ -164,7 +164,7 @@ class DownloadSegmentsTestCase(TransactionTestCase):
         assert response.status_code == 200
 
         assert response.get("Content-Type") == "application/json"
-        assert b'[{"test":"hello 0"}]' == b"".join(response.streaming_content)
+        assert b'[[{"test":"hello 0"}]]' == b"".join(response.streaming_content)
 
         with self.feature("organizations:session-replay"):
             response = self.client.get(self.url + "?download&per_page=1&cursor=1:1:0")
@@ -172,7 +172,7 @@ class DownloadSegmentsTestCase(TransactionTestCase):
         assert response.status_code == 200
 
         assert response.get("Content-Type") == "application/json"
-        assert b'[{"test":"hello 1"}]' == b"".join(response.streaming_content)
+        assert b'[[{"test":"hello 1"}]]' == b"".join(response.streaming_content)
 
         with self.feature("organizations:session-replay"):
             response = self.client.get(self.url + "?download&per_page=2&cursor=1:1:0")
@@ -180,4 +180,6 @@ class DownloadSegmentsTestCase(TransactionTestCase):
         assert response.status_code == 200
 
         assert response.get("Content-Type") == "application/json"
-        assert b'[{"test":"hello 1"},{"test":"hello 2"}]' == b"".join(response.streaming_content)
+        assert b'[[{"test":"hello 1"}],[{"test":"hello 2"}]]' == b"".join(
+            response.streaming_content
+        )

@@ -36,11 +36,14 @@ class OrganizationSerializerTest(TestCase):
             "data-forwarding",
             "dashboards-basic",
             "dashboards-edit",
+            "dashboard-grid-layout",
+            "dashboards-top-level-filter",
             "discover-basic",
             "discover-query",
             "event-attachments",
             "integrations-alert-rule",
             "integrations-chat-unfurl",
+            "integrations-deployment",
             "integrations-event-hooks",
             "integrations-incident-management",
             "integrations-issue-basic",
@@ -58,6 +61,7 @@ class OrganizationSerializerTest(TestCase):
             "team-insights",
             "discover-frontend-use-events-endpoint",
             "performance-frontend-use-events-endpoint",
+            "performance-issues-ingest",
         }
 
     @mock.patch("sentry.features.batch_has")

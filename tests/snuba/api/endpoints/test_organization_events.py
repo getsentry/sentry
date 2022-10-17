@@ -24,6 +24,7 @@ from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_not_arm64
+from sentry.types.issues import GroupType
 from sentry.utils import json
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import QueryExecutionError, QueryIllegalTypeOfArgument, RateLimitExceeded
@@ -492,6 +493,109 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["data"] == [
             {"project.name": self.project.slug, "id": "a" * 32, "count()": 1}
         ]
+
+    def test_performance_issue_ids_filter(self):
+        data = load_data(
+            platform="transaction",
+            timestamp=before_now(minutes=10),
+            start_timestamp=before_now(minutes=11),
+            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
+        )
+        event = self.store_event(data=data, project_id=self.project.id)
+
+        query = {
+            "field": ["count()"],
+            "statsPeriod": "2h",
+            "query": f"project:{self.project.slug} performance.issue_ids:{event.groups[0].id}",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data["data"][0]["count()"] == 1
+
+    def test_has_performance_issue_ids(self):
+        data = load_data(
+            platform="transaction",
+            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
+        )
+        self.store_event(data=data, project_id=self.project.id)
+
+        query = {
+            "field": ["count()"],
+            "statsPeriod": "1h",
+            "query": "has:performance.issue_ids",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data["data"][0]["count()"] == 1
+
+        query = {
+            "field": ["count()"],
+            "statsPeriod": "1h",
+            "query": "!has:performance.issue_ids",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data["data"][0]["count()"] == 0
+
+    def test_performance_issue_ids_undefined(self):
+        query = {
+            "field": ["count()"],
+            "statsPeriod": "2h",
+            "query": "performance.issue_ids:undefined",
+            "project": [self.project.id],
+        }
+        response = self.do_request(query)
+        assert response.status_code == 400, response.content
+
+    def test_performance_issue_ids_array_with_undefined(self):
+        query = {
+            "field": ["count()"],
+            "statsPeriod": "2h",
+            "query": "performance.issue_ids:[1,2,3,undefined]",
+            "project": [self.project.id],
+        }
+        response = self.do_request(query)
+        assert response.status_code == 400, response.content
+
+    def test_performance_short_group_id(self):
+        project = self.create_project(name="foo bar")
+        data = load_data(
+            "transaction",
+            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
+        )
+        event = self.store_event(data=data, project_id=project.id)
+
+        query = {
+            "field": ["count()"],
+            "statsPeriod": "1h",
+            "query": f"project:{project.slug} issue:{event.groups[0].qualified_short_id}",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data["data"][0]["count()"] == 1
+
+    def test_multiple_performance_short_group_ids_filter(self):
+        project = self.create_project(name="foo bar")
+        data1 = load_data(
+            "transaction",
+            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
+        )
+        event1 = self.store_event(data=data1, project_id=project.id)
+
+        data2 = load_data(
+            "transaction",
+            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group2"],
+        )
+        event2 = self.store_event(data=data2, project_id=project.id)
+
+        query = {
+            "field": ["count()"],
+            "statsPeriod": "1h",
+            "query": f"project:{project.slug} issue:[{event1.groups[0].qualified_short_id},{event2.groups[0].qualified_short_id}]",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data["data"][0]["count()"] == 2
 
     def test_event_id_with_in_search(self):
         self.store_event(

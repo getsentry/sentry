@@ -2,6 +2,9 @@ import React, {useCallback, useContext, useEffect, useRef, useState} from 'react
 import {useTheme} from '@emotion/react';
 import {Replayer, ReplayerEvents} from 'rrweb';
 
+import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import localStorage from 'sentry/utils/localStorage';
 import {
   clearAllHighlights,
@@ -10,6 +13,7 @@ import {
 } from 'sentry/utils/replays/highlightNode';
 import useRAF from 'sentry/utils/replays/hooks/useRAF';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
 
 enum ReplayLocalstorageKeys {
@@ -195,6 +199,8 @@ function updateSavedReplayConfig(config: ReplayConfig) {
 }
 
 export function Provider({children, replay, initialTimeOffset = 0, value = {}}: Props) {
+  const config = useLegacyStore(ConfigStore);
+  const organization = useOrganization();
   const events = replay?.getRRWebEvents();
   const savedReplayConfigRef = useRef<ReplayConfig>(
     JSON.parse(localStorage.getItem(ReplayLocalstorageKeys.ReplayConfig) || '{}')
@@ -293,7 +299,7 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
       // eslint-disable-next-line no-new
       const inst = new Replayer(events, {
         root,
-        blockClass: 'sr-block',
+        blockClass: 'sentry-block',
         // liveMode: false,
         // triggerFocus: false,
         mouseTail: {
@@ -420,8 +426,14 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
         replayer.pause(getCurrentTime());
       }
       setIsPlaying(play);
+
+      trackAdvancedAnalyticsEvent('replay.play-pause', {
+        organization,
+        user_email: config.user.email,
+        play,
+      });
     },
-    [getCurrentTime]
+    [getCurrentTime, config.user.email, organization]
   );
 
   const restart = useCallback(() => {

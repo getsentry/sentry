@@ -1,10 +1,10 @@
-import React from 'react';
+import {Fragment} from 'react';
 import capitalize from 'lodash/capitalize';
 
 import Alert from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct, tn} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import {Organization, ResolutionStatusDetails} from 'sentry/types';
 
 import ExtraDescription from './extraDescription';
 
@@ -74,7 +74,15 @@ export function getConfirm({
   query: string;
   queryCount: number;
 }) {
-  return function (action: ConfirmAction | string, canBeUndone: boolean, append = '') {
+  return function ({
+    action,
+    canBeUndone,
+    append = '',
+  }: {
+    action: ConfirmAction | string;
+    canBeUndone: boolean;
+    append?: string;
+  }) {
     const question = allInQuerySelected
       ? getBulkConfirmMessage(`${action}${append}`, queryCount)
       : tn(
@@ -83,11 +91,11 @@ export function getConfirm({
           numIssues
         );
 
-    let message;
+    let message: React.ReactNode;
     switch (action) {
       case ConfirmAction.DELETE:
         message = (
-          <React.Fragment>
+          <Fragment>
             <p>
               {tct(
                 'Bulk deletion is only recommended for junk data. To clear your stream, consider resolving or ignoring. [link:When should I delete events?]',
@@ -101,21 +109,21 @@ export function getConfirm({
             <PerformanceIssueAlert {...{organization, allInQuerySelected}}>
               {t('Deleting performance issues is not yet supported and will be skipped.')}
             </PerformanceIssueAlert>
-          </React.Fragment>
+          </Fragment>
         );
         break;
       case ConfirmAction.MERGE:
         message = (
-          <React.Fragment>
+          <Fragment>
             <p>{t('Note that unmerging is currently an experimental feature.')}</p>
             <PerformanceIssueAlert {...{organization, allInQuerySelected}}>
               {t('Merging performance issues is not yet supported and will be skipped.')}
             </PerformanceIssueAlert>
-          </React.Fragment>
+          </Fragment>
         );
         break;
       default:
-        message = <p>{t('This action cannot be undone.')}</p>;
+        message = !canBeUndone ? <p>{t('This action cannot be undone.')}</p> : null;
     }
 
     return (
@@ -128,7 +136,7 @@ export function getConfirm({
           query={query}
           queryCount={queryCount}
         />
-        {!canBeUndone && message}
+        {message}
       </div>
     );
   };
@@ -147,4 +155,10 @@ export function getLabel(numIssues: number, allInQuerySelected: boolean) {
 
     return text + append;
   };
+}
+
+export function performanceIssuesSupportsIgnoreAction(
+  statusDetails: ResolutionStatusDetails
+) {
+  return !(statusDetails.ignoreWindow || statusDetails.ignoreUserWindow);
 }

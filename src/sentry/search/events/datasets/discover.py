@@ -55,9 +55,6 @@ from sentry.search.events.constants import (
 )
 from sentry.search.events.datasets import field_aliases, filter_aliases
 from sentry.search.events.datasets.base import DatasetConfig
-from sentry.search.events.datasets.semver_and_stage_aliases import (
-    SemverAndStageFilterConverterMixin,
-)
 from sentry.search.events.fields import (
     ColumnArg,
     ColumnTagArg,
@@ -79,10 +76,11 @@ from sentry.search.events.fields import (
 )
 from sentry.search.events.filter import to_list, translate_transaction_status
 from sentry.search.events.types import SelectType, WhereType
+from sentry.types.issues import GroupCategory
 from sentry.utils.numbers import format_grouped_length
 
 
-class DiscoverDatasetConfig(DatasetConfig, SemverAndStageFilterConverterMixin):
+class DiscoverDatasetConfig(DatasetConfig):
     custom_threshold_columns = {
         "apdex()",
         "count_miserable(user)",
@@ -114,6 +112,7 @@ class DiscoverDatasetConfig(DatasetConfig, SemverAndStageFilterConverterMixin):
             SEMVER_PACKAGE_ALIAS: self._semver_package_filter_converter,
             SEMVER_BUILD_ALIAS: self._semver_build_filter_converter,
             TRACE_PARENT_SPAN_ALIAS: self._trace_parent_span_converter,
+            "performance.issue_ids": self._performance_issue_ids_filter_converter,
         }
 
     @property
@@ -1427,12 +1426,28 @@ class DiscoverDatasetConfig(DatasetConfig, SemverAndStageFilterConverterMixin):
     def _release_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         return filter_aliases.release_filter_converter(self.builder, search_filter)
 
+    def _release_stage_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        return filter_aliases.release_stage_filter_converter(self.builder, search_filter)
+
+    def _semver_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        return filter_aliases.semver_filter_converter(self.builder, search_filter)
+
+    def _semver_package_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        return filter_aliases.semver_package_filter_converter(self.builder, search_filter)
+
+    def _semver_build_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        return filter_aliases.semver_build_filter_converter(self.builder, search_filter)
+
     def _issue_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         operator = search_filter.operator
         value = to_list(search_filter.value.value)
         # `unknown` is a special value for when there is no issue associated with the event
         group_short_ids = [v for v in value if v and v != "unknown"]
-        filter_values = ["" for v in value if not v or v == "unknown"]
+        error_group_filter_values = ["" for v in value if not v or v == "unknown"]
+        perf_group_filter_values = ["" for v in value if not v or v == "unknown"]
+
+        error_groups = []
+        performance_groups = []
 
         if group_short_ids and self.builder.params and "organization_id" in self.builder.params:
             try:
@@ -1443,15 +1458,44 @@ class DiscoverDatasetConfig(DatasetConfig, SemverAndStageFilterConverterMixin):
             except Exception:
                 raise InvalidSearchQuery(f"Invalid value '{group_short_ids}' for 'issue:' filter")
             else:
-                filter_values.extend(sorted(g.id for g in groups))
+                for group in groups:
+                    if group.issue_category == GroupCategory.ERROR:
+                        error_groups.append(group.id)
+                    elif group.issue_category == GroupCategory.PERFORMANCE:
+                        performance_groups.append(group.id)
+                error_groups = sorted(error_groups)
+                performance_groups = sorted(performance_groups)
 
-        return self.builder.convert_search_filter_to_condition(
-            SearchFilter(
-                SearchKey("issue.id"),
-                operator,
-                SearchValue(filter_values if search_filter.is_in_filter else filter_values[0]),
+                error_group_filter_values.extend(error_groups)
+                perf_group_filter_values.extend(performance_groups)
+
+        # TODO (udameli): if both groups present, return data for both
+        if error_group_filter_values:
+            return self.builder.convert_search_filter_to_condition(
+                SearchFilter(
+                    SearchKey("issue.id"),
+                    operator,
+                    SearchValue(
+                        error_group_filter_values
+                        if search_filter.is_in_filter
+                        else error_group_filter_values[0]
+                    ),
+                )
             )
-        )
+
+        # TODO (udameli): handle the has:issue case for transactions
+        if performance_groups:
+            return self.builder.convert_search_filter_to_condition(
+                SearchFilter(
+                    SearchKey("performance.issue_ids"),
+                    operator,
+                    SearchValue(
+                        perf_group_filter_values
+                        if search_filter.is_in_filter
+                        else perf_group_filter_values[0]
+                    ),
+                )
+            )
 
     def _message_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         value = search_filter.value.value
@@ -1514,6 +1558,40 @@ class DiscoverDatasetConfig(DatasetConfig, SemverAndStageFilterConverterMixin):
             Op(search_filter.operator),
             internal_value,
         )
+
+    def _performance_issue_ids_filter_converter(
+        self, search_filter: SearchFilter
+    ) -> Optional[WhereType]:
+        name = search_filter.key.name
+        operator = search_filter.operator
+        value = to_list(search_filter.value.value)
+        value_list_as_ints = []
+
+        for v in value:
+            if isinstance(v, str) and v.isdigit():
+                value_list_as_ints.append(int(v))
+            elif isinstance(v, int):
+                value_list_as_ints.append(v)
+            elif isinstance(v, str) and not v:
+                value_list_as_ints.append(0)
+            else:
+                raise InvalidSearchQuery("performance.issue_ids should be a number")
+
+        if search_filter.is_in_filter:
+            return Condition(
+                Function("hasAny", [self.builder.column(name), value_list_as_ints]),
+                Op.EQ if operator == "IN" else Op.NEQ,
+                1,
+            )
+        elif search_filter.value.raw_value == "":
+            return Condition(
+                Function("notEmpty", [self.builder.column(name)]),
+                Op.EQ if operator == "!=" else Op.NEQ,
+                1,
+            )
+        else:
+            lhs = self.builder.column(name)
+            return Condition(lhs, Op(search_filter.operator), value_list_as_ints[0])
 
     def _issue_id_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         name = search_filter.key.name

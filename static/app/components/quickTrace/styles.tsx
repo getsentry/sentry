@@ -49,7 +49,7 @@ export const EventNode = styled(Tag)`
     display: flex;
     color: ${p => nodeColors(p.theme)[p.type || 'white'].color};
   }
-  & ${/* sc-selector */ Background} {
+  & ${Background} {
     background-color: ${p => nodeColors(p.theme)[p.type || 'white'].background};
     border: 1px solid ${p => nodeColors(p.theme)[p.type || 'white'].border};
   }
@@ -109,6 +109,7 @@ export function DropdownItem({
 }: DropdownItemProps) {
   return (
     <StyledMenuItem
+      data-test-id="dropdown-item"
       to={to}
       onSelect={onSelect}
       width={width}

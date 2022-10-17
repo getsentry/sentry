@@ -17,6 +17,7 @@ import FileSize from 'sentry/components/fileSize';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {TransactionToProfileButton} from 'sentry/components/profiling/transactionToProfileButton';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {TagsTable} from 'sentry/components/tagsTable';
 import {IconOpen} from 'sentry/icons';
@@ -53,6 +54,7 @@ type Props = Pick<
   eventSlug: string;
   eventView: EventView;
   organization: Organization;
+  isHomepage?: boolean;
 };
 
 type State = {
@@ -123,7 +125,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
   }
 
   renderContent(event: Event) {
-    const {organization, location, eventView, route, router} = this.props;
+    const {organization, location, eventView, route, router, isHomepage} = this.props;
     const {isSidebarVisible} = this.state;
 
     // metrics
@@ -147,6 +149,8 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
 
     const eventJsonUrl = `/api/0/projects/${organization.slug}/${this.projectId}/events/${event.eventID}/json/`;
 
+    const hasProfilingFeature = organization.features.includes('profiling');
+
     const renderContent = (
       results?: QuickTraceQueryChildrenProps,
       metaResults?: TraceMetaQueryChildrenProps
@@ -159,6 +163,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
               event={event}
               organization={organization}
               location={location}
+              isHomepage={isHomepage}
             />
             <EventHeader event={event} />
           </Layout.HeaderContent>
@@ -182,6 +187,13 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
               >
                 {t('JSON')} (<FileSize bytes={event.size} />)
               </Button>
+              {hasProfilingFeature && event.type === 'transaction' && (
+                <TransactionToProfileButton
+                  orgId={organization.slug}
+                  projectId={this.projectId}
+                  transactionId={event.eventID}
+                />
+              )}
               {transactionSummaryTarget && (
                 <Feature organization={organization} features={['performance-view']}>
                   {({hasFeature}) => (
@@ -236,7 +248,6 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                         event={event}
                         project={projects[0] as Project}
                         location={location}
-                        showExampleCommit={false}
                         showTagSummary={false}
                         api={this.api}
                         router={router}

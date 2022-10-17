@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from datetime import datetime
 from typing import Any, Mapping, Sequence
 
 from django.utils.text import slugify
@@ -18,6 +19,7 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.mixins import RepositoryMixin
+from sentry.integrations.mixins.commit_context import CommitContextMixin
 from sentry.models import Integration, Organization, OrganizationIntegration, Repository
 from sentry.pipeline import Pipeline, PipelineView
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
@@ -93,7 +95,10 @@ def build_repository_query(metadata: Mapping[str, Any], name: str, query: str) -
     return f"{account_type}:{name} {query}".encode()
 
 
-class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMixin):  # type: ignore
+# Github App docs and list of available endpoints
+# https://docs.github.com/en/rest/apps/installations
+# https://docs.github.com/en/rest/overview/endpoints-available-for-github-apps
+class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMixin, CommitContextMixin):  # type: ignore
     repo_search = True
     codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
@@ -101,6 +106,12 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         return GitHubAppsClient(integration=self.model)
 
     def get_repositories(self, query: str | None = None) -> Sequence[Mapping[str, Any]]:
+        """
+        This fetches all repositories accessible to a Github App
+        https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
+
+        per_page: The number of results per page (max 100; default 30).
+        """
         if not query:
             return [
                 {"name": i["name"], "identifier": i["full_name"]}
@@ -164,6 +175,40 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         except ApiError:
             return False
         return True
+
+    def get_commit_context(
+        self, repo: Repository, filepath: str, ref: str, event_frame: Mapping[str, Any]
+    ) -> Mapping[str, str] | None:
+        lineno = event_frame.get("lineno", 0)
+        if not lineno:
+            return None
+        blame_range = self.get_blame_for_file(repo, filepath, ref, lineno)
+
+        try:
+            commit = sorted(
+                (
+                    blame
+                    for blame in blame_range
+                    if blame.get("startingLine", 0) <= lineno <= blame.get("endingLine", 0)
+                ),
+                key=lambda blame: datetime.strptime(
+                    blame.get("commit", {}).get("committedDate"), "%Y-%m-%dT%H:%M:%SZ"
+                ),
+            )[-1]
+        except IndexError:
+            return None
+
+        commitInfo = commit.get("commit")
+        if not commitInfo:
+            return None
+        else:
+            return {
+                "commitId": commitInfo.get("oid"),
+                "committedDate": commitInfo.get("committedDate"),
+                "commitMessage": commitInfo.get("message"),
+                "commitAuthorName": commitInfo.get("author", {}).get("name"),
+                "commitAuthorEmail": commitInfo.get("author", {}).get("email"),
+            }
 
 
 class GitHubIntegrationProvider(IntegrationProvider):  # type: ignore

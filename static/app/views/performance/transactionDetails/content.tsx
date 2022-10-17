@@ -16,6 +16,7 @@ import RootSpanStatus from 'sentry/components/events/rootSpanStatus';
 import FileSize from 'sentry/components/fileSize';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
+import {TransactionToProfileButton} from 'sentry/components/profiling/transactionToProfileButton';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {TagsTable} from 'sentry/components/tagsTable';
 import {IconOpen} from 'sentry/icons';
@@ -38,7 +39,6 @@ import {getSelectedProjectPlatforms} from '../utils';
 
 import EventMetas from './eventMetas';
 import FinishSetupAlert from './finishSetupAlert';
-import {TransactionToProfileButton} from './transactionToProfileButton';
 
 type Props = Pick<
   RouteComponentProps<{eventSlug: string}, {}>,
@@ -226,7 +226,6 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                               organization={organization}
                               event={event}
                               project={_projects[0] as Project}
-                              showExampleCommit={false}
                               showTagSummary={false}
                               location={location}
                               api={this.api}

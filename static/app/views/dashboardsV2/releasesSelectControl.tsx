@@ -3,8 +3,7 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
 import Badge from 'sentry/components/badge';
-import FeatureBadge from 'sentry/components/featureBadge';
-import CompactSelect from 'sentry/components/forms/compactSelect';
+import CompactSelect from 'sentry/components/compactSelect';
 import TextOverflow from 'sentry/components/textOverflow';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconReleases} from 'sentry/icons';
@@ -60,12 +59,7 @@ function ReleasesSelectControl({
       isSearchable
       isDisabled={isDisabled}
       isLoading={loading}
-      menuTitle={
-        <MenuTitleWrapper>
-          {t('Filter Releases')}
-          <FeatureBadge type="new" />
-        </MenuTitleWrapper>
-      }
+      menuTitle={<MenuTitleWrapper>{t('Filter Releases')}</MenuTitleWrapper>}
       className={className}
       onInputChange={debounce(val => {
         onSearch(val);

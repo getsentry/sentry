@@ -28,7 +28,7 @@ type UseApiRequestData<T extends Record<string, any>> = {
   [Property in keyof T as `${Property & string}PageLinks`]: string | null;
 };
 
-interface State<T> {
+interface State<T extends Record<string, any>> {
   /**
    * Mapping of results from the configured endpoints
    */
@@ -152,7 +152,7 @@ function useApiRequests<T extends Record<string, any>>({
   const initialState = useMemo<State<T>>(
     () => ({
       data: {} as T,
-      isLoading: false,
+      isLoading: true,
       hasError: false,
       isReloading: false,
       errors: {},

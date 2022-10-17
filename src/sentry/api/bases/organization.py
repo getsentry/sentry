@@ -103,6 +103,15 @@ class OrganizationIntegrationsPermission(OrganizationPermission):
     }
 
 
+class OrganizationIntegrationsLoosePermission(OrganizationPermission):
+    scope_map = {
+        "GET": ["org:read", "org:write", "org:admin", "org:integrations"],
+        "POST": ["org:read", "org:write", "org:admin", "org:integrations"],
+        "PUT": ["org:read", "org:write", "org:admin", "org:integrations"],
+        "DELETE": ["org:admin", "org:integrations"],
+    }
+
+
 class OrganizationAdminPermission(OrganizationPermission):
     scope_map = {
         "GET": ["org:admin"],
@@ -200,6 +209,11 @@ class OrganizationEndpoint(Endpoint):
                     organization=organization, slug__in=slugs
                 ).values_list("id", flat=True)
                 project_ids = set(projects)
+
+                # return early to prevent passing empty set of project_ids to _get_projects_by_id
+                # which would return all projects in the organization
+                if not project_ids:
+                    return []
             else:
                 project_ids = self.get_requested_project_ids_unchecked(request)
 
@@ -297,7 +311,13 @@ class OrganizationEndpoint(Endpoint):
         # get the top level params -- projects, time range, and environment
         # from the request
         try:
-            start, end = get_date_range_from_params(request.GET, optional=date_filter_optional)
+            data = (
+                request.data if len(request.GET) == 0 and hasattr(request, "data") else request.GET
+            )
+            # For some reason we use range in saved queries
+            if "range" in data and "statsPeriod" not in data:
+                data["statsPeriod"] = data["range"]
+            start, end = get_date_range_from_params(data, optional=date_filter_optional)
             if start and end:
                 total_seconds = (end - start).total_seconds()
                 sentry_sdk.set_tag("query.period", total_seconds)

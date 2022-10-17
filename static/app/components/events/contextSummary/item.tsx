@@ -1,20 +1,38 @@
+import {lazy, Suspense} from 'react';
 import styled from '@emotion/styled';
-import classNames from 'classnames';
 
+import LoadingMask from 'sentry/components/loadingMask';
 import space from 'sentry/styles/space';
 
 type Props = {
   children: React.ReactNode;
-  icon: React.ReactElement;
-  className?: string;
+  /**
+   * An icon may be passed as a string name which will be dynamically with a
+   * ContextIcon or a react node will simply render.
+   */
+  icon?: string | React.ReactElement;
 };
 
-const Item = ({children, icon, className}: Props) => (
-  <Wrapper className={classNames('context-item', className)} data-test-id="context-item">
-    {icon}
-    {children && <Details>{children}</Details>}
-  </Wrapper>
-);
+const ContextIcon = lazy(() => import('./contextIcon'));
+
+function Item({children, icon = 'unknown'}: Props) {
+  // XXX: Codesplit the ContextIcon component since it packs a lot of SVGs
+  const iconNode =
+    typeof icon === 'string' ? (
+      <Suspense fallback={<LoadingMask />}>
+        <ContextIcon name={icon} />
+      </Suspense>
+    ) : (
+      icon
+    );
+
+  return (
+    <ItemContainer data-test-id="context-item">
+      <IconContainer>{iconNode}</IconContainer>
+      {children && <Details>{children}</Details>}
+    </ItemContainer>
+  );
+}
 
 export default Item;
 
@@ -22,24 +40,47 @@ const Details = styled('div')`
   display: flex;
   flex-direction: column;
   justify-content: center;
-  max-width: 100%;
   min-height: 48px;
+  min-width: 0;
 `;
 
-const Wrapper = styled('div')`
-  border-top: 1px solid ${p => p.theme.innerBorder};
-  padding: ${space(0.5)} 0 ${space(0.5)} 40px;
+const IconContainer = styled('div')`
+  width: 36px;
+  height: 36px;
   display: flex;
+  flex-shrink: 0;
   align-items: center;
-  position: relative;
-  min-width: 0;
+  justify-content: center;
+`;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    :not(:last-child) {
-      margin-right: ${space(3)};
+const ItemContainer = styled('div')`
+  position: relative;
+  display: flex;
+  gap: ${space(1)};
+  align-items: center;
+  max-width: 25%;
+
+  h3 {
+    ${p => p.theme.overflowEllipsis}
+    font-size: ${p => p.theme.fontSizeLarge};
+    margin-bottom: ${space(0.25)};
+  }
+
+  p {
+    font-size: ${p => p.theme.fontSizeSmall};
+
+    &:last-child {
+      margin: 0;
     }
-    max-width: 25%;
-    border: 0;
-    padding: 0px 0px 0px 42px;
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    max-width: initial;
+    padding-top: ${space(0.5)};
+    padding-bottom: ${space(0.5)};
+
+    :not(:first-child) {
+      border-top: 1px solid ${p => p.theme.innerBorder};
+    }
   }
 `;

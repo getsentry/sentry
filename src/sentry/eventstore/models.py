@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import abc
 import string
-from collections import OrderedDict
 from copy import deepcopy
 from datetime import datetime
 from hashlib import md5
@@ -21,6 +20,7 @@ from sentry.interfaces.base import Interface, get_interfaces
 from sentry.models import EventDict
 from sentry.snuba.events import Column, Columns
 from sentry.spans.grouping.api import load_span_grouping_config
+from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupCategory
 from sentry.utils import json
 from sentry.utils.cache import memoize
 from sentry.utils.canonical import CanonicalKeyView
@@ -496,6 +496,8 @@ class BaseEvent(metaclass=abc.ABCMeta):
         template = self.project.get_option("mail:subject_template")
         if template:
             template = EventSubjectTemplate(template)
+        elif self.group.issue_category == GroupCategory.PERFORMANCE:
+            template = EventSubjectTemplate("$shortID - $issueType")
         else:
             template = DEFAULT_SUBJECT_TEMPLATE
         return cast(
@@ -504,8 +506,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
     def as_dict(self) -> Mapping[str, Any]:
         """Returns the data in normalized form for external consumers."""
-        # We use a OrderedDict to keep elements ordered for a potential JSON serializer
-        data: MutableMapping[str, Any] = OrderedDict()
+        data: MutableMapping[str, Any] = {}
         data["event_id"] = self.event_id
         data["project"] = self.project_id
         data["release"] = self.release
@@ -755,6 +756,8 @@ class EventSubjectTemplateData:
             return cast(str, self.event.organization.slug)
         elif name == "title":
             return self.event.title
+        elif name == "issueType":
+            return cast(str, GROUP_TYPE_TO_TEXT.get(self.event.group.issue_type, "Issue"))
         raise KeyError
 
 

@@ -1,4 +1,8 @@
 import {
+  deleteHomepageQuery,
+  updateHomepageQuery,
+} from 'sentry/actionCreators/discoverHomepageQueries';
+import {
   createSavedQuery,
   deleteSavedQuery,
   updateSavedQuery,
@@ -209,6 +213,35 @@ export function handleDeleteQuery(
     });
 
   return promise;
+}
+
+export function handleUpdateHomepageQuery(
+  api: Client,
+  organization: Organization,
+  query: NewQuery
+) {
+  const promise = updateHomepageQuery(api, organization.slug, query);
+
+  return promise
+    .then(savedQuery => {
+      addSuccessMessage(t('Saved as Discover default'));
+      return savedQuery;
+    })
+    .catch(() => {
+      addErrorMessage(t('Unable to set query as Discover default'));
+    });
+}
+
+export function handleResetHomepageQuery(api: Client, organization: Organization) {
+  const promise = deleteHomepageQuery(api, organization.slug);
+
+  return promise
+    .then(() => {
+      addSuccessMessage(t('Successfully removed Discover default'));
+    })
+    .catch(() => {
+      addErrorMessage(t('Unable to remove Discover default'));
+    });
 }
 
 export function getAnalyticsCreateEventKeyName(

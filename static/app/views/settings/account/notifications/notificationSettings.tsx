@@ -5,7 +5,7 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import FormModel from 'sentry/components/forms/model';
-import {FieldObject} from 'sentry/components/forms/type';
+import {FieldObject} from 'sentry/components/forms/types';
 import Link from 'sentry/components/links/link';
 import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -168,9 +168,11 @@ class NotificationSettings extends AsyncComponent<Props, State> {
         fields.push(field);
       }
     }
+
     const legacyField = SELF_NOTIFICATION_SETTINGS_TYPES.map(
       type => NOTIFICATION_SETTING_FIELDS[type] as FieldObject
     );
+
     fields.push(...legacyField);
 
     const allFields = [...fields, ...endOfFields];
@@ -180,15 +182,9 @@ class NotificationSettings extends AsyncComponent<Props, State> {
 
   onFieldChange = (fieldName: string) => {
     if (SELF_NOTIFICATION_SETTINGS_TYPES.includes(fieldName)) {
-      const endpointDetails = {
-        apiEndpoint: '/users/me/notifications/',
-      };
-      this.model.setFormOptions({...this.model.options, ...endpointDetails});
+      this.model.setFormOptions({apiEndpoint: '/users/me/notifications/'});
     } else {
-      const endpointDetails = {
-        apiEndpoint: '/users/me/notification-settings/',
-      };
-      this.model.setFormOptions({...this.model.options, ...endpointDetails});
+      this.model.setFormOptions({apiEndpoint: '/users/me/notification-settings/'});
     }
   };
 

@@ -32,9 +32,11 @@ type TestStubFixtures = {
   DetailedEvents: SimpleStub;
   DiscoverSavedQuery: OverridableStub;
   DocIntegration: OverridableStub;
+  DynamicSamplingConfig: OverridableStub;
   Entries: SimpleStub;
   Environments: OverridableStub;
   Event: OverridableStub;
+  EventAttachment: OverridableStub;
   EventEntry: OverridableStub;
   EventEntryDebugMeta: OverridableStub;
   EventEntryStacktrace: OverridableStub;
@@ -77,7 +79,9 @@ type TestStubFixtures = {
   OrganizationIntegrations: OverridableStub;
   Organizations: OverridableStub;
   Outcomes: SimpleStub;
+  OutcomesWithLowProcessedEvents: SimpleStub;
   OutcomesWithReason: SimpleStub;
+  OutcomesWithoutClientDiscarded: SimpleStub;
   PhabricatorCreate: SimpleStub;
   PhabricatorPlugin: SimpleStub;
   PlatformExternalIssue: OverridableStub;
@@ -94,6 +98,7 @@ type TestStubFixtures = {
   PublishedApps: SimpleStub;
   PullRequest: OverridableStub;
   Release: (params?: any, healthParams?: any) => any;
+  ReplayReaderParams: OverridableStub;
   Repository: OverridableStub;
   RepositoryProjectPathConfig: OverridableStub;
   Search: OverridableStub;

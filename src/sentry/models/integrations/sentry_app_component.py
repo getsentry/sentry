@@ -1,10 +1,10 @@
 from django.db import models
 
-from sentry.db.models import FlexibleForeignKey, Model, UUIDField, region_silo_model
+from sentry.db.models import FlexibleForeignKey, Model, UUIDField, region_silo_only_model
 from sentry.db.models.fields.jsonfield import JSONField
 
 
-@region_silo_model
+@region_silo_only_model
 class SentryAppComponent(Model):
     __include_in_export__ = True
 

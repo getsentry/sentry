@@ -1,25 +1,20 @@
-import {useMemo, useRef, useState} from 'react';
+import {useRef} from 'react';
 import styled from '@emotion/styled';
-import debounce from 'lodash/debounce';
 
+import CompactSelect from 'sentry/components/compactSelect';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import CompactSelect from 'sentry/components/forms/compactSelect';
 import {Panel} from 'sentry/components/panels';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {
-  BreadcrumbLevelType,
-  BreadcrumbTypeDefault,
-  Crumb,
-} from 'sentry/types/breadcrumbs';
+import type {BreadcrumbTypeDefault, Crumb} from 'sentry/types/breadcrumbs';
 import {defined} from 'sentry/utils';
-import {getPrevBreadcrumb} from 'sentry/utils/replays/getBreadcrumb';
+import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
 import {useCurrentItemScroller} from 'sentry/utils/replays/hooks/useCurrentItemScroller';
 import ConsoleMessage from 'sentry/views/replays/detail/console/consoleMessage';
-import {filterBreadcrumbs} from 'sentry/views/replays/detail/console/utils';
+import useConsoleFilters from 'sentry/views/replays/detail/console/useConsoleFilters';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 interface Props {
@@ -27,25 +22,18 @@ interface Props {
   startTimestampMs: number;
 }
 
-const getDistinctLogLevels = (breadcrumbs: Crumb[]) =>
-  Array.from(new Set<string>(breadcrumbs.map(breadcrumb => breadcrumb.level)));
-
 function Console({breadcrumbs, startTimestampMs = 0}: Props) {
   const {currentHoverTime, currentTime} = useReplayContext();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [logLevel, setLogLevel] = useState<BreadcrumbLevelType[]>([]);
-  const handleSearch = debounce(query => setSearchTerm(query), 150);
   const containerRef = useRef<HTMLDivElement>(null);
-
   useCurrentItemScroller(containerRef);
 
-  const filteredBreadcrumbs = useMemo(
-    () => filterBreadcrumbs(breadcrumbs, searchTerm, logLevel),
-    [logLevel, searchTerm, breadcrumbs]
-  );
+  const {items, logLevel, searchTerm, getOptions, setLogLevel, setSearchTerm} =
+    useConsoleFilters({
+      breadcrumbs,
+    });
 
-  const currentUserAction = getPrevBreadcrumb({
-    crumbs: breadcrumbs,
+  const currentUserAction = getPrevReplayEvent({
+    items: breadcrumbs,
     targetTimestampMs: startTimestampMs + currentTime,
     allowExact: true,
     allowEqual: true,
@@ -53,8 +41,8 @@ function Console({breadcrumbs, startTimestampMs = 0}: Props) {
 
   const closestUserAction =
     currentHoverTime !== undefined
-      ? getPrevBreadcrumb({
-          crumbs: breadcrumbs,
+      ? getPrevReplayEvent({
+          items: breadcrumbs,
           targetTimestampMs: startTimestampMs + (currentHoverTime ?? 0),
           allowExact: true,
           allowEqual: true,
@@ -82,30 +70,25 @@ function Console({breadcrumbs, startTimestampMs = 0}: Props) {
     <ConsoleContainer>
       <ConsoleFilters>
         <CompactSelect
-          triggerProps={{
-            prefix: t('Log Level'),
-          }}
+          triggerProps={{prefix: t('Log Level')}}
           triggerLabel={logLevel.length === 0 ? t('Any') : null}
           multiple
-          options={getDistinctLogLevels(breadcrumbs).map(breadcrumbLogLevel => ({
-            value: breadcrumbLogLevel,
-            label: breadcrumbLogLevel,
-          }))}
-          onChange={selections =>
-            setLogLevel(selections.map(selection => selection.value))
-          }
+          options={getOptions()}
+          onChange={selected => setLogLevel(selected.map(_ => _.value))}
           size="sm"
+          value={logLevel}
         />
         <SearchBar
-          onChange={handleSearch}
+          onChange={setSearchTerm}
           placeholder={t('Search console logs...')}
           size="sm"
+          query={searchTerm}
         />
       </ConsoleFilters>
       <ConsoleMessageContainer ref={containerRef}>
-        {filteredBreadcrumbs.length > 0 ? (
+        {items.length > 0 ? (
           <ConsoleTable>
-            {filteredBreadcrumbs.map((breadcrumb, i) => {
+            {items.map((breadcrumb, i) => {
               return (
                 <ConsoleMessage
                   isActive={closestUserAction?.id === breadcrumb.id}
@@ -135,13 +118,6 @@ const ConsoleContainer = styled(FluidHeight)`
   height: 100%;
 `;
 
-const ConsoleMessageContainer = styled(FluidHeight)`
-  overflow: auto;
-  border-radius: ${p => p.theme.borderRadius};
-  border: 1px solid ${p => p.theme.border};
-  box-shadow: ${p => p.theme.dropShadowLight};
-`;
-
 const ConsoleFilters = styled('div')`
   display: grid;
   gap: ${space(1)};
@@ -151,6 +127,13 @@ const ConsoleFilters = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     margin-top: ${space(1)};
   }
+`;
+
+const ConsoleMessageContainer = styled(FluidHeight)`
+  overflow: auto;
+  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.border};
+  box-shadow: ${p => p.theme.dropShadowLight};
 `;
 
 const StyledEmptyMessage = styled(EmptyMessage)`

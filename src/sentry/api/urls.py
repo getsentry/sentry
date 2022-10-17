@@ -20,6 +20,7 @@ from sentry.api.endpoints.project_transaction_threshold_override import (
 )
 from sentry.data_export.endpoints.data_export import DataExportEndpoint
 from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
+from sentry.discover.endpoints.discover_homepage_query import DiscoverHomepageQueryEndpoint
 from sentry.discover.endpoints.discover_key_transactions import (
     KeyTransactionEndpoint,
     KeyTransactionListEndpoint,
@@ -64,6 +65,9 @@ from sentry.incidents.endpoints.project_alert_rule_index import (
 )
 from sentry.incidents.endpoints.project_alert_rule_task_details import (
     ProjectAlertRuleTaskDetailsEndpoint,
+)
+from sentry.replays.endpoints.organization_replay_events_meta import (
+    OrganizationReplayEventsMetaEndpoint,
 )
 from sentry.replays.endpoints.organization_replay_index import OrganizationReplayIndexEndpoint
 from sentry.replays.endpoints.project_replay_details import ProjectReplayDetailsEndpoint
@@ -420,6 +424,7 @@ from .endpoints.project_releases_token import ProjectReleasesTokenEndpoint
 from .endpoints.project_repo_path_parsing import ProjectRepoPathParsingEndpoint
 from .endpoints.project_reprocessing import ProjectReprocessingEndpoint
 from .endpoints.project_rule_details import ProjectRuleDetailsEndpoint
+from .endpoints.project_rule_preview import ProjectRulePreviewEndpoint
 from .endpoints.project_rule_task_details import ProjectRuleTaskDetailsEndpoint
 from .endpoints.project_rules import ProjectRulesEndpoint
 from .endpoints.project_rules_configuration import ProjectRulesConfigurationEndpoint
@@ -961,6 +966,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/discover/query/$",
                     DiscoverQueryEndpoint.as_view(),
                     name="sentry-api-0-discover-query",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/discover/homepage/$",
+                    DiscoverHomepageQueryEndpoint.as_view(),
+                    name="sentry-api-0-discover-homepage-query",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/discover/saved/$",
@@ -1564,6 +1574,11 @@ urlpatterns = [
                     name="sentry-api-0-organization-replay-index",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/replays-events-meta/$",
+                    OrganizationReplayEventsMetaEndpoint.as_view(),
+                    name="sentry-api-0-organization-replay-events-meta",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/functions/$",
                     OrganizationSentryFunctionEndpoint.as_view(),
                     name="sentry-api-0-organization-sentry-functions",
@@ -2082,6 +2097,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/(?P<rule_id>[^\/]+)/$",
                     ProjectRuleDetailsEndpoint.as_view(),
                     name="sentry-api-0-project-rule-details",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/preview$",
+                    ProjectRulePreviewEndpoint.as_view(),
+                    name="sentry-api-0-project-rule-preview",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/(?P<rule_id>[^\/]+)/group-history/$",

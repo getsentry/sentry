@@ -1,17 +1,13 @@
 import {browserHistory} from 'react-router';
 import {createStore} from 'reflux';
 
-import OrganizationsActions from 'sentry/actions/organizationsActions';
 import getGuidesContent from 'sentry/components/assistant/getGuidesContent';
 import {Guide, GuidesContent, GuidesServerData} from 'sentry/components/assistant/types';
 import {IS_ACCEPTANCE_TEST} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
+import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {
-  cleanupActiveRefluxSubscriptions,
-  makeSafeRefluxStore,
-} from 'sentry/utils/makeSafeRefluxStore';
 
 import {CommonStoreDefinition} from './types';
 
@@ -84,8 +80,10 @@ interface GuideStoreDefinition extends CommonStoreDefinition<GuideStoreState> {
   nextStep(): void;
   recordCue(guide: string): void;
   registerAnchor(target: string): void;
+  setActiveOrganization(data: Organization): void;
   setForceHide(forceHide: boolean): void;
   state: GuideStoreState;
+  teardown(): void;
   toStep(step: number): void;
   unregisterAnchor(target: string): void;
   updatePrevGuide(nextGuide: Guide | null): void;
@@ -93,22 +91,19 @@ interface GuideStoreDefinition extends CommonStoreDefinition<GuideStoreState> {
 
 const storeConfig: GuideStoreDefinition = {
   state: defaultState,
-  unsubscribeListeners: [],
   browserHistoryListener: null,
 
   init() {
-    this.state = defaultState;
+    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
+    // listeners due to their leaky nature in tests.
 
-    this.unsubscribeListeners.push(
-      this.listenTo(OrganizationsActions.setActive, this.onSetActiveOrganization)
-    );
+    this.state = defaultState;
 
     window.addEventListener('load', this.onURLChange, false);
     this.browserHistoryListener = browserHistory.listen(() => this.onURLChange());
   },
 
   teardown() {
-    cleanupActiveRefluxSubscriptions(this.unsubscribeListeners);
     window.removeEventListener('load', this.onURLChange);
 
     if (this.browserHistoryListener) {
@@ -125,7 +120,7 @@ const storeConfig: GuideStoreDefinition = {
     this.updateCurrentGuide();
   },
 
-  onSetActiveOrganization(data) {
+  setActiveOrganization(data: Organization) {
     this.state.orgId = data ? data.id : null;
     this.state.orgSlug = data ? data.slug : null;
     this.updateCurrentGuide();
@@ -282,5 +277,5 @@ const storeConfig: GuideStoreDefinition = {
   },
 };
 
-const GuideStore = createStore(makeSafeRefluxStore(storeConfig));
+const GuideStore = createStore(storeConfig);
 export default GuideStore;

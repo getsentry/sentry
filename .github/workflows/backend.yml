@@ -6,6 +6,12 @@ on:
       - master
   pull_request:
 
+# Cancel in progress workflows on pull_requests.
+# https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
 # hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
 env:
   SEGMENT_DOWNLOAD_TIMEOUT_MIN: 3
@@ -18,7 +24,7 @@ jobs:
     # Map a step output to a job output
     outputs:
       api_docs: ${{ steps.changes.outputs.api_docs }}
-      backend: ${{ steps.changes.outputs.backend }}
+      backend: ${{ steps.changes.outputs.backend_all }}
       backend_dependencies: ${{ steps.changes.outputs.backend_dependencies }}
       backend_any_type: ${{ steps.changes.outputs.backend_any_type }}
       migration_lockfile: ${{ steps.changes.outputs.migration_lockfile }}
@@ -96,8 +102,6 @@ jobs:
 
       - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         run: |
-          # Note: `USE_SNUBA` is not used for backend tests because there are a few failing tests with Snuba enabled.
-          unset USE_SNUBA
           make test-python-ci
 
       - name: Handle artifacts
@@ -190,7 +194,7 @@ jobs:
           app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
       - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b  # v3
-      - uses: actions/setup-python@b4fe97ecda6b7a5fcd2448cdbf6a8fc76b3bedb0
+      - uses: actions/setup-python@13ae5bb136fac2878aff31522b9efb785519f984  # v4.3.0
         with:
           python-version: 3.8.13
       - name: check requirements
@@ -240,7 +244,7 @@ jobs:
               - added|modified: '**/*.py'
               - added|modified: 'requirements-*.txt'
 
-      - uses: actions/setup-python@b4fe97ecda6b7a5fcd2448cdbf6a8fc76b3bedb0
+      - uses: actions/setup-python@13ae5bb136fac2878aff31522b9efb785519f984  # v4.3.0
         with:
           python-version: 3.8.13
           cache: pip
@@ -318,6 +322,32 @@ jobs:
         run: |
           make test-plugins
 
+  region-to-control:
+    if: needs.files-changed.outputs.backend == 'true'
+    needs: files-changed
+    name: region-to-control test
+    runs-on: ubuntu-20.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
+        with:
+          # Avoid codecov error message related to SHA resolution:
+          # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
+          fetch-depth: '2'
+
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          kafka: true
+
+      - name: Run test
+        run: |
+          make test-region-to-control-integration
+
+      - name: Handle artifacts
+        uses: ./.github/actions/artifacts
+
   relay:
     if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
@@ -367,7 +397,6 @@ jobs:
     env:
       # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
       MATRIX_INSTANCE_TOTAL: 2
-      USE_SNUBA: 1
       MIGRATIONS_TEST_MIGRATE: 1
 
     steps:
@@ -440,7 +469,7 @@ jobs:
       - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
 
       - name: Setup Python
-        uses: actions/setup-python@b4fe97ecda6b7a5fcd2448cdbf6a8fc76b3bedb0
+        uses: actions/setup-python@13ae5bb136fac2878aff31522b9efb785519f984  # v4.3.0
         with:
           python-version: 3.8.13
           cache: pip
@@ -467,6 +496,7 @@ jobs:
         migration,
         plugins,
         relay,
+        region-to-control,
         snuba,
         symbolicator,
         typing,

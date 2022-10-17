@@ -1,5 +1,5 @@
 import Feature from 'sentry/components/acl/feature';
-import CompactSelect from 'sentry/components/forms/compactSelect';
+import CompactSelect from 'sentry/components/compactSelect';
 import {IconSort} from 'sentry/icons/iconSort';
 import {t} from 'sentry/locale';
 import {getSortLabel, IssueSortOptions, Query} from 'sentry/views/issueList/utils';

@@ -12,7 +12,7 @@ import {
 
 // 664px is approximately the width where we start to scroll inside
 // 30px is the min height to where the drawer can still be resized
-const MIN_FRAMESTACK_DIMENSIONS: [number, number] = [664, 30];
+const MIN_FRAMESTACK_DIMENSIONS: [number, number] = [680, 30];
 interface ProfilingFlamechartLayoutProps {
   flamechart: React.ReactElement;
   frameStack: React.ReactElement;
@@ -27,7 +27,7 @@ export function ProfilingFlamechartLayout(props: ProfilingFlamechartLayoutProps)
   const resizableOptions: UseResizableDrawerOptions = useMemo(() => {
     const initialDimensions: [number, number] = [
       // Half the screen minus the ~sidebar width
-      window.innerWidth * 0.5 - 220,
+      Math.max(window.innerWidth * 0.5 - 220, MIN_FRAMESTACK_DIMENSIONS[0]),
       (flamegraphTheme.SIZES.FLAMEGRAPH_DEPTH_OFFSET + 2) *
         flamegraphTheme.SIZES.BAR_HEIGHT,
     ];
@@ -151,7 +151,7 @@ const ZoomViewContainer = styled('div')`
 const FrameStackContainer = styled('div')<{layout: FlamegraphPreferences['layout']}>`
   grid-area: frame-stack;
   position: relative;
-  overflow: auto;
+  overflow: hidden;
   min-width: ${MIN_FRAMESTACK_DIMENSIONS[0]}px;
 
   > div {

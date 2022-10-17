@@ -4,7 +4,7 @@ import 'echarts/lib/component/toolbox';
 import 'zrender/lib/svg/svg';
 
 import {forwardRef, useMemo} from 'react';
-import {useTheme} from '@emotion/react';
+import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {
   AxisPointerComponentOption,
@@ -21,6 +21,7 @@ import type {
   XAXisComponentOption,
   YAXisComponentOption,
 } from 'echarts';
+import {AriaComponent} from 'echarts/components';
 import * as echarts from 'echarts/core';
 import ReactEchartsCore from 'echarts-for-react/lib/core';
 
@@ -50,7 +51,12 @@ import Tooltip, {TooltipSubLabel} from './components/tooltip';
 import XAxis from './components/xAxis';
 import YAxis from './components/yAxis';
 import LineSeries from './series/lineSeries';
-import {getDiffInMinutes, getDimensionValue, lightenHexToRgb} from './utils';
+import {
+  getDiffInMinutes,
+  getDimensionValue,
+  lightenHexToRgb,
+  useEchartsAriaLabels,
+} from './utils';
 
 // TODO(ts): What is the series type? EChartOption.Series's data cannot have
 // `onClick` since it's typically an array.
@@ -66,6 +72,8 @@ const handleClick = (clickSeries: any, instance: ECharts) => {
     clickSeries.data.onClick?.(clickSeries, instance);
   }
 };
+
+echarts.use(AriaComponent);
 
 type ReactEchartProps = React.ComponentProps<typeof ReactEchartsCore>;
 type ReactEChartOpts = NonNullable<ReactEchartProps['opts']>;
@@ -465,6 +473,8 @@ function BaseChartUnwrapped({
       : undefined;
   const bucketSize = seriesData ? seriesData[1][0] - seriesData[0][0] : undefined;
 
+  const isTooltipPortalled = tooltip?.appendToBody;
+
   const tooltipOrNone =
     tooltip !== null
       ? Tooltip({
@@ -474,8 +484,20 @@ function BaseChartUnwrapped({
           utc,
           bucketSize,
           ...tooltip,
+          className: isTooltipPortalled
+            ? `${tooltip?.className ?? ''} chart-tooltip-portal`
+            : tooltip?.className,
         })
       : undefined;
+
+  const aria = useEchartsAriaLabels(
+    {
+      ...options,
+      series: resolvedSeries,
+      useUTC: utc,
+    },
+    isGroupedByDate
+  );
 
   const chartOption = {
     ...options,
@@ -492,6 +514,7 @@ function BaseChartUnwrapped({
     axisPointer,
     dataZoom,
     graphic,
+    aria,
   };
 
   const chartStyles = {
@@ -538,6 +561,7 @@ function BaseChartUnwrapped({
 
   return (
     <ChartContainer autoHeightResize={autoHeightResize} data-test-id={dataTestId}>
+      {isTooltipPortalled && <Global styles={getPortalledTooltipStyles({theme})} />}
       <ReactEchartsCore
         ref={forwardedRef}
         echarts={echarts}
@@ -559,32 +583,29 @@ function BaseChartUnwrapped({
   );
 }
 
-// Contains styling for chart elements as we can't easily style those
-// elements directly
-const ChartContainer = styled('div')<{autoHeightResize: boolean}>`
-  ${p => p.autoHeightResize && 'height: 100%;'}
-
+// Tooltip styles shared for regular and portalled tooltips
+const getTooltipStyles = (p: {theme: Theme}) => css`
   /* Tooltip styling */
   .tooltip-series,
   .tooltip-date {
-    color: ${p => p.theme.subText};
-    font-family: ${p => p.theme.text.family};
+    color: ${p.theme.subText};
+    font-family: ${p.theme.text.family};
     font-variant-numeric: tabular-nums;
     padding: ${space(1)} ${space(2)};
-    border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
+    border-radius: ${p.theme.borderRadius} ${p.theme.borderRadius} 0 0;
   }
   .tooltip-series {
     border-bottom: none;
   }
   .tooltip-series-solo {
-    border-radius: ${p => p.theme.borderRadius};
+    border-radius: ${p.theme.borderRadius};
   }
   .tooltip-label {
     margin-right: ${space(1)};
   }
   .tooltip-label strong {
     font-weight: normal;
-    color: ${p => p.theme.textColor};
+    color: ${p.theme.textColor};
   }
   .tooltip-label-indent {
     margin-left: 18px;
@@ -595,11 +616,11 @@ const ChartContainer = styled('div')<{autoHeightResize: boolean}>`
     align-items: baseline;
   }
   .tooltip-date {
-    border-top: solid 1px ${p => p.theme.innerBorder};
+    border-top: solid 1px ${p.theme.innerBorder};
     text-align: center;
     position: relative;
     width: auto;
-    border-radius: ${p => p.theme.borderRadiusBottom};
+    border-radius: ${p.theme.borderRadiusBottom};
   }
   .tooltip-arrow {
     top: 100%;
@@ -608,12 +629,12 @@ const ChartContainer = styled('div')<{autoHeightResize: boolean}>`
     pointer-events: none;
     border-left: 8px solid transparent;
     border-right: 8px solid transparent;
-    border-top: 8px solid ${p => p.theme.backgroundElevated};
+    border-top: 8px solid ${p.theme.backgroundElevated};
     margin-left: -8px;
     &:before {
       border-left: 8px solid transparent;
       border-right: 8px solid transparent;
-      border-top: 8px solid ${p => p.theme.translucentBorder};
+      border-top: 8px solid ${p.theme.translucentBorder};
       content: '';
       display: block;
       position: absolute;
@@ -623,26 +644,18 @@ const ChartContainer = styled('div')<{autoHeightResize: boolean}>`
     }
   }
 
-  .echarts-for-react div:first-of-type {
-    width: 100% !important;
-  }
-
-  .echarts-for-react text {
-    font-variant-numeric: tabular-nums !important;
-  }
-
   /* Tooltip description styling */
   .tooltip-description {
-    color: ${p => p.theme.white};
-    border-radius: ${p => p.theme.borderRadius};
+    color: ${p.theme.white};
+    border-radius: ${p.theme.borderRadius};
     background: #000;
     opacity: 0.9;
     padding: 5px 10px;
     position: relative;
     font-weight: bold;
-    font-size: ${p => p.theme.fontSizeSmall};
+    font-size: ${p.theme.fontSizeSmall};
     line-height: 1.4;
-    font-family: ${p => p.theme.text.family};
+    font-family: ${p.theme.text.family};
     max-width: 230px;
     min-width: 230px;
     white-space: normal;
@@ -659,6 +672,28 @@ const ChartContainer = styled('div')<{autoHeightResize: boolean}>`
       border-top: 5px solid #000;
       transform: translateX(-50%);
     }
+  }
+`;
+
+// Contains styling for chart elements as we can't easily style those
+// elements directly
+const ChartContainer = styled('div')<{autoHeightResize: boolean}>`
+  ${p => p.autoHeightResize && 'height: 100%;'}
+
+  .echarts-for-react div:first-of-type {
+    width: 100% !important;
+  }
+
+  .echarts-for-react text {
+    font-variant-numeric: tabular-nums !important;
+  }
+
+  ${p => getTooltipStyles(p)}
+`;
+
+const getPortalledTooltipStyles = (p: {theme: Theme}) => css`
+  .chart-tooltip-portal {
+    ${getTooltipStyles(p)};
   }
 `;
 

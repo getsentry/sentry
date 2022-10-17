@@ -1,4 +1,4 @@
-import React, {Component} from 'react';
+import React, {Component, Fragment} from 'react';
 import LazyLoad from 'react-lazyload';
 // eslint-disable-next-line no-restricted-imports
 import {withRouter, WithRouterProps} from 'react-router';
@@ -9,21 +9,25 @@ import {Location} from 'history';
 import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
+import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import FeatureBadge from 'sentry/components/featureBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import Tooltip from 'sentry/components/tooltip';
-import {IconCopy, IconDelete, IconEdit, IconGrabbable} from 'sentry/icons';
+import {IconCopy, IconDelete, IconEdit, IconGrabbable, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {AggregationOutputType, parseFunction} from 'sentry/utils/discover/fields';
+import {
+  MEPConsumer,
+  MEPState,
+} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -54,6 +58,7 @@ type Props = WithRouterProps & {
   index?: string;
   isMobile?: boolean;
   isPreview?: boolean;
+  isWidgetInvalid?: boolean;
   noDashboardsMEPProvider?: boolean;
   noLazyLoad?: boolean;
   onDelete?: () => void;
@@ -229,6 +234,7 @@ class WidgetCard extends Component<Props, State> {
       showStoredAlert,
       noDashboardsMEPProvider,
       dashboardFilters,
+      isWidgetInvalid,
     } = this.props;
 
     if (widget.displayType === DisplayType.TOP_N) {
@@ -279,7 +285,14 @@ class WidgetCard extends Component<Props, State> {
                 </Tooltip>
                 {this.renderContextMenu()}
               </WidgetHeader>
-              {noLazyLoad ? (
+              {isWidgetInvalid ? (
+                <Fragment>
+                  {renderErrorMessage?.('Widget query condition is invalid.')}
+                  <StyledErrorPanel>
+                    <IconWarning color="gray500" size="lg" />
+                  </StyledErrorPanel>
+                </Fragment>
+              ) : noLazyLoad ? (
                 <WidgetCardChartContainer
                   api={api}
                   organization={organization}
@@ -312,32 +325,40 @@ class WidgetCard extends Component<Props, State> {
             </WidgetCardPanel>
             {(organization.features.includes('dashboards-mep') ||
               organization.features.includes('mep-rollout-flag')) && (
-              <DashboardsMEPConsumer>
-                {({isMetricsData}) => {
-                  if (
-                    showStoredAlert &&
-                    isMetricsData === false &&
-                    widget.widgetType === WidgetType.DISCOVER
-                  ) {
-                    if (!widgetContainsErrorFields) {
-                      return (
-                        <StoredDataAlert showIcon>
-                          {tct(
-                            "Your selection is only applicable to [indexedData: indexed event data]. We've automatically adjusted your results.",
-                            {
-                              indexedData: (
-                                <ExternalLink href="https://docs.sentry.io/product/dashboards/widget-builder/#errors--transactions" />
-                              ),
-                            }
-                          )}
-                          <FeatureBadge type="beta" />
-                        </StoredDataAlert>
-                      );
-                    }
-                  }
-                  return null;
+              <MEPConsumer>
+                {metricSettingContext => {
+                  return (
+                    <DashboardsMEPConsumer>
+                      {({isMetricsData}) => {
+                        if (
+                          showStoredAlert &&
+                          isMetricsData === false &&
+                          widget.widgetType === WidgetType.DISCOVER &&
+                          metricSettingContext &&
+                          metricSettingContext.metricSettingState !==
+                            MEPState.transactionsOnly
+                        ) {
+                          if (!widgetContainsErrorFields) {
+                            return (
+                              <StoredDataAlert showIcon>
+                                {tct(
+                                  "Your selection is only applicable to [indexedData: indexed event data]. We've automatically adjusted your results.",
+                                  {
+                                    indexedData: (
+                                      <ExternalLink href="https://docs.sentry.io/product/dashboards/widget-builder/#errors--transactions" />
+                                    ),
+                                  }
+                                )}
+                              </StoredDataAlert>
+                            );
+                          }
+                        }
+                        return null;
+                      }}
+                    </DashboardsMEPConsumer>
+                  );
                 }}
-              </DashboardsMEPConsumer>
+              </MEPConsumer>
             )}
           </React.Fragment>
         )}
@@ -417,4 +438,8 @@ const WidgetHeader = styled('div')`
 const StoredDataAlert = styled(Alert)`
   margin-top: ${space(1)};
   margin-bottom: 0;
+`;
+
+const StyledErrorPanel = styled(ErrorPanel)`
+  padding: ${space(2)};
 `;

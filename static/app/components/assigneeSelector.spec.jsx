@@ -2,9 +2,8 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
-import AssigneeSelectorComponent, {
-  putSessionUserFirst,
-} from 'sentry/components/assigneeSelector';
+import AssigneeSelectorComponent from 'sentry/components/assigneeSelector';
+import {putSessionUserFirst} from 'sentry/components/assigneeSelectorDropdown';
 import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
 import MemberListStore from 'sentry/stores/memberListStore';
@@ -113,8 +112,6 @@ describe('AssigneeSelector', () => {
 
   afterEach(() => {
     Client.clearMockResponses();
-    ProjectsStore.teardown();
-    TeamStore.teardown();
   });
 
   describe('render with props', () => {

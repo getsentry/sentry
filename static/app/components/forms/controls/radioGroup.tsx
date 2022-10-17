@@ -11,14 +11,6 @@ interface ContainerProps extends React.HTMLAttributes<HTMLDivElement> {
   orientInline?: boolean;
 }
 
-const Container = styled('div')<ContainerProps>`
-  display: grid;
-  gap: ${p => space(p.orientInline ? 3 : 1)};
-  grid-auto-flow: ${p => (p.orientInline ? 'column' : 'row')};
-  grid-auto-rows: max-content;
-  grid-auto-columns: max-content;
-`;
-
 interface BaseRadioGroupProps<C extends string> {
   /**
    * An array of [id, name, description]
@@ -52,24 +44,14 @@ const RadioGroup = <C extends string>({
   orientInline,
   ...props
 }: RadioGroupProps<C>) => (
-  <Container
-    orientInline={orientInline}
-    {...props}
-    role="radiogroup"
-    aria-labelledby={label}
-  >
+  <Container orientInline={orientInline} {...props} role="radiogroup" aria-label={label}>
     {choices.map(([id, name, description], index) => {
       const disabledChoice = disabledChoices.find(([choiceId]) => choiceId === id);
       const disabledChoiceReason = disabledChoice?.[1];
       const disabled = !!disabledChoice || groupDisabled;
       const content = (
         <Fragment>
-          <RadioLineItem
-            role="radio"
-            index={index}
-            aria-checked={value === id}
-            disabled={disabled}
-          >
+          <RadioLineItem index={index} aria-checked={value === id} disabled={disabled}>
             <Radio
               aria-label={t('Select %s', name)}
               disabled={disabled}
@@ -102,6 +84,12 @@ const RadioGroup = <C extends string>({
     })}
   </Container>
 );
+
+const Container = styled('div')<ContainerProps>`
+  display: flex;
+  gap: ${p => space(p.orientInline ? 3 : 1)};
+  flex-direction: ${p => (p.orientInline ? 'row' : 'column')};
+`;
 
 const shouldForwardProp = (p: PropertyKey) =>
   typeof p === 'string' && !['disabled', 'animate'].includes(p) && isPropValid(p);

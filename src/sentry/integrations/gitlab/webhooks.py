@@ -36,6 +36,7 @@ class Webhook:
             logger.info(
                 "gitlab.webhook.missing-projectid", extra={"integration_id": integration.id}
             )
+            logger.exception("Missing project ID.")
             raise Http404()
 
         external_id = "{}:{}".format(integration.metadata["instance"], project_id)
@@ -100,6 +101,7 @@ class MergeEventWebhook(Webhook):
                 "gitlab.webhook.invalid-merge-data",
                 extra={"integration_id": integration.id, "error": str(e)},
             )
+            logger.exception("Invalid merge data.")
             # TODO(mgaeta): This try/catch is full of reportUnboundVariable errors.
             return
 
@@ -187,57 +189,106 @@ class GitlabWebhookEndpoint(View):
     @method_decorator(csrf_exempt)
     def dispatch(self, request: Request, *args, **kwargs) -> Response:
         if request.method != "POST":
-            return HttpResponse(status=405)
+            return HttpResponse(status=405, reason="HTTP method not supported.")
 
         return super().dispatch(request, *args, **kwargs)
 
     def post(self, request: Request) -> Response:
+        extra = {
+            # This tells us the Gitlab version being used (e.g. current gitlab.com version -> GitLab/15.4.0-pre)
+            "user-agent": request.META.get("HTTP_USER_AGENT"),
+            # Gitlab does not seem to be the only host sending events
+            # AppPlatformEvents also hit this API
+            "event-type": request.META.get("HTTP_X_GITLAB_EVENT"),
+        }
         token = "<unknown>"
         try:
             # Munge the token to extract the integration external_id.
             # gitlab hook payloads don't give us enough unique context
             # to find data on our side so we embed one in the token.
             token = request.META["HTTP_X_GITLAB_TOKEN"]
+            # e.g. "example.gitlab.com:group-x:webhook_secret_from_sentry_integration_table"
             instance, group_path, secret = token.split(":")
             external_id = f"{instance}:{group_path}"
+        except KeyError:
+            logger.info("gitlab.webhook.missing-gitlab-token")
+            extra["reason"] = "The customer needs to set a Secret Token in their webhook."
+            logger.exception(extra["reason"])
+            return HttpResponse(status=400, reason=extra["reason"])
+        except ValueError:
+            logger.info("gitlab.webhook.malformed-gitlab-token", extra=extra)
+            extra["reason"] = "The customer's Secret Token is malformed."
+            logger.exception(extra["reason"])
+            return HttpResponse(status=400, reason=extra["reason"])
         except Exception:
-            logger.info("gitlab.webhook.invalid-token", extra={"token": token})
-            return HttpResponse(status=400)
+            logger.info("gitlab.webhook.invalid-token", extra=extra)
+            extra["reason"] = "Generic catch-all error."
+            logger.exception(extra["reason"])
+            return HttpResponse(status=400, reason=extra["reason"])
 
         try:
             integration = (
-                Integration.objects.filter(provider=self.provider, external_id=external_id)
+                Integration.objects.filter(
+                    provider=self.provider,
+                    external_id=external_id,  # e.g. example.gitlab.com:group-x
+                )
                 .prefetch_related("organizations")
                 .get()
             )
+            extra = {
+                **extra,
+                **{
+                    "integration": {
+                        # The metadata could be useful to debug
+                        # domain_name -> gitlab.com/getsentry-ecosystem/foo'
+                        # scopes -> ['api']
+                        "metadata": integration.metadata,
+                        "id": integration.id,  # This is useful to query via Redash
+                        "status": integration.status,  # 0 seems to be active
+                    },
+                    # I do not know how we could have multiple integration installation to many organizations
+                    "slugs": ",".join(map(lambda x: x.slug, integration.organizations.all())),
+                },
+            }
         except Integration.DoesNotExist:
-            logger.info(
-                "gitlab.webhook.invalid-organization",
-                extra={"external_id": request.META["HTTP_X_GITLAB_TOKEN"]},
-            )
-            return HttpResponse(status=400)
+            logger.info("gitlab.webhook.invalid-organization", extra=extra)
+            extra["reason"] = "There is no integration that matches your organization."
+            logger.exception(extra["reason"])
+            return HttpResponse(status=400, reason=extra["reason"])
 
-        if not constant_time_compare(secret, integration.metadata["webhook_secret"]):
-            logger.info(
-                "gitlab.webhook.invalid-token-secret", extra={"integration_id": integration.id}
-            )
-            return HttpResponse(status=400)
+        try:
+            if not constant_time_compare(secret, integration.metadata["webhook_secret"]):
+                # Summary and potential workaround mentioned here:
+                # https://github.com/getsentry/sentry/issues/34903#issuecomment-1262754478
+                # This forces a stack trace to be produced
+                raise Exception("The webhook secrets do not match.")
+        except Exception:
+            logger.info("gitlab.webhook.invalid-token-secret", extra=extra)
+            extra[
+                "reason"
+            ] = "Gitlab's webhook secret does not match. Refresh token (or re-install the integration) by following this https://docs.sentry.io/product/integrations/integration-platform/public-integration/#refreshing-tokens."
+            logger.exception(extra["reason"])
+            return HttpResponse(status=400, reason=extra["reason"])
 
         try:
             event = json.loads(request.body.decode("utf-8"))
         except json.JSONDecodeError:
-            logger.info(
-                "gitlab.webhook.invalid-json", extra={"external_id": integration.external_id}
-            )
-            return HttpResponse(status=400)
+            logger.info("gitlab.webhook.invalid-json", extra=extra)
+            extra["reason"] = "Data received is not JSON."
+            logger.exception(extra["reason"])
+            return HttpResponse(status=400, reason=extra["reason"])
 
         try:
             handler = self._handlers[request.META["HTTP_X_GITLAB_EVENT"]]
         except KeyError:
-            logger.info(
-                "gitlab.webhook.missing-event", extra={"event": request.META["HTTP_X_GITLAB_EVENT"]}
-            )
-            return HttpResponse(status=400)
+            logger.info("gitlab.webhook.wrong-event-type", extra=extra)
+            supported_events = ", ".join(sorted(self._handlers.keys()))
+            logger.info(f"We only support these kinds of events: {supported_events}")
+            extra[
+                "reason"
+            ] = "The customer has edited the webhook in Gitlab to include other types of events."
+            logger.exception(extra["reason"])
+            return HttpResponse(status=400, reason=extra["reason"])
 
         for organization in integration.organizations.all():
             handler()(integration, organization, event)

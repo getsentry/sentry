@@ -15,6 +15,12 @@ on:
       - 'src/sentry/runner/commands/devservices.py'
       - 'bin/load-mocks'
 
+# Cancel in progress workflows on pull_requests.
+# https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
 # hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
 env:
   SEGMENT_DOWNLOAD_TIMEOUT_MIN: 3
@@ -37,7 +43,7 @@ jobs:
       - name: Set up
         id: info
         run: |
-          echo "::set-output name=yarn-cache-dir::$(yarn cache dir)"
+          echo "yarn-cache-dir=$(yarn cache dir)" >> "$GITHUB_OUTPUT"
 
       # Trick for unattended Docker installations
       # https://github.com/docker/for-mac/issues/2359#issuecomment-943131345
@@ -54,7 +60,7 @@ jobs:
 
       # This handles Python's cache
       - name: Setup Python & cache
-        uses: actions/setup-python@b4fe97ecda6b7a5fcd2448cdbf6a8fc76b3bedb0
+        uses: actions/setup-python@13ae5bb136fac2878aff31522b9efb785519f984  # v4.3.0
         with:
           python-version: 3.8.13
           cache: 'pip'
@@ -105,7 +111,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b  # v3
-      - uses: actions/setup-python@b4fe97ecda6b7a5fcd2448cdbf6a8fc76b3bedb0
+      - uses: actions/setup-python@13ae5bb136fac2878aff31522b9efb785519f984  # v4.3.0
         with:
           python-version: 3.8.13
           cache: pip

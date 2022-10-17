@@ -3,16 +3,16 @@ import {DraggableSyntheticListeners, UseDraggableArguments} from '@dnd-kit/core'
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import MenuItemActionLink from 'sentry/components/actions/menuItemActionLink';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import Button from 'sentry/components/button';
-import DropdownLink from 'sentry/components/dropdownLink';
-import NewBooleanField from 'sentry/components/forms/booleanField';
+import {openConfirmModal} from 'sentry/components/confirm';
+import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
+import NewBooleanField from 'sentry/components/forms/fields/booleanField';
 import Placeholder from 'sentry/components/placeholder';
 import Tooltip from 'sentry/components/tooltip';
-import {IconDownload, IconEllipsis} from 'sentry/icons';
+import {IconEllipsis} from 'sentry/icons';
 import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {t, tn} from 'sentry/locale';
+import {ServerSideSamplingStore} from 'sentry/stores/serverSideSamplingStore';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import {SamplingRule, SamplingRuleOperator} from 'sentry/types/sampling';
@@ -44,6 +44,7 @@ type Props = {
    * If not empty, the activate rule toggle will be disabled.
    */
   upgradeSdkForProjects: Project['slug'][];
+  canDemo?: boolean;
   grabAttributes?: UseDraggableArguments['attributes'];
 };
 
@@ -60,11 +61,17 @@ export function Rule({
   hideGrabButton,
   upgradeSdkForProjects,
   loadingRecommendedSdkUpgrades,
+  canDemo,
 }: Props) {
+  const processingSamplingSdkVersions =
+    (ServerSideSamplingStore.getState().sdkVersions.data ?? []).length === 0;
   const isUniform = isUniformRule(rule);
-  const canDelete = !noPermission && !isUniform;
+  const canDelete = !noPermission && (!isUniform || canDemo);
   const canDrag = !noPermission && !isUniform;
-  const canActivate = !noPermission && (!upgradeSdkForProjects.length || rule.active);
+  const canActivate =
+    !processingSamplingSdkVersions &&
+    !noPermission &&
+    (!upgradeSdkForProjects.length || rule.active);
 
   return (
     <Fragment>
@@ -141,11 +148,15 @@ export function Rule({
               disabled={canActivate}
               title={
                 !canActivate
-                  ? tn(
-                      'To enable the rule, the recommended sdk version have to be updated',
-                      'To enable the rule, the recommended sdk versions have to be updated',
-                      upgradeSdkForProjects.length
-                    )
+                  ? processingSamplingSdkVersions
+                    ? t(
+                        'We are processing sampling information for your project, so you cannot enable the rule yet. Please check again later'
+                      )
+                    : tn(
+                        'To enable the rule, the recommended sdk version have to be updated',
+                        'To enable the rule, the recommended sdk versions have to be updated',
+                        upgradeSdkForProjects.length
+                      )
                   : undefined
               }
             >
@@ -163,56 +174,42 @@ export function Rule({
         )}
       </ActiveColumn>
       <Column>
-        <EllipisDropDownButton
-          caret={false}
-          customTitle={
-            <Button aria-label={t('Actions')} icon={<IconEllipsis />} size="sm" />
-          }
-          anchorRight
-        >
-          <MenuItemActionLink
-            shouldConfirm={false}
-            icon={<IconDownload size="xs" />}
-            onClick={
-              !noPermission
-                ? onEditRule
-                : event => {
-                    event?.stopPropagation();
-                  }
-            }
-            disabled={noPermission}
-            aria-label={t('Edit')}
-          >
-            <Tooltip
-              disabled={!noPermission}
-              title={t('You do not have permission to edit rules')}
-              containerDisplayMode="block"
-            >
-              {t('Edit')}
-            </Tooltip>
-          </MenuItemActionLink>
-          <MenuItemActionLink
-            onAction={onDeleteRule}
-            message={t('Are you sure you wish to delete this rule?')}
-            icon={<IconDownload size="xs" />}
-            disabled={!canDelete}
-            priority="danger"
-            shouldConfirm
-            aria-label={t('Delete')}
-          >
-            <Tooltip
-              disabled={canDelete}
-              title={
-                isUniform
-                  ? t("You can't delete the uniform rule")
-                  : t('You do not have permission to delete rules')
-              }
-              containerDisplayMode="block"
-            >
-              {t('Delete')}
-            </Tooltip>
-          </MenuItemActionLink>
-        </EllipisDropDownButton>
+        <DropdownMenuControl
+          position="bottom-end"
+          triggerProps={{
+            size: 'xs',
+            icon: <IconEllipsis size="xs" />,
+            showChevron: false,
+            'aria-label': t('Actions'),
+          }}
+          items={[
+            {
+              key: 'edit',
+              label: t('Edit'),
+              details: noPermission
+                ? t("You don't have permission to edit rules")
+                : undefined,
+              onAction: onEditRule,
+              disabled: noPermission,
+            },
+            {
+              key: 'delete',
+              label: t('Delete'),
+              details: canDelete
+                ? undefined
+                : isUniform
+                ? t("The uniform rule can't be deleted")
+                : t("You don't have permission to delete rules"),
+              onAction: () =>
+                openConfirmModal({
+                  onConfirm: onDeleteRule,
+                  message: t('Are you sure you wish to delete this rule?'),
+                }),
+              disabled: !canDelete,
+              priority: 'danger',
+            },
+          ]}
+        />
       </Column>
     </Fragment>
   );
@@ -316,10 +313,4 @@ const ConditionValue = styled('span')`
 
 const ConditionSeparator = styled(ConditionValue)`
   padding-right: ${space(0.5)};
-`;
-
-const EllipisDropDownButton = styled(DropdownLink)`
-  display: flex;
-  align-items: center;
-  transition: none;
 `;

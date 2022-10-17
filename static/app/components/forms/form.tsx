@@ -6,7 +6,7 @@ import {APIRequestMethod} from 'sentry/api';
 import Button, {ButtonProps} from 'sentry/components/button';
 import FormContext, {FormContextData} from 'sentry/components/forms/formContext';
 import FormModel, {FormOptions} from 'sentry/components/forms/model';
-import {Data, OnSubmitCallback} from 'sentry/components/forms/type';
+import {Data, OnSubmitCallback} from 'sentry/components/forms/types';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';

@@ -9,9 +9,9 @@ from unittest.mock import ANY, MagicMock, call, patch
 import pytest
 import responses
 from requests.exceptions import RequestException
-from symbolic import SourceMapTokenMatch
 
 from sentry import http, options
+from sentry.event_manager import get_tag
 from sentry.lang.javascript.errormapping import REACT_MAPPING_URL, rewrite_exception
 from sentry.lang.javascript.processor import (
     CACHE_CONTROL_MAX,
@@ -25,6 +25,7 @@ from sentry.lang.javascript.processor import (
     fetch_release_file,
     fetch_sourcemap,
     generate_module,
+    get_function_for_token,
     get_max_age,
     get_release_file_cache_key,
     get_release_file_cache_key_meta,
@@ -33,7 +34,9 @@ from sentry.lang.javascript.processor import (
 )
 from sentry.models import EventError, File, Release, ReleaseFile
 from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME, update_artifact_index
+from sentry.stacktraces.processing import find_stacktraces_in_data
 from sentry.testutils import TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 from sentry.utils.strings import truncatechars
@@ -93,6 +96,110 @@ class JavaScriptStacktraceProcessorTest(TestCase):
         assert processor.dist is not None
         assert processor.dist.name == "foo"
         assert processor.dist.date_added.timestamp() == processor.data["timestamp"]
+
+    @with_feature("organizations:javascript-console-error-tag")
+    def test_tag_suspected_console_error(self):
+        project = self.create_project()
+        release = self.create_release(project=project, version="12.31.12")
+
+        data = {
+            "is_exception": True,
+            "platform": "javascript",
+            "project": project.id,
+            "exception": {
+                "values": [
+                    {
+                        "type": "SyntaxError",
+                        "mechanism": {
+                            "type": "onerror",
+                        },
+                        "value": ("value"),
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "abs_path": "http://example.com/foo.js",
+                                    "filename": "<anonymous>",
+                                    "function": "?",
+                                    "lineno": 4,
+                                    "colno": 0,
+                                },
+                            ]
+                        },
+                    }
+                ]
+            },
+        }
+
+        stacktrace_infos = [
+            stacktrace for stacktrace in find_stacktraces_in_data(data, with_exceptions=True)
+        ]
+        processor = JavaScriptStacktraceProcessor(
+            data={"release": release.version, "dist": "foo", "timestamp": 123.4},
+            project=project,
+            stacktrace_infos=stacktrace_infos,
+        )
+
+        frames = processor.get_valid_frames()
+        assert processor.suspected_console_errors(frames) is True
+
+        processor.tag_suspected_console_errors(frames)
+        assert get_tag(processor.data, "empty_stacktrace.js_console") is True
+
+    @with_feature("organizations:javascript-console-error-tag")
+    def test_no_suspected_console_error(self):
+        project = self.create_project()
+        release = self.create_release(project=project, version="12.31.12")
+
+        data = {
+            "is_exception": True,
+            "platform": "javascript",
+            "project": project.id,
+            "exception": {
+                "values": [
+                    {
+                        "type": "SyntaxError",
+                        "mechanism": {
+                            "type": "onerror",
+                        },
+                        "value": ("value"),
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "abs_path": "http://example.com/foo.js",
+                                    "filename": "<anonymous>",
+                                    "function": "name",
+                                    "lineno": 4,
+                                    "colno": 0,
+                                },
+                                {
+                                    "abs_path": "http://example.com/foo.js",
+                                    "filename": "<anonymous>",
+                                    "function": "new name",
+                                    "lineno": 4,
+                                    "colno": 0,
+                                },
+                            ]
+                        },
+                    }
+                ]
+            },
+        }
+
+        stacktrace_infos = [
+            stacktrace for stacktrace in find_stacktraces_in_data(data, with_exceptions=True)
+        ]
+
+        processor = JavaScriptStacktraceProcessor(
+            data={"release": release.version, "dist": "foo", "timestamp": 123.4},
+            project=project,
+            stacktrace_infos=stacktrace_infos,
+        )
+
+        frames = processor.get_valid_frames()
+        assert processor.suspected_console_errors(frames) is False
+
+        processor.tag_suspected_console_errors(frames)
+        assert get_tag(processor.data, "empty_stacktrace.js_console") is False
 
 
 def test_build_fetch_retry_condition() -> None:
@@ -996,24 +1103,49 @@ class GenerateModuleTest(unittest.TestCase):
         )
 
 
+class GetFunctionForTokenTest(unittest.TestCase):
+    # There is no point in pulling down `SourceMapCacheToken` and creating a constructor for it.
+    def get_token(self, name):
+        class Token:
+            def __init__(self, name):
+                self.function_name = name
+
+        return Token(name)
+
+    def test_valid_name(self):
+        frame = {"function": "original"}
+        token = self.get_token("lookedup")
+        assert get_function_for_token(frame, token) == "lookedup"
+
+    def test_useless_name(self):
+        frame = {"function": "original"}
+        token = self.get_token("__webpack_require__")
+        assert get_function_for_token(frame, token) == "original"
+
+    def test_useless_name_but_no_original(self):
+        frame = {"function": None}
+        token = self.get_token("__webpack_require__")
+        assert get_function_for_token(frame, token) == "__webpack_require__"
+
+
 class FetchSourcemapTest(TestCase):
     def test_simple_base64(self):
         smap_view = fetch_sourcemap(base64_sourcemap)
-        tokens = [SourceMapTokenMatch(0, 0, 1, 0, src="/test.js", src_id=0)]
+        token = smap_view.lookup(1, 1, 0)
 
-        assert list(smap_view) == tokens
-        sv = smap_view.get_sourceview(0)
-        assert sv.get_source() == 'console.log("hello, World!")'
-        assert smap_view.get_source_name(0) == "/test.js"
+        assert token.src == "/test.js"
+        assert token.line == 1
+        assert token.col == 1
+        assert token.context_line == 'console.log("hello, World!")'
 
     def test_base64_without_padding(self):
         smap_view = fetch_sourcemap(base64_sourcemap.rstrip("="))
-        tokens = [SourceMapTokenMatch(0, 0, 1, 0, src="/test.js", src_id=0)]
+        token = smap_view.lookup(1, 1, 0)
 
-        assert list(smap_view) == tokens
-        sv = smap_view.get_sourceview(0)
-        assert sv.get_source() == 'console.log("hello, World!")'
-        assert smap_view.get_source_name(0) == "/test.js"
+        assert token.src == "/test.js"
+        assert token.line == 1
+        assert token.col == 1
+        assert token.context_line == 'console.log("hello, World!")'
 
     def test_broken_base64(self):
         with pytest.raises(UnparseableSourcemap):

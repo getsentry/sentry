@@ -1,4 +1,4 @@
-import {JsonFormObject} from 'sentry/components/forms/type';
+import {JsonFormObject} from 'sentry/components/forms/types';
 import languages from 'sentry/data/languages';
 import timezones from 'sentry/data/timezones';
 import {t} from 'sentry/locale';

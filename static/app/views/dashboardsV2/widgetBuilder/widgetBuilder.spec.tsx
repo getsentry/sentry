@@ -251,6 +251,12 @@ describe('WidgetBuilder', function () {
       body: [],
     });
 
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/transaction.duration/values/',
+      method: 'GET',
+      body: [],
+    });
+
     TagStore.reset();
   });
 
@@ -1151,14 +1157,15 @@ describe('WidgetBuilder', function () {
 
       renderTestComponent({dashboard, onSave: handleSave, params: {widgetIndex: '0'}});
 
-      userEvent.click(await screen.findByLabelText('Add Query'));
+      await act(async () => {
+        userEvent.click(await screen.findByLabelText('Add Query'));
 
-      // Triggering the onBlur of the new field should not error
-      userEvent.click(
-        screen.getAllByPlaceholderText('Search for events, users, tags, and more')[1]
-      );
-      userEvent.keyboard('{esc}');
-      act(() => {
+        // Triggering the onBlur of the new field should not error
+        userEvent.click(
+          screen.getAllByPlaceholderText('Search for events, users, tags, and more')[1]
+        );
+        userEvent.keyboard('{esc}');
+
         // Run all timers because the handleBlur contains a setTimeout
         jest.runAllTimers();
       });
@@ -1247,14 +1254,20 @@ describe('WidgetBuilder', function () {
       });
     });
 
-    it('fetches tags when tag store is empty', function () {
-      renderTestComponent();
+    it('fetches tags when tag store is empty', async function () {
+      await act(async () => {
+        renderTestComponent();
+        await tick();
+      });
       expect(tagsMock).toHaveBeenCalled();
     });
 
-    it('does not fetch tags when tag store is not empty', function () {
-      TagStore.loadTagsSuccess(TestStubs.Tags());
-      renderTestComponent();
+    it('does not fetch tags when tag store is not empty', async function () {
+      await act(async () => {
+        TagStore.loadTagsSuccess(TestStubs.Tags());
+        renderTestComponent();
+        await tick();
+      });
       expect(tagsMock).not.toHaveBeenCalled();
     });
 
@@ -1651,6 +1664,29 @@ describe('WidgetBuilder', function () {
         '/organizations/org-slug/events-stats/',
         expectedArgs
       );
+    });
+
+    it('disables add widget button and prevents widget previewing from firing widget query if widget query condition is invalid', async function () {
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures],
+      });
+      userEvent.click(await screen.findByText('Table'));
+      userEvent.click(screen.getByText('Line Chart'));
+      expect(eventsStatsMock).toHaveBeenCalledTimes(1);
+
+      userEvent.type(
+        screen.getByTestId('smart-search-input'),
+        'transaction.duration:123a'
+      );
+
+      // Unfocus input
+      userEvent.click(screen.getByText('Filter your results'));
+
+      await waitFor(() =>
+        expect(screen.getByText('Add Widget').closest('button')).toBeDisabled()
+      );
+      expect(screen.getByText('Widget query condition is invalid.')).toBeInTheDocument();
+      expect(eventsStatsMock).toHaveBeenCalledTimes(1);
     });
 
     describe('Widget Library', function () {

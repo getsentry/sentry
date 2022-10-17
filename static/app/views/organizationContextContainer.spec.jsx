@@ -2,10 +2,10 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {openSudo} from 'sentry/actionCreators/modal';
 import * as OrganizationActionCreator from 'sentry/actionCreators/organization';
-import ProjectActions from 'sentry/actions/projectActions';
-import TeamActions from 'sentry/actions/teamActions';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import TeamStore from 'sentry/stores/teamStore';
 import {OrganizationLegacyContext} from 'sentry/views/organizationContextContainer';
 
 jest.mock('sentry/stores/configStore', () => ({
@@ -56,8 +56,8 @@ describe('OrganizationContextContainer', function () {
       body: teams,
     });
 
-    jest.spyOn(TeamActions, 'loadTeams');
-    jest.spyOn(ProjectActions, 'loadProjects');
+    jest.spyOn(TeamStore, 'loadInitialData');
+    jest.spyOn(ProjectsStore, 'loadInitialData');
     jest.spyOn(OrganizationActionCreator, 'fetchOrganizationDetails');
   });
 
@@ -65,8 +65,8 @@ describe('OrganizationContextContainer', function () {
     wrapper.unmount();
     OrganizationStore.reset();
 
-    TeamActions.loadTeams.mockRestore();
-    ProjectActions.loadProjects.mockRestore();
+    TeamStore.loadInitialData.mockRestore();
+    ProjectsStore.loadInitialData.mockRestore();
     ConfigStore.get.mockRestore();
     OrganizationActionCreator.fetchOrganizationDetails.mockRestore();
   });
@@ -85,8 +85,8 @@ describe('OrganizationContextContainer', function () {
     expect(wrapper.state('error')).toBe(null);
     expect(wrapper.state('organization')).toEqual(org);
 
-    expect(TeamActions.loadTeams).toHaveBeenCalledWith(teams);
-    expect(ProjectActions.loadProjects).toHaveBeenCalledWith(projects);
+    expect(TeamStore.loadInitialData).toHaveBeenCalledWith(teams);
+    expect(ProjectsStore.loadInitialData).toHaveBeenCalledWith(projects);
     expect(OrganizationActionCreator.fetchOrganizationDetails).toHaveBeenCalledWith(
       api,
       'org-slug',

@@ -3,11 +3,18 @@ from django.core.cache import cache
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
+from sentry.db.models import (
+    FlexibleForeignKey,
+    Model,
+    control_silo_with_replication_model,
+    sane_repr,
+)
+from sentry.models import User
+from sentry.region_to_control.messages import UserIpEvent
 from sentry.utils.geo import geo_by_addr
 
 
-@region_silo_model
+@control_silo_with_replication_model
 class UserIP(Model):
     __include_in_export__ = True
 
@@ -26,21 +33,31 @@ class UserIP(Model):
     __repr__ = sane_repr("user_id", "ip_address")
 
     @classmethod
-    def log(cls, user, ip_address):
+    def log(cls, user: User, ip_address: str):
         # Only log once every 5 minutes for the same user/ip_address pair
         # since this is hit pretty frequently by all API calls in the UI, etc.
         cache_key = f"userip.log:{user.id}:{ip_address}"
-        if cache.get(cache_key):
-            return
+        if not cache.get(cache_key):
+            _perform_log(user, ip_address)
+            cache.set(cache_key, 1, 300)
 
-        try:
-            geo = geo_by_addr(ip_address)
-        except Exception:
-            geo = None
 
-        values = {"last_seen": timezone.now()}
-        if geo:
-            values.update({"country_code": geo["country_code"], "region_code": geo["region"]})
+def _perform_log(user: User, ip_address: str):
+    from sentry.region_to_control.producer import produce_user_ip
 
-        UserIP.objects.create_or_update(user=user, ip_address=ip_address, values=values)
-        cache.set(cache_key, 1, 300)
+    try:
+        geo = geo_by_addr(ip_address)
+    except Exception:
+        geo = None
+
+    event = UserIpEvent(
+        user_id=user.id,
+        ip_address=ip_address,
+        last_seen=timezone.now(),
+    )
+
+    if geo:
+        event.country_code = geo["country_code"]
+        event.region_code = geo["region"]
+
+    produce_user_ip(event)
