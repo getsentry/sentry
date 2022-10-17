@@ -61,6 +61,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
   let eventStatsMock;
   let eventsV2Mock;
   let eventsTrendsStats;
+  let eventsMock;
 
   let issuesListMock;
 
@@ -100,7 +101,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
       body: [],
     });
 
-    MockApiClient.addMockResponse({
+    eventsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/events/`,
       body: {
@@ -343,6 +344,15 @@ describe('Performance > Widgets > WidgetContainer', function () {
       },
     });
 
+    eventsMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/events/`,
+      body: {
+        data: [{}],
+        meta: {isMetricsData: true},
+      },
+    });
+
     wrapper = render(
       <WrappedComponent
         data={data}
@@ -358,6 +368,15 @@ describe('Performance > Widgets > WidgetContainer', function () {
         query: expect.objectContaining({dataset: 'metrics'}),
       })
     );
+
+    expect(eventsMock).toHaveBeenCalledTimes(1);
+    expect(eventsMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({dataset: 'metrics'}),
+      })
+    );
+
     expect(await screen.findByTestId('has-metrics-data-tag')).toHaveTextContent(
       'processed'
     );
@@ -415,6 +434,15 @@ describe('Performance > Widgets > WidgetContainer', function () {
       },
     });
 
+    eventsMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/events/`,
+      body: {
+        data: [{}],
+        meta: {isMetricsData: false},
+      },
+    });
+
     wrapper = render(
       <WrappedComponent
         data={data}
@@ -430,6 +458,15 @@ describe('Performance > Widgets > WidgetContainer', function () {
         query: expect.objectContaining({dataset: 'metrics'}),
       })
     );
+
+    expect(eventsMock).toHaveBeenCalledTimes(1);
+    expect(eventsMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({dataset: 'metrics'}),
+      })
+    );
+
     expect(await screen.findByTestId('has-metrics-data-tag')).toHaveTextContent(
       'indexed'
     );
