@@ -18,7 +18,9 @@ replay_publisher: Optional[KafkaPublisher] = None
 
 @instrumented_task(
     name="sentry.replays.tasks.ingest_recording_segment",
-    queue="replays.delete_replay",  # TODO: Use newly provisioned queue.
+    queue="replays.ingest_replay",
+    time_limit=65,
+    soft_time_limit=60,
 )
 @metrics.wraps("replays.tasks.ingest_recording_segment")
 def ingest_recording_segment(message: bytes) -> None:
