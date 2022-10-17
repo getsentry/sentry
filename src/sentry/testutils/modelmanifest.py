@@ -37,14 +37,15 @@ class ModelManifest:
 
         entry_objects = []
 
-        for (test_id, entry_input) in content.items():
-            entry_objects.append(entry := ModelManifest.Entry())
+        for (test_id, entry_inputs) in content.items():
+            entry_objects.append(entry_obj := ModelManifest.Entry())
 
-            for (model_name, condition_names) in entry_input:
-                model_class = models[model_name]
-                for condition_name in condition_names:
-                    condition = conditions[condition_name]
-                    entry.hits[model_class].add(condition)
+            for entry_input in entry_inputs:
+                for (model_name, condition_names) in entry_input.items():
+                    model_class = models[model_name]
+                    for condition_name in condition_names:
+                        condition = conditions[condition_name]
+                        entry_obj.hits[model_class].add(condition)
 
             self.tests[test_id] = entry_objects
 
