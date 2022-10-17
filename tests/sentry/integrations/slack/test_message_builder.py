@@ -5,6 +5,7 @@ from typing import Any, Mapping
 
 from django.urls import reverse
 
+from sentry.event_manager import EventManager
 from sentry.eventstore.models import Event
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
 from sentry.incidents.models import IncidentStatus
@@ -18,14 +19,14 @@ from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricA
 from sentry.models import Group, Team, User
 from sentry.notifications.notifications.active_release import ActiveReleaseIssueNotification
 from sentry.testutils import TestCase
+from sentry.testutils.helpers import override_options
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import region_silo_test
+from sentry.types.issues import GroupType
 from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
 from sentry.utils.samples import load_data
-from sentry.event_manager import EventManager
-from sentry.testutils.helpers import override_options
-from sentry.testutils.helpers.datetime import before_now
-from sentry.types.issues import GroupType
+
 
 def build_test_message(
     teams: set[Team],
@@ -187,17 +188,14 @@ class BuildGroupAttachmentTest(TestCase):
             ]
         ):
             event = perf_event_manager.save(self.project.id)
-        # group = event.groups[0]
         event = event.for_group(event.groups[0])
-        print("test event: ", event)
-
-        attachments = SlackIssuesMessageBuilder(event).build()
-        # group_link = f"http://testserver/organizations/{group.organization.slug}/issues/{group.id}/?referrer=alert_slack_release"
+        attachments = SlackIssuesMessageBuilder(event.group, event).build()
 
         assert attachments["title"] == "N+1 DB Queries"
-        assert attachments["text"] == "idk"
-        print(attachments)
-        assert False
+        assert (
+            attachments["text"]
+            == "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
+        )
 
     def test_build_group_release_with_commits_attachment(self):
         group = self.create_group(project=self.project)
