@@ -38,8 +38,6 @@ const AllEventsTable = (props: Props) => {
     'user.display',
     ...(isPerfIssue ? ['transaction.duration'] : []),
     'timestamp',
-    'attachments',
-    'minidump',
   ];
 
   const eventView: EventView = EventView.fromLocation(props.location);
@@ -83,6 +81,7 @@ const AllEventsTable = (props: Props) => {
       excludedTags={excludedTags}
       projectId={projectId}
       totalEventCount={totalEventCount}
+      customColumns={['attachments', 'minidump']}
       setError={() => {
         (msg: string) => setError(msg);
       }}
