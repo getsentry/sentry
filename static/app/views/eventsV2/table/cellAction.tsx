@@ -90,7 +90,7 @@ export function updateQuery(
         value = Array.isArray(value) ? value : [String(value)];
         const currentNegations = results.getFilterValues(negation);
         value = [...new Set([...currentNegations, ...value])];
-        results.setFilterValues(negation, value);
+        results.setFilterValues(negation, value, false);
       }
       break;
     case Actions.SHOW_GREATER_THAN: {
