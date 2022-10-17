@@ -16,19 +16,9 @@ import EventsPageContent from 'sentry/views/performance/transactionSummary/trans
 import {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 import {RouteContext} from 'sentry/views/routeContext';
 
-type Data = {
-  features?: string[];
-};
-
-function initializeData({features: additionalFeatures = []}: Data = {}) {
-  const features = [
-    'discover-basic',
-    'performance-view',
-    'performance-ops-breakdown',
-    ...additionalFeatures,
-  ];
+function initializeData() {
   const organization = TestStubs.Organization({
-    features,
+    features: ['discover-basic', 'performance-view', 'performance-ops-breakdown'],
     projects: [TestStubs.Project()],
     apdexThreshold: 400,
   });
@@ -52,7 +42,6 @@ function initializeData({features: additionalFeatures = []}: Data = {}) {
 
 describe('Performance Transaction Events Content', function () {
   let fields;
-  let organization;
   let data;
   let transactionName;
   let eventView;
@@ -146,7 +135,6 @@ describe('Performance Transaction Events Content', function () {
       body: {measurements: false},
     });
     initialData = initializeData();
-    organization = initialData.organization;
     eventView = EventView.fromNewQueryWithLocation(
       {
         id: undefined,
@@ -170,11 +158,11 @@ describe('Performance Transaction Events Content', function () {
   it('basic rendering', function () {
     render(
       <RouteContext.Provider value={initialData.routerContext}>
-        <OrganizationContext.Provider value={organization}>
+        <OrganizationContext.Provider value={initialData.organization}>
           <EventsPageContent
             totalEventCount={totalEventCount}
             eventView={eventView}
-            organization={organization}
+            organization={initialData.organization}
             location={initialData.router.location}
             transactionName={transactionName}
             spanOperationBreakdownFilter={SpanOperationBreakdownFilter.None}
@@ -193,7 +181,7 @@ describe('Performance Transaction Events Content', function () {
     expect(
       screen.getByPlaceholderText(t('Search for events, users, tags, and more'))
     ).toBeInTheDocument();
-    expect(screen.getByRole('span-operation-breakdown-filter')).toBeInTheDocument();
+    expect(screen.getByTestId('span-operation-breakdown-filter')).toBeInTheDocument();
 
     const eventsTable = screen.getByTestId('events-table');
     const columnTitles = Array.from(eventsTable.querySelectorAll('th')).map(
@@ -212,11 +200,11 @@ describe('Performance Transaction Events Content', function () {
   it('rendering with webvital selected', function () {
     render(
       <RouteContext.Provider value={initialData.routerContext}>
-        <OrganizationContext.Provider value={organization}>
+        <OrganizationContext.Provider value={initialData.organization}>
           <EventsPageContent
             totalEventCount={totalEventCount}
             eventView={eventView}
-            organization={organization}
+            organization={initialData.organization}
             location={initialData.router.location}
             transactionName={transactionName}
             spanOperationBreakdownFilter={SpanOperationBreakdownFilter.None}
@@ -236,20 +224,12 @@ describe('Performance Transaction Events Content', function () {
     expect(
       screen.getByPlaceholderText(t('Search for events, users, tags, and more'))
     ).toBeInTheDocument();
-    expect(screen.getByRole('span-operation-breakdown-filter')).toBeInTheDocument();
+    expect(screen.getByTestId('span-operation-breakdown-filter')).toBeInTheDocument();
 
     const eventsTable = screen.getByTestId('events-table');
     const columnTitles = Array.from(eventsTable.querySelectorAll('th')).map(
       elem => elem.textContent
     );
-    expect(columnTitles).toEqual([
-      t('event id'),
-      t('user'),
-      t('operation duration'),
-      t('measurements.lcp'),
-      t('total duration'),
-      t('trace id'),
-      t('timestamp'),
-    ]);
+    expect(columnTitles).toStrictEqual(expect.arrayContaining([t('measurements.lcp')]));
   });
 });

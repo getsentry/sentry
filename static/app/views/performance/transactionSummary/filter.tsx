@@ -47,11 +47,10 @@ type Props = {
   currentFilter: SpanOperationBreakdownFilter;
   onChangeFilter: (newFilter: SpanOperationBreakdownFilter) => void;
   organization: OrganizationSummary;
-  testId?: string;
 };
 
 function Filter(props: Props) {
-  const {currentFilter, onChangeFilter, organization, testId} = props;
+  const {currentFilter, onChangeFilter, organization} = props;
 
   if (!organization.features.includes('performance-ops-breakdown')) {
     return null;
@@ -64,14 +63,17 @@ function Filter(props: Props) {
   }));
 
   return (
-    <GuideAnchor target="span_op_breakdowns_filter" position="top" data-test-id={testId}>
+    <GuideAnchor target="span_op_breakdowns_filter" position="top">
       <CompactSelect
         isClearable
         menuTitle={t('Filter by operation')}
         options={menuOptions}
         value={currentFilter}
         onChange={opt => onChangeFilter(opt?.value)}
-        triggerProps={{icon: <IconFilter />}}
+        triggerProps={{
+          icon: <IconFilter />,
+          'data-test-id': 'span-operation-breakdown-filter',
+        }}
         triggerLabel={
           currentFilter === SpanOperationBreakdownFilter.None
             ? t('Filter')
