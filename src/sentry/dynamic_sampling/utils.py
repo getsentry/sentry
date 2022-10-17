@@ -11,7 +11,7 @@ class Condition(TypedDict):
     inner: List[Any]
 
 
-class UniformDSRule(TypedDict):
+class UniformRule(TypedDict):
     sampleRate: float
     type: str
     active: bool
@@ -19,7 +19,7 @@ class UniformDSRule(TypedDict):
     id: int
 
 
-def generate_uniform_rule(project: Project) -> UniformDSRule:
+def generate_uniform_rule(project: Project) -> UniformRule:
     return {
         "sampleRate": quotas.get_blended_sample_rate(project),
         "type": "trace",

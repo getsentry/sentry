@@ -40,6 +40,7 @@ from sentry.web.frontend.debug.debug_organization_join_request import (
     DebugOrganizationJoinRequestEmailView,
 )
 from sentry.web.frontend.debug.debug_password_changed_email import DebugPasswordChangedEmailView
+from sentry.web.frontend.debug.debug_performance_issue import DebugPerformanceIssueEmailView
 from sentry.web.frontend.debug.debug_recovery_codes_regenerated_email import (
     DebugRecoveryCodesRegeneratedEmailView,
 )
@@ -70,6 +71,7 @@ from sentry.web.frontend.debug.debug_unassigned_email import DebugUnassignedEmai
 
 urlpatterns = [
     url(r"^debug/mail/alert/$", sentry.web.frontend.debug.mail.alert),
+    url(r"^debug/mail/perf-alert/$", DebugPerformanceIssueEmailView.as_view()),
     url(r"^debug/mail/note/$", DebugNoteEmailView.as_view()),
     url(r"^debug/mail/new-release/$", DebugNewReleaseEmailView.as_view()),
     url(r"^debug/mail/release-summary/$", DebugReleaseSummaryEmailView.as_view()),

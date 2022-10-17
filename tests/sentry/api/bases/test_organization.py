@@ -389,6 +389,12 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
             False,
         )
 
+    def test_get_projects_by_slugs_no_projects_with_slug(self):
+        project_slugs = ["hello"]
+        request = self.build_request(projectSlug=project_slugs)
+
+        assert not self.endpoint.get_projects(request, self.org)
+
 
 class GetEnvironmentsTest(BaseOrganizationEndpointTest):
     def setUp(self):

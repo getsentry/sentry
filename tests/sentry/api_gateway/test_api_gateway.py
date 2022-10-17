@@ -37,3 +37,47 @@ class ApiGatewayTest(ApiGatewayTestCase):
         assert resp.status_code == 200, resp.content
         resp_json = json.loads(b"".join(resp.streaming_content))
         assert resp_json["proxy"]
+
+    @responses.activate
+    @patch("sentry.types.region.get_region_for_organization")
+    def test_proxy_check(self, region_fnc_patch):
+        """Test the logic of when a request should be proxied"""
+        region_fnc_patch.return_value = SENTRY_REGION_CONFIG[0]
+
+        responses.add(
+            responses.GET,
+            f"http://region1.testserver/organizations/{self.organization.slug}/region/",
+            json={"proxy": True},
+        )
+        responses.add(
+            responses.GET,
+            f"http://region1.testserver/organizations/{self.organization.slug}/control/",
+            json={"proxy": True},
+        )
+
+        region_url = reverse(
+            "region-endpoint", kwargs={"organization_slug": self.organization.slug}
+        )
+        control_url = reverse(
+            "control-endpoint", kwargs={"organization_slug": self.organization.slug}
+        )
+
+        with override_settings(SILO_MODE=SiloMode.CONTROL, MIDDLEWARE=tuple(self.middleware)):
+            resp = self.client.get(region_url)
+            assert resp.status_code == 200
+            resp_json = json.loads(b"".join(resp.streaming_content))
+            assert resp_json["proxy"]
+
+            resp = self.client.get(control_url)
+            assert resp.status_code == 200
+            assert not resp.data["proxy"]
+
+        with override_settings(SILO_MODE=SiloMode.REGION, MIDDLEWARE=tuple(self.middleware)):
+            resp = self.client.get(region_url)
+            assert resp.status_code == 200
+            assert not resp.data["proxy"]
+
+            resp = self.client.get(control_url)
+            assert resp.status_code == 200
+            resp_json = json.loads(b"".join(resp.streaming_content))
+            assert resp_json["proxy"]

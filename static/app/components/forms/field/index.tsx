@@ -1,20 +1,14 @@
-import ControlState, {
-  ControlStateProps,
-} from 'sentry/components/forms/field/controlState';
-import FieldControl, {
-  FieldControlProps,
-} from 'sentry/components/forms/field/fieldControl';
-import FieldDescription from 'sentry/components/forms/field/fieldDescription';
-import FieldErrorReason from 'sentry/components/forms/field/fieldErrorReason';
-import FieldHelp from 'sentry/components/forms/field/fieldHelp';
-import FieldLabel from 'sentry/components/forms/field/fieldLabel';
-import FieldRequiredBadge from 'sentry/components/forms/field/fieldRequiredBadge';
-import FieldWrapper, {
-  FieldWrapperProps,
-} from 'sentry/components/forms/field/fieldWrapper';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 
+import ControlState, {ControlStateProps} from './controlState';
+import FieldControl, {FieldControlProps} from './fieldControl';
+import FieldDescription from './fieldDescription';
+import FieldErrorReason from './fieldErrorReason';
+import FieldHelp from './fieldHelp';
+import FieldLabel from './fieldLabel';
 import FieldQuestion from './fieldQuestion';
+import FieldRequiredBadge from './fieldRequiredBadge';
+import FieldWrapper, {FieldWrapperProps} from './fieldWrapper';
 
 interface InheritedFieldWrapperProps
   extends Pick<
@@ -73,6 +67,11 @@ export interface FieldProps
    * User-facing field name
    */
   label?: React.ReactNode;
+  /**
+   * May be used to give the field an aria-label when the field's label is a
+   * react node.
+   */
+  labelText?: string;
   /**
    * Show "required" indicator
    */
@@ -136,6 +135,7 @@ function Field({
     isSaving,
     isSaved,
     label,
+    labelText,
     hideLabel,
     stacked,
     children,
@@ -171,6 +171,14 @@ function Field({
     Control = <FieldControl {...controlProps}>{children}</FieldControl>;
   }
 
+  // Provide an `aria-label` to the FieldDescription label if our label is a
+  // string value. This helps with testing and accessability. Without this the
+  // aria label contains the entire description.
+  const ariaLabel = labelText ?? (typeof label === 'string' ? label : undefined);
+
+  // The help ID is used for the input element to have an `aria-describedby`
+  const helpId = `${id}_help`;
+
   return (
     <FieldWrapper
       className={className}
@@ -181,7 +189,7 @@ function Field({
       style={style}
     >
       {((label && !hideLabel) || helpElement) && (
-        <FieldDescription inline={inline} htmlFor={id}>
+        <FieldDescription inline={inline} htmlFor={id} aria-label={ariaLabel}>
           {label && !hideLabel && (
             <FieldLabel disabled={isDisabled}>
               <span>
@@ -196,7 +204,7 @@ function Field({
             </FieldLabel>
           )}
           {helpElement && !showHelpInTooltip && (
-            <FieldHelp stacked={stacked} inline={inline}>
+            <FieldHelp id={helpId} stacked={stacked} inline={inline}>
               {helpElement}
             </FieldHelp>
           )}

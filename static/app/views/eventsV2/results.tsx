@@ -65,7 +65,7 @@ type Props = {
   organization: Organization;
   router: InjectedRouter;
   selection: PageFilters;
-  setSavedQuery: (savedQuery: SavedQuery) => void;
+  setSavedQuery: (savedQuery?: SavedQuery) => void;
   isHomepage?: boolean;
   savedQuery?: SavedQuery;
 };
@@ -115,14 +115,16 @@ export class Results extends Component<Props, State> {
       );
       return {...prevState, eventView, savedQuery: nextProps.savedQuery};
     }
+
     return prevState;
   }
 
   state: State = {
     // If this is the homepage, force an invalid eventView so we can handle
-    // the redirect first
+    // the redirect first. This can't rely on the location because the
+    // location may have a valid eventView configuration
     eventView: this.props.isHomepage
-      ? EventView.fromSavedQueryOrLocation(undefined, this.props.location)
+      ? EventView.fromSavedQuery({...DEFAULT_EVENT_VIEW, fields: []})
       : EventView.fromSavedQueryOrLocation(this.props.savedQuery, this.props.location),
     error: '',
     errorCode: 200,
@@ -705,7 +707,7 @@ class SavedQueryAPI extends AsyncComponent<Props, SavedQueryState> {
     return endpoints;
   }
 
-  setSavedQuery = (newSavedQuery: SavedQuery) => {
+  setSavedQuery = (newSavedQuery?: SavedQuery) => {
     this.setState({savedQuery: newSavedQuery});
   };
 

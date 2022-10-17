@@ -340,4 +340,69 @@ describe('Discover > Homepage', () => {
     );
     expect(screen.getByText('event.type')).toBeInTheDocument();
   });
+
+  it('renders changes to the discover query when loaded with valid event view in url params', async () => {
+    initialData = initializeOrg({
+      ...initializeOrg(),
+      organization,
+      router: {
+        location: {
+          ...TestStubs.location(),
+          query: {
+            ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
+            field: ['title'],
+          },
+        },
+      },
+    });
+
+    const {rerender} = render(
+      <Homepage
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+        setSavedQuery={jest.fn()}
+        loading={false}
+      />,
+      {context: initialData.routerContext, organization: initialData.organization}
+    );
+
+    userEvent.click(screen.getByText('Columns'));
+    await act(async () => {
+      await mountGlobalModal();
+    });
+
+    userEvent.click(screen.getByTestId('label'));
+    userEvent.click(screen.getByText('event.type'));
+    userEvent.click(screen.getByText('Apply'));
+
+    const rerenderData = initializeOrg({
+      ...initializeOrg(),
+      organization,
+      router: {
+        location: {
+          ...TestStubs.location(),
+          query: {
+            ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
+            field: ['event.type'],
+          },
+        },
+      },
+    });
+
+    rerender(
+      <Homepage
+        organization={organization}
+        location={rerenderData.router.location}
+        router={rerenderData.router}
+        setSavedQuery={jest.fn()}
+        loading={false}
+      />
+    );
+
+    await waitFor(() =>
+      expect(screen.queryByText('Edit Columns')).not.toBeInTheDocument()
+    );
+    expect(screen.getByText('event.type')).toBeInTheDocument();
+  });
 });

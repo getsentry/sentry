@@ -25,7 +25,7 @@ type Props = {
   location: Location;
   organization: Organization;
   router: InjectedRouter;
-  setSavedQuery: (savedQuery: SavedQuery) => void;
+  setSavedQuery: (savedQuery?: SavedQuery) => void;
   yAxis: string[];
   isHomepage?: boolean;
 };
@@ -148,9 +148,9 @@ class ResultsHeader extends Component<Props, State> {
             yAxis={yAxis}
             router={router}
             isHomepage={isHomepage}
-            setHomepageQuery={updatedHomepageQuery =>
-              this.setState({homepageQuery: updatedHomepageQuery})
-            }
+            setHomepageQuery={updatedHomepageQuery => {
+              this.setState({homepageQuery: updatedHomepageQuery});
+            }}
             homepageQuery={homepageQuery}
           />
         </Layout.HeaderActions>

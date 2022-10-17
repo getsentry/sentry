@@ -10,9 +10,8 @@ type Props = {
   highlighted?: boolean;
 };
 
-export default styled(DropdownButton)<Props>`
+const PageFilterDropdownButton = styled(DropdownButton)<Props>`
   width: 100%;
-  height: 40px;
   text-overflow: ellipsis;
   ${p =>
     p.highlighted &&
@@ -26,3 +25,5 @@ export default styled(DropdownButton)<Props>`
     }
   `}
 `;
+
+export default PageFilterDropdownButton;
