@@ -1,6 +1,7 @@
 import {initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {
   EXAMPLE_TRANSACTION_TITLE,
+  MockSpan,
   ProblemSpan,
   TransactionEventBuilder,
 } from 'sentry-test/performance/utils';
@@ -34,52 +35,61 @@ const WrappedComponent = ({event}: {event: EventTransaction}) => (
 describe('spanEvidence', () => {
   it('renders and highlights the correct data in the span evidence section', () => {
     const builder = new TransactionEventBuilder();
+    builder.addSpan(
+      new MockSpan({
+        startTimestamp: 0,
+        endTimestamp: 100,
+        op: 'http',
+        description: 'do a thing',
+      })
+    );
 
-    builder.addSpan({
-      startTimestamp: 0,
-      endTimestamp: 100,
-      op: 'http',
-      description: 'do a thing',
-    });
+    builder.addSpan(
+      new MockSpan({
+        startTimestamp: 100,
+        endTimestamp: 200,
+        op: 'db',
+        description: 'SELECT col FROM table',
+      })
+    );
 
-    builder.addSpan({
-      startTimestamp: 100,
-      endTimestamp: 200,
-      op: 'db',
-      description: 'SELECT col FROM table',
-    });
+    builder.addSpan(
+      new MockSpan({
+        startTimestamp: 200,
+        endTimestamp: 300,
+        op: 'db',
+        description: 'SELECT col2 FROM table',
+      })
+    );
 
-    builder.addSpan({
-      startTimestamp: 200,
-      endTimestamp: 300,
-      op: 'db',
-      description: 'SELECT col2 FROM table',
-    });
+    builder.addSpan(
+      new MockSpan({
+        startTimestamp: 200,
+        endTimestamp: 300,
+        op: 'db',
+        description: 'SELECT col3 FROM table',
+      })
+    );
 
-    builder.addSpan({
-      startTimestamp: 200,
-      endTimestamp: 300,
-      op: 'db',
-      description: 'SELECT col3 FROM table',
-    });
-
-    builder.addSpan({
-      startTimestamp: 200,
-      endTimestamp: 300,
+    const parentProblemSpan = new MockSpan({
+      startTimestamp: 300,
+      endTimestamp: 600,
       op: 'db',
       description: 'connect',
       problemSpan: ProblemSpan.PARENT,
-      childOpts: [
-        {
-          startTimestamp: 300,
-          endTimestamp: 600,
-          op: 'db',
-          description: 'group me',
-          numSpans: 9,
-          problemSpan: ProblemSpan.OFFENDER,
-        },
-      ],
     });
+    parentProblemSpan.addChild(
+      {
+        startTimestamp: 300,
+        endTimestamp: 600,
+        op: 'db',
+        description: 'group me',
+        problemSpan: ProblemSpan.OFFENDER,
+      },
+      9
+    );
+
+    builder.addSpan(parentProblemSpan);
 
     render(<WrappedComponent event={builder.getEvent()} />);
 

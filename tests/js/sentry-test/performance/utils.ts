@@ -87,7 +87,7 @@ export class TransactionEventBuilder {
     };
   }
 
-  addSpanV2(mSpan: MockSpan, parentSpanId?: string) {
+  addSpan(mSpan: MockSpan, parentSpanId?: string) {
     // Convert the num of spans to a hex string to get its ID
     const spanId = (this.#spans.length + 1).toString(16).padStart(16, '0');
     const {span} = mSpan;
@@ -112,7 +112,7 @@ export class TransactionEventBuilder {
       this.#event.endTimestamp = span.timestamp;
     }
 
-    mSpan.children.forEach(child => this.addSpanV2(child, spanId));
+    mSpan.children.forEach(child => this.addSpan(child, spanId));
   }
 
   getEvent() {
