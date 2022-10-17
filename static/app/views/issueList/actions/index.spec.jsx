@@ -378,7 +378,7 @@ describe('IssueListActions', function () {
           expect.anything(),
           expect.objectContaining({
             query: expect.objectContaining({
-              query: 'is:unresolved !issue.category:performance',
+              query: 'is:unresolved issue.category:error',
             }),
           })
         );
@@ -423,7 +423,7 @@ describe('IssueListActions', function () {
           expect.anything(),
           expect.objectContaining({
             query: expect.objectContaining({
-              query: 'is:unresolved !issue.category:performance',
+              query: 'is:unresolved issue.category:error',
             }),
           })
         );
