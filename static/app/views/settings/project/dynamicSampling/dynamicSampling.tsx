@@ -316,6 +316,7 @@ export function DynamicSampling({project}: Props) {
   }));
 
   const uniformRule = rules.find(isUniformRule);
+  const uniformRuleMaximumSampleRate = uniformRule?.sampleRate === 1;
 
   return (
     <SentryDocumentTitle title={t('Dynamic Sampling')}>
@@ -476,10 +477,26 @@ export function DynamicSampling({project}: Props) {
                   {t('Read Docs')}
                 </Button>
                 <AddRuleButton
-                  disabled={!hasAccess}
+                  disabled={!hasAccess || uniformRuleMaximumSampleRate}
                   title={
-                    !hasAccess ? t("You don't have permission to add a rule") : undefined
+                    !hasAccess
+                      ? t("You don't have permission to add a rule")
+                      : uniformRuleMaximumSampleRate
+                      ? tct(
+                          'Conditional rules are only available for projects with uniform rules with sample rate below 100%. [docsLink:Read more in the docs]',
+                          {
+                            docsLink: (
+                              <ExternalLink
+                                href={`${SERVER_SIDE_SAMPLING_DOC_LINK}#3-set-a-sampling-rate-based-on-a-condition`} // TODO(sampling): Update docs with this new constraint
+                              />
+                            ),
+                          }
+                        )
+                      : undefined
                   }
+                  tooltipProps={{
+                    isHoverable: uniformRuleMaximumSampleRate,
+                  }}
                   priority="primary"
                   onClick={() => navigate(`${samplingProjectSettingsPath}rules/new/`)}
                   icon={<IconAdd isCircled />}
