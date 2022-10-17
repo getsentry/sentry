@@ -100,24 +100,26 @@ class GroupEvents extends Component<Props, State> {
       query: this.state.query,
     };
 
-    this.props.api.request(`/issues/${this.props.params.groupId}/events/`, {
-      query,
-      method: 'GET',
-      success: (data, _, resp) => {
-        this.setState({
-          eventList: data,
-          error: false,
-          loading: false,
-          pageLinks: resp?.getResponseHeader('Link') ?? '',
-        });
-      },
-      error: err => {
-        this.setState({
-          error: parseApiError(err),
-          loading: false,
-        });
-      },
-    });
+    if (!this.state.renderNewAllEventsTab) {
+      this.props.api.request(`/issues/${this.props.params.groupId}/events/`, {
+        query,
+        method: 'GET',
+        success: (data, _, resp) => {
+          this.setState({
+            eventList: data,
+            error: false,
+            loading: false,
+            pageLinks: resp?.getResponseHeader('Link') ?? '',
+          });
+        },
+        error: err => {
+          this.setState({
+            error: parseApiError(err),
+            loading: false,
+          });
+        },
+      });
+    }
   };
 
   renderNoQueryResults() {

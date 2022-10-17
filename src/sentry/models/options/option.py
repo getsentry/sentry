@@ -1,11 +1,11 @@
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import Model, control_silo_model, sane_repr
+from sentry.db.models import Model, control_silo_with_replication_model, sane_repr
 from sentry.db.models.fields.picklefield import PickledObjectField
 
 
-@control_silo_model
+@control_silo_with_replication_model
 class Option(Model):  # type: ignore
     """
     Global options which apply in most situations as defaults,

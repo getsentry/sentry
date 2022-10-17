@@ -56,7 +56,7 @@ jobs:
           sudo /Applications/Docker.app/Contents/MacOS/Docker --unattended --install-privileged-components
           open -a /Applications/Docker.app --args --unattended --accept-license
 
-      - uses: ./.github/actions/setup-volta
+      - uses: getsentry/action-setup-volta@d6f6ebfc4046feb3cfb6049e885185a01afd82b7  # v1.0.0
 
       # This handles Python's cache
       - name: Setup Python & cache

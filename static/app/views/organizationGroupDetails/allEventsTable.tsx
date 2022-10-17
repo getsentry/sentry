@@ -38,7 +38,6 @@ const AllEventsTable = (props: Props) => {
     'user.display',
     ...(isPerfIssue ? ['transaction.duration'] : []),
     'timestamp',
-    'attachments',
   ];
 
   const eventView: EventView = EventView.fromLocation(props.location);
@@ -46,10 +45,15 @@ const AllEventsTable = (props: Props) => {
 
   eventView.sorts = decodeSorts(location).filter(sort => fields.includes(sort.field));
 
+  if (!eventView.sorts.length) {
+    eventView.sorts = [{field: 'timestamp', kind: 'desc'}];
+  }
+
   const idQuery = isPerfIssue
     ? `performance.issue_ids:${issueId}`
     : `issue.id:${issueId}`;
   eventView.query = `${idQuery} ${props.location.query.query || ''}`;
+  eventView.statsPeriod = '90d';
 
   const columnTitles: Readonly<string[]> = [
     t('event id'),
@@ -61,6 +65,7 @@ const AllEventsTable = (props: Props) => {
     ...(isPerfIssue ? [t('total duration')] : []),
     t('timestamp'),
     t('attachments'),
+    t('minidump'),
   ];
 
   if (error) {
@@ -76,11 +81,13 @@ const AllEventsTable = (props: Props) => {
       excludedTags={excludedTags}
       projectId={projectId}
       totalEventCount={totalEventCount}
+      customColumns={['attachments', 'minidump']}
       setError={() => {
         (msg: string) => setError(msg);
       }}
       transactionName=""
       columnTitles={columnTitles.slice()}
+      referrer="api.issues.issue_events"
     />
   );
 };

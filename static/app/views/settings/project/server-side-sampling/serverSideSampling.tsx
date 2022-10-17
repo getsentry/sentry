@@ -173,8 +173,9 @@ export function ServerSideSampling({project}: Props) {
       }
 
       const newRule: SamplingRule = {
-        // All new/updated rules must have id equal to 0
-        id: 0,
+        // All new rules must have the default id set to -1, signaling to the backend that a proper id should
+        // be assigned.
+        id: -1,
         active: rule ? rule.active : false,
         type: SamplingRuleType.TRACE,
         condition: {
@@ -351,7 +352,7 @@ export function ServerSideSampling({project}: Props) {
       if (r.id === rule.id) {
         return {
           ...r,
-          id: 0,
+          id: -1,
           active: !r.active,
         };
       }

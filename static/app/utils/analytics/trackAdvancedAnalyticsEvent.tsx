@@ -4,6 +4,7 @@ import {discoverEventMap, DiscoverEventParameters} from './discoverAnalyticsEven
 import {growthEventMap, GrowthEventParameters} from './growthAnalyticsEvents';
 import {issueEventMap, IssueEventParameters} from './issueAnalyticsEvents';
 import makeAnalyticsFunction from './makeAnalyticsFunction';
+import {monitorsEventMap, MonitorsEventParameters} from './monitorsAnalyticsEvents';
 import {
   performanceEventMap,
   PerformanceEventParameters,
@@ -21,6 +22,7 @@ type EventParameters = GrowthEventParameters &
   DashboardsEventParameters &
   DiscoverEventParameters &
   IssueEventParameters &
+  MonitorsEventParameters &
   PerformanceEventParameters &
   ProfilingEventParameters &
   ReleasesEventParameters &
@@ -36,6 +38,7 @@ const allEventMap: Record<string, string | null> = {
   ...discoverEventMap,
   ...growthEventMap,
   ...issueEventMap,
+  ...monitorsEventMap,
   ...performanceEventMap,
   ...profilingEventMap,
   ...releasesEventMap,
