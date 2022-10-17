@@ -136,7 +136,7 @@ describe('SentryAppDetailsModal', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('when the Integration is installed, render the Install button disabled', function () {
+  it('render the Install button disabled, when the Integration is installed', function () {
     renderMockRequests({sentryAppSlug: sentryApp.slug});
 
     render(
