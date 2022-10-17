@@ -362,7 +362,7 @@ describe('groupEvents', function () {
         expect.objectContaining({
           query: expect.objectContaining({
             query: 'issue.id:1 ',
-            field: expect.not.arrayContaining(['s', 'minidump']),
+            field: expect.not.arrayContaining(['attachments', 'minidump']),
           }),
         })
       );
