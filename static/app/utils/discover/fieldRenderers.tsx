@@ -342,7 +342,7 @@ const SPECIAL_FIELDS: SpecialFields = {
               icon: (
                 <Fragment>
                   <IconDownload color="gray500" size="14px" />
-                  <DownloadCount>{attachments.length}</DownloadCount>
+                  <DownloadCount>{items.length}</DownloadCount>
                 </Fragment>
               ),
             }}
@@ -363,12 +363,12 @@ const SPECIAL_FIELDS: SpecialFields = {
 
       return (
         <RightAlignedContainer>
-          <Button size="xs" disabled={!minidump ? true : false}>
-            <IconDownload
-              onClick={() => window.open(minidump?.url)}
-              color="gray500"
-              size="14px"
-            />
+          <Button
+            size="xs"
+            disabled={!minidump}
+            onClick={() => window.open(minidump?.url)}
+          >
+            <IconDownload color="gray500" size="14px" />
             <DownloadCount>{minidump ? 1 : 0}</DownloadCount>
           </Button>
         </RightAlignedContainer>
