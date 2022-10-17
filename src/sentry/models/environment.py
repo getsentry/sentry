@@ -8,7 +8,7 @@ from sentry.db.models import (
     BoundedBigIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_model,
+    region_silo_only_model,
     sane_repr,
 )
 from sentry.utils import metrics
@@ -18,7 +18,7 @@ from sentry.utils.hashlib import md5_text
 OK_NAME_PATTERN = re.compile(ENVIRONMENT_NAME_PATTERN)
 
 
-@region_silo_model
+@region_silo_only_model
 class EnvironmentProject(Model):
     __include_in_export__ = False
 
@@ -32,7 +32,7 @@ class EnvironmentProject(Model):
         unique_together = (("project", "environment"),)
 
 
-@region_silo_model
+@region_silo_only_model
 class Environment(Model):
     __include_in_export__ = False
 

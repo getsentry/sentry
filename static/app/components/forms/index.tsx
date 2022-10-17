@@ -7,12 +7,13 @@ export {default as EmailField} from './fields/emailField';
 export {default as HiddenField} from './fields/hiddenField';
 export {default as InputField} from './fields/inputField';
 export {default as NumberField} from './fields/numberField';
-export {default as RadioBooleanField} from './fields/radioBooleanField';
+export {default as RadioField} from './fields/radioField';
 export {default as RangeField} from './fields/rangeField';
+export {default as SecretField} from './fields/secretField';
 export {default as SelectField} from './fields/selectField';
-export {default as TextareaField} from './fields/textareaField';
-export {default as TextField} from './fields/textField';
 export {default as SeparatorField} from './fields/separatorField';
+export {default as TextField} from './fields/textField';
+export {default as TextareaField} from './fields/textareaField';
 
 export {default as Form} from './form';
 export {default as ApiForm} from './apiForm';
