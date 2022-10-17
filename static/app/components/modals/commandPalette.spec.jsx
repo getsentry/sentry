@@ -1,4 +1,10 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 
 import {openCommandPalette} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
@@ -68,56 +74,38 @@ describe('Command Palette Modal', function () {
   });
 
   it('can open command palette modal and search', async function () {
-    const wrapper = mountWithTheme(
-      <App params={{orgId: 'org-slug'}}>{<div>placeholder content</div>}</App>,
-      TestStubs.routerContext([
+    render(<App params={{orgId: 'org-slug'}}>{<div>placeholder content</div>}</App>, {
+      context: TestStubs.routerContext([
         {
           router: TestStubs.router({
             params: {orgId: 'org-slug'},
           }),
         },
-      ])
-    );
+      ]),
+    });
 
-    // No Modal
-    expect(wrapper.find('Modal')).toHaveLength(0);
-
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     openCommandPalette({params: {orgId: 'org-slug'}});
-    await tick();
-    await tick();
-    wrapper.update();
+    await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument());
 
-    // Should have Modal + input
-    expect(wrapper.find('Modal')).toHaveLength(1);
-    wrapper.find('Modal input').simulate('change', {target: {value: 'bil'}});
+    userEvent.type(screen.getByRole('textbox'), 'bi');
 
-    await tick();
-    wrapper.update();
-
-    expect(orgsMock).toHaveBeenCalledWith(
+    expect(orgsMock).toHaveBeenLastCalledWith(
       expect.anything(),
       expect.objectContaining({
         // This nested 'query' is correct
-        query: {query: 'bil'},
+        query: {query: 'bi'},
       })
     );
 
-    expect(
-      wrapper.find('SearchResult [data-test-id="badge-display-name"]').first().text()
-    ).toBe('billy-org Dashboard');
+    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
-    expect(wrapper.find('Modal SearchResultWrapper').first().prop('highlighted')).toBe(
-      true
-    );
+    const badges = screen.getAllByTestId('badge-display-name');
 
-    expect(wrapper.find('Modal SearchResultWrapper').at(1).prop('highlighted')).toBe(
-      false
-    );
+    expect(badges[0]).toHaveTextContent('billy-org Dashboard');
+    expect(badges[1]).toHaveTextContent('billy-org Settings');
 
-    wrapper
-      .find('SearchResult [data-test-id="badge-display-name"]')
-      .first()
-      .simulate('click');
+    userEvent.click(badges[0]);
 
     expect(navigateTo).toHaveBeenCalledWith('/billy-org/', expect.anything(), undefined);
   });
