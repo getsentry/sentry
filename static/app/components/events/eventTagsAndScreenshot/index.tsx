@@ -74,7 +74,7 @@ function EventTagsAndScreenshots({
           eventAttachment={eventAttachment}
           downloadUrl={downloadUrl}
           onDelete={handleDelete}
-          trackDownload={() =>
+          onDownload={() =>
             trackAdvancedAnalyticsEvent(
               'issue_details.issue_tab.screenshot_modal_download',
               {

@@ -62,7 +62,7 @@ export function ScreenshotCard({
           eventAttachment={eventAttachment}
           downloadUrl={downloadUrl}
           onDelete={handleDelete}
-          trackDownload={() =>
+          onDownload={() =>
             trackAdvancedAnalyticsEvent(
               'issue_details.attachment_tab.screenshot_modal_download',
               {

@@ -22,9 +22,9 @@ type Props = ModalRenderProps & {
   downloadUrl: string;
   eventAttachment: EventAttachment;
   onDelete: () => void;
+  onDownload: () => void;
   orgSlug: Organization['slug'];
   projectSlug: Project['slug'];
-  trackDownload: () => void;
   event?: Event;
 };
 
@@ -38,7 +38,7 @@ function Modal({
   event,
   onDelete,
   downloadUrl,
-  trackDownload,
+  onDownload,
 }: Props) {
   const {dateCreated, size, mimetype} = eventAttachment;
   return (
@@ -95,7 +95,7 @@ function Modal({
           >
             <Button priority="danger">{t('Delete')}</Button>
           </Confirm>
-          <Button onClick={trackDownload} href={downloadUrl}>
+          <Button onClick={onDownload} href={downloadUrl}>
             {t('Download')}
           </Button>
         </Buttonbar>
