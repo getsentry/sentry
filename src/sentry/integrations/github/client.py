@@ -260,7 +260,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         return b64decode(encoded_content).decode("utf-8")
 
     def get_blame_for_file(
-        self, repo: Repository, path: str, ref: str
+        self, repo: Repository, path: str, ref: str, lineno: int
     ) -> Sequence[Mapping[str, Any]]:
         [owner, name] = repo.name.split("/")
         query = f"""query {{

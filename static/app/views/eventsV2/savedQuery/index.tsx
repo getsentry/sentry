@@ -19,7 +19,7 @@ import FeatureBadge from 'sentry/components/featureBadge';
 import {Hovercard} from 'sentry/components/hovercard';
 import InputControl from 'sentry/components/input';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
-import {IconDelete, IconStar} from 'sentry/icons';
+import {IconBookmark, IconDelete, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project, SavedQuery} from 'sentry/types';
@@ -61,6 +61,7 @@ function SaveAsDropdown({
     <div>
       <Button
         {...triggerProps}
+        size="sm"
         icon={<IconStar />}
         aria-label={t('Save as')}
         disabled={disabled}
@@ -308,6 +309,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
       return (
         <Button
           icon={<IconStar color="yellow100" isSolid size="sm" />}
+          size="sm"
           disabled
           data-test-id="discover2-savedquery-button-saved"
         >
@@ -323,6 +325,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
             onClick={this.handleUpdateQuery}
             data-test-id="discover2-savedquery-button-update"
             disabled={disabled}
+            size="sm"
           >
             <IconUpdate />
             {t('Save Changes')}
@@ -348,6 +351,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
         data-test-id="discover2-savedquery-button-delete"
         onClick={this.handleDeleteQuery}
         disabled={disabled}
+        size="sm"
         icon={<IconDelete />}
         aria-label={t('Delete')}
       />
@@ -365,6 +369,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
           projects={projects}
           onClick={this.handleCreateAlertSuccess}
           referrer="discover"
+          size="sm"
           aria-label={t('Create Alert')}
           data-test-id="discover2-create-from-discover"
         />
@@ -378,6 +383,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
       <Button
         key="add-dashboard-widget-from-discover"
         data-test-id="add-dashboard-widget-from-discover"
+        size="sm"
         onClick={() =>
           handleAddQueryToDashboard({
             organization,
@@ -431,9 +437,11 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
               });
             }
           }}
+          size="sm"
+          icon={<IconBookmark isSolid />}
           disabled={buttonDisabled}
         >
-          {t('Reset Discover Home')}
+          {t('Remove Default')}
           <FeatureBadge type="alpha" />
         </Button>
       );
@@ -453,9 +461,11 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
             setHomepageQuery(updatedHomepageQuery);
           }
         }}
+        size="sm"
+        icon={<IconBookmark />}
         disabled={buttonDisabled}
       >
-        {t('Use as Discover Home')}
+        {t('Set As Default')}
         <FeatureBadge type="alpha" />
       </Button>
     );
@@ -528,7 +538,6 @@ const SaveAsButton = styled(Button)`
 `;
 
 const SaveAsInput = styled(InputControl)`
-  height: 40px;
   margin-bottom: ${space(1)};
 `;
 

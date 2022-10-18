@@ -321,9 +321,11 @@ class GitLabApiClient(ApiClient):
         return b64decode(encoded_content).decode("utf-8")
 
     def get_blame_for_file(
-        self, repo: Repository, path: str, ref: str
+        self, repo: Repository, path: str, ref: str, lineno: int
     ) -> Sequence[Mapping[str, Any]]:
         project_id = repo.config["project_id"]
         request_path = GitLabApiClientPath.blame.format(project=project_id, path=path)
-        contents = self.get(request_path, params={"ref": ref})
+        contents = self.get(
+            request_path, params={"ref": ref, "range[start]": lineno, "range[end]": lineno}
+        )
         return contents

@@ -1,4 +1,4 @@
-import {ReactElement, useMemo} from 'react';
+import {ReactNode, useMemo} from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
@@ -18,7 +18,7 @@ const selection: PageFilters = {
   projects: [],
 };
 
-function TestContext({children}: {children: ReactElement}) {
+function TestContext({children}: {children?: ReactNode}) {
   const {organization} = useMemo(() => initializeOrg(), []);
 
   return (
@@ -34,8 +34,9 @@ describe('useProfiles', function () {
   });
 
   it('initializes with the initial state', function () {
-    const hook = reactHooks.renderHook(() => useProfiles({query: ''}), {
+    const hook = reactHooks.renderHook(useProfiles, {
       wrapper: TestContext,
+      initialProps: {query: ''},
     });
     expect(hook.result.current).toEqual({type: 'initial'});
   });
@@ -46,8 +47,9 @@ describe('useProfiles', function () {
       body: [],
     });
 
-    const hook = reactHooks.renderHook(() => useProfiles({query: '', selection}), {
+    const hook = reactHooks.renderHook(useProfiles, {
       wrapper: TestContext,
+      initialProps: {query: '', selection},
     });
     expect(hook.result.current).toEqual({type: 'loading'});
     await hook.waitForNextUpdate();
