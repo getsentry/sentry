@@ -72,6 +72,9 @@ export type DashboardsEventParameters = {
     sort: string;
   };
   'dashboards_manage.create.start': {};
+  'dashboards_manage.delete': {dashboard_id: number};
+  'dashboards_manage.duplicate': {dashboard_id: number};
+  'dashboards_manage.paginate': {};
   'dashboards_manage.search': {};
   'dashboards_manage.templates.add': {
     dashboard_id: string;
@@ -163,6 +166,9 @@ export const dashboardsEventMap: Record<DashboardsEventKey, string | null> = {
   'dashboards_manage.search': 'Dashboards Manager: Search',
   'dashboards_manage.change_sort': 'Dashboards Manager: Sort By Changed',
   'dashboards_manage.create.start': 'Dashboards Manager: Dashboard Create Started',
+  'dashboards_manage.delete': 'Dashboards Manager: Dashboard Deleted',
+  'dashboards_manage.duplicate': 'Dashboards Manager: Dashboard Duplicated',
+  'dashboards_manage.paginate': 'Dashboards Manager: Paginate',
   'dashboards_manage.templates.toggle': 'Dashboards Manager: Template Toggle Changed',
   'dashboards_manage.templates.add': 'Dashboards Manager: Template Added',
   'dashboards_manage.templates.preview': 'Dashboards Manager: Template Previewed',
