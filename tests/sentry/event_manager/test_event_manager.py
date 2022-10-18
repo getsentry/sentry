@@ -60,7 +60,7 @@ from sentry.models import (
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG
 from sentry.spans.grouping.utils import hash_values
-from sentry.testutils import TestCase, assert_mock_called_once_with_partial
+from sentry.testutils import SnubaTestCase, TestCase, assert_mock_called_once_with_partial
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
@@ -97,15 +97,7 @@ class EventManagerTestMixin:
 
 
 @region_silo_test
-class EventManagerTest(TestCase, EventManagerTestMixin):
-    @pytest.fixture(autouse=True)
-    def initialize(self, reset_snuba):
-        """
-        EventManager writes events to snuba, so make sure to reset
-        snuba to avoid states being persisted between runs.
-        """
-        pass
-
+class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
     def test_similar_message_prefix_doesnt_group(self):
         # we had a regression which caused the default hash to just be
         # 'event.message' instead of '[event.message]' which caused it to
