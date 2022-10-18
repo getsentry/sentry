@@ -297,16 +297,16 @@ def get_span_evidence_value_problem(problem: PerformanceProblem) -> str:
 
 
 def get_span_evidence_value(
-    span: Union[Dict[str, Union[str, float]], Any, None] = None, include_op: bool = True
+    span: Union[Dict[str, Union[str, float]], None] = None, include_op: bool = True
 ) -> str:
     """Get the 'span evidence' data for a given span. This is displayed in issue alert emails."""
     value = "no value"
     if not span:
         return value
     if not span.get("op") and span.get("description"):
-        return cast(str, span["description"])
+        value = cast(str, span["description"])
     if span.get("op") and not span.get("description"):
-        return cast(str, span["op"])
+        value = cast(str, span["op"])
     if span.get("op") and span.get("description"):
         op = cast(str, span["op"])
         desc = cast(str, span["description"])
@@ -318,10 +318,7 @@ def get_span_evidence_value(
 
 def get_parent_and_repeating_spans(
     spans: Optional[List[Dict[str, Union[str, float]]]], problem: PerformanceProblem
-) -> tuple[
-    Union[Dict[str, Union[str, float]], Any, None],
-    Union[Dict[str, Union[str, float]], PerformanceProblem, None],
-]:
+) -> tuple[Union[Dict[str, Union[str, float]], None], Union[Dict[str, Union[str, float]], None]]:
     """Parse out the parent and repeating spans given an event's spans"""
     if not spans:
         return (None, None)
