@@ -46,15 +46,15 @@ const makeScrollContainerMock = ({height}: {height: number}) => {
 
 describe('useVirtualizedTree', () => {
   it('returns a tree', () => {
-    const results = reactHooks.renderHook(() =>
-      useVirtualizedTree({
+    const results = reactHooks.renderHook(useVirtualizedTree, {
+      initialProps: {
         overscroll: 0,
         rowHeight: 10,
         tree: [],
         scrollContainer: null,
         renderRow: () => <div />,
-      })
-    );
+      },
+    });
 
     expect(results.result.current.items).toEqual([]);
   });
@@ -64,15 +64,15 @@ describe('useVirtualizedTree', () => {
 
     const tree = [chain('child', 10)];
 
-    const {result} = reactHooks.renderHook(() =>
-      useVirtualizedTree({
+    const {result} = reactHooks.renderHook(useVirtualizedTree, {
+      initialProps: {
         rowHeight: 10,
         scrollContainer: mockScrollContainer,
         overscroll: 0,
         tree,
         renderRow: () => <div />,
-      })
-    );
+      },
+    });
 
     reactHooks.act(() => {
       result.current.handleExpandTreeNode(result.current.tree.roots[0], {
@@ -91,15 +91,15 @@ describe('useVirtualizedTree', () => {
 
     const tree = [chain('child', 20)];
 
-    const {result} = reactHooks.renderHook(() =>
-      useVirtualizedTree({
+    const {result} = reactHooks.renderHook(useVirtualizedTree, {
+      initialProps: {
         rowHeight: 10,
         scrollContainer: mockScrollContainer,
         overscroll: 0,
         tree,
         renderRow: () => <div />,
-      })
-    );
+      },
+    });
 
     reactHooks.act(() => {
       result.current.handleExpandTreeNode(result.current.tree.roots[0], {
@@ -122,15 +122,15 @@ describe('useVirtualizedTree', () => {
 
     const tree = [chain('child', 20)];
 
-    const {result} = reactHooks.renderHook(() =>
-      useVirtualizedTree({
+    const {result} = reactHooks.renderHook(useVirtualizedTree, {
+      initialProps: {
         rowHeight: 10,
         scrollContainer: mockScrollContainer,
         overscroll: 0,
         tree,
         renderRow: () => <div />,
-      })
-    );
+      },
+    });
 
     reactHooks.act(() => {
       result.current.handleExpandTreeNode(result.current.tree.roots[0], {
@@ -153,15 +153,15 @@ describe('useVirtualizedTree', () => {
 
     const tree = [chain('child', 20)];
 
-    const {result} = reactHooks.renderHook(() =>
-      useVirtualizedTree({
+    const {result} = reactHooks.renderHook(useVirtualizedTree, {
+      initialProps: {
         rowHeight: 10,
         scrollContainer: mockScrollContainer,
         overscroll: 2,
         tree,
         renderRow: () => <div />,
-      })
-    );
+      },
+    });
 
     reactHooks.act(() => {
       result.current.handleExpandTreeNode(result.current.tree.roots[0], {
@@ -182,15 +182,15 @@ describe('useVirtualizedTree', () => {
 
     const tree = [chain('child', 20)];
 
-    const {result} = reactHooks.renderHook(() =>
-      useVirtualizedTree({
+    const {result} = reactHooks.renderHook(useVirtualizedTree, {
+      initialProps: {
         rowHeight: 10,
         scrollContainer: mockScrollContainer,
         overscroll: 0,
         tree,
         renderRow: () => <div />,
-      })
-    );
+      },
+    });
 
     reactHooks.act(() => {
       result.current.handleExpandTreeNode(result.current.tree.roots[0], {
