@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import logging
 import random
+import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import timedelta
@@ -33,6 +34,7 @@ INTEGRATIONS_OF_INTEREST = [
     "Mongo",  # Node
     "Postgres",  # Node
 ]
+PARAMETERIZED_SQL_QUERY_REGEX = re.compile(r"\?|\$1|%s")
 
 
 class DetectorType(Enum):
@@ -889,7 +891,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         if not span_id or not op:
             return
 
-        if not op.startswith("db"):
+        if not self._is_db_op(op):
             # This breaks up the N+1 we're currently tracking.
             self._maybe_store_problem()
             self._reset_detection()
@@ -923,6 +925,9 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
 
     def on_complete(self) -> None:
         self._maybe_store_problem()
+
+    def _is_db_op(self, op: str) -> bool:
+        return op.startswith("db") and not op.startswith("db.redis")
 
     def _contains_complete_query(self, span: Span, is_source: Optional[bool] = False) -> bool:
         # Remove the truncation check from the n_plus_one db detector.
@@ -1005,6 +1010,10 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
             metrics.incr("performance.performance_issue.truncated_np1_db")
             return
 
+        if not self._contains_valid_repeating_query(self.n_spans[0]):
+            metrics.incr("performance.performance_issue.unparametrized_first_span")
+            return
+
         fingerprint = self._fingerprint(
             parent_span.get("op", None),
             parent_span.get("hash", None),
@@ -1023,6 +1032,10 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
                 cause_span_ids=[self.source_span.get("span_id", None)],
                 offender_span_ids=[span.get("span_id", None) for span in self.n_spans],
             )
+
+    def _contains_valid_repeating_query(self, span: Span) -> bool:
+        query = span.get("description", None)
+        return query and PARAMETERIZED_SQL_QUERY_REGEX.search(query)
 
     def _metrics_for_extra_matching_spans(self):
         # Checks for any extra spans that match the detected problem but are not part of affected spans.

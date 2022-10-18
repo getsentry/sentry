@@ -68,6 +68,11 @@ export interface FieldProps
    */
   label?: React.ReactNode;
   /**
+   * May be used to give the field an aria-label when the field's label is a
+   * react node.
+   */
+  labelText?: string;
+  /**
    * Show "required" indicator
    */
   required?: boolean;
@@ -119,6 +124,13 @@ function Field({
     ...props,
   };
 
+  const isVisible = typeof visible === 'function' ? visible(otherProps) : visible;
+  const isDisabled = typeof disabled === 'function' ? disabled(otherProps) : disabled;
+
+  if (!isVisible) {
+    return null;
+  }
+
   const {
     controlClassName,
     highlighted,
@@ -130,21 +142,15 @@ function Field({
     isSaving,
     isSaved,
     label,
+    labelText,
     hideLabel,
     stacked,
     children,
     style,
   } = otherProps;
 
-  const isVisible = typeof visible === 'function' ? visible(otherProps) : visible;
-  const isDisabled = typeof disabled === 'function' ? disabled(otherProps) : disabled;
-  let Control: React.ReactNode;
-
-  if (!isVisible) {
-    return null;
-  }
-
   const helpElement = typeof help === 'function' ? help(otherProps) : help;
+  const shouldRenderLabel = !hideLabel && !!label;
 
   const controlProps = {
     className: controlClassName,
@@ -159,11 +165,20 @@ function Field({
   };
 
   // See comments in prop types
-  if (children instanceof Function) {
-    Control = children({...otherProps, ...controlProps});
-  } else {
-    Control = <FieldControl {...controlProps}>{children}</FieldControl>;
-  }
+  const control =
+    typeof children === 'function' ? (
+      children({...otherProps, ...controlProps})
+    ) : (
+      <FieldControl {...controlProps}>{children}</FieldControl>
+    );
+
+  // Provide an `aria-label` to the FieldDescription label if our label is a
+  // string value. This helps with testing and accessability. Without this the
+  // aria label contains the entire description.
+  const ariaLabel = labelText ?? (typeof label === 'string' ? label : undefined);
+
+  // The help ID is used for the input element to have an `aria-describedby`
+  const helpId = `${id}_help`;
 
   return (
     <FieldWrapper
@@ -174,9 +189,9 @@ function Field({
       hasControlState={!flexibleControlStateSize}
       style={style}
     >
-      {((label && !hideLabel) || helpElement) && (
-        <FieldDescription inline={inline} htmlFor={id}>
-          {label && !hideLabel && (
+      {(shouldRenderLabel || helpElement) && (
+        <FieldDescription inline={inline} htmlFor={id} aria-label={ariaLabel}>
+          {shouldRenderLabel && (
             <FieldLabel disabled={isDisabled}>
               <span>
                 {label}
@@ -190,14 +205,13 @@ function Field({
             </FieldLabel>
           )}
           {helpElement && !showHelpInTooltip && (
-            <FieldHelp stacked={stacked} inline={inline}>
+            <FieldHelp id={helpId} stacked={stacked} inline={inline}>
               {helpElement}
             </FieldHelp>
           )}
         </FieldDescription>
       )}
-
-      {Control}
+      {control}
     </FieldWrapper>
   );
 }
