@@ -20,7 +20,7 @@ const GroupPreviewHovercard = ({
   const theme = useTheme();
 
   // No need to preview on hover for small devices
-  const shouldNotPreview = useMedia(`(max-width: ${theme.breakpoints.large})`);
+  const shouldNotPreview = useMedia(`(max-width: ${theme.breakpoints.medium})`);
   if (shouldNotPreview) {
     return <Fragment>{children}</Fragment>;
   }
