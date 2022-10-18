@@ -1,96 +1,66 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {changeInputValue, openMenu} from 'sentry-test/select-new';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Form, SelectCreatableField} from 'sentry/components/deprecatedforms';
 
 describe('SelectCreatableField', function () {
   it('can add user input into select field when using options', function () {
-    const wrapper = mountWithTheme(
+    render(
       <SelectCreatableField options={[{value: 'foo', label: 'Foo'}]} name="fieldName" />
     );
 
-    const input = wrapper.find('SelectControl input[type="text"]');
-    changeInputValue(input, 'bar');
-    wrapper.update();
-
-    // Text is in input
-    expect(wrapper.find('SelectControl input[type="text"]').props().value).toBe('bar');
+    userEvent.type(screen.getByRole('textbox'), 'bar');
+    expect(screen.getByRole('textbox')).toHaveValue('bar');
 
     // Click on create option
-    openMenu(wrapper, {control: true});
-    wrapper.find('SelectControl Option Label').simulate('click');
+    userEvent.click(screen.getByText('Create "bar"'));
 
-    // Is active hidden input value
-    expect(wrapper.find('SelectControl input[type="hidden"]').props().value).toEqual(
-      'bar'
-    );
+    // Should have 'bar' selected
+    expect(screen.getByText('bar')).toBeInTheDocument();
   });
 
   it('can add user input into select field when using choices', function () {
-    const wrapper = mountWithTheme(
-      <SelectCreatableField choices={['foo']} name="fieldName" />
-    );
+    render(<SelectCreatableField choices={['foo']} name="fieldName" />);
 
-    const input = wrapper.find('SelectControl input[type="text"]');
-    changeInputValue(input, 'bar');
-    wrapper.update();
-
-    // Text is in input
-    expect(wrapper.find('SelectControl input[type="text"]').props().value).toBe('bar');
+    userEvent.type(screen.getByRole('textbox'), 'bar');
+    expect(screen.getByRole('textbox')).toHaveValue('bar');
 
     // Click on create option
-    openMenu(wrapper, {control: true});
-    wrapper.find('SelectControl Option Label').simulate('click');
+    userEvent.click(screen.getByText('Create "bar"'));
 
-    // Is active hidden input value
-    expect(wrapper.find('SelectControl input[type="hidden"]').props().value).toEqual(
-      'bar'
-    );
+    // Should have 'bar' selected
+    expect(screen.getByText('bar')).toBeInTheDocument();
   });
 
   it('can add user input into select field when using paired choices', function () {
-    const wrapper = mountWithTheme(
-      <SelectCreatableField choices={[['foo', 'foo']]} name="fieldName" />
-    );
+    render(<SelectCreatableField choices={[['foo', 'foo']]} name="fieldName" />);
 
-    const input = wrapper.find('SelectControl input[type="text"]');
-    changeInputValue(input, 'bar');
-    wrapper.update();
-
-    // Text is in input
-    expect(wrapper.find('SelectControl input[type="text"]').props().value).toBe('bar');
+    userEvent.type(screen.getByRole('textbox'), 'bar');
+    expect(screen.getByRole('textbox')).toHaveValue('bar');
 
     // Click on create option
-    openMenu(wrapper, {control: true});
-    wrapper.find('SelectControl Option Label').simulate('click');
+    userEvent.click(screen.getByText('Create "bar"'));
 
-    // Is active hidden input value
-    expect(wrapper.find('SelectControl input[type="hidden"]').props().value).toEqual(
-      'bar'
-    );
+    // Should have 'bar' selected
+    expect(screen.getByText('bar')).toBeInTheDocument();
   });
 
   it('with Form context', function () {
     const submitMock = jest.fn();
-    const wrapper = mountWithTheme(
+    render(
       <Form onSubmit={submitMock}>
         <SelectCreatableField choices={[['foo', 'foo']]} name="fieldName" />
       </Form>,
       {}
     );
 
-    const input = wrapper.find('SelectControl input[type="text"]');
-    changeInputValue(input, 'bar');
-    wrapper.update();
-
-    // Text is in input
-    expect(wrapper.find('SelectControl input[type="text"]').props().value).toBe('bar');
+    userEvent.type(screen.getByRole('textbox'), 'bar');
+    expect(screen.getByRole('textbox')).toHaveValue('bar');
 
     // Click on create option
-    openMenu(wrapper, {control: true});
-    wrapper.find('SelectControl Option Label').simulate('click');
+    userEvent.click(screen.getByText('Create "bar"'));
 
-    wrapper.find('Form').simulate('submit');
+    userEvent.click(screen.getByRole('button', {name: /save/i}));
+
     expect(submitMock).toHaveBeenCalledWith(
       {
         fieldName: 'bar',
