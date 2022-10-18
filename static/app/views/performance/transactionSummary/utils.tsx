@@ -149,15 +149,29 @@ export function generateReplayLink(routes: PlainRoute<any>[]) {
     const replaySlug = `${tableRow['project.name']}:${replayId}`;
     const referrer = encodeURIComponent(getRouteStringFromRoutes(routes));
 
+    if (!tableRow.timestamp) {
+      return {
+        pathname: `/organizations/${organization.slug}/replays/${replaySlug}`,
+        query: {
+          referrer,
+        },
+      };
+    }
+
+    const transactionTimestamp = new Date(tableRow.timestamp).getTime();
+
+    const transactionStartTimestamp =
+      transactionTimestamp - (tableRow['transaction.duration'] as number);
+
     return {
       pathname: `/organizations/${organization.slug}/replays/${replaySlug}`,
       query: {
+        event_t: transactionStartTimestamp,
         referrer,
       },
     };
   };
 }
-
 export const SidebarSpacer = styled('div')`
   margin-top: ${space(3)};
 `;
