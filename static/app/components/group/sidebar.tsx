@@ -50,7 +50,6 @@ type Props = WithRouterProps & {
 };
 
 type State = {
-  environments: Environment[];
   participants: Group['participants'];
   allEnvironmentsGroupData?: Group;
   currentRelease?: CurrentRelease;
@@ -61,7 +60,6 @@ type State = {
 class BaseGroupSidebar extends Component<Props, State> {
   state: State = {
     participants: [],
-    environments: this.props.environments,
   };
 
   componentDidMount() {
@@ -71,9 +69,9 @@ class BaseGroupSidebar extends Component<Props, State> {
     this.fetchTagData();
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps: Props) {
-    if (!isEqual(nextProps.environments, this.props.environments)) {
-      this.setState({environments: nextProps.environments}, this.fetchTagData);
+  componentDidUpdate(prevProps: Props) {
+    if (!isEqual(prevProps.environments, this.props.environments)) {
+      this.fetchTagData();
     }
   }
 
@@ -150,7 +148,7 @@ class BaseGroupSidebar extends Component<Props, State> {
       const data = await api.requestPromise(`/issues/${group.id}/tags/`, {
         query: pickBy({
           key: group.tags.map(tag => tag.key),
-          environment: this.state.environments.map(env => env.name),
+          environment: this.props.environments.map(env => env.name),
         }),
       });
       this.setState({tagsWithTopValues: keyBy(data, 'key')});
