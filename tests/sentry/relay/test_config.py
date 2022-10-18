@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import pytest
 
 from sentry.models import ProjectKey
@@ -165,6 +167,102 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
         {"op": "glob", "name": "trace.release", "value": [release.version]}
     ]
     assert dynamic_sampling["rules"][1]["condition"]["inner"] == []
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "ss_sampling,ds_basic,current_ds_data,expected",
+    [
+        # server-side-sampling: True, dynamic-sampling-basic: True
+        # `dynamic-sampling-basic` flag has the highest precedence
+        (
+            True,
+            True,
+            {"rules": []},
+            {
+                "rules": [
+                    {
+                        "sampleRate": 0.1,
+                        "type": "trace",
+                        "active": True,
+                        "condition": {"op": "and", "inner": []},
+                        "id": 0,
+                    }
+                ]
+            },
+        ),
+        (
+            True,
+            True,
+            {
+                "rules": [
+                    {
+                        "sampleRate": 0.5,
+                        "type": "trace",
+                        "active": True,
+                        "condition": {"op": "and", "inner": []},
+                        "id": 0,
+                    }
+                ]
+            },
+            {
+                "rules": [
+                    {
+                        "sampleRate": 0.1,
+                        "type": "trace",
+                        "active": True,
+                        "condition": {"op": "and", "inner": []},
+                        "id": 0,
+                    }
+                ]
+            },
+        ),
+        (
+            True,
+            False,
+            {"rules": []},
+            {"rules": []},
+        ),
+        (
+            False,
+            True,
+            {"rules": []},
+            {
+                "rules": [
+                    {
+                        "sampleRate": 0.1,
+                        "type": "trace",
+                        "active": True,
+                        "condition": {"op": "and", "inner": []},
+                        "id": 0,
+                    }
+                ]
+            },
+        ),
+        (False, False, {"rules": []}, None),
+    ],
+)
+def test_project_config_with_uniform_rules_based_on_plan_in_dynamic_sampling_rules(
+    default_project, ss_sampling, ds_basic, current_ds_data, expected
+):
+    """
+    Tests that dynamic sampling information return correct uniform rules
+    """
+    default_project.update_option("sentry:dynamic_sampling", current_ds_data)
+    with Feature(
+        {
+            "organizations:server-side-sampling": ss_sampling,
+            "organizations:dynamic-sampling-basic": ds_basic,
+        }
+    ):
+        with patch(
+            "sentry.dynamic_sampling.utils.quotas.get_blended_sample_rate", return_value=0.1
+        ):
+            cfg = get_project_config(default_project)
+
+    cfg = cfg.to_dict()
+    dynamic_sampling = get_path(cfg, "config", "dynamicSampling")
+    assert dynamic_sampling == expected
 
 
 @pytest.mark.django_db
