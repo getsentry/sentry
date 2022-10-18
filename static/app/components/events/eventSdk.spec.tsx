@@ -48,7 +48,7 @@ describe('event sdk', function () {
     expect(
       await screen.findByText(
         textWithMarkupMatcher(
-          'Removed because of the PII rule [Replace] [Password fields] with [Scrubbed] from [password] in the settings of the organization org-slug'
+          "Removed because of the data scrubbing rule [Replace] [Password fields] with [Scrubbed] from [password] in your organization's settings"
         )
       )
     ).toBeInTheDocument(); // tooltip description
