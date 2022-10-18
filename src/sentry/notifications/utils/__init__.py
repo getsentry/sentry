@@ -8,6 +8,7 @@ from typing import (
     Any,
     Dict,
     Iterable,
+    List,
     Mapping,
     MutableMapping,
     Optional,
@@ -296,19 +297,19 @@ def get_span_evidence_value_problem(problem: PerformanceProblem) -> str:
 
 
 def get_span_evidence_value(
-    span: Optional[Dict[str, Union[str, float, None]]] = None, include_op: bool = True
+    span: Union[Dict[str, Union[str, float]], Any, None] = None, include_op: bool = True
 ) -> str:
     """Get the 'span evidence' data for a given span. This is displayed in issue alert emails."""
     value = "no value"
     if not span:
         return value
     if not span.get("op") and span.get("description"):
-        value = cast(str, span["description"])
+        return cast(str, span["description"])
     if span.get("op") and not span.get("description"):
-        value = cast(str, span["op"])
+        return cast(str, span["op"])
     if span.get("op") and span.get("description"):
-        op = span["op"]
-        desc = span["description"]
+        op = cast(str, span["op"])
+        desc = cast(str, span["description"])
         value = f"{op} - {desc}"
         if not include_op:
             value = desc
@@ -316,9 +317,15 @@ def get_span_evidence_value(
 
 
 def get_parent_and_repeating_spans(
-    spans: Sequence[Dict[str, Union[str, float, None]]], problem: PerformanceProblem
-) -> Any:
+    spans: Optional[List[Dict[str, Union[str, float]]]], problem: PerformanceProblem
+) -> tuple[
+    Union[Dict[str, Union[str, float]], Any, None],
+    Union[Dict[str, Union[str, float]], PerformanceProblem, None],
+]:
     """Parse out the parent and repeating spans given an event's spans"""
+    if not spans:
+        return (None, None)
+
     parent_span = None
     repeating_spans = None
 
@@ -336,7 +343,7 @@ def get_parent_and_repeating_spans(
 
 
 def perf_to_email_html(
-    spans: Sequence[Dict[str, Union[str, float, None]]], problem: PerformanceProblem = None
+    spans: Optional[List[Dict[str, Union[str, float]]]], problem: PerformanceProblem = None
 ) -> Any:
     """Generate the email HTML for a performance issue alert"""
     if not problem:
@@ -368,16 +375,19 @@ def get_matched_problem(event: Event) -> Optional[EventPerformanceProblem]:
     return None
 
 
-def get_spans(entries: Any) -> Any:
+def get_spans(
+    entries: tuple[List[Dict[str, List[Dict[str, Union[str, float]]]]], Dict[Any, Any]]
+) -> Union[List[Dict[str, Union[str, float]]], None]:
     """Get the given event's spans"""
     if not len(entries):
         return None
+
     return [entry.get("data") for entry in entries[0] if entry.get("type") == "spans"][0]
 
 
 def get_span_and_problem(
     event: Event,
-) -> Iterable[tuple[Sequence[Dict[str, Union[str, float, None]]], PerformanceProblem]]:
+) -> tuple[Optional[List[Dict[str, Union[str, float]]]], Optional[EventPerformanceProblem]]:
     """Get a given event's spans and performance problem"""
     entries = get_entries(event, None)
     spans = get_spans(entries)
