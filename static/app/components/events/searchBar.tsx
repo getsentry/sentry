@@ -119,7 +119,7 @@ function SearchBar(props: SearchBarProps) {
     customMeasurements,
   } = props;
 
-  const collectedTransactionFromGetTagsListRef = useRef<boolean | null>(null);
+  const collectedTransactionFromGetTagsListRef = useRef<boolean>(false);
   const api = useApi();
 
   useEffect(() => {
