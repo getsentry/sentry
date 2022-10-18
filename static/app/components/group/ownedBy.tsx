@@ -131,6 +131,7 @@ const ActorName = styled('div')`
 
 const IconWrapper = styled('div')`
   display: flex;
+  padding: ${space(0.25)};
 `;
 
 const StyledLink = styled(Link)`
