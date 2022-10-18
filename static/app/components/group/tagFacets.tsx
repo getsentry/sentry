@@ -59,7 +59,14 @@ type State = {
   tagsData: Record<string, TagWithTopValues>;
 };
 
-export function TagFacets({groupId, tagKeys, environments, event, tagFormatter}: Props) {
+export function TagFacets({
+  groupId,
+  tagKeys,
+  environments,
+  event,
+  tagFormatter,
+  title,
+}: Props) {
   const [state, setState] = useState<State>({
     tagsData: {},
     selectedTag: tagKeys.length > 0 ? tagKeys[0] : '',
