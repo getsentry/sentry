@@ -70,7 +70,8 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
         # transaction_forwarder header is not sent if option "eventstream:kafka-headers"
         # is not set to avoid increasing consumer lag on shared events topic.
-        transaction_forwarder = self._is_transaction_event(event)
+        is_transaction_event = transaction_forwarder = self._is_transaction_event(event)
+        message_type = "transaction" if is_transaction_event else "error"
 
         send_new_headers = options.get("eventstream:kafka-headers")
 
@@ -88,6 +89,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
                     "skip_consume": encode_bool(skip_consume),
                     "transaction_forwarder": encode_bool(transaction_forwarder),
                     "group_states": encode_list(group_states) if group_states is not None else None,
+                    "message_type": str(message_type),
                 }
             )
         else:
