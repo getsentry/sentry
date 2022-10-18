@@ -203,7 +203,7 @@ describe('EventExtraData', function () {
     expect(
       await screen.findByText(
         textWithMarkupMatcher(
-          'Replaced because of the PII rule [Replace] [[a-zA-Z0-9]+] with [Placeholder] from [$message] in the settings of the organization org-slug'
+          "Replaced because of the data scrubbing rule [Replace] [[a-zA-Z0-9]+] with [Placeholder] from [$message] in your organization's settings"
         )
       )
     ).toBeInTheDocument(); // tooltip description

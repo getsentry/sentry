@@ -264,12 +264,12 @@ const Content = styled('div')`
 `;
 
 type State = {
-  modalStore: ReturnType<typeof ModalStore.get>;
+  modalStore: ReturnType<typeof ModalStore.getState>;
 };
 
 class GlobalModalContainer extends Component<Partial<Props>, State> {
   state: State = {
-    modalStore: ModalStore.get(),
+    modalStore: ModalStore.getState(),
   };
 
   componentWillUnmount() {
