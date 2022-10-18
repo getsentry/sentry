@@ -29,6 +29,7 @@ const GroupPreviewHovercard = ({
     <StyledHovercard
       className={className}
       displayTimeout={200}
+      delay={100}
       position="right"
       tipBorderColor="border"
       tipColor="background"
