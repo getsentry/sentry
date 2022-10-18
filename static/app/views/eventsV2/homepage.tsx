@@ -20,12 +20,9 @@ type Props = {
   router: InjectedRouter;
   selection: PageFilters;
   setSavedQuery: (savedQuery: SavedQuery) => void;
-  homepageQuery?: SavedQuery;
-  savedQuery?: SavedQuery;
 };
 
 type HomepageQueryState = AsyncComponent['state'] & {
-  key: number;
   savedQuery?: SavedQuery | null;
 };
 
@@ -41,13 +38,10 @@ class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
         !EventView.fromLocation(this.props.location).isValid()) ||
       (this.state.savedQuery && this.props.location.search === '')
     ) {
-      console.log('prev', prevProps, prevState);
-      console.log('this', this.props, this.state);
       const eventView = EventView.fromSavedQuery(this.state.savedQuery);
       browserHistory.replace(
         eventView.getResultsViewUrlTarget(this.props.organization.slug, true)
       );
-      console.log(eventView.getResultsViewUrlTarget(this.props.organization.slug, true));
     }
     super.componentDidUpdate(prevProps, prevState);
   }
@@ -103,9 +97,8 @@ class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
 function HomepageContainer(props: Props) {
   return (
     <PageFiltersContainer
-      skipLoadLastUsed={
-        props.organization.features.includes('global-views') && !!props.savedQuery
-      }
+      skipLoadLastUsed={props.organization.features.includes('global-views')}
+      skipInitializeUrlParams
     >
       <HomepageQueryAPI {...props} />
     </PageFiltersContainer>
