@@ -56,7 +56,7 @@ function TransactionToProfileButton({transactionId, orgId, projectId}: Props) {
   });
 
   return (
-    <Button onClick={handleGoToProfile} to={target}>
+    <Button size="sm" onClick={handleGoToProfile} to={target}>
       {t('Go to Profile')}
     </Button>
   );
