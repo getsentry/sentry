@@ -1,4 +1,5 @@
 import {useEffect} from 'react';
+import * as Sentry from '@sentry/react';
 import assign from 'lodash/assign';
 import flatten from 'lodash/flatten';
 import memoize from 'lodash/memoize';
@@ -166,6 +167,7 @@ function SearchBar(props: SearchBarProps) {
       React.ComponentProps<typeof Measurements>['children']
     >[0]['measurements']
   ) => {
+    const transaction = Sentry.startTransaction({name: 'SearchBar.getTagList'});
     const functionTags = getFunctionTags(fields ?? []);
     const fieldTags = getFieldTags();
     const measurementsWithKind = getMeasurementTags(measurements);
@@ -203,7 +205,9 @@ function SearchBar(props: SearchBarProps) {
       kind: FieldKind.FIELD,
     };
 
-    return omit(combinedTags, omitTags ?? []);
+    const list = omit(combinedTags, omitTags ?? []);
+    transaction.finish();
+    return list;
   };
 
   return (
