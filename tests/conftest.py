@@ -1,6 +1,7 @@
 import os
 from typing import MutableSet
 
+import psutil
 import pytest
 from django.db.transaction import get_connection
 
@@ -20,6 +21,13 @@ pytest_plugins = ["sentry.utils.pytest"]
 #
 # Inspired by:
 # https://github.com/pytest-dev/pytest/blob/master/src/_pytest/terminal.py
+
+
+@pytest.fixture(autouse=True)
+def unclosed_files():
+    fds = frozenset(psutil.Process().open_files())
+    yield
+    assert frozenset(psutil.Process().open_files()) == fds
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
