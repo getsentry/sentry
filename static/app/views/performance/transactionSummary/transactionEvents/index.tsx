@@ -237,9 +237,11 @@ function getWebVital(location: Location): WebVital | undefined {
 
 function generateEventView({
   location,
+  organization,
   transactionName,
 }: {
   location: Location;
+  organization: Organization;
   transactionName: string;
 }): EventView {
   const query = decodeScalar(location.query.query, '');
@@ -263,6 +265,9 @@ function generateEventView({
     'trace',
     'timestamp',
   ];
+  if (organization.features.includes('session-replay-ui')) {
+    fields.push('replayId');
+  }
   const breakdown = decodeFilterFromLocation(location);
   if (breakdown !== SpanOperationBreakdownFilter.None) {
     fields.splice(2, 1, `spans.${breakdown}`);

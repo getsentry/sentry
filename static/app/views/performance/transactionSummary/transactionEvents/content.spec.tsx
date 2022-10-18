@@ -14,6 +14,7 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import EventsPageContent from 'sentry/views/performance/transactionSummary/transactionEvents/content';
 import {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
+import {RouteContext} from 'sentry/views/routeContext';
 
 type Data = {
   features?: string[];
@@ -52,6 +53,7 @@ describe('Performance Transaction Events Content', function () {
   let eventView;
   let totalEventCount;
   let initialData;
+  let routeContext;
   const query =
     'transaction.duration:<15m event.type:transaction transaction:/api/0/organizations/{organization_slug}/events/';
   beforeEach(function () {
@@ -153,6 +155,13 @@ describe('Performance Transaction Events Content', function () {
       },
       initialData.router.location
     );
+
+    routeContext = {
+      router: initialData.router,
+      location: initialData.router.location,
+      params: {},
+      routes: [],
+    };
   });
 
   afterEach(function () {
@@ -163,20 +172,22 @@ describe('Performance Transaction Events Content', function () {
 
   it('basic rendering', async function () {
     const wrapper = mountWithTheme(
-      <OrganizationContext.Provider value={organization}>
-        <EventsPageContent
-          totalEventCount={totalEventCount}
-          eventView={eventView}
-          organization={organization}
-          location={initialData.router.location}
-          transactionName={transactionName}
-          spanOperationBreakdownFilter={SpanOperationBreakdownFilter.None}
-          onChangeSpanOperationBreakdownFilter={() => {}}
-          eventsDisplayFilterName={EventsDisplayFilterName.p100}
-          onChangeEventsDisplayFilter={() => {}}
-          setError={() => {}}
-        />
-      </OrganizationContext.Provider>,
+      <RouteContext.Provider value={routeContext}>
+        <OrganizationContext.Provider value={organization}>
+          <EventsPageContent
+            totalEventCount={totalEventCount}
+            eventView={eventView}
+            organization={organization}
+            location={initialData.router.location}
+            transactionName={transactionName}
+            spanOperationBreakdownFilter={SpanOperationBreakdownFilter.None}
+            onChangeSpanOperationBreakdownFilter={() => {}}
+            eventsDisplayFilterName={EventsDisplayFilterName.p100}
+            onChangeEventsDisplayFilter={() => {}}
+            setError={() => {}}
+          />
+        </OrganizationContext.Provider>
+      </RouteContext.Provider>,
       initialData.routerContext
     );
     await tick();
@@ -200,21 +211,23 @@ describe('Performance Transaction Events Content', function () {
 
   it('rendering with webvital selected', async function () {
     const wrapper = mountWithTheme(
-      <OrganizationContext.Provider value={organization}>
-        <EventsPageContent
-          totalEventCount={totalEventCount}
-          eventView={eventView}
-          organization={organization}
-          location={initialData.router.location}
-          transactionName={transactionName}
-          spanOperationBreakdownFilter={SpanOperationBreakdownFilter.None}
-          onChangeSpanOperationBreakdownFilter={() => {}}
-          eventsDisplayFilterName={EventsDisplayFilterName.p100}
-          onChangeEventsDisplayFilter={() => {}}
-          webVital={WebVital.LCP}
-          setError={() => {}}
-        />
-      </OrganizationContext.Provider>,
+      <RouteContext.Provider value={routeContext}>
+        <OrganizationContext.Provider value={organization}>
+          <EventsPageContent
+            totalEventCount={totalEventCount}
+            eventView={eventView}
+            organization={organization}
+            location={initialData.router.location}
+            transactionName={transactionName}
+            spanOperationBreakdownFilter={SpanOperationBreakdownFilter.None}
+            onChangeSpanOperationBreakdownFilter={() => {}}
+            eventsDisplayFilterName={EventsDisplayFilterName.p100}
+            onChangeEventsDisplayFilter={() => {}}
+            webVital={WebVital.LCP}
+            setError={() => {}}
+          />
+        </OrganizationContext.Provider>
+      </RouteContext.Provider>,
       initialData.routerContext
     );
     await tick();

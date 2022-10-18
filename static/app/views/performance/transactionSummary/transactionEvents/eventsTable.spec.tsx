@@ -169,6 +169,7 @@ describe('Performance GridEditable Table', function () {
         totalEventCount={totalEventCount}
         eventView={eventView}
         organization={organization}
+        routes={initialData.router.routes}
         location={initialData.router.location}
         setError={() => {}}
         columnTitles={transactionsListTitles}
@@ -219,6 +220,7 @@ describe('Performance GridEditable Table', function () {
         totalEventCount={totalEventCount}
         eventView={eventView}
         organization={organization}
+        routes={initialData.router.routes}
         location={initialData.router.location}
         setError={() => {}}
         columnTitles={transactionsListTitles}
@@ -254,6 +256,7 @@ describe('Performance GridEditable Table', function () {
         totalEventCount={totalEventCount}
         eventView={eventView}
         organization={organization}
+        routes={initialData.router.routes}
         location={initialData.router.location}
         setError={() => {}}
         columnTitles={transactionsListTitles}
