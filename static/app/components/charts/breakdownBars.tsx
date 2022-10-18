@@ -16,13 +16,14 @@ type Props = {
    * in the order they want bars displayed.
    */
   data: Point[];
+  maxItems?: number;
 };
 
-function BreakdownBars({data}: Props) {
+function BreakdownBars({data, maxItems}: Props) {
   const total = data.reduce((sum, point) => point.value + sum, 0);
   return (
     <BreakdownGrid>
-      {data.map((point, i) => (
+      {(maxItems ? data.slice(0, maxItems) : data).map((point, i) => (
         <Fragment key={`${i}:${point.label}`}>
           <Percentage>{formatPercentage(point.value / total, 0)}</Percentage>
           <BarContainer
