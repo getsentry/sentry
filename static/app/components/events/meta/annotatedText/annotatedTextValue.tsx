@@ -1,7 +1,9 @@
+import styled from '@emotion/styled';
+
 import Tooltip from 'sentry/components/tooltip';
 import {Organization, Project} from 'sentry/types';
 
-import Chunks from './chunks';
+import {Redaction} from './redaction';
 import {getTooltipText} from './utils';
 import {ValueElement} from './valueElement';
 
@@ -14,7 +16,24 @@ type Props = {
 
 export function AnnotatedTextValue({value, meta, organization, project}: Props) {
   if (meta?.chunks?.length && meta.chunks.length > 1) {
-    return <Chunks chunks={meta.chunks} />;
+    return (
+      <ChunksSpan>
+        {meta.chunks.map((chunk, index) => {
+          if (chunk.type === 'redaction') {
+            return (
+              <Tooltip
+                title={getTooltipText({rule_id: chunk.rule_id, remark: chunk.remark})}
+                key={index}
+              >
+                <Redaction>{chunk.text}</Redaction>
+              </Tooltip>
+            );
+          }
+
+          return chunk.text;
+        })}
+      </ChunksSpan>
+    );
   }
 
   if (meta?.rem?.length) {
@@ -35,3 +54,9 @@ export function AnnotatedTextValue({value, meta, organization, project}: Props) 
 
   return <ValueElement value={value} meta={meta} />;
 }
+
+const ChunksSpan = styled('span')`
+  span {
+    display: inline;
+  }
+`;

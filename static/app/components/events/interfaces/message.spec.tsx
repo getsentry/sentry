@@ -58,7 +58,7 @@ describe('Message entry', function () {
     expect(
       await screen.findByText(
         textWithMarkupMatcher(
-          'Removed because of the PII rule [Replace] [Password fields] with [Scrubbed] from [password] in the settings of the organization org-slug'
+          "Removed because of the data scrubbing rule [Replace] [Password fields] with [Scrubbed] from [password] in your organization's settings"
         )
       )
     ).toBeInTheDocument(); // tooltip description
@@ -72,9 +72,9 @@ describe('Message entry', function () {
       '/settings/org-slug/security-and-privacy/advanced-data-scrubbing/0/'
     );
 
-    expect(screen.getByRole('link', {name: 'org-slug'})).toHaveAttribute(
+    expect(screen.getByRole('link', {name: "organization's settings"})).toHaveAttribute(
       'href',
-      '/settings/org-slug/'
+      '/settings/org-slug/security-and-privacy/'
     );
   });
 });

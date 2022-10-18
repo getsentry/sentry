@@ -312,7 +312,9 @@ describe('OsSummary', function () {
       userEvent.hover(screen.getByText(/redacted/));
       expect(
         await screen.findByText(
-          textWithMarkupMatcher('Replaced because of the PII rule project:0') // Fall back case
+          textWithMarkupMatcher(
+            "Replaced because of a data scrubbing rule in your project's settings"
+          ) // Fall back case
         )
       ).toBeInTheDocument(); // tooltip description
     });
@@ -339,7 +341,9 @@ describe('OsSummary', function () {
       userEvent.hover(screen.getByText(/redacted/));
       expect(
         await screen.findByText(
-          textWithMarkupMatcher('Replaced because of the PII rule project:0') // Fall back case
+          textWithMarkupMatcher(
+            "Replaced because of a data scrubbing rule in your project's settings"
+          ) // Fall back case
         )
       ).toBeInTheDocument(); // tooltip description
     });
@@ -398,7 +402,9 @@ describe('GpuSummary', function () {
       userEvent.hover(screen.getByText(/redacted/));
       expect(
         await screen.findByText(
-          textWithMarkupMatcher('Replaced because of the PII rule project:0')
+          textWithMarkupMatcher(
+            "Replaced because of a data scrubbing rule in your project's settings"
+          )
         ) // Fall back case)
       ).toBeInTheDocument(); // tooltip description
     });
@@ -598,7 +604,9 @@ describe('UserSummary', function () {
       userEvent.hover(screen.getByText(/redacted/));
       expect(
         await screen.findByText(
-          textWithMarkupMatcher('Replaced because of the PII rule project:0') // Fall back case
+          textWithMarkupMatcher(
+            "Replaced because of a data scrubbing rule in your project's settings"
+          ) // Fall back case
         )
       ).toBeInTheDocument(); // tooltip description
     });

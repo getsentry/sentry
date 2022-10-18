@@ -15,7 +15,7 @@ const REMARKS = {
   e: 'Encrypted',
 };
 
-const KNOWN_RULES = {
+const NON_DATA_SCRUBBING_RULES = {
   '!limit': 'size limits',
   '!raw': 'raw payload',
   '!config': 'SDK configuration',
@@ -32,11 +32,10 @@ export function getTooltipText({
 }) {
   const method = REMARKS[remark];
 
-  // default data scrubbing
-  if (KNOWN_RULES[rule_id]) {
-    return tct('[method] because of the PII rule [ruleDescription]', {
+  if (NON_DATA_SCRUBBING_RULES[rule_id]) {
+    return tct('[method] because of [ruleDescription]', {
       method,
-      ruleDescription: KNOWN_RULES[rule_id],
+      ruleDescription: NON_DATA_SCRUBBING_RULES[rule_id],
     });
   }
 
@@ -48,10 +47,12 @@ export function getTooltipText({
     if (!organization) {
       return (
         <Wrapper>
-          {tct('[method] because of the PII rule [ruleDescription]', {
-            method,
-            ruleDescription: rule_id,
-          })}
+          {tct(
+            "[method] because of the a data scrubbing rule in your organization's settings.",
+            {
+              method,
+            }
+          )}
         </Wrapper>
       );
     }
@@ -61,22 +62,36 @@ export function getTooltipText({
 
     return (
       <Wrapper>
-        {tct(
-          '[method] because of the PII rule [ruleDescription] in the settings of the organization [organizationSlug]',
-          {
-            method,
-            ruleDescription: (
-              <Link
-                to={`/settings/${organization.slug}/security-and-privacy/advanced-data-scrubbing/${ruleId}/`}
-              >
-                {rule ? getRuleDescription(rule) : ruleId}
-              </Link>
-            ),
-            organizationSlug: (
-              <Link to={`/settings/${organization.slug}/`}>{organization.slug}</Link>
-            ),
-          }
-        )}
+        {rule
+          ? tct(
+              "[method] because of the data scrubbing rule [ruleDescription] in your [orgSettingsLink:organization's settings]",
+              {
+                method,
+                ruleDescription: (
+                  <Link
+                    to={`/settings/${organization.slug}/security-and-privacy/advanced-data-scrubbing/${ruleId}/`}
+                  >
+                    {rule ? getRuleDescription(rule) : ruleId}
+                  </Link>
+                ),
+                orgSettingsLink: (
+                  <Link to={`/settings/${organization.slug}/security-and-privacy/`}>
+                    {organization.slug}
+                  </Link>
+                ),
+              }
+            )
+          : tct(
+              "[method] because of a data scrubbing rule in your [orgSettingsLink:organization's settings]",
+              {
+                method,
+                orgSettingsLink: (
+                  <Link to={`/settings/${organization.slug}/security-and-privacy/`}>
+                    {organization.slug}
+                  </Link>
+                ),
+              }
+            )}
       </Wrapper>
     );
   }
@@ -85,9 +100,8 @@ export function getTooltipText({
   if (!project || !organization) {
     return (
       <Wrapper>
-        {tct('[method] because of the PII rule [ruleDescription]', {
+        {tct("[method] because of a data scrubbing rule in your project's settings", {
           method,
-          ruleDescription: rule_id,
         })}
       </Wrapper>
     );
@@ -98,24 +112,40 @@ export function getTooltipText({
 
   return (
     <Wrapper>
-      {tct(
-        '[method] because of the PII rule [ruleDescription] in the settings of the project [projectSlug]',
-        {
-          method,
-          ruleDescription: (
-            <Link
-              to={`/settings/${organization.slug}/projects/${project.slug}/security-and-privacy/advanced-data-scrubbing/${ruleId}/`}
-            >
-              {rule ? getRuleDescription(rule) : ruleId}
-            </Link>
-          ),
-          projectSlug: (
-            <Link to={`/settings/${organization.slug}/projects/${project?.slug}/`}>
-              {project.slug}
-            </Link>
-          ),
-        }
-      )}
+      {rule
+        ? tct(
+            '[method] because of the data scrubbing rule [ruleDescription] in the settings of the project [projectSlug]',
+            {
+              method,
+              ruleDescription: (
+                <Link
+                  to={`/settings/${organization.slug}/projects/${project.slug}/security-and-privacy/advanced-data-scrubbing/${ruleId}/`}
+                >
+                  {rule ? getRuleDescription(rule) : ruleId}
+                </Link>
+              ),
+              projectSlug: (
+                <Link
+                  to={`/settings/${organization.slug}/projects/${project?.slug}/security-and-privacy/`}
+                >
+                  {project.slug}
+                </Link>
+              ),
+            }
+          )
+        : tct(
+            '[method] because of a data scrubbing rule in the settings of the project [projectSlug]',
+            {
+              method,
+              projectSlug: (
+                <Link
+                  to={`/settings/${organization.slug}/projects/${project?.slug}/security-and-privacy/`}
+                >
+                  {project.slug}
+                </Link>
+              ),
+            }
+          )}
     </Wrapper>
   );
 }

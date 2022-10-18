@@ -77,7 +77,7 @@ describe('Breadcrumb Data Exception', function () {
     expect(
       await screen.findByText(
         textWithMarkupMatcher(
-          'Replaced because of the PII rule [Replace] [Password fields] with [Scrubbed] from [password] in the settings of the project project-slug'
+          'Replaced because of the data scrubbing rule [Replace] [Password fields] with [Scrubbed] from [password] in the settings of the project project-slug'
         )
       )
     ).toBeInTheDocument(); // tooltip description
@@ -124,7 +124,7 @@ describe('Breadcrumb Data Exception', function () {
     expect(
       await screen.findByText(
         textWithMarkupMatcher(
-          'Removed because of the PII rule [Replace] [Password fields] with [Scrubbed] from [password] in the settings of the project project-slug'
+          'Removed because of the data scrubbing rule [Replace] [Password fields] with [Scrubbed] from [password] in the settings of the project project-slug'
         )
       )
     ).toBeInTheDocument(); // tooltip description

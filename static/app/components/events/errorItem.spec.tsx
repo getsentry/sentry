@@ -83,7 +83,9 @@ describe('Issue error item', function () {
 
     expect(
       await screen.findByText(
-        textWithMarkupMatcher('Replaced because of the PII rule project:2')
+        textWithMarkupMatcher(
+          "Replaced because of a data scrubbing rule in your project's settings"
+        )
       ) // Fall back case
     ).toBeInTheDocument(); // tooltip description
   });
