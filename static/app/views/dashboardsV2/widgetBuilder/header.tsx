@@ -53,9 +53,10 @@ export function Header({
 
       <Layout.HeaderActions>
         <ButtonBar gap={1}>
-          <FeatureFeedback featureName="widget-builder" />
+          <FeatureFeedback buttonProps={{size: 'sm'}} featureName="widget-builder" />
           <Button
             external
+            size="sm"
             href="https://docs.sentry.io/product/dashboards/custom-dashboards/#widget-builder"
           >
             {t('Read the docs')}

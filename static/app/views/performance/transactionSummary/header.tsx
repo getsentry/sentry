@@ -131,6 +131,7 @@ function TransactionHeader({
             {({hasFeature}) =>
               hasFeature && !metricsCardinality?.isLoading ? (
                 <CreateAlertFromViewButton
+                  size="sm"
                   eventView={eventView}
                   organization={organization}
                   projects={projects}

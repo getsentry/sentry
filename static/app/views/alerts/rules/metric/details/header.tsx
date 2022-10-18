@@ -50,10 +50,10 @@ function DetailsHeader({hasMetricRuleDetailsError, rule, params, project}: Props
           ]}
         />
         <Controls>
-          <Button icon={<IconCopy />} to={duplicateLink}>
+          <Button size="sm" icon={<IconCopy />} to={duplicateLink}>
             {t('Duplicate')}
           </Button>
-          <Button icon={<IconEdit />} to={settingsLink}>
+          <Button size="sm" icon={<IconEdit />} to={settingsLink}>
             {t('Edit Rule')}
           </Button>
         </Controls>
