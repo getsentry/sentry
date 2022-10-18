@@ -6,6 +6,8 @@ import subprocess
 from functools import lru_cache
 from typing import Sequence
 
+ACTION_VERSION_RE = re.compile(r"(?<=uses: )(?P<action>.*)@(?P<ref>[^#\s]+)")
+
 
 @lru_cache(maxsize=None)
 def get_sha(repo: str, ref: str) -> str:
@@ -40,7 +42,6 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("files", nargs="+", type=str, help="path to github actions file")
     args = parser.parse_args(argv)
 
-    ACTION_VERSION_RE = re.compile(r"(?<=uses: )(?P<action>.*)@(?P<ref>.+?)\b")
     for fp in args.files:
         with open(fp, "r+") as f:
             newlines = []

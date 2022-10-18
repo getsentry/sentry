@@ -86,9 +86,11 @@ type Props = {
   setError: (msg: string | undefined) => void;
   transactionName: string;
   columnTitles?: string[];
+  customColumns?: string[];
   excludedTags?: string[];
   issueId?: string;
   projectId?: string;
+  referrer?: string;
   totalEventCount?: string;
 };
 
@@ -314,7 +316,8 @@ class EventsTable extends Component<Props, State> {
   };
 
   render() {
-    const {eventView, organization, location, setError, totalEventCount} = this.props;
+    const {eventView, organization, location, setError, totalEventCount, referrer} =
+      this.props;
 
     const totalTransactionsView = eventView.clone();
     totalTransactionsView.sorts = [];
@@ -329,15 +332,6 @@ class EventsTable extends Component<Props, State> {
       );
     const columnOrder = eventView
       .getColumns()
-      .filter(col => {
-        if (!this.state.attachments.length) {
-          return col.key !== 'attachments' && col.key !== 'minidump';
-        }
-        if (!this.state.hasMinidumps) {
-          return col.key !== 'minidump';
-        }
-        return true;
-      })
       .filter(
         (col: TableColumn<React.ReactText>) =>
           !containsSpanOpsBreakdown || !isSpanOperationBreakdownField(col.name)
@@ -348,6 +342,25 @@ class EventsTable extends Component<Props, State> {
         }
         return col;
       });
+
+    if (this.props.customColumns?.length && this.state.attachments.length) {
+      columnOrder.push({
+        isSortable: false,
+        key: 'attachments',
+        name: 'attachments',
+        type: 'never',
+        column: {field: 'attachments', kind: 'field', alias: undefined},
+      });
+      if (this.state.hasMinidumps) {
+        columnOrder.push({
+          isSortable: false,
+          key: 'minidump',
+          name: 'minidump',
+          type: 'never',
+          column: {field: 'minidump', kind: 'field', alias: undefined},
+        });
+      }
+    }
 
     const joinCustomData = ({data}: TableData) => {
       if (this.state.attachments.length) {
@@ -400,7 +413,7 @@ class EventsTable extends Component<Props, State> {
           orgSlug={organization.slug}
           location={location}
           setError={error => setError(error?.message)}
-          referrer="api.performance.transaction-events"
+          referrer={referrer || 'api.performance.transaction-events'}
           useEvents
         >
           {({pageLinks, isLoading: isDiscoverQueryLoading, tableData}) => {

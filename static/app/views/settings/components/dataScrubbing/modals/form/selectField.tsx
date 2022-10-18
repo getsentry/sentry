@@ -32,13 +32,6 @@ class SelectField extends Component<Props> {
           ...opt,
           details: opt.description ? `(${opt.description})` : undefined,
         }))}
-        styles={{
-          control: (provided: {[x: string]: string | number | boolean}) => ({
-            ...provided,
-            minHeight: '41px',
-            height: '41px',
-          }),
-        }}
         ref={this.selectRef}
         openOnFocus
       />
