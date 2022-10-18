@@ -2,7 +2,7 @@ import {Component, Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptor, LocationDescriptorObject} from 'history';
-import {groupBy} from 'lodash';
+import groupBy from 'lodash/groupBy';
 
 import {Client} from 'sentry/api';
 import GridEditable, {
