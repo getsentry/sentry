@@ -6,8 +6,8 @@ import {ListCollection} from '@react-stately/list';
 import {TabListProps as TabListStateProps, useTabListState} from '@react-stately/tabs';
 import {Node, Orientation} from '@react-types/shared';
 
+import CompactSelect from 'sentry/components/compactSelect';
 import DropdownButton from 'sentry/components/dropdownButton';
-import CompactSelect from 'sentry/components/forms/compactSelect';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -139,12 +139,11 @@ function BaseTabList({hideBorder = false, className, ...props}: TabListProps) {
           value={[...state.selectionManager.selectedKeys][0]}
           onChange={opt => state.setSelectedKey(opt.value)}
           isDisabled={disabled}
-          placement="bottom end"
+          position="bottom-end"
           size="sm"
           offset={4}
-          trigger={({props: triggerProps, ref: triggerRef}) => (
+          trigger={triggerProps => (
             <OverflowMenuTrigger
-              ref={triggerRef}
               {...triggerProps}
               borderless
               showChevron={false}

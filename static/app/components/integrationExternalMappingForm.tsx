@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
 import {FieldFromConfig} from 'sentry/components/forms';
+import {SelectAsyncControlProps} from 'sentry/components/forms/controls/selectAsyncControl';
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
-import {SelectAsyncControlProps} from 'sentry/components/forms/selectAsyncControl';
-import {Field} from 'sentry/components/forms/type';
+import {Field} from 'sentry/components/forms/types';
 import {t, tct} from 'sentry/locale';
 import {
   ExternalActorMapping,

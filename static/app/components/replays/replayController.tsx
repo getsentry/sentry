@@ -4,7 +4,7 @@ import {useResizeObserver} from '@react-aria/utils';
 
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import CompositeSelect from 'sentry/components/forms/compositeSelect';
+import CompositeSelect from 'sentry/components/compositeSelect';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {formatTime, relativeTimeInMs} from 'sentry/components/replays/utils';
 import {
@@ -126,11 +126,9 @@ function ReplayOptionsMenu({speedOptions}: {speedOptions: number[]}) {
 
   return (
     <CompositeSelect<SelectValue<string | number>>
-      placement="bottom"
-      trigger={({props, ref}) => (
+      trigger={triggerProps => (
         <Button
-          ref={ref}
-          {...props}
+          {...triggerProps}
           size="sm"
           title={t('Settings')}
           aria-label={t('Settings')}
