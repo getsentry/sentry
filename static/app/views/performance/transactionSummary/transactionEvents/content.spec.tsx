@@ -1,6 +1,6 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -16,14 +16,9 @@ import EventsPageContent from 'sentry/views/performance/transactionSummary/trans
 import {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 import {RouteContext} from 'sentry/views/routeContext';
 
-type Data = {
-  features?: string[];
-};
-
-function initializeData({features: additionalFeatures = []}: Data = {}) {
-  const features = ['discover-basic', 'performance-view', ...additionalFeatures];
+function initializeData() {
   const organization = TestStubs.Organization({
-    features,
+    features: ['discover-basic', 'performance-view', 'performance-ops-breakdown'],
     projects: [TestStubs.Project()],
     apdexThreshold: 400,
   });
@@ -47,13 +42,11 @@ function initializeData({features: additionalFeatures = []}: Data = {}) {
 
 describe('Performance Transaction Events Content', function () {
   let fields;
-  let organization;
   let data;
   let transactionName;
   let eventView;
   let totalEventCount;
   let initialData;
-  let routeContext;
   const query =
     'transaction.duration:<15m event.type:transaction transaction:/api/0/organizations/{organization_slug}/events/';
   beforeEach(function () {
@@ -69,7 +62,6 @@ describe('Performance Transaction Events Content', function () {
       'spans.total.time',
       ...SPAN_OP_BREAKDOWN_FIELDS,
     ];
-    organization = TestStubs.Organization();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -155,13 +147,6 @@ describe('Performance Transaction Events Content', function () {
       },
       initialData.router.location
     );
-
-    routeContext = {
-      router: initialData.router,
-      location: initialData.router.location,
-      params: {},
-      routes: [],
-    };
   });
 
   afterEach(function () {
@@ -170,14 +155,14 @@ describe('Performance Transaction Events Content', function () {
     jest.clearAllMocks();
   });
 
-  it('basic rendering', async function () {
-    const wrapper = mountWithTheme(
-      <RouteContext.Provider value={routeContext}>
-        <OrganizationContext.Provider value={organization}>
+  it('basic rendering', function () {
+    render(
+      <RouteContext.Provider value={initialData.routerContext}>
+        <OrganizationContext.Provider value={initialData.organization}>
           <EventsPageContent
             totalEventCount={totalEventCount}
             eventView={eventView}
-            organization={organization}
+            organization={initialData.organization}
             location={initialData.router.location}
             transactionName={transactionName}
             spanOperationBreakdownFilter={SpanOperationBreakdownFilter.None}
@@ -188,17 +173,19 @@ describe('Performance Transaction Events Content', function () {
           />
         </OrganizationContext.Provider>
       </RouteContext.Provider>,
-      initialData.routerContext
+      {context: initialData.routerContext}
     );
-    await tick();
-    wrapper.update();
 
-    expect(wrapper.find('EventsTable')).toHaveLength(1);
-    expect(wrapper.find('CompactSelect')).toHaveLength(1);
-    expect(wrapper.find('StyledSearchBar')).toHaveLength(1);
-    expect(wrapper.find('Filter')).toHaveLength(1);
+    expect(screen.getByTestId('events-table')).toBeInTheDocument();
+    expect(screen.getByText(textWithMarkupMatcher('Percentilep100'))).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText(t('Search for events, users, tags, and more'))
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('span-operation-breakdown-filter')).toBeInTheDocument();
 
-    const columnTitles = wrapper.find('EventsTable').props().columnTitles;
+    const columnTitles = screen
+      .getAllByRole('columnheader')
+      .map(elem => elem.textContent);
     expect(columnTitles).toEqual([
       t('event id'),
       t('user'),
@@ -209,14 +196,14 @@ describe('Performance Transaction Events Content', function () {
     ]);
   });
 
-  it('rendering with webvital selected', async function () {
-    const wrapper = mountWithTheme(
-      <RouteContext.Provider value={routeContext}>
-        <OrganizationContext.Provider value={organization}>
+  it('rendering with webvital selected', function () {
+    render(
+      <RouteContext.Provider value={initialData.routerContext}>
+        <OrganizationContext.Provider value={initialData.organization}>
           <EventsPageContent
             totalEventCount={totalEventCount}
             eventView={eventView}
-            organization={organization}
+            organization={initialData.organization}
             location={initialData.router.location}
             transactionName={transactionName}
             spanOperationBreakdownFilter={SpanOperationBreakdownFilter.None}
@@ -228,25 +215,19 @@ describe('Performance Transaction Events Content', function () {
           />
         </OrganizationContext.Provider>
       </RouteContext.Provider>,
-      initialData.routerContext
+      {context: initialData.routerContext}
     );
-    await tick();
-    wrapper.update();
 
-    expect(wrapper.find('EventsTable')).toHaveLength(1);
-    expect(wrapper.find('CompactSelect')).toHaveLength(1);
-    expect(wrapper.find('StyledSearchBar')).toHaveLength(1);
-    expect(wrapper.find('Filter')).toHaveLength(1);
+    expect(screen.getByTestId('events-table')).toBeInTheDocument();
+    expect(screen.getByText(textWithMarkupMatcher('Percentilep100'))).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText(t('Search for events, users, tags, and more'))
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('span-operation-breakdown-filter')).toBeInTheDocument();
 
-    const columnTitles = wrapper.find('EventsTable').props().columnTitles;
-    expect(columnTitles).toEqual([
-      t('event id'),
-      t('user'),
-      t('operation duration'),
-      t('measurements.lcp'),
-      t('total duration'),
-      t('trace id'),
-      t('timestamp'),
-    ]);
+    const columnTitles = screen
+      .getAllByRole('columnheader')
+      .map(elem => elem.textContent);
+    expect(columnTitles).toStrictEqual(expect.arrayContaining([t('measurements.lcp')]));
   });
 });

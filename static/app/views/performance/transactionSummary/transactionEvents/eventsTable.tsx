@@ -2,6 +2,7 @@ import {Component, Fragment} from 'react';
 import {browserHistory, RouteContextInterface} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptor, LocationDescriptorObject} from 'history';
+import groupBy from 'lodash/groupBy';
 
 import {Client} from 'sentry/api';
 import GridEditable, {
@@ -108,7 +109,7 @@ class EventsTable extends Component<Props, State> {
     widths: [],
     lastFetchedCursor: '',
     attachments: [],
-    hasMinidumps: true,
+    hasMinidumps: false,
   };
 
   api = new Client();
@@ -393,18 +394,9 @@ class EventsTable extends Component<Props, State> {
     }
 
     const joinCustomData = ({data}: TableData) => {
-      const eventIdMap = {};
-
+      const attachmentsByEvent = groupBy(this.state.attachments, 'event_id');
       data.forEach(event => {
-        event.attachments = [] as any;
-        eventIdMap[event.id] = event;
-      });
-
-      this.state.attachments.forEach(attachment => {
-        const eventAttachments = eventIdMap[attachment.event_id]?.attachments;
-        if (eventAttachments) {
-          eventAttachments.push(attachment);
-        }
+        event.attachments = (attachmentsByEvent[event.id] || []) as any;
       });
     };
 
@@ -439,7 +431,7 @@ class EventsTable extends Component<Props, State> {
     };
 
     return (
-      <div>
+      <div data-test-id="events-table">
         <DiscoverQuery
           eventView={eventView}
           orgSlug={organization.slug}
@@ -452,7 +444,8 @@ class EventsTable extends Component<Props, State> {
             tableData ??= {data: []};
             const parsedPageLinks = parseLinkHeader(pageLinks);
             const cursor = parsedPageLinks?.next?.cursor;
-            const shouldFetchAttachments = !!this.props.issueId; // Only fetch on issue details page
+            const shouldFetchAttachments: boolean =
+              !!this.props.issueId && !!cursor && this.state.lastFetchedCursor !== cursor; // Only fetch on issue details page
             let currentEvent = cursor?.split(':')[1] ?? 0;
             if (!parsedPageLinks?.next?.results && totalEventCount) {
               currentEvent = totalEventCount;
@@ -465,18 +458,14 @@ class EventsTable extends Component<Props, State> {
                     totalEventCount,
                   })
                 : undefined;
-            if (
-              shouldFetchAttachments &&
-              cursor &&
-              this.state.lastFetchedCursor !== cursor
-            ) {
+            if (shouldFetchAttachments) {
               fetchAttachments(tableData, cursor);
             }
             joinCustomData(tableData);
             return (
               <Fragment>
                 <GridEditable
-                  isLoading={isDiscoverQueryLoading}
+                  isLoading={isDiscoverQueryLoading || shouldFetchAttachments}
                   data={tableData?.data ?? []}
                   columnOrder={columnOrder}
                   columnSortBy={eventView.getSorts()}
