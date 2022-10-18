@@ -405,6 +405,10 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
   } = props;
 
   // Compatibility with old select2 API
+  //
+  // TODO(epurkhiser): We need better types on this coomponent to have higher
+  // confidence to remove this. There's likely few places we still use the
+  // select2 style choices.
   const choicesOrOptions =
     convertFromSelect2Choices(typeof choices === 'function' ? choices(props) : choices) ||
     options;
@@ -530,7 +534,7 @@ function SelectPicker<OptionType extends OptionTypeBase>({
 // The generics need to be filled here as forwardRef can't expose generics.
 const RefForwardedSelectControl = forwardRef<
   ReactSelect<GeneralSelectValue>,
-  ControlProps<GeneralSelectValue>
+  ControlProps
 >(function RefForwardedSelectControl(props, ref) {
   return <SelectControl forwardedRef={ref as any} {...props} />;
 });
