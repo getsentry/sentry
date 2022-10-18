@@ -1083,14 +1083,12 @@ def _eventstream_insert_many(jobs):
             is_new = False
             is_regression = False
             is_new_group_environment = False
-            group_category = GroupCategory.ERROR
         else:
             # error issues
             group_info = job["groups"][0]
             is_new = group_info.is_new
             is_regression = group_info.is_regression
             is_new_group_environment = group_info.is_new_group_environment
-            group_category = group_info.group.issue_category
 
             # performance issues with potentially multiple groups to a transaction
             group_states = [
@@ -1118,7 +1116,6 @@ def _eventstream_insert_many(jobs):
             # about post processing and handling the commit.
             skip_consume=job.get("raw", False),
             group_states=group_states,
-            group_category=group_category,
         )
 
 

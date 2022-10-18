@@ -14,8 +14,7 @@ from typing import (
     Union,
 )
 
-from sentry.tasks.post_process import get_post_process_queue, post_process_group
-from sentry.types.issues import GroupCategory
+from sentry.tasks.post_process import post_process_group
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.services import Service
 
@@ -41,6 +40,13 @@ class GroupState(TypedDict):
 
 
 GroupStates = Sequence[GroupState]
+
+
+def get_post_process_queue(message_type: str) -> str:
+    if message_type == "transaction":
+        return "post_process_transactions"
+    else:
+        return "post_process_errors"  # use error queue as default
 
 
 class EventStream(Service):
@@ -72,7 +78,7 @@ class EventStream(Service):
         primary_hash: Optional[str],
         skip_consume: bool = False,
         group_states: Optional[GroupStates] = None,
-        group_category: Optional[GroupCategory] = GroupCategory.ERROR,
+        message_type: Optional[str] = "error",
     ) -> None:
         if skip_consume:
             logger.info("post_process.skip.raw_event", extra={"event_id": event_id})
@@ -89,7 +95,7 @@ class EventStream(Service):
                     "group_id": group_id,
                     "group_states": group_states,
                 },
-                queue=get_post_process_queue(group_category),
+                queue=get_post_process_queue(message_type),
             )
 
     def insert(
@@ -102,7 +108,7 @@ class EventStream(Service):
         received_timestamp: float,
         skip_consume: bool = False,
         group_states: Optional[GroupStates] = None,
-        group_category: Optional[GroupCategory] = GroupCategory.ERROR,
+        **kwargs: Any,
     ) -> None:
         self._dispatch_post_process_group_task(
             event.event_id,
@@ -114,7 +120,7 @@ class EventStream(Service):
             primary_hash,
             skip_consume,
             group_states,
-            group_category,
+            kwargs.get("message_type", "error"),
         )
 
     def start_delete_groups(

@@ -427,6 +427,9 @@ class SnubaEventStream(SnubaProtocolEventStream):
         group_states: Optional[GroupStates] = None,
         **kwargs: Any,
     ) -> None:
+        message_type = "transaction" if self._is_transaction_event(event) else "error"
+        kwargs["message_type"] = message_type
+
         super().insert(
             event,
             is_new,
@@ -448,4 +451,5 @@ class SnubaEventStream(SnubaProtocolEventStream):
             primary_hash,
             skip_consume,
             group_states,
+            kwargs["message_type"],
         )

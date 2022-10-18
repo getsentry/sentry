@@ -6,14 +6,13 @@ from enum import Enum
 from typing import Any, Generator, Mapping, Optional, Sequence
 
 from sentry import options
-from sentry.eventstream.base import GroupStates
+from sentry.eventstream.base import GroupStates, get_post_process_queue
 from sentry.eventstream.kafka.protocol import (
     decode_bool,
     get_task_kwargs_for_message,
     get_task_kwargs_for_message_from_headers,
 )
-from sentry.tasks.post_process import get_post_process_queue, post_process_group
-from sentry.types.issues import GroupCategory
+from sentry.tasks.post_process import post_process_group
 from sentry.utils import metrics
 from sentry.utils.batching_kafka_consumer import AbstractBatchWorker
 from sentry.utils.cache import cache_key_for_event
@@ -76,7 +75,7 @@ def dispatch_post_process_group_task(
     primary_hash: Optional[str],
     skip_consume: bool = False,
     group_states: Optional[GroupStates] = None,
-    group_category: Optional[GroupCategory] = GroupCategory.ERROR,
+    message_type: Optional[str] = "error",
 ) -> None:
     if skip_consume:
         logger.info("post_process.skip.raw_event", extra={"event_id": event_id})
@@ -93,7 +92,7 @@ def dispatch_post_process_group_task(
                 "group_id": group_id,
                 "group_states": group_states,
             },
-            queue=get_post_process_queue(group_category),
+            queue=get_post_process_queue(message_type),
         )
 
 

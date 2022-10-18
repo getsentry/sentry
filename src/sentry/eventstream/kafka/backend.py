@@ -125,6 +125,8 @@ class KafkaEventStream(SnubaProtocolEventStream):
                 {"project_id": event.project_id, "message_type": message_type},
             )
 
+        kwargs["message_type"] = message_type
+
         if assign_partitions_randomly:
             kwargs[KW_SKIP_SEMANTIC_PARTITIONING] = True
 
