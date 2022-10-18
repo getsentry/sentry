@@ -75,7 +75,7 @@ export function QueryField({
 }
 
 const DragAndReorderButton = styled(Button)`
-  height: 40px;
+  height: ${p => p.theme.form.md.height}px;
 `;
 
 const QueryFieldWrapper = styled('div')`
