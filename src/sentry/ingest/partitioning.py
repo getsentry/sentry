@@ -8,10 +8,10 @@ from django.conf import settings
 
 def map_org_id_to_logical_partition(org_id: int) -> int:
     """
-    Maps an org_id to a logical partition. Since SENTRY_LOGICAL_PARTITIONS is
+    Maps an org_id to a logical partition. Since SENTRY_SLICING_LOGICAL_PARTITION_COUNT is
     fixed, an org id will always be mapped to the same logical partition.
     """
-    return org_id % settings.SENTRY_LOGICAL_PARTITIONS
+    return org_id % settings.SENTRY_SLICING_LOGICAL_PARTITION_COUNT
 
 
 def map_logical_partition_to_slice(dataset_name: str, logical_partition: int) -> int:
