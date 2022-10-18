@@ -49,7 +49,7 @@ class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {organization, location} = this.props;
+    const {organization} = this.props;
 
     const endpoints: ReturnType<AsyncComponent['getEndpoints']> = [];
     if (
@@ -60,12 +60,6 @@ class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
         'savedQuery',
         `/organizations/${organization.slug}/discover/homepage/`,
       ]);
-    }
-    // HACK: We're using state here to manage a component key so we can force remounting the entire discover result
-    // This is because we need <Results> to rerun its constructor with the new homepage query to get it to display properly
-    // We're checking to see that location.search is empty because that is the only time we should be fetching the homepage query
-    if (location.search === '' && this.state) {
-      this.setState({key: Date.now()});
     }
     return endpoints;
   }
@@ -90,7 +84,6 @@ class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
         loading={loading}
         setSavedQuery={this.setSavedQuery}
         isHomepage
-        key={`results-${this.state.key}`}
       />
     );
   }
