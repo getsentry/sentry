@@ -47,7 +47,6 @@ describe('Performance Transaction Events Content', function () {
   let eventView;
   let totalEventCount;
   let initialData;
-  let routeContext;
   const query =
     'transaction.duration:<15m event.type:transaction transaction:/api/0/organizations/{organization_slug}/events/';
   beforeEach(function () {
@@ -148,13 +147,6 @@ describe('Performance Transaction Events Content', function () {
       },
       initialData.router.location
     );
-
-    routeContext = {
-      router: initialData.router,
-      location: initialData.router.location,
-      params: {},
-      routes: [],
-    };
   });
 
   afterEach(function () {
@@ -191,10 +183,9 @@ describe('Performance Transaction Events Content', function () {
     ).toBeInTheDocument();
     expect(screen.getByTestId('span-operation-breakdown-filter')).toBeInTheDocument();
 
-    const eventsTable = screen.getByTestId('events-table');
-    const columnTitles = Array.from(eventsTable.querySelectorAll('th')).map(
-      elem => elem.textContent
-    );
+    const columnTitles = screen
+      .getAllByRole('columnheader')
+      .map(elem => elem.textContent);
     expect(columnTitles).toEqual([
       t('event id'),
       t('user'),
@@ -234,10 +225,9 @@ describe('Performance Transaction Events Content', function () {
     ).toBeInTheDocument();
     expect(screen.getByTestId('span-operation-breakdown-filter')).toBeInTheDocument();
 
-    const eventsTable = screen.getByTestId('events-table');
-    const columnTitles = Array.from(eventsTable.querySelectorAll('th')).map(
-      elem => elem.textContent
-    );
+    const columnTitles = screen
+      .getAllByRole('columnheader')
+      .map(elem => elem.textContent);
     expect(columnTitles).toStrictEqual(expect.arrayContaining([t('measurements.lcp')]));
   });
 });
