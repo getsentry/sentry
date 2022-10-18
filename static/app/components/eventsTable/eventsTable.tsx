@@ -19,7 +19,7 @@ class EventsTable extends Component<Props> {
     const hasUser = !!events.find(event => event.user);
 
     return (
-      <table className="table events-table">
+      <table className="table events-table" data-test-id="events-table">
         <thead>
           <tr>
             <th>{t('ID')}</th>

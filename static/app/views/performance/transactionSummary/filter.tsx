@@ -70,7 +70,10 @@ function Filter(props: Props) {
         options={menuOptions}
         value={currentFilter}
         onChange={opt => onChangeFilter(opt?.value)}
-        triggerProps={{icon: <IconFilter />}}
+        triggerProps={{
+          icon: <IconFilter />,
+          'data-test-id': 'span-operation-breakdown-filter',
+        }}
         triggerLabel={
           currentFilter === SpanOperationBreakdownFilter.None
             ? t('Filter')
