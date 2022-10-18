@@ -13,7 +13,13 @@ describe('useDisableRouteAnalytics', function () {
   it('disables analytics', function () {
     const setDisableRouteAnalytics = jest.fn();
     render(
-      <RouteAnalyticsContext.Provider value={{setDisableRouteAnalytics}}>
+      <RouteAnalyticsContext.Provider
+        value={{
+          setDisableRouteAnalytics,
+          setRouteAnalyticsParams: jest.fn(),
+          setOrganization: jest.fn(),
+        }}
+      >
         <TestComponent />
       </RouteAnalyticsContext.Provider>
     );

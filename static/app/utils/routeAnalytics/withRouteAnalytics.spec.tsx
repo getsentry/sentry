@@ -19,7 +19,13 @@ describe('withRouteAnalytics', function () {
   it('passes context to children as props', function () {
     const setRouteAnalyticsParams = jest.fn();
     render(
-      <RouteAnalyticsContext.Provider value={{setRouteAnalyticsParams}}>
+      <RouteAnalyticsContext.Provider
+        value={{
+          setRouteAnalyticsParams,
+          setDisableRouteAnalytics: jest.fn(),
+          setOrganization: jest.fn(),
+        }}
+      >
         <WrappedComponent />
       </RouteAnalyticsContext.Provider>
     );

@@ -13,7 +13,13 @@ describe('useRouteAnalyticsParams', function () {
   it('calls setRouteAnalyticsParams', function () {
     const setRouteAnalyticsParams = jest.fn();
     render(
-      <RouteAnalyticsContext.Provider value={{setRouteAnalyticsParams}}>
+      <RouteAnalyticsContext.Provider
+        value={{
+          setRouteAnalyticsParams,
+          setOrganization: jest.fn(),
+          setDisableRouteAnalytics: jest.fn(),
+        }}
+      >
         <TestComponent />
       </RouteAnalyticsContext.Provider>
     );

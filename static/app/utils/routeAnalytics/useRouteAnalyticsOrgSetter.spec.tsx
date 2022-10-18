@@ -16,7 +16,13 @@ describe('useRouteAnalyticsOrgSetter', function () {
     const {organization} = initializeOrg();
     const setOrganization = jest.fn();
     render(
-      <RouteAnalyticsContext.Provider value={{setOrganization}}>
+      <RouteAnalyticsContext.Provider
+        value={{
+          setOrganization,
+          setDisableRouteAnalytics: jest.fn(),
+          setRouteAnalyticsParams: jest.fn(),
+        }}
+      >
         <OrganizationContext.Provider value={organization}>
           <TestComponent />
         </OrganizationContext.Provider>
