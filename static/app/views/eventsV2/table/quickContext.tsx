@@ -122,7 +122,7 @@ export default function QuickContext(props: Props) {
   );
 }
 
-// Only includes issue status context for now.
+// NOTE: Only includes issue status and assignee context for now.
 function IssueContext(props: {data: Group}) {
   const statusTitle = t('Issue Status');
   const {status} = props.data;

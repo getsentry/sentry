@@ -161,7 +161,7 @@ describe('Discover -> CellAction', function () {
           type: 'team',
         },
       });
-      // @ts-ignore useApi is mocked
+      // @ts-ignore useApi and useOrganization is mocked
       useOrganization.mockReturnValue(organization);
       useApi.mockReturnValue(api);
 
