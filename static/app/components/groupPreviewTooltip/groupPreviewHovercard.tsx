@@ -1,13 +1,12 @@
-import {ComponentProps, Fragment, ReactChild} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {ComponentProps, Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Body, Hovercard} from 'sentry/components/hovercard';
+import {Hovercard} from 'sentry/components/hovercard';
+import theme from 'sentry/utils/theme';
 import useMedia from 'sentry/utils/useMedia';
 
 interface GroupPreviewHovercardProps extends ComponentProps<typeof Hovercard> {
-  children: ReactChild;
-  className?: string;
   hide?: boolean;
 }
 
@@ -17,8 +16,6 @@ const GroupPreviewHovercard = ({
   hide,
   ...props
 }: GroupPreviewHovercardProps) => {
-  const theme = useTheme();
-
   // No need to preview on hover for small devices
   const shouldNotPreview = useMedia(`(max-width: ${theme.breakpoints.medium})`);
   if (shouldNotPreview) {
@@ -26,7 +23,7 @@ const GroupPreviewHovercard = ({
   }
 
   return (
-    <StyledHovercard
+    <StyledHovercardWithBodyClass
       className={className}
       displayTimeout={200}
       delay={100}
@@ -37,9 +34,23 @@ const GroupPreviewHovercard = ({
       {...props}
     >
       {children}
-    </StyledHovercard>
+    </StyledHovercardWithBodyClass>
   );
 };
+
+// This intermediary is necessary to generate bodyClassName with styled components
+const HovercardWithBodyClass = ({className, ...rest}: GroupPreviewHovercardProps) => {
+  return <StyledHovercard bodyClassName={className} {...rest} />;
+};
+
+const StyledHovercardWithBodyClass = styled(HovercardWithBodyClass)`
+  padding: 0;
+  max-height: 300px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-bottom-left-radius: ${p => p.theme.borderRadius};
+  border-bottom-right-radius: ${p => p.theme.borderRadius};
+`;
 
 const StyledHovercard = styled(Hovercard)<{hide?: boolean}>`
   /* Lower z-index to match the modals (10000 vs 10002) to allow stackTraceLinkModal be on top of stack trace preview. */
@@ -50,22 +61,7 @@ const StyledHovercard = styled(Hovercard)<{hide?: boolean}>`
     p.hide &&
     css`
       visibility: hidden;
-    `}
-
-  ${Body} {
-    padding: 0;
-    max-height: 300px;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    border-bottom-left-radius: ${p => p.theme.borderRadius};
-    border-bottom-right-radius: ${p => p.theme.borderRadius};
-  }
-
-  .traceback {
-    margin-bottom: 0;
-    border: 0;
-    box-shadow: none;
-  }
+    `};
 
   .loading {
     margin: 0 auto;

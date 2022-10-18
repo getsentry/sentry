@@ -277,6 +277,12 @@ const Wrapper = styled('span')<{
 
 const StackTracePreviewWrapper = styled('div')`
   width: 700px;
+
+  .traceback {
+    margin-bottom: 0;
+    border: 0;
+    box-shadow: none;
+  }
 `;
 
 const NoStackTraceWrapper = styled('div')`
