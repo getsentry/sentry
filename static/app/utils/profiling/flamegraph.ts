@@ -30,6 +30,8 @@ export class Flamegraph {
     start: 0,
     end: 0,
     children: [],
+    previousSibling: null,
+    nextSibling: null,
   };
 
   formatter: (value: number) => string;
@@ -121,13 +123,16 @@ export class Flamegraph {
         depth: 0,
         start: offset + value,
         end: offset + value,
+        previousSibling: null,
+        nextSibling: null,
       };
 
-      if (parent) {
-        parent.children.push(frame);
-      } else {
-        this.root.children.push(frame);
+      const targetParent = parent || this.root;
+      if (targetParent.children.length > 0) {
+        frame.previousSibling = targetParent.children[targetParent.children.length - 1];
+        frame.previousSibling.nextSibling = frame;
       }
+      targetParent.children.push(frame);
 
       stack.push(frame);
       idx++;
@@ -176,6 +181,8 @@ export class Flamegraph {
       depth: 0,
       start: 0,
       end: 0,
+      previousSibling: null,
+      nextSibling: null,
     };
 
     this.root = virtualRoot;
@@ -192,13 +199,16 @@ export class Flamegraph {
         depth: 0,
         start: offset + value,
         end: offset + value,
+        previousSibling: null,
+        nextSibling: null,
       };
 
-      if (parent) {
-        parent.children.push(frame);
-      } else {
-        this.root.children.push(frame);
+      const targetParent = parent || this.root;
+      if (targetParent.children.length > 0) {
+        frame.previousSibling = targetParent.children[targetParent.children.length - 1];
+        frame.previousSibling.nextSibling = frame;
       }
+      targetParent.children.push(frame);
 
       stack.push(frame);
       idx++;

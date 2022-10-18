@@ -7,8 +7,10 @@ export interface FlamegraphFrame {
   end: number;
   frame: Frame;
   key: number;
+  nextSibling: FlamegraphFrame | null;
   node: CallTreeNode;
   parent: FlamegraphFrame | null;
+  previousSibling: FlamegraphFrame | null;
   start: number;
   processId?: number;
   threadId?: number;
