@@ -17,4 +17,9 @@ describe('ConfigStore', () => {
     const superUserCookieName = ConfigStore.get('superUserCookieName');
     expect(superUserCookieName).toEqual('su-test-cookie');
   });
+
+  it('should have customerDomain', () => {
+    const customerDomain = ConfigStore.get('customerDomain');
+    expect(customerDomain).toEqual('foobar');
+  });
 });
