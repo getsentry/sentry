@@ -27,7 +27,7 @@ const DropdownDate = styled(Panel)`
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 42px;
+  height: ${p => p.theme.form.md.height}px;
   background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};

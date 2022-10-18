@@ -204,7 +204,7 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
               size="xs"
               title={t('Table left')}
             >
-              <IconPanel size="xs" direction="right" />
+              <IconPanel size="xs" direction="left" />
             </StyledButton>
             <StyledButton
               active={flamegraphPreferences.layout === 'table bottom'}
@@ -220,7 +220,7 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
               size="xs"
               title={t('Table right')}
             >
-              <IconPanel size="xs" direction="left" />
+              <IconPanel size="xs" direction="right" />
             </StyledButton>
           </LayoutSelectionContainer>
         </ProfilingDetailsListItem>

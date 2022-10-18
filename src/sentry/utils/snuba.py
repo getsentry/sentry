@@ -855,7 +855,7 @@ def _bulk_snuba_query(
                     )
         except ValueError:
             if response.status != 200:
-                logger.error("snuba.query.invalid-json")
+                logger.exception("snuba.query.invalid-json", extra={"response.data", response.data})
                 raise SnubaError("Failed to parse snuba error response")
             raise UnexpectedResponseError(f"Could not decode JSON response: {response.data}")
 
