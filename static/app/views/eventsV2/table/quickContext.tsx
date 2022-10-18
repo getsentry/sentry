@@ -1,11 +1,15 @@
-import {useEffect, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Client} from 'sentry/api';
+import AssignedTo from 'sentry/components/group/assignedTo';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import * as SidebarSection from 'sentry/components/sidebarSection';
 import {IconCheckmark, IconMute, IconNot} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
+import {Group} from 'sentry/types';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import useApi from 'sentry/utils/useApi';
 
@@ -17,10 +21,6 @@ const UNKNOWN_ISSUE = 'unknown';
 export enum ColumnType {
   ISSUE = 'issue',
 }
-
-type IssueData = {
-  status: string;
-};
 
 function isIssueContext(
   dataRow: TableDataRow,
@@ -49,8 +49,8 @@ function fetchData(
   api: Client,
   dataRow: TableDataRow,
   column: TableColumn<keyof TableDataRow>
-): Promise<IssueData> {
-  const promise: Promise<IssueData> = api.requestPromise(getUrl(dataRow, column), {
+): Promise<Group> {
+  const promise: Promise<Group> = api.requestPromise(getUrl(dataRow, column), {
     method: 'GET',
     query: {
       collapse: 'release',
@@ -71,7 +71,7 @@ export default function QuickContext(props: Props) {
   const api = useApi();
   const [error, setError] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
-  const [data, setData] = useState<IssueData | null>(null);
+  const [data, setData] = useState<Group | null>(null);
 
   // NOTE: Will extend when we add more type of contexts.
 
@@ -86,6 +86,7 @@ export default function QuickContext(props: Props) {
         }
 
         setData(response);
+        GroupStore.add([response]);
       })
       .catch(() => {
         setError(true);
@@ -104,7 +105,11 @@ export default function QuickContext(props: Props) {
     <Wrapper>
       {loading ? (
         <NoContextWrapper>
-          <LoadingIndicator hideMessage size={32} />
+          <LoadingIndicator
+            data-test-id="quick-context-loading-indicator"
+            hideMessage
+            size={32}
+          />
         </NoContextWrapper>
       ) : error ? (
         <NoContextWrapper>{t('Failed to load context for column.')}</NoContextWrapper>
@@ -117,12 +122,12 @@ export default function QuickContext(props: Props) {
   );
 }
 
-// Only includes issue status context for now.
-function IssueContext(props: {data: IssueData}) {
+// NOTE: Only includes issue status and assignee context for now.
+function IssueContext(props: {data: Group}) {
   const statusTitle = t('Issue Status');
   const {status} = props.data;
 
-  return (
+  const renderStatus = () => (
     <ContextContainer>
       <ContextTitle>{statusTitle}</ContextTitle>
       <ContextBody>
@@ -141,12 +146,28 @@ function IssueContext(props: {data: IssueData}) {
       </ContextBody>
     </ContextContainer>
   );
+
+  const renderAssigneeSelector = () => (
+    <ContextContainer>
+      <AssignedTo group={props.data} projectId={props.data.project.id} />
+    </ContextContainer>
+  );
+
+  return (
+    <Fragment>
+      {renderStatus()}
+      {renderAssigneeSelector()}
+    </Fragment>
+  );
 }
 
 const ContextContainer = styled('div')`
   display: flex;
   flex-direction: column;
   margin: ${space(1.5)};
+  ${SidebarSection.Wrap} {
+    margin-bottom: 0;
+  }
 `;
 
 const ContextTitle = styled('h6')`
@@ -157,7 +178,7 @@ const ContextTitle = styled('h6')`
 `;
 
 const ContextBody = styled('div')`
-  margin: ${space(1.5)} 0 0;
+  margin: ${space(1)} 0 0;
   width: 100%;
   text-align: left;
   font-size: ${p => p.theme.fontSizeLarge};
@@ -175,7 +196,6 @@ const Wrapper = styled('div')`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   box-shadow: ${p => p.theme.dropShadowHeavy};
-  overflow: hidden;
   min-width: 200px;
 `;
 
