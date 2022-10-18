@@ -47,7 +47,9 @@ describe('event tags', function () {
     userEvent.hover(screen.getByText(/redacted/));
     expect(
       await screen.findByText(
-        textWithMarkupMatcher('Removed because of the PII rule project:2')
+        textWithMarkupMatcher(
+          "Removed because of a data scrubbing rule in your project's settings"
+        )
       ) // Fall back case
     ).toBeInTheDocument(); // tooltip description
   });
@@ -108,7 +110,9 @@ describe('event tags', function () {
 
     expect(
       await screen.findByText(
-        textWithMarkupMatcher('Removed because of the PII rule project:2')
+        textWithMarkupMatcher(
+          "Removed because of a data scrubbing rule in your project's settings"
+        )
       ) // Fall back case
     ).toBeInTheDocument(); // tooltip description
   });

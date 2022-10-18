@@ -326,19 +326,20 @@ class EventView {
 
     // only include sort keys that are included in the fields
     let equations = 0;
-    const sortKeys = fields
-      .map(field => {
-        if (field.field && isEquation(field.field)) {
-          const sortKey = getSortKeyFromField(
-            {field: `equation[${equations}]`},
-            undefined
-          );
-          equations += 1;
-          return sortKey;
+    const sortKeys: string[] = [];
+    fields.forEach(field => {
+      if (field.field && isEquation(field.field)) {
+        const sortKey = getSortKeyFromField({field: `equation[${equations}]`}, undefined);
+        equations += 1;
+        if (sortKey) {
+          sortKeys.push(sortKey);
         }
-        return getSortKeyFromField(field, undefined);
-      })
-      .filter((sortKey): sortKey is string => !!sortKey);
+      }
+      const sortKey = getSortKeyFromField(field, undefined);
+      if (sortKey) {
+        sortKeys.push(sortKey);
+      }
+    });
 
     const sort = sorts.find(currentSort => sortKeys.includes(currentSort.field));
     sorts = sort ? [sort] : [];
