@@ -2866,7 +2866,7 @@ SENTRY_REGION_CONFIG: Iterable[Region] = ()
 GATEWAY_PROXY_TIMEOUT = None
 
 SENTRY_SLICING_LOGICAL_PARTITION_COUNT = 256
-# This maps a dataset for slicing by name and (lower logical partition, upper physical partition)
+# This maps a Sliceable for slicing by name and (lower logical partition, upper physical partition)
 # to a given slice. A slice is a set of physical resources in Sentry and Snuba.
 #
 # For each dataset, the range [0, SENTRY_SLICING_LOGICAL_PARTITION_COUNT) must be mapped

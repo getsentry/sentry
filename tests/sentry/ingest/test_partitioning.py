@@ -1,7 +1,7 @@
 from django.test import override_settings
 
 from sentry.ingest.partitioning import (
-    is_storage_partitioned,
+    is_sliced,
     map_logical_partition_to_slice,
     map_org_id_to_logical_partition,
 )
@@ -9,8 +9,8 @@ from sentry.ingest.partitioning import (
 
 def test_is_storage_partitioned():
     with override_settings(SENTRY_SLICING_CONFIG={"generic_metrics_sets": {(0, 256): 0}}):
-        assert is_storage_partitioned("generic_metrics_sets")
-        assert not is_storage_partitioned("errors")
+        assert is_sliced("generic_metrics_sets")
+        assert not is_sliced("errors")
 
 
 def test_map_logical_partition_to_slice():
