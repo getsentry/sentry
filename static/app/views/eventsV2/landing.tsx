@@ -187,6 +187,10 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     const to = eventView.getResultsViewUrlTarget(organization.slug);
     const resultsUrl = `${to.pathname}?${stringify(to.query)}`;
 
+    if (organization.features.includes('discover-query-builder-as-landing-page')) {
+      return null;
+    }
+
     return <Banner organization={organization} resultsUrl={resultsUrl} />;
   }
 
