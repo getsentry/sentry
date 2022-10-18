@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, ReactNode, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 
@@ -47,6 +47,7 @@ type Props = {
   tagFormatter?: (
     tagsData: Record<string, TagWithTopValues>
   ) => Record<string, TagWithTopValues>;
+  title?: ReactNode;
 };
 
 type State = {
@@ -56,7 +57,7 @@ type State = {
   tagsData: Record<string, TagWithTopValues>;
 };
 
-export function TagFacets({groupId, tagKeys, environments, tagFormatter}: Props) {
+export function TagFacets({groupId, tagKeys, environments, title, tagFormatter}: Props) {
   const [state, setState] = useState<State>({
     tagsData: {},
     selectedTag: tagKeys.length > 0 ? tagKeys[0] : '',
@@ -83,7 +84,7 @@ export function TagFacets({groupId, tagKeys, environments, tagFormatter}: Props)
     });
     // Don't want to requery everytime state changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [api, environments, groupId, tagKeys]);
+  }, [api, JSON.stringify(environments), groupId, tagKeys]);
 
   const availableTagKeys = tagKeys.filter(tagKey => !!state.tagsData[tagKey]);
   // Format tagsData if the component was given a tagFormatter
@@ -99,7 +100,7 @@ export function TagFacets({groupId, tagKeys, environments, tagFormatter}: Props)
   if (availableTagKeys.length > 0) {
     return (
       <SidebarSection.Wrap>
-        <SidebarSection.Title>{t('Tag Summary')}</SidebarSection.Title>
+        <SidebarSection.Title>{title ?? t('Tag Summary')}</SidebarSection.Title>
         <TagFacetsContainer>
           <ButtonBar merged active={state.selectedTag}>
             {availableTagKeys.map(tagKey => {
