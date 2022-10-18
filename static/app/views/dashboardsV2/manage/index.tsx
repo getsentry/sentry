@@ -173,7 +173,7 @@ class ManageDashboards extends AsyncView<Props, State> {
           value={activeSort.value}
           options={SORT_OPTIONS}
           onChange={opt => this.handleSortChange(opt.value)}
-          placement="bottom right"
+          position="bottom-end"
         />
       </StyledActions>
     );
@@ -292,6 +292,7 @@ class ManageDashboards extends AsyncView<Props, State> {
                         event.preventDefault();
                         this.onCreate();
                       }}
+                      size="sm"
                       priority="primary"
                       icon={<IconAdd isCircled />}
                     >

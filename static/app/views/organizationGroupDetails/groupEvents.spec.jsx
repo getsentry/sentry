@@ -104,7 +104,7 @@ describe('groupEvents', function () {
     });
 
     attachmentsRequest = MockApiClient.addMockResponse({
-      url: '/api/0/issues/1/attachments/?event_id=id123',
+      url: '/api/0/issues/1/attachments/?per_page=50&types=event.minidump&event_id=id123',
       body: [],
     });
   });
@@ -290,7 +290,7 @@ describe('groupEvents', function () {
 
     it('displays minidumps', async () => {
       attachmentsRequest = MockApiClient.addMockResponse({
-        url: '/api/0/issues/1/attachments/?event_id=id123',
+        url: '/api/0/issues/1/attachments/?per_page=50&types=event.minidump&event_id=id123',
         body: [
           {
             id: 'id123',
@@ -325,9 +325,9 @@ describe('groupEvents', function () {
       expect(minidumpColumn).toBeInTheDocument();
     });
 
-    it('displays attachments', async () => {
+    it('does not display attachments but displays minidump', async () => {
       attachmentsRequest = MockApiClient.addMockResponse({
-        url: '/api/0/issues/1/attachments/?event_id=id123',
+        url: '/api/0/issues/1/attachments/?per_page=50&types=event.minidump&event_id=id123',
         body: [
           {
             id: 'id123',
@@ -359,7 +359,9 @@ describe('groupEvents', function () {
       );
       await waitForElementToBeRemoved(document.querySelector('div.loading-indicator'));
       const attachmentsColumn = screen.queryByText('attachments');
-      expect(attachmentsColumn).toBeInTheDocument();
+      const minidumpColumn = screen.queryByText('minidump');
+      expect(attachmentsColumn).not.toBeInTheDocument();
+      expect(minidumpColumn).toBeInTheDocument();
       expect(attachmentsRequest).toHaveBeenCalled();
     });
 
@@ -378,7 +380,12 @@ describe('groupEvents', function () {
       );
       expect(discoverRequest).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
-        expect.objectContaining({query: expect.objectContaining({query: 'issue.id:1 '})})
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: 'issue.id:1 ',
+            field: expect.not.arrayContaining(['attachments', 'minidump']),
+          }),
+        })
       );
 
       const perfEventsColumn = screen.getByText('transaction');

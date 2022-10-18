@@ -39,8 +39,6 @@ const AllEventsTable = (props: Props) => {
     'user.display',
     ...(isPerfIssue ? ['transaction.duration'] : []),
     'timestamp',
-    'attachments',
-    'minidump',
   ];
 
   const eventView: EventView = EventView.fromLocation(props.location);
@@ -67,7 +65,6 @@ const AllEventsTable = (props: Props) => {
     t('user'),
     ...(isPerfIssue ? [t('total duration')] : []),
     t('timestamp'),
-    t('attachments'),
     t('minidump'),
   ];
 
@@ -85,11 +82,13 @@ const AllEventsTable = (props: Props) => {
       excludedTags={excludedTags}
       projectId={projectId}
       totalEventCount={totalEventCount}
+      customColumns={['minidump']}
       setError={() => {
         (msg: string) => setError(msg);
       }}
       transactionName=""
       columnTitles={columnTitles.slice()}
+      referrer="api.issues.issue_events"
     />
   );
 };

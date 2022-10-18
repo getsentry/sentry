@@ -47,6 +47,7 @@ describe('Performance Transaction Events Content', function () {
   let eventView;
   let totalEventCount;
   let initialData;
+  let routeContext;
   const query =
     'transaction.duration:<15m event.type:transaction transaction:/api/0/organizations/{organization_slug}/events/';
   beforeEach(function () {
@@ -147,6 +148,13 @@ describe('Performance Transaction Events Content', function () {
       },
       initialData.router.location
     );
+
+    routeContext = {
+      router: initialData.router,
+      location: initialData.router.location,
+      params: {},
+      routes: [],
+    };
   });
 
   afterEach(function () {
