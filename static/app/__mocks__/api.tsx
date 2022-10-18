@@ -57,21 +57,15 @@ function compareRecord(want: Record<string, any>, check: Record<string, any>): b
 }
 
 afterEach(() => {
-  // if any errors are caught we console.warn them
+  // if any errors are caught we console.error them
   const errors = Object.values(Client.errors);
   if (errors.length > 0) {
     for (const err of errors) {
-      if (Client.shouldWarnOnMissingMocks) {
-        // eslint-disable-next-line no-console
-        console.warn(err);
-        continue;
-      }
       // eslint-disable-next-line no-console
       console.error(err);
     }
     Client.errors = {};
   }
-  Client.shouldWarnOnMissingMocks = false;
 });
 
 class Client implements ApiNamespace.Client {
@@ -218,13 +212,8 @@ class Client implements ApiNamespace.Client {
     });
   }
 
-  static shouldWarnOnMissingMocks: boolean = false;
-
-  /**
-   * @deprecated DO NOT USE THIS FUNCTION; we're using it to mark existing tests which do not correctly mock responses and would otherwise throw
-   */
-  static warnOnMissingMocks = () => (Client.shouldWarnOnMissingMocks = true);
   static errors: Record<string, Error> = {};
+
   // XXX(ts): We type the return type for requestPromise and request as `any`. Typically these woul
   request(url: string, options: Readonly<ApiNamespace.RequestOptions> = {}): any {
     const [response, mock] = Client.findMockResponse(url, options) || [

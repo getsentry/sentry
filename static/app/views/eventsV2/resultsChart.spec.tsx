@@ -1,5 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {act} from 'sentry-test/reactTestingLibrary';
 
 import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
@@ -99,14 +100,19 @@ describe('EventsV2 > ResultsChart', function () {
     );
   });
 
-  it('disables equation y-axis options when in World Map display mode', function () {
+  it('disables equation y-axis options when in World Map display mode', async function () {
     eventView.display = DisplayModes.WORLDMAP;
     eventView.fields = [
       {field: 'count()'},
       {field: 'count_unique(user)'},
       {field: 'equation|count() + 2'},
     ];
-    MockApiClient.warnOnMissingMocks();
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-geo/`,
+      body: [],
+    });
+
     const wrapper = mountWithTheme(
       <ResultsChart
         router={TestStubs.router()}
@@ -130,5 +136,8 @@ describe('EventsV2 > ResultsChart', function () {
     expect(yAxisOptions.length).toEqual(2);
     expect(yAxisOptions[0].value).toEqual('count()');
     expect(yAxisOptions[1].value).toEqual('count_unique(user)');
+
+    // Wait for event geo request results to preopgate to update
+    await act(tick);
   });
 });

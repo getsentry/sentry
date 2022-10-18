@@ -165,7 +165,12 @@ describe('TeamStatsHealth', () => {
     });
     const context = TestStubs.routerContext([{organization}]);
     TeamStore.loadInitialData(teams, false, null);
-    MockApiClient.warnOnMissingMocks();
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: [],
+    });
+
     return render(<TeamStatsHealth router={mockRouter} location={{}} />, {
       context,
       organization,

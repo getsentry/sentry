@@ -1078,8 +1078,12 @@ describe('ThreadsV2', function () {
           within(screen.getAllByTestId('stack-trace-frame')[1]).getByText('0x10008c5ac')
         ).toBeInTheDocument();
 
+        MockApiClient.addMockResponse({
+          url: `/projects/${organization.slug}/2/events/${event.id}/apple-crash-report?minified=false`,
+          body: '',
+        });
+
         // Click on raw stack trace option
-        MockApiClient.warnOnMissingMocks();
         userEvent.click(screen.getByText(displayOptions['raw-stack-trace']));
 
         // Download button is displayed

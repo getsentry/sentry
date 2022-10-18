@@ -10,7 +10,12 @@ describe('TeamAlertsTriggered', () => {
       url: `/teams/${organization.slug}/${team.slug}/alerts-triggered/`,
       body: TestStubs.TeamAlertsTriggered(),
     });
-    MockApiClient.warnOnMissingMocks();
+
+    MockApiClient.addMockResponse({
+      url: `/teams/${organization.slug}/${team.slug}/alerts-triggered-index/`,
+      body: [],
+    });
+
     render(
       <TeamAlertsTriggered organization={organization} teamSlug={team.slug} period="8w" />
     );

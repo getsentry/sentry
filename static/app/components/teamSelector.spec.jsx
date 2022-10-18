@@ -121,12 +121,15 @@ describe('Team Selector', function () {
     expect(addTeamToProject).toHaveBeenCalled();
   });
 
-  it('allows searching by slug with useId', function () {
+  it('allows searching by slug with useId', async function () {
     const onChangeMock = jest.fn();
     createWrapper({useId: true, onChange: onChangeMock});
     userEvent.type(screen.getByText('Select...'), '{keyDown}');
 
-    MockApiClient.warnOnMissingMocks();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/teams/`,
+    });
+
     userEvent.type(screen.getByLabelText('Select a team'), 'team2');
 
     expect(screen.getByText('#team2')).toBeInTheDocument();
@@ -135,5 +138,8 @@ describe('Team Selector', function () {
       expect.objectContaining({value: '2'}),
       expect.anything()
     );
+
+    // Wait for store to be updated from API response
+    await act(tick);
   });
 });

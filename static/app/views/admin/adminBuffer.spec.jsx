@@ -1,4 +1,4 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render} from 'sentry-test/reactTestingLibrary';
 
 import AdminBuffer from 'sentry/views/admin/adminBuffer';
 
@@ -7,10 +7,12 @@ import AdminBuffer from 'sentry/views/admin/adminBuffer';
 describe('AdminBuffer', function () {
   describe('render()', function () {
     it('renders', function () {
-      MockApiClient.warnOnMissingMocks();
-      const wrapper = render(<AdminBuffer params={{}} />);
+      MockApiClient.addMockResponse({
+        url: '/internal/stats/',
+        body: [],
+      });
 
-      expect(screen.getAllByTestId('loading-indicator')).toHaveLength(2);
+      const wrapper = render(<AdminBuffer params={{}} />);
       expect(wrapper.container).toSnapshot();
     });
   });
