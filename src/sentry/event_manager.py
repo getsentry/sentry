@@ -558,7 +558,6 @@ class EventManager:
                 _with_transaction=False,
             )
 
-        job["group_category"] = job["event"].group.issue_category
         _eventstream_insert_many(jobs)
 
         # Do this last to ensure signals get emitted even if connection to the
