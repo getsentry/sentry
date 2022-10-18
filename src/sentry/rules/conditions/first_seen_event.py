@@ -5,7 +5,7 @@ from sentry.eventstore.models import Event
 from sentry.models import Group
 from sentry.rules import EventState
 from sentry.rules.conditions.base import EventCondition
-from sentry.types.condition_activity import ActivityType, ConditionActivity
+from sentry.types.condition_activity import ConditionActivity, ConditionActivityType
 
 
 class FirstSeenEventCondition(EventCondition):
@@ -28,6 +28,8 @@ class FirstSeenEventCondition(EventCondition):
             .values_list("id", "first_seen")
         )
         return [
-            ConditionActivity(group_id=g[0], type=ActivityType.CREATE_ISSUE, timestamp=g[1])
+            ConditionActivity(
+                group_id=g[0], type=ConditionActivityType.CREATE_ISSUE, timestamp=g[1]
+            )
             for g in first_seen
         ]
