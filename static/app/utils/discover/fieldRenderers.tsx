@@ -381,7 +381,7 @@ const SPECIAL_FIELDS: SpecialFields = {
                 : undefined
             }
           >
-            <IconDownload color="gray500" size="14px" />
+            <IconDownload color="gray500" size="sm" />
             <DownloadCount>{minidump ? 1 : 0}</DownloadCount>
           </Button>
         </RightAlignedContainer>
