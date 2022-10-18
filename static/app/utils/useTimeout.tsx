@@ -33,9 +33,7 @@ function useTimeout({timeMs, onTimeout}: Options) {
 
   // Cancel the timeout on unmount
   useEffect(() => {
-    return () => {
-      cancel();
-    };
+    return cancel;
   }, [cancel]);
 
   return {
