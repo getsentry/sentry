@@ -155,8 +155,7 @@ export function generateReplayLink(routes: PlainRoute<any>[]) {
 
     // Substract duration from timestamp to get the start time of the transaction
     const transactionStartTimestamp =
-      // We add 1 more second to the duration to account for the fact that our timestamp is not precise
-      transactionTimestamp - ((tableRow['transaction.duration'] as number) + 1000);
+      transactionTimestamp - (tableRow['transaction.duration'] as number);
 
     return {
       pathname: `/organizations/${organization.slug}/replays/${replaySlug}`,
