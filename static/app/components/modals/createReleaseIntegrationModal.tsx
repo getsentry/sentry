@@ -33,10 +33,10 @@ function CreateReleaseIntegrationModal({
       name: 'name',
       type: 'string',
 
-      placeholder: `${project.name} Release Integration`,
+      placeholder: `${project.slug} Release Integration`,
       label: t('Name'),
       help: <Fragment>{t('Name of new integration.')}</Fragment>,
-      defaultValue: `${project.name} Release Integration`,
+      defaultValue: `${project.slug} Release Integration`,
       required: true,
     },
   ];
@@ -74,7 +74,7 @@ function CreateReleaseIntegrationModal({
                     'member:write',
                   ],
                   verifyInstall: false,
-                  overview: `This internal integration was auto-generated to setup Releases for the ${project.name} project. It is needed to provide the token used to create a release. If this integration is deleted, your Releases workflow will stop working!`,
+                  overview: `This internal integration was auto-generated to setup Releases for the ${project.slug} project. It is needed to provide the token used to create a release. If this integration is deleted, your Releases workflow will stop working!`,
                 },
               });
               onSubmitSuccess(integration);

@@ -15,12 +15,12 @@ const MockRenderModalProps: ModalRenderProps = {
 } as unknown as ModalRenderProps;
 
 function selectProject(project: Project) {
-  if (!project.name) {
-    throw new Error(`Selected project requires a name, received ${project.name}`);
+  if (!project.slug) {
+    throw new Error(`Selected project requires a name, received ${project.slug}`);
   }
 
   userEvent.click(screen.getAllByRole('textbox')[0]);
-  userEvent.click(screen.getByText(project.name));
+  userEvent.click(screen.getByText(project.slug));
 }
 
 describe('ProfilingOnboarding', function () {
