@@ -84,7 +84,7 @@ export function TagFacets({groupId, tagKeys, environments, title, tagFormatter}:
     });
     // Don't want to requery everytime state changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [api, environments, groupId, tagKeys]);
+  }, [api, JSON.stringify(environments), groupId, tagKeys]);
 
   const availableTagKeys = tagKeys.filter(tagKey => !!state.tagsData[tagKey]);
   // Format tagsData if the component was given a tagFormatter
