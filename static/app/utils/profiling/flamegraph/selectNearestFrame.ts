@@ -9,70 +9,82 @@ export type Direction = DirectionY | DirectionX;
  *
  * below is a gist of the walking algorithm:
  *
- *  up    => frame's parent
- *  down  => frame's first child
+ *  up    =>
+ *          |> if parent is present, goto parent
+ *          |> if no parent & previousSibling is present, goto maxDepth of previousSibling
+ *          |> if no parent & no previousSibling, no-op
+ *  down  =>
+ *          |> if immediate child is present, goto first child
+ *          |> if no child & walk up to nearest nextSibling
+ *          |> if at max depth & no nextSibling, no-op
  *  left  =>
- *          |> walk up to find a parent that contains the current frame w/ a sibling to the left
+ *          |> walk up to find a node that has a previousSibling
  *          |> walk down the sibling tree following right branches
  *          |> return node matching target depth, if max depth found is less than target return
  *  right => same as left, but we find the right sibling, and follow left branches down until target/max depth is reached
  */
-export function selectNearestFrame(n: FlamegraphFrame, dir: Direction) {
-  if (!n) {
-    return null;
-  }
+export function selectNearestFrame(frame: FlamegraphFrame, direction: Direction) {
+  const targetDepth = frame.depth;
+  let parent = frame.parent;
+  let node = frame;
 
-  const targetDepth = n.depth;
-  let parent = n.parent;
-  let node = n;
-
-  if (dir === 'up' && parent) {
-    return parent;
-  }
-
-  const child = n.children?.[0];
-  if (dir === 'down') {
-    if (!child) {
-      return node;
+  if (direction === 'up') {
+    if (parent) {
+      return parent;
     }
+
+    if (node.previousSibling) {
+      return scanForNearestFrameWithDepth(node.previousSibling, -1, 'left');
+    }
+
+    return frame;
+  }
+
+  const child = frame.children?.[0];
+  if (direction === 'down' && child) {
     return child;
   }
 
-  while (parent) {
-    const indexOfChild = parent.children.indexOf(node);
-    if (indexOfChild === -1) {
-      return n;
-    }
-    const hasSiblings =
-      dir === 'right' ? indexOfChild < parent.children.length - 1 : indexOfChild > 0;
+  while (node) {
+    const sibling =
+      direction === 'right' || direction === 'down'
+        ? node.nextSibling!
+        : node.previousSibling!;
 
-    if (hasSiblings) {
-      const siblingOffset = dir === 'right' ? 1 : -1;
-      const sibling = parent.children[indexOfChild + siblingOffset];
+    if (sibling) {
+      if (direction === 'down') {
+        return sibling;
+      }
+
       const foundNode = scanForNearestFrameWithDepth(
         sibling,
         targetDepth,
-        dir as DirectionX
+        direction as DirectionX
       );
       return foundNode;
+    }
+
+    if (!parent) {
+      break;
     }
 
     node = parent;
     parent = parent.parent;
   }
-  return null;
+  return frame;
 }
+
 /**
  *  scanForNearestFrameWithDepth will walk down a FlamegraphFrame looking for a target depth.
  *  it will follow either the furthest left or right branch based on direction.
  *  if target depth is not found, we return the frame with the max depth along that branch.
  */
 function scanForNearestFrameWithDepth(
-  n: FlamegraphFrame,
+  frame: FlamegraphFrame,
   depth: number,
-  dir: DirectionX
+  directionX: DirectionX
 ) {
-  const stack = [n];
+  const stack = [frame];
 
   while (stack.length) {
     const node = stack.pop();
@@ -86,12 +98,12 @@ function scanForNearestFrameWithDepth(
       continue;
     }
 
-    const nextNode = node.children[dir === 'right' ? 0 : node.children.length - 1];
+    const nextNode = node.children[directionX === 'right' ? 0 : node.children.length - 1];
     if (!nextNode) {
       return node;
     }
     stack.push(nextNode);
   }
 
-  return n;
+  return frame;
 }

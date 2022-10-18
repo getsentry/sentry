@@ -4,6 +4,8 @@ class Node {
   depth = 0;
   parent: Node | null = null;
   children: Node[] = [];
+  previousSibling: Node | null = null;
+  nextSibling: Node | null = null;
 
   constructor(n?: any) {
     Object.assign(this, n);
@@ -15,6 +17,10 @@ class Node {
       parent: this,
       children: [],
     });
+    if (this.children.length > 0) {
+      child.previousSibling = this.children[this.children.length - 1];
+      child.previousSibling.nextSibling = child;
+    }
     this.children.push(child);
     return child;
   }
@@ -80,16 +86,24 @@ describe('selectNearestFrame', () => {
     expect(next!.depth).not.toBe(rightGrandChild.depth);
   });
 
-  it('returns null when moving up from root', () => {
+  it('returns current node when moving up from root', () => {
     const root = new Node();
     const next = selectNearestFrame(root as any, 'up');
-    expect(next).toBe(null);
+    expect(next).toBe(root);
   });
 
-  it('returns current node when at max depth', () => {
+  it('returns current node when at max depth at bottom boundary and no adjacent stack', () => {
     const root = new Node();
     const grandChild = root.addChildrenToDepth(2);
     const next = selectNearestFrame(grandChild as any, 'down');
     expect(next).toBe(grandChild);
+  });
+
+  it('moves to top of next stack when moving down at bottom boundary', () => {
+    const root = new Node();
+    const leftGrandChild = root.addChildrenToDepth(2);
+    const rightGrandChild = root.addChildrenToDepth(2);
+    const next = selectNearestFrame(leftGrandChild as any, 'down');
+    expect(next).toBe(rightGrandChild.parent);
   });
 });
