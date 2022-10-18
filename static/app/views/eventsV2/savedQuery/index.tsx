@@ -19,7 +19,7 @@ import FeatureBadge from 'sentry/components/featureBadge';
 import {Hovercard} from 'sentry/components/hovercard';
 import InputControl from 'sentry/components/input';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
-import {IconDelete, IconStar} from 'sentry/icons';
+import {IconBookmark, IconDelete, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project, SavedQuery} from 'sentry/types';
@@ -431,9 +431,10 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
               });
             }
           }}
+          icon={<IconBookmark isSolid />}
           disabled={buttonDisabled}
         >
-          {t('Reset Discover Home')}
+          {t('Remove Default')}
           <FeatureBadge type="alpha" />
         </Button>
       );
@@ -453,9 +454,10 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
             setHomepageQuery(updatedHomepageQuery);
           }
         }}
+        icon={<IconBookmark />}
         disabled={buttonDisabled}
       >
-        {t('Use as Discover Home')}
+        {t('Set As Default')}
         <FeatureBadge type="alpha" />
       </Button>
     );
@@ -528,7 +530,6 @@ const SaveAsButton = styled(Button)`
 `;
 
 const SaveAsInput = styled(InputControl)`
-  height: 40px;
   margin-bottom: ${space(1)};
 `;
 

@@ -160,7 +160,8 @@ class ThresholdControl extends Component<Props, State> {
           {!hideControl && (
             <ThresholdContainer comparisonType={comparisonType}>
               <ThresholdInput>
-                <StyledInput
+                <Input
+                  size="md"
                   disabled={disabled}
                   name={`${type}Threshold`}
                   data-test-id={`${type}-threshold`}
@@ -239,11 +240,6 @@ const ThresholdContainer = styled('div')<{comparisonType: AlertRuleComparisonTyp
   display: flex;
   flex-direction: row;
   align-items: center;
-`;
-
-const StyledInput = styled(Input)`
-  /* Match the height of the select controls */
-  height: 40px;
 `;
 
 const ThresholdInput = styled('div')`
