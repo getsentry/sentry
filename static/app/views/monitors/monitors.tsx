@@ -18,6 +18,7 @@ import {t} from 'sentry/locale';
 import {PageHeader} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
@@ -52,6 +53,12 @@ class Monitors extends AsyncView<Props, State> {
     return `Monitors - ${this.props.params.orgId}`;
   }
 
+  componentDidMount() {
+    trackAdvancedAnalyticsEvent('monitors.page_viewed', {
+      organization: this.props.organization.id,
+    });
+  }
+
   handleSearch = (query: string) => {
     const {location, router} = this.props;
     router.push({
@@ -77,6 +84,7 @@ class Monitors extends AsyncView<Props, State> {
             <Button
               to={`/organizations/${organization.slug}/monitors/create/`}
               priority="primary"
+              size="sm"
             >
               {t('New Monitor')}
             </Button>

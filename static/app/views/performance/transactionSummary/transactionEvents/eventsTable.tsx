@@ -1,5 +1,5 @@
 import {Component, Fragment} from 'react';
-import {browserHistory} from 'react-router';
+import {browserHistory, RouteContextInterface} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptor, LocationDescriptorObject} from 'history';
 
@@ -35,6 +35,7 @@ import {TableColumn} from 'sentry/views/eventsV2/table/types';
 
 import {COLUMN_TITLES} from '../../data';
 import {
+  generateReplayLink,
   generateTraceLink,
   generateTransactionLink,
   normalizeSearchConditions,
@@ -83,17 +84,21 @@ type Props = {
   eventView: EventView;
   location: Location;
   organization: Organization;
+  routes: RouteContextInterface['routes'];
   setError: (msg: string | undefined) => void;
   transactionName: string;
   columnTitles?: string[];
+  customColumns?: ('attachments' | 'minidump')[];
   excludedTags?: string[];
   issueId?: string;
   projectId?: string;
+  referrer?: string;
   totalEventCount?: string;
 };
 
 type State = {
   attachments: IssueAttachment[];
+  hasMinidumps: boolean;
   lastFetchedCursor: string;
   widths: number[];
 };
@@ -103,9 +108,11 @@ class EventsTable extends Component<Props, State> {
     widths: [],
     lastFetchedCursor: '',
     attachments: [],
+    hasMinidumps: true,
   };
 
   api = new Client();
+  replayLinkGenerator = generateReplayLink(this.props.routes);
 
   handleCellAction = (column: TableColumn<keyof TableDataRow>) => {
     return (action: Actions, value: React.ReactText) => {
@@ -144,7 +151,7 @@ class EventsTable extends Component<Props, State> {
     column: TableColumn<keyof TableDataRow>,
     dataRow: TableDataRow
   ): React.ReactNode {
-    const {eventView, organization, location, transactionName} = this.props;
+    const {eventView, organization, location, transactionName, projectId} = this.props;
 
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
@@ -152,7 +159,12 @@ class EventsTable extends Component<Props, State> {
     const tableMeta = tableData.meta;
     const field = String(column.key);
     const fieldRenderer = getFieldRenderer(field, tableMeta);
-    const rendered = fieldRenderer(dataRow, {organization, location, eventView});
+    const rendered = fieldRenderer(dataRow, {
+      organization,
+      location,
+      eventView,
+      projectId,
+    });
 
     const allowActions = [
       Actions.ADD,
@@ -161,7 +173,7 @@ class EventsTable extends Component<Props, State> {
       Actions.SHOW_LESS_THAN,
     ];
 
-    if (field === 'attachments') {
+    if (['attachments', 'minidump'].includes(field)) {
       return rendered;
     }
 
@@ -184,6 +196,23 @@ class EventsTable extends Component<Props, State> {
           allowActions={allowActions}
         >
           <Link to={target}>{rendered}</Link>
+        </CellAction>
+      );
+    }
+
+    if (field === 'replayId') {
+      const target: LocationDescriptor | null = dataRow.replayId
+        ? this.replayLinkGenerator(organization, dataRow, undefined)
+        : null;
+
+      return (
+        <CellAction
+          column={column}
+          dataRow={dataRow}
+          handleCellAction={this.handleCellAction(column)}
+          allowActions={allowActions}
+        >
+          {target ? <Link to={target}>{rendered}</Link> : rendered}
         </CellAction>
       );
     }
@@ -263,10 +292,11 @@ class EventsTable extends Component<Props, State> {
       };
     }
     const currentSort = eventView.sortForField(field, tableMeta);
-    // Event id and Trace id are technically sortable but we don't want to sort them here since sorting by a uuid value doesn't make sense
+    // EventId, TraceId, and ReplayId are technically sortable but we don't want to sort them here since sorting by a uuid value doesn't make sense
     const canSort =
       field.field !== 'id' &&
       field.field !== 'trace' &&
+      field.field !== 'replayid' &&
       field.field !== SPAN_OP_RELATIVE_BREAKDOWN_FIELD &&
       isFieldSortable(field, tableMeta);
 
@@ -312,7 +342,8 @@ class EventsTable extends Component<Props, State> {
   };
 
   render() {
-    const {eventView, organization, location, setError, totalEventCount} = this.props;
+    const {eventView, organization, location, setError, totalEventCount, referrer} =
+      this.props;
 
     const totalTransactionsView = eventView.clone();
     totalTransactionsView.sorts = [];
@@ -327,12 +358,6 @@ class EventsTable extends Component<Props, State> {
       );
     const columnOrder = eventView
       .getColumns()
-      .filter(col => {
-        if (!this.state.attachments.length) {
-          return col.key !== 'attachments';
-        }
-        return true;
-      })
       .filter(
         (col: TableColumn<React.ReactText>) =>
           !containsSpanOpsBreakdown || !isSpanOperationBreakdownField(col.name)
@@ -344,34 +369,73 @@ class EventsTable extends Component<Props, State> {
         return col;
       });
 
+    if (
+      this.props.customColumns?.includes('attachments') &&
+      this.state.attachments.length
+    ) {
+      columnOrder.push({
+        isSortable: false,
+        key: 'attachments',
+        name: 'attachments',
+        type: 'never',
+        column: {field: 'attachments', kind: 'field', alias: undefined},
+      });
+    }
+
+    if (this.props.customColumns?.includes('minidump') && this.state.hasMinidumps) {
+      columnOrder.push({
+        isSortable: false,
+        key: 'minidump',
+        name: 'minidump',
+        type: 'never',
+        column: {field: 'minidump', kind: 'field', alias: undefined},
+      });
+    }
+
     const joinCustomData = ({data}: TableData) => {
-      if (this.state.attachments.length) {
-        const {projectId} = this.props;
-        const attachmentsWithUrl = this.state.attachments.map(attachment => ({
-          ...attachment,
-          url: `/api/0/projects/${organization.slug}/${projectId}/events/${attachment.event_id}/attachments/${attachment.id}/?download=1`,
-        }));
-        const eventIdMap = {};
-        data.forEach(event => {
-          event.attachments = [] as any;
-          eventIdMap[event.id] = event;
-        });
-        attachmentsWithUrl.forEach(attachment => {
-          const eventAttachments = eventIdMap[attachment.event_id]?.attachments;
-          if (eventAttachments) {
-            eventAttachments.push(attachment);
-          }
-        });
-      }
+      const eventIdMap = {};
+
+      data.forEach(event => {
+        event.attachments = [] as any;
+        eventIdMap[event.id] = event;
+      });
+
+      this.state.attachments.forEach(attachment => {
+        const eventAttachments = eventIdMap[attachment.event_id]?.attachments;
+        if (eventAttachments) {
+          eventAttachments.push(attachment);
+        }
+      });
     };
 
     const fetchAttachments = async ({data}: TableData, cursor: string) => {
       const eventIds = data.map(value => value.id);
-      const eventIdQuery = `event_id=${eventIds.join('&event_id=')}`;
-      const res = await this.api.requestPromise(
-        `/api/0/issues/${this.props.issueId}/attachments/?${eventIdQuery}`
+      const fetchOnlyMinidumps = !this.props.customColumns?.includes('attachments');
+
+      const queries: string = [
+        'per_page=50',
+        ...(fetchOnlyMinidumps ? ['types=event.minidump'] : []),
+        ...eventIds.map(eventId => `event_id=${eventId}`),
+      ].join('&');
+
+      const res: IssueAttachment[] = await this.api.requestPromise(
+        `/api/0/issues/${this.props.issueId}/attachments/?${queries}`
       );
-      this.setState({...this.state, lastFetchedCursor: cursor, attachments: res});
+
+      let hasMinidumps = false;
+
+      res.forEach(attachment => {
+        if (attachment.type === 'event.minidump') {
+          hasMinidumps = true;
+        }
+      });
+
+      this.setState({
+        ...this.state,
+        lastFetchedCursor: cursor,
+        attachments: res,
+        hasMinidumps,
+      });
     };
 
     return (
@@ -381,7 +445,7 @@ class EventsTable extends Component<Props, State> {
           orgSlug={organization.slug}
           location={location}
           setError={error => setError(error?.message)}
-          referrer="api.performance.transaction-events"
+          referrer={referrer || 'api.performance.transaction-events'}
           useEvents
         >
           {({pageLinks, isLoading: isDiscoverQueryLoading, tableData}) => {

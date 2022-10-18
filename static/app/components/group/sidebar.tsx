@@ -35,7 +35,10 @@ import {
 import {Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {isMobilePlatform} from 'sentry/utils/platform';
 import withApi from 'sentry/utils/withApi';
+
+import {MOBILE_TAGS, TagFacets} from './tagFacets';
 
 type Props = WithRouterProps & {
   api: Client;
@@ -47,7 +50,6 @@ type Props = WithRouterProps & {
 };
 
 type State = {
-  environments: Environment[];
   participants: Group['participants'];
   allEnvironmentsGroupData?: Group;
   currentRelease?: CurrentRelease;
@@ -58,7 +60,6 @@ type State = {
 class BaseGroupSidebar extends Component<Props, State> {
   state: State = {
     participants: [],
-    environments: this.props.environments,
   };
 
   componentDidMount() {
@@ -68,9 +69,9 @@ class BaseGroupSidebar extends Component<Props, State> {
     this.fetchTagData();
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps: Props) {
-    if (!isEqual(nextProps.environments, this.props.environments)) {
-      this.setState({environments: nextProps.environments}, this.fetchTagData);
+  componentDidUpdate(prevProps: Props) {
+    if (!isEqual(prevProps.environments, this.props.environments)) {
+      this.fetchTagData();
     }
   }
 
@@ -147,7 +148,7 @@ class BaseGroupSidebar extends Component<Props, State> {
       const data = await api.requestPromise(`/issues/${group.id}/tags/`, {
         query: pickBy({
           key: group.tags.map(tag => tag.key),
-          environment: this.state.environments.map(env => env.name),
+          environment: this.props.environments.map(env => env.name),
         }),
       });
       this.setState({tagsWithTopValues: keyBy(data, 'key')});
@@ -209,9 +210,24 @@ class BaseGroupSidebar extends Component<Props, State> {
 
     return (
       <Container>
-        <PageFiltersContainer>
-          <EnvironmentPageFilter alignDropdown="right" />
-        </PageFiltersContainer>
+        {!organization.features.includes('issue-actions-v2') && (
+          <PageFiltersContainer>
+            <EnvironmentPageFilter alignDropdown="right" />
+          </PageFiltersContainer>
+        )}
+
+        <Feature
+          organization={organization}
+          features={['issue-details-tag-improvements']}
+        >
+          {isMobilePlatform(project.platform) && (
+            <TagFacets
+              environments={environments}
+              groupId={group.id}
+              tagKeys={MOBILE_TAGS}
+            />
+          )}
+        </Feature>
 
         <Feature organization={organization} features={['issue-details-owners']}>
           <OwnedBy group={group} project={project} organization={organization} />
