@@ -424,7 +424,7 @@ class IssueListOverview extends Component<Props, State> {
     });
   };
 
-  fetchCounts = (_, fetchAllCounts: boolean) => {
+  fetchCounts = (currentQueryCount: number, fetchAllCounts: boolean) => {
     const {organization} = this.props;
     const {queryCounts: _queryCounts} = this.state;
     let queryCounts: QueryCounts = {..._queryCounts};
@@ -434,6 +434,14 @@ class IssueListOverview extends Component<Props, State> {
     const currentTabQuery = tabQueriesWithCounts.includes(endpointParams.query as Query)
       ? endpointParams.query
       : null;
+
+    // Update the count based on the exact number of issues, these shown as is
+    if (currentTabQuery) {
+      queryCounts[currentTabQuery] = {
+        count: currentQueryCount,
+        hasMore: false,
+      };
+    }
 
     this.setState({queryCounts});
 
