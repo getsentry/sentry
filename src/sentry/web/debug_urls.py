@@ -71,8 +71,8 @@ from sentry.web.frontend.debug.debug_unassigned_email import DebugUnassignedEmai
 from sentry.web.frontend.debug.debug_weekly_report import DebugWeeklyReportView
 
 urlpatterns = [
-    url(r"^debug/mail/alert/$", sentry.web.frontend.debug.mail.alert),
-    url(r"^debug/mail/perf-alert/$", DebugPerformanceIssueEmailView.as_view()),
+    url(r"^debug/mail/error-alert/$", sentry.web.frontend.debug.mail.alert),
+    url(r"^debug/mail/performance-alert/$", DebugPerformanceIssueEmailView.as_view()),
     url(r"^debug/mail/note/$", DebugNoteEmailView.as_view()),
     url(r"^debug/mail/new-release/$", DebugNewReleaseEmailView.as_view()),
     url(r"^debug/mail/release-summary/$", DebugReleaseSummaryEmailView.as_view()),
