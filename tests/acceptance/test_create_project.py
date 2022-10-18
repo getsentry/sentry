@@ -31,7 +31,7 @@ class CreateProjectTest(AcceptanceTestCase):
         self.browser.wait_until("#installation")
 
         project = Project.objects.get(organization=self.org)
-        assert project.name == "Java"
+        assert project.name == "java"
         assert project.platform == "java"
         assert project.teams.first() == self.team
         self.browser.snapshot(name="docs redirect")
