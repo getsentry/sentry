@@ -258,7 +258,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
             commit_log_groups={synchronize_commit_group},
         )
 
-        strategy_factory = PostProcessForwarderStrategyFactory(concurrency)
+        strategy_factory = PostProcessForwarderStrategyFactory(concurrency, 1000)
 
         return StreamProcessor(
             synchronized_consumer, Topic(topic), strategy_factory, ONCE_PER_SECOND
