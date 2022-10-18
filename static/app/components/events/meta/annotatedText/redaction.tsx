@@ -6,11 +6,10 @@ type Props = {
   withoutBackground?: boolean;
 };
 
-const Redaction = styled(({children, className}: Props) => (
+export const Redaction = styled(({children, className}: Props) => (
   <span className={className}>{children}</span>
 ))`
   cursor: default;
   vertical-align: middle;
   ${p => !p.withoutBackground && `background: rgba(255, 0, 0, 0.05);`}
 `;
-export default Redaction;

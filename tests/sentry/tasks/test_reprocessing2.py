@@ -112,6 +112,7 @@ def test_basic(
     register_event_preprocessor,
     burst_task_runner,
     monkeypatch,
+    django_cache,
 ):
     from sentry import eventstream
 
@@ -212,6 +213,7 @@ def test_concurrent_events_go_into_new_group(
     process_and_save,
     burst_task_runner,
     default_user,
+    django_cache,
 ):
     """
     Assert that both unmodified and concurrently inserted events go into "the
@@ -413,7 +415,13 @@ def test_attachments_and_userfeedback(
 @pytest.mark.snuba
 @pytest.mark.parametrize("remaining_events", ["keep", "delete"])
 def test_nodestore_missing(
-    default_project, reset_snuba, process_and_save, burst_task_runner, monkeypatch, remaining_events
+    default_project,
+    reset_snuba,
+    process_and_save,
+    burst_task_runner,
+    monkeypatch,
+    remaining_events,
+    django_cache,
 ):
     logs = []
     monkeypatch.setattr("sentry.reprocessing2.logger.error", logs.append)

@@ -189,7 +189,7 @@ export function ProfileDetails(props: ProfileDetailsProps) {
                       to={`/organizations/${organization.slug}/projects/${project.slug}/?project=${project.id}`}
                     >
                       <FlexRow>
-                        <ProjectAvatar project={project} size={12} /> {project.name}
+                        <ProjectAvatar project={project} size={12} /> {project.slug}
                       </FlexRow>
                     </Link>
                   </DetailsRow>
