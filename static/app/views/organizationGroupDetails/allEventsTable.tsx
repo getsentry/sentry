@@ -64,7 +64,6 @@ const AllEventsTable = (props: Props) => {
     t('user'),
     ...(isPerfIssue ? [t('total duration')] : []),
     t('timestamp'),
-    t('attachments'),
     t('minidump'),
   ];
 
@@ -81,7 +80,7 @@ const AllEventsTable = (props: Props) => {
       excludedTags={excludedTags}
       projectId={projectId}
       totalEventCount={totalEventCount}
-      customColumns={['attachments', 'minidump']}
+      customColumns={['minidump']}
       setError={() => {
         (msg: string) => setError(msg);
       }}
