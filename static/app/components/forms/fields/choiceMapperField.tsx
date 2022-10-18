@@ -103,7 +103,7 @@ export interface ChoiceMapperFieldProps
       'onBlur' | 'onChange' | 'value' | 'formatMessageValue' | 'disabled'
     > {}
 
-export default class ChoiceMapper extends Component<ChoiceMapperFieldProps> {
+export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps> {
   static defaultProps = defaultProps;
 
   hasValue = (value: InputFieldProps['value']) => defined(value) && !objectIsEmpty(value);
