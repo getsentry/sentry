@@ -9,7 +9,7 @@ const PermissionAlert = ({access = ['project:write'], ...props}: Props) => (
   <Access access={access}>
     {({hasAccess}) =>
       !hasAccess && (
-        <Alert type="warning" {...props}>
+        <Alert data-test-id="project-permission-alert" type="warning" {...props}>
           {t(
             'These settings can only be edited by users with the organization owner, manager, or admin role.'
           )}
