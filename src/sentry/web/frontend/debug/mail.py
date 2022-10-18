@@ -57,41 +57,39 @@ from sentry.web.helpers import render_to_response, render_to_string
 
 logger = logging.getLogger(__name__)
 
-COMMIT_EXAMPLE = (
-    [
-        {
-            # TODO(dcramer): change to use serializer
-            "repository": {
-                "status": "active",
-                "name": "Example Repo",
-                "url": "https://github.com/example/example",
-                "dateCreated": "2018-02-28T23:39:22.402Z",
-                "provider": {"id": "github", "name": "GitHub"},
-                "id": "1",
-            },
-            "score": 2,
-            "subject": "feat: Do something to raven/base.py",
-            "message": "feat: Do something to raven/base.py\naptent vivamus vehicula tempus volutpat hac tortor",
-            "id": "1b17483ffc4a10609e7921ee21a8567bfe0ed006",
-            "shortId": "1b17483",
-            "author": {
-                "username": "dcramer@gmail.com",
-                "isManaged": False,
-                "lastActive": "2018-03-01T18:25:28.149Z",
-                "id": "1",
-                "isActive": True,
-                "has2fa": False,
-                "name": "dcramer@gmail.com",
-                "avatarUrl": "https://secure.gravatar.com/avatar/51567a4f786cd8a2c41c513b592de9f9?s=32&d=mm",
-                "dateJoined": "2018-02-27T22:04:32.847Z",
-                "emails": [{"is_verified": False, "id": "1", "email": "dcramer@gmail.com"}],
-                "avatar": {"avatarUuid": None, "avatarType": "letter_avatar"},
-                "lastLogin": "2018-02-27T22:04:32.847Z",
-                "email": "dcramer@gmail.com",
-            },
-        }
-    ],
-)
+# TODO(dcramer): change to use serializer
+COMMIT_EXAMPLE = """[
+{
+    "repository": {
+        "status": "active",
+        "name": "Example Repo",
+        "url": "https://github.com/example/example",
+        "dateCreated": "2018-02-28T23:39:22.402Z",
+        "provider": {"id": "github", "name": "GitHub"},
+        "id": "1"
+    },
+    "score": "2",
+    "subject": "feat: Do something to raven/base.py",
+    "message": "feat: Do something to raven/base.py\\naptent vivamus vehicula tempus volutpat hac tortor",
+    "id": "1b17483ffc4a10609e7921ee21a8567bfe0ed006",
+    "shortId": "1b17483",
+    "author": {
+        "username": "dcramer@gmail.com",
+        "isManaged": false,
+        "lastActive": "2018-03-01T18:25:28.149Z",
+        "id": "1",
+        "isActive": true,
+        "has2fa": false,
+        "name": "dcramer@gmail.com",
+        "avatarUrl": "https://secure.gravatar.com/avatar/51567a4f786cd8a2c41c513b592de9f9?s=32&d=mm",
+        "dateJoined": "2018-02-27T22:04:32.847Z",
+        "emails": [{"is_verified": false, "id": "1", "email": "dcramer@gmail.com"}],
+        "avatar": {"avatarUuid": "", "avatarType": "letter_avatar"},
+        "lastLogin": "2018-02-27T22:04:32.847Z",
+        "email": "dcramer@gmail.com"
+    }
+}
+]"""
 
 
 def get_random(request):
