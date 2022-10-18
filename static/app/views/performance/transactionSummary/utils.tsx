@@ -150,7 +150,7 @@ export function generateReplayLink(routes: PlainRoute<any>[]) {
     const referrer = encodeURIComponent(getRouteStringFromRoutes(routes));
 
     const transactionTimestamp = tableRow.timestamp
-      ? Math.floor(new Date(tableRow.timestamp).getTime() / 1000) * 1000
+      ? new Date(tableRow.timestamp).getTime()
       : 0;
 
     // Substract duration from timestamp to get the start time of the transaction
