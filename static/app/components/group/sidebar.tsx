@@ -259,6 +259,7 @@ class BaseGroupSidebar extends Component<Props, State> {
               environments={environments}
               groupId={group.id}
               tagKeys={MOBILE_TAGS}
+              event={event}
               title={
                 <Fragment>
                   {t('Mobile Tag Breakdown')} <FeatureBadge type="alpha" />
