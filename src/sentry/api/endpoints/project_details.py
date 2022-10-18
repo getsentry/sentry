@@ -507,7 +507,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         # ToDo(ahmed): We need another check for developer AM2 plan as the AM2 Basic plan is only for Team and above
         #  so we have no way of knowing if the a developer is on AM2
         if is_am2_basic:
-            del data["dynamicSampling"]
+            data.pop("dynamicSampling", None)
 
         return Response(data)
 
@@ -877,7 +877,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         data = serialize(project, request.user, DetailedProjectSerializer())
         if is_am2_basic:
-            del data["dynamicSampling"]
+            data.pop("dynamicSampling", None)
 
         return Response(data)
 
