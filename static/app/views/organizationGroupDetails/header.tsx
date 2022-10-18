@@ -418,9 +418,9 @@ function GroupHeader({
         </HeaderRow>
         {hasIssueActionsV2 ? (
           // Environment picker for mobile
-          <div className="hidden-sm hidden-md hidden-lg">
+          <HeaderRow className="hidden-sm hidden-md hidden-lg">
             <EnvironmentPageFilter alignDropdown="right" />
-          </div>
+          </HeaderRow>
         ) : (
           <HeaderRow>
             <GroupActions
