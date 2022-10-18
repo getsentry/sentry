@@ -2,44 +2,19 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Mapping, Sequence
+from typing import Any, Dict, Mapping, Sequence
 
 import sentry_sdk
 
 from sentry.integrations.client import ApiClient
 from sentry.integrations.github.utils import get_jwt, get_next_link
+from sentry.integrations.utils.tree import trim_tree
 from sentry.models import Integration, Repository
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.utils import jwt
 from sentry.utils.json import JSONData
 
 logger = logging.getLogger("sentry.integrations.github")
-
-
-def trimmed_tree(tree: JSONData, languages: List[str]) -> List[str]:
-    """This takes the tree representation of a repo and returns the file paths for the languages"""
-
-    def should_include_file(file_path: str) -> bool:
-        include: bool = False
-        # Currently we only support Pythonfiles
-        if "python" in languages:
-            include = file_path.endswith(".py") and not file_path.startswith("tests/")
-        return include
-
-    # This help with mypy typing
-    def get_meta(file_meta: dict[str, str]) -> str:
-        return file_meta["path"]
-
-    # XXX: We should optimize the data structure to be a tree from file to top src dir
-    return list(
-        map(
-            get_meta,
-            filter(
-                lambda x: x["type"] == "blob" and should_include_file(x["path"]),
-                tree,
-            ),
-        )
-    )
 
 
 class GitHubClientMixin(ApiClient):  # type: ignore
@@ -112,7 +87,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                 logger.warning(
                     f"The tree for {repo_full_name} has been truncated. Use different a approach for retrieving contents of tree."
                 )
-            tree = trimmed_tree(contents["tree"], ["python"])
+            tree = trim_tree(contents["tree"], ["python"])
         except ApiError as e:
             json_data: JSONData = e.json
             msg: str = json_data.get("message")
