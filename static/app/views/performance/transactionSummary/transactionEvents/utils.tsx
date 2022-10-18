@@ -159,7 +159,7 @@ export function mapShowTransactionToPercentile(
 export function mapPercentileValues(percentileData?: TableDataRow | null) {
   return {
     p100: percentileData?.['p100()'],
-    p99: percentileData?.['p100()'],
+    p99: percentileData?.['p99()'],
     p95: percentileData?.['p95()'],
     p75: percentileData?.['p75()'],
     p50: percentileData?.['p50()'],
