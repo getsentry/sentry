@@ -3,6 +3,7 @@ import math
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from functools import cached_property
 from typing import Dict, Literal, Optional, Sequence, Set, Tuple, Union
 
 from snuba_sdk import Column, Direction, Granularity, Limit, Offset, Op
@@ -21,6 +22,7 @@ from ...release_health.base import AllowedResolution
 from .naming_layer.mapping import get_public_name_from_mri
 from .utils import (
     MAX_POINTS,
+    METRICS_LAYER_GRANULARITIES,
     OPERATIONS,
     UNALLOWED_TAGS,
     DerivedMetricParseException,
@@ -141,6 +143,11 @@ class MetricsQuery(MetricsQueryValidationRunner):
     offset: Optional[Offset] = None
     include_totals: bool = True
     include_series: bool = True
+    interval: Optional[int] = None
+
+    @cached_property
+    def use_case_key(self) -> UseCaseKey:
+        return self._use_case_id(self.select[0].metric_mri)
 
     @staticmethod
     def _use_case_id(metric_mri: str) -> UseCaseKey:
@@ -286,6 +293,21 @@ class MetricsQuery(MetricsQueryValidationRunner):
             raise InvalidParams("start must be before end")
 
     def validate_granularity(self) -> None:
+        # Logic specific to how we handle time series in discover in terms of granularity and interval
+        if (
+            self.use_case_key == UseCaseKey.PERFORMANCE
+            and self.include_series
+            and self.interval is not None
+        ):
+            if self.granularity.granularity > self.interval:
+                # If granularity is greater than interval, then we try to set granularity to the smallest allowed
+                # granularity smaller than that interval
+                # Copied from: sentry/search/events/builder.py::TimeseriesMetricQueryBuilder.__init__()
+                for granularity in METRICS_LAYER_GRANULARITIES:
+                    if granularity < self.interval:
+                        object.__setattr__(self, "granularity", Granularity(granularity))
+                        break
+
         # hard code min. allowed resolution to 10 seconds
         allowed_resolution = AllowedResolution.ten_seconds
 
@@ -307,6 +329,13 @@ class MetricsQuery(MetricsQueryValidationRunner):
                 "Use a larger interval, or a smaller date range."
             )
 
+    def validate_interval(self) -> None:
+        if self.interval is not None:
+            if self.use_case_key == UseCaseKey.RELEASE_HEALTH or (
+                self.use_case_key == UseCaseKey.PERFORMANCE and not self.include_series
+            ):
+                raise InvalidParams("Interval is only supported for timeseries performance queries")
+
     def __post_init__(self) -> None:
         super().__post_init__()
 
@@ -314,3 +343,10 @@ class MetricsQuery(MetricsQueryValidationRunner):
             # Cannot set attribute directly because dataclass is frozen:
             # https://docs.python.org/3/library/dataclasses.html#frozen-instances
             object.__setattr__(self, "limit", Limit(self.get_default_limit()))
+
+        if (
+            self.use_case_key == UseCaseKey.PERFORMANCE
+            and self.include_series
+            and self.interval is None
+        ):
+            object.__setattr__(self, "interval", self.granularity.granularity)

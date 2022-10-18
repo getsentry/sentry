@@ -6,7 +6,13 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import BaseManager, FlexibleForeignKey, Model, region_silo_model, sane_repr
+from sentry.db.models import (
+    BaseManager,
+    FlexibleForeignKey,
+    Model,
+    region_silo_only_model,
+    sane_repr,
+)
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.signals import issue_assigned
@@ -104,7 +110,7 @@ class GroupAssigneeManager(BaseManager):
                 sync_group_assignee_outbound(group, None, assign=False)
 
 
-@region_silo_model
+@region_silo_only_model
 class GroupAssignee(Model):
     """
     Identifies an assignment relationship between a user/team and an

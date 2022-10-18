@@ -414,7 +414,12 @@ def _from_sentry_app(user, organization: Optional[Organization] = None) -> Acces
     if not organization:
         return NoAccess()
 
-    sentry_app = SentryApp.objects.get(proxy_user=user)
+    sentry_app_query = SentryApp.objects.filter(proxy_user=user)
+
+    if not sentry_app_query.exists():
+        return NoAccess()
+
+    sentry_app = sentry_app_query.first()
 
     if not sentry_app.is_installed_on(organization):
         return NoAccess()

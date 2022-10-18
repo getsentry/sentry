@@ -5,7 +5,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
-import InputField from 'sentry/components/forms/inputField';
+import TextField from 'sentry/components/forms/fields/textField';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {Integration, Organization, Project} from 'sentry/types';
@@ -113,12 +113,11 @@ function StacktraceLinkModal({
             )}
           </div>
           <SourceCodeInput>
-            <StyledInputField
+            <StyledTextField
               inline={false}
               flexibleControlStateSize
               stacked
               name="source-code-input"
-              type="text"
               value={sourceCodeInput}
               onChange={onHandleChange}
               placeholder={`https://github.com/helloworld/Hello-World/blob/master/${filename}`}
@@ -181,7 +180,7 @@ const ManualSetup = styled('div')`
   align-items: center;
 `;
 
-const StyledInputField = styled(InputField)`
+const StyledTextField = styled(TextField)`
   padding: 0px;
   flex-grow: 1;
 `;

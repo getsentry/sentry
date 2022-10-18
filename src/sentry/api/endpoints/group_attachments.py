@@ -1,4 +1,3 @@
-from django.db.models import Q
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -7,19 +6,7 @@ from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import EventAttachmentSerializer, serialize
-from sentry.models import EventAttachment
-
-
-class GroupEventAttachmentSerializer(EventAttachmentSerializer):
-    """
-    Serializes event attachments with event id for rendering in the group event
-    attachments UI.
-    """
-
-    def serialize(self, obj, attrs, user):
-        result = super().serialize(obj, attrs, user)
-        result["event_id"] = obj.event_id
-        return result
+from sentry.models import EventAttachment, event_attachment_screenshot_filter
 
 
 @region_silo_endpoint
@@ -48,8 +35,7 @@ class GroupAttachmentsEndpoint(GroupEndpoint, EnvironmentMixin):
         screenshot = "screenshot" in request.GET
 
         if screenshot:
-            # TODO: Consolidate this with the EventAttachment endpoint logic
-            attachments = attachments.filter(Q(name="screenshot.jpg") | Q(name="screenshot.png"))
+            attachments = event_attachment_screenshot_filter(attachments)
         if types:
             attachments = attachments.filter(type__in=types)
         if event_ids:
@@ -60,6 +46,6 @@ class GroupAttachmentsEndpoint(GroupEndpoint, EnvironmentMixin):
             request=request,
             queryset=attachments,
             order_by="-date_added",
-            on_results=lambda x: serialize(x, request.user, GroupEventAttachmentSerializer()),
+            on_results=lambda x: serialize(x, request.user, EventAttachmentSerializer()),
             paginator_cls=DateTimePaginator,
         )

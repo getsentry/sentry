@@ -7,12 +7,12 @@ from sentry.db.models import (
     FlexibleForeignKey,
     JSONField,
     Model,
-    region_silo_model,
+    region_silo_only_model,
     sane_repr,
 )
 
 
-@region_silo_model
+@region_silo_only_model
 class PromptsActivity(Model):
     """Records user interaction with various feature prompts in product"""
 

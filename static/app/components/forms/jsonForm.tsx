@@ -8,7 +8,7 @@ import {defined} from 'sentry/utils';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 
 import FormPanel from './formPanel';
-import {Field, FieldObject, JsonFormObject} from './type';
+import {Field, FieldObject, JsonFormObject} from './types';
 
 type Props = {
   additionalFieldProps?: {[key: string]: any};

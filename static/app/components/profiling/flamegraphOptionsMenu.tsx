@@ -1,7 +1,7 @@
 import {Fragment, useMemo} from 'react';
 
 import Button from 'sentry/components/button';
-import CompositeSelect from 'sentry/components/forms/compositeSelect';
+import CompositeSelect from 'sentry/components/compositeSelect';
 import {IconSliders} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
@@ -66,7 +66,7 @@ function FlamegraphOptionsMenu({
           icon: <IconSliders size="xs" />,
           size: 'xs',
         }}
-        placement="bottom right"
+        position="bottom-end"
         sections={options}
       />
     </Fragment>
@@ -80,7 +80,7 @@ const X_AXIS: Record<FlamegraphPreferences['xAxis'], string> = {
 
 const COLOR_CODINGS: Record<FlamegraphPreferences['colorCoding'], string> = {
   'by symbol name': t('By Symbol Name'),
-  'by library': t('By Library'),
+  'by library': t('By Package'),
   'by system / application': t('By System / Application'),
   'by recursion': t('By Recursion'),
   'by frequency': t('By Frequency'),

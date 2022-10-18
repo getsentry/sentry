@@ -6,10 +6,6 @@ const ENDPOINT = '/users/me/password/';
 
 describe('PasswordForm', function () {
   let putMock;
-  // The "help" message is currently inside the label element
-  const currentPasswordLabel = 'Current PasswordYour current password';
-  const newPasswordLabel = 'New Password';
-  const verifyNewPasswordLabel = 'Verify New PasswordVerify your new password';
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
@@ -21,38 +17,40 @@ describe('PasswordForm', function () {
 
   it('has 3 text inputs', function () {
     render(<PasswordForm />);
-    expect(screen.getByLabelText(currentPasswordLabel)).toBeInTheDocument();
-    expect(screen.getByLabelText(newPasswordLabel)).toBeInTheDocument();
-    expect(screen.getByLabelText(verifyNewPasswordLabel)).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'Current Password'})).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'New Password'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('textbox', {name: 'Verify New Password'})
+    ).toBeInTheDocument();
   });
 
   it('does not submit when any password field is empty', function () {
     render(<PasswordForm />);
-    userEvent.type(screen.getByLabelText(currentPasswordLabel), 'test');
+    userEvent.type(screen.getByRole('textbox', {name: 'Current Password'}), 'test');
     userEvent.click(screen.getByRole('button', {name: 'Change password'}));
     expect(putMock).not.toHaveBeenCalled();
 
-    userEvent.clear(screen.getByLabelText(currentPasswordLabel));
-    userEvent.type(screen.getByLabelText(newPasswordLabel), 'test');
-    userEvent.type(screen.getByLabelText(verifyNewPasswordLabel), 'test');
+    userEvent.clear(screen.getByRole('textbox', {name: 'Current Password'}));
+    userEvent.type(screen.getByRole('textbox', {name: 'New Password'}), 'test');
+    userEvent.type(screen.getByRole('textbox', {name: 'Verify New Password'}), 'test');
     userEvent.click(screen.getByRole('button', {name: 'Change password'}));
     expect(putMock).not.toHaveBeenCalled();
   });
 
   it('does not submit when new passwords do not match', function () {
     render(<PasswordForm />);
-    userEvent.type(screen.getByLabelText(currentPasswordLabel), 'test');
-    userEvent.type(screen.getByLabelText(newPasswordLabel), 'test');
-    userEvent.type(screen.getByLabelText(verifyNewPasswordLabel), 'nottest');
+    userEvent.type(screen.getByRole('textbox', {name: 'Current Password'}), 'test');
+    userEvent.type(screen.getByRole('textbox', {name: 'New Password'}), 'test');
+    userEvent.type(screen.getByRole('textbox', {name: 'Verify New Password'}), 'nottest');
     userEvent.click(screen.getByRole('button', {name: 'Change password'}));
     expect(putMock).not.toHaveBeenCalled();
   });
 
   it('calls API when all fields are validated and clears form on success', async function () {
     render(<PasswordForm />);
-    userEvent.type(screen.getByLabelText(currentPasswordLabel), 'test');
-    userEvent.type(screen.getByLabelText(newPasswordLabel), 'nottest');
-    userEvent.type(screen.getByLabelText(verifyNewPasswordLabel), 'nottest');
+    userEvent.type(screen.getByRole('textbox', {name: 'Current Password'}), 'test');
+    userEvent.type(screen.getByRole('textbox', {name: 'New Password'}), 'nottest');
+    userEvent.type(screen.getByRole('textbox', {name: 'Verify New Password'}), 'nottest');
     userEvent.click(screen.getByRole('button', {name: 'Change password'}));
     expect(putMock).toHaveBeenCalledWith(
       ENDPOINT,
@@ -67,21 +65,24 @@ describe('PasswordForm', function () {
     );
 
     await waitFor(() =>
-      expect(screen.getByLabelText(currentPasswordLabel)).toHaveValue('')
+      expect(screen.getByRole('textbox', {name: 'Current Password'})).toHaveValue('')
     );
   });
 
   it('validates mismatched passwords and remvoes validation on match', function () {
     render(<PasswordForm />);
-    userEvent.type(screen.getByLabelText(currentPasswordLabel), 'test');
-    userEvent.type(screen.getByLabelText(newPasswordLabel), 'nottest');
-    userEvent.type(screen.getByLabelText(verifyNewPasswordLabel), 'nottest-mismatch');
+    userEvent.type(screen.getByRole('textbox', {name: 'Current Password'}), 'test');
+    userEvent.type(screen.getByRole('textbox', {name: 'New Password'}), 'nottest');
+    userEvent.type(
+      screen.getByRole('textbox', {name: 'Verify New Password'}),
+      'nottest-mismatch'
+    );
     userEvent.click(screen.getByRole('button', {name: 'Change password'}));
 
     expect(screen.getByText('Passwords do not match')).toBeInTheDocument();
 
-    userEvent.clear(screen.getByLabelText(verifyNewPasswordLabel));
-    userEvent.type(screen.getByLabelText(verifyNewPasswordLabel), 'nottest');
+    userEvent.clear(screen.getByRole('textbox', {name: 'Verify New Password'}));
+    userEvent.type(screen.getByRole('textbox', {name: 'Verify New Password'}), 'nottest');
 
     expect(screen.queryByText('Passwords do not match')).not.toBeInTheDocument();
   });

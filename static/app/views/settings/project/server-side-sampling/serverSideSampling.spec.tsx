@@ -17,6 +17,7 @@ import {
 
 import {ServerSideSamplingStore} from 'sentry/stores/serverSideSamplingStore';
 import {Organization, Project} from 'sentry/types';
+import {SamplingSdkVersion} from 'sentry/types/sampling';
 import {RouteContext} from 'sentry/views/routeContext';
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/server-side-sampling/utils';
 
@@ -34,9 +35,11 @@ import {
 function renderMockRequests({
   organizationSlug,
   projectSlug,
+  mockedSdkVersionsResponse = mockedSamplingSdkVersions,
 }: {
   organizationSlug: Organization['slug'];
   projectSlug: Project['slug'];
+  mockedSdkVersionsResponse?: SamplingSdkVersion[];
 }) {
   const distribution = MockApiClient.addMockResponse({
     url: `/projects/${organizationSlug}/${projectSlug}/dynamic-sampling/distribution/`,
@@ -47,7 +50,7 @@ function renderMockRequests({
   const sdkVersions = MockApiClient.addMockResponse({
     url: `/organizations/${organizationSlug}/dynamic-sampling/sdk-versions/`,
     method: 'GET',
-    body: mockedSamplingSdkVersions,
+    body: mockedSdkVersionsResponse,
   });
 
   const projects = MockApiClient.addMockResponse({
@@ -314,7 +317,9 @@ describe('Server-Side Sampling', function () {
       })
     );
 
-    expect(await screen.findByRole('heading', {name: 'Next steps'})).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', {name: 'Important next steps'})
+    ).toBeInTheDocument();
   });
 
   it('open specific conditions modal when adding rule', async function () {
@@ -473,6 +478,38 @@ describe('Server-Side Sampling', function () {
     expect(
       await screen.findByText(
         'To enable the rule, the recommended sdk version have to be updated'
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('does not let the user activate an uniform rule if still processing', async function () {
+    const {organization, router, project} = getMockData({
+      projects: [
+        TestStubs.Project({
+          dynamicSampling: {
+            rules: [uniformRule],
+          },
+        }),
+      ],
+    });
+
+    renderMockRequests({
+      organizationSlug: organization.slug,
+      projectSlug: project.slug,
+      mockedSdkVersionsResponse: [],
+    });
+
+    render(
+      <TestComponent router={router} organization={organization} project={project} />
+    );
+
+    expect(await screen.findByRole('checkbox', {name: 'Activate Rule'})).toBeDisabled();
+
+    userEvent.hover(screen.getByLabelText('Activate Rule'));
+
+    expect(
+      await screen.findByText(
+        'We are processing sampling information for your project, so you cannot enable the rule yet. Please check again later'
       )
     ).toBeInTheDocument();
   });

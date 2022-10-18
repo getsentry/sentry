@@ -1,10 +1,10 @@
-import React, {ReactNode, useCallback, useLayoutEffect, useRef, useState} from 'react';
+import React, {useCallback, useLayoutEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import CompositeSelect from 'sentry/components/forms/compositeSelect';
+import CompositeSelect from 'sentry/components/compositeSelect';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {formatTime, relativeTimeInMs} from 'sentry/components/replays/utils';
 import {
@@ -39,7 +39,6 @@ const USER_ACTIONS = [
 ];
 
 interface Props {
-  additionalActions?: ReactNode;
   speedOptions?: number[];
   toggleFullscreen?: () => void;
 }
@@ -127,11 +126,9 @@ function ReplayOptionsMenu({speedOptions}: {speedOptions: number[]}) {
 
   return (
     <CompositeSelect<SelectValue<string | number>>
-      placement="bottom"
-      trigger={({props, ref}) => (
+      trigger={triggerProps => (
         <Button
-          ref={ref}
-          {...props}
+          {...triggerProps}
           size="sm"
           title={t('Settings')}
           aria-label={t('Settings')}
@@ -171,7 +168,6 @@ function ReplayOptionsMenu({speedOptions}: {speedOptions: number[]}) {
 
 const ReplayControls = ({
   toggleFullscreen,
-  additionalActions,
   speedOptions = [0.1, 0.25, 0.5, 1, 2, 4],
 }: Props) => {
   const config = useLegacyStore(ConfigStore);
@@ -211,7 +207,6 @@ const ReplayControls = ({
       <ReplayPlayPauseBar isCompact={compactLevel > 0} />
       <ReplayCurrentTime />
 
-      <AdditionalActionsContainer>{additionalActions}</AdditionalActionsContainer>
       <ReplayOptionsMenu speedOptions={speedOptions} />
       <Button
         size="sm"
@@ -227,14 +222,8 @@ const ReplayControls = ({
 const ButtonGrid = styled('div')`
   display: grid;
   grid-column-gap: ${space(1)};
-  grid-template-columns: max-content auto max-content max-content max-content;
+  grid-template-columns: max-content auto max-content max-content;
   align-items: center;
-`;
-
-const AdditionalActionsContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: 0 ${space(1)};
 `;
 
 export default ReplayControls;

@@ -1,11 +1,10 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as ActionCreators from 'sentry/actionCreators/formSearch';
 import FormSource from 'sentry/components/search/sources/formSource';
 import FormSearchStore from 'sentry/stores/formSearchStore';
 
 describe('FormSource', function () {
-  let wrapper;
   const searchMap = [
     {
       title: 'Test Field',
@@ -41,43 +40,42 @@ describe('FormSource', function () {
 
   it('can find a form field', async function () {
     const mock = jest.fn().mockReturnValue(null);
-    wrapper = mountWithTheme(<FormSource query="te">{mock}</FormSource>);
+    render(<FormSource query="te">{mock}</FormSource>);
 
-    await tick();
-    await tick();
-    wrapper.update();
-    expect(mock).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        results: [
-          expect.objectContaining({
-            item: {
-              field: {
-                label: 'Test Field',
-                name: 'test-field',
-                help: 'test-help',
+    await waitFor(() =>
+      expect(mock).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          results: [
+            expect.objectContaining({
+              item: {
+                field: {
+                  label: 'Test Field',
+                  name: 'test-field',
+                  help: 'test-help',
+                },
+                title: 'Test Field',
+                description: 'test-help',
+                route: '/route/',
+                resultType: 'field',
+                sourceType: 'field',
+                to: '/route/#test-field',
               },
-              title: 'Test Field',
-              description: 'test-help',
-              route: '/route/',
-              resultType: 'field',
-              sourceType: 'field',
-              to: '/route/#test-field',
-            },
-          }),
-        ],
-      })
+            }),
+          ],
+        })
+      )
     );
   });
 
   it('does not find any form field', async function () {
     const mock = jest.fn().mockReturnValue(null);
-    wrapper = mountWithTheme(<FormSource query="invalid">{mock}</FormSource>);
+    render(<FormSource query="invalid">{mock}</FormSource>);
 
-    await tick();
-    wrapper.update();
-    expect(mock).toHaveBeenCalledWith({
-      isLoading: false,
-      results: [],
-    });
+    await waitFor(() =>
+      expect(mock).toHaveBeenCalledWith({
+        isLoading: false,
+        results: [],
+      })
+    );
   });
 });
