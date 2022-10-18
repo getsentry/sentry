@@ -9,7 +9,7 @@ describe('useLegacyStore', () => {
   beforeEach(() => void TeamStore.reset());
 
   it('should update on change to store', () => {
-    const {result} = reactHooks.renderHook(() => useLegacyStore(TeamStore));
+    const {result} = reactHooks.renderHook(useLegacyStore, {initialProps: TeamStore});
 
     expect(result.current.teams).toEqual([]);
 

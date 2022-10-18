@@ -103,10 +103,8 @@ describe('groupEvents', function () {
     });
 
     attachmentsRequest = MockApiClient.addMockResponse({
-      url: '/api/0/issues/1/attachments/?event_id=id123',
-      body: {
-        data: [],
-      },
+      url: '/api/0/issues/1/attachments/?per_page=50&types=event.minidump&event_id=id123',
+      body: [],
     });
   });
 
@@ -213,6 +211,7 @@ describe('groupEvents', function () {
       );
       const perfEventsColumn = screen.getByText('transaction');
       expect(perfEventsColumn).toBeInTheDocument();
+      expect(request).not.toHaveBeenCalled();
     });
 
     it('renders event and trace link correctly', async () => {
@@ -258,9 +257,60 @@ describe('groupEvents', function () {
       expect(attachmentsRequest).toHaveBeenCalled();
     });
 
-    it('displays attachments', async () => {
+    it('does not display minidump column with no minidumps', async () => {
+      render(
+        <GroupEvents
+          organization={org.organization}
+          api={new MockApiClient()}
+          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+          group={group}
+          location={{query: {environment: ['prod', 'staging']}}}
+        />,
+        {context: routerContext, organization}
+      );
+      await waitForElementToBeRemoved(document.querySelector('div.loading-indicator'));
+      const minidumpColumn = screen.queryByText('minidump');
+      expect(minidumpColumn).not.toBeInTheDocument();
+    });
+
+    it('displays minidumps', async () => {
       attachmentsRequest = MockApiClient.addMockResponse({
-        url: '/api/0/issues/1/attachments/?event_id=id123',
+        url: '/api/0/issues/1/attachments/?per_page=50&types=event.minidump&event_id=id123',
+        body: [
+          {
+            id: 'id123',
+            name: 'dc42a8b9-fc22-4de1-8a29-45b3006496d8.dmp',
+            headers: {
+              'Content-Type': 'application/octet-stream',
+            },
+            mimetype: 'application/octet-stream',
+            size: 1294340,
+            sha1: '742127552a1191f71fcf6ba7bc5afa0a837350e2',
+            dateCreated: '2022-09-28T09:04:38.659307Z',
+            type: 'event.minidump',
+            event_id: 'd54cb9246ee241ffbdb39bf7a9fafbb7',
+          },
+        ],
+      });
+
+      render(
+        <GroupEvents
+          organization={org.organization}
+          api={new MockApiClient()}
+          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+          group={group}
+          location={{query: {environment: ['prod', 'staging']}}}
+        />,
+        {context: routerContext, organization}
+      );
+      await waitForElementToBeRemoved(document.querySelector('div.loading-indicator'));
+      const minidumpColumn = screen.queryByText('minidump');
+      expect(minidumpColumn).toBeInTheDocument();
+    });
+
+    it('does not display attachments but displays minidump', async () => {
+      attachmentsRequest = MockApiClient.addMockResponse({
+        url: '/api/0/issues/1/attachments/?per_page=50&types=event.minidump&event_id=id123',
         body: [
           {
             id: 'id123',
@@ -290,7 +340,9 @@ describe('groupEvents', function () {
       );
       await waitForElementToBeRemoved(document.querySelector('div.loading-indicator'));
       const attachmentsColumn = screen.queryByText('attachments');
-      expect(attachmentsColumn).toBeInTheDocument();
+      const minidumpColumn = screen.queryByText('minidump');
+      expect(attachmentsColumn).not.toBeInTheDocument();
+      expect(minidumpColumn).toBeInTheDocument();
       expect(attachmentsRequest).toHaveBeenCalled();
     });
 
@@ -307,7 +359,12 @@ describe('groupEvents', function () {
       );
       expect(discoverRequest).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
-        expect.objectContaining({query: expect.objectContaining({query: 'issue.id:1 '})})
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: 'issue.id:1 ',
+            field: expect.not.arrayContaining(['attachments', 'minidump']),
+          }),
+        })
       );
 
       const perfEventsColumn = screen.getByText('transaction');

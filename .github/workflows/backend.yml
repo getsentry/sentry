@@ -47,7 +47,7 @@ jobs:
     steps:
       - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
 
-      - uses: ./.github/actions/setup-volta
+      - uses: getsentry/action-setup-volta@54775a59c41065f54ecc76d1dd5f2cdc7a1550cb  # v1.1.0
 
       - name: Setup sentry python env
         uses: ./.github/actions/setup-sentry
@@ -106,52 +106,6 @@ jobs:
 
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
-
-  backend-test-in-silo-modes:
-    needs: files-changed
-    if: needs.files-changed.outputs.backend == 'true'
-      && (
-            contains(github.head_ref, '/hc-')
-         || contains(github.head_ref, 'hybrid-cloud')
-         )
-    timeout-minutes: 60
-    name: backend tests, hybrid cloud
-    runs-on: ubuntu-20.04
-    strategy:
-      fail-fast: false
-      matrix:
-        # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
-        instance: [0, 1]
-        pg-version: ['9.6']
-        silo-mode:
-          - CONTROL
-          - REGION
-    env:
-      MATRIX_INSTANCE_TOTAL: 2
-      MIGRATIONS_TEST_MIGRATE: 1
-      SENTRY_SILO_MODE: ${{ matrix.silo-mode }}
-
-    steps:
-      - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
-        with:
-          # Avoid codecov error message related to SHA resolution:
-          # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
-          fetch-depth: '2'
-
-      - name: Setup sentry env
-        uses: ./.github/actions/setup-sentry
-        id: setup
-        with:
-          snuba: true
-          # Right now, we run so few bigtable related tests that the
-          # overhead of running bigtable in all backend tests
-          # is way smaller than the time it would take to run in its own job.
-          bigtable: true
-          pg-version: ${{ matrix.pg-version }}
-
-      - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
-        run: |
-          make test-python-ci
 
   backend-test-snuba-contains-metrics-tag-values:
     if: needs.files-changed.outputs.backend == 'true'

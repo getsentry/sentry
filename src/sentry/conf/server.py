@@ -912,7 +912,7 @@ REST_FRAMEWORK = {
     "TEST_REQUEST_DEFAULT_FORMAT": "json",
     "DEFAULT_PERMISSION_CLASSES": ("sentry.api.permissions.NoPermission",),
     "EXCEPTION_HANDLER": "sentry.api.handlers.custom_exception_handler",
-    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_SCHEMA_CLASS": "sentry.apidocs.schema.SentrySchema",
 }
 
 
@@ -1020,6 +1020,8 @@ SENTRY_FEATURES = {
     "organizations:rule-page": False,
     # Enable incidents feature
     "organizations:incidents": False,
+    # Enable issue alert previews
+    "organizations:issue-alert-preview": False,
     # Whether to allow issue only search on the issue list
     "organizations:issue-search-allow-postgres-only-search": False,
     # Flags for enabling CdcEventsDatasetSnubaSearchBackend in sentry.io. No effect in open-source
@@ -1113,6 +1115,8 @@ SENTRY_FEATURES = {
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
+    # Enable project selection on the stats page
+    "organizations:project-stats": False,
     # Enable views for ops breakdown
     "organizations:performance-ops-breakdown": False,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
@@ -1197,6 +1201,8 @@ SENTRY_FEATURES = {
     "organizations:mobile-screenshots": False,
     # Enable the mobile screenshot gallery in the attachments tab
     "organizations:mobile-screenshot-gallery": False,
+    # Enable tag improvements in the issue details page
+    "organizations:issue-details-tag-improvements": False,
     # Enable the release details performance section
     "organizations:release-comparison-performance": False,
     # Enable team insights page
@@ -2847,7 +2853,7 @@ SENTRY_FUNCTIONS_REGION = "us-central1"
 # Settings related to SiloMode
 SILO_MODE = os.environ.get("SENTRY_SILO_MODE", None)
 FAIL_ON_UNAVAILABLE_API_CALL = False
-SILO_MODE_SPLICE_TESTS = bool(os.environ.get("SENTRY_SILO_MODE_SPLICE_TESTS", False))
+SILO_MODE_UNSTABLE_TESTS = bool(os.environ.get("SENTRY_SILO_MODE_UNSTABLE_TESTS", False))
 
 DISALLOWED_CUSTOMER_DOMAINS = []
 
