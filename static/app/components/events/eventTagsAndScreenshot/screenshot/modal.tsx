@@ -1,5 +1,5 @@
 import {Fragment, useState} from 'react';
-import {browserHistory, WithRouterProps} from 'react-router';
+import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useEffect} from '@storybook/addons';
@@ -21,6 +21,7 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import useApi from 'sentry/utils/useApi';
 
 import ImageVisualization from './imageVisualization';
+import omit from 'lodash/omit';
 
 type Props = ModalRenderProps & {
   downloadUrl: string;
@@ -29,9 +30,12 @@ type Props = ModalRenderProps & {
   onDownload: () => void;
   orgSlug: Organization['slug'];
   projectSlug: Project['slug'];
+  attachmentIndex?: number;
   enablePagination?: boolean;
   event?: Event;
-} & WithRouterProps<{groupId: string; orgId: string}>;
+  memoizedAttachments?: EventAttachment[];
+  pageLinks?: string | null | undefined;
+} & WithRouterProps;
 
 function Modal({
   eventAttachment,
@@ -44,39 +48,51 @@ function Modal({
   onDelete,
   downloadUrl,
   onDownload,
-  params,
   enablePagination,
   location,
+  pageLinks,
+  attachmentIndex,
+  memoizedAttachments,
 }: Props) {
   const {dateCreated, size, mimetype} = eventAttachment;
   const api = useApi();
-  const [currentEventAttachment, setCurrentEventAttachment] =
-    useState<EventAttachment>(eventAttachment);
+  const [currentEventAttachment, setCurrentAttachment] = useState<EventAttachment>(eventAttachment);
+  const [currentAttachmentIndex, setCurrentAttachmentIndex] = useState<
+    number | undefined
+  >(attachmentIndex);
 
-  const handleCursor: CursorHandler = (cursor, pathname, query) => {
-    browserHistory.push({
-      pathname,
-      query: {...query, cursor},
-    });
+  const handleCursor: CursorHandler = (cursor, pathname, query, delta) => {
+    if (defined(currentAttachmentIndex) && memoizedAttachments?.length) {
+      const newAttachmentIndex = currentAttachmentIndex + delta;
+      if (newAttachmentIndex > 5 || newAttachmentIndex < 0) {
+        setCurrentAttachmentIndex(0);
+        browserHistory.push({
+          pathname,
+          query: {...omit(query, 'cursor'), cursor},
+        });
+        return;
+      }
+      setCurrentAttachmentIndex(newAttachmentIndex);
+      setCurrentAttachment(memoizedAttachments[newAttachmentIndex]);
+    }
   };
 
-  useEffect(() => {
-    const shouldCancelRequest = false;
+  // useEffect(() => {
+  //   const shouldCancelRequest = false;
 
-    if (!enablePagination) {
-      return undefined;
-    }
+  //   if (!enablePagination) {
+  //     return undefined;
+  //   }
 
-    api.requestPromise(`/issues/${params.groupId}/attachments/`, {
-      method: 'GET',
-      query: {
-        ...location.query,
-        types: undefined, // need to explicitly set this to undefined because AsyncComponent adds location query back into the params
-        screenshot: 1,
-        per_page: 1,
-      },
-    });
-  });
+  //   api.requestPromise(`/issues/${params.groupId}/attachments/`, {
+  //     method: 'GET',
+  //     query: {
+  //       screenshot: 1,
+  //       per_page: 1,
+  //       cursor: location.query?.[SCREENSHOT_CURSOR],
+  //     },
+  //   });
+  // });
 
   return (
     <Fragment>
@@ -113,10 +129,10 @@ function Modal({
         </GeralInfo>
 
         <StyledImageVisualization
-          attachment={eventAttachment}
+          attachment={currentEventAttachment}
           orgId={orgSlug}
           projectId={projectSlug}
-          eventId={eventAttachment.event_id}
+          eventId={currentEventAttachment.event_id}
         />
       </Body>
       <Footer>
@@ -136,13 +152,13 @@ function Modal({
             {t('Download')}
           </Button>
         </Buttonbar>
-        <Pagination onCursor={handleCursor} />
+        <Pagination onCursor={handleCursor} pageLinks={pageLinks} />
       </Footer>
     </Fragment>
   );
 }
 
-export default Modal;
+export default withRouter(Modal);
 
 const GeralInfo = styled('div')`
   display: grid;
