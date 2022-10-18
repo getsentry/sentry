@@ -46,6 +46,9 @@ def Feature(names):
 
     def features_override(name, *args, **kwargs):
         if name in names:
+            if name in sentry.features.UNSCOPED_FEATURES:
+                return names[name]
+
             if name.startswith("organizations:"):
                 # org = kwargs.get("organization", None)
                 org = args[0] if len(args) > 0 else kwargs.get("organization", None)
@@ -56,6 +59,7 @@ def Feature(names):
                 project = args[0] if len(args) > 0 else kwargs.get("project", None)
                 if not isinstance(project, Project):
                     raise ValueError("Must provide project to check feature")
+
             return names[name]
         else:
             try:
