@@ -16,7 +16,6 @@ type Props = {
 
 export function AnnotatedTextValue({value, meta, organization, project}: Props) {
   if (meta?.chunks?.length && meta.chunks.length > 1) {
-    console.log({chucks: meta?.chunks});
     return (
       <ChunksSpan>
         {meta.chunks.map((chunk, index) => {
