@@ -59,7 +59,7 @@ export function TagFacets({groupId, tagKeys, environments}: Props) {
     });
     // Don't want to requery everytime state changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [api, environments, groupId, tagKeys]);
+  }, [api, JSON.stringify(environments), groupId, tagKeys]);
 
   const availableTagKeys = tagKeys.filter(tagKey => !!state.tagsData[tagKey]);
   const points =
