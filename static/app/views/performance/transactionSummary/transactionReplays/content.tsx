@@ -103,14 +103,14 @@ function ReplaysContent({
           <EnvironmentPageFilter />
           <DatePageFilter alignDropdown="left" />
         </PageFilterBar>
-        <SearchBar
+        <StyledSearchBar
           organization={organization}
           projectIds={eventView.project}
           query={query.query}
           fields={eventView.fields}
           onSearch={handleChange('query')}
         />
-        <CompactSelect
+        <PercentileSelect
           triggerProps={{prefix: t('Percentile')}}
           value={eventsDisplayFilterName}
           onChange={opt => handleEventDisplayFilterChange(opt.value)}
@@ -136,9 +136,29 @@ const FilterActions = styled('div')`
   display: grid;
   gap: ${space(2)};
   margin-bottom: ${space(2)};
+  grid-template-columns: repeat(2, 1fr);
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: auto 1fr auto;
+  }
+`;
+
+const PercentileSelect = styled(CompactSelect)`
+  order: 2;
+  justify-self: flex-end;
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    order: 3;
+  }
+`;
+
+const StyledSearchBar = styled(SearchBar)`
+  order: 3;
+  grid-column: span 2;
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    order: 2;
+    grid-column: span 1;
   }
 `;
 
