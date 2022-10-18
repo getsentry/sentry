@@ -501,6 +501,14 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if "hasAlertIntegration" in expand:
             data["hasAlertIntegrationInstalled"] = has_alert_integration(project)
 
+        is_am2_basic = features.has(
+            "organizations:dynamic-sampling-basic", project.organization, actor=request.user
+        )
+        # ToDo(ahmed): We need another check for developer AM2 plan as the AM2 Basic plan is only for Team and above
+        #  so we have no way of knowing if the a developer is on AM2
+        if is_am2_basic:
+            del data["dynamicSampling"]
+
         return Response(data)
 
     def put(self, request: Request, project) -> Response:
@@ -542,6 +550,17 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         serializer.is_valid()
 
         result = serializer.validated_data
+
+        is_am2_basic = features.has(
+            "organizations:dynamic-sampling-basic", project.organization, actor=request.user
+        )
+        # ToDo(ahmed): We need another check for developer AM2 plan as the AM2 Basic plan is only for Team and above
+        #  so we have no way of knowing if the a developer is on AM2
+        if is_am2_basic and result.get("dynamicSampling"):
+            return Response(
+                {"detail": ["dynamicSampling is not a valid field"]},
+                status=403,
+            )
 
         allow_dynamic_sampling = features.has(
             "organizations:server-side-sampling", project.organization, actor=request.user
@@ -857,6 +876,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         )
 
         data = serialize(project, request.user, DetailedProjectSerializer())
+        if is_am2_basic:
+            del data["dynamicSampling"]
+
         return Response(data)
 
     @sudo_required
