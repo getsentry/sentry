@@ -169,6 +169,7 @@ export function PerformanceLanding(props: Props) {
               {!showOnboarding && (
                 <ButtonBar gap={3}>
                   <Button
+                    size="sm"
                     priority="primary"
                     data-test-id="landing-header-trends"
                     onClick={() => handleTrendsClick()}
