@@ -1,6 +1,6 @@
 from django.db import models
 
-from sentry.db.models import BoundedBigIntegerField, Model, region_silo_model, sane_repr
+from sentry.db.models import BoundedBigIntegerField, Model, region_silo_only_model, sane_repr
 from sentry.db.models.manager import BaseManager
 
 
@@ -14,7 +14,7 @@ class CommitAuthorManager(BaseManager):
         )
 
 
-@region_silo_model
+@region_silo_only_model
 class CommitAuthor(Model):
     __include_in_export__ = False
 

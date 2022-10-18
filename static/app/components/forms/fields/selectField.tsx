@@ -5,9 +5,10 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import SelectControl, {
   ControlProps,
 } from 'sentry/components/forms/controls/selectControl';
-import InputField, {InputFieldProps} from 'sentry/components/forms/fields/inputField';
 import {t} from 'sentry/locale';
 import {Choices, SelectValue} from 'sentry/types';
+
+import InputField, {InputFieldProps} from './inputField';
 
 export interface SelectFieldProps<OptionType extends OptionTypeBase>
   extends InputFieldProps,
@@ -98,9 +99,10 @@ export default class SelectField<OptionType extends SelectValue<any>> extends Co
     return (
       <InputField
         {...otherProps}
-        field={({onChange, onBlur, required: _required, ...props}) => (
+        field={({id, onChange, onBlur, required: _required, ...props}) => (
           <SelectControl
             {...props}
+            inputId={id}
             clearable={allowClear}
             multiple={multiple}
             styles={{
