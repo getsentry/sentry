@@ -136,6 +136,7 @@ function Controls({
               disabled={!hasFeature || hasUnsavedFilters}
               title={hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE}
               priority="default"
+              size="sm"
             >
               {t('Edit Dashboard')}
             </Button>
@@ -153,6 +154,7 @@ function Controls({
                   <Button
                     data-test-id="add-widget-library"
                     priority="primary"
+                    size="sm"
                     disabled={widgetLimitReached}
                     icon={<IconAdd isCircled />}
                     onClick={() => {
