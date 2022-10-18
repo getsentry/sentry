@@ -49,6 +49,7 @@ from sentry.ownership.grammar import Matcher, Owner, dump_schema
 from sentry.plugins.base import Notification
 from sentry.rules import EventState
 from sentry.testutils import TestCase
+from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
@@ -277,6 +278,53 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         msg = mail.outbox[0]
         assert msg.subject == "[Sentry] BAR-1 - Hello world"
         assert "my rule" in msg.alternatives[0][0]
+
+    def test_simple_notification_perf(self):
+        event_data = load_data(
+            "transaction-n-plus-one",
+            timestamp=before_now(minutes=10),
+            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE.value}-group1"],
+        )
+        perf_event_manager = EventManager(event_data)
+        perf_event_manager.normalize()
+        with override_options(
+            {
+                "performance.issues.all.problem-creation": 1.0,
+                "performance.issues.all.problem-detection": 1.0,
+                "performance.issues.n_plus_one_db.problem-creation": 1.0,
+            }
+        ), self.feature(
+            [
+                "organizations:performance-issues-ingest",
+                "projects:performance-suspect-spans-ingestion",
+            ]
+        ):
+            event = perf_event_manager.save(self.project.id)
+        event = event.for_group(event.groups[0])
+
+        rule = Rule.objects.create(project=self.project, label="my rule")
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
+
+        notification = Notification(event=event, rule=rule)
+
+        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
+            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
+
+        msg = mail.outbox[0]
+        assert msg.subject == "[Sentry] BAR-1 - N+1 DB Queries"
+        checked_values = [
+            "Transaction Name",
+            # TODO: Not sure if this is right
+            "db - SELECT `books_author`.`id`, `books_author`.`",
+            "Parent Span",
+            "django.view - index",
+            "Repeating Spans (10)",
+            "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author`",
+        ]
+        for checked_value in checked_values:
+            assert (
+                checked_value in msg.alternatives[0][0]
+            ), f"{checked_value} not present in message"
 
     @mock.patch("sentry.interfaces.stacktrace.Stacktrace.get_title")
     @mock.patch("sentry.interfaces.stacktrace.Stacktrace.to_email_html")
