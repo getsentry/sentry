@@ -2869,6 +2869,6 @@ SENTRY_SLICING_LOGICAL_PARTITION_COUNT = 256
 # This maps a Sliceable for slicing by name and (lower logical partition, upper physical partition)
 # to a given slice. A slice is a set of physical resources in Sentry and Snuba.
 #
-# For each dataset, the range [0, SENTRY_SLICING_LOGICAL_PARTITION_COUNT) must be mapped
+# For each Sliceable, the range [0, SENTRY_SLICING_LOGICAL_PARTITION_COUNT) must be mapped
 # to a slice ID
 SENTRY_SLICING_CONFIG: Mapping[str, Mapping[Tuple[int, int], int]] = {}
