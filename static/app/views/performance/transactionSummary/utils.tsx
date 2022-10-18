@@ -149,11 +149,17 @@ export function generateReplayLink(routes: PlainRoute<any>[]) {
     const replaySlug = `${tableRow['project.name']}:${replayId}`;
     const referrer = encodeURIComponent(getRouteStringFromRoutes(routes));
 
-    const transactionTimestamp = tableRow.timestamp
-      ? new Date(tableRow.timestamp).getTime()
-      : 0;
+    if (!tableRow.timestamp) {
+      return {
+        pathname: `/organizations/${organization.slug}/replays/${replaySlug}`,
+        query: {
+          referrer,
+        },
+      };
+    }
 
-    // Substract duration from timestamp to get the start time of the transaction
+    const transactionTimestamp = new Date(tableRow.timestamp).getTime();
+
     const transactionStartTimestamp =
       transactionTimestamp - (tableRow['transaction.duration'] as number);
 
