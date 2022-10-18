@@ -23,7 +23,7 @@ ProjectsStore.loadInitialData([
   {
     id: '2',
     slug: 'project-slug',
-    name: 'Project Name',
+    name: 'project-slug',
     hasAccess: true,
     isMember: true,
     isBookmarked: false,

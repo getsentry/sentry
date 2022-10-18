@@ -40,7 +40,7 @@ import withApi from 'sentry/utils/withApi';
 
 import FeatureBadge from '../featureBadge';
 
-import {MOBILE_TAGS, TagFacets} from './tagFacets';
+import {MOBILE_TAGS, MOBILE_TAGS_FORMATTER, TagFacets} from './tagFacets';
 
 type Props = WithRouterProps & {
   api: Client;
@@ -232,6 +232,7 @@ class BaseGroupSidebar extends Component<Props, State> {
                   {t('Mobile Tag Breakdown')} <FeatureBadge type="alpha" />
                 </Fragment>
               }
+              tagFormatter={MOBILE_TAGS_FORMATTER}
             />
           )}
         </Feature>

@@ -1,7 +1,11 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {MOBILE_TAGS, TagFacets} from 'sentry/components/group/tagFacets';
+import {
+  MOBILE_TAGS,
+  MOBILE_TAGS_FORMATTER,
+  TagFacets,
+} from 'sentry/components/group/tagFacets';
 
 const {organization} = initializeOrg();
 describe('TagDistributionMeter', function () {
@@ -133,5 +137,26 @@ describe('TagDistributionMeter', function () {
     userEvent.click(screen.getByText('Show more'));
     expect(screen.getByText('29%')).toBeInTheDocument();
     expect(screen.getByText('iPhone10')).toBeInTheDocument();
+  });
+
+  it('format tag values when given a tagFormatter', async function () {
+    render(
+      <TagFacets
+        environments={[]}
+        groupId="1"
+        tagKeys={MOBILE_TAGS}
+        tagFormatter={MOBILE_TAGS_FORMATTER}
+      />,
+      {
+        organization,
+      }
+    );
+    await waitFor(() => {
+      expect(tagsMock).toHaveBeenCalled();
+    });
+
+    userEvent.click(screen.getByText('release'));
+    expect(screen.getByText('100%')).toBeInTheDocument();
+    expect(screen.getByText('106.0')).toBeInTheDocument();
   });
 });
