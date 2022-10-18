@@ -106,7 +106,7 @@ class DynamicSamplingSerializer(serializers.Serializer):
     # This negative integer represents the rule id that will be sent by the frontend on every rule creation/update.
     #
     # We decided to opt for -1 as UNASSIGNED_ID_VALUE because we decided to reserve 0 for the uniform rule id in order
-    # to avoid making changes in Relay's validation mechanism that supports only positive integers (unsigned integer).
+    # to avoid making changes in Relay's validation mechanism that supports only positive integers (unsigned integers).
     UNASSIGNED_ID_VALUE = -1
 
     @staticmethod
