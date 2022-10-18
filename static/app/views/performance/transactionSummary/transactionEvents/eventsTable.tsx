@@ -2,6 +2,7 @@ import {Component, Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptor, LocationDescriptorObject} from 'history';
+import {groupBy} from 'lodash';
 
 import {Client} from 'sentry/api';
 import GridEditable, {
@@ -372,18 +373,9 @@ class EventsTable extends Component<Props, State> {
     }
 
     const joinCustomData = ({data}: TableData) => {
-      const eventIdMap = {};
-
+      const attachmentsByEvent = groupBy(this.state.attachments, 'event_id');
       data.forEach(event => {
-        event.attachments = [] as any;
-        eventIdMap[event.id] = event;
-      });
-
-      this.state.attachments.forEach(attachment => {
-        const eventAttachments = eventIdMap[attachment.event_id]?.attachments;
-        if (eventAttachments) {
-          eventAttachments.push(attachment);
-        }
+        event.attachments = (attachmentsByEvent[event.id] || []) as any;
       });
     };
 
