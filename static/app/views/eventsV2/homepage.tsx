@@ -30,13 +30,15 @@ class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
   shouldReload = true;
 
   componentDidUpdate(prevProps, prevState) {
+    const hasFetchedSavedQuery = !prevState.savedQuery && this.state.savedQuery;
+    const hasInitiallyLoaded = prevState.loading && !this.state.loading;
+    const sidebarClicked = this.state.savedQuery && this.props.location.search === '';
+    const hasValidEventViewInURL = EventView.fromLocation(this.props.location).isValid();
+
     if (
-      (!prevState.savedQuery &&
-        this.state.savedQuery &&
-        prevState.loading &&
-        !this.state.loading &&
-        !EventView.fromLocation(this.props.location).isValid()) ||
-      (this.state.savedQuery && this.props.location.search === '')
+      this.state.savedQuery &&
+      ((hasInitiallyLoaded && hasFetchedSavedQuery && !hasValidEventViewInURL) ||
+        sidebarClicked)
     ) {
       const eventView = EventView.fromSavedQuery(this.state.savedQuery);
       browserHistory.replace(
