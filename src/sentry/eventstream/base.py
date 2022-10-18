@@ -78,7 +78,7 @@ class EventStream(Service):
         primary_hash: Optional[str],
         skip_consume: bool = False,
         group_states: Optional[GroupStates] = None,
-        message_type: Optional[str] = "error",
+        message_type: str = "error",
     ) -> None:
         if skip_consume:
             logger.info("post_process.skip.raw_event", extra={"event_id": event_id})
