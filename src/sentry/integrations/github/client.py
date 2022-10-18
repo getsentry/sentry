@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import Any, Mapping, Sequence
+from typing import Any, Dict, Mapping, Sequence
 
 import sentry_sdk
 
@@ -14,6 +14,27 @@ from sentry.utils import jwt
 from sentry.utils.json import JSONData
 
 logger = logging.getLogger("sentry.integrations.github")
+
+
+def trimmed_tree(tree: JSONData) -> JSONData:
+    # This help with mypy typing
+    def get_meta(file_meta: dict[str, str]) -> str:
+        return file_meta["path"]
+
+    def should_include_file(file_path: str) -> bool:
+        # Currently only Python related files
+        return file_path.endswith(".py") and not file_path.startswith("tests/")
+
+    # XXX: We should optimize the data structure to be a tree from file to top src dir
+    return list(
+        map(
+            get_meta,
+            filter(
+                lambda x: x["type"] == "blob" and should_include_file(x["path"]),
+                tree,
+            ),
+        )
+    )
 
 
 class GitHubClientMixin(ApiClient):  # type: ignore
@@ -70,13 +91,9 @@ class GitHubClientMixin(ApiClient):  # type: ignore
 
     # https://docs.github.com/en/rest/git/trees#get-a-tree
     def get_tree(self, repo_full_name: str, tree_sha: str) -> JSONData:
-        def should_include_file(file_path: str) -> bool:
-            # Currently only Python related files
-            return file_path.endswith(".py") and not file_path.startswith("tests/")
-
         tree = []
         try:
-            contents = self.get(
+            contents: Dict[str, Any] = self.get(
                 f"/repos/{repo_full_name}/git/trees/{tree_sha}",
                 # Will cause all objects or subtrees referenced by the tree specified in :tree_sha
                 params={"recursive": 1},
@@ -90,21 +107,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                 logger.warning(
                     f"The tree for {repo_full_name} has been truncated. Use different a approach for retrieving contents of tree."
                 )
-            # tree -> list of mode, path, sha, type and url for file/directory
-            from typing import Callable
-
-            # This helps with error: Returning Any from function declared to return "object"  [no-any-return]
-            # func: Callable[[str], str] = lambda file_meta: file_meta["path"]
-            # XXX: We should optimize the data structure to be a tree from file to top src dir
-            tree = list(
-                map(
-                    lambda file_meta: file_meta["path"],
-                    filter(
-                        lambda x: x["type"] == "blob" and should_include_file(x["path"]),
-                        contents["tree"],
-                    ),
-                )
-            )
+            tree = trimmed_tree(contents["repo"])
         except ApiError as e:
             json_data: JSONData = e.json
             msg: str = json_data.get("message")
