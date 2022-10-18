@@ -1,7 +1,8 @@
 import {Fragment, useState} from 'react';
-import {browserHistory} from 'react-router';
+import {browserHistory, WithRouterProps} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useEffect} from '@storybook/addons';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
@@ -17,6 +18,7 @@ import {EventAttachment, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined, formatBytesBase2} from 'sentry/utils';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import useApi from 'sentry/utils/useApi';
 
 import ImageVisualization from './imageVisualization';
 
@@ -27,9 +29,9 @@ type Props = ModalRenderProps & {
   onDownload: () => void;
   orgSlug: Organization['slug'];
   projectSlug: Project['slug'];
-  allowPagination?: boolean;
+  enablePagination?: boolean;
   event?: Event;
-};
+} & WithRouterProps<{groupId: string; orgId: string}>;
 
 function Modal({
   eventAttachment,
@@ -42,8 +44,12 @@ function Modal({
   onDelete,
   downloadUrl,
   onDownload,
+  params,
+  enablePagination,
+  location,
 }: Props) {
   const {dateCreated, size, mimetype} = eventAttachment;
+  const api = useApi();
   const [currentEventAttachment, setCurrentEventAttachment] =
     useState<EventAttachment>(eventAttachment);
 
@@ -53,6 +59,24 @@ function Modal({
       query: {...query, cursor},
     });
   };
+
+  useEffect(() => {
+    const shouldCancelRequest = false;
+
+    if (!enablePagination) {
+      return undefined;
+    }
+
+    api.requestPromise(`/issues/${params.groupId}/attachments/`, {
+      method: 'GET',
+      query: {
+        ...location.query,
+        types: undefined, // need to explicitly set this to undefined because AsyncComponent adds location query back into the params
+        screenshot: 1,
+        per_page: 1,
+      },
+    });
+  });
 
   return (
     <Fragment>
