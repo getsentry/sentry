@@ -5,7 +5,6 @@ import * as Sentry from '@sentry/react';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import {PanelTable} from 'sentry/components/panels';
-import Placeholder from 'sentry/components/placeholder';
 import {DEFAULT_STREAM_GROUP_STATS_PERIOD} from 'sentry/components/stream/group';
 import GroupChart from 'sentry/components/stream/groupChart';
 import {t} from 'sentry/locale';
@@ -116,22 +115,16 @@ function TableRow({
       </IssueDetailsWrapper>
       {isScreenLarge && (
         <ChartWrapper>
-          {issue.stats ? (
-            <GroupChart
-              statsPeriod={DEFAULT_STREAM_GROUP_STATS_PERIOD}
-              data={issue}
-              showSecondaryPoints
-              showMarkLine
-            />
-          ) : (
-            <Placeholder height="44px" />
-          )}
+          <GroupChart
+            statsPeriod={DEFAULT_STREAM_GROUP_STATS_PERIOD}
+            data={issue}
+            showSecondaryPoints
+            showMarkLine
+          />
         </ChartWrapper>
       )}
-
-      <Item>{issue.count ? issue.count : <Placeholder height="24px" />}</Item>
-
-      <Item>{issue.userCount ? issue.userCount : <Placeholder height="24px" />}</Item>
+      <Item>{issue.count}</Item>
+      <Item>{issue.userCount}</Item>
     </Fragment>
   );
 }
