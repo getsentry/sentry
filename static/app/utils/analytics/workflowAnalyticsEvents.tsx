@@ -76,6 +76,7 @@ export type TeamInsightsEventParameters = {
       error_count: number;
       error_has_replay: boolean;
       event_errors: string;
+      group_has_replay: boolean;
       has_owner: boolean;
       is_assigned: boolean;
       issue_age: number;
