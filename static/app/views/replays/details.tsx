@@ -107,14 +107,17 @@ function ReplayDetails({
   // If the user has navigated to the replay from an event, then we want to
   // start the video at the time of the event.
   if (!defined(initialTimeOffset) && defined(eventTimestamp) && startTimestampMs) {
-    // check if the event timestamp is the correct format
-    if (eventTimestamp.length === 13) {
-      initialTimeOffset =
-        relativeTimeInMs(Number(eventTimestamp), startTimestampMs) / 1000;
-    } else {
-      initialTimeOffset = relativeTimeInMs(eventTimestamp, startTimestampMs) / 1000;
+    // check if our event timestamp is within the range of the replay
+    const eventTimestampMs = new Date(eventTimestamp).getTime();
+    if (eventTimestampMs >= startTimestampMs) {
+      // check if the event timestamp is the correct format
+      if (eventTimestamp.length === 13) {
+        initialTimeOffset =
+          relativeTimeInMs(Number(eventTimestamp), startTimestampMs) / 1000;
+      } else {
+        initialTimeOffset = relativeTimeInMs(eventTimestamp, startTimestampMs) / 1000;
+      }
     }
-
     // if the event timestamp is not the correct format, default to the start of the replay
     if (!defined(initialTimeOffset)) {
       initialTimeOffset = 0;

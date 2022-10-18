@@ -153,16 +153,20 @@ export function generateReplayLink(routes: PlainRoute<any>[]) {
       ? Math.floor(new Date(tableRow.timestamp).getTime() / 1000) * 1000
       : 0;
 
+    // Substract duration from timestamp to get the start time of the transaction
+    const transactionStartTimestamp =
+      // We add 1 more second to the duration to account for the fact that our timestamp is not precise
+      transactionTimestamp - ((tableRow['transaction.duration'] as number) + 1000);
+
     return {
       pathname: `/organizations/${organization.slug}/replays/${replaySlug}`,
       query: {
-        event_t: transactionTimestamp,
+        event_t: transactionStartTimestamp,
         referrer,
       },
     };
   };
 }
-
 export const SidebarSpacer = styled('div')`
   margin-top: ${space(3)};
 `;
