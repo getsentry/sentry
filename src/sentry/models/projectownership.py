@@ -192,13 +192,13 @@ class ProjectOwnership(Model):
             hydrated_ownership_rules = cls._hydrate_rules(
                 project_id, ownership_rules, OwnerRuleType.OWNERSHIP_RULE.value
             )
-            # hydrated_codeowners_rules = cls._hydrate_rules(
-            #     project_id, codeowners_rules, OwnerRuleType.CODEOWNERS.value
-            # )
+            hydrated_codeowners_rules = cls._hydrate_rules(
+                project_id, codeowners_rules, OwnerRuleType.CODEOWNERS.value
+            )
 
             rules_in_evaluation_order = [
                 *hydrated_ownership_rules[::-1],
-                # *hydrated_codeowners_rules[::-1],
+                *hydrated_codeowners_rules[::-1],
             ]
             rules_with_owners = list(
                 filter(
