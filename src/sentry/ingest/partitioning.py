@@ -21,7 +21,7 @@ def map_logical_partition_to_slice(dataset_name: str, logical_partition: int) ->
 
     assert is_storage_partitioned(
         dataset_name
-    ), f"cannot retrieve slice of non-partitioned storage {dataset_name}"
+    ), f"cannot retrieve slice of non-partitioned dataset {dataset_name}"
     assert (
         dataset_name in settings.SENTRY_SLICING_CONFIG
     ), f"logical partition mapping missing for {dataset_name}"
@@ -37,7 +37,7 @@ def map_logical_partition_to_slice(dataset_name: str, logical_partition: int) ->
 
 def is_storage_partitioned(dataset_name: str) -> bool:
     """
-    Returns whether the storage set is partitioned.
+    Returns whether the dataset is partitioned.
     """
 
     return dataset_name in settings.SENTRY_SLICING_CONFIG.keys()
