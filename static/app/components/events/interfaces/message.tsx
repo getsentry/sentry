@@ -16,6 +16,7 @@ type Props = {
 export function Message({data, event}: Props) {
   const entryIndex = event.entries.findIndex(entry => entry.type === EntryType.MESSAGE);
   const meta = event?._meta?.entries?.[entryIndex] ?? {};
+  console.log({data: data.formatted});
 
   function renderParams() {
     const params = data?.params;
@@ -60,7 +61,7 @@ export function Message({data, event}: Props) {
       ) : (
         <pre className="plain">{data.formatted}</pre>
       )}
-      {renderParams()}
+      {/* {renderParams()} */}
     </EventDataSection>
   );
 }

@@ -15,7 +15,7 @@ const REMARKS = {
   e: 'Encrypted',
 };
 
-const KNOWN_RULES = {
+const NON_DATA_SCRUBBING_RULES = {
   '!limit': 'size limits',
   '!raw': 'raw payload',
   '!config': 'SDK configuration',
@@ -32,11 +32,10 @@ export function getTooltipText({
 }) {
   const method = REMARKS[remark];
 
-  // default data scrubbing
-  if (KNOWN_RULES[rule_id]) {
-    return tct('[method] because of the PII rule [ruleDescription]', {
+  if (NON_DATA_SCRUBBING_RULES[rule_id]) {
+    return tct('[method] because of [ruleDescription]', {
       method,
-      ruleDescription: KNOWN_RULES[rule_id],
+      ruleDescription: NON_DATA_SCRUBBING_RULES[rule_id],
     });
   }
 
@@ -48,7 +47,7 @@ export function getTooltipText({
     if (!organization) {
       return (
         <Wrapper>
-          {tct('[method] because of the PII rule [ruleDescription]', {
+          {tct('[method] because of the data scrubbing rule [ruleDescription]', {
             method,
             ruleDescription: rule_id,
           })}
@@ -62,7 +61,7 @@ export function getTooltipText({
     return (
       <Wrapper>
         {tct(
-          '[method] because of the PII rule [ruleDescription] in the settings of the organization [organizationSlug]',
+          '[method] because of the data scrubbing rule [ruleDescription] in the settings of the organization [organizationSlug]',
           {
             method,
             ruleDescription: (
@@ -85,7 +84,7 @@ export function getTooltipText({
   if (!project || !organization) {
     return (
       <Wrapper>
-        {tct('[method] because of the PII rule [ruleDescription]', {
+        {tct('[method] because of the data scrubbing rule [ruleDescription]', {
           method,
           ruleDescription: rule_id,
         })}
@@ -99,7 +98,7 @@ export function getTooltipText({
   return (
     <Wrapper>
       {tct(
-        '[method] because of the PII rule [ruleDescription] in the settings of the project [projectSlug]',
+        '[method] because of the data scrubbing rule [ruleDescription] in the settings of the project [projectSlug]',
         {
           method,
           ruleDescription: (
