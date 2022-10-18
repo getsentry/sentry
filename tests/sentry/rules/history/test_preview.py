@@ -36,10 +36,12 @@ class ProjectRulePreviewTest(TestCase):
 
     def _test_preview(self, hours, condition):
         conditions = [{"id": condition}]
+        # test with 0 frequency, no fires should be filtered
         result = preview(self.project, conditions, [], "all", "all", 0)
         for i in range(hours):
             assert result[hours - i - 1].count == i % 5
 
+        # test with 60min frequency, there should be at most 1 fire per 60min bucket
         result = preview(self.project, conditions, [], "all", "all", 60)
         for i in range(hours):
             assert result[i].count == (1 if i % 5 else 0)
