@@ -190,7 +190,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
     def _build_consumer(
         self,
-        entity: Union[Literal["all"], Literal["errors"], Literal["transactions"]],
+        entity: Union[Literal["errors"], Literal["transactions"]],
         consumer_group: str,
         topic: Optional[str],
         commit_log_topic: str,
@@ -206,16 +206,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         elif entity == PostProcessForwarderType.ERRORS:
             default_topic = self.topic
         else:
-            # Default implementation which processes both errors and transactions
-            # irrespective of values in the header. This would most likely be the case
-            # for development environments. For the combined post process forwarder
-            # to work KAFKA_EVENTS and KAFKA_TRANSACTIONS must be the same currently.
-            assert (
-                settings.KAFKA_TOPICS[settings.KAFKA_EVENTS]["cluster"]
-                == settings.KAFKA_TOPICS[settings.KAFKA_TRANSACTIONS]["cluster"]
-            )
-            default_topic = self.topic
-            assert self.topic == self.transactions_topic
+            raise ValueError("Invalid entity")
 
         worker = PostProcessForwarderWorker(concurrency=concurrency)
 
@@ -241,7 +232,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
     def run_batched_consumer(
         self,
-        entity: Union[Literal["all"], Literal["errors"], Literal["transactions"]],
+        entity: Union[Literal["errors"], Literal["transactions"]],
         consumer_group: str,
         topic: Optional[str],
         commit_log_topic: str,
@@ -273,7 +264,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
     def run_post_process_forwarder(
         self,
-        entity: Union[Literal["all"], Literal["errors"], Literal["transactions"]],
+        entity: Union[Literal["errors"], Literal["transactions"]],
         consumer_group: str,
         topic: Optional[str],
         commit_log_topic: str,
