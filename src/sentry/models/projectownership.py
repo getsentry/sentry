@@ -142,7 +142,13 @@ class ProjectOwnership(Model):
             if val
         }
         result = [
-            (rule, ActorTuple.resolve_many([actors[owner] for owner in rule.owners]), type)
+            (
+                rule,
+                ActorTuple.resolve_many(
+                    [actors.get(owner) for owner in rule.owners if actors.get(owner)]
+                ),
+                type,
+            )
             for rule in rules
         ]
         return result
@@ -186,13 +192,13 @@ class ProjectOwnership(Model):
             hydrated_ownership_rules = cls._hydrate_rules(
                 project_id, ownership_rules, OwnerRuleType.OWNERSHIP_RULE.value
             )
-            hydrated_codeowners_rules = cls._hydrate_rules(
-                project_id, codeowners_rules, OwnerRuleType.CODEOWNERS.value
-            )
+            # hydrated_codeowners_rules = cls._hydrate_rules(
+            #     project_id, codeowners_rules, OwnerRuleType.CODEOWNERS.value
+            # )
 
             rules_in_evaluation_order = [
                 *hydrated_ownership_rules[::-1],
-                *hydrated_codeowners_rules[::-1],
+                # *hydrated_codeowners_rules[::-1],
             ]
             rules_with_owners = list(
                 filter(
