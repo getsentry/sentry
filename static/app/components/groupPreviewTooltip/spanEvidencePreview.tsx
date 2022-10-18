@@ -67,9 +67,7 @@ const SpanEvidencePreviewBody = ({
   useEffect(() => {
     onRequestBegin();
 
-    return () => {
-      onUnmount();
-    };
+    return onUnmount;
   }, [onRequestBegin, onUnmount]);
 
   if (isLoading) {
