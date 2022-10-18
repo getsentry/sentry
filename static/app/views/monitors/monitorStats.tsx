@@ -66,8 +66,8 @@ const MonitorStats = ({monitor}: Props) => {
     LineSeries({
       name: t('Duration'),
       data: durationData,
-      lineStyle: {color: theme.gray200, type: 'dashed', width: 1},
-      itemStyle: {color: theme.gray200},
+      lineStyle: {color: theme.purple300, width: 2},
+      itemStyle: {color: theme.purple300},
       yAxisIndex: 1,
     }),
   ];
