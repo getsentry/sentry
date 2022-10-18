@@ -91,9 +91,9 @@ export function TagFacets({groupId, tagKeys, environments, event, tagFormatter}:
   // Format tagsData if the component was given a tagFormatter
   const tagsData = tagFormatter?.(state.tagsData) ?? state.tagsData;
   const points =
-    tagsData[state.selectedTag]?.topValues.map(({name, count}) => {
+    tagsData[state.selectedTag]?.topValues.map(({name, value, count}) => {
       const isTagValueOfCurrentEvent =
-        event?.tags.find(({key}) => key === state.selectedTag)?.value === name;
+        event?.tags.find(({key}) => key === state.selectedTag)?.value === value;
       return {
         label: name,
         value: count,
