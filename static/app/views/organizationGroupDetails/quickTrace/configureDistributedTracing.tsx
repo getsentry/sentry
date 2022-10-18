@@ -15,8 +15,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import {QuicktraceMissingInstrumentation} from 'sentry/utils/analytics/issueAnalyticsEvents';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {getConfigureTracingDocsLink} from 'sentry/utils/docs';
 import {promptCanShow, promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import withApi from 'sentry/utils/withApi';
@@ -60,23 +59,19 @@ class ConfigureDistributedTracing extends Component<Props, State> {
     this.setState({shouldShow: !promptIsDismissed(data ?? {}, 30)});
   }
 
-  trackAnalytics(eventKey: keyof QuicktraceMissingInstrumentation) {
+  trackAnalytics({eventKey, eventName}) {
     const {project, organization} = this.props;
 
-    trackAdvancedAnalyticsEvent(eventKey, {
-      organization,
+    trackAnalyticsEvent({
+      eventKey,
+      eventName,
+      organization_id: parseInt(organization.id, 10),
       project_id: parseInt(project.id, 10),
       platform: project.platform,
     });
   }
 
-  handleClick({
-    action,
-    eventKey,
-  }: {
-    action: 'snoozed' | 'dismissed';
-    eventKey: keyof QuicktraceMissingInstrumentation;
-  }) {
+  handleClick({action, eventKey, eventName}) {
     const {api, project, organization} = this.props;
     const data = {
       projectId: project.id,
@@ -85,7 +80,7 @@ class ConfigureDistributedTracing extends Component<Props, State> {
       status: action,
     };
     promptsUpdate(api, data).then(() => this.setState({shouldShow: false}));
-    this.trackAnalytics(eventKey);
+    this.trackAnalytics({eventKey, eventName});
   }
 
   renderActionButton(docsLink: string) {
@@ -119,7 +114,10 @@ class ConfigureDistributedTracing extends Component<Props, State> {
             priority="primary"
             href={docsLink}
             onClick={() =>
-              this.trackAnalytics('quick_trace.missing_instrumentation.docs')
+              this.trackAnalytics({
+                eventKey: 'quick_trace.missing_instrumentation.docs',
+                eventName: 'Quick Trace: Missing Instrumentation Docs',
+              })
             }
           >
             {t('Read the docs')}
@@ -161,6 +159,7 @@ class ConfigureDistributedTracing extends Component<Props, State> {
                 this.handleClick({
                   action: 'snoozed',
                   eventKey: 'quick_trace.missing_instrumentation.snoozed',
+                  eventName: 'Quick Trace: Missing Instrumentation Snoozed',
                 })
               }
             >
@@ -173,6 +172,7 @@ class ConfigureDistributedTracing extends Component<Props, State> {
                 this.handleClick({
                   action: 'dismissed',
                   eventKey: 'quick_trace.missing_instrumentation.dismissed',
+                  eventName: 'Quick Trace: Missing Instrumentation Dismissed',
                 })
               }
             >
