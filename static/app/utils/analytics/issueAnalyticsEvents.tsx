@@ -66,7 +66,7 @@ export type IssueEventParameters = {
     num_perf_issues: number;
     page: number;
     query: string;
-    tab: string;
+    tab?: string;
   };
   'quick_trace.connected_services': {
     projects: number;

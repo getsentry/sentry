@@ -621,7 +621,7 @@ class IssueListOverview extends Component<Props, State> {
 
         trackAdvancedAnalyticsEvent('issues_tab.viewed', {
           organization,
-          tab: tab ? tab.analyticsName : 'N/A',
+          tab: tab?.analyticsName,
           page: page ? parseInt(page, 10) : 0,
           query,
           num_perf_issues: numPerfIssues,
