@@ -167,6 +167,7 @@
     "@babel/plugin-transform-react-jsx-source": "^7.19.6",
     "@pmmmwh/react-refresh-webpack-plugin": "0.5.7",
     "@sentry/jest-environment": "4.0.0-alpha",
+    "@sentry/profiling-node": "^0.0.1",
     "@size-limit/preset-small-lib": "^5.0.5",
     "@storybook/addon-a11y": "6.5.12",
     "@storybook/addon-actions": "6.5.12",
