@@ -1,5 +1,4 @@
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
-import {textWithMarkupMatcher} from 'sentry-test/utils';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {
@@ -100,27 +99,26 @@ describe('Command Palette Modal', function () {
       }
     );
 
-    userEvent.paste(screen.getByRole('textbox'), 'bil');
+    // NOTE: The `debounce` in `ApiSource` surprisingly only fires for the
+    // first two typed characters of a sequence in most cases. This test only
+    // types two characters to match in-app behaviour even though it's unclear
+    // why it works that way
+    userEvent.type(screen.getByRole('textbox'), 'bi');
 
-    expect(mockRequests.organization).toHaveBeenCalledTimes(1);
-
-    expect(mockRequests.organization).toHaveBeenCalledWith(
+    expect(mockRequests.organization).toHaveBeenLastCalledWith(
       expect.anything(),
       expect.objectContaining({
         // This nested 'query' is correct
-        query: {query: 'bil'},
+        query: {query: 'bi'},
       })
     );
 
-    expect(
-      await screen.findByText(textWithMarkupMatcher('billy-org Dashboard'))
-    ).toBeInTheDocument();
+    const badges = await screen.findAllByTestId('badge-display-name');
 
-    expect(
-      within(screen.getAllByTestId('badge-display-name')[0]).getByTestId('highlight')
-    ).toBeInTheDocument();
+    expect(badges[0]).toHaveTextContent('billy-org Dashboard');
+    expect(badges[1]).toHaveTextContent('billy-org Settings');
 
-    userEvent.click(screen.getByText(textWithMarkupMatcher('billy-org Dashboard')));
+    userEvent.click(badges[0]);
 
     expect(navigateTo).toHaveBeenCalledWith('/billy-org/', expect.anything(), undefined);
   });
