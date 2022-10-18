@@ -47,6 +47,9 @@ def basic_protocol_handler(
         if task_state:
             kwargs["group_states"] = task_state.get("group_states")
 
+        if task_state and task_state.get("message_type"):
+            kwargs["message_type"] = task_state.get("message_type")
+
         return kwargs
 
     def handle_message(operation: str, *data: Any) -> Optional[Mapping[str, Any]]:
