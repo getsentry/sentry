@@ -23,6 +23,8 @@ const f = (key: number, name: string, file?: string, image?: string): Flamegraph
       new Frame({key: name + (file ? file : ''), name, file, image}),
       null
     ),
+    previousSibling: null,
+    nextSibling: null,
   };
 };
 

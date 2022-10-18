@@ -138,6 +138,8 @@ describe('flamegraphRenderer', () => {
         depth: 0,
         start: 0,
         end: 0,
+        previousSibling: null,
+        nextSibling: null,
       })
     ).toEqual(LightFlamegraphTheme.COLORS.FRAME_FALLBACK_COLOR);
   });
