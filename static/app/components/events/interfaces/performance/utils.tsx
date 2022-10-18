@@ -6,7 +6,7 @@ import {ResourceLink} from './resources';
 const ALL_INCLUSIVE_RESOURCE_LINKS: ResourceLink[] = [
   {
     text: t('Sentry Docs: N+1 Queries'),
-    link: 'https://docs.sentry.io/product/issues/performance-issues/n-one-queries/',
+    link: 'https://docs.sentry.io/product/issues/issue-details/performance-issues/n-one-queries/',
   },
 ];
 
