@@ -16,6 +16,15 @@ from sentry.utils import json
 
 @pytest.fixture
 def kafka_message_payload():
+    return _kafka_message_payload()
+
+
+@pytest.fixture
+def kafka_message_tx_payload():
+    return _kafka_message_payload("transaction")
+
+
+def _kafka_message_payload(message_type: str = "error"):
     return [
         2,
         "insert",
@@ -39,15 +48,20 @@ def kafka_message_payload():
                     "is_new_group_environment": False,
                 }
             ],
+            "message_type": message_type,
         },
     ]
 
 
 @pytest.fixture
 def kafka_message_without_transaction_header(kafka_message_payload):
+    return _mock_message(kafka_message_payload)
+
+
+def _mock_message(message_payload):
     mock_message = Mock()
     mock_message.headers = MagicMock(return_value=[("timestamp", b"12345")])
-    mock_message.value = MagicMock(return_value=json.dumps(kafka_message_payload))
+    mock_message.value = MagicMock(return_value=json.dumps(message_payload))
     mock_message.partition = MagicMock("1")
     return mock_message
 
@@ -64,12 +78,12 @@ def kafka_message_with_transaction_header_false(kafka_message_payload):
 
 
 @pytest.fixture
-def kafka_message_with_transaction_header_true(kafka_message_payload):
+def kafka_message_with_transaction_header_true(kafka_message_tx_payload):
     mock_message = Mock()
     mock_message.headers = MagicMock(
         return_value=[("timestamp", b"12345"), ("transaction_forwarder", b"1")]
     )
-    mock_message.value = MagicMock(return_value=json.dumps(kafka_message_payload))
+    mock_message.value = MagicMock(return_value=json.dumps(kafka_message_tx_payload))
     mock_message.partition = MagicMock("1")
     return mock_message
 
@@ -97,6 +111,7 @@ def test_post_process_forwarder(
         group_states=[
             {"id": 43, "is_new": False, "is_regression": None, "is_new_group_environment": False}
         ],
+        message_type="error",
     )
 
     forwarder.shutdown()
@@ -133,6 +148,7 @@ def test_post_process_forwarder_bad_message_headers(
         group_states=[
             {"id": 43, "is_new": False, "is_regression": None, "is_new_group_environment": False}
         ],
+        message_type="error",
     )
 
     forwarder.shutdown()
@@ -184,6 +200,7 @@ def test_errors_post_process_forwarder_missing_headers(
         group_states=[
             {"id": 43, "is_new": False, "is_regression": None, "is_new_group_environment": False}
         ],
+        message_type="error",
     )
 
     forwarder.shutdown()
@@ -215,6 +232,7 @@ def test_errors_post_process_forwarder_false_headers(
         group_states=[
             {"id": 43, "is_new": False, "is_regression": None, "is_new_group_environment": False}
         ],
+        message_type="error",
     )
 
     forwarder.shutdown()
@@ -290,6 +308,7 @@ def test_transactions_post_process_forwarder_true_headers(
         group_states=[
             {"id": 43, "is_new": False, "is_regression": None, "is_new_group_environment": False}
         ],
+        message_type="transaction",
     )
 
     forwarder.shutdown()
@@ -297,19 +316,19 @@ def test_transactions_post_process_forwarder_true_headers(
 
 @pytest.mark.django_db
 @patch(
-    "sentry.eventstream.kafka.postprocessworker.post_process_group.delay",
-    wraps=sentry.tasks.post_process.post_process_group.delay,
+    "sentry.eventstream.kafka.postprocessworker.post_process_group.apply_async",
+    wraps=sentry.tasks.post_process.post_process_group.apply_async,
 )
 def test_errors_post_process_forwarder_calls_post_process_group(
     post_process_group_spy,
-    kafka_message_without_transaction_header,
+    kafka_message_payload,
 ):
     forwarder = ErrorsPostProcessForwarderWorker(concurrency=1)
 
     with TaskRunner():
         assert post_process_group_spy.call_count == 0
 
-        future = forwarder.process_message(kafka_message_without_transaction_header)
+        future = forwarder.process_message(_mock_message(kafka_message_payload))
 
         assert future is not None
         forwarder.flush_batch([future])
@@ -323,7 +342,7 @@ def test_errors_post_process_forwarder_calls_post_process_group(
             is_new_group_environment=False,
         )
 
-        assert post_process_group_spy.call_args.kwargs == dict(
+        assert post_process_group_spy.call_args.kwargs["kwargs"] == dict(
             group_id=43,
             primary_hash="311ee66a5b8e697929804ceb1c456ffe",
             cache_key=cache_key_for_event(
@@ -331,6 +350,7 @@ def test_errors_post_process_forwarder_calls_post_process_group(
             ),
             **group_state,
             group_states=[{"id": 43, **group_state}],
+            queue="post_process_errors",
         )
 
     forwarder.shutdown()
@@ -338,8 +358,8 @@ def test_errors_post_process_forwarder_calls_post_process_group(
 
 @pytest.mark.django_db
 @patch(
-    "sentry.eventstream.kafka.postprocessworker.post_process_group.delay",
-    wraps=sentry.tasks.post_process.post_process_group.delay,
+    "sentry.eventstream.kafka.postprocessworker.post_process_group.apply_async",
+    wraps=sentry.tasks.post_process.post_process_group.apply_async,
 )
 def test_transactions_post_process_forwarder_calls_post_process_group(
     post_process_group_spy,
@@ -364,7 +384,7 @@ def test_transactions_post_process_forwarder_calls_post_process_group(
             is_new_group_environment=False,
         )
 
-        assert post_process_group_spy.call_args.kwargs == dict(
+        assert post_process_group_spy.call_args.kwargs["kwargs"] == dict(
             group_id=43,
             primary_hash="311ee66a5b8e697929804ceb1c456ffe",
             cache_key=cache_key_for_event(
@@ -372,6 +392,7 @@ def test_transactions_post_process_forwarder_calls_post_process_group(
             ),
             **group_state,
             group_states=[{"id": 43, **group_state}],
+            queue="post_process_performance",
         )
 
     forwarder.shutdown()

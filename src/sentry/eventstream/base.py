@@ -44,7 +44,7 @@ GroupStates = Sequence[GroupState]
 
 def get_post_process_queue(message_type: str) -> str:
     if message_type == "transaction":
-        return "post_process_transactions"
+        return "post_process_performance"
     else:
         return "post_process_errors"  # use error queue as default
 
@@ -94,8 +94,8 @@ class EventStream(Service):
                     "cache_key": cache_key,
                     "group_id": group_id,
                     "group_states": group_states,
+                    "queue": get_post_process_queue(message_type),
                 },
-                queue=get_post_process_queue(message_type),
             )
 
     def insert(

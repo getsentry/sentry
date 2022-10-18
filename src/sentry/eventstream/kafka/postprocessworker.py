@@ -91,8 +91,8 @@ def dispatch_post_process_group_task(
                 "cache_key": cache_key,
                 "group_id": group_id,
                 "group_states": group_states,
+                "queue": get_post_process_queue(message_type),
             },
-            queue=get_post_process_queue(message_type),
         )
 
 
