@@ -91,4 +91,18 @@ describe('useTimeout', () => {
     expect(result.current.start).not.toBe(firstRender.start);
     expect(result.current.end).not.toBe(firstRender.end);
   });
+
+  it('should not exec the callback after unmount', () => {
+    const {result, unmount} = reactHooks.renderHook(useTimeout, {
+      initialProps: {timeMs, onTimeout},
+    });
+
+    result.current.start();
+
+    unmount();
+
+    jest.runAllTimers();
+
+    expect(onTimeout).not.toHaveBeenCalled();
+  });
 });
