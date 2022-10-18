@@ -30,6 +30,7 @@ describe('TagDistributionMeter', function () {
           topValues: [
             {
               name: 'Android 12',
+              value: 'Android 12',
               count: 20,
             },
             {
