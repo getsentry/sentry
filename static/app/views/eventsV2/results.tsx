@@ -116,16 +116,14 @@ export class Results extends Component<Props, State> {
       return {...prevState, eventView, savedQuery: nextProps.savedQuery};
     }
 
-    return prevState;
+    return {...prevState, savedQuery: nextProps.savedQuery};
   }
 
   state: State = {
-    // If this is the homepage, force an invalid eventView so we can handle
-    // the redirect first. This can't rely on the location because the
-    // location may have a valid eventView configuration
-    eventView: this.props.isHomepage
-      ? EventView.fromSavedQuery({...DEFAULT_EVENT_VIEW, fields: []})
-      : EventView.fromSavedQueryOrLocation(this.props.savedQuery, this.props.location),
+    eventView: EventView.fromSavedQueryOrLocation(
+      this.props.savedQuery,
+      this.props.location
+    ),
     error: '',
     errorCode: 200,
     totalValues: null,

@@ -1,10 +1,11 @@
-import {InjectedRouter} from 'react-router';
+import {browserHistory, InjectedRouter} from 'react-router';
 import {Location} from 'history';
 
 import {Client} from 'sentry/api';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {Organization, PageFilters, SavedQuery} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -30,6 +31,26 @@ type HomepageQueryState = AsyncComponent['state'] & {
 
 class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
   shouldReload = true;
+
+  componentDidUpdate(prevProps, prevState) {
+    if (
+      (!prevState.savedQuery &&
+        this.state.savedQuery &&
+        prevState.loading &&
+        !this.state.loading &&
+        !EventView.fromLocation(this.props.location).isValid()) ||
+      (this.state.savedQuery && this.props.location.search === '')
+    ) {
+      console.log('prev', prevProps, prevState);
+      console.log('this', this.props, this.state);
+      const eventView = EventView.fromSavedQuery(this.state.savedQuery);
+      browserHistory.replace(
+        eventView.getResultsViewUrlTarget(this.props.organization.slug, true)
+      );
+      console.log(eventView.getResultsViewUrlTarget(this.props.organization.slug, true));
+    }
+    super.componentDidUpdate(prevProps, prevState);
+  }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization, location} = this.props;
