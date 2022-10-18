@@ -6,14 +6,16 @@ from enum import Enum
 from typing import Any, Dict
 
 
-class ActivityType(Enum):
+class ConditionActivityType(Enum):
     CREATE_ISSUE = 0
+    REGRESSION = 1
+    REAPPEARED = 2
 
 
 @dataclass(frozen=True)
 class ConditionActivity:
     group_id: str
     # potentially can have multiple types if even more conditions are supported
-    type: ActivityType
+    type: ConditionActivityType
     timestamp: datetime
     data: Dict[str, Any] | None = None
