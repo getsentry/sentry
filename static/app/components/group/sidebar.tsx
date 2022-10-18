@@ -38,6 +38,8 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import {isMobilePlatform} from 'sentry/utils/platform';
 import withApi from 'sentry/utils/withApi';
 
+import FeatureBadge from '../featureBadge';
+
 import {MOBILE_TAGS, MOBILE_TAGS_FORMATTER, TagFacets} from './tagFacets';
 
 type Props = WithRouterProps & {
@@ -226,6 +228,11 @@ class BaseGroupSidebar extends Component<Props, State> {
               groupId={group.id}
               tagKeys={MOBILE_TAGS}
               event={event}
+              title={
+                <Fragment>
+                  {t('Mobile Tag Breakdown')} <FeatureBadge type="alpha" />
+                </Fragment>
+              }
               tagFormatter={MOBILE_TAGS_FORMATTER}
             />
           )}

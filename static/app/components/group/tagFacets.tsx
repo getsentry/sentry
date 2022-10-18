@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, ReactNode, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 
@@ -49,6 +49,7 @@ type Props = {
   tagFormatter?: (
     tagsData: Record<string, TagWithTopValues>
   ) => Record<string, TagWithTopValues>;
+  title?: ReactNode;
 };
 
 type State = {
@@ -110,7 +111,7 @@ export function TagFacets({groupId, tagKeys, environments, event, tagFormatter}:
   if (availableTagKeys.length > 0) {
     return (
       <SidebarSection.Wrap>
-        <SidebarSection.Title>{t('Tag Summary')}</SidebarSection.Title>
+        <SidebarSection.Title>{title ?? t('Tag Summary')}</SidebarSection.Title>
         <TagFacetsContainer>
           <ButtonBar merged active={state.selectedTag}>
             {availableTagKeys.map(tagKey => {
