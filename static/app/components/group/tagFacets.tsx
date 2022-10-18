@@ -17,7 +17,7 @@ import BreakdownBars from '../charts/breakdownBars';
 
 export const MOBILE_TAGS = ['os', 'device', 'release'];
 export function MOBILE_TAGS_FORMATTER(tagsData: Record<string, TagWithTopValues>) {
-  // For releases, format the release value to be more readable
+  // For "release" tag keys, format the release tag value to be more readable (ie removing version prefix)
   const transformedTagsData = {};
   Object.keys(tagsData).forEach(tagKey => {
     if (tagKey === 'release') {
