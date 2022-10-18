@@ -8,6 +8,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Environment, TagWithTopValues} from 'sentry/types';
 import {Event} from 'sentry/types/event';
+import {formatVersion} from 'sentry/utils/formatters';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -16,6 +17,26 @@ import ButtonBar from '../buttonBar';
 import BreakdownBars from '../charts/breakdownBars';
 
 export const MOBILE_TAGS = ['os', 'device', 'release'];
+export function MOBILE_TAGS_FORMATTER(tagsData: Record<string, TagWithTopValues>) {
+  // For "release" tag keys, format the release tag value to be more readable (ie removing version prefix)
+  const transformedTagsData = {};
+  Object.keys(tagsData).forEach(tagKey => {
+    if (tagKey === 'release') {
+      transformedTagsData[tagKey] = {
+        ...tagsData[tagKey],
+        topValues: tagsData[tagKey].topValues.map(topValue => {
+          return {
+            ...topValue,
+            name: formatVersion(topValue.name),
+          };
+        }),
+      };
+    } else {
+      transformedTagsData[tagKey] = tagsData[tagKey];
+    }
+  });
+  return transformedTagsData;
+}
 
 const LESS_ITEMS = 4;
 const MORE_ITEMS = 8;
@@ -25,6 +46,9 @@ type Props = {
   groupId: string;
   tagKeys: string[];
   event?: Event;
+  tagFormatter?: (
+    tagsData: Record<string, TagWithTopValues>
+  ) => Record<string, TagWithTopValues>;
 };
 
 type State = {
@@ -34,7 +58,7 @@ type State = {
   tagsData: Record<string, TagWithTopValues>;
 };
 
-export function TagFacets({groupId, tagKeys, environments, event}: Props) {
+export function TagFacets({groupId, tagKeys, environments, event, tagFormatter}: Props) {
   const [state, setState] = useState<State>({
     tagsData: {},
     selectedTag: tagKeys.length > 0 ? tagKeys[0] : '',
@@ -64,8 +88,10 @@ export function TagFacets({groupId, tagKeys, environments, event}: Props) {
   }, [api, environments, groupId, tagKeys]);
 
   const availableTagKeys = tagKeys.filter(tagKey => !!state.tagsData[tagKey]);
+  // Format tagsData if the component was given a tagFormatter
+  const tagsData = tagFormatter?.(state.tagsData) ?? state.tagsData;
   const points =
-    state.tagsData[state.selectedTag]?.topValues.map(({name, count}) => {
+    tagsData[state.selectedTag]?.topValues.map(({name, count}) => {
       const isTagValueOfCurrentEvent =
         event?.tags.find(({key}) => key === state.selectedTag)?.value === name;
       return {

@@ -38,7 +38,7 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import {isMobilePlatform} from 'sentry/utils/platform';
 import withApi from 'sentry/utils/withApi';
 
-import {MOBILE_TAGS, TagFacets} from './tagFacets';
+import {MOBILE_TAGS, MOBILE_TAGS_FORMATTER, TagFacets} from './tagFacets';
 
 type Props = WithRouterProps & {
   api: Client;
@@ -226,6 +226,7 @@ class BaseGroupSidebar extends Component<Props, State> {
               groupId={group.id}
               tagKeys={MOBILE_TAGS}
               event={event}
+              tagFormatter={MOBILE_TAGS_FORMATTER}
             />
           )}
         </Feature>
