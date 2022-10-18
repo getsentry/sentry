@@ -267,7 +267,9 @@ describe('SentryAppExternalIssueForm Dependent fields', () => {
       expect(wrapper.find(optionLabelSelector('project B')).exists()).toBe(true);
 
       // project select should be disabled and we shouldn't fetch the options yet
-      expect(wrapper.find('SelectControl#board_id').prop('disabled')).toBe(true);
+      expect(wrapper.find('[data-test-id="board_id"] input').at(0).prop('disabled')).toBe(
+        true
+      );
       expect(boardMock).not.toHaveBeenCalled();
 
       // when we set the value for project we should get the values for the board
@@ -276,7 +278,9 @@ describe('SentryAppExternalIssueForm Dependent fields', () => {
       wrapper.update();
 
       expect(boardMock).toHaveBeenCalled();
-      expect(wrapper.find('SelectControl#board_id').prop('disabled')).toBe(false);
+      expect(wrapper.find('[data-test-id="board_id"] input').at(0).prop('disabled')).toBe(
+        false
+      );
 
       const boardInput = wrapper.find('[data-test-id="board_id"] input').at(0);
       changeInputValue(boardInput, 'b');

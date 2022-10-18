@@ -99,9 +99,10 @@ export default class SelectField<OptionType extends SelectValue<any>> extends Co
     return (
       <InputField
         {...otherProps}
-        field={({onChange, onBlur, required: _required, ...props}) => (
+        field={({id, onChange, onBlur, required: _required, ...props}) => (
           <SelectControl
             {...props}
+            inputId={id}
             clearable={allowClear}
             multiple={multiple}
             styles={{
