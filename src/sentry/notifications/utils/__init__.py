@@ -317,9 +317,7 @@ def get_span_evidence_value(
 
 
 def get_parent_and_repeating_spans(
-    spans: Union[List[Dict[str, Union[str, float]]], None],
-    problem: PerformanceProblem
-    # ) -> tuple[Union[Dict[str, Union[str, float]], None], Union[Dict[str, Union[str, float]], None]]:
+    spans: Union[List[Dict[str, Union[str, float]]], None], problem: PerformanceProblem
 ) -> tuple[Union[Dict[str, Union[str, float]], None], Union[Dict[str, Union[str, float]], None]]:
     """Parse out the parent and repeating spans given an event's spans"""
     if not spans:
@@ -381,12 +379,13 @@ def get_spans(
     if not len(entries):
         return None
 
-    spans: List[Union[Dict[str, Union[str, float]], None]] = []
+    spans: Optional[List[Dict[str, Union[str, float]]]] = None
     for entry in entries:
         if entry.get("type") == "spans":
-            spans = cast(List[Union[Dict[str, Union[str, float]], None]], entry.get("data"))
+            spans = cast(Optional[List[Dict[str, Union[str, float]]]], entry.get("data"))
+            break
 
-    return spans[0] if len(spans) else spans
+    return spans
 
 
 def get_span_and_problem(
