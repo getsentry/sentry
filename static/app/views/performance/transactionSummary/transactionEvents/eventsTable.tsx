@@ -1,5 +1,5 @@
 import {Component, Fragment} from 'react';
-import {browserHistory} from 'react-router';
+import {browserHistory, RouteContextInterface} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptor, LocationDescriptorObject} from 'history';
 
@@ -35,6 +35,7 @@ import {TableColumn} from 'sentry/views/eventsV2/table/types';
 
 import {COLUMN_TITLES} from '../../data';
 import {
+  generateReplayLink,
   generateTraceLink,
   generateTransactionLink,
   normalizeSearchConditions,
@@ -83,6 +84,7 @@ type Props = {
   eventView: EventView;
   location: Location;
   organization: Organization;
+  routes: RouteContextInterface['routes'];
   setError: (msg: string | undefined) => void;
   transactionName: string;
   columnTitles?: string[];
@@ -110,6 +112,7 @@ class EventsTable extends Component<Props, State> {
   };
 
   api = new Client();
+  replayLinkGenerator = generateReplayLink(this.props.routes);
 
   handleCellAction = (column: TableColumn<keyof TableDataRow>) => {
     return (action: Actions, value: React.ReactText) => {
@@ -197,6 +200,23 @@ class EventsTable extends Component<Props, State> {
       );
     }
 
+    if (field === 'replayId') {
+      const target: LocationDescriptor | null = dataRow.replayId
+        ? this.replayLinkGenerator(organization, dataRow, undefined)
+        : null;
+
+      return (
+        <CellAction
+          column={column}
+          dataRow={dataRow}
+          handleCellAction={this.handleCellAction(column)}
+          allowActions={allowActions}
+        >
+          {target ? <Link to={target}>{rendered}</Link> : rendered}
+        </CellAction>
+      );
+    }
+
     const fieldName = getAggregateAlias(field);
     const value = dataRow[fieldName];
     if (tableMeta[fieldName] === 'integer' && defined(value) && value > 999) {
@@ -272,10 +292,11 @@ class EventsTable extends Component<Props, State> {
       };
     }
     const currentSort = eventView.sortForField(field, tableMeta);
-    // Event id and Trace id are technically sortable but we don't want to sort them here since sorting by a uuid value doesn't make sense
+    // EventId, TraceId, and ReplayId are technically sortable but we don't want to sort them here since sorting by a uuid value doesn't make sense
     const canSort =
       field.field !== 'id' &&
       field.field !== 'trace' &&
+      field.field !== 'replayid' &&
       field.field !== SPAN_OP_RELATIVE_BREAKDOWN_FIELD &&
       isFieldSortable(field, tableMeta);
 
@@ -418,7 +439,7 @@ class EventsTable extends Component<Props, State> {
     };
 
     return (
-      <div>
+      <div data-test-id="events-table">
         <DiscoverQuery
           eventView={eventView}
           orgSlug={organization.slug}
