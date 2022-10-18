@@ -317,7 +317,9 @@ def get_span_evidence_value(
 
 
 def get_parent_and_repeating_spans(
-    spans: Optional[List[Dict[str, Union[str, float]]]], problem: PerformanceProblem
+    spans: Union[List[Dict[str, Union[str, float]]], None],
+    problem: PerformanceProblem
+    # ) -> tuple[Union[Dict[str, Union[str, float]], None], Union[Dict[str, Union[str, float]], None]]:
 ) -> tuple[Union[Dict[str, Union[str, float]], None], Union[Dict[str, Union[str, float]], None]]:
     """Parse out the parent and repeating spans given an event's spans"""
     if not spans:
@@ -340,7 +342,7 @@ def get_parent_and_repeating_spans(
 
 
 def perf_to_email_html(
-    spans: Optional[List[Dict[str, Union[str, float]]]], problem: PerformanceProblem = None
+    spans: Union[List[Dict[str, Union[str, float]]], None], problem: PerformanceProblem = None
 ) -> Any:
     """Generate the email HTML for a performance issue alert"""
     if not problem:
@@ -373,13 +375,18 @@ def get_matched_problem(event: Event) -> Optional[EventPerformanceProblem]:
 
 
 def get_spans(
-    entries: tuple[List[Dict[str, List[Dict[str, Union[str, float]]]]], Dict[Any, Any]]
-) -> Union[List[Dict[str, Union[str, float]]], None]:
+    entries: List[Dict[str, Union[List[Dict[str, Union[str, float]]], str]]]
+) -> Optional[List[Dict[str, Union[str, float]]]]:
     """Get the given event's spans"""
     if not len(entries):
         return None
 
-    return [entry.get("data") for entry in entries[0] if entry.get("type") == "spans"][0]
+    spans: List[Union[Dict[str, Union[str, float]], None]] = []
+    for entry in entries:
+        if entry.get("type") == "spans":
+            spans = cast(List[Union[Dict[str, Union[str, float]], None]], entry.get("data"))
+
+    return spans[0] if len(spans) else spans
 
 
 def get_span_and_problem(
@@ -387,7 +394,7 @@ def get_span_and_problem(
 ) -> tuple[Optional[List[Dict[str, Union[str, float]]]], Optional[EventPerformanceProblem]]:
     """Get a given event's spans and performance problem"""
     entries = get_entries(event, None)
-    spans = get_spans(entries)
+    spans = get_spans(entries[0]) if len(entries) else None
     matched_problem = get_matched_problem(event)
     return (spans, matched_problem)
 
