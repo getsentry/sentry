@@ -1455,7 +1455,6 @@ function buildRoutes() {
         path="status/warnings/"
         component={make(() => import('sentry/views/admin/adminWarnings'))}
       />
-      {hook('routes:admin')}
     </Route>
   );
 
@@ -1811,7 +1810,6 @@ function buildRoutes() {
         {rootRoutes}
         {organizationRoutes}
         {legacyRedirectRoutes}
-        {hook('routes')}
         <Route path="*" component={errorHandler(RouteNotFound)} />
       </Route>
     </Route>
