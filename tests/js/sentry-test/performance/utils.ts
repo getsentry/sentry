@@ -161,7 +161,6 @@ export class MockSpan {
   /**
    *
    * @param opts.numSpans If provided, will create the same span numSpan times
-   * @returns The MockSpan that was added. If numSpans > 1, will return the first new instance
    */
   addChild(opts: AddSpanOpts, numSpans = 1) {
     const {startTimestamp, endTimestamp, op, description, status, problemSpan} = opts;
@@ -178,6 +177,6 @@ export class MockSpan {
       this.children.push(span);
     }
 
-    return this.children[0];
+    return this;
   }
 }
