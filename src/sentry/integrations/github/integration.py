@@ -26,6 +26,7 @@ from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.tasks.integrations import migrate_repo
 from sentry.utils import jwt
+from sentry.utils.json import JSONData
 from sentry.web.helpers import render_to_response
 
 from .client import GitHubAppsClient, GitHubClientMixin
@@ -104,6 +105,9 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
 
     def get_client(self) -> GitHubClientMixin:
         return GitHubAppsClient(integration=self.model)
+
+    def get_trees_for_org(self) -> JSONData:
+        return self.get_client().get_trees_for_org(self.model.name)
 
     def get_repositories(self, query: str | None = None) -> Sequence[Mapping[str, Any]]:
         """

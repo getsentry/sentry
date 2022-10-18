@@ -14,22 +14,20 @@ from sentry.plugins.bases import IssueTrackingPlugin2
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils import IntegrationTestCase
 
-# XXX: The branch value should be retrieved from the get_repositories() logic
 TREE_RESPONSES = {
-    "getsentry/sentry": {
-        "default_branch": "master",
+    "foo": {
         "status_code": 200,
         "body": {
             # The latest sha for a specific branch
             "sha": "a4e587563cb5dbb46192b5962cbadc8c532a8455",
-            "url": "https://api.github.com/repos/getsentry/sentry/git/trees/a4e587563cb5dbb46192b5962cbadc8c532a8455",
+            "url": "https://api.github.com/repos/Test-Organization/foo/git/trees/a4e587563cb5dbb46192b5962cbadc8c532a8455",
             "tree": [
                 {
                     "path": ".artifacts",
                     "mode": "040000",
                     "type": "tree",  # A directory
                     "sha": "44813f92a105143eff565d14d2054c2ea90eb62e",
-                    "url": "https://api.github.com/repos/getsentry/sentry/git/trees/44813f92a105143eff565d14d2054c2ea90eb62e",
+                    "url": "https://api.github.com/repos/Test-Organization/foo/git/trees/44813f92a105143eff565d14d2054c2ea90eb62e",
                 },
                 {
                     "path": "src/sentry/api/endpoints/auth_login.py",
@@ -37,19 +35,17 @@ TREE_RESPONSES = {
                     "type": "blob",  # A file
                     "sha": "517899e22ada047336cab4ecbbf8c27b151f190c",
                     "size": 2711,
-                    "url": "https://api.github.com/repos/getsentry/sentry/git/blobs/517899e22ada047336cab4ecbbf8c27b151f190c",
+                    "url": "https://api.github.com/repos/Test-Organization/foo/git/blobs/517899e22ada047336cab4ecbbf8c27b151f190c",
                 },
             ],
             "truncated": False,  # If this is True, we have reached the limit of what we can get with the recursive option
         },
     },
-    "getsentry/nextjs-sentry-example": {
-        "default_branch": "main",
+    "bar": {
         "status_code": 409,
         "body": {"message": "Git Repository is empty."},
     },
-    "getsentry/no-access": {
-        "default_branch": "main",
+    "baz": {
         "status_code": 404,
         "body": {"message": "Not Found"},
     },
@@ -99,11 +95,26 @@ class GitHubIntegrationTest(IntegrationTestCase):
             json={"token": self.access_token, "expires_at": self.expires_at},
         )
 
-        repositories = [
-            {"id": 1296269, "name": "foo", "full_name": "Test-Organization/foo"},
-            {"id": 9876574, "name": "bar", "full_name": "Test-Organization/bar"},
-            {"id": 1276555, "name": "baz", "full_name": "Test-Organization/baz"},
-        ]
+        repositories = {
+            "foo": {
+                "id": 1296269,
+                "name": "foo",
+                "full_name": "Test-Organization/foo",
+                "default_branch": "master",
+            },
+            "bar": {
+                "id": 9876574,
+                "name": "bar",
+                "full_name": "Test-Organization/bar",
+                "default_branch": "main",
+            },
+            "baz": {
+                "id": 1276555,
+                "name": "baz",
+                "full_name": "Test-Organization/baz",
+                "default_branch": "master",
+            },
+        }
         api_url = f"{self.base_url}/installation/repositories"
         first = f'<{api_url}?per_page={pp}&page=1>; rel="first"'
         last = f'<{api_url}?per_page={pp}&page={len(repositories)}>; rel="last"'
@@ -115,21 +126,21 @@ class GitHubIntegrationTest(IntegrationTestCase):
             responses.GET,
             url=api_url,
             match=[responses.matchers.query_param_matcher({"per_page": pp})],
-            json={"repositories": [repositories[0]]},
+            json={"repositories": [repositories["foo"]]},
             headers={"link": ", ".join([gen_link(2, "next"), last])},
         )
         responses.add(
             responses.GET,
             url=self.base_url + "/installation/repositories",
             match=[responses.matchers.query_param_matcher({"per_page": pp, "page": 2})],
-            json={"repositories": [repositories[1]]},
+            json={"repositories": [repositories["bar"]]},
             headers={"link": ", ".join([gen_link(1, "prev"), gen_link(3, "next"), last, first])},
         )
         responses.add(
             responses.GET,
             url=self.base_url + "/installation/repositories",
             match=[responses.matchers.query_param_matcher({"per_page": pp, "page": 3})],
-            json={"repositories": [repositories[2]]},
+            json={"repositories": [repositories["baz"]]},
             headers={"link": ", ".join([gen_link(2, "prev"), first])},
         )
 
@@ -152,10 +163,10 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         # Logic to get a tree for a repo
         # https://api.github.com/repos/getsentry/sentry/git/trees/master?recursive=1
-        for repo_full_name, values in TREE_RESPONSES.items():
+        for repo_name, values in TREE_RESPONSES.items():
             responses.add(
                 responses.GET,
-                f"{self.base_url}/repos/{repo_full_name}/git/trees/{values['default_branch']}?recursive=1",
+                f"{self.base_url}/repos/Test-Organization/{repo_name}/git/trees/{repositories[repo_name]['default_branch']}?recursive=1",
                 json=values["body"],
                 status=values["status_code"],
             )
@@ -381,7 +392,6 @@ class GitHubIntegrationTest(IntegrationTestCase):
         ]
 
     @responses.activate
-    @patch.object(sentry.integrations.github.client.GitHubClientMixin, "page_size", 1)
     def test_get_repositories_all_and_pagination(self):
         """Fetch all repositories and test the pagination logic."""
         with self.tasks():
@@ -390,12 +400,13 @@ class GitHubIntegrationTest(IntegrationTestCase):
         integration = Integration.objects.get(provider=self.provider.key)
         installation = integration.get_installation(self.organization)
 
-        result = installation.get_repositories()
-        assert result == [
-            {"name": "foo", "identifier": "Test-Organization/foo"},
-            {"name": "bar", "identifier": "Test-Organization/bar"},
-            {"name": "baz", "identifier": "Test-Organization/baz"},
-        ]
+        with patch.object(sentry.integrations.github.client.GitHubClientMixin, "page_size", 1):
+            result = installation.get_repositories()
+            assert result == [
+                {"name": "foo", "identifier": "Test-Organization/foo"},
+                {"name": "bar", "identifier": "Test-Organization/bar"},
+                {"name": "baz", "identifier": "Test-Organization/baz"},
+            ]
 
     @responses.activate
     def test_get_stacktrace_link_file_exists(self):
@@ -547,21 +558,21 @@ class GitHubIntegrationTest(IntegrationTestCase):
         ).exists()
 
     @responses.activate
-    def test_get_tree_for_repo(self):
+    def test_get_trees_for_org(self):
         """Fetch the tree representation of a repo"""
         with self.tasks():
             self.assert_setup_flow()
 
         integration = Integration.objects.get(provider=self.provider.key)
         installation = integration.get_installation(self.organization)
-        for repo_full_name in TREE_RESPONSES.keys():
-            # XXX: This test should be iterating get_repositories() to grab the branch from there
-            installation.get_client().get_tree(
-                repo_full_name, TREE_RESPONSES[repo_full_name]["default_branch"]
-            )
+        with patch.object(sentry.integrations.github.client.GitHubClientMixin, "page_size", 1):
+            # XXX: Does the installation already have the org stored?
+            installation.get_client().get_trees_for_org(self.organization.slug)
+
+        # XXX: We need to search filenames in the stack trace
         # This check is specially useful since it will be available in the GCP logs
         assert (
             self._caplog.records[0].message
-            == "The Github App does not have access to getsentry/no-access."
+            == "The Github App does not have access to Test-Organization/baz."
         )
         assert self._caplog.records[0].levelname == "ERROR"
