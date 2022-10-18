@@ -1,4 +1,5 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
+import {browserHistory} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -9,6 +10,7 @@ import Confirm from 'sentry/components/confirm';
 import DateTime from 'sentry/components/dateTime';
 import {getRelativeTimeFromEventDateCreated} from 'sentry/components/events/contexts/utils';
 import NotAvailable from 'sentry/components/notAvailable';
+import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {EventAttachment, Organization, Project} from 'sentry/types';
@@ -25,6 +27,7 @@ type Props = ModalRenderProps & {
   onDownload: () => void;
   orgSlug: Organization['slug'];
   projectSlug: Project['slug'];
+  allowPagination?: boolean;
   event?: Event;
 };
 
@@ -41,6 +44,16 @@ function Modal({
   onDownload,
 }: Props) {
   const {dateCreated, size, mimetype} = eventAttachment;
+  const [currentEventAttachment, setCurrentEventAttachment] =
+    useState<EventAttachment>(eventAttachment);
+
+  const handleCursor: CursorHandler = (cursor, pathname, query) => {
+    browserHistory.push({
+      pathname,
+      query: {...query, cursor},
+    });
+  };
+
   return (
     <Fragment>
       <Header closeButton>{t('Screenshot')}</Header>
@@ -99,6 +112,7 @@ function Modal({
             {t('Download')}
           </Button>
         </Buttonbar>
+        <Pagination onCursor={handleCursor} />
       </Footer>
     </Fragment>
   );
