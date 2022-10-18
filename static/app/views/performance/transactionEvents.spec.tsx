@@ -8,6 +8,7 @@ import {Organization} from 'sentry/types';
 import {WebVital} from 'sentry/utils/fields';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import TransactionEvents from 'sentry/views/performance/transactionSummary/transactionEvents';
+import {RouteContext} from 'sentry/views/routeContext';
 
 // XXX(epurkhiser): This appears to also be tested by ./transactionSummary/transactionEvents/index.spec.tsx
 
@@ -46,14 +47,29 @@ function initializeData({features: additionalFeatures = [], query = {}}: Data = 
 
 const WrappedComponent = ({
   organization,
+  router,
   ...props
-}: Omit<React.ComponentProps<typeof TransactionEvents>, 'organization'> & {
+}: Omit<React.ComponentProps<typeof TransactionEvents>, 'organization' | 'location'> & {
   organization: Organization;
+  router: any;
 }) => {
   return (
-    <OrganizationContext.Provider value={organization}>
-      <TransactionEvents organization={organization} {...props} />
-    </OrganizationContext.Provider>
+    <RouteContext.Provider
+      value={{
+        router,
+        location: router.location,
+        params: {},
+        routes: [],
+      }}
+    >
+      <OrganizationContext.Provider value={organization}>
+        <TransactionEvents
+          organization={organization}
+          location={router.location}
+          {...props}
+        />
+      </OrganizationContext.Provider>
+    </RouteContext.Provider>
   );
 };
 
@@ -182,7 +198,7 @@ describe('Performance > TransactionSummary', function () {
     const wrapper = mountWithTheme(
       <WrappedComponent
         organization={initialData.organization}
-        location={initialData.router.location}
+        router={initialData.router}
       />,
       initialData.routerContext
     );
@@ -203,7 +219,7 @@ describe('Performance > TransactionSummary', function () {
     const wrapper = mountWithTheme(
       <WrappedComponent
         organization={initialData.organization}
-        location={initialData.router.location}
+        router={initialData.router}
       />,
       initialData.routerContext
     );
@@ -221,7 +237,7 @@ describe('Performance > TransactionSummary', function () {
     const wrapper = mountWithTheme(
       <WrappedComponent
         organization={initialData.organization}
-        location={initialData.router.location}
+        router={initialData.router}
       />,
       initialData.routerContext
     );
@@ -258,7 +274,7 @@ describe('Performance > TransactionSummary', function () {
     const wrapper = mountWithTheme(
       <WrappedComponent
         organization={initialData.organization}
-        location={initialData.router.location}
+        router={initialData.router}
       />,
       initialData.routerContext
     );
