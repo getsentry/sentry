@@ -8,7 +8,7 @@ from django.test import override_settings
 from sentry.models import AuditLogEntry, UserIP
 from sentry.region_to_control.consumer import get_region_to_control_consumer
 from sentry.region_to_control.messages import UserIpEvent
-from sentry.region_to_control.producer import clear_region_to_control_producer, produce_user_ip
+from sentry.region_to_control.producer import produce_user_ip
 from sentry.silo import SiloMode
 from sentry.testutils.factories import Factories
 from sentry.utils.audit import create_audit_entry_from_user
@@ -16,14 +16,6 @@ from sentry.utils.batching_kafka_consumer import create_topics
 
 # Poll this amount of times (for 0.1 sec each) at most to wait for messages
 MAX_POLL_ITERATIONS = 100
-
-
-@pytest.fixture(autouse=True)
-def clear_producer():
-    try:
-        yield
-    finally:
-        clear_region_to_control_producer()
 
 
 @pytest.fixture

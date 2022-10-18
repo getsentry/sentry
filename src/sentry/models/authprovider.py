@@ -9,6 +9,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
+    control_silo_only_model,
     region_silo_only_model,
     sane_repr,
 )
@@ -23,7 +24,7 @@ SCIM_INTERNAL_INTEGRATION_OVERVIEW = (
 )
 
 
-@region_silo_only_model
+@control_silo_only_model
 class AuthProviderDefaultTeams(Model):
     __include_in_export__ = False
 

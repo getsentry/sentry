@@ -67,17 +67,20 @@ class SiloModeTest:
 
     def _mark_parameterized_by_silo_mode(self, test_method: TestMethod) -> TestMethod:
         def replacement_test_method(*args: Any, **kwargs: Any) -> None:
-            with override_settings(SILO_MODE=kwargs.pop("silo_mode")):
+            silo_mode = kwargs.pop("silo_mode")
+            with override_settings(SILO_MODE=silo_mode):
                 return test_method(*args, **kwargs)
 
-        orig_sig = inspect.signature(test_method)
         new_test_method = functools.update_wrapper(replacement_test_method, test_method)
+        orig_sig = inspect.signature(test_method)
+
         if "silo_mode" not in orig_sig.parameters:
             new_params = tuple(orig_sig.parameters.values()) + (
                 inspect.Parameter("silo_mode", inspect.Parameter.KEYWORD_ONLY),
             )
             new_sig = orig_sig.replace(parameters=new_params)
             new_test_method.__setattr__("__signature__", new_sig)
+
         return cast(
             TestMethod,
             pytest.mark.parametrize("silo_mode", [mode for mode in self.silo_modes])(
@@ -102,6 +105,12 @@ class SiloModeTest:
         return self._mark_parameterized_by_silo_mode(decorated_obj)
 
 
+# "Flag" that a test has been validated to not require any silo testing.  This ensures that future calls to
+# decorate-silo-mode-tests do not over-zealously mark a test.  This should be used sparingly where we know that
+# a test suite is fully redundant with some other coverage or other testing strategies get employed.
+no_silo_test = SiloModeTest(SiloMode.MONOLITH)
+# We should be mindful about using this decorator too widely, the cost to test increases are concerning.
+all_silo_test = SiloModeTest(SiloMode.CONTROL, SiloMode.REGION, SiloMode.MONOLITH)
 control_silo_test = SiloModeTest(SiloMode.CONTROL, SiloMode.MONOLITH)
 region_silo_test = SiloModeTest(SiloMode.REGION, SiloMode.MONOLITH)
 

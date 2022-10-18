@@ -15,8 +15,11 @@ from sentry.models import (
     OrganizationMember,
 )
 from sentry.testutils import TestCase
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from tests.sentry.region_to_control.test_utils import flush_audit_logs
 
 
+@region_silo_test(stable=True)
 class AcceptInviteTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -151,18 +154,20 @@ class AcceptInviteTest(TestCase):
         om = OrganizationMember.objects.create(
             email="newuser@example.com", role="member", token="abc", organization=self.organization
         )
-        resp = self.client.post(
-            reverse("sentry-api-0-accept-organization-invite", args=[om.id, om.token])
-        )
-        assert resp.status_code == 204
+        with flush_audit_logs():
+            resp = self.client.post(
+                reverse("sentry-api-0-accept-organization-invite", args=[om.id, om.token])
+            )
+            assert resp.status_code == 204
 
         om = OrganizationMember.objects.get(id=om.id)
         assert om.email is None
         assert om.user == self.user
 
-        ale = AuditLogEntry.objects.get(
-            organization=self.organization, event=audit_log.get_event_id("MEMBER_ACCEPT")
-        )
+        with exempt_from_silo_limits():
+            ale = AuditLogEntry.objects.get(
+                organization=self.organization, event=audit_log.get_event_id("MEMBER_ACCEPT")
+            )
 
         assert ale.actor == self.user
         assert ale.target_object == om.id
@@ -244,10 +249,11 @@ class AcceptInviteTest(TestCase):
             email="newuser@example.com", role="member", token="abc", organization=self.organization
         )
 
-        resp = self.client.post(
-            reverse("sentry-api-0-accept-organization-invite", args=[om.id, om.token])
-        )
-        assert resp.status_code == 204
+        with flush_audit_logs():
+            resp = self.client.post(
+                reverse("sentry-api-0-accept-organization-invite", args=[om.id, om.token])
+            )
+            assert resp.status_code == 204
 
         self._assert_pending_invite_cookie_not_set(resp)
 
@@ -255,9 +261,10 @@ class AcceptInviteTest(TestCase):
         assert om.email is None
         assert om.user == self.user
 
-        ale = AuditLogEntry.objects.get(
-            organization=self.organization, event=audit_log.get_event_id("MEMBER_ACCEPT")
-        )
+        with exempt_from_silo_limits():
+            ale = AuditLogEntry.objects.get(
+                organization=self.organization, event=audit_log.get_event_id("MEMBER_ACCEPT")
+            )
 
         assert ale.actor == self.user
         assert ale.target_object == om.id

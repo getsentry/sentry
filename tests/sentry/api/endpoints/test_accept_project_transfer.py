@@ -9,7 +9,7 @@ from sentry.testutils.silo import region_silo_test
 from sentry.utils.signing import sign
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class AcceptTransferProjectPermissionTest(PermissionTestCase):
     def setUp(self):
         super().setUp()
@@ -20,7 +20,7 @@ class AcceptTransferProjectPermissionTest(PermissionTestCase):
         self.assert_team_admin_cannot_access(self.path)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class AcceptTransferProjectTest(APITestCase):
     def setUp(self):
         super().setUp()

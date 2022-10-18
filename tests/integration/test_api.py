@@ -4,11 +4,13 @@ from django.urls import reverse
 
 from sentry.models import AuthIdentity, AuthProvider
 from sentry.testutils import AuthProviderTestCase
+from sentry.testutils.silo import no_silo_test
 from sentry.utils.auth import SSO_EXPIRY_TIME, SsoSession
 from sentry.utils.linksign import generate_signed_link
 
 
 # TODO: move these into the tests/sentry/auth directory and remove deprecated logic
+@no_silo_test(stable=True)
 class AuthenticationTest(AuthProviderTestCase):
     def setUp(self):
         self.organization = self.create_organization(name="foo")
@@ -27,6 +29,7 @@ class AuthenticationTest(AuthProviderTestCase):
             organization=self.organization, provider="dummy", flags=0
         )
         AuthIdentity.objects.create(auth_provider=auth_provider, user=self.user)
+
         self.login_as(self.user)
 
         self.paths = (

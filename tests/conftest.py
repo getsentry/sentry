@@ -120,3 +120,15 @@ def register_class_in_model_manifest(request: pytest.FixtureRequest):
             yield
     else:
         yield
+
+
+@pytest.fixture(autouse=True)
+def clear_producer():
+    try:
+        yield
+    finally:
+        # TODO: Would be nice if the arroyo kafka producers were aware of and capable of
+        # self closing between test runs, not sure where a high level hook could be made.
+        from sentry.region_to_control.producer import clear_region_to_control_producer
+
+        clear_region_to_control_producer()

@@ -2,6 +2,7 @@
 import ast
 import os
 import os.path
+import pathlib
 import shutil
 import tempfile
 from typing import Union
@@ -11,13 +12,22 @@ import click
 from sentry.utils import json
 from sentry.utils.types import Any
 
+_manifest_files_env = {
+    "SENTRY_MODEL_MANIFEST_FILE_PATH": pathlib.Path(__file__).absolute().parent.parent,
+    "GETSENTRY_MODEL_MANIFEST_FILE_PATH": pathlib.Path(__file__)
+    .absolute()
+    .parent.parent.parent.joinpath("getsentry"),
+}
+
 
 def find_test_cases_matching(model_name: str):
-    manifest = json.loads(open(os.environ["SENTRY_MODEL_MANIFEST_FILE_PATH"]).read())
-    for test_node_id, hits in manifest.items():
-        if model_name in hits:
-            parts = test_node_id.split("::")
-            yield parts[0], parts[1]
+    for env, path_root in _manifest_files_env.items():
+        manifest = json.loads(open(os.environ[env]).read())
+        for test_node_id, hits in manifest.items():
+            hit_set = {list(v.keys())[0] for v in hits}
+            if model_name in hit_set:
+                parts = test_node_id.split("::")
+                yield str(path_root.joinpath(parts[0])), parts[1]
 
 
 @click.command()
@@ -30,6 +40,8 @@ def find_test_cases_matching(model_name: str):
         [
             "control",
             "region",
+            "all",
+            "no",
         ]
     ),
 )
@@ -62,6 +74,7 @@ class TestVisitor(ast.NodeVisitor):
         self.decorator_match_line = None
         self.func_match_line = None
         self.class_node = None
+        self.decorator_was_stable = False
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> Any:
         if node.module == "sentry.testutils.silo":
@@ -100,6 +113,7 @@ class TestVisitor(ast.NodeVisitor):
             decorator_visitor.visit(expr)
             if decorator_visitor.match_line:
                 self.decorator_match_line = decorator_visitor.match_line
+                self.decorator_was_stable = decorator_visitor.stable
                 break
 
     def _decorate(self, lineno, match_line):
@@ -133,8 +147,8 @@ class TestVisitor(ast.NodeVisitor):
                         continue
 
                     if newline := self._decorate(i, self.decorator_match_line):
-                        # If the decorator type is not changing, keep the original line.
-                        if self.target_test_silo_mode in line:
+                        # If the decorator that existed was stable, don't replace it, keep it.
+                        if self.decorator_was_stable:
                             tf.write(line.encode("utf8"))
                         else:
                             tf.write(newline)
@@ -155,6 +169,12 @@ class DecoratorVisitor(ast.NodeVisitor):
     def __init__(self, target_test_silo_mode: str):
         self.target_test_silo_mode = target_test_silo_mode
         self.match_line = None
+        self.stable = False
+
+    def visit_keyword(self, node: ast.keyword) -> Any:
+        if node.arg == "stable":
+            if isinstance(node.value, ast.Constant):
+                self.stable = node.value.value
 
     def visit_Name(self, node: ast.Name) -> Any:
         if node.id.endswith("_silo_test"):
