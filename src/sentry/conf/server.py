@@ -1544,9 +1544,7 @@ SENTRY_RELEASE_HEALTH = "sentry.release_health.sessions.SessionsReleaseHealthBac
 SENTRY_RELEASE_HEALTH_OPTIONS = {}
 
 # Release Monitor
-SENTRY_RELEASE_MONITOR = (
-    "sentry.release_health.release_monitor.sessions.SessionReleaseMonitorBackend"
-)
+SENTRY_RELEASE_MONITOR = "sentry.release_health.release_monitor.metrics.MetricReleaseMonitorBackend"
 SENTRY_RELEASE_MONITOR_OPTIONS = {}
 
 
