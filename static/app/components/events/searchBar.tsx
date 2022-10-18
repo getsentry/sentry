@@ -225,7 +225,7 @@ function SearchBar(props: SearchBarProps) {
       const totalCount: number = Object.keys(list).length;
       transaction.setTag('tags.totalCount', totalCount);
       const countGroup = [
-        1, 5, 10, 20, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000,
+        1, 5, 10, 20, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 10000,
       ].find(n => totalCount <= n);
       transaction.setTag('tags.totalCount.grouped', `<=${countGroup}`);
       transaction.finish();
