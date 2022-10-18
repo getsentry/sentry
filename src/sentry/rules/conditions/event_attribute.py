@@ -132,11 +132,11 @@ class EventAttributeCondition(EventCondition):
             if path[1] in ("url", "method"):
                 return [getattr(event.interfaces["request"], path[1])]
             elif path[1] in ("status_code"):
-                contexts = event.interfaces["contexts"]
+                contexts = event.data["contexts"]
                 response = contexts.get("response")
                 if response is None:
                     response = []
-                return [getattr(response, path[1])]
+                return [response.get(path[1])]
 
             return []
 
