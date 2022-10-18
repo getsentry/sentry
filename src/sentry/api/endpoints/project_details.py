@@ -540,11 +540,15 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 ds_v2_config = {"next_id": ds_config["next_id"]}
                 if len(ds_config["rules"]) > 0 and is_am2_advanced:
                     # ToDo(ahmed): Make sure that the rules are above the floor else disable them
+                    # In this case we have conditional rules and we are in the advanced plan which means we can have
+                    # those rules but we need to check their validity against the floor.
                     project.update_option("sentry:dynamic_sampling", ds_config)
                     ds_v2_config["rules"] = list(ds_config["rules"]) + [
                         DynamicSamplingV2Builder.generate_uniform_rule(project)
                     ]
                 else:
+                    # In this case we have no conditional rules or we are not advanced so we will delete the
+                    # option and inject the floored uniform sampling rule in the response.
                     project.delete_option("sentry:dynamic_sampling")
                     ds_v2_config["rules"] = [
                         DynamicSamplingV2Builder.generate_uniform_rule(project)
