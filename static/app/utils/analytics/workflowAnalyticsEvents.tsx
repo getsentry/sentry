@@ -63,8 +63,17 @@ export type TeamInsightsEventParameters = {
       | ResolutionStatus;
     assigned_suggestion_reason?: string;
   };
+  'issue_details.attachment_tab.screenshot_modal_deleted': {};
+  'issue_details.attachment_tab.screenshot_modal_download': {};
+  'issue_details.attachment_tab.screenshot_modal_opened': {};
+  'issue_details.attachment_tab.screenshot_title_clicked': {};
   'issue_details.event_json_clicked': {group_id: number};
   'issue_details.event_navigation_clicked': {button: string; project_id: number};
+  'issue_details.issue_tab.screenshot_dropdown_deleted': {};
+  'issue_details.issue_tab.screenshot_dropdown_download': {};
+  'issue_details.issue_tab.screenshot_modal_deleted': {};
+  'issue_details.issue_tab.screenshot_modal_download': {};
+  'issue_details.issue_tab.screenshot_modal_opened': {};
   'issue_details.suspect_commits': IssueDetailsWithAlert & {count: number};
   'issue_details.suspect_commits.commit_clicked': IssueDetailsWithAlert;
   'issue_details.suspect_commits.pull_request_clicked': IssueDetailsWithAlert;
@@ -74,7 +83,9 @@ export type TeamInsightsEventParameters = {
   'issue_details.viewed': IssueDetailsWithAlert &
     BaseEventAnalyticsParams & {
       error_count: number;
+      error_has_replay: boolean;
       event_errors: string;
+      group_has_replay: boolean;
       has_owner: boolean;
       is_assigned: boolean;
       issue_age: number;
@@ -114,8 +125,26 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'issue_alert_rule_details.edit_clicked': 'Issue Alert Rule Details: Edit Clicked',
   'issue_alert_rule_details.viewed': 'Issue Alert Rule Details: Viewed',
   'issue_details.action_clicked': 'Issue Details: Action Clicked',
+  'issue_details.attachment_tab.screenshot_title_clicked':
+    'Attachment Tab: Screenshot title clicked',
+  'issue_details.attachment_tab.screenshot_modal_deleted':
+    'Attachment Tab: Screenshot deleted from modal',
+  'issue_details.attachment_tab.screenshot_modal_download':
+    'Attachment Tab: Screenshot downloaded from modal',
+  'issue_details.attachment_tab.screenshot_modal_opened':
+    'Attachment Tab: Screenshot modal opened',
   'issue_details.event_json_clicked': 'Issue Details: Event JSON Clicked',
   'issue_details.event_navigation_clicked': 'Issue Details: Event Navigation Clicked',
+  'issue_details.issue_tab.screenshot_dropdown_deleted':
+    'Issue Details: Screenshot deleted from dropdown',
+  'issue_details.issue_tab.screenshot_dropdown_download':
+    'Issue Details: Screenshot downloaded from dropdown',
+  'issue_details.issue_tab.screenshot_modal_deleted':
+    'Issue Details: Screenshot deleted from modal',
+  'issue_details.issue_tab.screenshot_modal_download':
+    'Issue Details: Screenshot downloaded from modal',
+  'issue_details.issue_tab.screenshot_modal_opened':
+    'Issue Details: Screenshot modal opened',
   'issue_details.viewed': 'Issue Details: Viewed',
   'issue_details.suspect_commits': 'Issue Details: Suspect Commits',
   'issue_details.suspect_commits.commit_clicked': 'Issue Details: Suspect Commit Clicked',

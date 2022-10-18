@@ -139,7 +139,7 @@ export function generateReplayLink(routes: PlainRoute<any>[]) {
   return (
     organization: Organization,
     tableRow: TableDataRow,
-    _query: Query
+    _query: Query | undefined
   ): LocationDescriptor => {
     const replayId = tableRow.replayId;
     if (!replayId) {
