@@ -10,13 +10,13 @@ export const getInitialTimeOffset = ({
   initialTimeOffset?: number;
   startTimestampMs?: number;
 }) => {
-  if (initialTimeOffset) {
+  if (defined(initialTimeOffset)) {
     return initialTimeOffset;
   }
 
   // If the user has navigated to the replay from an event, then we want to
   // start the video at the time of the event.
-  if (defined(eventTimestamp) && startTimestampMs) {
+  if (defined(eventTimestamp) && defined(startTimestampMs)) {
     // check if the event timestamp is the correct format
     let eventTimestampMs = 0;
     if (eventTimestamp.length === 13) {
