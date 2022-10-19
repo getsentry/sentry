@@ -122,6 +122,9 @@ def get_client_config(request=None):
     Provides initial bootstrap data needed to boot the frontend application.
     """
     if request is not None:
+        customer_domain = None
+        if hasattr(request, "subdomain") and request.subdomain:
+            customer_domain = request.subdomain
         user = getattr(request, "user", None) or AnonymousUser()
         messages = get_messages(request)
         session = getattr(request, "session", None)
@@ -135,6 +138,7 @@ def get_client_config(request=None):
             if user.name:
                 user_identity["name"] = user.name
     else:
+        customer_domain = None
         user = None
         user_identity = {}
         messages = []
@@ -167,6 +171,7 @@ def get_client_config(request=None):
         enabled_features.append("organizations:customer-domains")
 
     context = {
+        "customerDomain": customer_domain,
         "singleOrganization": settings.SENTRY_SINGLE_ORGANIZATION,
         "supportEmail": get_support_mail(),
         "urlPrefix": options.get("system.url-prefix"),
