@@ -23,7 +23,7 @@ describe('Organization Rate Limits', function () {
   it('renders with initialData', function () {
     renderComponent();
 
-    // XXX: Slider input values are assoicated to their step value
+    // XXX: Slider input values are associated to their step value
     // Step 16 is 70000
     expect(screen.getByRole('slider', {name: 'Account Limit'})).toHaveValue('16');
     expect(screen.getByRole('slider', {name: 'Per-Project Limit'})).toHaveValue('75');
