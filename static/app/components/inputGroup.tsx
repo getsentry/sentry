@@ -2,7 +2,7 @@ import {
   createContext,
   forwardRef,
   useContext,
-  useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -119,7 +119,7 @@ export function InputLeadingItems({children, disablePointerEvents}: InputItemsPr
   } = useContext(InputGroupContext);
   const breakpointMatches = useBreakpointMatches();
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!ref.current) {
       return;
     }
@@ -154,7 +154,7 @@ export function InputTrailingItems({children, disablePointerEvents}: InputItemsP
   } = useContext(InputGroupContext);
   const breakpointMatches = useBreakpointMatches();
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!ref.current) {
       return;
     }
