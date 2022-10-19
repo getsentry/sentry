@@ -8,7 +8,7 @@ from sentry.models import Project
 UNIFORM_RULE_RESERVED_ID = 0
 
 
-class SampleRateIsNone(Exception):
+class NoneSampleRateException(Exception):
     ...
 
 
@@ -32,7 +32,7 @@ def generate_uniform_rule(project: Project) -> UniformRule:
             raise Exception("get_blended_sample_rate returns none")
         except Exception:
             sentry_sdk.capture_exception()
-        raise SampleRateIsNone
+        raise NoneSampleRateException
     return {
         "sampleRate": sample_rate,
         "type": "trace",

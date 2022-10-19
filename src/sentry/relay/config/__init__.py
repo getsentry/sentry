@@ -10,7 +10,7 @@ from sentry_sdk import Hub, capture_exception
 from sentry import features, killswitches, quotas, utils
 from sentry.constants import ObjectStatus
 from sentry.datascrubbing import get_datascrubbing_settings, get_pii_config
-from sentry.dynamic_sampling.utils import SampleRateIsNone, generate_uniform_rule
+from sentry.dynamic_sampling.utils import NoneSampleRateException, generate_uniform_rule
 from sentry.grouping.api import get_grouping_config_dict_for_project
 from sentry.ingest.inbound_filters import (
     FilterStatKeys,
@@ -211,7 +211,7 @@ def _get_project_config(project, full_config=True, project_keys=None):
     if allow_dynamic_sampling_basic:
         try:
             cfg["config"]["dynamicSampling"] = {"rules": [generate_uniform_rule(project)]}
-        except SampleRateIsNone:
+        except NoneSampleRateException:
             # just to be consistent with old code, where if there is no active active_rules
             # we retrun empty list
             cfg["config"]["dynamicSampling"] = {"rules": []}
