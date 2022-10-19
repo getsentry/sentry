@@ -1,8 +1,6 @@
 import {Fragment, useState} from 'react';
-import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {useEffect} from '@storybook/addons';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
@@ -14,14 +12,13 @@ import NotAvailable from 'sentry/components/notAvailable';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {EventAttachment, Organization, Project} from 'sentry/types';
+import {EventAttachment, IssueAttachment, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined, formatBytesBase2} from 'sentry/utils';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import useApi from 'sentry/utils/useApi';
 
 import ImageVisualization from './imageVisualization';
-import omit from 'lodash/omit';
 
 type Props = ModalRenderProps & {
   downloadUrl: string;
@@ -31,11 +28,11 @@ type Props = ModalRenderProps & {
   orgSlug: Organization['slug'];
   projectSlug: Project['slug'];
   attachmentIndex?: number;
+  attachments?: EventAttachment[];
   enablePagination?: boolean;
   event?: Event;
-  memoizedAttachments?: EventAttachment[];
   pageLinks?: string | null | undefined;
-} & WithRouterProps;
+};
 
 function Modal({
   eventAttachment,
@@ -48,28 +45,46 @@ function Modal({
   onDelete,
   downloadUrl,
   onDownload,
-  enablePagination,
-  location,
-  pageLinks,
+  pageLinks: initialPageLinks,
   attachmentIndex,
-  memoizedAttachments,
+  attachments,
+  enablePagination,
 }: Props) {
-  const {dateCreated, size, mimetype} = eventAttachment;
   const api = useApi();
-  const [currentEventAttachment, setCurrentAttachment] = useState<EventAttachment>(eventAttachment);
+
+  const [currentEventAttachment, setCurrentAttachment] =
+    useState<EventAttachment>(eventAttachment);
   const [currentAttachmentIndex, setCurrentAttachmentIndex] = useState<
     number | undefined
   >(attachmentIndex);
+  const [memoizedAttachments, setMemoizedAttachments] = useState<
+    IssueAttachment[] | undefined
+  >(attachments);
+
+  const [pageLinks, setPageLinks] = useState<string | null | undefined>(initialPageLinks);
 
   const handleCursor: CursorHandler = (cursor, pathname, query, delta) => {
     if (defined(currentAttachmentIndex) && memoizedAttachments?.length) {
       const newAttachmentIndex = currentAttachmentIndex + delta;
       if (newAttachmentIndex > 5 || newAttachmentIndex < 0) {
-        setCurrentAttachmentIndex(0);
-        browserHistory.push({
-          pathname,
-          query: {...omit(query, 'cursor'), cursor},
-        });
+        api
+          .requestPromise(pathname, {
+            method: 'GET',
+            includeAllArgs: true,
+            query: {
+              ...query,
+              per_page: 6,
+              types: undefined,
+              screenshot: 1,
+              cursor,
+            },
+          })
+          .then(([data, _, resp]) => {
+            setMemoizedAttachments(data);
+            setCurrentAttachmentIndex(0);
+            setCurrentAttachment(data[0]);
+            setPageLinks(resp?.getResponseHeader('Link'));
+          });
         return;
       }
       setCurrentAttachmentIndex(newAttachmentIndex);
@@ -77,22 +92,7 @@ function Modal({
     }
   };
 
-  // useEffect(() => {
-  //   const shouldCancelRequest = false;
-
-  //   if (!enablePagination) {
-  //     return undefined;
-  //   }
-
-  //   api.requestPromise(`/issues/${params.groupId}/attachments/`, {
-  //     method: 'GET',
-  //     query: {
-  //       screenshot: 1,
-  //       per_page: 1,
-  //       cursor: location.query?.[SCREENSHOT_CURSOR],
-  //     },
-  //   });
-  // });
+  const {dateCreated, size, mimetype} = currentEventAttachment;
 
   return (
     <Fragment>
@@ -151,14 +151,16 @@ function Modal({
           <Button onClick={onDownload} href={downloadUrl}>
             {t('Download')}
           </Button>
+          {enablePagination && (
+            <StyledPagination onCursor={handleCursor} pageLinks={pageLinks} />
+          )}
         </Buttonbar>
-        <Pagination onCursor={handleCursor} pageLinks={pageLinks} />
       </Footer>
     </Fragment>
   );
 }
 
-export default withRouter(Modal);
+export default Modal;
 
 const GeralInfo = styled('div')`
   display: grid;
@@ -190,5 +192,9 @@ const StyledImageVisualization = styled(ImageVisualization)`
 export const modalCss = css`
   width: auto;
   height: 100%;
-  max-width: 100%;
+  max-width: 700px;
+`;
+
+const StyledPagination = styled(Pagination)`
+  margin-top: 0;
 `;

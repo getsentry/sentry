@@ -197,7 +197,7 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
               groupId={params.groupId}
               onDelete={this.handleDelete}
               pageLinks={this.state.eventAttachmentsPageLinks}
-              memoizedAttachments={eventAttachments}
+              attachments={eventAttachments}
               attachmentIndex={index}
             />
           );

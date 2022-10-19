@@ -24,10 +24,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
   attachmentIndex: number;
+  attachments: IssueAttachment[];
   eventAttachment: IssueAttachment;
   eventId: string;
   groupId: string;
-  memoizedAttachments: IssueAttachment[];
   onDelete: (attachmentId: string) => void;
   projectSlug: Project['slug'];
   pageLinks?: string | null | undefined;
@@ -41,7 +41,7 @@ export function ScreenshotCard({
   onDelete,
   pageLinks,
   attachmentIndex,
-  memoizedAttachments,
+  attachments,
 }: Props) {
   const organization = useOrganization();
   const [loadingImage, setLoadingImage] = useState(true);
@@ -69,8 +69,9 @@ export function ScreenshotCard({
           downloadUrl={downloadUrl}
           onDelete={handleDelete}
           pageLinks={pageLinks}
-          memoizedAttachments={memoizedAttachments}
+          attachments={attachments}
           attachmentIndex={attachmentIndex}
+          enablePagination
           onDownload={() =>
             trackAdvancedAnalyticsEvent(
               'issue_details.attachment_tab.screenshot_modal_download',
