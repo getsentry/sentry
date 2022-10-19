@@ -13,7 +13,7 @@ type Props = {
 export default function DynamicSamplingContainer({project}: Props) {
   const organization = useOrganization();
 
-  if (!organization.features.includes('dynamic-sampling-total-transaction-packaging')) {
+  if (!organization.features.includes('dynamic-sampling-opinionated')) {
     return <ServerSideSampling project={project} />;
   }
 
