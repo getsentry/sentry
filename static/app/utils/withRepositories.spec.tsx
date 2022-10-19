@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import RepositoryStore from 'sentry/stores/repositoryStore';
 import withRepositories from 'sentry/utils/withRepositories';
@@ -19,25 +19,27 @@ describe('withRepositories HoC', function () {
     });
 
     jest.restoreAllMocks();
-    RepositoryStore.init();
+    RepositoryStore.init?.();
   });
 
-  it('adds repositories prop', async () => {
-    const Component = () => null;
+  it('adds repositories prop', async function () {
+    const Component = jest.fn(() => null);
     const Container = withRepositories(Component);
-    const wrapper = mountWithTheme(<Container api={api} organization={organization} />);
+    render(<Container api={api} organization={organization} />);
 
-    await tick(); // Run Store.loadRepositories
-    await tick(); // Run Store.loadRepositoriesSuccess
-    wrapper.update(); // Re-render component with Store data
-
-    const mountedComponent = wrapper.find(Component);
-    expect(mountedComponent.prop('repositories')).toEqual(mockData);
-    expect(mountedComponent.prop('repositoriesLoading')).toEqual(false);
-    expect(mountedComponent.prop('repositoriesError')).toEqual(undefined);
+    await waitFor(() =>
+      expect(Component).toHaveBeenCalledWith(
+        expect.objectContaining({
+          repositories: mockData,
+          repositoriesLoading: false,
+          repositoriesError: undefined,
+        }),
+        {}
+      )
+    );
   });
 
-  it('prevents repeated calls', async () => {
+  it('prevents repeated calls', function () {
     const Component = () => null;
     const Container = withRepositories(Component);
 
@@ -45,15 +47,11 @@ describe('withRepositories HoC', function () {
     jest.spyOn(Container.prototype, 'fetchRepositories');
 
     // Mount and run component
-    mountWithTheme(<Container api={api} organization={organization} />);
-    await tick();
-    await tick();
+    render(<Container api={api} organization={organization} />);
 
     // Mount and run duplicates
-    mountWithTheme(<Container api={api} organization={organization} />);
-    await tick();
-    mountWithTheme(<Container api={api} organization={organization} />);
-    await tick();
+    render(<Container api={api} organization={organization} />);
+    render(<Container api={api} organization={organization} />);
 
     expect(api.requestPromise).toHaveBeenCalledTimes(1);
     expect(Container.prototype.fetchRepositories).toHaveBeenCalledTimes(3);
@@ -67,7 +65,7 @@ describe('withRepositories HoC', function () {
    * not check for (store.orgSlug !== orgSlug) as the short-circuit does not
    * change the value for orgSlug
    */
-  it('prevents simultaneous calls', async () => {
+  it('prevents simultaneous calls', function () {
     const Component = () => null;
     const Container = withRepositories(Component);
 
@@ -75,12 +73,9 @@ describe('withRepositories HoC', function () {
     jest.spyOn(Container.prototype, 'componentDidMount');
 
     // Mount and run duplicates
-    mountWithTheme(<Container api={api} organization={organization} />);
-    mountWithTheme(<Container api={api} organization={organization} />);
-    mountWithTheme(<Container api={api} organization={organization} />);
-
-    await tick();
-    await tick();
+    render(<Container api={api} organization={organization} />);
+    render(<Container api={api} organization={organization} />);
+    render(<Container api={api} organization={organization} />);
 
     expect(api.requestPromise).toHaveBeenCalledTimes(1);
     expect(Container.prototype.componentDidMount).toHaveBeenCalledTimes(3);
