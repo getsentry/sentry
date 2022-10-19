@@ -191,7 +191,7 @@ class BuildGroupAttachmentTest(TestCase):
         event = event.for_group(event.groups[0])
         attachments = SlackIssuesMessageBuilder(event.group, event).build()
 
-        assert attachments["title"] == "N+1 DB Queries"
+        assert attachments["title"] == "N+1 Query"
         assert (
             attachments["text"]
             == "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
