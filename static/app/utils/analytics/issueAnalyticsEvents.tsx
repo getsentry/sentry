@@ -57,12 +57,6 @@ export type IssueEventParameters = QuicktraceMissingInstrumentation & {
     search_source: string;
     search_type: string;
   };
-  'issues_stream.count_perf_issues': {
-    num_perf_issues: number;
-    num_total_issues: number;
-    page: number;
-    query: string;
-  };
   'issues_stream.issue_assigned': IssueStream & {
     assigned_type: string;
     did_assign_suggestion: boolean;
@@ -80,7 +74,10 @@ export type IssueEventParameters = QuicktraceMissingInstrumentation & {
   };
   'issues_tab.viewed': {
     num_issues: number;
-    tab: string;
+    num_perf_issues: number;
+    page: number;
+    query: string;
+    tab?: string;
   };
   'quick_trace.connected_services': {
     projects: number;
@@ -150,6 +147,4 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
     'Performance Issue Details: Autogrouped Siblings Toggled',
   'issue_details.performance.hidden_spans_expanded':
     'Performance Issue Details: Hidden Spans Expanded',
-  'issues_stream.count_perf_issues':
-    'Issues Stream: Number of Performance Issues on Current Page',
 };

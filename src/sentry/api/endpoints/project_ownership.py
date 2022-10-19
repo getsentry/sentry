@@ -18,7 +18,7 @@ HIGHER_MAX_RAW_LENGTH = 200_000
 class ProjectOwnershipSerializer(serializers.Serializer):
     raw = serializers.CharField(allow_blank=True)
     fallthrough = serializers.BooleanField()
-    autoAssignment = serializers.BooleanField()
+    autoAssignment = serializers.CharField(allow_blank=False)
     codeownersAutoSync = serializers.BooleanField(default=True)
 
     @staticmethod
@@ -39,6 +39,15 @@ class ProjectOwnershipSerializer(serializers.Serializer):
         ):
             return HIGHER_MAX_RAW_LENGTH
         return MAX_RAW_LENGTH
+
+    def validate_autoAssignment(self, value):
+        if value not in [
+            "Auto Assign to Suspect Commits",
+            "Auto Assign to Issue Owner",
+            "Turn off Auto-Assignment",
+        ]:
+            raise serializers.ValidationError({"autoAssignment": "Invalid selection."})
+        return value
 
     def validate(self, attrs):
         if "raw" not in attrs:
@@ -104,11 +113,28 @@ class ProjectOwnershipSerializer(serializers.Serializer):
         if auto_assignment is None:
             return False
 
-        changed = ownership.auto_assignment != auto_assignment
+        new_values = {}
+        if auto_assignment == "Auto Assign to Suspect Commits":
+            new_values["auto_assignment"] = True
+            new_values["suspect_committer_auto_assignment"] = True
+        if auto_assignment == "Auto Assign to Issue Owner":
+            new_values["auto_assignment"] = True
+            new_values["suspect_committer_auto_assignment"] = False
+        if auto_assignment == "Turn off Auto-Assignment":
+            new_values["auto_assignment"] = False
+            new_values["suspect_committer_auto_assignment"] = False
+
+        changed = (
+            ownership.auto_assignment != new_values["auto_assignment"]
+            or ownership.suspect_committer_auto_assignment
+            != new_values["suspect_committer_auto_assignment"]
+        )
 
         if changed:
-            ownership.auto_assignment = auto_assignment
-
+            ownership.auto_assignment = new_values["auto_assignment"]
+            ownership.suspect_committer_auto_assignment = new_values[
+                "suspect_committer_auto_assignment"
+            ]
         return changed
 
 
