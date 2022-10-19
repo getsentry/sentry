@@ -32,29 +32,6 @@ describe('ProjectPlugins', function () {
     expect(container).toSnapshot();
   });
 
-  it('has error state when plugins=null and loading is true', async function () {
-    const {organization, route, router, project} = initializeOrg();
-
-    render(
-      <ProjectPlugins
-        params={{
-          orgId: organization.slug,
-        }}
-        project={project}
-        onChange={jest.fn()}
-        loading={false}
-        error={new Error('An error')}
-        plugins={null}
-        router={router}
-        routes={router.routes}
-        route={route}
-        location={router.location}
-        routeParams={router.params}
-      />
-    );
-
-    expect(await screen.findByText('Oops! Something went wrong')).toBeInTheDocument();
-  });
 
   it('has error state when plugins=[]', async function () {
     const {organization, route, router, project} = initializeOrg();
