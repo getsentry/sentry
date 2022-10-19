@@ -121,6 +121,21 @@ class ClientConfigViewTest(TestCase):
             data = json.loads(resp.content)
             assert data["features"] == []
 
+    def test_customer_domain_feature(self):
+        with self.feature({"organizations:customer-domains": True}):
+            resp = self.client.get(self.path)
+            assert resp.status_code == 200
+            assert resp["Content-Type"] == "application/json"
+            data = json.loads(resp.content)
+            assert data["features"] == ["organizations:create", "organizations:customer-domains"]
+
+        with self.feature({"organizations:customer-domains": False}):
+            resp = self.client.get(self.path)
+            assert resp.status_code == 200
+            assert resp["Content-Type"] == "application/json"
+            data = json.loads(resp.content)
+            assert data["features"] == ["organizations:create"]
+
     def test_unauthenticated(self):
         resp = self.client.get(self.path)
         assert resp.status_code == 200
