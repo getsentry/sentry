@@ -108,6 +108,15 @@ def get_region_for_organization(organization: Organization) -> Region:
     Raises RegionContextError if this Sentry platform instance is configured to
     run only in monolith mode.
     """
+    if organization is None:
+        # KLUDGE
+        return Region(
+            name="region1",
+            id=1,
+            address="http://127.0.0.1:9001",
+            category=RegionCategory.MULTI_TENANT,
+        )
+
     mapping = _load_global_regions()
 
     if not mapping.regions:
@@ -116,7 +125,11 @@ def get_region_for_organization(organization: Organization) -> Region:
     # Backend representation to be determined. If you are working on code
     # that depends on this method, you can mock it out in unit tests or
     # temporarily hard-code a placeholder.
-    raise NotImplementedError
+
+    # KLUDGE
+    return Region(
+        name="region1", id=1, address="127.0.0.1:9001", category=RegionCategory.MULTI_TENANT
+    )
 
 
 def get_local_region() -> Region:

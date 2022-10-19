@@ -2,6 +2,8 @@
 Utilities related to proxying a request to a region silo
 """
 
+from wsgiref.util import is_hop_by_hop
+
 from django.conf import settings
 from django.http import StreamingHttpResponse
 from requests import Response as ExternalResponse
@@ -26,11 +28,16 @@ def _parse_response(response: ExternalResponse) -> StreamingHttpResponse:
     streamed_response = StreamingHttpResponse(
         streaming_content=stream_response(),
         status=response.status_code,
-        content_type=response.headers.pop("Content-Type"),
+        content_type=response.headers.pop("Content-Type", None),
     )
     # Add Headers to response
+    marked_for_deletion = []
     for header, value in response.headers.items():
         streamed_response[header] = value
+        if is_hop_by_hop(header):
+            marked_for_deletion.append(header)
+    for header in marked_for_deletion:
+        del streamed_response[header]
     return streamed_response
 
 
