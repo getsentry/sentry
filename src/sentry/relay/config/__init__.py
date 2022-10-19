@@ -191,7 +191,7 @@ def _get_project_config(project, full_config=True, project_keys=None):
             cfg["config"]["dynamicSampling"] = {"rules": [generate_uniform_rule(project)]}
         except NoneSampleRateException:
             # just to be consistent with old code, where if there is no active active_rules
-            # we retrun empty list
+            # we return empty list
             cfg["config"]["dynamicSampling"] = {"rules": []}
     elif allow_dynamic_sampling:
         dynamic_sampling = project.get_option("sentry:dynamic_sampling")
