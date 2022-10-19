@@ -62,7 +62,6 @@ default_manager.add("organizations:create")
 # Organization scoped features that are in development or in customer trials.
 default_manager.add("organizations:active-release-monitor-alpha", OrganizationFeature, True)
 default_manager.add("organizations:active-release-notifications-enable", OrganizationFeature)
-default_manager.add("organizations:am2-billing", OrganizationFeature)
 default_manager.add("organizations:javascript-console-error-tag", OrganizationFeature)
 default_manager.add("organizations:alert-crash-free-metrics", OrganizationFeature, True)
 default_manager.add("organizations:alert-filters", OrganizationFeature)
@@ -173,6 +172,7 @@ default_manager.add("organizations:u2f-superuser-form", OrganizationFeature, Tru
 # also be listed in SubscriptionPlanFeatureHandler in getsentry so that sentry.io
 # behaves correctly.
 default_manager.add("organizations:advanced-search", OrganizationFeature)
+default_manager.add("organizations:am2-billing", OrganizationFeature)
 default_manager.add("organizations:app-store-connect-multiple", OrganizationFeature)
 default_manager.add("organizations:change-alerts", OrganizationFeature)
 default_manager.add('organizations:commit-context', OrganizationFeature)
