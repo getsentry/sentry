@@ -19,7 +19,7 @@ const PermissionAlert = ({
   <Access access={access}>
     {({hasAccess}) =>
       !hasAccess && (
-        <Alert type="warning" showIcon {...props}>
+        <Alert data-test-id="org-permission-alert" type="warning" showIcon {...props}>
           {message}
         </Alert>
       )
