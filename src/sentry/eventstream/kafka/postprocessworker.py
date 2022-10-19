@@ -26,7 +26,6 @@ _MESSAGES_METRIC = "eventstream.messages"
 class PostProcessForwarderType(str, Enum):
     ERRORS = "errors"
     TRANSACTIONS = "transactions"
-    ALL = "all"
 
 
 @contextmanager

@@ -110,13 +110,7 @@ const OrganizationRateLimit = ({organization}: Props) => {
               min={50}
               max={100}
               formatLabel={value =>
-                value !== 100 ? (
-                  `${value}%`
-                ) : (
-                  <span
-                    dangerouslySetInnerHTML={{__html: `${t('No Limit')} &mdash; 100%`}}
-                  />
-                )
+                value !== 100 ? `${value}%` : t('No Limit \u2014 100%')
               }
             />
           </Form>
