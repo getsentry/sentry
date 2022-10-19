@@ -2,8 +2,8 @@ import {Component, Fragment} from 'react';
 import find from 'lodash/find';
 import flatMap from 'lodash/flatMap';
 
+import SelectField from 'sentry/components/forms/fields/selectField';
 import FormContext from 'sentry/components/forms/formContext';
-import SelectField from 'sentry/components/forms/selectField';
 import {SENTRY_APP_PERMISSIONS} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {PermissionResource, Permissions, PermissionValue} from 'sentry/types/index';

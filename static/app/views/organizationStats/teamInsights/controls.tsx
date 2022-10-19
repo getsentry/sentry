@@ -6,10 +6,10 @@ import pick from 'lodash/pick';
 import uniq from 'lodash/uniq';
 import moment from 'moment';
 
-import SelectControl from 'sentry/components/forms/selectControl';
-import TeamSelector from 'sentry/components/forms/teamSelector';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
 import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
+import TeamSelector from 'sentry/components/teamSelector';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {DateString, TeamWithProjects} from 'sentry/types';
@@ -247,8 +247,6 @@ const StyledTeamSelector = styled(TeamSelector)`
 `;
 
 const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
-  height: 40px;
-
   div {
     min-height: unset;
   }

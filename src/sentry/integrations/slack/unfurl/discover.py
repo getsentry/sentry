@@ -290,6 +290,8 @@ def map_discover_query_args(url: str, args: Mapping[str, str]) -> Mapping[str, A
 
 handler: Handler = Handler(
     fn=unfurl_discover,
-    matcher=re.compile(r"^https?\://[^/]+/organizations/(?P<org_slug>[^/]+)/discover/results"),
+    matcher=re.compile(
+        r"^https?\://[^/]+/organizations/(?P<org_slug>[^/]+)/discover/(results|homepage)"
+    ),
     arg_mapper=map_discover_query_args,
 )

@@ -9,7 +9,7 @@ import Alert from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
-import CompactSelect from 'sentry/components/forms/compactSelect';
+import CompactSelect from 'sentry/components/compactSelect';
 import {Title} from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import SearchBar from 'sentry/components/searchBar';
@@ -216,7 +216,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
           value={activeSort.value}
           options={SORT_OPTIONS}
           onChange={opt => this.handleSortChange(opt.value)}
-          placement="bottom right"
+          position="bottom-end"
         />
       </StyledActions>
     );
@@ -281,6 +281,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
                   <StyledButton
                     data-test-id="build-new-query"
                     to={to}
+                    size="sm"
                     priority="primary"
                     onClick={() => {
                       trackAdvancedAnalyticsEvent('discover_v2.build_new_query', {

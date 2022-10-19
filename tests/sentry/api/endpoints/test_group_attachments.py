@@ -76,6 +76,19 @@ class GroupEventAttachmentsTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(attachment1.id)
 
+    def test_second_screenshot_filter(self):
+        self.login_as(user=self.user)
+
+        attachment1 = self.create_attachment(type="event.attachment", file_name="screenshot.png")
+        self.create_attachment(type="event.attachment", file_name="screenshot-not.png")
+
+        with self.feature("organizations:event-attachments"):
+            response = self.client.get(self.path(screenshot=True))
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(attachment1.id)
+
     def test_without_feature(self):
         self.login_as(user=self.user)
         self.create_attachment()

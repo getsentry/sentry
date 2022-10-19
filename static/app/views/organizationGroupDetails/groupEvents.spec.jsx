@@ -9,10 +9,12 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {GroupEvents} from 'sentry/views/organizationGroupDetails/groupEvents';
+import {RouteContext} from 'sentry/views/routeContext';
 
 describe('groupEvents', function () {
   let request;
   let discoverRequest;
+  let attachmentsRequest;
 
   const {organization, routerContext} = initializeOrg();
 
@@ -55,6 +57,9 @@ describe('groupEvents', function () {
     browserHistory.push = jest.fn();
     discoverRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
+      headers: {
+        Link: `<https://sentry.io/api/0/issues/1/events/?limit=50&cursor=0:0:1>; rel="previous"; results="true"; cursor="0:0:1", <https://sentry.io/api/0/issues/1/events/?limit=50&cursor=0:200:0>; rel="next"; results="true"; cursor="0:200:0"`,
+      },
       body: {
         data: [
           {
@@ -97,6 +102,11 @@ describe('groupEvents', function () {
         },
       },
     });
+
+    attachmentsRequest = MockApiClient.addMockResponse({
+      url: '/api/0/issues/1/attachments/?per_page=50&types=event.minidump&event_id=id123',
+      body: [],
+    });
   });
 
   afterEach(() => {
@@ -106,13 +116,15 @@ describe('groupEvents', function () {
 
   it('renders', function () {
     const wrapper = render(
-      <GroupEvents
-        organization={organization}
-        api={new MockApiClient()}
-        group={TestStubs.Group()}
-        params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
-        location={{query: {}}}
-      />,
+      <RouteContext.Provider value={routerContext}>
+        <GroupEvents
+          organization={organization}
+          api={new MockApiClient()}
+          group={TestStubs.Group()}
+          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+          location={{query: {}}}
+        />
+      </RouteContext.Provider>,
       {context: routerContext, organization}
     );
 
@@ -121,13 +133,15 @@ describe('groupEvents', function () {
 
   it('handles search', function () {
     render(
-      <GroupEvents
-        organization={organization}
-        api={new MockApiClient()}
-        params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
-        group={TestStubs.Group()}
-        location={{query: {}}}
-      />,
+      <RouteContext.Provider value={routerContext}>
+        <GroupEvents
+          organization={organization}
+          api={new MockApiClient()}
+          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+          group={TestStubs.Group()}
+          location={{query: {}}}
+        />
+      </RouteContext.Provider>,
       {context: routerContext, organization}
     );
 
@@ -153,13 +167,15 @@ describe('groupEvents', function () {
 
   it('handles environment filtering', function () {
     render(
-      <GroupEvents
-        organization={organization}
-        api={new MockApiClient()}
-        params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
-        group={TestStubs.Group()}
-        location={{query: {environment: ['prod', 'staging']}}}
-      />,
+      <RouteContext.Provider value={routerContext}>
+        <GroupEvents
+          organization={organization}
+          api={new MockApiClient()}
+          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+          group={TestStubs.Group()}
+          location={{query: {environment: ['prod', 'staging']}}}
+        />
+      </RouteContext.Provider>,
       {context: routerContext, organization}
     );
     expect(request).toHaveBeenCalledWith(
@@ -185,13 +201,15 @@ describe('groupEvents', function () {
       group.issueCategory = 'performance';
 
       render(
-        <GroupEvents
-          organization={org.organization}
-          api={new MockApiClient()}
-          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
-          group={group}
-          location={{query: {environment: ['prod', 'staging']}}}
-        />,
+        <RouteContext.Provider value={routerContext}>
+          <GroupEvents
+            organization={org.organization}
+            api={new MockApiClient()}
+            params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+            group={group}
+            location={{query: {environment: ['prod', 'staging']}}}
+          />
+        </RouteContext.Provider>,
         {context: routerContext, organization}
       );
       expect(discoverRequest).toHaveBeenCalledWith(
@@ -202,19 +220,22 @@ describe('groupEvents', function () {
       );
       const perfEventsColumn = screen.getByText('transaction');
       expect(perfEventsColumn).toBeInTheDocument();
+      expect(request).not.toHaveBeenCalled();
     });
 
     it('renders event and trace link correctly', async () => {
       group.issueCategory = 'performance';
 
       render(
-        <GroupEvents
-          organization={org.organization}
-          api={new MockApiClient()}
-          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
-          group={group}
-          location={{query: {environment: ['prod', 'staging']}}}
-        />,
+        <RouteContext.Provider value={routerContext}>
+          <GroupEvents
+            organization={org.organization}
+            api={new MockApiClient()}
+            params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+            group={group}
+            location={{query: {environment: ['prod', 'staging']}}}
+          />
+        </RouteContext.Provider>,
         {context: routerContext, organization}
       );
       await waitForElementToBeRemoved(document.querySelector('div.loading-indicator'));
@@ -230,24 +251,164 @@ describe('groupEvents', function () {
       );
     });
 
+    it('does not display attachments column with no attachments', async () => {
+      render(
+        <RouteContext.Provider value={routerContext}>
+          <GroupEvents
+            organization={org.organization}
+            api={new MockApiClient()}
+            params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+            group={group}
+            location={{query: {environment: ['prod', 'staging']}}}
+          />
+        </RouteContext.Provider>,
+        {context: routerContext, organization}
+      );
+      await waitForElementToBeRemoved(document.querySelector('div.loading-indicator'));
+      const attachmentsColumn = screen.queryByText('attachments');
+      expect(attachmentsColumn).not.toBeInTheDocument();
+      expect(attachmentsRequest).toHaveBeenCalled();
+    });
+
+    it('does not display minidump column with no minidumps', async () => {
+      render(
+        <RouteContext.Provider value={routerContext}>
+          <GroupEvents
+            organization={org.organization}
+            api={new MockApiClient()}
+            params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+            group={group}
+            location={{query: {environment: ['prod', 'staging']}}}
+          />
+        </RouteContext.Provider>,
+        {context: routerContext, organization}
+      );
+      await waitForElementToBeRemoved(document.querySelector('div.loading-indicator'));
+      const minidumpColumn = screen.queryByText('minidump');
+      expect(minidumpColumn).not.toBeInTheDocument();
+    });
+
+    it('displays minidumps', async () => {
+      attachmentsRequest = MockApiClient.addMockResponse({
+        url: '/api/0/issues/1/attachments/?per_page=50&types=event.minidump&event_id=id123',
+        body: [
+          {
+            id: 'id123',
+            name: 'dc42a8b9-fc22-4de1-8a29-45b3006496d8.dmp',
+            headers: {
+              'Content-Type': 'application/octet-stream',
+            },
+            mimetype: 'application/octet-stream',
+            size: 1294340,
+            sha1: '742127552a1191f71fcf6ba7bc5afa0a837350e2',
+            dateCreated: '2022-09-28T09:04:38.659307Z',
+            type: 'event.minidump',
+            event_id: 'd54cb9246ee241ffbdb39bf7a9fafbb7',
+          },
+        ],
+      });
+
+      render(
+        <RouteContext.Provider value={routerContext}>
+          <GroupEvents
+            organization={org.organization}
+            api={new MockApiClient()}
+            params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+            group={group}
+            location={{query: {environment: ['prod', 'staging']}}}
+          />
+        </RouteContext.Provider>,
+        {context: routerContext, organization}
+      );
+      await waitForElementToBeRemoved(document.querySelector('div.loading-indicator'));
+      const minidumpColumn = screen.queryByText('minidump');
+      expect(minidumpColumn).toBeInTheDocument();
+    });
+
+    it('does not display attachments but displays minidump', async () => {
+      attachmentsRequest = MockApiClient.addMockResponse({
+        url: '/api/0/issues/1/attachments/?per_page=50&types=event.minidump&event_id=id123',
+        body: [
+          {
+            id: 'id123',
+            name: 'dc42a8b9-fc22-4de1-8a29-45b3006496d8.dmp',
+            headers: {
+              'Content-Type': 'application/octet-stream',
+            },
+            mimetype: 'application/octet-stream',
+            size: 1294340,
+            sha1: '742127552a1191f71fcf6ba7bc5afa0a837350e2',
+            dateCreated: '2022-09-28T09:04:38.659307Z',
+            type: 'event.minidump',
+            event_id: 'd54cb9246ee241ffbdb39bf7a9fafbb7',
+          },
+        ],
+      });
+
+      render(
+        <RouteContext.Provider value={routerContext}>
+          <GroupEvents
+            organization={org.organization}
+            api={new MockApiClient()}
+            params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+            group={group}
+            location={{query: {environment: ['prod', 'staging']}}}
+          />
+        </RouteContext.Provider>,
+        {context: routerContext, organization}
+      );
+      await waitForElementToBeRemoved(document.querySelector('div.loading-indicator'));
+      const attachmentsColumn = screen.queryByText('attachments');
+      const minidumpColumn = screen.queryByText('minidump');
+      expect(attachmentsColumn).not.toBeInTheDocument();
+      expect(minidumpColumn).toBeInTheDocument();
+      expect(attachmentsRequest).toHaveBeenCalled();
+    });
+
     it('renders new events table if error', function () {
       render(
-        <GroupEvents
-          organization={org.organization}
-          api={new MockApiClient()}
-          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
-          group={group}
-          location={{query: {environment: ['prod', 'staging']}}}
-        />,
+        <RouteContext.Provider value={routerContext}>
+          <GroupEvents
+            organization={org.organization}
+            api={new MockApiClient()}
+            params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+            group={group}
+            location={{query: {environment: ['prod', 'staging']}}}
+          />
+        </RouteContext.Provider>,
         {context: routerContext, organization}
       );
       expect(discoverRequest).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
-        expect.objectContaining({query: expect.objectContaining({query: 'issue.id:1 '})})
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: 'issue.id:1 ',
+            field: expect.not.arrayContaining(['attachments', 'minidump']),
+          }),
+        })
       );
 
       const perfEventsColumn = screen.getByText('transaction');
       expect(perfEventsColumn).toBeInTheDocument();
+    });
+
+    it('removes sort if unsupported by the events table', function () {
+      render(
+        <RouteContext.Provider value={routerContext}>
+          <GroupEvents
+            organization={org.organization}
+            api={new MockApiClient()}
+            params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+            group={group}
+            location={{query: {environment: ['prod', 'staging'], sort: 'user'}}}
+          />
+        </RouteContext.Provider>,
+        {context: routerContext, organization}
+      );
+      expect(discoverRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/events/',
+        expect.objectContaining({query: expect.not.objectContaining({sort: 'user'})})
+      );
     });
   });
 
@@ -256,13 +417,15 @@ describe('groupEvents', function () {
     const group = TestStubs.Group();
 
     render(
-      <GroupEvents
-        organization={org.organization}
-        api={new MockApiClient()}
-        params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
-        group={group}
-        location={{query: {environment: ['prod', 'staging']}}}
-      />,
+      <RouteContext.Provider value={routerContext}>
+        <GroupEvents
+          organization={org.organization}
+          api={new MockApiClient()}
+          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+          group={group}
+          location={{query: {environment: ['prod', 'staging']}}}
+        />
+      </RouteContext.Provider>,
       {context: routerContext, organization}
     );
 

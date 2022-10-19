@@ -2545,6 +2545,28 @@ describe('EventView.sortOnField()', function () {
     });
   });
 
+  it('supports function format on equation sorts', function () {
+    const modifiedState = {
+      ...state,
+      fields: [{field: 'count()'}, {field: 'equation|count() + 100'}],
+      sorts: [{field: 'equation|count() + 100', kind: 'desc'}],
+    };
+
+    const eventView = new EventView(modifiedState);
+    expect(eventView).toMatchObject(modifiedState);
+  });
+
+  it('supports index format on equation sorts', function () {
+    const modifiedState = {
+      ...state,
+      fields: [{field: 'count()'}, {field: 'equation|count() + 100'}],
+      sorts: [{field: 'equation[0]', kind: 'desc'}],
+    };
+
+    const eventView = new EventView(modifiedState);
+    expect(eventView).toMatchObject(modifiedState);
+  });
+
   it('sort on new field', function () {
     const modifiedState = {
       ...state,

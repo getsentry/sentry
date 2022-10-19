@@ -8,6 +8,7 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Badge from 'sentry/components/badge';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import Count from 'sentry/components/count';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import ErrorLevel from 'sentry/components/events/errorLevel';
 import EventAnnotation from 'sentry/components/events/eventAnnotation';
@@ -327,18 +328,31 @@ function GroupHeader({
     </GuideAnchor>
   );
 
+  const hasIssueActionsV2 = organization.features.includes('issue-actions-v2');
+
   return (
     <Layout.Header>
       <div className={className}>
-        <Breadcrumbs
-          crumbs={[
-            {
-              label: 'Issues',
-              to: `/organizations/${organization.slug}/issues/${location.search}`,
-            },
-            {label: shortIdBreadCrumb},
-          ]}
-        />
+        <BreadcrumbActionWrapper>
+          <Breadcrumbs
+            crumbs={[
+              {
+                label: 'Issues',
+                to: `/organizations/${organization.slug}/issues/${location.search}`,
+              },
+              {label: shortIdBreadCrumb},
+            ]}
+          />
+          {hasIssueActionsV2 && (
+            <GroupActions
+              group={group}
+              project={project}
+              disabled={disableActions}
+              event={event}
+              query={location.query}
+            />
+          )}
+        </BreadcrumbActionWrapper>
         <HeaderRow>
           <TitleWrapper>
             <TitleHeading>
@@ -402,19 +416,26 @@ function GroupHeader({
             )}
           </StatsWrapper>
         </HeaderRow>
-        <HeaderRow>
-          <GroupActions
-            group={group}
-            project={project}
-            disabled={disableActions}
-            event={event}
-            query={location.query}
-          />
-          <StyledSeenByList
-            seenBy={group.seenBy}
-            iconTooltip={t('People who have viewed this issue')}
-          />
-        </HeaderRow>
+        {hasIssueActionsV2 ? (
+          // Environment picker for mobile
+          <HeaderRow className="hidden-sm hidden-md hidden-lg">
+            <EnvironmentPageFilter alignDropdown="right" />
+          </HeaderRow>
+        ) : (
+          <HeaderRow>
+            <GroupActions
+              group={group}
+              project={project}
+              disabled={disableActions}
+              event={event}
+              query={location.query}
+            />
+            <StyledSeenByList
+              seenBy={group.seenBy}
+              iconTooltip={t('People who have viewed this issue')}
+            />
+          </HeaderRow>
+        )}
         {group.issueCategory === IssueCategory.PERFORMANCE
           ? performanceIssueTabs
           : errorIssueTabs}
@@ -424,6 +445,14 @@ function GroupHeader({
 }
 
 export default GroupHeader;
+
+const BreadcrumbActionWrapper = styled('div')`
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  gap: ${space(1)};
+  align-items: center;
+`;
 
 const ShortIdBreadrcumb = styled('div')`
   display: flex;

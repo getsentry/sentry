@@ -5,7 +5,7 @@ import * as qs from 'query-string';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
-import Form from 'sentry/components/forms/form';
+import Form, {FormProps} from 'sentry/components/forms/form';
 import FormModel, {FieldValue} from 'sentry/components/forms/model';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {tct} from 'sentry/locale';
@@ -284,11 +284,11 @@ export default class AbstractExternalIssueForm<
   renderNavTabs = (): React.ReactNode => null;
   renderBodyText = (): React.ReactNode => null;
   getTitle = () => tct('Issue Link Settings', {});
-  getFormProps = (): Form['props'] => {
+  getFormProps = (): FormProps => {
     throw new Error("Method 'getFormProps()' must be implemented.");
   };
 
-  getDefaultFormProps = (): Form['props'] => {
+  getDefaultFormProps = (): FormProps => {
     return {
       footerClass: 'modal-footer',
       onFieldChange: this.onFieldChange,

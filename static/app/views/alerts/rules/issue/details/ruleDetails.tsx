@@ -251,10 +251,11 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <ButtonBar gap={1}>
-              <Button icon={<IconCopy />} to={duplicateLink}>
+              <Button size="sm" icon={<IconCopy />} to={duplicateLink}>
                 {t('Duplicate')}
               </Button>
               <Button
+                size="sm"
                 icon={<IconEdit />}
                 to={`/organizations/${orgId}/alerts/rules/${projectId}/${ruleId}/`}
                 onClick={() =>

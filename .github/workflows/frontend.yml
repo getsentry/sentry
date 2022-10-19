@@ -14,7 +14,7 @@ concurrency:
 
 # hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
 env:
-  SEGMENT_DOWNLOAD_TIMEOUT_MIN: 3
+  SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
 
 jobs:
   files-changed:
@@ -56,7 +56,7 @@ jobs:
           app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
 
-      - uses: ./.github/actions/setup-volta
+      - uses: getsentry/action-setup-volta@54775a59c41065f54ecc76d1dd5f2cdc7a1550cb  # v1.1.0
 
       - name: Install dependencies
         id: dependencies
@@ -72,7 +72,7 @@ jobs:
       - name: eslint logic
         id: eslint
         if: (github.ref == 'refs/heads/master' || needs.files-changed.outputs.eslint_config == 'true' || needs.files-changed.outputs.yarn_lockfile == 'true')
-        run: echo "::set-output name=all-files::true"
+        run: echo "all-files=true" >> "$GITHUB_OUTPUT"
 
       # Lint entire frontend if:
       # - this is on main branch
@@ -143,7 +143,7 @@ jobs:
     steps:
       - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
 
-      - uses: ./.github/actions/setup-volta
+      - uses: getsentry/action-setup-volta@54775a59c41065f54ecc76d1dd5f2cdc7a1550cb  # v1.1.0
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile

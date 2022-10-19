@@ -29,10 +29,18 @@ CallTrees = Mapping[str, List[Any]]
 processed_profiles_publisher = None
 
 
+class VroomTimeout(Exception):
+    pass
+
+
 @instrumented_task(  # type: ignore
-    name="profiles.process",
+    name="sentry.profiles.task.process_profile",
     queue="profiles.process",
-    default_retry_delay=5,
+    autoretry_for=(VroomTimeout,),  # Retry when vroom returns a GCS timeout
+    retry_backoff=True,
+    retry_backoff_max=60,  # up to 1 min
+    retry_jitter=True,
+    default_retry_delay=5,  # retries after 5s
     max_retries=5,
     acks_late=True,
 )
@@ -56,6 +64,14 @@ def process_profile(
 
     try:
         if _should_symbolicate(profile):
+            if "debug_meta" not in profile or not profile["debug_meta"]:
+                metrics.incr(
+                    "process_profile.missing_keys.debug_meta",
+                    tags={"platform": profile["platform"]},
+                    sample_rate=1.0,
+                )
+                return
+
             modules, stacktraces = _prepare_frames_from_profile(profile)
             modules, stacktraces = _symbolicate(
                 project=project,
@@ -77,6 +93,14 @@ def process_profile(
 
     try:
         if _should_deobfuscate(profile):
+            if "profile" not in profile or not profile["profile"]:
+                metrics.incr(
+                    "process_profile.missing_keys.profile",
+                    tags={"platform": profile["platform"]},
+                    sample_rate=1.0,
+                )
+                return
+
             _deobfuscate(profile=profile, project=project)
     except Exception as e:
         sentry_sdk.capture_exception(e)
@@ -514,6 +538,8 @@ def _insert_vroom_profile(profile: Profile) -> bool:
             profile["call_trees"] = {}
         elif response.status == 200:
             profile["call_trees"] = json.loads(response.data)["call_trees"]
+        elif response.status == 429:
+            raise VroomTimeout
         else:
             metrics.incr(
                 "process_profile.insert_vroom_profile.error",
@@ -525,6 +551,8 @@ def _insert_vroom_profile(profile: Profile) -> bool:
     except RecursionError as e:
         sentry_sdk.capture_exception(e)
         return True
+    except VroomTimeout:
+        raise
     except Exception as e:
         sentry_sdk.capture_exception(e)
         metrics.incr(

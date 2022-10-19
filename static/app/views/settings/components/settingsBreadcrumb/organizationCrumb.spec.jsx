@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationCrumb from 'sentry/views/settings/components/settingsBreadcrumb/organizationCrumb';
 
@@ -17,29 +17,27 @@ describe('OrganizationCrumb', function () {
     }),
   ];
 
-  const switchOrganization = async wrapper => {
-    wrapper.find('Crumb').simulate('mouseEnter');
-    await tick();
-    wrapper.update();
-    wrapper.find('AutoCompleteItem').at(1).simulate('click');
+  const switchOrganization = () => {
+    userEvent.hover(screen.getByRole('link'));
+    userEvent.click(screen.getAllByRole('option')[1]);
   };
 
-  const createWrapper = props =>
-    mountWithTheme(
+  const renderComponent = props =>
+    render(
       <OrganizationCrumb
         organizations={organizations}
         organization={organization}
         params={{orgId: organization.slug}}
         {...props}
       />,
-      routerContext
+      {context: routerContext}
     );
 
   beforeEach(function () {
     browserHistory.push.mockReset();
   });
 
-  it('switches organizations on settings index', async function () {
+  it('switches organizations on settings index', function () {
     const routes = [
       {path: '/', childRoutes: []},
       {childRoutes: []},
@@ -51,16 +49,13 @@ describe('OrganizationCrumb', function () {
     ];
     const route = routes[6];
 
-    const wrapper = createWrapper({
-      routes,
-      route,
-    });
+    renderComponent({routes, route});
+    switchOrganization();
 
-    await switchOrganization(wrapper);
     expect(browserHistory.push).toHaveBeenCalledWith('/settings/org-slug2/');
   });
 
-  it('switches organizations while on API Keys Details route', async function () {
+  it('switches organizations while on API Keys Details route', function () {
     const routes = [
       {path: '/', childRoutes: []},
       {childRoutes: []},
@@ -75,16 +70,13 @@ describe('OrganizationCrumb', function () {
     ];
     const route = routes[6];
 
-    const wrapper = createWrapper({
-      routes,
-      route,
-    });
+    renderComponent({routes, route});
+    switchOrganization();
 
-    await switchOrganization(wrapper);
     expect(browserHistory.push).toHaveBeenCalledWith('/settings/org-slug2/api-keys/');
   });
 
-  it('switches organizations while on API Keys List route', async function () {
+  it('switches organizations while on API Keys List route', function () {
     const routes = [
       {path: '/', childRoutes: []},
       {childRoutes: []},
@@ -98,16 +90,13 @@ describe('OrganizationCrumb', function () {
     ];
     const route = routes[6];
 
-    const wrapper = createWrapper({
-      routes,
-      route,
-    });
+    renderComponent({routes, route});
+    switchOrganization();
 
-    await switchOrganization(wrapper);
     expect(browserHistory.push).toHaveBeenCalledWith('/settings/org-slug2/api-keys/');
   });
 
-  it('switches organizations while in Project Client Keys Details route', async function () {
+  it('switches organizations while in Project Client Keys Details route', function () {
     const routes = [
       {path: '/', childRoutes: []},
       {path: '/settings/', name: 'Settings', childRoutes: []},
@@ -119,7 +108,7 @@ describe('OrganizationCrumb', function () {
 
     const route = routes[2];
 
-    const wrapper = createWrapper({
+    renderComponent({
       params: {
         orgId: organization.slug,
         projectId: project.slug,
@@ -127,8 +116,8 @@ describe('OrganizationCrumb', function () {
       routes,
       route,
     });
+    switchOrganization();
 
-    await switchOrganization(wrapper);
     expect(browserHistory.push).toHaveBeenCalledWith('/settings/org-slug2/');
   });
 });

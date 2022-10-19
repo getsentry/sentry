@@ -26,6 +26,7 @@ from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.tasks.integrations import migrate_repo
 from sentry.utils import jwt
+from sentry.utils.json import JSONData
 from sentry.web.helpers import render_to_response
 
 from .client import GitHubAppsClient, GitHubClientMixin
@@ -105,6 +106,9 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
     def get_client(self) -> GitHubClientMixin:
         return GitHubAppsClient(integration=self.model)
 
+    def get_trees_for_org(self) -> JSONData:
+        return self.get_client().get_trees_for_org(self.model.name)
+
     def get_repositories(self, query: str | None = None) -> Sequence[Mapping[str, Any]]:
         """
         This fetches all repositories accessible to a Github App
@@ -177,12 +181,13 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         return True
 
     def get_commit_context(
-        self, repo: Repository, filepath: str, branch: str, event_frame: Mapping[str, Any]
+        self, repo: Repository, filepath: str, ref: str, event_frame: Mapping[str, Any]
     ) -> Mapping[str, str] | None:
-        blame_range = self.get_blame_for_file(repo, filepath, branch)
-        lineno = event_frame.get("lineno")
+        lineno = event_frame.get("lineno", 0)
         if not lineno:
             return None
+        blame_range = self.get_blame_for_file(repo, filepath, ref, lineno)
+
         try:
             commit = sorted(
                 (

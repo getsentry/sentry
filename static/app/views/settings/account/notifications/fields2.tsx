@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 
 import FeatureBadge from 'sentry/components/featureBadge';
-import {Field} from 'sentry/components/forms/type';
+import {Field} from 'sentry/components/forms/types';
 import ExternalLink from 'sentry/components/links/externalLink';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
 import {getDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
 
@@ -130,9 +131,7 @@ export const QUOTA_FIELDS = [
   {
     name: 'quotaWarnings',
     label: t('Set Quota Limit'),
-    help: t(
-      'Receive notifications when your organization exceeeds the following limits.'
-    ),
+    help: t('Receive notifications when your organization exceeds the following limits.'),
     choices: [
       ['always', t('100% and 80%')],
       ['never', t('100%')],
@@ -172,6 +171,20 @@ export const QUOTA_FIELDS = [
         learnMore: <ExternalLink href={getDocsLinkForEventType('attachment')} />,
       }
     ),
+    choices: [
+      ['always', t('On')],
+      ['never', t('Off')],
+    ] as const,
+  },
+  {
+    name: 'quotaSpendAllocations',
+    label: (
+      <Fragment>
+        {t('Spend Allocations')}{' '}
+        <QuestionTooltip position="top" title="Business plan only" size="xs" />
+      </Fragment>
+    ),
+    help: t('Receive notifications about your spend allocations.'),
     choices: [
       ['always', t('On')],
       ['never', t('Off')],

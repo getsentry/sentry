@@ -1,8 +1,8 @@
 import {RouteComponentProps} from 'react-router';
 
 import Field from 'sentry/components/forms/field';
+import RangeField from 'sentry/components/forms/fields/rangeField';
 import Form from 'sentry/components/forms/form';
-import RangeField from 'sentry/components/forms/rangeField';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
@@ -16,14 +16,14 @@ type Props = RouteComponentProps<{}, {}> & {
 const getRateLimitValues = () => {
   const steps: number[] = [];
   let i = 0;
-  while (i <= 1000000) {
+  while (i <= 1_000_000) {
     steps.push(i);
-    if (i < 10000) {
-      i += 1000;
-    } else if (i < 100000) {
-      i += 10000;
+    if (i < 10_000) {
+      i += 1_000;
+    } else if (i < 100_000) {
+      i += 10_000;
     } else {
-      i += 100000;
+      i += 100_000;
     }
   }
   return steps;
@@ -110,13 +110,7 @@ const OrganizationRateLimit = ({organization}: Props) => {
               min={50}
               max={100}
               formatLabel={value =>
-                value !== 100 ? (
-                  `${value}%`
-                ) : (
-                  <span
-                    dangerouslySetInnerHTML={{__html: `${t('No Limit')} &mdash; 100%`}}
-                  />
-                )
+                value !== 100 ? `${value}%` : t('No Limit \u2014 100%')
               }
             />
           </Form>

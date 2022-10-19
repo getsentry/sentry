@@ -125,11 +125,13 @@ const ActorWrapper = styled('div')`
 `;
 
 const ActorName = styled('div')`
+  line-height: 1.2;
   ${p => p.theme.overflowEllipsis}
 `;
 
 const IconWrapper = styled('div')`
   display: flex;
+  padding: ${space(0.25)};
 `;
 
 const StyledLink = styled(Link)`

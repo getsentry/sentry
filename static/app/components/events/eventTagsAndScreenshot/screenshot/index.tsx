@@ -1,7 +1,6 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {Role} from 'sentry/components/acl/role';
 import MenuItemActionLink from 'sentry/components/actions/menuItemActionLink';
 import Button from 'sentry/components/button';
@@ -12,64 +11,57 @@ import {Panel, PanelBody, PanelFooter} from 'sentry/components/panels';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {EventAttachment, Organization, Project} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import {Event, EventAttachment, Organization, Project} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
 import DataSection from '../dataSection';
 
 import ImageVisualization from './imageVisualization';
-import Modal, {modalCss} from './modal';
 
 type Props = {
-  event: Event;
+  eventId: Event['id'];
   onDelete: (attachmentId: EventAttachment['id']) => void;
+  openVisualizationModal: (eventAttachment: EventAttachment, downloadUrl: string) => void;
   organization: Organization;
   projectSlug: Project['slug'];
   screenshot: EventAttachment;
+  onlyRenderScreenshot?: boolean;
 };
 
-function Screenshot({event, organization, screenshot, projectSlug, onDelete}: Props) {
+function Screenshot({
+  eventId,
+  organization,
+  screenshot,
+  projectSlug,
+  onlyRenderScreenshot,
+  onDelete,
+  openVisualizationModal,
+}: Props) {
   const orgSlug = organization.slug;
   const [loadingImage, setLoadingImage] = useState(true);
 
-  function handleOpenVisualizationModal(
-    eventAttachment: EventAttachment,
-    downloadUrl: string
-  ) {
-    openModal(
-      modalProps => (
-        <Modal
-          {...modalProps}
-          event={event}
-          orgSlug={orgSlug}
-          projectSlug={projectSlug}
-          eventAttachment={eventAttachment}
-          downloadUrl={downloadUrl}
-          onDelete={() => onDelete(eventAttachment.id)}
-        />
-      ),
-      {modalCss}
-    );
+  function handleDelete(screenshotAttachment) {
+    trackAdvancedAnalyticsEvent('issue_details.issue_tab.screenshot_dropdown_deleted', {
+      organization,
+    });
+    onDelete(screenshotAttachment.id);
   }
 
   function renderContent(screenshotAttachment: EventAttachment) {
-    const downloadUrl = `/api/0/projects/${organization.slug}/${projectSlug}/events/${event.id}/attachments/${screenshotAttachment.id}/`;
+    const downloadUrl = `/api/0/projects/${organization.slug}/${projectSlug}/events/${eventId}/attachments/${screenshotAttachment.id}/`;
 
     return (
       <Fragment>
         <StyledPanelBody
           onClick={() =>
-            handleOpenVisualizationModal(
-              screenshotAttachment,
-              `${downloadUrl}?download=1`
-            )
+            openVisualizationModal(screenshotAttachment, `${downloadUrl}?download=1`)
           }
         >
           <StyledImageVisualization
             attachment={screenshotAttachment}
             orgId={orgSlug}
             projectId={projectSlug}
-            event={event}
+            eventId={eventId}
             onLoad={() => setLoadingImage(false)}
             onError={() => setLoadingImage(false)}
           />
@@ -79,49 +71,59 @@ function Screenshot({event, organization, screenshot, projectSlug, onDelete}: Pr
             </StyledLoadingIndicator>
           )}
         </StyledPanelBody>
-        <StyledPanelFooter>
-          <StyledButtonbar gap={1}>
-            <Button
-              size="xs"
-              onClick={() =>
-                handleOpenVisualizationModal(
-                  screenshotAttachment,
-                  `${downloadUrl}?download=1`
-                )
-              }
-            >
-              {t('View screenshot')}
-            </Button>
-            <DropdownLink
-              caret={false}
-              customTitle={
-                <Button
-                  aria-label={t('Actions')}
-                  size="xs"
-                  icon={<IconEllipsis size="xs" />}
-                />
-              }
-              anchorRight
-            >
-              <MenuItemActionLink
-                shouldConfirm={false}
-                href={`${downloadUrl}?download=1`}
+        {!onlyRenderScreenshot && (
+          <StyledPanelFooter>
+            <StyledButtonbar gap={1}>
+              <Button
+                size="xs"
+                onClick={() =>
+                  openVisualizationModal(
+                    screenshotAttachment,
+                    `${downloadUrl}?download=1`
+                  )
+                }
               >
-                {t('Download')}
-              </MenuItemActionLink>
-              <MenuItemActionLink
-                shouldConfirm
-                onAction={() => onDelete(screenshotAttachment.id)}
-                header={t(
-                  'This image was captured around the time that the event occurred.'
-                )}
-                message={t('Are you sure you wish to delete this image?')}
+                {t('View screenshot')}
+              </Button>
+              <DropdownLink
+                caret={false}
+                customTitle={
+                  <Button
+                    aria-label={t('Actions')}
+                    size="xs"
+                    icon={<IconEllipsis size="xs" />}
+                  />
+                }
+                anchorRight
               >
-                {t('Delete')}
-              </MenuItemActionLink>
-            </DropdownLink>
-          </StyledButtonbar>
-        </StyledPanelFooter>
+                <MenuItemActionLink
+                  shouldConfirm={false}
+                  onAction={() =>
+                    trackAdvancedAnalyticsEvent(
+                      'issue_details.issue_tab.screenshot_dropdown_download',
+                      {
+                        organization,
+                      }
+                    )
+                  }
+                  href={`${downloadUrl}?download=1`}
+                >
+                  {t('Download')}
+                </MenuItemActionLink>
+                <MenuItemActionLink
+                  shouldConfirm
+                  onAction={() => handleDelete(screenshotAttachment.id)}
+                  header={t(
+                    'This image was captured around the time that the event occurred.'
+                  )}
+                  message={t('Are you sure you wish to delete this image?')}
+                >
+                  {t('Delete')}
+                </MenuItemActionLink>
+              </DropdownLink>
+            </StyledButtonbar>
+          </StyledPanelFooter>
+        )}
       </Fragment>
     );
   }
@@ -131,6 +133,10 @@ function Screenshot({event, organization, screenshot, projectSlug, onDelete}: Pr
       {({hasRole}) => {
         if (!hasRole) {
           return null;
+        }
+
+        if (onlyRenderScreenshot) {
+          return <StyledPanel>{renderContent(screenshot)}</StyledPanel>;
         }
 
         return (

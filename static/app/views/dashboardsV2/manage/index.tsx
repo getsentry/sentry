@@ -9,7 +9,7 @@ import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import CompactSelect from 'sentry/components/forms/compactSelect';
+import CompactSelect from 'sentry/components/compactSelect';
 import {Title} from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
@@ -173,7 +173,7 @@ class ManageDashboards extends AsyncView<Props, State> {
           value={activeSort.value}
           options={SORT_OPTIONS}
           onChange={opt => this.handleSortChange(opt.value)}
-          placement="bottom right"
+          position="bottom-end"
         />
       </StyledActions>
     );
@@ -292,6 +292,7 @@ class ManageDashboards extends AsyncView<Props, State> {
                         event.preventDefault();
                         this.onCreate();
                       }}
+                      size="sm"
                       priority="primary"
                       icon={<IconAdd isCircled />}
                     >

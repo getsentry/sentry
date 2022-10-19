@@ -3,13 +3,13 @@ import {Observer} from 'mobx-react';
 
 import Access from 'sentry/components/acl/access';
 import Field from 'sentry/components/forms/field';
-import Form from 'sentry/components/forms/form';
+import NumberField from 'sentry/components/forms/fields/numberField';
+import SelectField from 'sentry/components/forms/fields/selectField';
+import TextField from 'sentry/components/forms/fields/textField';
+import Form, {FormProps} from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
-import NumberField from 'sentry/components/forms/numberField';
-import SelectField from 'sentry/components/forms/selectField';
-import TextCopyInput from 'sentry/components/forms/textCopyInput';
-import TextField from 'sentry/components/forms/textField';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import {PageFilters, Project, SelectValue} from 'sentry/types';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -37,8 +37,8 @@ const INTERVALS: SelectValue<string>[] = [
 
 type Props = {
   apiEndpoint: string;
-  apiMethod: Form['props']['apiMethod'];
-  onSubmitSuccess: Form['props']['onSubmitSuccess'];
+  apiMethod: FormProps['apiMethod'];
+  onSubmitSuccess: FormProps['onSubmitSuccess'];
   projects: Project[];
   selection: PageFilters;
   monitor?: Monitor;

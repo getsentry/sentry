@@ -155,7 +155,7 @@ function VitalDetailContent(props: Props) {
           'aria-label': `Web Vitals: ${vitalAbbreviations[vitalName]}`,
           prefix: t('Web Vitals'),
         }}
-        placement="bottom left"
+        position="bottom-start"
       />
     );
   }

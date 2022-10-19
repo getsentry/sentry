@@ -3,7 +3,9 @@ import {components, SingleValueProps} from 'react-select';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
-import SelectControl, {ControlProps} from 'sentry/components/forms/selectControl';
+import SelectControl, {
+  ControlProps,
+} from 'sentry/components/forms/controls/selectControl';
 import Input, {InputProps} from 'sentry/components/input';
 import Tag from 'sentry/components/tag';
 import Tooltip from 'sentry/components/tooltip';
@@ -812,14 +814,12 @@ class BufferedInput extends Component<BufferedInputProps, InputState> {
 
 // Set a min-width to allow shrinkage in grid.
 const StyledInput = styled(Input)`
-  /* Match the height of the select boxes */
-  height: 41px;
   min-width: 50px;
 `;
 
 const BlankSpace = styled('div')`
   /* Match the height of the select boxes */
-  height: 41px;
+  height: ${p => p.theme.form.md.height}px;
   min-width: 50px;
   background: ${p => p.theme.backgroundSecondary};
   border-radius: ${p => p.theme.borderRadius};

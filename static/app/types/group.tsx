@@ -102,7 +102,7 @@ export type IssueAttachment = {
 };
 
 // endpoint: /api/0/projects/:orgSlug/:projSlug/events/:eventId/attachments/
-export type EventAttachment = Omit<IssueAttachment, 'event_id'>;
+export type EventAttachment = IssueAttachment;
 
 /**
  * Issue Tags
@@ -191,13 +191,16 @@ export type SuggestedOwner = {
 };
 
 export type IssueOwnership = {
-  autoAssignment: boolean;
+  autoAssignment:
+    | 'Auto Assign to Suspect Commits'
+    | 'Auto Assign to Issue Owner'
+    | 'Turn off Auto-Assignment';
   codeownersAutoSync: boolean;
-  dateCreated: string;
+  dateCreated: string | null;
   fallthrough: boolean;
   isActive: boolean;
-  lastUpdated: string;
-  raw: string;
+  lastUpdated: string | null;
+  raw: string | null;
 };
 
 export enum GroupActivityType {

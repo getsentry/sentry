@@ -1,7 +1,7 @@
 import {Component, createRef, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import InputField from 'sentry/components/forms/inputField';
+import TextField from 'sentry/components/forms/fields/textField';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -388,9 +388,8 @@ class SourceField extends Component<Props, State> {
 
     return (
       <Wrapper ref={this.selectorField} hideCaret={hideCaret}>
-        <StyledInput
+        <StyledTextField
           data-test-id="source-field"
-          type="text"
           label={t('Source')}
           name="source"
           placeholder={t('Enter a custom attribute, variable or header name')}
@@ -456,7 +455,7 @@ const Wrapper = styled('div')<{hideCaret?: boolean}>`
   ${p => p.hideCaret && `caret-color: transparent;`}
 `;
 
-const StyledInput = styled(InputField)`
+const StyledTextField = styled(TextField)`
   z-index: 1002;
   :focus {
     outline: none;

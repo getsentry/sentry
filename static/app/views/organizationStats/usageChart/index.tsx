@@ -412,7 +412,7 @@ export class UsageChart extends Component<Props, State> {
       return (
         <Placeholder height="200px">
           <IconWarning size={theme.fontSizeExtraLarge} />
-          <ErrorMessages>
+          <ErrorMessages data-test-id="error-messages">
             {errors &&
               Object.keys(errors).map(k => <span key={k}>{errors[k]?.message}</span>)}
           </ErrorMessages>
