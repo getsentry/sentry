@@ -3,16 +3,14 @@ import {
   AutoSizer,
   CellMeasurer,
   CellMeasurerCache,
-  Grid,
   GridCellProps,
-  ScrollSync,
+  MultiGrid,
 } from 'react-virtualized';
 import styled from '@emotion/styled';
 
 import DateTime from 'sentry/components/dateTime';
 import FileSize from 'sentry/components/fileSize';
 import CompactSelect from 'sentry/components/forms/compactSelect';
-import {PanelTable, PanelTableHeader} from 'sentry/components/panels';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs, showPlayerTime} from 'sentry/components/replays/utils';
 import SearchBar from 'sentry/components/searchBar';
@@ -48,16 +46,14 @@ const headerRowHeight = 24;
 
 function NetworkList({replayRecord, networkSpans}: Props) {
   const startTimestampMs = replayRecord.startedAt.getTime();
-  const [scrollbarSize, setScrollbarSize] = useState(0);
   const {setCurrentHoverTime, setCurrentTime, currentTime} = useReplayContext();
   const [sortConfig, setSortConfig] = useState<ISortConfig>({
     by: 'startTimestamp',
     asc: true,
     getValue: row => row[sortConfig.by],
   });
-  const gridHeaderRef = useRef<Grid>(null);
-  const gridRef = useRef<Grid>(null);
 
+  const multiGridRef = useRef<MultiGrid>(null);
   const {
     items,
     status: selectedStatus,
@@ -107,10 +103,10 @@ function NetworkList({replayRecord, networkSpans}: Props) {
 
   useEffect(() => {
     // Restart cache when items changes
-    if (gridHeaderRef.current && gridRef.current) {
-      cache.clearAll();
-      gridHeaderRef.current.forceUpdate();
-      gridRef.current.forceUpdate();
+    if (multiGridRef.current) {
+      // TODO: This 👇 is lagging the UI, but it's the only way to get the correct width of the columns imk
+      // cache.clearAll();
+      multiGridRef.current.recomputeGridSize();
     }
   }, [sortConfig]);
 
@@ -182,29 +178,6 @@ function NetworkList({replayRecord, networkSpans}: Props) {
     </SortItem>,
   ];
 
-  const renderTableHeader = ({
-    columnIndex,
-    key,
-    style,
-    parent,
-    rowIndex,
-  }: GridCellProps) => {
-    return (
-      <CellMeasurer
-        cache={cache}
-        columnIndex={columnIndex}
-        key={key}
-        parent={parent}
-        rowIndex={rowIndex}
-        style={style}
-      >
-        <NetworkTableHeader key={key} style={style} columns={columns.length}>
-          {columns[columnIndex]}
-        </NetworkTableHeader>
-      </CellMeasurer>
-    );
-  };
-
   const getNetworkColumnValue = (network: NetworkSpan, column: number) => {
     const networkStartTimestamp = network.startTimestamp * 1000;
     const networkEndTimestamp = network.endTimestamp * 1000;
@@ -268,7 +241,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
   };
 
   const renderTableRow = ({columnIndex, rowIndex, key, style, parent}: GridCellProps) => {
-    const network = networkData[rowIndex];
+    const network = networkData[rowIndex - 1];
 
     return (
       <CellMeasurer
@@ -281,10 +254,17 @@ function NetworkList({replayRecord, networkSpans}: Props) {
         <div
           style={{
             ...style,
-            maxWidth: '100%',
+            // TODO: change this
+            maxWidth: '500px',
           }}
         >
-          {getNetworkColumnValue(network, columnIndex)}
+          {rowIndex === 0 ? (
+            <NetworkTableHeader columns={columns.length}>
+              {columns[columnIndex]}
+            </NetworkTableHeader>
+          ) : (
+            getNetworkColumnValue(network, columnIndex)
+          )}
         </div>
       </CellMeasurer>
     );
@@ -318,66 +298,29 @@ function NetworkList({replayRecord, networkSpans}: Props) {
           query={searchTerm}
         />
       </NetworkFilters>
-      {/* <StyledPanelTable
-        columns={columns.length}
-        isEmpty={networkData.length === 0}
-        emptyMessage={t('No related network requests found.')}
-        headers={columns}
-        disablePadding
-        stickyHeaders
-      > */}
-      {/* {networkData.map(renderTableRow)} */}
+
       <NetworkTable>
-        <ScrollSync>
-          {({onScroll, scrollLeft}) => (
-            <AutoSizer>
-              {({width, height}) => (
-                <Fragment>
-                  <Grid
-                    ref={gridHeaderRef}
-                    css={{
-                      overflow: 'hidden !important',
-                    }}
-                    columnCount={columns.length}
-                    columnWidth={cache.columnWidth}
-                    deferredMeasurementCache={cache}
-                    height={headerRowHeight}
-                    overscanColumnCount={columns.length}
-                    overscanRowCount={2}
-                    cellRenderer={renderTableHeader}
-                    rowCount={1}
-                    rowHeight={24}
-                    width={width - scrollbarSize}
-                    scrollLeft={scrollLeft}
-                  />
-                  <Grid
-                    ref={gridRef}
-                    columnCount={columns.length}
-                    columnWidth={cache.columnWidth}
-                    deferredMeasurementCache={cache}
-                    height={height - headerRowHeight}
-                    overscanColumnCount={columns.length}
-                    overscanRowCount={2}
-                    cellRenderer={renderTableRow}
-                    rowCount={networkData.length}
-                    rowHeight={28}
-                    width={width}
-                    onScroll={onScroll}
-                    onScrollbarPresenceChange={({size, vertical}) => {
-                      if (vertical) {
-                        setScrollbarSize(size);
-                      } else {
-                        setScrollbarSize(0);
-                      }
-                    }}
-                  />
-                </Fragment>
-              )}
-            </AutoSizer>
+        <AutoSizer>
+          {({width, height}) => (
+            <Fragment>
+              <MultiGrid
+                ref={multiGridRef}
+                columnCount={columns.length}
+                columnWidth={cache.columnWidth}
+                deferredMeasurementCache={cache}
+                height={height}
+                overscanColumnCount={columns.length}
+                overscanRowCount={2}
+                cellRenderer={renderTableRow}
+                rowCount={networkData.length}
+                rowHeight={({index}) => (index === 0 ? headerRowHeight : 28)}
+                width={width}
+                fixedRowCount={1}
+              />
+            </Fragment>
           )}
-        </ScrollSync>
+        </AutoSizer>
       </NetworkTable>
-      {/* </StyledPanelTable> */}
     </NetworkContainer>
   );
 }
@@ -474,52 +417,6 @@ const UnstyledHeaderButton = styled(UnstyledButton)`
   align-items: center;
 `;
 
-const StyledPanelTable = styled(PanelTable)<{columns: number}>`
-  grid-template-columns: max-content minmax(200px, 1fr) repeat(4, max-content);
-  grid-template-rows: 24px repeat(auto-fit, 28px);
-  font-size: ${p => p.theme.fontSizeSmall};
-  margin-bottom: 0;
-  height: 100%;
-  /* overflow: auto; */
-  overflow: hidden;
-
-  > * {
-    border-right: 1px solid ${p => p.theme.innerBorder};
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
-
-    /* Last column */
-    &:nth-child(${p => p.columns}n) {
-      border-right: 0;
-      text-align: right;
-      justify-content: end;
-    }
-
-    /* 3rd and 2nd last column */
-    &:nth-child(${p => p.columns}n - 1),
-    &:nth-child(${p => p.columns}n - 2) {
-      text-align: right;
-      justify-content: end;
-    }
-  }
-
-  ${PanelTableHeader} {
-    min-height: 24px;
-    border-radius: 0;
-    color: ${p => p.theme.subText};
-    line-height: 16px;
-    text-transform: none;
-
-    /* Last, 2nd and 3rd last header columns. As these are flex direction columns we have to treat them separately */
-    &:nth-child(${p => p.columns}n),
-    &:nth-child(${p => p.columns}n - 1),
-    &:nth-child(${p => p.columns}n - 2) {
-      justify-content: center;
-      align-items: flex-start;
-      text-align: start;
-    }
-  }
-`;
-
 const NetworkTable = styled('div')`
   list-style: none;
   position: relative;
@@ -540,11 +437,7 @@ const NetworkTableHeader = styled('div')<{columns: number}>`
   flex-direction: column;
   justify-content: center;
 
-  position: sticky;
-  top: 0;
-  z-index: ${p => p.theme.zIndex.initial};
-
-  min-height: 24px;
+  max-height: ${headerRowHeight}px;
   border-radius: 0;
   line-height: 16px;
   text-transform: none;
