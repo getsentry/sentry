@@ -94,6 +94,24 @@ class MetricsSessionsV2Test(APITestCase, SnubaTestCase):
             )
             assert len(errors) == 0
 
+    def test_sessions_metrics_with_metrics_only_field(self):
+        """
+        Tests whether the number of keys in the metrics implementation of
+        sessions data is the same as in the sessions implementation.
+
+        """
+        response = self.do_request(
+            {
+                "organization_slug": [self.organization1],
+                "project": [self.project1.id],
+                "field": ["crash_free_rate(session)"],
+                "groupBy": [],
+                "interval": "1d",
+            }
+        )
+
+        assert response.status_code == 200
+
 
 def _session_groupby_powerset() -> Iterable[str]:
     keys = ["project", "release", "environment", "session.status"]
