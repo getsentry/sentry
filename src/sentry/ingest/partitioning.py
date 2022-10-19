@@ -24,9 +24,6 @@ def map_logical_partition_to_slice(sliceable: Sliceable, logical_partition: int)
     """
 
     assert is_sliced(sliceable), f"cannot retrieve slice of non-partitioned sliceable {sliceable}"
-    assert (
-        sliceable in settings.SENTRY_SLICING_CONFIG
-    ), f"logical partition mapping missing for {sliceable}"
 
     for ((logical_part_lo_incl, logical_part_hi_excl), slice_id) in settings.SENTRY_SLICING_CONFIG[
         sliceable
