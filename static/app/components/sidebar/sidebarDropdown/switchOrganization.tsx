@@ -23,7 +23,7 @@ function OrganizationMenuItem({organization}: {organization: OrganizationSummary
 
   const menuItemProps: Partial<React.ComponentProps<typeof SidebarMenuItem>> = {};
 
-  const route = useResolveRoute(`/organizations/${slug}/`, organization);
+  const route = useResolveRoute(`/organizations/${slug}/issues/`, organization);
 
   if (shouldUseLegacyRoute(organization)) {
     if (currentOrganization?.features.includes('customer-domains')) {

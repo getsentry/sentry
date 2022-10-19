@@ -38,13 +38,13 @@ describe('SwitchOrganization', function () {
     expect(screen.getByText('Organization 1')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'org slug Organization 1'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/'
+      '/organizations/org-slug/issues/'
     );
 
     expect(screen.getByText('Organization 2')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'org2 Organization 2'})).toHaveAttribute(
       'href',
-      '/organizations/org2/'
+      '/organizations/org2/issues/'
     );
 
     jest.useRealTimers();
@@ -79,11 +79,14 @@ describe('SwitchOrganization', function () {
 
     const org1Link = screen.getByRole('link', {name: 'org1 Organization 1'});
     expect(org1Link).toBeInTheDocument();
-    expect(org1Link).toHaveAttribute('href', '/organizations/org1/');
+    expect(org1Link).toHaveAttribute('href', '/organizations/org1/issues/');
 
     const org2Link = screen.getByRole('link', {name: 'org2 Organization 2'});
     expect(org2Link).toBeInTheDocument();
-    expect(org2Link).toHaveAttribute('href', 'http://org2.sentry.io/organizations/org2/');
+    expect(org2Link).toHaveAttribute(
+      'href',
+      'http://org2.sentry.io/organizations/org2/issues/'
+    );
     jest.useRealTimers();
   });
 
@@ -116,11 +119,11 @@ describe('SwitchOrganization', function () {
 
     const org1Link = screen.getByRole('link', {name: 'org1 Organization 1'});
     expect(org1Link).toBeInTheDocument();
-    expect(org1Link).toHaveAttribute('href', '/organizations/org1/');
+    expect(org1Link).toHaveAttribute('href', '/organizations/org1/issues/');
 
     const org2Link = screen.getByRole('link', {name: 'org2 Organization 2'});
     expect(org2Link).toBeInTheDocument();
-    expect(org2Link).toHaveAttribute('href', '/organizations/org2/');
+    expect(org2Link).toHaveAttribute('href', '/organizations/org2/issues/');
     jest.useRealTimers();
   });
 
@@ -157,11 +160,17 @@ describe('SwitchOrganization', function () {
     expect(org1Link).toBeInTheDocument();
     // Current hostname in the URL is expected to be org2.sentry.io, so we need to make use of sentryUrl to link to an
     // organization that does not support customer domains.
-    expect(org1Link).toHaveAttribute('href', 'https://sentry.io/organizations/org1/');
+    expect(org1Link).toHaveAttribute(
+      'href',
+      'https://sentry.io/organizations/org1/issues/'
+    );
 
     const org2Link = screen.getByRole('link', {name: 'org2 Organization 2'});
     expect(org2Link).toBeInTheDocument();
-    expect(org2Link).toHaveAttribute('href', 'http://org2.sentry.io/organizations/org2/');
+    expect(org2Link).toHaveAttribute(
+      'href',
+      'http://org2.sentry.io/organizations/org2/issues/'
+    );
     jest.useRealTimers();
   });
 
@@ -204,11 +213,14 @@ describe('SwitchOrganization', function () {
 
     const org1Link = screen.getByRole('link', {name: 'org1 Organization 1'});
     expect(org1Link).toBeInTheDocument();
-    expect(org1Link).toHaveAttribute('href', '/organizations/org1/');
+    expect(org1Link).toHaveAttribute('href', '/organizations/org1/issues/');
 
     const org3Link = screen.getByRole('link', {name: 'org3 Organization 3'});
     expect(org3Link).toBeInTheDocument();
-    expect(org3Link).toHaveAttribute('href', 'http://org3.sentry.io/organizations/org3/');
+    expect(org3Link).toHaveAttribute(
+      'href',
+      'http://org3.sentry.io/organizations/org3/issues/'
+    );
     jest.useRealTimers();
   });
 
