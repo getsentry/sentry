@@ -18,7 +18,6 @@ const DropdownAutoComplete = ({allowActorToggle = false, children, ...props}: Pr
       return (
         <Actor
           isOpen={isOpen}
-          role="button"
           tabIndex={0}
           onClick={isOpen && allowActorToggle ? actions.close : actions.open}
           {...actorProps}
