@@ -1143,11 +1143,8 @@ function buildRoutes() {
   // should be the canonical route for discover2. We have a redirect right now
   // as /discover was for discover 1 and most of the application is linking to
   // /discover/queries and not /discover
-  const discoverRoutes = (
-    <Route
-      path="/organizations/:orgId/discover/"
-      component={make(() => import('sentry/views/eventsV2'))}
-    >
+  const discoverChildRoutes = (
+    <Fragment>
       <IndexRedirect to="queries/" />
       <Route
         path="homepage/"
@@ -1165,7 +1162,27 @@ function buildRoutes() {
         path=":eventSlug/"
         component={make(() => import('sentry/views/eventsV2/eventDetails'))}
       />
-    </Route>
+    </Fragment>
+  );
+  const discoverRoutes = (
+    <Fragment>
+      {usingCustomerDomain ? (
+        <Route
+          path="/discover/"
+          component={withDomainRequired(make(() => import('sentry/views/eventsV2')))}
+          key="orgless-discover-route"
+        >
+          {discoverChildRoutes}
+        </Route>
+      ) : null}
+      <Route
+        path="/organizations/:orgId/discover/"
+        component={make(() => import('sentry/views/eventsV2'))}
+        key="org-discover-route"
+      >
+        {discoverChildRoutes}
+      </Route>
+    </Fragment>
   );
 
   const performanceRoutes = (
