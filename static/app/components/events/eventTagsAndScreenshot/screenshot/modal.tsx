@@ -102,7 +102,7 @@ function Modal({
       <Header closeButton>{t('Screenshot')}</Header>
       <Body>
         <GeralInfo>
-          {groupId && (
+          {groupId && enablePagination && (
             <Fragment>
               <Label>{t('Event ID')}</Label>
               <Value>
