@@ -1477,7 +1477,7 @@ class ResolveTagsTestCase(TestCase):
                     Column(
                         name="tags.key",
                     ),
-                    resolve_tag_value(self.use_case_id, self.org_id, tag_key),
+                    resolve_weak(self.use_case_id, self.org_id, tag_key),
                 ],
             ),
             op=Op.EQ,
