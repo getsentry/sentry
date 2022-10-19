@@ -123,7 +123,7 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
           <Confirm
             onConfirm={this.handleRemoveProject}
             priority="danger"
-            confirmText={t('Remove project')}
+            confirmText={t('Remove Project')}
             message={
               <div>
                 <TextBlock>
@@ -138,7 +138,7 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
             }
           >
             <div>
-              <Button className="ref-remove-project" type="button" priority="danger">
+              <Button type="button" priority="danger">
                 {t('Remove Project')}
               </Button>
             </div>
@@ -213,7 +213,7 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
             )}
           >
             <div>
-              <Button className="ref-transfer-project" type="button" priority="danger">
+              <Button type="button" priority="danger">
                 {t('Transfer Project')}
               </Button>
             </div>
