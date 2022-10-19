@@ -112,10 +112,15 @@ declare global {
   }
 }
 
+interface CustomerDomain {
+  organizationUrl: string | undefined;
+  sentryUrl: string;
+  subdomain: string;
+}
 export interface Config {
   apmSampling: number;
   csrfCookieName: string;
-  customerDomain: string | null;
+  customerDomain: CustomerDomain | null;
   demoMode: boolean;
   disableU2FForSUForm: boolean;
   distPrefix: string;

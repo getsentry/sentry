@@ -20,6 +20,10 @@ describe('ConfigStore', () => {
 
   it('should have customerDomain', () => {
     const customerDomain = ConfigStore.get('customerDomain');
-    expect(customerDomain).toEqual('foobar');
+    expect(customerDomain).toEqual({
+      subdomain: 'foobar',
+      organizationUrl: 'https://foobar.sentry.io',
+      sentryUrl: 'https://sentry.io',
+    });
   });
 });
