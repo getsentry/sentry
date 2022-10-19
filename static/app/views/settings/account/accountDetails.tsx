@@ -1,7 +1,7 @@
 import {updateUser} from 'sentry/actionCreators/account';
 import {APIRequestMethod} from 'sentry/api';
 import AvatarChooser from 'sentry/components/avatarChooser';
-import Form from 'sentry/components/forms/form';
+import Form, {FormProps} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import accountDetailsFields from 'sentry/data/forms/accountDetails';
 import accountPreferencesFields from 'sentry/data/forms/accountPreferences';
@@ -32,7 +32,7 @@ class AccountDetails extends AsyncView {
   renderBody() {
     const user = this.state.user as User;
 
-    const formCommonProps: Partial<Form['props']> = {
+    const formCommonProps: Partial<FormProps> = {
       apiEndpoint: ENDPOINT,
       apiMethod: 'PUT' as APIRequestMethod,
       allowUndo: true,

@@ -10,7 +10,7 @@ import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
-import Form from 'sentry/components/forms/form';
+import Form, {FormProps} from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import {
@@ -371,7 +371,7 @@ class ProjectFiltersSettings extends AsyncComponent<Props, State> {
 export default ProjectFiltersSettings;
 
 // TODO(ts): Understand why styled is not correctly inheriting props here
-const NestedForm = styled(Form)<Form['props']>`
+const NestedForm = styled(Form)<FormProps>`
   flex: 1;
 `;
 

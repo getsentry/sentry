@@ -6,7 +6,7 @@ import {removeTeam, updateTeamSuccess} from 'sentry/actionCreators/teams';
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import Field from 'sentry/components/forms/field';
-import Form from 'sentry/components/forms/form';
+import Form, {FormProps} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import {Panel, PanelHeader} from 'sentry/components/panels';
 import teamSettingsFields from 'sentry/data/forms/teamSettingsFields';
@@ -32,7 +32,7 @@ class TeamSettings extends AsyncView<Props, State> {
     return [];
   }
 
-  handleSubmitSuccess: Form['props']['onSubmitSuccess'] = (resp, model, id) => {
+  handleSubmitSuccess: FormProps['onSubmitSuccess'] = (resp, model, id) => {
     // Use the old slug when triggering the update so we correctly replace the
     // previous team in the store
     updateTeamSuccess(this.props.team.slug, resp);

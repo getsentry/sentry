@@ -1,11 +1,11 @@
 import {useCallback} from 'react';
 
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
-import Form from 'sentry/components/forms/form';
+import Form, {FormProps} from 'sentry/components/forms/form';
 import {t} from 'sentry/locale';
 import useApi from 'sentry/utils/useApi';
 
-type Props = Form['props'] & {
+type Props = FormProps & {
   apiEndpoint: string;
   apiMethod: string;
   onSubmit?: (data: Record<string, any>) => void;
