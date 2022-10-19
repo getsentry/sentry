@@ -21,7 +21,7 @@ type Props = {
   error: React.ComponentProps<typeof RouteError>['error'];
   loading: boolean;
   onChange: React.ComponentProps<typeof ProjectPluginRow>['onChange'];
-  plugins: Plugin[] | null;
+  plugins: Plugin[];
   project: Project;
 } & RouteComponentProps<{orgId: string}, {}>;
 
