@@ -1,6 +1,5 @@
 import {InjectedRouter} from 'react-router';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -118,7 +117,7 @@ describe('Transaction Summary Content', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('performs basic rendering', async function () {
+  it('performs basic rendering', function () {
     const project = TestStubs.Project();
     const {
       organization,
@@ -160,46 +159,5 @@ describe('Transaction Summary Content', function () {
     expect(screen.getByTestId('apdex-summary-value')).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: /failure rate/i})).toBeInTheDocument();
     expect(screen.getByTestId('failure-rate-summary-value')).toBeInTheDocument();
-  });
-
-  it('Renders TransactionSummaryCharts withoutZerofill', function () {
-    const project = TestStubs.Project();
-    const {
-      organization,
-      location,
-      eventView,
-      spanOperationBreakdownFilter,
-      transactionName,
-      router,
-    } = initialize(project, {}, ['performance-chart-interpolation']);
-    const routerContext = TestStubs.routerContext([{organization}]);
-
-    const wrapper = mountWithTheme(
-      <WrappedComponent
-        location={location}
-        organization={organization}
-        eventView={eventView}
-        projectId={project.id}
-        transactionName={transactionName}
-        isLoading={false}
-        totalValues={null}
-        spanOperationBreakdownFilter={spanOperationBreakdownFilter}
-        error={null}
-        onChangeFilter={() => {}}
-        router={router}
-      />,
-      routerContext
-    );
-
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('TransactionSummaryCharts')).toHaveLength(1);
-
-    const transactionSummaryChartsProps = wrapper
-      .find('TransactionSummaryCharts')
-      .first()
-      .props();
-    expect(transactionSummaryChartsProps.withoutZerofill).toEqual(true);
   });
 });
