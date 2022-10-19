@@ -1,9 +1,8 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectPlugins from 'sentry/views/settings/projectPlugins/projectPlugins';
 
 describe('ProjectPlugins', function () {
-  let wrapper;
   const plugins = TestStubs.Plugins();
   const org = TestStubs.Organization();
   const project = TestStubs.Project();
@@ -13,19 +12,17 @@ describe('ProjectPlugins', function () {
   };
 
   it('renders', function () {
-    wrapper = mountWithTheme(<ProjectPlugins params={params} plugins={plugins} />);
-
-    expect(wrapper).toSnapshot();
+    const result = render(<ProjectPlugins params={params} plugins={plugins} />);
+    expect(result.baseElement).toSnapshot();
   });
 
   it('has loading state', function () {
-    wrapper = mountWithTheme(<ProjectPlugins params={params} loading plugins={[]} />);
-
-    expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
+    render(<ProjectPlugins params={params} loading plugins={[]} />);
+    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
   });
 
   it('has error state when plugins=null and loading is true', function () {
-    wrapper = mountWithTheme(
+    render(
       <ProjectPlugins
         params={params}
         plugins={null}
@@ -34,11 +31,13 @@ describe('ProjectPlugins', function () {
       />
     );
 
-    expect(wrapper.find('RouteError')).toHaveLength(1);
+    expect(
+      screen.getByRole('heading', {name: 'Oops! Something went wrong'})
+    ).toBeInTheDocument();
   });
 
   it('has error state when plugins=[]', function () {
-    wrapper = mountWithTheme(
+    render(
       <ProjectPlugins
         params={params}
         plugins={[]}
@@ -46,6 +45,9 @@ describe('ProjectPlugins', function () {
         error={new Error('An error')}
       />
     );
-    expect(wrapper.find('RouteError')).toHaveLength(1);
+
+    expect(
+      screen.getByRole('heading', {name: 'Oops! Something went wrong'})
+    ).toBeInTheDocument();
   });
 });
