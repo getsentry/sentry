@@ -250,7 +250,7 @@ describe('IssueListSearchBar', function () {
         {context: routerContext}
       );
 
-      userEvent.click(screen.getByTestId('pin-icon'));
+      userEvent.click(screen.getByRole('button', {name: 'Pin this search'}));
 
       expect(pinSearch).toHaveBeenLastCalledWith(
         expect.anything(),
@@ -287,7 +287,7 @@ describe('IssueListSearchBar', function () {
         {context: routerContext}
       );
 
-      userEvent.click(screen.getByLabelText('Unpin this search'));
+      userEvent.click(screen.getByRole('button', {name: 'Unpin this search'}));
 
       expect(unpinSearch).toHaveBeenLastCalledWith(
         expect.anything(),
