@@ -491,7 +491,7 @@ def _run_sessions_query(query):
     # queried, assuming that those are the most relevant to the user.
     # In a future iteration we might expose an `orderBy` query parameter.
     #
-    # In case we don't have a primary column because a metrics-only field has been supplied to
+    # In case we don't have a primary column because only metrics-only fields have been supplied to
     # the query definition we just avoid the order by under the assumption that the result set of
     # the query will be empty.
     orderby = [f"-{query.primary_column}"] if hasattr(query, "primary_column") else None
