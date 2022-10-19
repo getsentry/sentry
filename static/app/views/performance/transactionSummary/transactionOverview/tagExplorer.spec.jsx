@@ -2,6 +2,7 @@ import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -100,7 +101,7 @@ describe('WrapperComponent', function () {
     ProjectsStore.reset();
   });
 
-  it('renders basic UI elements', async function () {
+  it('renders basic UI elements', function () {
     const projects = [TestStubs.Project()];
     const {
       organization,
@@ -111,7 +112,7 @@ describe('WrapperComponent', function () {
       transactionName,
     } = initialize(projects, {});
 
-    const wrapper = mountWithTheme(
+    render(
       <WrapperComponent
         api={api}
         location={location}
@@ -123,14 +124,11 @@ describe('WrapperComponent', function () {
       />
     );
 
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('TagsHeader')).toHaveLength(1);
-    expect(wrapper.find('GridEditable')).toHaveLength(1);
+    expect(screen.getByRole('heading', {name: 'Suspect Tags'})).toBeInTheDocument();
+    expect(screen.getByTestId('grid-editable')).toBeInTheDocument();
   });
 
-  it('Tag explorer uses LCP if projects are frontend', async function () {
+  it('Tag explorer uses LCP if projects are frontend', function () {
     const projects = [TestStubs.Project({id: '123', platform: 'javascript-react'})];
     const {
       organization,
@@ -143,7 +141,7 @@ describe('WrapperComponent', function () {
       project: '123',
     });
 
-    const wrapper = mountWithTheme(
+    render(
       <WrapperComponent
         api={api}
         location={location}
@@ -155,11 +153,7 @@ describe('WrapperComponent', function () {
       />
     );
 
-    await tick();
-    wrapper.update();
-
-    const durationHeader = wrapper.find('GridHeadCell StyledLink').first();
-    expect(durationHeader.text().trim()).toEqual('Avg LCP');
+    expect(screen.getAllByTestId('grid-head-cell')[2]).toHaveTextContent('Avg LCP');
 
     expect(facetApiMock).toHaveBeenCalledWith(
       facetUrl,
@@ -171,7 +165,7 @@ describe('WrapperComponent', function () {
     );
   });
 
-  it('Tag explorer view all tags button links to tags page', async function () {
+  it('Tag explorer view all tags button links to tags page', function () {
     const projects = [TestStubs.Project({id: '123', platform: 'javascript-react'})];
     const {
       organization,
@@ -180,6 +174,7 @@ describe('WrapperComponent', function () {
       api,
       spanOperationBreakdownFilter,
       transactionName,
+      routerContext,
     } = initialize(
       projects,
       {
@@ -188,7 +183,7 @@ describe('WrapperComponent', function () {
       []
     );
 
-    const wrapper = mountWithTheme(
+    render(
       <WrapperComponent
         api={api}
         location={location}
@@ -197,27 +192,16 @@ describe('WrapperComponent', function () {
         projects={projects}
         transactionName={transactionName}
         currentFilter={spanOperationBreakdownFilter}
-      />
+      />,
+      {context: routerContext}
     );
 
-    await tick();
-    wrapper.update();
-
-    const button = wrapper.find('Button[data-test-id="tags-explorer-open-tags"]');
-    expect(button).toHaveLength(1);
-    expect(button.prop('to')).toEqual({
-      pathname: '/organizations/org-slug/performance/summary/tags/',
-      query: {
-        transaction: 'example-transaction',
-        project: '123',
-        tagKey: undefined,
-        start: undefined,
-        end: undefined,
-        environment: undefined,
-        query: undefined,
-        statsPeriod: undefined,
-      },
-    });
+    const button = screen.getByTestId('tags-explorer-open-tags');
+    expect(button).toBeInTheDocument();
+    expect(button).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/performance/summary/tags/?project=123&transaction=example-transaction'
+    );
   });
 
   it('Tag explorer uses the operation breakdown as a column', async function () {
