@@ -224,8 +224,9 @@ class SiloModeTest(APITestCase):
 
             for endpoint_class in (DecoratedEndpoint, EndpointWithDecoratedMethod):
                 view = endpoint_class.as_view()
-                response = view(request)
-                assert response.status_code == (200 if expect_to_be_active else 404)
+                with override_settings(FAIL_ON_UNAVAILABLE_API_CALL=False):
+                    response = view(request)
+                    assert response.status_code == (200 if expect_to_be_active else 404)
 
             if not expect_to_be_active:
                 with override_settings(FAIL_ON_UNAVAILABLE_API_CALL=True):

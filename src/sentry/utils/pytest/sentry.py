@@ -199,6 +199,9 @@ def pytest_configure(config):
     # Enables performance issue detection and creation
     settings.SENTRY_FEATURES["organizations:performance-issues-ingest"] = True
 
+    # If a request hits the wrong silo, replace the 404 response with an error state
+    settings.FAIL_ON_UNAVAILABLE_API_CALL = True
+
     # django mail uses socket.getfqdn which doesn't play nice if our
     # networking isn't stable
     patcher = mock.patch("socket.getfqdn", return_value="localhost")
