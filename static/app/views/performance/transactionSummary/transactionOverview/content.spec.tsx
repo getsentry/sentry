@@ -1,7 +1,7 @@
 import {InjectedRouter} from 'react-router';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import EventView from 'sentry/utils/discover/eventView';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -117,7 +117,7 @@ describe('Transaction Summary Content', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('Basic Rendering', async function () {
+  it('performs basic rendering', function () {
     const project = TestStubs.Project();
     const {
       organization,
@@ -129,7 +129,7 @@ describe('Transaction Summary Content', function () {
     } = initialize(project, {});
     const routerContext = TestStubs.routerContext([{organization}]);
 
-    const wrapper = mountWithTheme(
+    render(
       <WrappedComponent
         location={location}
         organization={organization}
@@ -143,66 +143,19 @@ describe('Transaction Summary Content', function () {
         onChangeFilter={() => {}}
         router={router}
       />,
-      routerContext
+      {context: routerContext}
     );
 
-    await tick();
-    wrapper.update();
+    expect(screen.getByTestId('page-filter-environment-selector')).toBeInTheDocument();
+    expect(screen.getByTestId('page-filter-timerange-selector')).toBeInTheDocument();
+    expect(screen.getByTestId('smart-search-bar')).toBeInTheDocument();
+    expect(screen.getByTestId('transaction-summary-charts')).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: /user misery/i})).toBeInTheDocument();
 
-    expect(wrapper.find('Filter')).toHaveLength(1);
-    expect(wrapper.find('SearchBar')).toHaveLength(1);
-    expect(wrapper.find('TransactionSummaryCharts')).toHaveLength(1);
-    expect(wrapper.find('TransactionsList')).toHaveLength(1);
-    expect(wrapper.find('UserStats')).toHaveLength(1);
-    expect(wrapper.find('StatusBreakdown')).toHaveLength(1);
-    expect(wrapper.find('SidebarCharts')).toHaveLength(1);
-    expect(wrapper.find('DiscoverQuery')).toHaveLength(2);
-
-    const transactionListProps = wrapper.find('TransactionsList').first().props();
-    expect(transactionListProps.generateDiscoverEventView).toBeUndefined();
-    expect(transactionListProps.handleOpenInDiscoverClick).toBeUndefined();
-    expect(transactionListProps.generatePerformanceTransactionEventsView).toBeDefined();
-    expect(transactionListProps.handleOpenAllEventsClick).toBeDefined();
-  });
-
-  it('Renders TransactionSummaryCharts withoutZerofill', async function () {
-    const project = TestStubs.Project();
-    const {
-      organization,
-      location,
-      eventView,
-      spanOperationBreakdownFilter,
-      transactionName,
-      router,
-    } = initialize(project, {}, ['performance-chart-interpolation']);
-    const routerContext = TestStubs.routerContext([{organization}]);
-
-    const wrapper = mountWithTheme(
-      <WrappedComponent
-        location={location}
-        organization={organization}
-        eventView={eventView}
-        projectId={project.id}
-        transactionName={transactionName}
-        isLoading={false}
-        totalValues={null}
-        spanOperationBreakdownFilter={spanOperationBreakdownFilter}
-        error={null}
-        onChangeFilter={() => {}}
-        router={router}
-      />,
-      routerContext
-    );
-
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('TransactionSummaryCharts')).toHaveLength(1);
-
-    const transactionSummaryChartsProps = wrapper
-      .find('TransactionSummaryCharts')
-      .first()
-      .props();
-    expect(transactionSummaryChartsProps.withoutZerofill).toEqual(true);
+    expect(screen.getByRole('heading', {name: /status breakdown/i})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: /apdex/i})).toBeInTheDocument();
+    expect(screen.getByTestId('apdex-summary-value')).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: /failure rate/i})).toBeInTheDocument();
+    expect(screen.getByTestId('failure-rate-summary-value')).toBeInTheDocument();
   });
 });
