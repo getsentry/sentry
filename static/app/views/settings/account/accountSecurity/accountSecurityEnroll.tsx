@@ -16,7 +16,7 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import Field from 'sentry/components/forms/field';
-import Form from 'sentry/components/forms/form';
+import Form, {FormProps} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import FormModel from 'sentry/components/forms/model';
 import {FieldObject} from 'sentry/components/forms/types';
@@ -296,7 +296,7 @@ class AccountSecurityEnroll extends AsyncView<Props, State> {
     this.handleEnrollSuccess();
   };
 
-  handleSubmit: Form['props']['onSubmit'] = data => {
+  handleSubmit: FormProps['onSubmit'] = data => {
     const id = this.state.authenticator?.id;
 
     if (id === 'totp') {

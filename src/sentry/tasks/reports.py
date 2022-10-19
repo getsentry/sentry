@@ -22,7 +22,7 @@ from snuba_sdk.function import Function
 from snuba_sdk.orderby import Direction, OrderBy
 from snuba_sdk.query import Limit, Query
 
-from sentry import tsdb
+from sentry import features, tsdb
 from sentry.api.serializers.snuba import zerofill
 from sentry.cache import default_cache
 from sentry.constants import DataCategory
@@ -698,16 +698,17 @@ def prepare_reports(dry_run=False, *args, **kwargs):
     logger.info("reports.begin_prepare_report")
 
     # Get org ids of all visible organizations
-    organizations = _get_organization_queryset().values_list("id", flat=True)
-    for i, organization_id in enumerate(
-        RangeQuerySetWrapper(organizations, step=10000, result_value_getter=lambda item: item)
+    organizations = _get_organization_queryset()
+    for i, organization in enumerate(
+        RangeQuerySetWrapper(organizations, step=10000, result_value_getter=lambda item: item.id)
     ):
-        # Create a celery task per organization
-        prepare_organization_report.delay(timestamp, duration, organization_id, dry_run=dry_run)
+        if not features.has("organizations:weekly-email-refresh", organization):
+            # Create a celery task per organization
+            prepare_organization_report.delay(timestamp, duration, organization.id, dry_run=dry_run)
         if i % 10000 == 0:
             logger.info(
                 "reports.scheduled_prepare_organization_report",
-                extra={"organization_id": organization_id, "total_scheduled": i},
+                extra={"organization_id": organization.id, "total_scheduled": i},
             )
 
     default_cache.set(prepare_reports_verify_key(), "1", int(timedelta(days=3).total_seconds()))

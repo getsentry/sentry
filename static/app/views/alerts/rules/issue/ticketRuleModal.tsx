@@ -4,7 +4,7 @@ import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import AbstractExternalIssueForm, {
   ExternalIssueFormErrors,
 } from 'sentry/components/externalIssues/abstractExternalIssueForm';
-import Form from 'sentry/components/forms/form';
+import {FormProps} from 'sentry/components/forms/form';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -110,7 +110,7 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
     return formData;
   };
 
-  onFormSubmit: Form['props']['onSubmit'] = (data, _success, _error, e, model) => {
+  onFormSubmit: FormProps['onSubmit'] = (data, _success, _error, e, model) => {
     const {onSubmitAction, closeModal} = this.props;
     const {fetchedFieldOptionsCache} = this.state;
 
@@ -125,7 +125,7 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
     }
   };
 
-  getFormProps = (): Form['props'] => {
+  getFormProps = (): FormProps => {
     const {closeModal} = this.props;
 
     return {

@@ -868,7 +868,7 @@ export function generateFieldAsString(value: QueryFieldValue): string {
   }
 
   if (value.kind === 'equation') {
-    return `${EQUATION_PREFIX}${value.field}`;
+    return `${EQUATION_PREFIX}${value.field.trim()}`;
   }
 
   const aggregation = value.function[0];

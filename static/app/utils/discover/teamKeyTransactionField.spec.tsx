@@ -1,16 +1,9 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {act} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import TeamKeyTransactionField from 'sentry/utils/discover/teamKeyTransactionField';
-
-async function clickTeamKeyTransactionDropdown(wrapper) {
-  wrapper.find('IconStar').simulate('click');
-  await tick();
-  wrapper.update();
-}
 
 describe('TeamKeyTransactionField', function () {
   const organization = TestStubs.Organization();
@@ -37,7 +30,7 @@ describe('TeamKeyTransactionField', function () {
       })),
     });
 
-    const wrapper = mountWithTheme(
+    render(
       <TeamKeyTransactionManager.Provider
         organization={organization}
         teams={teams}
@@ -51,28 +44,21 @@ describe('TeamKeyTransactionField', function () {
         />
       </TeamKeyTransactionManager.Provider>
     );
-    await tick();
-    wrapper.update();
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', {name: 'Toggle star for team'})).toBeEnabled();
+    });
 
     expect(getTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
-    expect(wrapper.find('IconStar').exists()).toBeTruthy();
-    expect(wrapper.find('IconStar').props().isSolid).toBeTruthy();
 
-    clickTeamKeyTransactionDropdown(wrapper);
+    userEvent.click(screen.getByRole('button', {name: 'Toggle star for team'}));
 
-    // header should show the checked state
-    const header = wrapper.find('DropdownMenuHeader');
-    expect(header.exists()).toBeTruthy();
-    expect(header.find('CheckboxFancy').props().isChecked).toBeTruthy();
-    expect(header.find('CheckboxFancy').props().isIndeterminate).toBeFalsy();
+    const [allTeamsCheckbox, teamOneCheckbox, teamTwoCheckbox] =
+      screen.getAllByRole('checkbox');
 
-    // all teams should be checked
-    const entries = wrapper.find('DropdownMenuItem');
-    expect(entries.length).toBe(2);
-    entries.forEach((entry, i) => {
-      expect(entry.text()).toEqual(teams[i].slug);
-      expect(entry.find('CheckboxFancy').props().isChecked).toBeTruthy();
-    });
+    expect(allTeamsCheckbox).toBeChecked();
+    expect(teamOneCheckbox).toBeChecked();
+    expect(teamTwoCheckbox).toBeChecked();
   });
 
   it('renders with some teams checked', async function () {
@@ -89,7 +75,7 @@ describe('TeamKeyTransactionField', function () {
       })),
     });
 
-    const wrapper = mountWithTheme(
+    render(
       <TeamKeyTransactionManager.Provider
         organization={organization}
         teams={teams}
@@ -103,29 +89,21 @@ describe('TeamKeyTransactionField', function () {
         />
       </TeamKeyTransactionManager.Provider>
     );
-    await tick();
-    wrapper.update();
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', {name: 'Toggle star for team'})).toBeEnabled();
+    });
 
     expect(getTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
-    expect(wrapper.find('IconStar').exists()).toBeTruthy();
-    expect(wrapper.find('IconStar').props().isSolid).toBeTruthy();
 
-    clickTeamKeyTransactionDropdown(wrapper);
+    userEvent.click(screen.getByRole('button', {name: 'Toggle star for team'}));
 
-    // header should show the indeterminate state
-    const header = wrapper.find('DropdownMenuHeader');
-    expect(header.exists()).toBeTruthy();
-    expect(header.find('CheckboxFancy').props().isChecked).toBeFalsy();
-    expect(header.find('CheckboxFancy').props().isIndeterminate).toBeTruthy();
+    const [allTeamsCheckbox, teamOneCheckbox, teamTwoCheckbox] =
+      screen.getAllByRole('checkbox');
 
-    // all teams should be checked
-    const entries = wrapper.find('DropdownMenuItem');
-    expect(entries.length).toBe(2);
-    entries.forEach((entry, i) => {
-      expect(entry.text()).toEqual(teams[i].slug);
-    });
-    expect(entries.at(0).find('CheckboxFancy').props().isChecked).toBeTruthy();
-    expect(entries.at(1).find('CheckboxFancy').props().isChecked).toBeFalsy();
+    expect(allTeamsCheckbox).not.toBeChecked();
+    expect(teamOneCheckbox).toBeChecked();
+    expect(teamTwoCheckbox).not.toBeChecked();
   });
 
   it('renders with no teams checked', async function () {
@@ -139,7 +117,7 @@ describe('TeamKeyTransactionField', function () {
       })),
     });
 
-    const wrapper = mountWithTheme(
+    render(
       <TeamKeyTransactionManager.Provider
         organization={organization}
         teams={teams}
@@ -153,28 +131,21 @@ describe('TeamKeyTransactionField', function () {
         />
       </TeamKeyTransactionManager.Provider>
     );
-    await tick();
-    wrapper.update();
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', {name: 'Toggle star for team'})).toBeEnabled();
+    });
 
     expect(getTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
-    expect(wrapper.find('IconStar').exists()).toBeTruthy();
-    expect(wrapper.find('IconStar').props().isSolid).toBeFalsy();
 
-    clickTeamKeyTransactionDropdown(wrapper);
+    userEvent.click(screen.getByRole('button', {name: 'Toggle star for team'}));
 
-    // header should show the unchecked state
-    const header = wrapper.find('DropdownMenuHeader');
-    expect(header.exists()).toBeTruthy();
-    expect(header.find('CheckboxFancy').props().isChecked).toBeFalsy();
-    expect(header.find('CheckboxFancy').props().isIndeterminate).toBeFalsy();
+    const [allTeamsCheckbox, teamOneCheckbox, teamTwoCheckbox] =
+      screen.getAllByRole('checkbox');
 
-    // all teams should be unchecked
-    const entries = wrapper.find('DropdownMenuItem');
-    expect(entries.length).toBe(2);
-    entries.forEach((entry, i) => {
-      expect(entry.text()).toEqual(teams[i].slug);
-      expect(entry.find('CheckboxFancy').props().isChecked).toBeFalsy();
-    });
+    expect(allTeamsCheckbox).not.toBeChecked();
+    expect(teamOneCheckbox).not.toBeChecked();
+    expect(teamTwoCheckbox).not.toBeChecked();
   });
 
   it('should be able to check one team', async function () {
@@ -198,7 +169,7 @@ describe('TeamKeyTransactionField', function () {
       ],
     });
 
-    const wrapper = mountWithTheme(
+    render(
       <TeamKeyTransactionManager.Provider
         organization={organization}
         teams={teams}
@@ -212,23 +183,25 @@ describe('TeamKeyTransactionField', function () {
         />
       </TeamKeyTransactionManager.Provider>
     );
-    await tick();
-    wrapper.update();
 
-    clickTeamKeyTransactionDropdown(wrapper);
+    await waitFor(() => {
+      expect(screen.getByRole('button', {name: 'Toggle star for team'})).toBeEnabled();
+    });
 
-    expect(
-      wrapper.find('DropdownMenuItem CheckboxFancy').first().props().isChecked
-    ).toBeFalsy();
+    userEvent.click(screen.getByRole('button', {name: 'Toggle star for team'}));
 
-    wrapper.find('DropdownMenuItem CheckboxFancy').first().simulate('click');
-    await tick();
-    wrapper.update();
+    const [_allTeamsCheckbox, teamOneCheckbox, _teamTwoCheckbox] =
+      screen.getAllByRole('checkbox');
 
-    expect(
-      wrapper.find('DropdownMenuItem CheckboxFancy').first().props().isChecked
-    ).toBeTruthy();
+    expect(teamOneCheckbox).not.toBeChecked();
+
+    userEvent.click(teamOneCheckbox);
     expect(postTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(screen.getByRole('button', {name: 'Toggle star for team'})).toBeEnabled();
+    });
+
+    expect(teamOneCheckbox).toBeChecked();
   });
 
   it('should be able to uncheck one team', async function () {
@@ -252,7 +225,7 @@ describe('TeamKeyTransactionField', function () {
       ],
     });
 
-    const wrapper = mountWithTheme(
+    render(
       <TeamKeyTransactionManager.Provider
         organization={organization}
         teams={teams}
@@ -266,23 +239,25 @@ describe('TeamKeyTransactionField', function () {
         />
       </TeamKeyTransactionManager.Provider>
     );
-    await tick();
-    wrapper.update();
 
-    clickTeamKeyTransactionDropdown(wrapper);
+    await waitFor(() => {
+      expect(screen.getByRole('button', {name: 'Toggle star for team'})).toBeEnabled();
+    });
 
-    expect(
-      wrapper.find('DropdownMenuItem CheckboxFancy').first().props().isChecked
-    ).toBeTruthy();
+    userEvent.click(screen.getByRole('button', {name: 'Toggle star for team'}));
 
-    wrapper.find('DropdownMenuItem CheckboxFancy').first().simulate('click');
-    await tick();
-    wrapper.update();
+    const [_allTeamsCheckbox, teamOneCheckbox, _teamTwoCheckbox] =
+      screen.getAllByRole('checkbox');
 
-    expect(
-      wrapper.find('DropdownMenuItem CheckboxFancy').first().props().isChecked
-    ).toBeFalsy();
+    expect(teamOneCheckbox).toBeChecked();
+
+    userEvent.click(teamOneCheckbox);
     expect(deleteTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(screen.getByRole('button', {name: 'Toggle star for team'})).toBeEnabled();
+    });
+
+    expect(teamOneCheckbox).not.toBeChecked();
   });
 
   it('should be able to check all with my teams', async function () {
@@ -309,7 +284,7 @@ describe('TeamKeyTransactionField', function () {
       ],
     });
 
-    const wrapper = mountWithTheme(
+    render(
       <TeamKeyTransactionManager.Provider
         organization={organization}
         teams={teams}
@@ -323,20 +298,27 @@ describe('TeamKeyTransactionField', function () {
         />
       </TeamKeyTransactionManager.Provider>
     );
-    await tick();
-    wrapper.update();
 
-    clickTeamKeyTransactionDropdown(wrapper);
+    await waitFor(() => {
+      expect(screen.getByRole('button', {name: 'Toggle star for team'})).toBeEnabled();
+    });
 
-    wrapper.find('DropdownMenuHeader CheckboxFancy').simulate('click');
-    await tick();
-    wrapper.update();
+    userEvent.click(screen.getByRole('button', {name: 'Toggle star for team'}));
 
-    const headerCheckbox = wrapper.find('DropdownMenuHeader CheckboxFancy');
-    expect(headerCheckbox.props().isChecked).toBeTruthy();
-    expect(headerCheckbox.props().isIndeterminate).toBeFalsy();
+    const [allTeamsCheckbox, teamOneCheckbox, teamTwoCheckbox] =
+      screen.getAllByRole('checkbox');
+
+    expect(allTeamsCheckbox).not.toBeChecked();
+    userEvent.click(allTeamsCheckbox);
 
     expect(postTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(screen.getByRole('button', {name: 'Toggle star for team'})).toBeEnabled();
+    });
+
+    expect(allTeamsCheckbox).toBeChecked();
+    expect(teamOneCheckbox).toBeChecked();
+    expect(teamTwoCheckbox).toBeChecked();
   });
 
   it('should be able to uncheck all with my teams', async function () {
@@ -363,7 +345,7 @@ describe('TeamKeyTransactionField', function () {
       ],
     });
 
-    const wrapper = mountWithTheme(
+    render(
       <TeamKeyTransactionManager.Provider
         organization={organization}
         teams={teams}
@@ -377,20 +359,27 @@ describe('TeamKeyTransactionField', function () {
         />
       </TeamKeyTransactionManager.Provider>
     );
-    await tick();
-    wrapper.update();
 
-    clickTeamKeyTransactionDropdown(wrapper);
+    await waitFor(() => {
+      expect(screen.getByRole('button', {name: 'Toggle star for team'})).toBeEnabled();
+    });
 
-    wrapper.find('DropdownMenuHeader CheckboxFancy').simulate('click');
-    await tick();
-    wrapper.update();
+    userEvent.click(screen.getByRole('button', {name: 'Toggle star for team'}));
 
-    const headerCheckbox = wrapper.find('DropdownMenuHeader CheckboxFancy');
-    expect(headerCheckbox.props().isChecked).toBeFalsy();
-    expect(headerCheckbox.props().isIndeterminate).toBeFalsy();
+    const [allTeamsCheckbox, teamOneCheckbox, teamTwoCheckbox] =
+      screen.getAllByRole('checkbox');
+
+    expect(allTeamsCheckbox).toBeChecked();
+    userEvent.click(allTeamsCheckbox);
 
     expect(deleteTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(screen.getByRole('button', {name: 'Toggle star for team'})).toBeEnabled();
+    });
+
+    expect(allTeamsCheckbox).not.toBeChecked();
+    expect(teamOneCheckbox).not.toBeChecked();
+    expect(teamTwoCheckbox).not.toBeChecked();
   });
 
   it('should render teams without access separately', async function () {
@@ -409,7 +398,7 @@ describe('TeamKeyTransactionField', function () {
       })),
     });
 
-    const wrapper = mountWithTheme(
+    render(
       <TeamKeyTransactionManager.Provider
         organization={organization}
         teams={myTeams}
@@ -423,24 +412,18 @@ describe('TeamKeyTransactionField', function () {
         />
       </TeamKeyTransactionManager.Provider>
     );
-    await tick();
-    wrapper.update();
 
-    clickTeamKeyTransactionDropdown(wrapper);
-
-    const headers = wrapper.find('DropdownMenuHeader');
-    expect(headers.length).toEqual(2);
-    expect(headers.at(0).text()).toEqual('My Teams with Access');
-    expect(headers.at(1).text()).toEqual('My Teams without Access');
-
-    const entries = wrapper.find('DropdownMenuItem');
-    expect(entries.length).toEqual(3);
-    entries.forEach((entry, i) => {
-      expect(entry.text()).toEqual(myTeams[i].slug);
+    await waitFor(() => {
+      expect(screen.getByRole('button', {name: 'Toggle star for team'})).toBeEnabled();
     });
-    expect(entries.at(0).find('CheckboxFancy').exists()).toBeTruthy();
-    expect(entries.at(1).find('CheckboxFancy').exists()).toBeTruthy();
-    // this team does not have access so there is no checkbox
-    expect(entries.at(2).find('CheckboxFancy').exists()).toBeFalsy();
+
+    userEvent.click(screen.getByRole('button', {name: 'Toggle star for team'}));
+
+    expect(screen.getByText('My Teams with Access')).toBeInTheDocument();
+    expect(screen.getByText('My Teams without Access')).toBeInTheDocument();
+
+    // Only renders checkboxes for teams with access
+    expect(screen.getAllByRole('checkbox')).toHaveLength(3);
+    expect(screen.getByText('team3')).toBeInTheDocument();
   });
 });

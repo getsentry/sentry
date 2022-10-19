@@ -83,7 +83,7 @@ function asSelectOption(
   options: {disabled: boolean}
 ): SelectFieldProps<Project>['options'][0]['options'] {
   return {
-    label: project.name,
+    label: project.slug,
     value: project,
     disabled: options.disabled,
     leadingItems: project.platform ? <PlatformIcon platform={project.platform} /> : null,
@@ -280,7 +280,7 @@ function ProjectSdkUpdate({
         <Link
           to={`/organizations/${organization.slug}/projects/${project.slug}/?project=${project.id}`}
         >
-          {project.name}
+          {project.slug}
         </Link>
       </SDKUpdatesContainer>
 
