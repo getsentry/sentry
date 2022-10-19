@@ -112,6 +112,8 @@ export class TransactionEventBuilder {
     }
 
     mSpan.children.forEach(child => this.addSpan(child, spanId));
+
+    return this;
   }
 
   getEvent() {
