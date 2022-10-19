@@ -32,7 +32,6 @@ describe('ProjectPlugins', function () {
     expect(container).toSnapshot();
   });
 
-
   it('has error state when plugins=[]', async function () {
     const {organization, route, router, project} = initializeOrg();
 
