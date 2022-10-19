@@ -115,15 +115,6 @@ export function breadcrumbFactory(
       url: initialUrl,
     },
   } as BreadcrumbTypeDefault;
-  const finalBreadcrumb = {
-    type: BreadcrumbType.INIT,
-    timestamp: replayRecord.finishedAt.toISOString(),
-    level: BreadcrumbLevelType.INFO,
-    data: {
-      action: 'replay-finish',
-      label: t('Finish recording'),
-    },
-  } as BreadcrumbTypeDefault;
 
   const errorCrumbs: RawCrumb[] = errors.map(error => ({
     type: BreadcrumbType.ERROR,
@@ -201,7 +192,6 @@ export function breadcrumbFactory(
     ...rawCrumbsWithTimestamp,
     ...errorCrumbs,
     ...spanCrumbs,
-    finalBreadcrumb,
   ]);
 
   return result.sort((a, b) => +new Date(a.timestamp || 0) - +new Date(b.timestamp || 0));
