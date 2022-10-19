@@ -501,10 +501,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if "hasAlertIntegration" in expand:
             data["hasAlertIntegrationInstalled"] = has_alert_integration(project)
 
-        is_am2_plan = features.has(
-            "organizations:am2-billing", project.organization, actor=request.user
-        )
-        if is_am2_plan:
+        if features.has("organizations:am2-billing", project.organization, actor=request.user):
             data.pop("dynamicSampling", None)
 
         return Response(data)
