@@ -16,6 +16,11 @@ type Props = WithRouterProps & {
   pageLinks?: string | null;
 };
 
+/*
+  HACK: Slight variation of the Pagination
+  component that allows the parent to control
+  enabling/disabling the pagination buttons.
+*/
 const ScreenshotPagination = ({
   location,
   onCursor,

@@ -68,12 +68,12 @@ function Modal({
 
   const [pageLinks, setPageLinks] = useState<string | null | undefined>(initialPageLinks);
 
-  const handleCursor: CursorHandler = (cursor, pathname, query, delta) => {
+  const handleCursor: CursorHandler = (cursor, _pathname, query, delta) => {
     if (defined(currentAttachmentIndex) && memoizedAttachments?.length) {
       const newAttachmentIndex = currentAttachmentIndex + delta;
       if (newAttachmentIndex > 5 || newAttachmentIndex < 0) {
         api
-          .requestPromise(pathname, {
+          .requestPromise(`/issues/${groupId}/attachments/`, {
             method: 'GET',
             includeAllArgs: true,
             query: {
