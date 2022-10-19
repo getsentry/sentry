@@ -53,6 +53,16 @@ def build_attachment_title(obj: Group | Event) -> str:
     return title_str
 
 
+def build_fallback_text(obj: Group | Event, project: Project) -> str:
+    title = obj.title
+    group = getattr(obj, "group", obj)
+
+    if group.issue_category == GroupCategory.PERFORMANCE:
+        title = GROUP_TYPE_TO_TEXT.get(group.issue_type, "Issue")
+
+    return f"[{project.slug}] {title}"
+
+
 def get_title_link(
     group: Group,
     event: Event | None,
