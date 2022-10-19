@@ -279,23 +279,13 @@ class KafkaEventStream(SnubaProtocolEventStream):
         use_streaming_consumer: bool,
     ) -> None:
 
+        logger.info(f"Starting post process forwarder to consume {entity} messages")
         if entity == PostProcessForwarderType.TRANSACTIONS:
             default_topic = self.transactions_topic
         elif entity == PostProcessForwarderType.ERRORS:
             default_topic = self.topic
         else:
-            default_topic = self.topic
-
-            # Default implementation which processes both errors and transactions
-            # irrespective of values in the header. This would most likely be the case
-            # for development environments. For the combined post process forwarder
-            # to work KAFKA_EVENTS and KAFKA_TRANSACTIONS must be the same currently.
-            if topic is None:
-                assert (
-                    settings.KAFKA_TOPICS[settings.KAFKA_EVENTS]["cluster"]
-                    == settings.KAFKA_TOPICS[settings.KAFKA_TRANSACTIONS]["cluster"]
-                )
-                assert self.topic == self.transactions_topic
+            raise ValueError("Invalid entity")
 
         if use_streaming_consumer:
             consumer = self._build_streaming_consumer(
