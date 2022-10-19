@@ -534,7 +534,11 @@ class ClientConfigViewTest(TestCase):
 
         data = json.loads(resp.content)
         assert not data["isAuthenticated"]
-        assert data["customerDomain"] == "albertos-apples"
+        assert data["customerDomain"] == {
+            "organizationUrl": "http://albertos-apples.testserver",
+            "sentryUrl": "http://testserver",
+            "subdomain": "albertos-apples",
+        }
 
         # Without customer domain
         resp = self.client.get(self.path, HTTP_HOST="testserver")

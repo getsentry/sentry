@@ -124,7 +124,11 @@ def get_client_config(request=None):
     if request is not None:
         customer_domain = None
         if hasattr(request, "subdomain") and request.subdomain:
-            customer_domain = request.subdomain
+            customer_domain = {
+                "subdomain": request.subdomain,
+                "organizationUrl": generate_organization_url(request.subdomain),
+                "sentryUrl": options.get("system.url-prefix"),
+            }
         user = getattr(request, "user", None) or AnonymousUser()
         messages = get_messages(request)
         session = getattr(request, "session", None)
