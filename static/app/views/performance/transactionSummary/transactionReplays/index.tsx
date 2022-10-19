@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect} from 'react';
+import {Fragment, useEffect} from 'react';
 import {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
@@ -22,11 +22,7 @@ import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
 import {decodeFilterFromLocation, SpanOperationBreakdownFilter} from '../filter';
 import PageLayout, {ChildProps} from '../pageLayout';
 import Tab from '../tabs';
-import {
-  decodeEventsDisplayFilterFromLocation,
-  getEventsFilterOptions,
-  PercentileValues,
-} from '../transactionEvents/utils';
+import {decodeEventsDisplayFilterFromLocation} from '../transactionEvents/utils';
 
 import ReplaysContent from './content';
 import useReplaysFromTransaction from './useReplaysFromTransaction';
@@ -76,28 +72,13 @@ function ReplaysContentWrapper({
   const eventsDisplayFilterName = decodeEventsDisplayFilterFromLocation(location);
   const spanOperationBreakdownFilter = decodeFilterFromLocation(location);
 
-  const getFilteredEventView = useCallback(
-    (percentiles: PercentileValues) => {
-      const filter = getEventsFilterOptions(spanOperationBreakdownFilter, percentiles)[
-        eventsDisplayFilterName
-      ];
-      const filteredEventView = eventsWithReplaysView?.clone();
-      if (filteredEventView && filter?.query) {
-        const query = new MutableSearch(filteredEventView.query);
-        filter.query.forEach(item => query.setFilterValues(item[0], [item[1]]));
-        filteredEventView.query = query.formatString();
-      }
-      return filteredEventView;
-    },
-    [eventsDisplayFilterName, spanOperationBreakdownFilter, eventsWithReplaysView]
-  );
-
   const {eventView, replays, pageLinks, isFetching, fetchError} =
     useReplaysFromTransaction({
       eventsWithReplaysView,
       location,
       organization,
-      getFilteredEventView,
+      eventsDisplayFilterName,
+      spanOperationBreakdownFilter,
     });
 
   useEffect(() => {

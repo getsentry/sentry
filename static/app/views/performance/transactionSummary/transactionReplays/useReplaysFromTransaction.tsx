@@ -12,6 +12,7 @@ import fetchReplayList, {
   DEFAULT_SORT,
   REPLAY_LIST_FIELDS,
 } from 'sentry/utils/replays/fetchReplayList';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
 import {ReplayListRecord} from 'sentry/views/replays/types';
 
@@ -19,7 +20,10 @@ export type ReplayListRecordWithTx = ReplayListRecord & {
   txEvent: {[x: string]: any};
 };
 
+import {SpanOperationBreakdownFilter} from '../filter';
 import {
+  EventsDisplayFilterName,
+  getEventsFilterOptions,
   getPercentilesEventView,
   mapPercentileValues,
   PercentileValues,
@@ -31,17 +35,19 @@ type State = Awaited<ReturnType<typeof fetchReplayList>> & {
 };
 
 type Options = {
+  eventsDisplayFilterName: EventsDisplayFilterName;
   eventsWithReplaysView: EventView;
-  getFilteredEventView: (percentiles: PercentileValues) => EventView | undefined;
   location: Location;
   organization: Organization;
+  spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
 };
 
 function useReplaysFromTransaction({
   eventsWithReplaysView,
   location,
   organization,
-  getFilteredEventView,
+  spanOperationBreakdownFilter,
+  eventsDisplayFilterName,
 }: Options) {
   const api = useApi();
   const [data, setData] = useState<State>({
@@ -61,7 +67,12 @@ function useReplaysFromTransaction({
       organization,
     });
     const percentiles = mapPercentileValues(percentileData);
-    const filteredEventView = getFilteredEventView(percentiles);
+    const filteredEventView = getFilteredEventView({
+      eventView: eventsWithReplaysView,
+      percentiles,
+      spanOperationBreakdownFilter,
+      eventsDisplayFilterName,
+    });
 
     const eventsData = await fetchEventsWithReplay({
       api,
@@ -119,7 +130,14 @@ function useReplaysFromTransaction({
       eventView,
       replays,
     });
-  }, [api, eventsWithReplaysView, location, organization, getFilteredEventView]);
+  }, [
+    api,
+    eventsWithReplaysView,
+    location,
+    organization,
+    spanOperationBreakdownFilter,
+    eventsDisplayFilterName,
+  ]);
 
   useEffect(() => {
     load();
@@ -176,6 +194,29 @@ async function fetchPercentiles({
     Sentry.captureException(err);
     return null;
   }
+}
+
+function getFilteredEventView({
+  percentiles,
+  spanOperationBreakdownFilter,
+  eventsDisplayFilterName,
+  eventView,
+}: {
+  eventView: EventView;
+  eventsDisplayFilterName: EventsDisplayFilterName;
+  percentiles: PercentileValues;
+  spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
+}) {
+  const filter = getEventsFilterOptions(spanOperationBreakdownFilter, percentiles)[
+    eventsDisplayFilterName
+  ];
+  const filteredEventView = eventView.clone();
+  if (filteredEventView && filter?.query) {
+    const query = new MutableSearch(filteredEventView.query);
+    filter.query.forEach(item => query.setFilterValues(item[0], [item[1]]));
+    filteredEventView.query = query.formatString();
+  }
+  return filteredEventView;
 }
 
 export default useReplaysFromTransaction;
