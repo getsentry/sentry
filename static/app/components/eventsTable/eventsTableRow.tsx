@@ -1,11 +1,16 @@
 import AttachmentUrl from 'sentry/components/attachmentUrl';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
+import Button from 'sentry/components/button';
 import DateTime from 'sentry/components/dateTime';
 import {DeviceName} from 'sentry/components/deviceName';
 import FileSize from 'sentry/components/fileSize';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
+import {IconPlay} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {AvatarUser, Organization, Tag} from 'sentry/types';
 import {Event} from 'sentry/types/event';
+import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import {useRoutes} from 'sentry/utils/useRoutes';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {
@@ -16,6 +21,7 @@ type Props = {
   projectId: string;
   tagList: Tag[];
   className?: string;
+  hasReplay?: boolean;
   hasUser?: boolean;
 };
 
@@ -25,9 +31,13 @@ function EventsTableRow({
   projectId,
   orgId,
   groupId,
+  hasReplay,
   tagList,
   hasUser,
+  organization,
 }: Props) {
+  const routes = useRoutes();
+
   const crashFileLink = !event.crashFile ? null : (
     <AttachmentUrl projectId={projectId} eventId={event.id} attachment={event.crashFile}>
       {url =>
@@ -43,6 +53,14 @@ function EventsTableRow({
   );
 
   const tagMap = Object.fromEntries(event.tags.map(tag => [tag.key, tag.value]));
+
+  const fullReplayUrl = {
+    pathname: `/organizations/${organization.slug}/replays/${projectId}:${tagMap.replayId}/`,
+    query: {
+      referrer: encodeURIComponent(getRouteStringFromRoutes(routes)),
+      event_t: event.dateCreated ? new Date(event.dateCreated).getTime() : undefined,
+    },
+  };
 
   return (
     <tr key={event.id} className={className}>
@@ -89,6 +107,17 @@ function EventsTableRow({
           </div>
         </td>
       ))}
+      {hasReplay && tagMap.replayId ? (
+        <td>
+          <Button
+            to={fullReplayUrl}
+            size="sm"
+            icon={<IconPlay size="sm" />}
+            aria-label={t('View Full Replay')}
+            title={t('View Full Replay')}
+          />
+        </td>
+      ) : null}
     </tr>
   );
 }
