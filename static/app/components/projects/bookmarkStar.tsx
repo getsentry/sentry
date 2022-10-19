@@ -35,7 +35,7 @@ function BookmarkStar({className, organization, project, onToggle}: Props) {
 
   return (
     <Button
-      aria-label="Bookmark Project"
+      aria-label={t('Bookmark Project')}
       aria-pressed={isBookmarked}
       onClick={toggleProjectBookmark}
       size="zero"
