@@ -21,8 +21,8 @@ type Props = {
   projectId: string;
   tagList: Tag[];
   className?: string;
-  hasReplay?: boolean;
   hasUser?: boolean;
+  showReplayColumn?: boolean;
 };
 
 function EventsTableRow({
@@ -31,7 +31,7 @@ function EventsTableRow({
   projectId,
   orgId,
   groupId,
-  hasReplay,
+  showReplayColumn,
   tagList,
   hasUser,
   organization,
@@ -107,17 +107,20 @@ function EventsTableRow({
           </div>
         </td>
       ))}
-      {hasReplay && tagMap.replayId ? (
+
+      {showReplayColumn && (
         <td>
-          <Button
-            to={fullReplayUrl}
-            size="sm"
-            icon={<IconPlay size="sm" />}
-            aria-label={t('View Full Replay')}
-            title={t('View Full Replay')}
-          />
+          {tagMap.replayId ? (
+            <Button
+              to={fullReplayUrl}
+              size="sm"
+              icon={<IconPlay size="sm" />}
+              aria-label={t('View Full Replay')}
+              title={t('View Full Replay')}
+            />
+          ) : null}
         </td>
-      ) : null}
+      )}
     </tr>
   );
 }

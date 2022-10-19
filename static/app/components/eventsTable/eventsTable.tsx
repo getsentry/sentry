@@ -35,6 +35,7 @@ class EventsTable extends Component<Props> {
             {tagList.map(tag => (
               <th key={tag.key}>{tag.name}</th>
             ))}
+
             {replayColumn && <th>{t('Replay')}</th>}
           </tr>
         </thead>
@@ -48,7 +49,7 @@ class EventsTable extends Component<Props> {
               groupId={groupId}
               tagList={tagList}
               hasUser={hasUser}
-              hasReplay={Boolean(replayColumn)}
+              showReplayColumn={Boolean(replayColumn)}
             />
           ))}
         </tbody>
