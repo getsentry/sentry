@@ -983,6 +983,7 @@ export const DISCOVER_FIELDS = [
   FieldKey.SDK_VERSION,
   FieldKey.HTTP_METHOD,
   FieldKey.HTTP_REFERER,
+  FieldKey.HTTP_STATUS_CODE,
   FieldKey.HTTP_URL,
   FieldKey.OS_BUILD,
   FieldKey.OS_KERNEL_VERSION,
