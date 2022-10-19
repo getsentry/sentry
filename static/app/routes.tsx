@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import React, {Fragment} from 'react';
 import {
   IndexRedirect,
   IndexRoute as BaseIndexRoute,
@@ -15,6 +15,7 @@ import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import {HookName} from 'sentry/types/hooks';
 import errorHandler from 'sentry/utils/errorHandler';
+import withOrgSlugless from 'sentry/utils/withOrgSlugless';
 import App from 'sentry/views/app';
 import AuthLayout from 'sentry/views/auth/layout';
 import IssueListContainer from 'sentry/views/issueList/container';
