@@ -96,7 +96,11 @@ class MetricsSessionsV2Test(APITestCase, SnubaTestCase):
 
     def test_sessions_metrics_with_metrics_only_field(self):
         """
-        Tests whether the request of a metrics-only field in the
+        Tests whether the request of a metrics-only field forwarded to the SessionsReleaseHealthBackend
+        is handled with an empty response.
+
+        This test is designed to show an edge-case that can happen in case the duplexer makes the wrong
+        decision with respect to which backend to choose for satisfying the query.
         """
         response = self.do_request(
             {
@@ -108,6 +112,7 @@ class MetricsSessionsV2Test(APITestCase, SnubaTestCase):
             }
         )
 
+        assert len(response.data["groups"]) == 0
         assert response.status_code == 200
 
 
