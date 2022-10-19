@@ -124,7 +124,11 @@ describe('Quick Trace', function () {
 
     // TODO
     it('renders partial trace with no children', async function () {
-      MockApiClient.warnOnMissingMocks();
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/projects/`,
+        body: [],
+      });
+
       render(
         <QuickTrace
           event={makeTransactionEvent(4) as Event}
@@ -167,7 +171,11 @@ describe('Quick Trace', function () {
     });
 
     it('renders partial trace with multiple children', async function () {
-      MockApiClient.warnOnMissingMocks();
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/projects/`,
+        body: [],
+      });
+
       render(
         <QuickTrace
           event={makeTransactionEvent(4) as Event}
@@ -241,7 +249,11 @@ describe('Quick Trace', function () {
     });
 
     it('renders full trace with multiple ancestors', async function () {
-      MockApiClient.warnOnMissingMocks();
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/projects/`,
+        body: [],
+      });
+
       render(
         <QuickTrace
           event={makeTransactionEvent(5) as Event}
@@ -297,7 +309,11 @@ describe('Quick Trace', function () {
     });
 
     it('renders full trace with multiple descendants', async function () {
-      MockApiClient.warnOnMissingMocks();
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/projects/`,
+        body: [],
+      });
+
       render(
         <QuickTrace
           event={makeTransactionEvent(0) as Event}
@@ -326,7 +342,11 @@ describe('Quick Trace', function () {
     });
 
     it('renders full trace', async function () {
-      MockApiClient.warnOnMissingMocks();
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/projects/`,
+        body: [],
+      });
+
       render(
         <QuickTrace
           event={makeTransactionEvent(5) as Event}
@@ -405,7 +425,11 @@ describe('Quick Trace', function () {
     });
 
     it('renders multiple event targets', async function () {
-      MockApiClient.warnOnMissingMocks();
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/projects/`,
+        body: [],
+      });
+
       render(
         <QuickTrace
           event={makeTransactionEvent(0) as Event}

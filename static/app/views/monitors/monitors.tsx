@@ -84,6 +84,7 @@ class Monitors extends AsyncView<Props, State> {
             <Button
               to={`/organizations/${organization.slug}/monitors/create/`}
               priority="primary"
+              size="sm"
             >
               {t('New Monitor')}
             </Button>

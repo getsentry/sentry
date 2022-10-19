@@ -4,7 +4,11 @@ import EmailVerificationModal from 'sentry/components/modals/emailVerificationMo
 
 describe('Email Verification Modal', function () {
   it('renders', function () {
-    MockApiClient.warnOnMissingMocks();
+    MockApiClient.addMockResponse({
+      url: '/users/me/emails/',
+      body: [],
+    });
+
     render(
       <EmailVerificationModal
         Body={(p => p.children) as any}
@@ -24,7 +28,11 @@ describe('Email Verification Modal', function () {
 
   it('renders with action param', function () {
     const actionMessage = 'accepting the tenet';
-    MockApiClient.warnOnMissingMocks();
+    MockApiClient.addMockResponse({
+      url: '/users/me/emails/',
+      body: [],
+    });
+
     render(
       <EmailVerificationModal
         Body={(p => p.children) as any}

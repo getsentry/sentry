@@ -1,19 +1,21 @@
+import selectEvent from 'react-select-event';
 import * as qs from 'query-string';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {selectByValue} from 'sentry-test/select-new';
+import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import AwsLambdaCloudformation from 'sentry/views/integrationPipeline/awsLambdaCloudformation';
 
 describe('AwsLambdaCloudformation', () => {
-  let wrapper;
   let windowAssignMock;
+
   beforeEach(() => {
     windowAssignMock = jest.fn();
     window.location.assign = windowAssignMock;
     window.localStorage.setItem('AWS_EXTERNAL_ID', 'my-id');
+  });
 
-    wrapper = mountWithTheme(
+  it('submit arn', async () => {
+    render(
       <AwsLambdaCloudformation
         baseCloudformationUrl="https://console.aws.amazon.com/cloudformation/home#/stacks/create/review"
         templateUrl="https://example.com/file.json"
@@ -24,23 +26,25 @@ describe('AwsLambdaCloudformation', () => {
         initialStepNumber={0}
       />
     );
-  });
-  it('submit arn', async () => {
-    wrapper.find('button[name="showInputs"]').simulate('click');
 
-    wrapper
-      .find('input[name="accountNumber"]')
-      .simulate('change', {target: {value: '599817902985'}});
+    // Open configuration fields
+    userEvent.click(screen.getByRole('button', {name: "I've created the stack"}));
 
-    selectByValue(wrapper, 'us-west-1');
+    // XXX(epurkhiser): This form is pretty wonky with how it works, and
+    // probably needs cleaned up again in the future. I couldn't get
+    // userEvent.type to work here because of something relating to the
+    // validation I think.
 
-    await tick();
+    // Fill out fields
+    const accountNumber = screen.getByRole('textbox', {name: 'AWS Account Number'});
+    fireEvent.change(accountNumber, {target: {value: '599817902985'}});
 
-    wrapper.find('StyledButton[aria-label="Next"]').simulate('click');
+    await selectEvent.select(screen.getByRole('textbox', {name: 'AWS Region'}), [
+      ['us-west-1'],
+    ]);
 
-    const {
-      location: {origin},
-    } = window;
+    expect(screen.getByRole('button', {name: 'Next'})).toBeEnabled();
+    userEvent.click(screen.getByRole('button', {name: 'Next'}));
 
     const query = qs.stringify({
       accountNumber: '599817902985',
@@ -49,7 +53,7 @@ describe('AwsLambdaCloudformation', () => {
     });
 
     expect(windowAssignMock).toHaveBeenCalledWith(
-      `${origin}/extensions/aws_lambda/setup/?${query}`
+      `${window.location.origin}/extensions/aws_lambda/setup/?${query}`
     );
   });
 });
