@@ -146,7 +146,6 @@ describe('Transaction Summary Content', function () {
       {context: routerContext}
     );
 
-
     expect(screen.getByTestId('page-filter-environment-selector')).toBeInTheDocument();
     expect(screen.getByTestId('page-filter-timerange-selector')).toBeInTheDocument();
     expect(screen.getByTestId('smart-search-bar')).toBeInTheDocument();
