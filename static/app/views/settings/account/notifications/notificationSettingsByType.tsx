@@ -51,7 +51,13 @@ type State = {
 } & AsyncComponent['state'];
 
 const typeMappedChildren = {
-  quota: ['quotaErrors', 'quotaTransactions', 'quotaAttachments', 'quotaWarnings'],
+  quota: [
+    'quotaErrors',
+    'quotaTransactions',
+    'quotaAttachments',
+    'quotaWarnings',
+    'quotaSpendAllocations',
+  ],
 };
 
 const getQueryParams = (notificationType: string) => {
