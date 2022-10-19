@@ -258,7 +258,8 @@ function usePublicDSN({
   if (response.type !== 'resolved') {
     return response;
   }
-  const dsn = response[0]?.dsn.public;
+
+  const dsn = response.data?.[0]?.dsn.public;
   if (!dsn) {
     Sentry.captureException(
       new Error(`public dsn not found for ${organization?.slug}/${project?.slug}`)
