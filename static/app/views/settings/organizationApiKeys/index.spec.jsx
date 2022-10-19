@@ -1,5 +1,9 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {mountGlobalModal} from 'sentry-test/modal';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationApiKeys from 'sentry/views/settings/organizationApiKeys';
 
@@ -32,7 +36,7 @@ describe('OrganizationApiKeys', function () {
   });
 
   it('fetches api keys', function () {
-    const wrapper = mountWithTheme(
+    render(
       <OrganizationApiKeys
         location={TestStubs.location()}
         params={{orgId: 'org-slug'}}
@@ -40,12 +44,12 @@ describe('OrganizationApiKeys', function () {
       />
     );
 
-    expect(wrapper.find('TextCopyInput')).toHaveLength(1);
+    expect(screen.getByRole('textbox')).toBeInTheDocument();
     expect(getMock).toHaveBeenCalledTimes(1);
   });
 
-  it('can delete a key', async function () {
-    const wrapper = mountWithTheme(
+  it('can delete a key', function () {
+    render(
       <OrganizationApiKeys
         location={TestStubs.location()}
         params={{orgId: 'org-slug'}}
@@ -54,14 +58,12 @@ describe('OrganizationApiKeys', function () {
     );
 
     expect(deleteMock).toHaveBeenCalledTimes(0);
-    wrapper.find('Confirm[aria-label="Remove API Key"]').simulate('click');
+    userEvent.click(screen.getByRole('link', {name: 'Remove API Key?'}));
 
-    const modal = await mountGlobalModal();
-    modal.find('button[aria-label="Confirm"]').simulate('click');
-
-    wrapper.update();
+    renderGlobalModal();
+    userEvent.click(screen.getByTestId('confirm-button'));
 
     expect(deleteMock).toHaveBeenCalledTimes(1);
-    expect(wrapper.find('TextCopyInput')).toHaveLength(0);
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
   });
 });
