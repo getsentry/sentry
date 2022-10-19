@@ -10,7 +10,6 @@ from sentry.eventstore.models import Event
 from sentry.integrations.message_builder import (
     build_attachment_text,
     build_attachment_title,
-    build_fallback_text,
     build_footer,
     format_actor_options,
     get_title_link,
@@ -278,7 +277,7 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
             actions=payload_actions,
             callback_id=json.dumps({"issue": self.group.id}),
             color=color,
-            fallback=build_fallback_text(obj, project),
+            fallback=self.build_fallback_text(obj, project.slug),
             fields=fields,
             footer=footer,
             text=text,

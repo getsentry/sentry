@@ -167,6 +167,11 @@ class BuildGroupAttachmentTest(TestCase):
         assert attachments["text"] == f"<{group_link}|*{group.title}*> \nFirst line of Text"
         assert "title_link" not in attachments
 
+    def test_build_error_issue_fallback_text(self):
+        event = self.store_event(data={}, project_id=self.project.id)
+        attachments = SlackIssuesMessageBuilder(event.group, event).build()
+        assert attachments["fallback"] == f"[{self.project.slug}] {event.group.title}"
+
     def test_build_performance_issue(self):
         event_data = load_data(
             "transaction-n-plus-one",
