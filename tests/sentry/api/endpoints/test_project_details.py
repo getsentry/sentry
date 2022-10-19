@@ -1810,7 +1810,7 @@ class TestDynamicSamplingSerializers(BaseTestCase):
 class TestProjectDetailsDynamicSampling(APITestCase):
     endpoint = "sentry-api-0-project-details"
 
-    def test_no_dynamic_sampling_returned_from_get_on_am2_basic(self):
+    def test_no_dynamic_sampling_returned_from_get_on_am2_plan(self):
         """
         Test that ensures that `GET` request to project details endpoint does not return any dynamicSampling config
         even if they exist when the am2 plan flag is enabled
@@ -1847,7 +1847,7 @@ class TestProjectDetailsDynamicSampling(APITestCase):
         self.project.update_option("sentry:dynamic_sampling", dynamic_sampling_data)
 
         self.login_as(user=self.user)
-        with Feature({"organizations:dynamic-sampling-basic": True}):
+        with Feature({"organizations:am2-billing": True}):
             response = self.get_success_response(
                 self.organization.slug, self.project.slug, method="get"
             )
@@ -1885,12 +1885,12 @@ class TestProjectDetailsDynamicSampling(APITestCase):
                 ]
             }
         }
-        with Feature({"organizations:dynamic-sampling-basic": True}):
+        with Feature({"organizations:am2-billing": True}):
             resp = self.client.put(url, format="json", HTTP_AUTHORIZATION=authorization, data=data)
             assert resp.status_code == 403
             assert resp.json()["detail"] == ["dynamicSampling is not a valid field"]
 
-    def test_no_dynamic_sampling_returned_from_put_on_am2_basic(self):
+    def test_no_dynamic_sampling_returned_from_put_on_am2_plan(self):
         """
         Test that ensures that the "PUT" response doesn't return dynamic sampling data in case it exists in the options
         and the user is on am2 basic plan.
@@ -1928,7 +1928,7 @@ class TestProjectDetailsDynamicSampling(APITestCase):
         self.project.update_option("sentry:dynamic_sampling", dynamic_sampling_data)
 
         self.login_as(user=self.user)
-        with Feature({"organizations:dynamic-sampling-basic": True}):
+        with Feature({"organizations:am2-billing": True}):
             response = self.get_success_response(
                 self.organization.slug,
                 self.project.slug,
