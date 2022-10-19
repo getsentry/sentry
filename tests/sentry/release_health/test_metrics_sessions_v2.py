@@ -67,7 +67,6 @@ class MetricsSessionsV2Test(APITestCase, SnubaTestCase):
         """
         Tests whether the number of keys in the metrics implementation of
         sessions data is the same as in the sessions implementation.
-
         """
         interval_days_int = 1
         interval_days = f"{interval_days_int}d"
@@ -97,9 +96,7 @@ class MetricsSessionsV2Test(APITestCase, SnubaTestCase):
 
     def test_sessions_metrics_with_metrics_only_field(self):
         """
-        Tests whether the number of keys in the metrics implementation of
-        sessions data is the same as in the sessions implementation.
-
+        Tests whether the request of a metrics-only field in the
         """
         response = self.do_request(
             {
@@ -111,7 +108,7 @@ class MetricsSessionsV2Test(APITestCase, SnubaTestCase):
             }
         )
 
-        assert response.status_code == 400
+        assert response.status_code == 200
 
 
 def _session_groupby_powerset() -> Iterable[str]:

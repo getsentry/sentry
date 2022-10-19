@@ -259,6 +259,16 @@ class QueryDefinition:
         self.fields = {}
         for key in raw_fields:
             if key not in COLUMN_MAP:
+                from sentry.release_health.metrics_sessions_v2 import FIELD_MAP
+
+                if key in FIELD_MAP:
+                    # HACK : Do not raise an error for metrics-only fields,
+                    # Simply ignore them instead.
+                    #
+                    # It is important to note that this ignore can lead to the
+                    # self.primary_column not being initialized.
+                    continue
+
                 raise InvalidField(f'Invalid field: "{key}"')
 
             self.fields[key] = COLUMN_MAP[key]
@@ -472,10 +482,19 @@ def _run_sessions_query(query):
     `totals` and again for the actual time-series data grouped by the requested
     interval.
     """
+    # If we don't have any fields that can be derived from raw fields, it doesn't make sense to even
+    # run the query in the first place.
+    if len(query.fields) == 0:
+        return [], []
+
     # We only return the top-N groups, based on the first field that is being
     # queried, assuming that those are the most relevant to the user.
     # In a future iteration we might expose an `orderBy` query parameter.
-    orderby = [f"-{query.primary_column}"]
+    #
+    # In case we don't have a primary column because a metrics-only field has been supplied to
+    # the query definition we just avoid the order by under the assumption that the result set of
+    # the query will be empty.
+    orderby = [f"-{query.primary_column}"] if hasattr(query, "primary_column") else None
 
     try:
         query_builder_dict = query.to_query_builder_dict(orderby=orderby)
