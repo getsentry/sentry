@@ -92,6 +92,7 @@ class MetricsSessionsV2Test(APITestCase, SnubaTestCase):
                 metrics=metrics_data,
                 rollup=interval_days_int * 24 * 60 * 60,  # days to seconds
             )
+
             assert len(errors) == 0
 
     def test_sessions_metrics_with_metrics_only_field(self):
@@ -110,7 +111,7 @@ class MetricsSessionsV2Test(APITestCase, SnubaTestCase):
             }
         )
 
-        assert response.status_code == 200
+        assert response.status_code == 400
 
 
 def _session_groupby_powerset() -> Iterable[str]:
