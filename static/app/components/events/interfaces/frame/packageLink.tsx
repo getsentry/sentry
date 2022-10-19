@@ -2,8 +2,8 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {trimPackage} from 'sentry/components/events/interfaces/frame/utils';
-import {STACKTRACE_PREVIEW_TOOLTIP_DELAY} from 'sentry/components/stacktracePreview';
 import Tooltip from 'sentry/components/tooltip';
+import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 
@@ -48,7 +48,7 @@ class PackageLink extends Component<Props> {
         {defined(packagePath) ? (
           <Tooltip
             title={packagePath}
-            delay={isHoverPreviewed ? STACKTRACE_PREVIEW_TOOLTIP_DELAY : undefined}
+            delay={isHoverPreviewed ? SLOW_TOOLTIP_DELAY : undefined}
           >
             <PackageName
               isClickable={isClickable}

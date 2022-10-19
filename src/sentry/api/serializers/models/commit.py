@@ -3,7 +3,7 @@ from typing import Mapping
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.release import Author, CommitAuthor, get_users_for_authors
-from sentry.models import Commit, Repository
+from sentry.models import Commit, PullRequest, Repository
 
 
 def get_users_for_commits(item_list, user=None) -> Mapping[str, Author]:
@@ -39,17 +39,32 @@ class CommitSerializer(Serializer):
 
         repository_objs = {repository["id"]: repository for repository in repositories}
 
+        pull_requests = list(
+            PullRequest.objects.filter(
+                merge_commit_sha__in=[c.key for c in item_list],
+                organization_id=item_list[0].organization_id,
+            )
+        )
+
+        pull_request_by_commit = {pr.merge_commit_sha: serialize(pr) for pr in pull_requests}
+
         result = {}
         for item in item_list:
             result[item] = {
                 "repository": repository_objs.get(str(item.repository_id), {}),
                 "user": users_by_author.get(str(item.author_id), {}) if item.author_id else {},
+                "pull_request": pull_request_by_commit.get(item.key, None),
             }
 
         return result
 
     def serialize(self, obj, attrs, user):
-        d = {"id": obj.key, "message": obj.message, "dateCreated": obj.date_added}
+        d = {
+            "id": obj.key,
+            "message": obj.message,
+            "dateCreated": obj.date_added,
+            "pullRequest": attrs["pull_request"],
+        }
         if "repository" not in self.exclude:
             d["repository"] = attrs["repository"]
         if "author" not in self.exclude:

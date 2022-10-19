@@ -3,7 +3,7 @@ import debounce from 'lodash/debounce';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import SelectControl from 'sentry/components/forms/selectControl';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Input from 'sentry/components/input';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t, tct} from 'sentry/locale';
@@ -41,11 +41,11 @@ class IssueListTagFilter extends Component<Props, State> {
     textValue: this.props.value,
   };
 
-  UNSAFE_componentWillReceiveProps(nextProps: Props) {
-    if (nextProps.value !== this.state.value) {
+  componentDidUpdate() {
+    if (this.props.value !== this.state.value) {
       this.setState({
-        value: nextProps.value,
-        textValue: nextProps.value,
+        value: this.props.value,
+        textValue: this.props.value,
       });
     }
   }

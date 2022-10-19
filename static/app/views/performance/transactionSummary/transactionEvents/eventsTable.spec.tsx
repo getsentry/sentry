@@ -169,6 +169,7 @@ describe('Performance GridEditable Table', function () {
         totalEventCount={totalEventCount}
         eventView={eventView}
         organization={organization}
+        routes={initialData.router.routes}
         location={initialData.router.location}
         setError={() => {}}
         columnTitles={transactionsListTitles}
@@ -219,6 +220,7 @@ describe('Performance GridEditable Table', function () {
         totalEventCount={totalEventCount}
         eventView={eventView}
         organization={organization}
+        routes={initialData.router.routes}
         location={initialData.router.location}
         setError={() => {}}
         columnTitles={transactionsListTitles}
@@ -233,5 +235,45 @@ describe('Performance GridEditable Table', function () {
     expect(wrapper.find('GridHeadCellStatic')).toHaveLength(0);
     expect(wrapper.find('OperationSort')).toHaveLength(0);
     expect(wrapper.find('RelativeOpsBreakdown')).toHaveLength(0);
+  });
+
+  it('renders event id and trace id url', async function () {
+    const initialData = initializeData();
+    const eventView = EventView.fromNewQueryWithLocation(
+      {
+        id: undefined,
+        version: 2,
+        name: 'transactionName',
+        fields,
+        query,
+        projects: [],
+        orderby: '-timestamp',
+      },
+      initialData.router.location
+    );
+    const wrapper = mountWithTheme(
+      <EventsTable
+        totalEventCount={totalEventCount}
+        eventView={eventView}
+        organization={organization}
+        routes={initialData.router.routes}
+        location={initialData.router.location}
+        setError={() => {}}
+        columnTitles={transactionsListTitles}
+        transactionName={transactionName}
+      />,
+      initialData.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    const eventIdCell = wrapper.find('a').at(3);
+    const traceIdCell = wrapper.find('a').at(4);
+    expect(eventIdCell.prop('href')).toMatch(
+      '/organizations/org-slug/performance/undefined:deadbeef/'
+    );
+    expect(traceIdCell.prop('href')).toMatch(
+      '/organizations/org-slug/performance/trace/1234/'
+    );
   });
 });

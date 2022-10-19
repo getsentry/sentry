@@ -160,10 +160,8 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
               disableLink
             />
           }
-          triggerProps={{
-            'aria-label': currentProject.slug,
-          }}
-          placement="bottom left"
+          triggerProps={{'aria-label': currentProject.slug}}
+          position="bottom-end"
         />
         <OnboardingContent currentProject={currentProject} />
       </TaskList>

@@ -10,6 +10,7 @@ from sentry.testutils.perfomance_issues.store_transaction import PerfIssueTransa
 from sentry.testutils.silo import region_silo_test
 from sentry.tsdb.base import TSDBModel
 from sentry.tsdb.snuba import SnubaTSDB
+from sentry.types.issues import GroupType
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.snuba import aliased_query
 
@@ -523,20 +524,22 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase, PerfIssueTransactio
         )[0]
         defaultenv = ""
 
-        self.proj1group1 = self.create_group(project=self.proj1)
-        self.proj1group2 = self.create_group(project=self.proj1)
+        group1_fingerprint = f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group1"
+        group2_fingerprint = f"{GroupType.PERFORMANCE_N_PLUS_ONE.value}-group2"
 
         for r in range(0, 14400, 600):  # Every 10 min for 4 hours
-            self.store_transaction(
-                environment=[self.env1, None][(r // 7200) % 3],
+            event = self.store_transaction(
+                environment=[self.env1.name, None][(r // 7200) % 3],
                 project_id=self.proj1.id,
                 # change every 55 min so some hours have 1 user, some have 2
                 user_id=f"user{r // 3300}",
                 # release_version=str(r // 3600) * 10,  # 1 per hour,
                 timestamp=self.now + timedelta(seconds=r),
-                groups=[[self.proj1group1], [self.proj1group2]][(r // 600) % 2],
+                fingerprint=[group1_fingerprint, group2_fingerprint] if ((r // 600) % 2) else [],
             )
 
+        self.proj1group1 = event.groups[0]
+        self.proj1group2 = event.groups[1]
         self.defaultenv = Environment.objects.get(name=defaultenv)
 
     def test_range_groups_single(self):
@@ -547,7 +550,7 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase, PerfIssueTransactio
         )
         dts = [now + timedelta(hours=i) for i in range(4)]
         project = self.create_project()
-        group = self.create_group(project=project, first_seen=now)
+        group_fingerprint = f"{GroupType.PERFORMANCE_N_PLUS_ONE.value}-group3"
 
         # not sure what's going on here, but `times=1,2,3,4` work fine
         # fails with anything above 4
@@ -560,7 +563,7 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase, PerfIssueTransactio
                 project_id=project.id,
                 user_id="my_user",
                 timestamp=now + timedelta(minutes=i * 10),
-                groups=[group],
+                fingerprint=[group_fingerprint],
             )
 
             grouped_by_project = aliased_query(
@@ -581,6 +584,8 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase, PerfIssueTransactio
             assert event_from_nodestore.event_id == res.event_id
             event_ids.append(res.event_id)
             events.append(res)
+
+        group = events[0].groups[0]
 
         transactions_for_project = aliased_query(
             dataset=Dataset.Transactions,
@@ -633,16 +638,19 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase, PerfIssueTransactio
         )
         dts = [now + timedelta(hours=i) for i in range(4)]
         project = self.create_project()
-        group = self.create_group(project=project)
+        group_fingerprint = f"{GroupType.PERFORMANCE_N_PLUS_ONE.value}-group4"
         ids = ["a", "b", "c", "d", "e", "f", "1", "2", "3", "4", "5"]
-        for i, _id in enumerate(ids):
-            self.store_transaction(
+        events = []
+        for i, _ in enumerate(ids):
+            event = self.store_transaction(
                 environment=None,
                 project_id=project.id,
                 user_id="my_user",
                 timestamp=now + timedelta(minutes=i * 10),
-                groups=[group],
+                fingerprint=[group_fingerprint],
             )
+            events.append(event)
+        group = events[0].groups[0]
 
         assert self.db.get_range(
             TSDBModel.group_performance,
@@ -661,25 +669,28 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase, PerfIssueTransactio
 
     def test_range_groups_simple(self):
         project = self.create_project()
-        group = self.create_group(project=project)
         now = (datetime.utcnow() - timedelta(days=1)).replace(
             hour=10, minute=0, second=0, microsecond=0, tzinfo=pytz.UTC
         )
+        group_fingerprint = f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group5"
         # for r in range(0, 14400, 600):  # Every 10 min for 4 hours
         # for r in [1, 2, 3, 4, 5, 6, 7, 8]:
         ids = ["a", "b", "c", "d", "e"]  # , "f"]
+        events = []
         for r in ids:
             # for r in range(0, 9, 1):
-            self.store_transaction(
+            event = self.store_transaction(
                 environment=None,
                 project_id=project.id,
                 # change every 55 min so some hours have 1 user, some have 2
                 user_id=f"user{r}",
                 # release_version=str(r // 3600) * 10,  # 1 per hour,
                 timestamp=now,
-                groups=[group],
+                fingerprint=[group_fingerprint],
             )
+            events.append(event)
 
+        group = events[0].groups[0]
         dts = [now + timedelta(hours=i) for i in range(4)]
         assert self.db.get_range(
             TSDBModel.group_performance,

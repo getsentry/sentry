@@ -38,7 +38,7 @@ const GroupReplays = ({group, replayIds}: Props) => {
     );
   }, [location, project.id, replayIds]);
 
-  const {replays, pageLinks, isFetching} = useReplayList({
+  const {replays, pageLinks, isFetching, fetchError} = useReplayList({
     organization,
     eventView,
   });
@@ -50,6 +50,7 @@ const GroupReplays = ({group, replayIds}: Props) => {
         replays={replays}
         showProjectColumn={false}
         sort={eventView.sorts[0]}
+        fetchError={fetchError}
       />
       <Pagination pageLinks={pageLinks} />
     </StyledPageContent>

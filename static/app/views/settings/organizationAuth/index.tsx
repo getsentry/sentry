@@ -20,10 +20,10 @@ type State = AsyncView['state'] & {
 };
 
 class OrganizationAuth extends AsyncView<Props, State> {
-  UNSAFE_componentWillUpdate(_nextProps: Props, nextState: State) {
+  componentDidUpdate() {
     const access = this.props.organization.access;
 
-    if (nextState.provider && access.includes('org:write')) {
+    if (this.state.provider && access.includes('org:write')) {
       // If SSO provider is configured, keep showing loading while we redirect
       // to django configuration view
       const path = `/organizations/${this.props.params.orgId}/auth/configure/`;

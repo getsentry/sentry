@@ -312,6 +312,7 @@ class GridEditable<
     return (
       <GridRow data-test-id="grid-head-row">
         {prependColumns &&
+          columnOrder?.length > 0 &&
           prependColumns.map((item, i) => (
             <GridHeadCellStatic key={`prepend-${i}`}>{item}</GridHeadCellStatic>
           ))}

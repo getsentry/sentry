@@ -10,6 +10,7 @@ from sentry import features, options
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.user import DetailedSelfUserSerializer
 from sentry.api.utils import generate_organization_url, generate_region_url
+from sentry.auth import superuser
 from sentry.auth.access import get_cached_organization_member
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import Organization, OrganizationMember, ProjectKey
@@ -192,6 +193,7 @@ def get_client_config(request=None):
         "languageCode": language_code,
         "userIdentity": user_identity,
         "csrfCookieName": settings.CSRF_COOKIE_NAME,
+        "superUserCookieName": superuser.COOKIE_NAME,
         "sentryConfig": {
             "dsn": public_dsn,
             # XXX: In the world of frontend / backend deploys being separated,

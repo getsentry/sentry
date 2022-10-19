@@ -3,6 +3,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectIssues from 'sentry/views/projectDetail/projectIssues';
 
+import {OrganizationContext} from '../organizationContext';
+
 describe('ProjectDetail > ProjectIssues', function () {
   let endpointMock, filteredEndpointMock;
   const {organization, router, routerContext} = initializeOrg({
@@ -13,7 +15,7 @@ describe('ProjectDetail > ProjectIssues', function () {
 
   beforeEach(function () {
     endpointMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/?limit=5&query=is%3Aunresolved%20error.unhandled%3Atrue&sort=freq&statsPeriod=14d`,
+      url: `/organizations/${organization.slug}/issues/?limit=5&query=error.unhandled%3Atrue%20is%3Aunresolved&sort=freq&statsPeriod=14d`,
       body: [TestStubs.Group(), TestStubs.Group({id: '2'})],
     });
 
@@ -38,18 +40,27 @@ describe('ProjectDetail > ProjectIssues', function () {
       url: `/organizations/org-slug/issues/?limit=5&query=error.unhandled%3Atrue%20is%3Aunresolved&sort=freq&statsPeriod=14d`,
       body: [TestStubs.Group(), TestStubs.Group({id: '2'})],
     });
-    render(<ProjectIssues organization={organization} location={router.location} />, {
-      context: routerContext,
-    });
+    render(
+      <OrganizationContext.Provider value={organization}>
+        <ProjectIssues organization={organization} location={router.location} />
+      </OrganizationContext.Provider>,
+      {
+        context: routerContext,
+      }
+    );
 
     expect(await screen.findAllByTestId('group')).toHaveLength(2);
   });
 
   it('renders a link to Issues', function () {
-    MockApiClient.warnOnMissingMocks();
-    render(<ProjectIssues organization={organization} location={router.location} />, {
-      context: routerContext,
-    });
+    render(
+      <OrganizationContext.Provider value={organization}>
+        <ProjectIssues organization={organization} location={router.location} />
+      </OrganizationContext.Provider>,
+      {
+        context: routerContext,
+      }
+    );
 
     const link = screen.getByLabelText('Open in Issues');
     expect(link).toBeInTheDocument();
@@ -67,10 +78,14 @@ describe('ProjectDetail > ProjectIssues', function () {
   });
 
   it('renders a link to Discover', function () {
-    MockApiClient.warnOnMissingMocks();
-    render(<ProjectIssues organization={organization} location={router.location} />, {
-      context: routerContext,
-    });
+    render(
+      <OrganizationContext.Provider value={organization}>
+        <ProjectIssues organization={organization} location={router.location} />
+      </OrganizationContext.Provider>,
+      {
+        context: routerContext,
+      }
+    );
 
     const link = screen.getByLabelText('Open in Discover');
     expect(link).toBeInTheDocument();
@@ -91,12 +106,14 @@ describe('ProjectDetail > ProjectIssues', function () {
 
   it('changes according to global header', function () {
     render(
-      <ProjectIssues
-        organization={organization}
-        location={{
-          query: {statsPeriod: '7d', environment: 'staging', somethingBad: 'nope'},
-        }}
-      />,
+      <OrganizationContext.Provider value={organization}>
+        <ProjectIssues
+          organization={organization}
+          location={{
+            query: {statsPeriod: '7d', environment: 'staging', somethingBad: 'nope'},
+          }}
+        />
+      </OrganizationContext.Provider>,
       {context: routerContext}
     );
 

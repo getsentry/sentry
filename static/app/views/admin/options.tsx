@@ -4,7 +4,7 @@ import {
   BooleanField,
   EmailField,
   NumberField,
-  RadioBooleanField,
+  RadioField,
   TextField,
 } from 'sentry/components/forms';
 import {t, tct} from 'sentry/locale';
@@ -15,10 +15,13 @@ type Section = {
   heading?: string;
 };
 
+// TODO(epurkhiser): This should really use the types from the form system, but
+// they're still pretty bad so that's difficult I guess?
 type Field = {
   key: string;
   label: React.ReactNode;
   allowEmpty?: boolean;
+  choices?: [value: string, label: string][];
   component?: React.ComponentType<any>;
   defaultValue?: () => string | number | false;
   disabled?: boolean;
@@ -26,12 +29,9 @@ type Field = {
   help?: React.ReactNode;
   max?: number;
   min?: number;
-  noLabel?: string;
   placeholder?: string;
   required?: boolean;
   step?: number;
-  yesFirst?: boolean;
-  yesLabel?: string;
 };
 
 // This are ordered based on their display order visually
@@ -87,6 +87,30 @@ const performanceOptionDefinitions: Field[] = [
     ...HIGH_THROUGHPUT_RATE_OPTION,
   },
   {
+    key: 'performance.issues.all.general-availability-rollout',
+    label: t('Performance issues creation GA Rollout'),
+    help: t(
+      'Controls the rate at which performance issues are created for all organizations.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
+    key: 'performance.issues.all.post-process-group-early-adopter-rollout',
+    label: t('Performance issues post process group EA Rollout'),
+    help: t(
+      'Controls the rate at which performance issues sent through post process group for EA organizations.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
+    key: 'performance.issues.all.post-process-group-ga-rollout',
+    label: t('Performance issues post process group GA Rollout'),
+    help: t(
+      'Controls the rate at which performance issues sent through post process group for all organizations.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
     key: 'performance.issues.n_plus_one.problem-detection',
     label: t('N+1 detection rate'),
     help: t(
@@ -115,6 +139,14 @@ const performanceOptionDefinitions: Field[] = [
     label: t('N+1 (DB) creation rate'),
     help: t(
       'Controls the rate at which performance issues are created specifically for N+1 detection. Value of 0 will disable creation, a value of 1.0 fully enables it.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
+    key: 'performance.issues.n_plus_one_db_ext.problem-creation',
+    label: t('N+1 (DB) (Extended) creation rate'),
+    help: t(
+      'Controls the rate at which performance issues are created specifically for N+1 detection (extended). Value of 0 will disable creation, a value of 1.0 fully enables it.'
     ),
     ...HIGH_THROUGHPUT_RATE_OPTION,
   },
@@ -222,11 +254,12 @@ const definitions: Field[] = [
   {
     key: 'beacon.anonymous',
     label: 'Usage Statistics',
-    component: RadioBooleanField,
+    component: RadioField,
     // yes and no are inverted here due to the nature of this configuration
-    noLabel: 'Send my contact information along with usage statistics',
-    yesLabel: 'Please keep my usage information anonymous',
-    yesFirst: false,
+    choices: [
+      ['false', 'Send my contact information along with usage statistics'],
+      ['true', 'Please keep my usage information anonymous'],
+    ],
     help: tct(
       'If enabled, any stats reported to sentry.io will exclude identifying information (such as your administrative email address). By anonymizing your installation the Sentry team will be unable to contact you about security updates. For more information on what data is sent to Sentry, see the [link:documentation].',
       {

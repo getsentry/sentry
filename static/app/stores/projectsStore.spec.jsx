@@ -1,4 +1,3 @@
-import ProjectActions from 'sentry/actions/projectActions';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 
@@ -47,7 +46,7 @@ describe('ProjectsStore', function () {
     });
 
     it('updates when slug changes', async function () {
-      ProjectActions.changeSlug('foo', 'new-project');
+      ProjectsStore.onChangeSlug('foo', 'new-project');
       await tick();
       expect(ProjectsStore.itemsById[projectFoo.id]).toMatchObject({
         slug: 'new-project',
@@ -55,10 +54,23 @@ describe('ProjectsStore', function () {
       expect(ProjectsStore.itemsById[projectBar.id]).toBeDefined();
     });
 
-    it('adds project to store on "create success"', async function () {
+    it('adds project to store on "create success"', function () {
       const project = TestStubs.Project({id: '11', slug: 'created-project'});
-      ProjectActions.createSuccess(project);
-      await tick();
+      const reloadOrgRequest = MockApiClient.addMockResponse({
+        url: '/organizations/my-org/',
+        body: {},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/my-org/projects/',
+        body: [project, projectBar, projectFoo],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/my-org/teams/',
+        body: [],
+      });
+
+      ProjectsStore.onCreateSuccess(project, 'my-org');
+
       expect(ProjectsStore.itemsById[project.id]).toMatchObject({
         id: '11',
         slug: 'created-project',
@@ -72,13 +84,14 @@ describe('ProjectsStore', function () {
         id: '10',
         slug: 'bar',
       });
+
+      expect(reloadOrgRequest).toHaveBeenCalled();
     });
 
-    it('updates a project in store', async function () {
+    it('updates a project in store', function () {
       // Create a new project, but should have same id as `projectBar`
       const project = TestStubs.Project({id: '10', slug: 'bar', name: 'New Name'});
-      ProjectActions.updateSuccess(project);
-      await tick();
+      ProjectsStore.onUpdateSuccess(project);
       expect(ProjectsStore.itemsById[projectBar.id]).toMatchObject({
         id: '10',
         slug: 'bar',
@@ -91,15 +104,14 @@ describe('ProjectsStore', function () {
       });
     });
 
-    it('can remove a team from a single project', async function () {
+    it('can remove a team from a single project', function () {
       expect(ProjectsStore.itemsById[projectBar.id]).toMatchObject({
         teams: [
           expect.objectContaining({slug: 'team-foo'}),
           expect.objectContaining({slug: 'team-bar'}),
         ],
       });
-      ProjectActions.removeTeamSuccess('team-foo', 'bar');
-      await tick();
+      ProjectsStore.onRemoveTeam('team-foo', 'bar');
 
       expect(ProjectsStore.itemsById[projectBar.id]).toMatchObject({
         teams: [expect.objectContaining({slug: 'team-bar'})],
@@ -109,7 +121,7 @@ describe('ProjectsStore', function () {
       });
     });
 
-    it('removes a team from all projects when team is deleted', async function () {
+    it('removes a team from all projects when team is deleted', function () {
       expect(ProjectsStore.itemsById[projectBar.id]).toMatchObject({
         teams: [
           expect.objectContaining({slug: 'team-foo'}),
@@ -121,7 +133,6 @@ describe('ProjectsStore', function () {
       });
 
       TeamStore.onRemoveSuccess('team-foo');
-      await tick();
 
       expect(ProjectsStore.itemsById[projectBar.id]).toMatchObject({
         teams: [expect.objectContaining({slug: 'team-bar'})],
@@ -131,12 +142,11 @@ describe('ProjectsStore', function () {
       });
     });
 
-    it('can add a team to a project', async function () {
+    it('can add a team to a project', function () {
       const team = TestStubs.Team({
         slug: 'new-team',
       });
-      ProjectActions.addTeamSuccess(team, 'foo');
-      await tick();
+      ProjectsStore.onAddTeam(team, 'foo');
 
       expect(ProjectsStore.itemsById[projectBar.id]).toMatchObject({
         teams: [

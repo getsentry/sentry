@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import React, {Fragment, useCallback, useMemo, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {
@@ -17,8 +17,8 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Textarea from 'sentry/components/forms/controls/textarea';
 import Field from 'sentry/components/forms/field';
-import SelectField from 'sentry/components/forms/selectField';
-import {Data} from 'sentry/components/forms/type';
+import SelectField from 'sentry/components/forms/fields/selectField';
+import {Data} from 'sentry/components/forms/types';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -53,6 +53,7 @@ export type ChildrenProps<T> = {
     onBack?: () => void;
     onNext?: () => void;
     primaryDisabledReason?: string;
+    secondaryAction?: React.ReactNode;
     submitEventData?: Event;
   }) => ReturnType<ModalRenderProps['Footer']>;
   Header: (props: {children: React.ReactNode}) => ReturnType<ModalRenderProps['Header']>;
@@ -70,6 +71,7 @@ type DefaultFeedbackModal = {
   featureName: string;
   children?: undefined;
   feedbackTypes?: string[];
+  secondaryAction?: React.ReactNode;
 };
 
 export type FeedbackModalProps<T extends Data> =
@@ -169,9 +171,13 @@ export function FeedbackModal<T extends Data>({
       onNext,
       submitEventData,
       primaryDisabledReason,
+      secondaryAction,
     }: Parameters<ChildrenProps<T>['Footer']>[0]) => {
       return (
         <Footer>
+          {secondaryAction && (
+            <SecondaryActionWrapper>{secondaryAction}</SecondaryActionWrapper>
+          )}
           {onBack && (
             <BackButtonWrapper>
               <Button onClick={onBack}>{t('Back')}</Button>
@@ -278,7 +284,7 @@ export function FeedbackModal<T extends Data>({
             />
           </Field>
         </ModalBody>
-        <ModalFooter />
+        <ModalFooter secondaryAction={props?.secondaryAction} />
       </Fragment>
     );
   }
@@ -304,4 +310,9 @@ export const modalCss = css`
 const BackButtonWrapper = styled('div')`
   margin-right: ${space(1)};
   width: 100%;
+`;
+
+const SecondaryActionWrapper = styled('div')`
+  flex: 1;
+  align-self: center;
 `;

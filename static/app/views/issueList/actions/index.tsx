@@ -11,7 +11,7 @@ import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
-import {Group, PageFilters, ResolutionStatusDetails} from 'sentry/types';
+import {Group, PageFilters} from 'sentry/types';
 import theme from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
 import useMedia from 'sentry/utils/useMedia';
@@ -20,12 +20,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import ActionSet from './actionSet';
 import Headers from './headers';
 import IssueListSortOptions from './sortOptions';
-import {
-  BULK_LIMIT,
-  BULK_LIMIT_STR,
-  ConfirmAction,
-  performanceIssuesSupportsIgnoreAction,
-} from './utils';
+import {BULK_LIMIT, BULK_LIMIT_STR, ConfirmAction} from './utils';
 
 type IssueListActionsProps = {
   allResultsVisible: boolean;
@@ -90,7 +85,7 @@ function IssueListActions({
   const queryExcludingPerformanceIssues = organization.features.includes(
     'performance-issues'
   )
-    ? `${query ?? ''} !issue.category:performance`
+    ? `${query ?? ''} issue.category:error`
     : query;
 
   function handleDelete() {
@@ -136,16 +131,6 @@ function IssueListActions({
       'issue-list-removal-action'
     );
 
-    // TODO: Remove this check when performance issues supports ignoring by time window
-    const ignoreStatusDetails = data?.statusDetails as
-      | ResolutionStatusDetails
-      | undefined;
-    const unsupportedByPerformanceIssues =
-      ignoreStatusDetails && !performanceIssuesSupportsIgnoreAction(ignoreStatusDetails);
-    const bulkUpdateQuery = unsupportedByPerformanceIssues
-      ? queryExcludingPerformanceIssues
-      : query;
-
     actionSelectedGroups(itemIds => {
       // TODO(Kelly): remove once issue-list-removal-action feature is stable
       if (!hasIssueListRemovalAction) {
@@ -172,7 +157,7 @@ function IssueListActions({
           orgId: organization.slug,
           itemIds,
           data,
-          query: bulkUpdateQuery,
+          query,
           environment: selection.environments,
           ...projectConstraints,
           ...selection.datetime,

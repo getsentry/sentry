@@ -58,7 +58,6 @@ describe('Group > AssignedTo', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    ProjectsStore.teardown();
     GroupStore.reset();
     TeamStore.reset();
     MemberListStore.state = [];

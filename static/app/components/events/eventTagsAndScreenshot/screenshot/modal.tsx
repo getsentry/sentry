@@ -20,11 +20,12 @@ import ImageVisualization from './imageVisualization';
 
 type Props = ModalRenderProps & {
   downloadUrl: string;
-  event: Event;
   eventAttachment: EventAttachment;
   onDelete: () => void;
+  onDownload: () => void;
   orgSlug: Organization['slug'];
   projectSlug: Project['slug'];
+  event?: Event;
 };
 
 function Modal({
@@ -37,6 +38,7 @@ function Modal({
   event,
   onDelete,
   downloadUrl,
+  onDownload,
 }: Props) {
   const {dateCreated, size, mimetype} = eventAttachment;
   return (
@@ -54,11 +56,12 @@ function Modal({
                     fixed: new Date(1508208080000),
                   })}
                 />
-                {getRelativeTimeFromEventDateCreated(
-                  event.dateCreated ? event.dateCreated : event.dateReceived,
-                  dateCreated,
-                  false
-                )}
+                {event &&
+                  getRelativeTimeFromEventDateCreated(
+                    event.dateCreated ? event.dateCreated : event.dateReceived,
+                    dateCreated,
+                    false
+                  )}
               </Fragment>
             ) : (
               <NotAvailable />
@@ -76,7 +79,7 @@ function Modal({
           attachment={eventAttachment}
           orgId={orgSlug}
           projectId={projectSlug}
-          event={event}
+          eventId={eventAttachment.event_id}
         />
       </Body>
       <Footer>
@@ -92,7 +95,9 @@ function Modal({
           >
             <Button priority="danger">{t('Delete')}</Button>
           </Confirm>
-          <Button href={downloadUrl}>{t('Download')}</Button>
+          <Button onClick={onDownload} href={downloadUrl}>
+            {t('Download')}
+          </Button>
         </Buttonbar>
       </Footer>
     </Fragment>

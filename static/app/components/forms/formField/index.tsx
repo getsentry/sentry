@@ -4,19 +4,20 @@ import {Observer} from 'mobx-react';
 
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
-import Field, {FieldProps} from 'sentry/components/forms/field';
-import FieldControl from 'sentry/components/forms/field/fieldControl';
-import FieldErrorReason from 'sentry/components/forms/field/fieldErrorReason';
-import FormContext from 'sentry/components/forms/formContext';
-import FormFieldControlState from 'sentry/components/forms/formField/controlState';
-import FormModel, {MockModel} from 'sentry/components/forms/model';
-import ReturnButton from 'sentry/components/forms/returnButton';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 
-import {FieldValue} from '../type';
+import Field, {FieldProps} from '../field';
+import FieldControl from '../field/fieldControl';
+import FieldErrorReason from '../field/fieldErrorReason';
+import FormContext from '../formContext';
+import FormModel, {MockModel} from '../model';
+import ReturnButton from '../returnButton';
+import {FieldValue} from '../types';
+
+import FormFieldControlState from './controlState';
 
 /**
  * Some fields don't need to implement their own onChange handlers, in
@@ -76,6 +77,9 @@ interface ResolvedObservableProps {
   visible?: FieldProps['visible'];
 }
 
+// XXX(epurkhiser): Many of these props are duplicated in form types. The forms
+// interfaces need some serious consolidation
+
 interface BaseProps {
   /**
    * Used to render the actual control
@@ -113,18 +117,22 @@ interface BaseProps {
    * The alert type to use when saveOnBlur is false
    */
   saveMessageAlertType?: React.ComponentProps<typeof Alert>['type'];
-
   /**
    * When the field is blurred should it automatically persist its value into
    * the model. Will show a confirm button 'save' otherwise.
    */
   saveOnBlur?: boolean;
+
   /**
    * A function producing an optional component with extra information.
    */
   selectionInfoFunction?: (
     props: PassthroughProps & {value: FieldValue; error?: string}
   ) => React.ReactNode;
+  /**
+   * Used in the form model to transform the value
+   */
+  setValue?: (value: FieldValue, props?: any) => any;
   /**
    * Extra styles to apply to the field
    */
@@ -365,6 +373,7 @@ class FormField extends Component<FormFieldProps> {
                           error,
                           disabled,
                           initialData: model.initialData,
+                          'aria-describedby': `${id}_help`,
                         })}
                         {showReturnButton && <StyledReturnButton />}
                       </Fragment>

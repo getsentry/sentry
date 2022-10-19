@@ -6,14 +6,13 @@ import {
   removeProject,
   transferProject,
 } from 'sentry/actionCreators/projects';
-import ProjectActions from 'sentry/actions/projectActions';
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import Field from 'sentry/components/forms/field';
+import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import {FieldValue} from 'sentry/components/forms/model';
-import TextField from 'sentry/components/forms/textField';
 import {removePageFiltersStorage} from 'sentry/components/organizations/pageFilters/persistence';
 import {Panel, PanelAlert, PanelHeader} from 'sentry/components/panels';
 import {fields} from 'sentry/data/forms/projectGeneralSettings';
@@ -262,7 +261,7 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
               this.props.onChangeSlug(resp.slug);
             }
             // This will update our project context
-            ProjectActions.updateSuccess(resp);
+            ProjectsStore.onUpdateSuccess(resp);
           }}
         >
           <JsonForm

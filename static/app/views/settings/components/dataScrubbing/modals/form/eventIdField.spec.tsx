@@ -1,106 +1,116 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import theme from 'sentry/utils/theme';
 import EventIdField from 'sentry/views/settings/components/dataScrubbing/modals/form/eventIdField';
-import {
-  EventId,
-  EventIdStatus,
-} from 'sentry/views/settings/components/dataScrubbing/types';
+import {EventIdStatus} from 'sentry/views/settings/components/dataScrubbing/types';
 
-const handleUpdateEventId = jest.fn();
 const eventIdValue = '887ab369df634e74aea708bcafe1a175';
 
-function renderComponent({
-  value = eventIdValue,
-  status,
-}: Omit<EventId, 'value'> & Partial<Pick<EventId, 'value'>>) {
-  return mountWithTheme(
-    <EventIdField onUpdateEventId={handleUpdateEventId} eventId={{value, status}} />
-  );
-}
+describe('EventIdField', function () {
+  it('default render', async function () {
+    const handleUpdateEventId = jest.fn();
 
-describe('EventIdField', () => {
-  it('default render', () => {
-    const wrapper = renderComponent({value: '', status: EventIdStatus.UNDEFINED});
-    const eventIdField = wrapper.find('Field');
-    expect(eventIdField.exists()).toBe(true);
-    expect(eventIdField.find('FieldLabel').text()).toEqual('Event ID (Optional)');
-    const eventIdFieldHelp =
-      'Providing an event ID will automatically provide you a list of suggested sources';
-    expect(eventIdField.find('QuestionTooltip').prop('title')).toEqual(eventIdFieldHelp);
-    expect(eventIdField.find('Tooltip').prop('title')).toEqual(eventIdFieldHelp);
-    const eventIdFieldInput = eventIdField.find('input');
-    expect(eventIdFieldInput.prop('value')).toEqual('');
-    expect(eventIdFieldInput.prop('placeholder')).toEqual('XXXXXXXXXXXXXX');
-    eventIdFieldInput.simulate('change', {
-      target: {value: '887ab369df634e74aea708bcafe1a175'},
-    });
-    eventIdFieldInput.simulate('blur');
+    render(
+      <EventIdField
+        onUpdateEventId={handleUpdateEventId}
+        eventId={{value: '', status: EventIdStatus.UNDEFINED}}
+      />
+    );
+
+    expect(screen.getByText('Event ID (Optional)')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('XXXXXXXXXXXXXX')).toBeInTheDocument();
+    expect(screen.getByRole('textbox')).toHaveValue('');
+
+    userEvent.hover(screen.getByTestId('more-information'));
+
+    expect(
+      await screen.findByText(
+        'Providing an event ID will automatically provide you a list of suggested sources'
+      )
+    ).toBeInTheDocument();
+
+    userEvent.type(
+      screen.getByRole('textbox'),
+      '887ab369df634e74aea708bcafe1a175{enter}'
+    );
+
     expect(handleUpdateEventId).toHaveBeenCalled();
   });
 
-  it('LOADING status', () => {
-    const wrapper = renderComponent({status: EventIdStatus.LOADING});
-    const eventIdField = wrapper.find('Field');
-    const eventIdFieldInput = eventIdField.find('input');
-    expect(eventIdFieldInput.prop('value')).toEqual(eventIdValue);
-    expect(eventIdField.find('FieldError')).toHaveLength(0);
-    expect(eventIdField.find('CloseIcon')).toHaveLength(0);
-    expect(eventIdField.find('FormSpinner')).toHaveLength(1);
-  });
-
-  it('LOADED status', () => {
-    const wrapper = renderComponent({status: EventIdStatus.LOADED});
-    const eventIdField = wrapper.find('Field');
-    const eventIdFieldInput = eventIdField.find('input');
-    expect(eventIdFieldInput.prop('value')).toEqual(eventIdValue);
-    expect(eventIdField.find('FieldError')).toHaveLength(0);
-    expect(eventIdField.find('CloseIcon')).toHaveLength(0);
-    const iconCheckmark = eventIdField.find('IconCheckmark');
-    expect(iconCheckmark).toHaveLength(1);
-    const iconCheckmarkColor = iconCheckmark.prop('color');
-    expect(theme[iconCheckmarkColor]).toBe(theme.green300);
-  });
-
-  it('ERROR status', () => {
-    const wrapper = renderComponent({status: EventIdStatus.ERROR});
-    const eventIdField = wrapper.find('Field');
-    const eventIdFieldInput = eventIdField.find('input');
-    expect(eventIdFieldInput.prop('value')).toEqual(eventIdValue);
-    expect(eventIdField.find('FieldError')).toHaveLength(1);
-    const closeIcon = eventIdField.find('CloseIcon');
-    expect(closeIcon).toHaveLength(1);
-    expect(closeIcon.find('Tooltip').prop('title')).toEqual('Clear event ID');
-    const fieldErrorReason = eventIdField.find('FieldErrorReason');
-    expect(fieldErrorReason).toHaveLength(1);
-    expect(fieldErrorReason.text()).toEqual(
-      'An error occurred while fetching the suggestions based on this event ID'
+  it('LOADING status', function () {
+    render(
+      <EventIdField
+        onUpdateEventId={jest.fn()}
+        eventId={{value: eventIdValue, status: EventIdStatus.LOADING}}
+      />
     );
+
+    expect(screen.getByRole('textbox')).toHaveValue(eventIdValue);
+
+    expect(screen.getByTestId('saving')).toBeInTheDocument();
   });
 
-  it('INVALID status', () => {
-    const wrapper = renderComponent({status: EventIdStatus.INVALID});
-    const eventIdField = wrapper.find('Field');
-    const eventIdFieldInput = eventIdField.find('input');
-    expect(eventIdFieldInput.prop('value')).toEqual(eventIdValue);
-    expect(eventIdField.find('FieldError')).toHaveLength(1);
-    expect(eventIdField.find('CloseIcon')).toHaveLength(1);
-    const fieldErrorReason = eventIdField.find('FieldErrorReason');
-    expect(fieldErrorReason).toHaveLength(1);
-    expect(fieldErrorReason.text()).toEqual('This event ID is invalid');
-  });
-
-  it('NOTFOUND status', () => {
-    const wrapper = renderComponent({status: EventIdStatus.NOT_FOUND});
-    const eventIdField = wrapper.find('Field');
-    const eventIdFieldInput = eventIdField.find('input');
-    expect(eventIdFieldInput.prop('value')).toEqual(eventIdValue);
-    expect(eventIdField.find('FieldError')).toHaveLength(1);
-    expect(eventIdField.find('CloseIcon')).toHaveLength(1);
-    const fieldErrorReason = eventIdField.find('FieldErrorReason');
-    expect(fieldErrorReason).toHaveLength(1);
-    expect(fieldErrorReason.text()).toEqual(
-      'The chosen event ID was not found in projects you have access to'
+  it('LOADED status', function () {
+    render(
+      <EventIdField
+        onUpdateEventId={jest.fn()}
+        eventId={{value: eventIdValue, status: EventIdStatus.LOADED}}
+      />
     );
+
+    expect(screen.getByRole('textbox')).toHaveValue(eventIdValue);
+
+    expect(screen.queryByLabelText('Clear event ID')).not.toBeInTheDocument();
+
+    expect(screen.getByTestId('icon-check-mark')).toHaveAttribute('fill', theme.green300);
+  });
+
+  it('ERROR status', async function () {
+    render(
+      <EventIdField
+        onUpdateEventId={jest.fn()}
+        eventId={{value: eventIdValue, status: EventIdStatus.ERROR}}
+      />
+    );
+
+    userEvent.hover(screen.getByTestId('icon-close'));
+
+    expect(await screen.findByText('Clear event ID')).toBeInTheDocument();
+
+    expect(screen.getByRole('textbox')).toHaveValue(eventIdValue);
+
+    expect(
+      screen.getByText(
+        'An error occurred while fetching the suggestions based on this event ID'
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('INVALID status', function () {
+    render(
+      <EventIdField
+        onUpdateEventId={jest.fn()}
+        eventId={{value: eventIdValue, status: EventIdStatus.INVALID}}
+      />
+    );
+
+    expect(screen.getByRole('textbox')).toHaveValue(eventIdValue);
+
+    expect(screen.getByText('This event ID is invalid')).toBeInTheDocument();
+  });
+
+  it('NOTFOUND status', function () {
+    render(
+      <EventIdField
+        onUpdateEventId={jest.fn()}
+        eventId={{value: eventIdValue, status: EventIdStatus.NOT_FOUND}}
+      />
+    );
+
+    expect(screen.getByRole('textbox')).toHaveValue(eventIdValue);
+
+    expect(
+      screen.getByText('The chosen event ID was not found in projects you have access to')
+    ).toBeInTheDocument();
   });
 });

@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {Component, Fragment} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
@@ -22,7 +22,7 @@ import parseApiError from 'sentry/utils/parseApiError';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
-import PerfEventsTable from './perfEventsTable';
+import AllEventsTable from './allEventsTable';
 
 type Props = {
   api: Client;
@@ -36,17 +36,18 @@ type State = {
   loading: boolean;
   pageLinks: string;
   query: string;
-  renderPerfIssueEvents: boolean;
+  renderNewAllEventsTab: boolean;
 };
+
+const excludedTags = ['environment', 'issue', 'issue.id', 'performance.issues_ids'];
 
 class GroupEvents extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
 
     const queryParams = this.props.location.query;
-    const renderPerfIssueEvents =
+    const renderNewAllEventsTab =
       !!this.props.group.id &&
-      this.props.group.issueCategory === IssueCategory.PERFORMANCE &&
       this.props.organization.features.includes('performance-issues-all-events-tab');
 
     this.state = {
@@ -55,7 +56,7 @@ class GroupEvents extends Component<Props, State> {
       error: false,
       pageLinks: '',
       query: queryParams.query || '',
-      renderPerfIssueEvents,
+      renderNewAllEventsTab,
     };
   }
 
@@ -99,24 +100,26 @@ class GroupEvents extends Component<Props, State> {
       query: this.state.query,
     };
 
-    this.props.api.request(`/issues/${this.props.params.groupId}/events/`, {
-      query,
-      method: 'GET',
-      success: (data, _, resp) => {
-        this.setState({
-          eventList: data,
-          error: false,
-          loading: false,
-          pageLinks: resp?.getResponseHeader('Link') ?? '',
-        });
-      },
-      error: err => {
-        this.setState({
-          error: parseApiError(err),
-          loading: false,
-        });
-      },
-    });
+    if (!this.state.renderNewAllEventsTab) {
+      this.props.api.request(`/issues/${this.props.params.groupId}/events/`, {
+        query,
+        method: 'GET',
+        success: (data, _, resp) => {
+          this.setState({
+            eventList: data,
+            error: false,
+            loading: false,
+            pageLinks: resp?.getResponseHeader('Link') ?? '',
+          });
+        },
+        error: err => {
+          this.setState({
+            error: parseApiError(err),
+            loading: false,
+          });
+        },
+      });
+    }
   };
 
   renderNoQueryResults() {
@@ -135,18 +138,22 @@ class GroupEvents extends Component<Props, State> {
     );
   }
 
-  renderPerfIssueEvents() {
+  renderNewAllEventsTab() {
     return (
-      <PerfEventsTable
+      <AllEventsTable
         issueId={this.props.group.id}
+        isPerfIssue={this.props.group.issueCategory === IssueCategory.PERFORMANCE}
         location={this.props.location}
         organization={this.props.organization}
+        projectId={this.props.group.project.slug}
+        totalEventCount={this.props.group.count}
+        excludedTags={excludedTags}
       />
     );
   }
 
   renderSearchBar() {
-    const {renderPerfIssueEvents} = this.state;
+    const {renderNewAllEventsTab: renderPerfIssueEvents} = this.state;
 
     if (renderPerfIssueEvents) {
       return (
@@ -154,7 +161,7 @@ class GroupEvents extends Component<Props, State> {
           organization={this.props.organization}
           defaultQuery=""
           onSearch={this.handleSearch}
-          excludeEnvironment
+          excludedTags={excludedTags}
           query={this.state.query}
           hasRecentSearches={false}
         />
@@ -186,12 +193,12 @@ class GroupEvents extends Component<Props, State> {
   }
 
   renderBody() {
-    const {renderPerfIssueEvents} = this.state;
+    const {renderNewAllEventsTab} = this.state;
 
     let body: React.ReactNode;
 
-    if (renderPerfIssueEvents) {
-      return this.renderPerfIssueEvents();
+    if (renderNewAllEventsTab) {
+      return this.renderNewAllEventsTab();
     }
     if (this.state.loading) {
       body = <LoadingIndicator />;
@@ -206,9 +213,12 @@ class GroupEvents extends Component<Props, State> {
     }
 
     return (
-      <Panel className="event-list">
-        <PanelBody>{body}</PanelBody>
-      </Panel>
+      <Fragment>
+        <Panel className="event-list">
+          <PanelBody>{body}</PanelBody>
+        </Panel>
+        <Pagination pageLinks={this.state.pageLinks} />
+      </Fragment>
     );
   }
 
@@ -222,7 +232,6 @@ class GroupEvents extends Component<Props, State> {
               {this.renderSearchBar()}
             </FilterSection>
             {this.renderBody()}
-            <Pagination pageLinks={this.state.pageLinks} />
           </Wrapper>
         </Layout.Main>
       </Layout.Body>

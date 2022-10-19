@@ -45,8 +45,6 @@ export type HookName = keyof Hooks;
  * Route hooks.
  */
 export type RouteHooks = {
-  routes: RoutesHook;
-  'routes:admin': RoutesHook;
   'routes:api': RoutesHook;
   'routes:organization': RoutesHook;
 };
@@ -67,6 +65,7 @@ type MemberListHeaderProps = {
 };
 
 type DisabledAppStoreConnectMultiple = {organization: Organization};
+
 type DisabledCustomSymbolSources = {organization: Organization};
 
 type DisabledMemberTooltipProps = {children: React.ReactNode};
@@ -85,14 +84,10 @@ type FirstPartyIntegrationAdditionalCTAProps = {
 
 type GuideUpdateCallback = (nextGuide: Guide | null, opts: {dismissed?: boolean}) => void;
 
-type AlertsHeaderProps = {
-  organization: Organization;
-};
 /**
  * Component wrapping hooks
  */
 export type ComponentHooks = {
-  'component:alerts-header': () => React.ComponentType<AlertsHeaderProps>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
   'component:disabled-app-store-connect-multiple': () => React.ComponentType<DisabledAppStoreConnectMultiple>;
   'component:disabled-custom-symbol-sources': () => React.ComponentType<DisabledCustomSymbolSources>;
@@ -153,6 +148,8 @@ export type FeatureDisabledHooks = {
   'feature-disabled:discover-sidebar-item': FeatureDisabledHook;
   'feature-disabled:discover2-page': FeatureDisabledHook;
   'feature-disabled:discover2-sidebar-item': FeatureDisabledHook;
+  'feature-disabled:dynamic-sampling-advanced': FeatureDisabledHook;
+  'feature-disabled:dynamic-sampling-basic': FeatureDisabledHook;
   'feature-disabled:events-page': FeatureDisabledHook;
   'feature-disabled:events-sidebar-item': FeatureDisabledHook;
   'feature-disabled:grid-editable-actions': FeatureDisabledHook;
@@ -327,6 +324,11 @@ type AnalyticsTrackEventV2 = (
      * startSession set to true.
      */
     startSession?: boolean;
+
+    /**
+     * Optional unix timestamp
+     */
+    time?: number;
   }
 ) => void;
 

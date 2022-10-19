@@ -43,8 +43,6 @@ class ReplayRecordingSegment(Model):
     def delete(self, *args, **kwargs):
         from sentry.models import File
 
-        rv = super().delete(*args, **kwargs)
-
         try:
             file = File.objects.get(id=self.file_id)
         except ObjectDoesNotExist:
@@ -56,4 +54,5 @@ class ReplayRecordingSegment(Model):
         else:
             file.delete()
 
+        rv = super().delete(*args, **kwargs)
         return rv

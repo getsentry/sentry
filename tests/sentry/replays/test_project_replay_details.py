@@ -1,10 +1,14 @@
 import datetime
+from io import BytesIO
 from uuid import uuid4
 
 from django.urls import reverse
 
+from sentry.models import File
+from sentry.replays.models import ReplayRecordingSegment
 from sentry.replays.testutils import assert_expected_response, mock_expected_response, mock_replay
 from sentry.testutils import APITestCase, ReplaysSnubaTestCase
+from sentry.testutils.helpers import TaskRunner
 from sentry.testutils.silo import region_silo_test
 
 REPLAYS_FEATURES = {"organizations:session-replay": True}
@@ -131,3 +135,39 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
                 count_segments=3,
             )
             assert_expected_response(response_data["data"], expected_response)
+
+    def test_delete(self):
+        # test deleting as a member, as they should be able to
+        user = self.create_user(is_superuser=False)
+        self.create_member(user=user, organization=self.organization, role="member", teams=[])
+        self.login_as(user=user)
+
+        file = File.objects.create(name="recording-segment-0", type="application/octet-stream")
+        file.putfile(BytesIO(b"replay-recording-segment"))
+
+        recording_segment = ReplayRecordingSegment.objects.create(
+            replay_id=self.replay_id,
+            project_id=self.project.id,
+            segment_id=0,
+            file_id=file.id,
+        )
+
+        file_id = file.id
+        recording_segment_id = recording_segment.id
+
+        with self.feature(REPLAYS_FEATURES):
+            with TaskRunner():
+                response = self.client.delete(self.url)
+                assert response.status_code == 202
+
+        try:
+            ReplayRecordingSegment.objects.get(id=recording_segment_id)
+            assert False, "Recording Segment was not deleted."
+        except ReplayRecordingSegment.DoesNotExist:
+            pass
+
+        try:
+            File.objects.get(id=file_id)
+            assert False, "File was not deleted."
+        except File.DoesNotExist:
+            pass

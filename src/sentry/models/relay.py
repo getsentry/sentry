@@ -3,10 +3,10 @@ from django.utils import timezone
 from django.utils.functional import cached_property
 from sentry_relay import PublicKey
 
-from sentry.db.models import Model, control_silo_model
+from sentry.db.models import Model, control_silo_with_replication_model
 
 
-@control_silo_model
+@control_silo_with_replication_model
 class RelayUsage(Model):
     __include_in_export__ = True
 
@@ -22,7 +22,7 @@ class RelayUsage(Model):
         db_table = "sentry_relayusage"
 
 
-@control_silo_model
+@control_silo_with_replication_model
 class Relay(Model):
     __include_in_export__ = True
 

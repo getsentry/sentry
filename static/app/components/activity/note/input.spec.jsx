@@ -1,5 +1,4 @@
-import changeReactMentionsInput from 'sentry-test/changeReactMentionsInput';
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import NoteInput from 'sentry/components/activity/note/input';
 
@@ -7,129 +6,96 @@ describe('NoteInput', function () {
   describe('New item', function () {
     const props = {
       group: {project: {}, id: 'groupId'},
-      memberList: [],
-      teams: [],
     };
 
     it('renders', function () {
-      mountWithTheme(<NoteInput {...props} />);
+      render(<NoteInput {...props} />);
     });
 
     it('submits when meta + enter is pressed', function () {
       const onCreate = jest.fn();
-      const wrapper = mountWithTheme(<NoteInput {...props} onCreate={onCreate} />);
+      render(<NoteInput {...props} onCreate={onCreate} />);
 
-      const input = wrapper.find('textarea');
-
-      changeReactMentionsInput(wrapper, 'something');
-
-      input.simulate('keyDown', {key: 'Enter', metaKey: true});
+      userEvent.type(screen.getByRole('textbox'), 'something{meta}{enter}');
       expect(onCreate).toHaveBeenCalled();
     });
 
     it('submits when ctrl + enter is pressed', function () {
       const onCreate = jest.fn();
-      const wrapper = mountWithTheme(<NoteInput {...props} onCreate={onCreate} />);
+      render(<NoteInput {...props} onCreate={onCreate} />);
 
-      const input = wrapper.find('textarea');
-
-      changeReactMentionsInput(wrapper, 'something');
-
-      input.simulate('keyDown', {key: 'Enter', ctrlKey: true});
+      userEvent.type(screen.getByRole('textbox'), 'something{ctrl}{enter}');
       expect(onCreate).toHaveBeenCalled();
     });
 
     it('does not submit when nothing is entered', function () {
       const onCreate = jest.fn();
-      const wrapper = mountWithTheme(<NoteInput {...props} onCreate={onCreate} />);
+      render(<NoteInput {...props} onCreate={onCreate} />);
 
-      const input = wrapper.find('textarea');
-      input.simulate('keyDown', {key: 'Enter', metaKey: true});
+      const textbox = screen.getByRole('textbox');
+      userEvent.type(textbox, '{ctrl}{enter}');
       expect(onCreate).not.toHaveBeenCalled();
     });
 
     it('handles errors', function () {
-      const errorJSON = {detail: {message: '', code: 401, extra: ''}};
-      const wrapper = mountWithTheme(
-        <NoteInput {...props} error={!!errorJSON} errorJSON={errorJSON} />
-      );
+      const errorJSON = {detail: {message: 'Note is bad', code: 401, extra: ''}};
+      render(<NoteInput {...props} error={!!errorJSON} errorJSON={errorJSON} />);
 
-      const input = wrapper.find('textarea');
-
-      changeReactMentionsInput(wrapper, 'something');
-
-      input.simulate('keyDown', {key: 'Enter', ctrlKey: true});
-      wrapper.update();
-      expect(wrapper.find('ErrorMessage')).toHaveLength(1);
+      userEvent.type(screen.getByRole('textbox'), 'something{ctrl}{enter}');
+      expect(screen.getByText('Note is bad')).toBeInTheDocument();
     });
 
     it('has a disabled submit button when no text is entered', function () {
-      const errorJSON = {detail: {message: '', code: 401, extra: ''}};
-      const wrapper = mountWithTheme(
-        <NoteInput {...props} error={!!errorJSON} errorJSON={errorJSON} />
-      );
+      render(<NoteInput {...props} />);
 
-      expect(wrapper.find('button[type="submit"]').prop('disabled')).toBe(true);
+      expect(screen.getByRole('button', {name: 'Post Comment'})).toBeDisabled();
     });
 
     it('enables the submit button when text is entered', function () {
-      const errorJSON = {detail: {message: '', code: 401, extra: ''}};
-      const wrapper = mountWithTheme(
-        <NoteInput {...props} error={!!errorJSON} errorJSON={errorJSON} />
-      );
+      render(<NoteInput {...props} />);
+      userEvent.type(screen.getByRole('textbox'), 'something');
 
-      changeReactMentionsInput(wrapper, 'something');
-
-      expect(wrapper.find('button[type="submit"]').prop('disabled')).toBe(false);
+      expect(screen.getByRole('button', {name: 'Post Comment'})).toBeEnabled();
     });
   });
 
   describe('Existing Item', function () {
-    const defaultProps = {
+    const props = {
       group: {project: {}, id: 'groupId'},
-      modelId: 'item-id',
+      noteId: 'item-id',
       text: 'an existing item',
-      memberList: [],
-      teams: [],
     };
-
-    const createWrapper = props =>
-      mountWithTheme(<NoteInput {...defaultProps} {...props} />);
 
     it('edits existing message', function () {
       const onUpdate = jest.fn();
-      const wrapper = createWrapper({onUpdate});
-
-      expect(wrapper.find('NoteInputNavTabLink').first().text()).toBe('Edit');
+      render(<NoteInput {...props} onUpdate={onUpdate} />);
 
       // Switch to preview
-      wrapper.find('NoteInputNavTabLink').last().simulate('click');
+      userEvent.click(screen.getByRole('tab', {name: 'Preview'}));
 
-      expect(wrapper.find('NotePreview').text()).toBe('an existing item\n');
+      expect(screen.getByText('an existing item')).toBeInTheDocument();
 
       // Switch to edit
-      wrapper.find('NoteInputNavTabLink').first().simulate('click');
+      userEvent.click(screen.getByRole('tab', {name: 'Edit'}));
 
-      expect(wrapper.find('textarea').prop('value')).toBe('an existing item');
+      expect(screen.getByRole('textbox')).toHaveTextContent('an existing item');
 
       // Can edit text
-      changeReactMentionsInput(wrapper, 'new item');
+      userEvent.type(screen.getByRole('textbox'), ' new content{ctrl}{enter}');
 
-      wrapper.find('textarea').simulate('keyDown', {key: 'Enter', ctrlKey: true});
-
-      expect(onUpdate).toHaveBeenCalledWith({text: 'new item', mentions: []});
+      expect(onUpdate).toHaveBeenCalledWith({
+        text: 'an existing item new content',
+        mentions: [],
+      });
     });
 
     it('canels editing and moves to preview mode', function () {
       const onEditFinish = jest.fn();
-      const wrapper = createWrapper({onEditFinish});
+      render(<NoteInput {...props} onEditFinish={onEditFinish} />);
 
-      changeReactMentionsInput(wrapper, 'new value');
+      userEvent.type(screen.getByRole('textbox'), ' new content');
 
-      expect(wrapper.find('FooterButton').first().text()).toBe('Cancel');
-
-      wrapper.find('FooterButton').first().simulate('click');
-
+      userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
       expect(onEditFinish).toHaveBeenCalled();
     });
   });

@@ -111,6 +111,10 @@ SAMPLED_TASKS = {
     "sentry.tasks.reports.prepare_organization_report": 0.1,
     "sentry.tasks.reports.deliver_organization_user_report": 0.01,
     "sentry.tasks.process_buffer.process_incr": 0.01,
+    "sentry.replays.tasks.delete_recording_segments": settings.SAMPLED_DEFAULT_RATE,
+    "sentry.tasks.weekly_reports.schedule_organizations": settings.SAMPLED_DEFAULT_RATE,
+    "sentry.tasks.weekly_reports.prepare_organization_report": 0.1,
+    "sentry.profiles.task.process_profile": 0.01,
 }
 
 if settings.ADDITIONAL_SAMPLED_TASKS:
@@ -310,6 +314,14 @@ def configure_sdk():
     else:
         experimental_transport = None
 
+    if settings.SENTRY_PROFILING_ENABLED:
+        sdk_options.setdefault("_experiments", {}).update(
+            {
+                "profiles_sample_rate": settings.SENTRY_PROFILES_SAMPLE_RATE,
+                "profiler_mode": settings.SENTRY_PROFILER_MODE,
+            }
+        )
+
     class MultiplexingTransport(sentry_sdk.transport.Transport):
         def capture_envelope(self, envelope):
             # Temporarily capture envelope counts to compare to ingested
@@ -375,6 +387,9 @@ def configure_sdk():
                     )
 
     sentry_sdk.init(
+        # set back the upstream_dsn popped above since we need a default dsn on the client
+        # for dynamic sampling context public_key population
+        dsn=upstream_dsn,
         transport=MultiplexingTransport(),
         integrations=[
             DjangoAtomicIntegration(),

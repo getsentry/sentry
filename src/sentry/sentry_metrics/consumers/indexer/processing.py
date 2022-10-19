@@ -3,6 +3,7 @@ from typing import Callable, Mapping
 
 from arroyo.types import Message
 
+from sentry import options
 from sentry.sentry_metrics.configuration import IndexerStorage, MetricsIngestConfiguration
 from sentry.sentry_metrics.consumers.indexer.batch import IndexerBatch
 from sentry.sentry_metrics.consumers.indexer.common import MessageBatch
@@ -63,7 +64,13 @@ class MessageProcessor:
         The value of the message is what we need to parse and then translate
         using the indexer.
         """
-        batch = IndexerBatch(self._config.use_case_id, outer_message)
+        should_index_tag_values = (
+            options.get(self._config.index_tag_values_option_name)
+            if self._config.index_tag_values_option_name
+            else True
+        )
+
+        batch = IndexerBatch(self._config.use_case_id, outer_message, should_index_tag_values)
 
         with metrics.timer("metrics_consumer.check_cardinality_limits"):
             cardinality_limiter = cardinality_limiter_factory.get_ratelimiter(self._config)

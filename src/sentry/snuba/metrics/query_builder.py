@@ -9,7 +9,7 @@ __all__ = (
     "translate_meta_results",
 )
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Set, Tuple, Union
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
 from snuba_sdk import (
     AliasedExpression,
@@ -44,6 +44,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.fields import metric_object_factory
 from sentry.snuba.metrics.fields.base import (
     COMPOSITE_ENTITY_CONSTITUENT_ALIAS,
+    MetricExpressionBase,
     generate_bottom_up_dependency_tree_for_metrics,
     org_id_from_projects,
 )
@@ -53,12 +54,18 @@ from sentry.snuba.metrics.naming_layer.mapping import (
     parse_expression,
 )
 from sentry.snuba.metrics.naming_layer.public import PUBLIC_EXPRESSION_REGEX
-from sentry.snuba.metrics.query import MetricField, MetricGroupByField, MetricsQuery
+from sentry.snuba.metrics.query import (
+    MetricConditionField,
+    MetricField,
+    MetricGroupByField,
+    MetricsQuery,
+)
 from sentry.snuba.metrics.query import OrderBy as MetricsOrderBy
 from sentry.snuba.metrics.query import Tag
 from sentry.snuba.metrics.utils import (
     DATASET_COLUMNS,
     FIELD_ALIAS_MAPPINGS,
+    NON_RESOLVABLE_TAG_VALUES,
     OPERATIONS_PERCENTILES,
     TS_COL_GROUP,
     TS_COL_QUERY,
@@ -88,7 +95,7 @@ def parse_field(field: str) -> MetricField:
 # These are only allowed because the parser in metrics_sessions_v2
 # generates them. Long term we should not allow any functions, but rather
 # a limited expression language with only AND, OR, IN and NOT IN
-FUNCTION_ALLOWLIST = ("and", "or", "equals", "in")
+FUNCTION_ALLOWLIST = ("and", "or", "equals", "in", "tuple", "has")
 
 
 def resolve_tags(
@@ -103,8 +110,11 @@ def resolve_tags(
     if isinstance(input_, (list, tuple)):
         elements = [resolve_tags(use_case_id, org_id, item, is_tag_value=True) for item in input_]
         # Lists are either arguments to IN or NOT IN. In both cases, we can
-        # drop unknown strings:
-        return [x for x in elements if x != STRING_NOT_FOUND]
+        # drop unknown strings.
+        filtered_elements = [x for x in elements if x != STRING_NOT_FOUND]
+        # We check whether it is a list or tuple in order to know which type to return. This is needed
+        # because in the "tuple" function the parameters must be a list of tuples and not a list of lists.
+        return filtered_elements if isinstance(input_, list) else tuple(filtered_elements)
     if isinstance(input_, Function):
         if input_.function == "ifNull":
             # This was wrapped automatically by QueryBuilder, remove wrapper
@@ -174,17 +184,21 @@ def resolve_tags(
             conditions=[resolve_tags(use_case_id, org_id, item) for item in input_.conditions]
         )
     if isinstance(input_, Column):
-        if input_.name == "project_id":
+        # If a column has the name belonging to the set, it means that we don't need to resolve its name.
+        if input_.name in frozenset(["project_id", "tags.key"]):
             return input_
+
         # HACK: Some tags already take the form "tags[...]" in discover, take that into account:
         if input_.subscriptable == "tags":
             # Handles translating field aliases to their "metrics" equivalent, for example
             # "project" -> "project_id"
             if input_.key in FIELD_ALIAS_MAPPINGS:
                 return Column(FIELD_ALIAS_MAPPINGS[input_.key])
+
             name = input_.key
         else:
             name = input_.name
+
         return Column(name=resolve_tag_key(use_case_id, org_id, name))
     if isinstance(input_, str):
         if is_tag_value:
@@ -332,10 +346,15 @@ def parse_tag(use_case_id: UseCaseKey, org_id: int, tag_string: str) -> str:
     return reverse_resolve(use_case_id, org_id, tag_key)
 
 
+def get_metric_object_from_metric_field(metric_field: MetricField) -> MetricExpressionBase:
+    """Get the metric object from a metric field"""
+    return metric_object_factory(op=metric_field.op, metric_mri=metric_field.metric_mri)
+
+
 def translate_meta_results(
     meta: Sequence[Dict[str, str]],
-    query_metric_fields: Set[str],
-    groupby_aliases: Set[str],
+    alias_to_metric_field: Dict[str, MetricField],
+    alias_to_metric_group_by_field: Dict[str, MetricGroupByField],
 ) -> Sequence[Dict[str, str]]:
     """
     Translate meta results:
@@ -350,7 +369,7 @@ def translate_meta_results(
 
         # Column name could be either a mri, ["bucketed_time"] or a tag or a dataset col like
         # "project_id" or "metric_id"
-        is_tag = column_name in groupby_aliases
+        is_tag = column_name in alias_to_metric_group_by_field.keys()
         is_time_col = column_name in [TS_COL_GROUP]
         is_dataset_col = column_name in DATASET_COLUMNS
 
@@ -366,10 +385,31 @@ def translate_meta_results(
                     # it is a safe assumption to make.
                     parent_alias = record["name"].split(COMPOSITE_ENTITY_CONSTITUENT_ALIAS)[1]
                     if parent_alias not in {elem["name"] for elem in results}:
-                        results.append({"name": parent_alias, "type": record["type"]})
+                        try:
+                            defined_parent_meta_type = get_metric_object_from_metric_field(
+                                alias_to_metric_field[parent_alias]
+                            ).get_meta_type()
+                        except KeyError:
+                            defined_parent_meta_type = None
+
+                        results.append(
+                            {
+                                "name": parent_alias,
+                                "type": record["type"]
+                                if defined_parent_meta_type is None
+                                else defined_parent_meta_type,
+                            }
+                        )
                     continue
-                if record["name"] not in query_metric_fields:
+                if record["name"] not in alias_to_metric_field.keys():
                     raise InvalidParams(f"Field {record['name']} was not in the select clause")
+
+                defined_parent_meta_type = get_metric_object_from_metric_field(
+                    alias_to_metric_field[record["name"]]
+                ).get_meta_type()
+                record["type"] = (
+                    record["type"] if defined_parent_meta_type is None else defined_parent_meta_type
+                )
             except InvalidParams:
                 # XXX(ahmed): We get into this branch when we are tying to generate inferred types
                 # for instances of `CompositeEntityDerivedMetric` as type needs to be inferred from
@@ -385,7 +425,17 @@ def translate_meta_results(
             if is_tag:
                 # since we changed value from int to str we need
                 # also want to change type
-                record["type"] = "string"
+                metric_groupby_field = alias_to_metric_group_by_field[record["name"]]
+                if isinstance(metric_groupby_field.field, MetricField):
+                    defined_parent_meta_type = get_metric_object_from_metric_field(
+                        metric_groupby_field.field
+                    ).get_meta_type()
+                else:
+                    defined_parent_meta_type = None
+
+                record["type"] = (
+                    "string" if defined_parent_meta_type is None else defined_parent_meta_type
+                )
             elif is_time_col or is_dataset_col:
                 record["name"] = column_name
 
@@ -416,6 +466,49 @@ class SnubaQueryBuilder:
 
         self._alias_to_metric_field = {field.alias: field for field in self._metrics_query.select}
 
+    @staticmethod
+    def generate_snql_for_groupby_field(
+        metric_groupby_obj: MetricGroupByField,
+        use_case_id: UseCaseKey,
+        org_id: int,
+        projects: Sequence[Project],
+        is_column: bool = False,
+    ) -> Union[Column, AliasedExpression, Function]:
+        if isinstance(metric_groupby_obj.field, str):
+            # Handles the case when we are trying to group by `project` for example, but we want
+            # to translate it to `project_id` as that is what the metrics dataset understands
+            if metric_groupby_obj.field in FIELD_ALIAS_MAPPINGS:
+                column_name = FIELD_ALIAS_MAPPINGS[metric_groupby_obj.field]
+            elif metric_groupby_obj.field in FIELD_ALIAS_MAPPINGS.values():
+                column_name = metric_groupby_obj.field
+            else:
+                assert isinstance(metric_groupby_obj.field, Tag)
+                column_name = resolve_tag_key(use_case_id, org_id, metric_groupby_obj.field)
+            return (
+                AliasedExpression(
+                    exp=Column(column_name),
+                    alias=metric_groupby_obj.alias,
+                )
+                if not is_column
+                else Column(column_name)
+            )
+
+        elif isinstance(metric_groupby_obj.field, MetricField):
+            try:
+                metric_expression = metric_object_factory(
+                    metric_groupby_obj.field.op, metric_groupby_obj.field.metric_mri
+                )
+                return metric_expression.generate_groupby_statements(
+                    use_case_id=use_case_id,
+                    alias=metric_groupby_obj.field.alias,
+                    params=metric_groupby_obj.field.params,
+                    projects=projects,
+                )[0]
+            except IndexError:
+                raise InvalidParams(f"Cannot resolve {metric_groupby_obj.field} into SnQL")
+        else:
+            raise NotImplementedError(f"Unsupported groupby field: {metric_groupby_obj.field}")
+
     def _build_where(self) -> List[Union[BooleanCondition, Condition]]:
         where: List[Union[BooleanCondition, Condition]] = [
             Condition(Column("org_id"), Op.EQ, self._org_id),
@@ -423,7 +516,39 @@ class SnubaQueryBuilder:
             Condition(Column(TS_COL_QUERY), Op.GTE, self._metrics_query.start),
             Condition(Column(TS_COL_QUERY), Op.LT, self._metrics_query.end),
         ]
-        filter_ = resolve_tags(self._use_case_id, self._org_id, self._metrics_query.where)
+        if not self._metrics_query.where:
+            return where
+
+        snuba_conditions = []
+        # Adds filters that do not need to be resolved because they are instances of `MetricConditionField`
+        metric_condition_filters = []
+        for condition in self._metrics_query.where:
+            if isinstance(condition, MetricConditionField):
+                metric_expression = metric_object_factory(
+                    condition.lhs.op, condition.lhs.metric_mri
+                )
+                try:
+                    metric_condition_filters.append(
+                        Condition(
+                            lhs=metric_expression.generate_where_statements(
+                                use_case_id=self._use_case_id,
+                                params=condition.lhs.params,
+                                projects=self._projects,
+                                alias=condition.lhs.alias,
+                            )[0],
+                            op=condition.op,
+                            rhs=condition.rhs,
+                        )
+                    )
+                except IndexError:
+                    raise InvalidParams(f"Cannot resolve {condition.lhs} into SnQL")
+            else:
+                snuba_conditions.append(condition)
+
+        if metric_condition_filters:
+            where.extend(metric_condition_filters)
+
+        filter_ = resolve_tags(self._use_case_id, self._org_id, snuba_conditions)
         if filter_:
             where.extend(filter_)
 
@@ -433,33 +558,14 @@ class SnubaQueryBuilder:
         groupby_cols = []
 
         for metric_groupby_obj in self._metrics_query.groupby or []:
-            # Handles the case when we are trying to group by `project` for example, but we want
-            # to translate it to `project_id` as that is what the metrics dataset understands
-            if metric_groupby_obj.name in FIELD_ALIAS_MAPPINGS:
-                groupby_cols.append(
-                    AliasedExpression(
-                        exp=Column(FIELD_ALIAS_MAPPINGS[metric_groupby_obj.name]),
-                        alias=metric_groupby_obj.alias,
-                    )
+            groupby_cols.append(
+                self.generate_snql_for_groupby_field(
+                    metric_groupby_obj=metric_groupby_obj,
+                    use_case_id=self._use_case_id,
+                    org_id=self._org_id,
+                    projects=self._projects,
                 )
-            elif metric_groupby_obj.name in FIELD_ALIAS_MAPPINGS.values():
-                groupby_cols.append(
-                    AliasedExpression(
-                        exp=Column(metric_groupby_obj.name), alias=metric_groupby_obj.alias
-                    )
-                )
-            else:
-                assert isinstance(metric_groupby_obj.name, Tag)
-                groupby_cols.append(
-                    AliasedExpression(
-                        exp=Column(
-                            resolve_tag_key(
-                                self._use_case_id, self._org_id, metric_groupby_obj.name
-                            )
-                        ),
-                        alias=metric_groupby_obj.alias,
-                    )
-                )
+            )
         return groupby_cols
 
     def _build_orderby(self) -> Optional[List[OrderBy]]:
@@ -501,11 +607,35 @@ class SnubaQueryBuilder:
 
         if self._metrics_query.include_series:
             series_limit = limit.limit * intervals_len
+
+            if self._use_case_id == UseCaseKey.PERFORMANCE:
+                time_groupby_column = self.__generate_time_groupby_column_for_discover_queries(
+                    self._metrics_query.interval
+                )
+            else:
+                time_groupby_column = Column(TS_COL_GROUP)
+
             rv["series"] = totals_query.set_limit(series_limit).set_groupby(
-                list(totals_query.groupby or []) + [Column(TS_COL_GROUP)]
+                list(totals_query.groupby or []) + [time_groupby_column]
             )
 
         return rv
+
+    @staticmethod
+    def __generate_time_groupby_column_for_discover_queries(interval: int) -> Function:
+        return Function(
+            function="toStartOfInterval",
+            parameters=[
+                Column(name="timestamp"),
+                Function(
+                    function="toIntervalSecond",
+                    parameters=[interval],
+                    alias=None,
+                ),
+                "Universal",
+            ],
+            alias=TS_COL_GROUP,
+        )
 
     def __update_query_dicts_with_component_entities(
         self, component_entities, metric_mri_to_obj_dict, fields_in_entities, parent_alias
@@ -631,6 +761,7 @@ class SnubaQueryBuilder:
                             self._metrics_query.start,
                             self._metrics_query.end,
                             self._metrics_query.granularity.granularity,
+                            interval=self._metrics_query.interval,
                         )
                     )
                 ),
@@ -750,9 +881,17 @@ class SnubaResultConverter:
                     for data in subresults[k]["data"]:
                         self._extract_data(data, groups)
 
+        # Creating this dictionary serves the purpose of having a mapping from the alias of a groupBy column to the
+        # original groupBy column, and we need this to determine for which tag values we don't need to reverse resolve
+        # in the indexer. As an example, we do not want to reverse resolve tag values for project_ids.
+        # Another exception is `team_key_transaction` derived op since we don't want to reverse resolve its value as
+        # it is just a boolean. Therefore we rely on creating a mapping from the alias to the operation in this case
+        # to determine whether we need to reverse the tag value or not.
         groupby_alias_to_groupby_column = (
             {
-                metric_groupby_obj.alias: metric_groupby_obj.name
+                metric_groupby_obj.alias: metric_groupby_obj.field
+                if isinstance(metric_groupby_obj.field, str)
+                else metric_groupby_obj.field.op
                 for metric_groupby_obj in self._metrics_query.groupby
             }
             if self._metrics_query.groupby
@@ -768,8 +907,7 @@ class SnubaResultConverter:
                             self._use_case_id, self._organization_id, value, weak=True
                         ),
                     )
-                    if groupby_alias_to_groupby_column.get(key)
-                    not in set(FIELD_ALIAS_MAPPINGS.values()) | set(FIELD_ALIAS_MAPPINGS.keys())
+                    if groupby_alias_to_groupby_column.get(key) not in NON_RESOLVABLE_TAG_VALUES
                     else (key, value)
                     for key, value in tags
                 ),

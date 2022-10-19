@@ -4,7 +4,7 @@ import type {Location} from 'history';
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
-import {NetworkSpan} from 'sentry/views/replays/detail/network/utils';
+import type {NetworkSpan} from 'sentry/views/replays/types';
 
 import useDomFilters, {FilterFields} from './useNetworkFilters';
 
@@ -18,6 +18,8 @@ const mockBrowserHistoryPush = browserHistory.push as jest.MockedFunction<
 
 const networkSpans: NetworkSpan[] = [
   {
+    id: '0',
+    timestamp: 1663131080555.4,
     op: 'navigation.navigate',
     description: 'http://localhost:3000/',
     startTimestamp: 1663131080.5554,
@@ -27,6 +29,8 @@ const networkSpans: NetworkSpan[] = [
     },
   },
   {
+    id: '1',
+    timestamp: 1663131080576.7,
     op: 'resource.link',
     description: 'http://localhost:3000/static/css/main.1856e8e3.chunk.css',
     startTimestamp: 1663131080.5767,
@@ -36,6 +40,8 @@ const networkSpans: NetworkSpan[] = [
     },
   },
   {
+    id: '2',
+    timestamp: 1663131080577.0998,
     op: 'resource.script',
     description: 'http://localhost:3000/static/js/2.3b866bed.chunk.js',
     startTimestamp: 1663131080.5770998,
@@ -45,6 +51,8 @@ const networkSpans: NetworkSpan[] = [
     },
   },
   {
+    id: '3',
+    timestamp: 1663131080641,
     op: 'resource.fetch',
     description: 'https://pokeapi.co/api/v2/pokemon',
     startTimestamp: 1663131080.641,
@@ -55,6 +63,8 @@ const networkSpans: NetworkSpan[] = [
     },
   },
   {
+    id: '4',
+    timestamp: 1663131080642.2,
     op: 'resource.img',
     description: 'http://localhost:3000/static/media/logo.ddd5084d.png',
     startTimestamp: 1663131080.6422,
@@ -64,6 +74,8 @@ const networkSpans: NetworkSpan[] = [
     },
   },
   {
+    id: '5',
+    timestamp: 1663131080644.7997,
     op: 'resource.css',
     description:
       'http://localhost:3000/static/media/glyphicons-halflings-regular.448c34a5.woff2',
@@ -74,6 +86,8 @@ const networkSpans: NetworkSpan[] = [
     },
   },
   {
+    id: '6',
+    timestamp: 1663131082346,
     op: 'navigation.push',
     description: '/mypokemon',
     startTimestamp: 1663131082.346,
@@ -81,6 +95,8 @@ const networkSpans: NetworkSpan[] = [
     data: {},
   },
   {
+    id: '7',
+    timestamp: 1663131092471,
     op: 'resource.fetch',
     description: 'https://pokeapi.co/api/v2/pokemon/pikachu',
     startTimestamp: 1663131092.471,
@@ -91,6 +107,8 @@ const networkSpans: NetworkSpan[] = [
     },
   },
   {
+    id: '8',
+    timestamp: 1663131120198,
     op: 'resource.fetch',
     description: 'https://pokeapi.co/api/v2/pokemon/mewtu',
     startTimestamp: 1663131120.198,
@@ -126,7 +144,9 @@ describe('useDomFilters', () => {
         query: {f_n_type: TYPE_FILTER, f_n_status: STATUS_FILTER},
       } as Location<FilterFields>);
 
-    const {result, rerender} = reactHooks.renderHook(() => useDomFilters({networkSpans}));
+    const {result, rerender} = reactHooks.renderHook(useDomFilters, {
+      initialProps: {networkSpans},
+    });
 
     result.current.setType(TYPE_FILTER);
     expect(browserHistory.push).toHaveBeenLastCalledWith({
@@ -166,7 +186,7 @@ describe('useDomFilters', () => {
       query: {},
     } as Location<FilterFields>);
 
-    const {result} = reactHooks.renderHook(() => useDomFilters({networkSpans}));
+    const {result} = reactHooks.renderHook(useDomFilters, {initialProps: {networkSpans}});
     expect(result.current.items.length).toEqual(9);
   });
 
@@ -178,7 +198,7 @@ describe('useDomFilters', () => {
       },
     } as Location<FilterFields>);
 
-    const {result} = reactHooks.renderHook(() => useDomFilters({networkSpans}));
+    const {result} = reactHooks.renderHook(useDomFilters, {initialProps: {networkSpans}});
     expect(result.current.items.length).toEqual(2);
   });
 
@@ -190,7 +210,7 @@ describe('useDomFilters', () => {
       },
     } as Location<FilterFields>);
 
-    const {result} = reactHooks.renderHook(() => useDomFilters({networkSpans}));
+    const {result} = reactHooks.renderHook(useDomFilters, {initialProps: {networkSpans}});
     expect(result.current.items.length).toEqual(3);
   });
 
@@ -202,7 +222,7 @@ describe('useDomFilters', () => {
       },
     } as Location<FilterFields>);
 
-    const {result} = reactHooks.renderHook(() => useDomFilters({networkSpans}));
+    const {result} = reactHooks.renderHook(useDomFilters, {initialProps: {networkSpans}});
     expect(result.current.items.length).toEqual(1);
   });
 
@@ -216,7 +236,7 @@ describe('useDomFilters', () => {
       },
     } as Location<FilterFields>);
 
-    const {result} = reactHooks.renderHook(() => useDomFilters({networkSpans}));
+    const {result} = reactHooks.renderHook(useDomFilters, {initialProps: {networkSpans}});
     expect(result.current.items.length).toEqual(1);
   });
 });

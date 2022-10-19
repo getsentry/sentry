@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useContext} from 'react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
@@ -10,14 +10,14 @@ import {IconAdd, IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {OrganizationSummary} from 'sentry/types';
-import useOrganization from 'sentry/utils/useOrganization';
 import useResolveRoute from 'sentry/utils/useResolveRoute';
 import withOrganizations from 'sentry/utils/withOrganizations';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import Divider from './divider.styled';
 
 function CreateOrganization({canCreateOrganization}: {canCreateOrganization: boolean}) {
-  const currentOrganization = useOrganization();
+  const currentOrganization = useContext(OrganizationContext);
   const route = useResolveRoute('/organizations/new/');
 
   if (!canCreateOrganization) {
@@ -26,7 +26,7 @@ function CreateOrganization({canCreateOrganization}: {canCreateOrganization: boo
 
   const menuItemProps: Partial<React.ComponentProps<typeof SidebarMenuItem>> = {};
 
-  if (currentOrganization.features.includes('customer-domains')) {
+  if (currentOrganization?.features.includes('customer-domains')) {
     menuItemProps.href = route;
     menuItemProps.openInNewTab = false;
   } else {

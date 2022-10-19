@@ -3,7 +3,6 @@ from contextlib import contextmanager
 from unittest import mock
 
 import pytest
-from google.oauth2.credentials import Credentials
 from google.rpc.status_pb2 import Status
 
 from sentry.nodestore.bigtable.backend import BigtableKVStorage, BigtableNodeStorage
@@ -78,15 +77,7 @@ def get_temporary_bigtable_nodestorage() -> BigtableNodeStorage:
             "Bigtable is not available, set BIGTABLE_EMULATOR_HOST enironment variable to enable"
         )
 
-    # The bigtable emulator requires _something_ to be passed as credentials,
-    # even if they're totally bogus ones.
-    ns = BigtableNodeStorage(
-        project="test",
-        credentials=Credentials.from_authorized_user_info(
-            {key: "invalid" for key in ["client_id", "refresh_token", "client_secret"]}
-        ),
-    )
-
+    ns = BigtableNodeStorage(project="test")
     ns.bootstrap()
 
     try:

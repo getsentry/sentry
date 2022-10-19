@@ -3,10 +3,11 @@ import math
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Dict, Literal, Optional, Sequence, Set, Union
+from functools import cached_property
+from typing import Dict, Literal, Optional, Sequence, Set, Tuple, Union
 
-from snuba_sdk import Column, Direction, Granularity, Limit, Offset
-from snuba_sdk.conditions import Condition, ConditionGroup
+from snuba_sdk import Column, Direction, Granularity, Limit, Offset, Op
+from snuba_sdk.conditions import BooleanCondition, Condition
 
 from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics.configuration import UseCaseKey
@@ -21,6 +22,7 @@ from ...release_health.base import AllowedResolution
 from .naming_layer.mapping import get_public_name_from_mri
 from .utils import (
     MAX_POINTS,
+    METRICS_LAYER_GRANULARITIES,
     OPERATIONS,
     UNALLOWED_TAGS,
     DerivedMetricParseException,
@@ -32,7 +34,7 @@ from .utils import (
 class MetricField:
     op: Optional[MetricOperationType]
     metric_mri: str
-    params: Optional[Dict[str, Union[str, int, float]]] = None
+    params: Optional[Dict[str, Union[str, int, float, Sequence[Tuple[Union[str, int]]]]]] = None
     alias: Optional[str] = None
 
     def __post_init__(self) -> None:
@@ -51,15 +53,51 @@ class MetricField:
         metric_name = get_public_name_from_mri(self.metric_mri)
         return f"{self.op}({metric_name})" if self.op else metric_name
 
+    def __hash__(self) -> int:
+        hashable_list = []
+        if self.op is not None:
+            hashable_list.append(self.op)
+        hashable_list.append(self.metric_mri)
+        if self.params is not None:
+            hashable_list.append(
+                ",".join(sorted(":".join((x, str(y))) for x, y in self.params.items()))
+            )
+        return hash(tuple(hashable_list))
+
 
 @dataclass(frozen=True)
 class MetricGroupByField:
-    name: str
+    field: Union[str, MetricField]
     alias: Optional[str] = None
 
     def __post_init__(self) -> None:
         if not self.alias:
-            object.__setattr__(self, "alias", self.name)
+            if isinstance(self.field, str):
+                alias = self.field
+            else:
+                assert self.field.alias is not None
+                alias = self.field.alias
+            object.__setattr__(self, "alias", alias)
+
+    @property
+    def name(self) -> str:
+        if isinstance(self.field, str):
+            return self.field
+        if isinstance(self.field, MetricField):
+            assert self.field.alias is not None
+            return self.field.alias
+        raise InvalidParams(f"Invalid groupBy field type: {self.field}")
+
+
+@dataclass(frozen=True)
+class MetricConditionField:
+    """
+    Modelled after snuba_sdk.conditions.Condition
+    """
+
+    lhs: MetricField
+    op: Op
+    rhs: Union[int, float, str]
 
 
 Tag = str
@@ -96,13 +134,20 @@ class MetricsQuery(MetricsQueryValidationRunner):
     start: datetime
     end: datetime
     granularity: Granularity
-    where: Optional[ConditionGroup] = None  # TODO: Should restrict
+    # ToDo(ahmed): In the future, once we start parsing conditions, the only conditions that should be here should be
+    #  instances of MetricConditionField
+    where: Optional[Sequence[Union[BooleanCondition, Condition, MetricConditionField]]] = None
     groupby: Optional[Sequence[MetricGroupByField]] = None
     orderby: Optional[Sequence[OrderBy]] = None
     limit: Optional[Limit] = None
     offset: Optional[Offset] = None
     include_totals: bool = True
     include_series: bool = True
+    interval: Optional[int] = None
+
+    @cached_property
+    def use_case_key(self) -> UseCaseKey:
+        return self._use_case_id(self.select[0].metric_mri)
 
     @staticmethod
     def _use_case_id(metric_mri: str) -> UseCaseKey:
@@ -218,9 +263,12 @@ class MetricsQuery(MetricsQueryValidationRunner):
         if not self.groupby:
             return
         for metric_groupby_obj in self.groupby:
-            if metric_groupby_obj.name in UNALLOWED_TAGS:
+            if (
+                isinstance(metric_groupby_obj.field, str)
+                and metric_groupby_obj.field in UNALLOWED_TAGS
+            ):
                 raise InvalidParams(
-                    f"Tag name {metric_groupby_obj.name} cannot be used to groupBy query"
+                    f"Tag name {metric_groupby_obj.field} cannot be used in groupBy query"
                 )
 
     def validate_include_totals(self) -> None:
@@ -245,6 +293,21 @@ class MetricsQuery(MetricsQueryValidationRunner):
             raise InvalidParams("start must be before end")
 
     def validate_granularity(self) -> None:
+        # Logic specific to how we handle time series in discover in terms of granularity and interval
+        if (
+            self.use_case_key == UseCaseKey.PERFORMANCE
+            and self.include_series
+            and self.interval is not None
+        ):
+            if self.granularity.granularity > self.interval:
+                # If granularity is greater than interval, then we try to set granularity to the smallest allowed
+                # granularity smaller than that interval
+                # Copied from: sentry/search/events/builder.py::TimeseriesMetricQueryBuilder.__init__()
+                for granularity in METRICS_LAYER_GRANULARITIES:
+                    if granularity < self.interval:
+                        object.__setattr__(self, "granularity", Granularity(granularity))
+                        break
+
         # hard code min. allowed resolution to 10 seconds
         allowed_resolution = AllowedResolution.ten_seconds
 
@@ -266,6 +329,13 @@ class MetricsQuery(MetricsQueryValidationRunner):
                 "Use a larger interval, or a smaller date range."
             )
 
+    def validate_interval(self) -> None:
+        if self.interval is not None:
+            if self.use_case_key == UseCaseKey.RELEASE_HEALTH or (
+                self.use_case_key == UseCaseKey.PERFORMANCE and not self.include_series
+            ):
+                raise InvalidParams("Interval is only supported for timeseries performance queries")
+
     def __post_init__(self) -> None:
         super().__post_init__()
 
@@ -273,3 +343,10 @@ class MetricsQuery(MetricsQueryValidationRunner):
             # Cannot set attribute directly because dataclass is frozen:
             # https://docs.python.org/3/library/dataclasses.html#frozen-instances
             object.__setattr__(self, "limit", Limit(self.get_default_limit()))
+
+        if (
+            self.use_case_key == UseCaseKey.PERFORMANCE
+            and self.include_series
+            and self.interval is None
+        ):
+            object.__setattr__(self, "interval", self.granularity.granularity)

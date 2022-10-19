@@ -17,6 +17,7 @@ import Switch from 'sentry/components/switchButton';
 import {t, tct} from 'sentry/locale';
 import {Organization, SelectValue} from 'sentry/types';
 import {defined} from 'sentry/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import {TOP_EVENT_MODES} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
@@ -105,6 +106,13 @@ export default function ChartFooter({
                   PROCESSED_BASELINE_TOGGLE_KEY,
                   value === true ? '1' : '0'
                 );
+                trackAdvancedAnalyticsEvent(
+                  'discover_v2.processed_baseline_toggle.clicked',
+                  {
+                    organization,
+                    toggled: value === true ? 'on' : 'off',
+                  }
+                );
                 setShowBaseline(value);
               }}
             />
@@ -132,14 +140,11 @@ export default function ChartFooter({
             <FeatureBadge type="beta" />
           </Fragment>
         </Feature>
-        <Feature organization={organization} features={['discover-interval-selector']}>
-          <IntervalSelector
-            displayMode={displayMode}
-            eventView={eventView}
-            onIntervalChange={onIntervalChange}
-          />
-          <IntervalBadge type="beta" />
-        </Feature>
+        <IntervalSelector
+          displayMode={displayMode}
+          eventView={eventView}
+          onIntervalChange={onIntervalChange}
+        />
         <OptionSelector
           title={t('Display')}
           selected={displayMode}
@@ -182,8 +187,4 @@ export default function ChartFooter({
 const SwitchLabel = styled('div')`
   padding-right: 4px;
   font-weight: bold;
-`;
-
-const IntervalBadge = styled(FeatureBadge)`
-  margin-left: 0px;
 `;

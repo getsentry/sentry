@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
 
@@ -15,35 +15,11 @@ describe('StacktraceLink', function () {
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
-  });
-
-  it('does not render setup CTA for members', async function () {
-    const memberOrg = TestStubs.Organization({
-      slug: 'hello-org',
-      access: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/projects/${memberOrg.slug}/${project.slug}/stacktrace-link/`,
-      query: {file: frame.filename, commitId: 'master', platform},
-      body: {config: null, sourceUrl: null, integrations: [integration]},
-    });
     MockApiClient.addMockResponse({
       method: 'GET',
       url: '/prompts-activity/',
       body: {},
     });
-    const wrapper = mountWithTheme(
-      <StacktraceLink
-        frame={frame}
-        event={event}
-        projects={[project]}
-        organization={memberOrg}
-        lineNo={frame.lineNo}
-      />
-    );
-    await tick();
-    wrapper.update();
-    expect(wrapper.find('CodeMappingButtonContainer').exists()).toBe(false);
   });
 
   it('renders setup CTA with integration but no configs', async function () {
@@ -52,25 +28,19 @@ describe('StacktraceLink', function () {
       query: {file: frame.filename, commitId: 'master', platform},
       body: {config: null, sourceUrl: null, integrations: [integration]},
     });
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: '/prompts-activity/',
-      body: {},
-    });
-    const wrapper = mountWithTheme(
+    render(
       <StacktraceLink
         frame={frame}
         event={event}
         projects={[project]}
         organization={org}
         lineNo={frame.lineNo}
-      />
+      />,
+      {context: TestStubs.routerContext()}
     );
-    await tick();
-    wrapper.update();
-    expect(wrapper.find('CodeMappingButtonContainer').text()).toContain(
-      'Link your stack trace to your source code.'
-    );
+    expect(
+      await screen.findByText('Link your stack trace to your source code.')
+    ).toBeInTheDocument();
   });
 
   it('renders source url link', function () {
@@ -79,21 +49,24 @@ describe('StacktraceLink', function () {
       query: {file: frame.filename, commitId: 'master', platform},
       body: {config, sourceUrl: 'https://something.io', integrations: [integration]},
     });
-    MockApiClient.warnOnMissingMocks();
-    const wrapper = mountWithTheme(
+    render(
       <StacktraceLink
         frame={frame}
         event={event}
         projects={[project]}
         organization={org}
         lineNo={frame.lineNo}
-      />
+      />,
+      {context: TestStubs.routerContext()}
     );
-    expect(wrapper.state('match').sourceUrl).toEqual('https://something.io');
-    expect(wrapper.find('OpenInName').text()).toEqual('GitHub');
+    expect(screen.getByRole('link', {name: 'GitHub'})).toHaveAttribute(
+      'href',
+      'https://something.io#L233'
+    );
+    expect(screen.getByText('GitHub')).toBeInTheDocument();
   });
 
-  it('renders file_not_found message', function () {
+  it('renders file_not_found message', async function () {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
       query: {file: frame.filename, commitId: 'master', platform},
@@ -105,21 +78,26 @@ describe('StacktraceLink', function () {
         attemptedUrl: 'https://something.io/blah',
       },
     });
-    MockApiClient.warnOnMissingMocks();
-    const wrapper = mountWithTheme(
+    render(
       <StacktraceLink
         frame={frame}
         event={event}
         projects={[project]}
         organization={org}
         lineNo={frame.lineNo}
-      />
+      />,
+      {context: TestStubs.routerContext()}
     );
-    expect(wrapper.state('match').sourceUrl).toBeFalsy();
-    expect(wrapper.find('CodeMappingButtonContainer').text()).toContain(
-      'Source file not found.'
+    expect(
+      screen.getByRole('link', {name: 'Configure Stack Trace Linking'})
+    ).toHaveAttribute(
+      'href',
+      '/settings/org-slug/integrations/github/1/?tab=codeMappings'
     );
-    expect(wrapper.state('match').attemptedUrl).toEqual('https://something.io/blah');
+    expect(screen.getByText('Source file not found.')).toBeInTheDocument();
+
+    userEvent.hover(screen.getByLabelText('More Info'));
+    expect(await screen.findByText('https://something.io/blah')).toBeInTheDocument();
   });
 
   it('renders stack_root_mismatch message', function () {
@@ -133,20 +111,23 @@ describe('StacktraceLink', function () {
         integrations: [integration],
       },
     });
-    MockApiClient.warnOnMissingMocks();
-    const wrapper = mountWithTheme(
+    render(
       <StacktraceLink
         frame={frame}
         event={event}
         projects={[project]}
         organization={org}
         lineNo={frame.lineNo}
-      />
+      />,
+      {context: TestStubs.routerContext()}
     );
-    expect(wrapper.state('match').sourceUrl).toBeFalsy();
-    expect(wrapper.find('CodeMappingButtonContainer').text()).toContain(
-      'Error matching your configuration.'
+    expect(
+      screen.getByRole('link', {name: 'Configure Stack Trace Linking'})
+    ).toHaveAttribute(
+      'href',
+      '/settings/org-slug/integrations/github/1/?tab=codeMappings'
     );
+    expect(screen.getByText('Error matching your configuration.')).toBeInTheDocument();
   });
 
   it('renders default error message', function () {
@@ -159,19 +140,26 @@ describe('StacktraceLink', function () {
         integrations: [integration],
       },
     });
-    MockApiClient.warnOnMissingMocks();
-    const wrapper = mountWithTheme(
+    render(
       <StacktraceLink
         frame={frame}
         event={event}
         projects={[project]}
         organization={org}
         lineNo={frame.lineNo}
-      />
+      />,
+      {context: TestStubs.routerContext()}
     );
-    expect(wrapper.state('match').sourceUrl).toBeFalsy();
-    expect(wrapper.find('CodeMappingButtonContainer').text()).toContain(
-      'There was an error encountered with the code mapping for this project'
+    expect(
+      screen.getByRole('link', {name: 'Configure Stack Trace Linking'})
+    ).toHaveAttribute(
+      'href',
+      '/settings/org-slug/integrations/github/1/?tab=codeMappings'
     );
+    expect(
+      screen.getByText(
+        'There was an error encountered with the code mapping for this project'
+      )
+    ).toBeInTheDocument();
   });
 });

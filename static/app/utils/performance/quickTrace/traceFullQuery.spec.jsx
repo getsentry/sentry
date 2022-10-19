@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import {
@@ -42,7 +42,7 @@ describe('TraceFullQuery', function () {
       url: `/organizations/test-org/events-trace/${traceId}/`,
       body: [],
     });
-    const wrapper = mountWithTheme(
+    render(
       <TraceFullQuery
         api={api}
         traceId={traceId}
@@ -54,11 +54,9 @@ describe('TraceFullQuery', function () {
         {renderTraceFull}
       </TraceFullQuery>
     );
-    await tick();
-    wrapper.update();
 
+    expect(await screen.findByTestId('type')).toHaveTextContent('full');
     expect(getMock).toHaveBeenCalledTimes(1);
-    expect(wrapper.find('div[data-test-id="type"]').text()).toEqual('full');
   });
 
   it('fetches data on mount with detailed param', async function () {
@@ -67,7 +65,7 @@ describe('TraceFullQuery', function () {
       body: [],
       match: [MockApiClient.matchQuery({detailed: '1'})],
     });
-    const wrapper = mountWithTheme(
+    render(
       <TraceFullDetailedQuery
         api={api}
         traceId={traceId}
@@ -79,10 +77,8 @@ describe('TraceFullQuery', function () {
         {renderTraceFull}
       </TraceFullDetailedQuery>
     );
-    await tick();
-    wrapper.update();
 
+    expect(await screen.findByTestId('type')).toHaveTextContent('full');
     expect(getMock).toHaveBeenCalledTimes(1);
-    expect(wrapper.find('div[data-test-id="type"]').text()).toEqual('full');
   });
 });

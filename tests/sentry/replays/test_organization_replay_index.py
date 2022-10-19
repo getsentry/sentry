@@ -5,6 +5,7 @@ from django.urls import reverse
 
 from sentry.replays.testutils import assert_expected_response, mock_expected_response, mock_replay
 from sentry.testutils import APITestCase, ReplaysSnubaTestCase
+from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.cursors import Cursor
 
@@ -12,6 +13,7 @@ REPLAYS_FEATURES = {"organizations:session-replay": True}
 
 
 @region_silo_test
+@apply_feature_flag_on_cls("organizations:global-views")
 class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
     endpoint = "sentry-api-0-organization-replay-index"
 
@@ -594,6 +596,21 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert response.status_code == 400
             assert b"duration" in response.content
 
+    def test_get_replays_no_multi_project_select(self):
+        self.create_project(teams=[self.team])
+        self.create_project(teams=[self.team])
+
+        user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user, organization=self.organization, role="member", teams=[self.team]
+        )
+        self.login_as(user)
+
+        with self.feature(REPLAYS_FEATURES), self.feature({"organizations:global-views": False}):
+            response = self.client.get(self.url)
+            assert response.status_code == 400
+            assert response.data["detail"] == "You cannot view events from multiple projects."
+
     def test_get_replays_unknown_field(self):
         """Test replays unknown fields raise a 400 error."""
         project = self.create_project(teams=[self.team])
@@ -607,3 +624,18 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         with self.feature(REPLAYS_FEATURES):
             response = self.client.get(self.url + "?field=unknown")
             assert response.status_code == 400
+
+    def test_archived_records_are_not_returned(self):
+        replay1_id = uuid.uuid4().hex
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=30)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=15)
+
+        self.store_replays(mock_replay(seq1_timestamp, self.project.id, replay1_id))
+        self.store_replays(
+            mock_replay(seq2_timestamp, self.project.id, replay1_id, is_archived=True)
+        )
+
+        with self.feature(REPLAYS_FEATURES):
+            response = self.client.get(self.url)
+            assert response.status_code == 200
+            assert len(response.json()["data"]) == 0

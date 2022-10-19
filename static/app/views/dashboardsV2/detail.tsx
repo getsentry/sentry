@@ -606,6 +606,8 @@ class DashboardDetail extends Component<Props, State> {
 
     return (
       <PageFiltersContainer
+        desyncedAlertMessage='Using filter values saved to this dashboard. To edit saved filters, click "Edit Dashboard".'
+        hideDesyncRevertButton
         defaultSelection={{
           datetime: {
             start: null,
@@ -723,6 +725,8 @@ class DashboardDetail extends Component<Props, State> {
     return (
       <SentryDocumentTitle title={dashboard.title} orgSlug={organization.slug}>
         <PageFiltersContainer
+          desyncedAlertMessage='Using filter values saved to this dashboard. To edit saved filters, click "Edit Dashboard".'
+          hideDesyncRevertButton
           defaultSelection={{
             datetime: {
               start: null,

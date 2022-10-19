@@ -2,7 +2,7 @@ import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {ProfilingOnboardingModal} from 'sentry/components/profiling/ProfilingOnboarding/profilingOnboardingModal';
-import ProjectStore from 'sentry/stores/projectsStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {Project} from 'sentry/types/project';
 
 const MockRenderModalProps: ModalRenderProps = {
@@ -15,12 +15,12 @@ const MockRenderModalProps: ModalRenderProps = {
 } as unknown as ModalRenderProps;
 
 function selectProject(project: Project) {
-  if (!project.name) {
-    throw new Error(`Selected project requires a name, received ${project.name}`);
+  if (!project.slug) {
+    throw new Error(`Selected project requires a name, received ${project.slug}`);
   }
 
   userEvent.click(screen.getAllByRole('textbox')[0]);
-  userEvent.click(screen.getByText(project.name));
+  userEvent.click(screen.getByText(project.slug));
 }
 
 describe('ProfilingOnboarding', function () {
@@ -31,7 +31,6 @@ describe('ProfilingOnboarding', function () {
   });
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    ProjectStore.teardown();
     // @ts-ignore no-console
     // eslint-disable-next-line no-console
     console.error.mockRestore();
@@ -52,7 +51,7 @@ describe('ProfilingOnboarding', function () {
 
   it('goes to next step and previous step if project is supported', () => {
     const organization = TestStubs.Organization();
-    ProjectStore.loadInitialData([
+    ProjectsStore.loadInitialData([
       TestStubs.Project({name: 'iOS Project', platform: 'apple-ios'}),
     ]);
 
@@ -78,7 +77,7 @@ describe('ProfilingOnboarding', function () {
 
   it('does not allow going to next step if project is unsupported', () => {
     const organization = TestStubs.Organization();
-    ProjectStore.loadInitialData([
+    ProjectsStore.loadInitialData([
       TestStubs.Project({name: 'javascript', platform: 'javascript'}),
     ]);
 
@@ -99,7 +98,7 @@ describe('ProfilingOnboarding', function () {
   it('shows sdk updates are required if version is lower than required', async () => {
     const organization = TestStubs.Organization();
     const project = TestStubs.Project({name: 'iOS Project', platform: 'apple-ios'});
-    ProjectStore.loadInitialData([project]);
+    ProjectsStore.loadInitialData([project]);
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sdk-updates/`,
@@ -127,7 +126,7 @@ describe('ProfilingOnboarding', function () {
   it('shows a sdk update URL when receiving a updateSdk suggestion if a version is lower than required', async () => {
     const organization = TestStubs.Organization();
     const project = TestStubs.Project({name: 'iOS Project', platform: 'apple-ios'});
-    ProjectStore.loadInitialData([project]);
+    ProjectsStore.loadInitialData([project]);
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sdk-updates/`,

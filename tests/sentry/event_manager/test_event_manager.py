@@ -60,7 +60,7 @@ from sentry.models import (
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG
 from sentry.spans.grouping.utils import hash_values
-from sentry.testutils import TestCase, assert_mock_called_once_with_partial
+from sentry.testutils import SnubaTestCase, TestCase, assert_mock_called_once_with_partial
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
@@ -97,7 +97,7 @@ class EventManagerTestMixin:
 
 
 @region_silo_test
-class EventManagerTest(TestCase, EventManagerTestMixin):
+class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
     def test_similar_message_prefix_doesnt_group(self):
         # we had a regression which caused the default hash to just be
         # 'event.message' instead of '[event.message]' which caused it to
@@ -1309,30 +1309,39 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
 
         assert Release.objects.get(id=instance.first_release_id).version == release_version
 
+        group_states1 = {
+            "is_new": True,
+            "is_regression": False,
+            "is_new_group_environment": True,
+        }
         # Ensure that the first event in the (group, environment) pair is
         # marked as being part of a new environment.
         eventstream_insert.assert_called_with(
             event=event,
-            is_new=True,
-            is_regression=False,
-            is_new_group_environment=True,
+            **group_states1,
             primary_hash="acbd18db4cc2f85cedef654fccc4a4d8",
             skip_consume=False,
             received_timestamp=event.data["received"],
+            group_states=[{"id": event.groups[0].id, **group_states1}],
         )
 
         event = save_event()
+
+        group_states2 = {
+            "is_new": False,
+            "is_regression": None,  # XXX: wut
+            "is_new_group_environment": False,
+        }
 
         # Ensure that the next event in the (group, environment) pair is *not*
         # marked as being part of a new environment.
         eventstream_insert.assert_called_with(
             event=event,
-            is_new=False,
-            is_regression=None,  # XXX: wut
-            is_new_group_environment=False,
+            **group_states2,
             primary_hash="acbd18db4cc2f85cedef654fccc4a4d8",
             skip_consume=False,
             received_timestamp=event.data["received"],
+            group_states=[{"id": event.groups[0].id, **group_states2}],
         )
 
     def test_default_fingerprint(self):
@@ -1514,7 +1523,7 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
             event = manager.save(self.project.id)
             data = event.data
             assert data["type"] == "transaction"
-            assert data["span_grouping_config"]["id"] == "default:2021-08-25"
+            assert data["span_grouping_config"]["id"] == "default:2022-10-04"
             spans = [{"hash": span["hash"]} for span in data["spans"]]
             # the basic strategy is to simply use the description
             assert spans == [{"hash": hash_values([span["description"]])} for span in data["spans"]]
@@ -2142,7 +2151,7 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
             data = event.data
             expected_hash = "19e15e0444e0bc1d5159fb07cd4bd2eb"
             assert event.get_event_type() == "transaction"
-            assert data["span_grouping_config"]["id"] == "default:2021-08-25"
+            assert data["span_grouping_config"]["id"] == "default:2022-10-04"
             assert data["hashes"] == [expected_hash]
             spans = [{"hash": span["hash"]} for span in data["spans"]]
             # the basic strategy is to simply use the description

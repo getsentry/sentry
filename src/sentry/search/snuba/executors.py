@@ -7,8 +7,7 @@ from abc import ABCMeta, abstractmethod
 from dataclasses import replace
 from datetime import datetime, timedelta
 from hashlib import md5
-from heapq import merge
-from typing import Any, Iterable, List, Mapping, Optional, Sequence, Set, Tuple, cast
+from typing import Any, List, Mapping, Optional, Sequence, Set, Tuple, cast
 
 import sentry_sdk
 from django.utils import timezone
@@ -277,38 +276,25 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             )
         )
 
-        bulk_query_results = bulk_raw_query(query_params_for_categories, referrer="search")
+        bulk_query_results = bulk_raw_query(query_params_for_categories, referrer=referrer)
 
-        # [([row1a, row2a,], totala, row_lengtha), ([row1b, row2b,], totalb, row_lengthb), ...]
-        mapped_results: Sequence[Tuple[Iterable[MergeableRow], int, int]] = list(
-            map(
-                lambda bulk_result: (
-                    bulk_result["data"],
-                    bulk_result["totals"]["total"],
-                    len(bulk_result),
-                ),
-                filter(lambda bulk_result: bool(bulk_result), bulk_query_results),
-            )
-        )
+        rows: list[MergeableRow] = []
+        total = 0
+        row_length = 0
+        for bulk_result in bulk_query_results:
+            if bulk_result:
+                if bulk_result["data"]:
+                    rows.extend(bulk_result["data"])
+                if bulk_result["totals"]["total"]:
+                    total += bulk_result["totals"]["total"]
+                row_length += len(bulk_result)
 
-        merged_results: Tuple[Iterable[MergeableRow], int, int] = functools.reduce(
-            lambda left, right: (
-                merge(left[0], right[0], key=lambda row: row.get("group_id")),
-                left[1] + right[1],
-                left[2] + right[2],
-            ),
-            mapped_results,
-            (cast(Iterable[MergeableRow], []), 0, 0),
-        )
-
-        rows: Sequence[MergeableRow] = list(merged_results[0])
-        total: int = merged_results[1]
-        row_length: int = merged_results[2]
+        rows.sort(key=lambda row: row["group_id"])
 
         if not get_sample:
             metrics.timing("snuba.search.num_result_groups", row_length)
 
-        return [(row["group_id"], row[sort_field]) for row in rows], total  # type: ignore
+        return [(row["group_id"], row[sort_field]) for row in rows], total  # type: ignore[literal-required]
 
     @staticmethod
     def _transform_converted_filter(

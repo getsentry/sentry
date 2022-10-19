@@ -40,7 +40,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     JSONField,
     Model,
-    region_silo_model,
+    region_silo_only_model,
     sane_repr,
 )
 from sentry.models.file import File, clear_cached_files
@@ -134,7 +134,7 @@ class ProjectDebugFileManager(BaseManager):  # type: ignore
         return rv
 
 
-@region_silo_model
+@region_silo_only_model
 class ProjectDebugFile(Model):  # type: ignore
     __include_in_export__ = False
 
@@ -184,7 +184,7 @@ class ProjectDebugFile(Model):  # type: ignore
             return "" if self.file_type == "exe" else ".debug"
         if self.file_format == "pe":
             return ".exe" if self.file_type == "exe" else ".dll"
-        if self.file_format == "pdb":
+        if self.file_format == "pdb" or self.file_format == "portablepdb":
             return ".pdb"
         if self.file_format == "sourcebundle":
             return ".src.zip"
@@ -275,6 +275,7 @@ def create_dif_from_id(
         "elf",
         "pdb",
         "pe",
+        "portablepdb",
         "wasm",
         "sourcebundle",
         "bcsymbolmap",

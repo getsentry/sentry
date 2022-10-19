@@ -1,27 +1,27 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import pytest
 import pytz
-import requests
-from django.conf import settings
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
 
 from sentry import audit_log
 from sentry.api.endpoints.project_details import DynamicSamplingSerializer
-from sentry.constants import DataCategory
 from sentry.models import AuditLogEntry, ProjectOption
 from sentry.testutils import AcceptanceTestCase
 from sentry.testutils.silo import region_silo_test
-from sentry.testutils.skips import requires_snuba
-from sentry.utils import json
-from sentry.utils.outcomes import Outcome
 
-FEATURE_NAME = ["organizations:server-side-sampling", "organizations:server-side-sampling-ui"]
+FEATURE_NAME = [
+    "organizations:server-side-sampling",
+    "organizations:server-side-sampling-ui",
+    "organizations:dynamic-sampling-basic",
+    "organizations:dynamic-sampling-advanced",
+    "organizations:dynamic-sampling-total-transaction-packaging",
+]
 
-uniform_rule_with_recommended_sampling_values = {
+uniform_rule = {
     "id": 1,
-    "active": False,
+    "active": True,
     "type": "trace",
     "condition": {
         "op": "and",
@@ -30,16 +30,6 @@ uniform_rule_with_recommended_sampling_values = {
     "sampleRate": 0.1,
 }
 
-uniform_rule_with_custom_sampling_values = {
-    "id": 1,
-    "active": False,
-    "type": "trace",
-    "condition": {
-        "op": "and",
-        "inner": [],
-    },
-    "sampleRate": 0.5,
-}
 
 specific_rule_with_all_current_trace_conditions = {
     "id": 2,
@@ -61,9 +51,7 @@ specific_rule_with_all_current_trace_conditions = {
 }
 
 
-@pytest.mark.snuba
 @region_silo_test
-@requires_snuba
 class ProjectSettingsSamplingTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
@@ -81,134 +69,11 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
         )
         self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
         self.login_as(self.user)
-        self.path = f"/settings/{self.org.slug}/projects/{self.project.slug}/server-side-sampling/"
-        assert requests.post(settings.SENTRY_SNUBA + "/tests/outcomes/drop").status_code == 200
-
-    def store_outcomes(self, outcome, num_times=1):
-        outcomes = []
-        for _ in range(num_times):
-            outcome_copy = outcome.copy()
-            outcome_copy["timestamp"] = outcome_copy["timestamp"].strftime("%Y-%m-%dT%H:%M:%S.%fZ")
-            outcomes.append(outcome_copy)
-
-        assert (
-            requests.post(
-                settings.SENTRY_SNUBA + "/tests/entities/outcomes/insert", data=json.dumps(outcomes)
-            ).status_code
-            == 200
-        )
+        self.path = f"/settings/{self.org.slug}/projects/{self.project.slug}/dynamic-sampling/"
 
     def wait_until_page_loaded(self):
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-
-    def test_add_uniform_rule_with_recommended_sampling_values(self):
-        self.store_outcomes(
-            {
-                "org_id": self.org.id,
-                "timestamp": self.now - timedelta(hours=1),
-                "project_id": self.project.id,
-                "outcome": Outcome.ACCEPTED,
-                "reason": "none",
-                "category": DataCategory.TRANSACTION,
-                "quantity": 1,
-            }
-        )
-
-        with self.feature(FEATURE_NAME):
-            self.wait_until_page_loaded()
-
-            # Open uniform rate modal
-            self.browser.click_when_visible('[aria-label="Start Setup"]')
-
-            self.browser.wait_until('[id="recommended-client-sampling"]')
-
-            # Click on the recommended sampling values option
-            self.browser.click_when_visible('[id="sampling-recommended"]')
-
-            # Click on done button
-            self.browser.click_when_visible('[aria-label="Done"]')
-
-            # Wait the success message to show up
-            self.browser.wait_until('[data-test-id="toast-success"]')
-
-            # Validate the payload
-            project_option = ProjectOption.objects.get(
-                key="sentry:dynamic_sampling", project=self.project
-            )
-            saved_sampling_setting = project_option.value
-            serializer = DynamicSamplingSerializer(data=saved_sampling_setting)
-            assert serializer.is_valid()
-            assert len(serializer.validated_data["rules"]) == 1
-            assert saved_sampling_setting == serializer.validated_data
-            assert (
-                uniform_rule_with_recommended_sampling_values
-                == serializer.validated_data["rules"][0]
-            )
-
-    def test_add_uniform_rule_with_custom_sampling_values(self):
-        self.store_outcomes(
-            {
-                "org_id": self.org.id,
-                "timestamp": self.now - timedelta(hours=1),
-                "project_id": self.project.id,
-                "outcome": Outcome.ACCEPTED,
-                "reason": "none",
-                "category": DataCategory.TRANSACTION,
-                "quantity": 1,
-            }
-        )
-
-        with self.feature(FEATURE_NAME):
-            self.wait_until_page_loaded()
-
-            # Open uniform rate modal
-            self.browser.click_when_visible('[aria-label="Start Setup"]')
-
-            self.browser.wait_until('[id="recommended-client-sampling"]')
-
-            # Enter a custom value for client side sampling
-            self.browser.element('[id="recommended-client-sampling"]').clear()
-            self.browser.element('[id="recommended-client-sampling"]').send_keys(80, Keys.ENTER)
-
-            # Enter a custom value for server side sampling
-            self.browser.element('[id="recommended-server-sampling"]').clear()
-            self.browser.element('[id="recommended-server-sampling"]').send_keys(50, Keys.ENTER)
-
-            # Click on next button
-            self.browser.click_when_visible('[aria-label="Next"]')
-
-            # Click on done button
-            self.browser.click_when_visible('[aria-label="Done"]')
-
-            # Wait the success message to show up
-            self.browser.wait_until('[data-test-id="toast-success"]')
-
-            # Validate the payload
-            project_option = ProjectOption.objects.get(
-                key="sentry:dynamic_sampling", project=self.project
-            )
-            saved_sampling_setting = project_option.value
-            serializer = DynamicSamplingSerializer(data=saved_sampling_setting)
-            assert serializer.is_valid()
-            assert len(serializer.validated_data["rules"]) == 1
-            assert saved_sampling_setting == serializer.validated_data
-            assert uniform_rule_with_custom_sampling_values == serializer.validated_data["rules"][0]
-
-            # Validate the audit log
-            audit_entry = AuditLogEntry.objects.get(
-                organization=self.org, event=audit_log.get_event_id("SAMPLING_RULE_ADD")
-            )
-            audit_log_event = audit_log.get(audit_entry.event)
-            assert audit_log_event.render(audit_entry) == "added server-side sampling rule"
-
-            # Make sure that the early return logic worked, as only the above audit log was triggered
-            with pytest.raises(AuditLogEntry.DoesNotExist):
-                AuditLogEntry.objects.get(
-                    organization=self.org,
-                    target_object=self.project.id,
-                    event=audit_log.get_event_id("PROJECT_EDIT"),
-                )
 
     def test_remove_specific_rule(self):
         with self.feature(FEATURE_NAME):
@@ -232,7 +97,7 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
                             },
                         },
                         {
-                            **uniform_rule_with_recommended_sampling_values,
+                            **uniform_rule,
                             "id": 2,
                         },
                     ],
@@ -277,111 +142,14 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
                     event=audit_log.get_event_id("PROJECT_EDIT"),
                 )
 
-    def test_activate_uniform_rule(self):
-        with self.feature(FEATURE_NAME):
-            self.project.update_option(
-                "sentry:dynamic_sampling",
-                {
-                    "next_id": 2,
-                    "rules": [uniform_rule_with_recommended_sampling_values],
-                },
-            )
-
-            self.wait_until_page_loaded()
-
-            # Click on activate rule button
-            self.browser.element('[aria-label="Activate Rule"]').click()
-
-            # Wait the success message to show up
-            self.browser.wait_until('[data-test-id="toast-success"]')
-
-            # Validate the payload
-            project_option = ProjectOption.objects.get(
-                key="sentry:dynamic_sampling", project=self.project
-            )
-            saved_sampling_setting = project_option.value
-            serializer = DynamicSamplingSerializer(data=saved_sampling_setting)
-            assert serializer.is_valid()
-            assert len(serializer.validated_data["rules"]) == 1
-            assert saved_sampling_setting == serializer.validated_data
-
-            assert {
-                **uniform_rule_with_recommended_sampling_values,
-                "active": True,
-                "id": 2,
-            } == serializer.validated_data["rules"][0]
-
-            # Validate the audit log
-            audit_entry = AuditLogEntry.objects.get(
-                organization=self.org, event=audit_log.get_event_id("SAMPLING_RULE_ACTIVATE")
-            )
-            audit_log_event = audit_log.get(audit_entry.event)
-            assert audit_log_event.render(audit_entry) == "activated server-side sampling rule"
-
-            # Make sure that the early return logic worked, as only the above audit log was triggered
-            with pytest.raises(AuditLogEntry.DoesNotExist):
-                AuditLogEntry.objects.get(
-                    organization=self.org,
-                    target_object=self.project.id,
-                    event=audit_log.get_event_id("PROJECT_EDIT"),
-                )
-
-    def test_deactivate_uniform_rule(self):
-        with self.feature(FEATURE_NAME):
-            self.project.update_option(
-                "sentry:dynamic_sampling",
-                {
-                    "next_id": 2,
-                    "rules": [{**uniform_rule_with_recommended_sampling_values, "active": True}],
-                },
-            )
-
-            self.wait_until_page_loaded()
-
-            # Click on deactivate rule button
-            self.browser.element('[aria-label="Deactivate Rule"]').click()
-
-            # Wait the success message to show up
-            self.browser.wait_until('[data-test-id="toast-success"]')
-
-            # Validate the payload
-            project_option = ProjectOption.objects.get(
-                key="sentry:dynamic_sampling", project=self.project
-            )
-            saved_sampling_setting = project_option.value
-            serializer = DynamicSamplingSerializer(data=saved_sampling_setting)
-            assert serializer.is_valid()
-            assert len(serializer.validated_data["rules"]) == 1
-            assert saved_sampling_setting == serializer.validated_data
-
-            assert {
-                **uniform_rule_with_recommended_sampling_values,
-                "active": False,
-                "id": 2,
-            } == serializer.validated_data["rules"][0]
-
-            # Validate the audit log
-            audit_entry = AuditLogEntry.objects.get(
-                organization=self.org, event=audit_log.get_event_id("SAMPLING_RULE_DEACTIVATE")
-            )
-            audit_log_event = audit_log.get(audit_entry.event)
-            assert audit_log_event.render(audit_entry) == "deactivated server-side sampling rule"
-
-            # Make sure that the early return logic worked, as only the above audit log was triggered
-            with pytest.raises(AuditLogEntry.DoesNotExist):
-                AuditLogEntry.objects.get(
-                    organization=self.org,
-                    target_object=self.project.id,
-                    event=audit_log.get_event_id("PROJECT_EDIT"),
-                )
-
+    @pytest.mark.skip(reason="flaky behaviour. Needs investigation")
     def test_add_specific_rule(self):
         with self.feature(FEATURE_NAME):
             self.project.update_option(
                 "sentry:dynamic_sampling",
                 {
                     "next_id": 2,
-                    "rules": [uniform_rule_with_recommended_sampling_values],
+                    "rules": [uniform_rule],
                 },
             )
 
@@ -435,7 +203,11 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
                 key="sentry:dynamic_sampling", project=self.project
             )
             saved_sampling_setting = project_option.value
-            serializer = DynamicSamplingSerializer(data=saved_sampling_setting)
+            serializer = DynamicSamplingSerializer(
+                data=saved_sampling_setting,
+                partial=True,
+                context={"project": self.project, "request": self.make_request(user=self.user)},
+            )
             assert serializer.is_valid()
             assert len(serializer.validated_data["rules"]) == 2
             assert saved_sampling_setting == serializer.validated_data
@@ -452,7 +224,7 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
                     "next_id": 3,
                     "rules": [
                         {**specific_rule_with_all_current_trace_conditions, "id": 1},
-                        {**uniform_rule_with_recommended_sampling_values, "id": 2},
+                        {**uniform_rule, "id": 2},
                     ],
                 },
             )
@@ -460,12 +232,8 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
             self.wait_until_page_loaded()
 
             # Tries to drag specific rules below an uniform rule
-            dragHandleSource = self.browser.elements(
-                '[data-test-id="sampling-rule"] [aria-roledescription="sortable"]'
-            )[0]
-            dragHandleTarget = self.browser.elements(
-                '[data-test-id="sampling-rule"] [aria-roledescription="sortable"]'
-            )[1]
+            dragHandleSource = self.browser.element('[aria-roledescription="sortable"]')
+            dragHandleTarget = self.browser.elements('[data-test-id="sampling-rule"]')[1]
 
             action = ActionChains(self.browser.driver)
             action.drag_and_drop(dragHandleSource, dragHandleTarget)
@@ -512,7 +280,7 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
                             },
                         },
                         {
-                            **uniform_rule_with_recommended_sampling_values,
+                            **uniform_rule,
                             "id": 3,
                         },
                     ],

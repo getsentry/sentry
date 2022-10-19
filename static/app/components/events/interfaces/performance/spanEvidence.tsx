@@ -14,13 +14,17 @@ import {
 import DataSection from '../../eventTagsAndScreenshot/dataSection';
 import KeyValueList from '../keyValueList';
 import TraceView from '../spans/traceView';
-import {RawSpanType, SpanEntry} from '../spans/types';
+import {RawSpanType, SpanEntry, TraceContextType} from '../spans/types';
 import WaterfallModel from '../spans/waterfallModel';
 
 interface Props {
   event: EventTransaction;
   organization: Organization;
 }
+
+export type TraceContextSpanProxy = Omit<TraceContextType, 'span_id'> & {
+  span_id: string; // TODO: Remove this temporary type.
+};
 
 export function SpanEvidenceSection({event, organization}: Props) {
   if (!event.perfProblem) {
@@ -37,7 +41,12 @@ export function SpanEvidenceSection({event, organization}: Props) {
   const spanEntry = event.entries.find((entry: SpanEntry | any): entry is SpanEntry => {
     return entry.type === EntryType.SPANS;
   });
-  const spans: Array<RawSpanType> = spanEntry?.data ?? [];
+  const spans: Array<RawSpanType | TraceContextSpanProxy> = [...spanEntry?.data] ?? [];
+
+  if (event?.contexts?.trace && event?.contexts?.trace?.span_id) {
+    // TODO: Fix this conditional and check if span_id is ever actually undefined.
+    spans.push(event.contexts.trace as TraceContextSpanProxy);
+  }
   const spansById = keyBy(spans, 'span_id');
 
   const parentSpan = spansById[event.perfProblem.parentSpanIds[0]];
@@ -83,7 +92,7 @@ export function SpanEvidenceSection({event, organization}: Props) {
   );
 }
 
-function getSpanEvidenceValue(span: RawSpanType) {
+function getSpanEvidenceValue(span: RawSpanType | TraceContextSpanProxy) {
   if (!span.op && !span.description) {
     return t('(no value)');
   }

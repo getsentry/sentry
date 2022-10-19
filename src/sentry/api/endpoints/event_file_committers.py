@@ -40,6 +40,7 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
                 project=project,
                 organization_id=project.organization_id,
                 type=GroupOwnerType.SUSPECT_COMMIT.value,
+                context__isnull=False,
             ).order_by("-date_added")
             owner = next(filter(lambda go: go.context.get("commitId"), group_owners), None)
             if not owner:

@@ -123,8 +123,10 @@ export type RecordingEvent = eventWithTime;
 export interface ReplaySpan<T = Record<string, any>> {
   data: T;
   endTimestamp: number;
+  id: string;
   op: string;
   startTimestamp: number;
+  timestamp: number;
   description?: string;
 }
 
@@ -136,6 +138,8 @@ export type MemorySpanType = ReplaySpan<{
   };
 }>;
 
+export type NetworkSpan = ReplaySpan;
+
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 
 export type ReplayCrumb = Overwrite<RawCrumb, {timestamp: number}>;
@@ -145,11 +149,11 @@ export type ReplayCrumb = Overwrite<RawCrumb, {timestamp: number}>;
  */
 export interface ReplayError {
   ['error.type']: string[];
-  ['error.value']: string[];
-  ['group.id']: string; // TODO(replay): is this a thing? issue.id seems like all we need
+  ['error.value']: string[]; // deprecated, use title instead. See organization_replay_events_meta.py
   id: string;
   issue: string;
   ['issue.id']: number;
   ['project.name']: string;
   timestamp: string;
+  title: string;
 }

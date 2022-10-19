@@ -119,7 +119,7 @@ def get_region_for_organization(organization: Organization) -> Region:
     raise NotImplementedError
 
 
-def get_local_region() -> Region | None:
+def get_local_region() -> Region:
     """Get the region in which this server instance is running.
 
     Raises RegionContextError if this server instance is not a region silo.

@@ -4,6 +4,8 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import OrganizationAuditLog from 'sentry/views/settings/organizationAuditLog';
 
+// XXX(epurkhiser): This appears to also be tested by ./index.spec.tsx
+
 describe('OrganizationAuditLog', function () {
   const {routerContext, organization, router} = initializeOrg({
     ...initializeOrg(),

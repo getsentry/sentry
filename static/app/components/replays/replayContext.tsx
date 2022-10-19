@@ -299,7 +299,7 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
       // eslint-disable-next-line no-new
       const inst = new Replayer(events, {
         root,
-        blockClass: 'sr-block',
+        blockClass: 'sentry-block',
         // liveMode: false,
         // triggerFocus: false,
         mouseTail: {

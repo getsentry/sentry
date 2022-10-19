@@ -1,5 +1,4 @@
 import os
-from collections import OrderedDict
 
 import pytest
 
@@ -76,8 +75,7 @@ def pytest_runtest_makereport(item, call):
 
 def _error_workflow_command(filesystempath, lineno, longrepr):
     # Build collection of arguments. Ordering is strict for easy testing
-    details_dict = OrderedDict()
-    details_dict["file"] = filesystempath
+    details_dict = {"file": filesystempath}
     if lineno is not None:
         details_dict["line"] = lineno
 
@@ -92,3 +90,33 @@ def _error_workflow_command(filesystempath, lineno, longrepr):
 
 def _escape(s):
     return s.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+
+
+_MODEL_MANIFEST_FILE_PATH = os.getenv("SENTRY_MODEL_MANIFEST_FILE_PATH")
+_model_manifest = None
+
+
+@pytest.fixture(scope="session", autouse=True)
+def create_model_manifest_file():
+    """Audit which models are touched by each test case and write it to file."""
+
+    # We have to construct the ModelManifest lazily, because importing
+    # sentry.testutils.modelmanifest too early causes a dependency cycle.
+    from sentry.testutils.modelmanifest import ModelManifest
+
+    if _MODEL_MANIFEST_FILE_PATH:
+        global _model_manifest
+        _model_manifest = ModelManifest.open(_MODEL_MANIFEST_FILE_PATH)
+        with _model_manifest.write():
+            yield
+    else:
+        yield
+
+
+@pytest.fixture(scope="class", autouse=True)
+def register_class_in_model_manifest(request: pytest.FixtureRequest):
+    if _model_manifest:
+        with _model_manifest.register(request.node.nodeid):
+            yield
+    else:
+        yield

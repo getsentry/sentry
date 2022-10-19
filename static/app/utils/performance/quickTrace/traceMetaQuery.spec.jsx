@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import TraceMetaQuery from 'sentry/utils/performance/quickTrace/traceMetaQuery';
@@ -48,7 +48,7 @@ describe('TraceMetaQuery', function () {
         errors: 2,
       },
     });
-    const wrapper = mountWithTheme(
+    render(
       <TraceMetaQuery
         api={api}
         traceId={traceId}
@@ -59,12 +59,11 @@ describe('TraceMetaQuery', function () {
         {renderMeta}
       </TraceMetaQuery>
     );
-    await tick();
-    wrapper.update();
+
+    expect(await screen.findByTestId('projects')).toHaveTextContent('4');
+    expect(screen.getByTestId('transactions')).toHaveTextContent('5');
+    expect(screen.getByTestId('errors')).toHaveTextContent('2');
 
     expect(getMock).toHaveBeenCalledTimes(1);
-    expect(wrapper.find('div[data-test-id="projects"]').text()).toEqual('4');
-    expect(wrapper.find('div[data-test-id="transactions"]').text()).toEqual('5');
-    expect(wrapper.find('div[data-test-id="errors"]').text()).toEqual('2');
   });
 });

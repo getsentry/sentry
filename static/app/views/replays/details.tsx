@@ -16,32 +16,38 @@ import useReplayLayout from 'sentry/utils/replays/hooks/useReplayLayout';
 import useReplayPageview from 'sentry/utils/replays/hooks/useReplayPageview';
 import Layout from 'sentry/views/replays/detail/layout';
 import Page from 'sentry/views/replays/detail/page';
+import type {ReplayRecord} from 'sentry/views/replays/types';
+import {getInitialTimeOffset} from 'sentry/views/replays/utils';
 
 type Props = RouteComponentProps<
   {orgId: string; replaySlug: string},
   {},
   any,
-  {t: number}
+  {event_t: string; t: number}
 >;
 
 function ReplayDetails({
   location: {
     query: {
+      event_t: eventTimestamp, // Timestamp of the event or activity that was selected
       t: initialTimeOffset, // Time, in seconds, where the video should start
     },
   },
   params: {orgId: orgSlug, replaySlug},
 }: Props) {
   useReplayPageview();
-  const {fetching, onRetry, replay, fetchError} = useReplayData({
+
+  const {fetching, onRetry, replay, replayRecord, fetchError} = useReplayData({
     replaySlug,
     orgSlug,
   });
 
+  const startTimestampMs = replayRecord?.startedAt.getTime() ?? 0;
+
   if (!fetching && !replay && fetchError) {
     if (fetchError.statusText === 'Not Found') {
       return (
-        <Page orgSlug={orgSlug}>
+        <Page orgSlug={orgSlug} replayRecord={replayRecord}>
           <PageContent>
             <NotFound />
           </PageContent>
@@ -54,7 +60,7 @@ function ReplayDetails({
       t('There is an internal systems error or active issue'),
     ];
     return (
-      <Page orgSlug={orgSlug}>
+      <Page orgSlug={orgSlug} replayRecord={replayRecord}>
         <PageContent>
           <DetailedError
             onRetry={onRetry}
@@ -78,7 +84,7 @@ function ReplayDetails({
 
   if (!fetching && replay && replay.getRRWebEvents().length < 2) {
     return (
-      <Page orgSlug={orgSlug} replayRecord={replay.getReplay()}>
+      <Page orgSlug={orgSlug} replayRecord={replayRecord}>
         <DetailedError
           hideSupportLinks
           heading={t('Expected two or more replay events')}
@@ -98,22 +104,31 @@ function ReplayDetails({
   }
 
   return (
-    <ReplayContextProvider replay={replay} initialTimeOffset={initialTimeOffset}>
-      <LoadedDetails orgSlug={orgSlug} />
+    <ReplayContextProvider
+      replay={replay}
+      initialTimeOffset={getInitialTimeOffset({
+        eventTimestamp,
+        initialTimeOffset,
+        startTimestampMs,
+      })}
+    >
+      <LoadedDetails orgSlug={orgSlug} replayRecord={replayRecord} />
     </ReplayContextProvider>
   );
 }
 
-function LoadedDetails({orgSlug}: {orgSlug: string}) {
+function LoadedDetails({
+  orgSlug,
+  replayRecord,
+}: {
+  orgSlug: string;
+  replayRecord: ReplayRecord | undefined;
+}) {
   const {getLayout} = useReplayLayout();
   const {replay} = useReplayContext();
 
   return (
-    <Page
-      orgSlug={orgSlug}
-      crumbs={replay?.getRawCrumbs()}
-      replayRecord={replay?.getReplay()}
-    >
+    <Page orgSlug={orgSlug} crumbs={replay?.getRawCrumbs()} replayRecord={replayRecord}>
       <Layout layout={getLayout()} />
     </Page>
   );

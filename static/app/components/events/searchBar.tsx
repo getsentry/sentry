@@ -1,4 +1,6 @@
-import {useEffect} from 'react';
+import {useEffect, useRef} from 'react';
+import * as Sentry from '@sentry/react';
+import {Transaction} from '@sentry/types';
 import assign from 'lodash/assign';
 import flatten from 'lodash/flatten';
 import memoize from 'lodash/memoize';
@@ -117,6 +119,7 @@ function SearchBar(props: SearchBarProps) {
     customMeasurements,
   } = props;
 
+  const collectedTransactionFromGetTagsListRef = useRef<boolean>(false);
   const api = useApi();
 
   useEffect(() => {
@@ -166,6 +169,19 @@ function SearchBar(props: SearchBarProps) {
       React.ComponentProps<typeof Measurements>['children']
     >[0]['measurements']
   ) => {
+    // We will only collect a transaction once and only if the number of tags > 0
+    // This is to avoid a large number of transactions being sent to Sentry. The 0 check
+    // is to avoid collecting a transaction when tags are not loaded yet.
+    let transaction: Transaction | undefined = undefined;
+    if (!collectedTransactionFromGetTagsListRef.current && Object.keys(tags).length > 0) {
+      transaction = Sentry.startTransaction({
+        name: 'SearchBar.getTagList',
+      });
+      // Mark as collected - if code below errors, we risk never collecting
+      // a transaction in that case, but that is fine.
+      collectedTransactionFromGetTagsListRef.current = true;
+    }
+
     const functionTags = getFunctionTags(fields ?? []);
     const fieldTags = getFieldTags();
     const measurementsWithKind = getMeasurementTags(measurements);
@@ -203,7 +219,18 @@ function SearchBar(props: SearchBarProps) {
       kind: FieldKind.FIELD,
     };
 
-    return omit(combinedTags, omitTags ?? []);
+    const list = omit(combinedTags, omitTags ?? []);
+
+    if (transaction) {
+      const totalCount: number = Object.keys(list).length;
+      transaction.setTag('tags.totalCount', totalCount);
+      const countGroup = [
+        1, 5, 10, 20, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 10000,
+      ].find(n => totalCount <= n);
+      transaction.setTag('tags.totalCount.grouped', `<=${countGroup}`);
+      transaction.finish();
+    }
+    return list;
   };
 
   return (
@@ -219,7 +246,7 @@ function SearchBar(props: SearchBarProps) {
             return query.replace(SEARCH_SPECIAL_CHARS_REGEXP, '');
           }}
           maxSearchItems={maxSearchItems}
-          excludeEnvironment
+          excludedTags={['environment']}
           maxMenuHeight={maxMenuHeight ?? 300}
           customPerformanceMetrics={customMeasurements}
           {...props}

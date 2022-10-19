@@ -157,6 +157,7 @@ class ProjectInstallPlatform extends Component<Props, State> {
                         project: (projects[0] as Project).id,
                       }
                     : {};
+
                 const showPerformancePrompt = performancePlatforms.includes(
                   platform.id as PlatformKey
                 );

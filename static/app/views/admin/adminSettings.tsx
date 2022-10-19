@@ -20,7 +20,11 @@ const optionsAvailable = [
   'performance.issues.all.problem-detection',
   'performance.issues.all.problem-creation',
   'performance.issues.all.early-adopter-rollout',
+  'performance.issues.all.general-availability-rollout',
+  'performance.issues.all.post-process-group-early-adopter-rollout',
+  'performance.issues.all.post-process-group-ga-rollout',
   'performance.issues.n_plus_one_db.problem-creation',
+  'performance.issues.n_plus_one_db_ext.problem-creation',
   'performance.issues.n_plus_one_db.count_threshold',
   'performance.issues.n_plus_one_db.duration_threshold',
 ];
@@ -101,10 +105,14 @@ export default class AdminSettings extends AsyncView<{}, State> {
               {fields['performance.issues.all.problem-detection']}
               {fields['performance.issues.all.problem-creation']}
               {fields['performance.issues.all.early-adopter-rollout']}
+              {fields['performance.issues.all.general-availability-rollout']}
+              {fields['performance.issues.all.post-process-group-early-adopter-rollout']}
+              {fields['performance.issues.all.post-process-group-ga-rollout']}
             </Panel>
             <Panel>
               <PanelHeader>Performance Issues - Detectors</PanelHeader>
               {fields['performance.issues.n_plus_one_db.problem-creation']}
+              {fields['performance.issues.n_plus_one_db_ext.problem-creation']}
               {fields['performance.issues.n_plus_one_db.count_threshold']}
               {fields['performance.issues.n_plus_one_db.duration_threshold']}
             </Panel>

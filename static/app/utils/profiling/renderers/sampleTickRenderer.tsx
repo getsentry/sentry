@@ -42,7 +42,7 @@ class SampleTickRenderer {
     this.theme = theme;
     this.intervals = computeAbsoluteSampleTimestamps(
       configSpace.x,
-      this.flamegraph.profile.weights
+      this.flamegraph.profile.rawWeights
     );
     this.context = getContext(canvas, '2d');
   }

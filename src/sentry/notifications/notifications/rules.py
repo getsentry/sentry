@@ -15,12 +15,14 @@ from sentry.notifications.utils import (
     get_integration_link,
     get_interface_list,
     get_rules,
+    get_transaction_data,
     has_alert_integration,
     has_integrations,
 )
 from sentry.notifications.utils.participants import get_send_to
 from sentry.plugins.base.structs import Notification
 from sentry.types.integrations import ExternalProviders
+from sentry.types.issues import GroupCategory
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -47,6 +49,7 @@ class AlertRuleNotification(ProjectNotification):
         self.target_type = target_type
         self.target_identifier = target_identifier
         self.rules = notification.rules
+        self.template_path = f"sentry/emails/{event.group.issue_category.name.lower()}"
 
     def get_participants(self) -> Mapping[ExternalProviders, Iterable[Team | User]]:
         return get_send_to(
@@ -102,6 +105,11 @@ class AlertRuleNotification(ProjectNotification):
         # data which may show PII or source code
         if not enhanced_privacy:
             context.update({"tags": self.event.tags, "interfaces": get_interface_list(self.event)})
+
+        if self.group.issue_category == GroupCategory.PERFORMANCE:
+            context.update(
+                {"transaction_data": [("Span Evidence", get_transaction_data(self.event), None)]}
+            )
 
         return context
 

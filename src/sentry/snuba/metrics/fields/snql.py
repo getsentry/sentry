@@ -311,9 +311,9 @@ def session_duration_filters(org_id):
 
 def histogram_snql_factory(
     aggregate_filter,
-    histogram_buckets: int = 100,
     histogram_from: Optional[float] = None,
     histogram_to: Optional[float] = None,
+    histogram_buckets: int = 100,
     alias=None,
 ):
     zoom_conditions = zoom_histogram(
@@ -426,6 +426,30 @@ def count_transaction_name_snql_factory(aggregate_filter, org_id, transaction_na
                 "and",
                 [aggregate_filter, transaction_name_filter],
             ),
+        ],
+        alias=alias,
+    )
+
+
+def team_key_transaction_snql(org_id, team_key_condition_rhs, alias=None):
+    team_key_conditions = set()
+    for elem in team_key_condition_rhs:
+        if len(elem) != 2:
+            raise InvalidParams("Invalid team_key_condition in params")
+
+        project_id, transaction_name = elem
+        team_key_conditions.add(
+            (project_id, resolve_tag_value(UseCaseKey.PERFORMANCE, org_id, transaction_name))
+        )
+
+    return Function(
+        "in",
+        [
+            (
+                Column("project_id"),
+                Column(resolve_tag_key(UseCaseKey.PERFORMANCE, org_id, "transaction")),
+            ),
+            list(team_key_conditions),
         ],
         alias=alias,
     )

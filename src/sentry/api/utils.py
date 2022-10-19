@@ -3,7 +3,6 @@ from datetime import timedelta
 from urllib.parse import urlparse
 
 from django.utils import timezone
-from rest_framework.request import Request
 
 from sentry import options
 from sentry.auth.access import get_cached_organization_member
@@ -183,10 +182,3 @@ def generate_region_url() -> str:
     if not region_url_template or not region:
         return options.get("system.url-prefix")
     return region_url_template.replace("{region}", region)
-
-
-def generate_url_prefix(request: Request) -> str:
-    url_prefix = options.get("system.url-prefix")
-    if request.subdomain:
-        url_prefix = generate_organization_url(request.subdomain)
-    return url_prefix

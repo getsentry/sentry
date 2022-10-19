@@ -1,58 +1,55 @@
-import {Component, Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
-import InputField from 'sentry/components/forms/inputField';
+import TextField from 'sentry/components/forms/fields/textField';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Integration, Organization, Project} from 'sentry/types';
+import type {Integration, Organization, Project} from 'sentry/types';
 import {
   getIntegrationIcon,
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
-import withApi from 'sentry/utils/withApi';
+import useApi from 'sentry/utils/useApi';
 
-type Props = ModalRenderProps & {
-  api: Client;
+interface StacktraceLinkModalProps extends ModalRenderProps {
   filename: string;
   integrations: Integration[];
   onSubmit: () => void;
   organization: Organization;
   project: Project;
-};
+}
 
-type State = {
-  sourceCodeInput: string;
-};
+function StacktraceLinkModal({
+  closeModal,
+  onSubmit,
+  organization,
+  integrations,
+  filename,
+  project,
+  Header,
+  Body,
+}: StacktraceLinkModalProps) {
+  const api = useApi();
+  const [sourceCodeInput, setSourceCodeInput] = useState('');
 
-class StacktraceLinkModal extends Component<Props, State> {
-  state: State = {
-    sourceCodeInput: '',
+  const onHandleChange = (input: string) => {
+    setSourceCodeInput(input);
   };
 
-  onHandleChange(sourceCodeInput: string) {
-    this.setState({
-      sourceCodeInput,
-    });
-  }
-
-  onManualSetup(provider: string) {
+  function onManualSetup(provider: string) {
     trackIntegrationAnalytics('integrations.stacktrace_manual_option_clicked', {
       view: 'stacktrace_issue_details',
       setup_type: 'manual',
       provider,
-      organization: this.props.organization,
+      organization,
     });
   }
 
-  handleSubmit = async () => {
-    const {sourceCodeInput} = this.state;
-    const {api, closeModal, filename, onSubmit, organization, project} = this.props;
+  const handleSubmit = async () => {
     trackIntegrationAnalytics('integrations.stacktrace_submit_config', {
       setup_type: 'automatic',
       view: 'stacktrace_issue_details',
@@ -99,106 +96,97 @@ class StacktraceLinkModal extends Component<Props, State> {
     }
   };
 
-  render() {
-    const {sourceCodeInput} = this.state;
-    const {Header, Body, filename, integrations, organization} = this.props;
-    const baseUrl = `/settings/${organization.slug}/integrations`;
-
-    return (
-      <Fragment>
-        <Header closeButton>{t('Link Stack Trace To Source Code')}</Header>
-        <Body>
-          <ModalContainer>
-            <div>
-              <h6>{t('Automatic Setup')}</h6>
-              {tct(
-                'Enter the source code URL corresponding to stack trace filename [filename] so we can automatically set up stack trace linking for this project.',
-                {
-                  filename: <code>{filename}</code>,
-                }
-              )}
-            </div>
-            <SourceCodeInput>
-              <StyledInputField
-                inline={false}
-                flexibleControlStateSize
-                stacked
-                name="source-code-input"
-                type="text"
-                value={sourceCodeInput}
-                onChange={val => this.onHandleChange(val)}
-                placeholder={t(
-                  `https://github.com/helloworld/Hello-World/blob/master/${filename}`
-                )}
-              />
-              <ButtonBar>
-                <Button
-                  data-test-id="quick-setup-button"
-                  type="button"
-                  onClick={() => this.handleSubmit()}
-                >
-                  {t('Submit')}
-                </Button>
-              </ButtonBar>
-            </SourceCodeInput>
-            <div>
-              <h6>{t('Manual Setup')}</h6>
-              <Alert type="warning">
-                {t(
-                  'We recommend this for more complicated configurations, like projects with multiple repositories.'
-                )}
-              </Alert>
+  return (
+    <Fragment>
+      <Header closeButton>
+        <h4>{t('Link Stack Trace To Source Code')}</h4>
+      </Header>
+      <Body>
+        <ModalContainer>
+          <div>
+            <h6>{t('Automatic Setup')}</h6>
+            {tct(
+              'Enter the source code URL corresponding to stack trace filename [filename] so we can automatically set up stack trace linking for this project.',
+              {
+                filename: <StyledCode>{filename}</StyledCode>,
+              }
+            )}
+          </div>
+          <SourceCodeInput>
+            <StyledTextField
+              inline={false}
+              flexibleControlStateSize
+              stacked
+              name="source-code-input"
+              value={sourceCodeInput}
+              onChange={onHandleChange}
+              placeholder={`https://github.com/helloworld/Hello-World/blob/master/${filename}`}
+            />
+            <Button type="button" onClick={handleSubmit}>
+              {t('Submit')}
+            </Button>
+          </SourceCodeInput>
+          <div>
+            <h6>{t('Manual Setup')}</h6>
+            <Alert type="warning">
               {t(
-                "To manually configure stack trace linking, select the integration you'd like to use for mapping:"
+                'We recommend this for more complicated configurations, like projects with multiple repositories.'
               )}
-            </div>
-            <ManualSetup>
-              {integrations.map(integration => (
-                <Button
-                  key={integration.id}
-                  type="button"
-                  onClick={() => this.onManualSetup(integration.provider.key)}
-                  to={`${baseUrl}/${integration.provider.key}/${integration.id}/?tab=codeMappings&referrer=stacktrace-issue-details`}
-                >
-                  {getIntegrationIcon(integration.provider.key)}
-                  <IntegrationName>{integration.name}</IntegrationName>
-                </Button>
-              ))}
-            </ManualSetup>
-          </ModalContainer>
-        </Body>
-      </Fragment>
-    );
-  }
+            </Alert>
+            {t(
+              "To manually configure stack trace linking, select the integration you'd like to use for mapping:"
+            )}
+          </div>
+          <ManualSetup>
+            {integrations.map(integration => (
+              <Button
+                key={integration.id}
+                type="button"
+                onClick={() => onManualSetup(integration.provider.key)}
+                to={{
+                  pathname: `/settings/${organization.slug}/integrations/${integration.provider.key}/${integration.id}/`,
+                  query: {tab: 'codeMappings', referrer: 'stacktrace-issue-details'},
+                }}
+              >
+                {getIntegrationIcon(integration.provider.key)}
+                <IntegrationName>{integration.name}</IntegrationName>
+              </Button>
+            ))}
+          </ManualSetup>
+        </ModalContainer>
+      </Body>
+    </Fragment>
+  );
 }
-
-const SourceCodeInput = styled('div')`
-  display: grid;
-  grid-template-columns: 5fr 1fr;
-  gap: ${space(1)};
-`;
-
-const ManualSetup = styled('div')`
-  display: grid;
-  gap: ${space(1)};
-  justify-items: center;
-`;
 
 const ModalContainer = styled('div')`
   display: grid;
   gap: ${space(3)};
-
-  code {
-    word-break: break-word;
-  }
 `;
 
-const StyledInputField = styled(InputField)`
+const StyledCode = styled('code')`
+  word-break: break-word;
+`;
+
+const SourceCodeInput = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+`;
+
+const ManualSetup = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  flex-direction: column;
+  align-items: center;
+`;
+
+const StyledTextField = styled(TextField)`
   padding: 0px;
+  flex-grow: 1;
 `;
 
 const IntegrationName = styled('p')`
   padding-left: 10px;
 `;
 
-export default withApi(StacktraceLinkModal);
+export default StacktraceLinkModal;

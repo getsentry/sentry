@@ -116,7 +116,7 @@ CRASH_REPORT_TIMEOUT = 24 * 3600  # one day
 issue_rate_limiter = RedisSlidingWindowRateLimiter(
     **settings.SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS
 )
-PERFORMANCE_ISSUE_QUOTA = Quota(3600, 60, 60)
+PERFORMANCE_ISSUE_QUOTA = Quota(3600, 60, 5)
 
 
 @dataclass
@@ -1078,14 +1078,28 @@ def _eventstream_insert_many(jobs):
         # XXX: Temporary hack so that we keep this group info working for error issues. We'll need
         # to change the format of eventstream to be able to handle data for multiple groups
         if not job["groups"]:
+            group_states = None
             is_new = False
             is_regression = False
             is_new_group_environment = False
         else:
+            # error issues
             group_info = job["groups"][0]
             is_new = group_info.is_new
             is_regression = group_info.is_regression
             is_new_group_environment = group_info.is_new_group_environment
+
+            # performance issues with potentially multiple groups to a transaction
+            group_states = [
+                {
+                    "id": gi.group.id,
+                    "is_new": gi.is_new,
+                    "is_regression": gi.is_regression,
+                    "is_new_group_environment": gi.is_new_group_environment,
+                }
+                for gi in job["groups"]
+                if gi is not None
+            ]
 
         eventstream.insert(
             event=job["event"],
@@ -1100,6 +1114,7 @@ def _eventstream_insert_many(jobs):
             # through the event stream, but we don't care
             # about post processing and handling the commit.
             skip_consume=job.get("raw", False),
+            group_states=group_states,
         )
 
 
@@ -1999,10 +2014,17 @@ def _calculate_span_grouping(jobs, projects):
             ):
                 continue
 
-            groupings = event.get_span_groupings()
+            with metrics.timer("event_manager.save.get_span_groupings.default"):
+                groupings = event.get_span_groupings()
             groupings.write_to_event(event.data)
 
             metrics.timing("save_event.transaction.span_count", len(groupings.results))
+            unique_default_hashes = set(groupings.results.values())
+            metrics.incr(
+                "save_event.transaction.span_group_count.default",
+                amount=len(unique_default_hashes),
+                tags={"platform": job["platform"] or "unknown"},
+            )
         except Exception:
             sentry_sdk.capture_exception()
 
@@ -2084,6 +2106,7 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
                         op="event_manager.create_performance_group_transaction"
                     ) as span, metrics.timer(
                         "event_manager.create_performance_group_transaction",
+                        tags={"platform": event.platform or "unknown"},
                         sample_rate=1.0,
                     ) as metric_tags, transaction.atomic():
                         span.set_tag("create_group_transaction.outcome", "no_group")

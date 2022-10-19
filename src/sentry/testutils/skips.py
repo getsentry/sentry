@@ -65,7 +65,8 @@ def relay_is_available():
     if "relay" in _service_status:
         return _service_status["relay"]
     try:
-        socket.create_connection(("127.0.0.1", settings.SENTRY_RELAY_PORT), 1.0)
+        with socket.create_connection(("127.0.0.1", settings.SENTRY_RELAY_PORT), 1.0):
+            pass
     except OSError:
         _service_status["relay"] = False
     else:

@@ -20,6 +20,7 @@ from django.views import View
 
 from sentry import audit_log, features
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
+from sentry.api.utils import generate_organization_url
 from sentry.auth.email import AmbiguousUserFromEmail, resolve_email_to_user
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.idpmigration import (
@@ -190,17 +191,29 @@ class AuthIdentityHandler:
         user = auth_identity.user
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
+        data = state.data
+        subdomain = None
+        if data:
+            subdomain = data.get("subdomain") or None
+
         try:
             self._login(user)
         except self._NotCompletedSecurityChecks:
-            return HttpResponseRedirect(auth.get_login_redirect(self.request))
+            return HttpResponseRedirect(self._get_login_redirect(subdomain))
 
         state.clear()
 
         if not is_active_superuser(self.request):
             # set activeorg to ensure correct redirect upon logging in
             auth.set_active_org(self.request, self.organization.slug)
-        return HttpResponseRedirect(auth.get_login_redirect(self.request))
+        return HttpResponseRedirect(self._get_login_redirect(subdomain))
+
+    def _get_login_redirect(self, subdomain):
+        login_redirect_url = auth.get_login_redirect(self.request)
+        if subdomain is not None:
+            url_prefix = generate_organization_url(subdomain)
+            login_redirect_url = absolute_uri(login_redirect_url, url_prefix=url_prefix)
+        return login_redirect_url
 
     def _handle_new_membership(self, auth_identity: AuthIdentity) -> Optional[OrganizationMember]:
         user = auth_identity.user
@@ -679,8 +692,8 @@ class AuthHelper(Pipeline):
         state.update({"flow": self.flow})
         return state
 
-    def get_redirect_url(self, url_prefix=None):
-        return absolute_uri(reverse("sentry-auth-sso"), url_prefix=url_prefix)
+    def get_redirect_url(self):
+        return absolute_uri(reverse("sentry-auth-sso"))
 
     def dispatch_to(self, step: View):
         return step.dispatch(request=self.request, helper=self)

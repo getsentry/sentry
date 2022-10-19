@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
-import {STACKTRACE_PREVIEW_TOOLTIP_DELAY} from 'sentry/components/stacktracePreview';
+import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -34,9 +34,7 @@ function Expander({
       css={isDotnet(platform) && {display: 'block !important'}} // remove important once we get rid of css files
       size="zero"
       title={t('Toggle Context')}
-      tooltipProps={
-        isHoverPreviewed ? {delay: STACKTRACE_PREVIEW_TOOLTIP_DELAY} : undefined
-      }
+      tooltipProps={isHoverPreviewed ? {delay: SLOW_TOOLTIP_DELAY} : undefined}
       onClick={onToggleContext}
     >
       <IconChevron direction={isExpanded ? 'up' : 'down'} size="8px" />

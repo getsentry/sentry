@@ -31,6 +31,7 @@ from sentry.models import (
     ScheduledDeletion,
 )
 from sentry.testutils import APITestCase
+from sentry.testutils.cases import BaseTestCase
 from sentry.testutils.helpers import Feature, faux
 from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import ExternalProviders
@@ -50,7 +51,7 @@ def _dyn_sampling_data(multiple_uniform_rules=False, uniform_rule_last_position=
                     {"op": "glob", "name": "field1", "value": ["val"]},
                 ],
             },
-            "id": 0,
+            "id": -1,
         },
         {
             "sampleRate": 0.8,
@@ -62,7 +63,7 @@ def _dyn_sampling_data(multiple_uniform_rules=False, uniform_rule_last_position=
                     {"op": "eq", "name": "field1", "value": ["val"]},
                 ],
             },
-            "id": 0,
+            "id": -1,
         },
     ]
     if uniform_rule_last_position:
@@ -75,7 +76,7 @@ def _dyn_sampling_data(multiple_uniform_rules=False, uniform_rule_last_position=
                     "op": "and",
                     "inner": [],
                 },
-                "id": 0,
+                "id": -1,
             },
         )
     if multiple_uniform_rules:
@@ -86,7 +87,7 @@ def _dyn_sampling_data(multiple_uniform_rules=False, uniform_rule_last_position=
                 "op": "and",
                 "inner": [],
             },
-            "id": 0,
+            "id": -1,
         }
         rules.insert(0, new_rule_1)
 
@@ -822,9 +823,89 @@ class ProjectUpdateTest(APITestCase):
                 event=audit_log.get_event_id("PROJECT_EDIT"),
             )
 
+    def test_dynamic_sampling_uniform_rule_deletion_fail(self):
+        """
+        Tests that when sending a request to delete a dynamic sampling uniform rule without the demo feature flag,
+        the rule will fail to delete
+        """
+        dynamic_sampling = _dyn_sampling_data()
+        project = self.project  # force creation
+
+        # Update project adding three rules
+        project.update_option("sentry:dynamic_sampling", dynamic_sampling)
+
+        self.login_as(self.user)
+
+        token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
+        authorization = f"Bearer {token.token}"
+
+        url = reverse(
+            "sentry-api-0-project-details",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+            },
+        )
+
+        data = {
+            "dynamicSampling": {
+                "rules": [],
+            }
+        }
+
+        with Feature({"organizations:server-side-sampling": True}):
+            response = self.client.put(
+                url, format="json", HTTP_AUTHORIZATION=authorization, data=data
+            )
+
+            assert response.status_code == 400, response.content
+
+    def test_dynamic_sampling_uniform_rule_deletion_success(self):
+        """
+        Tests that when sending a request to delete a dynamic sampling uniform rule with the demo feature flag,
+        the rule will be successfully deleted
+        """
+        dynamic_sampling = _dyn_sampling_data()
+        project = self.project  # force creation
+
+        # Update project adding three rules
+        project.update_option("sentry:dynamic_sampling", dynamic_sampling)
+
+        self.login_as(self.user)
+
+        token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
+        authorization = f"Bearer {token.token}"
+
+        url = reverse(
+            "sentry-api-0-project-details",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+            },
+        )
+
+        data = {
+            "dynamicSampling": {
+                "rules": [],
+            }
+        }
+
+        with Feature(
+            {
+                "organizations:server-side-sampling": True,
+                "organizations:dynamic-sampling-demo": True,
+            }
+        ):
+
+            response = self.client.put(
+                url, format="json", HTTP_AUTHORIZATION=authorization, data=data
+            )
+
+            assert response.status_code == 200, response.content
+
     def test_dynamic_sampling_rule_deletion(self):
         """
-        Tests that when sending a request to dekete a dynamic sampling rule,
+        Tests that when sending a request to delete a dynamic sampling rule,
         the rule will be successfully deleted and that the audit log 'SAMPLING_RULE_REMOVE' will be triggered
         """
         dynamic_sampling = _dyn_sampling_data()
@@ -1098,7 +1179,7 @@ class ProjectUpdateTest(APITestCase):
                             {"op": "eq", "name": "field1", "value": ["val"]},
                         ],
                     },
-                    "id": 0,
+                    "id": -1,
                 },
                 {
                     "sampleRate": 0.8,
@@ -1109,7 +1190,7 @@ class ProjectUpdateTest(APITestCase):
                             {"op": "eq", "name": "field1", "value": ["val"]},
                         ],
                     },
-                    "id": 0,
+                    "id": -1,
                 },
                 {
                     "sampleRate": 0.9,
@@ -1118,7 +1199,7 @@ class ProjectUpdateTest(APITestCase):
                         "op": "and",
                         "inner": [],
                     },
-                    "id": 0,
+                    "id": -1,
                 },
             ]
         }
@@ -1151,7 +1232,7 @@ class ProjectUpdateTest(APITestCase):
                     {"op": "eq", "name": "field1", "value": ["val"]},
                 ],
             },
-            "id": 0,
+            "id": -1,
         }
 
         saved_config["rules"].insert(0, new_rule_1)
@@ -1163,7 +1244,7 @@ class ProjectUpdateTest(APITestCase):
                 "op": "and",
                 "inner": [],
             },
-            "id": 0,
+            "id": -1,
         }
 
         saved_config["rules"].append(new_rule_2)
@@ -1652,71 +1733,75 @@ class ProjectDeleteTest(APITestCase):
         ).exists()
 
 
-@pytest.mark.parametrize(
-    "condition",
-    (
-        {"op": "and", "inner": []},
-        {"op": "and", "inner": [{"op": "and", "inner": []}]},
-        {"op": "or", "inner": []},
-        {"op": "or", "inner": [{"op": "or", "inner": []}]},
-        {"op": "not", "inner": {"op": "or", "inner": []}},
-        {"op": "eq", "ignoreCase": True, "name": "field1", "value": ["val"]},
-        {"op": "eq", "name": "field1", "value": ["val"]},
-        {"op": "glob", "name": "field1", "value": ["val"]},
-    ),
-)
-def test_condition_serializer_ok(condition):
-    serializer = DynamicSamplingConditionSerializer(data=condition)
-    assert serializer.is_valid()
-    assert serializer.validated_data == condition
+class TestDynamicSamplingSerializers(BaseTestCase):
+    @pytest.mark.parametrize(
+        "condition",
+        (
+            {"op": "and", "inner": []},
+            {"op": "and", "inner": [{"op": "and", "inner": []}]},
+            {"op": "or", "inner": []},
+            {"op": "or", "inner": [{"op": "or", "inner": []}]},
+            {"op": "not", "inner": {"op": "or", "inner": []}},
+            {"op": "eq", "ignoreCase": True, "name": "field1", "value": ["val"]},
+            {"op": "eq", "name": "field1", "value": ["val"]},
+            {"op": "glob", "name": "field1", "value": ["val"]},
+        ),
+    )
+    def test_condition_serializer_ok(self, condition):
+        serializer = DynamicSamplingConditionSerializer(data=condition)
+        assert serializer.is_valid()
+        assert serializer.validated_data == condition
 
+    @pytest.mark.parametrize(
+        "condition",
+        (
+            {"inner": []},
+            {"op": "and"},
+            {"op": "or"},
+            {"op": "eq", "value": ["val"]},
+            {"op": "eq", "name": "field1"},
+            {"op": "glob", "value": ["val"]},
+            {"op": "glob", "name": "field1"},
+        ),
+    )
+    def test_bad_condition_serialization(self, condition):
+        serializer = DynamicSamplingConditionSerializer(data=condition)
+        assert not serializer.is_valid()
 
-@pytest.mark.parametrize(
-    "condition",
-    (
-        {"inner": []},
-        {"op": "and"},
-        {"op": "or"},
-        {"op": "eq", "value": ["val"]},
-        {"op": "eq", "name": "field1"},
-        {"op": "glob", "value": ["val"]},
-        {"op": "glob", "name": "field1"},
-    ),
-)
-def test_bad_condition_serialization(condition):
-    serializer = DynamicSamplingConditionSerializer(data=condition)
-    assert not serializer.is_valid()
-
-
-def test_rule_config_serializer():
-    data = {
-        "rules": [
-            {
-                "sampleRate": 0.7,
-                "type": "trace",
-                "active": False,
-                "id": 1,
-                "condition": {
-                    "op": "and",
-                    "inner": [
-                        {"op": "eq", "name": "field1", "value": ["val"]},
-                        {"op": "glob", "name": "field1", "value": ["val"]},
-                    ],
+    @pytest.mark.django_db
+    def test_rule_config_serializer(self):
+        data = {
+            "rules": [
+                {
+                    "sampleRate": 0.7,
+                    "type": "trace",
+                    "active": False,
+                    "id": 1,
+                    "condition": {
+                        "op": "and",
+                        "inner": [
+                            {"op": "eq", "name": "field1", "value": ["val"]},
+                            {"op": "glob", "name": "field1", "value": ["val"]},
+                        ],
+                    },
                 },
-            },
-            {
-                "sampleRate": 0.7,
-                "type": "trace",
-                "active": False,
-                "id": 2,
-                "condition": {
-                    "op": "and",
-                    "inner": [],
+                {
+                    "sampleRate": 0.7,
+                    "type": "trace",
+                    "active": False,
+                    "id": 2,
+                    "condition": {
+                        "op": "and",
+                        "inner": [],
+                    },
                 },
-            },
-        ],
-        "next_id": 22,
-    }
-    serializer = DynamicSamplingSerializer(data=data)
-    assert serializer.is_valid()
-    assert data == serializer.validated_data
+            ],
+            "next_id": 3,
+        }
+
+        serializer = DynamicSamplingSerializer(
+            data=data,
+            context={"project": self.create_project(), "request": self.make_request()},
+        )
+        assert serializer.is_valid()
+        assert data == serializer.validated_data

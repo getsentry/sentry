@@ -2,10 +2,10 @@ import {Component} from 'react';
 import {browserHistory} from 'react-router';
 
 import ApiForm from 'sentry/components/forms/apiForm';
-import BooleanField from 'sentry/components/forms/booleanField';
 import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
+import BooleanField from 'sentry/components/forms/fields/booleanField';
+import TextField from 'sentry/components/forms/fields/textField';
 import FormField from 'sentry/components/forms/formField';
-import TextField from 'sentry/components/forms/textField';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import {Choices, ServiceHook} from 'sentry/types';

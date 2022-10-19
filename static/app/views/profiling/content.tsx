@@ -7,7 +7,6 @@ import {openModal} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
-import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -143,8 +142,25 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
               <StyledLayoutHeaderContent>
                 <StyledHeading>{t('Profiling')}</StyledHeading>
                 <HeadingActions>
-                  <Button onClick={onSetupProfilingClick}>{t('Set Up Profiling')}</Button>
-                  <FeatureFeedback featureName="profiling" />
+                  <Button size="sm" onClick={onSetupProfilingClick}>
+                    {t('Set Up Profiling')}
+                  </Button>
+                  <Button
+                    size="sm"
+                    priority="primary"
+                    href="https://discord.gg/zrMjKA4Vnz"
+                    external
+                    onClick={() => {
+                      trackAdvancedAnalyticsEvent(
+                        'profiling_views.visit_discord_channel',
+                        {
+                          organization,
+                        }
+                      );
+                    }}
+                  >
+                    {t('Join Discord')}
+                  </Button>
                 </HeadingActions>
               </StyledLayoutHeaderContent>
             </Layout.Header>
@@ -168,7 +184,7 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
                 </ActionBar>
                 {shouldShowProfilingOnboardingPanel ? (
                   <ProfilingOnboardingPanel>
-                    <Button href="https://docs.sentry.io/" external>
+                    <Button href="https://docs.sentry.io/product/profiling/" external>
                       {t('Read Docs')}
                     </Button>
                     <Button onClick={onSetupProfilingClick} priority="primary">

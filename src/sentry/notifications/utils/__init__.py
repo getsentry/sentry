@@ -3,13 +3,25 @@ from __future__ import annotations
 import logging
 import time
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequence, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Iterable,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Union,
+    cast,
+)
 
 from django.db.models import Count
 from django.utils.http import urlencode
 from django.utils.safestring import mark_safe
 
 from sentry import integrations
+from sentry.api.serializers.models.event import get_entries, get_problems
 from sentry.incidents.models import AlertRuleTriggerAction
 from sentry.integrations import IntegrationFeatures, IntegrationProvider
 from sentry.models import (
@@ -19,6 +31,7 @@ from sentry.models import (
     Environment,
     EventError,
     Group,
+    GroupHash,
     GroupLink,
     Integration,
     Organization,
@@ -33,6 +46,11 @@ from sentry.notifications.notify import notify
 from sentry.notifications.utils.participants import split_participants_and_context
 from sentry.utils.committers import get_serialized_event_file_committers
 from sentry.utils.http import absolute_uri
+from sentry.utils.performance_issues.performance_detection import (
+    EventPerformanceProblem,
+    PerformanceProblem,
+)
+from sentry.web.helpers import render_to_string
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event
@@ -261,6 +279,90 @@ def get_interface_list(event: Event) -> Sequence[tuple[str, str, str]]:
         text_body = interface.to_string(event)
         interface_list.append((interface.get_title(), mark_safe(body), text_body))
     return interface_list
+
+
+def get_span_evidence_value_problem(problem: PerformanceProblem) -> str:
+    value = "no value"
+    if not problem:
+        return value
+    if not problem.op and problem.desc:
+        value = problem.desc
+    if problem.op and not problem.desc:
+        value = problem.op
+    if problem.op and problem.desc:
+        value = f"{problem.op} - {problem.desc}"
+    return value
+
+
+def get_span_evidence_value(span: Optional[Dict[str, Union[str, float, None]]] = None) -> str:
+    value = "no value"
+    if not span:
+        return value
+    if not span.get("op") and span.get("description"):
+        value = cast(str, span["description"])
+    if span.get("op") and not span.get("description"):
+        value = cast(str, span["op"])
+    if span.get("op") and span.get("description"):
+        op = span["op"]
+        desc = span["description"]
+        value = f"{op} - {desc}"
+    return value
+
+
+def perf_to_email_html(
+    spans: Sequence[Dict[str, Union[str, float, None]]], problem: PerformanceProblem = None
+) -> Any:
+
+    if not problem:
+        return ""
+
+    parent_span = None
+    repeating_spans = None
+
+    for span in spans:
+        if problem.parent_span_ids:
+            if problem.parent_span_ids[0] == span.get("span_id"):
+                parent_span = span
+        if problem.offender_span_ids:
+            if problem.offender_span_ids[0] == span.get("span_id"):
+                repeating_spans = span
+        if parent_span is not None and repeating_spans is not None:
+            break
+
+    context = {
+        "transaction_name": get_span_evidence_value_problem(problem),
+        "parent_span": get_span_evidence_value(parent_span),
+        # "preceding_span": "SELECT idk FROM idk_what_a_preceding_span_is",
+        "repeating_spans": get_span_evidence_value(repeating_spans),
+        "num_repeating_spans": str(len(problem.offender_span_ids))
+        if problem.offender_span_ids
+        else "",
+    }
+    return render_to_string("sentry/emails/transactions.html", context)
+
+
+def get_matched_problem(event: Event) -> Optional[EventPerformanceProblem]:
+    """Get the matching performance problem for a given event"""
+    problems = get_problems([event])
+    if not problems:
+        return None
+
+    for problem in problems:
+        if problem.problem.fingerprint == GroupHash.objects.get(group=event.group).hash:
+            return problem.problem
+    return None
+
+
+def get_transaction_data(event: Event) -> Any:
+    """Get data about a transaction to populate alert emails."""
+    entries = get_entries(event, None)
+    spans = []
+    if len(entries):
+        spans = [entry.get("data") for entry in entries[0] if entry.get("type") == "spans"][0]
+
+    matched_problem = get_matched_problem(event)
+
+    return perf_to_email_html(spans, matched_problem)
 
 
 def send_activity_notification(notification: ActivityNotification | UserReportNotification) -> None:

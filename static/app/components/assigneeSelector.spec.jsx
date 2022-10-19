@@ -112,7 +112,6 @@ describe('AssigneeSelector', () => {
 
   afterEach(() => {
     Client.clearMockResponses();
-    ProjectsStore.teardown();
   });
 
   describe('render with props', () => {
