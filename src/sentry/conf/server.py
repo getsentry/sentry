@@ -1197,6 +1197,8 @@ SENTRY_FEATURES = {
     "organizations:server-side-sampling-allow-incompatible-platforms": False,
     # Enable the deletion of sampling uniform rules (used internally for demo purposes)
     "organizations:dynamic-sampling-demo": False,
+    # Enable the new opinionated dynamic sampling UI (this will be controlled by plan but now enables it for us internally during development)
+    "organizations:dynamic-sampling-opinionated": False,
     # Enable the creation of a uniform sampling rule.
     "organizations:dynamic-sampling-basic": False,
     # Enable the creation of uniform and conditional sampling rules.
