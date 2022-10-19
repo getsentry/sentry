@@ -32,7 +32,7 @@ class ProjectOwnership(Model):
     last_updated = models.DateTimeField(default=timezone.now)
     is_active = models.BooleanField(default=True)
     codeowners_auto_sync = models.BooleanField(default=True, null=True)
-    suspect_committer_auto_assignment = models.BooleanField(default=True)
+    suspect_committer_auto_assignment = models.BooleanField(default=False)
 
     # An object to indicate ownership is implicitly everyone
     Everyone = object()
