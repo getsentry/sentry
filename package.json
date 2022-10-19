@@ -167,7 +167,7 @@
     "@babel/plugin-transform-react-jsx-source": "^7.19.6",
     "@pmmmwh/react-refresh-webpack-plugin": "0.5.7",
     "@sentry/jest-environment": "4.0.0-alpha",
-    "@sentry/profiling-node": "^0.0.1",
+    "@sentry/profiling-node": "^0.0.4",
     "@size-limit/preset-small-lib": "^5.0.5",
     "@storybook/addon-a11y": "6.5.12",
     "@storybook/addon-actions": "6.5.12",
@@ -197,12 +197,7 @@
     "jest-environment-jsdom": "^29.2.0",
     "jest-fail-on-console": "^3.0.2",
     "jest-fetch-mock": "^3.0.3",
-<<<<<<< HEAD
-    "jest-junit": "14.0.1",
-    "jest-sentry-environment": "3.0.0",
-=======
     "jest-junit": "13.2.0",
->>>>>>> abe5a22ca1 (feat(jest): enable profiling tests)
     "postcss-jsx": "0.36.4",
     "postcss-syntax": "0.36.2",
     "react-refresh": "0.13.0",
