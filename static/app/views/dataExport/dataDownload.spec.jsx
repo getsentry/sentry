@@ -40,7 +40,7 @@ describe('DataDownload', function () {
     getDataExportDetails({errors}, 403);
 
     render(<DataDownload params={mockRouteParams} />);
-    expect(screen.getByRole('heading', {level: 3})).toHaveTextContent('403 -'); // Either the code or the mock is mistaken about the data return format
+    expect(screen.getByText('403 -')).toBeInTheDocument(); // Either the code or the mock is mistaken about the data return format
   });
 
   it("should render the 'Early' view when appropriate", function () {
@@ -48,9 +48,9 @@ describe('DataDownload', function () {
     getDataExportDetails({status});
 
     render(<DataDownload params={mockRouteParams} />);
-    expect(screen.getByRole('heading', {level: 3})).toHaveTextContent(
-      'What are you doing here?'
-    );
+    expect(
+      screen.getByText(textWithMarkupMatcher('What are you doing here?'))
+    ).toBeInTheDocument();
     expect(screen.getByText(/were you invited/)).toBeInTheDocument();
   });
 
@@ -60,7 +60,7 @@ describe('DataDownload', function () {
     getDataExportDetails(response);
 
     render(<DataDownload params={mockRouteParams} />);
-    expect(screen.getByRole('heading', {level: 3})).toHaveTextContent('This is awkward.');
+    expect(screen.getByText('This is awkward.')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Start a New Download'})).toHaveAttribute(
       'href',
       `/organizations/${mockRouteParams.orgId}/issues/`
@@ -72,7 +72,7 @@ describe('DataDownload', function () {
     getDataExportDetails({dateExpired, status});
 
     render(<DataDownload params={mockRouteParams} />);
-    expect(screen.getByRole('heading', {level: 3})).toHaveTextContent('All done.');
+    expect(screen.getByText('All done.')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Download CSV'})).toHaveAttribute(
       'href',
       `/api/0/organizations/${mockRouteParams.orgId}/data-export/${mockRouteParams.dataExportId}/?download=true`
