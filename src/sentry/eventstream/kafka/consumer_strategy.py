@@ -10,6 +10,7 @@ from arroyo.processing.strategies.abstract import MessageRejected
 from arroyo.types import Commit, Message, Partition, Position
 
 from sentry import options
+from sentry.eventstream.base import GroupStates
 from sentry.eventstream.kafka.postprocessworker import _sampled_eventstream_timer
 from sentry.eventstream.kafka.postprocessworker import (
     dispatch_post_process_group_task as _dispatch_post_process_group_task,
@@ -35,6 +36,7 @@ def dispatch_post_process_group_task(
     is_new_group_environment: bool,
     primary_hash: Optional[str],
     skip_consume: bool = False,
+    group_states: Optional[GroupStates] = None,
 ) -> None:
     _dispatch_post_process_group_task(
         event_id,
@@ -45,6 +47,7 @@ def dispatch_post_process_group_task(
         is_new_group_environment,
         primary_hash,
         skip_consume,
+        group_states,
     )
 
 
