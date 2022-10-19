@@ -3,6 +3,15 @@
 from django.db import migrations, models
 
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
+
+
+def backfill_app_id_str(apps, schema_editor):
+    AppConnectBuild = apps.get_model("sentry", "AppConnectBuild")
+
+    for appconnect_build in RangeQuerySetWrapperWithProgressBar(AppConnectBuild.objects.all()):
+        appconnect_build.app_id_str = str(appconnect_build.app_id)
+        appconnect_build.save()
 
 
 class Migration(CheckedMigration):
@@ -32,5 +41,10 @@ class Migration(CheckedMigration):
             model_name="appconnectbuild",
             name="app_id_str",
             field=models.CharField(max_length=256),
+        ),
+        migrations.RunPython(
+            backfill_app_id_str,
+            migrations.RunPython.noop,
+            hints={"tables": ["sentry_appconnectbuild"]},
         ),
     ]
