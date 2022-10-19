@@ -10,7 +10,7 @@ import {
 
 describe('InputGroup', function () {
   it('renders input', function () {
-    render(
+    const {container} = render(
       <InputGroup value="Search" onChange={() => {}}>
         <Input />
       </InputGroup>
@@ -18,20 +18,23 @@ describe('InputGroup', function () {
 
     expect(screen.getByRole('textbox')).toBeInTheDocument();
     expect(screen.getByRole('textbox')).toHaveDisplayValue('Search');
+
+    expect(container).toSnapshot();
   });
 
   it('renders disabled input', function () {
-    render(
+    const {container} = render(
       <InputGroup disabled>
         <Input />
       </InputGroup>
     );
 
     expect(screen.getByRole('textbox')).toBeDisabled();
+    expect(container).toSnapshot();
   });
 
   it('renders leading elements', function () {
-    render(
+    const {container} = render(
       <InputGroup>
         <InputLeadingItems>
           <Button>Leading Button</Button>
@@ -49,10 +52,12 @@ describe('InputGroup', function () {
     expect(screen.getByRole('button', {name: 'Leading Button'})).toHaveFocus();
     userEvent.tab();
     expect(screen.getByRole('textbox')).toHaveFocus();
+
+    expect(container).toSnapshot();
   });
 
   it('renders trailing elements', function () {
-    render(
+    const {container} = render(
       <InputGroup>
         <Input />
         <InputTrailingItems>
@@ -70,5 +75,7 @@ describe('InputGroup', function () {
     expect(screen.getByRole('textbox')).toHaveFocus();
     userEvent.tab();
     expect(screen.getByRole('button', {name: 'Trailing Button'})).toHaveFocus();
+
+    expect(container).toSnapshot();
   });
 });
