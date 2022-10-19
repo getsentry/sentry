@@ -7,7 +7,7 @@ import omit from 'lodash/omit';
 import set from 'lodash/set';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import DatePageFilter from 'sentry/components/datePageFilter';
@@ -41,7 +41,6 @@ import {
   getColumnsAndAggregatesAsStrings,
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
-import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import useApi from 'sentry/utils/useApi';
@@ -228,6 +227,10 @@ function WidgetBuilder({
       prebuiltWidgetId: null,
       dataSet: DataSet.EVENTS,
       queryConditionsValid: true,
+      selectedDashboard: {
+        label: dashboard.title,
+        value: dashboard.id || NEW_DASHBOARD_ID,
+      },
     };
 
     if (defaultWidgetQuery) {
@@ -332,47 +335,6 @@ function WidgetBuilder({
     // This should only run once on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  useEffect(() => {
-    async function fetchDashboards() {
-      const promise: Promise<DashboardListItem[]> = api.requestPromise(
-        `/organizations/${organization.slug}/dashboards/`,
-        {
-          method: 'GET',
-          query: {sort: 'myDashboardsAndRecentlyViewed'},
-        }
-      );
-
-      try {
-        const dashboards = await promise;
-        setState(prevState => ({...prevState, dashboards, loading: false}));
-      } catch (error) {
-        const errorMessage = t('Unable to fetch dashboards');
-        addErrorMessage(errorMessage);
-        handleXhrErrorResponse(errorMessage)(error);
-        setState(prevState => ({...prevState, loading: false}));
-      }
-    }
-
-    if (notDashboardsOrigin) {
-      fetchDashboards();
-    }
-
-    setState(prevState => ({
-      ...prevState,
-      selectedDashboard: {
-        label: dashboard.title,
-        value: dashboard.id || NEW_DASHBOARD_ID,
-      },
-    }));
-  }, [
-    api,
-    dashboard.id,
-    dashboard.title,
-    notDashboardsOrigin,
-    organization.slug,
-    source,
-  ]);
 
   useEffect(() => {
     fetchOrgMembers(api, organization.slug, selection.projects?.map(String));
@@ -865,28 +827,7 @@ function WidgetBuilder({
   }
 
   async function dataIsValid(widgetData: Widget): Promise<boolean> {
-    if (notDashboardsOrigin) {
-      // Validate that a dashboard was selected since api call to /dashboards/widgets/ does not check for dashboard
-      if (
-        !state.selectedDashboard ||
-        !(
-          state.dashboards.find(
-            ({title, id}) =>
-              title === state.selectedDashboard?.label &&
-              id === state.selectedDashboard?.value
-          ) || state.selectedDashboard.value === NEW_DASHBOARD_ID
-        )
-      ) {
-        setState({
-          ...state,
-          errors: {...state.errors, dashboard: t('This field may not be blank')},
-        });
-        return false;
-      }
-    }
-
     setState({...state, loading: true});
-
     try {
       await validateWidget(api, organization.slug, widgetData);
       return true;
