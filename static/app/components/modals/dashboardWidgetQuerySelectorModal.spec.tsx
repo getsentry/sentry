@@ -91,8 +91,10 @@ describe('Modals -> AddDashboardWidgetModal', function () {
   it('renders a single query selection when the widget only has one query', function () {
     renderModal({initialData, widget: mockWidget});
 
-    screen.getByDisplayValue('title:/organizations/:orgId/performance/summary/');
-    screen.getByLabelText('Open in Discover');
+    expect(
+      screen.getByDisplayValue('title:/organizations/:orgId/performance/summary/')
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Open in Discover'})).toBeInTheDocument();
   });
 
   it('renders a multiple query selections when the widget only has multiple queries', function () {
@@ -107,19 +109,22 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       id: '3',
     });
     renderModal({initialData, widget: mockWidget});
-    const queryFields = screen.getAllByLabelText('Search events');
+    const queryFields = screen.getAllByRole('textbox');
     expect(queryFields).toHaveLength(3);
 
-    screen.getByDisplayValue('title:/organizations/:orgId/performance/summary/');
-    screen.getByDisplayValue('title:/organizations/:orgId/performance/');
-    screen.getByDisplayValue('title:/organizations/:orgId/');
+    expect(
+      screen.getByDisplayValue('title:/organizations/:orgId/performance/summary/')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByDisplayValue('title:/organizations/:orgId/performance/')
+    ).toBeInTheDocument();
+    expect(screen.getByDisplayValue('title:/organizations/:orgId/')).toBeInTheDocument();
   });
 
   it('links user to the query in discover when a query is selected from the modal', function () {
     renderModal({initialData, widget: mockWidget});
-    expect(
-      screen.getByLabelText('Open in Discover')?.parentElement?.getAttribute('href')
-    ).toEqual(
+    expect(screen.getByRole('link')).toHaveAttribute(
+      'href',
       '/organizations/org-slug/discover/results/?field=count%28%29&field=failure_count%28%29&name=Test%20Widget&query=title%3A%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2F&statsPeriod=14d&yAxis=count%28%29&yAxis=failure_count%28%29'
     );
   });
@@ -129,9 +134,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     mockWidget.queries[0].aggregates = ['count()'];
     mockWidget.displayType = DisplayType.WORLD_MAP;
     renderModal({initialData, widget: mockWidget});
-    expect(
-      screen.getByLabelText('Open in Discover')?.parentElement?.getAttribute('href')
-    ).toEqual(
+    expect(screen.getByRole('link')).toHaveAttribute(
+      'href',
       '/organizations/org-slug/discover/results/?display=worldmap&field=geo.country_code&field=count%28%29&name=Test%20Widget&query=title%3A%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2F%20has%3Ageo.country_code&statsPeriod=14d&yAxis=count%28%29'
     );
   });
