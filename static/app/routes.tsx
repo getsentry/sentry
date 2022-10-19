@@ -197,6 +197,18 @@ function buildRoutes() {
         path="/join-request/:orgId/"
         component={make(() => import('sentry/views/organizationJoinRequest'))}
       />
+      {usingCustomerDomain ? (
+        <Route
+          path="/onboarding/"
+          component={errorHandler(withDomainRequired(OrganizationContextContainer))}
+          key="orgless-onboarding"
+        >
+          <Route
+            path=":step/"
+            component={make(() => import('sentry/views/onboarding/onboarding'))}
+          />
+        </Route>
+      ) : null}
       <Route
         path="/onboarding/:orgId/"
         component={errorHandler(OrganizationContextContainer)}
