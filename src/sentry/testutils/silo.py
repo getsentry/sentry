@@ -109,8 +109,6 @@ class SiloModeTest:
 # decorate-silo-mode-tests do not over-zealously mark a test.  This should be used sparingly where we know that
 # a test suite is fully redundant with some other coverage or other testing strategies get employed.
 no_silo_test = SiloModeTest(SiloMode.MONOLITH)
-# We should be mindful about using this decorator too widely, the cost to test increases are concerning.
-all_silo_test = SiloModeTest(SiloMode.CONTROL, SiloMode.REGION, SiloMode.MONOLITH)
 control_silo_test = SiloModeTest(SiloMode.CONTROL, SiloMode.MONOLITH)
 region_silo_test = SiloModeTest(SiloMode.REGION, SiloMode.MONOLITH)
 

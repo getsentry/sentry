@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import Generic, Mapping, Optional, Type, TypeVar, cast
+from typing import Dict, Generic, Mapping, Optional, Type, TypeVar, cast
 
 from django.db.models import F
 
@@ -41,7 +41,7 @@ class DelegatedBySiloMode(Generic[ServiceInterface]):
     """
 
     _constructors: Mapping[SiloMode, Type[ServiceInterface]]
-    _singletons: Mapping[SiloMode, ServiceInterface]
+    _singletons: Dict[SiloMode, ServiceInterface]
 
     def __init__(self, mapping: Mapping[SiloMode, Type[ServiceInterface]]):
         self._constructors = mapping
@@ -52,7 +52,7 @@ class DelegatedBySiloMode(Generic[ServiceInterface]):
         if impl := self._singletons.get(cur_mode, None):
             return getattr(impl, item)
         if Con := self._constructors.get(cur_mode, None):
-            return self._singletons.setdefault(cur_mode, Con())
+            return getattr(self._singletons.setdefault(cur_mode, Con()), item)
 
         raise KeyError(f"No implementation found for {cur_mode}.")
 

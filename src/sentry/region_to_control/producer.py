@@ -68,7 +68,8 @@ def get_region_to_control_producer() -> KafkaProducer:
 
         @atexit.register
         def exit_handler():
-            _publisher.close()
+            if _publisher:
+                _publisher.close()
 
     return _publisher
 

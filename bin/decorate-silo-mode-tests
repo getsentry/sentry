@@ -40,7 +40,6 @@ def find_test_cases_matching(model_name: str):
         [
             "control",
             "region",
-            "all",
             "no",
         ]
     ),
