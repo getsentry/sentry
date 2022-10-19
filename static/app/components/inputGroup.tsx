@@ -1,4 +1,12 @@
-import {createContext, forwardRef, useContext, useEffect, useRef, useState} from 'react';
+import {
+  createContext,
+  forwardRef,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -42,10 +50,13 @@ export function InputGroup({children, ...inputProps}: InputProps) {
   const [leadingWidth, setLeadingWidth] = useState<number>();
   const [trailingWidth, setTrailingWidth] = useState<number>();
 
+  const contextValue = useMemo(
+    () => ({inputProps, leadingWidth, setLeadingWidth, trailingWidth, setTrailingWidth}),
+    [inputProps, leadingWidth, trailingWidth]
+  );
+
   return (
-    <InputGroupContext.Provider
-      value={{inputProps, leadingWidth, setLeadingWidth, trailingWidth, setTrailingWidth}}
-    >
+    <InputGroupContext.Provider value={contextValue}>
       <InputGroupWrap disabled={inputProps.disabled}>{children}</InputGroupWrap>
     </InputGroupContext.Provider>
   );
