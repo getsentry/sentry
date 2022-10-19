@@ -28,9 +28,9 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.AlterField(
+        migrations.AddField(
             model_name="appconnectbuild",
-            name="app_id",
+            name="app_id_str",
             field=models.CharField(max_length=256),
         ),
     ]
