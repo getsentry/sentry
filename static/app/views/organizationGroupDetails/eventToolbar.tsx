@@ -162,7 +162,7 @@ class GroupEventToolbar extends Component<Props> {
         <NavigationContainer>
           {hasReplay && isReplayEnabled ? (
             <Button href="#breadcrumbs" size="sm" icon={<IconPlay size="xs" />}>
-              Replay
+              {t('Replay')}
             </Button>
           ) : null}
           <NavigationButtonGroup
