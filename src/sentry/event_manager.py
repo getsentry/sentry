@@ -116,7 +116,7 @@ CRASH_REPORT_TIMEOUT = 24 * 3600  # one day
 issue_rate_limiter = RedisSlidingWindowRateLimiter(
     **settings.SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS
 )
-PERFORMANCE_ISSUE_QUOTA = Quota(3600, 60, 60)
+PERFORMANCE_ISSUE_QUOTA = Quota(3600, 60, 5)
 
 
 @dataclass

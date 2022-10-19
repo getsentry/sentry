@@ -34,7 +34,7 @@ class VroomTimeout(Exception):
 
 
 @instrumented_task(  # type: ignore
-    name="profiles.process",
+    name="sentry.profiles.task.process_profile",
     queue="profiles.process",
     autoretry_for=(VroomTimeout,),  # Retry when vroom returns a GCS timeout
     retry_backoff=True,

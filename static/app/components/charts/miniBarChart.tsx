@@ -71,6 +71,19 @@ interface Props extends Omit<ChartProps, 'css' | 'colors' | 'series' | 'height'>
   utc?: boolean;
 }
 
+export function getYAxisMaxFn(height: number) {
+  return (value: {max: number; min: number}) => {
+    // This keeps small datasets from looking 'scary'
+    // by having full bars for < 10 values.
+    if (value.max < 10) {
+      return 10;
+    }
+    // Adds extra spacing at the top of the chart canvas, ensuring the series doesn't hit the ceiling, leaving more empty space.
+    // When the user hovers over an empty space, a tooltip with all series information is displayed.
+    return (value.max * (height + 10)) / height;
+  };
+}
+
 function MiniBarChart({
   emphasisColors,
   series,
@@ -148,16 +161,7 @@ function MiniBarChart({
         : undefined,
     },
     yAxis: {
-      max(value: {max: number; min: number}) {
-        // This keeps small datasets from looking 'scary'
-        // by having full bars for < 10 values.
-        if (value.max < 10) {
-          return 10;
-        }
-        // Adds extra spacing at the top of the chart canvas, ensuring the series doesn't hit the ceiling, leaving more empty space.
-        // When the user hovers over an empty space, a tooltip with all series information is displayed.
-        return (value.max * (height + 10)) / height;
-      },
+      max: getYAxisMaxFn(height),
       splitLine: {
         show: false,
       },

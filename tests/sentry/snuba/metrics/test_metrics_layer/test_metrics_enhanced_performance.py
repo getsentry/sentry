@@ -377,6 +377,66 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             key=lambda elem: elem["name"],
         )
 
+    def test_query_with_has_condition(self):
+        for value, transaction in ((10, "/foo"), (20, "/bar"), (30, "/lorem")):
+            self.store_performance_metric(
+                name=TransactionMRI.DURATION.value,
+                tags={"transaction": transaction},
+                value=value,
+            )
+
+        metrics_query = self.build_metrics_query(
+            before_now="1m",
+            granularity="1m",
+            select=[
+                MetricField(
+                    op="count",
+                    metric_mri=TransactionMRI.DURATION.value,
+                ),
+            ],
+            groupby=[],
+            where=[
+                Condition(
+                    lhs=Function(
+                        function="has",
+                        parameters=[
+                            Column(
+                                name="tags.key",
+                            ),
+                            "transaction",
+                        ],
+                    ),
+                    op=Op.EQ,
+                    rhs=1,
+                )
+            ],
+            limit=Limit(limit=1),
+            offset=Offset(offset=0),
+            include_series=False,
+        )
+
+        data = get_series(
+            [self.project],
+            metrics_query=metrics_query,
+            include_meta=True,
+            use_case_id=UseCaseKey.PERFORMANCE,
+        )
+
+        groups = data["groups"]
+        assert len(groups) == 1
+
+        expected_count = 3
+        expected_alias = "count(transaction.duration)"
+        assert groups[0]["totals"] == {
+            expected_alias: expected_count,
+        }
+        assert data["meta"] == sorted(
+            [
+                {"name": expected_alias, "type": "UInt64"},
+            ],
+            key=lambda elem: elem["name"],
+        )
+
     def test_count_transaction_with_valid_condition(self):
         for transaction, values in (
             ("<< unparameterized >>", [1]),
