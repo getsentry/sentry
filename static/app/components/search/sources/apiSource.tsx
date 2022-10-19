@@ -62,7 +62,7 @@ async function createOrganizationResults(
 }
 async function createProjectResults(
   projectsPromise: Promise<Project[]>,
-  orgId: string
+  orgId?: string
 ): Promise<ResultItem[]> {
   const projects = (await projectsPromise) || [];
   return flatten(
@@ -101,7 +101,7 @@ async function createProjectResults(
 }
 async function createTeamResults(
   teamsPromise: Promise<Team[]>,
-  orgId: string
+  orgId?: string
 ): Promise<ResultItem[]> {
   const teams = (await teamsPromise) || [];
   return teams.map(team => ({
@@ -116,7 +116,7 @@ async function createTeamResults(
 
 async function createMemberResults(
   membersPromise: Promise<Member[]>,
-  orgId: string
+  orgId?: string
 ): Promise<ResultItem[]> {
   const members = (await membersPromise) || [];
   return members.map(member => ({
@@ -131,7 +131,7 @@ async function createMemberResults(
 
 async function createPluginResults(
   pluginsPromise: Promise<PluginWithProjectList[]>,
-  orgId: string
+  orgId?: string
 ): Promise<ResultItem[]> {
   const plugins = (await pluginsPromise) || [];
   return plugins
@@ -157,7 +157,7 @@ async function createPluginResults(
 
 async function createIntegrationResults(
   integrationsPromise: Promise<{providers: IntegrationProvider[]}>,
-  orgId: string
+  orgId?: string
 ): Promise<ResultItem[]> {
   const {providers} = (await integrationsPromise) || {};
   return (
@@ -183,7 +183,7 @@ async function createIntegrationResults(
 
 async function createSentryAppResults(
   sentryAppPromise: Promise<SentryApp[]>,
-  orgId: string
+  orgId?: string
 ): Promise<ResultItem[]> {
   const sentryApps = (await sentryAppPromise) || [];
   return sentryApps.map(sentryApp => ({
@@ -204,7 +204,7 @@ async function createSentryAppResults(
 
 async function createDocIntegrationResults(
   docIntegrationPromise: Promise<DocIntegration[]>,
-  orgId: string
+  orgId?: string
 ): Promise<ResultItem[]> {
   const docIntegrations = (await docIntegrationPromise) || [];
   return docIntegrations.map(docIntegration => ({
@@ -272,11 +272,11 @@ async function createEventIdLookupResult(
 
 type Props = WithRouterProps<{orgId: string}> & {
   children: (props: ChildProps) => React.ReactElement;
-  organization: Organization;
   /**
    * search term
    */
   query: string;
+  organization?: Organization;
   /**
    * fuse.js options
    */
@@ -331,6 +331,7 @@ class ApiSource extends Component<Props, State> {
   doSearch = debounce((query: string) => {
     const {params, organization} = this.props;
     const orgId = (params && params.orgId) || (organization && organization.slug);
+
     let searchUrls = ['/organizations/'];
     let directUrls: (string | null)[] = [];
 
