@@ -211,7 +211,12 @@ def get_task_kwargs_for_message_from_headers(
                 )
             task_state["group_states"] = group_states
 
-            task_state["queue"] = decode_str(header_data["queue"])
+            # default in case queue is not sent
+            task_state["queue"] = (
+                decode_str(header_data["queue"])
+                if "queue" in header_data
+                else "post_process_errors"
+            )
 
         else:
             event_data = {}
