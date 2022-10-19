@@ -725,7 +725,7 @@ class BatchedConsumerTest(TestCase):
         )
 
     @patch(
-        "sentry.eventstream.kafka.postprocessworker.dispatch_post_process_group_task", autospec=True
+        "sentry.eventstream.kafka.consumer_strategy.dispatch_post_process_group_task", autospec=True
     )
     def test_post_process_forwarder_streaming_consumer(self, dispatch_post_process_group_task):
         consumer_group = f"consumer-{uuid.uuid1().hex}"
@@ -778,3 +778,5 @@ class BatchedConsumerTest(TestCase):
             is_new_group_environment=False,
             group_states=None,
         )
+
+        consumer.signal_shutdown()
