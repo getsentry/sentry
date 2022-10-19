@@ -10,16 +10,18 @@ import DateTime from 'sentry/components/dateTime';
 import {getRelativeTimeFromEventDateCreated} from 'sentry/components/events/contexts/utils';
 import Link from 'sentry/components/links/link';
 import NotAvailable from 'sentry/components/notAvailable';
-import Pagination, {CursorHandler} from 'sentry/components/pagination';
+import {CursorHandler} from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {EventAttachment, IssueAttachment, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined, formatBytesBase2} from 'sentry/utils';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import useApi from 'sentry/utils/useApi';
 
 import ImageVisualization from './imageVisualization';
+import ScreenshotPagination from './screenshotPagination';
 
 type Props = ModalRenderProps & {
   downloadUrl: string;
@@ -96,6 +98,10 @@ function Modal({
   };
 
   const {dateCreated, size, mimetype} = currentEventAttachment;
+  const links = pageLinks ? parseLinkHeader(pageLinks) : undefined;
+  const previousDisabled =
+    links?.previous?.results === false && currentAttachmentIndex === 0;
+  const nextDisabled = links?.next?.results === false && currentAttachmentIndex === 5;
 
   return (
     <Fragment>
@@ -167,7 +173,12 @@ function Modal({
             {t('Download')}
           </Button>
           {enablePagination && (
-            <StyledPagination onCursor={handleCursor} pageLinks={pageLinks} />
+            <ScreenshotPagination
+              onCursor={handleCursor}
+              pageLinks={pageLinks}
+              previousDisabled={previousDisabled}
+              nextDisabled={nextDisabled}
+            />
           )}
         </Buttonbar>
       </Footer>
@@ -213,8 +224,4 @@ export const modalCss = css`
   width: auto;
   height: 100%;
   max-width: 700px;
-`;
-
-const StyledPagination = styled(Pagination)`
-  margin-top: 0;
 `;
