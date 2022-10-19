@@ -8,6 +8,7 @@ import Buttonbar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
 import DateTime from 'sentry/components/dateTime';
 import {getRelativeTimeFromEventDateCreated} from 'sentry/components/events/contexts/utils';
+import Link from 'sentry/components/links/link';
 import NotAvailable from 'sentry/components/notAvailable';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
@@ -31,6 +32,7 @@ type Props = ModalRenderProps & {
   attachments?: EventAttachment[];
   enablePagination?: boolean;
   event?: Event;
+  groupId?: string;
   pageLinks?: string | null | undefined;
 };
 
@@ -49,6 +51,7 @@ function Modal({
   attachmentIndex,
   attachments,
   enablePagination,
+  groupId,
 }: Props) {
   const api = useApi();
 
@@ -99,6 +102,18 @@ function Modal({
       <Header closeButton>{t('Screenshot')}</Header>
       <Body>
         <GeralInfo>
+          {groupId && (
+            <Fragment>
+              <Label>{t('Event ID')}</Label>
+              <Value>
+                <Title
+                  to={`/organizations/${orgSlug}/issues/${groupId}/events/${currentEventAttachment.event_id}/`}
+                >
+                  {currentEventAttachment.event_id}
+                </Title>
+              </Value>
+            </Fragment>
+          )}
           <Label coloredBg>{t('Date Created')}</Label>
           <Value coloredBg>
             {dateCreated ? (
@@ -187,6 +202,11 @@ const StyledImageVisualization = styled(ImageVisualization)`
   img {
     border-radius: ${p => p.theme.borderRadius};
   }
+`;
+
+const Title = styled(Link)`
+  ${p => p.theme.overflowEllipsis};
+  font-weight: normal;
 `;
 
 export const modalCss = css`

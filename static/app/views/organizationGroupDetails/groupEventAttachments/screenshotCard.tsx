@@ -71,6 +71,7 @@ export function ScreenshotCard({
           pageLinks={pageLinks}
           attachments={attachments}
           attachmentIndex={attachmentIndex}
+          groupId={groupId}
           enablePagination
           onDownload={() =>
             trackAdvancedAnalyticsEvent(
