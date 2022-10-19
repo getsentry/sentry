@@ -1,4 +1,5 @@
 import first from 'lodash/first';
+import {duration} from 'moment';
 
 import {transformCrumbs} from 'sentry/components/events/interfaces/breadcrumbs/utils';
 import {t} from 'sentry/locale';
@@ -69,6 +70,7 @@ export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
     ...apiResponse,
     ...(apiResponse.startedAt ? {startedAt: new Date(apiResponse.startedAt)} : {}),
     ...(apiResponse.finishedAt ? {finishedAt: new Date(apiResponse.finishedAt)} : {}),
+    ...(apiResponse.duration ? {duration: duration(apiResponse.duration * 1000)} : {}),
     tags,
   };
 }
@@ -111,6 +113,15 @@ export function breadcrumbFactory(
       action: 'replay-init',
       label: t('Start recording'),
       url: initialUrl,
+    },
+  } as BreadcrumbTypeDefault;
+  const finalBreadcrumb = {
+    type: BreadcrumbType.INIT,
+    timestamp: replayRecord.finishedAt.toISOString(),
+    level: BreadcrumbLevelType.INFO,
+    data: {
+      action: 'replay-finish',
+      label: t('Finish recording'),
     },
   } as BreadcrumbTypeDefault;
 
@@ -190,6 +201,7 @@ export function breadcrumbFactory(
     ...rawCrumbsWithTimestamp,
     ...errorCrumbs,
     ...spanCrumbs,
+    finalBreadcrumb,
   ]);
 
   return result.sort((a, b) => +new Date(a.timestamp || 0) - +new Date(b.timestamp || 0));
