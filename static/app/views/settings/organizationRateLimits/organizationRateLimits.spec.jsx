@@ -1,6 +1,5 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import OrganizationRateLimits from 'sentry/views/settings/organizationRateLimits/organizationRateLimits';
 
 const ENDPOINT = '/organizations/org-slug/';
@@ -14,21 +13,20 @@ describe('Organization Rate Limits', function () {
     },
   };
 
-  const creator = props => (
-    <OrganizationRateLimits organization={organization} {...props} />
-  );
+  const renderComponent = props =>
+    render(<OrganizationRateLimits organization={organization} {...props} />);
 
   beforeEach(function () {
-    Client.clearMockResponses();
+    MockApiClient.clearMockResponses();
   });
 
   it('renders with initialData', function () {
-    const wrapper = mountWithTheme(creator());
+    renderComponent();
 
-    expect(wrapper.find("RangeSlider[name='accountRateLimit']").prop('value')).toBe(
-      70000
-    );
-    expect(wrapper.find("RangeSlider[name='projectRateLimit']").prop('value')).toBe(75);
+    // XXX: Slider input values are associated to their step value
+    // Step 16 is 70000
+    expect(screen.getByRole('slider', {name: 'Account Limit'})).toHaveValue('16');
+    expect(screen.getByRole('slider', {name: 'Per-Project Limit'})).toHaveValue('75');
   });
 
   it('renders with maxRate and maxRateInterval set', function () {
@@ -39,31 +37,30 @@ describe('Organization Rate Limits', function () {
         maxRateInterval: 60,
       },
     };
-    const wrapper = mountWithTheme(creator({organization: org}));
 
-    expect(wrapper.find('RangeSlider')).toHaveLength(1);
+    const {container} = renderComponent({organization: org});
 
-    expect(wrapper.find('Form TextBlock')).toSnapshot();
+    expect(screen.getByRole('slider')).toBeInTheDocument();
+    expect(container).toSnapshot();
   });
 
   it('can change Account Rate Limit', function () {
-    const mock = Client.addMockResponse({
+    const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'PUT',
       statusCode: 200,
     });
 
-    const wrapper = mountWithTheme(creator());
+    renderComponent();
 
     expect(mock).not.toHaveBeenCalled();
 
     // Change Account Limit
     // Remember value needs to be an index of allowedValues for account limit
-    wrapper
-      .find('RangeSlider Slider')
-      .first()
-      .simulate('input', {target: {value: 11}})
-      .simulate('mouseUp', {target: {value: 11}});
+    const slider = screen.getByRole('slider', {name: 'Account Limit'});
+    fireEvent.change(slider, {target: {value: 11}});
+    userEvent.click(slider);
+    userEvent.tab();
 
     expect(mock).toHaveBeenCalledWith(
       ENDPOINT,
@@ -77,22 +74,21 @@ describe('Organization Rate Limits', function () {
   });
 
   it('can change Project Rate Limit', function () {
-    const mock = Client.addMockResponse({
+    const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'PUT',
       statusCode: 200,
     });
 
-    const wrapper = mountWithTheme(creator());
+    renderComponent();
 
     expect(mock).not.toHaveBeenCalled();
 
     // Change Project Rate Limit
-    wrapper
-      .find('RangeSlider Slider')
-      .at(1)
-      .simulate('input', {target: {value: 100}})
-      .simulate('mouseUp', {target: {value: 100}});
+    const slider = screen.getByRole('slider', {name: 'Per-Project Limit'});
+    fireEvent.change(slider, {target: {value: 100}});
+    userEvent.click(slider);
+    userEvent.tab();
 
     expect(mock).toHaveBeenCalledWith(
       ENDPOINT,
