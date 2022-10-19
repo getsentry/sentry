@@ -59,8 +59,7 @@ describe('IssueListSearchBar', function () {
         {context: routerContext}
       );
 
-      userEvent.click(screen.getByRole('textbox'));
-      userEvent.keyboard('url:"fu"');
+      userEvent.type(screen.getByRole('textbox'), 'url:"fu"');
 
       expect(loader).toHaveBeenCalledWith('url', 'fu');
 
@@ -78,8 +77,7 @@ describe('IssueListSearchBar', function () {
         {context: routerContext}
       );
 
-      userEvent.click(screen.getByRole('textbox'));
-      userEvent.keyboard('url:');
+      userEvent.type(screen.getByRole('textbox'), 'url:');
 
       expect(loader).toHaveBeenCalledWith('url', '');
     });
@@ -95,8 +93,7 @@ describe('IssueListSearchBar', function () {
         {context: routerContext}
       );
 
-      userEvent.click(screen.getByRole('textbox'));
-      userEvent.keyboard('timesSeen:');
+      userEvent.type(screen.getByRole('textbox'), 'timesSeen:');
 
       expect(loader).not.toHaveBeenCalled();
     });
@@ -123,8 +120,7 @@ describe('IssueListSearchBar', function () {
         {context: routerContext}
       );
 
-      userEvent.click(screen.getByRole('textbox'));
-      userEvent.keyboard('url:"fu"');
+      userEvent.type(screen.getByRole('textbox'), 'url:"fu"');
 
       expect(loader).toHaveBeenCalledWith('url', 'fu');
 
@@ -153,8 +149,7 @@ describe('IssueListSearchBar', function () {
         {context: routerContext}
       );
 
-      userEvent.click(screen.getByRole('textbox'));
-      userEvent.keyboard('is:');
+      userEvent.type(screen.getByRole('textbox'), 'is:');
 
       expect(recentSearchMock).toHaveBeenCalledWith(
         expect.anything(),
@@ -179,8 +174,7 @@ describe('IssueListSearchBar', function () {
       const textarea = screen.getByRole('textbox');
 
       // Keyboard navigate to first item and select
-      userEvent.click(textarea);
-      userEvent.keyboard('t');
+      userEvent.type(textarea, 't');
       await waitFor(() =>
         expect(screen.getAllByTestId('search-autocomplete-item')[0]).toBeInTheDocument()
       );
@@ -189,8 +183,7 @@ describe('IssueListSearchBar', function () {
       const firstItemValue = textarea.textContent;
 
       // Keyboard navigate to second item and select
-      userEvent.keyboard('{selectall}{backspace}');
-      userEvent.keyboard('t');
+      userEvent.keyboard('{selectall}{backspace}t');
       await waitFor(() =>
         expect(screen.getAllByTestId('search-autocomplete-item')[0]).toBeInTheDocument()
       );
@@ -198,8 +191,7 @@ describe('IssueListSearchBar', function () {
       expect(textarea).not.toHaveValue(firstItemValue);
 
       // Keyboard navigate to second item, then back to first item and select
-      userEvent.keyboard('{selectall}{backspace}');
-      userEvent.keyboard('t');
+      userEvent.keyboard('{selectall}{backspace}t');
       await waitFor(() =>
         expect(screen.getAllByTestId('search-autocomplete-item')[0]).toBeInTheDocument()
       );
