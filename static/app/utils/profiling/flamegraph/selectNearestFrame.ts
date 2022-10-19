@@ -25,43 +25,55 @@ export type Direction = DirectionY | DirectionX;
  */
 export function selectNearestFrame(frame: FlamegraphFrame, direction: Direction) {
   const targetDepth = frame.depth;
-  let parent = frame.parent;
-  let node = frame;
+  const parent = frame.parent;
+  const node = frame;
 
   if (direction === 'up') {
     if (parent) {
       return parent;
     }
 
-    if (node.previousSibling) {
-      return scanForNearestFrameWithDepth(node.previousSibling, -1, 'left');
+    const leftSibling = getSibling(node, 'left');
+    if (leftSibling) {
+      return leftSibling;
     }
 
     return frame;
   }
 
   const child = frame.children?.[0];
-  if (direction === 'down' && child) {
-    return child;
+  if (direction === 'down') {
+    if (child) {
+      return child;
+    }
+    const sibling = scanForNearestSibling(node, 'right');
+    if (sibling) {
+      return sibling;
+    }
+
+    return frame;
   }
 
+  const sibling = scanForNearestSibling(node, direction);
+
+  if (sibling) {
+    const nodeWithDepth = scanForNearestFrameWithDepth(sibling, targetDepth, direction);
+    if (nodeWithDepth) {
+      return nodeWithDepth;
+    }
+  }
+
+  return frame;
+}
+
+function scanForNearestSibling(frame: FlamegraphFrame, directionX: DirectionX) {
+  let node = frame;
   while (node) {
-    const sibling =
-      direction === 'right' || direction === 'down'
-        ? node.nextSibling!
-        : node.previousSibling!;
+    let parent = node.parent;
+    const sibling = getSibling(node, directionX);
 
     if (sibling) {
-      if (direction === 'down') {
-        return sibling;
-      }
-
-      const foundNode = scanForNearestFrameWithDepth(
-        sibling,
-        targetDepth,
-        direction as DirectionX
-      );
-      return foundNode;
+      return sibling;
     }
 
     if (!parent) {
@@ -84,13 +96,9 @@ function scanForNearestFrameWithDepth(
   depth: number,
   directionX: DirectionX
 ) {
-  const stack = [frame];
+  let node = frame;
 
-  while (stack.length) {
-    const node = stack.pop();
-    if (!node) {
-      return node;
-    }
+  while (node) {
     if (node.depth === depth) {
       return node;
     }
@@ -102,8 +110,38 @@ function scanForNearestFrameWithDepth(
     if (!nextNode) {
       return node;
     }
-    stack.push(nextNode);
+    node = nextNode;
   }
 
   return frame;
+}
+
+function getSibling(frame: FlamegraphFrame, directionX: DirectionX) {
+  const parent = frame.parent;
+  if (!parent) {
+    return null;
+  }
+
+  const indexOfFrame = parent.children.indexOf(frame);
+  // this should never happen, it would make our data structure invalid
+  if (indexOfFrame === -1) {
+    throw Error('frame.parent.children does not include current frame');
+  }
+
+  if (directionX === 'right') {
+    const hasRightSiblings = indexOfFrame < parent.children.length - 1;
+    if (!hasRightSiblings) {
+      return null;
+    }
+
+    return parent.children[indexOfFrame + 1];
+  }
+
+  const hasLeftSiblings = indexOfFrame > 0;
+
+  if (!hasLeftSiblings) {
+    return null;
+  }
+
+  return parent.children[indexOfFrame + -1];
 }

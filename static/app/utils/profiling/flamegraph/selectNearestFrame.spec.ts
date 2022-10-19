@@ -4,8 +4,6 @@ class Node {
   depth = 0;
   parent: Node | null = null;
   children: Node[] = [];
-  previousSibling: Node | null = null;
-  nextSibling: Node | null = null;
 
   constructor(n?: any) {
     Object.assign(this, n);
@@ -17,10 +15,7 @@ class Node {
       parent: this,
       children: [],
     });
-    if (this.children.length > 0) {
-      child.previousSibling = this.children[this.children.length - 1];
-      child.previousSibling.nextSibling = child;
-    }
+
     this.children.push(child);
     return child;
   }

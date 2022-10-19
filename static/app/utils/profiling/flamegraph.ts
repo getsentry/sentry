@@ -30,8 +30,6 @@ export class Flamegraph {
     start: 0,
     end: 0,
     children: [],
-    previousSibling: null,
-    nextSibling: null,
   };
 
   formatter: (value: number) => string;
@@ -112,7 +110,7 @@ export class Flamegraph {
     let idx = 0;
 
     const openFrame = (node: CallTreeNode, value: number) => {
-      const parent = lastOfArray(stack);
+      const parent = lastOfArray(stack) ?? this.root;
 
       const frame: FlamegraphFrame = {
         key: idx,
@@ -123,16 +121,13 @@ export class Flamegraph {
         depth: 0,
         start: offset + value,
         end: offset + value,
-        previousSibling: null,
-        nextSibling: null,
       };
 
-      const targetParent = parent || this.root;
-      if (targetParent.children.length > 0) {
-        frame.previousSibling = targetParent.children[targetParent.children.length - 1];
-        frame.previousSibling.nextSibling = frame;
+      if (parent) {
+        parent.children.push(frame);
+      } else {
+        this.root.children.push(frame);
       }
-      targetParent.children.push(frame);
 
       stack.push(frame);
       idx++;
@@ -181,15 +176,13 @@ export class Flamegraph {
       depth: 0,
       start: 0,
       end: 0,
-      previousSibling: null,
-      nextSibling: null,
     };
 
     this.root = virtualRoot;
     let idx = 0;
 
     const openFrame = (node: CallTreeNode, value: number) => {
-      const parent = lastOfArray(stack);
+      const parent = lastOfArray(stack) ?? this.root;
       const frame: FlamegraphFrame = {
         key: idx,
         frame: node.frame,
@@ -199,16 +192,13 @@ export class Flamegraph {
         depth: 0,
         start: offset + value,
         end: offset + value,
-        previousSibling: null,
-        nextSibling: null,
       };
 
-      const targetParent = parent || this.root;
-      if (targetParent.children.length > 0) {
-        frame.previousSibling = targetParent.children[targetParent.children.length - 1];
-        frame.previousSibling.nextSibling = frame;
+      if (parent) {
+        parent.children.push(frame);
+      } else {
+        this.root.children.push(frame);
       }
-      targetParent.children.push(frame);
 
       stack.push(frame);
       idx++;
