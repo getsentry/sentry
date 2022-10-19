@@ -23,13 +23,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
-import {
-  DateString,
-  Organization,
-  PageFilters,
-  SelectValue,
-  TagCollection,
-} from 'sentry/types';
+import {DateString, Organization, PageFilters, TagCollection} from 'sentry/types';
 import {defined, objectIsEmpty} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
@@ -142,7 +136,7 @@ interface State {
   title: string;
   userHasModified: boolean;
   errors?: Record<string, any>;
-  selectedDashboard?: SelectValue<string>;
+  selectedDashboard?: string;
   widgetToBeUpdated?: Widget;
 }
 
@@ -227,10 +221,7 @@ function WidgetBuilder({
       prebuiltWidgetId: null,
       dataSet: DataSet.EVENTS,
       queryConditionsValid: true,
-      selectedDashboard: {
-        label: dashboard.title,
-        value: dashboard.id || NEW_DASHBOARD_ID,
-      },
+      selectedDashboard: dashboard.id || NEW_DASHBOARD_ID,
     };
 
     if (defaultWidgetQuery) {
@@ -367,7 +358,7 @@ function WidgetBuilder({
     widgetType,
   };
 
-  const currentDashboardId = state.selectedDashboard?.value ?? dashboardId;
+  const currentDashboardId = state.selectedDashboard ?? dashboardId;
   const queryParamsWithoutSource = omit(location.query, 'source');
   const previousLocation = {
     pathname:
@@ -874,7 +865,7 @@ function WidgetBuilder({
     };
 
     addSuccessMessage(t('Added widget.'));
-    goToDashboards(state.selectedDashboard.value, pathQuery);
+    goToDashboards(state.selectedDashboard, pathQuery);
   }
 
   function goToDashboards(id: string, query?: Record<string, any>) {
