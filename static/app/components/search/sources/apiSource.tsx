@@ -272,11 +272,11 @@ async function createEventIdLookupResult(
 
 type Props = WithRouterProps<{orgId: string}> & {
   children: (props: ChildProps) => React.ReactElement;
-  organization: Organization;
   /**
    * search term
    */
   query: string;
+  organization?: Organization;
   /**
    * fuse.js options
    */
