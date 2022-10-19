@@ -7,6 +7,7 @@ from sentry.models import Project
 from sentry.testutils import APITestCase, PermissionTestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.signing import sign
+from tests.sentry.region_to_control.test_utils import flush_audit_logs
 
 
 @region_silo_test(stable=True)
@@ -124,9 +125,10 @@ class AcceptTransferProjectTest(APITestCase):
             transaction_id=self.transaction_id,
         )
 
-        resp = self.client.post(
-            self.path, data={"organization": self.to_organization.slug, "data": url_data}
-        )
+        with flush_audit_logs():
+            resp = self.client.post(
+                self.path, data={"organization": self.to_organization.slug, "data": url_data}
+            )
         assert resp.status_code == 204
         p = Project.objects.get(id=self.project.id)
         assert p.organization_id == self.to_organization.id
@@ -141,14 +143,15 @@ class AcceptTransferProjectTest(APITestCase):
             transaction_id=self.transaction_id,
         )
 
-        resp = self.client.post(
-            self.path,
-            data={
-                "organization": self.to_organization.slug,
-                "team": self.to_team.id,
-                "data": url_data,
-            },
-        )
+        with flush_audit_logs():
+            resp = self.client.post(
+                self.path,
+                data={
+                    "organization": self.to_organization.slug,
+                    "team": self.to_team.id,
+                    "data": url_data,
+                },
+            )
         assert resp.status_code == 204
         p = Project.objects.get(id=self.project.id)
         assert p.organization_id == self.to_organization.id

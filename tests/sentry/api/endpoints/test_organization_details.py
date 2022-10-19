@@ -126,7 +126,6 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
 
         # make sure options are not cached the first time to get predictable number of database queries
         options.delete("system.rate-limit")
-        options.delete("hc.region-to-control.monolith-publish")
         options.delete("store.symbolicate-event-lpq-always")
         options.delete("store.symbolicate-event-lpq-never")
 

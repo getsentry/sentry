@@ -1,3 +1,4 @@
+import contextlib
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
@@ -36,30 +37,40 @@ ServiceInterface = TypeVar("ServiceInterface", bound=InterfaceWithLifecycle)
 
 
 class DelegatedBySiloMode(Generic[ServiceInterface]):
-    """
-    Lazily instantiates, not thread safe in this design.
-    """
-
     _constructors: Mapping[SiloMode, Type[ServiceInterface]]
-    _singletons: Dict[SiloMode, ServiceInterface]
+    _singleton: Dict[SiloMode, ServiceInterface]
 
     def __init__(self, mapping: Mapping[SiloMode, Type[ServiceInterface]]):
         self._constructors = mapping
-        self._singletons = {}
+        self._singleton = {}
+
+    @contextlib.contextmanager
+    def with_replacement(self, service: Optional[ServiceInterface], silo_mode: SiloMode):
+        prev = self._singleton
+        self.close()
+
+        if service:
+            self._singleton[silo_mode] = service
+            yield
+        else:
+            yield
+        self.close()
+        self._singleton = prev
 
     def __getattr__(self, item: str):
         cur_mode = SiloMode.get_current_mode()
-        if impl := self._singletons.get(cur_mode, None):
+        if impl := self._singleton.get(cur_mode, None):
             return getattr(impl, item)
         if Con := self._constructors.get(cur_mode, None):
-            return getattr(self._singletons.setdefault(cur_mode, Con()), item)
+            self.close()
+            return getattr(self._singleton.setdefault(cur_mode, Con()), item)
 
         raise KeyError(f"No implementation found for {cur_mode}.")
 
     def close(self):
-        for impl in self._singletons.values():
+        for impl in self._singleton.values():
             impl.close()
-        self._singletons = {}
+        self._singleton = {}
 
 
 class ProjectKeyService(InterfaceWithLifecycle):
@@ -68,7 +79,7 @@ class ProjectKeyService(InterfaceWithLifecycle):
         pass
 
 
-class MonolithKeyService(ProjectKeyService):
+class DatabaseBackedProjectKeyService(ProjectKeyService):
     def close(self):
         pass
 
@@ -85,24 +96,51 @@ class MonolithKeyService(ProjectKeyService):
         return None
 
 
-class SiloKeyService(ProjectKeyService):
+class StubProjectKeyService(ProjectKeyService):
     def close(self):
         pass
 
     def get_project_key(self, project_id: str, role: ProjectKeyRole) -> Optional[ApiProjectKey]:
-        # TODO
         return ApiProjectKey(dsn_public="test-dsn")
 
 
 def silo_mode_delegation(mapping: Mapping[SiloMode, Type[ServiceInterface]]) -> ServiceInterface:
-    return cast(ServiceInterface, DelegatedBySiloMode(mapping))
+    return cast(InterfaceWithLifecycle, DelegatedBySiloMode(mapping))
+
+
+@contextlib.contextmanager
+def service_stubbed(
+    service: InterfaceWithLifecycle,
+    stub: Optional[InterfaceWithLifecycle],
+    silo_mode: Optional[SiloMode] = None,
+):
+    if silo_mode is None:
+        silo_mode = SiloMode.get_current_mode()
+
+    if isinstance(service, DelegatedBySiloMode):
+        with service.with_replacement(stub, silo_mode):
+            yield
+    else:
+        raise ValueError("Service needs to be a DelegatedBySilMode object, but it was not!")
+
+
+@contextlib.contextmanager
+def service_unstubbed(service: InterfaceWithLifecycle, silo_mode: Optional[SiloMode] = None):
+    if silo_mode is None:
+        silo_mode = SiloMode.get_current_mode()
+
+    if isinstance(service, DelegatedBySiloMode):
+        with service.with_replacement(None, silo_mode):
+            yield
+    else:
+        raise ValueError("Service needs to be a DelegatedBySilMode object, but it was not!")
 
 
 project_key_service: ProjectKeyService = silo_mode_delegation(
     {
-        SiloMode.MONOLITH: MonolithKeyService,
-        SiloMode.REGION: SiloKeyService,
-        SiloMode.CONTROL: SiloKeyService,
+        SiloMode.MONOLITH: DatabaseBackedProjectKeyService,
+        SiloMode.REGION: DatabaseBackedProjectKeyService,
+        SiloMode.CONTROL: StubProjectKeyService,  # TODO: Real Service
     }
 )
 

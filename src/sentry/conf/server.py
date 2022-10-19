@@ -2872,3 +2872,6 @@ SENTRY_REGION_CONFIG: Iterable[Region] = ()
 
 # How long we should wait for a gateway proxy request to return before giving up
 GATEWAY_PROXY_TIMEOUT = None
+
+# Used in tests to provide 'stub' implementations in certain tests.
+HYBRID_CLOUD_SERVICE_OVERRIDES = {}

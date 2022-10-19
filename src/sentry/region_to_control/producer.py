@@ -87,11 +87,4 @@ def clear_region_to_control_producer():
 
 
 def _should_produce_to_kafka():
-    from sentry import options
-
-    mode = SiloMode.get_current_mode()
-    is_region = mode == SiloMode.REGION
-    is_mono_with_producer = mode == SiloMode.MONOLITH and options.get(
-        "hc.region-to-control.monolith-publish"
-    )
-    return is_region or is_mono_with_producer
+    return SiloMode.get_current_mode() == SiloMode.REGION
