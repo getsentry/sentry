@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import AcceptProjectTransfer from 'sentry/views/acceptProjectTransfer';
 
@@ -26,7 +26,7 @@ describe('AcceptProjectTransfer', function () {
   });
 
   it('renders', function () {
-    mountWithTheme(
+    render(
       <AcceptProjectTransfer
         location={{
           pathname: 'endpoint',
@@ -39,7 +39,7 @@ describe('AcceptProjectTransfer', function () {
   });
 
   it('submits', function () {
-    const wrapper = mountWithTheme(
+    render(
       <AcceptProjectTransfer
         location={{
           pathname: 'endpoint',
@@ -48,7 +48,7 @@ describe('AcceptProjectTransfer', function () {
       />
     );
 
-    wrapper.find('form').simulate('submit');
+    userEvent.click(screen.getByRole('button', {name: 'Transfer Project'}));
 
     expect(postMock).toHaveBeenCalledWith(
       endpoint,

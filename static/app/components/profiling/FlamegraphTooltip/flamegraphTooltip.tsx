@@ -1,18 +1,19 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {vec2} from 'gl-matrix';
 
+import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {FlamegraphView} from 'sentry/utils/profiling/flamegraphView';
-import {Rect} from 'sentry/utils/profiling/gl/utils';
+import {formatColorForFrame, Rect} from 'sentry/utils/profiling/gl/utils';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 
 import {BoundTooltip} from './boundTooltip';
-import {DefaultTooltip} from './defaultTooltip';
-import {PythonTooltip} from './pythonTooltip';
 
 export function formatWeightToProfileDuration(
   frame: CallTreeNode,
@@ -39,11 +40,29 @@ export function FlamegraphTooltip(props: FlamegraphTooltipProps) {
       flamegraphCanvas={props.flamegraphCanvas}
       flamegraphView={props.flamegraphView}
     >
-      {props.platform === 'python' ? (
-        <PythonTooltip {...props} />
-      ) : (
-        <DefaultTooltip {...props} />
-      )}
+      <Fragment>
+        <FlamegraphTooltipFrameMainInfo>
+          <FlamegraphTooltipColorIndicator
+            backgroundColor={formatColorForFrame(props.frame, props.flamegraphRenderer)}
+          />
+          {props.flamegraphRenderer.flamegraph.formatter(props.frame.node.totalWeight)}{' '}
+          {formatWeightToProfileDuration(
+            props.frame.node,
+            props.flamegraphRenderer.flamegraph
+          )}{' '}
+          {props.frame.frame.name}
+        </FlamegraphTooltipFrameMainInfo>
+        {defined(props.frame.frame.file) && (
+          <FlamegraphTooltipTimelineInfo>
+            {props.frame.frame.file}:{props.frame.frame.line ?? t('<unknown line>')}
+          </FlamegraphTooltipTimelineInfo>
+        )}
+        <FlamegraphTooltipTimelineInfo>
+          {props.flamegraphRenderer.flamegraph.timelineFormatter(props.frame.start)}{' '}
+          {' \u2014 '}
+          {props.flamegraphRenderer.flamegraph.timelineFormatter(props.frame.end)}
+        </FlamegraphTooltipTimelineInfo>
+      </Fragment>
     </BoundTooltip>
   );
 }

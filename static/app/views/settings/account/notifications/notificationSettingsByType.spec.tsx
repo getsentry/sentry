@@ -28,6 +28,12 @@ const addMockResponses = (
     method: 'GET',
     body: organizationIntegrations,
   });
+
+  MockApiClient.addMockResponse({
+    url: '/projects/',
+    method: 'GET',
+    body: [],
+  });
 };
 
 const createWrapper = (
@@ -38,7 +44,7 @@ const createWrapper = (
   const {routerContext} = initializeOrg();
   const org = TestStubs.Organization();
   addMockResponses(notificationSettings, identities, organizationIntegrations);
-  MockApiClient.warnOnMissingMocks();
+
   return mountWithTheme(
     <NotificationSettingsByType notificationType="alerts" organizations={[org]} />,
     routerContext

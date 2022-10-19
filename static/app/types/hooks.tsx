@@ -45,8 +45,6 @@ export type HookName = keyof Hooks;
  * Route hooks.
  */
 export type RouteHooks = {
-  routes: RoutesHook;
-  'routes:admin': RoutesHook;
   'routes:api': RoutesHook;
   'routes:organization': RoutesHook;
 };
@@ -86,14 +84,10 @@ type FirstPartyIntegrationAdditionalCTAProps = {
 
 type GuideUpdateCallback = (nextGuide: Guide | null, opts: {dismissed?: boolean}) => void;
 
-type AlertsHeaderProps = {
-  organization: Organization;
-};
 /**
  * Component wrapping hooks
  */
 export type ComponentHooks = {
-  'component:alerts-header': () => React.ComponentType<AlertsHeaderProps>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
   'component:disabled-app-store-connect-multiple': () => React.ComponentType<DisabledAppStoreConnectMultiple>;
   'component:disabled-custom-symbol-sources': () => React.ComponentType<DisabledCustomSymbolSources>;
@@ -330,6 +324,11 @@ type AnalyticsTrackEventV2 = (
      * startSession set to true.
      */
     startSession?: boolean;
+
+    /**
+     * Optional unix timestamp
+     */
+    time?: number;
   }
 ) => void;
 

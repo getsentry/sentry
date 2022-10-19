@@ -256,7 +256,7 @@ describe('Performance > Landing > Index', function () {
 
     wrapper = render(<WrappedComponent data={data} />, data.routerContext);
     expect(screen.getByTestId('frontend-pageload-view')).toBeInTheDocument();
-    userEvent.click(screen.getByTestId('landing-tab-all'));
+    userEvent.click(screen.getByRole('tab', {name: 'All Transactions'}));
 
     expect(browserHistory.push).toHaveBeenNthCalledWith(
       1,

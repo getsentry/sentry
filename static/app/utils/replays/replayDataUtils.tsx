@@ -8,7 +8,11 @@ import type {
   Crumb,
   RawCrumb,
 } from 'sentry/types/breadcrumbs';
-import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
+import {
+  BreadcrumbLevelType,
+  BreadcrumbType,
+  isBreadcrumbTypeDefault,
+} from 'sentry/types/breadcrumbs';
 import type {
   MemorySpanType,
   RecordingEvent,
@@ -24,6 +28,12 @@ export const isMemorySpan = (span: ReplaySpan): span is MemorySpanType => {
 
 export const isNetworkSpan = (span: ReplaySpan) => {
   return span.op.startsWith('navigation.') || span.op.startsWith('resource.');
+};
+
+export const getBreadcrumbsByCategory = (breadcrumbs: Crumb[], categories: string[]) => {
+  return breadcrumbs
+    .filter(isBreadcrumbTypeDefault)
+    .filter(breadcrumb => categories.includes(breadcrumb.category || ''));
 };
 
 export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
@@ -107,7 +117,7 @@ export function breadcrumbFactory(
   const errorCrumbs: RawCrumb[] = errors.map(error => ({
     type: BreadcrumbType.ERROR,
     level: BreadcrumbLevelType.ERROR,
-    category: 'exception',
+    category: 'issue',
     message: error.title,
     data: {
       label: error['error.type'].join(''),

@@ -52,6 +52,14 @@ async function fetchReplayList({
       replays: records.map(mapResponseToReplayRecord),
     };
   } catch (error) {
+    if (error.responseJSON?.detail) {
+      return {
+        fetchError: error.responseJSON.detail,
+        isFetching: false,
+        pageLinks: null,
+        replays: [],
+      };
+    }
     Sentry.captureException(error);
     return {
       fetchError: error,

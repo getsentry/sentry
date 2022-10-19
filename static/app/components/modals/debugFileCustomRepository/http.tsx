@@ -5,7 +5,7 @@ import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import ActionButton from 'sentry/components/actions/button';
 import Button from 'sentry/components/button';
 import Field from 'sentry/components/forms/field';
-import SelectField from 'sentry/components/forms/selectField';
+import SelectField from 'sentry/components/forms/fields/selectField';
 import Input from 'sentry/components/input';
 import {
   DEBUG_SOURCE_CASINGS,

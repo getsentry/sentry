@@ -313,8 +313,8 @@ def alert(request):
 
     rule = Rule(id=1, label="An example rule")
 
-    # XXX: this interface_list code needs to be the same as in
-    #      src/sentry/mail/adapter.py
+    # XXX: this interface_list code needs to be the same as
+    # get_interface_list in notifications/utils/__init__.py
     interface_list = []
     for interface in event.interfaces.values():
         body = interface.to_email_html(event)

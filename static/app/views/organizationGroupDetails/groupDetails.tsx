@@ -176,6 +176,8 @@ class GroupDetails extends Component<Props, State> {
       issue_level: group?.level,
       is_assigned: !!group?.assignedTo,
       error_count: Number(group?.count || -1),
+      error_has_replay: Boolean(event?.tags?.find(({key}) => key === 'replayId')),
+      group_has_replay: Boolean(group?.tags?.find(({key}) => key === 'replayId')),
       num_comments: group ? group.numComments : -1,
       project_platform: group?.project.platform,
       has_external_issue: group?.annotations ? group?.annotations.length > 0 : false,
@@ -646,10 +648,10 @@ class GroupDetails extends Component<Props, State> {
     }
 
     return (
-      <GroupTabs
+      <Tabs
         value={currentTab}
         onChange={tab => {
-          this.tabClickAnalyticsEvent(tab as Tab);
+          this.tabClickAnalyticsEvent(tab);
 
           router.push({
             pathname: `${baseUrl}${TabPaths[tab]}`,
@@ -671,7 +673,7 @@ class GroupDetails extends Component<Props, State> {
             {isValidElement(children) ? cloneElement(children, childProps) : children}
           </Item>
         </GroupTabPanels>
-      </GroupTabs>
+      </Tabs>
     );
   }
 
@@ -739,10 +741,6 @@ export default withApi(Sentry.withProfiler(GroupDetails));
 
 const StyledLoadingError = styled(LoadingError)`
   margin: ${space(2)};
-`;
-
-const GroupTabs = styled(Tabs)`
-  flex-grow: 1;
 `;
 
 const GroupTabPanels = styled(TabPanels)`

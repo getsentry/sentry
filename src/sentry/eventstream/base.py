@@ -84,6 +84,7 @@ class EventStream(Service):
                 primary_hash=primary_hash,
                 cache_key=cache_key,
                 group_id=group_id,
+                group_states=group_states,
             )
 
     def insert(
@@ -162,7 +163,7 @@ class EventStream(Service):
 
     def run_post_process_forwarder(
         self,
-        entity: Union[Literal["all"], Literal["errors"], Literal["transactions"]],
+        entity: Union[Literal["errors"], Literal["transactions"]],
         consumer_group: str,
         topic: Optional[str],
         commit_log_topic: str,
@@ -171,6 +172,7 @@ class EventStream(Service):
         commit_batch_timeout_ms: int,
         concurrency: int,
         initial_offset_reset: Union[Literal["latest"], Literal["earliest"]],
+        use_streaming_consumer: bool,
     ) -> None:
         assert not self.requires_post_process_forwarder()
         raise ForwarderNotRequired

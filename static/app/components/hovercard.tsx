@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import {createPortal} from 'react-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -54,7 +54,7 @@ function Hovercard({
   ...hoverOverlayProps
 }: HovercardProps): React.ReactElement {
   const theme = useTheme();
-  const {wrapTrigger, isOpen, overlayProps, placement, arrowData, arrowProps} =
+  const {wrapTrigger, isOpen, overlayProps, placement, arrowData, arrowProps, update} =
     useHoverOverlay('hovercard', {
       offset,
       displayTimeout,
@@ -62,6 +62,14 @@ function Hovercard({
       className: containerClassName,
       ...hoverOverlayProps,
     });
+
+  // Changes to header and body can change the size of the overlay content
+  // which can result in the popper state being out of date
+  useEffect(() => {
+    if (isOpen) {
+      update?.();
+    }
+  }, [isOpen, update, header, body]);
 
   // Nothing to render if no header or body. Be consistent with wrapping the
   // children with the trigger in the case that the body / header is set while

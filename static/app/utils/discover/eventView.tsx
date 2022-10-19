@@ -326,19 +326,20 @@ class EventView {
 
     // only include sort keys that are included in the fields
     let equations = 0;
-    const sortKeys = fields
-      .map(field => {
-        if (field.field && isEquation(field.field)) {
-          const sortKey = getSortKeyFromField(
-            {field: `equation[${equations}]`},
-            undefined
-          );
-          equations += 1;
-          return sortKey;
+    const sortKeys: string[] = [];
+    fields.forEach(field => {
+      if (field.field && isEquation(field.field)) {
+        const sortKey = getSortKeyFromField({field: `equation[${equations}]`}, undefined);
+        equations += 1;
+        if (sortKey) {
+          sortKeys.push(sortKey);
         }
-        return getSortKeyFromField(field, undefined);
-      })
-      .filter((sortKey): sortKey is string => !!sortKey);
+      }
+      const sortKey = getSortKeyFromField(field, undefined);
+      if (sortKey) {
+        sortKeys.push(sortKey);
+      }
+    });
 
     const sort = sorts.find(currentSort => sortKeys.includes(currentSort.field));
     sorts = sort ? [sort] : [];
@@ -524,7 +525,7 @@ class EventView {
     return EventView.fromLocation(location);
   }
 
-  isEqualTo(other: EventView): boolean {
+  isEqualTo(other: EventView, omitList: string[] = []): boolean {
     const defaults = {
       id: undefined,
       name: undefined,
@@ -539,7 +540,7 @@ class EventView {
       display: DisplayModes.DEFAULT,
       topEvents: '5',
     };
-    const keys = Object.keys(defaults);
+    const keys = Object.keys(defaults).filter(key => !omitList.includes(key));
     for (const key of keys) {
       const currentValue = this[key] ?? defaults[key];
       const otherValue = other[key] ?? defaults[key];

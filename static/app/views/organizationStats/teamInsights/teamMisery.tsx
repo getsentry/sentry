@@ -83,7 +83,7 @@ function TeamMisery({
       {({isExpanded, showMoreButton}) => (
         <Fragment>
           <StyledPanelTable
-            isEmpty={projects.length === 0 || periodTableData?.data.length === 0}
+            isEmpty={projects.length === 0 || periodTableData?.data?.length === 0}
             emptyMessage={t('No key transactions starred by this team')}
             emptyAction={
               <Button

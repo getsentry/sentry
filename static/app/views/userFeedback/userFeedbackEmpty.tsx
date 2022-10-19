@@ -75,7 +75,10 @@ export function UserFeedbackEmpty({projectIds}: Props) {
 
   // Show landing page after projects have loaded and it is confirmed no projects have feedback
   return (
-    <OnboardingPanel image={<img src={emptyStateImg} />}>
+    <OnboardingPanel
+      data-test-id="user-feedback-empty"
+      image={<img src={emptyStateImg} />}
+    >
       <h3>{t('What do users think?')}</h3>
       <p>
         {t(

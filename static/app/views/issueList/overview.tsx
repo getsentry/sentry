@@ -441,17 +441,8 @@ class IssueListOverview extends Component<Props, State> {
         count: currentQueryCount,
         hasMore: false,
       };
-      const tab = getTabs(organization).find(
-        ([tabQuery]) => currentTabQuery === tabQuery
-      )?.[1];
-      if (tab && !endpointParams.cursor) {
-        trackAdvancedAnalyticsEvent('issues_tab.viewed', {
-          organization,
-          tab: tab.analyticsName,
-          num_issues: queryCounts[currentTabQuery].count,
-        });
-      }
     }
+
     this.setState({queryCounts});
 
     // If all tabs' counts are fetched, skip and only set
@@ -615,14 +606,26 @@ class IssueListOverview extends Component<Props, State> {
           (group: BaseGroup) => group.issueCategory === IssueCategory.PERFORMANCE
         ).length;
 
-        const page = parseInt(this.props.location.query.page, 10);
+        const page = this.props.location.query.page;
 
-        trackAdvancedAnalyticsEvent('issues_stream.count_perf_issues', {
+        const endpointParams = this.getEndpointParams();
+        const tabQueriesWithCounts = getTabsWithCounts(organization);
+        const currentTabQuery = tabQueriesWithCounts.includes(
+          endpointParams.query as Query
+        )
+          ? endpointParams.query
+          : null;
+        const tab = getTabs(organization).find(
+          ([tabQuery]) => currentTabQuery === tabQuery
+        )?.[1];
+
+        trackAdvancedAnalyticsEvent('issues_tab.viewed', {
           organization,
-          page,
+          tab: tab?.analyticsName,
+          page: page ? parseInt(page, 10) : 0,
           query,
           num_perf_issues: numPerfIssues,
-          num_total_issues: data.length,
+          num_issues: data.length,
         });
 
         this.fetchStats(data.map((group: BaseGroup) => group.id));

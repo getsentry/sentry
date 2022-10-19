@@ -374,7 +374,7 @@ describe('WidgetBuilder', function () {
       expect(
         screen.getByRole('heading', {name: 'Choose your dataset'})
       ).toBeInTheDocument();
-      expect(screen.getByLabelText('Select Errors and Transactions')).toBeChecked();
+      expect(screen.getByLabelText('Errors and Transactions')).toBeChecked();
 
       // Content - Step 2
       expect(
@@ -444,7 +444,7 @@ describe('WidgetBuilder', function () {
       expect(
         screen.getByRole('heading', {name: 'Choose your dataset'})
       ).toBeInTheDocument();
-      expect(screen.getByLabelText('Select Errors and Transactions')).toBeChecked();
+      expect(screen.getByLabelText('Errors and Transactions')).toBeChecked();
 
       // Content - Step 2
       expect(

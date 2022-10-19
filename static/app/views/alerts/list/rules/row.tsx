@@ -391,7 +391,7 @@ function RuleListRow({
           {({hasAccess}) => (
             <DropdownMenuControl
               items={actions}
-              placement="bottom right"
+              position="bottom-end"
               triggerProps={{
                 'aria-label': t('Show more'),
                 'data-test-id': 'alert-row-actions',

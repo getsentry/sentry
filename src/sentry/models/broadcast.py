@@ -6,8 +6,8 @@ from django.utils import timezone
 from sentry.db.models import (
     FlexibleForeignKey,
     Model,
-    control_silo_model,
-    region_silo_model,
+    control_silo_with_replication_model,
+    region_silo_only_model,
     sane_repr,
 )
 
@@ -16,7 +16,7 @@ def default_expiration():
     return timezone.now() + timedelta(days=7)
 
 
-@control_silo_model
+@control_silo_with_replication_model
 class Broadcast(Model):
     __include_in_export__ = False
 
@@ -36,7 +36,7 @@ class Broadcast(Model):
     __repr__ = sane_repr("message")
 
 
-@region_silo_model
+@region_silo_only_model
 class BroadcastSeen(Model):
     __include_in_export__ = False
 

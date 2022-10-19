@@ -19,7 +19,7 @@ from requests.exceptions import RequestException
 from sentry import analytics, features
 from sentry.api.serializers import AppPlatformEvent, serialize
 from sentry.constants import SentryAppInstallationStatus
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.models import (
     Activity,
     Group,
@@ -198,7 +198,7 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
 
     org = None
 
-    if isinstance(instance, Group) or isinstance(instance, Event):
+    if isinstance(instance, (Group, Event, GroupEvent)):
         org = Organization.objects.get_from_cache(
             id=Project.objects.get_from_cache(id=instance.project_id).organization_id
         )
@@ -212,7 +212,7 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
 
     for installation in installations:
         data = {}
-        if isinstance(instance, Event):
+        if isinstance(instance, Event) or isinstance(instance, GroupEvent):
             data[name] = _webhook_event_data(instance, instance.group_id, instance.project_id)
         else:
             data[name] = serialize(instance)
@@ -222,7 +222,7 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
 
     if features.has("organizations:sentry-functions", org):
         data = {}
-        if not isinstance(instance, Event):
+        if not isinstance(instance, Event) and not isinstance(instance, GroupEvent):
             data[name] = serialize(instance)
             event_type = event.split(".")[0]
             # not sending error webhooks as of yet, can be added later

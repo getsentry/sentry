@@ -4,8 +4,8 @@ import {Location} from 'history';
 import {Client} from 'sentry/api';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {Organization, PageFilters, SavedQuery} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -20,8 +20,6 @@ type Props = {
   router: InjectedRouter;
   selection: PageFilters;
   setSavedQuery: (savedQuery: SavedQuery) => void;
-  homepageQuery?: SavedQuery;
-  savedQuery?: SavedQuery;
 };
 
 type HomepageQueryState = AsyncComponent['state'] & {
@@ -29,6 +27,27 @@ type HomepageQueryState = AsyncComponent['state'] & {
 };
 
 class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
+  shouldReload = true;
+
+  componentDidUpdate(prevProps, prevState) {
+    const hasFetchedSavedQuery = !prevState.savedQuery && this.state.savedQuery;
+    const hasInitiallyLoaded = prevState.loading && !this.state.loading;
+    const sidebarClicked = this.state.savedQuery && this.props.location.search === '';
+    const hasValidEventViewInURL = EventView.fromLocation(this.props.location).isValid();
+
+    if (
+      this.state.savedQuery &&
+      ((hasInitiallyLoaded && hasFetchedSavedQuery && !hasValidEventViewInURL) ||
+        sidebarClicked)
+    ) {
+      const eventView = EventView.fromSavedQuery(this.state.savedQuery);
+      browserHistory.replace(
+        eventView.getResultsViewUrlTarget(this.props.organization.slug, true)
+      );
+    }
+    super.componentDidUpdate(prevProps, prevState);
+  }
+
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization} = this.props;
 
@@ -45,35 +64,16 @@ class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
     return endpoints;
   }
 
-  onRequestSuccess = ({stateKey, data}) => {
-    const {location} = this.props;
-    if (stateKey === 'savedQuery') {
-      const normalizedDateTime = normalizeDateTimeParams({
-        start: data.start,
-        end: data.end,
-        statsPeriod: data.range,
-        utc: data.utc,
-      });
-
-      browserHistory.replace({
-        pathname: location.pathname,
-        query: {
-          project: data.projects ?? [],
-          environment: data.environment ?? [],
-          ...normalizedDateTime,
-          ...location.query,
-        },
-      });
+  onRequestSuccess({stateKey, data}) {
+    // No homepage query results in a 204, returning an empty string
+    if (stateKey === 'savedQuery' && data === '') {
+      this.setState({savedQuery: null});
     }
-  };
+  }
 
-  setSavedQuery = (newSavedQuery: SavedQuery) => {
+  setSavedQuery = (newSavedQuery?: SavedQuery) => {
     this.setState({savedQuery: newSavedQuery});
   };
-
-  renderLoading() {
-    return this.renderBody();
-  }
 
   renderBody(): React.ReactNode {
     const {savedQuery, loading} = this.state;
@@ -92,9 +92,8 @@ class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
 function HomepageContainer(props: Props) {
   return (
     <PageFiltersContainer
-      skipLoadLastUsed={
-        props.organization.features.includes('global-views') && !!props.savedQuery
-      }
+      skipLoadLastUsed={props.organization.features.includes('global-views')}
+      skipInitializeUrlParams
     >
       <HomepageQueryAPI {...props} />
     </PageFiltersContainer>

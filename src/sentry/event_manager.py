@@ -89,7 +89,6 @@ from sentry.ratelimits.sliding_windows import Quota, RedisSlidingWindowRateLimit
 from sentry.reprocessing2 import is_reprocessed_event, save_unprocessed_event
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.signals import first_event_received, first_transaction_received, issue_unresolved
-from sentry.spans.grouping.strategy.config import INCOMING_DEFAULT_CONFIG_ID
 from sentry.tasks.commits import fetch_commits
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.process_buffer import buffer_incr
@@ -117,7 +116,7 @@ CRASH_REPORT_TIMEOUT = 24 * 3600  # one day
 issue_rate_limiter = RedisSlidingWindowRateLimiter(
     **settings.SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS
 )
-PERFORMANCE_ISSUE_QUOTA = Quota(3600, 60, 60)
+PERFORMANCE_ISSUE_QUOTA = Quota(3600, 60, 5)
 
 
 @dataclass
@@ -2020,22 +2019,11 @@ def _calculate_span_grouping(jobs, projects):
             groupings.write_to_event(event.data)
 
             metrics.timing("save_event.transaction.span_count", len(groupings.results))
+            unique_default_hashes = set(groupings.results.values())
             metrics.incr(
                 "save_event.transaction.span_group_count.default",
-                amount=len(set(groupings.results.values())),
-            )
-
-            # Try the second, looser config, and see how many groups it
-            # generates for comparison against the base. Do not store changes,
-            # record the number of generated unique groups.
-            with metrics.timer("event_manager.save.get_span_groupings.incoming"):
-                experimental_groupings = event.get_span_groupings(
-                    {"id": INCOMING_DEFAULT_CONFIG_ID}
-                )
-
-            metrics.incr(
-                "save_event.transaction.span_group_count.incoming",
-                amount=len(set(experimental_groupings.results.values())),
+                amount=len(unique_default_hashes),
+                tags={"platform": job["platform"] or "unknown"},
             )
         except Exception:
             sentry_sdk.capture_exception()

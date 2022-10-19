@@ -1,11 +1,11 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import RecoveryOptionsModal from 'sentry/components/modals/recoveryOptionsModal';
 
 describe('RecoveryOptionsModal', function () {
   const closeModal = jest.fn();
   const onClose = jest.fn();
-  let wrapper;
+  const mockId = TestStubs.Authenticators().Recovery().authId;
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
@@ -14,7 +14,10 @@ describe('RecoveryOptionsModal', function () {
       method: 'GET',
       body: TestStubs.AllAuthenticators(),
     });
-    wrapper = mountWithTheme(
+  });
+
+  function renderComponent() {
+    render(
       <RecoveryOptionsModal
         Body={p => p.children}
         Header={p => p.children}
@@ -24,36 +27,41 @@ describe('RecoveryOptionsModal', function () {
         onClose={onClose}
       />
     );
-  });
-
-  afterEach(function () {});
+  }
 
   it('can redirect to recovery codes if user skips backup phone setup', function () {
-    const getRecoveryCodes = 'RecoveryOptionsModal Button[name="getCodes"]';
-    expect(wrapper.find(getRecoveryCodes)).toHaveLength(0);
+    renderComponent();
+
+    expect(
+      screen.queryByRole('button', {name: 'Get Recovery Codes'})
+    ).not.toBeInTheDocument();
 
     // skip backup phone setup
-    wrapper.find('RecoveryOptionsModal Button[name="skipStep"]').simulate('click');
-    expect(wrapper.find(getRecoveryCodes)).toHaveLength(1);
+    userEvent.click(screen.getByRole('button', {name: 'Skip this step'}));
 
-    const mockId = TestStubs.Authenticators().Recovery().authId;
-    expect(
-      wrapper.find('RecoveryOptionsModal Button[name="getCodes"]').prop('to')
-    ).toMatch(`/settings/account/security/mfa/${mockId}/`);
+    const getCodesbutton = screen.getByRole('button', {name: 'Get Recovery Codes'});
+    expect(getCodesbutton).toBeInTheDocument();
 
-    wrapper.find(getRecoveryCodes).simulate('click');
+    expect(getCodesbutton).toHaveAttribute(
+      'href',
+      `/settings/account/security/mfa/${mockId}/`
+    );
+
+    userEvent.click(getCodesbutton);
     expect(closeModal).toHaveBeenCalled();
   });
 
   it('can redirect to backup phone setup', function () {
-    const backupPhone = 'RecoveryOptionsModal Button[name="addPhone"]';
+    renderComponent();
 
-    expect(wrapper.find(backupPhone)).toHaveLength(1);
-    expect(wrapper.find(backupPhone).prop('to')).toMatch(
+    const backupPhoneButton = screen.getByRole('button', {name: 'Add a Phone Number'});
+    expect(backupPhoneButton).toBeInTheDocument();
+    expect(backupPhoneButton).toHaveAttribute(
+      'href',
       '/settings/account/security/mfa/sms/enroll/'
     );
 
-    wrapper.find(backupPhone).simulate('click');
+    userEvent.click(backupPhoneButton);
     expect(closeModal).toHaveBeenCalled();
   });
 
@@ -64,22 +72,22 @@ describe('RecoveryOptionsModal', function () {
       method: 'GET',
       body: [TestStubs.Authenticators().Totp(), TestStubs.Authenticators().Recovery()],
     });
-    wrapper = mountWithTheme(
-      <RecoveryOptionsModal
-        Body={p => p.children}
-        Header={p => p.children}
-        Footer={p => p.children}
-        authenticatorName="Authenticator App"
-        closeModal={closeModal}
-        onClose={onClose}
-      />
-    );
-    const mockId = TestStubs.Authenticators().Recovery().authId;
-    expect(
-      wrapper.find('RecoveryOptionsModal Button[name="getCodes"]').prop('to')
-    ).toMatch(`/settings/account/security/mfa/${mockId}/`);
 
-    expect(wrapper.find('RecoveryOptionsModal Button[name="skipStep"]')).toHaveLength(0);
-    expect(wrapper.find('RecoveryOptionsModal Button[name="addPhone"]')).toHaveLength(0);
+    renderComponent();
+
+    const getCodesbutton = screen.getByRole('button', {name: 'Get Recovery Codes'});
+    expect(getCodesbutton).toBeInTheDocument();
+
+    expect(getCodesbutton).toHaveAttribute(
+      'href',
+      `/settings/account/security/mfa/${mockId}/`
+    );
+
+    expect(
+      screen.queryByRole('button', {name: 'Skip this step'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Add a Phone Number'})
+    ).not.toBeInTheDocument();
   });
 });

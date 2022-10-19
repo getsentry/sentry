@@ -435,52 +435,54 @@ class _Table extends Component<Props, State> {
     const prependColumnWidths = ['max-content'];
 
     return (
-      <div data-test-id="performance-table">
-        <MEPConsumer>
-          {value => {
-            return (
-              <DiscoverQuery
-                eventView={sortedEventView}
-                orgSlug={organization.slug}
-                location={location}
-                setError={error => setError(error?.message)}
-                referrer="api.performance.landing-table"
-                transactionName={transaction}
-                transactionThreshold={transactionThreshold}
-                queryExtras={getMEPQueryParams(value)}
-                useEvents={useEvents}
-              >
-                {({pageLinks, isLoading, tableData}) => (
-                  <Fragment>
-                    <GridEditable
-                      isLoading={isLoading}
-                      data={tableData ? tableData.data : []}
-                      columnOrder={columnOrder}
-                      columnSortBy={columnSortBy}
-                      grid={{
-                        onResizeColumn: this.handleResizeColumn,
-                        renderHeadCell: this.renderHeadCellWithMeta(
-                          tableData?.meta
-                        ) as any,
-                        renderBodyCell: this.renderBodyCellWithData(tableData) as any,
-                        renderPrependColumns: this.renderPrependCellWithData(
-                          tableData
-                        ) as any,
-                        prependColumnWidths,
-                      }}
-                      location={location}
-                    />
-                    <Pagination
-                      pageLinks={pageLinks}
-                      paginationAnalyticsEvent={this.paginationAnalyticsEvent}
-                    />
-                  </Fragment>
-                )}
-              </DiscoverQuery>
-            );
-          }}
-        </MEPConsumer>
-      </div>
+      <GuideAnchor target="performance_table" position="top-start">
+        <div data-test-id="performance-table">
+          <MEPConsumer>
+            {value => {
+              return (
+                <DiscoverQuery
+                  eventView={sortedEventView}
+                  orgSlug={organization.slug}
+                  location={location}
+                  setError={error => setError(error?.message)}
+                  referrer="api.performance.landing-table"
+                  transactionName={transaction}
+                  transactionThreshold={transactionThreshold}
+                  queryExtras={getMEPQueryParams(value)}
+                  useEvents={useEvents}
+                >
+                  {({pageLinks, isLoading, tableData}) => (
+                    <Fragment>
+                      <GridEditable
+                        isLoading={isLoading}
+                        data={tableData ? tableData.data : []}
+                        columnOrder={columnOrder}
+                        columnSortBy={columnSortBy}
+                        grid={{
+                          onResizeColumn: this.handleResizeColumn,
+                          renderHeadCell: this.renderHeadCellWithMeta(
+                            tableData?.meta
+                          ) as any,
+                          renderBodyCell: this.renderBodyCellWithData(tableData) as any,
+                          renderPrependColumns: this.renderPrependCellWithData(
+                            tableData
+                          ) as any,
+                          prependColumnWidths,
+                        }}
+                        location={location}
+                      />
+                      <Pagination
+                        pageLinks={pageLinks}
+                        paginationAnalyticsEvent={this.paginationAnalyticsEvent}
+                      />
+                    </Fragment>
+                  )}
+                </DiscoverQuery>
+              );
+            }}
+          </MEPConsumer>
+        </div>
+      </GuideAnchor>
     );
   }
 }

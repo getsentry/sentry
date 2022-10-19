@@ -2,7 +2,7 @@ from django.db import models, transaction
 from django.db.models import Q, UniqueConstraint
 from django.utils import timezone
 
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model, sane_repr
 from sentry.db.models.fields import JSONField
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
 
@@ -10,7 +10,7 @@ MAX_KEY_TRANSACTIONS = 10
 MAX_TEAM_KEY_TRANSACTIONS = 100
 
 
-@region_silo_model
+@region_silo_only_model
 class DiscoverSavedQueryProject(Model):
     __include_in_export__ = False
 
@@ -23,7 +23,7 @@ class DiscoverSavedQueryProject(Model):
         unique_together = (("project", "discover_saved_query"),)
 
 
-@region_silo_model
+@region_silo_only_model
 class DiscoverSavedQuery(Model):
     """
     A saved Discover query
@@ -76,7 +76,7 @@ class DiscoverSavedQuery(Model):
             )
 
 
-@region_silo_model
+@region_silo_only_model
 class TeamKeyTransaction(Model):
     __include_in_export__ = False
 
