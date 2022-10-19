@@ -115,7 +115,7 @@ declare global {
 export interface Config {
   apmSampling: number;
   csrfCookieName: string;
-  customerDomain: string | undefined;
+  customerDomain: string | null;
   demoMode: boolean;
   disableU2FForSUForm: boolean;
   distPrefix: string;
