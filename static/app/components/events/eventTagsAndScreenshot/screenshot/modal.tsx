@@ -19,6 +19,7 @@ import {defined, formatBytesBase2} from 'sentry/utils';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import useApi from 'sentry/utils/useApi';
+import {MAX_SCREENSHOTS_PER_PAGE} from 'sentry/views/organizationGroupDetails/groupEventAttachments/groupEventAttachments';
 
 import ImageVisualization from './imageVisualization';
 import ScreenshotPagination from './screenshotPagination';
@@ -71,14 +72,14 @@ function Modal({
   const handleCursor: CursorHandler = (cursor, _pathname, query, delta) => {
     if (defined(currentAttachmentIndex) && memoizedAttachments?.length) {
       const newAttachmentIndex = currentAttachmentIndex + delta;
-      if (newAttachmentIndex > 5 || newAttachmentIndex < 0) {
+      if (newAttachmentIndex >= MAX_SCREENSHOTS_PER_PAGE || newAttachmentIndex < 0) {
         api
           .requestPromise(`/issues/${groupId}/attachments/`, {
             method: 'GET',
             includeAllArgs: true,
             query: {
               ...query,
-              per_page: 6,
+              per_page: MAX_SCREENSHOTS_PER_PAGE,
               types: undefined,
               screenshot: 1,
               cursor,
