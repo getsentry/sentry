@@ -32,7 +32,7 @@ def dispatch_post_process_group_task(
     project_id: int,
     group_id: Optional[int],
     is_new: bool,
-    is_regression: bool,
+    is_regression: Optional[bool],
     is_new_group_environment: bool,
     primary_hash: Optional[str],
     skip_consume: bool = False,
