@@ -39,7 +39,11 @@ describe('Incident Rules Create', function () {
 
   it('renders', function () {
     const {organization, project} = initializeOrg();
-    MockApiClient.warnOnMissingMocks();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-meta/`,
+      body: {count: 0},
+    });
+
     render(
       <MetricRulesCreate
         params={{orgId: organization.slug, projectId: project.slug}}

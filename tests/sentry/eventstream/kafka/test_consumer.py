@@ -683,7 +683,7 @@ class BatchedConsumerTest(TestCase):
 
         eventstream = KafkaEventStream()
         consumer = eventstream._build_consumer(
-            entity="all",
+            entity="errors",
             consumer_group=consumer_group,
             topic=None,
             commit_log_topic=self.commit_log_topic,

@@ -20,6 +20,7 @@ import UserMisery from 'sentry/components/userMisery';
 import Version from 'sentry/components/version';
 import {IconDownload} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {AvatarProject, IssueAttachment, Organization, Project} from 'sentry/types';
 import {defined, isUrl} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -65,6 +66,7 @@ export type RenderFunctionBaggage = {
   location: Location;
   organization: Organization;
   eventView?: EventView;
+  projectId?: string;
   unit?: string;
 };
 
@@ -304,7 +306,7 @@ type SpecialFields = {
 };
 
 const DownloadCount = styled('span')`
-  padding-left: 6px;
+  padding-left: ${space(0.75)};
 `;
 
 const RightAlignedContainer = styled('span')`
@@ -321,15 +323,18 @@ const SPECIAL_FIELDS: SpecialFields = {
   // TODO - refactor code and remove from this file or add ability to query for attachments in Discover
   attachments: {
     sortField: null,
-    renderFunc: data => {
-      const attachments: Array<IssueAttachment & {url: string}> = data.attachments;
+    renderFunc: (data, {organization, projectId}) => {
+      const attachments: Array<IssueAttachment> = data.attachments;
 
       const items: MenuItemProps[] = attachments
         .filter(attachment => attachment.type !== 'event.minidump')
         .map(attachment => ({
           key: attachment.id,
           label: attachment.name,
-          onAction: () => window.open(attachment.url),
+          onAction: () =>
+            window.open(
+              `/api/0/projects/${organization.slug}/${projectId}/events/${attachment.event_id}/attachments/${attachment.id}/?download=1`
+            ),
         }));
 
       return (
@@ -341,7 +346,7 @@ const SPECIAL_FIELDS: SpecialFields = {
               showChevron: false,
               icon: (
                 <Fragment>
-                  <IconDownload color="gray500" size="14px" />
+                  <IconDownload color="gray500" size="sm" />
                   <DownloadCount>{items.length}</DownloadCount>
                 </Fragment>
               ),
@@ -354,7 +359,7 @@ const SPECIAL_FIELDS: SpecialFields = {
   },
   minidump: {
     sortField: null,
-    renderFunc: data => {
+    renderFunc: (data, {organization, projectId}) => {
       const attachments: Array<IssueAttachment & {url: string}> = data.attachments;
 
       const minidump = attachments.find(
@@ -366,9 +371,17 @@ const SPECIAL_FIELDS: SpecialFields = {
           <Button
             size="xs"
             disabled={!minidump}
-            onClick={() => window.open(minidump?.url)}
+            onClick={
+              minidump
+                ? () => {
+                    window.open(
+                      `/api/0/projects/${organization.slug}/${projectId}/events/${minidump.event_id}/attachments/${minidump.id}/?download=1`
+                    );
+                  }
+                : undefined
+            }
           >
-            <IconDownload color="gray500" size="14px" />
+            <IconDownload color="gray500" size="sm" />
             <DownloadCount>{minidump ? 1 : 0}</DownloadCount>
           </Button>
         </RightAlignedContainer>
