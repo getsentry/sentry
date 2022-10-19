@@ -1446,3 +1446,40 @@ class ResolveTagsTestCase(TestCase):
                 ],
             ),
         )
+
+    def test_resolve_tags_with_has(self):
+        tag_key = "transaction"
+
+        indexer.record(use_case_id=self.use_case_id, org_id=self.org_id, string=tag_key)
+
+        resolved_query = resolve_tags(
+            self.use_case_id,
+            self.org_id,
+            Condition(
+                lhs=Function(
+                    function="has",
+                    parameters=[
+                        Column(
+                            name="tags.key",
+                        ),
+                        "transaction",
+                    ],
+                ),
+                op=Op.EQ,
+                rhs=1,
+            ),
+        )
+
+        assert resolved_query == Condition(
+            lhs=Function(
+                function="has",
+                parameters=[
+                    Column(
+                        name="tags.key",
+                    ),
+                    resolve_weak(self.use_case_id, self.org_id, tag_key),
+                ],
+            ),
+            op=Op.EQ,
+            rhs=1,
+        )
