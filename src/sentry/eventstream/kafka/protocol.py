@@ -46,6 +46,7 @@ def basic_protocol_handler(
 
         if task_state:
             kwargs["group_states"] = task_state.get("group_states")
+            kwargs["queue"] = task_state.get("queue")
 
         return kwargs
 
