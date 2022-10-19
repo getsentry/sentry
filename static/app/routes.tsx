@@ -1978,7 +1978,7 @@ function buildRoutes() {
   const legacyOrganizationRootRoutes = (
     <Route component={errorHandler(OrganizationRoot)}>
       <Redirect from="/organizations/:orgId/teams/new/" to="/settings/:orgId/teams/" />
-      <Route path="/organizations/:orgId/">
+      <Route path="/organizations/:orgId/" key="cd-legacy-org-routes">
         {hook('routes:organization')}
         <Redirect from="/organizations/:orgId/teams/" to="/settings/:orgId/teams/" />
         <Redirect
@@ -2082,7 +2082,7 @@ function buildRoutes() {
   // XXX(epurkhiser): Can these be moved over to the legacyOrgRedirects routes,
   // or do these need to be nested into the OrganizationDetails tree?
   const legacyOrgRedirects = (
-    <Route path="/:orgId/:projectId/">
+    <Route path="/:orgId/:projectId/" key="cd-legacy-org-redirects">
       <IndexRoute
         component={errorHandler(
           redirectDeprecatedProjectRoute(
@@ -2233,7 +2233,7 @@ function buildRoutes() {
   );
 
   const legacyRedirectRoutes = (
-    <Route path="/:orgId/">
+    <Route path="/:orgId/" key="cd-legacy-redirect-routes">
       <IndexRedirect to="/organizations/:orgId/" />
       <Route path=":projectId/settings/">
         <Redirect from="teams/" to="/settings/:orgId/projects/:projectId/teams/" />
