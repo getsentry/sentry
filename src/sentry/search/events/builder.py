@@ -757,6 +757,7 @@ class QueryBuilder:
             if is_function(bare_orderby) and (
                 isinstance(resolved_orderby, Function)
                 or isinstance(resolved_orderby, CurriedFunction)
+                or isinstance(resolved_orderby, AliasedExpression)
             ):
                 bare_orderby = resolved_orderby.alias
 
@@ -917,14 +918,16 @@ class QueryBuilder:
 
     @cached_property  # type: ignore
     def project_slugs(self) -> Mapping[str, int]:
+        return {p.slug: p.id for p in self.projects}
+
+    @cached_property  # type: ignore
+    def projects(self) -> Sequence[Project]:
         project_ids = cast(List[int], self.params.get("project_id", []))
 
         if len(project_ids) > 0:
-            project_slugs = Project.objects.filter(id__in=project_ids)
+            return Project.objects.filter(id__in=project_ids)
         else:
-            project_slugs = []
-
-        return {p.slug: p.id for p in project_slugs}
+            return []
 
     def validate_having_clause(self) -> None:
         """Validate that the functions in having are selected columns
@@ -1794,6 +1797,7 @@ class MetricsQueryBuilder(QueryBuilder):
         self.dry_run = dry_run
         # Instead of directly constructing the final snql, construct metric_layer snql instead
         self.use_metric_layer = use_metric_layer
+        self.project_slug_processing = []
         # always true if this is being called
         kwargs["has_metrics"] = True
         assert dataset is None or dataset in [Dataset.PerformanceMetrics, Dataset.Metrics]
@@ -1808,6 +1812,12 @@ class MetricsQueryBuilder(QueryBuilder):
             self.organization_id = self.params["organization_id"]
         else:
             raise InvalidSearchQuery("Organization id required to create a metrics query")
+
+    def validate_aggregate_arguments(self) -> None:
+        if self.use_metric_layer:
+            return
+        else:
+            super().validate_aggregate_arguments()
 
     @property
     def is_performance(self) -> bool:
@@ -1852,6 +1862,14 @@ class MetricsQueryBuilder(QueryBuilder):
         if col.startswith("tags["):
             tag_match = TAG_KEY_RE.search(col)
             col = tag_match.group("tag") if tag_match else col
+
+        if self.use_metric_layer:
+            if col in ["project_id", "timestamp"]:
+                return col
+            # TODO: update resolve params so this isn't needed
+            if col == "organization_id":
+                return "org_id"
+            return f"tags[{col}]"
 
         if col in DATASETS[self.dataset]:
             return str(DATASETS[self.dataset][col])
@@ -2294,13 +2312,28 @@ class MetricsQueryBuilder(QueryBuilder):
         self.validate_orderby_clause()
         # Need to split orderby between the 3 possible tables
         if self.use_metric_layer:
-            # TODO: call metric layer
+            from sentry.sentry_metrics.utils import MetricIndexNotFound
             from sentry.snuba.metrics.datasource import get_series
+            from sentry.snuba.metrics.mqb_query_transformer import (
+                tranform_mqb_query_to_metrics_query,
+            )
 
+            if self.is_performance:
+                use_case_id = UseCaseKey.PERFORMANCE
+            else:
+                use_case_id = UseCaseKey.RELEASE_HEALTH
             prefix = "generic_" if self.dataset is Dataset.PerformanceMetrics else ""
-            query = Query(
+
+            snuba_query = Query(
                 match=Entity(f"{prefix}metrics_distributions", sample=self.sample_rate),
-                select=self.columns,
+                # Metrics doesn't support columns in the select, and instead expects them in the groupby
+                select=self.aggregates
+                + [
+                    # Team key transaction is a special case sigh
+                    col
+                    for col in self.columns
+                    if isinstance(col, Function) and col.function == "team_key_transaction"
+                ],
                 array_join=self.array_join,
                 where=self.where,
                 having=self.having,
@@ -2309,18 +2342,31 @@ class MetricsQueryBuilder(QueryBuilder):
                 limit=self.limit,
                 offset=self.offset,
                 limitby=self.limitby,
-                granularity=self.granularity,
             )
-            if self.is_performance:
-                use_case_id = UseCaseKey.PERFORMANCE
-            else:
-                use_case_id = UseCaseKey.RELEASE_HEALTH
-            return get_series(
-                projects=self.params.get("project_id", []),  # type: ignore
-                metrics_query=query,
-                use_case_id=use_case_id,
-                include_meta=True,
-            )
+            # breakpoint()
+            try:
+                metric_query = tranform_mqb_query_to_metrics_query(snuba_query)
+                metrics_data = get_series(
+                    projects=self.projects,
+                    metrics_query=metric_query,
+                    use_case_id=use_case_id,
+                    include_meta=True,
+                )
+            except MetricIndexNotFound as err:
+                raise IncompatibleMetricsQuery(err)
+            # series does some strange stuff to the clickhouse response, turn it back so we can handle it
+            result: Any = {
+                "data": [],
+                "meta": metrics_data["meta"],
+            }
+            for group in metrics_data["groups"]:
+                data = group["by"]
+                data.update(group["totals"])
+                result["data"].append(data)
+                for meta in result["meta"]:
+                    if data[meta["name"]] is None:
+                        data[meta["name"]] = self.get_default_value(meta["type"])
+            return result
         primary, query_framework = self._create_query_framework()
 
         groupby_aliases = [
@@ -2436,6 +2482,9 @@ class MetricsQueryBuilder(QueryBuilder):
             meta_type.startswith("Int")
             or meta_type.startswith("UInt")
             or meta_type.startswith("Float")
+            or meta_type.startswith("Array(Int")
+            or meta_type.startswith("Array(UInt")
+            or meta_type.startswith("Array(Floa")
         ):
             return 0
         else:

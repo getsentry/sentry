@@ -79,7 +79,7 @@ def _transform_select(query_select):
                     select_field.parameters[0], Column
                 ):
                     raise MQBQueryTransformationException(
-                        "The first parameter of a function should be a column of the metric MRI"
+                        f"The first parameter of {select_field} function should be a column of the metric MRI"
                     )
                 select.append(
                     MetricField(
@@ -161,9 +161,7 @@ def _transform_groupby(query_groupby):
                 interval = interval_func.parameters[0]
                 continue
             else:
-                raise MQBQueryTransformationException(
-                    f"Cannot group by function {groupby_field.function}"
-                )
+                raise MQBQueryTransformationException(f"Cannot group by function {groupby_field}")
         else:
             raise MQBQueryTransformationException(f"Unsupported groupby field {groupby_field}")
     return mq_groupby if len(mq_groupby) > 0 else None, include_series, interval
@@ -186,6 +184,10 @@ def _get_mq_dict_params_from_where(query_where):
                     mq_dict["start"] = condition.rhs
                 elif condition.op == Op.LT:
                     mq_dict["end"] = condition.rhs
+            elif condition.lhs.name == "tags[environment]":
+                where.append(condition)
+            else:
+                raise MQBQueryTransformationException(f"Cannot filter with {condition}")
         elif isinstance(condition.lhs, Function):
             if condition.lhs.function in DERIVED_OPS:
                 if not DERIVED_OPS[condition.lhs.function].can_filter:

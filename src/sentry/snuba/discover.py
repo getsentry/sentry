@@ -216,6 +216,7 @@ def query(
     transform_alias_to_input_format=False,
     sample=None,
     has_metrics=False,
+    use_metric_layer=False,
 ) -> EventsResponse:
     """
     High-level API for doing arbitrary user queries against events.

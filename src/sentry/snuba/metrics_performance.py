@@ -4,7 +4,6 @@ from typing import Any, Dict, List, Optional, Sequence
 import sentry_sdk
 from snuba_sdk import AliasedExpression
 
-from sentry import features
 from sentry.discover.arithmetic import categorize_columns
 from sentry.search.events.builder import (
     HistogramMetricQueryBuilder,
@@ -20,6 +19,15 @@ from sentry.utils.snuba import Dataset, SnubaTSResult
 
 def resolve_tags(results: Any, query_definition: MetricsQueryBuilder) -> Any:
     """Go through the results of a metrics query and reverse resolve its tags"""
+    if query_definition.use_metric_layer:
+        if len(query_definition.project_slug_processing) > 0:
+            project_mapping = {value: key for key, value in query_definition.project_slugs.items()}
+            for project_field in query_definition.project_slug_processing:
+                for row in results["data"]:
+                    project_slug = project_mapping.get(row.get("project_id", -1), None)
+                    row[project_field] = project_slug
+                results["meta"][project_field] = "string"
+        return results
     tags: List[str] = []
     cached_resolves: Dict[int, str] = {}
     # no-op if they're already strings
@@ -70,6 +78,7 @@ def query(
     dry_run=False,
     transform_alias_to_input_format=False,
     has_metrics: bool = True,
+    use_metric_layer: bool = False,
 ):
     with sentry_sdk.start_span(op="mep", description="MetricQueryBuilder"):
         metrics_query = MetricsQueryBuilder(
@@ -87,8 +96,8 @@ def query(
             limit=limit,
             offset=offset,
             dry_run=dry_run,
-            use_metric_layer=features.has("organizations:use-metrics-layer"),
             dataset=Dataset.PerformanceMetrics,
+            use_metric_layer=use_metric_layer,
         )
         if dry_run:
             metrics_referrer = referrer + ".dry-run"

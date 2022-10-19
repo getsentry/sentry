@@ -51,7 +51,6 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         self.transaction_data = load_data("transaction", timestamp=before_now(minutes=1))
         self.features = {
             "organizations:performance-use-metrics": True,
-            "organizations:use-metrics-layer": True,
         }
 
     def do_request(self, query, features=None):
@@ -1611,6 +1610,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             }
         )
 
+        assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 2
         data = response.data["data"]
         meta = response.data["meta"]
@@ -1880,3 +1880,35 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
         meta = response.data["meta"]
         assert not meta["isMetricsData"]
+
+
+class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
+    OrganizationEventsMetricsEnhancedPerformanceEndpointTest
+):
+    def setUp(self):
+        super().setUp()
+        self.features["organizations:use-metrics-layer"] = True
+
+    @pytest.mark.xfail(reason="Having not supported")
+    def test_custom_measurement_duration_filtering(self):
+        super().test_custom_measurement_size_filtering()
+
+    @pytest.mark.xfail(reason="Having not supported")
+    def test_having_condition_not_selected(self):
+        super().test_having_condition_not_selected()
+
+    @pytest.mark.xfail(reason="Having not supported")
+    def test_custom_measurement_size_filtering(self):
+        super().test_custom_measurement_size_filtering()
+
+    @pytest.mark.xfail(reason="Having not supported")
+    def test_having_condition(self):
+        super().test_having_condition()
+
+    @pytest.mark.xfail(reason="Having not supported")
+    def test_having_condition_with_preventing_aggregates(self):
+        super().test_having_condition_with_preventing_aggregates()
+
+    @pytest.mark.xfail(reason="Having not supported")
+    def test_having_condition_with_preventing_aggregate_metrics_only(self):
+        super().test_having_condition_with_preventing_aggregate_metrics_only()

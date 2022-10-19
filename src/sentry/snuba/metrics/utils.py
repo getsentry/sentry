@@ -133,6 +133,7 @@ OP_TO_SNUBA_FUNCTION = {
         "p95": "quantilesIf(0.95)",
         "p99": "quantilesIf(0.99)",
         "histogram": "histogramIf(250)",
+        "sum": "sumIf",
     },
     "metrics_sets": {"count_unique": "uniqIf"},
 }
@@ -199,6 +200,7 @@ class MetricMeta(TypedDict):
     operations: Collection[MetricOperationType]
     unit: Optional[MetricUnit]
     metric_id: Optional[int]
+    mri_string: str
 
 
 class MetricMetaWithTagKeys(MetricMeta):
