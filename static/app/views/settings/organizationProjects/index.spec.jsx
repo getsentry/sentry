@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import OrganizationProjectsContainer from 'sentry/views/settings/organizationProjects';
@@ -36,21 +36,23 @@ describe('OrganizationProjects', function () {
   });
 
   it('should render the projects in the store', function () {
-    const wrapper = mountWithTheme(
+    const {container} = render(
       <OrganizationProjectsContainer params={{orgId: org.slug}} location={{query: {}}} />
     );
-    expect(wrapper).toSnapshot();
 
-    expect(wrapper.find('ProjectBadge').text()).toBe('project-slug');
+    expect(container).toSnapshot();
+
+    expect(screen.getByText('project-slug')).toBeInTheDocument();
 
     expect(projectsGetMock).toHaveBeenCalledTimes(1);
-
     expect(statsGetMock).toHaveBeenCalledTimes(1);
-
     expect(projectsPutMock).toHaveBeenCalledTimes(0);
 
-    wrapper.find('BookmarkStar').simulate('click');
-    expect(wrapper.find('BookmarkStar').prop('isBookmarked')).toBeTruthy();
+    userEvent.click(screen.getByRole('button', {name: 'Bookmark Project'}));
+    expect(
+      screen.getByRole('button', {name: 'Bookmark Project', pressed: true})
+    ).toBeInTheDocument();
+
     expect(projectsPutMock).toHaveBeenCalledTimes(1);
   });
 
@@ -59,14 +61,14 @@ describe('OrganizationProjects', function () {
       url: `/organizations/${org.slug}/projects/`,
       body: [],
     });
-    const wrapper = mountWithTheme(
+    render(
       <OrganizationProjectsContainer location={{query: {}}} params={{orgId: org.slug}} />,
-      routerContext
+      {context: routerContext}
     );
 
-    wrapper
-      .find('AsyncComponentSearchInput Input')
-      .simulate('change', {target: {value: `${project.slug}`}});
+    const searchBox = screen.getByRole('textbox');
+
+    userEvent.type(searchBox, project.slug);
 
     expect(searchMock).toHaveBeenLastCalledWith(
       `/organizations/${org.slug}/projects/`,
@@ -78,7 +80,7 @@ describe('OrganizationProjects', function () {
       })
     );
 
-    wrapper.find('SearchWrapper form').simulate('submit');
+    userEvent.type(searchBox, '{enter}');
     expect(routerContext.context.router.push).toHaveBeenCalledTimes(1);
   });
 });
