@@ -10,9 +10,11 @@ from sentry.middleware.auth import AuthenticationMiddleware
 from sentry.models import ApiKey, ApiToken, UserIP
 from sentry.silo import SiloMode
 from sentry.testutils import TestCase
+from sentry.testutils.silo import no_silo_test
 from sentry.utils.auth import login
 
 
+@no_silo_test(stable=True)
 class AuthenticationMiddlewareTestCase(TestCase):
     middleware = fixture(AuthenticationMiddleware)
 
@@ -55,9 +57,6 @@ class AuthenticationMiddlewareTestCase(TestCase):
             assert request.user.is_authenticated
             assert request.user == self.user
 
-            # But no ip logging occurs.
-            assert not UserIP.objects.filter(user=self.user, ip_address="127.0.0.1").exists()
-
             publish.assert_called_with(
                 dict(
                     user_ip_event=dict(
@@ -71,6 +70,9 @@ class AuthenticationMiddlewareTestCase(TestCase):
                 ),
                 sync=False,
             )
+
+        # But no ip logging occurs.
+        assert not UserIP.objects.filter(user=self.user, ip_address="127.0.0.1").exists()
 
     def test_process_request_good_nonce(self):
         request = self.request
