@@ -40,7 +40,7 @@ class Migration(CheckedMigration):
         migrations.AddField(
             model_name="appconnectbuild",
             name="app_id_str",
-            field=models.CharField(max_length=256),
+            field=models.CharField(max_length=256, null=True),
         ),
         migrations.RunPython(
             backfill_app_id_str,
