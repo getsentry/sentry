@@ -131,9 +131,7 @@ export const QUOTA_FIELDS = [
   {
     name: 'quotaWarnings',
     label: t('Set Quota Limit'),
-    help: t(
-      'Receive notifications when your organization exceeeds the following limits.'
-    ),
+    help: t('Receive notifications when your organization exceeds the following limits.'),
     choices: [
       ['always', t('100% and 80%')],
       ['never', t('100%')],

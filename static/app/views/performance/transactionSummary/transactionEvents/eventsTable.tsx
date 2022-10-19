@@ -1,7 +1,8 @@
 import {Component, Fragment} from 'react';
-import {browserHistory} from 'react-router';
+import {browserHistory, RouteContextInterface} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptor, LocationDescriptorObject} from 'history';
+import groupBy from 'lodash/groupBy';
 
 import {Client} from 'sentry/api';
 import GridEditable, {
@@ -35,6 +36,7 @@ import {TableColumn} from 'sentry/views/eventsV2/table/types';
 
 import {COLUMN_TITLES} from '../../data';
 import {
+  generateReplayLink,
   generateTraceLink,
   generateTransactionLink,
   normalizeSearchConditions,
@@ -83,10 +85,11 @@ type Props = {
   eventView: EventView;
   location: Location;
   organization: Organization;
+  routes: RouteContextInterface['routes'];
   setError: (msg: string | undefined) => void;
   transactionName: string;
   columnTitles?: string[];
-  customColumns?: string[];
+  customColumns?: ('attachments' | 'minidump')[];
   excludedTags?: string[];
   issueId?: string;
   projectId?: string;
@@ -106,10 +109,11 @@ class EventsTable extends Component<Props, State> {
     widths: [],
     lastFetchedCursor: '',
     attachments: [],
-    hasMinidumps: true,
+    hasMinidumps: false,
   };
 
   api = new Client();
+  replayLinkGenerator = generateReplayLink(this.props.routes);
 
   handleCellAction = (column: TableColumn<keyof TableDataRow>) => {
     return (action: Actions, value: React.ReactText) => {
@@ -148,7 +152,7 @@ class EventsTable extends Component<Props, State> {
     column: TableColumn<keyof TableDataRow>,
     dataRow: TableDataRow
   ): React.ReactNode {
-    const {eventView, organization, location, transactionName} = this.props;
+    const {eventView, organization, location, transactionName, projectId} = this.props;
 
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
@@ -156,7 +160,12 @@ class EventsTable extends Component<Props, State> {
     const tableMeta = tableData.meta;
     const field = String(column.key);
     const fieldRenderer = getFieldRenderer(field, tableMeta);
-    const rendered = fieldRenderer(dataRow, {organization, location, eventView});
+    const rendered = fieldRenderer(dataRow, {
+      organization,
+      location,
+      eventView,
+      projectId,
+    });
 
     const allowActions = [
       Actions.ADD,
@@ -188,6 +197,23 @@ class EventsTable extends Component<Props, State> {
           allowActions={allowActions}
         >
           <Link to={target}>{rendered}</Link>
+        </CellAction>
+      );
+    }
+
+    if (field === 'replayId') {
+      const target: LocationDescriptor | null = dataRow.replayId
+        ? this.replayLinkGenerator(organization, dataRow, undefined)
+        : null;
+
+      return (
+        <CellAction
+          column={column}
+          dataRow={dataRow}
+          handleCellAction={this.handleCellAction(column)}
+          allowActions={allowActions}
+        >
+          {target ? <Link to={target}>{rendered}</Link> : rendered}
         </CellAction>
       );
     }
@@ -267,10 +293,11 @@ class EventsTable extends Component<Props, State> {
       };
     }
     const currentSort = eventView.sortForField(field, tableMeta);
-    // Event id and Trace id are technically sortable but we don't want to sort them here since sorting by a uuid value doesn't make sense
+    // EventId, TraceId, and ReplayId are technically sortable but we don't want to sort them here since sorting by a uuid value doesn't make sense
     const canSort =
       field.field !== 'id' &&
       field.field !== 'trace' &&
+      field.field !== 'replayid' &&
       field.field !== SPAN_OP_RELATIVE_BREAKDOWN_FIELD &&
       isFieldSortable(field, tableMeta);
 
@@ -343,7 +370,10 @@ class EventsTable extends Component<Props, State> {
         return col;
       });
 
-    if (this.props.customColumns?.length && this.state.attachments.length) {
+    if (
+      this.props.customColumns?.includes('attachments') &&
+      this.state.attachments.length
+    ) {
       columnOrder.push({
         isSortable: false,
         key: 'attachments',
@@ -351,44 +381,37 @@ class EventsTable extends Component<Props, State> {
         type: 'never',
         column: {field: 'attachments', kind: 'field', alias: undefined},
       });
-      if (this.state.hasMinidumps) {
-        columnOrder.push({
-          isSortable: false,
-          key: 'minidump',
-          name: 'minidump',
-          type: 'never',
-          column: {field: 'minidump', kind: 'field', alias: undefined},
-        });
-      }
+    }
+
+    if (this.props.customColumns?.includes('minidump') && this.state.hasMinidumps) {
+      columnOrder.push({
+        isSortable: false,
+        key: 'minidump',
+        name: 'minidump',
+        type: 'never',
+        column: {field: 'minidump', kind: 'field', alias: undefined},
+      });
     }
 
     const joinCustomData = ({data}: TableData) => {
-      if (this.state.attachments.length) {
-        const {projectId} = this.props;
-        const attachmentsWithUrl = this.state.attachments.map(attachment => ({
-          ...attachment,
-          url: `/api/0/projects/${organization.slug}/${projectId}/events/${attachment.event_id}/attachments/${attachment.id}/?download=1`,
-        }));
-
-        const eventIdMap = {};
-        data.forEach(event => {
-          event.attachments = [] as any;
-          eventIdMap[event.id] = event;
-        });
-        attachmentsWithUrl.forEach(attachment => {
-          const eventAttachments = eventIdMap[attachment.event_id]?.attachments;
-          if (eventAttachments) {
-            eventAttachments.push(attachment);
-          }
-        });
-      }
+      const attachmentsByEvent = groupBy(this.state.attachments, 'event_id');
+      data.forEach(event => {
+        event.attachments = (attachmentsByEvent[event.id] || []) as any;
+      });
     };
 
     const fetchAttachments = async ({data}: TableData, cursor: string) => {
       const eventIds = data.map(value => value.id);
-      const eventIdQuery = `event_id=${eventIds.join('&event_id=')}`;
+      const fetchOnlyMinidumps = !this.props.customColumns?.includes('attachments');
+
+      const queries: string = [
+        'per_page=50',
+        ...(fetchOnlyMinidumps ? ['types=event.minidump'] : []),
+        ...eventIds.map(eventId => `event_id=${eventId}`),
+      ].join('&');
+
       const res: IssueAttachment[] = await this.api.requestPromise(
-        `/api/0/issues/${this.props.issueId}/attachments/?${eventIdQuery}`
+        `/api/0/issues/${this.props.issueId}/attachments/?${queries}`
       );
 
       let hasMinidumps = false;
@@ -398,6 +421,7 @@ class EventsTable extends Component<Props, State> {
           hasMinidumps = true;
         }
       });
+
       this.setState({
         ...this.state,
         lastFetchedCursor: cursor,
@@ -407,7 +431,7 @@ class EventsTable extends Component<Props, State> {
     };
 
     return (
-      <div>
+      <div data-test-id="events-table">
         <DiscoverQuery
           eventView={eventView}
           orgSlug={organization.slug}
@@ -420,7 +444,8 @@ class EventsTable extends Component<Props, State> {
             tableData ??= {data: []};
             const parsedPageLinks = parseLinkHeader(pageLinks);
             const cursor = parsedPageLinks?.next?.cursor;
-            const shouldFetchAttachments = !!this.props.issueId; // Only fetch on issue details page
+            const shouldFetchAttachments: boolean =
+              !!this.props.issueId && !!cursor && this.state.lastFetchedCursor !== cursor; // Only fetch on issue details page
             let currentEvent = cursor?.split(':')[1] ?? 0;
             if (!parsedPageLinks?.next?.results && totalEventCount) {
               currentEvent = totalEventCount;
@@ -433,18 +458,14 @@ class EventsTable extends Component<Props, State> {
                     totalEventCount,
                   })
                 : undefined;
-            if (
-              shouldFetchAttachments &&
-              cursor &&
-              this.state.lastFetchedCursor !== cursor
-            ) {
+            if (shouldFetchAttachments) {
               fetchAttachments(tableData, cursor);
             }
             joinCustomData(tableData);
             return (
               <Fragment>
                 <GridEditable
-                  isLoading={isDiscoverQueryLoading}
+                  isLoading={isDiscoverQueryLoading || shouldFetchAttachments}
                   data={tableData?.data ?? []}
                   columnOrder={columnOrder}
                   columnSortBy={eventView.getSorts()}
