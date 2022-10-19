@@ -8,6 +8,8 @@ import {
   RouteProps,
 } from 'react-router';
 import memoize from 'lodash/memoize';
+import trimEnd from 'lodash/trimEnd';
+import trimStart from 'lodash/trimStart';
 
 import LazyLoad from 'sentry/components/lazyLoad';
 import {EXPERIMENTAL_SPA, usingCustomerDomain} from 'sentry/constants';
@@ -149,6 +151,74 @@ function buildRoutes() {
       <Route path=":orgId/" component={make(() => import('sentry/views/auth/login'))} />
     </Route>
   ) : null;
+
+  const originalPaths: string[] = [];
+  const keysSeen = new Set();
+
+  function introspectRoute(
+    parentPath: string,
+    currentRoute: JSX.Element | JSX.Element[]
+  ) {
+    if (!currentRoute) {
+      return currentRoute;
+    }
+
+    if (Array.isArray(currentRoute)) {
+      return currentRoute.map(route => {
+        return introspectRoute(parentPath, route);
+      });
+    }
+
+    const originalPath: string = currentRoute.props.path || '';
+    let fullOriginalPath: string = originalPath;
+
+    if (!originalPath.startsWith('/')) {
+      // Unless originalPath is an absolute path (i.e. begins with `/`), then we append it to parentPath.
+      fullOriginalPath = `${trimEnd(parentPath, '/')}/${trimStart(originalPath, '/')}`;
+    }
+
+    let children: JSX.Element | JSX.Element[] = currentRoute.props.children ?? null;
+
+    if (Array.isArray(children)) {
+      children = currentRoute.props.children.map((child: JSX.Element) => {
+        return introspectRoute(fullOriginalPath, child);
+      });
+    } else if (children) {
+      children = introspectRoute(fullOriginalPath, children);
+    }
+
+    if (!['IndexRedirect', 'Redirect'].includes(currentRoute.type.displayName)) {
+      // console.log(fullOriginalPath, currentRoute.type.displayName);
+      if (originalPath.toLowerCase().includes(':orgid')) {
+        originalPaths.push(originalPath);
+        // console.log({originalPath, fullOriginalPath, currentRoute});
+        const key = currentRoute.key;
+
+        // Determine if all routes are accounted for.
+        if (!(typeof key === 'string' && key.startsWith('cd-'))) {
+          // console.log(originalPath, currentRoute.key);
+        }
+
+        if (keysSeen.has(key)) {
+          // console.log('duplicated key', key);
+        } else {
+          keysSeen.add(key);
+        }
+      }
+    }
+
+    return React.cloneElement(currentRoute, {
+      children,
+    });
+  }
+
+  function walkRoutesTree(rootRoute) {
+    introspectRoute('', rootRoute);
+
+    // console.log(originalPaths, rootRoute);
+
+    return rootRoute;
+  }
 
   const rootRoutes = (
     <Fragment>
@@ -2298,12 +2368,14 @@ function buildRoutes() {
   const appRoutes = (
     <Route>
       {experimentalSpaRoutes}
-      <Route path="/" component={errorHandler(App)}>
-        {rootRoutes}
-        {organizationRoutes}
-        {legacyRedirectRoutes}
-        <Route path="*" component={errorHandler(RouteNotFound)} />
-      </Route>
+      {walkRoutesTree(
+        <Route path="/" component={errorHandler(App)}>
+          {rootRoutes}
+          {organizationRoutes}
+          {legacyRedirectRoutes}
+          <Route path="*" component={errorHandler(RouteNotFound)} />
+        </Route>
+      )}
     </Route>
   );
 
