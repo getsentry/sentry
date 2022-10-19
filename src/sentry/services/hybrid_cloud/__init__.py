@@ -102,6 +102,7 @@ project_key_service: ProjectKeyService = silo_mode_delegation(
     {
         SiloMode.MONOLITH: MonolithKeyService,
         SiloMode.REGION: SiloKeyService,
+        SiloMode.CONTROL: SiloKeyService,
     }
 )
 
@@ -110,25 +111,3 @@ def close_all():
     for v in locals().values():
         if isinstance(v, DelegatedBySiloMode):
             v.close()
-
-
-# def with_service(movie)
-
-# 1.  It needs to be able to swap implementation in tests.
-#      It can have settings that back it, but the backend has to be dynamic.
-# 2.  esp kafka producers, but maybe other things.
-#     lifecycle hooks?
-#     I upgraded the kafkaproducer to arroyo, I have some tests that hit that.
-#     BUT get this, it doesn't close automatically.  (it expects only to close on process exit, not test exit)
-#     Tests hang if any error occurs.  "Register a close method, that tests just call, to shut me down."
-# 3.  I think it should be service oriented, not Resource oriented. (opinion)
-#       Let's not, 100% mimick the ORM models.
-#       Integrations is like, I need to query this model, that model, this model, that model, this model, now make request.
-#       Resource: there is an endpoint per model, that becomes 5 concurrent API requests to pull in information.
-#         around orms
-#       Service: there is one endpoint, that queries all five models, and gives you the bundled result.
-#         around workflows
-#  4. ???? Do we use existing, or new?
-#     If atleast, we have a 'service object', the backing implementation can change.
-#  5.  Internal apis??
-#      -- integrations mutual authentication. (alternative authentication model?)
