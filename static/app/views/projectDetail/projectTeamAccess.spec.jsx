@@ -1,5 +1,5 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectTeamAccess from 'sentry/views/projectDetail/projectTeamAccess';
 
@@ -7,57 +7,58 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
   const {organization, routerContext} = initializeOrg();
 
   it('renders a list', function () {
-    const wrapper = mountWithTheme(
+    render(
       <ProjectTeamAccess
         organization={organization}
         project={TestStubs.Project({teams: [TestStubs.Team()]})}
       />,
-      routerContext
+      {context: routerContext}
     );
 
-    expect(wrapper.find('SectionHeading').text()).toBe('Team Access');
-    expect(wrapper.find('IdBadge').text()).toBe('#team-slug');
-    expect(wrapper.find('IdBadge').length).toBe(1);
+    expect(screen.getByText('Team Access')).toBeInTheDocument();
+    expect(screen.getByText('#team-slug')).toBeInTheDocument();
   });
 
   it('links to a team settings', function () {
-    const wrapper = mountWithTheme(
+    render(
       <ProjectTeamAccess
         organization={organization}
         project={TestStubs.Project({teams: [TestStubs.Team()]})}
       />,
-      routerContext
+      {context: routerContext}
     );
 
-    expect(wrapper.find('StyledLink').prop('to')).toBe(
+    expect(screen.getByRole('link', {name: '#team-slug'})).toHaveAttribute(
+      'href',
       '/settings/org-slug/teams/team-slug/'
     );
   });
 
-  it('displays the right empty state', function () {
-    const wrapper = mountWithTheme(
+  it('display the right empty state with access', function () {
+    render(
       <ProjectTeamAccess organization={organization} project={TestStubs.Project()} />,
-      routerContext
+      {context: routerContext}
     );
 
-    const assignTeamButton = wrapper.find('Link[aria-label="Assign Team"]').at(0);
-    expect(assignTeamButton.prop('to')).toBe(
+    expect(screen.getByRole('button', {name: 'Assign Team'})).toHaveAttribute(
+      'href',
       '/settings/org-slug/projects/project-slug/teams/'
     );
-    expect(assignTeamButton.text()).toBe('Assign Team');
+  });
 
-    const wrapperNoPermissions = mountWithTheme(
+  it('display the right empty state without access', function () {
+    render(
       <ProjectTeamAccess
         organization={{...organization, access: []}}
         project={TestStubs.Project({teams: []})}
       />,
-      routerContext
+      {context: routerContext}
     );
-    expect(wrapperNoPermissions.find('Button').prop('disabled')).toBeTruthy();
+    expect(screen.getByRole('button', {name: 'Assign Team'})).toBeDisabled();
   });
 
   it('collapses more than 5 teams', function () {
-    const wrapper = mountWithTheme(
+    render(
       <ProjectTeamAccess
         organization={organization}
         project={TestStubs.Project({
@@ -72,20 +73,20 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
           ],
         })}
       />,
-      routerContext
+      {context: routerContext}
     );
 
-    expect(wrapper.find('IdBadge').length).toBe(5);
+    expect(screen.getAllByTestId('badge-display-name')).toHaveLength(5);
 
-    wrapper.find('button[aria-label="Show 2 collapsed teams"]').simulate('click');
-    expect(wrapper.find('IdBadge').length).toBe(7);
+    userEvent.click(screen.getByRole('button', {name: 'Show 2 collapsed teams'}));
+    expect(screen.getAllByTestId('badge-display-name')).toHaveLength(7);
 
-    wrapper.find('button[aria-label="Collapse"]').simulate('click');
-    expect(wrapper.find('IdBadge').length).toBe(5);
+    userEvent.click(screen.getByRole('button', {name: 'Collapse'}));
+    expect(screen.getAllByTestId('badge-display-name')).toHaveLength(5);
   });
 
   it('sorts teams alphabetically', function () {
-    const wrapper = mountWithTheme(
+    render(
       <ProjectTeamAccess
         organization={organization}
         project={TestStubs.Project({
@@ -96,11 +97,12 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
           ],
         })}
       />,
-      routerContext
+      {context: routerContext}
     );
 
-    expect(wrapper.find('IdBadge').at(0).text()).toBe('#a');
-    expect(wrapper.find('IdBadge').at(1).text()).toBe('#c');
-    expect(wrapper.find('IdBadge').at(2).text()).toBe('#z');
+    const badges = screen.getAllByTestId('badge-display-name');
+    expect(badges[0]).toHaveTextContent('#a');
+    expect(badges[1]).toHaveTextContent('#c');
+    expect(badges[2]).toHaveTextContent('#z');
   });
 });
