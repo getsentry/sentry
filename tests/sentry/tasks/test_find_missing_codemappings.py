@@ -9,7 +9,7 @@ class TestCommitContext(TestCase):
         self.organization = self.create_organization(status=OrganizationStatus.ACTIVE)
         self.project = self.create_project(organization=self.organization)
 
-    def test_finds_files_single_project(self):
+    def test_finds_stacktrace_paths_single_project(self):
         self.store_event(
             data={
                 "message": "Kaboom!",
@@ -41,7 +41,7 @@ class TestCommitContext(TestCase):
         )
 
         with self.tasks():
-            mapping = find_missing_codemappings(organizations=[self.organization])
+            mapping = find_missing_codemappings([self.organization])
         assert self.organization.slug in mapping
         result = mapping[self.organization.slug]
         assert self.project.slug in result
@@ -50,7 +50,7 @@ class TestCommitContext(TestCase):
             "sentry/tasks.py",
         ]
 
-    def test_finds_files_multiple_projects(self):
+    def test_finds_stacktrace_paths_multiple_projects(self):
         project_1 = self.create_project(organization=self.organization)
         project_2 = self.create_project(organization=self.organization)
         self.store_event(
@@ -114,7 +114,7 @@ class TestCommitContext(TestCase):
         )
 
         with self.tasks():
-            mapping = find_missing_codemappings(organizations=[self.organization])
+            mapping = find_missing_codemappings([self.organization])
         assert self.organization.slug in mapping
         result = mapping[self.organization.slug]
         assert project_1.slug in result
@@ -128,7 +128,7 @@ class TestCommitContext(TestCase):
             "sentry/test_file.py",
         ]
 
-    def test_finds_files_multiple_orgs(self):
+    def test_finds_stacktrace_paths_multiple_orgs(self):
         new_org = self.create_organization()
         new_project = self.create_project(organization=new_org)
         self.store_event(
@@ -192,7 +192,7 @@ class TestCommitContext(TestCase):
         )
 
         with self.tasks():
-            mapping = find_missing_codemappings(organizations=[self.organization, new_org])
+            mapping = find_missing_codemappings([self.organization, new_org])
         assert self.organization.slug in mapping
         result_1 = mapping[self.organization.slug]
         assert self.project.slug in result_1
@@ -285,7 +285,7 @@ class TestCommitContext(TestCase):
         )
 
         with self.tasks():
-            mapping = find_missing_codemappings(organizations=[self.organization])
+            mapping = find_missing_codemappings([self.organization])
         assert self.organization.slug in mapping
         result = mapping[self.organization.slug]
         assert self.project.slug in result
