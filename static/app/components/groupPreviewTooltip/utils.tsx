@@ -11,14 +11,15 @@ export function useDelayedLoadingState() {
     setShouldShowLoadingState(true);
   }, []);
 
-  const {start, end} = useTimeout({
+  const {start, end, cancel} = useTimeout({
     timeMs: HOVERCARD_CONTENT_DELAY,
     onTimeout,
   });
 
   const reset = useCallback(() => {
     setShouldShowLoadingState(false);
-  }, []);
+    cancel();
+  }, [cancel]);
 
   return {
     shouldShowLoadingState,

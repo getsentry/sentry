@@ -1,7 +1,11 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {mountGlobalModal} from 'sentry-test/modal';
-import {act} from 'sentry-test/reactTestingLibrary';
-import {selectByValue} from 'sentry-test/select-new';
+import selectEvent from 'react-select-event';
+
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
 
 import TeamStore from 'sentry/stores/teamStore';
 import InviteRequestRow from 'sentry/views/settings/organizationMembers/inviteRequestRow';
@@ -54,7 +58,7 @@ describe('InviteRequestRow', function () {
   });
 
   it('renders request to be invited', function () {
-    const wrapper = mountWithTheme(
+    render(
       <InviteRequestRow
         orgId={orgId}
         organization={orgWithoutAdminAccess}
@@ -64,14 +68,12 @@ describe('InviteRequestRow', function () {
       />
     );
 
-    expect(wrapper.find('UserName').text()).toBe(inviteRequest.email);
-    expect(wrapper.find('Description').text().includes(inviteRequest.inviterName)).toBe(
-      true
-    );
+    expect(screen.getByText(inviteRequest.email)).toBeInTheDocument();
+    expect(screen.getByText(inviteRequest.inviterName)).toBeInTheDocument();
   });
 
   it('renders request to join', function () {
-    const wrapper = mountWithTheme(
+    render(
       <InviteRequestRow
         orgId={orgId}
         organization={orgWithoutAdminAccess}
@@ -81,15 +83,16 @@ describe('InviteRequestRow', function () {
       />
     );
 
-    expect(wrapper.find('UserName').text()).toBe(joinRequest.email);
-    expect(wrapper.find('JoinRequestIndicator').exists()).toBe(true);
+    expect(screen.getByText(joinRequest.email)).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Approve'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Deny'})).toBeInTheDocument();
   });
 
-  it('admin can approve invite request', async function () {
+  it('admin can approve invite request', function () {
     const mockApprove = jest.fn();
     const mockDeny = jest.fn();
 
-    const wrapper = mountWithTheme(
+    render(
       <InviteRequestRow
         orgId={orgId}
         organization={orgWithAdminAccess}
@@ -101,10 +104,10 @@ describe('InviteRequestRow', function () {
       />
     );
 
-    wrapper.find('button[aria-label="Approve"]').simulate('click');
+    userEvent.click(screen.getByRole('button', {name: 'Approve'}));
 
-    const modal = await mountGlobalModal();
-    modal.find('button[aria-label="Confirm"]').simulate('click');
+    renderGlobalModal();
+    userEvent.click(screen.getByTestId('confirm-button'));
 
     expect(mockApprove).toHaveBeenCalledWith(inviteRequest);
     expect(mockDeny).not.toHaveBeenCalled();
@@ -112,9 +115,9 @@ describe('InviteRequestRow', function () {
 
   it('admin can deny invite request', function () {
     const mockApprove = jest.fn();
-
     const mockDeny = jest.fn();
-    const wrapper = mountWithTheme(
+
+    render(
       <InviteRequestRow
         orgId={orgId}
         organization={orgWithAdminAccess}
@@ -126,13 +129,14 @@ describe('InviteRequestRow', function () {
       />
     );
 
-    wrapper.find('button[aria-label="Deny"]').simulate('click');
+    userEvent.click(screen.getByRole('button', {name: 'Deny'}));
+
     expect(mockDeny).toHaveBeenCalledWith(inviteRequest);
     expect(mockApprove).not.toHaveBeenCalled();
   });
 
   it('non-admin can not approve or deny invite request', function () {
-    const wrapper = mountWithTheme(
+    render(
       <InviteRequestRow
         orgId={orgId}
         organization={orgWithoutAdminAccess}
@@ -144,11 +148,11 @@ describe('InviteRequestRow', function () {
       />
     );
 
-    expect(wrapper.find('button[aria-label="Deny"]').prop('aria-disabled')).toBe(true);
-    expect(wrapper.find('button[aria-label="Approve"]').prop('aria-disabled')).toBe(true);
+    expect(screen.getByRole('button', {name: 'Approve'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Deny'})).toBeDisabled();
   });
 
-  it('admin can change role and teams', function () {
+  it('admin can change role and teams', async function () {
     const adminInviteRequest = TestStubs.Member({
       user: null,
       inviterName: TestStubs.User().name,
@@ -158,16 +162,13 @@ describe('InviteRequestRow', function () {
       teams: ['myteam'],
     });
 
-    act(
-      () =>
-        void TeamStore.loadInitialData([
-          {id: '1', slug: 'one'},
-          {id: '2', slug: 'two'},
-        ])
-    );
+    void TeamStore.loadInitialData([
+      {id: '1', slug: 'one'},
+      {id: '2', slug: 'two'},
+    ]);
     const mockUpdate = jest.fn();
 
-    const wrapper = mountWithTheme(
+    render(
       <InviteRequestRow
         orgId={orgId}
         organization={orgWithAdminAccess}
@@ -178,10 +179,12 @@ describe('InviteRequestRow', function () {
       />
     );
 
-    selectByValue(wrapper, 'member', {name: 'role', control: true});
+    // Select role from first select input
+    await selectEvent.select(screen.getAllByRole('textbox')[0], 'Member');
     expect(mockUpdate).toHaveBeenCalledWith({role: 'member'});
 
-    selectByValue(wrapper, 'one', {name: 'teams', control: true});
+    // Select teams from first select input
+    await selectEvent.select(screen.getAllByRole('textbox')[1], ['#one']);
     expect(mockUpdate).toHaveBeenCalledWith({teams: ['one']});
 
     TeamStore.reset();
@@ -199,7 +202,7 @@ describe('InviteRequestRow', function () {
 
     const mockUpdate = jest.fn();
 
-    const wrapper = mountWithTheme(
+    render(
       <InviteRequestRow
         orgId={orgId}
         organization={orgWithoutAdminAccess}
@@ -210,8 +213,6 @@ describe('InviteRequestRow', function () {
       />
     );
 
-    expect(wrapper.find('button[aria-label="Approve"]').props()['aria-disabled']).toBe(
-      true
-    );
+    expect(screen.getByRole('button', {name: 'Approve'})).toBeDisabled();
   });
 });

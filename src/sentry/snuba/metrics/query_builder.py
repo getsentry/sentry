@@ -95,7 +95,7 @@ def parse_field(field: str) -> MetricField:
 # These are only allowed because the parser in metrics_sessions_v2
 # generates them. Long term we should not allow any functions, but rather
 # a limited expression language with only AND, OR, IN and NOT IN
-FUNCTION_ALLOWLIST = ("and", "or", "equals", "in", "tuple")
+FUNCTION_ALLOWLIST = ("and", "or", "equals", "in", "tuple", "has")
 
 
 def resolve_tags(
@@ -184,17 +184,21 @@ def resolve_tags(
             conditions=[resolve_tags(use_case_id, org_id, item) for item in input_.conditions]
         )
     if isinstance(input_, Column):
-        if input_.name == "project_id":
+        # If a column has the name belonging to the set, it means that we don't need to resolve its name.
+        if input_.name in frozenset(["project_id", "tags.key"]):
             return input_
+
         # HACK: Some tags already take the form "tags[...]" in discover, take that into account:
         if input_.subscriptable == "tags":
             # Handles translating field aliases to their "metrics" equivalent, for example
             # "project" -> "project_id"
             if input_.key in FIELD_ALIAS_MAPPINGS:
                 return Column(FIELD_ALIAS_MAPPINGS[input_.key])
+
             name = input_.key
         else:
             name = input_.name
+
         return Column(name=resolve_tag_key(use_case_id, org_id, name))
     if isinstance(input_, str):
         if is_tag_value:
