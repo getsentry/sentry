@@ -509,7 +509,6 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
                     event=audit_log.get_event_id("PROJECT_EDIT"),
                 )
 
-    @pytest.mark.skip(reason="flaky behaviour. Needs investigation")
     def test_add_specific_rule(self):
         with self.feature(FEATURE_NAME):
             self.project.update_option(
