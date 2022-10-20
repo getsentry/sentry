@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import Checkbox from 'sentry/components/checkbox';
 import FeatureBadge from 'sentry/components/featureBadge';
 import Tooltip from 'sentry/components/tooltip';
-import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -61,12 +60,10 @@ export class SubscriptionBox extends Component<Props> {
           <SubscriptionGridItem disabled={disabled}>
             <SubscriptionInfo>
               <SubscriptionTitle>
-                {t(`${resource}`)}
+                {resource}
                 {isNew && <FeatureBadge type="new" />}
               </SubscriptionTitle>
-              <SubscriptionDescription>
-                {t(`${DESCRIPTIONS[resource]}`)}
-              </SubscriptionDescription>
+              <SubscriptionDescription>{DESCRIPTIONS[resource]}</SubscriptionDescription>
             </SubscriptionInfo>
             <Checkbox
               key={`${resource}${checked}`}
