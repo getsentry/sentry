@@ -155,6 +155,8 @@ def generate_operation_regex():
 
 OP_REGEX = generate_operation_regex()
 
+# Regex that is used to validate that an operation is a percentile operation in the form p**.
+PERCENTILE_OP_REGEX = r"p\d\d"
 
 AVAILABLE_OPERATIONS = {
     type_: sorted(mapping.keys()) for type_, mapping in OP_TO_SNUBA_FUNCTION.items()
