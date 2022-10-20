@@ -5,6 +5,7 @@ from typing import Any, Dict, Sequence
 
 from django.utils import timezone
 
+from sentry.db.models import BaseQuerySet
 from sentry.models import Group, Project
 from sentry.rules import rules
 
@@ -21,7 +22,7 @@ def preview(
     condition_match: str,
     filter_match: str,
     frequency_minutes: int,
-) -> Sequence[Group] | None:
+) -> BaseQuerySet | None:
     end = timezone.now()
     start = end - PREVIEW_TIME_RANGE
 
@@ -56,6 +57,4 @@ def preview(
             group_ids.add(event.group_id)
             last_fire = event.timestamp
 
-    # typing to satisfy mypy
-    results: Sequence[Group] = Group.objects.filter(id__in=group_ids)
-    return results
+    return Group.objects.filter(id__in=group_ids)
