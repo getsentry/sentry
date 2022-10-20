@@ -1,30 +1,18 @@
 import logging
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, NamedTuple, Union
 
 logger = logging.getLogger("sentry.integrations.utils.code_mapping")
 logger.setLevel(logging.INFO)
 
 
+NO_TOP_DIR = "NO_TOP_DIR"
+
+
 # XXX: Deal with the branch later
-class CodeMapping:
-    def __init__(self, repo: str, stacktrace_root: str, source_path: str):
-        self.repo = repo
-        self.stacktrace_root = stacktrace_root
-        self.source_path = source_path
-
-    def __repr__(self) -> str:
-        return f"{self.repo}: {self.stacktrace_root}->{self.source_path}"
-
-    def __cmp__(self, other):
-        return (
-            0
-            if (
-                self.repo == other.repo
-                and self.stacktrace_root == other.stacktrace_root
-                and self.source_path == other.source_path
-            )
-            else -1
-        )
+class CodeMapping(NamedTuple):
+    repo: str
+    stacktrace_root: str
+    source_path: str
 
 
 def derive_code_mappings(stacktraces: List[str], trees: Dict[str, Any]) -> List[CodeMapping]:
@@ -34,27 +22,31 @@ def derive_code_mappings(stacktraces: List[str], trees: Dict[str, Any]) -> List[
     WARNING: Do not pass stacktraces from different projects or the wrong code mappings will be returned.
     """
     trees_helper = CodeMappingTreesHelper(trees)
-    code_mappings = trees_helper.generate_code_mappings(stacktraces)
-    return code_mappings
+    return trees_helper.generate_code_mappings(stacktraces)
 
 
-# XXX: Look at sentry.interfaces.stacktrace and use that
+# XXX: Look at sentry.interfaces.stacktrace and maybe use that
 class FrameFilename:
     def __init__(self, stacktrace_frame_file_path: str) -> None:
         self.full_path = stacktrace_frame_file_path
-        # XXX: This code assumes that all stack trace frames are part of a module
-        split = stacktrace_frame_file_path.split("/", 1)
-        self.root = split[0]
-        self.file_and_dir_path = split[1]
-        # Does it have more than one level?
-        if self.file_and_dir_path.find("/") > -1:
-            split = self.file_and_dir_path.rsplit("/", 1)
-            self.dir_path = split[0]
-            self.file_name = split[-1]
+        if stacktrace_frame_file_path.find("/") > -1:
+            # XXX: This code assumes that all stack trace frames are part of a module
+            split = stacktrace_frame_file_path.split("/", 1)
+            self.root = split[0]
+            self.file_and_dir_path = split[1]
+            # Does it have more than one level?
+            if self.file_and_dir_path.find("/") > -1:
+                split = self.file_and_dir_path.rsplit("/", 1)
+                self.dir_path = split[0]
+                self.file_name = split[-1]
+            else:
+                # A package name + a file (e.g. requests/models.py)
+                self.dir_path = ""
+                self.file_name = self.file_and_dir_path
         else:
-            # A package name + a file (e.g. requests/models.py)
-            self.dir_path = ""
-            self.file_name = self.file_and_dir_path
+            self.root = ""
+            self.file_and_dir_path = self.full_path
+            self.file_name = self.full_path
 
     def __repr__(self) -> str:
         return self.full_path
@@ -72,15 +64,13 @@ class CodeMappingTreesHelper:
         for stacktrace_frame_file_path in stacktraces:
             try:
                 frame_filename = FrameFilename(stacktrace_frame_file_path)
-                if frame_filename:
-                    if frame_filename.root:
-                        buckets[frame_filename.root] = [frame_filename]
-                    else:
-                        buckets[frame_filename.root] += frame_filename
-                else:
-                    logger.warning(
-                        f"We cannot breakdown this stacktrace path: {stacktrace_frame_file_path}"
-                    )
+                # Any files without a top directory will be grouped together
+                bucket_key = frame_filename.root if frame_filename.root else NO_TOP_DIR
+
+                if not buckets.get(bucket_key):
+                    buckets[bucket_key] = []
+                buckets[bucket_key].append(frame_filename)
+
             except ValueError:
                 logger.exception(
                     f"We cannot breakdown this stacktrace path: {stacktrace_frame_file_path}"
@@ -186,9 +176,11 @@ class CodeMappingTreesHelper:
             return False
 
         ret_value = False
+        # if frame_filename.root:
         # It has to have at least one directory with
         # e.g. requests/models.py matches all files with models.py
         if frame_filename.file_and_dir_path.find("/") > -1:
             ret_value = src_file.rfind(frame_filename.file_and_dir_path) > -1
+        # else:
 
         return ret_value

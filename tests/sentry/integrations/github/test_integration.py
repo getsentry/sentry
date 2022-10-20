@@ -570,43 +570,41 @@ class GitHubIntegrationTest(IntegrationTestCase):
             )
             assert self._caplog.records[0].levelname == "ERROR"
 
-        expected_code_mappings = {
-            "sentry": CodeMapping("Test-Organization/foo", "sentry", "src/sentry"),
-            "sentry_plugins": CodeMapping(
-                "Test-Organization/foo", "sentry_plugins", "src/sentry_plugins"
-            ),
-        }
+        expected_code_mappings = [
+            CodeMapping("Test-Organization/foo", "sentry", "src/sentry"),
+            CodeMapping("Test-Organization/foo", "sentry_plugins", "src/sentry_plugins"),
+        ]
 
         # # Case 1 - No matches
-        # stacktraces = [
-        #     "getsentry/billing/tax/manager.py",
-        #     "requests/models.py",
-        #     "urllib3/connectionpool.py",
-        #     "ssl.py",
-        # ]
-        # code_mappings = derive_code_mappings(stacktraces, trees)
-        # assert code_mappings == {}
+        stacktraces = [
+            "getsentry/billing/tax/manager.py",
+            "requests/models.py",
+            "urllib3/connectionpool.py",
+            "ssl.py",
+        ]
+        code_mappings = derive_code_mappings(stacktraces, trees)
+        assert code_mappings == []
 
-        # # Case 2 - Failing to derive sentry_plugins since we match more than one file
-        # stacktraces = [
-        #     # More than one file matches for this, thus, no stack traces will be produced
-        #     # - "src/sentry_plugins/slack/client.py",
-        #     # - "src/sentry/integrations/slack/client.py",
-        #     "sentry_plugins/slack/client.py",
-        # ]
-        # code_mappings = derive_code_mappings(stacktraces, trees)
-        # assert code_mappings == {}
+        # Case 2 - Failing to derive sentry_plugins since we match more than one file
+        stacktraces = [
+            # More than one file matches for this, thus, no stack traces will be produced
+            # - "src/sentry_plugins/slack/client.py",
+            # - "src/sentry/integrations/slack/client.py",
+            "sentry_plugins/slack/client.py",
+        ]
+        code_mappings = derive_code_mappings(stacktraces, trees)
+        assert code_mappings == []
 
-        # # Case 3 - We derive sentry_plugins because we derive sentry first
-        # # XXX: Order matters of processing matters. Fix code
-        # stacktraces = [
-        #     "sentry/identity/oauth2.py",
-        #     # This file matches two files in the repo, however, because we first
-        #     # derive the sentry code mapping we can exclude one of the files
-        #     "sentry_plugins/slack/client.py",
-        # ]
-        # code_mappings = derive_code_mappings(stacktraces, trees)
-        # assert code_mappings == expected_code_mappings
+        # Case 3 - We derive sentry_plugins because we derive sentry first
+        # XXX: Order matters of processing matters. Fix code
+        stacktraces = [
+            "sentry/identity/oauth2.py",
+            # This file matches two files in the repo, however, because we first
+            # derive the sentry code mapping we can exclude one of the files
+            "sentry_plugins/slack/client.py",
+        ]
+        code_mappings = derive_code_mappings(stacktraces, trees)
+        assert code_mappings == expected_code_mappings
 
         # Case 4 - We do *not* derive sentry_plugins because we don't derive sentry first
         stacktraces = [
@@ -617,4 +615,4 @@ class GitHubIntegrationTest(IntegrationTestCase):
         ]
         code_mappings = derive_code_mappings(stacktraces, trees)
         # Order matters, this is why we only derive one of the two code mappings
-        assert code_mappings == [expected_code_mappings["sentry"]]
+        assert code_mappings == [expected_code_mappings[0]]
