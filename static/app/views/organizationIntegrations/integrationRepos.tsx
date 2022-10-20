@@ -31,6 +31,7 @@ type State = AsyncComponent['state'] & {
     repos: {identifier: string; name: string}[];
     searchable: boolean;
   };
+  integrationReposErrorStatus: number | null;
   itemList: Repository[];
 };
 
@@ -41,6 +42,7 @@ class IntegrationRepos extends AsyncComponent<Props, State> {
       adding: false,
       itemList: [],
       integrationRepos: {repos: [], searchable: false},
+      integrationReposErrorStatus: null,
       dropdownBusy: true,
     };
   }
@@ -90,14 +92,14 @@ class IntegrationRepos extends AsyncComponent<Props, State> {
       success: data => {
         this.setState({integrationRepos: data, dropdownBusy: false});
       },
-      error: () => {
-        this.setState({dropdownBusy: false});
+      error: error => {
+        this.setState({dropdownBusy: false, integrationReposErrorStatus: error?.status});
       },
     });
   };
 
   handleSearchRepositories = (e?: React.ChangeEvent<HTMLInputElement>) => {
-    this.setState({dropdownBusy: true});
+    this.setState({dropdownBusy: true, integrationReposErrorStatus: null});
     this.debouncedSearchRepositoriesRequest(e?.target.value);
   };
 
@@ -190,38 +192,25 @@ class IntegrationRepos extends AsyncComponent<Props, State> {
     );
   }
 
-  renderError(error) {
-    const badRequest = Object.values(this.state.errors).find(
-      resp => resp && resp.status === 400
-    );
-    if (badRequest) {
-      return (
-        <Alert type="error" showIcon>
-          {t(
-            'We were unable to fetch repositories for this integration. Try again later. If this error continues, please reconnect this integration by uninstalling and then reinstalling.'
-          )}
-        </Alert>
-      );
-    }
-
-    return super.renderError(error);
-  }
-
   renderBody() {
-    const {itemListPageLinks} = this.state;
+    const {itemListPageLinks, integrationReposErrorStatus} = this.state;
     const orgId = this.props.organization.slug;
     const itemList = this.getIntegrationRepos() || [];
-    const header = (
-      <PanelHeader disablePadding hasButtons>
-        <HeaderText>{t('Repositories')}</HeaderText>
-        <DropdownWrapper>{this.renderDropdown()}</DropdownWrapper>
-      </PanelHeader>
-    );
-
     return (
       <Fragment>
+        {integrationReposErrorStatus === 400 && (
+          <Alert type="error" showIcon>
+            {t(
+              'We were unable to fetch repositories for this integration. Try again later. If this error continues, please reconnect this integration by uninstalling and then reinstalling.'
+            )}
+          </Alert>
+        )}
+
         <Panel>
-          {header}
+          <PanelHeader disablePadding hasButtons>
+            <HeaderText>{t('Repositories')}</HeaderText>
+            <DropdownWrapper>{this.renderDropdown()}</DropdownWrapper>
+          </PanelHeader>
           <PanelBody>
             {itemList.length === 0 && (
               <EmptyMessage
