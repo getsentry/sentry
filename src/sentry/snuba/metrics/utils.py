@@ -155,7 +155,6 @@ def generate_operation_regex():
 
 OP_REGEX = generate_operation_regex()
 
-
 AVAILABLE_OPERATIONS = {
     type_: sorted(mapping.keys()) for type_, mapping in OP_TO_SNUBA_FUNCTION.items()
 }
@@ -199,6 +198,7 @@ class MetricMeta(TypedDict):
     operations: Collection[MetricOperationType]
     unit: Optional[MetricUnit]
     metric_id: Optional[int]
+    mri_string: str
 
 
 class MetricMetaWithTagKeys(MetricMeta):

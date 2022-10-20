@@ -6,6 +6,7 @@ import {
   MOBILE_TAGS_FORMATTER,
   TagFacets,
 } from 'sentry/components/group/tagFacets';
+import {Event} from 'sentry/types/event';
 
 const {organization} = initializeOrg();
 describe('TagDistributionMeter', function () {
@@ -29,6 +30,7 @@ describe('TagDistributionMeter', function () {
           topValues: [
             {
               name: 'Android 12',
+              value: 'Android 12',
               count: 20,
             },
             {
@@ -137,6 +139,30 @@ describe('TagDistributionMeter', function () {
     userEvent.click(screen.getByText('Show more'));
     expect(screen.getByText('29%')).toBeInTheDocument();
     expect(screen.getByText('iPhone10')).toBeInTheDocument();
+  });
+
+  it('shows tooltip', async function () {
+    render(
+      <TagFacets
+        environments={[]}
+        groupId="1"
+        tagKeys={MOBILE_TAGS}
+        event={{tags: [{key: 'os', value: 'Android 12'}]} as Event}
+      />,
+      {
+        organization,
+      }
+    );
+    await waitFor(() => {
+      expect(tagsMock).toHaveBeenCalled();
+    });
+
+    userEvent.hover(screen.getByText('Android 12'));
+    await waitFor(() =>
+      expect(
+        screen.getByText('This is also the tag value of the error event you are viewing.')
+      ).toBeInTheDocument()
+    );
   });
 
   it('format tag values when given a tagFormatter', async function () {

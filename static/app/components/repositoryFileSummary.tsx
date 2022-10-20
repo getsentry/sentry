@@ -64,11 +64,7 @@ class RepositoryFileSummary extends Component<Props, State> {
     return (
       <Container>
         <h5>
-          {tn(
-            '%s file changed in ' + repository,
-            '%s files changed in ' + repository,
-            fileCount
-          )}
+          {tn('%s file changed in %s', '%s files changed in %s', fileCount, repository)}
         </h5>
         <ListGroup striped>
           {files.map(filename => {

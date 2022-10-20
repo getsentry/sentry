@@ -156,7 +156,7 @@ function useHoverOverlay(
     [arrowElement, offset]
   );
 
-  const {styles, state} = usePopper(triggerElement, overlayElement, {
+  const {styles, state, update} = usePopper(triggerElement, overlayElement, {
     modifiers,
     placement: position,
   });
@@ -287,6 +287,7 @@ function useHoverOverlay(
     arrowProps,
     placement: state?.placement,
     arrowData: state?.modifiersData?.arrow,
+    update,
   };
 }
 

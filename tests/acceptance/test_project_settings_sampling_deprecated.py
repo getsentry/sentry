@@ -21,8 +21,6 @@ from sentry.utils.outcomes import Outcome
 FEATURE_NAME = [
     "organizations:server-side-sampling",
     "organizations:server-side-sampling-ui",
-    "organizations:dynamic-sampling-basic",
-    "organizations:dynamic-sampling-advanced",
 ]
 
 uniform_rule_with_recommended_sampling_values = {
@@ -511,7 +509,6 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
                     event=audit_log.get_event_id("PROJECT_EDIT"),
                 )
 
-    @pytest.mark.skip(reason="flaky behaviour. Needs investigation")
     def test_add_specific_rule(self):
         with self.feature(FEATURE_NAME):
             self.project.update_option(
