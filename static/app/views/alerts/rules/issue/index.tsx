@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 import {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
+import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
 import set from 'lodash/set';
 
@@ -13,6 +14,11 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
+import {
+  fetchOrgMembers,
+  IndexedMembersByProject,
+  indexMembersByProject,
+} from 'sentry/actionCreators/members';
 import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
@@ -31,11 +37,13 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingMask from 'sentry/components/loadingMask';
+import {CursorHandler} from 'sentry/components/pagination';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import TeamSelector from 'sentry/components/teamSelector';
 import {ALL_ENVIRONMENTS_KEY} from 'sentry/constants';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
 import {
   Environment,
@@ -50,7 +58,6 @@ import {
   IssueAlertRuleAction,
   IssueAlertRuleActionTemplate,
   IssueAlertRuleConditionTemplate,
-  ProjectAlertRuleStats,
   UnsavedIssueAlertRule,
 } from 'sentry/types/alerts';
 import {metric} from 'sentry/utils/analytics';
@@ -61,7 +68,7 @@ import recreateRoute from 'sentry/utils/recreateRoute';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
-import PreviewChart from 'sentry/views/alerts/rules/issue/previewChart';
+import PreviewTable from 'sentry/views/alerts/rules/issue/previewTable';
 import {
   CHANGE_ALERT_CONDITION_IDS,
   CHANGE_ALERT_PLACEHOLDERS_LABELS,
@@ -107,6 +114,9 @@ const defaultRule: UnsavedIssueAlertRule = {
 
 const POLLING_MAX_TIME_LIMIT = 3 * 60000;
 
+const SENTRY_ISSUE_ALERT_DOCS_URL =
+  'https://docs.sentry.io/product/alerts/alert-types/#issue-alerts';
+
 type ConditionOrActionProperty = 'conditions' | 'actions' | 'filters';
 
 type RuleTaskResponse = {
@@ -137,9 +147,14 @@ type State = AsyncView['state'] & {
     [key: string]: string[];
   };
   environments: Environment[] | null;
-  previewError: null | string;
+  issueCount: number;
+  loadingPreview: boolean;
+  memberList: IndexedMembersByProject | null;
+  previewCursor: string | null | undefined;
+  previewError: boolean;
+  previewGroups: string[] | null;
+  previewPage: number;
   project: Project;
-  ruleFireHistory: ProjectAlertRuleStats[] | null;
   uuid: null | string;
   duplicateTargetRule?: UnsavedIssueAlertRule | IssueAlertRule | null;
   ownership?: null | IssueOwnership;
@@ -159,16 +174,41 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     return createFromDuplicate && location?.query.duplicateRuleId;
   }
 
+  componentWillMount() {
+    this.fetchPreview();
+    this.fetchMemberList();
+  }
+
   componentWillUnmount() {
+    GroupStore.reset();
     window.clearTimeout(this.pollingTimeout);
   }
 
   componentDidUpdate(_prevProps: Props, prevState: State) {
+    if (prevState.previewCursor !== this.state.previewCursor) {
+      this.fetchPreview();
+    } else if (this.isRuleStateChange(prevState)) {
+      this.setState({loadingPreview: true});
+      this.fetchPreviewDebounced();
+    }
     if (prevState.project.id === this.state.project.id) {
       return;
     }
 
     this.fetchEnvironments();
+  }
+
+  isRuleStateChange(prevState: State): boolean {
+    const prevRule = prevState.rule;
+    const curRule = this.state.rule;
+    return (
+      prevRule?.conditions !== curRule?.conditions ||
+      prevRule?.filters !== curRule?.filters ||
+      prevRule?.actionMatch !== curRule?.actionMatch ||
+      prevRule?.filterMatch !== curRule?.filterMatch ||
+      prevRule?.frequency !== curRule?.frequency ||
+      prevState.project !== this.state.project
+    );
   }
 
   getTitle() {
@@ -194,7 +234,13 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       environments: [],
       uuid: null,
       project,
-      ruleFireHistory: null,
+      memberList: null,
+      previewGroups: null,
+      previewCursor: null,
+      previewError: false,
+      issueCount: 0,
+      previewPage: 0,
+      loadingPreview: false,
     };
 
     const projectTeamIds = new Set(project.teams.map(({id}) => id));
@@ -307,41 +353,78 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     }
   };
 
-  fetchPreview = async () => {
+  fetchPreview = (resetCursor = false) => {
     const {organization} = this.props;
-    const {project, rule} = this.state;
+    const {project, rule, previewCursor} = this.state;
 
-    if (!rule) {
+    if (!rule || !organization.features.includes('issue-alert-preview')) {
       return;
     }
+
     this.setState({loadingPreview: true});
-    try {
-      const response = await this.api.requestPromise(
-        `/projects/${organization.slug}/${project.slug}/rules/preview`,
-        {
-          method: 'POST',
-          data: {
-            conditions: rule?.conditions || [],
-            filters: rule?.filters || [],
-            actionMatch: rule?.actionMatch || 'all',
-            filterMatch: rule?.filterMatch || 'all',
-            frequency: rule?.frequency || 60,
-          },
+    if (resetCursor) {
+      this.setState({previewPage: 0});
+    }
+    // we currently don't have a way to parse objects from query params, so this method is POST for now
+    this.api
+      .requestPromise(`/projects/${organization.slug}/${project.slug}/rules/preview`, {
+        method: 'POST',
+        includeAllArgs: true,
+        query: {
+          cursor: resetCursor ? null : previewCursor,
+          per_page: 5,
+        },
+        data: {
+          conditions: rule?.conditions || [],
+          filters: rule?.filters || [],
+          actionMatch: rule?.actionMatch || 'all',
+          filterMatch: rule?.filterMatch || 'all',
+          frequency: rule?.frequency || 60,
+        },
+      })
+      .then(([data, _, resp]) => {
+        GroupStore.add(data?.data);
+
+        const pageLinks = resp?.getResponseHeader('Link');
+        const issueCount = data?.totalCount;
+        this.setState({
+          previewGroups: data?.data.map(g => g.id),
+          previewError: false,
+          pageLinks: pageLinks ?? '',
+          issueCount: issueCount ?? 0,
+          loadingPreview: false,
+        });
+      })
+      .catch(_ => {
+        this.setState({
+          previewError: true,
+          loadingPreview: false,
+        });
+      });
+  };
+
+  fetchPreviewDebounced = debounce(() => {
+    this.fetchPreview(true);
+  }, 1000);
+
+  onPreviewCursor: CursorHandler = (cursor, _1, _2, direction) => {
+    this.setState({
+      previewCursor: cursor,
+      previewPage: this.state.previewPage + direction,
+    });
+  };
+
+  fetchMemberList() {
+    const {project} = this.state;
+
+    if (this.props.organization.features.includes('issue-alert-preview')) {
+      fetchOrgMembers(this.api, this.props.organization.slug, [project.id]).then(
+        members => {
+          this.setState({memberList: indexMembersByProject(members)});
         }
       );
-      this.setState({
-        ruleFireHistory: response,
-        previewError: null,
-        loadingPreview: false,
-      });
-    } catch (err) {
-      this.setState({
-        previewError:
-          'Previews are unavailable for this combination of conditions and filters',
-        loadingPreview: false,
-      });
     }
-  };
+  }
 
   fetchEnvironments() {
     const {
@@ -801,19 +884,44 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     );
   }
 
-  renderPreviewGraph() {
-    const {ruleFireHistory, previewError} = this.state;
-    if (ruleFireHistory && !previewError) {
-      return <PreviewChart ruleFireHistory={ruleFireHistory} />;
-    }
+  renderPreviewText() {
+    const {issueCount, previewError} = this.state;
     if (previewError) {
-      return (
-        <Alert type="error" showIcon>
-          {previewError}
-        </Alert>
+      return t(
+        "Select a condition above to see which issues would've triggered this alert"
       );
     }
-    return null;
+    return tct(
+      "[issueCount] issues would have triggered this rule in the past 14 days approximately. If you're looking to reduce noise then make sure to [link:read the docs].",
+      {
+        issueCount,
+        link: <a href={SENTRY_ISSUE_ALERT_DOCS_URL} />,
+      }
+    );
+  }
+
+  renderPreviewTable() {
+    const {
+      previewGroups,
+      previewError,
+      memberList,
+      pageLinks,
+      issueCount,
+      previewPage,
+      loadingPreview,
+    } = this.state;
+    return (
+      <PreviewTable
+        previewGroups={previewGroups}
+        memberList={memberList}
+        pageLinks={pageLinks}
+        onCursor={this.onPreviewCursor}
+        issueCount={issueCount}
+        page={previewPage}
+        loading={loadingPreview}
+        error={previewError}
+      />
+    );
   }
 
   renderProjectSelect(disabled: boolean) {
@@ -949,7 +1057,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
   renderBody() {
     const {organization} = this.props;
-    const {project, rule, detailedError, loading, ownership, loadingPreview} = this.state;
+    const {project, rule, detailedError, loading, ownership} = this.state;
     const {actions, filters, conditions, frequency} = rule || {};
 
     const environment =
@@ -1209,23 +1317,12 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                     <StyledListItem>
                       <StyledListItemSpaced>
                         <div>
-                          {t('Preview history graph')}
-                          <StyledFieldHelp>
-                            {t(
-                              'Shows when this rule would have fired in the past 2 weeks'
-                            )}
-                          </StyledFieldHelp>
+                          {t('Preview')}
+                          <StyledFieldHelp>{this.renderPreviewText()}</StyledFieldHelp>
                         </div>
-                        <Button
-                          onClick={this.fetchPreview}
-                          type="button"
-                          disabled={loadingPreview}
-                        >
-                          Generate Preview
-                        </Button>
                       </StyledListItemSpaced>
                     </StyledListItem>
-                    {this.renderPreviewGraph()}
+                    {this.renderPreviewTable()}
                   </Feature>
                   <StyledListItem>{t('Establish ownership')}</StyledListItem>
                   {this.renderRuleName(disabled)}
