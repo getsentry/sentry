@@ -56,7 +56,6 @@ default_manager = FeatureManager()  # NOQA
 # fmt: off
 
 # Unscoped features
-UNSCOPED_FEATURES = ["auth:register", "organizations:create"]
 default_manager.add("auth:register")
 default_manager.add("organizations:create")
 
