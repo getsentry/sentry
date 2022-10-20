@@ -2,11 +2,11 @@ from django.db.models import DO_NOTHING, DateTimeField
 from django.db.models.signals import post_delete
 from django.utils import timezone
 
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model, sane_repr
 from sentry.utils.cache import cache
 
 
-@region_silo_model
+@region_silo_only_model
 class GroupEnvironment(Model):
     __include_in_export__ = False
 

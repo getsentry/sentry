@@ -1,12 +1,12 @@
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model, sane_repr
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
 from sentry.db.models.fields.jsonfield import JSONField
 
 
-@region_silo_model
+@region_silo_only_model
 class DashboardProject(Model):
     __include_in_export__ = False
 
@@ -19,7 +19,7 @@ class DashboardProject(Model):
         unique_together = (("project", "dashboard"),)
 
 
-@region_silo_model
+@region_silo_only_model
 class Dashboard(Model):
     """
     A dashboard.
@@ -64,7 +64,7 @@ class Dashboard(Model):
         return None
 
 
-@region_silo_model
+@region_silo_only_model
 class DashboardTombstone(Model):
     """
     A tombstone to indicate that a pre-built dashboard
@@ -240,7 +240,7 @@ PREBUILT_DASHBOARDS = {
                             "fields": ["count()", "transaction"],
                             "aggregates": ["count()"],
                             "columns": ["transaction"],
-                            "conditions": "!event.type:error",
+                            "conditions": "event.type:transaction",
                             "orderby": "-count()",
                         },
                     ],
@@ -272,7 +272,7 @@ PREBUILT_DASHBOARDS = {
                             "fields": ["transaction", "count()"],
                             "aggregates": ["count()"],
                             "columns": ["transaction"],
-                            "conditions": "!event.type:error",
+                            "conditions": "event.type:transaction",
                             "orderby": "-count()",
                         },
                     ],

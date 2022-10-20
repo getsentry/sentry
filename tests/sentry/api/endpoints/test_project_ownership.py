@@ -35,7 +35,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         assert resp.data == {
             "raw": None,
             "fallthrough": True,
-            "autoAssignment": False,
+            "autoAssignment": "Auto Assign to Issue Owner",
             "isActive": True,
             "dateCreated": None,
             "lastUpdated": None,
@@ -46,7 +46,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         resp = self.client.put(self.path, {"raw": "*.js admin@localhost #tiger-team"})
         assert resp.status_code == 200
         assert resp.data["fallthrough"] is True
-        assert resp.data["autoAssignment"] is False
+        assert resp.data["autoAssignment"] == "Auto Assign to Issue Owner"
         assert resp.data["raw"] == "*.js admin@localhost #tiger-team"
         assert resp.data["dateCreated"] is not None
         assert resp.data["lastUpdated"] is not None
@@ -55,7 +55,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         resp = self.client.put(self.path, {"fallthrough": False})
         assert resp.status_code == 200
         assert resp.data["fallthrough"] is False
-        assert resp.data["autoAssignment"] is False
+        assert resp.data["autoAssignment"] == "Auto Assign to Issue Owner"
         assert resp.data["raw"] == "*.js admin@localhost #tiger-team"
         assert resp.data["dateCreated"] is not None
         assert resp.data["lastUpdated"] is not None
@@ -64,7 +64,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         assert resp.data["fallthrough"] is False
-        assert resp.data["autoAssignment"] is False
+        assert resp.data["autoAssignment"] == "Auto Assign to Issue Owner"
         assert resp.data["raw"] == "*.js admin@localhost #tiger-team"
         assert resp.data["dateCreated"] is not None
         assert resp.data["lastUpdated"] is not None
@@ -73,10 +73,10 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         resp = self.client.put(self.path, {"raw": "..."})
         assert resp.status_code == 400
 
-        resp = self.client.put(self.path, {"autoAssignment": True})
+        resp = self.client.put(self.path, {"autoAssignment": "Auto Assign to Issue Owner"})
         assert resp.status_code == 200
         assert resp.data["fallthrough"] is False
-        assert resp.data["autoAssignment"] is True
+        assert resp.data["autoAssignment"] == "Auto Assign to Issue Owner"
         assert resp.data["raw"] == "*.js admin@localhost #tiger-team"
         assert resp.data["dateCreated"] is not None
         assert resp.data["lastUpdated"] is not None
@@ -85,7 +85,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         resp = self.client.put(self.path, {"codeownersAutoSync": False})
         assert resp.status_code == 200
         assert resp.data["fallthrough"] is False
-        assert resp.data["autoAssignment"] is True
+        assert resp.data["autoAssignment"] == "Auto Assign to Issue Owner"
         assert resp.data["raw"] == "*.js admin@localhost #tiger-team"
         assert resp.data["dateCreated"] is not None
         assert resp.data["lastUpdated"] is not None
@@ -93,7 +93,20 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
 
         resp = self.client.get(self.path)
         assert resp.status_code == 200
-        assert resp.data["autoAssignment"] is True
+        assert resp.data["autoAssignment"] == "Auto Assign to Issue Owner"
+
+        resp = self.client.put(self.path, {"autoAssignment": "Turn off Auto-Assignment"})
+        assert resp.status_code == 200
+        assert resp.data["fallthrough"] is False
+        assert resp.data["autoAssignment"] == "Turn off Auto-Assignment"
+        assert resp.data["raw"] == "*.js admin@localhost #tiger-team"
+        assert resp.data["dateCreated"] is not None
+        assert resp.data["lastUpdated"] is not None
+        assert resp.data["codeownersAutoSync"] is False
+
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        assert resp.data["autoAssignment"] == "Turn off Auto-Assignment"
 
     def test_invalid_email(self):
         resp = self.client.put(self.path, {"raw": "*.js idont@exist.com #tiger-team"})

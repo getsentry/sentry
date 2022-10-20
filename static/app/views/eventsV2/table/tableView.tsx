@@ -1,5 +1,6 @@
 import {Component, Fragment} from 'react';
-import {browserHistory} from 'react-router';
+// eslint-disable-next-line no-restricted-imports
+import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {Location, LocationDescriptorObject} from 'history';
@@ -40,6 +41,7 @@ import {
   eventDetailsRouteWithEventView,
   generateEventSlug,
 } from 'sentry/utils/discover/urls';
+import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withProjects from 'sentry/utils/withProjects';
@@ -71,6 +73,7 @@ export type TableViewProps = {
 
   title: string;
   customMeasurements?: CustomMeasurementCollection;
+  isHomepage?: boolean;
   spanOperationBreakdownKeys?: string[];
 };
 
@@ -88,7 +91,7 @@ export type TableViewProps = {
  * In most cases, the new EventView object differs from the previous EventView
  * object. The new EventView object is pushed to the location object.
  */
-class TableView extends Component<TableViewProps> {
+class TableView extends Component<TableViewProps & WithRouterProps> {
   /**
    * Updates a column on resizing
    */
@@ -110,7 +113,7 @@ class TableView extends Component<TableViewProps> {
     dataRow?: any,
     rowIndex?: number
   ): React.ReactNode[] => {
-    const {organization, eventView, tableData, location} = this.props;
+    const {organization, eventView, tableData, location, isHomepage} = this.props;
     const hasAggregates = eventView.hasAggregateField();
     const hasIdField = eventView.hasIdField();
 
@@ -176,6 +179,7 @@ class TableView extends Component<TableViewProps> {
         orgSlug: organization.slug,
         eventSlug,
         eventView,
+        isHomepage,
       });
 
       return [
@@ -239,7 +243,8 @@ class TableView extends Component<TableViewProps> {
     rowIndex: number,
     columnIndex: number
   ): React.ReactNode => {
-    const {isFirstPage, eventView, location, organization, tableData} = this.props;
+    const {isFirstPage, eventView, location, organization, tableData, isHomepage} =
+      this.props;
 
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
@@ -269,6 +274,7 @@ class TableView extends Component<TableViewProps> {
         orgSlug: organization.slug,
         eventSlug,
         eventView,
+        isHomepage,
       });
 
       cell = (
@@ -296,6 +302,25 @@ class TableView extends Component<TableViewProps> {
           </Tooltip>
         );
       }
+    } else if (columnKey === 'replayId') {
+      if (dataRow.replayId) {
+        const replaySlug = `${dataRow['project.name']}:${dataRow.replayId}`;
+        const referrer = encodeURIComponent(getRouteStringFromRoutes(this.props.routes));
+
+        const target = {
+          pathname: `/organizations/${organization.slug}/replays/${replaySlug}`,
+          query: {
+            referrer,
+          },
+        };
+        cell = (
+          <Tooltip title={t('View Replay')}>
+            <StyledLink data-test-id="view-replay" to={target}>
+              {cell}
+            </StyledLink>
+          </Tooltip>
+        );
+      }
     }
 
     const topResultsIndicator =
@@ -318,6 +343,8 @@ class TableView extends Component<TableViewProps> {
             column={column}
             dataRow={dataRow}
             handleCellAction={this.handleCellAction(dataRow, column)}
+            organization={organization}
+            showQuickContextMenu
           >
             {cell}
           </CellAction>
@@ -332,6 +359,8 @@ class TableView extends Component<TableViewProps> {
           column={column}
           dataRow={dataRow}
           handleCellAction={this.handleCellAction(dataRow, column)}
+          organization={organization}
+          showQuickContextMenu
         >
           {cell}
         </CellAction>
@@ -372,7 +401,8 @@ class TableView extends Component<TableViewProps> {
 
   handleCellAction = (dataRow: TableDataRow, column: TableColumn<keyof TableDataRow>) => {
     return (action: Actions, value: React.ReactText) => {
-      const {eventView, organization, projects, location, tableData} = this.props;
+      const {eventView, organization, projects, location, tableData, isHomepage} =
+        this.props;
 
       const query = new MutableSearch(eventView.query);
 
@@ -437,7 +467,9 @@ class TableView extends Component<TableViewProps> {
             function: ['count', '', undefined, undefined],
           });
 
-          browserHistory.push(nextView.getResultsViewUrlTarget(organization.slug));
+          browserHistory.push(
+            nextView.getResultsViewUrlTarget(organization.slug, isHomepage)
+          );
 
           return;
         }
@@ -458,7 +490,7 @@ class TableView extends Component<TableViewProps> {
       }
       nextView.query = query.formatString();
 
-      const target = nextView.getResultsViewUrlTarget(organization.slug);
+      const target = nextView.getResultsViewUrlTarget(organization.slug, isHomepage);
       // Get yAxis from location
       target.query.yAxis = decodeList(location.query.yAxis);
       browserHistory.push(target);
@@ -466,7 +498,7 @@ class TableView extends Component<TableViewProps> {
   };
 
   handleUpdateColumns = (columns: Column[]): void => {
-    const {organization, eventView, location} = this.props;
+    const {organization, eventView, location, isHomepage} = this.props;
 
     // metrics
     trackAnalyticsEvent({
@@ -476,7 +508,10 @@ class TableView extends Component<TableViewProps> {
     });
 
     const nextView = eventView.withColumns(columns);
-    const resultsViewUrlTarget = nextView.getResultsViewUrlTarget(organization.slug);
+    const resultsViewUrlTarget = nextView.getResultsViewUrlTarget(
+      organization.slug,
+      isHomepage
+    );
     // Need to pull yAxis from location since eventView only stores 1 yAxis field at time
     const previousYAxis = decodeList(location.query.yAxis);
     resultsViewUrlTarget.query.yAxis = previousYAxis.filter(yAxis =>
@@ -559,7 +594,7 @@ const StyledTooltip = styled(Tooltip)`
 `;
 
 const StyledLink = styled(Link)`
-  > div {
+  & div {
     display: inline;
   }
 `;
@@ -568,4 +603,4 @@ const StyledIcon = styled(IconStack)`
   vertical-align: middle;
 `;
 
-export default withProjects(TableView);
+export default withRouter(withProjects(TableView));

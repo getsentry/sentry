@@ -22,10 +22,10 @@ class Properties:
 @pytest.fixture(params=["bigtable", "cache/default", "memory", "memory+cachewrapper", "redis"])
 def properties(request) -> Properties:
     if request.param == "bigtable":
-        from tests.sentry.utils.kvstore.test_bigtable import create_store, get_credentials
+        from tests.sentry.utils.kvstore.test_bigtable import create_store
 
         return Properties(
-            create_store(request, get_credentials()),
+            create_store(request),
             keys=(f"{i}" for i in itertools.count()),
             values=(f"{i}".encode() for i in itertools.count()),
         )

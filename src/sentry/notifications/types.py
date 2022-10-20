@@ -59,6 +59,9 @@ class NotificationSettingTypes(Enum):
     # Sub category of quotas for warnings before hitting the actual limit
     QUOTA_WARNINGS = 54
 
+    # Sub category of quotas for spend allocation notifications
+    QUOTA_SPEND_ALLOCATIONS = 55
+
 
 NOTIFICATION_SETTING_TYPES = {
     NotificationSettingTypes.DEFAULT: "default",
@@ -72,6 +75,7 @@ NOTIFICATION_SETTING_TYPES = {
     NotificationSettingTypes.QUOTA_TRANSACTIONS: "quotaTransactions",
     NotificationSettingTypes.QUOTA_ATTACHMENTS: "quotaAttachments",
     NotificationSettingTypes.QUOTA_WARNINGS: "quotaWarnings",
+    NotificationSettingTypes.QUOTA_SPEND_ALLOCATIONS: "quotaSpendAllocations",
 }
 
 
@@ -176,6 +180,10 @@ VALID_VALUES_FOR_KEY = {
         NotificationSettingOptionValues.NEVER,
     },
     NotificationSettingTypes.QUOTA_WARNINGS: {
+        NotificationSettingOptionValues.ALWAYS,
+        NotificationSettingOptionValues.NEVER,
+    },
+    NotificationSettingTypes.QUOTA_SPEND_ALLOCATIONS: {
         NotificationSettingOptionValues.ALWAYS,
         NotificationSettingOptionValues.NEVER,
     },

@@ -100,11 +100,6 @@ const mockGroupApis = (
   });
 
   MockApiClient.addMockResponse({
-    url: `/issues/${group.id}/participants/`,
-    body: [],
-  });
-
-  MockApiClient.addMockResponse({
     url: `/issues/${group.id}/tags/`,
     body: [],
   });
@@ -290,7 +285,7 @@ describe('groupEventDetails', () => {
   });
 });
 
-describe('EventCauseEmpty', () => {
+describe('EventCause', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     CommitterStore.init();
@@ -299,43 +294,6 @@ describe('EventCauseEmpty', () => {
   afterEach(function () {
     MockApiClient.clearMockResponses();
     (browserHistory.replace as jest.Mock).mockClear();
-  });
-
-  it('renders empty state', async function () {
-    const props = makeDefaultMockData(
-      undefined,
-      TestStubs.Project({firstEvent: TestStubs.Event()})
-    );
-
-    mockGroupApis(
-      props.organization,
-      props.project,
-      props.group,
-      TestStubs.Event({
-        size: 1,
-        dateCreated: '2019-03-20T00:00:00.000Z',
-        errors: [],
-        entries: [],
-        tags: [{key: 'environment', value: 'dev'}],
-        previousEventID: 'prev-event-id',
-        nextEventID: 'next-event-id',
-      })
-    );
-
-    MockApiClient.addMockResponse({
-      url: `/projects/${props.organization.slug}/${props.project.slug}/releases/completion/`,
-      body: [
-        {
-          step: 'commit',
-          complete: false,
-        },
-      ],
-    });
-
-    render(<TestComponent project={props.project} />, {organization: props.organization});
-
-    expect(await screen.findByTestId(/loaded-event-cause-empty/)).toBeInTheDocument();
-    expect(screen.queryByText(/event-cause/)).not.toBeInTheDocument();
   });
 
   it('renders suspect commit', async function () {

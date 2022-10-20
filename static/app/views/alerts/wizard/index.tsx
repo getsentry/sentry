@@ -15,14 +15,11 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import {logExperiment} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import withProjects from 'sentry/utils/withProjects';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {AlertRuleType} from 'sentry/views/alerts/types';
-
-import {PRESET_AGGREGATES} from '../rules/metric/presets';
 
 import {
   AlertType,
@@ -81,7 +78,6 @@ class AlertWizard extends Component<Props, State> {
     const {organization, location, params, projectId: _projectId} = this.props;
     const {alertOption} = this.state;
     const projectId = params.projectId ?? _projectId;
-    const project = this.props.projects.find(p => p.slug === projectId);
     let metricRuleTemplate: Readonly<WizardRuleTemplate> | undefined =
       AlertWizardRuleTemplates[alertOption];
     const isMetricAlert = !!metricRuleTemplate;
@@ -94,9 +90,6 @@ class AlertWizard extends Component<Props, State> {
       metricRuleTemplate = {...metricRuleTemplate, dataset: Dataset.METRICS};
     }
 
-    const supportedPreset = PRESET_AGGREGATES.filter(
-      agg => agg.alertType === alertOption
-    )[0];
     const to = {
       pathname: `/organizations/${organization.slug}/alerts/new/${
         isMetricAlert ? AlertRuleType.METRIC : AlertRuleType.ISSUE
@@ -122,20 +115,6 @@ class AlertWizard extends Component<Props, State> {
       </Hovercard>
     );
 
-    let showUseTemplateBtn: boolean =
-      !!project?.firstTransactionEvent &&
-      isMetricAlert &&
-      metricRuleTemplate?.dataset === Dataset.TRANSACTIONS &&
-      !!supportedPreset;
-    if (showUseTemplateBtn) {
-      logExperiment({
-        key: 'MetricAlertPresetExperiment',
-        organization,
-      });
-    }
-    showUseTemplateBtn =
-      showUseTemplateBtn && !!organization.experiments.MetricAlertPresetExperiment;
-
     return (
       <Feature
         features={
@@ -159,30 +138,6 @@ class AlertWizard extends Component<Props, State> {
               })
             }
           >
-            {showUseTemplateBtn && (
-              <CreateAlertButton
-                organization={organization}
-                projectSlug={projectId}
-                disabled={!hasFeature}
-                priority="default"
-                to={{
-                  pathname: to.pathname,
-                  query: {
-                    ...to.query,
-                    preset: supportedPreset.id,
-                  },
-                }}
-                onEnter={() => {
-                  trackAdvancedAnalyticsEvent('growth.metric_alert_preset_use_template', {
-                    organization,
-                    preset: supportedPreset.id,
-                  });
-                }}
-                hideIcon
-              >
-                {t('Use Template')}
-              </CreateAlertButton>
-            )}
             <CreateAlertButton
               organization={organization}
               projectSlug={projectId}

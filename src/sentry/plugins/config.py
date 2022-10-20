@@ -1,8 +1,6 @@
 __all__ = ["PluginConfigMixin"]
 
 
-from collections import OrderedDict
-
 from django import forms
 from rest_framework import serializers
 
@@ -25,7 +23,7 @@ class ConfigValidator:
         self.result = {}
         self.context = context or {}
 
-        self.config = OrderedDict((f["name"], f) for f in config)
+        self.config = {f["name"]: f for f in config}
 
         self._data = data or {}
         self._initial = initial or {}

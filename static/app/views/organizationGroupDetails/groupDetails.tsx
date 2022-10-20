@@ -18,8 +18,6 @@ import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
 import {
   AvatarProject,
-  EntryException,
-  EntryThreads,
   Group,
   GroupActivityAssigned,
   GroupActivityType,
@@ -33,7 +31,7 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
-import {getMessage, getTitle} from 'sentry/utils/events';
+import {getAnalyicsDataForEvent, getMessage, getTitle} from 'sentry/utils/events';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import Projects from 'sentry/utils/projects';
 import recreateRoute from 'sentry/utils/recreateRoute';
@@ -51,34 +49,6 @@ import {
 } from './utils';
 
 /**
- * Function to determine if an event has source maps
- */
-function eventHasSourceMaps(event: Event) {
-  return event.entries?.some(entry => {
-    if (entry.type === 'exception') {
-      if (entry.data.values?.some(value => !!value.rawStacktrace && !!value.stacktrace)) {
-        return true;
-      }
-    }
-    return false;
-  });
-}
-
-/**
- * Returns a comma delineated list of errors
- */
-function getEventErrorString(event: Event) {
-  return event.errors?.map(error => error.type).join(',') || '';
-}
-
-function hasTrace(event: Event) {
-  if (event.type !== 'error') {
-    return false;
-  }
-  return !!event.contexts?.trace;
-}
-
-/**
  * Return the integration type for the first assignment via integration
  */
 function getAssignmentIntegration(group: Group) {
@@ -92,55 +62,6 @@ function getAssignmentIntegration(group: Group) {
     activity => !!activity.data.integration
   );
   return integrationAssignments?.data.integration || '';
-}
-
-function getExceptionEntries(event: Event) {
-  return event.entries?.filter(entry => entry.type === 'exception') as EntryException[];
-}
-
-function getNumberOfStackFrames(event: Event) {
-  const entries = getExceptionEntries(event);
-  // for each entry, go through each frame and get the max
-  const frameLengths =
-    entries?.map(entry =>
-      (entry.data.values || []).reduce((best, exception) => {
-        // find the max number of frames in this entry
-        const frameCount = exception.stacktrace?.frames?.length || 0;
-        return Math.max(best, frameCount);
-      }, 0)
-    ) || [];
-  if (!frameLengths.length) {
-    return 0;
-  }
-  return Math.max(...frameLengths);
-}
-
-function getNumberOfInAppStackFrames(event: Event) {
-  const entries = getExceptionEntries(event);
-  // for each entry, go through each frame
-  const frameLengths =
-    entries?.map(entry =>
-      (entry.data.values || []).reduce((best, exception) => {
-        // find the max number of frames in this entry
-        const frames = exception.stacktrace?.frames?.filter(f => f.inApp) || [];
-        return Math.max(best, frames.length);
-      }, 0)
-    ) || [];
-  if (!frameLengths.length) {
-    return 0;
-  }
-  return Math.max(...frameLengths);
-}
-
-function getNumberOfThreadsWithNames(event: Event) {
-  const threadLengths =
-    (
-      (event.entries?.filter(entry => entry.type === 'threads') || []) as EntryThreads[]
-    ).map(entry => entry.data?.values?.filter(thread => !!thread.name).length || 0) || [];
-  if (!threadLengths.length) {
-    return 0;
-  }
-  return Math.max(...threadLengths);
 }
 
 type Error = typeof ERROR_TYPES[keyof typeof ERROR_TYPES] | null;
@@ -255,26 +176,15 @@ class GroupDetails extends Component<Props, State> {
       issue_level: group?.level,
       is_assigned: !!group?.assignedTo,
       error_count: Number(group?.count || -1),
+      error_has_replay: Boolean(event?.tags?.find(({key}) => key === 'replayId')),
+      group_has_replay: Boolean(group?.tags?.find(({key}) => key === 'replayId')),
       num_comments: group ? group.numComments : -1,
       project_platform: group?.project.platform,
       has_external_issue: group?.annotations ? group?.annotations.length > 0 : false,
       has_owner: group?.owners ? group?.owners.length > 0 : false,
       integration_assignment_source: group ? getAssignmentIntegration(group) : '',
       // event properties
-      event_id: event?.eventID || '-1',
-      num_commits: event?.release?.commitCount || 0,
-      num_stack_frames: event ? getNumberOfStackFrames(event) : 0,
-      num_in_app_stack_frames: event ? getNumberOfInAppStackFrames(event) : 0,
-      num_threads_with_names: event ? getNumberOfThreadsWithNames(event) : 0,
-      event_platform: event?.platform,
-      event_type: event?.type,
-      has_release: !!event?.release,
-      has_source_maps: event ? eventHasSourceMaps(event) : false,
-      has_trace: event ? hasTrace(event) : false,
-      has_commit: !!event?.release?.lastCommit,
-      event_errors: event ? getEventErrorString(event) : '',
-      sdk_name: event?.sdk?.name,
-      sdk_version: event?.sdk?.version,
+      ...getAnalyicsDataForEvent(event),
       // Alert properties track if the user came from email/slack alerts
       alert_date:
         typeof alert_date === 'string' ? getUtcDateString(Number(alert_date)) : undefined,
@@ -738,10 +648,10 @@ class GroupDetails extends Component<Props, State> {
     }
 
     return (
-      <GroupTabs
+      <Tabs
         value={currentTab}
         onChange={tab => {
-          this.tabClickAnalyticsEvent(tab as Tab);
+          this.tabClickAnalyticsEvent(tab);
 
           router.push({
             pathname: `${baseUrl}${TabPaths[tab]}`,
@@ -763,7 +673,7 @@ class GroupDetails extends Component<Props, State> {
             {isValidElement(children) ? cloneElement(children, childProps) : children}
           </Item>
         </GroupTabPanels>
-      </GroupTabs>
+      </Tabs>
     );
   }
 
@@ -831,10 +741,6 @@ export default withApi(Sentry.withProfiler(GroupDetails));
 
 const StyledLoadingError = styled(LoadingError)`
   margin: ${space(2)};
-`;
-
-const GroupTabs = styled(Tabs)`
-  flex-grow: 1;
 `;
 
 const GroupTabPanels = styled(TabPanels)`

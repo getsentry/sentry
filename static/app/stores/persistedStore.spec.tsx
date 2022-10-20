@@ -36,10 +36,10 @@ describe('PersistedStore', function () {
     MockApiClient.clearMockResponses();
   });
   it('provides the persisted data category from client-state API', async function () {
-    const {result, waitForNextUpdate} = reactHooks.renderHook(
-      () => usePersistedStoreCategory('onboarding'),
-      {wrapper}
-    );
+    const {result, waitForNextUpdate} = reactHooks.renderHook(usePersistedStoreCategory, {
+      initialProps: 'onboarding' as const,
+      wrapper,
+    });
     await waitForNextUpdate();
     const [state] = result.current;
 
@@ -48,10 +48,10 @@ describe('PersistedStore', function () {
     });
   });
   it('sets the persisted data category from client-state API', async function () {
-    const {result, waitForNextUpdate} = reactHooks.renderHook(
-      () => usePersistedStoreCategory('onboarding'),
-      {wrapper}
-    );
+    const {result, waitForNextUpdate} = reactHooks.renderHook(usePersistedStoreCategory, {
+      initialProps: 'onboarding' as const,
+      wrapper,
+    });
     await waitForNextUpdate();
     const [_, setState] = result.current;
     const clientStateUpdate = MockApiClient.addMockResponse({
@@ -77,10 +77,10 @@ describe('PersistedStore', function () {
     );
   });
   it('deletes the persisted data category on set to null', async function () {
-    const {result, waitForNextUpdate} = reactHooks.renderHook(
-      () => usePersistedStoreCategory('onboarding'),
-      {wrapper}
-    );
+    const {result, waitForNextUpdate} = reactHooks.renderHook(usePersistedStoreCategory, {
+      initialProps: 'onboarding' as const,
+      wrapper,
+    });
     await waitForNextUpdate();
     const [_, setState] = result.current;
 
@@ -105,10 +105,10 @@ describe('PersistedStore', function () {
       url: `/organizations/${org.slug}/client-state/`,
       body: {},
     });
-    const {result, waitForNextUpdate} = reactHooks.renderHook(
-      () => usePersistedStoreCategory('onboarding'),
-      {wrapper}
-    );
+    const {result, waitForNextUpdate} = reactHooks.renderHook(usePersistedStoreCategory, {
+      initialProps: 'onboarding' as const,
+      wrapper,
+    });
     const [state] = result.current;
     expect(state).toBe(DefaultPersistedStore.onboarding);
     await waitForNextUpdate();
@@ -121,10 +121,10 @@ describe('PersistedStore', function () {
       url: `/organizations/${org.slug}/client-state/`,
       statusCode: 500,
     });
-    const {result} = reactHooks.renderHook(
-      () => usePersistedStoreCategory('onboarding'),
-      {wrapper}
-    );
+    const {result} = reactHooks.renderHook(usePersistedStoreCategory, {
+      initialProps: 'onboarding' as const,
+      wrapper,
+    });
     const [state] = result.current;
     expect(state).toBe(DefaultPersistedStore.onboarding);
   });

@@ -44,7 +44,7 @@ describe('Generic entry', function () {
     expect(
       await screen.findByText(
         textWithMarkupMatcher(
-          'Removed because of the PII rule [Mask] [Credit card numbers] from [$message] in the settings of the organization org-slug'
+          "Removed because of the data scrubbing rule [Mask] [Credit card numbers] from [$message] in your organization's settings"
         )
       )
     ).toBeInTheDocument(); // tooltip description

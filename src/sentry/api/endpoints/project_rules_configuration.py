@@ -23,6 +23,7 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
         can_create_tickets = features.has(
             "organizations:integrations-ticket-rules", project.organization
         )
+        perf_issue_filters = features.has("organizations:performance-issues", project.organization)
 
         # TODO: conditions need to be based on actions
         for rule_type, rule_cls in rules:
@@ -68,7 +69,10 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
                 ):
                     condition_list.append(context)
             elif rule_type.startswith("filter/"):
-                filter_list.append(context)
+                if perf_issue_filters or context["id"] not in {
+                    "sentry.rules.filters.issue_category.IssueCategoryFilter",
+                }:
+                    filter_list.append(context)
             elif rule_type.startswith("action/"):
                 action_list.append(context)
 

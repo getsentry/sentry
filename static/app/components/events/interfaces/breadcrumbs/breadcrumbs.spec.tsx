@@ -1,14 +1,38 @@
 import {InjectedRouter} from 'react-router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import Breadcrumbs from 'sentry/components/events/interfaces/breadcrumbs';
 import {Organization} from 'sentry/types';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
+import ReplayReader from 'sentry/utils/replays/replayReader';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {RouteContext} from 'sentry/views/routeContext';
+
+const mockReplay = ReplayReader.factory(TestStubs.ReplayReaderParams());
+
+jest.mock('screenfull', () => ({
+  enabled: true,
+  isFullscreen: false,
+  request: jest.fn(),
+  exit: jest.fn(),
+  on: jest.fn(),
+  off: jest.fn(),
+}));
+
+jest.mock('sentry/utils/replays/hooks/useReplayData', () => {
+  return {
+    __esModule: true,
+    default: jest.fn(() => {
+      return {
+        replay: mockReplay,
+        fetching: false,
+      };
+    }),
+  };
+});
 
 function TestComponent({
   organization,
@@ -44,6 +68,8 @@ describe('Breadcrumbs', () => {
       route: {},
       router,
       organization: TestStubs.Organization(),
+      projectSlug: 'project-slug',
+      isShare: false,
       event: TestStubs.Event({entries: []}),
       data: {
         values: [
@@ -205,6 +231,28 @@ describe('Breadcrumbs', () => {
       expect(screen.getByTestId('crumb')).toBeInTheDocument();
 
       expect(screen.getByTestId('last-crumb')).toBeInTheDocument();
+    });
+
+    it('should render a replay when there is a replayId', async function () {
+      render(
+        <TestComponent organization={organization} router={router}>
+          <Breadcrumbs
+            {...props}
+            event={TestStubs.Event({
+              entries: [],
+              tags: [{key: 'replayId', value: '761104e184c64d439ee1014b72b4d83b'}],
+            })}
+            organization={TestStubs.Organization({
+              features: ['session-replay-ui'],
+            })}
+          />
+        </TestComponent>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Replays')).toBeVisible();
+        expect(screen.getByTestId('player-container')).toBeInTheDocument();
+      });
     });
   });
 });

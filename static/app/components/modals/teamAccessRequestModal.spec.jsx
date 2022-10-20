@@ -1,9 +1,8 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import TeamAccessRequestModal from 'sentry/components/modals/teamAccessRequestModal';
 
 describe('TeamAccessRequestModal', function () {
-  let wrapper;
   let createMock;
 
   const closeModal = jest.fn();
@@ -20,9 +19,8 @@ describe('TeamAccessRequestModal', function () {
     onClose,
   };
 
-  beforeEach(function () {
-    MockApiClient.clearMockResponses();
-    wrapper = mountWithTheme(
+  function renderComponent() {
+    return render(
       <TeamAccessRequestModal
         orgId={orgId}
         teamId={teamId}
@@ -30,7 +28,10 @@ describe('TeamAccessRequestModal', function () {
         {...modalRenderProps}
       />
     );
+  }
 
+  beforeEach(function () {
+    MockApiClient.clearMockResponses();
     createMock = MockApiClient.addMockResponse({
       url: `/organizations/${orgId}/members/${memberId}/teams/${teamId}/`,
       method: 'POST',
@@ -38,18 +39,24 @@ describe('TeamAccessRequestModal', function () {
   });
 
   it('renders', function () {
-    expect(wrapper.find('Body').text()).toBe(
+    const {container} = renderComponent();
+
+    expect(container).toHaveTextContent(
       `You do not have permission to add members to the #${teamId} team, but we will send a request to your organization admins for approval.`
     );
   });
 
   it('creates access request on continue', function () {
-    wrapper.find('button[aria-label="Continue"]').simulate('click');
+    renderComponent();
+
+    userEvent.click(screen.getByRole('button', {name: 'Continue'}));
     expect(createMock).toHaveBeenCalled();
   });
 
   it('closes modal on cancel', function () {
-    wrapper.find('button[aria-label="Cancel"]').simulate('click');
+    renderComponent();
+
+    userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
     expect(createMock).not.toHaveBeenCalled();
     expect(closeModal).toHaveBeenCalled();
   });

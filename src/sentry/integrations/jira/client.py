@@ -127,13 +127,13 @@ class JiraCloudClient(ApiClient):
     def get_projects_list(self):
         return self.get_cached(self.PROJECT_URL)
 
-    def get_project_key_for_id(self, project_id):
+    def get_project_key_for_id(self, project_id) -> str:
         if not project_id:
             return ""
         projects = self.get_projects_list()
         for project in projects:
             if project["id"] == project_id:
-                return project["key"].encode("utf-8")
+                return project["key"]
         return ""
 
     def get_create_meta_for_project(self, project):

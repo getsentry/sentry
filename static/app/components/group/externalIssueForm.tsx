@@ -5,7 +5,7 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import AbstractExternalIssueForm, {
   ExternalIssueAction,
 } from 'sentry/components/externalIssues/abstractExternalIssueForm';
-import Form from 'sentry/components/forms/form';
+import {FormProps} from 'sentry/components/forms/form';
 import NavTabs from 'sentry/components/navTabs';
 import {t, tct} from 'sentry/locale';
 import {Group, Integration, IntegrationExternalIssue} from 'sentry/types';
@@ -97,7 +97,7 @@ export default class ExternalIssueForm extends AbstractExternalIssueForm<Props, 
     return tct('[integration] Issue', {integration: integration.provider.name});
   };
 
-  getFormProps = (): Form['props'] => {
+  getFormProps = (): FormProps => {
     const {action} = this.state;
     return {
       ...this.getDefaultFormProps(),

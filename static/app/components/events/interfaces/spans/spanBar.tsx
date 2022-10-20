@@ -4,7 +4,10 @@ import {Component, createRef, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Count from 'sentry/components/count';
-import {ROW_HEIGHT} from 'sentry/components/performance/waterfall/constants';
+import {
+  ROW_HEIGHT,
+  SpanBarHatch,
+} from 'sentry/components/performance/waterfall/constants';
 import {MessageRow} from 'sentry/components/performance/waterfall/messageRow';
 import {
   Row,
@@ -134,7 +137,7 @@ type SpanBarProps = {
   isLast?: boolean;
   isRoot?: boolean;
   spanBarColor?: string;
-  spanBarHatch?: boolean;
+  spanBarHatch?: SpanBarHatch;
   toggleSiblingSpanGroup?: ((span: SpanType, occurrence: number) => void) | undefined;
 };
 
@@ -472,7 +475,7 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
   }
 
   renderTitle(errors: TraceError[] | null) {
-    const {generateContentSpanBarRef} = this.props;
+    const {generateContentSpanBarRef, spanBarHatch} = this.props;
     const {
       span,
       treeDepth,
@@ -536,7 +539,10 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
             width: '100%',
           }}
         >
-          <RowTitleContent errored={errored}>
+          <RowTitleContent
+            errored={errored}
+            data-test-id={`row-title-content${spanBarHatch ? `-${spanBarHatch}` : ''}`}
+          >
             <strong>{titleFragments}</strong>
             {description}
           </RowTitleContent>
@@ -936,7 +942,7 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
         >
           {displaySpanBar && (
             <RowRectangle
-              spanBarHatch={!!spanBarHatch}
+              spanBarHatch={spanBarHatch}
               style={{
                 backgroundColor: spanBarColor,
                 left: `min(${toPercent(bounds.left || 0)}, calc(100% - 1px))`,
@@ -946,7 +952,7 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
               <DurationPill
                 durationDisplay={durationDisplay}
                 showDetail={this.state.showDetail}
-                spanBarHatch={!!spanBarHatch}
+                spanBarHatch={spanBarHatch}
               >
                 {durationString}
                 {this.renderWarningText()}

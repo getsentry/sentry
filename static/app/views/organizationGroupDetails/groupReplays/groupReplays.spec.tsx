@@ -16,6 +16,11 @@ type InitializeOrgProps = {
   };
 };
 
+jest.mock('sentry/utils/useMedia', () => ({
+  __esModule: true,
+  default: jest.fn(() => true),
+}));
+
 const mockUrl = '/organizations/org-slug/replays/';
 
 const mockProps = {
@@ -157,6 +162,25 @@ describe('GroupReplays', () => {
   });
 
   it('should display error message when api call fails', async () => {
+    const mockApi = MockApiClient.addMockResponse({
+      url: mockUrl,
+      statusCode: 500,
+      body: {
+        detail: 'Invalid number: asdf. Expected number.',
+      },
+    });
+
+    renderComponent();
+
+    await waitFor(() => {
+      expect(mockApi).toHaveBeenCalledTimes(1);
+      expect(
+        screen.getByText('Invalid number: asdf. Expected number.')
+      ).toBeInTheDocument();
+    });
+  });
+
+  it('should display default error message when api call fails without a body', async () => {
     const mockApi = MockApiClient.addMockResponse({
       url: mockUrl,
       statusCode: 500,

@@ -530,7 +530,9 @@ class ReleasesList extends AsyncView<Props, State> {
             {this.renderHealthCta()}
 
             <ReleasesPageFilterBar condensed>
-              <ProjectPageFilter />
+              <GuideAnchor target="release_projects">
+                <ProjectPageFilter />
+              </GuideAnchor>
               <EnvironmentPageFilter />
               <DatePageFilter
                 alignDropdown="left"

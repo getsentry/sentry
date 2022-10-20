@@ -1,4 +1,6 @@
 import {useCallback} from 'react';
+// eslint-disable-next-line no-restricted-imports
+import {withRouter, WithRouterProps} from 'react-router';
 
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {
@@ -8,6 +10,7 @@ import {
 } from 'sentry/components/smartSearchBar/actions';
 import {SavedSearch, SavedSearchType, Tag, TagCollection} from 'sentry/types';
 import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import {TagValueLoader} from './types';
 
@@ -24,8 +27,8 @@ const getSupportedTags = (supportedTags: TagCollection) =>
     ])
   );
 
-interface Props extends React.ComponentProps<typeof SmartSearchBar> {
-  onSidebarToggle: (e: React.MouseEvent) => void;
+interface Props extends React.ComponentProps<typeof SmartSearchBar>, WithRouterProps {
+  onSidebarToggle: () => void;
   sort: string;
   supportedTags: TagCollection;
   tagValueLoader: TagValueLoader;
@@ -38,8 +41,10 @@ function IssueListSearchBar({
   supportedTags,
   tagValueLoader,
   savedSearch,
+  location,
   ...props
 }: Props) {
+  const organization = useOrganization();
   const getTagValues = useCallback(
     async (tag: Tag, query: string): Promise<string[]> => {
       const values = await tagValueLoader(tag.key, query);
@@ -57,8 +62,11 @@ function IssueListSearchBar({
       savedSearchType={SavedSearchType.ISSUE}
       onGetTagValues={getTagValues}
       actionBarItems={[
-        makePinSearchAction({sort, pinnedSearch}),
-        makeSaveSearchAction({sort}),
+        makePinSearchAction({sort, pinnedSearch, location}),
+        makeSaveSearchAction({
+          sort,
+          disabled: !organization.access.includes('org:write'),
+        }),
         makeSearchBuilderAction({onSidebarToggle}),
       ]}
       {...props}
@@ -68,4 +76,4 @@ function IssueListSearchBar({
   );
 }
 
-export default IssueListSearchBar;
+export default withRouter(IssueListSearchBar);

@@ -1,4 +1,6 @@
+import typing
 from enum import IntEnum, unique
+from typing import Optional
 
 from django.conf import settings
 from django.core.cache import cache
@@ -6,6 +8,9 @@ from django.core.cache import cache
 from sentry import options
 from sentry.utils.json import prune_empty_keys
 from sentry.utils.services import Service
+
+if typing.TYPE_CHECKING:
+    from sentry.models import Project
 
 
 @unique
@@ -209,6 +214,7 @@ class Quota(Service):
         "refund",
         "get_event_retention",
         "get_quotas",
+        "get_blended_sample_rate",
     )
 
     def __init__(self, **options):
@@ -375,3 +381,11 @@ class Quota(Service):
         Return the maximum capable rate for an organization.
         """
         return (_limit_from_settings(options.get("system.rate-limit")), 60)
+
+    def get_blended_sample_rate(self, project: "Project") -> Optional[float]:
+        """
+        Returns the blended sample rate for an org based on the package that they are currently on. Returns ``None``
+        if the creation of a uniform rule with blended sample rate is not supported for that project.
+
+        :param project: The project model.
+        """

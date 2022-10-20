@@ -1,9 +1,13 @@
+import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import partial from 'lodash/partial';
 
+import Button from 'sentry/components/button';
 import Count from 'sentry/components/count';
+import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
+import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import Duration from 'sentry/components/duration';
 import FileSize from 'sentry/components/fileSize';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -14,8 +18,10 @@ import {pickBarColor, toPercent} from 'sentry/components/performance/waterfall/u
 import Tooltip from 'sentry/components/tooltip';
 import UserMisery from 'sentry/components/userMisery';
 import Version from 'sentry/components/version';
+import {IconDownload} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {AvatarProject, Organization, Project} from 'sentry/types';
+import space from 'sentry/styles/space';
+import {AvatarProject, IssueAttachment, Organization, Project} from 'sentry/types';
 import {defined, isUrl} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView, {EventData, MetaType} from 'sentry/utils/discover/eventView';
@@ -47,6 +53,7 @@ import {
   FlexContainer,
   NumberContainer,
   OverflowLink,
+  StyledIconPlay,
   UserIcon,
   VersionContainer,
 } from './styles';
@@ -59,6 +66,7 @@ export type RenderFunctionBaggage = {
   location: Location;
   organization: Organization;
   eventView?: EventView;
+  projectId?: string;
   unit?: string;
 };
 
@@ -278,13 +286,16 @@ type SpecialField = {
 };
 
 type SpecialFields = {
+  attachments: SpecialField;
   'count_unique(user)': SpecialField;
   'error.handled': SpecialField;
   id: SpecialField;
   issue: SpecialField;
   'issue.id': SpecialField;
+  minidump: SpecialField;
   project: SpecialField;
   release: SpecialField;
+  replayId: SpecialField;
   team_key_transaction: SpecialField;
   'timestamp.to_day': SpecialField;
   'timestamp.to_hour': SpecialField;
@@ -294,11 +305,89 @@ type SpecialFields = {
   'user.display': SpecialField;
 };
 
+const DownloadCount = styled('span')`
+  padding-left: ${space(0.75)};
+`;
+
+const RightAlignedContainer = styled('span')`
+  margin-left: auto;
+  margin-right: 0;
+`;
+
 /**
  * "Special fields" either do not map 1:1 to an single column in the event database,
  * or they require custom UI formatting that can't be handled by the datatype formatters.
  */
 const SPECIAL_FIELDS: SpecialFields = {
+  // This is a custom renderer for a field outside discover
+  // TODO - refactor code and remove from this file or add ability to query for attachments in Discover
+  attachments: {
+    sortField: null,
+    renderFunc: (data, {organization, projectId}) => {
+      const attachments: Array<IssueAttachment> = data.attachments;
+
+      const items: MenuItemProps[] = attachments
+        .filter(attachment => attachment.type !== 'event.minidump')
+        .map(attachment => ({
+          key: attachment.id,
+          label: attachment.name,
+          onAction: () =>
+            window.open(
+              `/api/0/projects/${organization.slug}/${projectId}/events/${attachment.event_id}/attachments/${attachment.id}/?download=1`
+            ),
+        }));
+
+      return (
+        <RightAlignedContainer>
+          <DropdownMenuControl
+            position="left"
+            size="xs"
+            triggerProps={{
+              showChevron: false,
+              icon: (
+                <Fragment>
+                  <IconDownload color="gray500" size="sm" />
+                  <DownloadCount>{items.length}</DownloadCount>
+                </Fragment>
+              ),
+            }}
+            items={items}
+          />
+        </RightAlignedContainer>
+      );
+    },
+  },
+  minidump: {
+    sortField: null,
+    renderFunc: (data, {organization, projectId}) => {
+      const attachments: Array<IssueAttachment & {url: string}> = data.attachments;
+
+      const minidump = attachments.find(
+        attachment => attachment.type === 'event.minidump'
+      );
+
+      return (
+        <RightAlignedContainer>
+          <Button
+            size="xs"
+            disabled={!minidump}
+            onClick={
+              minidump
+                ? () => {
+                    window.open(
+                      `/api/0/projects/${organization.slug}/${projectId}/events/${minidump.event_id}/attachments/${minidump.id}/?download=1`
+                    );
+                  }
+                : undefined
+            }
+          >
+            <IconDownload color="gray500" size="sm" />
+            <DownloadCount>{minidump ? 1 : 0}</DownloadCount>
+          </Button>
+        </RightAlignedContainer>
+      );
+    },
+  },
   id: {
     sortField: 'id',
     renderFunc: data => {
@@ -334,6 +423,22 @@ const SPECIAL_FIELDS: SpecialFields = {
             {data['issue.id']}
           </OverflowLink>
         </Container>
+      );
+    },
+  },
+  replayId: {
+    sortField: 'replayId',
+    renderFunc: data => {
+      const replayId = data?.replayId;
+      if (typeof replayId !== 'string' || !replayId) {
+        return emptyValue;
+      }
+
+      return (
+        <FlexContainer>
+          <StyledIconPlay size="xs" />
+          <Container>{getShortEventId(replayId)}</Container>
+        </FlexContainer>
       );
     },
   },
@@ -641,7 +746,7 @@ const isDurationValue = (data: EventData, field: string): boolean => {
   return field in data && typeof data[field] === 'number';
 };
 
-const spanOperationRelativeBreakdownRenderer = (
+export const spanOperationRelativeBreakdownRenderer = (
   data: EventData,
   {location, organization, eventView}: RenderFunctionBaggage
 ): React.ReactNode => {
@@ -701,7 +806,6 @@ const spanOperationRelativeBreakdownRenderer = (
               containerDisplayMode="block"
             >
               <RectangleRelativeOpsBreakdown
-                spanBarHatch={false}
                 style={{
                   backgroundColor: pickBarColor(operationName),
                   cursor: 'pointer',
@@ -734,7 +838,7 @@ const spanOperationRelativeBreakdownRenderer = (
       })}
       <div key="other" style={{width: toPercent(otherPercentage || 0)}}>
         <Tooltip title={<div>{t('Other')}</div>} containerDisplayMode="block">
-          <OtherRelativeOpsBreakdown spanBarHatch={false} />
+          <OtherRelativeOpsBreakdown />
         </Tooltip>
       </div>
     </RelativeOpsBreakdown>

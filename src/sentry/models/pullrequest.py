@@ -12,7 +12,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_model,
+    region_silo_only_model,
     sane_repr,
 )
 from sentry.utils.groupreference import find_referenced_groups
@@ -46,7 +46,7 @@ class PullRequestManager(BaseManager):
         return affected, created
 
 
-@region_silo_model
+@region_silo_only_model
 class PullRequest(Model):
     __include_in_export__ = False
 
@@ -77,7 +77,7 @@ class PullRequest(Model):
         return find_referenced_groups(text, self.organization_id)
 
 
-@region_silo_model
+@region_silo_only_model
 class PullRequestCommit(Model):
     __include_in_export__ = False
     pull_request = FlexibleForeignKey("sentry.PullRequest")

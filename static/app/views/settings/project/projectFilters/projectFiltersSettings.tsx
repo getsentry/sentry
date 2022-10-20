@@ -5,13 +5,12 @@ import iconIe from 'sentry-logos/logo-ie.svg';
 import iconOpera from 'sentry-logos/logo-opera.svg';
 import iconSafari from 'sentry-logos/logo-safari.svg';
 
-import ProjectActions from 'sentry/actions/projectActions';
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
-import Form from 'sentry/components/forms/form';
+import Form, {FormProps} from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import {
@@ -25,6 +24,7 @@ import Switch from 'sentry/components/switchButton';
 import filterGroups, {customFilterFields} from 'sentry/data/forms/inboundFilters';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 
@@ -223,7 +223,7 @@ class ProjectFiltersSettings extends AsyncComponent<Props, State> {
 
   handleSubmit = (response: Project) => {
     // This will update our project context
-    ProjectActions.updateSuccess(response);
+    ProjectsStore.onUpdateSuccess(response);
   };
 
   renderDisabledCustomFilters = p => (
@@ -371,7 +371,7 @@ class ProjectFiltersSettings extends AsyncComponent<Props, State> {
 export default ProjectFiltersSettings;
 
 // TODO(ts): Understand why styled is not correctly inheriting props here
-const NestedForm = styled(Form)<Form['props']>`
+const NestedForm = styled(Form)<FormProps>`
   flex: 1;
 `;
 

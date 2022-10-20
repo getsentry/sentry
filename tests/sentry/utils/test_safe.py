@@ -1,5 +1,4 @@
 import unittest
-from collections import OrderedDict
 from functools import partial
 from unittest.mock import Mock, patch
 
@@ -39,8 +38,8 @@ class TrimTest(unittest.TestCase):
     def test_sorted_trim(self):
         # Trim should always trim the keys in alpha order
         # regardless of the original order.
-        alpha = OrderedDict([("a", "12345"), ("z", "12345")])
-        reverse = OrderedDict([("z", "12345"), ("a", "12345")])
+        alpha = {"a": "12345", "z": "12345"}
+        reverse = {"z": "12345", "a": "12345"}
         trm = partial(trim, max_size=12)
         expected = {"a": "12345", "z": "1..."}
 

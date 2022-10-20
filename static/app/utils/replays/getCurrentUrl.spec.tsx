@@ -52,16 +52,19 @@ const NEW_DOMAIN_CRUMB: Crumb = {
 };
 
 describe('getCurrentUrl', () => {
-  const replayRecord = TestStubs.Event({
-    tags: {},
-    urls: [
-      'https://sourcemaps.io/#initial',
-      'https://sourcemaps.io/report/1655300817078_https%3A%2F%2Fmaxcdn.bootstrapcdn.com%2Fbootstrap%2F3.3.7%2Fjs%2Fbootstrap.min.js',
-      'https://a062-174-94-6-155.ngrok.io/report/jquery.min.js',
-    ],
-    startedAt: START_DATE,
-    finishedAt: END_DATE,
-  }) as ReplayRecord;
+  let replayRecord;
+  beforeEach(() => {
+    replayRecord = TestStubs.Event({
+      tags: {},
+      urls: [
+        'https://sourcemaps.io/#initial',
+        'https://sourcemaps.io/report/1655300817078_https%3A%2F%2Fmaxcdn.bootstrapcdn.com%2Fbootstrap%2F3.3.7%2Fjs%2Fbootstrap.min.js',
+        'https://a062-174-94-6-155.ngrok.io/report/jquery.min.js',
+      ],
+      startedAt: START_DATE,
+      finishedAt: END_DATE,
+    }) as ReplayRecord;
+  });
 
   it('should return the origin of the first url from the url array if the offset is early', () => {
     const crumbs = [PAGELOAD_CRUMB, NAV_CRUMB];
@@ -87,5 +90,16 @@ describe('getCurrentUrl', () => {
     const url = getCurrentUrl(replayRecord, crumbs, offsetMS);
 
     expect(url).toBe('https://a062-174-94-6-155.ngrok.io/report/jquery.min.js');
+  });
+
+  it('should not explode when an invalid urls is found', () => {
+    const base64EncodedScriptTag =
+      'nulltext/html;base64,PHNjcmlwdD4KICAgICAgb25tZXNzYWdlID0gKGV2ZW50KSA9PiB7CiAgICAgICAgY29uc29sZS5sb2coJ2hlbGxvIHdvcmxkJyk7CiAgICAgIH0KICA8L3NjcmlwdD4=';
+    replayRecord.urls = [base64EncodedScriptTag];
+    const crumbs = [];
+    const offsetMS = 0;
+    const url = getCurrentUrl(replayRecord, crumbs, offsetMS);
+
+    expect(url).toBe(base64EncodedScriptTag);
   });
 });

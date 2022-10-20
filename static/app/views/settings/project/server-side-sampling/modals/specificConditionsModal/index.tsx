@@ -5,18 +5,19 @@ import partition from 'lodash/partition';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import Feature from 'sentry/components/acl/feature';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import CompactSelect from 'sentry/components/compactSelect';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import CompactSelect from 'sentry/components/forms/compactSelect';
+import Option from 'sentry/components/forms/controls/selectOption';
 import FieldRequiredBadge from 'sentry/components/forms/field/fieldRequiredBadge';
-import NumberField from 'sentry/components/forms/numberField';
-import Option from 'sentry/components/forms/selectOption';
+import NumberField from 'sentry/components/forms/fields/numberField';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {IconAdd} from 'sentry/icons';
 import {IconSearch} from 'sentry/icons/iconSearch';
 import {t} from 'sentry/locale';
-import ProjectStore from 'sentry/stores/projectsStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
 import {Organization, Project, SelectValue} from 'sentry/types';
 import {
@@ -66,6 +67,7 @@ export function SpecificConditionsModal({
   rule,
   rules,
   organization,
+  CloseButton,
 }: Props) {
   const api = useApi();
 
@@ -140,8 +142,9 @@ export function SpecificConditionsModal({
     const sampleRate = percentageToRate(samplePercentage)!;
 
     const newRule: SamplingRule = {
-      // All new/updated rules must have id equal to 0
-      id: 0,
+      // All new rules must have the default id set to -1, signaling to the backend that a proper id should
+      // be assigned.
+      id: -1,
       active: rule ? rule.active : false,
       type: SamplingRuleType.TRACE,
       condition: {
@@ -168,7 +171,7 @@ export function SpecificConditionsModal({
           data: {dynamicSampling: {rules: [...specificRules, ...uniformRule]}},
         }
       );
-      ProjectStore.onUpdateSuccess(response);
+      ProjectsStore.onUpdateSuccess(response);
       addSuccessMessage(
         rule
           ? t('Successfully edited sampling rule')
@@ -285,101 +288,110 @@ export function SpecificConditionsModal({
 
   return (
     <Fragment>
-      <Header closeButton>
-        <h4>{rule ? t('Edit Rule') : t('Add Rule')}</h4>
-      </Header>
-      <Body>
-        <Fields>
-          <Description>
-            {t(
-              'Sample transactions under specific conditions. Multiple conditions are logically expressed as AND and OR for multiple values.'
-            )}
-          </Description>
-          <StyledPanel>
-            <StyledPanelHeader hasButtons>
-              <div>
-                {t('Conditions')}
-                <FieldRequiredBadge />
-              </div>
-              <StyledCompactSelect
-                placement="bottom right"
-                triggerProps={{
-                  size: 'sm',
-                  'aria-label': t('Add Condition'),
-                }}
-                triggerLabel={
-                  <TriggerLabel>
-                    <IconAdd isCircled />
-                    {t('Add Condition')}
-                  </TriggerLabel>
-                }
-                placeholder={t('Filter conditions')}
-                isDisabled={isUniformRule(rule)}
-                options={predefinedConditionsOptions}
-                value={conditions.map(({category}) => category)}
-                onChange={handleAddCondition}
-                isSearchable
-                multiple
-                filterOption={(candidate, input) => createFilter(null)(candidate, input)}
-                components={{
-                  Option: containerProps => <Option {...containerProps} />,
-                }}
-              />
-            </StyledPanelHeader>
-            <PanelBody>
-              {!conditions.length ? (
-                <EmptyMessage
-                  icon={<IconSearch size="xl" />}
-                  title={t('No conditions added')}
-                  description={t('Click on the button above to add (+) a condition')}
-                />
-              ) : (
-                <Conditions
-                  conditions={conditions}
-                  onDelete={handleDeleteCondition}
-                  onChange={handleChangeCondition}
-                  orgSlug={organization.slug}
-                  projectId={project.id}
-                />
+      <CloseButton />
+      <Feature
+        features={['server-side-sampling', 'server-side-sampling-ui']}
+        organization={organization}
+        hookName="feature-disabled:dynamic-sampling-advanced"
+      >
+        <Header>
+          <h4>{rule ? t('Edit Rule') : t('Add Rule')}</h4>
+        </Header>
+        <Body>
+          <Fields>
+            <Description>
+              {t(
+                'Sample transactions under specific conditions. Multiple conditions are logically expressed as AND and OR for multiple values.'
               )}
-            </PanelBody>
-          </StyledPanel>
-          <NumberField
-            label={`${t('Sample Rate')} \u0025`}
-            name="sampleRate"
-            onChange={value => {
-              setData({...data, samplePercentage: value ? Number(value) : null});
-            }}
-            onKeyDown={(_value: string, e: KeyboardEvent) => {
-              if (e.key === 'Enter') {
-                handleSubmit();
-              }
-            }}
-            placeholder={'\u0025'}
-            step="10"
-            value={samplePercentage}
-            inline={false}
-            hideControlState={!errors.sampleRate}
-            error={errors.sampleRate}
-            showHelpInTooltip
-            stacked
-            required
-          />
-        </Fields>
-      </Body>
-      <Footer>
-        <ButtonBar gap={1}>
-          <Button onClick={closeModal}>{t('Cancel')}</Button>
-          <Button
-            priority="primary"
-            onClick={handleSubmit}
-            title={submitDisabled ? t('Required fields must be filled out') : undefined}
-            disabled={isSaving || submitDisabled}
-          >
-            {t('Save Rule')}
-          </Button>
-        </ButtonBar>
-      </Footer>
+            </Description>
+            <StyledPanel>
+              <StyledPanelHeader hasButtons>
+                <div>
+                  {t('Conditions')}
+                  <FieldRequiredBadge />
+                </div>
+                <StyledCompactSelect
+                  position="bottom-end"
+                  triggerProps={{
+                    size: 'sm',
+                    'aria-label': t('Add Condition'),
+                  }}
+                  triggerLabel={
+                    <TriggerLabel>
+                      <IconAdd isCircled />
+                      {t('Add Condition')}
+                    </TriggerLabel>
+                  }
+                  placeholder={t('Filter conditions')}
+                  isDisabled={isUniformRule(rule)}
+                  options={predefinedConditionsOptions}
+                  value={conditions.map(({category}) => category)}
+                  onChange={handleAddCondition}
+                  isSearchable
+                  multiple
+                  filterOption={(candidate, input) =>
+                    createFilter(null)(candidate, input)
+                  }
+                  components={{
+                    Option: containerProps => <Option {...containerProps} />,
+                  }}
+                />
+              </StyledPanelHeader>
+              <PanelBody>
+                {!conditions.length ? (
+                  <EmptyMessage
+                    icon={<IconSearch size="xl" />}
+                    title={t('No conditions added')}
+                    description={t('Click on the button above to add (+) a condition')}
+                  />
+                ) : (
+                  <Conditions
+                    conditions={conditions}
+                    onDelete={handleDeleteCondition}
+                    onChange={handleChangeCondition}
+                    orgSlug={organization.slug}
+                    projectId={project.id}
+                  />
+                )}
+              </PanelBody>
+            </StyledPanel>
+            <NumberField
+              label={`${t('Sample Rate')} \u0025`}
+              name="sampleRate"
+              onChange={value => {
+                setData({...data, samplePercentage: value ? Number(value) : null});
+              }}
+              onKeyDown={(_value: string, e: KeyboardEvent) => {
+                if (e.key === 'Enter') {
+                  handleSubmit();
+                }
+              }}
+              placeholder={'\u0025'}
+              step="10"
+              value={samplePercentage}
+              inline={false}
+              hideControlState={!errors.sampleRate}
+              error={errors.sampleRate}
+              showHelpInTooltip
+              stacked
+              required
+            />
+          </Fields>
+        </Body>
+        <Footer>
+          <ButtonBar gap={1}>
+            <Button onClick={closeModal}>{t('Cancel')}</Button>
+            <Button
+              priority="primary"
+              onClick={handleSubmit}
+              title={submitDisabled ? t('Required fields must be filled out') : undefined}
+              disabled={isSaving || submitDisabled}
+            >
+              {t('Save Rule')}
+            </Button>
+          </ButtonBar>
+        </Footer>
+      </Feature>
     </Fragment>
   );
 }

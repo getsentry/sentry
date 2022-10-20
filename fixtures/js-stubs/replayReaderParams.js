@@ -49,7 +49,7 @@ export function ReplayReaderParams({
   breadcrumbs = defaultBreadcrumbs,
   spans = [],
   errors = [],
-}) {
+} = {}) {
   return {
     replayRecord: {
       userAgent:

@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render} from 'sentry-test/reactTestingLibrary';
 
 import SentryAppComponentsStore from 'sentry/stores/sentryAppComponentsStore';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
@@ -9,37 +9,37 @@ describe('withSentryAppComponents HoC', function () {
   });
 
   it('handles components without a type', function () {
-    const MyComponent = () => null;
+    const MyComponent = jest.fn(() => null);
     const Container = withSentryAppComponents(MyComponent);
-    const wrapper = mountWithTheme(<Container />);
+    render(<Container />);
 
-    expect(wrapper.find('MyComponent').prop('components')).toEqual([]);
+    expect(MyComponent).toHaveBeenCalledWith({components: []}, {});
+
+    MyComponent.mockClear();
 
     SentryAppComponentsStore.loadComponents([
       {type: 'some-type'},
       {type: 'another-type'},
     ]);
-    wrapper.update();
 
-    expect(wrapper.find('MyComponent').prop('components')).toEqual([
-      {type: 'some-type'},
-      {type: 'another-type'},
-    ]);
+    expect(MyComponent).toHaveBeenCalledWith(
+      {components: [{type: 'some-type'}, {type: 'another-type'}]},
+      {}
+    );
   });
 
   it('handles components of a certain type', function () {
-    const MyComponent = () => null;
+    const MyComponent = jest.fn(() => null);
     const Container = withSentryAppComponents(MyComponent, {componentType: 'some-type'});
-    const wrapper = mountWithTheme(<Container />);
+    render(<Container />);
 
-    expect(wrapper.find('MyComponent').prop('components')).toEqual([]);
+    expect(MyComponent).toHaveBeenCalledWith({components: []}, {});
 
     SentryAppComponentsStore.loadComponents([
       {type: 'some-type'},
       {type: 'another-type'},
     ]);
-    wrapper.update();
 
-    expect(wrapper.find('MyComponent').prop('components')).toEqual([{type: 'some-type'}]);
+    expect(MyComponent).toHaveBeenCalledWith({components: [{type: 'some-type'}]}, {});
   });
 });

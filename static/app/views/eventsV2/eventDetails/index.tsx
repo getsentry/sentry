@@ -1,5 +1,6 @@
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import omit from 'lodash/omit';
 
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -18,7 +19,10 @@ type Props = RouteComponentProps<{eventSlug: string}, {}> & {
 function EventDetails({organization, location, params, router, route}: Props) {
   const eventSlug = typeof params.eventSlug === 'string' ? params.eventSlug.trim() : '';
 
-  const eventView = EventView.fromLocation(location);
+  const isHomepage = location.query.homepage;
+  const eventView = EventView.fromLocation(
+    isHomepage ? {...location, query: omit(location.query, 'id')} : location
+  );
   const eventName = eventView.name;
 
   const documentTitle =
@@ -44,6 +48,7 @@ function EventDetails({organization, location, params, router, route}: Props) {
             eventSlug={eventSlug}
             router={router}
             route={route}
+            isHomepage={isHomepage}
           />
         </NoProjectMessage>
       </StyledPageContent>
