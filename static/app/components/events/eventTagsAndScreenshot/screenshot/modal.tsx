@@ -72,7 +72,7 @@ function Modal({
   const handleCursor: CursorHandler = (cursor, _pathname, query, delta) => {
     if (defined(currentAttachmentIndex) && memoizedAttachments?.length) {
       const newAttachmentIndex = currentAttachmentIndex + delta;
-      if (newAttachmentIndex >= MAX_SCREENSHOTS_PER_PAGE || newAttachmentIndex < 0) {
+      if (newAttachmentIndex === MAX_SCREENSHOTS_PER_PAGE || newAttachmentIndex === -1) {
         api
           .requestPromise(`/issues/${groupId}/attachments/`, {
             method: 'GET',
@@ -86,9 +86,14 @@ function Modal({
             },
           })
           .then(([data, _, resp]) => {
+            if (newAttachmentIndex === MAX_SCREENSHOTS_PER_PAGE) {
+              setCurrentAttachmentIndex(0);
+              setCurrentAttachment(data[0]);
+            } else {
+              setCurrentAttachmentIndex(MAX_SCREENSHOTS_PER_PAGE - 1);
+              setCurrentAttachment(data[MAX_SCREENSHOTS_PER_PAGE - 1]);
+            }
             setMemoizedAttachments(data);
-            setCurrentAttachmentIndex(0);
-            setCurrentAttachment(data[0]);
             setPageLinks(resp?.getResponseHeader('Link'));
           });
         return;
