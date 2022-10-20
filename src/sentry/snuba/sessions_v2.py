@@ -264,14 +264,20 @@ class QueryDefinition:
                 if key in FIELD_MAP:
                     # HACK : Do not raise an error for metrics-only fields,
                     # Simply ignore them instead.
+                    #
+                    # It is important to note that this ignore can lead to the
+                    # self.primary_column not being initialized.
                     continue
+
                 raise InvalidField(f'Invalid field: "{key}"')
+
             self.fields[key] = COLUMN_MAP[key]
 
         self.groupby = []
         for key in raw_groupby:
             if key not in GROUPBY_MAP:
                 raise InvalidField(f'Invalid groupBy: "{key}"')
+
             self.groupby.append(GROUPBY_MAP[key])
 
         start, end, rollup = get_constrained_date_range(
@@ -476,10 +482,19 @@ def _run_sessions_query(query):
     `totals` and again for the actual time-series data grouped by the requested
     interval.
     """
+    # If we don't have any fields that can be derived from raw fields, it doesn't make sense to even
+    # run the query in the first place.
+    if len(query.fields) == 0:
+        return [], []
+
     # We only return the top-N groups, based on the first field that is being
     # queried, assuming that those are the most relevant to the user.
     # In a future iteration we might expose an `orderBy` query parameter.
-    orderby = [f"-{query.primary_column}"]
+    #
+    # In case we don't have a primary column because only metrics-only fields have been supplied to
+    # the query definition we just avoid the order by under the assumption that the result set of
+    # the query will be empty.
+    orderby = [f"-{query.primary_column}"] if hasattr(query, "primary_column") else None
 
     try:
         query_builder_dict = query.to_query_builder_dict(orderby=orderby)
