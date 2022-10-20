@@ -1847,7 +1847,7 @@ class TestProjectDetailsDynamicSampling(APITestCase):
         self.project.update_option("sentry:dynamic_sampling", dynamic_sampling_data)
 
         self.login_as(user=self.user)
-        with Feature({"organizations:am2-billing": True}):
+        with Feature({"organizations:dynamic-sampling-basic": True}):
             response = self.get_success_response(
                 self.organization.slug, self.project.slug, method="get"
             )
@@ -1885,7 +1885,7 @@ class TestProjectDetailsDynamicSampling(APITestCase):
                 ]
             }
         }
-        with Feature({"organizations:am2-billing": True}):
+        with Feature({"organizations:dynamic-sampling-basic": True}):
             resp = self.client.put(url, format="json", HTTP_AUTHORIZATION=authorization, data=data)
             assert resp.status_code == 403
             assert resp.json()["detail"] == ["dynamicSampling is not a valid field"]
@@ -1928,7 +1928,7 @@ class TestProjectDetailsDynamicSampling(APITestCase):
         self.project.update_option("sentry:dynamic_sampling", dynamic_sampling_data)
 
         self.login_as(user=self.user)
-        with Feature({"organizations:am2-billing": True}):
+        with Feature({"organizations:dynamic-sampling-basic": True}):
             response = self.get_success_response(
                 self.organization.slug,
                 self.project.slug,

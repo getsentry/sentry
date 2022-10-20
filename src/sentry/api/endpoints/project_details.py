@@ -501,7 +501,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if "hasAlertIntegration" in expand:
             data["hasAlertIntegrationInstalled"] = has_alert_integration(project)
 
-        if features.has("organizations:am2-billing", project.organization, actor=request.user):
+        if features.has(
+            "organizations:dynamic-sampling-basic", project.organization, actor=request.user
+        ):
             data.pop("dynamicSampling", None)
 
         return Response(data)
@@ -546,10 +548,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         result = serializer.validated_data
 
-        is_am2_plan = features.has(
-            "organizations:am2-billing", project.organization, actor=request.user
+        is_dynamic_sampling_basic = features.has(
+            "organizations:dynamic-sampling-basic", project.organization, actor=request.user
         )
-        if is_am2_plan and result.get("dynamicSampling"):
+        if is_dynamic_sampling_basic and result.get("dynamicSampling"):
             return Response(
                 {"detail": ["dynamicSampling is not a valid field"]},
                 status=403,
@@ -869,7 +871,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         )
 
         data = serialize(project, request.user, DetailedProjectSerializer())
-        if is_am2_plan:
+        if is_dynamic_sampling_basic:
             data.pop("dynamicSampling", None)
 
         return Response(data)
