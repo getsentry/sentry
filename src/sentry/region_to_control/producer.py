@@ -1,17 +1,21 @@
+from __future__ import annotations
+
 import atexit
 import dataclasses
 from abc import abstractmethod
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from arroyo import Topic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from django.conf import settings
 
-from sentry.models import AuditLogEntry, UserIP
 from sentry.region_to_control.messages import RegionToControlMessage, UserIpEvent
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation
 from sentry.silo import SiloMode
 from sentry.utils import json, kafka_config
+
+if TYPE_CHECKING:
+    from sentry.models import AuditLogEntry
 
 
 class RegionToControlMessagingService(InterfaceWithLifecycle):
@@ -158,6 +162,8 @@ class DatabaseBackedUserIpService(UserIpService):
         pass
 
     def produce_user_ip(self, event: UserIpEvent):
+        from sentry.models import UserIP
+
         UserIP.objects.create_or_update(
             user_id=event.user_id, ip_address=event.ip_address, values=dataclasses.asdict(event)
         )
