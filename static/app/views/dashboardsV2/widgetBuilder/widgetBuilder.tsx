@@ -48,7 +48,6 @@ import {
 } from 'sentry/views/dashboardsV2/layoutUtils';
 import {
   DashboardDetails,
-  DashboardListItem,
   DashboardWidgetSource,
   DisplayType,
   Widget,
@@ -124,7 +123,6 @@ interface Props extends RouteComponentProps<RouteParams, {}> {
 }
 
 interface State {
-  dashboards: DashboardListItem[];
   dataSet: DataSet;
   displayType: Widget['displayType'];
   interval: Widget['interval'];
@@ -136,7 +134,7 @@ interface State {
   title: string;
   userHasModified: boolean;
   errors?: Record<string, any>;
-  selectedDashboard?: string;
+  selectedDashboard?: DashboardDetails['id'];
   widgetToBeUpdated?: Widget;
 }
 
@@ -216,7 +214,6 @@ function WidgetBuilder({
       limit: limit ? Number(limit) : undefined,
       errors: undefined,
       loading: !!notDashboardsOrigin,
-      dashboards: [],
       userHasModified: false,
       prebuiltWidgetId: null,
       dataSet: DataSet.EVENTS,
@@ -311,7 +308,6 @@ function WidgetBuilder({
         queries,
         errors: undefined,
         loading: false,
-        dashboards: [],
         userHasModified: false,
         dataSet: widgetFromDashboard.widgetType
           ? WIDGET_TYPE_TO_DATA_SET[widgetFromDashboard.widgetType]
