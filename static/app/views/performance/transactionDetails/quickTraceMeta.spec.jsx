@@ -1,5 +1,5 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
-import {render, screen, within} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import QuickTraceMeta from 'sentry/views/performance/transactionDetails/quickTraceMeta';
@@ -132,7 +132,7 @@ describe('QuickTraceMeta', function () {
   it('renders missing trace with hover card when feature disabled', async function () {
     const newEvent = TestStubs.Event();
     const newOrg = TestStubs.Organization();
-    const wrapper = mountWithTheme(
+    render(
       <WrappedQuickTraceMeta
         event={newEvent}
         project={project}
@@ -144,22 +144,17 @@ describe('QuickTraceMeta', function () {
         errorDest="issue"
         transactionDest="performance"
       />,
-      routerContext
+      {context: routerContext}
     );
 
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('MetaData').exists()).toBe(true);
-    expect(wrapper.find('div[data-test-id="quick-trace-body"]').text()).toEqual(
-      'Missing Trace'
-    );
-    expect(wrapper.find('div[data-test-id="quick-trace-footer"]').text()).toEqual(
-      'Read the docs'
-    );
+    expect(screen.getByTestId('meta-data')).toBeInTheDocument();
+    expect(screen.getByTestId('quick-trace-body')).toHaveTextContent('Missing Trace');
+    const qtFooter = screen.getByTestId('quick-trace-footer');
+    expect(qtFooter).toHaveTextContent('Read the docs');
+    userEvent.hover(qtFooter.firstChild);
     expect(
-      wrapper.find('div[data-test-id="quick-trace-footer"] Hovercard').exists()
-    ).toEqual(true);
+      await screen.findByText('Requires performance monitoring.')
+    ).toBeInTheDocument();
   });
 
   it('does not render when platform does not support tracing', async function () {
