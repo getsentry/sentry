@@ -332,7 +332,6 @@ def perf_to_email_html(
     context = {
         "transaction_name": get_span_evidence_value_problem(problem),
         "parent_span": get_span_evidence_value(parent_span),
-        # "preceding_span": "SELECT idk FROM idk_what_a_preceding_span_is",
         "repeating_spans": get_span_evidence_value(repeating_spans),
         "num_repeating_spans": str(len(problem.offender_span_ids))
         if problem.offender_span_ids
