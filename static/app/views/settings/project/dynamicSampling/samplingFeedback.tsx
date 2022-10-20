@@ -134,7 +134,6 @@ export function SamplingFeedback() {
                   onChange={event =>
                     onFieldChange('opinionAboutFeature', event.target.value)
                   }
-                  placeholder={t('Opinion about this feature')}
                 />
               </Field>
               <Field
