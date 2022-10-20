@@ -1,10 +1,11 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {selectByValue} from 'sentry-test/select-new';
+import selectEvent from 'react-select-event';
+
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import SentryProjectSelectorField from './sentryProjectSelectorField';
 
 describe('SentryProjectSelectorField', () => {
-  it('can change values', () => {
+  it('can change values', async () => {
     const mock = jest.fn();
     const projects = [
       TestStubs.Project(),
@@ -14,11 +15,12 @@ describe('SentryProjectSelectorField', () => {
         name: 'My Proj',
       }),
     ];
-    const wrapper = mountWithTheme(
+    render(
       <SentryProjectSelectorField onChange={mock} name="project" projects={projects} />
     );
 
-    selectByValue(wrapper, '23', {control: true});
+    await selectEvent.select(screen.getByText(/choose sentry project/i), 'my-proj');
+
     expect(mock).toHaveBeenCalledWith('23', expect.anything());
   });
 });

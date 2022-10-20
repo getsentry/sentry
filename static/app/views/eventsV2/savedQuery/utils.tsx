@@ -224,11 +224,11 @@ export function handleUpdateHomepageQuery(
 
   return promise
     .then(savedQuery => {
-      addSuccessMessage(t('Saved as Discover home'));
+      addSuccessMessage(t('Saved as Discover default'));
       return savedQuery;
     })
     .catch(() => {
-      addErrorMessage(t('Unable to set query as Discover home'));
+      addErrorMessage(t('Unable to set query as Discover default'));
     });
 }
 
@@ -237,10 +237,10 @@ export function handleResetHomepageQuery(api: Client, organization: Organization
 
   return promise
     .then(() => {
-      addSuccessMessage(t('Successfully reset Discover home'));
+      addSuccessMessage(t('Successfully removed Discover default'));
     })
     .catch(() => {
-      addErrorMessage(t('Unable to reset Discover home'));
+      addErrorMessage(t('Unable to remove Discover default'));
     });
 }
 

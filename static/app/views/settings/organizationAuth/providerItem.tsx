@@ -202,6 +202,8 @@ const LockedFeature = ({provider, features, className}: LockedFeatureProps) => (
       />
     }
   >
-    <Tag icon={<IconLock isSolid />}>{t('disabled')}</Tag>
+    <Tag role="status" icon={<IconLock isSolid />}>
+      {t('disabled')}
+    </Tag>
   </DisabledHovercard>
 );

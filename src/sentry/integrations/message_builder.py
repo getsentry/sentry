@@ -7,7 +7,9 @@ from sentry.eventstore.models import Event
 from sentry.integrations.slack.message_builder import SLACK_URL_FORMAT
 from sentry.models import Group, Project, Rule, Team, User
 from sentry.notifications.notifications.base import BaseNotification
+from sentry.notifications.utils import get_matched_problem, get_span_evidence_value_problem
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupCategory
 from sentry.utils.http import absolute_uri
 
 
@@ -40,7 +42,11 @@ def build_attachment_title(obj: Group | Event) -> str:
         title = f'{ev_metadata["directive"]} - {ev_metadata["uri"]}'
 
     else:
-        title = obj.title
+        group = getattr(obj, "group", obj)
+        if group.issue_category == GroupCategory.PERFORMANCE:
+            title = GROUP_TYPE_TO_TEXT.get(group.issue_type, "Issue")
+        else:
+            title = obj.title
 
     # Explicitly typing to satisfy mypy.
     title_str: str = title
@@ -80,6 +86,10 @@ def build_attachment_text(group: Group, event: Event | None = None) -> Any | Non
 
     if ev_type == "error":
         return ev_metadata.get("value") or ev_metadata.get("function")
+    elif ev_type == "transaction":
+        problem = get_matched_problem(event)
+        return get_span_evidence_value_problem(problem)
+
     else:
         return None
 

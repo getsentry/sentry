@@ -153,6 +153,7 @@ export function SamplingFeedback() {
       initialData={initialData}
       buttonProps={{
         priority: 'primary',
+        size: 'sm',
       }}
     >
       {({Header, Body, Footer, state, onFieldChange}) => {

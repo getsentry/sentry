@@ -233,7 +233,7 @@
   "scripts": {
     "test-wrap": "node scripts/test.js",
     "test": "yarn test-wrap --watch",
-    "test-ci": "yarn test-wrap --ci --coverage --runInBand",
+    "test-ci": "yarn test-wrap --ci --coverage --runInBand --colors",
     "test-debug": "node --inspect-brk scripts/test.js --runInBand",
     "test-precommit": "yarn test-wrap --bail --findRelatedTests -u",
     "test-staged": "yarn test-wrap --findRelatedTests $(git diff --name-only --cached)",

@@ -216,7 +216,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
           value={activeSort.value}
           options={SORT_OPTIONS}
           onChange={opt => this.handleSortChange(opt.value)}
-          placement="bottom right"
+          position="bottom-end"
         />
       </StyledActions>
     );
@@ -281,6 +281,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
                   <StyledButton
                     data-test-id="build-new-query"
                     to={to}
+                    size="sm"
                     priority="primary"
                     onClick={() => {
                       trackAdvancedAnalyticsEvent('discover_v2.build_new_query', {

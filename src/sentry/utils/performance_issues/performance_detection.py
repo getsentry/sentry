@@ -47,8 +47,6 @@ class DetectorType(Enum):
     N_PLUS_ONE_SPANS = "n_plus_one"
     N_PLUS_ONE_DB_QUERIES = "n_plus_one_db"
     N_PLUS_ONE_DB_QUERIES_EXTENDED = "n_plus_one_db_ext"
-    N_PLUS_ONE_DB_QUERIES_NO_REDIS = "n_plus_one_db_noredis"
-    N_PLUS_ONE_DB_QUERIES_PARAMETERIZED = "n_plus_one_db_param"
 
 
 DETECTOR_TYPE_TO_GROUP_TYPE = {
@@ -62,8 +60,6 @@ DETECTOR_TYPE_TO_GROUP_TYPE = {
     DetectorType.N_PLUS_ONE_SPANS: GroupType.PERFORMANCE_N_PLUS_ONE,
     DetectorType.N_PLUS_ONE_DB_QUERIES: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
     DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
-    DetectorType.N_PLUS_ONE_DB_QUERIES_NO_REDIS: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
-    DetectorType.N_PLUS_ONE_DB_QUERIES_PARAMETERIZED: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
 }
 
 # Detector and the corresponding system option must be added to this list to have issues created.
@@ -197,13 +193,22 @@ def detect_performance_problems(data: Event) -> List[PerformanceProblem]:
 # Gets the thresholds to perform performance detection.
 # Duration thresholds are in milliseconds.
 # Allowed span ops are allowed span prefixes. (eg. 'http' would work for a span with 'http.client' as its op)
-def get_detection_settings(project_id: str):
-    default_project_settings = projectoptions.get_well_known_default(
-        "sentry:performance_issue_settings",
-        project=project_id,
+def get_detection_settings(project_id: Optional[str] = None):
+    default_project_settings = (
+        projectoptions.get_well_known_default(
+            "sentry:performance_issue_settings",
+            project=project_id,
+        )
+        if project_id
+        else {}
     )
-    project_settings = ProjectOption.objects.get_value(
-        project_id, "sentry:performance_issue_settings", default_project_settings
+
+    project_settings = (
+        ProjectOption.objects.get_value(
+            project_id, "sentry:performance_issue_settings", default_project_settings
+        )
+        if project_id
+        else {}
     )
 
     use_project_option_settings = default_project_settings != project_settings
@@ -288,7 +293,6 @@ def get_detection_settings(project_id: str):
 
 def _detect_performance_problems(data: Event, sdk_span: Any) -> List[PerformanceProblem]:
     event_id = data.get("event_id", None)
-    spans = data.get("spans", [])
     project_id = data.get("project")
 
     detection_settings = get_detection_settings(project_id)
@@ -306,19 +310,10 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
         DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: NPlusOneDBSpanDetectorExtended(
             detection_settings, data
         ),
-        DetectorType.N_PLUS_ONE_DB_QUERIES_NO_REDIS: NPlusOneDBSpanDetectorWithoutRedis(
-            detection_settings, data
-        ),
-        DetectorType.N_PLUS_ONE_DB_QUERIES_PARAMETERIZED: NPlusOneDBSpanDetectorWithoutUnparameterizedQueries(
-            detection_settings, data
-        ),
     }
 
-    for span in spans:
-        for _, detector in detectors.items():
-            detector.visit_span(span)
     for _, detector in detectors.items():
-        detector.on_complete()
+        run_detector_on_data(detector, data)
 
     # Metrics reporting only for detection, not created issues.
     report_metrics_for_detectors(data, event_id, detectors, sdk_span)
@@ -354,6 +349,14 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
 
     # TODO: Make sure upstream is all compatible with set before switching output type.
     return list(unique_performance_problems)
+
+
+def run_detector_on_data(detector, data):
+    spans = data.get("spans", [])
+    for span in spans:
+        detector.visit_span(span)
+
+    detector.on_complete()
 
 
 # Uses options and flags to determine which orgs and which detectors automatically create performance issues.
@@ -937,7 +940,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         self._maybe_store_problem()
 
     def _is_db_op(self, op: str) -> bool:
-        return op.startswith("db")
+        return op.startswith("db") and not op.startswith("db.redis")
 
     def _contains_complete_query(self, span: Span, is_source: Optional[bool] = False) -> bool:
         # Remove the truncation check from the n_plus_one db detector.
@@ -1044,7 +1047,8 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
             )
 
     def _contains_valid_repeating_query(self, span: Span) -> bool:
-        return True
+        query = span.get("description", None)
+        return query and PARAMETERIZED_SQL_QUERY_REGEX.search(query)
 
     def _metrics_for_extra_matching_spans(self):
         # Checks for any extra spans that match the detected problem but are not part of affected spans.
@@ -1085,43 +1089,6 @@ class NPlusOneDBSpanDetectorExtended(NPlusOneDBSpanDetector):
         "n_hash",
         "n_spans",
     )
-
-
-class NPlusOneDBSpanDetectorWithoutRedis(NPlusOneDBSpanDetector):
-    """
-    A temporary detector to collect metrics on how many fewer issues we create
-    with Redis excluded.
-    """
-
-    __slots__ = (
-        "stored_problems",
-        "potential_parents",
-        "source_span",
-        "n_hash",
-        "n_spans",
-    )
-
-    def _is_db_op(self, op: str) -> bool:
-        return op.startswith("db") and not op.startswith("db.redis")
-
-
-class NPlusOneDBSpanDetectorWithoutUnparameterizedQueries(NPlusOneDBSpanDetector):
-    """
-    A temporary detector to collect metrics on how many fewer issues we create
-    with unparameterized queries excluded.
-    """
-
-    __slots__ = (
-        "stored_problems",
-        "potential_parents",
-        "source_span",
-        "n_hash",
-        "n_spans",
-    )
-
-    def _contains_valid_repeating_query(self, span: Span) -> bool:
-        query = span.get("description", None)
-        return query and PARAMETERIZED_SQL_QUERY_REGEX.search(query)
 
 
 # Reports metrics and creates spans for detection

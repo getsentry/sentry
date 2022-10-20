@@ -104,28 +104,18 @@ function getYAxis(location: Location, eventView: EventView, savedQuery?: SavedQu
 
 export class Results extends Component<Props, State> {
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
-    if (
-      !nextProps.isHomepage ||
-      prevState.savedQuery ||
-      nextProps.savedQuery === undefined // When user clicks on Discover in sidebar
-    ) {
-      const eventView = EventView.fromSavedQueryOrLocation(
-        nextProps.savedQuery,
-        nextProps.location
-      );
-      return {...prevState, eventView, savedQuery: nextProps.savedQuery};
-    }
-
-    return prevState;
+    const eventView = EventView.fromSavedQueryOrLocation(
+      nextProps.savedQuery,
+      nextProps.location
+    );
+    return {...prevState, eventView, savedQuery: nextProps.savedQuery};
   }
 
   state: State = {
-    // If this is the homepage, force an invalid eventView so we can handle
-    // the redirect first. This can't rely on the location because the
-    // location may have a valid eventView configuration
-    eventView: this.props.isHomepage
-      ? EventView.fromSavedQuery({...DEFAULT_EVENT_VIEW, fields: []})
-      : EventView.fromSavedQueryOrLocation(this.props.savedQuery, this.props.location),
+    eventView: EventView.fromSavedQueryOrLocation(
+      this.props.savedQuery,
+      this.props.location
+    ),
     error: '',
     errorCode: 200,
     totalValues: null,

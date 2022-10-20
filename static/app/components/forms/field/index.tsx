@@ -124,6 +124,13 @@ function Field({
     ...props,
   };
 
+  const isVisible = typeof visible === 'function' ? visible(otherProps) : visible;
+  const isDisabled = typeof disabled === 'function' ? disabled(otherProps) : disabled;
+
+  if (!isVisible) {
+    return null;
+  }
+
   const {
     controlClassName,
     highlighted,
@@ -142,15 +149,8 @@ function Field({
     style,
   } = otherProps;
 
-  const isVisible = typeof visible === 'function' ? visible(otherProps) : visible;
-  const isDisabled = typeof disabled === 'function' ? disabled(otherProps) : disabled;
-  let Control: React.ReactNode;
-
-  if (!isVisible) {
-    return null;
-  }
-
   const helpElement = typeof help === 'function' ? help(otherProps) : help;
+  const shouldRenderLabel = !hideLabel && !!label;
 
   const controlProps = {
     className: controlClassName,
@@ -165,11 +165,12 @@ function Field({
   };
 
   // See comments in prop types
-  if (children instanceof Function) {
-    Control = children({...otherProps, ...controlProps});
-  } else {
-    Control = <FieldControl {...controlProps}>{children}</FieldControl>;
-  }
+  const control =
+    typeof children === 'function' ? (
+      children({...otherProps, ...controlProps})
+    ) : (
+      <FieldControl {...controlProps}>{children}</FieldControl>
+    );
 
   // Provide an `aria-label` to the FieldDescription label if our label is a
   // string value. This helps with testing and accessability. Without this the
@@ -188,9 +189,9 @@ function Field({
       hasControlState={!flexibleControlStateSize}
       style={style}
     >
-      {((label && !hideLabel) || helpElement) && (
+      {(shouldRenderLabel || helpElement) && (
         <FieldDescription inline={inline} htmlFor={id} aria-label={ariaLabel}>
-          {label && !hideLabel && (
+          {shouldRenderLabel && (
             <FieldLabel disabled={isDisabled}>
               <span>
                 {label}
@@ -210,8 +211,7 @@ function Field({
           )}
         </FieldDescription>
       )}
-
-      {Control}
+      {control}
     </FieldWrapper>
   );
 }

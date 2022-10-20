@@ -105,6 +105,39 @@ describe('Discover > Homepage', () => {
     screen.getByText('event.type:error');
   });
 
+  it('renders event view from URL params over homepage query', async () => {
+    initialData = initializeOrg({
+      ...initializeOrg(),
+      organization,
+      router: {
+        location: {
+          ...TestStubs.location(),
+          query: {
+            ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
+            field: ['project'],
+          },
+        },
+      },
+    });
+
+    render(
+      <Homepage
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+        setSavedQuery={jest.fn()}
+        loading={false}
+      />,
+      {context: initialData.routerContext, organization: initialData.organization}
+    );
+
+    expect(mockHomepage).toHaveBeenCalled();
+    await screen.findByText('project');
+
+    // This is the field in the mocked response for the homepage
+    expect(screen.queryByText('environment')).not.toBeInTheDocument();
+  });
+
   it('applies URL changes with the homepage pathname', async () => {
     render(
       <Homepage
@@ -157,7 +190,7 @@ describe('Discover > Homepage', () => {
     expect(screen.queryByText(/Last edited:/)).not.toBeInTheDocument();
   });
 
-  it('shows the Reset Discover Home button on initial load', async () => {
+  it('shows the Remove Default button on initial load', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/discover/homepage/',
       method: 'GET',
@@ -195,11 +228,11 @@ describe('Discover > Homepage', () => {
       {context: initialData.routerContext, organization: initialData.organization}
     );
 
-    expect(await screen.findByText('Reset Discover Home')).toBeInTheDocument();
-    expect(screen.queryByText('Use as Discover Home')).not.toBeInTheDocument();
+    expect(await screen.findByText('Remove Default')).toBeInTheDocument();
+    expect(screen.queryByText('Set As Default')).not.toBeInTheDocument();
   });
 
-  it('Disables the Use as Discover Home button when no saved homepage', () => {
+  it('Disables the Set As Default button when no saved homepage', () => {
     initialData = initializeOrg({
       ...initializeOrg(),
       organization,
@@ -230,7 +263,7 @@ describe('Discover > Homepage', () => {
     );
 
     expect(mockHomepage).toHaveBeenCalled();
-    expect(screen.getByRole('button', {name: /use as discover home/i})).toBeDisabled();
+    expect(screen.getByRole('button', {name: /set as default/i})).toBeDisabled();
   });
 
   it('follows absolute date selection', async () => {

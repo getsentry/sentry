@@ -27,17 +27,15 @@ export default class PasswordField extends InputField<Props, State> {
     this.state = {...this.state, editing: false};
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps: Props) {
+  componentDidUpdate(prevProps: Props) {
     // close edit mode after successful save
     // TODO(dcramer): this needs to work with this.context.form
     if (
       this.props.formState &&
-      this.props.formState === FormState.SAVING &&
-      nextProps.formState === FormState.READY
+      prevProps.formState === FormState.SAVING &&
+      this.props.formState === FormState.READY
     ) {
-      this.setState({
-        editing: false,
-      });
+      this.setState({editing: false});
     }
   }
 
@@ -47,21 +45,12 @@ export default class PasswordField extends InputField<Props, State> {
 
   cancelEdit = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
-    this.setState(
-      {
-        editing: false,
-      },
-      () => {
-        this.setValue('');
-      }
-    );
+    this.setState({editing: false}, () => this.setValue(''));
   };
 
   startEdit = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
-    this.setState({
-      editing: true,
-    });
+    this.setState({editing: true});
   };
 
   getField() {

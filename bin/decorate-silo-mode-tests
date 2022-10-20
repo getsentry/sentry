@@ -15,7 +15,7 @@ from sentry.utils.types import Any
 def find_test_cases_matching(model_name: str):
     manifest = json.loads(open(os.environ["SENTRY_MODEL_MANIFEST_FILE_PATH"]).read())
     for test_node_id, hits in manifest.items():
-        if any(hit["model"] == model_name for hit in hits):
+        if model_name in hits:
             parts = test_node_id.split("::")
             yield parts[0], parts[1]
 

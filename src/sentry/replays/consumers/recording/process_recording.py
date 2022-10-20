@@ -6,6 +6,7 @@ import random
 import time
 from collections import deque
 from concurrent.futures import Future
+from datetime import datetime, timezone
 from io import BytesIO
 from typing import Any, Callable, Deque, Mapping, MutableMapping, NamedTuple, Optional, cast
 
@@ -17,6 +18,7 @@ from arroyo.processing.strategies.abstract import ProcessingStrategy
 from arroyo.types import Message, Position
 from django.conf import settings
 
+from sentry.constants import DataCategory
 from sentry.models import File
 from sentry.replays.cache import RecordingSegmentPart, RecordingSegmentParts
 from sentry.replays.consumers.recording.types import (
@@ -26,6 +28,7 @@ from sentry.replays.consumers.recording.types import (
 )
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.utils import json, metrics
+from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.sdk import configure_scope
 
 logger = logging.getLogger("sentry.replays")
@@ -136,6 +139,24 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
 
             # TODO: how to handle failures in the above calls. what should happen?
             # also: handling same message twice?
+
+            # TODO: in join wait for outcomes producer to flush possibly,
+            # or do this in a separate arroyo step
+            # also need to talk with other teams on only-once produce requirements
+            if headers["segment_id"] == 0 and message_dict.get("org_id"):
+                track_outcome(
+                    org_id=message_dict["org_id"],
+                    project_id=message_dict["project_id"],
+                    key_id=message_dict.get("key_id"),
+                    outcome=Outcome.ACCEPTED,
+                    reason=None,
+                    timestamp=datetime.utcfromtimestamp(message_dict["received"]).replace(
+                        tzinfo=timezone.utc
+                    ),
+                    event_id=message_dict["replay_id"],
+                    category=DataCategory.REPLAY,
+                    quantity=1,
+                )
 
     def _process_recording(
         self, message_dict: RecordingSegmentMessage, message: Message[KafkaPayload]

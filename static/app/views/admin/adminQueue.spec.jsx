@@ -49,7 +49,11 @@ describe('AdminQueue', function () {
     });
 
     it('renders', function () {
-      MockApiClient.warnOnMissingMocks();
+      MockApiClient.addMockResponse({
+        url: '/internal/stats/',
+        body: [],
+      });
+
       const wrapper = render(<AdminQueue params={{}} />);
       expect(wrapper.container).toSnapshot();
     });

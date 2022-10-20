@@ -1,17 +1,16 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {ALL_ENVIRONMENTS_KEY} from 'sentry/constants';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import ProjectEnvironments from 'sentry/views/settings/project/projectEnvironments';
 
 jest.mock('sentry/utils/recreateRoute');
 recreateRoute.mockReturnValue('/org-slug/project-slug/settings/environments/');
 
-function mountComponent(isHidden) {
+function renderComponent(isHidden) {
   const org = TestStubs.Organization();
   const project = TestStubs.Project();
   const pathname = isHidden ? 'environments/hidden/' : 'environments/';
-  return mountWithTheme(
+  return render(
     <ProjectEnvironments
       params={{
         orgId: org.slug,
@@ -47,11 +46,13 @@ describe('ProjectEnvironments', function () {
         body: [],
       });
 
-      const wrapper = mountComponent(false);
-      const errorMessage = wrapper.find('div').first();
+      const {container} = renderComponent(false);
 
-      expect(errorMessage.text()).toContain("You don't have any environments yet");
-      expect(wrapper.find('ProjectEnvironments')).toSnapshot();
+      expect(
+        screen.getByText("You don't have any environments yet.")
+      ).toBeInTheDocument();
+
+      expect(container).toSnapshot();
     });
 
     it('renders environment list', function () {
@@ -59,11 +60,10 @@ describe('ProjectEnvironments', function () {
         url: '/projects/org-slug/project-slug/environments/',
         body: TestStubs.Environments(false),
       });
-      const wrapper = mountComponent(false);
+      renderComponent(false);
 
-      const productionRow = wrapper.find('EnvironmentRow[name="production"]');
-
-      expect(productionRow.find('Button')).toHaveLength(1);
+      expect(screen.getByText('production')).toBeInTheDocument();
+      expect(screen.getAllByRole('button', {name: 'Hide'})).toHaveLength(3);
     });
   });
 
@@ -74,12 +74,13 @@ describe('ProjectEnvironments', function () {
         body: [],
       });
 
-      const wrapper = mountComponent(true);
-      const errorMessage = wrapper.find('div').first();
+      const {container} = renderComponent(true);
 
-      expect(errorMessage.text()).toContain("You don't have any hidden environments");
+      expect(
+        screen.getByText("You don't have any hidden environments.")
+      ).toBeInTheDocument();
 
-      expect(wrapper.find('ProjectEnvironments')).toSnapshot();
+      expect(container).toSnapshot();
     });
 
     it('renders environment list', function () {
@@ -87,11 +88,11 @@ describe('ProjectEnvironments', function () {
         url: '/projects/org-slug/project-slug/environments/',
         body: TestStubs.Environments(true),
       });
-      const wrapper = mountComponent(true);
+      const {container} = renderComponent(true);
 
       // Hidden buttons should not have "Set as default"
-      expect(wrapper.find('Button').text()).toBe('Show');
-      expect(wrapper.find('ProjectEnvironments')).toSnapshot();
+      expect(screen.getByRole('button', {name: 'Show'})).toBeInTheDocument();
+      expect(container).toSnapshot();
     });
   });
 
@@ -112,14 +113,22 @@ describe('ProjectEnvironments', function () {
         url: baseUrl,
       });
     });
+
     it('hides', function () {
       MockApiClient.addMockResponse({
         url: baseUrl,
         body: TestStubs.Environments(false),
       });
 
-      const wrapper = mountComponent(false);
-      wrapper.find('EnvironmentRow[name="production"] Button').simulate('click');
+      renderComponent(false);
+
+      // Click first row 'hide' (production)
+      //
+      // XXX(epurkhiser): In the future we should improve the accessability of
+      // lists, because right now there's no way to associate the hide button
+      // with it's environment
+      userEvent.click(screen.getAllByRole('button', {name: 'Hide'})[0]);
+
       expect(hideMock).toHaveBeenCalledWith(
         `${baseUrl}production/`,
         expect.objectContaining({
@@ -139,11 +148,10 @@ describe('ProjectEnvironments', function () {
         method: 'PUT',
       });
 
-      const wrapper = mountComponent(false);
+      renderComponent(false);
 
-      wrapper
-        .find('EnvironmentRow[name="%app_env%"] button[aria-label="Hide"]')
-        .simulate('click');
+      userEvent.click(screen.getByRole('button', {name: 'Hide'}));
+
       expect(hideMock).toHaveBeenCalledWith(
         `${baseUrl}%25app_env%25/`,
         expect.objectContaining({
@@ -158,8 +166,10 @@ describe('ProjectEnvironments', function () {
         body: TestStubs.Environments(true),
       });
 
-      const wrapper = mountComponent(true);
-      wrapper.find('EnvironmentRow[name="zzz"] Button').simulate('click');
+      renderComponent(true);
+
+      userEvent.click(screen.getByRole('button', {name: 'Show'}));
+
       expect(showMock).toHaveBeenCalledWith(
         `${baseUrl}zzz/`,
         expect.objectContaining({
@@ -174,10 +184,8 @@ describe('ProjectEnvironments', function () {
         body: TestStubs.Environments(true),
       });
 
-      const wrapper = mountComponent(true);
-      expect(wrapper.find(`EnvironmentRow[name="${ALL_ENVIRONMENTS_KEY}"]`)).toHaveLength(
-        0
-      );
+      renderComponent(true);
+      expect(screen.queryByText('All Environments')).not.toBeInTheDocument();
     });
   });
 });

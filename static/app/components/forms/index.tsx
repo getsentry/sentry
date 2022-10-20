@@ -7,7 +7,7 @@ export {default as EmailField} from './fields/emailField';
 export {default as HiddenField} from './fields/hiddenField';
 export {default as InputField} from './fields/inputField';
 export {default as NumberField} from './fields/numberField';
-export {default as RadioBooleanField} from './fields/radioBooleanField';
+export {default as RadioField} from './fields/radioField';
 export {default as RangeField} from './fields/rangeField';
 export {default as SecretField} from './fields/secretField';
 export {default as SelectField} from './fields/selectField';
