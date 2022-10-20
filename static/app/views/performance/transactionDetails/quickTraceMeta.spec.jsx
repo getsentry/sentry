@@ -81,8 +81,8 @@ describe('QuickTraceMeta', function () {
     );
   });
 
-  it('renders errors', async function () {
-    const wrapper = mountWithTheme(
+  it('renders errors', function () {
+    render(
       <WrappedQuickTraceMeta
         event={event}
         project={project}
@@ -97,15 +97,12 @@ describe('QuickTraceMeta', function () {
         errorDest="issue"
         transactionDest="performance"
       />,
-      routerContext
+      {context: routerContext}
     );
 
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('MetaData').exists()).toBe(true);
-    expect(wrapper.find('div[data-test-id="quick-trace-body"]').text()).toEqual('\u2014');
-    expect(wrapper.find('div[data-test-id="quick-trace-footer"]').text()).toEqual(
+    expect(screen.getByTestId('meta-data')).toBeInTheDocument();
+    expect(screen.getByTestId('quick-trace-body')).toHaveTextContent('\u2014');
+    expect(screen.getByTestId('quick-trace-footer')).toHaveTextContent(
       `View Full Trace: ${'a'.repeat(8)} (0 events)`
     );
   });
