@@ -814,15 +814,13 @@ const keyDirectionMap: Record<string, Direction> = {
   ArrowDown: 'down',
   ArrowLeft: 'left',
   ArrowRight: 'right',
-  Tab: 'right',
-  'Shift+Tab': 'left',
-  Enter: 'down',
-  'Shift+Enter': 'up',
+  Tab: 'down',
+  'Shift+Tab': 'up',
   w: 'up',
   s: 'down',
   a: 'left',
   d: 'right',
-};
+} as const;
 
 function handleFlamegraphKeyboardNavigation(
   evt: KeyboardEvent,
@@ -833,19 +831,15 @@ function handleFlamegraphKeyboardNavigation(
     return null;
   }
 
-  const keyboardKey = !inverted
-    ? evt.key
-    : evt.key === 'ArrowUp'
-    ? 'ArrowDown'
-    : evt.key === 'ArrowDown'
-    ? 'ArrowUp'
-    : evt.key;
-
-  const key = evt.shiftKey ? `Shift+${keyboardKey}` : keyboardKey;
-  const direction = keyDirectionMap[key];
+  const key = evt.shiftKey ? `Shift+${evt.key}` : evt.key;
+  let direction = keyDirectionMap[key];
   if (!direction) {
     return currentFrame;
   }
+  if (inverted && (direction === 'up' || direction === 'down')) {
+    direction = direction === 'up' ? 'down' : 'up';
+  }
+
   const nextSelection = selectNearestFrame(currentFrame, direction);
   if (!nextSelection) {
     return null;

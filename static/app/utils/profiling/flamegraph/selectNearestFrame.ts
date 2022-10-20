@@ -97,23 +97,20 @@ function scanForNearestFrameWithDepth(
   directionX: DirectionX
 ) {
   let node = frame;
+  let nextNode = node.children[directionX === 'right' ? 0 : node.children.length - 1];
 
-  while (node) {
+  while (node && nextNode) {
     if (node.depth === depth) {
       return node;
     }
-    if (!node.children) {
-      continue;
-    }
 
-    const nextNode = node.children[directionX === 'right' ? 0 : node.children.length - 1];
-    if (!nextNode) {
-      return node;
+    nextNode = node.children[directionX === 'right' ? 0 : node.children.length - 1];
+    if (nextNode) {
+      node = nextNode;
     }
-    node = nextNode;
   }
 
-  return frame;
+  return node;
 }
 
 function getSibling(frame: FlamegraphFrame, directionX: DirectionX) {
