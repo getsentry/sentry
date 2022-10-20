@@ -458,10 +458,6 @@ def translate_meta_results(
     return sorted(results, key=lambda elem: elem["name"])
 
 
-def coerce_rule_type():
-    ...
-
-
 class SnubaQueryBuilder:
 
     #: Datasets actually implemented in snuba:
