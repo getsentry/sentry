@@ -20,7 +20,6 @@
     "*.jsx": "javascriptreact"
   },
 
-  // Apply fix all auto-fixable eslint problems on save
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": true
   },
