@@ -79,8 +79,6 @@ def resolve_team_key_transaction_alias(
 
 
 def resolve_project_slug_alias(builder: QueryBuilder, alias: str) -> SelectType:
-    builder.value_resolver_map[alias] = lambda project_id: builder.project_ids.get(
-        project_id, "unknown"
-    )
+    builder.value_resolver_map[alias] = lambda project_id: builder.project_ids.get(project_id, "")
     builder.meta_resolver_map[alias] = "string"
     return AliasedExpression(exp=builder.column("project_id"), alias=alias)
