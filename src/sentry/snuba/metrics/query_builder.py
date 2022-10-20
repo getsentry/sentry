@@ -368,15 +368,11 @@ def translate_meta_results(
     for record in meta:
         operation, column_name = parse_expression(record["name"])
 
-        metric_field_of_record = alias_to_metric_field.get(record["name"], None)
+        metric_field = alias_to_metric_field.get(record["name"], None)
         # If we have a percentile operation then we want to convert its type from Array(float64) to Float64
         # because once we receive a percentile result from ClickHouse we automatically pop from the array the
         # first element thus the datatype itself must also be changed in the metadata.
-        if (
-            metric_field_of_record
-            and metric_field_of_record.op
-            and metric_field_of_record.op in OPERATIONS_PERCENTILES
-        ):
+        if metric_field and metric_field.op and metric_field.op in OPERATIONS_PERCENTILES:
             record["type"] = "Float64"
 
         # Column name could be either a mri, ["bucketed_time"] or a tag or a dataset col like
