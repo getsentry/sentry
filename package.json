@@ -7,7 +7,7 @@
     "url": "git://github.com/getsentry/sentry.git"
   },
   "dependencies": {
-    "@babel/core": "~7.18.5",
+    "@babel/core": "~7.19.6",
     "@babel/plugin-transform-react-jsx": "^7.17.12",
     "@babel/plugin-transform-runtime": "~7.18.5",
     "@babel/preset-env": "~7.18.2",
