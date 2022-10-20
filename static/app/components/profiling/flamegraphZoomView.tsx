@@ -720,6 +720,14 @@ function FlamegraphZoomView({
     ]);
   }, [canvasPoolManager, flamegraph, scheduler]);
 
+  const handleCopyFunctionName = useCallback(async () => {
+    if (!hoveredNodeOnContextMenuOpen.current) {
+      return;
+    }
+
+    await navigator.clipboard.writeText(hoveredNodeOnContextMenuOpen.current.frame.name);
+  }, []);
+
   return (
     <CanvasContainer>
       <Canvas
@@ -741,6 +749,7 @@ function FlamegraphZoomView({
         contextMenu={contextMenu}
         hoveredNode={hoveredNodeOnContextMenuOpen.current}
         isHighlightingAllOccurences={highlightingAllOccurences}
+        onCopyFunctionNameClick={handleCopyFunctionName}
         onHighlightAllOccurencesClick={handleHighlightAllFramesClick}
       />
       {flamegraphCanvas &&
