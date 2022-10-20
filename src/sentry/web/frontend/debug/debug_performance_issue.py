@@ -7,11 +7,13 @@ from sentry.models import Organization, Project, Rule
 from sentry.notifications.utils import (
     get_group_settings_link,
     get_interface_list,
+    get_performance_issue_alert_subtitle,
     get_rules,
     get_transaction_data,
 )
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now
+from sentry.types.issues import GROUP_TYPE_TO_TEXT
 from sentry.utils import json
 from sentry.utils.samples import load_data
 
@@ -99,5 +101,7 @@ class DebugPerformanceIssueEmailView(View):
                 "project_label": project.slug,
                 "commits": json.loads(COMMIT_EXAMPLE),
                 "transaction_data": [("Span Evidence", mark_safe(transaction_data), None)],
+                "issue_type": GROUP_TYPE_TO_TEXT.get(perf_group.issue_type, "Issue"),
+                "subtitle": get_performance_issue_alert_subtitle(self.event),
             },
         ).render(request)
