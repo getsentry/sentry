@@ -52,7 +52,7 @@ function renderComponent(
 
 describe('NotificationSettingsByType', function () {
   it('should render when everything is disabled', function () {
-    TestComponent({
+    renderComponent({
       alerts: {user: {me: {email: 'never', slack: 'never'}}},
     });
 
