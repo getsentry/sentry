@@ -1,3 +1,5 @@
+import {duration} from 'moment';
+
 import type {Crumb} from 'sentry/types/breadcrumbs';
 import {
   breadcrumbFactory,
@@ -71,6 +73,9 @@ export default class ReplayReader {
     );
     replayRecord.startedAt = new Date(startTimestampMs);
     replayRecord.finishedAt = new Date(endTimestampMs);
+    replayRecord.duration = duration(
+      replayRecord.finishedAt.getTime() - replayRecord.startedAt.getTime()
+    );
 
     const sortedSpans = spansFactory(spans);
     this.networkSpans = sortedSpans.filter(isNetworkSpan);
@@ -95,7 +100,7 @@ export default class ReplayReader {
    * @returns Duration of Replay (milliseonds)
    */
   getDurationMs = () => {
-    return this.replayRecord.duration * 1000;
+    return this.replayRecord.duration.asMilliseconds();
   };
 
   getReplay = () => {
