@@ -42,6 +42,7 @@ ALLOWED_SDK_NAMES = frozenset(
         "sentry.ruby.rails",  # Rails
         "sentry.php",  # PHP
         "sentry.php.laravel",  # Laravel
+        "sentry.php.symfony",  # Symfony
     )
 )
 # We want sentry.java, sentry.java.spring, sentry.java.android, sentry.java.android.timber,
