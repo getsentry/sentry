@@ -116,7 +116,6 @@ function EventsTableRow({
               size="sm"
               icon={<IconPlay size="sm" />}
               aria-label={t('View Full Replay')}
-              title={t('View Full Replay')}
             />
           ) : null}
         </td>
