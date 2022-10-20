@@ -106,7 +106,7 @@ def _delete_activeorg(session):
         del session["activeorg"]
 
 
-def _resolve_last_org_slug(session, user):
+def _resolve_last_org(session, user):
     last_org_slug = session["activeorg"] if session and "activeorg" in session else None
     if not last_org_slug:
         return None
@@ -115,7 +115,7 @@ def _resolve_last_org_slug(session, user):
         if user is not None and not isinstance(user, AnonymousUser):
             try:
                 get_cached_organization_member(user.id, last_org.id)
-                return last_org_slug
+                return last_org
             except OrganizationMember.DoesNotExist:
                 return None
     except Organization.DoesNotExist:
@@ -163,9 +163,14 @@ def get_client_config(request=None):
 
     public_dsn = _get_public_dsn()
 
-    last_org_slug = _resolve_last_org_slug(session, user)
-    if last_org_slug is None:
+    last_org_slug = None
+    last_org = _resolve_last_org(session, user)
+    if last_org:
+        last_org_slug = last_org.slug
+    if last_org is None:
         _delete_activeorg(session)
+    if features.has("organizations:customer-domains", last_org):
+        enabled_features.append("organizations:customer-domains")
 
     context = {
         "singleOrganization": settings.SENTRY_SINGLE_ORGANIZATION,
