@@ -1227,6 +1227,118 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             key=lambda elem: elem["name"],
         )
 
+    def test_transform_null_to_unparameterized_with_null_transactions(self):
+        for transaction, value in (("", 1), ("", 2), ("/foo", 1), ("/bar", 0.5)):
+            self.store_performance_metric(
+                type="distribution",
+                name=TransactionMRI.DURATION.value,
+                tags={"transaction": transaction},
+                value=value,
+            )
+
+        metrics_query = self.build_metrics_query(
+            before_now="1h",
+            granularity="1h",
+            select=[
+                MetricField(
+                    op="count", metric_mri=TransactionMRI.DURATION.value, alias="duration_count"
+                ),
+            ],
+            limit=Limit(limit=50),
+            offset=Offset(offset=0),
+            groupby=[
+                MetricGroupByField(
+                    field=MetricField(
+                        op="transform_null_to_unparameterized",
+                        # TODO: metric_mri doesn't make sense for fields without aggregate filters, we should
+                        #  design a special value when the mri is not needed.
+                        metric_mri=TransactionMRI.DURATION.value,
+                        params={"tag_key": "transaction"},
+                        alias="transformed_transaction",
+                    )
+                ),
+            ],
+            include_series=False,
+        )
+        data = get_series(
+            [self.project],
+            metrics_query=metrics_query,
+            include_meta=True,
+            use_case_id=UseCaseKey.PERFORMANCE,
+        )
+        assert data["groups"] == [
+            {
+                "by": {"transformed_transaction": "<< unparameterized >>"},
+                "totals": {"duration_count": 2},
+            },
+            {
+                "by": {"transformed_transaction": "/bar"},
+                "totals": {"duration_count": 1},
+            },
+            {
+                "by": {"transformed_transaction": "/foo"},
+                "totals": {"duration_count": 1},
+            },
+        ]
+        assert data["meta"] == sorted(
+            [
+                {"name": "duration_count", "type": "UInt64"},
+                {"name": "transformed_transaction", "type": "string"},
+            ],
+            key=lambda elem: elem["name"],
+        )
+
+    def test_transform_null_to_unparameterized_with_null_and_unparameterized_transactions(self):
+        for transaction, value in (("", 1), ("", 2), ("<< unparameterized >>", 3)):
+            self.store_performance_metric(
+                type="distribution",
+                name=TransactionMRI.DURATION.value,
+                tags={"transaction": transaction},
+                value=value,
+            )
+
+        metrics_query = self.build_metrics_query(
+            before_now="1h",
+            granularity="1h",
+            select=[
+                MetricField(
+                    op="count", metric_mri=TransactionMRI.DURATION.value, alias="duration_count"
+                ),
+            ],
+            limit=Limit(limit=50),
+            offset=Offset(offset=0),
+            groupby=[
+                MetricGroupByField(
+                    field=MetricField(
+                        op="transform_null_to_unparameterized",
+                        metric_mri=TransactionMRI.DURATION.value,
+                        params={"tag_key": "transaction"},
+                        alias="transformed_transaction",
+                    )
+                ),
+            ],
+            include_series=False,
+        )
+        data = get_series(
+            [self.project],
+            metrics_query=metrics_query,
+            include_meta=True,
+            use_case_id=UseCaseKey.PERFORMANCE,
+        )
+        assert data["groups"] == [
+            {
+                "by": {"transformed_transaction": "<< unparameterized >>"},
+                "totals": {"duration_count": 3},
+            },
+        ]
+        assert data["meta"] == sorted(
+            [
+                {"name": "duration_count", "type": "UInt64"},
+                {"name": "transformed_transaction", "type": "string"},
+            ],
+            key=lambda elem: elem["name"],
+        )
+
     @freeze_time("2022-09-22 11:07:00")
     def test_team_key_transaction_as_condition(self):
         now = timezone.now()

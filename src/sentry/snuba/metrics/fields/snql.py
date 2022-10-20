@@ -453,3 +453,15 @@ def team_key_transaction_snql(org_id, team_key_condition_rhs, alias=None):
         ],
         alias=alias,
     )
+
+
+def transform_null_to_unparameterized_snql(org_id, tag_key, alias=None):
+    return Function(
+        "transform",
+        [
+            Column(resolve_tag_key(UseCaseKey.PERFORMANCE, org_id, tag_key)),
+            [resolve_tag_value(UseCaseKey.PERFORMANCE, org_id, "")],
+            [resolve_tag_value(UseCaseKey.PERFORMANCE, org_id, "<< unparameterized >>")],
+        ],
+        alias,
+    )
