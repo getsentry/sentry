@@ -186,6 +186,7 @@ class SnubaProtocolEventStream(EventStream):
                     "is_new": is_new,
                     "is_regression": is_regression,
                     "is_new_group_environment": is_new_group_environment,
+                    "queue": headers["queue"],
                     "skip_consume": skip_consume,
                     "group_states": group_states,
                 },
