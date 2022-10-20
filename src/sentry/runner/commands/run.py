@@ -348,6 +348,17 @@ def cron(**options):
     help="Position in the commit log topic to begin reading from when no prior offset has been recorded.",
 )
 @click.option(
+    "--no-strict-offset-reset",
+    is_flag=True,
+    help="Forces the kafka consumer auto offset reset.",
+)
+# TODO: Remove this option once we have fully cut over to the streaming consumer
+@click.option(
+    "--use-streaming-consumer",
+    is_flag=True,
+    help="Switches to the new streaming consumer implementation.",
+)
+@click.option(
     "--entity",
     type=click.Choice(["errors", "transactions"]),
     help="The type of entity to process (errors, transactions).",
@@ -369,6 +380,8 @@ def post_process_forwarder(**options):
             commit_batch_timeout_ms=options["commit_batch_timeout_ms"],
             concurrency=options["concurrency"],
             initial_offset_reset=options["initial_offset_reset"],
+            strict_offset_reset=not options["no_strict_offset_reset"],
+            use_streaming_consumer=bool(options["use_streaming_consumer"]),
         )
     except ForwarderNotRequired:
         sys.stdout.write(

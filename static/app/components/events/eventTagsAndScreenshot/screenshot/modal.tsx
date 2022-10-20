@@ -218,6 +218,7 @@ const Value = styled(Label)`
 const StyledImageVisualization = styled(ImageVisualization)`
   img {
     border-radius: ${p => p.theme.borderRadius};
+    max-height: calc(100vh - 300px);
   }
 `;
 
