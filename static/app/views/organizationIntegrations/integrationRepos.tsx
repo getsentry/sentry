@@ -41,19 +41,17 @@ class IntegrationRepos extends AsyncComponent<Props, State> {
       adding: false,
       itemList: [],
       integrationRepos: {repos: [], searchable: false},
-      dropdownBusy: false,
+      dropdownBusy: true,
     };
+  }
+
+  componentDidMount() {
+    this.searchRepositoriesRequest();
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const orgId = this.props.organization.slug;
-    return [
-      ['itemList', `/organizations/${orgId}/repos/`, {query: {status: ''}}],
-      [
-        'integrationRepos',
-        `/organizations/${orgId}/integrations/${this.props.integration.id}/repos/`,
-      ],
-    ];
+    return [['itemList', `/organizations/${orgId}/repos/`, {query: {status: ''}}]];
   }
 
   getIntegrationRepos() {
@@ -82,7 +80,7 @@ class IntegrationRepos extends AsyncComponent<Props, State> {
     200
   );
 
-  searchRepositoriesRequest = (searchQuery: string) => {
+  searchRepositoriesRequest = (searchQuery?: string) => {
     const orgId = this.props.organization.slug;
     const query = {search: searchQuery};
     const endpoint = `/organizations/${orgId}/integrations/${this.props.integration.id}/repos/`;
@@ -98,9 +96,9 @@ class IntegrationRepos extends AsyncComponent<Props, State> {
     });
   };
 
-  handleSearchRepositories = (e: React.ChangeEvent<HTMLInputElement>) => {
+  handleSearchRepositories = (e?: React.ChangeEvent<HTMLInputElement>) => {
     this.setState({dropdownBusy: true});
-    this.debouncedSearchRepositoriesRequest(e.target.value);
+    this.debouncedSearchRepositoriesRequest(e?.target.value);
   };
 
   addRepo(selection: {label: JSX.Element; searchKey: string; value: string}) {
