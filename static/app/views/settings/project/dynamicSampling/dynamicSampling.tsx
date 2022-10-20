@@ -92,7 +92,11 @@ export function DynamicSampling({project}: Props) {
           }
           action={<SamplingFeedback />}
         />
-        <TextBlock>{t('Update this copy')}</TextBlock>
+        <TextBlock>
+          {t(
+            'Sentry aims to capture the most valuable traces in full detail, so you have all the necessary data to resolve any performance issues.'
+          )}
+        </TextBlock>
         <PermissionAlert
           organization={organization}
           access={['project:write']}
@@ -114,7 +118,7 @@ export function DynamicSampling({project}: Props) {
                   ? t('You do not have permission to edit this setting')
                   : undefined
               }
-              help="Update this copy"
+              help={t('Captures more traces for a new release roll-out')}
             />
             <BooleanField
               name="boostEnvironments"
@@ -127,7 +131,9 @@ export function DynamicSampling({project}: Props) {
                   ? t('You do not have permission to edit this setting')
                   : undefined
               }
-              help="Update this copy"
+              help={t(
+                'Captures more traces from environments that contain “dev” and “test”'
+              )}
             />
             <BooleanField
               name="ignoreHealthChecks"
@@ -140,7 +146,7 @@ export function DynamicSampling({project}: Props) {
                   ? t('You do not have permission to edit this setting')
                   : undefined
               }
-              help="Update this copy"
+              help={t('Discards transactions that contain “health” in the name')}
             />
           </PanelBody>
           <StyledPanelFooter>
