@@ -1,5 +1,5 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import DashboardWidgetQuerySelectorModal from 'sentry/components/modals/dashboardWidgetQuerySelectorModal';
@@ -10,8 +10,8 @@ const stubEl: any = (props: any) => <div>{props.children}</div>;
 
 const api: Client = new Client();
 
-function mountModal({initialData, widget}) {
-  return mountWithTheme(
+function renderModal({initialData, widget}) {
+  return render(
     <DashboardWidgetQuerySelectorModal
       Header={stubEl}
       Footer={stubEl}
@@ -22,7 +22,7 @@ function mountModal({initialData, widget}) {
       widget={widget}
       api={api}
     />,
-    initialData.routerContext
+    {context: initialData.routerContext}
   );
 }
 
@@ -88,18 +88,16 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders a single query selection when the widget only has one query', async function () {
-    const wrapper = mountModal({initialData, widget: mockWidget});
-    await tick();
-    expect(wrapper.find('StyledInput').length).toEqual(1);
-    expect(wrapper.find('StyledInput').props().value).toEqual(
-      'title:/organizations/:orgId/performance/summary/'
-    );
-    expect(wrapper.find('OpenInDiscoverButton').length).toEqual(1);
-    wrapper.unmount();
+  it('renders a single query selection when the widget only has one query', function () {
+    renderModal({initialData, widget: mockWidget});
+
+    expect(
+      screen.getByDisplayValue('title:/organizations/:orgId/performance/summary/')
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Open in Discover'})).toBeInTheDocument();
   });
 
-  it('renders a multiple query selections when the widget only has multiple queries', async function () {
+  it('renders a multiple query selections when the widget only has multiple queries', function () {
     mockWidget.queries.push({
       ...mockQuery,
       conditions: 'title:/organizations/:orgId/performance/',
@@ -110,40 +108,35 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       conditions: 'title:/organizations/:orgId/',
       id: '3',
     });
-    const wrapper = mountModal({initialData, widget: mockWidget});
-    await tick();
-    expect(wrapper.find('StyledInput').length).toEqual(3);
-    expect(wrapper.find('StyledInput').at(0).props().value).toEqual(
-      'title:/organizations/:orgId/performance/summary/'
-    );
-    expect(wrapper.find('StyledInput').at(1).props().value).toEqual(
-      'title:/organizations/:orgId/performance/'
-    );
-    expect(wrapper.find('StyledInput').at(2).props().value).toEqual(
-      'title:/organizations/:orgId/'
-    );
-    expect(wrapper.find('OpenInDiscoverButton').length).toEqual(3);
-    wrapper.unmount();
+    renderModal({initialData, widget: mockWidget});
+    const queryFields = screen.getAllByRole('textbox');
+    expect(queryFields).toHaveLength(3);
+
+    expect(
+      screen.getByDisplayValue('title:/organizations/:orgId/performance/summary/')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByDisplayValue('title:/organizations/:orgId/performance/')
+    ).toBeInTheDocument();
+    expect(screen.getByDisplayValue('title:/organizations/:orgId/')).toBeInTheDocument();
   });
 
-  it('links user to the query in discover when a query is selected from the modal', async function () {
-    const wrapper = mountModal({initialData, widget: mockWidget});
-    await tick();
-    expect(wrapper.find('QueryContainer').find('Link').props().to).toEqual(
+  it('links user to the query in discover when a query is selected from the modal', function () {
+    renderModal({initialData, widget: mockWidget});
+    expect(screen.getByRole('link')).toHaveAttribute(
+      'href',
       '/organizations/org-slug/discover/results/?field=count%28%29&field=failure_count%28%29&name=Test%20Widget&query=title%3A%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2F&statsPeriod=14d&yAxis=count%28%29&yAxis=failure_count%28%29'
     );
-    wrapper.unmount();
   });
 
-  it('links user to the query in discover with additional field when a world map query is selected from the modal', async function () {
+  it('links user to the query in discover with additional field when a world map query is selected from the modal', function () {
     mockWidget.queries[0].fields = ['count()'];
     mockWidget.queries[0].aggregates = ['count()'];
     mockWidget.displayType = DisplayType.WORLD_MAP;
-    const wrapper = mountModal({initialData, widget: mockWidget});
-    await tick();
-    expect(wrapper.find('QueryContainer').find('Link').props().to).toEqual(
+    renderModal({initialData, widget: mockWidget});
+    expect(screen.getByRole('link')).toHaveAttribute(
+      'href',
       '/organizations/org-slug/discover/results/?display=worldmap&field=geo.country_code&field=count%28%29&name=Test%20Widget&query=title%3A%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2F%20has%3Ageo.country_code&statsPeriod=14d&yAxis=count%28%29'
     );
-    wrapper.unmount();
   });
 });
