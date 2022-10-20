@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import flatMap from 'lodash/flatMap';
 import uniqBy from 'lodash/uniqBy';
@@ -58,6 +58,12 @@ function EventCause({
     group?.issueCategory,
   ]);
 
+  useEffect(() => {
+    if (committers.length >= 1 && onCommitsLoaded) {
+      onCommitsLoaded();
+    }
+  }, [committers.length, onCommitsLoaded]);
+
   function getUniqueCommitsWithAuthors() {
     // Get a list of commits with author information attached
     const commitsWithAuthors = flatMap(committers, ({commits, author}) =>
@@ -94,10 +100,6 @@ function EventCause({
   };
 
   const commits = getUniqueCommitsWithAuthors();
-
-  if (commits.length >= 1 && onCommitsLoaded) {
-    onCommitsLoaded();
-  }
 
   return (
     <DataSection>

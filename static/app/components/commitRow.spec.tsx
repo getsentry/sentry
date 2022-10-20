@@ -125,4 +125,12 @@ describe('commitRow', () => {
     userEvent.click(pullRequestButton);
     expect(handlePullRequestClick).toHaveBeenCalledTimes(1);
   });
+
+  it('does not render commit message when hideCommitMessage prop is passed', () => {
+    render(
+      <CommitRow commit={baseCommit} customAvatar="Custom Avatar" hideCommitMessage />
+    );
+
+    expect(screen.queryByTestId('commit-row-message')).not.toBeInTheDocument();
+  });
 });

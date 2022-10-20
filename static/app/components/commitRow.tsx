@@ -96,7 +96,7 @@ function CommitRow({
       )}
 
       {!hideCommitMessage && (
-        <CommitMessage>
+        <CommitMessage data-test-id="commit-row-message">
           <Message>
             {tct('[author] committed [commitLink]', {
               author: isUser ? t('You') : commit.author?.name ?? t('Unknown author'),
