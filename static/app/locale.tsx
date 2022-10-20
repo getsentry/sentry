@@ -348,9 +348,16 @@ export function ngettext(singular: string, plural: string, ...args: FormatArg[])
   if (args.length > 0) {
     countArg = Math.abs(args[0] as number) || 0;
 
-    // `toLocaleString` will render `999` as `"999"` but `9999` as `"9,999"`. This means that any call with `tn` or `ngettext` cannot use `%d` in the codebase but has to use `%s`.
-    // This means a string is always being passed in as an argument, but `sprintf-js` implicitly coerces strings that can be parsed as integers into an integer.
-    // This would break under any locale that used different formatting and other undesirable behaviors.
+    // `toLocaleString` will render `999` as `"999"` but `9999` as `"9,999"`.
+    // This means that any call with `tn` or `ngettext` cannot use `%d` in the
+    // codebase but has to use `%s`.
+    //
+    // This means a string is always being passed in as an argument, but
+    // `sprintf-js` implicitly coerces strings that can be parsed as integers
+    // into an integer.
+    //
+    // This would break under any locale that used different formatting and
+    // other undesirable behaviors.
     if ((singular + plural).includes('%d')) {
       // eslint-disable-next-line no-console
       console.error(new Error('You should not use %d within tn(), use %s instead'));
