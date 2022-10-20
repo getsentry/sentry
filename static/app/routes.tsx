@@ -204,7 +204,10 @@ function buildRoutes() {
       ) : null}
       <Route
         path="/join-request/:orgId/"
-        component={make(() => import('sentry/views/organizationJoinRequest'))}
+        component={withDomainRedirect(
+          make(() => import('sentry/views/organizationJoinRequest'))
+        )}
+        key="org-join-request"
       />
       <Route
         path="/onboarding/:orgId/"
