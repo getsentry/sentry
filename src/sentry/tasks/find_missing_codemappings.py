@@ -25,13 +25,19 @@ logger = logging.getLogger("sentry.tasks.find_missing_codemappings")
 def find_missing_codemappings(
     organizations: Optional[List[Organization]] = None,
 ) -> Mapping[str, Mapping[str, List[str]]]:
+    """
+    Generate a map of projects to stacktrace paths for specified organizations,
+    or all active organizations if unspecified.
+
+    This filters out projects have not had an event in the last 7 days or have
+    non-python files in the stacktrace.
+    """
     if organizations is None:
         organizations = Organization.objects.filter(status=OrganizationStatus.ACTIVE)
 
     filename_maps = {}
     for org in organizations:
         projects = Project.objects.filter(organization=org, first_event__isnull=False)
-
         projects = [
             project
             for project in projects
@@ -62,8 +68,10 @@ def get_all_stacktrace_paths(project: Project) -> List[str]:
     return list(all_stacktrace_paths)
 
 
-# Get the stacktrace_paths from the stacktrace for the latest event for an issue.
 def get_stacktrace_paths(data: NodeData) -> Tuple[bool, Set[str]]:
+    """
+    Get the stacktrace_paths from the stacktrace for the latest event for an issue.
+    """
     stacktraces = get_stacktrace(data)
     stacktrace_paths = set()
     for stacktrace in stacktraces:
