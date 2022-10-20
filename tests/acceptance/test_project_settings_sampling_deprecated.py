@@ -21,8 +21,6 @@ from sentry.utils.outcomes import Outcome
 FEATURE_NAME = [
     "organizations:server-side-sampling",
     "organizations:server-side-sampling-ui",
-    "organizations:dynamic-sampling-basic",
-    "organizations:dynamic-sampling-advanced",
 ]
 
 uniform_rule_with_recommended_sampling_values = {
