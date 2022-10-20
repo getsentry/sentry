@@ -223,11 +223,14 @@ def mock_segment_fullsnapshot(timestamp: datetime.datetime, bodyChildNodes) -> S
         tagName="html",
         childNodes=[bodyNode],
     )
+
+    # rrweb timestamps are in ms, sentry data is in seconds
+    miliseconds = int(timestamp.timestamp())
     return [
         {
             "type": EventType.FullSnapshot,
             "data": {
-                "timestamp": int(timestamp.timestamp()),
+                "timestamp": miliseconds,
                 "node": {
                     "type": EventType.DomContentLoaded,
                     "childNodes": [htmlNode],
@@ -238,14 +241,16 @@ def mock_segment_fullsnapshot(timestamp: datetime.datetime, bodyChildNodes) -> S
 
 
 def mock_segment_console(timestamp: datetime.datetime) -> SegmentList:
+    # sentry data is recorded in seconds, mocks should match
+    seconds = int(timestamp.timestamp()) / 1000
     return [
         {
             "type": EventType.Custom,
-            "timestamp": int(timestamp.timestamp()),
+            "timestamp": seconds,
             "data": {
                 "tag": "breadcrumb",
                 "payload": {
-                    "timestamp": int(timestamp.timestamp()) / 1000,
+                    "timestamp": seconds,
                     "type": "default",
                     "category": "console",
                     "data": {
@@ -263,10 +268,12 @@ def mock_segment_console(timestamp: datetime.datetime) -> SegmentList:
 
 
 def mock_segment_breadcrumb(timestamp: datetime.datetime, payload) -> SegmentList:
+    # sentry data is recorded in seconds, mocks should match
+    seconds = int(timestamp.timestamp()) / 1000
     return [
         {
             "type": 5,
-            "timestamp": int(timestamp.timestamp()),
+            "timestamp": seconds,
             "data": {
                 "tag": "breadcrumb",
                 "payload": payload,
@@ -278,10 +285,12 @@ def mock_segment_breadcrumb(timestamp: datetime.datetime, payload) -> SegmentLis
 def mock_segment_nagivation(
     timestamp: datetime.datetime, hrefFrom: str = "/", hrefTo: str = "/profile/"
 ) -> SegmentList:
+    # sentry data is recorded in seconds, mocks should match
+    seconds = int(timestamp.timestamp()) / 1000
     return mock_segment_breadcrumb(
         timestamp,
         {
-            "timestamp": int(timestamp.timestamp()) / 1000,
+            "timestamp": seconds,
             "type": "default",
             "category": "navigation",
             "data": {"from": hrefFrom, "to": hrefTo},
