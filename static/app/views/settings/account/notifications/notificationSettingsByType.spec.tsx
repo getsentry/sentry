@@ -62,7 +62,7 @@ describe('NotificationSettingsByType', function () {
   });
 
   it('should render when notification settings are enabled', function () {
-    TestComponent({
+    renderComponent({
       alerts: {user: {me: {email: 'always', slack: 'always'}}},
     });
 
