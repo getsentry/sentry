@@ -78,9 +78,14 @@ const TOUR_STEPS: TourStep[] = [
 type Props = {
   organization: Organization;
   resultsUrl: string;
+  showBuildNewQueryButton?: boolean;
 };
 
-function DiscoverBanner({organization, resultsUrl}: Props) {
+function DiscoverBanner({
+  organization,
+  resultsUrl,
+  showBuildNewQueryButton = true,
+}: Props) {
   function onAdvance(step: number, duration: number) {
     trackAdvancedAnalyticsEvent('discover_v2.tour.advance', {
       organization,
@@ -104,16 +109,18 @@ function DiscoverBanner({organization, resultsUrl}: Props) {
       backgroundComponent={<BackgroundSpace />}
       dismissKey="discover"
     >
-      <Button
-        size={isSmallBanner ? 'xs' : undefined}
-        translucentBorder
-        to={resultsUrl}
-        onClick={() => {
-          trackAdvancedAnalyticsEvent('discover_v2.build_new_query', {organization});
-        }}
-      >
-        {t('Build a new query')}
-      </Button>
+      {showBuildNewQueryButton && (
+        <Button
+          size={isSmallBanner ? 'xs' : undefined}
+          translucentBorder
+          to={resultsUrl}
+          onClick={() => {
+            trackAdvancedAnalyticsEvent('discover_v2.build_new_query', {organization});
+          }}
+        >
+          {t('Build a new query')}
+        </Button>
+      )}
       <FeatureTourModal
         steps={TOUR_STEPS}
         doneText={t('View all Events')}
