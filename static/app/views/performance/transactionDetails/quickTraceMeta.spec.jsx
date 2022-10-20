@@ -107,9 +107,9 @@ describe('QuickTraceMeta', function () {
     );
   });
 
-  it('renders missing trace when trace id is not present', async function () {
+  it('renders missing trace when trace id is not present', function () {
     const newEvent = TestStubs.Event();
-    const wrapper = mountWithTheme(
+    render(
       <WrappedQuickTraceMeta
         event={newEvent}
         project={project}
@@ -121,19 +121,12 @@ describe('QuickTraceMeta', function () {
         errorDest="issue"
         transactionDest="performance"
       />,
-      routerContext
+      {context: routerContext}
     );
 
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('MetaData').exists()).toBe(true);
-    expect(wrapper.find('div[data-test-id="quick-trace-body"]').text()).toEqual(
-      'Missing Trace'
-    );
-    expect(wrapper.find('div[data-test-id="quick-trace-footer"]').text()).toEqual(
-      'Read the docs'
-    );
+    expect(screen.getByTestId('meta-data')).toBeInTheDocument();
+    expect(screen.getByTestId('quick-trace-body')).toHaveTextContent('Missing Trace');
+    expect(screen.getByTestId('quick-trace-footer')).toHaveTextContent('Read the docs');
   });
 
   it('renders missing trace with hover card when feature disabled', async function () {
