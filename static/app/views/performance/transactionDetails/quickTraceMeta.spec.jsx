@@ -1,4 +1,3 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -157,10 +156,10 @@ describe('QuickTraceMeta', function () {
     ).toBeInTheDocument();
   });
 
-  it('does not render when platform does not support tracing', async function () {
+  it('does not render when platform does not support tracing', function () {
     const newProject = TestStubs.Project();
     const newEvent = TestStubs.Event();
-    const wrapper = mountWithTheme(
+    const result = render(
       <WrappedQuickTraceMeta
         event={newEvent}
         project={newProject}
@@ -172,12 +171,9 @@ describe('QuickTraceMeta', function () {
         errorDest="issue"
         transactionDest="performance"
       />,
-      routerContext
+      {context: routerContext}
     );
 
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.isEmptyRender()).toBe(true);
+    expect(result.baseElement.firstChild).toBeEmptyDOMElement();
   });
 });
