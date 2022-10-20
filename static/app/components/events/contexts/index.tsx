@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import partition from 'lodash/partition';
 
 import {Group} from 'sentry/types';
 import {Event} from 'sentry/types/event';
@@ -14,8 +15,23 @@ type Props = {
 function Contexts({event, group}: Props) {
   const {user, contexts} = event;
 
+  const [feedbackContextKey, otherContextKeys] = partition(
+    Object.keys(contexts),
+    key => key === 'feedback'
+  );
+
   return (
     <Fragment>
+      {!!feedbackContextKey.length && (
+        <Chunk
+          key="feedback"
+          type="feedback"
+          alias="feedback"
+          group={group}
+          event={event}
+          value={contexts[feedbackContextKey[0]]}
+        />
+      )}
       {user && !objectIsEmpty(user) && (
         <Chunk
           key="user"
@@ -26,14 +42,14 @@ function Contexts({event, group}: Props) {
           value={user}
         />
       )}
-      {Object.entries(contexts).map(([key, value]) => (
+      {otherContextKeys.map(key => (
         <Chunk
           key={key}
-          type={value?.type ?? ''}
+          type={contexts[feedbackContextKey[key]]?.type ?? ''}
           alias={key}
           group={group}
           event={event}
-          value={value}
+          value={contexts[feedbackContextKey[key]]}
         />
       ))}
     </Fragment>
