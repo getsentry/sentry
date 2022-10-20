@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import concurrent.futures
-import contextlib
 import logging
 import random
 import time
@@ -9,17 +8,7 @@ from collections import deque
 from concurrent.futures import Future
 from datetime import datetime, timezone
 from io import BytesIO
-from typing import (
-    Any,
-    Callable,
-    Deque,
-    Iterator,
-    Mapping,
-    MutableMapping,
-    NamedTuple,
-    Optional,
-    cast,
-)
+from typing import Any, Callable, Deque, Mapping, MutableMapping, NamedTuple, Optional, cast
 
 import msgpack
 import sentry_sdk
