@@ -80,7 +80,7 @@ describe('TraceLiteQuery', function () {
     expect(traceFullMock).toHaveBeenCalledTimes(1);
   });
 
-  it('doesnt fetches meta when not needed', function () {
+  it('doesnt fetch meta when not needed', function () {
     render(
       <QuickTraceQuery
         withMeta={false}
