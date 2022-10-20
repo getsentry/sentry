@@ -28,9 +28,24 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name="appconnectbuild",
-            name="app_id_str",
-            field=models.CharField(max_length=256, null=True),
-        ),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL(
+                    """
+                    ALTER TABLE "sentry_appconnectbuild" ADD COLUMN "app_id_str" character(256) DEFAULT "0";
+                    """,
+                    reverse_sql="""
+                    ALTER TABLE "sentry_appconnectbuild" DROP COLUMN "app_id_str";
+                    """,
+                    hints={"tables": ["sentry_appconnectbuild"]},
+                ),
+            ],
+            state_operations=[
+                migrations.AddField(
+                    model_name="appconnectbuild",
+                    name="app_id_str",
+                    field=models.CharField(default="0", max_length=256),
+                ),
+            ],
+        )
     ]
