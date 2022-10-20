@@ -186,6 +186,7 @@ def test_validate_order_by():
         )
 
 
+@pytest.mark.django_db(True)
 def test_validate_order_by_field_in_select():
     metric_field_2 = MetricField(op=None, metric_mri=SessionMRI.ALL.value)
     metrics_query_dict = (
@@ -208,6 +209,7 @@ def test_validate_order_by_field_in_select():
     MetricsQuery(**metrics_query_dict)
 
 
+@pytest.mark.django_db(True)
 def test_validate_multiple_orderby_columns_not_specified_in_select():
     metric_field_1 = MetricField(op=None, metric_mri=SessionMRI.ABNORMAL.value)
     metric_field_2 = MetricField(op=None, metric_mri=SessionMRI.ALL.value)
@@ -229,6 +231,7 @@ def test_validate_multiple_orderby_columns_not_specified_in_select():
         MetricsQuery(**metrics_query_dict)
 
 
+@pytest.mark.django_db(True)
 def test_validate_multiple_order_by_fields_from_multiple_entities():
     """
     The example should fail because session crash free rate is generated from
@@ -257,6 +260,7 @@ def test_validate_multiple_order_by_fields_from_multiple_entities():
         MetricsQuery(**metrics_query_dict)
 
 
+@pytest.mark.django_db(True)
 def test_validate_multiple_orderby_derived_metrics_from_different_entities():
     """
     This example should fail because session crash free rate is generated from
@@ -284,6 +288,7 @@ def test_validate_multiple_orderby_derived_metrics_from_different_entities():
         MetricsQuery(**metrics_query_dict)
 
 
+@pytest.mark.django_db(True)
 def test_validate_many_order_by_fields_are_in_select():
     """
     Validate no exception is raised when all orderBy fields are presented the select
