@@ -1385,6 +1385,7 @@ class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
                 "metric_id": indexer.resolve(
                     UseCaseKey.PERFORMANCE, self.organization.id, something_custom_metric
                 ),
+                "mri_string": something_custom_metric,
             }
         ]
 
@@ -1433,6 +1434,7 @@ class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
                 "metric_id": indexer.resolve(
                     UseCaseKey.PERFORMANCE, self.organization.id, something_custom_metric
                 ),
+                "mri_string": something_custom_metric,
             }
         ]
 
