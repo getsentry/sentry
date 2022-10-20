@@ -207,9 +207,9 @@ class IntegrationRepos extends AsyncComponent<Props, State> {
         )}
 
         <Panel>
-          <PanelHeader disablePadding hasButtons>
-            <HeaderText>{t('Repositories')}</HeaderText>
-            <DropdownWrapper>{this.renderDropdown()}</DropdownWrapper>
+          <PanelHeader hasButtons>
+            <div>{t('Repositories')}</div>
+            <div>{this.renderDropdown()}</div>
           </PanelHeader>
           <PanelBody>
             {itemList.length === 0 && (
@@ -246,16 +246,6 @@ class IntegrationRepos extends AsyncComponent<Props, State> {
 }
 
 export default withOrganization(IntegrationRepos);
-
-const HeaderText = styled('div')`
-  padding-left: ${space(2)};
-  flex: 1;
-`;
-
-const DropdownWrapper = styled('div')`
-  padding-right: ${space(1)};
-  text-transform: none;
-`;
 
 const StyledReposLabel = styled('div')`
   width: 250px;
