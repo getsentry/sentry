@@ -80,10 +80,9 @@ class CodeMappingTreesHelper:
 
     def generate_code_mappings(self, stacktraces: List[str]) -> List[CodeMapping]:
         """Generate code mappings based on the initial trees object and the list of stack traces"""
-        # We need to make sure that calling this method with a new list of stack traces should always
-        # start with a clean slate
+        # We need to make sure that calling this method with a new list of stack traces
+        # should always start with a clean slate
         self.code_mappings = {}
-        # XXX: Rewind feature
         buckets: Dict[str, Any] = self.stacktrace_buckets(stacktraces)
 
         for stackframe_root, stackframes in buckets.items():
@@ -91,6 +90,10 @@ class CodeMappingTreesHelper:
                 for frame_filename in stackframes:
                     code_mapping = self._find_code_mapping(frame_filename)
                     if code_mapping:
+                        # XXX: Reprocess feature
+                        # XXX: Reverse mapping may need to be on a per-repo basis
+                        # This helps excluding some source files when we have a matching code mapping
+                        self.reverse_mapping.append(code_mapping.source_path)
                         self.code_mappings[stackframe_root] = code_mapping
 
         return list(self.code_mappings.values())
@@ -125,7 +128,7 @@ class CodeMappingTreesHelper:
                 self.trees[repo_full_name],
             )
         )
-        # It is too risky trying to generate code mappings when there's more
+        # It is too risky generating code mappings when there's more
         # than one file potentially matching
         return (
             [
@@ -155,8 +158,6 @@ class CodeMappingTreesHelper:
                 if len(
                     list(
                         filter(
-                            # XXX: We should make sure that we're consistent wrt to src_path
-                            # to be store with a forward slash or not
                             lambda source_path: src_file.startswith(f"{source_path}/"),
                             self.reverse_mapping,
                         )
@@ -170,17 +171,14 @@ class CodeMappingTreesHelper:
         """Tries to see if the stacktrace without the root matches the file from the
         source code. Use reverse code mappings to exclude some source files
         """
+        # Exit early because we should not be processing source files for existing code maps
         if self._matches_current_code_mappings(src_file, frame_filename):
-            # Exit early because we should not be processing this filename
-            # since we have an existing code mapping
             return False
 
-        ret_value = False
-        # if frame_filename.root:
-        # It has to have at least one directory with
-        # e.g. requests/models.py matches all files with models.py
-        if frame_filename.file_and_dir_path.find("/") > -1:
-            ret_value = src_file.rfind(frame_filename.file_and_dir_path) > -1
-        # else:
-
-        return ret_value
+        # XXX: Double check this logic
+        # return (
+        #     src_file.rfind(frame_filename.file_and_dir_path) > -1
+        #     if frame_filename.file_and_dir_path.find("/") > -1
+        #     else False
+        # )
+        return src_file.rfind(frame_filename.file_and_dir_path) > -1
