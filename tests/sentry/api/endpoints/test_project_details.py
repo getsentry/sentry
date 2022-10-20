@@ -1805,3 +1805,135 @@ class TestDynamicSamplingSerializers(BaseTestCase):
         )
         assert serializer.is_valid()
         assert data == serializer.validated_data
+
+
+class TestProjectDetailsDynamicSampling(APITestCase):
+    endpoint = "sentry-api-0-project-details"
+
+    def test_no_dynamic_sampling_returned_from_get_on_am2_plan(self):
+        """
+        Test that ensures that `GET` request to project details endpoint does not return any dynamicSampling config
+        even if they exist when the am2 plan flag is enabled
+        """
+        dynamic_sampling_data = {
+            "rules": [
+                {
+                    "sampleRate": 0.7,
+                    "type": "trace",
+                    "active": True,
+                    "condition": {
+                        "op": "and",
+                        "inner": [
+                            {"op": "eq", "name": "field1", "value": ["val"]},
+                            {"op": "glob", "name": "field1", "value": ["val"]},
+                        ],
+                    },
+                    "id": 1,
+                },
+                {
+                    "sampleRate": 0.8,
+                    "type": "trace",
+                    "active": True,
+                    "condition": {
+                        "op": "and",
+                        "inner": [],
+                    },
+                    "id": 2,
+                },
+            ],
+            "next_id": 3,
+        }
+
+        self.project.update_option("sentry:dynamic_sampling", dynamic_sampling_data)
+
+        self.login_as(user=self.user)
+        with Feature({"organizations:dynamic-sampling-basic": True}):
+            response = self.get_success_response(
+                self.organization.slug, self.project.slug, method="get"
+            )
+            assert "dynamicSampling" not in response.data
+
+    def test_cannot_update_dynamic_sampling_config_on_am2_plan(self):
+        """
+        Test that ensures that `PUT` request to project details endpoint does not update dynamicSampling config by
+        returning a 403 error when the am2 plan flag is enabled
+        """
+        dynamic_sampling = _dyn_sampling_data()
+        project = self.project  # force creation
+        # Update project adding three rules
+        project.update_option("sentry:dynamic_sampling", dynamic_sampling)
+
+        self.login_as(self.user)
+
+        token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
+        authorization = f"Bearer {token.token}"
+
+        url = reverse(
+            "sentry-api-0-project-details",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+            },
+        )
+
+        data = {
+            "dynamicSampling": {
+                "rules": [
+                    {**dynamic_sampling["rules"][0], "active": False},
+                    dynamic_sampling["rules"][1],
+                    dynamic_sampling["rules"][2],
+                ]
+            }
+        }
+        with Feature({"organizations:dynamic-sampling-basic": True}):
+            resp = self.client.put(url, format="json", HTTP_AUTHORIZATION=authorization, data=data)
+            assert resp.status_code == 403
+            assert resp.json()["detail"] == ["dynamicSampling is not a valid field"]
+
+    def test_no_dynamic_sampling_returned_from_put_on_am2_plan(self):
+        """
+        Test that ensures that the "PUT" response doesn't return dynamic sampling data in case it exists in the options
+        and the user is on am2 basic plan.
+        """
+        sensitive_fields = ["foobar.com", "https://example.com"]
+        dynamic_sampling_data = {
+            "rules": [
+                {
+                    "sampleRate": 0.7,
+                    "type": "trace",
+                    "active": True,
+                    "condition": {
+                        "op": "and",
+                        "inner": [
+                            {"op": "eq", "name": "field1", "value": ["val"]},
+                            {"op": "glob", "name": "field1", "value": ["val"]},
+                        ],
+                    },
+                    "id": 1,
+                },
+                {
+                    "sampleRate": 0.8,
+                    "type": "trace",
+                    "active": True,
+                    "condition": {
+                        "op": "and",
+                        "inner": [],
+                    },
+                    "id": 2,
+                },
+            ],
+            "next_id": 3,
+        }
+
+        self.project.update_option("sentry:dynamic_sampling", dynamic_sampling_data)
+
+        self.login_as(user=self.user)
+        with Feature({"organizations:dynamic-sampling-basic": True}):
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                sensitiveFields=sensitive_fields,
+                method="put",
+            )
+            assert "sensitiveFields" in response.data
+            assert "dynamicSampling" not in response.data
