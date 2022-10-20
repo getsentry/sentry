@@ -29,6 +29,7 @@ function formatCommitMessage(message: string | null) {
 interface CommitRowProps {
   commit: Commit;
   customAvatar?: React.ReactNode;
+  hideCommitMessage?: boolean;
   onCommitClick?: () => void;
   onPullRequestClick?: () => void;
 }
@@ -38,6 +39,7 @@ function CommitRow({
   customAvatar,
   onPullRequestClick,
   onCommitClick,
+  hideCommitMessage = false,
 }: CommitRowProps) {
   const handleInviteClick = useCallback(() => {
     if (!commit.author?.email) {
@@ -93,26 +95,28 @@ function CommitRow({
         </div>
       )}
 
-      <CommitMessage>
-        <Message>
-          {tct('[author] committed [commitLink]', {
-            author: isUser ? t('You') : commit.author?.name ?? t('Unknown author'),
-            commitLink: (
-              <CommitLink
-                inline
-                showIcon={false}
-                commitId={commit.id}
-                repository={commit.repository}
-                onClick={onCommitClick}
-              />
-            ),
-          })}
-        </Message>
-        <Meta>
-          {formatCommitMessage(commit.message)} &bull;{' '}
-          <TimeSince date={commit.dateCreated} />
-        </Meta>
-      </CommitMessage>
+      {!hideCommitMessage && (
+        <CommitMessage>
+          <Message>
+            {tct('[author] committed [commitLink]', {
+              author: isUser ? t('You') : commit.author?.name ?? t('Unknown author'),
+              commitLink: (
+                <CommitLink
+                  inline
+                  showIcon={false}
+                  commitId={commit.id}
+                  repository={commit.repository}
+                  onClick={onCommitClick}
+                />
+              ),
+            })}
+          </Message>
+          <Meta>
+            {formatCommitMessage(commit.message)} &bull;{' '}
+            <TimeSince date={commit.dateCreated} />
+          </Meta>
+        </CommitMessage>
+      )}
 
       {commit.pullRequest && commit.pullRequest.externalUrl && (
         <Button
@@ -127,7 +131,7 @@ function CommitRow({
   );
 }
 
-const StyledPanelItem = styled(PanelItem)`
+export const StyledPanelItem = styled(PanelItem)`
   display: flex;
   align-items: center;
   gap: ${space(2)};

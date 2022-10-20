@@ -337,7 +337,7 @@ const EventEntries = ({
         />
       )}
       {!isShare && isNotSharedOrganization(organization) && (
-        <EventCause project={project} event={event} group={group} />
+        <EventCause project={project} eventId={event.id} group={group} />
       )}
       {event.userReport && group && (
         <StyledEventUserFeedback

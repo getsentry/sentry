@@ -10,23 +10,30 @@ import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {AvatarProject, Group, IssueCategory} from 'sentry/types';
-import type {Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useCommitters from 'sentry/utils/useCommitters';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
-  event: Event;
+  eventId: string;
   project: AvatarProject;
   group?: Group;
+  hideCommitMessage?: boolean;
+  onCommitsLoaded?: () => void;
 }
 
-function EventCause({group, event, project}: Props) {
+function EventCause({
+  group,
+  eventId,
+  project,
+  hideCommitMessage = false,
+  onCommitsLoaded,
+}: Props) {
   const organization = useOrganization();
   const [isExpanded, setIsExpanded] = useState(false);
   const {committers, fetching} = useCommitters({
-    eventId: event.id,
+    eventId,
     projectSlug: project.slug,
   });
 
@@ -88,6 +95,10 @@ function EventCause({group, event, project}: Props) {
 
   const commits = getUniqueCommitsWithAuthors();
 
+  if (commits.length >= 1 && onCommitsLoaded) {
+    onCommitsLoaded();
+  }
+
   return (
     <DataSection>
       <CauseHeader>
@@ -115,6 +126,7 @@ function EventCause({group, event, project}: Props) {
             commit={commit}
             onCommitClick={handleCommitClick}
             onPullRequestClick={handlePullRequestClick}
+            hideCommitMessage={hideCommitMessage}
           />
         ))}
       </Panel>
