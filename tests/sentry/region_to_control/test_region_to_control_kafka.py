@@ -102,15 +102,16 @@ def test_region_to_control_user_audit_log(
     # If this test is 'flakey' wrt message production -> a single _run_once loop at any time, it means that the
     # durable write logic isn't working!  That's a real bug.  Unfortunately, there isn't a super great way to fake
     # lag between the confluent client and the kafka queue to make a reliable test of synchronous behavior.
-    with override_settings(SILO_MODE=SiloMode.REGION):
-        create_audit_entry_from_user(
-            user,
-            organization_id=organization.id,
-            target_object=15,
-            data=dict(custom=15),
-            event=19,
-            ip_address="9.9.9.9",
-        )
+    with use_real_service(region_to_control_message_service, SiloMode.REGION):
+        with override_settings(SILO_MODE=SiloMode.REGION):
+            create_audit_entry_from_user(
+                user,
+                organization_id=organization.id,
+                target_object=15,
+                data=dict(custom=15),
+                event=19,
+                ip_address="9.9.9.9",
+            )
 
     entry = AuditLogEntry.objects.last()
     assert entry is None

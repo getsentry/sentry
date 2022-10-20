@@ -128,7 +128,7 @@ audit_log_entry_service: AuditLogEntryService = silo_mode_delegation(
     {
         SiloMode.MONOLITH: DatabaseBackedAuditLogEntryService,
         SiloMode.CONTROL: DatabaseBackedAuditLogEntryService,
-        SiloMode.REGION: RegionToControlMessagingService,
+        SiloMode.REGION: RegionToControlAuditLogEntryService,
     }
 )
 
