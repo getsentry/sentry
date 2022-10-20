@@ -19,11 +19,9 @@ class EventsTable extends Component<Props> {
 
     const hasUser = !!events.find(event => event.user);
 
-    const replayIndex = tagList.findIndex(tag => tag.key === 'replayId');
-    const replayColumn =
-      orgFeatures.includes('session-replay-ui') &&
-      replayIndex !== -1 &&
-      tagList.splice(replayIndex, replayIndex + 1).at(0);
+    const showReplayColumn = orgFeatures.includes('session-replay-ui');
+
+    const filteredTagList = tagList.filter(tag => tag.key !== 'replayId');
 
     return (
       <table className="table events-table" data-test-id="events-table">
@@ -32,11 +30,11 @@ class EventsTable extends Component<Props> {
             <th>{t('ID')}</th>
             {hasUser && <th>{t('User')}</th>}
 
-            {tagList.map(tag => (
+            {filteredTagList.map(tag => (
               <th key={tag.key}>{tag.name}</th>
             ))}
 
-            {replayColumn && <th>{t('Replay')}</th>}
+            {showReplayColumn && <th>{t('Replay')}</th>}
           </tr>
         </thead>
         <tbody>
@@ -47,9 +45,9 @@ class EventsTable extends Component<Props> {
               orgId={orgId}
               projectId={projectId}
               groupId={groupId}
-              tagList={tagList}
+              tagList={filteredTagList}
               hasUser={hasUser}
-              showReplayColumn={Boolean(replayColumn)}
+              showReplayColumn={showReplayColumn}
             />
           ))}
         </tbody>
