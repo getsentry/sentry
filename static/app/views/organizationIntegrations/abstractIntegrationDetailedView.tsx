@@ -332,7 +332,7 @@ class AbstractIntegrationDetailedView<
             className={this.state.tab === tabName ? 'active' : ''}
             onClick={() => this.onTabChange(tabName)}
           >
-            <CapitalizedLink>{t(this.getTabDisplay(tabName))}</CapitalizedLink>
+            <CapitalizedLink>{this.getTabDisplay(tabName)}</CapitalizedLink>
           </li>
         ))}
       </ul>
@@ -371,7 +371,7 @@ class AbstractIntegrationDetailedView<
             {this.resourceLinks.map(({title, url}) => (
               <ExternalLinkContainer key={url}>
                 {this.getIcon(title)}
-                <ExternalLink href={url}>{t(title)}</ExternalLink>
+                <ExternalLink href={url}>{title}</ExternalLink>
               </ExternalLinkContainer>
             ))}
           </Metadata>

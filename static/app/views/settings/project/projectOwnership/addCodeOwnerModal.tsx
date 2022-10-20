@@ -121,7 +121,7 @@ class AddCodeOwnerModal extends AsyncComponent<Props, State> {
         if (err.responseJSON.raw) {
           this.setState({error: true, errorJSON: err.responseJSON, isLoading: false});
         } else {
-          addErrorMessage(t(Object.values(err.responseJSON).flat().join(' ')));
+          addErrorMessage(Object.values(err.responseJSON).flat().join(' '));
         }
       }
     }

@@ -272,7 +272,7 @@ class ContextPickerModal extends Component<Props> {
         label: t('My Projects'),
         options: memberProjects.map(p => ({
           value: p.slug,
-          label: t(`${p.slug}`),
+          label: p.slug,
           disabled: false,
         })),
       },
@@ -280,7 +280,7 @@ class ContextPickerModal extends Component<Props> {
         label: t('All Projects'),
         options: nonMemberProjects.map(p => ({
           value: p.slug,
-          label: t(`${p.slug}`),
+          label: p.slug,
           disabled: isSuperuser ? false : true,
         })),
       },

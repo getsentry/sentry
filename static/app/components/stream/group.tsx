@@ -331,7 +331,7 @@ function BaseGroupRow({
                   )}
 
                   <StyledMenuItem to={getDiscoverUrl()}>
-                    <MenuItemText>{t(`Total in ${summary}`)}</MenuItemText>
+                    <MenuItemText>{t('Total in %s', summary)}</MenuItemText>
                     <MenuItemCount value={group.count} />
                   </StyledMenuItem>
 
@@ -387,7 +387,7 @@ function BaseGroupRow({
                 )}
 
                 <StyledMenuItem to={getDiscoverUrl()}>
-                  <MenuItemText>{t(`Total in ${summary}`)}</MenuItemText>
+                  <MenuItemText>{t('Total in %s', summary)}</MenuItemText>
                   <MenuItemCount value={group.userCount} />
                 </StyledMenuItem>
 

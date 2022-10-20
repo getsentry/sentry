@@ -8,7 +8,6 @@ import type {Location} from 'history';
 import moment from 'moment';
 
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {t} from 'sentry/locale';
 import {EventsStats, MultiSeriesEventsStats, PageFilters} from 'sentry/types';
 import {defined, escape} from 'sentry/utils';
 import {getFormattedDate, parsePeriodToHours} from 'sentry/utils/dates';
@@ -377,6 +376,6 @@ export function useEchartsAriaLabels(
 
   return {
     enabled: true,
-    label: {description: t([title, ...seriesDescriptions].join('. '))},
+    label: {description: [title, ...seriesDescriptions].join('. ')},
   };
 }

@@ -122,8 +122,7 @@ export const fields: Record<string, Field> = {
     },
     saveOnBlur: false,
     saveMessage: tct(
-      '[strong:Caution]: Enabling auto resolve will immediately resolve anything that has ' +
-        'not been seen within this period of time. There is no undo!',
+      '[strong:Caution]: Enabling auto resolve will immediately resolve anything that has not been seen within this period of time. There is no undo!',
       {
         strong: <strong />,
       }

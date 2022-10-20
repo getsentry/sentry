@@ -46,7 +46,7 @@ export default function VitalPercents(props: Props) {
       {props.percents.map(pct => (
         <VitalStatus data-test-id="vital-status" key={pct.vitalState}>
           {vitalStateIcons[pct.vitalState]}
-          {props.showVitalPercentNames && t(`${pct.vitalState}`)}{' '}
+          {props.showVitalPercentNames && pct.vitalState}{' '}
           {formatPercentage(pct.percent, 0)}
           {props.showVitalThresholds && getVitalStateText(props.vital, pct.vitalState)}
         </VitalStatus>

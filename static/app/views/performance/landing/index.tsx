@@ -182,7 +182,7 @@ export function PerformanceLanding(props: Props) {
 
             <TabList hideBorder>
               {LANDING_DISPLAYS.map(({label, field}) => (
-                <Item key={field}>{t(label)}</Item>
+                <Item key={field}>{label}</Item>
               ))}
             </TabList>
           </Layout.Header>

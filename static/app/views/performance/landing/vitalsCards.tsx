@@ -466,7 +466,7 @@ function VitalCard(props: VitalCardProps) {
   return (
     <StyledCard interactive={!isNotInteractive} minHeight={minHeight}>
       <HeaderTitle>
-        <OverflowEllipsis>{t(title)}</OverflowEllipsis>
+        <OverflowEllipsis>{title}</OverflowEllipsis>
         <QuestionTooltip size="sm" position="top" title={tooltip} />
       </HeaderTitle>
       <CardContent horizontal={horizontal}>

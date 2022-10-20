@@ -148,8 +148,8 @@ export default class PermissionSelection extends Component<Props, State> {
               name={`${config.resource}--permission`}
               key={config.resource}
               options={options}
-              help={t(config.help)}
-              label={t(config.label || config.resource)}
+              help={config.help}
+              label={config.label || config.resource}
               onChange={this.onChange.bind(this, config.resource)}
               value={value}
               defaultValue={value}

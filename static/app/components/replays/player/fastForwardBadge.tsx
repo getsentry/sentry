@@ -13,7 +13,7 @@ type Props = {
 function FastForwardBadge({speed, className}: Props) {
   return (
     <Badge className={className}>
-      <FastForwardTooltip title={t(`Fast forwarding at ${speed}x`)}>
+      <FastForwardTooltip title={t('Fast forwarding at %sx', speed)}>
         {t('Fast forwarding through inactivity')}
         <IconArrow size="sm" direction="right" />
       </FastForwardTooltip>

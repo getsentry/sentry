@@ -2,7 +2,6 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import CircleIndicator from 'sentry/components/circleIndicator';
-import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {IntegrationInstallationStatus} from 'sentry/types';
 
@@ -23,7 +22,7 @@ const IntegrationStatus = styled(({status, ...p}: StatusProps) => {
   return (
     <StatusWrapper>
       <CircleIndicator size={6} color={theme[COLORS[status]]} />
-      <div {...p}>{`${t(status)}`}</div>
+      <div {...p}>{status}</div>
     </StatusWrapper>
   );
 })`

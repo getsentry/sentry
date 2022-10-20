@@ -323,7 +323,7 @@ const PulsingIndicator = styled('div')`
 const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) => (
   <div {...p}>
     <PulsingIndicator />
-    {t(`Waiting for this project's first transaction event`)}
+    {t("Waiting for this project's first transaction event")}
   </div>
 ))`
   display: flex;
@@ -336,7 +336,7 @@ const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) =
 const EventReceivedIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) => (
   <div {...p}>
     {'🎉 '}
-    {t(`We've received this project's first transaction event!`)}
+    {t("We've received this project's first transaction event!")}
   </div>
 ))`
   display: flex;

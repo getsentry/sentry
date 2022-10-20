@@ -148,7 +148,7 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
     }
 
     if (!sentryApp.redirectUrl) {
-      addSuccessMessage(t(`${sentryApp.slug} successfully installed.`));
+      addSuccessMessage(t('%s successfully installed.', sentryApp.slug));
       this.setState({appInstalls: [install, ...this.state.appInstalls]});
 
       // hack for split so we can show the install ID to users for them to copy
@@ -177,7 +177,7 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
       );
       return this.setState({appInstalls});
     } catch (error) {
-      return addErrorMessage(t(`Unable to uninstall ${this.sentryApp.name}`));
+      return addErrorMessage(t('Unable to uninstall %s', this.sentryApp.name));
     }
   };
 

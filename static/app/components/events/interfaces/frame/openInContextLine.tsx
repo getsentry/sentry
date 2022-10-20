@@ -43,7 +43,7 @@ const OpenInContextLine = ({lineNo, filename, components}: Props) => {
             openInNewTab
           >
             <SentryAppComponentIcon sentryAppComponent={component} />
-            <OpenInName>{t(`${component.sentryApp.name}`)}</OpenInName>
+            <OpenInName>{component.sentryApp.name}</OpenInName>
           </OpenInLink>
         );
       })}

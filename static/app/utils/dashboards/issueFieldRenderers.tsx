@@ -179,7 +179,7 @@ const issuesCountRenderer = (
               </Fragment>
             ) : null}
             <StyledLink to={discoverLink}>
-              {t(`Total in ${selectionDateString}`)}
+              {t('Total in %s', selectionDateString)}
               <WrappedCount value={count} />
             </StyledLink>
             <Divider />

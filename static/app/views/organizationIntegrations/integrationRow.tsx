@@ -203,7 +203,7 @@ const LearnMore = styled(Link)`
 type PublishStatusProps = {status: SentryApp['status']; theme?: any};
 
 const PublishStatus = styled(({status, ...props}: PublishStatusProps) => (
-  <div {...props}>{t(`${status}`)}</div>
+  <div {...props}>{status}</div>
 ))`
   color: ${(props: PublishStatusProps) =>
     props.status === 'published' ? props.theme.success : props.theme.gray300};

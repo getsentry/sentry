@@ -30,7 +30,7 @@ export function installSentryApp(
   );
   promise.then(
     () => clearIndicators(),
-    () => addErrorMessage(t(`Unable to install ${app.name}`))
+    () => addErrorMessage(t('Unable to install %s', app.name))
   );
   return promise;
 }
@@ -53,7 +53,7 @@ export function uninstallSentryApp(
     install.app.slug.charAt(0).toUpperCase() + install.app.slug.slice(1);
   promise.then(
     () => {
-      addSuccessMessage(t(`${capitalizedAppSlug} successfully uninstalled.`));
+      addSuccessMessage(t('%s successfully uninstalled.', capitalizedAppSlug));
     },
     () => clearIndicators()
   );

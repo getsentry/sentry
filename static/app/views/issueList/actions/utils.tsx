@@ -86,9 +86,13 @@ export function getConfirm({
     const question = allInQuerySelected
       ? getBulkConfirmMessage(`${action}${append}`, queryCount)
       : tn(
-          `Are you sure you want to ${action} this %s issue${append}?`,
-          `Are you sure you want to ${action} these %s issues${append}?`,
-          numIssues
+          // Use sprintf argument swapping since the number value must come
+          // first. See https://github.com/alexei/sprintf.js#argument-swapping
+          `Are you sure you want to %2$s this %s issue%3$s?`,
+          `Are you sure you want to %2$s these %s issues%3$s?`,
+          numIssues,
+          action,
+          append
         );
 
     let message: React.ReactNode;
@@ -146,12 +150,10 @@ export function getLabel(numIssues: number, allInQuerySelected: boolean) {
   return function (action: string, append = '') {
     const capitalized = capitalize(action);
     const text = allInQuerySelected
-      ? t(`Bulk ${action} issues`)
-      : tn(
-          `${capitalized} %s selected issue`,
-          `${capitalized} %s selected issues`,
-          numIssues
-        );
+      ? t('Bulk %s issues', action)
+      : // Use sprintf argument swapping to put the capitalized string first. See
+        // https://github.com/alexei/sprintf.js#argument-swapping
+        tn(`%2$s %s selected issue`, `%2$s %s selected issues`, numIssues, capitalized);
 
     return text + append;
   };

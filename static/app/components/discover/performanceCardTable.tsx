@@ -132,7 +132,7 @@ function PerformanceCardTable({
       return (
         <SubTitle key={idx}>
           <Link to={newView.getResultsViewUrlTarget(organization.slug)}>
-            {t(span.title)}
+            {span.title}
           </Link>
         </SubTitle>
       );
@@ -310,7 +310,7 @@ function PerformanceCardTable({
       return (
         <SubTitle key={idx}>
           <Link to={newView.getResultsViewUrlTarget(organization.slug)}>
-            {t(span.title)}
+            {span.title}
           </Link>
         </SubTitle>
       );

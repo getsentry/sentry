@@ -177,7 +177,7 @@ class TeamIssuesBreakdown extends AsyncComponent<Props, State> {
                 headers={[
                   t('Project'),
                   ...statuses.map(action => (
-                    <AlignRight key={action}>{t(action)}</AlignRight>
+                    <AlignRight key={action}>{action}</AlignRight>
                   )),
                   <AlignRight key="total">
                     {t('total')}{' '}

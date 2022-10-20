@@ -95,9 +95,11 @@ function DataExport({
         }
         const message =
           err?.responseJSON?.detail ??
-          "We tried our hardest, but we couldn't export your data. Give it another go.";
+          t(
+            "We tried our hardest, but we couldn't export your data. Give it another go."
+          );
 
-        addErrorMessage(t(message));
+        addErrorMessage(message);
         setInProgress(false);
       });
   }, [payload.queryInfo, payload.queryType, organization.slug, api]);
@@ -108,7 +110,9 @@ function DataExport({
         <Button
           size="sm"
           priority="default"
-          title="You can get on with your life. We'll email you when your data's ready."
+          title={t(
+            "You can get on with your life. We'll email you when your data's ready."
+          )}
           disabled
           icon={icon}
         >
@@ -120,7 +124,9 @@ function DataExport({
           disabled={disabled || false}
           size="sm"
           priority="default"
-          title="Put your data to work. Start your export and we'll email you when it's finished."
+          title={t(
+            "Put your data to work. Start your export and we'll email you when it's finished."
+          )}
           icon={icon}
         >
           {children ? children : t('Export All to CSV')}

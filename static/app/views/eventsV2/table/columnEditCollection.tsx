@@ -546,7 +546,8 @@ class ColumnEditCollection extends Component<Props, State> {
     const title = canAdd
       ? undefined
       : t(
-          `Sorry, you've reached the maximum number of columns (${MAX_COL_COUNT}). Delete columns to add more.`
+          `Sorry, you've reached the maximum number of columns (%d). Delete columns to add more.`,
+          MAX_COL_COUNT
         );
 
     const singleColumn = columns.length === 1;

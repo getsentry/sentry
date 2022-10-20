@@ -76,14 +76,14 @@ export default function DesyncedFilterAlert({
         </Fragment>
       }
     >
-      {tct(
-        message ??
+      {message ??
+        tct(
           'The [filter] [has] been overwritten. This can happen when you open sentry.io links with filter parameters that are different from your current filter values.',
-        {
-          filter: getReadableDesyncedFilterList(desyncedFilters),
-          has: desyncedFilters.size > 1 ? t('have') : t('has'),
-        }
-      )}
+          {
+            filter: getReadableDesyncedFilterList(desyncedFilters),
+            has: desyncedFilters.size > 1 ? t('have') : t('has'),
+          }
+        )}
     </DesyncedAlert>
   );
 }
