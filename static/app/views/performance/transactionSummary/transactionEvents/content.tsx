@@ -66,7 +66,7 @@ function EventsContent(props: Props) {
   const transactionsListTitles = TRANSACTIONS_LIST_TITLES.slice();
 
   if (webVital) {
-    transactionsListTitles.splice(3, 0, t(webVital));
+    transactionsListTitles.splice(3, 0, webVital);
   }
 
   const spanOperationBreakdownConditions = filterToSearchConditions(
@@ -76,7 +76,7 @@ function EventsContent(props: Props) {
 
   if (spanOperationBreakdownConditions) {
     eventView.query = `${eventView.query} ${spanOperationBreakdownConditions}`.trim();
-    transactionsListTitles.splice(2, 1, t(`${spanOperationBreakdownFilter} duration`));
+    transactionsListTitles.splice(2, 1, t('%s duration', spanOperationBreakdownFilter));
   }
 
   if (organization.features.includes('session-replay-ui')) {
