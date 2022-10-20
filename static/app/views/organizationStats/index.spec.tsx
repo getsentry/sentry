@@ -79,18 +79,6 @@ describe('OrganizationStats', function () {
     expect(screen.getByText('Health')).toBeInTheDocument();
   });
 
-  it('renders header with dynamic sampling alert', () => {
-    const newOrg = initializeOrg();
-    newOrg.organization.features = ['server-side-sampling', 'server-side-sampling-ui'];
-    const newProps = {
-      ...defaultProps,
-      organization: newOrg.organization,
-      location: {query: {dataCategory: 'transactions'}} as any,
-    };
-    render(<OrganizationStats {...newProps} />, {context: newOrg.routerContext});
-    expect(screen.getByText('Dynamic Sampling Settings')).toBeInTheDocument();
-  });
-
   /**
    * Base + Error Handling
    */
