@@ -21,7 +21,7 @@ export function MetaData({
   badge,
 }: MetaDataProps) {
   return (
-    <HeaderInfo>
+    <HeaderInfo data-test-id="meta-data">
       <StyledSectionHeading>
         {headingText}
         <QuestionTooltip
