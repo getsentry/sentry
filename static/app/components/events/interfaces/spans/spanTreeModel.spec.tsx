@@ -348,7 +348,7 @@ describe('SpanTreeModel', () => {
     let mockRemoveTraceBounds = jest.fn();
 
     // embed a child transaction
-    let promise = spanTreeModel.toggleEmbeddedChildren({
+    let promise = spanTreeModel.makeToggleEmbeddedChildren({
       addTraceBounds: mockAddTraceBounds,
       removeTraceBounds: mockRemoveTraceBounds,
     })({
@@ -456,7 +456,7 @@ describe('SpanTreeModel', () => {
     mockRemoveTraceBounds = jest.fn();
 
     // un-embed a child transaction
-    promise = spanTreeModel.toggleEmbeddedChildren({
+    promise = spanTreeModel.makeToggleEmbeddedChildren({
       addTraceBounds: mockAddTraceBounds,
       removeTraceBounds: mockRemoveTraceBounds,
     })({
@@ -502,7 +502,7 @@ describe('SpanTreeModel', () => {
 
     const spanTreeModel = new SpanTreeModel(rootSpan, parsedTrace.childSpans, api);
 
-    const promise = spanTreeModel.toggleEmbeddedChildren({
+    const promise = spanTreeModel.makeToggleEmbeddedChildren({
       addTraceBounds: () => {},
       removeTraceBounds: () => {},
     })({
