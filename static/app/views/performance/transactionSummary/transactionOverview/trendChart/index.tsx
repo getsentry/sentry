@@ -110,7 +110,7 @@ function TrendChart({
       <QuestionTooltip
         size="sm"
         position="top"
-        title={t(`Trends shows the smoothed value of an aggregate over time.`)}
+        title={t('Trends shows the smoothed value of an aggregate over time.')}
       />
     </HeaderTitleLegend>
   );

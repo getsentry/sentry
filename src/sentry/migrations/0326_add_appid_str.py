@@ -24,7 +24,7 @@ class Migration(CheckedMigration):
     atomic = False
 
     dependencies = [
-        ("sentry", "0324_set_auto_assignments_true_by_default"),
+        ("sentry", "0325_turn_off_suspect_committer_auto_assignment_as_default"),
     ]
 
     operations = [
