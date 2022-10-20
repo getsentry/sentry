@@ -689,8 +689,8 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         assert data["meta"] == sorted(
             [
                 {"name": "bucketed_time", "type": "DateTime('Universal')"},
-                {"name": "p50_fcp", "type": "Array(Float64)"},
-                {"name": "p50_lcp", "type": "Array(Float64)"},
+                {"name": "p50_fcp", "type": "Float64"},
+                {"name": "p50_lcp", "type": "Float64"},
                 {"name": "project", "type": "string"},
                 {"name": "project_alias", "type": "string"},
                 {"name": "transaction_group", "type": "string"},
@@ -1220,7 +1220,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         ]
         assert data["meta"] == sorted(
             [
-                {"name": "p95", "type": "Array(Float64)"},
+                {"name": "p95", "type": "Float64"},
                 {"name": "team_key_transactions", "type": "boolean"},
                 {"name": "transaction", "type": "string"},
             ],

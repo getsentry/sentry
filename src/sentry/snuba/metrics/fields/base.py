@@ -69,6 +69,7 @@ from sentry.snuba.metrics.utils import (
     GENERIC_OP_TO_SNUBA_FUNCTION,
     GRANULARITY,
     OP_TO_SNUBA_FUNCTION,
+    OPERATIONS_PERCENTILES,
     TS_COL_QUERY,
     UNIT_TO_TYPE,
     DerivedMetricParseException,
@@ -354,6 +355,12 @@ class RawOp(MetricOperation):
         return False
 
     def get_meta_type(self) -> Optional[str]:
+        # If we have a percentile operation then we want to convert its type from Array(float64) to Float64
+        # because once we receive a percentile result from ClickHouse we automatically pop from the array the
+        # first element thus the datatype itself must also be changed in the metadata.
+        if self.op in OPERATIONS_PERCENTILES:
+            return "Float64"
+
         return None
 
     def run_post_query_function(
