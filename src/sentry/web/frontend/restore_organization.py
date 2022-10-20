@@ -28,7 +28,7 @@ class RestoreOrganizationView(OrganizationView):
     required_scope = "org:admin"
     sudo_required = True
 
-    def get_active_organization(self, request: Request, organization_slug):
+    def determine_active_organization(self, request: Request, organization_slug):
         # A simply version than what comes from the base
         # OrganizationView. We need to grab an organization
         # that is in any state, not just VISIBLE.
@@ -41,7 +41,7 @@ class RestoreOrganizationView(OrganizationView):
 
     def get(self, request: Request, organization) -> Response:
         if organization.status == OrganizationStatus.VISIBLE:
-            return self.redirect(organization.get_url())
+            return self.redirect(Organization.get_url(organization.slug))
 
         context = {
             # If this were named 'organization', it triggers logic in the base
@@ -81,4 +81,4 @@ class RestoreOrganizationView(OrganizationView):
                     event=audit_log.get_event_id("ORG_RESTORE"),
                     data=organization.get_audit_log_data(),
                 )
-        return self.redirect(organization.get_url())
+        return self.redirect(Organization.get_url(organization.slug))

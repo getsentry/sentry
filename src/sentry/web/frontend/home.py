@@ -10,7 +10,7 @@ from sentry.web.frontend.base import BaseView
 class HomeView(BaseView):
     def get(self, request: Request) -> Response:
         # If the active organization has an ongoing onboarding session, redirect to onboarding
-        organization = self.get_active_organization(request)
+        organization = self.determine_active_organization(request)
         if organization:
             redirect_uri = get_client_state_redirect_uri(organization.slug, None)
             if redirect_uri and is_valid_redirect(

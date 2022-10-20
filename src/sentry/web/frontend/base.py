@@ -1,4 +1,5 @@
 import logging
+from typing import NoReturn, Optional
 
 from django.http import (
     HttpResponse,
@@ -29,6 +30,7 @@ from sentry.models import (
     Team,
     TeamStatus,
 )
+from sentry.services.hybrid_cloud import ApiOrganization
 from sentry.utils import auth
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.auth import is_valid_redirect, make_login_link_with_redirect
@@ -41,31 +43,29 @@ audit_logger = logging.getLogger("sentry.audit.ui")
 
 
 class OrganizationMixin:
+    # This attribute will only be set once determine_active_organization is called.  Subclasses should likely invoke
+    # that method, passing along the organization_slug context that might exist (or might not).
+    active_organization: Optional[ApiOrganization]
+
     # TODO(dcramer): move the implicit organization logic into its own class
     # as it's only used in a single location and over complicates the rest of
     # the code
-    def get_active_organization(self, request: Request, organization_slug=None):
+    def determine_active_organization(self, request: Request, organization_slug=None) -> NoReturn:
         """
-        Returns the currently active organization for the request or None
-        if no organization.
-        """
+        Using the current request and potentially optional organization_slug, 'determines'
+        the current session for this mixin object's scope, placing it into the active_organization attribute.
 
-        # TODO(dcramer): this is a huge hack, and we should refactor this
-        # it is currently needed to handle the is_auth_required check on
-        # OrganizationBase
-        _active_org = getattr(self, "_active_org", None)
-        if _active_org:
-            (active_organization, requesting_user) = _active_org
-            cached_active_org = (
-                active_organization
-                and active_organization.slug == organization_slug
-                and requesting_user == request.user
-            )
-            if cached_active_org:
-                return active_organization
+
+        Note that this function has some side effects and should only be called once at the 'head' of a request.
+        """
+        # TODO: Really, this should be a service object, not a mixin, but unfortunately extracting that is not trivial
+        # due to the depth of references to this logic.
+
+        assert not hasattr(
+            self, "active_organization"
+        ), "determine_active_organization should only be called once!"
 
         active_organization = None
-
         is_implicit = organization_slug is None
 
         if is_implicit:
@@ -102,7 +102,8 @@ class OrganizationMixin:
 
         if active_organization is None and organizations:
             if not is_implicit:
-                return None
+                self.active_organization = None
+                return
 
             try:
                 active_organization = organizations[0]
@@ -114,7 +115,7 @@ class OrganizationMixin:
 
         self._active_org = (active_organization, request.user)
 
-        return active_organization
+        self.active_organization = active_organization
 
     def _is_org_member(self, user, organization):
         return OrganizationMember.objects.filter(user=user, organization=organization).exists()
@@ -159,10 +160,10 @@ class OrganizationMixin:
         from sentry import features
 
         # TODO(dcramer): deal with case when the user cannot create orgs
-        organization = self.get_active_organization(request)
+        organization = self.determine_active_organization(request)
 
         if organization:
-            url = organization.get_url()
+            url = Organization.get_url(organization.slug)
         elif not features.has("organizations:create"):
             return self.respond("sentry/no-organization-access.html", status=403)
         else:
@@ -208,6 +209,9 @@ class BaseView(View, OrganizationMixin):
            check unconditionally again.
 
         """
+
+        self.determine_active_organization(request, kwargs.get("organization_slug", None))
+
         if self.csrf_protect:
             if hasattr(self.dispatch.__func__, "csrf_exempt"):
                 delattr(self.dispatch.__func__, "csrf_exempt")
@@ -368,7 +372,7 @@ class OrganizationView(BaseView):
         if not organization_slug:
             return False
 
-        active_organization = self.get_active_organization(
+        active_organization = self.determine_active_organization(
             request=request, organization_slug=organization_slug
         )
         if not active_organization:
@@ -419,7 +423,7 @@ class OrganizationView(BaseView):
         return False
 
     def convert_args(self, request: Request, organization_slug=None, *args, **kwargs):
-        active_organization = self.get_active_organization(
+        active_organization = self.determine_active_organization(
             request=request, organization_slug=organization_slug
         )
 
@@ -469,7 +473,7 @@ class ProjectView(OrganizationView):
         return True
 
     def convert_args(self, request: Request, organization_slug, project_slug, *args, **kwargs):
-        active_organization = self.get_active_organization(
+        active_organization = self.determine_active_organization(
             request=request, organization_slug=organization_slug
         )
 
