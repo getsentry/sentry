@@ -10,7 +10,7 @@ import * as qs from 'query-string';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
 import DocIntegrationAvatar from 'sentry/components/avatar/docIntegrationAvatar';
-import SelectControl from 'sentry/components/forms/selectControl';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel, PanelBody} from 'sentry/components/panels';
@@ -513,6 +513,7 @@ export class IntegrationListDirectory extends AsyncComponent<
                   query={searchInput || ''}
                   onChange={this.handleSearchChange}
                   placeholder={t('Filter Integrations...')}
+                  aria-label={t('Filter')}
                   width="100%"
                   data-test-id="search-bar"
                 />

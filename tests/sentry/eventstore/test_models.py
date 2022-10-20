@@ -529,7 +529,30 @@ class GroupEventFromEventTest(TestCase):
             },
             project_id=self.project.id,
         )
-        assert event.for_group(self.group) == GroupEvent.from_event(event, self.group)
+        group_event = GroupEvent.from_event(event, self.group)
+        assert event.for_group(self.group) == group_event
+        # Since event didn't have a cached project, we should query here to fetch it
+        with self.assertNumQueries(1):
+            group_event.project
+
+    def test_project_cache(self):
+        event = Event(
+            event_id="a" * 32,
+            data={
+                "level": "info",
+                "message": "Foo bar",
+                "culprit": "app/components/events/eventEntries in map",
+                "type": "transaction",
+                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+            },
+            project_id=self.project.id,
+        )
+        # This causes the project to be cached
+        event.project
+        group_event = GroupEvent.from_event(event, self.group)
+        # Make sure we don't make additional queries when accessing project here
+        with self.assertNumQueries(0):
+            group_event.project
 
 
 @pytest.mark.django_db

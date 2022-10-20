@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import logging
 import random
+import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import timedelta
@@ -33,6 +34,7 @@ INTEGRATIONS_OF_INTEREST = [
     "Mongo",  # Node
     "Postgres",  # Node
 ]
+PARAMETERIZED_SQL_QUERY_REGEX = re.compile(r"\?|\$1|%s")
 
 
 class DetectorType(Enum):
@@ -191,13 +193,22 @@ def detect_performance_problems(data: Event) -> List[PerformanceProblem]:
 # Gets the thresholds to perform performance detection.
 # Duration thresholds are in milliseconds.
 # Allowed span ops are allowed span prefixes. (eg. 'http' would work for a span with 'http.client' as its op)
-def get_detection_settings(project_id: str):
-    default_project_settings = projectoptions.get_well_known_default(
-        "sentry:performance_issue_settings",
-        project=project_id,
+def get_detection_settings(project_id: Optional[str] = None):
+    default_project_settings = (
+        projectoptions.get_well_known_default(
+            "sentry:performance_issue_settings",
+            project=project_id,
+        )
+        if project_id
+        else {}
     )
-    project_settings = ProjectOption.objects.get_value(
-        project_id, "sentry:performance_issue_settings", default_project_settings
+
+    project_settings = (
+        ProjectOption.objects.get_value(
+            project_id, "sentry:performance_issue_settings", default_project_settings
+        )
+        if project_id
+        else {}
     )
 
     use_project_option_settings = default_project_settings != project_settings
@@ -282,7 +293,6 @@ def get_detection_settings(project_id: str):
 
 def _detect_performance_problems(data: Event, sdk_span: Any) -> List[PerformanceProblem]:
     event_id = data.get("event_id", None)
-    spans = data.get("spans", [])
     project_id = data.get("project")
 
     detection_settings = get_detection_settings(project_id)
@@ -302,11 +312,8 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
         ),
     }
 
-    for span in spans:
-        for _, detector in detectors.items():
-            detector.visit_span(span)
     for _, detector in detectors.items():
-        detector.on_complete()
+        run_detector_on_data(detector, data)
 
     # Metrics reporting only for detection, not created issues.
     report_metrics_for_detectors(data, event_id, detectors, sdk_span)
@@ -342,6 +349,14 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
 
     # TODO: Make sure upstream is all compatible with set before switching output type.
     return list(unique_performance_problems)
+
+
+def run_detector_on_data(detector, data):
+    spans = data.get("spans", [])
+    for span in spans:
+        detector.visit_span(span)
+
+    detector.on_complete()
 
 
 # Uses options and flags to determine which orgs and which detectors automatically create performance issues.
@@ -724,7 +739,8 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
 
         # Only concern ourselves with transactions where the FCP is within the
         # range we care about.
-        fcp_hash = self.event().get("measurements", {}).get("fcp", {})
+        measurements = self.event().get("measurements") or {}
+        fcp_hash = measurements.get("fcp") or {}
         fcp_value = fcp_hash.get("value")
         if fcp_value and ("unit" not in fcp_hash or fcp_hash["unit"] == "millisecond"):
             fcp = timedelta(milliseconds=fcp_value)
@@ -888,7 +904,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         if not span_id or not op:
             return
 
-        if not op.startswith("db"):
+        if not self._is_db_op(op):
             # This breaks up the N+1 we're currently tracking.
             self._maybe_store_problem()
             self._reset_detection()
@@ -922,6 +938,9 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
 
     def on_complete(self) -> None:
         self._maybe_store_problem()
+
+    def _is_db_op(self, op: str) -> bool:
+        return op.startswith("db") and not op.startswith("db.redis")
 
     def _contains_complete_query(self, span: Span, is_source: Optional[bool] = False) -> bool:
         # Remove the truncation check from the n_plus_one db detector.
@@ -1004,6 +1023,10 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
             metrics.incr("performance.performance_issue.truncated_np1_db")
             return
 
+        if not self._contains_valid_repeating_query(self.n_spans[0]):
+            metrics.incr("performance.performance_issue.unparametrized_first_span")
+            return
+
         fingerprint = self._fingerprint(
             parent_span.get("op", None),
             parent_span.get("hash", None),
@@ -1022,6 +1045,10 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
                 cause_span_ids=[self.source_span.get("span_id", None)],
                 offender_span_ids=[span.get("span_id", None) for span in self.n_spans],
             )
+
+    def _contains_valid_repeating_query(self, span: Span) -> bool:
+        query = span.get("description", None)
+        return query and PARAMETERIZED_SQL_QUERY_REGEX.search(query)
 
     def _metrics_for_extra_matching_spans(self):
         # Checks for any extra spans that match the detected problem but are not part of affected spans.

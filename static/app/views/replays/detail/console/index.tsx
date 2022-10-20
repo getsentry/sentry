@@ -1,8 +1,8 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
 
+import CompactSelect from 'sentry/components/compactSelect';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import CompactSelect from 'sentry/components/forms/compactSelect';
 import {Panel} from 'sentry/components/panels';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
@@ -15,7 +15,6 @@ import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
 import {useCurrentItemScroller} from 'sentry/utils/replays/hooks/useCurrentItemScroller';
 import ConsoleMessage from 'sentry/views/replays/detail/console/consoleMessage';
 import useConsoleFilters from 'sentry/views/replays/detail/console/useConsoleFilters';
-import {getLogLevels} from 'sentry/views/replays/detail/console/utils';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 interface Props {
@@ -28,9 +27,10 @@ function Console({breadcrumbs, startTimestampMs = 0}: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   useCurrentItemScroller(containerRef);
 
-  const {items, logLevel, searchTerm, setLogLevel, setSearchTerm} = useConsoleFilters({
-    breadcrumbs,
-  });
+  const {items, logLevel, searchTerm, getOptions, setLogLevel, setSearchTerm} =
+    useConsoleFilters({
+      breadcrumbs,
+    });
 
   const currentUserAction = getPrevReplayEvent({
     items: breadcrumbs,
@@ -73,10 +73,7 @@ function Console({breadcrumbs, startTimestampMs = 0}: Props) {
           triggerProps={{prefix: t('Log Level')}}
           triggerLabel={logLevel.length === 0 ? t('Any') : null}
           multiple
-          options={getLogLevels(breadcrumbs, logLevel).map(value => ({
-            value,
-            label: value,
-          }))}
+          options={getOptions()}
           onChange={selected => setLogLevel(selected.map(_ => _.value))}
           size="sm"
           value={logLevel}

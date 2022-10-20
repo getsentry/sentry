@@ -1,16 +1,25 @@
-from collections import namedtuple
-from typing import Optional
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, NamedTuple
 from urllib.parse import quote, urljoin, urlparse
 
 from django.conf import settings
+from django.http import HttpRequest
 from rest_framework.request import Request
 
 from sentry import options
 
-ParsedUriMatch = namedtuple("ParsedUriMatch", ["scheme", "domain", "path"])
+if TYPE_CHECKING:
+    from sentry.models.project import Project
 
 
-def absolute_uri(url: Optional[str] = None, url_prefix=None) -> str:
+class ParsedUriMatch(NamedTuple):
+    scheme: str
+    domain: str
+    path: str
+
+
+def absolute_uri(url: str | None = None, url_prefix: str | None = None) -> str:
     if url_prefix is None:
         url_prefix = options.get("system.url-prefix")
     if not url:
@@ -28,14 +37,14 @@ def create_redirect_url(request: Request, redirect_url: str) -> str:
     return f"{redirect_url}{qs}"
 
 
-def origin_from_url(url):
+def origin_from_url(url: str) -> str:
     if not url:
         return url
-    url = urlparse(url)
-    return f"{url.scheme}://{url.netloc}"
+    parsed = urlparse(url)
+    return f"{parsed.scheme}://{parsed.netloc}"
 
 
-def get_origins(project=None):
+def get_origins(project: Project | None = None) -> frozenset[str]:
     if not project:
         if settings.SENTRY_ALLOW_ORIGIN in ("*", None):
             result = ["*"]
@@ -55,7 +64,7 @@ def get_origins(project=None):
     return frozenset(filter(bool, map(lambda x: (x or "").lower().rstrip("/"), result)))
 
 
-def parse_uri_match(value):
+def parse_uri_match(value: str) -> ParsedUriMatch:
     if "://" in value:
         scheme, value = value.split("://", 1)
     else:
@@ -73,9 +82,7 @@ def parse_uri_match(value):
 
     # we need to coerce our unicode inputs into proper
     # idna/punycode encoded representation for normalization.
-    if isinstance(domain, bytes):
-        domain = domain.decode("utf8")
-    domain = domain.encode("idna").decode("utf-8")
+    domain = domain.encode("idna").decode()
 
     if port:
         domain = f"{domain}:{port}"
@@ -83,7 +90,9 @@ def parse_uri_match(value):
     return ParsedUriMatch(scheme, domain, path)
 
 
-def is_valid_origin(origin, project=None, allowed=None):
+def is_valid_origin(
+    origin: str, project: Project | None = None, allowed: frozenset[str] | None = None
+) -> bool:
     """
     Given an ``origin`` which matches a base URI (e.g. http://example.com)
     determine if a valid origin is present in the project settings.
@@ -120,15 +129,6 @@ def is_valid_origin(origin, project=None, allowed=None):
     if origin == "null":
         return False
 
-    if isinstance(origin, bytes):
-        try:
-            origin = origin.decode("utf-8")
-        except UnicodeDecodeError:
-            try:
-                origin = origin.decode("windows-1252")
-            except UnicodeDecodeError:
-                return False
-
     parsed = urlparse(origin)
 
     if parsed.hostname is None:
@@ -141,7 +141,7 @@ def is_valid_origin(origin, project=None, allowed=None):
             parsed_hostname = parsed.hostname
 
     if parsed.port:
-        domain_matches = (
+        domain_matches: tuple[str, ...] = (
             "*",
             parsed_hostname,
             # Explicit hostname + port name
@@ -182,12 +182,12 @@ def is_valid_origin(origin, project=None, allowed=None):
     return False
 
 
-def origin_from_request(request):
+def origin_from_request(request: HttpRequest) -> str:
     """
     Returns either the Origin or Referer value from the request headers,
     ignoring "null" Origins.
     """
-    rv = request.META.get("HTTP_ORIGIN", "null")
+    rv: str = request.META.get("HTTP_ORIGIN", "null")
     # In some situation, an Origin header may be the literal value
     # "null". This means that the Origin header was stripped for
     # privacy reasons, but we should ignore this value entirely.
@@ -198,8 +198,6 @@ def origin_from_request(request):
     return rv
 
 
-def percent_encode(val):
+def percent_encode(val: str) -> str:
     # see https://en.wikipedia.org/wiki/Percent-encoding
-    if isinstance(val, str):
-        val = val.encode("utf8", errors="replace")
     return quote(val).replace("%7E", "~").replace("/", "%2F")

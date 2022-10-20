@@ -85,7 +85,7 @@ function IssueListActions({
   const queryExcludingPerformanceIssues = organization.features.includes(
     'performance-issues'
   )
-    ? `${query ?? ''} !issue.category:performance`
+    ? `${query ?? ''} issue.category:error`
     : query;
 
   function handleDelete() {

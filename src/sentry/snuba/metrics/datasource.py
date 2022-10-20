@@ -146,15 +146,15 @@ def get_metrics(projects: Sequence[Project], use_case_id: UseCaseKey) -> Sequenc
             org_id=org_id,
         ):
             try:
+                mri_string = reverse_resolve(use_case_id, org_id, row["metric_id"])
                 metrics_meta.append(
                     MetricMeta(
-                        name=get_public_name_from_mri(
-                            reverse_resolve(use_case_id, org_id, row["metric_id"])
-                        ),
+                        name=get_public_name_from_mri(mri_string),
                         type=metric_type,
                         operations=AVAILABLE_OPERATIONS[METRIC_TYPE_TO_ENTITY[metric_type].value],
                         unit=None,  # snuba does not know the unit
                         metric_id=row["metric_id"],
+                        mri_string=mri_string,
                     )
                 )
             except InvalidParams:
@@ -185,6 +185,7 @@ def get_metrics(projects: Sequence[Project], use_case_id: UseCaseKey) -> Sequenc
                 unit=derived_metric_obj.unit,
                 # Derived metrics won't have an id
                 metric_id=None,
+                mri_string=derived_metric_mri,
             )
         )
     return sorted(metrics_meta, key=itemgetter("name"))
@@ -220,6 +221,7 @@ def get_custom_measurements(
                         ],
                         unit=parsed_mri.unit,
                         metric_id=row["metric_id"],
+                        mri_string=parsed_mri.mri_string,
                     )
                 )
 
@@ -671,7 +673,12 @@ def get_series(
 ) -> dict:
     """Get time series for the given query"""
     intervals = list(
-        get_intervals(metrics_query.start, metrics_query.end, metrics_query.granularity.granularity)
+        get_intervals(
+            metrics_query.start,
+            metrics_query.end,
+            metrics_query.granularity.granularity,
+            interval=metrics_query.interval,
+        )
     )
     results = {}
     meta = []

@@ -6,7 +6,7 @@ from django.db import models
 from django.utils import timezone
 from django.utils.functional import cached_property
 
-from sentry.db.models import BoundedBigIntegerField, Model, region_silo_model, sane_repr
+from sentry.db.models import BoundedBigIntegerField, Model, region_silo_only_model, sane_repr
 
 # Attachment file types that are considered a crash report (PII relevant)
 CRASH_REPORT_TYPES = ("event.minidump", "event.applecrashreport")
@@ -20,7 +20,17 @@ def get_crashreport_key(group_id):
     return f"cr:{group_id}"
 
 
-@region_silo_model
+def event_attachment_screenshot_filter(queryset):
+    # Intentionally a hardcoded list instead of a regex since current usecases do not have more 3 screenshots
+    return queryset.filter(
+        name__in=[
+            *[f"screenshot{f'-{i}' if i > 0 else ''}.jpg" for i in range(4)],
+            *[f"screenshot{f'-{i}' if i > 0 else ''}.png" for i in range(4)],
+        ]
+    )
+
+
+@region_silo_only_model
 class EventAttachment(Model):
     __include_in_export__ = False
 

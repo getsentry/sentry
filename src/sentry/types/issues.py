@@ -29,6 +29,17 @@ GROUP_TYPE_TO_CATEGORY = {
     GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES: GroupCategory.PERFORMANCE,
 }
 
+GROUP_TYPE_TO_TEXT = {
+    GroupType.ERROR: "Error",
+    GroupType.PERFORMANCE_N_PLUS_ONE: "N+1",  # may be N+1 Spans, N+1 Web Requests
+    GroupType.PERFORMANCE_SLOW_SPAN: "Slow Span",
+    GroupType.PERFORMANCE_SEQUENTIAL_SLOW_SPANS: "Sequential Slow Spans",
+    GroupType.PERFORMANCE_LONG_TASK_SPANS: "Long Task Spans",
+    GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN: "Render Blocking Asset Span",
+    GroupType.PERFORMANCE_DUPLICATE_SPANS: "Duplicate Spans",
+    GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES: "N+1 Query",
+}
+
 
 def get_category_type_mapping():
     category_type_mapping = defaultdict(list)

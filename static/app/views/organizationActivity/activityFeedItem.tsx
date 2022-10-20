@@ -358,7 +358,7 @@ class ActivityItem extends Component<Props, State> {
     };
 
     return (
-      <div className={className}>
+      <div data-test-id="activity-feed-item" className={className}>
         {author.avatar}
         <div>
           {this.formatProjectActivity(

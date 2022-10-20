@@ -43,6 +43,7 @@ class OrganizationSerializerTest(TestCase):
             "event-attachments",
             "integrations-alert-rule",
             "integrations-chat-unfurl",
+            "integrations-deployment",
             "integrations-event-hooks",
             "integrations-incident-management",
             "integrations-issue-basic",

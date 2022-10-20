@@ -1,7 +1,7 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import CompactSelect from 'sentry/components/forms/compactSelect';
+import CompactSelect from 'sentry/components/compactSelect';
 import {IconList} from 'sentry/icons';
 import {tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -34,7 +34,9 @@ function ThreadMenuSelector({
         details: (
           <ThreadLabelDetails
             duration={makeFormatter(profile.unit)(profile.duration)}
-            samples={profile.samples.length}
+            // plus 1 because the last sample always has a weight of 0
+            // and is not included in the raw weights
+            samples={profile.rawWeights.length + 1}
           />
         ),
       };

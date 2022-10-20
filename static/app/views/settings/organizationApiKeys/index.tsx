@@ -78,7 +78,7 @@ class OrganizationApiKeys extends AsyncView<Props, State> {
             routes: this.props.routes,
           })
         );
-        addSuccessMessage(t(`Created a new API key "${data.label}"`));
+        addSuccessMessage(t('Created a new API key "%s"', data.label));
       }
     } catch {
       this.setState({busy: false});

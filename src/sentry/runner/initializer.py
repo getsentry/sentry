@@ -202,6 +202,15 @@ def bootstrap_options(settings: Any, config: str | None = None) -> None:
     # these will be validated later after bootstrapping
     for k, v in options.items():
         settings.SENTRY_OPTIONS[k] = v
+        # If SENTRY_URL_PREFIX is used in config, show deprecation warning and
+        # set the newer SENTRY_OPTIONS['system.url-prefix']. Needs to be here
+        # to check from the config file directly before the django setup is done.
+        # TODO: delete when SENTRY_URL_PREFIX is removed
+        if k == "SENTRY_URL_PREFIX":
+            warnings.warn(
+                DeprecatedSettingWarning("SENTRY_URL_PREFIX", "SENTRY_OPTIONS['system.url-prefix']")
+            )
+            settings.SENTRY_OPTIONS["system.url-prefix"] = v
 
     # Now go back through all of SENTRY_OPTIONS and promote
     # back into settings. This catches the case when values are defined
@@ -549,7 +558,6 @@ def apply_legacy_settings(settings: Any) -> None:
 
     for old, new in (
         ("SENTRY_ADMIN_EMAIL", "system.admin-email"),
-        ("SENTRY_URL_PREFIX", "system.url-prefix"),
         ("SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE", "system.rate-limit"),
         ("SENTRY_ENABLE_EMAIL_REPLIES", "mail.enable-replies"),
         ("SENTRY_SMTP_HOSTNAME", "mail.reply-hostname"),

@@ -1,8 +1,12 @@
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import StacktraceLinkModal from 'sentry/components/events/interfaces/frame/stacktraceLinkModal';
-import GlobalModal from 'sentry/components/globalModal';
 
 function createWrapper(statusCode: number, closeModal: () => {}) {
   const org = TestStubs.Organization();
@@ -38,7 +42,7 @@ function createWrapper(statusCode: number, closeModal: () => {}) {
     body: {config, sourceUrl, integrations: [integration]},
   });
 
-  render(<GlobalModal />);
+  renderGlobalModal();
 
   openModal(modalProps => (
     <StacktraceLinkModal

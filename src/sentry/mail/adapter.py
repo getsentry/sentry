@@ -17,6 +17,7 @@ from sentry.notifications.types import ActionTargetType
 from sentry.plugins.base.structs import Notification
 from sentry.tasks.digests import deliver_digest
 from sentry.types.integrations import ExternalProviders
+from sentry.types.issues import GroupCategory
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -62,7 +63,8 @@ class MailAdapter:
         project = event.group.project
         extra["project_id"] = project.id
 
-        if digests.enabled(project):
+        # Only digest errors issues for the moment.
+        if digests.enabled(project) and event.group.issue_category == GroupCategory.ERROR:
 
             def get_digest_option(key):
                 return ProjectOption.objects.get_value(project, get_digest_option_key("mail", key))

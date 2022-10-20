@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import hashlib
-from typing import Mapping, Optional, Sequence, Union
+from typing import Mapping, Sequence
 
 import requests
 from jwt import InvalidSignatureError
@@ -15,7 +17,7 @@ class AtlassianConnectValidationError(Exception):
 
 
 def get_query_hash(
-    uri: str, method: str, query_params: Optional[Mapping[str, Union[str, Sequence[str]]]] = None
+    uri: str, method: str, query_params: Mapping[str, str | Sequence[str]] | None = None
 ) -> str:
     # see
     # https://developer.atlassian.com/static/connect/docs/latest/concepts/understanding-jwt.html#qsh
@@ -28,10 +30,10 @@ def get_query_hash(
     for k, v in sorted(query_params.items()):
         # don't include jwt query param
         if k != "jwt":
-            if isinstance(v, list):
-                param_val = ",".join(percent_encode(val) for val in v)
-            else:
+            if isinstance(v, str):
                 param_val = percent_encode(v)
+            else:
+                param_val = ",".join(percent_encode(val) for val in v)
             sorted_query.append(f"{percent_encode(k)}={param_val}")
 
     query_string = "{}&{}&{}".format(method, uri, "&".join(sorted_query))
@@ -39,10 +41,10 @@ def get_query_hash(
 
 
 def get_integration_from_jwt(
-    token: Optional[str],
+    token: str | None,
     path: str,
     provider: str,
-    query_params: Optional[Mapping[str, str]],
+    query_params: Mapping[str, str] | None,
     method: str = "GET",
 ) -> Integration:
     # https://developer.atlassian.com/static/connect/docs/latest/concepts/authentication.html
@@ -88,9 +90,9 @@ def get_integration_from_jwt(
 
 
 def verify_claims(
-    claims: Optional[Mapping[str, str]],
+    claims: Mapping[str, str],
     path: str,
-    query_params: Optional[Mapping[str, str]],
+    query_params: Mapping[str, str] | None,
     method: str,
 ) -> None:
     # Verify the query has not been tampered by Creating a Query Hash
@@ -100,7 +102,7 @@ def verify_claims(
         raise AtlassianConnectValidationError("Query hash mismatch")
 
 
-def authenticate_asymmetric_jwt(token: Optional[str], key_id: str) -> Optional[Mapping[str, str]]:
+def authenticate_asymmetric_jwt(token: str | None, key_id: str) -> dict[str, str]:
     """
     Allows for Atlassian Connect installation lifecycle security improvements (i.e. verified senders)
     See: https://community.developer.atlassian.com/t/action-required-atlassian-connect-installation-lifecycle-security-improvements/49046

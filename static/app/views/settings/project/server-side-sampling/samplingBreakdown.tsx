@@ -63,7 +63,7 @@ export function SamplingBreakdown({orgSlug}: Props) {
           <HeaderTitle>{t('Transaction Breakdown')}</HeaderTitle>
           <QuestionTooltip
             title={tct(
-              'Sampling rules defined here can also affect other projects. [learnMore: Learn more]',
+              'Shows which projects are affected by the sampling decisions this project makes. [learnMore: Learn more]',
               {
                 learnMore: (
                   <ExternalLink
@@ -110,8 +110,28 @@ export function SamplingBreakdown({orgSlug}: Props) {
               </Projects>
             ) : (
               <EmptyMessage>
-                {t(
-                  'There were no traces initiated from this project in the last 30 days.'
+                {tct(
+                  'This project made no [samplingDecisions] within the last 30 days.',
+                  {
+                    samplingDecisions: (
+                      <Tooltip
+                        title={tct(
+                          'The first transaction in a trace makes the sampling decision for all following transactions. [learnMore: Learn more]',
+                          {
+                            learnMore: (
+                              <ExternalLink
+                                href={`${SERVER_SIDE_SAMPLING_DOC_LINK}#traces--propagation-of-sampling-decisions`}
+                              />
+                            ),
+                          }
+                        )}
+                        showUnderline
+                        isHoverable
+                      >
+                        {t('sampling decisions')}
+                      </Tooltip>
+                    ),
+                  }
                 )}
               </EmptyMessage>
             )}

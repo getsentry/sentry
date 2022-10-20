@@ -1,12 +1,14 @@
 import {Component} from 'react';
 import {createPortal} from 'react-dom';
-import {Manager, Popper, Reference} from 'react-popper';
+import {Manager, Modifier, Popper, Reference} from 'react-popper';
 import styled from '@emotion/styled';
 import color from 'color';
 
-import {IconEllipsis} from 'sentry/icons';
+import Feature from 'sentry/components/acl/feature';
+import {IconEllipsis, IconShow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {
@@ -16,6 +18,7 @@ import {
 import {getDuration} from 'sentry/utils/formatters';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
+import QuickContext, {hasContext} from './quickContext';
 import {TableColumn} from './types';
 
 export enum Actions {
@@ -86,8 +89,18 @@ export function updateQuery(
         const negation = `!${key}`;
         value = Array.isArray(value) ? value : [String(value)];
         const currentNegations = results.getFilterValues(negation);
-        value = [...new Set([...currentNegations, ...value])];
-        results.setFilterValues(negation, value);
+        results.removeFilter(negation);
+        // We shouldn't escape any of the existing conditions since the
+        // existing conditions have already been set an verified by the user
+        results.addFilterValues(
+          negation,
+          currentNegations.filter(
+            filterValue => !(value as string[]).includes(filterValue)
+          ),
+          false
+        );
+        // Escapes the new condition if necessary
+        results.addFilterValues(negation, value);
       }
       break;
     case Actions.SHOW_GREATER_THAN: {
@@ -119,6 +132,8 @@ type CellActionsOpts = {
    * allow list of actions to display on the context menu
    */
   allowActions?: Actions[];
+  organization?: Organization;
+  showQuickContextMenu?: boolean;
 };
 
 function makeCellActions({
@@ -280,8 +295,9 @@ function makeCellActions({
 type Props = React.PropsWithoutRef<CellActionsOpts>;
 
 type State = {
+  isContextPopperOpen: boolean;
   isHovering: boolean;
-  isOpen: boolean;
+  isMenuPopperOpen: boolean;
 };
 
 class CellAction extends Component<Props, State> {
@@ -295,18 +311,26 @@ class CellAction extends Component<Props, State> {
     }
     this.portalEl = portal;
     this.menuEl = null;
+    this.contextEl = null;
   }
 
   state: State = {
     isHovering: false,
-    isOpen: false,
+    isMenuPopperOpen: false,
+    isContextPopperOpen: false,
   };
 
   componentDidUpdate(_props: Props, prevState: State) {
-    if (this.state.isOpen && prevState.isOpen === false) {
+    if (
+      (this.state.isMenuPopperOpen && prevState.isMenuPopperOpen === false) ||
+      (this.state.isContextPopperOpen && prevState.isContextPopperOpen === false)
+    ) {
       document.addEventListener('click', this.handleClickOutside, true);
     }
-    if (this.state.isOpen === false && prevState.isOpen) {
+    if (
+      (this.state.isMenuPopperOpen === false && prevState.isMenuPopperOpen) ||
+      (this.state.isContextPopperOpen === false && prevState.isContextPopperOpen)
+    ) {
       document.removeEventListener('click', this.handleClickOutside, true);
     }
   }
@@ -317,18 +341,54 @@ class CellAction extends Component<Props, State> {
 
   private portalEl: Element;
   private menuEl: Element | null;
+  private contextEl: Element | null;
+  private modifiers: ReadonlyArray<Modifier<any>> = [
+    {
+      name: 'hide',
+      enabled: false,
+    },
+    {
+      name: 'preventOverflow',
+      enabled: true,
+      options: {
+        padding: 10,
+        altAxis: true,
+      },
+    },
+    {
+      name: 'offset',
+      options: {
+        offset: [0, ARROW_SIZE / 2],
+      },
+    },
+    {
+      name: 'computeStyles',
+      options: {
+        // Using the `transform` attribute causes our borders to get blurry
+        // in chrome. See [0]. This just causes it to use `top` / `left`
+        // positions, which should be fine.
+        //
+        // [0]: https://stackoverflow.com/questions/29543142/css3-transformation-blurry-borders
+        gpuAcceleration: false,
+      },
+    },
+  ];
 
   handleClickOutside = (event: MouseEvent) => {
-    if (!this.menuEl) {
+    if (!this.menuEl && !this.contextEl) {
       return;
     }
     if (!(event.target instanceof Element)) {
       return;
     }
-    if (this.menuEl.contains(event.target)) {
+    if (this.menuEl?.contains(event.target) || this.contextEl?.contains(event.target)) {
       return;
     }
-    this.setState({isOpen: false, isHovering: false});
+    this.setState({
+      isMenuPopperOpen: false,
+      isContextPopperOpen: false,
+      isHovering: false,
+    });
   };
 
   handleMouseEnter = () => {
@@ -338,7 +398,7 @@ class CellAction extends Component<Props, State> {
   handleMouseLeave = () => {
     this.setState(state => {
       // Don't hide the button if the menu is open.
-      if (state.isOpen) {
+      if (state.isMenuPopperOpen || state.isContextPopperOpen) {
         return state;
       }
       return {...state, isHovering: false};
@@ -347,11 +407,22 @@ class CellAction extends Component<Props, State> {
 
   handleMenuToggle = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
-    this.setState({isOpen: !this.state.isOpen});
+    this.setState({
+      isMenuPopperOpen: !this.state.isMenuPopperOpen,
+      isContextPopperOpen: false,
+    });
+  };
+
+  handleContextToggle = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    this.setState({
+      isContextPopperOpen: !this.state.isContextPopperOpen,
+      isMenuPopperOpen: false,
+    });
   };
 
   renderMenu() {
-    const {isOpen} = this.state;
+    const {isMenuPopperOpen: isOpen} = this.state;
 
     const actions = makeCellActions(this.props);
 
@@ -360,42 +431,10 @@ class CellAction extends Component<Props, State> {
       return null;
     }
 
-    const modifiers = [
-      {
-        name: 'hide',
-        enabled: false,
-      },
-      {
-        name: 'preventOverflow',
-        enabled: true,
-        options: {
-          padding: 10,
-          altAxis: true,
-        },
-      },
-      {
-        name: 'offset',
-        options: {
-          offset: [0, ARROW_SIZE / 2],
-        },
-      },
-      {
-        name: 'computeStyles',
-        options: {
-          // Using the `transform` attribute causes our borders to get blurry
-          // in chrome. See [0]. This just causes it to use `top` / `left`
-          // positions, which should be fine.
-          //
-          // [0]: https://stackoverflow.com/questions/29543142/css3-transformation-blurry-borders
-          gpuAcceleration: false,
-        },
-      },
-    ];
-
     const menu = !isOpen
       ? null
       : createPortal(
-          <Popper placement="top" modifiers={modifiers}>
+          <Popper placement="top" modifiers={this.modifiers}>
             {({ref: popperRef, style, placement, arrowProps}) => (
               <Menu
                 ref={ref => {
@@ -403,6 +442,7 @@ class CellAction extends Component<Props, State> {
                   this.menuEl = ref;
                 }}
                 style={style}
+                data-test-id="action-menu"
               >
                 <MenuArrow
                   ref={arrowProps.ref}
@@ -419,24 +459,80 @@ class CellAction extends Component<Props, State> {
         );
 
     return (
-      <MenuRoot>
+      <MenuActionButton>
         <Manager>
           <Reference>
             {({ref}) => (
-              <MenuButton ref={ref} onClick={this.handleMenuToggle}>
+              <MenuButton
+                ref={ref}
+                data-test-id="action-menu-button"
+                onClick={this.handleMenuToggle}
+              >
                 <IconEllipsis size="sm" data-test-id="cell-action" color="blue300" />
               </MenuButton>
             )}
           </Reference>
           {menu}
         </Manager>
-      </MenuRoot>
+      </MenuActionButton>
+    );
+  }
+
+  renderContext() {
+    const {isContextPopperOpen: isOpen} = this.state;
+
+    if (!hasContext(this.props.dataRow, this.props.column)) {
+      return null;
+    }
+
+    const context = !isOpen
+      ? null
+      : createPortal(
+          <Popper placement="top" modifiers={this.modifiers}>
+            {({ref: popperRef, style, placement, arrowProps}) => (
+              <Menu
+                ref={ref => {
+                  (popperRef as Function)(ref);
+                  this.contextEl = ref;
+                }}
+                style={style}
+                data-test-id="context-menu"
+              >
+                <MenuArrow
+                  ref={arrowProps.ref}
+                  data-placement={placement}
+                  style={arrowProps.style}
+                />
+                <QuickContext dataRow={this.props.dataRow} column={this.props.column} />
+              </Menu>
+            )}
+          </Popper>,
+          this.portalEl
+        );
+
+    return (
+      <ContextActionButton>
+        <Manager>
+          <Reference>
+            {({ref}) => (
+              <MenuButton
+                ref={ref}
+                data-test-id="context-button"
+                onClick={this.handleContextToggle}
+              >
+                <IconShow size="sm" color="subText" />
+              </MenuButton>
+            )}
+          </Reference>
+          {context}
+        </Manager>
+      </ContextActionButton>
     );
   }
 
   render() {
-    const {children} = this.props;
-    const {isHovering} = this.state;
+    const {children, organization, showQuickContextMenu} = this.props;
+    const {isHovering, isContextPopperOpen, isMenuPopperOpen} = this.state;
 
     return (
       <Container
@@ -444,7 +540,13 @@ class CellAction extends Component<Props, State> {
         onMouseLeave={this.handleMouseLeave}
       >
         {children}
-        {isHovering && this.renderMenu()}
+        <Feature organization={organization} features={['discover-quick-context']}>
+          {showQuickContextMenu &&
+            isHovering &&
+            !isMenuPopperOpen &&
+            this.renderContext()}
+        </Feature>
+        {isHovering && !isContextPopperOpen && this.renderMenu()}
       </Container>
     );
   }
@@ -461,10 +563,19 @@ const Container = styled('div')`
   justify-content: center;
 `;
 
-const MenuRoot = styled('div')`
+const MenuActionButton = styled('div')`
   position: absolute;
   top: 0;
   right: 0;
+`;
+
+const MenuButtonWidth = 24;
+
+const ContextActionButton = styled('div')`
+  position: absolute;
+  top: 0;
+  right: ${MenuButtonWidth}px;
+  margin-right: ${space(0.5)};
 `;
 
 const Menu = styled('div')`
@@ -567,7 +678,7 @@ const ActionItem = styled('button')`
 
 const MenuButton = styled('button')`
   display: flex;
-  width: 24px;
+  width: ${MenuButtonWidth}px;
   height: 24px;
   padding: 0;
   justify-content: center;

@@ -16,7 +16,9 @@ import type {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import ReplayTable from 'sentry/views/replays/replayTable';
-import type {ReplayListLocationQuery, ReplayListRecord} from 'sentry/views/replays/types';
+import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
+
+import type {ReplayListRecordWithTx} from './useReplaysFromTransaction';
 
 type Props = {
   eventView: EventView;
@@ -24,7 +26,7 @@ type Props = {
   location: Location<ReplayListLocationQuery>;
   organization: Organization;
   pageLinks: string | null;
-  replays: ReplayListRecord[];
+  replays: ReplayListRecordWithTx[];
 };
 
 function ReplaysContent({
@@ -78,6 +80,7 @@ function ReplaysContent({
         replays={replays}
         showProjectColumn={false}
         sort={first(eventView.sorts) || {field: 'startedAt', kind: 'asc'}}
+        showSlowestTxColumn
       />
       <Pagination pageLinks={pageLinks} />
     </Layout.Main>

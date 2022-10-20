@@ -4,14 +4,20 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import BaseManager, FlexibleForeignKey, Model, region_silo_model, sane_repr
+from sentry.db.models import (
+    BaseManager,
+    FlexibleForeignKey,
+    Model,
+    region_silo_only_model,
+    sane_repr,
+)
 
 
 def default_uuid():
     return uuid4().hex
 
 
-@region_silo_model
+@region_silo_only_model
 class GroupShare(Model):
     """
     A Group that was shared publicly.

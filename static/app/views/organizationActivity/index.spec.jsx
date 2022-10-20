@@ -1,5 +1,5 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationActivity from 'sentry/views/organizationActivity';
 
@@ -28,9 +28,9 @@ describe('OrganizationActivity', function () {
   });
 
   it('renders', function () {
-    const wrapper = mountWithTheme(<OrganizationActivity {...params} />, routerContext);
+    render(<OrganizationActivity {...params} />, {context: routerContext});
 
-    expect(wrapper.find('ActivityItem')).toHaveLength(2);
+    expect(screen.getAllByTestId('activity-feed-item')).toHaveLength(2);
   });
 
   it('renders empty', function () {
@@ -38,10 +38,10 @@ describe('OrganizationActivity', function () {
       url: '/organizations/org-slug/activity/',
       body: [],
     });
-    const wrapper = mountWithTheme(<OrganizationActivity {...params} />, routerContext);
+    render(<OrganizationActivity {...params} />, {context: routerContext});
 
-    expect(wrapper.find('ActivityItem')).toHaveLength(0);
-    expect(wrapper.find('EmptyStateWarning')).toHaveLength(1);
+    expect(screen.queryByTestId('activity-feed-item')).not.toBeInTheDocument();
+    expect(screen.getByTestId('empty-state')).toBeInTheDocument();
   });
 
   it('renders not found', function () {
@@ -50,9 +50,9 @@ describe('OrganizationActivity', function () {
       body: [],
       statusCode: 404,
     });
-    const wrapper = mountWithTheme(<OrganizationActivity {...params} />, routerContext);
+    render(<OrganizationActivity {...params} />, {context: routerContext});
 
-    expect(wrapper.find('ActivityItem')).toHaveLength(0);
-    expect(wrapper.find('EmptyStateWarning')).toHaveLength(1);
+    expect(screen.queryByTestId('activity-feed-item')).not.toBeInTheDocument();
+    expect(screen.getByTestId('empty-state')).toBeInTheDocument();
   });
 });

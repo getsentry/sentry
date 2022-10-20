@@ -5,6 +5,7 @@ import LoadingError from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import EventView, {decodeSorts} from 'sentry/utils/discover/eventView';
+import {useRoutes} from 'sentry/utils/useRoutes';
 import EventsTable from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
 
 export interface Props {
@@ -12,29 +13,48 @@ export interface Props {
   issueId: string;
   location: Location;
   organization: Organization;
+  projectId: string;
   excludedTags?: string[];
+  totalEventCount?: string;
 }
 
 const AllEventsTable = (props: Props) => {
-  const {location, organization, issueId, isPerfIssue, excludedTags} = props;
+  const {
+    location,
+    organization,
+    issueId,
+    isPerfIssue,
+    excludedTags,
+    projectId,
+    totalEventCount,
+  } = props;
   const [error, setError] = useState<string>('');
-  const eventView: EventView = EventView.fromLocation(props.location);
-  eventView.sorts = decodeSorts(location);
-  eventView.fields = [
-    {field: 'id'},
-    {field: 'transaction'},
-    {field: 'trace'},
-    {field: 'release'},
-    {field: 'environment'},
-    {field: 'user.display'},
-    ...(isPerfIssue ? [{field: 'transaction.duration'}] : []),
-    {field: 'timestamp'},
+  const routes = useRoutes();
+  const fields: string[] = [
+    'id',
+    'transaction',
+    'trace',
+    'release',
+    'environment',
+    'user.display',
+    ...(isPerfIssue ? ['transaction.duration'] : []),
+    'timestamp',
   ];
+
+  const eventView: EventView = EventView.fromLocation(props.location);
+  eventView.fields = fields.map(fieldName => ({field: fieldName}));
+
+  eventView.sorts = decodeSorts(location).filter(sort => fields.includes(sort.field));
+
+  if (!eventView.sorts.length) {
+    eventView.sorts = [{field: 'timestamp', kind: 'desc'}];
+  }
 
   const idQuery = isPerfIssue
     ? `performance.issue_ids:${issueId}`
     : `issue.id:${issueId}`;
   eventView.query = `${idQuery} ${props.location.query.query || ''}`;
+  eventView.statsPeriod = '90d';
 
   const columnTitles: Readonly<string[]> = [
     t('event id'),
@@ -45,6 +65,7 @@ const AllEventsTable = (props: Props) => {
     t('user'),
     ...(isPerfIssue ? [t('total duration')] : []),
     t('timestamp'),
+    t('minidump'),
   ];
 
   if (error) {
@@ -57,13 +78,17 @@ const AllEventsTable = (props: Props) => {
       location={location}
       issueId={issueId}
       organization={organization}
+      routes={routes}
       excludedTags={excludedTags}
+      projectId={projectId}
+      totalEventCount={totalEventCount}
+      customColumns={['minidump']}
       setError={() => {
         (msg: string) => setError(msg);
       }}
       transactionName=""
-      disablePagination
       columnTitles={columnTitles.slice()}
+      referrer="api.issues.issue_events"
     />
   );
 };

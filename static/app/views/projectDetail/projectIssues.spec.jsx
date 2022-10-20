@@ -15,7 +15,7 @@ describe('ProjectDetail > ProjectIssues', function () {
 
   beforeEach(function () {
     endpointMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/?limit=5&query=is%3Aunresolved%20error.unhandled%3Atrue&sort=freq&statsPeriod=14d`,
+      url: `/organizations/${organization.slug}/issues/?limit=5&query=error.unhandled%3Atrue%20is%3Aunresolved&sort=freq&statsPeriod=14d`,
       body: [TestStubs.Group(), TestStubs.Group({id: '2'})],
     });
 
@@ -53,7 +53,6 @@ describe('ProjectDetail > ProjectIssues', function () {
   });
 
   it('renders a link to Issues', function () {
-    MockApiClient.warnOnMissingMocks();
     render(
       <OrganizationContext.Provider value={organization}>
         <ProjectIssues organization={organization} location={router.location} />
@@ -79,7 +78,6 @@ describe('ProjectDetail > ProjectIssues', function () {
   });
 
   it('renders a link to Discover', function () {
-    MockApiClient.warnOnMissingMocks();
     render(
       <OrganizationContext.Provider value={organization}>
         <ProjectIssues organization={organization} location={router.location} />

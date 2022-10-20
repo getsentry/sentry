@@ -79,6 +79,7 @@ class Referrer(Enum):
     API_ORGANIZATION_EVENTS_V2 = "api.organization-events-v2"
     API_ORGANIZATION_SDK_UPDATES = "api.organization-sdk-updates"
     API_ORGANIZATION_SPANS_HISTOGRAM_MIN_MAX = "api.organization-spans-histogram-min-max"
+    API_ISSUES_ISSUE_EVENTS = "api.issues.issue_events"
     API_PERFORMANCE_DURATIONPERCENTILECHART = "api.performance.durationpercentilechart"
     API_PERFORMANCE_GENERIC_WIDGET_CHART_APDEX_AREA = (
         "api.performance.generic-widget-chart.apdex-area"
@@ -205,14 +206,20 @@ class Referrer(Enum):
     DATA_EXPORT_TASKS_DISCOVER = "data_export.tasks.discover"
     DELETIONS_GROUP = "deletions.group"
     DISCOVER = "discover"
-    DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PARENT_TRANSACTIONS = (
-        "dynamic-sampling.distribution.fetch-parent-transactions"
+    DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_TRANSACTIONS = (
+        "dynamic-sampling.distribution.fetch-transactions"
     )
-    DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PARENT_TRANSACTIONS_COUNT = (
-        "dynamic-sampling.distribution.fetch-parent-transactions-count"
+    DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_TRANSACTIONS_COUNT = (
+        "dynamic-sampling.distribution.fetch-transactions-count"
     )
     DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECT_BREAKDOWN = (
         "dynamic-sampling.distribution.fetch-project-breakdown"
+    )
+    DYNAMIC_SAMPLING_DISTRIBUTION_GET_MOST_RECENT_DAY_WITH_TRANSACTIONS = (
+        "dynamic-sampling.distribution.get-most-recent-day-with-transactions"
+    )
+    DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECT_STATS = (
+        "dynamic-sampling.distribution.fetch-project-stats"
     )
     DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECT_SDK_VERSIONS_INFO = (
         "dynamic-sampling.distribution.fetch-project-sdk-versions-info"

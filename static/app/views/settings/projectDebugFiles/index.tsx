@@ -72,6 +72,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
               'bcsymbolmap',
               'uuidmap',
               'il2cpp',
+              'portablepdb',
             ],
           },
         },

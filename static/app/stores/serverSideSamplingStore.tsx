@@ -76,6 +76,11 @@ interface ServerSideSamplingStoreDefinition extends CommonStoreDefinition<State>
 const storeConfig: ServerSideSamplingStoreDefinition = {
   state: initialState,
 
+  init() {
+    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
+    // listeners due to their leaky nature in tests.
+  },
+
   reset() {
     this.state = initialState;
     this.trigger(this.state);

@@ -1,20 +1,13 @@
+import selectEvent from 'react-select-event';
 import pick from 'lodash/pick';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {selectByValue} from 'sentry-test/select-new';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import IntegrationOrganizationLink from 'sentry/views/integrationOrganizationLink';
 
 describe('IntegrationOrganizationLink', () => {
-  let wrapper,
-    getOrgsMock,
-    getOrgMock,
-    getProviderMock,
-    getMountedComponent,
-    org1,
-    org1Lite,
-    org2,
-    org2Lite;
+  let getOrgsMock, getOrgMock, getProviderMock, org1, org1Lite, org2, org2Lite;
+
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     org1 = TestStubs.Organization({
@@ -34,11 +27,6 @@ describe('IntegrationOrganizationLink', () => {
       url: '/organizations/',
       body: [org1Lite, org2Lite],
     });
-
-    getMountedComponent = () =>
-      mountWithTheme(
-        <IntegrationOrganizationLink params={{integrationSlug: 'vercel'}} />
-      );
   });
 
   it('selecting org from dropdown loads the org through the API', async () => {
@@ -52,21 +40,16 @@ describe('IntegrationOrganizationLink', () => {
       body: {providers: [TestStubs.VercelProvider()]},
     });
 
-    wrapper = getMountedComponent();
+    render(<IntegrationOrganizationLink params={{integrationSlug: 'vercel'}} />);
 
     expect(getOrgsMock).toHaveBeenCalled();
     expect(getOrgMock).not.toHaveBeenCalled();
 
-    await tick();
-    wrapper.update();
+    // Select organization
+    await selectEvent.select(screen.getByRole('textbox'), org2.name);
 
-    selectByValue(wrapper, org2.slug, {control: true});
+    expect(screen.getByRole('button', {name: 'Install Vercel'})).toBeEnabled();
 
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.state('selectedOrgSlug')).toBe(org2.slug);
-    expect(wrapper.state('organization')).toBe(org2);
     expect(getProviderMock).toHaveBeenCalled();
     expect(getOrgMock).toHaveBeenCalled();
   });
