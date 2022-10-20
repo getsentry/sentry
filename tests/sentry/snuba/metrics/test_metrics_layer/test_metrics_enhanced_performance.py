@@ -1268,6 +1268,10 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         )
 
         # We sort the output of ClickHouse because we don't have any ordering guarantees without the use of an order by.
+        # Technically we could use an order by here but any ordering can be performed only on select fields and we
+        # don't support `transform_null_to_unparameterized` at the select level.
+        #
+        # TODO: check with Ahmed if we want to throw an error if `transform_null_to_unparameterized` is used in select.
         assert sorted(data["groups"], key=lambda group: group["by"]["transformed_transaction"]) == [
             {
                 "by": {"transformed_transaction": "/bar"},
