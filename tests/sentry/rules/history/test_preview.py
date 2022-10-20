@@ -24,6 +24,7 @@ class ProjectRulePreviewTest(TestCase):
                 Group.objects.create(
                     project=self.project, first_seen=timezone.now() - timedelta(hours=i + 1)
                 )
+        return hours
 
     def _set_up_activity(self, condition_type):
         hours = get_hours(PREVIEW_TIME_RANGE)
@@ -35,33 +36,36 @@ class ProjectRulePreviewTest(TestCase):
                 type=condition_type.value,
                 datetime=timezone.now() - timedelta(hours=i + 1),
             )
+        return hours
 
     def _test_preview(self, condition, result1, result2):
         conditions = [{"id": condition}]
         result = preview(self.project, conditions, [], "all", "all", 0)
-        assert len(result) == result1
+        assert result.count() == result1
 
         result = preview(self.project, conditions, [], "all", "all", 120)
-        assert len(result) == result2
+        assert result.count() == result2
 
     def test_first_seen(self):
-        self._set_up_first_seen()
+        hours = self._set_up_first_seen()
         self._test_preview(
-            "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition", 670, 134
+            "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+            (hours - 1) * 2,
+            (hours - 1) * 2 / 5,
         )
 
     def test_regression(self):
-        self._set_up_activity(ActivityType.SET_REGRESSION)
+        hours = self._set_up_activity(ActivityType.SET_REGRESSION)
         self._test_preview(
             "sentry.rules.conditions.regression_event.RegressionEventCondition",
-            336,
-            168,
+            hours,
+            hours / 2,
         )
 
     def test_reappeared(self):
-        self._set_up_activity(ActivityType.SET_UNRESOLVED)
+        hours = self._set_up_activity(ActivityType.SET_UNRESOLVED)
         self._test_preview(
-            "sentry.rules.conditions.reappeared_event.ReappearedEventCondition", 336, 168
+            "sentry.rules.conditions.reappeared_event.ReappearedEventCondition", hours, hours / 2
         )
 
     def test_unsupported_conditions(self):

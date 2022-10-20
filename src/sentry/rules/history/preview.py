@@ -30,7 +30,7 @@ def preview(
         return None
     # all the currently supported conditions are mutually exclusive
     elif len(conditions) > 1 and condition_match == "all":
-        return []
+        return Group.objects.none()
 
     activity = []
     for condition in conditions:

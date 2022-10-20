@@ -60,7 +60,7 @@ class ProjectRulePreviewEndpoint(ProjectEndpoint):
 
         response.data = {
             "data": response.data,
-            "totalCount": len(results),
+            "totalCount": results.count(),
         }
 
         return response
