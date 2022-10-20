@@ -172,8 +172,7 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
           );
         if (deployedReleases.length === 1) {
           return tct(
-            '[author] marked this issue as resolved in [version] [break]' +
-              'This commit was released in [release]',
+            '[author] marked this issue as resolved in [version] [break]This commit was released in [release]',
             {
               author,
               version: (
@@ -196,12 +195,10 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
         }
         if (deployedReleases.length > 1) {
           return tct(
-            '[author] marked this issue as resolved in [version] [break]' +
-              'This commit was released in [release] and ' +
-              (deployedReleases.length - 1) +
-              ' others',
+            '[author] marked this issue as resolved in [version] [break]This commit was released in [release] and [otherCount] others',
             {
               author,
+              otherCount: deployedReleases.length - 1,
               version: (
                 <CommitLink
                   inline

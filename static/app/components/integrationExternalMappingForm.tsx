@@ -81,7 +81,7 @@ export default class IntegrationExternalMappingForm extends Component<Props> {
         type: 'select_async',
         required: true,
         label: isInline ? undefined : tct('Sentry [type]', {type: capitalize(type)}),
-        placeholder: t(`Select Sentry ${capitalize(type)}`),
+        placeholder: t('Select Sentry %s', capitalize(type)),
         url: dataEndpoint,
         defaultOptions: this.getDefaultOptions(mapping),
         onResults: result => {
