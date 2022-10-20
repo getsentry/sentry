@@ -6,7 +6,6 @@ from enum import Enum
 from typing import Dict, Generic, List, Mapping, Optional, Type, TypeVar, cast
 
 from sentry.models import Organization, OrganizationMember, OrganizationStatus
-from sentry.testutils.silo import exempt_from_silo_limits
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +51,7 @@ ServiceInterface = TypeVar("ServiceInterface", bound=InterfaceWithLifecycle)
 
 class DelegatedBySiloMode(Generic[ServiceInterface]):
     """
-    Using a mapping of silo modes to backing type classes that match the same ServiceInterace,
+    Using a mapping of silo modes to backing type classes that match the same ServiceInterface,
     delegate method calls to a singleton that is managed based on the current SiloMode.get_current_mode().
     This delegator is dynamic -- it knows to swap the backing implementation even when silo mode is overwritten
     during run time, or even via the stubbing methods in this module.
@@ -206,6 +205,8 @@ def CreateStubFromBase(base: Type[ServiceInterface]) -> Type[ServiceInterface]:
     given base class, but wraps it with `exempt_from_silo_limits`, allowing tests written for monolith mode to largely
     work symmetrically.  In the future, however, when monolith mode separate is deprecated, this logic should be
     replaced by true mocking utilities.
+
+    This implementation will not work outside of test contexts.
     """
     Super = base.__bases__[0]
 
@@ -218,6 +219,8 @@ def CreateStubFromBase(base: Type[ServiceInterface]) -> Type[ServiceInterface]:
 
     def make_method(method_name: str):
         def method(self, *args, **kwds):
+            from sentry.testutils.silo import exempt_from_silo_limits
+
             with exempt_from_silo_limits():
                 return getattr(self.backing_service, method_name)(*args, **kwds)
 
@@ -283,7 +286,7 @@ def use_real_service(service: InterfaceWithLifecycle, silo_mode: SiloMode):
             with service.with_replacement(None, silo_mode):
                 yield
     else:
-        raise ValueError("Service needs to be a DelegatedBySilMode object, but it was not!")
+        raise ValueError("Service needs to be a DelegatedBySiloMode object, but it was not!")
 
 
 class RegionClientBackedProjectKeyService(ProjectKeyService):
