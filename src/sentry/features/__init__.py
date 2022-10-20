@@ -185,8 +185,6 @@ default_manager.add("organizations:dynamic-sampling-demo", OrganizationFeature, 
 default_manager.add("organizations:dynamic-sampling-basic", OrganizationFeature)
 default_manager.add("organizations:dynamic-sampling-advanced", OrganizationFeature)
 default_manager.add("organizations:dynamic-sampling-opinionated", OrganizationFeature, True)
-default_manager.add("organizations:dynamic-sampling-performance-cta", OrganizationFeature, True)
-default_manager.add("organizations:dynamic-sampling-performance-cta-advanced", OrganizationFeature, True)
 default_manager.add("organizations:event-attachments", OrganizationFeature)
 default_manager.add("organizations:global-views", OrganizationFeature)
 default_manager.add("organizations:incidents", OrganizationFeature)
