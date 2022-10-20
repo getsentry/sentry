@@ -31,7 +31,7 @@ function ReplayMetaData({replayRecord}: Props) {
     query: {
       ...query,
       t_main: 'console',
-      f_c_logLevel: 'error',
+      f_c_logLevel: 'issue',
       f_c_search: undefined,
     },
   };

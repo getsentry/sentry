@@ -39,6 +39,12 @@ class EventAttributeConditionTest(RuleTestCase):
             "extra": {"foo": {"bar": "baz"}, "biz": ["baz"], "bar": "foo"},
             "platform": "php",
             "sdk": {"name": "sentry.javascript.react", "version": "6.16.1"},
+            "contexts": {
+                "response": {
+                    "type": "response",
+                    "status_code": 500,
+                },
+            },
         }
         data.update(kwargs)
         event = self.store_event(data, project_id=self.project.id)
@@ -230,6 +236,18 @@ class EventAttributeConditionTest(RuleTestCase):
 
         rule = self.get_rule(
             data={"match": MatchType.EQUAL, "attribute": "http.url", "value": "http://foo.com"}
+        )
+        self.assertDoesNotPass(rule, event)
+
+    def test_http_status_code(self):
+        event = self.get_event()
+        rule = self.get_rule(
+            data={"match": MatchType.EQUAL, "attribute": "http.status_code", "value": "500"}
+        )
+        self.assertPasses(rule, event)
+
+        rule = self.get_rule(
+            data={"match": MatchType.EQUAL, "attribute": "http.status_code", "value": "400"}
         )
         self.assertDoesNotPass(rule, event)
 

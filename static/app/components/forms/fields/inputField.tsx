@@ -48,13 +48,10 @@ function defaultField({
  * InputField should be thought of as a "base" field, and generally not used
  * within the Form itself.
  */
-function InputField(props: InputFieldProps) {
+function InputField({field = defaultField, ...props}: InputFieldProps) {
   return (
-    <FormField className={props.className} {...props}>
-      {formFieldProps => {
-        const {children: _children, ...otherFieldProps} = formFieldProps;
-        return props.field ? props.field(otherFieldProps) : defaultField(otherFieldProps);
-      }}
+    <FormField {...props}>
+      {({children: _children, ...otherFieldProps}) => field(otherFieldProps)}
     </FormField>
   );
 }

@@ -228,7 +228,6 @@ const StyledIconAdd = styled(IconAdd)`
 
 const BuilderBar = styled('div')`
   display: flex;
-  height: 40px;
   align-items: center;
   margin-bottom: ${space(2)};
 `;

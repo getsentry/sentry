@@ -1730,7 +1730,7 @@ describe('Results', function () {
     );
   });
 
-  it('updates the homepage query with up to date eventView when Use as Discover Home is clicked', async () => {
+  it('updates the homepage query with up to date eventView when Set As Default is clicked', async () => {
     const mockHomepageUpdate = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/discover/homepage/',
       method: 'PUT',
@@ -1764,9 +1764,9 @@ describe('Results', function () {
     );
 
     await waitFor(() =>
-      expect(screen.getByRole('button', {name: /use as discover home/i})).toBeEnabled()
+      expect(screen.getByRole('button', {name: /set as default/i})).toBeEnabled()
     );
-    userEvent.click(screen.getByText('Use as Discover Home'));
+    userEvent.click(screen.getByText('Set As Default'));
 
     expect(mockHomepageUpdate).toHaveBeenCalledWith(
       '/organizations/org-slug/discover/homepage/',
@@ -1828,10 +1828,10 @@ describe('Results', function () {
     );
 
     await waitFor(() =>
-      expect(screen.getByRole('button', {name: /use as discover home/i})).toBeEnabled()
+      expect(screen.getByRole('button', {name: /set as default/i})).toBeEnabled()
     );
-    userEvent.click(screen.getByText('Use as Discover Home'));
-    expect(await screen.findByText('Reset Discover Home')).toBeInTheDocument();
+    userEvent.click(screen.getByText('Set As Default'));
+    expect(await screen.findByText('Remove Default')).toBeInTheDocument();
 
     userEvent.click(screen.getByText('Total Period'));
     userEvent.click(screen.getByText('Previous Period'));
@@ -1849,7 +1849,7 @@ describe('Results', function () {
       />
     );
     screen.getByText('Previous Period');
-    expect(await screen.findByText('Use as Discover Home')).toBeInTheDocument();
+    expect(await screen.findByText('Set As Default')).toBeInTheDocument();
   });
 
   it('Changes the Use as Discover button to a reset button for prebuilt query', async () => {
@@ -1894,8 +1894,8 @@ describe('Results', function () {
     );
 
     await screen.findAllByText(TRANSACTION_VIEWS[0].name);
-    userEvent.click(screen.getByText('Use as Discover Home'));
-    expect(await screen.findByText('Reset Discover Home')).toBeInTheDocument();
+    userEvent.click(screen.getByText('Set As Default'));
+    expect(await screen.findByText('Remove Default')).toBeInTheDocument();
 
     userEvent.click(screen.getByText('Total Period'));
     userEvent.click(screen.getByText('Previous Period'));
@@ -1913,6 +1913,6 @@ describe('Results', function () {
       />
     );
     screen.getByText('Previous Period');
-    expect(await screen.findByText('Use as Discover Home')).toBeInTheDocument();
+    expect(await screen.findByText('Set As Default')).toBeInTheDocument();
   });
 });

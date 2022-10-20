@@ -4,19 +4,20 @@ import {Observer} from 'mobx-react';
 
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
-import Field, {FieldProps} from 'sentry/components/forms/field';
-import FieldControl from 'sentry/components/forms/field/fieldControl';
-import FieldErrorReason from 'sentry/components/forms/field/fieldErrorReason';
-import FormContext from 'sentry/components/forms/formContext';
-import FormFieldControlState from 'sentry/components/forms/formField/controlState';
-import FormModel, {MockModel} from 'sentry/components/forms/model';
-import ReturnButton from 'sentry/components/forms/returnButton';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 
+import Field, {FieldProps} from '../field';
+import FieldControl from '../field/fieldControl';
+import FieldErrorReason from '../field/fieldErrorReason';
+import FormContext from '../formContext';
+import FormModel, {MockModel} from '../model';
+import ReturnButton from '../returnButton';
 import {FieldValue} from '../types';
+
+import FormFieldControlState from './controlState';
 
 /**
  * Some fields don't need to implement their own onChange handlers, in
@@ -416,12 +417,13 @@ class FormField extends Component<FormFieldProps> {
                     type={saveMessageAlertType}
                     trailingItems={
                       <Fragment>
-                        <Button onClick={this.handleCancelField} size="xs">
+                        <Button onClick={this.handleCancelField} size="xs" type="button">
                           {t('Cancel')}
                         </Button>
                         <Button
                           priority="primary"
                           size="xs"
+                          type="button"
                           onClick={this.handleSaveField}
                         >
                           {t('Save')}

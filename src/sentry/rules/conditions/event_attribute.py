@@ -21,6 +21,7 @@ ATTR_CHOICES = [
     "user.ip_address",
     "http.method",
     "http.url",
+    "http.status_code",
     "sdk.name",
     "stacktrace.code",
     "stacktrace.module",
@@ -128,10 +129,16 @@ class EventAttributeCondition(EventCondition):
             return [getattr(event.interfaces["user"].data, path[1])]
 
         elif path[0] == "http":
-            if path[1] not in ("url", "method"):
-                return []
+            if path[1] in ("url", "method"):
+                return [getattr(event.interfaces["request"], path[1])]
+            elif path[1] in ("status_code"):
+                contexts = event.data["contexts"]
+                response = contexts.get("response")
+                if response is None:
+                    response = []
+                return [response.get(path[1])]
 
-            return [getattr(event.interfaces["request"], path[1])]
+            return []
 
         elif path[0] == "sdk":
             if path[1] != "name":

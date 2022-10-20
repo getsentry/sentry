@@ -736,20 +736,20 @@ const commonTheme = {
    */
   form: {
     md: {
-      height: 40,
-      minHeight: 40,
+      height: 38,
+      minHeight: 38,
       fontSize: '0.875rem',
       lineHeight: '1rem',
     },
     sm: {
-      height: 34,
-      minHeight: 34,
+      height: 32,
+      minHeight: 32,
       fontSize: '0.875rem',
       lineHeight: '1rem',
     },
     xs: {
-      height: 28,
-      minHeight: 28,
+      height: 26,
+      minHeight: 26,
       fontSize: '0.75rem',
       lineHeight: '0.875rem',
     },

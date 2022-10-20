@@ -88,7 +88,7 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
               link: <Link to={orgSlug ? `/settings/${orgSlug}` : `/settings`} />,
             }
           ),
-          nextText: t(`Allow`),
+          nextText: t('Allow'),
           hasNextGuide: true,
         },
       ],
@@ -114,7 +114,7 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
         {
           title: t('Transactions Details'),
           target: 'trace_view_guide_row_details',
-          description: t(`Click on any transaction to see more details.`),
+          description: t('Click on any transaction to see more details.'),
         },
       ],
     },
@@ -306,7 +306,7 @@ function getDemoModeGuides(): GuidesContent {
           description: t(
             `Query and unlock insights into the health of your entire system and get answers to critical business questions all in one place.`
           ),
-          nextText: t(`Got it`),
+          nextText: t('Got it'),
         },
       ],
     },
@@ -330,7 +330,7 @@ function getDemoModeGuides(): GuidesContent {
         {
           title: t('Details'),
           target: 'issue_details',
-          description: t(`See the who, what, and where of every error right at the top`),
+          description: t('See the who, what, and where of every error right at the top'),
         },
         {
           title: t('Exception'),
@@ -382,12 +382,12 @@ function getDemoModeGuides(): GuidesContent {
         {
           title: t('Chart'),
           target: 'release_chart',
-          description: t(`Click and drag to zoom in on a specific section of the chart.`),
+          description: t('Click and drag to zoom in on a specific section of the chart.'),
         },
         {
           title: t('Discover'),
           target: 'release_issues_open_in_discover',
-          description: t(`Analyze these errors by URL, geography, device, browser, etc.`),
+          description: t('Analyze these errors by URL, geography, device, browser, etc.'),
         },
         {
           title: t('Discover'),
@@ -496,7 +496,7 @@ function getDemoModeGuidesV2(): GuidesContent {
           description: t(
             `Query and unlock insights into the health of your entire system and get answers to critical business questions all in one place.`
           ),
-          nextText: t(`Got it`),
+          nextText: t('Got it'),
         },
       ],
     },
@@ -525,7 +525,7 @@ function getDemoModeGuidesV2(): GuidesContent {
           description: t(
             `Sentry automatically captures breadcrumbs for events so you can see the sequence of events so you can see the sequence of events leading up to the error.`
           ),
-          nextText: t(`Got it`),
+          nextText: t('Got it'),
         },
       ],
     },
@@ -599,7 +599,7 @@ function getDemoModeGuidesV2(): GuidesContent {
           description: t(
             'Select an Event ID from a list of slow transactions to uncover slow spans.'
           ),
-          nextText: t(`Got it`),
+          nextText: t('Got it'),
         },
       ],
     },

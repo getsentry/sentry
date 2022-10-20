@@ -100,11 +100,6 @@ const mockGroupApis = (
   });
 
   MockApiClient.addMockResponse({
-    url: `/issues/${group.id}/participants/`,
-    body: [],
-  });
-
-  MockApiClient.addMockResponse({
     url: `/issues/${group.id}/tags/`,
     body: [],
   });

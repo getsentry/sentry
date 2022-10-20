@@ -9,11 +9,19 @@ describe('slugify', function () {
     expect(slugify('STOP YELLING')).toBe('stop-yelling');
   });
 
-  it('does not replace other special characters', function () {
-    expect(slugify('STOP YELLING!@#')).toBe('stop-yelling!@#');
+  it('replaces accented characters', function () {
+    expect(slugify('Áá')).toBe('aa');
   });
 
-  it('returns an empty string if passed undefined', function () {
-    expect(slugify(undefined)).toBe('');
+  it('splits ligatures', function () {
+    expect(slugify('ﬁ')).toBe('fi');
+  });
+
+  it('Removes special characters', function () {
+    expect(slugify("some#chars%shouldn't*be.here")).toBe('somecharsshouldntbehere');
+  });
+
+  it('keeps hyphens and underscores', function () {
+    expect(slugify('_some-chars__should-stay')).toBe('_some-chars__should-stay');
   });
 });
