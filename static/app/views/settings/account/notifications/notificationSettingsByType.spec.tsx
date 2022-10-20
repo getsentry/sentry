@@ -36,7 +36,7 @@ function renderMockRequests(
   });
 }
 
-function TestComponent(
+function renderComponent(
   notificationSettings: NotificationSettingsObject,
   identities: Identity[] = [],
   organizationIntegrations: OrganizationIntegration[] = []
