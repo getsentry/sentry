@@ -22,6 +22,7 @@ from sentry.api.serializers.rest_framework.list import EmptyListField, ListField
 from sentry.api.serializers.rest_framework.origin import OriginField
 from sentry.constants import RESERVED_PROJECT_SLUGS
 from sentry.datascrubbing import validate_pii_config_update
+from sentry.dynamic_sampling.utils import DynamicSamplingFeatureMultiplexer
 from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig
 from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
 from sentry.ingest.inbound_filters import FilterTypes
@@ -501,9 +502,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if "hasAlertIntegration" in expand:
             data["hasAlertIntegrationInstalled"] = has_alert_integration(project)
 
-        if features.has(
-            "organizations:dynamic-sampling-basic", project.organization, actor=request.user
-        ):
+        if DynamicSamplingFeatureMultiplexer(project, request).can_get_old_rules():
             data.pop("dynamicSampling", None)
 
         return Response(data)
@@ -548,23 +547,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         result = serializer.validated_data
 
-        is_dynamic_sampling_basic = features.has(
-            "organizations:dynamic-sampling-basic", project.organization, actor=request.user
-        )
-        if is_dynamic_sampling_basic and result.get("dynamicSampling"):
+        ds_flags_multiplexer = DynamicSamplingFeatureMultiplexer(project, request)
+        if result.get("dynamicSampling") and not ds_flags_multiplexer.can_put():
             return Response(
                 {"detail": ["dynamicSampling is not a valid field"]},
-                status=403,
-            )
-
-        allow_dynamic_sampling = features.has(
-            "organizations:server-side-sampling", project.organization, actor=request.user
-        )
-
-        if not allow_dynamic_sampling and result.get("dynamicSampling"):
-            # trying to set sampling with feature disabled
-            return Response(
-                {"detail": ["You do not have permission to set sampling."]},
                 status=403,
             )
 
@@ -871,7 +857,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         )
 
         data = serialize(project, request.user, DetailedProjectSerializer())
-        if is_dynamic_sampling_basic:
+        if ds_flags_multiplexer.can_get_old_rules():
             data.pop("dynamicSampling", None)
 
         return Response(data)

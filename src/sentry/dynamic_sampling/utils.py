@@ -2,7 +2,7 @@ from typing import Any, List, TypedDict
 
 import sentry_sdk
 
-from sentry import quotas
+from sentry import features, quotas
 from sentry.models import Project
 
 UNIFORM_RULE_RESERVED_ID = 0
@@ -43,3 +43,41 @@ def generate_uniform_rule(project: Project) -> UniformRule:
         },
         "id": UNIFORM_RULE_RESERVED_ID,
     }
+
+
+class DynamicSamplingFeatureMultiplexer:
+    """
+    This class is used to route DS behaviour according to the feature flags listed here
+    Essentially the logic is as follows:
+    - The `organizations:server-side-sampling` feature flag is the main flag enabled for dynamic sampling both in
+    sentry and in relay
+    - The  `organizations:server-side-sampling-ui` feature flag is the flag that enables the old dynamic sampling
+    behaviour which needs to be supported for backwards compatibility but is deprecated
+    - The `organizations:dynamic-sampling-basic` feature flag is the flag that enables the new adaptive sampling
+    """
+
+    def __init__(self, project, request):
+        # Feature flag that informs us that relay is handling DS rules
+        self.allow_dynamic_sampling = features.has(
+            "organizations:server-side-sampling", project.organization, actor=request.user
+        )
+        # Feature flag that informs us that the org is on the new AM2 plan and thereby have adaptive sampling enabled
+        # ToDo(matej): This needs to be renamed to `organizations:dynamic-sampling`
+        self.current_dynamic_sampling = features.has(
+            "organizations:dynamic-sampling-basic", project.organization, actor=request.user
+        )
+        # Flag responsible to inform us if the org was in the original LA/EA Dynamic Sampling
+        # ToDo(matej): This needs to be renamed to `organizations:dynamic-sampling-deprecated`
+        self.deprecated_dynamic_sampling = features.has(
+            "organizations:server-side-sampling-ui", project.organization, actor=request.user
+        )
+
+    def can_put(self):
+        return (
+            self.allow_dynamic_sampling
+            and self.deprecated_dynamic_sampling
+            and not self.current_dynamic_sampling
+        )
+
+    def can_get_old_rules(self):
+        return self.allow_dynamic_sampling and self.deprecated_dynamic_sampling
