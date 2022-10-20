@@ -36,7 +36,8 @@ def find_missing_codemappings(**kwargs):
             project
             for project in projects
             if Group.objects.filter(
-                project=project, last_seen__gte=timezone.now() - timedelta(days=PREFERRED_GROUP_OWNER_AGE)
+                project=project,
+                last_seen__gte=timezone.now() - timedelta(days=PREFERRED_GROUP_OWNER_AGE),
             ).exists()
         ]
 
