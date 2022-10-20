@@ -10,7 +10,6 @@ from sentry.db.models import (
     FlexibleForeignKey,
     Model,
     control_silo_only_model,
-    region_silo_only_model,
     sane_repr,
 )
 from sentry.db.models.fields.jsonfield import JSONField
@@ -37,7 +36,7 @@ class AuthProviderDefaultTeams(Model):
         unique_together = (("authprovider", "team"),)
 
 
-@region_silo_only_model
+@control_silo_only_model
 class AuthProvider(Model):
     __include_in_export__ = True
 

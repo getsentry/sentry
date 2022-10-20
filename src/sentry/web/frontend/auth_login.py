@@ -15,6 +15,7 @@ from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.http import get_server_hostname
 from sentry.models import AuthProvider, Organization, OrganizationMember, OrganizationStatus
 from sentry.signals import join_request_link_viewed, user_signup
+from sentry.silo import SiloMode
 from sentry.utils import auth, json, metrics
 from sentry.utils.auth import (
     get_login_redirect,
@@ -121,7 +122,14 @@ class AuthLoginView(BaseView):
         can_register = self.can_register(request)
 
         op = request.POST.get("op")
+        # DEPRECATED: Hybrid Cloud silo modes will make passing around raw organization objects more involved,
+        # Likely will remove this if possible or replace with service abstraction.
         organization = kwargs.pop("organization", None)
+        # Ideally, pass in the organization identifier instead
+        organization_id = kwargs.pop("organization_id", None)
+
+        if organization_id is None and organization is not None:
+            organization_id = organization.id
 
         if not op:
             # Detect that we are on the register page by url /register/ and
@@ -150,7 +158,7 @@ class AuthLoginView(BaseView):
             # HACK: grab whatever the first backend is and assume it works
             user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
-            login(request, user, organization_id=organization.id if organization else None)
+            login(request, user, organization_id=organization_id)
 
             # can_register should only allow a single registration
             request.session.pop("can_register", None)
@@ -165,6 +173,9 @@ class AuthLoginView(BaseView):
             # may need to configure 2FA in which case, we don't want to make
             # the association for them.
             if settings.SENTRY_SINGLE_ORGANIZATION and not invite_helper:
+                assert (
+                    SiloMode.get_current_mode() == SiloMode.MONOLITH
+                ), "SENTRY_SINGLE_ORGANIZATION does not support silo mode yet"
                 organization = Organization.get_default()
                 OrganizationMember.objects.create(
                     organization=organization, role=organization.default_role, user=user

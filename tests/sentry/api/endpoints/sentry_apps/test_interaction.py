@@ -25,7 +25,7 @@ class SentryAppInteractionTest(APITestCase):
         )
 
 
-@region_silo_test(stable=True)
+@region_silo_test
 class SentryAppInteractionAuthTest(SentryAppInteractionTest):
     def test_not_logged_in_not_allowed(self):
         response = self.get_error_response(

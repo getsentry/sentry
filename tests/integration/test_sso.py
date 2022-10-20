@@ -4,7 +4,7 @@ from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
 from sentry.utils.auth import SsoSession
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class OrganizationAuthLoginTest(AuthProviderTestCase):
     def test_sso_auth_required(self):
         with exempt_from_silo_limits():

@@ -30,6 +30,7 @@ from sentry.db.models import (
 from sentry.db.models.utils import slugify_instance
 from sentry.locks import locks
 from sentry.roles.manager import Role
+from sentry.silo import SiloMode
 from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import SnowflakeIdMixin
@@ -97,6 +98,13 @@ class OrganizationManager(BaseManager):
         """
         Returns a set of all organizations a user has access to.
         """
+        # This method needs to converge with organization_service.get_user_organizations(), please be mindful of changes
+        # made here that may need to reflect there as well.  Eventually this will be discarded in favor of the service
+        # abstraction once matured.
+        assert (
+            SiloMode.get_current_mode() == SiloMode.MONOLITH
+        ), "get_for_user should not be used in silo mode, defer to service abstraction"
+
         from sentry.models import OrganizationMember
 
         if not user.is_authenticated:

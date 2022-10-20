@@ -15,11 +15,10 @@ from sentry.models import (
     OrganizationMember,
 )
 from sentry.testutils import TestCase
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import exempt_from_silo_limits
 from tests.sentry.region_to_control.test_utils import flush_audit_logs
 
 
-@region_silo_test(stable=True)
 class AcceptInviteTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -286,8 +285,9 @@ class AcceptInviteTest(TestCase):
         assert resp.status_code == 400
 
     def test_2fa_cookie_deleted_after_accept(self):
-        self._require_2fa_for_organization()
-        self.assertFalse(Authenticator.objects.user_has_2fa(self.user))
+        with exempt_from_silo_limits():
+            self._require_2fa_for_organization()
+            self.assertFalse(Authenticator.objects.user_has_2fa(self.user))
 
         self.login_as(self.user)
 

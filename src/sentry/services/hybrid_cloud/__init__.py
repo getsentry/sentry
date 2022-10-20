@@ -1,8 +1,13 @@
 import contextlib
+import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, Generic, Mapping, Optional, Type, TypeVar, cast
+from typing import Dict, Generic, List, Mapping, Optional, Type, TypeVar, cast
+
+from sentry.models import Organization, OrganizationMember, OrganizationStatus
+
+logger = logging.getLogger(__name__)
 
 from django.db.models import F
 
@@ -18,13 +23,21 @@ class ProjectKeyRole(Enum):
 
         if self == ProjectKeyRole.store:
             return ProjectKey.roles.store
-        else:
+        elif self == ProjectKeyRole.api:
             return ProjectKey.roles.api
+        else:
+            raise ValueError("Unexpected project key role enum")
 
 
 @dataclass
 class ApiProjectKey:
     dsn_public: str = ""
+
+
+@dataclass
+class ApiOrganization:
+    slug: str = ""
+    id: int = -1
 
 
 class InterfaceWithLifecycle(ABC):
@@ -79,6 +92,85 @@ class ProjectKeyService(InterfaceWithLifecycle):
         pass
 
 
+class OrganizationService(InterfaceWithLifecycle):
+    @abstractmethod
+    def get_organizations(
+        self, user_id: Optional[id], scope: Optional[str], only_visible: bool
+    ) -> List[ApiOrganization]:
+        """
+        This method is expected to follow the optionally given user_id, scope, and only_visible options to filter
+        an appropriate set.
+        :param user_id:
+        When null, this should imply the entire set of organizations, not bound by user.  Be certain to authenticate
+        users before returning this.
+        :param scope:
+        :param only_visible:
+        :return:
+        """
+        pass
+
+    @abstractmethod
+    def get_organization_by_slug(
+        self, slug: str, only_visible: bool, allow_stale: bool
+    ) -> Optional[ApiOrganization]:
+        pass
+
+
+class DatabaseBackedOrganizationService(OrganizationService):
+    def _serialize_organization(self, org: Organization) -> ApiOrganization:
+        return ApiOrganization(
+            slug=org.slug,
+            id=org.id,
+        )
+
+    def get_organization_by_slug(
+        self, slug: str, only_visible: bool, allow_stale: bool
+    ) -> Optional[ApiOrganization]:
+        try:
+            if allow_stale:
+                org = Organization.objects.get_from_cache(slug=slug)
+            else:
+                org = Organization.objects.get(slug=slug)
+
+            if only_visible and org.status != OrganizationStatus.VISIBLE:
+                raise Organization.DoesNotExist
+            return self._serialize_organization(org)
+        except Organization.DoesNotExist:
+            logger.info("Active organization [%s] not found", slug)
+
+        return None
+
+    def close(self):
+        pass
+
+    def get_organizations(
+        self, user_id: Optional[id], scope: Optional[str], only_visible: bool
+    ) -> List[ApiOrganization]:
+        from django.conf import settings
+
+        if settings.SENTRY_PUBLIC and scope is None:
+            if only_visible:
+                return list(Organization.objects.filter(status=OrganizationStatus.ACTIVE))
+            else:
+                return list(Organization.objects.filter())
+
+        if user_id is not None:
+            qs = OrganizationMember.objects.filter(user_id=user_id)
+        else:
+            qs = OrganizationMember.objects.filter()
+
+        qs = qs.select_related("organization")
+        if only_visible:
+            qs = qs.filter(organization__status=OrganizationStatus.ACTIVE)
+
+        results = list(qs)
+
+        if scope is not None:
+            return [r.organization for r in results if scope in r.get_scopes()]
+
+        return [self._serialize_organization(r.organization) for r in results]
+
+
 class DatabaseBackedProjectKeyService(ProjectKeyService):
     def close(self):
         pass
@@ -102,6 +194,21 @@ class StubProjectKeyService(ProjectKeyService):
 
     def get_project_key(self, project_id: str, role: ProjectKeyRole) -> Optional[ApiProjectKey]:
         return ApiProjectKey(dsn_public="test-dsn")
+
+
+class StubOrganizationService(OrganizationService):
+    def get_organizations(
+        self, user_id: Optional[id], scope: Optional[str], only_visible: bool
+    ) -> List[ApiOrganization]:
+        pass
+
+    def get_organization_by_slug(
+        self, slug: str, only_visible: bool, allow_stale: bool
+    ) -> Optional[ApiOrganization]:
+        pass
+
+    def close(self):
+        pass
 
 
 def silo_mode_delegation(mapping: Mapping[SiloMode, Type[ServiceInterface]]) -> ServiceInterface:
@@ -141,6 +248,14 @@ project_key_service: ProjectKeyService = silo_mode_delegation(
         SiloMode.MONOLITH: DatabaseBackedProjectKeyService,
         SiloMode.REGION: DatabaseBackedProjectKeyService,
         SiloMode.CONTROL: StubProjectKeyService,  # TODO: Real Service
+    }
+)
+
+organization_service: OrganizationService = silo_mode_delegation(
+    {
+        SiloMode.MONOLITH: DatabaseBackedOrganizationService,
+        SiloMode.REGION: DatabaseBackedOrganizationService,
+        SiloMode.CONTROL: StubOrganizationService,
     }
 )
 
