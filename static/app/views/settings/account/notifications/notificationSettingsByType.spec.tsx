@@ -77,7 +77,7 @@ describe('NotificationSettingsByType', function () {
   it('should render warning modal when identity not linked', function () {
     const org = TestStubs.Organization();
 
-    TestComponent(
+    renderComponent(
       {
         alerts: {user: {me: {email: 'always', slack: 'always'}}},
       },
