@@ -744,7 +744,9 @@ def verify_prepare_reports(*args, **kwargs):
     max_retries=5,
     acks_late=True,
 )
-def prepare_organization_report(timestamp, duration, organization_id, user_id=None, dry_run=False):
+def prepare_organization_report(
+    timestamp, duration, organization_id, dry_run=False, user_id=None, email_override=None
+):
     try:
         organization = _get_organization_queryset().get(id=organization_id)
         # This allows slicing the transactions by the org and we can determine if there are certain outliers
@@ -762,11 +764,19 @@ def prepare_organization_report(timestamp, duration, organization_id, user_id=No
 
     redis_report_backend.prepare(timestamp, duration, organization)
 
+    if email_override:
+        deliver_organization_user_report.delay(
+            timestamp,
+            duration,
+            organization_id,
+            user_id,
+            dry_run=dry_run,
+            email_override=email_override,
+        )
+        return
     # If an OrganizationMember row doesn't have an associated user, this is
     # actually a pending invitation, so no report should be delivered.
     kwargs = dict(user_id__isnull=False, user__is_active=True)
-    if user_id:
-        kwargs["user_id"] = user_id
 
     member_set = organization.member_set.filter(**kwargs).exclude(
         flags=F("flags").bitor(OrganizationMember.flags["member-limit:restricted"])
@@ -837,8 +847,6 @@ def build_message(timestamp, duration, organization, user, reports):
         headers={"X-SMTPAPI": json.dumps({"category": "organization_report_email"})},
     )
 
-    message.add_users((user.id,))
-
     return message
 
 
@@ -869,7 +877,9 @@ def has_valid_aggregates(interval, project__report):
     max_retries=5,
     acks_late=True,
 )
-def deliver_organization_user_report(timestamp, duration, organization_id, user_id, dry_run=False):
+def deliver_organization_user_report(
+    timestamp, duration, organization_id, user_id, dry_run=False, email_override=None
+):
     try:
         organization = _get_organization_queryset().get(id=organization_id)
     except Organization.DoesNotExist:
@@ -883,19 +893,23 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
         )
         return
 
-    user = User.objects.get(id=user_id)
+    user = User.objects.get(id=user_id) if user_id else None
     # This helps slicing transactions based on user
-    set_user({"email": user.username})
+    if user:
+        set_user({"email": user.username})
 
-    if not user_subscribed_to_organization_reports(user, organization):
+    if user and not user_subscribed_to_organization_reports(user, organization):
         logger.debug(
             f"Skipping report for {organization} to {user}, user is not subscribed to reports."
         )
         return Skipped.NotSubscribed
 
     projects = set()
-    for team in Team.objects.get_for_user(organization, user):
-        projects.update(Project.objects.get_for_user(team, user, _skip_team_check=True))
+    if user:
+        for team in Team.objects.get_for_user(organization, user):
+            projects.update(Project.objects.get_for_user(team, user, _skip_team_check=True))
+    else:
+        projects.update(list(organization.project_set.all()))
 
     if not projects:
         logger.debug(
@@ -928,7 +942,11 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
     message = build_message(timestamp, duration, organization, user, reports)
 
     if not dry_run:
-        message.send()
+        if email_override:
+            message.send(to=(email_override,))
+        else:
+            message.add_users((user.id,))
+            message.send()
         set_tag("email_sent", True)
 
 
