@@ -290,7 +290,7 @@ export function SpecificConditionsModal({
     <Fragment>
       <CloseButton />
       <Feature
-        features={['server-side-sampling', 'server-side-sampling-ui']}
+        features={['server-side-sampling', 'dynamic-sampling-deprecated']}
         organization={organization}
         hookName="feature-disabled:dynamic-sampling-advanced"
       >

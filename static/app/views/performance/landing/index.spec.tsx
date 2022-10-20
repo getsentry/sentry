@@ -304,7 +304,7 @@ describe('Performance > Landing > Index', function () {
       selectedProject: 99,
       features: [
         'server-side-sampling',
-        'server-side-sampling-ui',
+        'dynamic-sampling-deprecated',
         'dynamic-sampling-performance-cta',
       ],
     });
@@ -335,7 +335,7 @@ describe('Performance > Landing > Index', function () {
       selectedProject: 99,
       features: [
         'server-side-sampling',
-        'server-side-sampling-ui',
+        'dynamic-sampling-deprecated',
         'dynamic-sampling-performance-cta',
         'performance-transaction-name-only-search',
       ],

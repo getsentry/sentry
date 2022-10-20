@@ -81,7 +81,10 @@ describe('OrganizationStats', function () {
 
   it('renders header with dynamic sampling alert', () => {
     const newOrg = initializeOrg();
-    newOrg.organization.features = ['server-side-sampling', 'server-side-sampling-ui'];
+    newOrg.organization.features = [
+      'server-side-sampling',
+      'dynamic-sampling-deprecated',
+    ];
     const newProps = {
       ...defaultProps,
       organization: newOrg.organization,

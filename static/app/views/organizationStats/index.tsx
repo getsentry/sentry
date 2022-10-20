@@ -306,7 +306,7 @@ export class OrganizationStats extends Component<Props> {
               </PageGrid>
 
               <Feature
-                features={['server-side-sampling', 'server-side-sampling-ui']}
+                features={['server-side-sampling', 'dynamic-sampling-deprecated']}
                 organization={organization}
               >
                 {this.dataCategory === DataCategory.TRANSACTIONS && (

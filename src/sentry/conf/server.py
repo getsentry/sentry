@@ -1190,7 +1190,7 @@ SENTRY_FEATURES = {
     # Enable the server-side sampling feature (backend + relay)
     "organizations:server-side-sampling": False,
     # Enable the server-side sampling feature (frontend)
-    "organizations:server-side-sampling-ui": False,
+    "organizations:dynamic-sampling-deprecated": False,
     # Enable the updated dynamic sampling UI for the total transaction packaging experience
     "organizations:dynamic-sampling-total-transaction-packaging": False,
     # Enable creating DS rules on incompatible platforms (used by SDK teams for dev purposes)
@@ -1199,10 +1199,8 @@ SENTRY_FEATURES = {
     "organizations:dynamic-sampling-demo": False,
     # Enable the new opinionated dynamic sampling UI (this will be controlled by plan but now enables it for us internally during development)
     "organizations:dynamic-sampling-opinionated": False,
-    # Enable the creation of a uniform sampling rule.
-    "organizations:dynamic-sampling-basic": False,
-    # Enable the creation of uniform and conditional sampling rules.
-    "organizations:dynamic-sampling-advanced": False,
+    # Dynamically change server-side sampling based on our biases.
+    "organizations:dynamic-sampling": False,
     # Enable dynamic sampling call to action in the performance product
     "organizations:dynamic-sampling-performance-cta": False,
     # Enable a more advanced dynamic sampling call to action in the performance product

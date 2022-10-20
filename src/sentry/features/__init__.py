@@ -1,10 +1,4 @@
-from .base import (  # NOQA
-    Feature,
-    OrganizationFeature,
-    ProjectFeature,
-    ProjectPluginFeature,
-    UserFeature,
-)
+from .base import OrganizationFeature, ProjectFeature, ProjectPluginFeature  # NOQA
 from .handler import *  # NOQA
 from .manager import *  # NOQA
 
@@ -148,7 +142,7 @@ default_manager.add("organizations:rule-page", OrganizationFeature)
 default_manager.add("organizations:sandbox-kill-switch", OrganizationFeature, True)
 default_manager.add("organizations:sentry-functions", OrganizationFeature, False)
 default_manager.add("organizations:server-side-sampling", OrganizationFeature)
-default_manager.add("organizations:server-side-sampling-ui", OrganizationFeature, True)
+default_manager.add("organizations:dynamic-sampling-deprecated", OrganizationFeature, True)
 default_manager.add("organizations:server-side-sampling-allow-incompatible-platforms", OrganizationFeature, True)
 default_manager.add("organizations:session-replay", OrganizationFeature)
 default_manager.add("organizations:session-replay-sdk", OrganizationFeature, True)
@@ -183,8 +177,7 @@ default_manager.add("organizations:data-forwarding", OrganizationFeature)
 default_manager.add("organizations:discover-basic", OrganizationFeature)
 default_manager.add("organizations:discover-query", OrganizationFeature)
 default_manager.add("organizations:dynamic-sampling-demo", OrganizationFeature, True)
-default_manager.add("organizations:dynamic-sampling-basic", OrganizationFeature)
-default_manager.add("organizations:dynamic-sampling-advanced", OrganizationFeature)
+default_manager.add("organizations:dynamic-sampling", OrganizationFeature)
 default_manager.add("organizations:dynamic-sampling-opinionated", OrganizationFeature, True)
 default_manager.add("organizations:dynamic-sampling-performance-cta", OrganizationFeature, True)
 default_manager.add("organizations:dynamic-sampling-performance-cta-advanced", OrganizationFeature, True)

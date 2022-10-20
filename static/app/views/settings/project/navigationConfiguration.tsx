@@ -74,8 +74,8 @@ export default function getConfiguration({
             const orgFeatures = organization?.features ?? [];
             if (
               orgFeatures.includes('server-side-sampling') &&
-              (orgFeatures.includes('server-side-sampling-ui') ||
-                orgFeatures.includes('dynamic-sampling-basic'))
+              (orgFeatures.includes('dynamic-sampling-deprecated') ||
+                orgFeatures.includes('dynamic-sampling'))
             ) {
               return true;
             }

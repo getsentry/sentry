@@ -37,7 +37,7 @@ describe('Dynamic Sampling Alert', function () {
             ...organization,
             features: [
               'server-side-sampling',
-              'server-side-sampling-ui',
+              'dynamic-sampling-deprecated',
               'dynamic-sampling-performance-cta',
             ],
           }}
@@ -67,7 +67,7 @@ describe('Dynamic Sampling Alert', function () {
             ...organization,
             features: [
               'server-side-sampling',
-              'server-side-sampling-ui',
+              'dynamic-sampling-deprecated',
               'dynamic-sampling-performance-cta',
             ],
           }}

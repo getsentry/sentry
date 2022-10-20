@@ -34,7 +34,7 @@ export function DynamicSamplingMetricsAccuracyAlert({
 }: Props) {
   const requiredFeatureFlagsEnabled =
     organization.features.includes('server-side-sampling') &&
-    organization.features.includes('server-side-sampling-ui') &&
+    organization.features.includes('dynamic-sampling-deprecated') &&
     organization.features.includes('dynamic-sampling-performance-cta');
 
   const organizationStats = useOrganizationStats({

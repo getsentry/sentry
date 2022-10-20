@@ -7,7 +7,7 @@ import DynamicSampling from '.';
 
 const ORG_FEATURES = [
   'server-side-sampling',
-  'server-side-sampling-ui',
+  'dynamic-sampling-deprecated',
   'dynamic-sampling-opinionated',
 ];
 
