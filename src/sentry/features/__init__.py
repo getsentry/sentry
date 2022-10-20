@@ -82,7 +82,6 @@ default_manager.add("organizations:discover-metrics-baseline", OrganizationFeatu
 default_manager.add("organizations:discover-quick-context", OrganizationFeature, True)
 default_manager.add("organizations:discover-frontend-use-events-endpoint", OrganizationFeature, True)
 default_manager.add("organizations:discover-query-builder-as-landing-page", OrganizationFeature, True)
-default_manager.add("organizations:dynamic-sampling-total-transaction-packaging", OrganizationFeature, True)
 default_manager.add("organizations:enterprise-perf", OrganizationFeature)
 default_manager.add("organizations:grouping-stacktrace-ui", OrganizationFeature, True)
 default_manager.add("organizations:grouping-title-ui", OrganizationFeature, True)
