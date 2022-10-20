@@ -68,6 +68,7 @@ from sentry.web.frontend.debug.debug_unable_to_fetch_commits_email import (
     DebugUnableToFetchCommitsEmailView,
 )
 from sentry.web.frontend.debug.debug_unassigned_email import DebugUnassignedEmailView
+from sentry.web.frontend.debug.debug_weekly_report import DebugWeeklyReportView
 
 urlpatterns = [
     url(r"^debug/mail/alert/$", sentry.web.frontend.debug.mail.alert),
@@ -113,6 +114,7 @@ urlpatterns = [
     url(r"^debug/mail/unable-to-delete-repo/$", DebugUnableToDeleteRepository.as_view()),
     url(r"^debug/mail/unable-to-fetch-commits/$", DebugUnableToFetchCommitsEmailView.as_view()),
     url(r"^debug/mail/unassigned/$", DebugUnassignedEmailView.as_view()),
+    url(r"^debug/mail/weekly-reports/$", DebugWeeklyReportView.as_view()),
     url(r"^debug/mail/org-delete-confirm/$", sentry.web.frontend.debug.mail.org_delete_confirm),
     url(r"^debug/mail/mfa-removed/$", DebugMfaRemovedEmailView.as_view()),
     url(r"^debug/mail/mfa-added/$", DebugMfaAddedEmailView.as_view()),

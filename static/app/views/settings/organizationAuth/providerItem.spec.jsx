@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {descopeFeatureName} from 'sentry/utils';
 import ProviderItem from 'sentry/views/settings/organizationAuth/providerItem';
@@ -11,36 +11,33 @@ describe('ProviderItem', function () {
   const routerContext = TestStubs.routerContext([{organization: org}]);
 
   it('renders', function () {
-    const wrapper = mountWithTheme(
+    render(
       <ProviderItem organization={org} provider={provider} onConfigure={() => {}} />,
-      routerContext
+      {context: routerContext}
     );
 
-    expect(wrapper.find('ProviderDescription').text()).toContain(
-      'Enable your organization to sign in with Dummy.'
-    );
-    expect(wrapper.find('Tag').exists()).toBe(false);
+    expect(
+      screen.getByText('Enable your organization to sign in with Dummy.')
+    ).toBeInTheDocument();
   });
 
   it('calls configure callback', function () {
     const mock = jest.fn();
-    const wrapper = mountWithTheme(
-      <ProviderItem organization={org} provider={provider} onConfigure={mock} />,
-      routerContext
-    );
+    render(<ProviderItem organization={org} provider={provider} onConfigure={mock} />, {
+      context: routerContext,
+    });
 
-    wrapper.find('Button').simulate('click');
+    userEvent.click(screen.getByRole('button', {name: 'Configure'}));
     expect(mock).toHaveBeenCalledWith('dummy', expect.anything());
   });
 
   it('renders a disabled Tag when disabled', function () {
     const noFeatureRouterContext = TestStubs.routerContext();
-    const wrapper = mountWithTheme(
+    render(
       <ProviderItem organization={org} provider={provider} onConfigure={() => {}} />,
-      noFeatureRouterContext
+      {context: noFeatureRouterContext}
     );
 
-    expect(wrapper.find('Tag').exists()).toBe(true);
-    expect(wrapper.find('Tag').text()).toBe('disabled');
+    expect(screen.getByRole('status')).toHaveTextContent('disabled');
   });
 });

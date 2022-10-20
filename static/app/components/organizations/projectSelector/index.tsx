@@ -217,6 +217,7 @@ function ProjectSelector({
     searchKey: project.slug,
     label: ({inputValue}: {inputValue: typeof project.slug}) => (
       <SelectorItem
+        key={project.slug}
         project={project}
         organization={organization}
         multi={isMulti}

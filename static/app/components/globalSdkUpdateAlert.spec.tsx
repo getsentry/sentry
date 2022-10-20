@@ -225,22 +225,26 @@ describe('GlobalSDKUpdateAlert', () => {
       snoozed_ts: undefined,
     };
 
-    const promptsActivityMock = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/prompts-activity/',
       body: {data: promptResponse},
+    });
+
+    const promptsActivityMock = MockApiClient.addMockResponse({
+      url: '/prompts-activity/',
+      method: 'PUT',
     });
 
     render(<InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} />, {
       organization: TestStubs.Organization(),
     });
 
-    MockApiClient.warnOnMissingMocks();
     userEvent.click(await screen.findByText(/Remind me later/));
 
     expect(promptsActivityMock).toHaveBeenCalledWith(
       '/prompts-activity/',
       expect.objectContaining({
-        query: expect.objectContaining({
+        data: expect.objectContaining({
           feature: 'sdk_updates',
           organization_id: '3',
         }),

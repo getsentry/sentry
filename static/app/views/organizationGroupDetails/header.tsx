@@ -416,11 +416,13 @@ function GroupHeader({
             )}
           </StatsWrapper>
         </HeaderRow>
-        <HeaderRow>
-          {hasIssueActionsV2 ? (
-            // Render empty div to keep flex layout
-            <div />
-          ) : (
+        {hasIssueActionsV2 ? (
+          // Environment picker for mobile
+          <HeaderRow className="hidden-sm hidden-md hidden-lg">
+            <EnvironmentPageFilter alignDropdown="right" />
+          </HeaderRow>
+        ) : (
+          <HeaderRow>
             <GroupActions
               group={group}
               project={project}
@@ -428,17 +430,12 @@ function GroupHeader({
               event={event}
               query={location.query}
             />
-          )}
-          <StyledSeenByList
-            seenBy={group.seenBy}
-            iconTooltip={t('People who have viewed this issue')}
-          />
-          {hasIssueActionsV2 && (
-            <div className="hidden-sm hidden-md hidden-lg">
-              <EnvironmentPageFilter alignDropdown="right" />
-            </div>
-          )}
-        </HeaderRow>
+            <StyledSeenByList
+              seenBy={group.seenBy}
+              iconTooltip={t('People who have viewed this issue')}
+            />
+          </HeaderRow>
+        )}
         {group.issueCategory === IssueCategory.PERFORMANCE
           ? performanceIssueTabs
           : errorIssueTabs}

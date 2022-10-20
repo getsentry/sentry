@@ -292,6 +292,7 @@ class ManageDashboards extends AsyncView<Props, State> {
                         event.preventDefault();
                         this.onCreate();
                       }}
+                      size="sm"
                       priority="primary"
                       icon={<IconAdd isCircled />}
                     >

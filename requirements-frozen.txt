@@ -110,7 +110,7 @@ soupsieve==2.3.2.post1
 sqlparse==0.3.0
 statsd==3.3
 structlog==21.1.0
-symbolic==9.2.0
+symbolic==10.0.0
 toronado==0.1.0
 trio==0.21.0
 trio-websocket==0.9.2

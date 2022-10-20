@@ -23,7 +23,7 @@ import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Field from 'sentry/components/forms/field';
 import FieldHelp from 'sentry/components/forms/field/fieldHelp';
 import SelectField from 'sentry/components/forms/fields/selectField';
-import Form from 'sentry/components/forms/form';
+import Form, {FormProps} from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
 import IdBadge from 'sentry/components/idBadge';
 import Input from 'sentry/components/input';
@@ -1243,7 +1243,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 export default withOrganization(withProjects(IssueRuleEditor));
 
 // TODO(ts): Understand why styled is not correctly inheriting props here
-const StyledForm = styled(Form)<Form['props']>`
+const StyledForm = styled(Form)<FormProps>`
   position: relative;
 `;
 

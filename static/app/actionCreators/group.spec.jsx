@@ -81,12 +81,15 @@ describe('group', () => {
 
   describe('bulkUpdate()', function () {
     beforeEach(function () {
-      jest.spyOn(api, 'request');
       jest.spyOn(GroupStore, 'onUpdate'); // stub GroupStore.onUpdate call from update
     });
 
     it('should use itemIds as query if provided', function () {
-      MockApiClient.warnOnMissingMocks();
+      const request = MockApiClient.addMockResponse({
+        url: '/projects/1337/1337/issues/',
+        method: 'PUT',
+      });
+
       bulkUpdate(api, {
         orgId: '1337',
         projectId: '1337',
@@ -95,15 +98,19 @@ describe('group', () => {
         query: 'is:resolved',
       });
 
-      expect(api.request).toHaveBeenCalledTimes(1);
-      expect(api.request).toHaveBeenCalledWith(
+      expect(request).toHaveBeenCalledTimes(1);
+      expect(request).toHaveBeenCalledWith(
         '/projects/1337/1337/issues/',
         expect.objectContaining({query: {id: [1, 2, 3]}})
       );
     });
 
     it('should use query as query if itemIds are absent', function () {
-      MockApiClient.warnOnMissingMocks();
+      const request = MockApiClient.addMockResponse({
+        url: '/projects/1337/1337/issues/',
+        method: 'PUT',
+      });
+
       bulkUpdate(api, {
         orgId: '1337',
         projectId: '1337',
@@ -112,15 +119,19 @@ describe('group', () => {
         query: 'is:resolved',
       });
 
-      expect(api.request).toHaveBeenCalledTimes(1);
-      expect(api.request).toHaveBeenCalledWith(
+      expect(request).toHaveBeenCalledTimes(1);
+      expect(request).toHaveBeenCalledWith(
         '/projects/1337/1337/issues/',
         expect.objectContaining({query: {query: 'is:resolved'}})
       );
     });
 
     it('should apply project option', function () {
-      MockApiClient.warnOnMissingMocks();
+      const request = MockApiClient.addMockResponse({
+        url: '/organizations/1337/issues/',
+        method: 'PUT',
+      });
+
       bulkUpdate(api, {
         orgId: '1337',
         project: [99],
@@ -128,8 +139,8 @@ describe('group', () => {
         data: {status: 'unresolved'},
       });
 
-      expect(api.request).toHaveBeenCalledTimes(1);
-      expect(api.request).toHaveBeenCalledWith(
+      expect(request).toHaveBeenCalledTimes(1);
+      expect(request).toHaveBeenCalledWith(
         '/organizations/1337/issues/',
         expect.objectContaining({query: {id: [1, 2, 3], project: [99]}})
       );
@@ -140,12 +151,15 @@ describe('group', () => {
     // TODO: this is totally copypasta from the test above. We need to refactor
     //       these API methods/tests.
     beforeEach(function () {
-      jest.spyOn(api, 'request');
       jest.spyOn(GroupStore, 'onMerge'); // stub GroupStore.onMerge call from mergeGroups
     });
 
     it('should use itemIds as query if provided', function () {
-      MockApiClient.warnOnMissingMocks();
+      const request = MockApiClient.addMockResponse({
+        url: '/projects/1337/1337/issues/',
+        method: 'PUT',
+      });
+
       mergeGroups(api, {
         orgId: '1337',
         projectId: '1337',
@@ -154,15 +168,19 @@ describe('group', () => {
         query: 'is:resolved',
       });
 
-      expect(api.request).toHaveBeenCalledTimes(1);
-      expect(api.request).toHaveBeenCalledWith(
+      expect(request).toHaveBeenCalledTimes(1);
+      expect(request).toHaveBeenCalledWith(
         '/projects/1337/1337/issues/',
         expect.objectContaining({query: {id: [1, 2, 3]}})
       );
     });
 
     it('should use query as query if itemIds are absent', function () {
-      MockApiClient.warnOnMissingMocks();
+      const request = MockApiClient.addMockResponse({
+        url: '/projects/1337/1337/issues/',
+        method: 'PUT',
+      });
+
       mergeGroups(api, {
         orgId: '1337',
         projectId: '1337',
@@ -171,8 +189,8 @@ describe('group', () => {
         query: 'is:resolved',
       });
 
-      expect(api.request).toHaveBeenCalledTimes(1);
-      expect(api.request).toHaveBeenCalledWith(
+      expect(request).toHaveBeenCalledTimes(1);
+      expect(request).toHaveBeenCalledWith(
         '/projects/1337/1337/issues/',
         expect.objectContaining({query: {query: 'is:resolved'}})
       );

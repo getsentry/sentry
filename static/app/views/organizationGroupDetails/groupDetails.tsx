@@ -176,6 +176,8 @@ class GroupDetails extends Component<Props, State> {
       issue_level: group?.level,
       is_assigned: !!group?.assignedTo,
       error_count: Number(group?.count || -1),
+      error_has_replay: Boolean(event?.tags?.find(({key}) => key === 'replayId')),
+      group_has_replay: Boolean(group?.tags?.find(({key}) => key === 'replayId')),
       num_comments: group ? group.numComments : -1,
       project_platform: group?.project.platform,
       has_external_issue: group?.annotations ? group?.annotations.length > 0 : false,

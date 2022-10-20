@@ -1,7 +1,10 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {waitFor} from 'sentry-test/reactTestingLibrary';
 
 import EventView from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 import CellAction, {Actions, updateQuery} from 'sentry/views/eventsV2/table/cellAction';
 
 const defaultData = {
@@ -45,6 +48,9 @@ function makeWrapper(
     </CellAction>
   );
 }
+
+jest.mock('sentry/utils/useApi');
+jest.mock('sentry/utils/useOrganization');
 
 describe('Discover -> CellAction', function () {
   const location = {
@@ -140,13 +146,33 @@ describe('Discover -> CellAction', function () {
     const wrapper = makeWrapper(view, jest.fn(), 9, defaultData, organization);
     wrapper.find('Container').simulate('mouseEnter');
 
-    it('toggles the context popover on click', function () {
+    it('toggles the context popover on click', async () => {
+      const api = new MockApiClient();
+      jest.spyOn(api, 'requestPromise').mockResolvedValue({
+        id: '3512441874',
+        project: {
+          id: '1',
+          slug: 'cool-team',
+        },
+        status: 'ignored',
+        assignedTo: {
+          id: '12312',
+          name: 'ingest',
+          type: 'team',
+        },
+      });
+      // @ts-ignore useApi and useOrganization is mocked
+      useOrganization.mockReturnValue(organization);
+      useApi.mockReturnValue(api);
+
       const contextButton = wrapper.find('button[data-test-id="context-button"]');
       expect(contextButton).toHaveLength(1);
 
       // Click to show popover.
       contextButton.simulate('click');
-      expect(wrapper.find('div[data-test-id="context-menu"]')).toHaveLength(1);
+      await waitFor(() => {
+        expect(wrapper.find('div[data-test-id="context-menu"]')).toHaveLength(1);
+      });
 
       // Click again to hide popover.
       contextButton.simulate('click');

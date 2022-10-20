@@ -52,7 +52,9 @@ describe('tags table', function () {
 
     expect(
       await screen.findByText(
-        textWithMarkupMatcher('Removed because of the PII rule project:2') // Fall back case
+        textWithMarkupMatcher(
+          "Removed because of a data scrubbing rule in your project's settings"
+        ) // Fall back case
       )
     ).toBeInTheDocument(); // tooltip description
   });
@@ -102,7 +104,9 @@ describe('tags table', function () {
 
     expect(
       await screen.findByText(
-        textWithMarkupMatcher('Removed because of the PII rule project:2') // Fall back case
+        textWithMarkupMatcher(
+          "Removed because of a data scrubbing rule in your project's settings"
+        ) // Fall back case
       )
     ).toBeInTheDocument(); // tooltip description
   });
