@@ -6,7 +6,6 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.rule import RuleSetSerializer
-from sentry.rules.history.endpoints.project_rule_stats import TimeSeriesValueSerializer
 from sentry.rules.history.preview import preview
 from sentry.web.decorators import transaction_start
 
@@ -51,4 +50,17 @@ class ProjectRulePreviewEndpoint(ProjectEndpoint):
 
         if results is None:
             raise ValidationError
-        return Response(serialize(results, request.user, TimeSeriesValueSerializer()))
+
+        response = self.paginate(
+            request=request,
+            queryset=results,
+            order_by="-id",
+            on_results=lambda x: serialize(x, request.user),
+        )
+
+        response.data = {
+            "data": response.data,
+            "totalCount": len(results),
+        }
+
+        return response

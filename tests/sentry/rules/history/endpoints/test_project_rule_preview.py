@@ -18,7 +18,11 @@ class ProjectRulePreviewEndpointTest(APITestCase):
         self.login_as(self.user)
 
     def test(self):
-        Group.objects.create(project=self.project, first_seen=timezone.now() - timedelta(hours=1))
+        group = Group.objects.create(
+            project=self.project,
+            first_seen=timezone.now() - timedelta(hours=1),
+            data={"metadata": {"title": "title"}},
+        )
         resp = self.get_success_response(
             self.organization.slug,
             self.project.slug,
@@ -28,7 +32,8 @@ class ProjectRulePreviewEndpointTest(APITestCase):
             filterMatch="all",
             frequency=10,
         )
-        assert resp.data[-1]["count"] == 1
+        assert len(resp.data["data"]) == 1
+        assert resp.data["data"][0]["id"] == str(group.id)
 
     def test_invalid_conditions(self):
         conditions = [
