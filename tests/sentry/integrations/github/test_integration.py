@@ -9,7 +9,7 @@ from django.urls import reverse
 import sentry
 from sentry.constants import ObjectStatus
 from sentry.integrations.github import API_ERRORS, GitHubIntegrationProvider
-from sentry.integrations.utils.code_mapping import derive_code_mappings
+from sentry.integrations.utils.code_mapping import CodeMapping, derive_code_mappings
 from sentry.models import Integration, OrganizationIntegration, Project, Repository
 from sentry.plugins.base import plugins
 from sentry.plugins.bases import IssueTrackingPlugin2
@@ -571,16 +571,10 @@ class GitHubIntegrationTest(IntegrationTestCase):
             assert self._caplog.records[0].levelname == "ERROR"
 
         expected_code_mappings = {
-            "sentry": {
-                "repo": "Test-Organization/foo",
-                "stacktrace_root": "sentry",
-                "src_path": "src/sentry",
-            },
-            "sentry_plugins": {
-                "repo": "Test-Organization/foo",
-                "stacktrace_root": "sentry_plugins",
-                "src_path": "src/sentry_plugins",
-            },
+            "sentry": CodeMapping("Test-Organization/foo", "sentry", "src/sentry"),
+            "sentry_plugins": CodeMapping(
+                "Test-Organization/foo", "sentry_plugins", "src/sentry_plugins"
+            ),
         }
 
         # # Case 1 - No matches
@@ -623,4 +617,4 @@ class GitHubIntegrationTest(IntegrationTestCase):
         ]
         code_mappings = derive_code_mappings(stacktraces, trees)
         # Order matters, this is why we only derive one of the two code mappings
-        assert code_mappings == {"sentry": expected_code_mappings["sentry"]}
+        assert code_mappings == [expected_code_mappings["sentry"]]
