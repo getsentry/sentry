@@ -37,15 +37,22 @@ function EventTagsAndScreenshots({
 }: Props) {
   const {tags = []} = event;
 
-  const screenshot = attachments.find(
-    ({name}) => name === 'screenshot.jpg' || name === 'screenshot.png'
+  const screenshots = attachments.filter(({name}) =>
+    [
+      'screenshot.jpg',
+      'screenshot.png',
+      'screenshot-1.jpg',
+      'screenshot-1.png',
+      'screenshot-2.jpg',
+      'screenshot-2.png',
+    ].includes(name)
   );
 
-  if (!tags.length && !hasContext && (isShare || !screenshot)) {
+  if (!tags.length && !hasContext && (isShare || !screenshots.length)) {
     return null;
   }
 
-  const showScreenshot = !isShare && !!screenshot;
+  const showScreenshot = !isShare && !!screenshots.length;
   // Check for context bailout condition. No context is rendered if only user is provided
   const hasEventContext = hasContext && !objectIsEmpty(event.contexts);
   const showTags = !!tags.length || hasContext;
@@ -96,7 +103,7 @@ function EventTagsAndScreenshots({
             organization={organization}
             eventId={event.id}
             projectSlug={projectSlug}
-            screenshot={screenshot}
+            screenshots={screenshots}
             onDelete={onDeleteScreenshot}
             openVisualizationModal={handleOpenVisualizationModal}
           />
