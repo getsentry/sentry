@@ -31,6 +31,6 @@ class Migration(CheckedMigration):
         migrations.AddField(
             model_name="appconnectbuild",
             name="app_id_str",
-            field=models.CharField(default="0", max_length=256),
+            field=models.CharField(max_length=256, null=True),
         ),
     ]
