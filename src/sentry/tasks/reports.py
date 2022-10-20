@@ -788,31 +788,6 @@ def prepare_organization_report(
         )
 
 
-def fetch_personal_statistics(start__stop, organization, user):
-    start, stop = start__stop
-    resolved_issue_ids = set(
-        Activity.objects.filter(
-            project__organization_id=organization.id,
-            user_id=user.id,
-            type__in=(ActivityType.SET_RESOLVED.value, ActivityType.SET_RESOLVED_IN_RELEASE.value),
-            datetime__gte=start,
-            datetime__lt=stop,
-            group__status=GroupStatus.RESOLVED,  # only count if the issue is still resolved
-        )
-        .distinct()
-        .values_list("group_id", flat=True)
-    )
-
-    if resolved_issue_ids:
-        users = tsdb.get_distinct_counts_union(
-            tsdb.models.users_affected_by_group, resolved_issue_ids, start, stop, ONE_DAY
-        )
-    else:
-        users = {}
-
-    return {"resolved": len(resolved_issue_ids), "users": users}
-
-
 class Duration(NamedTuple):
     adjective: str  # e.g. "daily" or "weekly",
     noun: str  # relative to today, e.g. "yesterday" or "this week"
@@ -840,7 +815,6 @@ def build_message(timestamp, duration, organization, user, reports):
             "duration": duration_spec,
             "interval": {"start": date_format(start), "stop": date_format(stop)},
             "organization": organization,
-            "personal": fetch_personal_statistics(interval, organization, user),
             "report": to_context(organization, interval, reports),
             "user": user,
         },
