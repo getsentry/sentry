@@ -9,7 +9,6 @@ __all__ = (
     "translate_meta_results",
 )
 
-import re
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
@@ -69,7 +68,6 @@ from sentry.snuba.metrics.utils import (
     FIELD_ALIAS_MAPPINGS,
     NON_RESOLVABLE_TAG_VALUES,
     OPERATIONS_PERCENTILES,
-    PERCENTILE_OP_REGEX,
     TS_COL_GROUP,
     TS_COL_QUERY,
     DerivedMetricParseException,
@@ -377,7 +375,7 @@ def translate_meta_results(
         if (
             metric_field_of_record
             and metric_field_of_record.op
-            and re.search(PERCENTILE_OP_REGEX, metric_field_of_record.op)
+            and metric_field_of_record.op in OPERATIONS_PERCENTILES
         ):
             record["type"] = "Float64"
 
