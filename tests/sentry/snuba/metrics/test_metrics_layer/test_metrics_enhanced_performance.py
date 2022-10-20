@@ -1266,11 +1266,9 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             include_meta=True,
             use_case_id=UseCaseKey.PERFORMANCE,
         )
-        assert data["groups"] == [
-            {
-                "by": {"transformed_transaction": "<< unparameterized >>"},
-                "totals": {"duration_count": 2},
-            },
+
+        # We sort the output of ClickHouse because we don't have any ordering guarantees without the use of an order by.
+        assert sorted(data["groups"], key=lambda group: group["by"]["transformed_transaction"]) == [
             {
                 "by": {"transformed_transaction": "/bar"},
                 "totals": {"duration_count": 1},
@@ -1278,6 +1276,10 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             {
                 "by": {"transformed_transaction": "/foo"},
                 "totals": {"duration_count": 1},
+            },
+            {
+                "by": {"transformed_transaction": "<< unparameterized >>"},
+                "totals": {"duration_count": 2},
             },
         ]
         assert data["meta"] == sorted(

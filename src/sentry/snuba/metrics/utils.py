@@ -219,6 +219,7 @@ DERIVED_OPERATIONS = (
     "count_web_vitals",
     "count_transaction_name",
     "team_key_transaction",
+    "transform_null_to_unparameterized",
 )
 OPERATIONS = (
     (
