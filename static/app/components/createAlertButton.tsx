@@ -38,6 +38,7 @@ export type CreateAlertFromViewButtonProps = ButtonProps & {
    * We currently do a few checks on metrics data on performance pages and this passes the decision onward to alerts.
    */
   disableMetricDataset?: boolean;
+  iconProps?: SVGIconProps;
   /**
    * Called when the user is redirected to the alert builder
    */

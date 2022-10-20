@@ -16,6 +16,7 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
+import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import FeatureBadge from 'sentry/components/featureBadge';
 import {Hovercard} from 'sentry/components/hovercard';
 import InputControl from 'sentry/components/input';
@@ -63,7 +64,7 @@ function SaveAsDropdown({
       <Button
         {...triggerProps}
         size="xs"
-        icon={<IconStar />}
+        icon={<IconStar size="xs" />}
         aria-label={t('Save as')}
         disabled={disabled}
       >
@@ -291,6 +292,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
   };
 
   renderButtonViewSaved(disabled: boolean) {
+    const {organization} = this.props;
     return (
       <Button
         onClick={() => {}}
@@ -298,6 +300,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
         disabled={disabled}
         size="xs"
         icon={<IconStar isSolid size="xs" />}
+        to={getDiscoverQueriesUrl(organization)}
       >
         {t('Saved Queries')}
       </Button>
@@ -387,6 +390,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
           size="xs"
           aria-label={t('Create Alert')}
           data-test-id="discover2-create-from-discover"
+          iconProps={{size: 'xs'}}
         />
       </GuideAnchor>
     );
@@ -487,7 +491,8 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
   }
 
   renderHomepageFlagButtons() {
-    const {organization, eventView, savedQuery, yAxis, router, location} = this.props;
+    const {organization, eventView, savedQuery, yAxis, router, location, isHomepage} =
+      this.props;
     const renderDisabled = p => (
       <Hovercard
         body={
@@ -516,43 +521,36 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
       );
     };
 
+    const contextMenuItems: MenuItemProps[] = [];
+
+    if (organization.features.includes('dashboards-edit')) {
+      contextMenuItems.push({
+        key: 'add-to-dashboard',
+        label: t('Add To Dashboard'),
+        onAction: () => {
+          handleAddQueryToDashboard({
+            organization,
+            location,
+            eventView,
+            query: savedQuery,
+            yAxis,
+            router,
+          });
+        },
+      });
+    }
+
+    if (!isHomepage && savedQuery) {
+      contextMenuItems.push({
+        key: 'delete-saved-query',
+        label: t('Delete Saved Query'),
+        onAction: () => this.handleDeleteQuery(),
+      });
+    }
+
     const contextMenu = (
-      // <Fragment>
-      //   <Feature organization={organization} features={['incidents']}>
-      //     {({hasFeature}) => hasFeature && this.renderButtonCreateAlert()}
-      //   </Feature>
-      //   <Feature organization={organization} features={['dashboards-edit']}>
-      //     {({hasFeature}) => hasFeature && this.renderButtonAddToDashboard()}
-      //   </Feature>
-      //   {renderQueryButton(disabled => this.renderButtonDelete(disabled))}
-      // </Fragment>
       <DropdownMenuControl
-        items={[
-          {
-            key: 'discover2-create-from-discover',
-            label: t('Create Alert'),
-            onAction: () => {},
-          },
-          {
-            key: 'add-to-dashboard', // TODO: Feature flag with dashboards-edit
-            label: t('Add To Dashboard'),
-            onAction: () => {
-              handleAddQueryToDashboard({
-                organization,
-                location,
-                eventView,
-                query: savedQuery,
-                yAxis,
-                router,
-              });
-            },
-          },
-          {
-            key: 'delete', // TODO(nar): Only show this on saved queries
-            label: t('Delete Saved Query'),
-            onAction: () => this.handleDeleteQuery(),
-          },
-        ]}
+        items={contextMenuItems}
         trigger={triggerProps => (
           <Button
             {...triggerProps}
@@ -582,6 +580,9 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
           {({hasFeature}) => hasFeature && this.renderSaveAsHomepage()}
         </Feature>
         {renderQueryButton(disabled => this.renderButtonSave(disabled))}
+        <Feature organization={organization} features={['incidents']}>
+          {({hasFeature}) => hasFeature && this.renderButtonCreateAlert()}
+        </Feature>
 
         {contextMenu}
 
