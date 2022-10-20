@@ -15,7 +15,7 @@ from sentry.utils.safe import get_path
 PREFERRED_GROUP_OWNERS = 1
 PREFERRED_GROUP_OWNER_AGE = timedelta(days=7)
 
-logger = logging.getLogger("tasks.commit_context")
+logger = logging.getLogger("sentry.tasks.find_missing_codemappings")
 
 
 @instrumented_task(
@@ -36,7 +36,7 @@ def find_missing_codemappings(**kwargs):
             project
             for project in projects
             if Group.objects.filter(
-                project=project, last_seen__gte=timezone.now() - timedelta(days=7)
+                project=project, last_seen__gte=timezone.now() - timedelta(days=PREFERRED_GROUP_OWNER_AGE)
             ).exists()
         ]
 
@@ -45,20 +45,20 @@ def find_missing_codemappings(**kwargs):
     return filename_maps
 
 
-def get_all_filenames(project):
+def get_all_stacktrace_paths(project):
     groups = Group.objects.filter(
-        project=project, last_seen__gte=timezone.now() - timedelta(days=14)
+        project=project, last_seen__gte=timezone.now() - timedelta(days=GROUP_ANALYSIS_RANGE)
     )
 
-    filenames = set()
+    all_stacktrace_paths = set()
     for group in groups:
         event = group.get_latest_event()
-        is_python_project, fn = get_filenames(project, event.data)
+        is_python_stacktrace, stacktrace_paths = get_stacktrace_paths(project, event.data)
         if not is_python_project:
             return []
-        filenames.update(fn)
+        all_stacktrace_paths.update(stacktrace_paths)
 
-    return list(filenames)
+    return list(stacktrace_paths)
 
 
 # Get the filenames from the stacktrace for the latest event for an issue.
@@ -73,7 +73,7 @@ def get_filenames(project: Project, data: NodeData) -> Tuple(bool, List[str]):
             else:
                 return False, []  # (is_python, filenames)
         except Exception as e:
-            logger.log(logging.WARNING, f"Error getting filenames for project {project.slug}: {e}")
+            logger.exception("Error getting filenames for project {project.slug}")
     return True, filenames  # (is_python, filenames)
 
 
