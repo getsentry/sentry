@@ -1,5 +1,5 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import QuickTraceMeta from 'sentry/views/performance/transactionDetails/quickTraceMeta';
@@ -49,13 +49,13 @@ describe('QuickTraceMeta', function () {
 
     expect(screen.getByTestId('meta-data')).toBeInTheDocument();
     expect(screen.getByTestId('quick-trace-body')).toBeInTheDocument();
-    const traceFooter = screen.getByTestId('quick-trace-footer');
-    expect(traceFooter).toBeInTheDocument();
-    expect(traceFooter).toHaveTextContent(`View Full Trace: ${'a'.repeat(8)} (0 events)`);
+    expect(screen.getByTestId('quick-trace-footer')).toHaveTextContent(
+      `View Full Trace: ${'a'.repeat(8)} (0 events)`
+    );
   });
 
-  it('renders placeholder while loading', async function () {
-    const wrapper = mountWithTheme(
+  it('renders placeholder while loading', function () {
+    render(
       <WrappedQuickTraceMeta
         event={event}
         project={project}
@@ -70,17 +70,13 @@ describe('QuickTraceMeta', function () {
         errorDest="issue"
         transactionDest="performance"
       />,
-      routerContext
+      {context: routerContext}
     );
 
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('MetaData').exists()).toBe(true);
-    expect(
-      wrapper.find('div[data-test-id="quick-trace-body"] Placeholder').exists()
-    ).toBe(true);
-    expect(wrapper.find('div[data-test-id="quick-trace-footer"]').text()).toEqual(
+    expect(screen.getByTestId('meta-data')).toBeInTheDocument();
+    const qtBody = screen.getByTestId('quick-trace-body');
+    expect(within(qtBody).getByTestId('loading-placeholder')).toBeInTheDocument();
+    expect(screen.getByTestId('quick-trace-footer')).toHaveTextContent(
       `View Full Trace: ${'a'.repeat(8)} (0 events)`
     );
   });
