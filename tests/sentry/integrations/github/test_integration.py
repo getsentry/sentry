@@ -9,7 +9,7 @@ from django.urls import reverse
 import sentry
 from sentry.constants import ObjectStatus
 from sentry.integrations.github import API_ERRORS, GitHubIntegrationProvider
-from sentry.integrations.utils.derived_code_mappings import derive_code_mappings
+from sentry.integrations.utils.code_mapping import derive_code_mappings
 from sentry.models import Integration, OrganizationIntegration, Project, Repository
 from sentry.plugins.base import plugins
 from sentry.plugins.bases import IssueTrackingPlugin2
@@ -556,24 +556,6 @@ class GitHubIntegrationTest(IntegrationTestCase):
     @responses.activate
     def test_derive_code_mappings(self):
         """Fetch the tree representation of a repo"""
-        # All stacktraces have to belong to a specific project. We cannot mix them
-        STACKTRACES = [
-            "sentry/identity/oauth2.py",
-            "sentry/identity/gitlab/provider.py",
-            "sentry/integrations/gitlab/client.py",
-            "sentry/shared_integrations/client/base.py",
-            "sentry/integrations/gitlab/client.py",
-            "sentry/integrations/gitlab/repository.py",
-            # More than one file matches for sentry_plugins/slack/client.py
-            # - "src/sentry_plugins/slack/client.py",
-            # - "src/sentry/integrations/slack/client.py",
-            "sentry_plugins/slack/client.py",
-            "getsentry/billing/tax/manager.py",
-            "requests/models.py",
-            "urllib3/connectionpool.py",
-            "ssl.py",
-        ]
-
         with self.tasks():
             self.assert_setup_flow()
 
@@ -588,8 +570,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             )
             assert self._caplog.records[0].levelname == "ERROR"
 
-        code_mappings = derive_code_mappings(STACKTRACES, trees)
-        assert code_mappings == {
+        expected_code_mappings = {
             "sentry": {
                 "repo": "Test-Organization/foo",
                 "stacktrace_root": "sentry",
@@ -601,3 +582,45 @@ class GitHubIntegrationTest(IntegrationTestCase):
                 "src_path": "src/sentry_plugins",
             },
         }
+
+        # # Case 1 - No matches
+        # stacktraces = [
+        #     "getsentry/billing/tax/manager.py",
+        #     "requests/models.py",
+        #     "urllib3/connectionpool.py",
+        #     "ssl.py",
+        # ]
+        # code_mappings = derive_code_mappings(stacktraces, trees)
+        # assert code_mappings == {}
+
+        # # Case 2 - Failing to derive sentry_plugins since we match more than one file
+        # stacktraces = [
+        #     # More than one file matches for this, thus, no stack traces will be produced
+        #     # - "src/sentry_plugins/slack/client.py",
+        #     # - "src/sentry/integrations/slack/client.py",
+        #     "sentry_plugins/slack/client.py",
+        # ]
+        # code_mappings = derive_code_mappings(stacktraces, trees)
+        # assert code_mappings == {}
+
+        # # Case 3 - We derive sentry_plugins because we derive sentry first
+        # # XXX: Order matters of processing matters. Fix code
+        # stacktraces = [
+        #     "sentry/identity/oauth2.py",
+        #     # This file matches two files in the repo, however, because we first
+        #     # derive the sentry code mapping we can exclude one of the files
+        #     "sentry_plugins/slack/client.py",
+        # ]
+        # code_mappings = derive_code_mappings(stacktraces, trees)
+        # assert code_mappings == expected_code_mappings
+
+        # Case 4 - We do *not* derive sentry_plugins because we don't derive sentry first
+        stacktraces = [
+            # This file matches two files in the repo and because we process it
+            # before we derive
+            "sentry_plugins/slack/client.py",
+            "sentry/identity/oauth2.py",
+        ]
+        code_mappings = derive_code_mappings(stacktraces, trees)
+        # Order matters, this is why we only derive one of the two code mappings
+        assert code_mappings == {"sentry": expected_code_mappings["sentry"]}
