@@ -16,7 +16,9 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
 
 import {SamplingFeedback} from './samplingFeedback';
-import {SERVER_SIDE_SAMPLING_DOC_LINK} from './utils';
+
+const SERVER_SIDE_SAMPLING_DOC_LINK =
+  'https://docs.sentry.io/product/data-management-settings/dynamic-sampling/';
 
 type Props = {
   project: Project;
@@ -92,6 +94,7 @@ export function DynamicSampling({project}: Props) {
         />
         <TextBlock>{t('Update this copy')}</TextBlock>
         <PermissionAlert
+          organization={organization}
           access={['project:write']}
           message={t(
             'These settings can only be edited by users with the organization owner, manager, or admin role.'
@@ -106,7 +109,7 @@ export function DynamicSampling({project}: Props) {
               value={boostLatestRelease}
               onChange={() => setBoostLatestRelease(!boostLatestRelease)}
               disabled={!hasAccess}
-              title={
+              disabledReason={
                 !hasAccess
                   ? t('You do not have permission to edit this setting')
                   : undefined
@@ -119,7 +122,7 @@ export function DynamicSampling({project}: Props) {
               value={boostEnvironments}
               onChange={() => setBoostEnvironments(!boostEnvironments)}
               disabled={!hasAccess}
-              title={
+              disabledReason={
                 !hasAccess
                   ? t('You do not have permission to edit this setting')
                   : undefined
@@ -132,7 +135,7 @@ export function DynamicSampling({project}: Props) {
               value={ignoreHealthChecks}
               onChange={() => setIgnoreHealthChecks(!ignoreHealthChecks)}
               disabled={!hasAccess}
-              title={
+              disabledReason={
                 !hasAccess
                   ? t('You do not have permission to edit this setting')
                   : undefined
