@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
@@ -63,8 +63,8 @@ describe('TraceLiteQuery', function () {
     });
   });
 
-  it('fetches data on mount and passes the event id', async function () {
-    const wrapper = mountWithTheme(
+  it('fetches data on mount and passes the event id', function () {
+    render(
       <QuickTraceQuery
         event={event}
         api={api}
@@ -75,15 +75,13 @@ describe('TraceLiteQuery', function () {
         {renderQuickTrace}
       </QuickTraceQuery>
     );
-    await tick();
-    wrapper.update();
 
     expect(traceLiteMock).toHaveBeenCalledTimes(1);
     expect(traceFullMock).toHaveBeenCalledTimes(1);
   });
 
-  it('doesnt fetches meta when not needed', async function () {
-    const wrapper = mountWithTheme(
+  it('doesnt fetch meta when not needed', function () {
+    render(
       <QuickTraceQuery
         withMeta={false}
         event={event}
@@ -95,8 +93,6 @@ describe('TraceLiteQuery', function () {
         {renderQuickTrace}
       </QuickTraceQuery>
     );
-    await tick();
-    wrapper.update();
 
     expect(traceLiteMock).toHaveBeenCalledTimes(1);
     expect(traceFullMock).toHaveBeenCalledTimes(1);
@@ -104,7 +100,7 @@ describe('TraceLiteQuery', function () {
   });
 
   it('uses lite results when it cannot find current event in full results', async function () {
-    const wrapper = mountWithTheme(
+    render(
       <QuickTraceQuery
         withMeta={false}
         event={event}
@@ -116,10 +112,8 @@ describe('TraceLiteQuery', function () {
         {renderQuickTrace}
       </QuickTraceQuery>
     );
-    await tick();
-    wrapper.update();
 
-    expect(wrapper.find('div[data-test-id="type"]').text()).toEqual('partial');
+    expect(await screen.findByTestId('type')).toHaveTextContent('partial');
   });
 
   it('uses full results when it finds current event', async function () {
@@ -141,7 +135,8 @@ describe('TraceLiteQuery', function () {
       },
     });
     event.contexts.trace.trace_id = `0${traceId}`;
-    const wrapper = mountWithTheme(
+
+    render(
       <QuickTraceQuery
         withMeta={false}
         event={event}
@@ -153,9 +148,7 @@ describe('TraceLiteQuery', function () {
         {renderQuickTrace}
       </QuickTraceQuery>
     );
-    await tick();
-    wrapper.update();
 
-    expect(wrapper.find('div[data-test-id="type"]').text()).toEqual('full');
+    expect(await screen.findByTestId('type')).toHaveTextContent('full');
   });
 });
