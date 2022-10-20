@@ -32,7 +32,7 @@ class Migration(CheckedMigration):
             database_operations=[
                 migrations.RunSQL(
                     """
-                    ALTER TABLE "sentry_appconnectbuild" ADD COLUMN "app_id_str" character(256) DEFAULT "0";
+                    ALTER TABLE "sentry_appconnectbuild" ADD COLUMN "app_id_str" character(256) NOT NULL DEFAULT '0';
                     """,
                     reverse_sql="""
                     ALTER TABLE "sentry_appconnectbuild" DROP COLUMN "app_id_str";
