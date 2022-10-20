@@ -201,7 +201,7 @@ class BuildGroupAttachmentTest(TestCase):
             attachments["text"]
             == "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
         )
-        assert attachments["fallback"] == f"[{self.project.slug}] N+1 DB Queries"
+        assert attachments["fallback"] == f"[{self.project.slug}] N+1 Query"
 
     def test_build_group_release_with_commits_attachment(self):
         group = self.create_group(project=self.project)
