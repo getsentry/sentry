@@ -178,9 +178,9 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
         >
           <MenuItemActionLink
             shouldConfirm
-            message={t(`Are you sure you want to remove this external ${type} mapping?`)}
+            message={t('Are you sure you want to remove this external %s mapping?', type)}
             onAction={() => onDelete(mapping)}
-            aria-label={t(`Delete External ${capitalize(type)}`)}
+            aria-label={t('Delete External %s', capitalize(type))}
             data-test-id="delete-mapping-button"
           >
             <RedText>{t('Delete')}</RedText>
@@ -189,7 +189,7 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
       </Tooltip>
     ) : (
       <Tooltip
-        title={t(`This ${type} mapping suggestion was generated from a CODEOWNERS file`)}
+        title={t('This %s mapping suggestion was generated from a CODEOWNERS file', type)}
       >
         <Button
           disabled
@@ -197,7 +197,8 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
           size="sm"
           icon={<IconQuestion size="sm" />}
           aria-label={t(
-            `This ${type} mapping suggestion was generated from a CODEOWNERS file`
+            `This %s mapping suggestion was generated from a CODEOWNERS file`,
+            type
           )}
           data-test-id="suggestion-option"
         />

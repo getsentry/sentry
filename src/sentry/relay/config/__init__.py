@@ -10,6 +10,7 @@ from sentry_sdk import Hub, capture_exception
 from sentry import features, killswitches, quotas, utils
 from sentry.constants import ObjectStatus
 from sentry.datascrubbing import get_datascrubbing_settings, get_pii_config
+from sentry.dynamic_sampling.utils import NoneSampleRateException, generate_uniform_rule
 from sentry.grouping.api import get_grouping_config_dict_for_project
 from sentry.ingest.inbound_filters import (
     FilterStatKeys,
@@ -178,7 +179,21 @@ def _get_project_config(project, full_config=True, project_keys=None):
         "organizations:server-side-sampling",
         project.organization,
     )
-    if allow_dynamic_sampling:
+    allow_dynamic_sampling_basic = features.has(
+        "organizations:dynamic-sampling-basic",
+        project.organization,
+    )
+
+    # In this case we should override old conditionnal rules if they exists
+    # or just return uniform rule
+    if allow_dynamic_sampling_basic:
+        try:
+            cfg["config"]["dynamicSampling"] = {"rules": [generate_uniform_rule(project)]}
+        except NoneSampleRateException:
+            # just to be consistent with old code, where if there is no active active_rules
+            # we return empty list
+            cfg["config"]["dynamicSampling"] = {"rules": []}
+    elif allow_dynamic_sampling:
         dynamic_sampling = project.get_option("sentry:dynamic_sampling")
         if dynamic_sampling is not None:
             # filter out rules that do not have active set to True
