@@ -239,7 +239,7 @@ class ProjectOwnership(Model):
                 GroupOwner.objects.filter(
                     group=event.group, project_id=project_id, type__in=autoassignment_types
                 )
-                .order_by("type", "-date_added")
+                .order_by("type")
                 .first()
             )
 
