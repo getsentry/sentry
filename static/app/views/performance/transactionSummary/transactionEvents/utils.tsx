@@ -1,6 +1,9 @@
 import {Location, Query} from 'history';
 
 import {t} from 'sentry/locale';
+import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import EventView from 'sentry/utils/discover/eventView';
+import {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 
 import {filterToField, SpanOperationBreakdownFilter} from '../filter';
@@ -13,6 +16,8 @@ export enum EventsDisplayFilterName {
   p99 = 'p99',
   p100 = 'p100',
 }
+
+export type PercentileValues = Record<EventsDisplayFilterName, number>;
 
 export type EventsDisplayFilter = {
   label: string;
@@ -149,4 +154,41 @@ export function mapShowTransactionToPercentile(
     default:
       return undefined;
   }
+}
+
+export function mapPercentileValues(percentileData?: TableDataRow | null) {
+  return {
+    p100: percentileData?.['p100()'],
+    p99: percentileData?.['p99()'],
+    p95: percentileData?.['p95()'],
+    p75: percentileData?.['p75()'],
+    p50: percentileData?.['p50()'],
+  } as PercentileValues;
+}
+
+export function getPercentilesEventView(eventView: EventView): EventView {
+  const percentileColumns: QueryFieldValue[] = [
+    {
+      kind: 'function',
+      function: ['p100', '', undefined, undefined],
+    },
+    {
+      kind: 'function',
+      function: ['p99', '', undefined, undefined],
+    },
+    {
+      kind: 'function',
+      function: ['p95', '', undefined, undefined],
+    },
+    {
+      kind: 'function',
+      function: ['p75', '', undefined, undefined],
+    },
+    {
+      kind: 'function',
+      function: ['p50', '', undefined, undefined],
+    },
+  ];
+
+  return eventView.withColumns(percentileColumns);
 }

@@ -10,7 +10,6 @@ import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {
   isAggregateField,
-  QueryFieldValue,
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
@@ -36,6 +35,8 @@ import {
   EventsDisplayFilterName,
   filterEventsDisplayToLocationQuery,
   getEventsFilterOptions,
+  getPercentilesEventView,
+  mapPercentileValues,
 } from './utils';
 
 type PercentileValues = Record<EventsDisplayFilterName, number>;
@@ -182,13 +183,7 @@ function EventsContentWrapper(props: ChildProps) {
               }
 
               const percentileData = tableData?.data?.[0];
-              const percentiles = {
-                p100: percentileData?.['p100()'],
-                p99: percentileData?.['p100()'],
-                p95: percentileData?.['p95()'],
-                p75: percentileData?.['p75()'],
-                p50: percentileData?.['p50()'],
-              } as PercentileValues;
+              const percentiles = mapPercentileValues(percentileData);
               const filteredEventView = getFilteredEventView(percentiles);
               return (
                 <EventsContent
@@ -291,33 +286,6 @@ function generateEventView({
     },
     location
   );
-}
-
-function getPercentilesEventView(eventView: EventView): EventView {
-  const percentileColumns: QueryFieldValue[] = [
-    {
-      kind: 'function',
-      function: ['p100', '', undefined, undefined],
-    },
-    {
-      kind: 'function',
-      function: ['p99', '', undefined, undefined],
-    },
-    {
-      kind: 'function',
-      function: ['p95', '', undefined, undefined],
-    },
-    {
-      kind: 'function',
-      function: ['p75', '', undefined, undefined],
-    },
-    {
-      kind: 'function',
-      function: ['p50', '', undefined, undefined],
-    },
-  ];
-
-  return eventView.withColumns(percentileColumns);
 }
 
 export default withProjects(withOrganization(TransactionEvents));
