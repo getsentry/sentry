@@ -1600,6 +1600,11 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
         )
 
     def _resolve_transaction_alias(self, alias: str) -> SelectType:
+        return Function(
+            "transform_null_to_unparameterized",
+            [Column("d:transactions/duration@millisecond"), "transaction"],
+            alias,
+        )
         return AliasedExpression(Column(self.builder.resolve_column_name("transaction")), alias)
 
     def _resolve_title_alias(self, alias: str) -> SelectType:
