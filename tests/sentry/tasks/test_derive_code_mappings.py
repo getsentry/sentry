@@ -1,7 +1,7 @@
 from copy import deepcopy
 
 from sentry.models.organization import OrganizationStatus
-from sentry.tasks.find_missing_codemappings import find_missing_codemappings
+from sentry.tasks.derive_code_mappings import identify_stacktrace_paths
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
@@ -46,7 +46,7 @@ class TestCommitContext(TestCase):
         self.store_event(data=self.test_data_1, project_id=self.project.id)
 
         with self.tasks():
-            mapping = find_missing_codemappings([self.organization])
+            mapping = identify_stacktrace_paths([self.organization])
         assert self.organization.slug in mapping
 
         stacktrace_paths = mapping[self.organization.slug]
@@ -62,7 +62,7 @@ class TestCommitContext(TestCase):
         self.store_event(data=self.test_data_2, project_id=project_2.id)
 
         with self.tasks():
-            mapping = find_missing_codemappings([self.organization])
+            mapping = identify_stacktrace_paths([self.organization])
         assert self.organization.slug in mapping
         stacktrace_paths = mapping[self.organization.slug]
         assert self.project.slug in stacktrace_paths
@@ -83,7 +83,7 @@ class TestCommitContext(TestCase):
         self.store_event(data=self.test_data_2, project_id=new_project.id)
 
         with self.tasks():
-            mapping = find_missing_codemappings([self.organization, new_org])
+            mapping = identify_stacktrace_paths([self.organization, new_org])
         assert self.organization.slug in mapping
         stacktrace_paths = mapping[self.organization.slug]
         assert self.project.slug in stacktrace_paths
@@ -100,24 +100,24 @@ class TestCommitContext(TestCase):
         ]
 
     def test_skips_stale_projects(self):
-        stale_event = self.test_data_1
+        stale_event = deepcopy(self.test_data_1)
         stale_event["timestamp"] = iso_format(before_now(days=8))
         self.store_event(data=stale_event, project_id=self.project.id)
 
         with self.tasks():
-            mapping = find_missing_codemappings()
+            mapping = identify_stacktrace_paths()
         assert self.organization.slug in mapping
         stacktrace_paths = mapping[self.organization.slug]
         assert self.project.slug not in stacktrace_paths
 
     def test_skips_outdated_events(self):
-        stale_event = self.test_data_2
+        stale_event = deepcopy(self.test_data_2)
         stale_event["timestamp"] = iso_format(before_now(days=16))
         self.store_event(data=self.test_data_1, project_id=self.project.id)
         self.store_event(data=stale_event, project_id=self.project.id)
 
         with self.tasks():
-            mapping = find_missing_codemappings([self.organization])
+            mapping = identify_stacktrace_paths([self.organization])
         assert self.organization.slug in mapping
         stacktrace_paths = mapping[self.organization.slug]
         assert self.project.slug in stacktrace_paths
@@ -128,12 +128,12 @@ class TestCommitContext(TestCase):
 
     def test_handle_duplicate_filenames_in_a_project(self):
         self.store_event(data=self.test_data_1, project_id=self.project.id)
-        duplicate_event = self.test_data_2
+        duplicate_event = deepcopy(self.test_data_2)
         duplicate_event["stacktrace"]["frames"].append(self.test_data_1["stacktrace"]["frames"][0])
         self.store_event(data=duplicate_event, project_id=self.project.id)
 
         with self.tasks():
-            mapping = find_missing_codemappings([self.organization])
+            mapping = identify_stacktrace_paths([self.organization])
         assert self.organization.slug in mapping
         stacktrace_paths = mapping[self.organization.slug]
         assert self.project.slug in stacktrace_paths

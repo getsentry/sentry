@@ -14,15 +14,15 @@ from sentry.utils.safe import get_path
 ACTIVE_PROJECT_THRESHOLD = timedelta(days=7)
 GROUP_ANALYSIS_RANGE = timedelta(days=14)
 
-logger = logging.getLogger("sentry.tasks.find_missing_codemappings")
+logger = logging.getLogger("sentry.tasks.derive_code_mappings")
 
 
 @instrumented_task(  # type: ignore
-    name="sentry.tasks.find_missing_codemappings",
-    queue="find_missing_codemappings",
+    name="sentry.tasks.derive_code_mappings.identify_stacktrace_paths",
+    queue="derive_code_mappings",
     max_retries=0,  # if we don't backfill it this time, we'll get it the next time
 )
-def find_missing_codemappings(
+def identify_stacktrace_paths(
     organizations: Optional[List[Organization]] = None,
 ) -> Mapping[str, Mapping[str, List[str]]]:
     """
