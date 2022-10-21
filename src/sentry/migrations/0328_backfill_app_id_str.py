@@ -11,7 +11,7 @@ def backfill_app_id_str(apps, schema_editor):
 
     for appconnect_build in RangeQuerySetWrapperWithProgressBar(AppConnectBuild.objects.all()):
         appconnect_build.app_id_str = str(appconnect_build.app_id)
-        appconnect_build.save()
+        appconnect_build.save(update_fields=["app_id_str"])
 
 
 class Migration(CheckedMigration):
@@ -33,7 +33,7 @@ class Migration(CheckedMigration):
     atomic = False
 
     dependencies = [
-        ("sentry", "0325_add_appid_str"),
+        ("sentry", "0327_add_appid_str"),
     ]
 
     operations = [
