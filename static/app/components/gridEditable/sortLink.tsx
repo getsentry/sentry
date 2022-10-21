@@ -47,12 +47,7 @@ function SortLink({
   };
 
   return (
-    <StyledLink
-      data-test-id={`${title}-${direction}`}
-      align={align}
-      to={target}
-      onClick={handleOnClick}
-    >
+    <StyledLink align={align} to={target} onClick={handleOnClick}>
       {title} {arrow}
     </StyledLink>
   );
