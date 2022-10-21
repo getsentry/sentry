@@ -217,10 +217,10 @@ export const _SelectField = () => (
     <SelectField
       name="select"
       label="Select Field"
-      choices={[
-        ['choice_one', 'Choice One'],
-        ['choice_two', 'Choice Two'],
-        ['choice_three', 'Choice Three'],
+      options={[
+        {value: 'choice_one', label: 'Choice One'},
+        {value: 'choice_two', label: 'Choice Two'},
+        {value: 'choice_three', label: 'Choice Three'},
       ]}
     />
   </Form>
@@ -234,10 +234,10 @@ export const SelectFieldMultiple = () => (
       name="select"
       label="Multi Select"
       multiple
-      choices={[
-        ['choice_one', 'Choice One'],
-        ['choice_two', 'Choice Two'],
-        ['choice_three', 'Choice Three'],
+      options={[
+        {value: 'choice_one', label: 'Choice One'},
+        {value: 'choice_two', label: 'Choice Two'},
+        {value: 'choice_three', label: 'Choice Three'},
       ]}
     />
   </Form>
@@ -278,10 +278,10 @@ export const SelectFieldInFieldLabel = () => (
       name="select"
       label="Select With Label In Field"
       inFieldLabel="Label: "
-      choices={[
-        ['choice_one', 'Choice One'],
-        ['choice_two', 'Choice Two'],
-        ['choice_three', 'Choice Three'],
+      options={[
+        {value: 'choice_one', label: 'Choice One'},
+        {value: 'choice_two', label: 'Choice Two'},
+        {value: 'choice_three', label: 'Choice Three'},
       ]}
     />
   </Form>

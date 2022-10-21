@@ -41,10 +41,10 @@ export const Default = ({...fieldProps}) => {
       <SelectField
         name="select"
         label="Select Field"
-        choices={[
-          ['choice_one', 'Choice One'],
-          ['choice_two', 'Choice Two'],
-          ['choice_three', 'Choice Three'],
+        options={[
+          {value: 'choice_one', label: 'Choice One'},
+          {value: 'choice_two', label: 'Choice Two'},
+          {value: 'choice_three', label: 'Choice Three'},
         ]}
         {...fieldProps}
       />
