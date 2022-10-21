@@ -63,22 +63,19 @@ export function getProjectID(
   return project.id;
 }
 
-class OperationTitle extends Component<TitleProps> {
-  render() {
-    const {onClick} = this.props;
-    return (
-      <div onClick={onClick}>
-        <span>{t('operation duration')}</span>
-        <StyledIconQuestion
-          size="xs"
-          position="top"
-          title={t(
-            `Span durations are summed over the course of an entire transaction. Any overlapping spans are only counted once.`
-          )}
-        />
-      </div>
-    );
-  }
+function OperationTitle({onClick}: TitleProps) {
+  return (
+    <div onClick={onClick}>
+      <span>{t('operation duration')}</span>
+      <StyledIconQuestion
+        size="xs"
+        position="top"
+        title={t(
+          `Span durations are summed over the course of an entire transaction. Any overlapping spans are only counted once.`
+        )}
+      />
+    </div>
+  );
 }
 
 type Props = {

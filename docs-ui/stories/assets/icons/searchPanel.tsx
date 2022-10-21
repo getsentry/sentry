@@ -2,7 +2,7 @@ import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import Fuse from 'fuse.js';
 
-import TextField from 'sentry/components/deprecatedforms/textField';
+import Input from 'sentry/components/input';
 import space from 'sentry/styles/space';
 
 import {IconData, iconGroups, IconPropName, iconProps, icons} from './data';
@@ -105,13 +105,11 @@ function SearchPanel() {
 
   return (
     <Wrap>
-      <TextField
+      <Input
         name="query"
         placeholder="Search icons by name or similar keywords"
         value={query}
-        onChange={value => {
-          setQuery(value as string);
-        }}
+        onChange={e => setQuery(e.target.value)}
       />
 
       {results.map(group => (
