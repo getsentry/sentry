@@ -1,5 +1,6 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {selectByValueAsync} from 'sentry-test/select-new';
+import selectEvent from 'react-select-event';
+
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import MemberListStore from 'sentry/stores/memberListStore';
 import OwnerInput from 'sentry/views/settings/project/projectOwnership/ownerInput';
@@ -30,7 +31,7 @@ describe('Project Ownership Input', function () {
   });
 
   it('renders', function () {
-    const wrapper = mountWithTheme(
+    const {container} = render(
       <OwnerInput
         params={{orgId: org.slug, projectId: project.slug}}
         organization={org}
@@ -39,25 +40,26 @@ describe('Project Ownership Input', function () {
       />
     );
 
-    const submit = wrapper.find('SaveButton button');
-
+    const submitButton = screen.getByRole('button', {name: 'Save Changes'});
     expect(put).not.toHaveBeenCalled();
 
     // if text is unchanged, submit button is disabled
-    submit.simulate('click');
+    userEvent.click(submitButton);
     expect(put).not.toHaveBeenCalled();
 
-    wrapper.find('StyledTextArea').simulate('change', {target: {value: 'new'}});
+    const textarea = screen.getByRole('textbox', {name: 'Ownership Rules'});
 
-    submit.simulate('click');
+    userEvent.clear(textarea);
+    userEvent.type(textarea, 'new');
+    userEvent.click(submitButton);
 
     expect(put).toHaveBeenCalled();
 
-    expect(wrapper.find(OwnerInput)).toSnapshot();
+    expect(container).toSnapshot();
   });
 
   it('updates on add preserving existing text', async function () {
-    const wrapper = mountWithTheme(
+    render(
       <OwnerInput
         params={{orgId: org.slug, projectId: project.slug}}
         organization={org}
@@ -67,17 +69,16 @@ describe('Project Ownership Input', function () {
     );
 
     // Set a path, as path is selected bu default.
-    const pathInput = wrapper.find('RuleBuilder BuilderInput');
-    pathInput.simulate('change', {target: {value: 'file.js'}});
+    userEvent.type(screen.getByRole('textbox', {name: 'Rule pattern'}), 'file.js');
 
     // Select the user.
-    await selectByValueAsync(wrapper, 'user:1', {control: true, name: 'owners'});
-    wrapper.update();
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Rule owner'}),
+      'Foo Bar'
+    );
 
     // Add the new rule.
-    const button = wrapper.find('RuleBuilder AddButton button');
-    button.simulate('click');
-    wrapper.update();
+    userEvent.click(screen.getByRole('button', {name: 'Add rule'}));
 
     expect(put).toHaveBeenCalledWith(
       '/projects/org-slug/project-slug/ownership/',

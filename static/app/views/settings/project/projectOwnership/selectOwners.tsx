@@ -296,14 +296,15 @@ class SelectOwners extends Component<Props, State> {
         clearable
         disabled={this.props.disabled}
         cache={false}
-        placeholder={t('owners')}
+        aria-label={t('Rule owner')}
+        placeholder={t('Owners')}
         components={{
           MultiValue: ValueComponent,
         }}
         onInputChange={this.handleInputChange}
         onChange={this.handleChange}
         value={this.props.value}
-        css={{width: 200}}
+        css={{width: 300}}
       />
     );
   }
