@@ -1556,7 +1556,7 @@ DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
         ),
         DerivedOp(
             op="transform_null_to_unparameterized",
-            can_orderby=False,  # TODO: need to check this with Ahmed.
+            can_orderby=False,  # TODO: a better and more comprehensive
             can_groupby=True,
             snql_func=transform_null_to_unparameterized_snql,
             default_null_value=0,
