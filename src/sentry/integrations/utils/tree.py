@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import List
 
 from sentry.utils.json import JSONData
 
