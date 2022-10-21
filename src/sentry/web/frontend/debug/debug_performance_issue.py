@@ -69,6 +69,6 @@ class DebugPerformanceIssueEmailView(View):
                 "commits": json.loads(COMMIT_EXAMPLE),
                 "transaction_data": [("Span Evidence", mark_safe(transaction_data), None)],
                 "issue_type": GROUP_TYPE_TO_TEXT.get(perf_group.issue_type, "Issue"),
-                "subtitle": get_performance_issue_alert_subtitle(self.event),
+                "subtitle": get_performance_issue_alert_subtitle(perf_event),
             },
         ).render(request)

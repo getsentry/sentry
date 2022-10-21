@@ -61,7 +61,11 @@ function ReplayMetaData({replayRecord}: Props) {
         {replayRecord ? (
           <Fragment>
             <IconClock color="gray300" />
-            <Duration seconds={replayRecord?.duration} abbreviation exact />
+            <Duration
+              seconds={Math.trunc(replayRecord?.duration.asSeconds())}
+              abbreviation
+              exact
+            />
           </Fragment>
         ) : (
           <HeaderPlaceholder />

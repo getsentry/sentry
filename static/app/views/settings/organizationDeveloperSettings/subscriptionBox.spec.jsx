@@ -1,106 +1,83 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {SubscriptionBox} from 'sentry/views/settings/organizationDeveloperSettings/subscriptionBox';
+import SubscriptionBox from 'sentry/views/settings/organizationDeveloperSettings/subscriptionBox';
 
 describe('SubscriptionBox', () => {
-  let wrapper;
-  let onChange;
+  const onChange = jest.fn();
   let org = TestStubs.Organization();
 
   beforeEach(() => {
-    onChange = jest.fn();
-    wrapper = mountWithTheme(
+    onChange.mockReset();
+  });
+
+  function renderComponent(props) {
+    return render(
       <SubscriptionBox
         resource="issue"
         checked={false}
         disabledFromPermissions={false}
         onChange={onChange}
         organization={org}
+        {...props}
       />
     );
-  });
+  }
 
   it('renders resource checkbox', () => {
-    expect(wrapper).toSnapshot();
+    const {container} = renderComponent();
+    expect(container).toSnapshot();
   });
 
   it('calls onChange prop when checking checkbox', () => {
-    wrapper.find('Checkbox input').simulate('change', {target: {checked: true}});
+    renderComponent();
+
+    userEvent.click(screen.getByRole('checkbox'));
     expect(onChange).toHaveBeenCalledWith('issue', true);
   });
 
-  it('renders tooltip when checkbox is disabled', () => {
-    wrapper.setProps({disabledFromPermissions: true});
-    expect(wrapper.find('Tooltip').prop('disabled')).toBe(false);
+  it('disables the checkbox from permissions', async () => {
+    renderComponent({disabledFromPermissions: true});
+
+    expect(screen.getByRole('checkbox')).toBeDisabled();
+
+    userEvent.hover(screen.getByRole('checkbox'));
+    expect(
+      await screen.findByText("Must have at least 'Read' permissions enabled for Event")
+    ).toBeInTheDocument();
   });
 
   describe('error.created resource subscription', () => {
-    beforeEach(() => {
-      onChange = jest.fn();
-      wrapper = mountWithTheme(
-        <SubscriptionBox
-          resource="error"
-          checked={false}
-          disabledFromPermissions={false}
-          onChange={onChange}
-          organization={org}
-        />
-      );
-    });
+    it('checkbox disabled without integrations-event-hooks flag', async () => {
+      renderComponent({resource: 'error'});
 
-    it('checkbox disabled without integrations-event-hooks flag', () => {
-      expect(wrapper.find('Checkbox').prop('disabled')).toBe(true);
-    });
+      expect(screen.getByRole('checkbox')).toBeDisabled();
 
-    it('tooltip enabled without integrations-event-hooks flag', () => {
-      expect(wrapper.find('Tooltip').prop('disabled')).toBe(false);
+      userEvent.hover(screen.getByRole('checkbox'));
+      expect(
+        await screen.findByText(
+          'Your organization does not have access to the error subscription resource.'
+        )
+      ).toBeInTheDocument();
     });
 
     it('checkbox visible with integrations-event-hooks flag', () => {
       org = TestStubs.Organization({features: ['integrations-event-hooks']});
-      wrapper = mountWithTheme(
-        <SubscriptionBox
-          resource="error"
-          checked={false}
-          disabledFromPermissions={false}
-          onChange={onChange}
-          organization={org}
-        />
-      );
-      expect(wrapper.find('Checkbox').prop('disabled')).toBe(false);
-    });
+      renderComponent({resource: 'error', organization: org});
 
-    it('Tooltip disabled with integrations-event-hooks flag', () => {
-      org = TestStubs.Organization({features: ['integrations-event-hooks']});
-      wrapper = mountWithTheme(
-        <SubscriptionBox
-          resource="error"
-          checked={false}
-          disabledFromPermissions={false}
-          onChange={onChange}
-          organization={org}
-        />
-      );
-      expect(wrapper.find('Tooltip').prop('disabled')).toBe(true);
+      expect(screen.getByRole('checkbox')).toBeEnabled();
     });
   });
 
-  it('disables checkbox when webhookDisabled=true', () => {
-    wrapper = mountWithTheme(
-      <SubscriptionBox
-        resource="issue"
-        checked={false}
-        disabledFromPermissions={false}
-        webhookDisabled
-        onChange={onChange}
-        organization={org}
-      />
-    );
-    const tooltip = wrapper.find('Tooltip');
-    expect(tooltip.prop('disabled')).toBe(false);
-    expect(tooltip.prop('title')).toBe(
-      'Cannot enable webhook subscription without specifying a webhook url'
-    );
-    expect(wrapper.find('Checkbox').prop('disabled')).toBe(true);
+  it('disables checkbox when webhookDisabled=true', async () => {
+    renderComponent({resource: 'error', webhookDisabled: true});
+
+    expect(screen.getByRole('checkbox')).toBeDisabled();
+
+    userEvent.hover(screen.getByRole('checkbox'));
+    expect(
+      await screen.findByText(
+        'Cannot enable webhook subscription without specifying a webhook url'
+      )
+    ).toBeInTheDocument();
   });
 });
