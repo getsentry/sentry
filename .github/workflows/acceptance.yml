@@ -150,7 +150,7 @@ jobs:
 
       - name: Install Javascript Dependencies
         run: |
-          SENTRY_PROFILER_LOGGING_MODE=eager yarn install --frozen-lockfile
+          yarn install --frozen-lockfile
 
       - name: webpack
         env:
@@ -227,7 +227,7 @@ jobs:
 
       - name: Install Javascript Dependencies
         run: |
-          SENTRY_PROFILER_LOGGING_MODE=eager yarn install --frozen-lockfile
+          yarn install --frozen-lockfile
 
       - name: Build chartcuterie configuration module
         run: |

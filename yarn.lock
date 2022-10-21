@@ -1517,6 +1517,11 @@
   dependencies:
     tslib "2.4.0"
 
+"@gar/promisify@^1.1.3":
+  version "1.1.3"
+  resolved "https://registry.yarnpkg.com/@gar/promisify/-/promisify-1.1.3.tgz#555193ab2e3bb3b6adc3d551c9c030d9e860daf6"
+  integrity sha512-k2Ty1JcVojjJFwrg/ThKi2ujJ7XNLYaFGNB/bWT9wGR+oSMJHMa5w+CUq6p/pVrKeNNgA7pCqEcjSnHVoqJQFw==
+
 "@humanwhocodes/config-array@^0.10.5":
   version "0.10.7"
   resolved "https://registry.yarnpkg.com/@humanwhocodes/config-array/-/config-array-0.10.7.tgz#6d53769fd0c222767e6452e8ebda825c22e9f0dc"
@@ -2319,10 +2324,10 @@
     localforage "^1.8.1"
     tslib "^1.9.3"
 
-"@sentry/jest-environment@4.0.0-alpha":
-  version "4.0.0-alpha"
-  resolved "https://registry.yarnpkg.com/@sentry/jest-environment/-/jest-environment-4.0.0-alpha.tgz#1ab32b0525cd59e7143335e6666ebc6630dc06f5"
-  integrity sha512-h6Rf7N91GGXA2YmFxtb+y0y9dyl9cx45XwK9hANF5a/Hc4JyI90oSiTADvTUrwfW3jTPyO4sbKytPBJr88se4A==
+"@sentry/jest-environment@^4.0.0-alpha.1":
+  version "4.0.0-alpha.1"
+  resolved "https://registry.yarnpkg.com/@sentry/jest-environment/-/jest-environment-4.0.0-alpha.1.tgz#7748e75ff212900308b690eb5356f31ea91765f8"
+  integrity sha512-VxfW1gxLGPBf9yLGmWBYjMsBOC+UUs0wzvRor01aAwHZ5f7aMgSnzjZLVgAza26YnYvhyCP8y66DWhTL9a2QiA==
 
 "@sentry/node@7.15.0":
   version "7.15.0"
@@ -9850,6 +9855,11 @@ jest-runtime@^29.2.0:
     jest-util "^29.2.0"
     slash "^3.0.0"
     strip-bom "^4.0.0"
+
+jest-sentry-environment@3.0.0:
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/jest-sentry-environment/-/jest-sentry-environment-3.0.0.tgz#944677f7a6db7009ba4574a0b5ab12ef43c21006"
+  integrity sha512-mr0iFO/3lX4XV6kwqCZG86eSYDi5XeA2N5tTSwxi7xE2yAkXyFAgswp1WaDIBLBL/wKppffHJQiIsXh4h/ASew==
 
 jest-serializer@^26.6.2:
   version "26.6.2"
