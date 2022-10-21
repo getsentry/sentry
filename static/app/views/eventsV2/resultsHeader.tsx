@@ -9,7 +9,7 @@ import {fetchSavedQuery} from 'sentry/actionCreators/discoverSavedQueries';
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import EditableText from 'sentry/components/editableText';
+import {Label} from 'sentry/components/editableText';
 import {Title} from 'sentry/components/layouts/thirds';
 import * as Layout from 'sentry/components/layouts/thirds';
 import TimeSince from 'sentry/components/timeSince';
@@ -148,7 +148,7 @@ class ResultsHeader extends Component<Props, State> {
           {isHomepage ? (
             <StyledTitle>
               <GuideAnchor target="discover_landing_header">
-                <EditableText value={t('Discover')} onChange={() => {}} isDisabled />
+                <Label isDisabled>{t('Discover')}</Label>
               </GuideAnchor>
             </StyledTitle>
           ) : (
