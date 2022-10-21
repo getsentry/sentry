@@ -137,8 +137,8 @@ def test_post_process_forwarder_bad_message(kafka_message_payload):
 
 @pytest.mark.django_db
 @patch(
-    "sentry.eventstream.kafka.postprocessworker.post_process_group.delay",
-    wraps=sentry.tasks.post_process.post_process_group.delay,
+    "sentry.eventstream.kafka.postprocessworker.post_process_group.apply_async",
+    wraps=sentry.tasks.post_process.post_process_group.apply_async,
 )
 def test_errors_post_process_forwarder_calls_post_process_group(
     post_process_group_spy,
@@ -179,8 +179,8 @@ def test_errors_post_process_forwarder_calls_post_process_group(
 
 @pytest.mark.django_db
 @patch(
-    "sentry.eventstream.kafka.postprocessworker.post_process_group.delay",
-    wraps=sentry.tasks.post_process.post_process_group.delay,
+    "sentry.eventstream.kafka.postprocessworker.post_process_group.apply_async",
+    wraps=sentry.tasks.post_process.post_process_group.apply_async,
 )
 def test_transactions_post_process_forwarder_calls_post_process_group(
     post_process_group_spy,
