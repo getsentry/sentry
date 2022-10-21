@@ -2,14 +2,7 @@ import {browserHistory} from 'react-router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
-import {
-  act,
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  within,
-} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import EventView from 'sentry/utils/discover/eventView';
 
@@ -198,12 +191,8 @@ describe('Discover > Homepage', () => {
       {context: initialData.routerContext, organization: initialData.organization}
     );
 
-    userEvent.click(screen.getByTestId('editable-text-label'));
-
-    // Check that clicking the label didn't render a textbox for editing
-    expect(
-      within(screen.getByTestId('editable-text-label')).queryByRole('textbox')
-    ).not.toBeInTheDocument();
+    // 'Discover' is the header for the homepage
+    expect(screen.getByText('Discover')).toBeInTheDocument();
     expect(screen.queryByText(/Created by:/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Last edited:/)).not.toBeInTheDocument();
   });
