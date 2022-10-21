@@ -16,8 +16,7 @@ class CodeMapping(NamedTuple):
 
 
 def derive_code_mappings(stacktraces: List[str], trees: Dict[str, Any]) -> List[CodeMapping]:
-    """From a list of stack trace frames for a project and the trees for an org,
-    generate the code mappings for it.
+    """ Generate the code mappings from a list of stack trace frames for a project and the trees for an org.
 
     WARNING: Do not pass stacktraces from different projects or the wrong code mappings will be returned.
     """
@@ -31,14 +30,10 @@ class FrameFilename:
         self.full_path = stacktrace_frame_file_path
         if stacktrace_frame_file_path.find("/") > -1:
             # XXX: This code assumes that all stack trace frames are part of a module
-            split = stacktrace_frame_file_path.split("/", 1)
-            self.root = split[0]
-            self.file_and_dir_path = split[1]
+            self.root, self.file_and_dir_path = stacktrace_frame_file_path.split("/", 1)
             # Does it have more than one level?
             if self.file_and_dir_path.find("/") > -1:
-                split = self.file_and_dir_path.rsplit("/", 1)
-                self.dir_path = split[0]
-                self.file_name = split[-1]
+                self.dir_path, self.file_name = self.file_and_dir_path.rsplit("/", 1)
             else:
                 # A package name + a file (e.g. requests/models.py)
                 self.dir_path = ""
@@ -73,7 +68,7 @@ class CodeMappingTreesHelper:
 
             except ValueError:
                 logger.exception(
-                    f"We cannot breakdown this stacktrace path: {stacktrace_frame_file_path}"
+                    f"Unable to split stacktrace path into buckets: {stacktrace_frame_file_path}"
                 )
                 continue
         return buckets
@@ -122,12 +117,7 @@ class CodeMappingTreesHelper:
         repo_full_name: str,
         frame_filename: FrameFilename,
     ) -> List[CodeMapping]:
-        matched_files = list(
-            filter(
-                lambda src_path: self._potential_match(src_path, frame_filename),
-                self.trees[repo_full_name],
-            )
-        )
+       matched_files=[self._potential_match(src_patch, frame_filename) for src_path in self.trees[repo_full_name]]
         # It is too risky generating code mappings when there's more
         # than one file potentially matching
         return (
@@ -153,19 +143,7 @@ class CodeMappingTreesHelper:
             # For instance sentry_plugins/slack/client.py matches these files
             # - "src/sentry_plugins/slack/client.py",
             # - "src/sentry/integrations/slack/client.py",
-            return (
-                True
-                if len(
-                    list(
-                        filter(
-                            lambda source_path: src_file.startswith(f"{source_path}/"),
-                            self.reverse_mapping,
-                        )
-                    )
-                )
-                > 0
-                else False
-            )
+            return any(source_path for source_path in self.reverse_mapping] if src_file.startswith(f"{source_path}/"))
 
     def _potential_match(self, src_file: str, frame_filename: FrameFilename) -> bool:
         """Tries to see if the stacktrace without the root matches the file from the
