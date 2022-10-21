@@ -5,7 +5,7 @@ import type {Guide} from 'sentry/components/assistant/types';
 import type DateRange from 'sentry/components/organizations/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/organizations/timeRangeSelector/selectorItems';
 import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
-import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
+import {RouteAnalyticCallbacks} from 'sentry/utils/routeAnalytics/useRouteAnalytics';
 import type {NavigationItem, NavigationSection} from 'sentry/views/settings/types';
 
 import type {ExperimentKey} from './experiments';
@@ -213,9 +213,7 @@ export type SettingsHooks = {
  * Hooks that are actually React Hooks as well
  */
 export type ReactHooks = {
-  'react-hook:route-activated': (
-    props: RouteContextInterface
-  ) => React.ContextType<typeof RouteAnalyticsContext>;
+  'react-hook:route-activated': (props?: RouteContextInterface) => RouteAnalyticCallbacks;
 };
 
 /**

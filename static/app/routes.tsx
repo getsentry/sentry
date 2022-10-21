@@ -29,7 +29,7 @@ import RouteNotFound from 'sentry/views/routeNotFound';
 import SettingsWrapper from 'sentry/views/settings/components/settingsWrapper';
 
 import Feature from './components/acl/feature';
-import useRouteAnalyticsOrgSetter from './utils/routeAnalytics/useRouteAnalyticsOrgSetter';
+import {useRouteAnalyticsHookSetup} from './utils/routeAnalytics/useRouteAnalytics';
 
 type CustomProps = {
   name?: string;
@@ -58,9 +58,7 @@ export function makeLazyloadComponent<C extends React.ComponentType<any>>(
 ) {
   // XXX: Assign the component to a variable so it has a displayname
   const RouteLazyLoad: React.FC<React.ComponentProps<C>> = props => {
-    // we can use this hook to set the organization as it's
-    // a child of the organization context container
-    useRouteAnalyticsOrgSetter();
+    useRouteAnalyticsHookSetup();
     return <SafeLazyLoad {...props} component={resolve} />;
   };
 

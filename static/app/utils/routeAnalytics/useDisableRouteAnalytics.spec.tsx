@@ -1,7 +1,5 @@
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
-
 import useDisableRouteAnalytics from './useDisableRouteAnalytics';
 
 function TestComponent() {
@@ -12,17 +10,7 @@ function TestComponent() {
 describe('useDisableRouteAnalytics', function () {
   it('disables analytics', function () {
     const setDisableRouteAnalytics = jest.fn();
-    render(
-      <RouteAnalyticsContext.Provider
-        value={{
-          setDisableRouteAnalytics,
-          setRouteAnalyticsParams: jest.fn(),
-          setOrganization: jest.fn(),
-        }}
-      >
-        <TestComponent />
-      </RouteAnalyticsContext.Provider>
-    );
+    render(<TestComponent />);
     expect(setDisableRouteAnalytics).toHaveBeenCalledWith();
   });
 });

@@ -3,7 +3,9 @@ import {createStore} from 'reflux';
 import {ORGANIZATION_FETCH_ERROR_TYPES} from 'sentry/constants';
 import {Organization} from 'sentry/types';
 import RequestError from 'sentry/utils/requestError/requestError';
+import {ROUTE_ACTIVATED_HOOK_NAME} from 'sentry/utils/routeAnalytics/useRouteAnalytics';
 
+import HookStore from './hookStore';
 import LatestContextStore from './latestContextStore';
 import ReleaseStore from './releaseStore';
 import {CommonStoreDefinition} from './types';
@@ -52,6 +54,10 @@ const storeConfig: OrganizationStoreDefinition = {
 
     ReleaseStore.updateOrganization(this.organization);
     LatestContextStore.onUpdateOrganization(this.organization);
+    HookStore.getCallback(
+      ROUTE_ACTIVATED_HOOK_NAME,
+      'setOrganization'
+    )(this.organization);
   },
 
   onFetchOrgError(err) {
