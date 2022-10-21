@@ -575,25 +575,25 @@ class GitHubIntegrationTest(IntegrationTestCase):
             CodeMapping("Test-Organization/foo", "sentry_plugins", "src/sentry_plugins"),
         ]
 
-        # # # Case 1 - No matches
-        # stacktraces = [
-        #     "getsentry/billing/tax/manager.py",
-        #     "requests/models.py",
-        #     "urllib3/connectionpool.py",
-        #     "ssl.py",
-        # ]
-        # code_mappings = derive_code_mappings(stacktraces, trees)
-        # assert code_mappings == []
+        # Case 1 - No matches
+        stacktraces = [
+            "getsentry/billing/tax/manager.py",
+            "requests/models.py",
+            "urllib3/connectionpool.py",
+            "ssl.py",
+        ]
+        code_mappings = derive_code_mappings(stacktraces, trees)
+        assert code_mappings == []
 
-        # # Case 2 - Failing to derive sentry_plugins since we match more than one file
-        # stacktraces = [
-        #     # More than one file matches for this, thus, no stack traces will be produced
-        #     # - "src/sentry_plugins/slack/client.py",
-        #     # - "src/sentry/integrations/slack/client.py",
-        #     "sentry_plugins/slack/client.py",
-        # ]
-        # code_mappings = derive_code_mappings(stacktraces, trees)
-        # assert code_mappings == []
+        # Case 2 - Failing to derive sentry_plugins since we match more than one file
+        stacktraces = [
+            # More than one file matches for this, thus, no stack traces will be produced
+            # - "src/sentry_plugins/slack/client.py",
+            # - "src/sentry/integrations/slack/client.py",
+            "sentry_plugins/slack/client.py",
+        ]
+        code_mappings = derive_code_mappings(stacktraces, trees)
+        assert code_mappings == []
 
         # Case 3 - We derive sentry_plugins because we derive sentry first
         # XXX: Order matters of processing matters. Fix code
@@ -606,13 +606,13 @@ class GitHubIntegrationTest(IntegrationTestCase):
         code_mappings = derive_code_mappings(stacktraces, trees)
         assert code_mappings == expected_code_mappings
 
-        # # Case 4 - We do *not* derive sentry_plugins because we don't derive sentry first
-        # stacktraces = [
-        #     # This file matches two files in the repo and because we process it
-        #     # before we derive
-        #     "sentry_plugins/slack/client.py",
-        #     "sentry/identity/oauth2.py",
-        # ]
-        # code_mappings = derive_code_mappings(stacktraces, trees)
-        # # Order matters, this is why we only derive one of the two code mappings
-        # assert code_mappings == [expected_code_mappings[0]]
+        # Case 4 - We do *not* derive sentry_plugins because we don't derive sentry first
+        stacktraces = [
+            # This file matches two files in the repo and because we process it
+            # before we derive
+            "sentry_plugins/slack/client.py",
+            "sentry/identity/oauth2.py",
+        ]
+        code_mappings = derive_code_mappings(stacktraces, trees)
+        # Order matters, this is why we only derive one of the two code mappings
+        assert code_mappings == [expected_code_mappings[0]]
