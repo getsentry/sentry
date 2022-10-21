@@ -1,6 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Form, SelectCreatableField} from 'sentry/components/deprecatedforms';
+import Form from 'sentry/components/deprecatedforms/form';
+import SelectCreatableField from 'sentry/components/deprecatedforms/selectCreatableField';
 
 describe('SelectCreatableField', function () {
   it('can add user input into select field when using options', function () {

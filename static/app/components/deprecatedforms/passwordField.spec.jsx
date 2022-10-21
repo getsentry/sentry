@@ -1,6 +1,7 @@
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import {Form, PasswordField} from 'sentry/components/deprecatedforms';
+import Form from 'sentry/components/deprecatedforms/form';
+import PasswordField from 'sentry/components/deprecatedforms/passwordField';
 
 describe('PasswordField', function () {
   describe('render()', function () {

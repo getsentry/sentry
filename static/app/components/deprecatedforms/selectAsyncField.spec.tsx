@@ -2,7 +2,8 @@ import selectEvent from 'react-select-event';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Form, SelectAsyncField} from 'sentry/components/deprecatedforms';
+import Form from 'sentry/components/deprecatedforms/form';
+import SelectAsyncField from 'sentry/components/deprecatedforms/selectAsyncField';
 
 describe('SelectAsyncField', function () {
   let api;

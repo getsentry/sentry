@@ -1,4 +1,5 @@
-import {Form, FormState} from 'sentry/components/deprecatedforms';
+import Form from 'sentry/components/deprecatedforms/form';
+import FormState from 'sentry/components/forms/state';
 import DefaultIssueActions from 'sentry/plugins/components/issueActions';
 import {Writable} from 'sentry/types';
 
