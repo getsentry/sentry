@@ -41,6 +41,7 @@ RESERVED_IDS = {
 }
 
 
+<<<<<<< HEAD
 class Inner(TypedDict):
     op: str
     name: str
@@ -48,6 +49,13 @@ class Inner(TypedDict):
     options: Dict[str, bool]
 
 
+||||||| parent of 6c49312dd6 (fixup!)
+class NoneSampleRateException(Exception):
+    ...
+
+
+=======
+>>>>>>> 6c49312dd6 (fixup!)
 class Inner(TypedDict):
     op: int
     name: str
@@ -147,12 +155,19 @@ def generate_rules(project: Project, enable_environment_bias=False):
 
     if enable_environment_bias and sample_rate and sample_rate < 1.0:
         rules.append(generate_environment_rule())
-
     if sample_rate is None:
         try:
             raise Exception("get_blended_sample_rate returns none")
         except Exception:
             sentry_sdk.capture_exception()
     else:
+<<<<<<< HEAD
         rules.append(generate_uniform_rule(project))
 >>>>>>> 1f195d7423 (fixup!)
+||||||| parent of 6c49312dd6 (fixup!)
+        rules.append(generate_uniform_rule(project))
+=======
+        rules.append(generate_uniform_rule(sample_rate))
+
+    return rules
+>>>>>>> 6c49312dd6 (fixup!)
