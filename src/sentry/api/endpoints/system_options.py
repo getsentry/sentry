@@ -13,6 +13,11 @@ from sentry.utils.email import is_smtp_enabled
 
 logger = logging.getLogger("sentry")
 
+SYSTEM_OPTIONS_ALLOWLIST = (
+    # Used during setup before the superadmin role with the options.admin permission is authed
+    "system.admin-email"
+)
+
 
 @pending_silo_endpoint
 class SystemOptionsEndpoint(Endpoint):
@@ -56,8 +61,20 @@ class SystemOptionsEndpoint(Endpoint):
 
         return Response(results)
 
-    def put(self, request: Request):
+    def has_permission(self, request: Request):
         if not request.access.has_permission("options.admin"):
+            return False
+
+        for k, v in request.data.items():
+            if v and isinstance(v, str):
+                v = v.strip()
+            if k not in SYSTEM_OPTIONS_ALLOWLIST:
+                return False
+
+        return True
+
+    def put(self, request: Request):
+        if not self.has_permission(request):
             return Response(status=403)
 
         # TODO(dcramer): this should validate options before saving them
