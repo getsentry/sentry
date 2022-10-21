@@ -4,7 +4,7 @@
 import fs from 'fs';
 import path from 'path';
 
-import TestStubFixtures from '../../../fixtures/js-stubs/types';
+import TestStubFixtures from '../../../fixtures/js-stubs/types.test';
 
 const FIXTURES_ROOT = path.join(__dirname, '../../../fixtures');
 

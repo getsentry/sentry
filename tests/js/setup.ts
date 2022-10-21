@@ -16,7 +16,7 @@ import * as qs from 'query-string';
 import type {Client} from 'sentry/__mocks__/api';
 import ConfigStore from 'sentry/stores/configStore';
 
-import TestStubFixtures from '../../fixtures/js-stubs/types';
+import TestStubFixtures from '../../fixtures/js-stubs/types.test';
 
 // needed by cbor-web for webauthn
 window.TextEncoder = TextEncoder;
@@ -316,7 +316,7 @@ declare global {
   var MockApiClient: typeof Client;
 }
 
-window.TestStubs = lazyFixtures as TestStubTypes;
+global.TestStubs = global.TestStubs || (lazyFixtures as TestStubTypes);
 
 // This is so we can use async/await in tests instead of wrapping with `setTimeout`.
 window.tick = () => new Promise(resolve => setTimeout(resolve));
