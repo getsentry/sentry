@@ -11,7 +11,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import Results from 'sentry/views/eventsV2/results';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
-import {TRANSACTION_VIEWS} from './data';
+import {DEFAULT_EVENT_VIEW, TRANSACTION_VIEWS} from './data';
 
 const FIELDS = [
   {
@@ -1947,5 +1947,43 @@ describe('Results', function () {
       'href',
       expect.stringMatching(new RegExp('^/organizations/org-slug/discover/homepage/'))
     );
+  });
+
+  it('allows users to Set As Default on the All Events query', () => {
+    const organization = TestStubs.Organization({
+      features: [
+        'discover-basic',
+        'discover-query',
+        'discover-query-builder-as-landing-page',
+      ],
+    });
+
+    const initialData = initializeOrg({
+      organization,
+      router: {
+        location: {
+          ...TestStubs.location(),
+          query: {
+            ...EventView.fromNewQueryWithLocation(
+              DEFAULT_EVENT_VIEW,
+              TestStubs.location()
+            ).generateQueryStringObject(),
+          },
+        },
+      },
+    });
+
+    ProjectsStore.loadInitialData([TestStubs.Project()]);
+
+    render(
+      <Results
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+      />,
+      {context: initialData.routerContext, organization}
+    );
+
+    expect(screen.getByTestId('set-as-default')).toBeEnabled();
   });
 });

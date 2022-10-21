@@ -444,11 +444,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
       homepageQuery,
       queryDataLoading,
     } = this.props;
-    const buttonDisabled =
-      disabled ||
-      queryDataLoading ||
-      (!homepageQuery &&
-        eventView.isEqualTo(EventView.fromSavedQuery(DEFAULT_EVENT_VIEW)));
+    const buttonDisabled = disabled || queryDataLoading;
     if (
       homepageQuery &&
       eventView.isEqualTo(EventView.fromSavedQuery(homepageQuery), ['id', 'name'])
