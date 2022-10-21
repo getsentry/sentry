@@ -2105,7 +2105,7 @@ urlpatterns = [
                     name="sentry-api-0-project-rule-preview",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/(?P<rule_id>[^\/]+)/actions/$",
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rule-actions/$",
                     ProjectRuleActionsEndpoint.as_view(),
                     name="sentry-api-0-project-rule-actions",
                 ),
