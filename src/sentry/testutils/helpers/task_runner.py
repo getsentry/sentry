@@ -34,10 +34,10 @@ def BurstTaskRunner():
     def work(max_jobs=None):
         jobs = 0
         while queue and (max_jobs is None or max_jobs > jobs):
-            self, args, kwargs = queue.pop(0)
+            self, args, kwargs, options = queue.pop(0)
 
             with patch("celery.app.task.Task.apply_async", apply_async):
-                self(*args, **kwargs)
+                self(args=args, kwargs=kwargs, **options)
 
             jobs += 1
 
