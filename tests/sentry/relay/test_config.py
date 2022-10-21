@@ -1,13 +1,18 @@
-from unittest import mock
+import time
+from unittest.mock import patch
 
 import pytest
+from django.core.cache import cache
+from freezegun import freeze_time
 
+from sentry.dynamic_sampling.lastest_release_booster import BOOSTED_RELEASE_TIMEOUT
 from sentry.models import ProjectKey
 from sentry.models.transaction_threshold import TransactionMetric
 from sentry.relay.config import get_project_config
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.options import override_options
+from sentry.utils import json
 from sentry.utils.safe import get_path
 
 PII_CONFIG = """
@@ -339,6 +344,125 @@ def test_project_config_with_uniform_rules_based_on_plan_in_dynamic_sampling_rul
     cfg = cfg.to_dict()
     dynamic_sampling = get_path(cfg, "config", "dynamicSampling")
     assert dynamic_sampling == expected
+
+
+@pytest.mark.django_db
+@freeze_time("2022-10-21 18:50:25.000000+00:00")
+def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_rules(
+    default_project,
+):
+    """
+    Tests that dynamic sampling information return correct uniform rules
+    """
+    ts = time.time()
+
+    release_ids = []
+    for release_version in ("1.0", "2.0", "3.0", "4.0", "5.0", "6.0", "7.0"):
+        release = Factories.create_release(
+            project=default_project,
+            version=release_version,
+        )
+        release_ids.append(release.id)
+
+    boosted_releases = [[release_ids[0], ts - BOOSTED_RELEASE_TIMEOUT * 2]]
+    for release_id in release_ids[1:]:
+        boosted_releases.append([release_id, ts])
+    cache.set(
+        f"ds::p:{default_project.id}:boosted_releases:1h",
+        json.dumps(boosted_releases),
+        60 * 60,
+    )
+    with Feature(
+        {
+            "organizations:server-side-sampling": True,
+            "organizations:dynamic-sampling-basic": True,
+        }
+    ):
+        with patch(
+            "sentry.dynamic_sampling.utils.quotas.get_blended_sample_rate", return_value=0.1
+        ):
+            cfg = get_project_config(default_project)
+
+    cfg = cfg.to_dict()
+    dynamic_sampling = get_path(cfg, "config", "dynamicSampling")
+    assert dynamic_sampling == {
+        "rules": [
+            [
+                {
+                    "sampleRate": 0.15000000000000002,
+                    "type": "trace",
+                    "condition": {
+                        "op": "and",
+                        "inner": [{"op": "glob", "name": "trace.release", "value": ["3.0"]}],
+                    },
+                    "id": 500,
+                    "timeRange": {
+                        "start": "2022-10-21 18:50:25+00:00",
+                        "end": "2022-10-21 19:50:25+00:00",
+                    },
+                },
+                {
+                    "sampleRate": 0.15000000000000002,
+                    "type": "trace",
+                    "condition": {
+                        "op": "and",
+                        "inner": [{"op": "glob", "name": "trace.release", "value": ["4.0"]}],
+                    },
+                    "id": 501,
+                    "timeRange": {
+                        "start": "2022-10-21 18:50:25+00:00",
+                        "end": "2022-10-21 19:50:25+00:00",
+                    },
+                },
+                {
+                    "sampleRate": 0.15000000000000002,
+                    "type": "trace",
+                    "condition": {
+                        "op": "and",
+                        "inner": [{"op": "glob", "name": "trace.release", "value": ["5.0"]}],
+                    },
+                    "id": 502,
+                    "timeRange": {
+                        "start": "2022-10-21 18:50:25+00:00",
+                        "end": "2022-10-21 19:50:25+00:00",
+                    },
+                },
+                {
+                    "sampleRate": 0.15000000000000002,
+                    "type": "trace",
+                    "condition": {
+                        "op": "and",
+                        "inner": [{"op": "glob", "name": "trace.release", "value": ["6.0"]}],
+                    },
+                    "id": 503,
+                    "timeRange": {
+                        "start": "2022-10-21 18:50:25+00:00",
+                        "end": "2022-10-21 19:50:25+00:00",
+                    },
+                },
+                {
+                    "sampleRate": 0.15000000000000002,
+                    "type": "trace",
+                    "condition": {
+                        "op": "and",
+                        "inner": [{"op": "glob", "name": "trace.release", "value": ["7.0"]}],
+                    },
+                    "id": 504,
+                    "timeRange": {
+                        "start": "2022-10-21 18:50:25+00:00",
+                        "end": "2022-10-21 19:50:25+00:00",
+                    },
+                },
+                {
+                    "sampleRate": 0.1,
+                    "type": "trace",
+                    "active": True,
+                    "condition": {"op": "and", "inner": []},
+                    "id": 0,
+                },
+            ]
+        ]
+    }
 
 
 @pytest.mark.django_db
