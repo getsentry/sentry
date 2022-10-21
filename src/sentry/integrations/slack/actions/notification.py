@@ -49,6 +49,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
 
         def send_notification(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
             rules = [f.rule for f in futures]
+            event = event.for_group(event.group or event.groups[0])
             attachments = [build_group_attachment(event.group, event=event, tags=tags, rules=rules)]
             # getsentry might add a billing related attachment
             additional_attachment = get_additional_attachment(
