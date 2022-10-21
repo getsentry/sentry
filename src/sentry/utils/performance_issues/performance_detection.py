@@ -145,6 +145,10 @@ class EventPerformanceProblem:
 
         spans_by_id = {span["span_id"]: span for span in self.event.data.get("spans", [])}
 
+        trace = get_path(self.event.data, "contexts", "trace")
+        if trace:
+            spans_by_id[trace["span_id"]] = trace
+
         for key in ["parent", "cause", "offender"]:
             span_ids = evidence_ids.get(key + "_span_ids", []) or []
             spans = [spans_by_id.get(id) for id in span_ids]
