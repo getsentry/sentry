@@ -1,4 +1,4 @@
-import {render} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import EventsTableRow from 'sentry/components/eventsTable/eventsTableRow';
 
@@ -21,5 +21,36 @@ describe('EventsTableRow', function () {
       </table>
     );
     expect(container).toSnapshot();
+  });
+
+  it('renders the replay column with a correct link', () => {
+    render(
+      <table>
+        <tbody>
+          <EventsTableRow
+            organization={TestStubs.Organization()}
+            tagList={[
+              {
+                key: 'replayId',
+                name: 'Replayid',
+                totalValues: 5,
+              },
+            ]}
+            {...{orgId: 'orgId', projectId: 'projectId', groupId: 'groupId'}}
+            event={{
+              ...TestStubs.DetailedEvents()[0],
+              tags: [
+                {
+                  key: 'replayId',
+                  value: 'test-replay-id',
+                },
+              ],
+            }}
+          />
+        </tbody>
+      </table>
+    );
+
+    expect(screen.getByRole('button')).toBeVisible();
   });
 });

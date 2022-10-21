@@ -22,7 +22,6 @@ type Props = {
   tagList: Tag[];
   className?: string;
   hasUser?: boolean;
-  showReplayColumn?: boolean;
 };
 
 function EventsTableRow({
@@ -31,7 +30,6 @@ function EventsTableRow({
   projectId,
   orgId,
   groupId,
-  showReplayColumn,
   tagList,
   hasUser,
   organization,
@@ -101,25 +99,19 @@ function EventsTableRow({
           <div>
             {tag.key === 'device' ? (
               <DeviceName value={tagMap[tag.key]} />
+            ) : tag.key === 'replayId' ? (
+              <Button
+                to={fullReplayUrl}
+                size="sm"
+                icon={<IconPlay size="sm" />}
+                aria-label={t('View Full Replay')}
+              />
             ) : (
               tagMap[tag.key]
             )}
           </div>
         </td>
       ))}
-
-      {showReplayColumn && (
-        <td>
-          {tagMap.replayId ? (
-            <Button
-              to={fullReplayUrl}
-              size="sm"
-              icon={<IconPlay size="sm" />}
-              aria-label={t('View Full Replay')}
-            />
-          ) : null}
-        </td>
-      )}
     </tr>
   );
 }

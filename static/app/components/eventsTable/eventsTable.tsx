@@ -18,10 +18,11 @@ class EventsTable extends Component<Props> {
     const {events, tagList, orgId, projectId, groupId, orgFeatures} = this.props;
 
     const hasUser = !!events.find(event => event.user);
-
     const showReplayColumn = orgFeatures.includes('session-replay-ui');
 
-    const filteredTagList = tagList.filter(tag => tag.key !== 'replayId');
+    const filteredTagList = tagList.filter(
+      tag => tag.key !== 'replayId' || (tag.key === 'replayId' && showReplayColumn)
+    );
 
     return (
       <table className="table events-table" data-test-id="events-table">
@@ -30,11 +31,12 @@ class EventsTable extends Component<Props> {
             <th>{t('ID')}</th>
             {hasUser && <th>{t('User')}</th>}
 
-            {filteredTagList.map(tag => (
-              <th key={tag.key}>{tag.name}</th>
-            ))}
-
-            {showReplayColumn && <th>{t('Replay')}</th>}
+            {filteredTagList.map(tag => {
+              if (tag.key === 'replayId') {
+                return <th key={tag.key}>{t('Replay')}</th>;
+              }
+              return <th key={tag.key}>{tag.name}</th>;
+            })}
           </tr>
         </thead>
         <tbody>
@@ -47,7 +49,6 @@ class EventsTable extends Component<Props> {
               groupId={groupId}
               tagList={filteredTagList}
               hasUser={hasUser}
-              showReplayColumn={showReplayColumn}
             />
           ))}
         </tbody>
