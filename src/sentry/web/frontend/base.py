@@ -22,6 +22,7 @@ from sentry.auth import access
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import Authenticator, Organization, Project, ProjectStatus, Team, TeamStatus
 from sentry.services.hybrid_cloud import ApiOrganization, organization_service
+from sentry.silo import SiloMode
 from sentry.utils import auth
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.auth import is_valid_redirect, make_login_link_with_redirect
@@ -434,12 +435,17 @@ class OrganizationView(BaseView):
         return False
 
     def convert_args(self, request: Request, organization_slug=None, *args, **kwargs):
-        organization: Optional[Organization] = None
-        if self.active_organization:
-            for org in Organization.objects.filter(id=self.active_organization.id):
-                organization = org
+        # TODO:  Extract separate view base classes based on control vs region / monolith,
+        # with distinct convert_args implementation.
+        if SiloMode.get_current_mode() == SiloMode.CONTROL:
+            kwargs["organization"] = self.active_organization
+        else:
+            organization: Optional[Organization] = None
+            if self.active_organization:
+                for org in Organization.objects.filter(id=self.active_organization.id):
+                    organization = org
 
-        kwargs["organization"] = organization
+            kwargs["organization"] = organization
 
         return (args, kwargs)
 
