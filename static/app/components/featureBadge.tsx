@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {captureException, withScope} from '@sentry/react';
-import type {Severity} from '@sentry/types';
+import type {SeverityLevel} from '@sentry/types';
 
 import CircleIndicator from 'sentry/components/circleIndicator';
 import Tag from 'sentry/components/tagDeprecated';
@@ -47,7 +47,7 @@ function BaseFeatureBadge({
       withScope(scope => {
         scope.setTag('title', title);
         scope.setTag('type', type);
-        scope.setLevel('warning' as Severity);
+        scope.setLevel('warning' as SeverityLevel);
         captureException(new Error('Expired Feature Badge'));
       });
     }
