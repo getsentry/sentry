@@ -89,7 +89,7 @@ export default function FirstEventFooter({
             });
           }
         }}
-        to={`/organizations/${organization.slug}/issues/?referrer=onboarding-first-event-footer`}
+        to={`/organizations/${organization.slug}/issues/?referrer=onboarding-first-event-footer-skip`}
       >
         {t('Skip Onboarding')}
       </SkipOnboardingLink>
