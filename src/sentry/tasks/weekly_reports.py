@@ -207,14 +207,14 @@ def project_event_counts_for_organization(ctx):
         timestamp = int(to_timestamp(parse_snuba_datetime(dat["time"])))
         if dat["category"] == DataCategory.TRANSACTION:
             # Transaction outcome
-            if dat["outcome"] == Outcome.RATE_LIMITED:
+            if dat["outcome"] == Outcome.RATE_LIMITED or dat["outcome"] == Outcome.FILTERED:
                 project_ctx.dropped_transaction_count += total
             else:
                 project_ctx.accepted_transaction_count += total
                 project_ctx.transaction_count_by_day[timestamp] = total
         else:
             # Error outcome
-            if dat["outcome"] == Outcome.RATE_LIMITED:
+            if dat["outcome"] == Outcome.RATE_LIMITED or dat["outcome"] == Outcome.FILTERED:
                 project_ctx.dropped_error_count += total
             else:
                 project_ctx.accepted_error_count += total
