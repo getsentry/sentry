@@ -43,6 +43,21 @@ import {
   handleUpdateQuery,
 } from './utils';
 
+const renderDisabled = p => (
+  <Hovercard
+    body={
+      <FeatureDisabled
+        features={p.features}
+        hideHelpToggle
+        message={t('Discover queries are disabled')}
+        featureName={t('Discover queries')}
+      />
+    }
+  >
+    {p.children(p)}
+  </Hovercard>
+);
+
 type SaveAsDropdownProps = {
   disabled: boolean;
   modifiedHandleCreateQuery: (e: React.MouseEvent<Element>) => void;
@@ -419,7 +434,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     );
   }
 
-  renderSaveAsHomepage() {
+  renderSaveAsHomepage(disabled: boolean) {
     const {
       api,
       organization,
@@ -431,6 +446,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
       queryDataLoading,
     } = this.props;
     const buttonDisabled =
+      disabled ||
       queryDataLoading ||
       (!homepageQuery &&
         eventView.isEqualTo(EventView.fromSavedQuery(DEFAULT_EVENT_VIEW)));
@@ -490,36 +506,23 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     );
   }
 
+  renderQueryButton(renderFunc: (disabled: boolean) => React.ReactNode) {
+    const {organization} = this.props;
+    return (
+      <Feature
+        organization={organization}
+        features={['discover-query']}
+        hookName="feature-disabled:discover-saved-query-create"
+        renderDisabled={renderDisabled}
+      >
+        {({hasFeature}) => renderFunc(!hasFeature || this.props.disabled)}
+      </Feature>
+    );
+  }
+
   renderHomepageFlagButtons() {
     const {organization, eventView, savedQuery, yAxis, router, location, isHomepage} =
       this.props;
-    const renderDisabled = p => (
-      <Hovercard
-        body={
-          <FeatureDisabled
-            features={p.features}
-            hideHelpToggle
-            message={t('Discover queries are disabled')}
-            featureName={t('Discover queries')}
-          />
-        }
-      >
-        {p.children(p)}
-      </Hovercard>
-    );
-
-    const renderQueryButton = (renderFunc: (disabled: boolean) => React.ReactNode) => {
-      return (
-        <Feature
-          organization={organization}
-          features={['discover-query']}
-          hookName="feature-disabled:discover-saved-query-create"
-          renderDisabled={renderDisabled}
-        >
-          {({hasFeature}) => renderFunc(!hasFeature || this.props.disabled)}
-        </Feature>
-      );
-    };
 
     const contextMenuItems: MenuItemProps[] = [];
 
@@ -572,21 +575,20 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
 
     return (
       <ResponsiveButtonBar gap={1}>
-        {/* TODO(nar): Fix this so it gets the normal renderDisabled like the other buttons */}
         <Feature
           organization={organization}
           features={['discover-query', 'discover-query-builder-as-landing-page']}
         >
-          {({hasFeature}) => hasFeature && this.renderSaveAsHomepage()}
+          {this.renderQueryButton(disabled => this.renderSaveAsHomepage(disabled))}
         </Feature>
-        {renderQueryButton(disabled => this.renderButtonSave(disabled))}
+        {this.renderQueryButton(disabled => this.renderButtonSave(disabled))}
         <Feature organization={organization} features={['incidents']}>
           {({hasFeature}) => hasFeature && this.renderButtonCreateAlert()}
         </Feature>
 
         {contextMenu}
 
-        {renderQueryButton(disabled => this.renderButtonViewSaved(disabled))}
+        {this.renderQueryButton(disabled => this.renderButtonViewSaved(disabled))}
       </ResponsiveButtonBar>
     );
   }
@@ -598,44 +600,16 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
       return this.renderHomepageFlagButtons();
     }
 
-    const renderDisabled = p => (
-      <Hovercard
-        body={
-          <FeatureDisabled
-            features={p.features}
-            hideHelpToggle
-            message={t('Discover queries are disabled')}
-            featureName={t('Discover queries')}
-          />
-        }
-      >
-        {p.children(p)}
-      </Hovercard>
-    );
-
-    const renderQueryButton = (renderFunc: (disabled: boolean) => React.ReactNode) => {
-      return (
-        <Feature
-          organization={organization}
-          features={['discover-query']}
-          hookName="feature-disabled:discover-saved-query-create"
-          renderDisabled={renderDisabled}
-        >
-          {({hasFeature}) => renderFunc(!hasFeature || this.props.disabled)}
-        </Feature>
-      );
-    };
-
     return (
       <ResponsiveButtonBar gap={1}>
-        {renderQueryButton(disabled => this.renderButtonSave(disabled))}
+        {this.renderQueryButton(disabled => this.renderButtonSave(disabled))}
         <Feature organization={organization} features={['incidents']}>
           {({hasFeature}) => hasFeature && this.renderButtonCreateAlert()}
         </Feature>
         <Feature organization={organization} features={['dashboards-edit']}>
           {({hasFeature}) => hasFeature && this.renderButtonAddToDashboard()}
         </Feature>
-        {renderQueryButton(disabled => this.renderButtonDelete(disabled))}
+        {this.renderQueryButton(disabled => this.renderButtonDelete(disabled))}
       </ResponsiveButtonBar>
     );
   }
