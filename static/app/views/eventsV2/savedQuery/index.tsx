@@ -63,6 +63,7 @@ type SaveAsDropdownProps = {
   modifiedHandleCreateQuery: (e: React.MouseEvent<Element>) => void;
   onChangeInput: (e: React.FormEvent<HTMLInputElement>) => void;
   queryName: string;
+  buttonSize?: string;
 };
 
 function SaveAsDropdown({
@@ -70,6 +71,7 @@ function SaveAsDropdown({
   disabled,
   onChangeInput,
   modifiedHandleCreateQuery,
+  buttonSize = 'sm',
 }: SaveAsDropdownProps) {
   const {isOpen, triggerProps, overlayProps, arrowProps} = useOverlay();
   const theme = useTheme();
@@ -78,8 +80,8 @@ function SaveAsDropdown({
     <div>
       <Button
         {...triggerProps}
-        size="xs"
-        icon={<IconStar size="xs" />}
+        size={buttonSize}
+        icon={<IconStar size={buttonSize} />}
         aria-label={t('Save as')}
         disabled={disabled}
       >
@@ -231,6 +233,20 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
   };
 
   /**
+   * Buttons that are displayed outside of the context menu should
+   * be xs with the homepage feature flag.
+   */
+  getButtonSize() {
+    const {organization} = this.props;
+
+    if (organization.features.includes('discover-query-builder-as-landing-page')) {
+      return 'xs';
+    }
+
+    return 'sm';
+  }
+
+  /**
    * There are two ways to create a query
    * 1) Creating a query from scratch and saving it
    * 2) Modifying an existing query and saving it
@@ -313,8 +329,8 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
         onClick={() => {}}
         data-test-id="discover2-savedquery-button-view-saved"
         disabled={disabled}
-        size="xs"
-        icon={<IconStar isSolid size="xs" />}
+        size={this.getButtonSize()}
+        icon={<IconStar isSolid size={this.getButtonSize()} />}
         to={getDiscoverQueriesUrl(organization)}
       >
         {t('Saved Queries')}
@@ -330,6 +346,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
         onChangeInput={this.onChangeInput}
         modifiedHandleCreateQuery={this.handleCreateQuery}
         disabled={disabled}
+        buttonSize={this.getButtonSize()}
       />
     );
   }
@@ -341,8 +358,8 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     if (!isNewQuery && !isEditingQuery) {
       return (
         <Button
-          icon={<IconStar color="yellow100" isSolid size="xs" />}
-          size="xs"
+          icon={<IconStar color="yellow100" isSolid size={this.getButtonSize()} />}
+          size={this.getButtonSize()}
           disabled
           data-test-id="discover2-savedquery-button-saved"
         >
@@ -358,7 +375,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
             onClick={this.handleUpdateQuery}
             data-test-id="discover2-savedquery-button-update"
             disabled={disabled}
-            size="xs"
+            size={this.getButtonSize()}
           >
             <IconUpdate />
             {t('Save Changes')}
@@ -402,7 +419,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
           projects={projects}
           onClick={this.handleCreateAlertSuccess}
           referrer="discover"
-          size="xs"
+          size={this.getButtonSize()}
           aria-label={t('Create Alert')}
           data-test-id="discover2-create-from-discover"
           iconProps={{size: 'xs'}}
@@ -472,8 +489,8 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
               });
             }
           }}
-          size="xs"
-          icon={<IconBookmark isSolid size="xs" />}
+          size={this.getButtonSize()}
+          icon={<IconBookmark isSolid size={this.getButtonSize()} />}
           disabled={buttonDisabled}
         >
           {t('Remove Default')}
@@ -496,8 +513,8 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
             setHomepageQuery(updatedHomepageQuery);
           }
         }}
-        size="xs"
-        icon={<IconBookmark size="xs" />}
+        size={this.getButtonSize()}
+        icon={<IconBookmark size={this.getButtonSize()} />}
         disabled={buttonDisabled}
       >
         {t('Set As Default')}
@@ -558,14 +575,14 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
           <Button
             {...triggerProps}
             aria-label={t('Discover Context Menu')}
-            size="xs"
+            size={this.getButtonSize()}
             onClick={e => {
               e.stopPropagation();
               e.preventDefault();
 
               triggerProps.onClick?.(e);
             }}
-            icon={<IconEllipsis direction="down" size="xs" />}
+            icon={<IconEllipsis direction="down" size={this.getButtonSize()} />}
           />
         )}
         position="bottom-end"
