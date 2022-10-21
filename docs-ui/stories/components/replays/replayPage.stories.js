@@ -41,9 +41,9 @@ export const ChangeEventsInput = () => {
         label="Input"
         value={selected}
         onChange={opt => setSelected(opt.value)}
-        choices={[
-          ['example_1', 'Example 1'],
-          ['example_2', 'Example 2'],
+        options={[
+          {value: 'example_1', label: 'Example 1'},
+          {value: 'example_2', label: 'Example 2'},
         ]}
       />
       <ReplayPlayer />

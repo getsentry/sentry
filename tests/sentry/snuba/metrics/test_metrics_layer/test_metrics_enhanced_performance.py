@@ -385,6 +385,13 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 value=value,
             )
 
+        # We also store a metric without the transaction tag.
+        self.store_performance_metric(
+            name=TransactionMRI.DURATION.value,
+            tags={},
+            value=value,
+        )
+
         metrics_query = self.build_metrics_query(
             before_now="1m",
             granularity="1m",
@@ -1385,6 +1392,7 @@ class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
                 "metric_id": indexer.resolve(
                     UseCaseKey.PERFORMANCE, self.organization.id, something_custom_metric
                 ),
+                "mri_string": something_custom_metric,
             }
         ]
 
@@ -1433,6 +1441,7 @@ class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
                 "metric_id": indexer.resolve(
                     UseCaseKey.PERFORMANCE, self.organization.id, something_custom_metric
                 ),
+                "mri_string": something_custom_metric,
             }
         ]
 

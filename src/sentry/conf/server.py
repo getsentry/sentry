@@ -660,6 +660,8 @@ CELERY_QUEUES = [
     Queue("merge", routing_key="merge"),
     Queue("options", routing_key="options"),
     Queue("post_process_errors", routing_key="post_process_errors"),
+    Queue("post_process_transactions", routing_key="post_process_transactions"),
+    # TODO(rjo100): to be removed after post_process_transactions is set up
     Queue("post_process_performance", routing_key="post_process_performance"),
     Queue("relay_config", routing_key="relay_config"),
     Queue("relay_config_bulk", routing_key="relay_config_bulk"),
@@ -1201,10 +1203,6 @@ SENTRY_FEATURES = {
     "organizations:dynamic-sampling-basic": False,
     # Enable the creation of uniform and conditional sampling rules.
     "organizations:dynamic-sampling-advanced": False,
-    # Enable dynamic sampling call to action in the performance product
-    "organizations:dynamic-sampling-performance-cta": False,
-    # Enable a more advanced dynamic sampling call to action in the performance product
-    "organizations:dynamic-sampling-performance-cta-advanced": False,
     # Enable the mobile screenshots feature
     "organizations:mobile-screenshots": False,
     # Enable the mobile screenshot gallery in the attachments tab

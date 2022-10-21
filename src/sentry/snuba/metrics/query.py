@@ -6,10 +6,12 @@ from datetime import datetime, timedelta
 from functools import cached_property
 from typing import Dict, Literal, Optional, Sequence, Set, Tuple, Union
 
+from django.db.models import QuerySet
 from snuba_sdk import Column, Direction, Granularity, Limit, Offset, Op
 from snuba_sdk.conditions import BooleanCondition, Condition
 
 from sentry.api.utils import InvalidParams
+from sentry.models import Project
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.snuba.metrics.fields import metric_object_factory
 from sentry.snuba.metrics.fields.base import get_derived_metrics
@@ -146,6 +148,10 @@ class MetricsQuery(MetricsQueryValidationRunner):
     interval: Optional[int] = None
 
     @cached_property
+    def projects(self) -> QuerySet:
+        return Project.objects.filter(id__in=self.project_ids)
+
+    @cached_property
     def use_case_key(self) -> UseCaseKey:
         return self._use_case_id(self.select[0].metric_mri)
 
@@ -216,7 +222,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
             metric_field_obj = metric_object_factory(f.field.op, f.field.metric_mri)
 
             use_case_id = self._use_case_id(f.field.metric_mri)
-            entity = metric_field_obj.get_entity(self.project_ids, use_case_id)
+            entity = metric_field_obj.get_entity(self.projects, use_case_id)
 
             if isinstance(entity, Mapping):
                 metric_entities.update(entity.keys())
