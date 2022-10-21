@@ -1,7 +1,17 @@
 import logging
 import uuid
 from datetime import datetime
-from typing import Any, Collection, Literal, Mapping, Optional, Sequence, TypedDict
+from typing import (
+    Any,
+    Callable,
+    Collection,
+    Literal,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    TypedDict,
+)
 
 import sentry_sdk
 from pytz import utc
@@ -190,7 +200,13 @@ def get_dynamic_sampling_config(project) -> Optional[Mapping[str, Any]]:
     return None
 
 
-def add_experimental_config(config: dict, key: str, function, *args, **kwargs):
+def add_experimental_config(
+    config: MutableMapping[str, Any],
+    key: str,
+    function: Callable[..., Any],
+    *args: Any,
+    **kwargs: Any,
+) -> None:
     """Try to set cfg[key] = function(*args, **kwargs).
 
     If the result of the function call is None, the key is not set.

@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest import mock
 
 import pytest
 
@@ -59,13 +59,15 @@ def test_get_project_config(default_project, insta_snapshot, django_cache, full)
 @pytest.mark.django_db
 def test_get_experimental_config(default_project):
     keys = ProjectKey.objects.filter(project=default_project)
-    with Feature("organizations:dynamic-sampling-basic"), patch(
-        "sentry.relay.config.generate_uniform_rule", side_effect=RuntimeError
-    ):
+    exc = RuntimeError("foo")
+    with Feature("organizations:dynamic-sampling-basic"), mock.patch(
+        "sentry.relay.config.generate_uniform_rule", side_effect=exc
+    ), mock.patch("sentry.relay.config.sentry_sdk") as mock_sentry_sdk:
         # Does not raise:
         cfg = get_project_config(default_project, full_config=True, project_keys=keys)
     # Key is missing from config:
     assert "dynamicSampling" not in cfg.to_dict()["config"]
+    assert mock_sentry_sdk.capture_exception.call_args == mock.call(exc)
 
 
 @pytest.mark.django_db
@@ -284,7 +286,7 @@ def test_project_config_with_uniform_rules_based_on_plan_in_dynamic_sampling_rul
             "organizations:dynamic-sampling-basic": ds_basic,
         }
     ):
-        with patch(
+        with mock.patch(
             "sentry.dynamic_sampling.utils.quotas.get_blended_sample_rate", return_value=0.1
         ):
             cfg = get_project_config(default_project)
