@@ -108,7 +108,7 @@ class ProjectKeyService(InterfaceWithLifecycle):
 class OrganizationService(InterfaceWithLifecycle):
     @abstractmethod
     def get_organizations(
-        self, user_id: int, scope: Optional[str], only_visible: bool
+        self, user_id: Optional[int], scope: Optional[str], only_visible: bool
     ) -> List[ApiOrganization]:
         """
         This method is expected to follow the optionally given user_id, scope, and only_visible options to filter
@@ -163,8 +163,10 @@ class DatabaseBackedOrganizationService(OrganizationService):
         pass
 
     def get_organizations(
-        self, user_id: int, scope: Optional[str], only_visible: bool
+        self, user_id: Optional[int], scope: Optional[str], only_visible: bool
     ) -> List[ApiOrganization]:
+        if user_id is None:
+            return []
         organizations = self._query_organizations(user_id, scope, only_visible)
         membership = OrganizationMember.objects.filter(user_id=user_id)
         return [self._serialize_organization(o, membership) for o in organizations]

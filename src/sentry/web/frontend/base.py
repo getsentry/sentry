@@ -87,12 +87,9 @@ class OrganizationMixin:
         backup_organization: Optional[ApiOrganization] = None
         if active_organization is None:
             organizations: List[ApiOrganization]
-            if not request.user.is_authenticated:
-                organizations = []
-            else:
-                organizations = organization_service.get_organizations(
-                    user_id=request.user.id, scope=None, only_visible=True
-                )
+            organizations = organization_service.get_organizations(
+                user_id=request.user.id, scope=None, only_visible=True
+            )
 
             if organizations:
                 backup_organization = organizations[0]
