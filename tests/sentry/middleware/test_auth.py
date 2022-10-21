@@ -56,6 +56,7 @@ class AuthenticationMiddlewareTestCase(TestCase):
             # User is still authenticated,
             assert request.user.is_authenticated
             assert request.user == self.user
+
             cast(
                 MockRegionToControlMessageService, region_to_control_message_service
             ).mock.write_region_to_control_message.assert_called_with(

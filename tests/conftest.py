@@ -129,6 +129,7 @@ def setup_default_hybrid_cloud_stubs():
         MockRegionToControlMessageService,
         region_to_control_message_service,
     )
+
     from sentry.services.hybrid_cloud import (
         StubOrganizationService,
         StubProjectKeyService,

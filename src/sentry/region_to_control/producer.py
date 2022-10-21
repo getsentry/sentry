@@ -168,7 +168,6 @@ class DatabaseBackedUserIpService(UserIpService):
             user_id=event.user_id, ip_address=event.ip_address, values=dataclasses.asdict(event)
         )
 
-
 user_ip_service: UserIpService = silo_mode_delegation(
     {
         SiloMode.REGION: RegionToControlUserIpService,
@@ -176,3 +175,4 @@ user_ip_service: UserIpService = silo_mode_delegation(
         SiloMode.CONTROL: DatabaseBackedUserIpService,
     }
 )
+
