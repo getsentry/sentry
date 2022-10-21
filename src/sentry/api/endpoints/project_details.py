@@ -526,7 +526,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 ),
                 many=True,
             )
-            ds_bias_serializer.is_valid(raise_exception=True)
+            if not ds_bias_serializer.is_valid():
+                return Response(ds_bias_serializer.errors, status=400)
             data["dynamicSamplingBiases"] = ds_bias_serializer.data
         else:
             data["dynamicSamplingBiases"] = None
