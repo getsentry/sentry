@@ -663,7 +663,7 @@ export class TokenConverter {
       this.config.supportedTags &&
       !this.config.supportedTags[key.text]
     ) {
-      return {reason: t(`Invalid key. "${key.text}" is not a supported search key.`)};
+      return {reason: t('Invalid key. "%s" is not a supported search key.', key.text)};
     }
 
     // Explicit tag keys will always be treated as text filters

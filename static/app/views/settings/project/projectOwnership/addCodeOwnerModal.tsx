@@ -113,15 +113,17 @@ class AddCodeOwnerModal extends AsyncComponent<Props, State> {
             data: postData,
           }
         );
+
         const codeMapping = codeMappings.find(
           mapping => mapping.id === codeMappingId?.toString()
         );
+
         this.handleAddedFile({...data, codeMapping});
       } catch (err) {
         if (err.responseJSON.raw) {
           this.setState({error: true, errorJSON: err.responseJSON, isLoading: false});
         } else {
-          addErrorMessage(t(Object.values(err.responseJSON).flat().join(' ')));
+          addErrorMessage(Object.values(err.responseJSON).flat().join(' '));
         }
       }
     }

@@ -164,7 +164,7 @@ class SuperuserAccessForm extends Component<Props, State> {
         >
           {error && (
             <StyledAlert type="error" showIcon>
-              {t(errorType)}
+              {errorType}
             </StyledAlert>
           )}
           {showAccessForms && <Hook name="component:superuser-access-category" />}

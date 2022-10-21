@@ -1,3 +1,5 @@
+// TODO(epurkhiser): These can't be translated with `t()` because they're an
+// Enum. We should probably just use a regular map
 export enum ErrorCodes {
   invalidPassword = 'Incorrect password',
   invalidSSOSession = 'Your SSO Session has expired, please reauthenticate',

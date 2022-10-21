@@ -14,8 +14,20 @@ type Props = {
 function Contexts({event, group}: Props) {
   const {user, contexts} = event;
 
+  const {feedback, ...otherContexts} = contexts;
+
   return (
     <Fragment>
+      {!objectIsEmpty(feedback) && (
+        <Chunk
+          key="feedback"
+          type="feedback"
+          alias="feedback"
+          group={group}
+          event={event}
+          value={feedback}
+        />
+      )}
       {user && !objectIsEmpty(user) && (
         <Chunk
           key="user"
@@ -26,7 +38,7 @@ function Contexts({event, group}: Props) {
           value={user}
         />
       )}
-      {Object.entries(contexts).map(([key, value]) => (
+      {Object.entries(otherContexts).map(([key, value]) => (
         <Chunk
           key={key}
           type={value?.type ?? ''}

@@ -31,7 +31,7 @@ class AppConnectBuild(Model):
     app_id = models.IntegerField()
 
     # The integer ID of the app inside App Store Connect, as a string.
-    app_id_str = models.CharField(max_length=256)
+    app_id_str = models.CharField(default="0", max_length=256)
 
     # The unique Bundle ID, like a slug for app_id
     #
