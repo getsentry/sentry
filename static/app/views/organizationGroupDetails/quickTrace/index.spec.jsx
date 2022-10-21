@@ -2,10 +2,10 @@ import moment from 'moment';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import ConfigureDistributedTracing from 'sentry/views/organizationGroupDetails/quickTrace/configureDistributedTracing';
 
-jest.mock('sentry/utils/analytics');
+jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
 
 describe('ConfigureDistributedTracing', function () {
   let putMock;
@@ -136,13 +136,14 @@ describe('ConfigureDistributedTracing', function () {
 
     expect(wrapper.find('ExampleQuickTracePanel').exists()).toBe(false);
 
-    expect(trackAnalyticsEvent).toHaveBeenCalledWith({
-      eventKey: 'quick_trace.missing_instrumentation.snoozed',
-      eventName: 'Quick Trace: Missing Instrumentation Snoozed',
-      organization_id: parseInt(organization.id, 10),
-      project_id: parseInt(project.id, 10),
-      platform: project.platform,
-    });
+    expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
+      'quick_trace.missing_instrumentation.snoozed',
+      {
+        organization,
+        project_id: parseInt(project.id, 10),
+        platform: project.platform,
+      }
+    );
   });
 
   it('does not render when snoozed', async function () {
@@ -199,14 +200,14 @@ describe('ConfigureDistributedTracing', function () {
     );
 
     expect(wrapper.find('ExampleQuickTracePanel').exists()).toBe(false);
-
-    expect(trackAnalyticsEvent).toHaveBeenCalledWith({
-      eventKey: 'quick_trace.missing_instrumentation.dismissed',
-      eventName: 'Quick Trace: Missing Instrumentation Dismissed',
-      organization_id: parseInt(organization.id, 10),
-      project_id: parseInt(project.id, 10),
-      platform: project.platform,
-    });
+    expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
+      'quick_trace.missing_instrumentation.dismissed',
+      {
+        organization,
+        project_id: parseInt(project.id, 10),
+        platform: project.platform,
+      }
+    );
   });
 
   it('does not render when dismissed', async function () {
@@ -243,13 +244,13 @@ describe('ConfigureDistributedTracing', function () {
     wrapper.update();
 
     wrapper.find('[aria-label="Read the docs"]').first().simulate('click');
-
-    expect(trackAnalyticsEvent).toHaveBeenCalledWith({
-      eventKey: 'quick_trace.missing_instrumentation.docs',
-      eventName: 'Quick Trace: Missing Instrumentation Docs',
-      organization_id: parseInt(organization.id, 10),
-      project_id: parseInt(project.id, 10),
-      platform: project.platform,
-    });
+    expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
+      'quick_trace.missing_instrumentation.docs',
+      {
+        organization,
+        project_id: parseInt(project.id, 10),
+        platform: project.platform,
+      }
+    );
   });
 });

@@ -218,7 +218,7 @@ class SudoModal extends Component<Props, State> {
           </StyledTextBlock>
           {error && (
             <StyledAlert type="error" showIcon>
-              {t(errorType)}
+              {errorType}
             </StyledAlert>
           )}
           {isSuperuser ? (
@@ -272,7 +272,7 @@ class SudoModal extends Component<Props, State> {
 
         {error && (
           <StyledAlert type="error" showIcon>
-            {t(errorType)}
+            {errorType}
           </StyledAlert>
         )}
 

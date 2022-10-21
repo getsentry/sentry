@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import Any, Mapping, Sequence
+from typing import Any, Dict, Mapping, Sequence
 
 import sentry_sdk
 
 from sentry.integrations.client import ApiClient
 from sentry.integrations.github.utils import get_jwt, get_next_link
+from sentry.integrations.utils.tree import trim_tree
 from sentry.models import Integration, Repository
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.utils import jwt
@@ -72,7 +73,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
     def get_tree(self, repo_full_name: str, tree_sha: str) -> JSONData:
         tree = []
         try:
-            contents = self.get(
+            contents: Dict[str, Any] = self.get(
                 f"/repos/{repo_full_name}/git/trees/{tree_sha}",
                 # Will cause all objects or subtrees referenced by the tree specified in :tree_sha
                 params={"recursive": 1},
@@ -86,9 +87,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                 logger.warning(
                     f"The tree for {repo_full_name} has been truncated. Use different a approach for retrieving contents of tree."
                 )
-            # tree -> list of mode, path, sha, type and url for file/directory
-            # XXX: We should optimize the data structure to be a tree from file to top src dir
-            tree = contents["tree"]
+            tree = trim_tree(contents["tree"], ["python"])
         except ApiError as e:
             json_data: JSONData = e.json
             msg: str = json_data.get("message")
@@ -102,6 +101,19 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                 sentry_sdk.capture_exception(e)
 
         return tree
+
+    def get_trees_for_org(self, org_name: str) -> JSONData:
+        """
+        This fetches tree representations of all repos for an org.
+        """
+        trees: JSONData = {}
+        repositories = self.get_repositories()
+        # XXX: In order to speed up this function we will need to parallelize this
+        # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
+        for repo_info in repositories:
+            full_name = repo_info["full_name"]
+            trees[full_name] = self.get_tree(full_name, repo_info["default_branch"])
+        return trees
 
     def get_repositories(self) -> Sequence[JSONData]:
         """
@@ -137,6 +149,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         https://docs.github.com/en/rest/guides/traversing-with-pagination
 
         Use response_key when the API stores the results within a key.
+        For instance, the repositories API returns the list of repos under the "repositories" key
         """
         with sentry_sdk.configure_scope() as scope:
             if scope.span is not None:
@@ -159,6 +172,8 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             output.extend(resp) if not response_key else output.extend(resp[response_key])
             page_number = 1
 
+            # XXX: In order to speed up this function we will need to parallelize this
+            # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
             while get_next_link(resp) and page_number < self.page_number_limit:
                 resp = self.get(get_next_link(resp))
                 output.extend(resp) if not response_key else output.extend(resp[response_key])

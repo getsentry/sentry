@@ -121,9 +121,8 @@ function SavedSearchTab({
     return searchOptions;
   }, []);
 
-  const trigger = ({props, ref}) => (
+  const trigger = props => (
     <StyledDropdownTrigger
-      ref={ref}
       {...props}
       isActive={isActive}
       borderless

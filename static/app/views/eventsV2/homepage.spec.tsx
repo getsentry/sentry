@@ -83,6 +83,24 @@ describe('Discover > Homepage', () => {
     });
   });
 
+  it('renders the Discover banner', async () => {
+    render(
+      <Homepage
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+        setSavedQuery={jest.fn()}
+        loading={false}
+      />,
+      {context: initialData.routerContext, organization: initialData.organization}
+    );
+
+    await screen.findByText('Discover Trends');
+    screen.getByText('Get a Tour');
+
+    expect(screen.queryByText('Build a new query')).not.toBeInTheDocument();
+  });
+
   it('fetches from the homepage URL and renders fields, page filters, and chart information', async () => {
     render(
       <Homepage
@@ -103,6 +121,39 @@ describe('Discover > Homepage', () => {
     screen.getByText('Previous Period');
     screen.getByText('alpha');
     screen.getByText('event.type:error');
+  });
+
+  it('renders event view from URL params over homepage query', async () => {
+    initialData = initializeOrg({
+      ...initializeOrg(),
+      organization,
+      router: {
+        location: {
+          ...TestStubs.location(),
+          query: {
+            ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
+            field: ['project'],
+          },
+        },
+      },
+    });
+
+    render(
+      <Homepage
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+        setSavedQuery={jest.fn()}
+        loading={false}
+      />,
+      {context: initialData.routerContext, organization: initialData.organization}
+    );
+
+    expect(mockHomepage).toHaveBeenCalled();
+    await screen.findByText('project');
+
+    // This is the field in the mocked response for the homepage
+    expect(screen.queryByText('environment')).not.toBeInTheDocument();
   });
 
   it('applies URL changes with the homepage pathname', async () => {

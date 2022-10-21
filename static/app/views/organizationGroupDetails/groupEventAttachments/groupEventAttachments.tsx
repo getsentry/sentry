@@ -39,6 +39,8 @@ type State = {
   eventAttachments?: IssueAttachment[];
 } & AsyncComponent['state'];
 
+export const MAX_SCREENSHOTS_PER_PAGE = 6;
+
 class GroupEventAttachments extends AsyncComponent<Props, State> {
   getDefaultState() {
     return {
@@ -76,7 +78,7 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
               ...location.query,
               types: undefined, // need to explicitly set this to undefined because AsyncComponent adds location query back into the params
               screenshot: 1,
-              per_page: 6,
+              per_page: MAX_SCREENSHOTS_PER_PAGE,
             },
           },
         ],
@@ -175,32 +177,39 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
       return this.renderNoQueryResults();
     }
 
-    if (this.getActiveAttachmentsTab() === EventAttachmentFilter.SCREENSHOTS) {
-      return this.renderNoScreenshotsResults();
-    }
-
     return this.renderEmpty();
   }
   renderScreenshotGallery() {
-    const {eventAttachments} = this.state;
+    const {eventAttachments, loading} = this.state;
     const {projectSlug, params} = this.props;
 
-    return (
-      <ScreenshotGrid>
-        {eventAttachments?.map((screenshot, index) => {
-          return (
-            <ScreenshotCard
-              key={`${index}-${screenshot.id}`}
-              eventAttachment={screenshot}
-              eventId={screenshot.event_id}
-              projectSlug={projectSlug}
-              groupId={params.groupId}
-              onDelete={this.handleDelete}
-            />
-          );
-        })}
-      </ScreenshotGrid>
-    );
+    if (loading) {
+      return <LoadingIndicator />;
+    }
+
+    if (eventAttachments && eventAttachments.length > 0) {
+      return (
+        <ScreenshotGrid>
+          {eventAttachments?.map((screenshot, index) => {
+            return (
+              <ScreenshotCard
+                key={`${index}-${screenshot.id}`}
+                eventAttachment={screenshot}
+                eventId={screenshot.event_id}
+                projectSlug={projectSlug}
+                groupId={params.groupId}
+                onDelete={this.handleDelete}
+                pageLinks={this.state.eventAttachmentsPageLinks}
+                attachments={eventAttachments}
+                attachmentIndex={index}
+              />
+            );
+          })}
+        </ScreenshotGrid>
+      );
+    }
+
+    return this.renderNoScreenshotsResults();
   }
 
   renderAttachmentsTable() {

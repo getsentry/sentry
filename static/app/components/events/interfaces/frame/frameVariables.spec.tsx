@@ -87,7 +87,7 @@ describe('Frame Variables', function () {
     expect(
       await screen.findByText(
         textWithMarkupMatcher(
-          'Replaced because of the PII rule [Replace] [Password fields] with [Scrubbed] from [password] in the settings of the project project-slug'
+          'Replaced because of the data scrubbing rule [Replace] [Password fields] with [Scrubbed] from [password] in the settings of the project project-slug'
         )
       )
     ).toBeInTheDocument(); // tooltip description
@@ -103,7 +103,7 @@ describe('Frame Variables', function () {
 
     expect(screen.getByRole('link', {name: 'project-slug'})).toHaveAttribute(
       'href',
-      '/settings/org-slug/projects/project-slug/'
+      '/settings/org-slug/projects/project-slug/security-and-privacy/'
     );
   });
 });

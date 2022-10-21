@@ -1,4 +1,5 @@
 # type:ignore
+import time
 import uuid
 from datetime import datetime
 from hashlib import sha1
@@ -34,6 +35,9 @@ class TestRecordingsConsumerEndToEnd(TransactionTestCase):
                 "id": self.replay_recording_id,
                 "chunk_index": 0,
                 "type": "replay_recording_chunk",
+                "org_id": self.organization.id,
+                "received": time.time(),
+                "key_id": 123,
             },
             {
                 "payload": b"foobar",
@@ -42,6 +46,8 @@ class TestRecordingsConsumerEndToEnd(TransactionTestCase):
                 "id": self.replay_recording_id,
                 "chunk_index": 1,
                 "type": "replay_recording_chunk",
+                "org_id": self.organization.id,
+                "received": time.time(),
             },
             {
                 "type": "replay_recording",
@@ -51,6 +57,8 @@ class TestRecordingsConsumerEndToEnd(TransactionTestCase):
                     "id": self.replay_recording_id,
                 },
                 "project_id": self.project.id,
+                "org_id": self.organization.id,
+                "received": time.time(),
             },
         ]
         with TaskRunner():

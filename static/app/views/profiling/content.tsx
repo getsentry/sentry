@@ -142,8 +142,11 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
               <StyledLayoutHeaderContent>
                 <StyledHeading>{t('Profiling')}</StyledHeading>
                 <HeadingActions>
-                  <Button onClick={onSetupProfilingClick}>{t('Set Up Profiling')}</Button>
+                  <Button size="sm" onClick={onSetupProfilingClick}>
+                    {t('Set Up Profiling')}
+                  </Button>
                   <Button
+                    size="sm"
                     priority="primary"
                     href="https://discord.gg/zrMjKA4Vnz"
                     external

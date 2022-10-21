@@ -19,14 +19,18 @@ import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {IssueAttachment, Project} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
+  attachmentIndex: number;
+  attachments: IssueAttachment[];
   eventAttachment: IssueAttachment;
   eventId: string;
   groupId: string;
   onDelete: (attachmentId: string) => void;
   projectSlug: Project['slug'];
+  pageLinks?: string | null | undefined;
 };
 
 export function ScreenshotCard({
@@ -35,13 +39,26 @@ export function ScreenshotCard({
   eventId,
   groupId,
   onDelete,
+  pageLinks,
+  attachmentIndex,
+  attachments,
 }: Props) {
   const organization = useOrganization();
   const [loadingImage, setLoadingImage] = useState(true);
 
   const downloadUrl = `/api/0/projects/${organization.slug}/${projectSlug}/events/${eventId}/attachments/${eventAttachment.id}/?download=1`;
 
+  function handleDelete() {
+    trackAdvancedAnalyticsEvent('issue_details.attachment_tab.screenshot_modal_deleted', {
+      organization,
+    });
+    onDelete(eventAttachment.id);
+  }
+
   function openVisualizationModal() {
+    trackAdvancedAnalyticsEvent('issue_details.attachment_tab.screenshot_modal_opened', {
+      organization,
+    });
     openModal(
       modalProps => (
         <Modal
@@ -50,7 +67,20 @@ export function ScreenshotCard({
           projectSlug={projectSlug}
           eventAttachment={eventAttachment}
           downloadUrl={downloadUrl}
-          onDelete={() => onDelete(eventAttachment.id)}
+          onDelete={handleDelete}
+          pageLinks={pageLinks}
+          attachments={attachments}
+          attachmentIndex={attachmentIndex}
+          groupId={groupId}
+          enablePagination
+          onDownload={() =>
+            trackAdvancedAnalyticsEvent(
+              'issue_details.attachment_tab.screenshot_modal_download',
+              {
+                organization,
+              }
+            )
+          }
         />
       ),
       {modalCss}
@@ -62,7 +92,19 @@ export function ScreenshotCard({
     <Card>
       <CardHeader>
         <CardContent>
-          <Title to={`${baseEventsPath}${eventId}/`}>{eventId}</Title>
+          <Title
+            onClick={() =>
+              trackAdvancedAnalyticsEvent(
+                'issue_details.attachment_tab.screenshot_title_clicked',
+                {
+                  organization,
+                }
+              )
+            }
+            to={`${baseEventsPath}${eventId}/`}
+          >
+            {eventId}
+          </Title>
           <Detail>
             <DateTime date={eventAttachment.dateCreated} />
           </Detail>

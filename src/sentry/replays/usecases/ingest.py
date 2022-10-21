@@ -1,13 +1,17 @@
 import logging
+from datetime import datetime, timezone
 from io import BytesIO
 from typing import Tuple, TypedDict
 
+import sentry_sdk
 from django.conf import settings
 
+from sentry.constants import DataCategory
 from sentry.models import File
 from sentry.replays.cache import RecordingSegmentPart, RecordingSegmentParts
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.utils import json
+from sentry.utils.outcomes import Outcome, track_outcome
 
 logger = logging.getLogger("sentry.replays")
 
@@ -61,8 +65,32 @@ def ingest_recording_segment(message_dict: RecordingSegmentMessage) -> None:
     recording_segment_parts[0] = parsed_first_part
 
     # The parts were gzipped by the SDK and disassembled by Relay. In this step we can
-    # blindly merge the bytes objects into a single bytes object.
+    # blindly merge the bytes.
     recording_segment = b"".join(recording_segment_parts)
+
+    # A quick sanity check before writing to GCS.
+    #
+    # XXX: This does not prevent data races.  In the past we were (mostly) single-threaded.  With
+    # the message queue approach this is no longer the case.  This is not a show-stopper but it
+    # does reduce the utility of this section.
+    #
+    # XXX: We can get away with fetching only the first chunk.  Fetching the remaining chunks is
+    # wasteful.  We're only fetching these chunks to propogate to the attachment.  In the future,
+    # if we remove this behavior we should consider fetching a single chunk.
+    count_existing_segments = ReplayRecordingSegment.objects.filter(
+        replay_id=message_dict["replay_id"],
+        project_id=message_dict["project_id"],
+        segment_id=headers["segment_id"],
+    ).count()
+
+    if count_existing_segments > 0:
+        with sentry_sdk.push_scope() as scope:
+            scope.level = "warning"
+            scope.add_attachment(bytes=recording_segment, filename="dup_replay_segment")
+            sentry_sdk.capture_message("Recording segment was already processed.")
+
+        parts.drop()
+        return None
 
     # Upload the recording segment to blob storage.
     recording_segment_file_name = _make_recording_segment_filename(
@@ -82,6 +110,21 @@ def ingest_recording_segment(message_dict: RecordingSegmentMessage) -> None:
         segment_id=headers["segment_id"],
         file_id=file.id,
     )
+
+    if headers["segment_id"] == 0 and message_dict.get("org_id"):
+        track_outcome(
+            org_id=message_dict["org_id"],
+            project_id=message_dict["project_id"],
+            key_id=message_dict.get("key_id"),
+            outcome=Outcome.ACCEPTED,
+            reason=None,
+            timestamp=datetime.utcfromtimestamp(message_dict["received"]).replace(
+                tzinfo=timezone.utc
+            ),
+            event_id=message_dict["replay_id"],
+            category=DataCategory.REPLAY,
+            quantity=1,
+        )
 
     # Clean up the cache.
     parts.drop()

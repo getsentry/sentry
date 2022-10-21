@@ -337,6 +337,7 @@ class TraceDetailsContent extends Component<Props, State> {
           <Layout.HeaderActions>
             <ButtonBar gap={1}>
               <DiscoverButton
+                size="sm"
                 to={traceEventView.getResultsViewUrlTarget(organization.slug)}
                 onClick={() => {
                   trackAdvancedAnalyticsEvent(
