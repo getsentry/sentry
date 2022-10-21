@@ -1,6 +1,7 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {FormState, GenericField} from 'sentry/components/deprecatedforms';
+import GenericField from 'sentry/components/deprecatedforms/genericField';
+import FormState from 'sentry/components/forms/state';
 
 describe('GenericField', function () {
   it('renders text as TextInput', function () {

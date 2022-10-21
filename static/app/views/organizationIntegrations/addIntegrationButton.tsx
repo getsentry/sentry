@@ -26,7 +26,8 @@ export function AddIntegrationButton({
   modalParams,
   ...buttonProps
 }: AddIntegrationButtonProps) {
-  const label = buttonText || t(reinstall ? 'Enable' : 'Add %s', provider.metadata.noun);
+  const label =
+    buttonText ?? (reinstall ? t('Enable') : t('Add %s', provider.metadata.noun));
 
   return (
     <Tooltip

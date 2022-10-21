@@ -1,4 +1,5 @@
 import first from 'lodash/first';
+import {duration} from 'moment';
 
 import {transformCrumbs} from 'sentry/components/events/interfaces/breadcrumbs/utils';
 import {t} from 'sentry/locale';
@@ -69,6 +70,7 @@ export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
     ...apiResponse,
     ...(apiResponse.startedAt ? {startedAt: new Date(apiResponse.startedAt)} : {}),
     ...(apiResponse.finishedAt ? {finishedAt: new Date(apiResponse.finishedAt)} : {}),
+    ...(apiResponse.duration ? {duration: duration(apiResponse.duration * 1000)} : {}),
     tags,
   };
 }

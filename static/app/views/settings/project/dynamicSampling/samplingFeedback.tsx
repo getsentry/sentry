@@ -6,42 +6,15 @@ import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import {TextField} from 'sentry/components/forms';
 import Textarea from 'sentry/components/forms/controls/textarea';
 import Field from 'sentry/components/forms/field';
-import {RadioGroupRating} from 'sentry/components/radioGroupRating';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
-import {defined} from 'sentry/utils';
 
-enum SamplingUsageReason {
-  REDUCE_VOLUME_TO_STAY_WITHIN_QUOTA = 'reduce_volume_to_stay_within_quota',
-  FILTER_OUT_NOISY_DATA = 'filter_out_noisy_data',
-  OTHER = 'other',
-}
-
-enum SampleByOption {
+enum TracingCapturingPriorities {
   TRANSACTION_NAME = 'transaction_name',
-  CUSTOM_TAGS = 'custom_tags',
+  CUSTOM_TAG = 'custom_tag',
   OTHER = 'other',
 }
-
-const featureNotAvailableRatingOptions = {
-  0: {
-    label: t('Very Dissatisfied'),
-    description: t("Not disappointed (It isn't really useful)"),
-  },
-  1: {
-    label: t('Dissatisfied'),
-  },
-  2: {
-    label: t('Neutral'),
-  },
-  3: {
-    label: t('Satisfied'),
-  },
-  4: {
-    description: t("Very disappointed (It's a deal breaker)"),
-    label: t('Very Satisfied'),
-  },
-};
 
 type Option = {
   checked: boolean;
@@ -50,47 +23,31 @@ type Option = {
 };
 
 type InitialData = {
-  additionalFeedback: string | null;
-  feelingIfFeatureNotAvailable: number | undefined;
-  sampleByOptions: Option[];
-  sampleByOtherOption: string | null;
-  samplingUsageOtherReason: string | null;
-  samplingUsageReasons: Option[];
-  step: number;
+  opinionAboutFeature: string;
+  tracingCapturingOtherPriority: string;
+  tracingCapturingPriorities: Option[];
 };
 
 const initialData: InitialData = {
-  step: 0,
-  samplingUsageReasons: [
+  opinionAboutFeature: '',
+  tracingCapturingPriorities: [
     {
-      title: t('Reduce volume to stay within my quota'),
-      value: SamplingUsageReason.REDUCE_VOLUME_TO_STAY_WITHIN_QUOTA,
+      title: t('By transaction name'),
+      value: TracingCapturingPriorities.TRANSACTION_NAME,
       checked: false,
     },
-    {title: t('Filter out noisy data'), value: 1, checked: false},
+    {
+      title: t('By custom tag'),
+      value: TracingCapturingPriorities.CUSTOM_TAG,
+      checked: false,
+    },
     {
       title: t('Other'),
-      value: SamplingUsageReason.OTHER,
+      value: TracingCapturingPriorities.OTHER,
       checked: false,
     },
   ],
-  sampleByOtherOption: null,
-  samplingUsageOtherReason: null,
-  sampleByOptions: [
-    {
-      title: t('Transaction Name'),
-      value: SampleByOption.TRANSACTION_NAME,
-      checked: false,
-    },
-    {title: t('Custom Tags'), value: SampleByOption.CUSTOM_TAGS, checked: false},
-    {
-      title: t('Other'),
-      value: SampleByOption.OTHER,
-      checked: false,
-    },
-  ],
-  additionalFeedback: null,
-  feelingIfFeatureNotAvailable: undefined,
+  tracingCapturingOtherPriority: '',
 };
 
 function MultipleCheckboxField({
@@ -147,6 +104,8 @@ function MultipleCheckboxField({
 }
 
 export function SamplingFeedback() {
+  const feedbackMessage = `Dynamic Sampling feedback by ${ConfigStore.get('user').email}`;
+
   return (
     <FeatureFeedback
       featureName="dynamic-sampling"
@@ -157,189 +116,107 @@ export function SamplingFeedback() {
       }}
     >
       {({Header, Body, Footer, state, onFieldChange}) => {
-        if (state.step === 0) {
-          return (
-            <Fragment>
-              <Header>{t('A few questions (1/2)')}</Header>
-              <Body showSelfHostedMessage={false}>
-                <Field
-                  label={<Label>{t('Why do you want to use Dynamic Sampling?')}</Label>}
-                  stacked
-                  inline={false}
-                  flexibleControlStateSize
-                >
-                  <MultipleCheckboxField
-                    options={state.samplingUsageReasons}
-                    onChange={newSamplingUsageReasons => {
-                      if (
-                        newSamplingUsageReasons.some(
-                          newSamplingUsageReason =>
-                            newSamplingUsageReason.value === SamplingUsageReason.OTHER &&
-                            newSamplingUsageReason.checked === false
-                        )
-                      ) {
-                        onFieldChange('samplingUsageOtherReason', null);
-                      }
-
-                      onFieldChange('samplingUsageReasons', newSamplingUsageReasons);
-                    }}
-                    otherTextField={
-                      <OtherTextField
-                        inline={false}
-                        name="samplingUsageOtherReason"
-                        flexibleControlStateSize
-                        stacked
-                        disabled={state.samplingUsageReasons.some(
-                          samplingUsageReason =>
-                            samplingUsageReason.value === SamplingUsageReason.OTHER &&
-                            samplingUsageReason.checked === false
-                        )}
-                        onClick={event => event.stopPropagation()}
-                        value={state.samplingUsageOtherReason}
-                        onChange={value =>
-                          onFieldChange('samplingUsageOtherReason', value)
-                        }
-                        placeholder={t('Please kindly let us know the reason')}
-                      />
-                    }
-                  />
-                </Field>
-                <Field
-                  label={<Label>{t('What else you would like to sample by?')}</Label>}
-                  stacked
-                  inline={false}
-                  flexibleControlStateSize
-                >
-                  <MultipleCheckboxField
-                    options={state.sampleByOptions}
-                    onChange={newSampleByOptions => {
-                      if (
-                        newSampleByOptions.some(
-                          sampleByOption =>
-                            sampleByOption.value === SampleByOption.OTHER &&
-                            sampleByOption.checked === false
-                        )
-                      ) {
-                        onFieldChange('sampleByOtherOption', null);
-                      }
-                      onFieldChange('sampleByOptions', newSampleByOptions);
-                    }}
-                    otherTextField={
-                      <OtherTextField
-                        inline={false}
-                        name="sampleByOtherOption"
-                        flexibleControlStateSize
-                        stacked
-                        disabled={state.sampleByOptions.some(
-                          sampleByOption =>
-                            sampleByOption.value === SampleByOption.OTHER &&
-                            sampleByOption.checked === false
-                        )}
-                        onClick={event => event.stopPropagation()}
-                        value={state.sampleByOtherOption}
-                        onChange={value => onFieldChange('sampleByOtherOption', value)}
-                        placeholder={t('Please let us know which other attributes')}
-                      />
-                    }
-                  />
-                </Field>
-              </Body>
-              <Footer onNext={() => onFieldChange('step', 1)} />
-            </Fragment>
-          );
-        }
-
-        const submitEventData = {
-          contexts: {
-            survey: {
-              samplingUsageReasons:
-                state.samplingUsageReasons
-                  .filter(samplingUsageReason => samplingUsageReason.checked)
-                  .map(samplingUsageReason => samplingUsageReason.title)
-                  .join(', ') || null,
-              samplingUsageOtherReason: state.samplingUsageOtherReason,
-              sampleByOptions:
-                state.sampleByOptions
-                  .filter(sampleByOption => sampleByOption.checked)
-                  .map(sampleByOption => sampleByOption.title)
-                  .join(', ') || null,
-              sampleByOtherOption: state.sampleByOtherOption,
-              additionalFeedback: state.additionalFeedback,
-              feelingIfFeatureNotAvailable: defined(state.feelingIfFeatureNotAvailable)
-                ? featureNotAvailableRatingOptions[state.feelingIfFeatureNotAvailable]
-                    .label
-                : null,
-            },
-          },
-          message: state.additionalFeedback
-            ? `Feedback: 'dynamic sampling' feature - ${state.additionalFeedback}`
-            : `Feedback: 'dynamic sampling' feature`,
-        };
-
-        const primaryButtonDisabled = Object.keys(submitEventData.contexts.survey).every(
-          s => {
-            const value = submitEventData.contexts.survey[s] ?? null;
-
-            if (typeof value === 'string') {
-              return value.trim() === '';
-            }
-
-            return value === null;
-          }
-        );
-
         return (
           <Fragment>
-            <Header>{t('A few questions (2/2)')}</Header>
-            <Body>
-              <RadioGroupRating
-                label={
-                  <Label>
-                    {t('How would you feel if you could no longer use this feature?')}
-                  </Label>
-                }
-                inline={false}
-                required={false}
-                flexibleControlStateSize
-                stacked
-                options={featureNotAvailableRatingOptions}
-                name="feelingIfFeatureNotAvailableRating"
-                defaultValue={
-                  defined(state.feelingIfFeatureNotAvailable)
-                    ? String(state.feelingIfFeatureNotAvailable)
-                    : undefined
-                }
-                onChange={value =>
-                  onFieldChange('feelingIfFeatureNotAvailable', Number(value))
-                }
-              />
+            <Header>{t('Submit Feedback')}</Header>
+            <Body showSelfHostedMessage={false}>
               <Field
-                label={<Label>{t('Anything else you would like to share?')}</Label>}
-                inline={false}
-                required={false}
-                flexibleControlStateSize
+                label={<Label>{t('What do you think about this feature?')}</Label>}
                 stacked
+                inline={false}
+                flexibleControlStateSize
               >
                 <Textarea
-                  name="additional-feedback"
-                  value={state.additionalFeedback ?? undefined}
+                  name="opinion-about-feedback"
+                  value={state.opinionAboutFeature}
                   rows={5}
                   autosize
                   onChange={event =>
-                    onFieldChange('additionalFeedback', event.target.value)
+                    onFieldChange('opinionAboutFeature', event.target.value)
                   }
-                  placeholder={t('Additional feedback')}
+                />
+              </Field>
+              <Field
+                label={
+                  <Label>
+                    {t(
+                      'What other priorities would you like Sentry to apply for trace capturing?'
+                    )}
+                  </Label>
+                }
+                stacked
+                inline={false}
+                flexibleControlStateSize
+              >
+                <MultipleCheckboxField
+                  options={state.tracingCapturingPriorities}
+                  onChange={newTracingCapturingPriorities => {
+                    if (
+                      newTracingCapturingPriorities.some(
+                        newTracingCapturingPriority =>
+                          newTracingCapturingPriority.value ===
+                            TracingCapturingPriorities.OTHER &&
+                          newTracingCapturingPriority.checked === false
+                      )
+                    ) {
+                      onFieldChange('tracingCapturingOtherPriority', '');
+                    }
+                    onFieldChange(
+                      'tracingCapturingPriorities',
+                      newTracingCapturingPriorities
+                    );
+                  }}
+                  otherTextField={
+                    <OtherTextField
+                      inline={false}
+                      name="tracingCapturingOtherPriority"
+                      flexibleControlStateSize
+                      stacked
+                      disabled={state.tracingCapturingPriorities.some(
+                        tracingCapturingPriority =>
+                          tracingCapturingPriority.value ===
+                            TracingCapturingPriorities.OTHER &&
+                          tracingCapturingPriority.checked === false
+                      )}
+                      onClick={event => event.stopPropagation()}
+                      value={state.tracingCapturingOtherPriority}
+                      onChange={value =>
+                        onFieldChange('tracingCapturingOtherPriority', value)
+                      }
+                      placeholder={t('Please let us know which other priority')}
+                    />
+                  }
                 />
               </Field>
             </Body>
             <Footer
-              onBack={() => onFieldChange('step', 0)}
               primaryDisabledReason={
-                primaryButtonDisabled
+                !state.opinionAboutFeature.trim() &&
+                state.tracingCapturingPriorities.every(
+                  tracingCapturingPriority => tracingCapturingPriority.checked === false
+                )
                   ? t('Please answer at least one question')
                   : undefined
               }
-              submitEventData={submitEventData}
+              submitEventData={{
+                contexts: {
+                  feedback: {
+                    opinionAboutFeature: state.opinionAboutFeature || null,
+                    tracingCapturingPriorities:
+                      state.tracingCapturingPriorities
+                        .filter(
+                          tracingCapturingPriority => tracingCapturingPriority.checked
+                        )
+                        .map(tracingCapturingPriority => tracingCapturingPriority.title)
+                        .join(', ') || null,
+                    tracingCapturingOtherPriority:
+                      state.tracingCapturingOtherPriority || null,
+                  },
+                },
+                message: state.opinionAboutFeature.trim()
+                  ? `${feedbackMessage} - ${state.opinionAboutFeature}`
+                  : feedbackMessage,
+              }}
             />
           </Fragment>
         );

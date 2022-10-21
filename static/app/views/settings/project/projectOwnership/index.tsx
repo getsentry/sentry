@@ -360,7 +360,7 @@ tags.sku_class:enterprise #enterprise`;
                     {
                       name: 'codeownersAutoSync',
                       type: 'boolean',
-                      label: t(`Sync changes from CODEOWNERS`),
+                      label: t('Sync changes from CODEOWNERS'),
                       help: t(
                         'We’ll update any changes you make to your CODEOWNERS files during a release.'
                       ),
