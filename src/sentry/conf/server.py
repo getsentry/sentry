@@ -661,8 +661,6 @@ CELERY_QUEUES = [
     Queue("options", routing_key="options"),
     Queue("post_process_errors", routing_key="post_process_errors"),
     Queue("post_process_transactions", routing_key="post_process_transactions"),
-    # TODO(rjo100): to be removed after post_process_transactions is set up
-    Queue("post_process_performance", routing_key="post_process_performance"),
     Queue("relay_config", routing_key="relay_config"),
     Queue("relay_config_bulk", routing_key="relay_config_bulk"),
     Queue("reports.deliver", routing_key="reports.deliver"),
