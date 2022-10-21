@@ -1,3 +1,4 @@
+import os
 from unittest.mock import MagicMock, patch
 from urllib.parse import urlencode, urlparse
 
@@ -8,11 +9,13 @@ from django.urls import reverse
 import sentry
 from sentry.constants import ObjectStatus
 from sentry.integrations.github import API_ERRORS, GitHubIntegrationProvider
+from sentry.integrations.utils.code_mapping import CodeMapping, derive_code_mappings
 from sentry.models import Integration, OrganizationIntegration, Project, Repository
 from sentry.plugins.base import plugins
 from sentry.plugins.bases import IssueTrackingPlugin2
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils import IntegrationTestCase
+from sentry.utils import json
 
 TREE_RESPONSES = {
     "foo": {
@@ -20,24 +23,8 @@ TREE_RESPONSES = {
         "body": {
             # The latest sha for a specific branch
             "sha": "a4e587563cb5dbb46192b5962cbadc8c532a8455",
+            "tree": [],
             "url": "https://api.github.com/repos/Test-Organization/foo/git/trees/a4e587563cb5dbb46192b5962cbadc8c532a8455",
-            "tree": [
-                {
-                    "path": ".artifacts",
-                    "mode": "040000",
-                    "type": "tree",  # A directory
-                    "sha": "44813f92a105143eff565d14d2054c2ea90eb62e",
-                    "url": "https://api.github.com/repos/Test-Organization/foo/git/trees/44813f92a105143eff565d14d2054c2ea90eb62e",
-                },
-                {
-                    "path": "src/sentry/api/endpoints/auth_login.py",
-                    "mode": "100644",
-                    "type": "blob",  # A file
-                    "sha": "517899e22ada047336cab4ecbbf8c27b151f190c",
-                    "size": 2711,
-                    "url": "https://api.github.com/repos/Test-Organization/foo/git/blobs/517899e22ada047336cab4ecbbf8c27b151f190c",
-                },
-            ],
             "truncated": False,  # If this is True, we have reached the limit of what we can get with the recursive option
         },
     },
@@ -50,6 +37,15 @@ TREE_RESPONSES = {
         "body": {"message": "Not Found"},
     },
 }
+
+with open(
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures/sentry_tree.json")
+) as fd:
+    sentry_tree = json.load(fd)
+
+# The tree responses have a lot more fields but this is the minimum required
+for path in sentry_tree:
+    TREE_RESPONSES["foo"]["body"]["tree"].append({"type": "blob", "path": path})
 
 
 class GitHubPlugin(IssueTrackingPlugin2):
@@ -558,7 +554,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         ).exists()
 
     @responses.activate
-    def test_get_trees_for_org(self):
+    def test_derive_code_mappings(self):
         """Fetch the tree representation of a repo"""
         with self.tasks():
             self.assert_setup_flow()
@@ -566,13 +562,57 @@ class GitHubIntegrationTest(IntegrationTestCase):
         integration = Integration.objects.get(provider=self.provider.key)
         installation = integration.get_installation(self.organization)
         with patch.object(sentry.integrations.github.client.GitHubClientMixin, "page_size", 1):
-            # XXX: Does the installation already have the org stored?
-            installation.get_client().get_trees_for_org(self.organization.slug)
+            trees = installation.get_client().get_trees_for_org(self.organization.slug)
+            # This check is useful since it will be available in the GCP logs
+            assert (
+                self._caplog.records[0].message
+                == "The Github App does not have access to Test-Organization/baz."
+            )
+            assert self._caplog.records[0].levelname == "ERROR"
 
-        # XXX: We need to search filenames in the stack trace
-        # This check is specially useful since it will be available in the GCP logs
-        assert (
-            self._caplog.records[0].message
-            == "The Github App does not have access to Test-Organization/baz."
-        )
-        assert self._caplog.records[0].levelname == "ERROR"
+        expected_code_mappings = [
+            CodeMapping("Test-Organization/foo", "sentry", "src/sentry"),
+            CodeMapping("Test-Organization/foo", "sentry_plugins", "src/sentry_plugins"),
+        ]
+
+        # Case 1 - No matches
+        stacktraces = [
+            "getsentry/billing/tax/manager.py",
+            "requests/models.py",
+            "urllib3/connectionpool.py",
+            "ssl.py",
+        ]
+        code_mappings = derive_code_mappings(stacktraces, trees)
+        assert code_mappings == []
+
+        # Case 2 - Failing to derive sentry_plugins since we match more than one file
+        stacktraces = [
+            # More than one file matches for this, thus, no stack traces will be produced
+            # - "src/sentry_plugins/slack/client.py",
+            # - "src/sentry/integrations/slack/client.py",
+            "sentry_plugins/slack/client.py",
+        ]
+        code_mappings = derive_code_mappings(stacktraces, trees)
+        assert code_mappings == []
+
+        # Case 3 - We derive sentry_plugins because we derive sentry first
+        # XXX: Order matters of processing matters. Fix code
+        stacktraces = [
+            "sentry/identity/oauth2.py",
+            # This file matches two files in the repo, however, because we first
+            # derive the sentry code mapping we can exclude one of the files
+            "sentry_plugins/slack/client.py",
+        ]
+        code_mappings = derive_code_mappings(stacktraces, trees)
+        assert code_mappings == expected_code_mappings
+
+        # Case 4 - We do *not* derive sentry_plugins because we don't derive sentry first
+        stacktraces = [
+            # This file matches two files in the repo and because we process it
+            # before we derive
+            "sentry_plugins/slack/client.py",
+            "sentry/identity/oauth2.py",
+        ]
+        code_mappings = derive_code_mappings(stacktraces, trees)
+        # Order matters, this is why we only derive one of the two code mappings
+        assert code_mappings == [expected_code_mappings[0]]

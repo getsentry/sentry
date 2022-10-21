@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import Any, Mapping, Sequence
+from typing import Any, Dict, Mapping, Sequence
 
 import sentry_sdk
 
 from sentry.integrations.client import ApiClient
 from sentry.integrations.github.utils import get_jwt, get_next_link
+from sentry.integrations.utils.tree import trim_tree
 from sentry.models import Integration, Repository
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.utils import jwt
@@ -72,7 +73,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
     def get_tree(self, repo_full_name: str, tree_sha: str) -> JSONData:
         tree = []
         try:
-            contents = self.get(
+            contents: Dict[str, Any] = self.get(
                 f"/repos/{repo_full_name}/git/trees/{tree_sha}",
                 # Will cause all objects or subtrees referenced by the tree specified in :tree_sha
                 params={"recursive": 1},
@@ -86,9 +87,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                 logger.warning(
                     f"The tree for {repo_full_name} has been truncated. Use different a approach for retrieving contents of tree."
                 )
-            # tree -> list of mode, path, sha, type and url for file/directory
-            # XXX: We should optimize the data structure to be a tree from file to top src dir
-            tree = contents["tree"]
+            tree = trim_tree(contents["tree"], ["python"])
         except ApiError as e:
             json_data: JSONData = e.json
             msg: str = json_data.get("message")
