@@ -43,7 +43,7 @@ def build_attachment_title(obj: Group | Event) -> str:
 
     else:
         group = getattr(obj, "group", obj)
-        if group and group.issue_category == GroupCategory.PERFORMANCE:
+        if group.issue_category == GroupCategory.PERFORMANCE:
             title = GROUP_TYPE_TO_TEXT.get(group.issue_type, "Issue")
         else:
             title = obj.title
