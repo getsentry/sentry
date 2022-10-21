@@ -9,7 +9,7 @@ from django.core.cache import cache
 from django.utils import timezone
 
 from sentry import analytics, features
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import GroupEvent
 from sentry.mail.actions import NotifyActiveReleaseEmailAction
 from sentry.models import GroupRuleStatus, Rule
 from sentry.notifications.types import ActionTargetType
@@ -31,7 +31,7 @@ class RuleProcessor:
 
     def __init__(
         self,
-        event: Event,
+        event: GroupEvent,
         is_new: bool,
         is_regression: bool,
         is_new_group_environment: bool,
@@ -47,7 +47,7 @@ class RuleProcessor:
         self.has_reappeared = has_reappeared
 
         self.grouped_futures: MutableMapping[
-            str, Tuple[Callable[[Event, Sequence[RuleFuture]], None], List[RuleFuture]]
+            str, Tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], List[RuleFuture]]
         ] = {}
 
     def get_rules(self) -> Sequence[Rule]:
@@ -321,7 +321,7 @@ class RuleProcessor:
 
     def apply(
         self,
-    ) -> Iterable[Tuple[Callable[[Event, Sequence[RuleFuture]], None], List[RuleFuture]]]:
+    ) -> Iterable[Tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], List[RuleFuture]]]:
         # we should only apply rules on unresolved issues
         if not self.event.group.is_unresolved():
             return {}.values()
