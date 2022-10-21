@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Button from 'sentry/components/button';
-import SelectField from 'sentry/components/deprecatedforms/selectField';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Input from 'sentry/components/input';
 import Tag from 'sentry/components/tag';
 import TextOverflow from 'sentry/components/textOverflow';
@@ -157,7 +157,6 @@ class RuleBuilder extends Component<Props, State> {
               {value: 'tag', label: t('Tag')},
               {value: 'url', label: t('URL')},
             ]}
-            style={{width: 140}}
             clearable={false}
             disabled={disabled}
           />
@@ -232,9 +231,9 @@ const BuilderBar = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-const BuilderSelect = styled(SelectField)`
+const BuilderSelect = styled(SelectControl)`
   margin-right: ${space(1.5)};
-  width: 50px;
+  width: 140px;
   flex-shrink: 0;
 `;
 
