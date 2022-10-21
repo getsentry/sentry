@@ -16,7 +16,7 @@ class CodeMapping(NamedTuple):
 
 
 def derive_code_mappings(stacktraces: List[str], trees: Dict[str, Any]) -> List[CodeMapping]:
-    """ Generate the code mappings from a list of stack trace frames for a project and the trees for an org.
+    """Generate the code mappings from a list of stack trace frames for a project and the trees for an org.
 
     WARNING: Do not pass stacktraces from different projects or the wrong code mappings will be returned.
     """
@@ -117,7 +117,12 @@ class CodeMappingTreesHelper:
         repo_full_name: str,
         frame_filename: FrameFilename,
     ) -> List[CodeMapping]:
-       matched_files=[self._potential_match(src_patch, frame_filename) for src_path in self.trees[repo_full_name]]
+        matched_files = list(
+            filter(
+                lambda src_path: self._potential_match(src_path, frame_filename),
+                self.trees[repo_full_name],
+            )
+        )
         # It is too risky generating code mappings when there's more
         # than one file potentially matching
         return (
@@ -143,7 +148,11 @@ class CodeMappingTreesHelper:
             # For instance sentry_plugins/slack/client.py matches these files
             # - "src/sentry_plugins/slack/client.py",
             # - "src/sentry/integrations/slack/client.py",
-            return any(source_path for source_path in self.reverse_mapping] if src_file.startswith(f"{source_path}/"))
+            return any(
+                source_path
+                for source_path in self.reverse_mapping
+                if src_file.startswith(f"{source_path}/")
+            )
 
     def _potential_match(self, src_file: str, frame_filename: FrameFilename) -> bool:
         """Tries to see if the stacktrace without the root matches the file from the
@@ -153,10 +162,4 @@ class CodeMappingTreesHelper:
         if self._matches_current_code_mappings(src_file, frame_filename):
             return False
 
-        # XXX: Double check this logic
-        # return (
-        #     src_file.rfind(frame_filename.file_and_dir_path) > -1
-        #     if frame_filename.file_and_dir_path.find("/") > -1
-        #     else False
-        # )
         return src_file.rfind(frame_filename.file_and_dir_path) > -1
