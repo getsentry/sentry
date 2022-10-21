@@ -25,7 +25,6 @@ from sentry.discover.endpoints.discover_key_transactions import (
     KeyTransactionEndpoint,
     KeyTransactionListEndpoint,
 )
-from sentry.discover.endpoints.discover_query import DiscoverQueryEndpoint
 from sentry.discover.endpoints.discover_saved_queries import DiscoverSavedQueriesEndpoint
 from sentry.discover.endpoints.discover_saved_query_detail import (
     DiscoverSavedQueryDetailEndpoint,
@@ -962,11 +961,6 @@ urlpatterns = [
                     name="sentry-api-0-organization-codeowners-associations",
                 ),
                 # Discover
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/discover/query/$",
-                    DiscoverQueryEndpoint.as_view(),
-                    name="sentry-api-0-discover-query",
-                ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/discover/homepage/$",
                     DiscoverHomepageQueryEndpoint.as_view(),

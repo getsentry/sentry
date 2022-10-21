@@ -334,13 +334,13 @@ class ProjectDynamicSamplingDistributionQueryCallsTest(APITestCase):
             {
                 "data": [
                     {
-                        "project": self.project.slug,
+                        "project": self.project.id,
                         "project_id": self.project.id,
                         "count": 2,
                         "root_count": 2,
                     },
                     {
-                        "project": heart.slug,
+                        "project": heart.id,
                         "project_id": heart.id,
                         "count": 1,
                         "root_count": 0,
@@ -446,19 +446,19 @@ class ProjectDynamicSamplingDistributionQueryCallsTest(APITestCase):
             {
                 "data": [
                     {
-                        "project": self.project.slug,
+                        "project": self.project.id,
                         "project_id": self.project.id,
                         "count": 2,
                         "root_count": 1,
                     },
                     {
-                        "project": heart.slug,
+                        "project": heart.id,
                         "project_id": heart.id,
                         "count": 2,
                         "root_count": 0,
                     },
                     {
-                        "project": wind.slug,
+                        "project": wind.id,
                         "project_id": wind.id,
                         "count": 1,
                         "root_count": 1,
@@ -555,13 +555,13 @@ class ProjectDynamicSamplingDistributionQueryCallsTest(APITestCase):
             {
                 "data": [
                     {
-                        "project": self.project.slug,
+                        "project": self.project.id,
                         "project_id": self.project.id,
                         "count": 2,
                         "root_count": 0,
                     },
                     {
-                        "project": heart.slug,
+                        "project": heart.id,
                         "project_id": heart.id,
                         "count": 2,
                         "root_count": 2,
@@ -645,7 +645,7 @@ class ProjectDynamicSamplingDistributionQueryCallsTest(APITestCase):
             {
                 "data": [
                     {
-                        "project": self.project.slug,
+                        "project": self.project.id,
                         "project_id": self.project.id,
                         "count": 2,
                         "root_count": 2,
@@ -723,7 +723,7 @@ class ProjectDynamicSamplingDistributionQueryCallsTest(APITestCase):
             {
                 "data": [
                     {
-                        "project": self.project.slug,
+                        "project": self.project.id,
                         "project_id": self.project.id,
                         "count": 2,
                         "root_count": 2,

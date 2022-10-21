@@ -4,7 +4,7 @@ from typing import Callable, Mapping, Optional, Union
 
 import sentry_sdk
 from django.utils.functional import cached_property
-from snuba_sdk import Column, Condition, Function, Op
+from snuba_sdk import Column, Condition, Function, Op, OrderBy
 
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
@@ -631,6 +631,10 @@ class MetricsDatasetConfig(DatasetConfig):
                 function_converter[alias] = function_converter[name].alias_as(alias)
 
         return function_converter
+
+    @property
+    def orderby_converter(self) -> Mapping[str, OrderBy]:
+        return {}
 
     # Field Aliases
     def _resolve_title_alias(self, alias: str) -> SelectType:

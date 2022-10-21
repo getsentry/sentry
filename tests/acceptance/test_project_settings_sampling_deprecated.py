@@ -369,7 +369,7 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
             {
                 "data": [
                     {
-                        "project": self.project.slug,
+                        "project": self.project.id,
                         "project_id": self.project.id,
                         "count": 2,
                         "root_count": 2,
@@ -449,7 +449,7 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
             {
                 "data": [
                     {
-                        "project": self.project.slug,
+                        "project": self.project.id,
                         "project_id": self.project.id,
                         "count": 2,
                         "root_count": 2,
