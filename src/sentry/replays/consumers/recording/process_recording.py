@@ -24,6 +24,8 @@ from sentry.utils.sdk import configure_scope
 
 COMMIT_FREQUENCY_SEC = 1
 
+logger = logging.getLogger("sentry.replays")
+
 
 class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
     def __init__(
@@ -83,7 +85,6 @@ def process_message(message: Message[KafkaPayload]) -> None:
                 process_recording(cast(RecordingSegmentMessage, message_dict))
     except Exception:
         # avoid crash looping on bad messsages for now
-        logger = logging.getLogger("sentry.replays")
         logger.exception(
             "Failed to process replay recording message", extra={"offset": message.offset}
         )

@@ -9,6 +9,8 @@ from sentry.replays.cache import RecordingSegmentPart, RecordingSegmentParts
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.utils import json
 
+logger = logging.getLogger("sentry.replays")
+
 
 class MissingRecordingSegmentHeaders(ValueError):
     pass
@@ -34,8 +36,6 @@ class RecordingSegmentChunkMessage(TypedDict):
 
 
 def ingest_recording_segment(message_dict: RecordingSegmentMessage) -> None:
-    logger = logging.getLogger("sentry.replays")
-
     cache_prefix = _make_replay_recording_segment_cache_id(
         project_id=message_dict["project_id"],
         replay_id=message_dict["replay_id"],
