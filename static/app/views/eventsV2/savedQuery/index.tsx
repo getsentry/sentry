@@ -483,8 +483,8 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
 
     return (
       <Button
-        key="save-query-as-homepage"
-        data-test-id="save-query-as-homepage"
+        key="set-as-default"
+        data-test-id="set-as-default"
         onClick={async () => {
           const updatedHomepageQuery = await handleUpdateHomepageQuery(
             api,
