@@ -519,7 +519,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     );
   }
 
-  renderHomepageFlagButtons() {
+  renderHomepageFeatureButtons() {
     const {organization, eventView, savedQuery, yAxis, router, location, isHomepage} =
       this.props;
 
@@ -576,7 +576,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
       <ResponsiveButtonBar gap={1}>
         <Feature
           organization={organization}
-          features={['discover-query', 'discover-query-builder-as-landing-page']}
+          features={['discover-query-builder-as-landing-page']}
         >
           {this.renderQueryButton(disabled => this.renderSaveAsHomepage(disabled))}
         </Feature>
@@ -587,7 +587,12 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
 
         {contextMenu}
 
-        {this.renderQueryButton(disabled => this.renderButtonViewSaved(disabled))}
+        <Feature
+          organization={organization}
+          features={['discover-query-builder-as-landing-page']}
+        >
+          {this.renderQueryButton(disabled => this.renderButtonViewSaved(disabled))}
+        </Feature>
       </ResponsiveButtonBar>
     );
   }
@@ -596,7 +601,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     const {organization} = this.props;
 
     if (organization.features.includes('discover-query-builder-as-landing-page')) {
-      return this.renderHomepageFlagButtons();
+      return this.renderHomepageFeatureButtons();
     }
 
     return (
