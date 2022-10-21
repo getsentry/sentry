@@ -236,10 +236,10 @@ describe('Discover > Homepage', () => {
     );
 
     expect(await screen.findByText('Remove Default')).toBeInTheDocument();
-    expect(screen.queryByText('Set As Default')).not.toBeInTheDocument();
+    expect(screen.queryByText('Set as Default')).not.toBeInTheDocument();
   });
 
-  it('Disables the Set As Default button when no saved homepage', () => {
+  it('Disables the Set as Default button when no saved homepage', () => {
     initialData = initializeOrg({
       ...initializeOrg(),
       organization,

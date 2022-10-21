@@ -504,7 +504,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
         icon={<IconBookmark />}
         disabled={buttonDisabled}
       >
-        {t('Set As Default')}
+        {t('Set as Default')}
         <FeatureBadge type="alpha" />
       </Button>
     );
@@ -533,7 +533,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     if (organization.features.includes('dashboards-edit')) {
       contextMenuItems.push({
         key: 'add-to-dashboard',
-        label: t('Add To Dashboard'),
+        label: t('Add to Dashboard'),
         onAction: () => {
           handleAddQueryToDashboard({
             organization,
