@@ -54,10 +54,6 @@ class AuthenticationMiddlewareTestCase(TestCase):
             # User is still authenticated,
             assert request.user.is_authenticated
             assert request.user == self.user
-
-            # But no ip logging occurs.
-            assert not UserIP.objects.filter(user=self.user, ip_address="127.0.0.1").exists()
-
             publish.assert_called_with(
                 dict(
                     user_ip_event=dict(
@@ -71,6 +67,9 @@ class AuthenticationMiddlewareTestCase(TestCase):
                 ),
                 sync=False,
             )
+
+        # But no ip logging occurs.
+        assert not UserIP.objects.filter(user=self.user, ip_address="127.0.0.1").exists()
 
     def test_process_request_good_nonce(self):
         request = self.request

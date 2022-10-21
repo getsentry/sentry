@@ -102,6 +102,7 @@ class SiloModeTest:
         return self._mark_parameterized_by_silo_mode(decorated_obj)
 
 
+all_silo_test = SiloModeTest(SiloMode.CONTROL, SiloMode.REGION, SiloMode.MONOLITH)
 control_silo_test = SiloModeTest(SiloMode.CONTROL, SiloMode.MONOLITH)
 region_silo_test = SiloModeTest(SiloMode.REGION, SiloMode.MONOLITH)
 
