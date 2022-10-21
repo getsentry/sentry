@@ -34,7 +34,7 @@ PII_CONFIG = """
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("full", [False, True], ids=["slim_config", "full_config"])
-def test_get_project_config(default_project, insta_snapshot, full):
+def test_get_project_config(default_project, insta_snapshot, django_cache, full):
     # We could use the default_project fixture here, but we would like to avoid 1) hitting the db 2) creating a mock
     default_project.update_option("sentry:relay_pii_config", PII_CONFIG)
     default_project.organization.update_option("sentry:relay_pii_config", PII_CONFIG)
@@ -54,6 +54,18 @@ def test_get_project_config(default_project, insta_snapshot, full):
     assert cfg.pop("organizationId") == default_project.organization.id
 
     insta_snapshot(cfg)
+
+
+@pytest.mark.django_db
+def test_get_experimental_config(default_project):
+    keys = ProjectKey.objects.filter(project=default_project)
+    with Feature("organizations:dynamic-sampling-basic"), patch(
+        "sentry.relay.config.generate_uniform_rule", side_effect=RuntimeError
+    ):
+        # Does not raise:
+        cfg = get_project_config(default_project, full_config=True, project_keys=keys)
+    # Key is missing from config:
+    assert "dynamicSampling" not in cfg.to_dict()["config"]
 
 
 @pytest.mark.django_db

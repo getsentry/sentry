@@ -146,6 +146,68 @@ def get_project_config(project, full_config=True, project_keys=None):
             return _get_project_config(project, full_config=full_config, project_keys=project_keys)
 
 
+def get_dynamic_sampling_config(project) -> Optional[Mapping[str, Any]]:
+    allow_dynamic_sampling = features.has(
+        "organizations:server-side-sampling",
+        project.organization,
+    )
+    allow_dynamic_sampling_basic = features.has(
+        "organizations:dynamic-sampling-basic",
+        project.organization,
+    )
+
+    # In this case we should override old conditionnal rules if they exists
+    # or just return uniform rule
+    if allow_dynamic_sampling_basic:
+        try:
+            return {"rules": [generate_uniform_rule(project)]}
+        except NoneSampleRateException:
+            # just to be consistent with old code, where if there is no active active_rules
+            # we return empty list
+            return {"rules": []}
+    elif allow_dynamic_sampling:
+        dynamic_sampling = project.get_option("sentry:dynamic_sampling")
+        if dynamic_sampling is not None:
+            # filter out rules that do not have active set to True
+            active_rules = []
+            for rule in dynamic_sampling["rules"]:
+                if rule.get("active"):
+                    inner_rule = rule["condition"]["inner"]
+                    if (
+                        inner_rule
+                        and inner_rule[0]["name"] == "trace.release"
+                        and inner_rule[0]["value"] == ["latest"]
+                    ):
+                        # get latest overall (no environments filters)
+                        environment = None
+                        rule["condition"]["inner"][0]["value"] = get_latest_release(
+                            [project], environment
+                        )
+                    active_rules.append(rule)
+
+            return {"rules": active_rules}
+
+    return None
+
+
+def add_experimental_config(config: dict, key: str, function, *args, **kwargs):
+    """Try to set cfg[key] = function(*args, **kwargs).
+
+    If the result of the function call is None, the key is not set.
+    If the function call raises an exception, we log it to sentry and the key remains unset.
+
+    NOTE: Only use this function if you expect Relay to behave reasonably
+    if ``key`` is missing from the config.
+    """
+    try:
+        subconfig = function(*args, **kwargs)
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+    else:
+        if subconfig is not None:
+            config[key] = subconfig
+
+
 def _get_project_config(project, full_config=True, project_keys=None):
     if project.status != ObjectStatus.VISIBLE:
         return ProjectConfig(project, disabled=True)
@@ -175,85 +237,55 @@ def _get_project_config(project, full_config=True, project_keys=None):
             "organizationId": project.organization_id,
             "projectId": project.id,  # XXX: Unused by Relay, required by Python store
         }
-    allow_dynamic_sampling = features.has(
-        "organizations:server-side-sampling",
-        project.organization,
-    )
-    allow_dynamic_sampling_basic = features.has(
-        "organizations:dynamic-sampling-basic",
-        project.organization,
-    )
 
-    # In this case we should override old conditionnal rules if they exists
-    # or just return uniform rule
-    if allow_dynamic_sampling_basic:
-        try:
-            cfg["config"]["dynamicSampling"] = {"rules": [generate_uniform_rule(project)]}
-        except NoneSampleRateException:
-            # just to be consistent with old code, where if there is no active active_rules
-            # we return empty list
-            cfg["config"]["dynamicSampling"] = {"rules": []}
-    elif allow_dynamic_sampling:
-        dynamic_sampling = project.get_option("sentry:dynamic_sampling")
-        if dynamic_sampling is not None:
-            # filter out rules that do not have active set to True
-            active_rules = []
-            for rule in dynamic_sampling["rules"]:
-                if rule.get("active"):
-                    inner_rule = rule["condition"]["inner"]
-                    if (
-                        inner_rule
-                        and inner_rule[0]["name"] == "trace.release"
-                        and inner_rule[0]["value"] == ["latest"]
-                    ):
-                        # get latest overall (no environments filters)
-                        environment = None
-                        rule["condition"]["inner"][0]["value"] = get_latest_release(
-                            [project], environment
-                        )
-                    active_rules.append(rule)
+    config = cfg["config"]
 
-            cfg["config"]["dynamicSampling"] = {"rules": active_rules}
+    # NOTE: Omitting dynamicSampling because of a failure increases the number
+    # of events forwarded by Relay, because dynamic sampling will stop filtering
+    # anything.
+    add_experimental_config(config, "dynamicSampling", get_dynamic_sampling_config, project)
 
     # Limit the number of custom measurements
-    cfg["config"]["measurements"] = get_measurements_config()
+    add_experimental_config(config, "measurements", get_measurements_config)
 
     if not full_config:
         # This is all we need for external Relay processors
         return ProjectConfig(project, **cfg)
 
     if features.has("organizations:performance-ops-breakdown", project.organization):
-        cfg["config"]["breakdownsV2"] = project.get_option("sentry:breakdowns")
+        config["breakdownsV2"] = project.get_option("sentry:breakdowns")
     if _should_extract_transaction_metrics(project):
-        cfg["config"]["transactionMetrics"] = get_transaction_metrics_settings(
-            project, cfg["config"].get("breakdownsV2")
+        add_experimental_config(
+            config,
+            "transactionMetrics",
+            get_transaction_metrics_settings,
+            project,
+            config.get("breakdownsV2"),
         )
 
         # This config key is technically not specific to _transaction_ metrics,
         # is however currently both only applied to transaction metrics in
         # Relay, and only used to tag transaction metrics in Sentry.
-        try:
-            cfg["config"]["metricConditionalTagging"] = get_metric_conditional_tagging_rules(
-                project
-            )
-        except Exception:
-            capture_exception()
+        add_experimental_config(
+            config, "metricConditionalTagging", get_metric_conditional_tagging_rules, project
+        )
+
     if features.has("organizations:metrics-extraction", project.organization):
-        cfg["config"]["sessionMetrics"] = {
+        config["sessionMetrics"] = {
             "version": 1,
             "drop": False,
         }
 
     if features.has("projects:performance-suspect-spans-ingestion", project=project):
-        cfg["config"]["spanAttributes"] = project.get_option("sentry:span_attributes")
+        config["spanAttributes"] = project.get_option("sentry:span_attributes")
     with Hub.current.start_span(op="get_filter_settings"):
-        cfg["config"]["filterSettings"] = get_filter_settings(project)
+        config["filterSettings"] = get_filter_settings(project)
     with Hub.current.start_span(op="get_grouping_config_dict_for_project"):
-        cfg["config"]["groupingConfig"] = get_grouping_config_dict_for_project(project)
+        config["groupingConfig"] = get_grouping_config_dict_for_project(project)
     with Hub.current.start_span(op="get_event_retention"):
-        cfg["config"]["eventRetention"] = quotas.get_event_retention(project.organization)
+        config["eventRetention"] = quotas.get_event_retention(project.organization)
     with Hub.current.start_span(op="get_all_quotas"):
-        cfg["config"]["quotas"] = get_quotas(project, keys=project_keys)
+        config["quotas"] = get_quotas(project, keys=project_keys)
 
     return ProjectConfig(project, **cfg)
 
