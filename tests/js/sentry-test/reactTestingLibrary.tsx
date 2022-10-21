@@ -1,4 +1,5 @@
 import {Component, Fragment} from 'react';
+import {InjectedRouter} from 'react-router';
 import {cache} from '@emotion/css'; // eslint-disable-line @emotion/no-vanilla
 import {CacheProvider, ThemeProvider} from '@emotion/react';
 import * as rtl from '@testing-library/react'; // eslint-disable-line no-restricted-imports
@@ -9,12 +10,18 @@ import GlobalModal from 'sentry/components/globalModal';
 import {Organization} from 'sentry/types';
 import {lightTheme} from 'sentry/utils/theme';
 import {OrganizationContext} from 'sentry/views/organizationContext';
+import {RouteContext} from 'sentry/views/routeContext';
 
 import {instrumentUserEvent} from '../instrumentedEnv/userEventIntegration';
 
+import {initializeOrg} from './initializeOrg';
+
 type ProviderOptions = {
   context?: Record<string, any>;
-  organization?: Organization;
+  organization?: Partial<Organization>;
+  project?: string;
+  projects?: string[];
+  router?: Partial<InjectedRouter>;
 };
 
 type Options = ProviderOptions & rtl.RenderOptions;
@@ -33,16 +40,28 @@ function createProvider(contextDefs: Record<string, any>) {
   };
 }
 
-function makeAllTheProviders({context, organization}: ProviderOptions) {
+function makeAllTheProviders({context, ...initializeOrgOptions}: ProviderOptions) {
   const ContextProvider = context ? createProvider(context) : Fragment;
+
+  const {organization, router} = initializeOrg(initializeOrgOptions as any);
+
   return function ({children}: {children?: React.ReactNode}) {
     return (
       <ContextProvider>
         <CacheProvider value={cache}>
           <ThemeProvider theme={lightTheme}>
-            <OrganizationContext.Provider value={organization ?? null}>
-              {children}
-            </OrganizationContext.Provider>
+            <RouteContext.Provider
+              value={{
+                router,
+                location: router.location,
+                params: router.params,
+                routes: router.routes,
+              }}
+            >
+              <OrganizationContext.Provider value={organization}>
+                {children}
+              </OrganizationContext.Provider>
+            </RouteContext.Provider>
           </ThemeProvider>
         </CacheProvider>
       </ContextProvider>
@@ -59,9 +78,16 @@ function makeAllTheProviders({context, organization}: ProviderOptions) {
  * render(<TestedComponent />, {context: routerContext, organization});
  */
 function render(ui: React.ReactElement, options?: Options) {
-  const {context, organization, ...otherOptions} = options ?? {};
+  const {context, organization, project, projects, router, ...otherOptions} =
+    options ?? {};
 
-  const AllTheProviders = makeAllTheProviders({context, organization});
+  const AllTheProviders = makeAllTheProviders({
+    context,
+    organization,
+    project,
+    projects,
+    router,
+  });
 
   return rtl.render(ui, {wrapper: AllTheProviders, ...otherOptions});
 }
