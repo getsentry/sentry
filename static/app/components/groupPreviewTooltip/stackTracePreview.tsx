@@ -148,7 +148,8 @@ function StackTracePreviewBody({
       const evt = await api.requestPromise(
         eventId && projectSlug
           ? `/projects/${organization.slug}/${projectSlug}/events/${eventId}/`
-          : `/issues/${issueId}/events/latest/?collapse=stacktraceOnly`
+          : `/issues/${issueId}/events/latest/?collapse=stacktraceOnly`,
+        {query: {referrer: 'api.issues.preview-error'}}
       );
       setEvent(evt);
       setStatus('loaded');
