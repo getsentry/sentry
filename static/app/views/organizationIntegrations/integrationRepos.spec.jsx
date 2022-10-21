@@ -31,7 +31,6 @@ describe('IntegrationRepos', function () {
       });
 
       const wrapper = mountWithTheme(<IntegrationRepos integration={integration} />);
-      expect(wrapper.find('PanelBody')).toHaveLength(0);
       expect(wrapper.find('Alert')).toHaveLength(1);
     });
   });
