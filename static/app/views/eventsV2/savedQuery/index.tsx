@@ -336,9 +336,14 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
 
   renderButtonSave(disabled: boolean) {
     const {isNewQuery, isEditingQuery} = this.state;
+    const {organization} = this.props;
 
+    // TODO(nar): Remove this button when Discover homepage is released
     // Existing query that hasn't been modified.
     if (!isNewQuery && !isEditingQuery) {
+      if (organization.features.includes('discover-query-builder-as-landing-page')) {
+        return null;
+      }
       return (
         <Button
           icon={<IconStar color="yellow100" isSolid size="sm" />}
