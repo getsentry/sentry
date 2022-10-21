@@ -10,13 +10,10 @@ import GridEditable, {
   GridColumnOrder,
   GridColumnSortBy,
 } from 'sentry/components/gridEditable';
-import * as Layout from 'sentry/components/layouts/thirds';
 import Pagination from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/searchBar';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {Profile} from 'sentry/utils/profiling/profile/profile';
@@ -26,10 +23,9 @@ import {makeFormatter} from 'sentry/utils/profiling/units/units';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 
-import {useProfileGroup} from './profileGroupProvider';
+import {useProfileGroup} from '../../profileGroupProvider';
 
 function collectTopProfileFrames(profile: Profile) {
   const nodes: CallTreeNode[] = [];
@@ -62,16 +58,9 @@ function collectTopProfileFrames(profile: Profile) {
 
 const RESULTS_PER_PAGE = 50;
 
-function ProfileDetails() {
+export function SlowestFunctions() {
   const location = useLocation();
   const [state] = useProfileGroup();
-  const organization = useOrganization();
-
-  useEffect(() => {
-    trackAdvancedAnalyticsEvent('profiling_views.profile_summary', {
-      organization,
-    });
-  }, [organization]);
 
   const cursor = useMemo<number>(() => {
     const cursorQuery = decodeScalar(location.query.cursor, '');
@@ -271,80 +260,71 @@ function ProfileDetails() {
 
   return (
     <Fragment>
-      <SentryDocumentTitle
-        title={t('Profiling \u2014 Details')}
-        orgSlug={organization.slug}
-      >
-        <Layout.Body>
-          <Layout.Main fullWidth>
-            <ActionBar>
-              <SearchBar
-                defaultQuery=""
-                query={query}
-                placeholder={t('Search for frames')}
-                onChange={handleSearch}
-              />
+      <ActionBar>
+        <SearchBar
+          defaultQuery=""
+          query={query}
+          placeholder={t('Search for frames')}
+          onChange={handleSearch}
+        />
 
-              <CompactSelect
-                options={columnFilters.type.values.map(value => ({value, label: value}))}
-                value={filters.type}
-                triggerLabel={
-                  !filters.type ||
-                  (Array.isArray(filters.type) &&
-                    filters.type.length === columnFilters.type.values.length)
-                    ? t('All')
-                    : undefined
-                }
-                triggerProps={{
-                  prefix: t('Type'),
-                }}
-                multiple
-                onChange={columnFilters.type.onChange}
-                placement="bottom right"
-              />
+        <CompactSelect
+          options={columnFilters.type.values.map(value => ({value, label: value}))}
+          value={filters.type}
+          triggerLabel={
+            !filters.type ||
+            (Array.isArray(filters.type) &&
+              filters.type.length === columnFilters.type.values.length)
+              ? t('All')
+              : undefined
+          }
+          triggerProps={{
+            prefix: t('Type'),
+          }}
+          multiple
+          onChange={columnFilters.type.onChange}
+          placement="bottom right"
+        />
 
-              <CompactSelect
-                options={columnFilters.image.values.map(value => ({value, label: value}))}
-                value={filters.image}
-                triggerLabel={
-                  !filters.image ||
-                  (Array.isArray(filters.image) &&
-                    filters.image.length === columnFilters.image.values.length)
-                    ? t('All')
-                    : undefined
-                }
-                triggerProps={{
-                  prefix: t('Package'),
-                }}
-                multiple
-                onChange={columnFilters.image.onChange}
-                placement="bottom right"
-              />
-            </ActionBar>
+        <CompactSelect
+          options={columnFilters.image.values.map(value => ({value, label: value}))}
+          value={filters.image}
+          triggerLabel={
+            !filters.image ||
+            (Array.isArray(filters.image) &&
+              filters.image.length === columnFilters.image.values.length)
+              ? t('All')
+              : undefined
+          }
+          triggerProps={{
+            prefix: t('Package'),
+          }}
+          multiple
+          onChange={columnFilters.image.onChange}
+          placement="bottom right"
+        />
+      </ActionBar>
 
-            <GridEditable
-              title={t('Slowest Functions')}
-              isLoading={state.type === 'loading'}
-              error={state.type === 'errored'}
-              data={data}
-              columnOrder={COLUMN_ORDER.map(key => COLUMNS[key])}
-              columnSortBy={[currentSort]}
-              grid={{
-                renderHeadCell: renderTableHead({
-                  rightAlignedColumns: RIGHT_ALIGNED_COLUMNS,
-                  sortableColumns: RIGHT_ALIGNED_COLUMNS,
-                  currentSort,
-                  generateSortLink,
-                }),
-                renderBodyCell: renderFunctionCell,
-              }}
-              location={location}
-            />
+      <GridEditable
+        title={t('Slowest Functions')}
+        isLoading={state.type === 'loading'}
+        error={state.type === 'errored'}
+        data={data}
+        columnOrder={COLUMN_ORDER.map(key => COLUMNS[key])}
+        columnSortBy={[currentSort]}
+        grid={{
+          renderHeadCell: renderTableHead({
+            rightAlignedColumns: RIGHT_ALIGNED_COLUMNS,
+            sortableColumns: RIGHT_ALIGNED_COLUMNS,
+            currentSort,
+            generateSortLink,
+          }),
+          renderBodyCell: renderFunctionCell,
+        }}
+        location={location}
+      />
 
-            <Pagination pageLinks={pageLinks} />
-          </Layout.Main>
-        </Layout.Body>
-      </SentryDocumentTitle>
+      <Pagination pageLinks={pageLinks} />
     </Fragment>
   );
 }
@@ -484,5 +464,3 @@ const COLUMNS: Record<TableColumnKey, TableColumn> = {
     width: COL_WIDTH_UNDEFINED,
   },
 };
-
-export default ProfileDetails;
