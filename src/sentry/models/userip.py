@@ -38,7 +38,7 @@ class UserIP(Model):
 
 
 def _perform_log(user: User, ip_address: str):
-    from sentry.region_to_control.producer import produce_user_ip
+    from sentry.region_to_control.producer import user_ip_service
 
     try:
         geo = geo_by_addr(ip_address)
@@ -55,4 +55,4 @@ def _perform_log(user: User, ip_address: str):
         event.country_code = geo["country_code"]
         event.region_code = geo["region"]
 
-    produce_user_ip(event)
+    user_ip_service.produce_user_ip(event)

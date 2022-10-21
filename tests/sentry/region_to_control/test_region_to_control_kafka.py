@@ -8,7 +8,8 @@ from django.test import override_settings
 from sentry.models import AuditLogEntry, UserIP
 from sentry.region_to_control.consumer import get_region_to_control_consumer
 from sentry.region_to_control.messages import UserIpEvent
-from sentry.region_to_control.producer import clear_region_to_control_producer, produce_user_ip
+from sentry.region_to_control.producer import region_to_control_message_service, user_ip_service
+from sentry.services.hybrid_cloud import use_real_service
 from sentry.silo import SiloMode
 from sentry.testutils.factories import Factories
 from sentry.utils.audit import create_audit_entry_from_user
@@ -16,14 +17,6 @@ from sentry.utils.batching_kafka_consumer import create_topics
 
 # Poll this amount of times (for 0.1 sec each) at most to wait for messages
 MAX_POLL_ITERATIONS = 100
-
-
-@pytest.fixture(autouse=True)
-def clear_producer():
-    try:
-        yield
-    finally:
-        clear_region_to_control_producer()
 
 
 @pytest.fixture
@@ -66,16 +59,17 @@ def test_region_to_control_user_ip(
     region_to_control_consumer,
     user,
 ):
-    with override_settings(SILO_MODE=SiloMode.REGION):
-        produce_user_ip(
-            UserIpEvent(
-                user_id=user.id,
-                ip_address="127.0.0.1",
-                last_seen=datetime.datetime(2000, 1, 1),
-                country_code="US",
-                region_code="CA",
+    with use_real_service(region_to_control_message_service, SiloMode.REGION):
+        with override_settings(SILO_MODE=SiloMode.REGION):
+            user_ip_service.produce_user_ip(
+                UserIpEvent(
+                    user_id=user.id,
+                    ip_address="127.0.0.1",
+                    last_seen=datetime.datetime(2000, 1, 1),
+                    country_code="US",
+                    region_code="CA",
+                )
             )
-        )
 
     user_ip = UserIP.objects.last()
     assert user_ip is None
@@ -108,15 +102,16 @@ def test_region_to_control_user_audit_log(
     # If this test is 'flakey' wrt message production -> a single _run_once loop at any time, it means that the
     # durable write logic isn't working!  That's a real bug.  Unfortunately, there isn't a super great way to fake
     # lag between the confluent client and the kafka queue to make a reliable test of synchronous behavior.
-    with override_settings(SILO_MODE=SiloMode.REGION):
-        create_audit_entry_from_user(
-            user,
-            organization_id=organization.id,
-            target_object=15,
-            data=dict(custom=15),
-            event=19,
-            ip_address="9.9.9.9",
-        )
+    with use_real_service(region_to_control_message_service, SiloMode.REGION):
+        with override_settings(SILO_MODE=SiloMode.REGION):
+            create_audit_entry_from_user(
+                user,
+                organization_id=organization.id,
+                target_object=15,
+                data=dict(custom=15),
+                event=19,
+                ip_address="9.9.9.9",
+            )
 
     entry = AuditLogEntry.objects.last()
     assert entry is None
