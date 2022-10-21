@@ -37,6 +37,12 @@ from sentry.constants import (
     DataCategory,
 )
 from sentry.culprit import generate_culprit
+from sentry.dynamic_sampling.lastest_release_booster import (
+    ONE_DAY_TIMEOUT,
+    add_boosted_release,
+    generate_cache_key_for_observed_release,
+    generate_dynamic_sampling_lock_key,
+)
 from sentry.eventstore.processing import event_processing_store
 from sentry.grouping.api import (
     BackgroundGroupingConfigLoader,
@@ -92,6 +98,7 @@ from sentry.signals import first_event_received, first_transaction_received, iss
 from sentry.tasks.commits import fetch_commits
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.process_buffer import buffer_incr
+from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.types.activity import ActivityType
 from sentry.types.issues import GroupCategory
 from sentry.utils import json, metrics
@@ -820,6 +827,23 @@ def _get_or_create_release_many(jobs, projects):
                     # don't allow a conflicting 'dist' tag
                     pop_tag(job["data"], "dist")
                     set_tag(job["data"], "sentry:dist", job["dist"].name)
+
+            with locks.get(
+                generate_dynamic_sampling_lock_key(project_id),
+                duration=60,
+                name="dynamic-sampling-lock",
+            ).acquire():
+                # Dynamic Sampling - Boosting latest release functionality
+                observed_release_in_last_day_key = generate_cache_key_for_observed_release(
+                    project_id, release.id
+                )
+                release_observed_in_last_24h = cache.get(observed_release_in_last_day_key)
+                cache.set(observed_release_in_last_day_key, 1, ONE_DAY_TIMEOUT)
+                if release_observed_in_last_24h is None:
+                    add_boosted_release(project_id, release.id)
+                    schedule_invalidate_project_config(
+                        project_id=project_id, trigger="dynamic_sampling:boost_release"
+                    )
 
 
 @metrics.wraps("save_event.get_event_user_many")
