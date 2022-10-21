@@ -506,8 +506,7 @@ describe('WidgetBuilder', function () {
         target: {value: 'color:blue'},
         clipboardData: {getData: () => 'color:blue'},
       });
-      fireEvent.keyPress(search, {key: 'Enter', code: 13, charCode: 13});
-
+      userEvent.keyboard('{enter}');
       userEvent.click(screen.getByText('Add Widget'));
 
       await waitFor(() => {
