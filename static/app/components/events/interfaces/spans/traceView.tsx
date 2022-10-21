@@ -90,24 +90,22 @@ class TraceView extends PureComponent<Props> {
                           >
                             {this.renderHeader(dragProps)}
                             <Observer>
-                              {() => {
-                                return (
-                                  <CustomerProfiler id="SpanTree">
-                                    <SpanTree
-                                      traceViewRef={this.traceViewRef}
-                                      dragProps={dragProps}
-                                      organization={organization}
-                                      waterfallModel={waterfallModel}
-                                      filterSpans={waterfallModel.filterSpans}
-                                      spans={waterfallModel.getWaterfall({
-                                        viewStart: dragProps.viewWindowStart,
-                                        viewEnd: dragProps.viewWindowEnd,
-                                      })}
-                                      focusedSpanIds={waterfallModel.focusedSpanIds}
-                                    />
-                                  </CustomerProfiler>
-                                );
-                              }}
+                              {() => (
+                                <CustomerProfiler id="SpanTree">
+                                  <SpanTree
+                                    traceViewRef={this.traceViewRef}
+                                    dragProps={dragProps}
+                                    organization={organization}
+                                    waterfallModel={waterfallModel}
+                                    filterSpans={waterfallModel.filterSpans}
+                                    spans={waterfallModel.getWaterfall({
+                                      viewStart: dragProps.viewWindowStart,
+                                      viewEnd: dragProps.viewWindowEnd,
+                                    })}
+                                    focusedSpanIds={waterfallModel.focusedSpanIds}
+                                  />
+                                </CustomerProfiler>
+                              )}
                             </Observer>
                           </ScrollbarManager.Provider>
                         );
