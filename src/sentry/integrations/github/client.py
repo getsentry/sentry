@@ -115,7 +115,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             trees[full_name] = self.get_tree(full_name, repo_info["default_branch"])
         return trees
 
-    def get_repositories(self, fetch_max_pages: bool | None = None) -> Sequence[JSONData]:
+    def get_repositories(self, fetch_max_pages: bool = False) -> Sequence[JSONData]:
         """
         args:
          * fetch_max_pages - fetch as many repos as possible using pagination (slow)

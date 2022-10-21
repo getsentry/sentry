@@ -110,7 +110,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         return self.get_client().get_trees_for_org(self.model.name)
 
     def get_repositories(
-        self, query: str | None = None, fetch_max_pages: bool | None = None
+        self, query: str | None = None, fetch_max_pages: bool = False
     ) -> Sequence[Mapping[str, Any]]:
         """
         This fetches all repositories accessible to a Github App
