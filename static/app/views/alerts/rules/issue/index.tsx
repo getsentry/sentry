@@ -14,11 +14,6 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {
-  fetchOrgMembers,
-  IndexedMembersByProject,
-  indexMembersByProject,
-} from 'sentry/actionCreators/members';
 import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
@@ -48,6 +43,7 @@ import space from 'sentry/styles/space';
 import {
   Environment,
   IssueOwnership,
+  Member,
   OnboardingTaskKey,
   Organization,
   Project,
@@ -129,6 +125,7 @@ type RouteParams = {orgId: string; projectId?: string; ruleId?: string};
 
 type Props = {
   location: Location;
+  members: Member[] | undefined;
   organization: Organization;
   project: Project;
   projects: Project[];
@@ -149,7 +146,6 @@ type State = AsyncView['state'] & {
   environments: Environment[] | null;
   issueCount: number;
   loadingPreview: boolean;
-  memberList: IndexedMembersByProject | null;
   previewCursor: string | null | undefined;
   previewError: boolean;
   previewGroups: string[] | null;
@@ -176,7 +172,6 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
   componentWillMount() {
     this.fetchPreview();
-    this.fetchMemberList();
   }
 
   componentWillUnmount() {
@@ -234,7 +229,6 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       environments: [],
       uuid: null,
       project,
-      memberList: null,
       previewGroups: null,
       previewCursor: null,
       previewError: false,
@@ -413,18 +407,6 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       previewPage: this.state.previewPage + direction,
     });
   };
-
-  fetchMemberList() {
-    const {project} = this.state;
-
-    if (this.props.organization.features.includes('issue-alert-preview')) {
-      fetchOrgMembers(this.api, this.props.organization.slug, [project.id]).then(
-        members => {
-          this.setState({memberList: indexMembersByProject(members)});
-        }
-      );
-    }
-  }
 
   fetchEnvironments() {
     const {
@@ -901,10 +883,10 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   }
 
   renderPreviewTable() {
+    const {members} = this.props;
     const {
       previewGroups,
       previewError,
-      memberList,
       pageLinks,
       issueCount,
       previewPage,
@@ -913,7 +895,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     return (
       <PreviewTable
         previewGroups={previewGroups}
-        memberList={memberList}
+        members={members}
         pageLinks={pageLinks}
         onCursor={this.onPreviewCursor}
         issueCount={issueCount}

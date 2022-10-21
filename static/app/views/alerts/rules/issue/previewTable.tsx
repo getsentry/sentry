@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {IndexedMembersByProject} from 'sentry/actionCreators/members';
+import {indexMembersByProject} from 'sentry/actionCreators/members';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import GroupListHeader from 'sentry/components/issues/groupListHeader';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -9,13 +9,13 @@ import {Panel, PanelBody} from 'sentry/components/panels';
 import StreamGroup from 'sentry/components/stream/group';
 import {t, tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import {Group} from 'sentry/types';
+import {Group, Member} from 'sentry/types';
 
 type Props = {
   error: boolean;
   issueCount: number;
   loading: boolean;
-  memberList: IndexedMembersByProject | null;
+  members: Member[] | undefined;
   onCursor: CursorHandler;
   page: number;
   pageLinks: string;
@@ -24,7 +24,7 @@ type Props = {
 
 const PreviewTable = ({
   previewGroups,
-  memberList,
+  members,
   pageLinks,
   onCursor,
   issueCount,
@@ -36,13 +36,15 @@ const PreviewTable = ({
     if (loading) {
       return <LoadingIndicator />;
     }
-    if (error || !memberList) {
+
+    if (error || !members) {
       return (
         <EmptyStateWarning>
           <p>{t('No preview available')}</p>
         </EmptyStateWarning>
       );
     }
+    const memberList = indexMembersByProject(members);
     return previewGroups?.map((id, index) => {
       const group = GroupStore.get(id) as Group | undefined;
 
