@@ -1,71 +1,55 @@
-import {Component} from 'react';
+import {useState} from 'react';
 import {browserHistory} from 'react-router';
 
-import {Client} from 'sentry/api';
-import Form from 'sentry/components/deprecatedforms/form';
-import TextField from 'sentry/components/deprecatedforms/textField';
+import Alert from 'sentry/components/alert';
+import TextField from 'sentry/components/forms/fields/textField';
+import Form from 'sentry/components/forms/form';
 import {t, tct} from 'sentry/locale';
 import {AuthConfig} from 'sentry/types';
 
 type Props = {
-  api: Client;
   authConfig: AuthConfig;
 };
 
-type State = {
-  errorMessage: string | null;
-};
+function SsoForm({authConfig}: Props) {
+  const [error, setError] = useState('');
 
-class SsoForm extends Component<Props, State> {
-  state: State = {
-    errorMessage: null,
-  };
+  const {serverHostname} = authConfig;
 
-  handleSubmit: Form['props']['onSubmit'] = async (data, onSuccess, onError) => {
-    const {api} = this.props;
-    try {
-      const response = await api.requestPromise('/auth/sso-locate/', {
-        method: 'POST',
-        data,
-      });
-      onSuccess(data);
-      browserHistory.push({pathname: response.nextUri});
-    } catch (e) {
-      if (!e.responseJSON) {
-        onError(e);
-        return;
-      }
-      const message = e.responseJSON.detail;
-      this.setState({errorMessage: message});
-      onError(e);
-    }
-  };
-
-  render() {
-    const {serverHostname} = this.props.authConfig;
-    const {errorMessage} = this.state;
-
-    return (
-      <Form
-        className="form-stacked"
-        submitLabel={t('Continue')}
-        onSubmit={this.handleSubmit}
-        footerClass="auth-footer"
-        errorMessage={errorMessage}
-      >
-        <TextField
-          name="organization"
-          placeholder="acme"
-          label={t('Organization ID')}
-          required
-          help={tct('Your ID is the slug after the hostname. e.g. [example] is [slug].', {
-            slug: <strong>acme</strong>,
-            example: <SlugExample slug="acme" hostname={serverHostname} />,
-          })}
-        />
-      </Form>
-    );
-  }
+  return (
+    <Form
+      apiMethod="POST"
+      apiEndpoint="/auth/sso-locate/"
+      onSubmitSuccess={response => {
+        browserHistory.push({pathname: response.nextUri});
+      }}
+      onSubmitError={response => {
+        setError(response.responseJSON.detail);
+      }}
+      submitLabel={t('Continue')}
+      footerStyle={{
+        borderTop: 'none',
+        alignItems: 'center',
+        marginBottom: 0,
+        padding: 0,
+      }}
+    >
+      {error && <Alert type="error">{error}</Alert>}
+      <TextField
+        name="organization"
+        placeholder="acme"
+        label={t('Organization ID')}
+        required
+        stacked
+        inline={false}
+        hideControlState
+        help={tct('Your ID is the slug after the hostname. e.g. [example] is [slug].', {
+          slug: <strong>acme</strong>,
+          example: <SlugExample slug="acme" hostname={serverHostname} />,
+        })}
+      />
+    </Form>
+  );
 }
 
 type SlugExampleProps = {

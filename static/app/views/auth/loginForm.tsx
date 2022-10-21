@@ -1,20 +1,18 @@
-import {Component} from 'react';
+import {useState} from 'react';
 import {browserHistory} from 'react-router';
-import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Client} from 'sentry/api';
+import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
-import Form from 'sentry/components/deprecatedforms/form';
-import PasswordField from 'sentry/components/deprecatedforms/passwordField';
-import TextField from 'sentry/components/deprecatedforms/textField';
+import SecretField from 'sentry/components/forms/fields/secretField';
+import TextField from 'sentry/components/forms/fields/textField';
+import Form from 'sentry/components/forms/form';
 import Link from 'sentry/components/links/link';
 import {IconGithub, IconGoogle, IconVsts} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
 import {AuthConfig} from 'sentry/types';
-import {formFooterClass} from 'sentry/views/auth/login';
 
 type LoginProvidersProps = Partial<
   Pick<AuthConfig, 'vstsLoginLink' | 'githubLoginLink' | 'googleLoginLink'>
@@ -58,101 +56,71 @@ const LoginProviders = ({
 );
 
 type Props = {
-  api: Client;
   authConfig: AuthConfig;
 };
 
-type State = {
-  errorMessage: null | string;
-  errors: Record<string, string>;
-};
+function LoginForm({authConfig}: Props) {
+  const [error, setError] = useState('');
 
-class LoginForm extends Component<Props, State> {
-  state: State = {
-    errorMessage: null,
-    errors: {},
-  };
+  const {githubLoginLink, vstsLoginLink} = authConfig;
+  const hasLoginProvider = !!(githubLoginLink || vstsLoginLink);
 
-  handleSubmit: Form['props']['onSubmit'] = async (data, onSuccess, onError) => {
-    try {
-      const response = await this.props.api.requestPromise('/auth/login/', {
-        method: 'POST',
-        data,
-      });
-      onSuccess(data);
+  return (
+    <FormWrapper hasLoginProvider={hasLoginProvider}>
+      <Form
+        submitLabel={t('Continue')}
+        apiEndpoint="/auth/login/"
+        apiMethod="POST"
+        onSubmitSuccess={response => {
+          // TODO(epurkhiser): There is likely more that needs to happen to update
+          // the application state after user login.
 
-      // TODO(epurkhiser): There is likely more that needs to happen to update
-      // the application state after user login.
+          ConfigStore.set('user', response.user);
 
-      ConfigStore.set('user', response.user);
+          // TODO(epurkhiser): Reconfigure sentry SDK identity
 
-      // TODO(epurkhiser): Reconfigure sentry SDK identity
+          browserHistory.push({pathname: response.nextUri});
+        }}
+        onSubmitError={response => {
+          // TODO(epurkhiser): Need much better error handling here
 
-      browserHistory.push({pathname: response.nextUri});
-    } catch (e) {
-      if (!e.responseJSON || !e.responseJSON.errors) {
-        onError(e);
-        return;
-      }
-
-      let message = e.responseJSON.detail;
-      if (e.responseJSON.errors.__all__) {
-        message = e.responseJSON.errors.__all__;
-      }
-
-      this.setState({
-        errorMessage: message,
-        errors: e.responseJSON.errors || {},
-      });
-
-      onError(e);
-    }
-  };
-
-  render() {
-    const {errorMessage, errors} = this.state;
-    const {githubLoginLink, vstsLoginLink} = this.props.authConfig;
-
-    const hasLoginProvider = !!(githubLoginLink || vstsLoginLink);
-
-    return (
-      <ClassNames>
-        {({css}) => (
-          <FormWrapper hasLoginProvider={hasLoginProvider}>
-            <Form
-              submitLabel={t('Continue')}
-              onSubmit={this.handleSubmit}
-              footerClass={css`
-                ${formFooterClass}
-              `}
-              errorMessage={errorMessage}
-              extraButton={
-                <LostPasswordLink to="/account/recover/">
-                  {t('Lost your password?')}
-                </LostPasswordLink>
-              }
-            >
-              <TextField
-                name="username"
-                placeholder={t('username or email')}
-                label={t('Account')}
-                error={errors.username}
-                required
-              />
-              <PasswordField
-                name="password"
-                placeholder={t('password')}
-                label={t('Password')}
-                error={errors.password}
-                required
-              />
-            </Form>
-            {hasLoginProvider && <LoginProviders {...{vstsLoginLink, githubLoginLink}} />}
-          </FormWrapper>
-        )}
-      </ClassNames>
-    );
-  }
+          setError(response.responseJSON.errors.__all__);
+        }}
+        footerStyle={{
+          borderTop: 'none',
+          alignItems: 'center',
+          marginBottom: 0,
+          padding: 0,
+        }}
+        extraButton={
+          <LostPasswordLink to="/account/recover/">
+            {t('Lost your password?')}
+          </LostPasswordLink>
+        }
+      >
+        {error && <Alert type="error">{error}</Alert>}
+        <TextField
+          name="username"
+          placeholder={t('username or email')}
+          label={t('Account')}
+          stacked
+          inline={false}
+          hideControlState
+          required
+        />
+        <SecretField
+          name="password"
+          placeholder={t('password')}
+          label={t('Password')}
+          stacked
+          inline={false}
+          hideControlState
+          required
+        />
+      </Form>
+      {hasLoginProvider && <LoginProviders {...{vstsLoginLink, githubLoginLink}} />}
+    </FormWrapper>
+  );
 }
 
 const FormWrapper = styled('div')<{hasLoginProvider: boolean}>`
