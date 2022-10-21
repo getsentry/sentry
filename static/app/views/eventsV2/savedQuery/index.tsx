@@ -63,7 +63,6 @@ type SaveAsDropdownProps = {
   modifiedHandleCreateQuery: (e: React.MouseEvent<Element>) => void;
   onChangeInput: (e: React.FormEvent<HTMLInputElement>) => void;
   queryName: string;
-  buttonSize?: string;
 };
 
 function SaveAsDropdown({
@@ -331,7 +330,6 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
         onChangeInput={this.onChangeInput}
         modifiedHandleCreateQuery={this.handleCreateQuery}
         disabled={disabled}
-        buttonSize="sm"
       />
     );
   }
@@ -343,7 +341,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     if (!isNewQuery && !isEditingQuery) {
       return (
         <Button
-          icon={<IconStar color="yellow100" isSolid />}
+          icon={<IconStar color="yellow100" isSolid size="sm" />}
           size="sm"
           disabled
           data-test-id="discover2-savedquery-button-saved"
