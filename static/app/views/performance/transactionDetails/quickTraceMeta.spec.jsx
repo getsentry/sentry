@@ -42,8 +42,7 @@ describe('QuickTraceMeta', function () {
         anchor="left"
         errorDest="issue"
         transactionDest="performance"
-      />,
-      {context: routerContext}
+      />
     );
 
     expect(screen.getByTestId('meta-data')).toBeInTheDocument();
@@ -68,8 +67,7 @@ describe('QuickTraceMeta', function () {
         anchor="left"
         errorDest="issue"
         transactionDest="performance"
-      />,
-      {context: routerContext}
+      />
     );
 
     expect(screen.getByTestId('meta-data')).toBeInTheDocument();
@@ -95,8 +93,7 @@ describe('QuickTraceMeta', function () {
         anchor="left"
         errorDest="issue"
         transactionDest="performance"
-      />,
-      {context: routerContext}
+      />
     );
 
     expect(screen.getByTestId('meta-data')).toBeInTheDocument();
@@ -119,8 +116,7 @@ describe('QuickTraceMeta', function () {
         anchor="left"
         errorDest="issue"
         transactionDest="performance"
-      />,
-      {context: routerContext}
+      />
     );
 
     expect(screen.getByTestId('meta-data')).toBeInTheDocument();
@@ -170,8 +166,7 @@ describe('QuickTraceMeta', function () {
         anchor="left"
         errorDest="issue"
         transactionDest="performance"
-      />,
-      {context: routerContext}
+      />
     );
 
     expect(result.baseElement.firstChild).toBeEmptyDOMElement();
