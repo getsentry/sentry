@@ -10,7 +10,7 @@ import socket
 import sys
 import tempfile
 from datetime import datetime, timedelta
-from typing import Iterable
+from typing import Iterable, Mapping, Tuple
 from urllib.parse import urlparse
 
 import sentry
@@ -660,6 +660,8 @@ CELERY_QUEUES = [
     Queue("merge", routing_key="merge"),
     Queue("options", routing_key="options"),
     Queue("post_process_errors", routing_key="post_process_errors"),
+    Queue("post_process_transactions", routing_key="post_process_transactions"),
+    # TODO(rjo100): to be removed after post_process_transactions is set up
     Queue("post_process_performance", routing_key="post_process_performance"),
     Queue("relay_config", routing_key="relay_config"),
     Queue("relay_config_bulk", routing_key="relay_config_bulk"),
@@ -1191,20 +1193,16 @@ SENTRY_FEATURES = {
     "organizations:server-side-sampling": False,
     # Enable the server-side sampling feature (frontend)
     "organizations:server-side-sampling-ui": False,
-    # Enable the updated dynamic sampling UI for the total transaction packaging experience
-    "organizations:dynamic-sampling-total-transaction-packaging": False,
     # Enable creating DS rules on incompatible platforms (used by SDK teams for dev purposes)
     "organizations:server-side-sampling-allow-incompatible-platforms": False,
     # Enable the deletion of sampling uniform rules (used internally for demo purposes)
     "organizations:dynamic-sampling-demo": False,
+    # Enable the new opinionated dynamic sampling UI (this will be controlled by plan but now enables it for us internally during development)
+    "organizations:dynamic-sampling-opinionated": False,
     # Enable the creation of a uniform sampling rule.
     "organizations:dynamic-sampling-basic": False,
     # Enable the creation of uniform and conditional sampling rules.
     "organizations:dynamic-sampling-advanced": False,
-    # Enable dynamic sampling call to action in the performance product
-    "organizations:dynamic-sampling-performance-cta": False,
-    # Enable a more advanced dynamic sampling call to action in the performance product
-    "organizations:dynamic-sampling-performance-cta-advanced": False,
     # Enable the mobile screenshots feature
     "organizations:mobile-screenshots": False,
     # Enable the mobile screenshot gallery in the attachments tab
@@ -2872,3 +2870,11 @@ SENTRY_REGION_CONFIG: Iterable[Region] = ()
 
 # How long we should wait for a gateway proxy request to return before giving up
 GATEWAY_PROXY_TIMEOUT = None
+
+SENTRY_SLICING_LOGICAL_PARTITION_COUNT = 256
+# This maps a Sliceable for slicing by name and (lower logical partition, upper physical partition)
+# to a given slice. A slice is a set of physical resources in Sentry and Snuba.
+#
+# For each Sliceable, the range [0, SENTRY_SLICING_LOGICAL_PARTITION_COUNT) must be mapped
+# to a slice ID
+SENTRY_SLICING_CONFIG: Mapping[str, Mapping[Tuple[int, int], int]] = {}

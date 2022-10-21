@@ -4,7 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint, SessionAuthentication, pending_silo_endpoint
+from sentry.api.base import Endpoint, SessionAuthentication, control_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ListField
@@ -30,7 +30,7 @@ class ApiApplicationSerializer(serializers.Serializer):
     )
 
 
-@pending_silo_endpoint
+@control_silo_endpoint
 class ApiApplicationDetailsEndpoint(Endpoint):
     authentication_classes = (SessionAuthentication,)
     permission_classes = (IsAuthenticated,)

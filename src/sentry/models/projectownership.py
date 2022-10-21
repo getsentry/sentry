@@ -32,7 +32,7 @@ class ProjectOwnership(Model):
     last_updated = models.DateTimeField(default=timezone.now)
     is_active = models.BooleanField(default=True)
     codeowners_auto_sync = models.BooleanField(default=True, null=True)
-    suspect_committer_auto_assignment = models.BooleanField(default=True)
+    suspect_committer_auto_assignment = models.BooleanField(default=False)
 
     # An object to indicate ownership is implicitly everyone
     Everyone = object()
@@ -224,67 +224,42 @@ class ProjectOwnership(Model):
             ownership = cls.get_ownership_cached(project_id)
             if not ownership:
                 ownership = cls(project_id=project_id)
-            queue = []
 
+            autoassignment_types = []
             if ownership.suspect_committer_auto_assignment:
-                try:
-                    committer = GroupOwner.objects.filter(
-                        group=event.group,
-                        type=GroupOwnerType.SUSPECT_COMMIT.value,
-                        project_id=project_id,
-                    )
-                except GroupOwner.DoesNotExist:
-                    committer = []
+                autoassignment_types.append(GroupOwnerType.SUSPECT_COMMIT.value)
 
-                if len(committer) > 0:
-                    queue.append(
-                        (
-                            committer[0].owner(),
-                            {
-                                "integration": ActivityIntegration.SUSPECT_COMMITTER.value,
-                            },
-                        )
-                    )
-
-            # Skip if we already found a Suspect Committer
-            if ownership.auto_assignment and len(queue) == 0:
-                ownership_rules = GroupOwner.objects.filter(
-                    group=event.group,
-                    type=GroupOwnerType.OWNERSHIP_RULE.value,
-                    project_id=project_id,
-                )
-                codeowners = GroupOwner.objects.filter(
-                    group=event.group,
-                    type=GroupOwnerType.CODEOWNERS.value,
-                    project_id=project_id,
+            if ownership.auto_assignment:
+                autoassignment_types.extend(
+                    [GroupOwnerType.OWNERSHIP_RULE.value, GroupOwnerType.CODEOWNERS.value]
                 )
 
-                for issue_owner in ownership_rules:
-                    queue.append(
-                        (
-                            issue_owner.owner(),
-                            {
-                                "integration": ActivityIntegration.PROJECT_OWNERSHIP.value,
-                                "rule": (issue_owner.context or {}).get("rule", ""),
-                            },
-                        )
-                    )
+            # Get the most recent GroupOwner that matches the following order: Suspect Committer, then Ownership Rule, then Code Owner
+            issue_owner = (
+                GroupOwner.objects.filter(
+                    group=event.group, project_id=project_id, type__in=autoassignment_types
+                )
+                .order_by("type")
+                .first()
+            )
 
-                for issue_owner in codeowners:
-                    queue.append(
-                        (
-                            issue_owner.owner(),
-                            {
-                                "integration": ActivityIntegration.CODEOWNERS.value,
-                                "rule": (issue_owner.context or {}).get("rule", ""),
-                            },
-                        )
-                    )
-
-            try:
-                owner, details = queue.pop(0)
-            except IndexError:
+            if issue_owner is None:
                 return
+
+            owner = issue_owner.owner()
+            details = (
+                {"integration": ActivityIntegration.SUSPECT_COMMITTER.value}
+                if issue_owner.type == GroupOwnerType.SUSPECT_COMMIT.value
+                else {
+                    "integration": ActivityIntegration.PROJECT_OWNERSHIP.value,
+                    "rule": (issue_owner.context or {}).get("rule", ""),
+                }
+                if issue_owner.type == GroupOwnerType.OWNERSHIP_RULE.value
+                else {
+                    "integration": ActivityIntegration.CODEOWNERS.value,
+                    "rule": (issue_owner.context or {}).get("rule", ""),
+                }
+            )
 
             assignment = GroupAssignee.objects.assign(
                 event.group,
