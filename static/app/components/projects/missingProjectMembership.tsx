@@ -121,7 +121,7 @@ class MissingProjectMembership extends Component<Props, State> {
   getPendingTeamOption = (team: string) => {
     return {
       value: team,
-      label: <DisabledLabel>{t(`#${team}`)}</DisabledLabel>,
+      label: <DisabledLabel>{`#${team}`}</DisabledLabel>,
     };
   };
 
@@ -136,7 +136,7 @@ class MissingProjectMembership extends Component<Props, State> {
         label: t('Request Access'),
         options: this.getTeamsForAccess()[0].map(request => ({
           value: request,
-          label: t(`#${request}`),
+          label: `#${request}`,
         })),
       },
       {

@@ -78,7 +78,7 @@ const Device = props => {
               <Fragment>
                 <ConfirmHeader>{t('Do you want to remove U2F device?')}</ConfirmHeader>
                 <TextBlock>
-                  {t(`Are you sure you want to remove the U2F device "${device.name}"?`)}
+                  {t('Are you sure you want to remove the U2F device "%s"?', device.name)}
                 </TextBlock>
               </Fragment>
             }
