@@ -46,7 +46,11 @@ def unfurl_issues(
             group = group_by_id[issue_id]
             # lookup the event by the id
             event_id = link.args["event_id"]
-            event = eventstore.get_event_by_id(group.project_id, event_id) if event_id else None
+            event = (
+                eventstore.get_event_by_id(group.project_id, event_id, group.id)
+                if event_id
+                else None
+            )
             out[link.url] = build_group_attachment(
                 group_by_id[issue_id], event=event, link_to_event=True
             )
