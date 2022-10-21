@@ -245,7 +245,7 @@ class TestCommitContext(TestCase):
         result = mapping[self.organization.slug]
         assert self.project.slug not in result
 
-    def test_handles_duplicates(self):
+    def test_handle_duplicate_frame_filenames_within_same_stacktrace(self):
         self.store_event(
             data={
                 "message": "Kaboom!",
