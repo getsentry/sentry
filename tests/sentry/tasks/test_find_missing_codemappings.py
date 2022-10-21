@@ -43,7 +43,7 @@ class TestCommitContext(TestCase):
         with self.tasks():
             mapping = find_missing_codemappings([self.organization])
         assert self.organization.slug in mapping
-        result = mapping[self.organization.slug]
+        project_to_stacktrace_paths = mapping[self.organization.slug]
         assert self.project.slug in result
         assert sorted(result[self.project.slug]) == [
             "sentry/models/release.py",
