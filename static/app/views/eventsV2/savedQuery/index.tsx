@@ -71,7 +71,6 @@ function SaveAsDropdown({
   disabled,
   onChangeInput,
   modifiedHandleCreateQuery,
-  buttonSize = 'sm',
 }: SaveAsDropdownProps) {
   const {isOpen, triggerProps, overlayProps, arrowProps} = useOverlay();
   const theme = useTheme();
@@ -80,8 +79,8 @@ function SaveAsDropdown({
     <div>
       <Button
         {...triggerProps}
-        size={buttonSize}
-        icon={<IconStar size={buttonSize} />}
+        size="sm"
+        icon={<IconStar />}
         aria-label={t('Save as')}
         disabled={disabled}
       >
@@ -233,20 +232,6 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
   };
 
   /**
-   * Buttons that are displayed outside of the context menu should
-   * be xs with the homepage feature flag.
-   */
-  getButtonSize() {
-    const {organization} = this.props;
-
-    if (organization.features.includes('discover-query-builder-as-landing-page')) {
-      return 'xs';
-    }
-
-    return 'sm';
-  }
-
-  /**
    * There are two ways to create a query
    * 1) Creating a query from scratch and saving it
    * 2) Modifying an existing query and saving it
@@ -329,8 +314,8 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
         onClick={() => {}}
         data-test-id="discover2-savedquery-button-view-saved"
         disabled={disabled}
-        size={this.getButtonSize()}
-        icon={<IconStar isSolid size={this.getButtonSize()} />}
+        size="sm"
+        icon={<IconStar isSolid />}
         to={getDiscoverQueriesUrl(organization)}
       >
         {t('Saved Queries')}
@@ -346,7 +331,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
         onChangeInput={this.onChangeInput}
         modifiedHandleCreateQuery={this.handleCreateQuery}
         disabled={disabled}
-        buttonSize={this.getButtonSize()}
+        buttonSize="sm"
       />
     );
   }
@@ -358,8 +343,8 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     if (!isNewQuery && !isEditingQuery) {
       return (
         <Button
-          icon={<IconStar color="yellow100" isSolid size={this.getButtonSize()} />}
-          size={this.getButtonSize()}
+          icon={<IconStar color="yellow100" isSolid />}
+          size="sm"
           disabled
           data-test-id="discover2-savedquery-button-saved"
         >
@@ -375,7 +360,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
             onClick={this.handleUpdateQuery}
             data-test-id="discover2-savedquery-button-update"
             disabled={disabled}
-            size={this.getButtonSize()}
+            size="sm"
           >
             <IconUpdate />
             {t('Save Changes')}
@@ -419,10 +404,9 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
           projects={projects}
           onClick={this.handleCreateAlertSuccess}
           referrer="discover"
-          size={this.getButtonSize()}
+          size="sm"
           aria-label={t('Create Alert')}
           data-test-id="discover2-create-from-discover"
-          iconProps={{size: 'xs'}}
         />
       </GuideAnchor>
     );
@@ -489,8 +473,8 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
               });
             }
           }}
-          size={this.getButtonSize()}
-          icon={<IconBookmark isSolid size={this.getButtonSize()} />}
+          size="sm"
+          icon={<IconBookmark isSolid />}
           disabled={buttonDisabled}
         >
           {t('Remove Default')}
@@ -513,8 +497,8 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
             setHomepageQuery(updatedHomepageQuery);
           }
         }}
-        size={this.getButtonSize()}
-        icon={<IconBookmark size={this.getButtonSize()} />}
+        size="sm"
+        icon={<IconBookmark />}
         disabled={buttonDisabled}
       >
         {t('Set As Default')}
@@ -575,14 +559,14 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
           <Button
             {...triggerProps}
             aria-label={t('Discover Context Menu')}
-            size={this.getButtonSize()}
+            size="sm"
             onClick={e => {
               e.stopPropagation();
               e.preventDefault();
 
               triggerProps.onClick?.(e);
             }}
-            icon={<IconEllipsis direction="down" size={this.getButtonSize()} />}
+            icon={<IconEllipsis direction="down" />}
           />
         )}
         position="bottom-end"
