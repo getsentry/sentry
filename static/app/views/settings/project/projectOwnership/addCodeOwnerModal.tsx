@@ -113,9 +113,11 @@ class AddCodeOwnerModal extends AsyncComponent<Props, State> {
             data: postData,
           }
         );
+
         const codeMapping = codeMappings.find(
           mapping => mapping.id === codeMappingId?.toString()
         );
+
         this.handleAddedFile({...data, codeMapping});
       } catch (err) {
         if (err.responseJSON.raw) {
