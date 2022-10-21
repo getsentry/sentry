@@ -45,7 +45,7 @@ describe('QuickTraceMeta', function () {
       />
     );
 
-    expect(screen.getByTestId('meta-data')).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Trace Navigator'})).toBeInTheDocument();
     expect(screen.getByTestId('quick-trace-body')).toBeInTheDocument();
     expect(screen.getByTestId('quick-trace-footer')).toHaveTextContent(
       `View Full Trace: ${'a'.repeat(8)} (0 events)`
@@ -70,7 +70,7 @@ describe('QuickTraceMeta', function () {
       />
     );
 
-    expect(screen.getByTestId('meta-data')).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Trace Navigator'})).toBeInTheDocument();
     const qtBody = screen.getByTestId('quick-trace-body');
     expect(within(qtBody).getByTestId('loading-placeholder')).toBeInTheDocument();
     expect(screen.getByTestId('quick-trace-footer')).toHaveTextContent(
@@ -96,7 +96,7 @@ describe('QuickTraceMeta', function () {
       />
     );
 
-    expect(screen.getByTestId('meta-data')).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Trace Navigator'})).toBeInTheDocument();
     expect(screen.getByTestId('quick-trace-body')).toHaveTextContent('\u2014');
     expect(screen.getByTestId('quick-trace-footer')).toHaveTextContent(
       `View Full Trace: ${'a'.repeat(8)} (0 events)`
@@ -119,7 +119,7 @@ describe('QuickTraceMeta', function () {
       />
     );
 
-    expect(screen.getByTestId('meta-data')).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Trace Navigator'})).toBeInTheDocument();
     expect(screen.getByTestId('quick-trace-body')).toHaveTextContent('Missing Trace');
     expect(screen.getByTestId('quick-trace-footer')).toHaveTextContent('Read the docs');
   });
@@ -142,7 +142,7 @@ describe('QuickTraceMeta', function () {
       {context: routerContext}
     );
 
-    expect(screen.getByTestId('meta-data')).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Trace Navigator'})).toBeInTheDocument();
     expect(screen.getByTestId('quick-trace-body')).toHaveTextContent('Missing Trace');
     const qtFooter = screen.getByTestId('quick-trace-footer');
     expect(qtFooter).toHaveTextContent('Read the docs');
