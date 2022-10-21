@@ -28,8 +28,8 @@ def BurstTaskRunner():
 
     queue = []
 
-    def apply_async(self, args=(), kwargs=(), countdown=None):
-        queue.append((self, args, kwargs))
+    def apply_async(self, args=(), kwargs=(), **options):
+        queue.append((self, args, kwargs, options))
 
     def work(max_jobs=None):
         jobs = 0

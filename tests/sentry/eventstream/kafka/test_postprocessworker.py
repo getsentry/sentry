@@ -35,6 +35,7 @@ def kafka_message_payload():
                     "is_new_group_environment": False,
                 }
             ],
+            "queue": "post_process_errors",
         },
     ]
 
@@ -71,6 +72,7 @@ def test_post_process_forwarder(
         group_states=[
             {"id": 43, "is_new": False, "is_regression": None, "is_new_group_environment": False}
         ],
+        queue="post_process_errors",
     )
 
     forwarder.shutdown()
@@ -107,6 +109,7 @@ def test_post_process_forwarder_bad_message_headers(
         group_states=[
             {"id": 43, "is_new": False, "is_regression": None, "is_new_group_environment": False}
         ],
+        queue="post_process_errors",
     )
 
     forwarder.shutdown()
@@ -168,6 +171,7 @@ def test_errors_post_process_forwarder_calls_post_process_group(
             ),
             **group_state,
             group_states=[{"id": 43, **group_state}],
+            queue="post_process_errors",
         )
 
     forwarder.shutdown()
@@ -209,6 +213,7 @@ def test_transactions_post_process_forwarder_calls_post_process_group(
             ),
             **group_state,
             group_states=[{"id": 43, **group_state}],
+            queue="post_process_errors",
         )
 
     forwarder.shutdown()

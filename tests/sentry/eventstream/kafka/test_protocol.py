@@ -53,6 +53,7 @@ def test_get_task_kwargs_for_message_version_1():
     assert kwargs.pop("is_regression") is False
     assert kwargs.pop("is_new_group_environment") is True
     assert kwargs.pop("group_states") is None
+    assert kwargs.pop("queue") == "post_process_errors"
 
     assert not kwargs, f"unexpected values remaining: {kwargs!r}"
 
