@@ -19,7 +19,7 @@ function BookmarkStar({className, organization, project, onToggle}: Props) {
   const api = useApi();
   const [isBookmarked, setIsBookmarked] = useState(project.isBookmarked);
 
-  const toggleProjectBookmark = (event: React.MouseEvent) => {
+  const handleBookmarkToggle = (event: React.MouseEvent) => {
     // prevent dropdowns from closing
     event.stopPropagation();
 
@@ -35,9 +35,9 @@ function BookmarkStar({className, organization, project, onToggle}: Props) {
 
   return (
     <Button
-      aria-label="Bookmark Project"
+      aria-label={t('Bookmark Project')}
       aria-pressed={isBookmarked}
-      onClick={toggleProjectBookmark}
+      onClick={handleBookmarkToggle}
       size="zero"
       priority="link"
       className={className}

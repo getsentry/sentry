@@ -451,7 +451,6 @@ from sentry.discover.endpoints.discover_key_transactions import (
     KeyTransactionEndpoint,
     KeyTransactionListEndpoint,
 )
-from sentry.discover.endpoints.discover_query import DiscoverQueryEndpoint
 from sentry.discover.endpoints.discover_saved_queries import DiscoverSavedQueriesEndpoint
 from sentry.discover.endpoints.discover_saved_query_detail import (
     DiscoverSavedQueryDetailEndpoint,
@@ -671,7 +670,6 @@ __EXCLUDED_FROM_PUBLIC_ENDPOINTS = {
     OrganizationCodeMappingsEndpoint,
     OrganizationCodeMappingDetailsEndpoint,
     OrganizationCodeMappingCodeOwnersEndpoint,
-    DiscoverQueryEndpoint,
     DiscoverSavedQueriesEndpoint,
     DiscoverSavedQueryDetailEndpoint,
     DiscoverSavedQueryVisitEndpoint,

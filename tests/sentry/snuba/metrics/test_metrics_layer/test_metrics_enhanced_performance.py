@@ -385,6 +385,13 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 value=value,
             )
 
+        # We also store a metric without the transaction tag.
+        self.store_performance_metric(
+            name=TransactionMRI.DURATION.value,
+            tags={},
+            value=value,
+        )
+
         metrics_query = self.build_metrics_query(
             before_now="1m",
             granularity="1m",
@@ -689,8 +696,8 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         assert data["meta"] == sorted(
             [
                 {"name": "bucketed_time", "type": "DateTime('Universal')"},
-                {"name": "p50_fcp", "type": "Array(Float64)"},
-                {"name": "p50_lcp", "type": "Array(Float64)"},
+                {"name": "p50_fcp", "type": "Float64"},
+                {"name": "p50_lcp", "type": "Float64"},
                 {"name": "project", "type": "string"},
                 {"name": "project_alias", "type": "string"},
                 {"name": "transaction_group", "type": "string"},
@@ -1220,7 +1227,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         ]
         assert data["meta"] == sorted(
             [
-                {"name": "p95", "type": "Array(Float64)"},
+                {"name": "p95", "type": "Float64"},
                 {"name": "team_key_transactions", "type": "boolean"},
                 {"name": "transaction", "type": "string"},
             ],
@@ -1385,6 +1392,7 @@ class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
                 "metric_id": indexer.resolve(
                     UseCaseKey.PERFORMANCE, self.organization.id, something_custom_metric
                 ),
+                "mri_string": something_custom_metric,
             }
         ]
 
@@ -1433,6 +1441,7 @@ class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
                 "metric_id": indexer.resolve(
                     UseCaseKey.PERFORMANCE, self.organization.id, something_custom_metric
                 ),
+                "mri_string": something_custom_metric,
             }
         ]
 

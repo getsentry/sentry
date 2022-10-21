@@ -202,9 +202,7 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
     return (
       <BodyText>
         {tct(
-          'When this alert is triggered [ticketType] will be ' +
-            'created with the following fields. It will also [linkToDocs] ' +
-            'with the new Sentry Issue.',
+          'When this alert is triggered [ticketType] will be created with the following fields. It will also [linkToDocs] with the new Sentry Issue.',
           {
             linkToDocs: <ExternalLink href={link}>{t('stay in sync')}</ExternalLink>,
             ticketType,
