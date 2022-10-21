@@ -1,4 +1,5 @@
 import logging
+from typing import NoReturn
 
 from django.contrib import messages
 from django.urls import reverse
@@ -7,6 +8,7 @@ from django.utils.translation import ugettext_lazy as _
 from sentry import audit_log
 from sentry.api import client
 from sentry.models import Organization, OrganizationStatus
+from sentry.services.hybrid_cloud import organization_service
 from sentry.web.frontend.base import OrganizationView
 from sentry.web.helpers import render_to_response
 
@@ -28,16 +30,18 @@ class RestoreOrganizationView(OrganizationView):
     required_scope = "org:admin"
     sudo_required = True
 
-    def determine_active_organization(self, request: Request, organization_slug):
-        # A simply version than what comes from the base
+    def determine_active_organization(self, request: Request, organization_slug=None) -> NoReturn:
+        # A simplified version than what comes from the base
         # OrganizationView. We need to grab an organization
         # that is in any state, not just VISIBLE.
-        organizations = Organization.objects.get_for_user(user=request.user, only_visible=False)
+        organizations = organization_service.get_organizations(
+            user_id=request.user.id, scope=None, only_visible=False
+        )
 
-        try:
-            return next(o for o in organizations if o.slug == organization_slug)
-        except StopIteration:
-            return None
+        for o in organizations:
+            if o.slug == organization_slug:
+                self.active_organization = o
+                break
 
     def get(self, request: Request, organization) -> Response:
         if organization.status == OrganizationStatus.VISIBLE:
