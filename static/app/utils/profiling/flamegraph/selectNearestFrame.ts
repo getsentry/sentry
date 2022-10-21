@@ -6,34 +6,17 @@ export type Direction = DirectionY | DirectionX;
 /**
  * selectNearestFrame walks a FlamegraphFrame tree the direction specified and returns the nearest
  * FlamegraphFrame relative to the starting node.
- *
- * below is a gist of the walking algorithm:
- *
- *  up    =>
- *          |> if parent is present, goto parent
- *          |> if no parent & previousSibling is present, goto maxDepth of previousSibling
- *          |> if no parent & no previousSibling, no-op
- *  down  =>
- *          |> if immediate child is present, goto first child
- *          |> if no child & walk up to nearest nextSibling
- *          |> if at max depth & no nextSibling, no-op
- *  left  =>
- *          |> walk up to find a node that has a previousSibling
- *          |> walk down the sibling tree following right branches
- *          |> return node matching target depth, if max depth found is less than target return
- *  right => same as left, but we find the right sibling, and follow left branches down until target/max depth is reached
  */
 export function selectNearestFrame(frame: FlamegraphFrame, direction: Direction) {
-  const targetDepth = frame.depth;
-  const parent = frame.parent;
-  const node = frame;
-
   if (direction === 'up') {
+    const parent = frame.parent;
+    // if there is an immediate parent, goto parent
     if (parent) {
       return parent;
     }
 
-    const leftSibling = getSibling(node, 'left');
+    // if there is no parent, we attempt to move left to the next stack
+    const leftSibling = getSibling(frame, 'left');
     if (leftSibling) {
       return leftSibling;
     }
@@ -41,12 +24,15 @@ export function selectNearestFrame(frame: FlamegraphFrame, direction: Direction)
     return frame;
   }
 
-  const child = frame.children?.[0];
   if (direction === 'down') {
+    // if there is an immediate child, goto child
+    const child = frame.children?.[0];
     if (child) {
       return child;
     }
-    const sibling = scanForNearestSibling(node, 'right');
+
+    // if there is no child, we attempt to move right to the next stack
+    const sibling = scanForNearestSibling(frame, 'right');
     if (sibling) {
       return sibling;
     }
@@ -54,9 +40,14 @@ export function selectNearestFrame(frame: FlamegraphFrame, direction: Direction)
     return frame;
   }
 
-  const sibling = scanForNearestSibling(node, direction);
+  // scan for the nearest sibling in either the left or right direction
+  // this function will walk us up the tree to a new branch
+  const sibling = scanForNearestSibling(frame, direction);
 
+  // if we find an adjacent sibling we attempt to walk down to a depth that
+  // matches our targetDepth
   if (sibling) {
+    const targetDepth = frame.depth;
     const nodeWithDepth = scanForNearestFrameWithDepth(sibling, targetDepth, direction);
     if (nodeWithDepth) {
       return nodeWithDepth;
@@ -66,22 +57,23 @@ export function selectNearestFrame(frame: FlamegraphFrame, direction: Direction)
   return frame;
 }
 
+/**
+ * scanForNearestSibling will walk up a branch looking for an adjacent sibling
+ */
 function scanForNearestSibling(frame: FlamegraphFrame, directionX: DirectionX) {
   let node = frame;
   while (node) {
-    let parent = node.parent;
     const sibling = getSibling(node, directionX);
 
     if (sibling) {
       return sibling;
     }
 
-    if (!parent) {
+    if (!node.parent) {
       break;
     }
 
-    node = parent;
-    parent = parent.parent;
+    node = node.parent;
   }
   return frame;
 }
@@ -119,6 +111,7 @@ function getSibling(frame: FlamegraphFrame, directionX: DirectionX) {
     return null;
   }
 
+  // get the index of the current frame relative to its siblings
   const indexOfFrame = parent.children.indexOf(frame);
   // this should never happen, it would make our data structure invalid
   if (indexOfFrame === -1) {
@@ -127,18 +120,16 @@ function getSibling(frame: FlamegraphFrame, directionX: DirectionX) {
 
   if (directionX === 'right') {
     const hasRightSiblings = indexOfFrame < parent.children.length - 1;
-    if (!hasRightSiblings) {
-      return null;
+    if (hasRightSiblings) {
+      return parent.children[indexOfFrame + 1];
     }
-
-    return parent.children[indexOfFrame + 1];
-  }
-
-  const hasLeftSiblings = indexOfFrame > 0;
-
-  if (!hasLeftSiblings) {
     return null;
   }
 
-  return parent.children[indexOfFrame + -1];
+  const hasLeftSiblings = indexOfFrame > 0;
+  if (hasLeftSiblings) {
+    return parent.children[indexOfFrame - 1];
+  }
+
+  return null;
 }
