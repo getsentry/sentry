@@ -20,6 +20,10 @@
     "*.jsx": "javascriptreact"
   },
 
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": true
+  },
+
   "[javascript]": {
     "editor.formatOnSave": true,
     "editor.tabSize": 2
