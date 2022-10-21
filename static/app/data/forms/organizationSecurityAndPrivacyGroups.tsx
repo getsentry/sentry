@@ -1,4 +1,4 @@
-import {JsonFormObject} from 'sentry/components/forms/type';
+import {JsonFormObject} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
 import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';
 import {
@@ -23,9 +23,7 @@ export default [
         ),
         confirm: {
           true: t(
-            'This will remove all members without two-factor authentication' +
-              ' from your organization. It will also send them an email to setup 2FA' +
-              ' and reinstate their access and settings. Do you want to continue?'
+            'This will remove all members without two-factor authentication from your organization. It will also send them an email to setup 2FA and reinstate their access and settings. Do you want to continue?'
           ),
           false: t(
             'Are you sure you want to allow users to access your organization without having two-factor authentication enabled?'
@@ -40,9 +38,7 @@ export default [
         visible: ({features}) => features.has('required-email-verification'),
         confirm: {
           true: t(
-            'This will remove all members whose email addresses are not verified' +
-              ' from your organization. It will also send them an email to verify their address' +
-              ' and reinstate their access and settings. Do you want to continue?'
+            'This will remove all members whose email addresses are not verified from your organization. It will also send them an email to verify their address and reinstate their access and settings. Do you want to continue?'
           ),
           false: t(
             'Are you sure you want to allow users to access your organization without verifying their email address?'

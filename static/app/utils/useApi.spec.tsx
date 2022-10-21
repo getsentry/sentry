@@ -5,13 +5,13 @@ import useApi from 'sentry/utils/useApi';
 
 describe('useApi', function () {
   it('provides an api client', function () {
-    const {result} = reactHooks.renderHook(() => useApi());
+    const {result} = reactHooks.renderHook(useApi);
 
     expect(result.current).toBeInstanceOf(Client);
   });
 
   it('cancels pending API requests when unmounted', function () {
-    const {result, unmount} = reactHooks.renderHook(() => useApi());
+    const {result, unmount} = reactHooks.renderHook(useApi);
 
     jest.spyOn(result.current, 'clear');
     unmount();
@@ -20,9 +20,9 @@ describe('useApi', function () {
   });
 
   it('does not cancel inflights when persistInFlight is true', function () {
-    const {result, unmount} = reactHooks.renderHook(() =>
-      useApi({persistInFlight: true})
-    );
+    const {result, unmount} = reactHooks.renderHook(useApi, {
+      initialProps: {persistInFlight: true},
+    });
 
     jest.spyOn(result.current, 'clear');
     unmount();
@@ -32,7 +32,7 @@ describe('useApi', function () {
 
   it('uses pass through API when provided', function () {
     const myClient = new Client();
-    const {unmount} = reactHooks.renderHook(() => useApi({api: myClient}));
+    const {unmount} = reactHooks.renderHook(useApi, {initialProps: {api: myClient}});
 
     jest.spyOn(myClient, 'clear');
     unmount();

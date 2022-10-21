@@ -13,7 +13,7 @@ import {TagValueLoader} from './types';
 type Props = {
   isSearchDisabled: boolean;
   onSearch: (query: string) => void;
-  onSidebarToggle: (event: React.MouseEvent) => void;
+  onSidebarToggle: () => void;
   organization: Organization;
   query: string;
   savedSearch: SavedSearch;

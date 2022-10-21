@@ -1,7 +1,11 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
-import GlobalModal from 'sentry/components/globalModal';
 import AccountIdentities from 'sentry/views/settings/account/accountIdentities';
 
 const ENDPOINT = '/users/me/user-identities/';
@@ -75,7 +79,7 @@ describe('AccountIdentities', function () {
 
     userEvent.click(screen.getByRole('button', {name: 'Disconnect'}));
 
-    render(<GlobalModal />);
+    renderGlobalModal();
     userEvent.click(screen.getByTestId('confirm-button'));
 
     expect(mock).toHaveBeenCalledTimes(1);

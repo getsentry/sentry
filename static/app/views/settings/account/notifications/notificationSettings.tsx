@@ -5,7 +5,7 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import FormModel from 'sentry/components/forms/model';
-import {FieldObject} from 'sentry/components/forms/type';
+import {FieldObject} from 'sentry/components/forms/types';
 import Link from 'sentry/components/links/link';
 import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';

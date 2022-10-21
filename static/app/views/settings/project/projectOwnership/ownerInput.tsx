@@ -96,7 +96,10 @@ class OwnerInput extends Component<Props, State> {
           error.responseJSON.raw[0].startsWith('Invalid rule owners:')
         ) {
           addErrorMessage(
-            t('Unable to save issue ownership rule changes: ' + error.responseJSON.raw[0])
+            t(
+              'Unable to save issue ownership rule changes: %s',
+              error.responseJSON.raw[0]
+            )
           );
         } else {
           addErrorMessage(t('Unable to save issue ownership rule changes'));
@@ -167,6 +170,7 @@ class OwnerInput extends Component<Props, State> {
           }}
         >
           <StyledTextArea
+            aria-label={t('Ownership Rules')}
             placeholder={
               '#example usage\n' +
               'path:src/example/pipeline/* person@sentry.io #infra\n' +

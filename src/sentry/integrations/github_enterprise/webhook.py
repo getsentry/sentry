@@ -36,6 +36,7 @@ def get_installation_metadata(event, host):
             provider="github_enterprise",
         )
     except Integration.DoesNotExist:
+        logger.exception("Integration does not exist.")
         return
     return integration.metadata["installation"]
 
@@ -123,6 +124,7 @@ class GitHubEnterpriseWebhookBase(View):
             handler = self.get_handler(request.META["HTTP_X_GITHUB_EVENT"])
         except KeyError:
             logger.warning("github_enterprise.webhook.missing-event", extra=self.get_logging_data())
+            logger.exception("Missing Github event in webhook.")
             return HttpResponse(status=400)
 
         if not handler:
@@ -136,12 +138,14 @@ class GitHubEnterpriseWebhookBase(View):
                 extra=self.get_logging_data(),
                 exc_info=True,
             )
+            logger.exception("Invalid JSON.")
             return HttpResponse(status=400)
 
         try:
             host = request.META["HTTP_X_GITHUB_ENTERPRISE_HOST"]
         except KeyError:
             logger.warning("github_enterprise.webhook.missing-enterprise-host")
+            logger.exception("Missing enterprise host.")
             return HttpResponse(status=400)
 
         secret = self.get_secret(event, host)
@@ -163,6 +167,7 @@ class GitHubEnterpriseWebhookBase(View):
                 "github_enterprise.webhook.missing-signature",
                 extra={"host": host, "error": str(e)},
             )
+            logger.exception("Missing webhook secret.")
         handler()(event, host)
         return HttpResponse(status=204)
 

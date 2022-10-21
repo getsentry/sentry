@@ -95,12 +95,69 @@ class DynamicSamplingRuleSerializer(serializers.Serializer):
     )
     condition = DynamicSamplingConditionSerializer()
     active = serializers.BooleanField(default=False)
-    id = serializers.IntegerField(min_value=0, required=False)
+    # Setting the min value here to -1 because -1 is the rule id value for unassigned rules.
+    id = serializers.IntegerField(min_value=-1, required=False)
 
 
 class DynamicSamplingSerializer(serializers.Serializer):
     rules = serializers.ListSerializer(child=DynamicSamplingRuleSerializer())
     next_id = serializers.IntegerField(min_value=0, required=False)
+
+    # This negative integer represents the rule id that will be sent by the frontend on every rule creation/update.
+    #
+    # We decided to opt for -1 as UNASSIGNED_ID_VALUE because we decided to reserve 0 for the uniform rule id in order
+    # to avoid making changes in Relay's validation mechanism that supports only positive integers (unsigned integers).
+    UNASSIGNED_ID_VALUE = -1
+
+    @staticmethod
+    def fix_rule_ids(project, raw_dynamic_sampling):
+        """
+        Fixes rule ids in sampling configuration
+
+        When rules are changed or new rules are introduced they will get
+        new ids
+        :pparam raw_dynamic_sampling: the dynamic sampling config coming from UI
+            validated but without adjusted rule ids
+        :return: the dynamic sampling config with the rule ids adjusted to be
+        unique and with the next_id updated
+        """
+        # get the existing configuration for comparison.
+        original = project.get_option("sentry:dynamic_sampling")
+        original_rules = []
+
+        if original is None:
+            next_id = 1
+        else:
+            next_id = original.get("next_id", 1)
+            original_rules = original.get("rules", [])
+
+        # make a dictionary with the old rules to compare for changes
+        original_rules_dict = {rule["id"]: rule for rule in original_rules}
+
+        if raw_dynamic_sampling is not None:
+            rules = raw_dynamic_sampling.get("rules", [])
+
+            for rule in rules:
+                # For each rule we will try to get the id, in case we fall back to UNASSIGNED_ID_VALUE which is a
+                # special reserved id for rules that are created/updated as explained above. In this case we use
+                # UNASSIGNED_ID_VALUE because we treat a rule with no id as a rule that has been created.
+                rid = rule.get("id", DynamicSamplingSerializer.UNASSIGNED_ID_VALUE)
+                original_rule = original_rules_dict.get(rid)
+
+                # If the incoming rule is created/updated/has no id, or we didn't find any matching rule in the saved
+                # configuration then we will assign it a new monotonically increasing id.
+                if rid == DynamicSamplingSerializer.UNASSIGNED_ID_VALUE or original_rule is None:
+                    # a new or unknown rule give it a new id
+                    rule["id"] = next_id
+                    next_id += 1
+                else:
+                    if original_rule != rule:
+                        # something changed in this rule, give it a new id
+                        rule["id"] = next_id
+                        next_id += 1
+
+        raw_dynamic_sampling["next_id"] = next_id
+        return raw_dynamic_sampling
 
     @staticmethod
     def _is_uniform_sampling_rule(rule):
@@ -140,6 +197,7 @@ class DynamicSamplingSerializer(serializers.Serializer):
         :return: the validated data or raise in case of error
         """
         try:
+            data = self.fix_rule_ids(self.context["project"], data)
             config_str = json.dumps(data)
             validate_sampling_configuration(config_str)
 
@@ -451,6 +509,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if "hasAlertIntegration" in expand:
             data["hasAlertIntegrationInstalled"] = has_alert_integration(project)
 
+        if features.has(
+            "organizations:dynamic-sampling-basic", project.organization, actor=request.user
+        ):
+            data.pop("dynamicSampling", None)
+
         return Response(data)
 
     def put(self, request: Request, project) -> Response:
@@ -492,6 +555,15 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         serializer.is_valid()
 
         result = serializer.validated_data
+
+        is_dynamic_sampling_basic = features.has(
+            "organizations:dynamic-sampling-basic", project.organization, actor=request.user
+        )
+        if is_dynamic_sampling_basic and result.get("dynamicSampling"):
+            return Response(
+                {"detail": ["dynamicSampling is not a valid field"]},
+                status=403,
+            )
 
         allow_dynamic_sampling = features.has(
             "organizations:server-side-sampling", project.organization, actor=request.user
@@ -670,8 +742,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             )
 
         if "dynamicSampling" in result:
-            raw_dynamic_sampling = result["dynamicSampling"]
-            fixed_rules = self._fix_rule_ids(project, raw_dynamic_sampling)
+            fixed_rules = result["dynamicSampling"]
             if project.update_option("sentry:dynamic_sampling", fixed_rules):
                 changed_proj_settings["sentry:dynamic_sampling"] = result["dynamicSampling"]
 
@@ -808,6 +879,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         )
 
         data = serialize(project, request.user, DetailedProjectSerializer())
+        if is_dynamic_sampling_basic:
+            data.pop("dynamicSampling", None)
+
         return Response(data)
 
     @sudo_required
@@ -850,49 +924,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             project.rename_on_pending_deletion()
 
         return Response(status=204)
-
-    def _fix_rule_ids(self, project, raw_dynamic_sampling):
-        """
-        Fixes rule ids in sampling configuration
-
-        When rules are changed or new rules are introduced they will get
-        new ids
-        :pparam raw_dynamic_sampling: the dynamic sampling config coming from UI
-            validated but without adjusted rule ids
-        :return: the dynamic sampling config with the rule ids adjusted to be
-        unique and with the next_id updated
-        """
-        # get the existing configuration for comparison.
-        original = project.get_option("sentry:dynamic_sampling")
-        original_rules = []
-
-        if original is None:
-            next_id = 1
-        else:
-            next_id = original.get("next_id", 1)
-            original_rules = original.get("rules", [])
-
-        # make a dictionary with the old rules to compare for changes
-        original_rules_dict = {rule["id"]: rule for rule in original_rules}
-
-        if raw_dynamic_sampling is not None:
-            rules = raw_dynamic_sampling.get("rules", [])
-
-            for rule in rules:
-                rid = rule.get("id", 0)
-                original_rule = original_rules_dict.get(rid)
-                if rid == 0 or original_rule is None:
-                    # a new or unknown rule give it a new id
-                    rule["id"] = next_id
-                    next_id += 1
-                else:
-                    if original_rule != rule:
-                        # something changed in this rule, give it a new id
-                        rule["id"] = next_id
-                        next_id += 1
-
-        raw_dynamic_sampling["next_id"] = next_id
-        return raw_dynamic_sampling
 
     def dynamic_sampling_audit_log(
         self, project, request, old_raw_dynamic_sampling, new_raw_dynamic_sampling

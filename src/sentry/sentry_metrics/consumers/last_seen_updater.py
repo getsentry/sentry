@@ -8,8 +8,7 @@ from arroyo import Message, Topic
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
 from arroyo.processing import StreamProcessor
 from arroyo.processing.strategies import ProcessingStrategy
-from arroyo.processing.strategies.streaming import KafkaConsumerStrategyFactory
-from arroyo.processing.strategies.streaming.factory import StreamMessageFilter
+from arroyo.processing.strategies.factory import KafkaConsumerStrategyFactory, StreamMessageFilter
 from arroyo.types import TPayload
 from django.utils import timezone
 

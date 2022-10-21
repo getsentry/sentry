@@ -29,15 +29,3 @@ class ProjectIssuesGroupingTest(AcceptanceTestCase):
             last_seen=datetime(2016, 1, 13, 3, 8, 25, tzinfo=timezone.utc),
         )
         return event
-
-    # TODO(billy): skip until we enable for early adopters
-    #  def test_issues_similar_issues_tab(self):
-    #  event = self.create_sample_event(
-    #  platform='python',
-    #  )
-
-    #  self.browser.get(
-    #  '/{}/{}/issues/{}/similar/'.format(self.org.slug, self.project.slug, event.group.id)
-    #  )
-    #  self.browser.wait_until('.similar-list-container')
-    #  self.browser.snapshot('issue details, similar issues tab')

@@ -8,8 +8,10 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import useOrganization from 'sentry/utils/useOrganization';
 
 const crashReportTypes = ['event.minidump', 'event.applecrashreport'];
+const SCREENSHOT_TYPE = 'event.screenshot';
 
 const GroupEventAttachmentsFilter = (props: WithRouterProps) => {
   const {query, pathname} = props.location;
@@ -20,10 +22,19 @@ const GroupEventAttachmentsFilter = (props: WithRouterProps) => {
     types: crashReportTypes,
   };
 
+  const organization = useOrganization();
+
+  const onlyScreenshotQuery = {
+    ...query,
+    types: SCREENSHOT_TYPE,
+  };
+
   let activeButton = '';
 
   if (types === undefined) {
     activeButton = 'all';
+  } else if (types === SCREENSHOT_TYPE) {
+    activeButton = 'screenshot';
   } else if (xor(crashReportTypes, types).length === 0) {
     activeButton = 'onlyCrash';
   }
@@ -34,6 +45,15 @@ const GroupEventAttachmentsFilter = (props: WithRouterProps) => {
         <Button barId="all" size="sm" to={{pathname, query: allAttachmentsQuery}}>
           {t('All Attachments')}
         </Button>
+        {organization.features.includes('mobile-screenshot-gallery') && (
+          <Button
+            barId="screenshot"
+            size="sm"
+            to={{pathname, query: onlyScreenshotQuery}}
+          >
+            {t('Screenshots')}
+          </Button>
+        )}
         <Button barId="onlyCrash" size="sm" to={{pathname, query: onlyCrashReportsQuery}}>
           {t('Only Crash Reports')}
         </Button>
@@ -48,5 +68,5 @@ const FilterWrapper = styled('div')`
   margin-bottom: ${space(3)};
 `;
 
-export {crashReportTypes};
+export {crashReportTypes, SCREENSHOT_TYPE};
 export default withRouter(GroupEventAttachmentsFilter);

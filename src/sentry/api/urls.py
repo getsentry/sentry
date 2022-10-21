@@ -25,7 +25,6 @@ from sentry.discover.endpoints.discover_key_transactions import (
     KeyTransactionEndpoint,
     KeyTransactionListEndpoint,
 )
-from sentry.discover.endpoints.discover_query import DiscoverQueryEndpoint
 from sentry.discover.endpoints.discover_saved_queries import DiscoverSavedQueriesEndpoint
 from sentry.discover.endpoints.discover_saved_query_detail import (
     DiscoverSavedQueryDetailEndpoint,
@@ -424,6 +423,7 @@ from .endpoints.project_releases_token import ProjectReleasesTokenEndpoint
 from .endpoints.project_repo_path_parsing import ProjectRepoPathParsingEndpoint
 from .endpoints.project_reprocessing import ProjectReprocessingEndpoint
 from .endpoints.project_rule_details import ProjectRuleDetailsEndpoint
+from .endpoints.project_rule_preview import ProjectRulePreviewEndpoint
 from .endpoints.project_rule_task_details import ProjectRuleTaskDetailsEndpoint
 from .endpoints.project_rules import ProjectRulesEndpoint
 from .endpoints.project_rules_configuration import ProjectRulesConfigurationEndpoint
@@ -961,11 +961,6 @@ urlpatterns = [
                     name="sentry-api-0-organization-codeowners-associations",
                 ),
                 # Discover
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/discover/query/$",
-                    DiscoverQueryEndpoint.as_view(),
-                    name="sentry-api-0-discover-query",
-                ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/discover/homepage/$",
                     DiscoverHomepageQueryEndpoint.as_view(),
@@ -2096,6 +2091,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/(?P<rule_id>[^\/]+)/$",
                     ProjectRuleDetailsEndpoint.as_view(),
                     name="sentry-api-0-project-rule-details",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/preview$",
+                    ProjectRulePreviewEndpoint.as_view(),
+                    name="sentry-api-0-project-rule-preview",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/(?P<rule_id>[^\/]+)/group-history/$",

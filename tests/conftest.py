@@ -90,3 +90,60 @@ def _error_workflow_command(filesystempath, lineno, longrepr):
 
 def _escape(s):
     return s.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+
+
+_MODEL_MANIFEST_FILE_PATH = os.getenv("SENTRY_MODEL_MANIFEST_FILE_PATH")
+_model_manifest = None
+
+
+@pytest.fixture(scope="session", autouse=True)
+def create_model_manifest_file():
+    """Audit which models are touched by each test case and write it to file."""
+
+    # We have to construct the ModelManifest lazily, because importing
+    # sentry.testutils.modelmanifest too early causes a dependency cycle.
+    from sentry.testutils.modelmanifest import ModelManifest
+
+    if _MODEL_MANIFEST_FILE_PATH:
+        global _model_manifest
+        _model_manifest = ModelManifest.open(_MODEL_MANIFEST_FILE_PATH)
+        with _model_manifest.write():
+            yield
+    else:
+        yield
+
+
+@pytest.fixture(scope="class", autouse=True)
+def register_class_in_model_manifest(request: pytest.FixtureRequest):
+    if _model_manifest:
+        with _model_manifest.register(request.node.nodeid):
+            yield
+    else:
+        yield
+
+
+@pytest.fixture(autouse=True)
+def clear_producer():
+    from sentry.region_to_control.producer import clear_region_to_control_producer
+
+    try:
+        yield
+    finally:
+        clear_region_to_control_producer()
+
+
+@pytest.fixture(autouse=True)
+def setup_default_hybrid_cloud_stubs():
+    from sentry.services.hybrid_cloud import (
+        StubOrganizationService,
+        StubProjectKeyService,
+        organization_service,
+        project_key_service,
+        service_stubbed,
+    )
+    from sentry.silo import SiloMode
+
+    with service_stubbed(
+        project_key_service, StubProjectKeyService(), SiloMode.CONTROL
+    ), service_stubbed(organization_service, StubOrganizationService(), SiloMode.CONTROL):
+        yield

@@ -10,7 +10,7 @@ import socket
 import sys
 import tempfile
 from datetime import datetime, timedelta
-from typing import Iterable
+from typing import Iterable, Mapping, Tuple
 from urllib.parse import urlparse
 
 import sentry
@@ -589,6 +589,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.release_registry",
     "sentry.tasks.release_summary",
     "sentry.tasks.reports",
+    "sentry.tasks.weekly_reports",
     "sentry.tasks.reprocessing",
     "sentry.tasks.reprocessing2",
     "sentry.tasks.scheduler",
@@ -659,6 +660,8 @@ CELERY_QUEUES = [
     Queue("merge", routing_key="merge"),
     Queue("options", routing_key="options"),
     Queue("post_process_errors", routing_key="post_process_errors"),
+    Queue("post_process_transactions", routing_key="post_process_transactions"),
+    # TODO(rjo100): to be removed after post_process_transactions is set up
     Queue("post_process_performance", routing_key="post_process_performance"),
     Queue("relay_config", routing_key="relay_config"),
     Queue("relay_config_bulk", routing_key="relay_config_bulk"),
@@ -781,6 +784,13 @@ CELERYBEAT_SCHEDULE = {
     },
     "schedule-weekly-organization-reports": {
         "task": "sentry.tasks.reports.prepare_reports",
+        "schedule": crontab(
+            minute=0, hour=12, day_of_week="monday"  # 05:00 PDT, 09:00 EDT, 12:00 UTC
+        ),
+        "options": {"expires": 60 * 60 * 3},
+    },
+    "schedule-weekly-organization-reports-new": {
+        "task": "sentry.tasks.weekly_reports.schedule_organizations",
         "schedule": crontab(
             minute=0, hour=12, day_of_week="monday"  # 05:00 PDT, 09:00 EDT, 12:00 UTC
         ),
@@ -912,7 +922,7 @@ REST_FRAMEWORK = {
     "TEST_REQUEST_DEFAULT_FORMAT": "json",
     "DEFAULT_PERMISSION_CLASSES": ("sentry.api.permissions.NoPermission",),
     "EXCEPTION_HANDLER": "sentry.api.handlers.custom_exception_handler",
-    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_SCHEMA_CLASS": "sentry.apidocs.schema.SentrySchema",
 }
 
 
@@ -992,10 +1002,10 @@ SENTRY_FEATURES = {
     "organizations:discover-basic": True,
     # Enable discover 2 custom queries and saved queries
     "organizations:discover-query": True,
-    # Enable the interval selector in discover
-    "organizations:discover-interval-selector": False,
     # Enable metrics baseline in discover
     "organizations:discover-metrics-baseline": False,
+    # Enable quick context in discover
+    "organizations:discover-quick-context": False,
     # Allows an org to have a larger set of project ownership rules per project
     "organizations:higher-ownership-limit": False,
     # Enable Performance view
@@ -1020,6 +1030,8 @@ SENTRY_FEATURES = {
     "organizations:rule-page": False,
     # Enable incidents feature
     "organizations:incidents": False,
+    # Enable issue alert previews
+    "organizations:issue-alert-preview": False,
     # Whether to allow issue only search on the issue list
     "organizations:issue-search-allow-postgres-only-search": False,
     # Flags for enabling CdcEventsDatasetSnubaSearchBackend in sentry.io. No effect in open-source
@@ -1113,6 +1125,8 @@ SENTRY_FEATURES = {
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
+    # Enable project selection on the stats page
+    "organizations:project-stats": False,
     # Enable views for ops breakdown
     "organizations:performance-ops-breakdown": False,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
@@ -1183,18 +1197,18 @@ SENTRY_FEATURES = {
     "organizations:server-side-sampling-allow-incompatible-platforms": False,
     # Enable the deletion of sampling uniform rules (used internally for demo purposes)
     "organizations:dynamic-sampling-demo": False,
+    # Enable the new opinionated dynamic sampling UI (this will be controlled by plan but now enables it for us internally during development)
+    "organizations:dynamic-sampling-opinionated": False,
     # Enable the creation of a uniform sampling rule.
     "organizations:dynamic-sampling-basic": False,
     # Enable the creation of uniform and conditional sampling rules.
     "organizations:dynamic-sampling-advanced": False,
-    # Enable dynamic sampling call to action in the performance product
-    "organizations:dynamic-sampling-performance-cta": False,
-    # Enable a more advanced dynamic sampling call to action in the performance product
-    "organizations:dynamic-sampling-performance-cta-advanced": False,
     # Enable the mobile screenshots feature
     "organizations:mobile-screenshots": False,
     # Enable the mobile screenshot gallery in the attachments tab
     "organizations:mobile-screenshot-gallery": False,
+    # Enable tag improvements in the issue details page
+    "organizations:issue-details-tag-improvements": False,
     # Enable the release details performance section
     "organizations:release-comparison-performance": False,
     # Enable team insights page
@@ -1492,12 +1506,6 @@ SENTRY_NEWSLETTER_OPTIONS = {}
 
 SENTRY_EVENTSTREAM = "sentry.eventstream.snuba.SnubaEventStream"
 SENTRY_EVENTSTREAM_OPTIONS = {}
-
-# Send transaction events to random Kafka partitions. Currently
-# this defaults to false as transaction events are partitioned the same
-# as errors (by project ID). Eventually we will flip the default and remove
-# this from settings entirely.
-SENTRY_EVENTSTREAM_PARTITION_TRANSACTIONS_RANDOMLY = False
 
 # rollups must be ordered from highest granularity to lowest
 SENTRY_TSDB_ROLLUPS = (
@@ -2315,7 +2323,7 @@ SENTRY_BUILTIN_SOURCES = {
         "id": "sentry:microsoft",
         "name": "Microsoft",
         "layout": {"type": "symstore"},
-        "filters": {"filetypes": ["pdb", "pe"]},
+        "filters": {"filetypes": ["pe", "pdb", "portablepdb"]},
         "url": "https://msdl.microsoft.com/download/symbols/",
         "is_public": True,
     },
@@ -2324,7 +2332,7 @@ SENTRY_BUILTIN_SOURCES = {
         "id": "sentry:citrix",
         "name": "Citrix",
         "layout": {"type": "symstore"},
-        "filters": {"filetypes": ["pdb", "pe"]},
+        "filters": {"filetypes": ["pe", "pdb"]},
         "url": "http://ctxsym.citrix.com/symbols/",
         "is_public": True,
     },
@@ -2333,7 +2341,7 @@ SENTRY_BUILTIN_SOURCES = {
         "id": "sentry:intel",
         "name": "Intel",
         "layout": {"type": "symstore"},
-        "filters": {"filetypes": ["pdb", "pe"]},
+        "filters": {"filetypes": ["pe", "pdb"]},
         "url": "https://software.intel.com/sites/downloads/symbols/",
         "is_public": True,
     },
@@ -2342,7 +2350,7 @@ SENTRY_BUILTIN_SOURCES = {
         "id": "sentry:amd",
         "name": "AMD",
         "layout": {"type": "symstore"},
-        "filters": {"filetypes": ["pdb", "pe"]},
+        "filters": {"filetypes": ["pe", "pdb"]},
         "url": "https://download.amd.com/dir/bin/",
         "is_public": True,
     },
@@ -2351,7 +2359,7 @@ SENTRY_BUILTIN_SOURCES = {
         "id": "sentry:nvidia",
         "name": "NVIDIA",
         "layout": {"type": "symstore"},
-        "filters": {"filetypes": ["pdb", "pe"]},
+        "filters": {"filetypes": ["pe", "pdb"]},
         "url": "https://driver-symbols.nvidia.com/",
         "is_public": True,
     },
@@ -2360,7 +2368,7 @@ SENTRY_BUILTIN_SOURCES = {
         "id": "sentry:chromium",
         "name": "Chromium",
         "layout": {"type": "symstore"},
-        "filters": {"filetypes": ["pdb", "pe"]},
+        "filters": {"filetypes": ["pe", "pdb"]},
         "url": "https://chromium-browser-symsrv.commondatastorage.googleapis.com/",
         "is_public": True,
     },
@@ -2369,7 +2377,7 @@ SENTRY_BUILTIN_SOURCES = {
         "id": "sentry:unity",
         "name": "Unity",
         "layout": {"type": "symstore"},
-        "filters": {"filetypes": ["pdb", "pe"]},
+        "filters": {"filetypes": ["pe", "pdb"]},
         "url": "http://symbolserver.unity3d.com/",
         "is_public": True,
     },
@@ -2472,15 +2480,7 @@ KAFKA_CLUSTERS = {
 #     pick up the change.
 
 KAFKA_EVENTS = "events"
-# TODO: KAFKA_TRANSACTIONS is temporarily mapped to "events" since events
-# transactions curently share a Kafka topic. Once we are ready with the code
-# changes to support different topic, switch this to "transactions" to start
-# producing to the new topic.
-KAFKA_TRANSACTIONS = "events"
-# TODO: KAFKA_NEW_TRANSACTIONS only exists in order to facilitate the errors/transactions
-# split. It is only supposed to exist briefly so we can map transactions of a subset of
-# projects to the new topic first before migrating them all over.
-KAFKA_NEW_TRANSACTIONS = "transactions"
+KAFKA_TRANSACTIONS = "transactions"
 KAFKA_OUTCOMES = "outcomes"
 KAFKA_OUTCOMES_BILLING = "outcomes-billing"
 KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS = "events-subscription-results"
@@ -2521,7 +2521,6 @@ KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
 KAFKA_TOPICS = {
     KAFKA_EVENTS: {"cluster": "default"},
     KAFKA_TRANSACTIONS: {"cluster": "default"},
-    KAFKA_NEW_TRANSACTIONS: {"cluster": "default"},
     KAFKA_OUTCOMES: {"cluster": "default"},
     # When OUTCOMES_BILLING is None, it inherits from OUTCOMES and does not
     # create a separate producer. Check ``track_outcome`` for details.
@@ -2860,7 +2859,7 @@ SENTRY_FUNCTIONS_REGION = "us-central1"
 # Settings related to SiloMode
 SILO_MODE = os.environ.get("SENTRY_SILO_MODE", None)
 FAIL_ON_UNAVAILABLE_API_CALL = False
-SILO_MODE_SPLICE_TESTS = bool(os.environ.get("SENTRY_SILO_MODE_SPLICE_TESTS", False))
+SILO_MODE_UNSTABLE_TESTS = bool(os.environ.get("SENTRY_SILO_MODE_UNSTABLE_TESTS", False))
 
 DISALLOWED_CUSTOMER_DOMAINS = []
 
@@ -2871,3 +2870,11 @@ SENTRY_REGION_CONFIG: Iterable[Region] = ()
 
 # How long we should wait for a gateway proxy request to return before giving up
 GATEWAY_PROXY_TIMEOUT = None
+
+SENTRY_SLICING_LOGICAL_PARTITION_COUNT = 256
+# This maps a Sliceable for slicing by name and (lower logical partition, upper physical partition)
+# to a given slice. A slice is a set of physical resources in Sentry and Snuba.
+#
+# For each Sliceable, the range [0, SENTRY_SLICING_LOGICAL_PARTITION_COUNT) must be mapped
+# to a slice ID
+SENTRY_SLICING_CONFIG: Mapping[str, Mapping[Tuple[int, int], int]] = {}

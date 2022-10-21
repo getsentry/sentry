@@ -317,7 +317,9 @@ describe('Server-Side Sampling', function () {
       })
     );
 
-    expect(await screen.findByRole('heading', {name: 'Next steps'})).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', {name: 'Important next steps'})
+    ).toBeInTheDocument();
   });
 
   it('open specific conditions modal when adding rule', async function () {

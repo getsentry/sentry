@@ -194,8 +194,6 @@ class IsValidOriginTestCase(unittest.TestCase):
         assert result is True
         result = self.isValidOrigin("http://l\xf8calhost", ["*.xn--lcalhost-54a"])
         assert result is True
-        result = self.isValidOrigin(b"http://l\xc3\xb8calhost", ["*.xn--lcalhost-54a"])
-        assert result is True
         result = self.isValidOrigin("http://xn--lcalhost-54a", ["l\xf8calhost"])
         assert result is True
         result = self.isValidOrigin("http://xn--lcalhost-54a:80", ["l\xf8calhost:80"])

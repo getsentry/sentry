@@ -5,7 +5,7 @@ from django.db import models
 from django.db.models.signals import pre_save
 from rest_framework import serializers
 
-from sentry.db.models import Model, all_silo_model
+from sentry.db.models import Model, region_silo_only_model
 
 if TYPE_CHECKING:
     from sentry.models import Team, User
@@ -31,7 +31,7 @@ def actor_type_to_string(type: int) -> Optional[str]:
     return None
 
 
-@all_silo_model
+@region_silo_only_model
 class Actor(Model):
     __include_in_export__ = True
 
