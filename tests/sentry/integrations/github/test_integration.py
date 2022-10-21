@@ -397,11 +397,26 @@ class GitHubIntegrationTest(IntegrationTestCase):
         installation = integration.get_installation(self.organization)
 
         with patch.object(sentry.integrations.github.client.GitHubClientMixin, "page_size", 1):
-            result = installation.get_repositories()
+            result = installation.get_repositories(fetch_max_pages=True)
             assert result == [
                 {"name": "foo", "identifier": "Test-Organization/foo"},
                 {"name": "bar", "identifier": "Test-Organization/bar"},
                 {"name": "baz", "identifier": "Test-Organization/baz"},
+            ]
+
+    @responses.activate
+    def test_get_repositories_only_first_page(self):
+        """Fetch all repositories and test the pagination logic."""
+        with self.tasks():
+            self.assert_setup_flow()
+
+        integration = Integration.objects.get(provider=self.provider.key)
+        installation = integration.get_installation(self.organization)
+
+        with patch.object(sentry.integrations.github.client.GitHubClientMixin, "page_size", 1):
+            result = installation.get_repositories()
+            assert result == [
+                {"name": "foo", "identifier": "Test-Organization/foo"},
             ]
 
     @responses.activate

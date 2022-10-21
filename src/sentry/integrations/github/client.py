@@ -107,7 +107,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         This fetches tree representations of all repos for an org.
         """
         trees: JSONData = {}
-        repositories = self.get_repositories()
+        repositories = self.get_repositories(fetch_max_pages=True)
         # XXX: In order to speed up this function we will need to parallelize this
         # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
         for repo_info in repositories:
@@ -115,14 +115,19 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             trees[full_name] = self.get_tree(full_name, repo_info["default_branch"])
         return trees
 
-    def get_repositories(self) -> Sequence[JSONData]:
+    def get_repositories(self, fetch_max_pages: bool = False) -> Sequence[JSONData]:
         """
+        args:
+         * fetch_max_pages - fetch as many repos as possible using pagination (slow)
+
         This fetches all repositories accessible to the Github App
         https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
         """
         # Explicitly typing to satisfy mypy.
         repos: JSONData = self.get_with_pagination(
-            "/installation/repositories", response_key="repositories"
+            "/installation/repositories",
+            response_key="repositories",
+            page_number_limit=self.page_number_limit if fetch_max_pages else 1,
         )
         return [repo for repo in repos if not repo.get("archived")]
 
@@ -141,7 +146,9 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         assignees: Sequence[JSONData] = self.get_with_pagination(f"/repos/{repo}/assignees")
         return assignees
 
-    def get_with_pagination(self, path: str, response_key: str | None = None) -> Sequence[JSONData]:
+    def get_with_pagination(
+        self, path: str, response_key: str | None = None, page_number_limit: int | None = None
+    ) -> Sequence[JSONData]:
         """
         Github uses the Link header to provide pagination links. Github
         recommends using the provided link relations and not constructing our
@@ -159,6 +166,9 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                 parent_span_id = None
                 trace_id = None
 
+        if page_number_limit is None or page_number_limit > self.page_number_limit:
+            page_number_limit = self.page_number_limit
+
         with sentry_sdk.start_transaction(
             op=f"{self.integration_type}.http.pagination",
             name=f"{self.integration_type}.http_response.pagination.{self.name}",
@@ -174,7 +184,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
 
             # XXX: In order to speed up this function we will need to parallelize this
             # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
-            while get_next_link(resp) and page_number < self.page_number_limit:
+            while get_next_link(resp) and page_number < page_number_limit:
                 resp = self.get(get_next_link(resp))
                 output.extend(resp) if not response_key else output.extend(resp[response_key])
                 page_number += 1

@@ -109,7 +109,9 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
     def get_trees_for_org(self) -> JSONData:
         return self.get_client().get_trees_for_org(self.model.name)
 
-    def get_repositories(self, query: str | None = None) -> Sequence[Mapping[str, Any]]:
+    def get_repositories(
+        self, query: str | None = None, fetch_max_pages: bool = False
+    ) -> Sequence[Mapping[str, Any]]:
         """
         This fetches all repositories accessible to a Github App
         https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
@@ -119,7 +121,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         if not query:
             return [
                 {"name": i["name"], "identifier": i["full_name"]}
-                for i in self.get_client().get_repositories()
+                for i in self.get_client().get_repositories(fetch_max_pages)
             ]
 
         full_query = build_repository_query(self.model.metadata, self.model.name, query)
