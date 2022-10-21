@@ -209,7 +209,7 @@ class IntegrationRepos extends AsyncComponent<Props, State> {
         <Panel>
           <PanelHeader hasButtons>
             <div>{t('Repositories')}</div>
-            <div>{this.renderDropdown()}</div>
+            <DropdownWrapper>{this.renderDropdown()}</DropdownWrapper>
           </PanelHeader>
           <PanelBody>
             {itemList.length === 0 && (
@@ -252,6 +252,10 @@ const StyledReposLabel = styled('div')`
   font-size: 0.875em;
   padding: ${space(1)} 0;
   text-transform: uppercase;
+`;
+
+const DropdownWrapper = styled('div')`
+  text-transform: none;
 `;
 
 const StyledListElement = styled('div')`
