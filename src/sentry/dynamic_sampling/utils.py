@@ -19,10 +19,6 @@ DEFAULT_BIASES = [
 ]
 
 
-class NoneSampleRateException(Exception):
-    ...
-
-
 class Inner(TypedDict):
     op: int
     name: str
@@ -86,11 +82,12 @@ def generate_rules(project: Project, enable_environment_bias=False):
 
     if enable_environment_bias and sample_rate and sample_rate < 1.0:
         rules.append(generate_environment_rule())
-
     if sample_rate is None:
         try:
             raise Exception("get_blended_sample_rate returns none")
         except Exception:
             sentry_sdk.capture_exception()
     else:
-        rules.append(generate_uniform_rule(project))
+        rules.append(generate_uniform_rule(sample_rate))
+
+    return rules
