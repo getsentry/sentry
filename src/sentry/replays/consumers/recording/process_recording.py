@@ -96,8 +96,6 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
         with sentry_sdk.start_transaction(
             op="replays.consumer", name="replays.consumer.flush_batch"
         ):
-            sentry_sdk.set_extra("replay_id", message_dict["replay_id"])
-
             try:
                 recording_segment_parts = list(parts)
             except ValueError:
@@ -117,6 +115,22 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
             # blindly merge the bytes objects into a single bytes object.
             recording_segment = b"".join(recording_segment_parts)
 
+            count_existing_segments = ReplayRecordingSegment.objects.filter(
+                replay_id=message_dict["replay_id"],
+                project_id=message_dict["project_id"],
+                segment_id=headers["segment_id"],
+            ).count()
+
+            if count_existing_segments > 0:
+                with sentry_sdk.push_scope() as scope:
+                    scope.level = "warning"
+                    scope.add_attachment(bytes=recording_segment, filename="dup_replay_segment")
+                    sentry_sdk.capture_message("Recording segment was already processed.")
+
+                parts.drop()
+
+                return
+
             # create a File for our recording segment.
             recording_segment_file_name = f"rr:{message_dict['replay_id']}:{headers['segment_id']}"
             file = File.objects.create(
@@ -128,6 +142,7 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
                 blob_size=settings.SENTRY_ATTACHMENT_BLOB_SIZE,
             )
             # associate this file with an indexable replay_id via ReplayRecordingSegment
+
             ReplayRecordingSegment.objects.create(
                 replay_id=message_dict["replay_id"],
                 project_id=message_dict["project_id"],
