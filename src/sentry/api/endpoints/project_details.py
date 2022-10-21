@@ -212,7 +212,7 @@ class DynamicSamplingSerializer(serializers.Serializer):
         return data
 
 
-class DynamicSamplingV2Serializer(serializers.Serializer):
+class DynamicSamplingBiasSerializer(serializers.Serializer):
     id = serializers.CharField(required=True)
     active = serializers.BooleanField(default=False)
 
@@ -264,7 +264,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     platform = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     copy_from_project = serializers.IntegerField(required=False)
     dynamicSampling = DynamicSamplingSerializer(required=False)
-    dynamicSamplingBiases = DynamicSamplingV2Serializer(required=False, many=True)
+    dynamicSamplingBiases = DynamicSamplingBiasSerializer(required=False, many=True)
     performanceIssueCreationRate = serializers.FloatField(required=False, min_value=0, max_value=1)
 
     def validate(self, data):
@@ -512,7 +512,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         # Dynamic Sampling Logic
         if ds_feature_multiplexer.is_on_dynamic_sampling():
-            ds_serializer_v2 = DynamicSamplingV2Serializer(
+            ds_serializer_v2 = DynamicSamplingBiasSerializer(
                 data=ds_feature_multiplexer.get_user_biases(
                     project.get_option("sentry:dynamic_sampling_biases", None)
                 ),
