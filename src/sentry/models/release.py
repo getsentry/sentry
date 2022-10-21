@@ -148,6 +148,7 @@ class ReleaseProject(Model):
 
     adopted = models.DateTimeField(null=True, blank=True)
     unadopted = models.DateTimeField(null=True, blank=True)
+    first_seen_transaction = models.DateTimeField(null=True, blank=True)
 
     objects = ReleaseProjectModelManager()
 
@@ -157,6 +158,7 @@ class ReleaseProject(Model):
         index_together = (
             ("project", "adopted"),
             ("project", "unadopted"),
+            ("project", "first_seen_transaction"),
         )
         unique_together = (("project", "release"),)
 
