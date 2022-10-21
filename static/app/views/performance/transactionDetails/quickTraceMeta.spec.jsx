@@ -169,6 +169,6 @@ describe('QuickTraceMeta', function () {
       />
     );
 
-    expect(result.baseElement.firstChild).toBeEmptyDOMElement();
+    expect(result.container).toBeEmptyDOMElement();
   });
 });
