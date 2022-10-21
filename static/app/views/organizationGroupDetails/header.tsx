@@ -270,7 +270,7 @@ function GroupHeader({
           {t('Tags')}
         </Item>
         <Item key={Tab.EVENTS} disabled={disabledTabs.includes(Tab.EVENTS)}>
-          {t('Events')}
+          {t('All Events')}
         </Item>
       </StyledTabList>
     );
