@@ -232,9 +232,10 @@ class AuthLoginView(BaseView):
                                 request.session.pop("_next", None)
 
                 # On login, redirect to onboarding
-                active_org = self.determine_active_organization(request)
-                if active_org:
-                    onboarding_redirect = get_client_state_redirect_uri(active_org.slug, None)
+                if self.active_organization:
+                    onboarding_redirect = get_client_state_redirect_uri(
+                        self.active_organization.slug, None
+                    )
                     if onboarding_redirect:
                         request.session["_next"] = onboarding_redirect
 

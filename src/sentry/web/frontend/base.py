@@ -30,7 +30,7 @@ from sentry.models import (
     Team,
     TeamStatus,
 )
-from sentry.services.hybrid_cloud import ApiOrganization
+from sentry.services.hybrid_cloud import ApiOrganization, organization_service
 from sentry.utils import auth
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.auth import is_valid_redirect, make_login_link_with_redirect
@@ -160,10 +160,8 @@ class OrganizationMixin:
         from sentry import features
 
         # TODO(dcramer): deal with case when the user cannot create orgs
-        organization = self.determine_active_organization(request)
-
-        if organization:
-            url = Organization.get_url(organization.slug)
+        if self.active_organization:
+            url = Organization.get_url(self.active_organization.slug)
         elif not features.has("organizations:create"):
             return self.respond("sentry/no-organization-access.html", status=403)
         else:
@@ -372,16 +370,12 @@ class OrganizationView(BaseView):
         if not organization_slug:
             return False
 
-        active_organization = self.determine_active_organization(
-            request=request, organization_slug=organization_slug
-        )
-        if not active_organization:
-            try:
-                Organization.objects.get_from_cache(slug=organization_slug)
-            except Organization.DoesNotExist:
-                pass
-            else:
-                return True
+        if not self.active_organization:
+            # Require auth if we can't lookup the organization slug, even in the cache.
+            return not organization_service.get_organization_by_slug(
+                organization_slug, only_visible=True, allow_stale=True
+            )
+
         return False
 
     def handle_permission_required(self, request: Request, organization, *args, **kwargs):
@@ -423,11 +417,12 @@ class OrganizationView(BaseView):
         return False
 
     def convert_args(self, request: Request, organization_slug=None, *args, **kwargs):
-        active_organization = self.determine_active_organization(
-            request=request, organization_slug=organization_slug
-        )
+        organization: Optional[Organization] = None
+        if self.active_organization:
+            for org in Organization.objects.filter(id=self.active_organization.id):
+                organization = org
 
-        kwargs["organization"] = active_organization
+        kwargs["organization"] = organization
 
         return (args, kwargs)
 
@@ -473,19 +468,21 @@ class ProjectView(OrganizationView):
         return True
 
     def convert_args(self, request: Request, organization_slug, project_slug, *args, **kwargs):
-        active_organization = self.determine_active_organization(
-            request=request, organization_slug=organization_slug
-        )
+        organization: Optional[Organization] = None
+        active_project: Optional[Project] = None
+        if self.active_organization:
+            for org in Organization.objects.filter(id=self.active_organization.id):
+                organization = org
 
-        if active_organization:
-            active_project = self.get_active_project(
-                request=request, organization=active_organization, project_slug=project_slug
-            )
+            if organization:
+                active_project = self.get_active_project(
+                    request=request, organization=organization, project_slug=project_slug
+                )
         else:
             active_project = None
 
         kwargs["project"] = active_project
-        kwargs["organization"] = active_organization
+        kwargs["organization"] = organization
 
         return (args, kwargs)
 
