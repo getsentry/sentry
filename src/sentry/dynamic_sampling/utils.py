@@ -93,7 +93,8 @@ class DynamicSamplingFeatureMultiplexer:
     def is_on_dynamic_sampling(self):
         return self.allow_dynamic_sampling and self.current_dynamic_sampling
 
-    def get_user_biases(self, user_set_biases):
+    @staticmethod
+    def get_user_biases(user_set_biases):
         if user_set_biases is None:
             return DEFAULT_BIASES
 
@@ -105,3 +106,7 @@ class DynamicSamplingFeatureMultiplexer:
             else:
                 returned_biases.append(bias)
         return returned_biases
+
+    @staticmethod
+    def get_supported_biases_ids():
+        return {bias["id"] for bias in DEFAULT_BIASES}
