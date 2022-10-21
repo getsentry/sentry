@@ -774,8 +774,9 @@ export const spanOperationRelativeBreakdownRenderer = (
   } else {
     orderedSpanOpsBreakdownFields = SPAN_OP_BREAKDOWN_FIELDS;
   }
+
   return (
-    <RelativeOpsBreakdown>
+    <RelativeOpsBreakdown data-test-id="relative-ops-breakdown">
       {orderedSpanOpsBreakdownFields.map(field => {
         if (!isDurationValue(data, field)) {
           return null;

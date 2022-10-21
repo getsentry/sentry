@@ -314,7 +314,9 @@ class GridEditable<
         {prependColumns &&
           columnOrder?.length > 0 &&
           prependColumns.map((item, i) => (
-            <GridHeadCellStatic key={`prepend-${i}`}>{item}</GridHeadCellStatic>
+            <GridHeadCellStatic data-test-id="grid-head-cell-static" key={`prepend-${i}`}>
+              {item}
+            </GridHeadCellStatic>
           ))}
         {
           /* Note that this.onResizeMouseDown assumes GridResizer is nested
