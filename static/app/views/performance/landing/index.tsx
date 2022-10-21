@@ -47,7 +47,6 @@ import {BackendView} from './views/backendView';
 import {FrontendOtherView} from './views/frontendOtherView';
 import {FrontendPageloadView} from './views/frontendPageloadView';
 import {MobileView} from './views/mobileView';
-import {DynamicSamplingMetricsAccuracyAlert} from './dynamicSamplingMetricsAccuracyAlert';
 import {MetricsDataSwitcher} from './metricsDataSwitcher';
 import {MetricsDataSwitcherAlert} from './metricsDataSwitcherAlert';
 import {
@@ -150,8 +149,6 @@ export function PerformanceLanding(props: Props) {
 
   const shouldShowTransactionNameOnlySearch = canUseMetricsData(organization);
 
-  const fullSelectedProjects = eventView.getFullSelectedProjects(projects);
-
   return (
     <StyledPageContent data-test-id="performance-landing-v3">
       <PageErrorProvider>
@@ -182,7 +179,7 @@ export function PerformanceLanding(props: Props) {
 
             <TabList hideBorder>
               {LANDING_DISPLAYS.map(({label, field}) => (
-                <Item key={field}>{t(label)}</Item>
+                <Item key={field}>{label}</Item>
               ))}
             </TabList>
           </Layout.Header>
@@ -214,18 +211,6 @@ export function PerformanceLanding(props: Props) {
                               router={props.router}
                               {...metricsDataSide}
                             />
-                            {!metricsDataSide.shouldWarnIncompatibleSDK &&
-                              !metricsDataSide.shouldNotifyUnnamedTransactions && (
-                                <DynamicSamplingMetricsAccuracyAlert
-                                  organization={organization}
-                                  selectedProject={
-                                    fullSelectedProjects.length === 1
-                                      ? fullSelectedProjects[0]
-                                      : undefined
-                                  }
-                                />
-                              )}
-
                             <PageErrorAlert />
                             {showOnboarding ? (
                               <Fragment>

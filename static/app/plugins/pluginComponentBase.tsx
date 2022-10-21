@@ -8,7 +8,8 @@ import {
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import {FormState, GenericField} from 'sentry/components/deprecatedforms';
+import GenericField from 'sentry/components/deprecatedforms/genericField';
+import FormState from 'sentry/components/forms/state';
 import {t} from 'sentry/locale';
 
 const callbackWithArgs = function (context: any, callback: any, ...args: any) {
@@ -19,7 +20,7 @@ type GenericFieldProps = Parameters<typeof GenericField>[0];
 
 type Props = {};
 
-type State = {state: GenericFieldProps['formState']};
+type State = {state: FormState};
 
 class PluginComponentBase<
   P extends Props = Props,

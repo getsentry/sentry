@@ -125,7 +125,7 @@ def schedule_organizations(dry_run=False, timestamp=None, duration=None):
     acks_late=True,
 )
 def prepare_organization_report(
-    timestamp, duration, organization_id, dry_run=False, target_user=None
+    timestamp, duration, organization_id, dry_run=False, target_user=None, email_override=None
 ):
     organization = Organization.objects.get(id=organization_id)
     ctx = OrganizationReportContext(timestamp, duration, organization)
@@ -152,7 +152,9 @@ def prepare_organization_report(
 
     # Finally, deliver the reports
     with sentry_sdk.start_span(op="weekly_reports.deliver_reports"):
-        deliver_reports(ctx, dry_run=dry_run, target_user=target_user)
+        deliver_reports(
+            ctx, dry_run=dry_run, target_user=target_user, email_override=email_override
+        )
 
 
 # Organization Passes
@@ -511,10 +513,10 @@ def fetch_key_performance_issue_groups(ctx):
 # For all users in the organization, we generate the template context for the user, and send the email.
 
 
-def deliver_reports(ctx, dry_run=False, target_user=None):
+def deliver_reports(ctx, dry_run=False, target_user=None, email_override=None):
     # Specify a sentry user to send this email.
-    if target_user:
-        send_email(ctx, target_user, dry_run=dry_run)
+    if email_override:
+        send_email(ctx, target_user, dry_run=dry_run, email_override=email_override)
     else:
         # We save the subscription status of the user in a field in UserOptions.
         # Here we do a raw query and LEFT JOIN on a subset of UserOption table where sentry_useroption.key = 'reports:disabled-organizations'
@@ -796,7 +798,7 @@ def render_template_context(ctx, user):
     }
 
 
-def send_email(ctx, user, dry_run=False):
+def send_email(ctx, user, dry_run=False, email_override=None):
     template_ctx = render_template_context(ctx, user)
     if not template_ctx:
         return
@@ -809,6 +811,10 @@ def send_email(ctx, user, dry_run=False):
         context=template_ctx,
         headers={"X-SMTPAPI": json.dumps({"category": "organization_weekly_report"})},
     )
-    message.add_users((user.id,))
-    if not dry_run:
+    if dry_run:
+        return
+    if email_override:
+        message.send(to=(email_override,))
+    else:
+        message.add_users((user.id,))
         message.send()

@@ -22,6 +22,7 @@ import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
 import {decodeFilterFromLocation, SpanOperationBreakdownFilter} from '../filter';
 import PageLayout, {ChildProps} from '../pageLayout';
 import Tab from '../tabs';
+import {decodeEventsDisplayFilterFromLocation} from '../transactionEvents/utils';
 
 import ReplaysContent from './content';
 import useReplaysFromTransaction from './useReplaysFromTransaction';
@@ -68,11 +69,16 @@ function ReplaysContentWrapper({
   organization,
   setError,
 }: ChildProps) {
+  const eventsDisplayFilterName = decodeEventsDisplayFilterFromLocation(location);
+  const spanOperationBreakdownFilter = decodeFilterFromLocation(location);
+
   const {eventView, replays, pageLinks, isFetching, fetchError} =
     useReplaysFromTransaction({
       eventsWithReplaysView,
       location,
       organization,
+      eventsDisplayFilterName,
+      spanOperationBreakdownFilter,
     });
 
   useEffect(() => {
@@ -95,6 +101,8 @@ function ReplaysContentWrapper({
       organization={organization}
       pageLinks={pageLinks}
       replays={replays}
+      eventsDisplayFilterName={eventsDisplayFilterName}
+      spanOperationBreakdownFilter={spanOperationBreakdownFilter}
     />
   ) : (
     <Fragment>{null}</Fragment>
@@ -130,6 +138,7 @@ function generateEventView({
 
   const query = decodeScalar(location.query.query, '');
   const conditions = new MutableSearch(query);
+  conditions.setFilterValues('event.type', ['transaction']);
   conditions.addFilterValues('transaction', [transactionName]);
   conditions.addFilterValues('!replayId', ['']);
 
