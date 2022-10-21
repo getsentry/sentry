@@ -1,22 +1,17 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import {browserHistory, Link} from 'react-router';
 import styled from '@emotion/styled';
-import Fuse from 'fuse.js';
-import * as qs from 'query-string';
 
 import CompactSelect from 'sentry/components/compactSelect';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnOrder,
-  GridColumnSortBy,
 } from 'sentry/components/gridEditable';
 import Pagination from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
-import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
-import {Profile} from 'sentry/utils/profiling/profile/profile';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {renderTableHead} from 'sentry/utils/profiling/tableRenderer';
 import {makeFormatter} from 'sentry/utils/profiling/units/units';
@@ -26,35 +21,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 
 import {useProfileGroup} from '../../profileGroupProvider';
-
-function collectTopProfileFrames(profile: Profile) {
-  const nodes: CallTreeNode[] = [];
-
-  profile.forEach(
-    node => {
-      if (node.selfWeight > 0) {
-        nodes.push(node);
-      }
-    },
-    () => {}
-  );
-
-  return (
-    nodes
-      .sort((a, b) => b.selfWeight - a.selfWeight)
-      // take only the slowest nodes from each thread because the rest
-      // aren't useful to display
-      .slice(0, 500)
-      .map(node => ({
-        symbol: node.frame.name,
-        image: node.frame.image,
-        thread: profile.threadId,
-        type: node.frame.is_application ? 'application' : 'system',
-        'self weight': node.selfWeight,
-        'total weight': node.totalWeight,
-      }))
-  );
-}
+import {useColumnFilters} from '../hooks/useColumnFilters';
+import {useFuseSearch} from '../hooks/useFuseSearch';
+import {usePageLinks} from '../hooks/usePageLinks';
+import {useSortableColumns} from '../hooks/useSortableColumn';
+import {collectProfileFrames} from '../utils';
 
 const RESULTS_PER_PAGE = 50;
 
@@ -72,28 +43,18 @@ export function SlowestFunctions() {
   const allFunctions: TableDataRow[] = useMemo(() => {
     return state.type === 'resolved'
       ? state.data.profiles
-          .flatMap(collectTopProfileFrames)
+          .flatMap(collectProfileFrames)
+          // Take only the first 500
+          .slice(0, 500)
           // Self weight desc sort
           .sort((a, b) => b['self weight'] - a['self weight'])
       : [];
   }, [state]);
 
-  const searchIndex = useMemo(() => {
-    return new Fuse(allFunctions, {
-      keys: ['symbol'],
-      threshold: 0.3,
-    });
-  }, [allFunctions]);
-
-  const search = useCallback(
-    (queryString: string) => {
-      if (!queryString) {
-        return allFunctions;
-      }
-      return searchIndex.search(queryString).map(result => result.item);
-    },
-    [searchIndex, allFunctions]
-  );
+  const {search} = useFuseSearch(allFunctions, {
+    keys: ['symbol'],
+    threshold: 0.3,
+  });
 
   const [slowestFunctions, setSlowestFunctions] = useState<TableDataRow[]>(() => {
     return search(query);
@@ -103,23 +64,21 @@ export function SlowestFunctions() {
     setSlowestFunctions(search(query));
   }, [allFunctions, query, search]);
 
-  const pageLinks = useMemo(() => {
-    const prevResults = cursor >= RESULTS_PER_PAGE ? 'true' : 'false';
-    const prevCursor = cursor >= RESULTS_PER_PAGE ? cursor - RESULTS_PER_PAGE : 0;
-    const prevQuery = {...location.query, cursor: prevCursor};
-    const prevHref = `${location.pathname}${qs.stringify(prevQuery)}`;
-    const prev = `<${prevHref}>; rel="previous"; results="${prevResults}"; cursor="${prevCursor}"`;
+  const pageLinks = usePageLinks(slowestFunctions, cursor);
 
-    const nextResults =
-      cursor + RESULTS_PER_PAGE < slowestFunctions.length ? 'true' : 'false';
-    const nextCursor =
-      cursor + RESULTS_PER_PAGE < slowestFunctions.length ? cursor + RESULTS_PER_PAGE : 0;
-    const nextQuery = {...location.query, cursor: nextCursor};
-    const nextHref = `${location.pathname}${qs.stringify(nextQuery)}`;
-    const next = `<${nextHref}>; rel="next"; results="${nextResults}"; cursor="${nextCursor}"`;
+  const {filters, columnFilters, filterPredicate} = useColumnFilters(slowestFunctions, [
+    'type',
+    'image',
+  ]);
 
-    return `${prev},${next}`;
-  }, [cursor, location, slowestFunctions]);
+  const {currentSort, generateSortLink, sortCompareFn} = useSortableColumns({
+    sortableColumns: SORTABLE_COLUMNS,
+    querystringKey: 'functionsSort',
+    defaultSort: {
+      key: 'self weight' as TableColumnKey,
+      order: 'desc',
+    },
+  });
 
   const handleSearch = useCallback(
     searchString => {
@@ -137,125 +96,9 @@ export function SlowestFunctions() {
     [location, search]
   );
 
-  const [filters, setFilters] = useState<Partial<Record<TableColumnKey, string[]>>>({});
-
-  const columnFilters = useMemo(() => {
-    function makeOnFilterChange(key: string) {
-      return values => {
-        setFilters(prevFilters => ({
-          ...prevFilters,
-          [key]: values.length > 0 ? values.map(val => val.value) : undefined,
-        }));
-      };
-    }
-    return {
-      type: {
-        values: ['application', 'system'],
-        onChange: makeOnFilterChange('type'),
-      },
-      image: {
-        values: pluckUniqueValues(slowestFunctions, 'image').sort((a, b) =>
-          a.localeCompare(b)
-        ),
-        onChange: makeOnFilterChange('image'),
-      },
-    };
-  }, [slowestFunctions]);
-
-  const currentSort = useMemo<GridColumnSortBy<TableColumnKey>>(() => {
-    let key = location.query?.functionsSort ?? '';
-
-    const defaultSort = {
-      key: 'self weight',
-      order: 'desc',
-    } as GridColumnSortBy<TableColumnKey>;
-
-    const isDesc = key[0] === '-';
-    if (isDesc) {
-      key = key.slice(1);
-    }
-
-    if (!key || !tableColumnKey.includes(key as TableColumnKey)) {
-      return defaultSort;
-    }
-
-    return {
-      key,
-      order: isDesc ? 'desc' : 'asc',
-    } as GridColumnSortBy<TableColumnKey>;
-  }, [location.query]);
-
-  useEffect(() => {
-    const removeListener = browserHistory.listenBefore((nextLocation, next) => {
-      if (location.pathname === nextLocation.pathname) {
-        next(nextLocation);
-        return;
-      }
-
-      if ('functionsSort' in nextLocation.query) {
-        delete nextLocation.query.functionsSort;
-      }
-
-      next(nextLocation);
-    });
-
-    return removeListener;
-  });
-
-  const generateSortLink = useCallback(
-    (column: TableColumnKey) => {
-      if (!SORTABLE_COLUMNS.has(column)) {
-        return () => undefined;
-      }
-      if (!currentSort) {
-        return () => ({
-          ...location,
-          query: {
-            ...location.query,
-            functionsSort: column,
-          },
-        });
-      }
-
-      const direction =
-        currentSort.key !== column
-          ? 'desc'
-          : currentSort.order === 'desc'
-          ? 'asc'
-          : 'desc';
-
-      return () => ({
-        ...location,
-        query: {
-          ...location.query,
-          functionsSort: `${direction === 'desc' ? '-' : ''}${column}`,
-        },
-      });
-    },
-    [location, currentSort]
-  );
-
   const data = slowestFunctions
-    .filter(row => {
-      let include = true;
-      for (const key in filters) {
-        const values = filters[key];
-        if (!values) {
-          continue;
-        }
-        include = values.includes(row[key]);
-        if (!include) {
-          return false;
-        }
-      }
-      return include;
-    })
-    .sort((a, b) => {
-      if (currentSort.order === 'asc') {
-        return a[currentSort.key] - b[currentSort.key];
-      }
-      return b[currentSort.key] - a[currentSort.key];
-    })
+    .filter(filterPredicate)
+    .sort(sortCompareFn)
     .slice(cursor, cursor + RESULTS_PER_PAGE);
 
   return (
@@ -285,7 +128,6 @@ export function SlowestFunctions() {
           onChange={columnFilters.type.onChange}
           placement="bottom right"
         />
-
         <CompactSelect
           options={columnFilters.image.values.map(value => ({value, label: value}))}
           value={filters.image}
@@ -306,7 +148,7 @@ export function SlowestFunctions() {
       </ActionBar>
 
       <GridEditable
-        title={t('Slowest Functions')}
+        title={t('Slowest Functions by Occurrence')}
         isLoading={state.type === 'loading'}
         error={state.type === 'errored'}
         data={data}
@@ -327,15 +169,6 @@ export function SlowestFunctions() {
       <Pagination pageLinks={pageLinks} />
     </Fragment>
   );
-}
-
-function pluckUniqueValues<T extends Record<string, any>>(collection: T[], key: keyof T) {
-  return collection.reduce((acc, val) => {
-    if (!acc.includes(val[key])) {
-      acc.push(val[key]);
-    }
-    return acc;
-  }, [] as string[]);
 }
 
 const RIGHT_ALIGNED_COLUMNS = new Set<TableColumnKey>(['self weight', 'total weight']);
