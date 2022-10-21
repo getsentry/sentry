@@ -357,7 +357,7 @@ function SetupDocs({
           isLast={!nextProject}
           hasFirstEvent={checkProjectHasFirstEvent(project)}
           onClickSetupLater={() => {
-            const orgIssuesURL = `/organizations/${organization.slug}/issues/?project=${project.id}`;
+            const orgIssuesURL = `/organizations/${organization.slug}/issues/?project=${project.id}&referrer=onboarding-setup-docs`;
             trackAdvancedAnalyticsEvent(
               'growth.onboarding_clicked_setup_platform_later',
               {

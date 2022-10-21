@@ -146,7 +146,7 @@ function TargetedOnboardingWelcome({organization, ...props}: StepProps) {
                   });
                 }
               }}
-              to={`/organizations/${organization.slug}/issues/`}
+              to={`/organizations/${organization.slug}/issues/?referrer=onboarding-welcome`}
             >
               {t('Skip onboarding.')}
             </Link>

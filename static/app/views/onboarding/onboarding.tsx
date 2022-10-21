@@ -154,7 +154,7 @@ function Onboarding(props: Props) {
             });
           }
         }}
-        to={`/organizations/${organization.slug}/issues/`}
+        to={`/organizations/${organization.slug}/issues/?referrer=onboarding`}
       >
         {t('Skip Onboarding')}
       </SkipOnboardingLink>

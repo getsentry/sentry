@@ -22,7 +22,7 @@ function ViewIssueLink({breadcrumb}: Props) {
   }
 
   const to = {
-    pathname: `/organizations/${organization.slug}/issues/${groupId}/events/${eventId}/`,
+    pathname: `/organizations/${organization.slug}/issues/${groupId}/events/${eventId}/?referrer=replay-console`,
   };
   return (
     <StyledHovercard

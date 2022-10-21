@@ -66,7 +66,7 @@ export default function FirstEventFooter({
       <Button
         to={`/organizations/${organization.slug}/issues/${
           firstIssue !== true && firstIssue !== null ? `${firstIssue.id}/` : ''
-        }`}
+        }?referrer=targted-onboarding-first-event-footer`}
         priority="primary"
       >
         {t('Take me to my error')}
@@ -89,7 +89,7 @@ export default function FirstEventFooter({
             });
           }
         }}
-        to={`/organizations/${organization.slug}/issues/`}
+        to={`/organizations/${organization.slug}/issues/?referrer=targted-onboarding-first-event-footer`}
       >
         {t('Skip Onboarding')}
       </SkipOnboardingLink>
