@@ -68,4 +68,11 @@ class EmailTestCase(AcceptanceTestCase):
             text_src = elem.get_attribute("innerHTML")
 
             fixture_src = read_txt_email_fixture(name)
+
+            if name == "performance":
+                print("fixture src")
+                print(fixture_src)
+
+                print("text src")
+                print(text_src)
             assert fixture_src == text_src
