@@ -207,7 +207,7 @@ def add_experimental_config(
     *args: Any,
     **kwargs: Any,
 ) -> None:
-    """Try to set cfg[key] = function(*args, **kwargs).
+    """Try to set `config[key] = function(*args, **kwargs)`.
 
     If the result of the function call is None, the key is not set.
     If the function call raises an exception, we log it to sentry and the key remains unset.
