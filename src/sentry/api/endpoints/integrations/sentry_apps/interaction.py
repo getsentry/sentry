@@ -4,7 +4,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import tsdb
-from sentry.api.base import StatsMixin, pending_silo_endpoint
+from sentry.api.base import StatsMixin, region_silo_endpoint
 from sentry.api.bases import SentryAppBaseEndpoint, SentryAppStatsPermission
 from sentry.api.bases.sentryapps import COMPONENT_TYPES
 
@@ -17,7 +17,7 @@ def get_component_interaction_key(sentry_app, component_type):
     return f"{sentry_app.slug}:{component_type}"
 
 
-@pending_silo_endpoint
+@region_silo_endpoint
 class SentryAppInteractionEndpoint(SentryAppBaseEndpoint, StatsMixin):
     permission_classes = (SentryAppStatsPermission,)
 

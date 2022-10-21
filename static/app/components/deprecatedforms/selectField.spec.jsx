@@ -2,8 +2,8 @@ import selectEvent from 'react-select-event';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Form, SelectField} from 'sentry/components/deprecatedforms';
-import FormModel from 'sentry/components/forms/model';
+import Form from 'sentry/components/deprecatedforms/form';
+import SelectField from 'sentry/components/deprecatedforms/selectField';
 
 describe('SelectField', function () {
   it('renders without form context', function () {
@@ -20,43 +20,23 @@ describe('SelectField', function () {
     expect(container).toSnapshot();
   });
 
-  it('renders with flat choices', function () {
+  it('renders with flat options', function () {
     const {container} = render(
-      <Form
-        value={
-          new FormModel({
-            initialData: {
-              fieldName: 'fieldValue',
-            },
-          })
-        }
-      >
-        <SelectField choices={['a', 'b', 'c']} name="fieldName" />
-      </Form>
+      <SelectField choices={['a', 'b', 'c']} name="fieldName" />
     );
     expect(container).toSnapshot();
   });
 
-  it('renders with paired choices', function () {
+  it('renders with paired options', function () {
     const {container} = render(
-      <Form
-        value={
-          new FormModel({
-            initialData: {
-              fieldName: 'fieldValue',
-            },
-          })
-        }
-      >
-        <SelectField
-          choices={[
-            ['a', 'abc'],
-            ['b', 'bcd'],
-            ['c', 'cde'],
-          ]}
-          name="fieldName"
-        />
-      </Form>
+      <SelectField
+        options={[
+          {value: 'a', label: 'abc'},
+          {value: 'b', label: 'bcd'},
+          {value: 'c', label: 'cde'},
+        ]}
+        name="fieldName"
+      />
     );
     expect(container).toSnapshot();
   });

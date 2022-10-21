@@ -170,6 +170,7 @@ class OwnerInput extends Component<Props, State> {
           }}
         >
           <StyledTextArea
+            aria-label={t('Ownership Rules')}
             placeholder={
               '#example usage\n' +
               'path:src/example/pipeline/* person@sentry.io #infra\n' +

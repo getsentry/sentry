@@ -1,6 +1,12 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {act} from 'sentry-test/reactTestingLibrary';
-import {findOption, openMenu, selectByValueAsync} from 'sentry-test/select-new';
+import selectEvent from 'react-select-event';
+
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -34,14 +40,12 @@ describe('RuleBuilder', function () {
 
   const TEAM_1 = TestStubs.Team({
     id: '3',
-    name: 'COOL TEAM',
     slug: 'cool-team',
   });
 
   // This team is in project
   const TEAM_2 = TestStubs.Team({
     id: '4',
-    name: 'TEAM NOT IN PROJECT',
     slug: 'team-not-in-project',
   });
 
@@ -57,7 +61,7 @@ describe('RuleBuilder', function () {
       // Teams in project
       teams: [TEAM_1],
     });
-    act(() => ProjectsStore.loadInitialData([project]));
+    ProjectsStore.loadInitialData([project]);
     jest.spyOn(ProjectsStore, 'getBySlug').mockImplementation(() => project);
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -66,43 +70,34 @@ describe('RuleBuilder', function () {
     });
   });
 
-  afterEach(function () {});
-
   it('renders', async function () {
-    const wrapper = mountWithTheme(
+    const {container} = render(
       <RuleBuilder project={project} organization={organization} onAddRule={handleAdd} />
     );
 
-    await tick();
-    wrapper.update();
+    const addButton = screen.getByRole('button', {name: 'Add rule'});
 
-    const add = wrapper.find('AddButton');
-    add.simulate('click');
+    userEvent.click(addButton);
     expect(handleAdd).not.toHaveBeenCalled();
 
-    const text = wrapper.find('BuilderInput');
-    text.simulate('change', {target: {value: 'some/path/*'}});
-    expect(wrapper.find('AddButton').prop('disabled')).toBe(true);
+    userEvent.type(screen.getByRole('textbox', {name: 'Rule pattern'}), 'some/path/*');
 
-    add.simulate('click');
-    expect(handleAdd).not.toHaveBeenCalled();
+    expect(addButton).toBeDisabled();
 
-    // Select the first item in the list.
-    await selectByValueAsync(wrapper, 'user:1', {name: 'owners', control: true});
-    wrapper.update();
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Rule owner'}),
+      'Jane Bloggs'
+    );
 
-    expect(wrapper.find('AddButton').prop('disabled')).toBe(false);
-    add.simulate('click');
+    expect(addButton).toBeEnabled();
+    userEvent.click(addButton);
     expect(handleAdd).toHaveBeenCalled();
 
-    // This is because after selecting, react-select (async) reloads
-    await tick();
-    wrapper.update();
-    expect(wrapper.find(RuleBuilder)).toSnapshot();
+    expect(container).toSnapshot();
   });
 
   it('renders with suggestions', async function () {
-    const wrapper = mountWithTheme(
+    const {container} = render(
       <RuleBuilder
         project={project}
         organization={organization}
@@ -113,36 +108,32 @@ describe('RuleBuilder', function () {
     );
 
     // Open the menu so we can do some assertions.
-    openMenu(wrapper, {name: 'owners', control: true});
-    await tick();
-    wrapper.update();
+    const ownerInput = screen.getByRole('textbox', {name: 'Rule owner'});
+    selectEvent.openMenu(ownerInput);
 
-    // Should have all 4 users/teams listed
-    expect(wrapper.find('IdBadge')).toHaveLength(4);
+    await waitForElementToBeRemoved(() => screen.queryByText('Loading...'));
 
-    // Should have 1 user not in project and 1 team not in project
-    expect(wrapper.find('DisabledLabel IdBadge')).toHaveLength(2);
+    expect(screen.getByText('Jane Bloggs')).toBeInTheDocument();
+    expect(screen.getByText('John Smith')).toBeInTheDocument();
+    expect(screen.getByText('#cool-team')).toBeInTheDocument();
+    expect(screen.getByText('#team-not-in-project')).toBeInTheDocument();
 
-    // Team not in project should not be selectable
-    expect(wrapper.find('DisabledLabel IdBadge').at(0).prop('team').id).toBe('4');
-
-    // John Smith should not be selectable
-    expect(wrapper.find('DisabledLabel IdBadge').at(1).prop('user').id).toBe('2');
+    // TODO Check that the last two are disabled
 
     // Enter to select Jane Bloggs
-    findOption(wrapper, {value: 'user:1'}, {name: 'owners', control: true})
-      .at(0)
-      .simulate('click');
+    await selectEvent.select(ownerInput, 'Jane Bloggs');
 
-    const ruleCandidate = wrapper.find('RuleCandidate').first();
-    ruleCandidate.simulate('click');
+    const candidates = screen.getAllByRole('button', {name: 'Path rule candidate'});
+    userEvent.click(candidates[0]);
 
-    // This is because after selecting, react-select (async) reloads
-    await tick();
-    wrapper.update();
-    expect(wrapper.find(RuleBuilder)).toSnapshot();
+    expect(screen.getByRole('textbox', {name: 'Rule pattern'})).toHaveValue('a/bar');
 
-    wrapper.find('AddButton').simulate('click');
+    const addButton = screen.getByRole('button', {name: 'Add rule'});
+    await waitFor(() => expect(addButton).toBeEnabled());
+
+    expect(container).toSnapshot();
+
+    userEvent.click(addButton);
     expect(handleAdd).toHaveBeenCalled();
   });
 });
