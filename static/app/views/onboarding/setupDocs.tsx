@@ -244,7 +244,9 @@ function SetupDocs({
       // If no projects remaining, then we can leave
       !project
     ) {
-      browserHistory.push('/');
+      browserHistory.push(
+        `/organizations/${organization.slug}/issues/?referrer=onboarding-setup-docs-on-complete`
+      );
     }
   });
 
