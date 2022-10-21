@@ -3,7 +3,7 @@ import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, Generic, List, Mapping, Optional, Type, TypeVar, cast
+from typing import Dict, Generic, Iterable, List, Mapping, Optional, Type, TypeVar, cast
 
 from sentry.models import Organization, OrganizationMember, OrganizationStatus
 
@@ -38,6 +38,9 @@ class ApiProjectKey:
 class ApiOrganization:
     slug: str = ""
     id: int = -1
+    # True iff the organization was queried with a user_id context, and that user_id
+    # was confirmed to be a member.
+    is_member: bool = False
 
 
 class InterfaceWithLifecycle(ABC):
@@ -105,7 +108,7 @@ class ProjectKeyService(InterfaceWithLifecycle):
 class OrganizationService(InterfaceWithLifecycle):
     @abstractmethod
     def get_organizations(
-        self, user_id: Optional[id], scope: Optional[str], only_visible: bool
+        self, user_id: int, scope: Optional[str], only_visible: bool
     ) -> List[ApiOrganization]:
         """
         This method is expected to follow the optionally given user_id, scope, and only_visible options to filter
@@ -121,21 +124,27 @@ class OrganizationService(InterfaceWithLifecycle):
 
     @abstractmethod
     def get_organization_by_slug(
-        self, slug: str, only_visible: bool, allow_stale: bool
+        self, user_id: Optional[int], slug: str, only_visible: bool, allow_stale: bool
     ) -> Optional[ApiOrganization]:
         pass
 
-    def _serialize_organization(self, org: Organization) -> ApiOrganization:
+    def _serialize_organization(
+        self, org: Organization, membership: Iterable[OrganizationMember] = tuple()
+    ) -> ApiOrganization:
         return ApiOrganization(
-            slug=org.slug,
-            id=org.id,
+            slug=org.slug, id=org.id, is_member=any(m.organization_id == org.id for m in membership)
         )
 
 
 class DatabaseBackedOrganizationService(OrganizationService):
     def get_organization_by_slug(
-        self, slug: str, only_visible: bool, allow_stale: bool
+        self, user_id: Optional[int], slug: str, only_visible: bool, allow_stale: bool
     ) -> Optional[ApiOrganization]:
+        membership: List[OrganizationMember]
+        if user_id is not None:
+            membership = OrganizationMember.objects.filter(user_id=user_id)
+        else:
+            membership = []
         try:
             if allow_stale:
                 org = Organization.objects.get_from_cache(slug=slug)
@@ -144,7 +153,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
             if only_visible and org.status != OrganizationStatus.VISIBLE:
                 raise Organization.DoesNotExist
-            return self._serialize_organization(org)
+            return self._serialize_organization(org, membership)
         except Organization.DoesNotExist:
             logger.info("Active organization [%s] not found", slug)
 
@@ -154,8 +163,15 @@ class DatabaseBackedOrganizationService(OrganizationService):
         pass
 
     def get_organizations(
-        self, user_id: Optional[id], scope: Optional[str], only_visible: bool
+        self, user_id: int, scope: Optional[str], only_visible: bool
     ) -> List[ApiOrganization]:
+        organizations = self._query_organizations(user_id, scope, only_visible)
+        membership = OrganizationMember.objects.filter(user_id=user_id)
+        return [self._serialize_organization(o, membership) for o in organizations]
+
+    def _query_organizations(
+        self, user_id: int, scope: Optional[str], only_visible: bool
+    ) -> List[Organization]:
         from django.conf import settings
 
         if settings.SENTRY_PUBLIC and scope is None:
@@ -164,10 +180,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
             else:
                 return list(Organization.objects.filter())
 
-        if user_id is not None:
-            qs = OrganizationMember.objects.filter(user_id=user_id)
-        else:
-            qs = OrganizationMember.objects.filter()
+        qs = OrganizationMember.objects.filter(user_id=user_id)
 
         qs = qs.select_related("organization")
         if only_visible:
@@ -178,7 +191,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         if scope is not None:
             return [r.organization for r in results if scope in r.get_scopes()]
 
-        return [self._serialize_organization(r.organization) for r in results]
+        return [r.organization for r in results]
 
 
 class DatabaseBackedProjectKeyService(ProjectKeyService):
