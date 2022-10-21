@@ -119,7 +119,7 @@ function ReplayTable({
           size="xs"
           position="top"
           title={t(
-            'Slowest single instance of this transactiono captured by this session.'
+            'Slowest single instance of this transaction captured by this session.'
           )}
         />
       </Header>
