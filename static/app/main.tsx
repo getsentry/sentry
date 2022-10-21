@@ -20,7 +20,14 @@ function renderRouter(props: any) {
   );
 }
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Prevents queries from being refetched if the data is < 20 seconds old
+      staleTime: 20_000,
+    },
+  },
+});
 
 function Main() {
   return (
