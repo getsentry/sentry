@@ -1187,20 +1187,16 @@ SENTRY_FEATURES = {
     # Enable SAML2 based SSO functionality. getsentry/sentry-auth-saml2 plugin
     # must be installed to use this functionality.
     "organizations:sso-saml2": True,
-    # Enable the server-side sampling feature (backend + relay)
+    # Enable the server-side sampling (backend + relay)
     "organizations:server-side-sampling": False,
-    # Enable the server-side sampling feature (frontend)
-    "organizations:server-side-sampling-ui": False,
+    # Enable the original behavior of sampling and UI that was used in LA (supported for selected orgs until end of November)
+    "organizations:dynamic-sampling-deprecated": False,
     # Enable creating DS rules on incompatible platforms (used by SDK teams for dev purposes)
     "organizations:server-side-sampling-allow-incompatible-platforms": False,
     # Enable the deletion of sampling uniform rules (used internally for demo purposes)
     "organizations:dynamic-sampling-demo": False,
-    # Enable the new opinionated dynamic sampling UI (this will be controlled by plan but now enables it for us internally during development)
-    "organizations:dynamic-sampling-opinionated": False,
-    # Enable the creation of a uniform sampling rule.
-    "organizations:dynamic-sampling-basic": False,
-    # Enable the creation of uniform and conditional sampling rules.
-    "organizations:dynamic-sampling-advanced": False,
+    # Enable the new opinionated dynamic sampling
+    "organizations:dynamic-sampling": False,
     # Enable the mobile screenshots feature
     "organizations:mobile-screenshots": False,
     # Enable the mobile screenshot gallery in the attachments tab

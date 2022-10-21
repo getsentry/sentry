@@ -509,9 +509,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if "hasAlertIntegration" in expand:
             data["hasAlertIntegrationInstalled"] = has_alert_integration(project)
 
-        if features.has(
-            "organizations:dynamic-sampling-basic", project.organization, actor=request.user
-        ):
+        if features.has("organizations:dynamic-sampling", project.organization, actor=request.user):
             data.pop("dynamicSampling", None)
 
         return Response(data)
@@ -557,7 +555,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         result = serializer.validated_data
 
         is_dynamic_sampling_basic = features.has(
-            "organizations:dynamic-sampling-basic", project.organization, actor=request.user
+            "organizations:dynamic-sampling", project.organization, actor=request.user
         )
         if is_dynamic_sampling_basic and result.get("dynamicSampling"):
             return Response(
