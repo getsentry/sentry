@@ -258,7 +258,7 @@ function ReplayTableRow({
         </Item>
       )}
       <Item>
-        <Duration seconds={Math.floor(replay.duration)} exact abbreviation />
+        <Duration seconds={replay.duration.asSeconds()} exact abbreviation />
       </Item>
       <Item data-test-id="replay-table-count-errors">{replay.countErrors || 0}</Item>
       <Item>

@@ -116,7 +116,7 @@ describe('TransactionReplays', () => {
     renderComponent();
 
     await waitFor(() => {
-      expect(eventsMockApi).toHaveBeenCalledTimes(1);
+      expect(eventsMockApi).toHaveBeenCalled();
       expect(eventsMockApi).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
         expect.objectContaining({
@@ -134,7 +134,7 @@ describe('TransactionReplays', () => {
               'timestamp',
             ]),
             per_page: 50,
-            query: 'transaction:transaction !replayId:""',
+            query: 'event.type:transaction transaction:transaction !replayId:""',
           }),
         })
       );

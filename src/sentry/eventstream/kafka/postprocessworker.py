@@ -67,7 +67,7 @@ def dispatch_post_process_group_task(
     project_id: int,
     group_id: Optional[int],
     is_new: bool,
-    is_regression: bool,
+    is_regression: Optional[bool],
     is_new_group_environment: bool,
     primary_hash: Optional[str],
     skip_consume: bool = False,
@@ -89,7 +89,7 @@ def dispatch_post_process_group_task(
         )
 
 
-def _get_task_kwargs_and_dispatch(message: Message):
+def _get_task_kwargs_and_dispatch(message: Message) -> None:
     task_kwargs = _get_task_kwargs(message)
     if not task_kwargs:
         return None

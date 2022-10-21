@@ -6,7 +6,6 @@ import Link from 'sentry/components/links/link';
 import SentryAppPublishRequestModal from 'sentry/components/modals/sentryAppPublishRequestModal';
 import {PanelItem} from 'sentry/components/panels';
 import SentryAppIcon from 'sentry/components/sentryAppIcon';
-import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, SentryApp} from 'sentry/types';
 
@@ -111,7 +110,7 @@ type PublishStatusProps = {status: SentryApp['status']; theme?: any};
 
 const PublishStatus = styled(({status, ...props}: PublishStatusProps) => (
   <CenterFlex>
-    <div {...props}>{t(`${status}`)}</div>
+    <div {...props}>{status}</div>
   </CenterFlex>
 ))`
   color: ${(props: PublishStatusProps) =>

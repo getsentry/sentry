@@ -172,6 +172,7 @@ class EventStream(Service):
         commit_batch_timeout_ms: int,
         concurrency: int,
         initial_offset_reset: Union[Literal["latest"], Literal["earliest"]],
+        use_streaming_consumer: bool,
     ) -> None:
         assert not self.requires_post_process_forwarder()
         raise ForwarderNotRequired

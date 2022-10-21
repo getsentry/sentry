@@ -195,24 +195,25 @@ def _get_project_config(project, full_config=True, project_keys=None):
             cfg["config"]["dynamicSampling"] = {"rules": []}
     elif allow_dynamic_sampling:
         dynamic_sampling = project.get_option("sentry:dynamic_sampling")
-        # filter out rules that do not have active set to True
-        active_rules = []
-        for rule in dynamic_sampling["rules"]:
-            if rule.get("active"):
-                inner_rule = rule["condition"]["inner"]
-                if (
-                    inner_rule
-                    and inner_rule[0]["name"] == "trace.release"
-                    and inner_rule[0]["value"] == ["latest"]
-                ):
-                    # get latest overall (no environments filters)
-                    environment = None
-                    rule["condition"]["inner"][0]["value"] = get_latest_release(
-                        [project], environment
-                    )
-                active_rules.append(rule)
+        if dynamic_sampling is not None:
+            # filter out rules that do not have active set to True
+            active_rules = []
+            for rule in dynamic_sampling["rules"]:
+                if rule.get("active"):
+                    inner_rule = rule["condition"]["inner"]
+                    if (
+                        inner_rule
+                        and inner_rule[0]["name"] == "trace.release"
+                        and inner_rule[0]["value"] == ["latest"]
+                    ):
+                        # get latest overall (no environments filters)
+                        environment = None
+                        rule["condition"]["inner"][0]["value"] = get_latest_release(
+                            [project], environment
+                        )
+                    active_rules.append(rule)
 
-        cfg["config"]["dynamicSampling"] = {"rules": active_rules}
+            cfg["config"]["dynamicSampling"] = {"rules": active_rules}
 
     # Limit the number of custom measurements
     cfg["config"]["measurements"] = get_measurements_config()

@@ -4,7 +4,18 @@ type IssueStream = {
   was_shown_suggestion: boolean;
 };
 
-export type IssueEventParameters = {
+type QuicktraceMissingInstrumentationPaylod = {
+  project_id: number;
+  platform?: string;
+};
+
+export type QuicktraceMissingInstrumentation = {
+  'quick_trace.missing_instrumentation.dismissed': QuicktraceMissingInstrumentationPaylod;
+  'quick_trace.missing_instrumentation.docs': QuicktraceMissingInstrumentationPaylod;
+  'quick_trace.missing_instrumentation.snoozed': QuicktraceMissingInstrumentationPaylod;
+};
+
+export type IssueEventParameters = QuicktraceMissingInstrumentation & {
   'event_cause.dismissed': {};
   'event_cause.docs_clicked': {};
   'event_cause.snoozed': {};
@@ -122,6 +133,11 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'quick_trace.dropdown.clicked_extra': 'Quick Trace: Dropdown clicked',
   'quick_trace.node.clicked': 'Quick Trace: Node clicked',
   'quick_trace.connected_services': 'Quick Trace: Connected Services',
+  'quick_trace.missing_instrumentation.dismissed':
+    'Quick Trace: Missing Instrumentation Dismissed',
+  'quick_trace.missing_instrumentation.snoozed':
+    'Quick Trace: Missing Instrumentation Snoozed',
+  'quick_trace.missing_instrumentation.docs': 'Quick Trace: Missing Instrumentation Docs',
   'span_view.embedded_child.hide': 'Span View: Hide Embedded Transaction',
   'span_view.embedded_child.show': 'Span View: Show Embedded Transaction',
   'issue_group_details.tab.clicked': 'Issue Group Details: Header Tab Clicked',
