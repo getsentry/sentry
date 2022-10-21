@@ -193,8 +193,8 @@ class BuildGroupAttachmentTest(TestCase):
             ]
         ):
             event = perf_event_manager.save(self.project.id)
-        event = event.for_group(event.groups[0])
-        attachments = SlackIssuesMessageBuilder(event.group, event).build()
+        group = event.for_group(event.groups[0]).group
+        attachments = SlackIssuesMessageBuilder(group, event).build()
 
         assert attachments["title"] == "N+1 Query"
         assert (

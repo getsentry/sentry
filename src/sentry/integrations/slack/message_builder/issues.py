@@ -254,6 +254,8 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
 
     def build(self) -> SlackBody:
         # XXX(dcramer): options are limited to 100 choices, even when nested
+        if self.event:
+            self.event = self.event.for_group(self.event.group or self.event.groups[0])
         text = build_attachment_text(self.group, self.event) or ""
         project = Project.objects.get_from_cache(id=self.group.project_id)
 
