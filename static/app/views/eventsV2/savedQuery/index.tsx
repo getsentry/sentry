@@ -564,7 +564,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
 
               triggerProps.onClick?.(e);
             }}
-            icon={<IconEllipsis direction="down" />}
+            icon={<IconEllipsis />}
           />
         )}
         position="bottom-end"
@@ -585,7 +585,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
           {({hasFeature}) => hasFeature && this.renderButtonCreateAlert()}
         </Feature>
 
-        {contextMenu}
+        {contextMenuItems.length > 0 && contextMenu}
 
         <Feature
           organization={organization}
