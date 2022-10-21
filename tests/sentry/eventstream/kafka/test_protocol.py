@@ -53,7 +53,7 @@ def test_get_task_kwargs_for_message_version_1():
     assert kwargs.pop("is_regression") is False
     assert kwargs.pop("is_new_group_environment") is True
     assert kwargs.pop("group_states") is None
-    assert kwargs.pop("queue") == "post_process_errors"
+    assert kwargs.pop("queue") is None
 
     assert not kwargs, f"unexpected values remaining: {kwargs!r}"
 
@@ -88,6 +88,7 @@ def test_get_task_kwargs_for_message_version_1_kafka_headers():
         ("version", b"2"),
         ("operation", b"insert"),
         ("skip_consume", b"0"),
+        ("queue", b"post_process_errors"),
     ]
 
     kwargs = get_task_kwargs_for_message_from_headers(kafka_headers)
@@ -98,3 +99,4 @@ def test_get_task_kwargs_for_message_version_1_kafka_headers():
     assert kwargs["is_new"] is True
     assert kwargs["is_regression"] is False
     assert kwargs["is_new_group_environment"] is True
+    assert kwargs["queue"] == "post_process_errors"

@@ -26,6 +26,7 @@ def kafka_message_payload():
             "is_new": False,
             "is_regression": None,
             "is_new_group_environment": False,
+            "queue": "post_process_errors",
             "skip_consume": False,
             "group_states": [
                 {
@@ -35,7 +36,6 @@ def kafka_message_payload():
                     "is_new_group_environment": False,
                 }
             ],
-            "queue": "post_process_errors",
         },
     ]
 
@@ -69,10 +69,10 @@ def test_post_process_forwarder(
         is_new=False,
         is_regression=None,
         is_new_group_environment=False,
+        queue="post_process_errors",
         group_states=[
             {"id": 43, "is_new": False, "is_regression": None, "is_new_group_environment": False}
         ],
-        queue="post_process_errors",
     )
 
     forwarder.shutdown()
@@ -106,10 +106,10 @@ def test_post_process_forwarder_bad_message_headers(
         is_new=False,
         is_regression=None,
         is_new_group_environment=False,
+        queue="post_process_errors",
         group_states=[
             {"id": 43, "is_new": False, "is_regression": None, "is_new_group_environment": False}
         ],
-        queue="post_process_errors",
     )
 
     forwarder.shutdown()
@@ -164,13 +164,15 @@ def test_errors_post_process_forwarder_calls_post_process_group(
         )
 
         assert post_process_group_spy.call_args.kwargs == dict(
-            group_id=43,
-            primary_hash="311ee66a5b8e697929804ceb1c456ffe",
-            cache_key=cache_key_for_event(
-                {"project": str(1), "event_id": "fe0ee9a2bc3b415497bad68aaf70dc7f"}
+            kwargs=dict(
+                group_id=43,
+                primary_hash="311ee66a5b8e697929804ceb1c456ffe",
+                cache_key=cache_key_for_event(
+                    {"project": str(1), "event_id": "fe0ee9a2bc3b415497bad68aaf70dc7f"}
+                ),
+                **group_state,
+                group_states=[{"id": 43, **group_state}],
             ),
-            **group_state,
-            group_states=[{"id": 43, **group_state}],
             queue="post_process_errors",
         )
 
@@ -206,13 +208,15 @@ def test_transactions_post_process_forwarder_calls_post_process_group(
         )
 
         assert post_process_group_spy.call_args.kwargs == dict(
-            group_id=43,
-            primary_hash="311ee66a5b8e697929804ceb1c456ffe",
-            cache_key=cache_key_for_event(
-                {"project": str(1), "event_id": "fe0ee9a2bc3b415497bad68aaf70dc7f"}
+            kwargs=dict(
+                group_id=43,
+                primary_hash="311ee66a5b8e697929804ceb1c456ffe",
+                cache_key=cache_key_for_event(
+                    {"project": str(1), "event_id": "fe0ee9a2bc3b415497bad68aaf70dc7f"}
+                ),
+                **group_state,
+                group_states=[{"id": 43, **group_state}],
             ),
-            **group_state,
-            group_states=[{"id": 43, **group_state}],
             queue="post_process_errors",
         )
 
