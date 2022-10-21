@@ -56,18 +56,20 @@ def test_get_project_config(default_project, insta_snapshot, django_cache, full)
     insta_snapshot(cfg)
 
 
+SOME_EXCEPTION = RuntimeError("foo")
+
+
 @pytest.mark.django_db
-def test_get_experimental_config(default_project):
+@mock.patch("sentry.relay.config.generate_uniform_rule", side_effect=SOME_EXCEPTION)
+@mock.patch("sentry.relay.config.sentry_sdk")
+def test_get_experimental_config(mock_sentry_sdk, _, default_project):
     keys = ProjectKey.objects.filter(project=default_project)
-    exc = RuntimeError("foo")
-    with Feature("organizations:dynamic-sampling-basic"), mock.patch(
-        "sentry.relay.config.generate_uniform_rule", side_effect=exc
-    ), mock.patch("sentry.relay.config.sentry_sdk") as mock_sentry_sdk:
+    with Feature("organizations:dynamic-sampling-basic"):
         # Does not raise:
         cfg = get_project_config(default_project, full_config=True, project_keys=keys)
     # Key is missing from config:
     assert "dynamicSampling" not in cfg.to_dict()["config"]
-    assert mock_sentry_sdk.capture_exception.call_args == mock.call(exc)
+    assert mock_sentry_sdk.capture_exception.call_args == mock.call(SOME_EXCEPTION)
 
 
 @pytest.mark.django_db
