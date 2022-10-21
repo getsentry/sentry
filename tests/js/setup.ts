@@ -16,7 +16,7 @@ import * as qs from 'query-string';
 import type {Client} from 'sentry/__mocks__/api';
 import ConfigStore from 'sentry/stores/configStore';
 
-import TestStubFixtures from '../../fixtures/js-stubs/types.test';
+import TestStubFixtures from '../../fixtures/js-stubs/types';
 
 // needed by cbor-web for webauthn
 window.TextEncoder = TextEncoder;
