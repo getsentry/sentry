@@ -221,7 +221,9 @@ class DynamicSamplingSerializer(serializers.Serializer):
 
 
 class DynamicSamplingBiasSerializer(serializers.Serializer):
-    id = serializers.CharField(required=True)
+    id = serializers.ChoiceField(
+        required=True, choices=DynamicSamplingFeatureMultiplexer.get_supported_biases_ids()
+    )
     active = serializers.BooleanField(default=False)
 
     def validate(self, data):
@@ -229,9 +231,6 @@ class DynamicSamplingBiasSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 "Error: Only 'id' and 'active' fields are allowed for bias."
             )
-
-        if data["id"] not in DynamicSamplingFeatureMultiplexer.get_supported_biases_ids():
-            raise serializers.ValidationError(f"Error: {data['id']} is not a valid bias.")
         return data
 
 

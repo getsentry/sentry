@@ -2127,7 +2127,6 @@ class TestProjectDetailsDynamicSampling(TestProjectDetailsDynamicSamplingBase):
             assert get_response.data["dynamicSamplingBiases"] == DEFAULT_BIASES
 
     def test_put_new_dynamic_sampling_incorrect_rules_with_correct_flags(self):
-
         new_biases = [
             {"id": "foo", "active": False},
         ]
@@ -2144,8 +2143,8 @@ class TestProjectDetailsDynamicSampling(TestProjectDetailsDynamicSamplingBase):
                 data={"dynamicSamplingBiases": new_biases},
             )
             assert response.status_code == 400
-            assert response.json()["dynamicSamplingBiases"][0]["non_field_errors"] == [
-                "Error: foo is not a valid " "bias."
+            assert response.json()["dynamicSamplingBiases"][0]["id"] == [
+                '"foo" is not a valid choice.'
             ]
 
             new_biases = [
