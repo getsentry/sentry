@@ -15,5 +15,5 @@ export default function useRouteAnalyticsParams(params: Record<string, any>) {
     // use the object values and keys as dependencies to re-trigger rendering
     // if the underlying parameters change
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [setRouteAnalyticsParams, ...values, ...keys]);
+  }, [...values, ...keys]);
 }
