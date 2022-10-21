@@ -384,6 +384,7 @@ type OSContext = {
 type EventContexts = {
   client_os?: OSContext;
   device?: DeviceContext;
+  feedback?: Record<string, any>;
   os?: OSContext;
   // TODO (udameli): add better types here
   // once perf issue data shape is more clear

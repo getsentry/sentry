@@ -200,7 +200,7 @@ export function SamplingFeedback() {
               }
               submitEventData={{
                 contexts: {
-                  survey: {
+                  feedback: {
                     opinionAboutFeature: state.opinionAboutFeature || null,
                     tracingCapturingPriorities:
                       state.tracingCapturingPriorities
