@@ -242,6 +242,7 @@ const specialMapping = {
   PluginListConfig: 'integrationListDirectory.js',
   DiscoverSavedQuery: 'discover.js',
   VercelProvider: 'vercelIntegration.js',
+  TagValues: 'tagvalues.js',
 };
 
 function tryRequire(dir: string, name: string): any {
