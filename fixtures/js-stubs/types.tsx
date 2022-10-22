@@ -46,10 +46,10 @@ type TestStubFixtures = {
   Events: OverridableStubList;
   EventsStats: OverridableStub;
   ExceptionWithMeta: OverridableStubList;
-  GitHubIntegration: OverridableStub;
-  GitHubIntegrationProvider: OverridableStub;
-  GitHubRepositoryProvider: OverridableStub;
+  GithubIntegration: OverridableStub;
   GithubIntegrationConfig: SimpleStub;
+  GithubIntegrationProvider: OverridableStub;
+  GithubRepositoryProvider: OverridableStub;
   GlobalSelection: OverridableStub;
   Group: OverridableStub;
   GroupStats: OverridableStub;
