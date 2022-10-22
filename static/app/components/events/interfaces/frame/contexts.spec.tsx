@@ -1,3 +1,5 @@
+import {Event} from 'fixtures/js-stubs/event.js';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -40,7 +42,7 @@ describe('User', function () {
             ip_address: '',
             data: {},
           }}
-          event={TestStubs.Event()}
+          event={Event()}
         />
       </ComponentProviders>
     );
@@ -59,7 +61,7 @@ describe('User', function () {
             ip_address: '',
             data: {},
           }}
-          event={TestStubs.Event()}
+          event={Event()}
         />
       </ComponentProviders>
     );
@@ -78,7 +80,7 @@ describe('User', function () {
             ip_address: '',
             data: {},
           }}
-          event={TestStubs.Event()}
+          event={Event()}
         />
       </ComponentProviders>
     );
@@ -103,7 +105,7 @@ describe('Device', function () {
     it('renders', function () {
       const {container} = render(
         <ComponentProviders>
-          <DeviceEventContext data={device} event={TestStubs.Event()} />
+          <DeviceEventContext data={device} event={Event()} />
         </ComponentProviders>
       );
 
@@ -115,7 +117,7 @@ describe('Device', function () {
         <ComponentProviders>
           <DeviceEventContext
             data={{...device, screen_resolution: undefined}}
-            event={TestStubs.Event()}
+            event={Event()}
           />
         </ComponentProviders>
       );
@@ -146,7 +148,7 @@ describe('Device', function () {
               screen_width_pixels: undefined,
               screen_height_pixels: undefined,
             }}
-            event={TestStubs.Event()}
+            event={Event()}
           />
         </ComponentProviders>
       );

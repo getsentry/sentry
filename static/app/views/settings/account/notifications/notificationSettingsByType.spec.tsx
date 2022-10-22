@@ -1,3 +1,6 @@
+import {Organization} from 'fixtures/js-stubs/organization.js';
+import {UserIdentity} from 'fixtures/js-stubs/userIdentity.js';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -42,7 +45,7 @@ function renderComponent(
   organizationIntegrations: OrganizationIntegration[] = []
 ) {
   const {routerContext} = initializeOrg();
-  const org = TestStubs.Organization();
+  const org = Organization();
   renderMockRequests(notificationSettings, identities, organizationIntegrations);
 
   render(<NotificationSettingsByType notificationType="alerts" organizations={[org]} />, {
@@ -75,14 +78,14 @@ describe('NotificationSettingsByType', function () {
   });
 
   it('should render warning modal when identity not linked', function () {
-    const org = TestStubs.Organization();
+    const org = Organization();
 
     renderComponent(
       {
         alerts: {user: {me: {email: 'always', slack: 'always'}}},
       },
       [],
-      [TestStubs.OrganizationIntegrations()]
+      [OrganizationIntegrations()]
     );
 
     expect(
@@ -95,14 +98,14 @@ describe('NotificationSettingsByType', function () {
   });
 
   it('should not render warning modal when identity is linked', function () {
-    const org = TestStubs.Organization();
+    const org = Organization();
 
     renderComponent(
       {
         alerts: {user: {me: {email: 'always', slack: 'always'}}},
       },
-      [TestStubs.UserIdentity()],
-      [TestStubs.OrganizationIntegrations({organizationId: org.id})]
+      [UserIdentity()],
+      [OrganizationIntegrations({organizationId: org.id})]
     );
 
     expect(

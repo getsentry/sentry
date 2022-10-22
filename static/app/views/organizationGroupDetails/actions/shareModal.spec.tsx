@@ -1,3 +1,7 @@
+import {Group} from 'fixtures/js-stubs/group.js';
+import {Organization} from 'fixtures/js-stubs/organization.js';
+import {Project} from 'fixtures/js-stubs/project.js';
+
 import {renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {openModal} from 'sentry/actionCreators/modal';
@@ -6,8 +10,8 @@ import ModalStore from 'sentry/stores/modalStore';
 import ShareIssueModal from 'sentry/views/organizationGroupDetails/actions/shareModal';
 
 describe('shareModal', () => {
-  const project = TestStubs.Project();
-  const organization = TestStubs.Organization();
+  const project = Project();
+  const organization = Organization();
   const onToggle = jest.fn();
 
   beforeEach(() => {
@@ -21,7 +25,7 @@ describe('shareModal', () => {
   });
 
   it('should share on open', async () => {
-    const group = TestStubs.Group();
+    const group = Group();
     GroupStore.add([group]);
 
     const issuesApi = MockApiClient.addMockResponse({
@@ -48,7 +52,7 @@ describe('shareModal', () => {
   });
 
   it('should unshare', async () => {
-    const group = TestStubs.Group({isPublic: true, shareId: '12345'});
+    const group = Group({isPublic: true, shareId: '12345'});
     GroupStore.add([group]);
 
     const issuesApi = MockApiClient.addMockResponse({

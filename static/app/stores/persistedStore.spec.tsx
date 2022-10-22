@@ -1,4 +1,5 @@
 import {act} from 'react-test-renderer';
+import {Organization} from 'fixtures/js-stubs/organization.js';
 
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
@@ -14,7 +15,7 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 describe('PersistedStore', function () {
   let org, wrapper;
   beforeEach(() => {
-    org = TestStubs.Organization();
+    org = Organization();
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/client-state/`,
       body: {

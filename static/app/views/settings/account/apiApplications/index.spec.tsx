@@ -1,3 +1,5 @@
+import {ApiApplication} from 'fixtures/js-stubs/apiApplication.js';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -33,7 +35,7 @@ describe('ApiApplications', function () {
 
     const requestMock = MockApiClient.addMockResponse({
       url: '/api-applications/',
-      body: [TestStubs.ApiApplication()],
+      body: [ApiApplication()],
     });
 
     render(
@@ -57,7 +59,7 @@ describe('ApiApplications', function () {
 
     const createApplicationRequest = MockApiClient.addMockResponse({
       url: '/api-applications/',
-      body: TestStubs.ApiApplication({
+      body: ApiApplication({
         id: '234',
       }),
       method: 'POST',

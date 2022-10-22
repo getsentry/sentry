@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import {Event} from 'fixtures/js-stubs/event.js';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -24,7 +25,7 @@ describe('EventCustomPerformanceMetrics', function () {
 
   it('should not render non custom performance metrics', function () {
     const {router, organization} = initializeOrg();
-    const event = TestStubs.Event({
+    const event = Event({
       measurements: {lcp: {value: 10, unit: 'millisecond'}},
     });
     render(
@@ -40,7 +41,7 @@ describe('EventCustomPerformanceMetrics', function () {
 
   it('should render custom performance metrics', function () {
     const {router, organization} = initializeOrg();
-    const event = TestStubs.Event({
+    const event = Event({
       measurements: {
         'custom.count': {unit: 'none', value: 10},
         'custom.duration': {unit: 'millisecond', value: 123},
@@ -71,7 +72,7 @@ describe('EventCustomPerformanceMetrics', function () {
 
   it('should render custom performance metrics context menu', function () {
     const {router, organization} = initializeOrg();
-    const event = TestStubs.Event({
+    const event = Event({
       measurements: {
         'custom.size': {unit: 'kibibyte', value: 456},
       },
@@ -94,7 +95,7 @@ describe('EventCustomPerformanceMetrics', function () {
 
   it('should render custom performance metrics custom unit', function () {
     const {router, organization} = initializeOrg();
-    const event = TestStubs.Event({
+    const event = Event({
       measurements: {
         'custom.unit': {unit: 'customunit', value: 456},
       },

@@ -1,4 +1,5 @@
 import selectEvent from 'react-select-event';
+import {location} from 'fixtures/js-stubs/location.js';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -108,7 +109,7 @@ describe('add to dashboard modal', () => {
         selection={defaultSelection}
         router={initialData.router}
         widgetAsQueryParams={mockWidgetAsQueryParams}
-        location={TestStubs.location()}
+        location={location()}
       />
     );
 
@@ -140,7 +141,7 @@ describe('add to dashboard modal', () => {
         selection={defaultSelection}
         router={initialData.router}
         widgetAsQueryParams={mockWidgetAsQueryParams}
-        location={TestStubs.location()}
+        location={location()}
       />
     );
 
@@ -170,7 +171,7 @@ describe('add to dashboard modal', () => {
         selection={defaultSelection}
         router={initialData.router}
         widgetAsQueryParams={mockWidgetAsQueryParams}
-        location={TestStubs.location()}
+        location={location()}
       />
     );
 
@@ -200,7 +201,7 @@ describe('add to dashboard modal', () => {
         selection={defaultSelection}
         router={initialData.router}
         widgetAsQueryParams={mockWidgetAsQueryParams}
-        location={TestStubs.location()}
+        location={location()}
       />
     );
 
@@ -254,7 +255,7 @@ describe('add to dashboard modal', () => {
         selection={defaultSelection}
         router={initialData.router}
         widgetAsQueryParams={mockWidgetAsQueryParams}
-        location={TestStubs.location()}
+        location={location()}
       />
     );
 
@@ -290,7 +291,7 @@ describe('add to dashboard modal', () => {
         selection={defaultSelection}
         router={initialData.router}
         widgetAsQueryParams={mockWidgetAsQueryParams}
-        location={TestStubs.location()}
+        location={location()}
       />
     );
 
@@ -324,7 +325,7 @@ describe('add to dashboard modal', () => {
         selection={defaultSelection}
         router={initialData.router}
         widgetAsQueryParams={mockWidgetAsQueryParams}
-        location={TestStubs.location()}
+        location={location()}
       />
     );
 
@@ -370,7 +371,7 @@ describe('add to dashboard modal', () => {
         selection={defaultSelection}
         router={initialData.router}
         widgetAsQueryParams={mockWidgetAsQueryParams}
-        location={TestStubs.location()}
+        location={location()}
       />
     );
 
@@ -428,7 +429,7 @@ describe('add to dashboard modal', () => {
         selection={defaultSelection}
         router={initialData.router}
         widgetAsQueryParams={mockWidgetAsQueryParams}
-        location={TestStubs.location()}
+        location={location()}
       />
     );
 
@@ -509,7 +510,7 @@ describe('add to dashboard modal', () => {
         selection={defaultSelection}
         router={initialData.router}
         widgetAsQueryParams={mockWidgetAsQueryParams}
-        location={TestStubs.location()}
+        location={location()}
       />
     );
 
@@ -567,7 +568,7 @@ describe('add to dashboard modal', () => {
         selection={defaultSelection}
         router={initialData.router}
         widgetAsQueryParams={mockWidgetAsQueryParams}
-        location={TestStubs.location()}
+        location={location()}
       />
     );
 

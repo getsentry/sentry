@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/react';
+import {router} from 'fixtures/js-stubs/router.js';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -8,7 +9,7 @@ import RouteError from 'sentry/views/routeError';
 describe('RouteError', function () {
   const {routerContext} = initializeOrg({
     ...initializeOrg(),
-    router: TestStubs.router({
+    router: router({
       routes: [
         {path: '/'},
         {path: '/:orgId/'},

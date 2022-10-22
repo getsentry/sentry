@@ -1,3 +1,7 @@
+import {DataScrubbingRelayPiiConfig} from 'fixtures/js-stubs/dataScrubbingRelayPiiConfig.js';
+import {Event} from 'fixtures/js-stubs/event.js';
+import {Project} from 'fixtures/js-stubs/project.js';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -9,9 +13,9 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 import {RouteContext} from 'sentry/views/routeContext';
 
 describe('Breadcrumb Data Default', function () {
-  const project = TestStubs.Project({
+  const project = Project({
     id: '0',
-    relayPiiConfig: JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig()),
+    relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfig()),
   });
 
   const {organization, router} = initializeOrg({
@@ -53,7 +57,7 @@ describe('Breadcrumb Data Default', function () {
                 },
               },
             }}
-            event={TestStubs.Event()}
+            event={Event()}
             orgSlug="org-slug"
             searchTerm=""
             breadcrumb={{
@@ -104,7 +108,7 @@ describe('Breadcrumb Data Default', function () {
                 },
               },
             }}
-            event={TestStubs.Event()}
+            event={Event()}
             orgSlug="org-slug"
             searchTerm=""
             breadcrumb={{

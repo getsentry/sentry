@@ -1,15 +1,18 @@
+import {Group} from 'fixtures/js-stubs/group.js';
+import {Organization} from 'fixtures/js-stubs/organization.js';
+
 import {mountGlobalModal} from 'sentry-test/modal';
 
 import {openReprocessEventModal} from 'sentry/actionCreators/modal';
 import ModalStore from 'sentry/stores/modalStore';
 
-const group = TestStubs.Group({
+const group = Group({
   id: '1337',
   pluginActions: [],
   pluginIssues: [],
 });
 
-const organization = TestStubs.Organization({
+const organization = Organization({
   id: '4660',
   slug: 'org',
   features: ['reprocessing-v2'],

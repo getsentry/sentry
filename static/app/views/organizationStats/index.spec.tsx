@@ -1,3 +1,5 @@
+import {Project} from 'fixtures/js-stubs/project.js';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -21,7 +23,7 @@ describe('OrganizationStats', function () {
       utc: false,
     },
   };
-  const projects = ['1', '2', '3'].map(id => TestStubs.Project({id, slug: `proj-${id}`}));
+  const projects = ['1', '2', '3'].map(id => Project({id, slug: `proj-${id}`}));
   const {organization, router, routerContext} = initializeOrg({
     organization: {features: ['global-views', 'team-insights']},
     projects,

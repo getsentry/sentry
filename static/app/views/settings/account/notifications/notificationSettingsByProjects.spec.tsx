@@ -1,3 +1,6 @@
+import {Organization} from 'fixtures/js-stubs/organization.js';
+import {Project} from 'fixtures/js-stubs/project.js';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -41,10 +44,8 @@ describe('NotificationSettingsByProjects', function () {
   });
 
   it('should show search bar when there are enough projects', function () {
-    const organization = TestStubs.Organization();
-    const projects = [...Array(3).keys()].map(id =>
-      TestStubs.Project({organization, id})
-    );
+    const organization = Organization();
+    const projects = [...Array(3).keys()].map(id => Project({organization, id}));
 
     renderComponent(projects);
     expect(screen.getByPlaceholderText('Search Projects')).toBeInTheDocument();

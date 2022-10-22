@@ -1,3 +1,5 @@
+import {location} from 'fixtures/js-stubs/location.js';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render} from 'sentry-test/reactTestingLibrary';
 
@@ -24,7 +26,7 @@ describe('ProjectExpectCtReports', function () {
         router={router}
         routes={router.routes}
         params={{orgId: org.slug, projectId: project.slug}}
-        location={TestStubs.location({pathname: url})}
+        location={location({pathname: url})}
       />
     );
 

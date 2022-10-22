@@ -1,4 +1,6 @@
 import {Fragment} from 'react';
+import {Organization} from 'fixtures/js-stubs/organization.js';
+import {Project} from 'fixtures/js-stubs/project.js';
 
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -8,8 +10,8 @@ import EventsGeoRequest, {
 import * as genericDiscoverQuery from 'sentry/utils/discover/genericDiscoverQuery';
 
 describe('EventsRequest', function () {
-  const project = TestStubs.Project();
-  const organization = TestStubs.Organization();
+  const project = Project();
+  const organization = Organization();
   const makeProps = (
     partial: Partial<EventsGeoRequestProps> = {}
   ): EventsGeoRequestProps => {

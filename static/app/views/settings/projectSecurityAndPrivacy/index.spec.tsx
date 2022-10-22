@@ -1,4 +1,5 @@
 import {InjectedRouter} from 'react-router';
+import {ProjectDetails} from 'fixtures/js-stubs/projectDetails.js';
 import {Location} from 'history';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -39,7 +40,7 @@ function ComponentProviders({
 describe('projectSecurityAndPrivacy', function () {
   it('renders form fields', function () {
     const {organization, router} = initializeOrg();
-    const project = TestStubs.ProjectDetails();
+    const project = ProjectDetails();
 
     render(
       <ComponentProviders
@@ -90,7 +91,7 @@ describe('projectSecurityAndPrivacy', function () {
 
   it('disables field when equivalent org setting is true', function () {
     const {organization, router} = initializeOrg();
-    const project = TestStubs.ProjectDetails();
+    const project = ProjectDetails();
 
     organization.dataScrubber = true;
     organization.scrubIPAddresses = false;

@@ -1,3 +1,6 @@
+import {Broadcast} from 'fixtures/js-stubs/broadcast.js';
+import {Project} from 'fixtures/js-stubs/project.js';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -21,7 +24,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
       push: jest.fn(),
     },
   } as any);
-  const broadcast = TestStubs.Broadcast();
+  const broadcast = Broadcast();
 
   const apiMocks: any = {};
 
@@ -130,7 +133,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
 
   it('checklist feature enabled > navigate to performance page > project with onboarding support', async function () {
     ProjectsStore.loadInitialData([
-      TestStubs.Project({platform: 'javascript-react', firstTransactionEvent: false}),
+      Project({platform: 'javascript-react', firstTransactionEvent: false}),
     ]);
     const {container} = renderSidebar({
       organization: {
@@ -163,7 +166,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
 
   it('checklist feature enabled > navigate to performance page > project without onboarding support', async function () {
     ProjectsStore.loadInitialData([
-      TestStubs.Project({platform: 'javascript-angular', firstTransactionEvent: false}),
+      Project({platform: 'javascript-angular', firstTransactionEvent: false}),
     ]);
     const {container} = renderSidebar({
       organization: {
@@ -196,7 +199,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
 
   it('checklist feature enabled > navigate to performance page > project without performance support', async function () {
     ProjectsStore.loadInitialData([
-      TestStubs.Project({platform: 'elixir', firstTransactionEvent: false}),
+      Project({platform: 'elixir', firstTransactionEvent: false}),
     ]);
     const {container} = renderSidebar({
       organization: {
@@ -226,7 +229,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
   });
 
   it('displays checklist', async function () {
-    const project = TestStubs.Project({
+    const project = Project({
       platform: 'javascript-react',
       firstTransactionEvent: false,
     });

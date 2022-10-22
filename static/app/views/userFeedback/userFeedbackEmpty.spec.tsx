@@ -1,3 +1,6 @@
+import {Organization} from 'fixtures/js-stubs/organization.js';
+import {Project} from 'fixtures/js-stubs/project.js';
+
 import {reactHooks, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -5,10 +8,10 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 import {UserFeedbackEmpty} from 'sentry/views/userFeedback/userFeedbackEmpty';
 
 describe('UserFeedbackEmpty', function () {
-  const project = TestStubs.Project({id: '1'});
-  const projectWithReports = TestStubs.Project({id: '2', hasUserReports: true});
-  const projectWithoutReports = TestStubs.Project({id: '3'});
-  const organization = TestStubs.Organization();
+  const project = Project({id: '1'});
+  const projectWithReports = Project({id: '2', hasUserReports: true});
+  const projectWithoutReports = Project({id: '3'});
+  const organization = Organization();
 
   it('renders empty', function () {
     render(

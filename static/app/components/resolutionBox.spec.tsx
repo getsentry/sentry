@@ -1,3 +1,5 @@
+import {Commit} from 'fixtures/js-stubs/commit.js';
+
 import {render} from 'sentry-test/reactTestingLibrary';
 
 import ResolutionBox from 'sentry/components/resolutionBox';
@@ -65,7 +67,7 @@ describe('ResolutionBox', function () {
       const {container} = render(
         <ResolutionBox
           statusDetails={{
-            inCommit: TestStubs.Commit(),
+            inCommit: Commit(),
           }}
           projectId="1"
         />

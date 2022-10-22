@@ -1,3 +1,9 @@
+import {Commit} from 'fixtures/js-stubs/commit.js';
+import {CommitAuthor} from 'fixtures/js-stubs/commitAuthor.js';
+import {Event} from 'fixtures/js-stubs/event.js';
+import {Organization} from 'fixtures/js-stubs/organization.js';
+import {Project} from 'fixtures/js-stubs/project.js';
+
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import CommitterStore from 'sentry/stores/committerStore';
@@ -5,14 +11,14 @@ import useCommitters from 'sentry/utils/useCommitters';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 describe('useCommitters hook', function () {
-  const organization = TestStubs.Organization();
+  const organization = Organization();
   const wrapper = ({children}: {children?: React.ReactNode}) => (
     <OrganizationContext.Provider value={organization}>
       {children}
     </OrganizationContext.Provider>
   );
-  const project = TestStubs.Project();
-  const event = TestStubs.Event();
+  const project = Project();
+  const event = Event();
   let mockApiEndpoint: ReturnType<typeof MockApiClient.addMockResponse>;
 
   const endpoint = `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`;
@@ -20,8 +26,8 @@ describe('useCommitters hook', function () {
   const mockData = {
     committers: [
       {
-        author: TestStubs.CommitAuthor(),
-        commits: [TestStubs.Commit()],
+        author: CommitAuthor(),
+        commits: [Commit()],
       },
     ],
   };

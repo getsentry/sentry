@@ -1,11 +1,11 @@
+import {MetricsSessionUserCountByStatusByRelease} from 'fixtures/js-stubs/metricsSessionUserCountByStatusByRelease.js';
+
 import {transformMetricsResponseToTable} from 'sentry/utils/metrics/transformMetricsResponseToTable';
 
 describe('transformMetricsResponseToTable', function () {
   it('transforms metrics into table', () => {
     expect(
-      transformMetricsResponseToTable(
-        TestStubs.MetricsSessionUserCountByStatusByRelease()
-      )
+      transformMetricsResponseToTable(MetricsSessionUserCountByStatusByRelease())
     ).toEqual({
       data: [
         {

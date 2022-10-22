@@ -1,3 +1,5 @@
+import {location} from 'fixtures/js-stubs/location.js';
+
 import recreateRoute from 'sentry/utils/recreateRoute';
 
 jest.unmock('sentry/utils/recreateRoute');
@@ -26,7 +28,7 @@ const params = {
 };
 
 const location = {
-  ...TestStubs.location(),
+  ...location(),
   search: '',
 };
 
@@ -82,7 +84,7 @@ describe('recreateRoute', function () {
 
   it('maintains the query string', function () {
     const withSearch = {
-      ...TestStubs.location(),
+      ...location(),
       search: '?key1=foo&key2=bar',
     };
 

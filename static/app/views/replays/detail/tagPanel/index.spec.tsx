@@ -1,3 +1,5 @@
+import {ReplayReaderParams} from 'fixtures/js-stubs/replayReaderParams.js';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -8,7 +10,7 @@ import TagPanel from 'sentry/views/replays/detail/tagPanel';
 import {RouteContext} from 'sentry/views/routeContext';
 
 // Get replay data with the mocked replay reader params
-const replayReaderParams = TestStubs.ReplayReaderParams({
+const replayReaderParams = ReplayReaderParams({
   replayRecord: {
     tags: {
       'browser.name': ['Chrome'],

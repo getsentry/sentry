@@ -1,3 +1,5 @@
+import {Event} from 'fixtures/js-stubs/event.js';
+
 import type {Crumb} from 'sentry/types/breadcrumbs';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 import getCurrentUrl from 'sentry/utils/replays/getCurrentUrl';
@@ -54,7 +56,7 @@ const NEW_DOMAIN_CRUMB: Crumb = {
 describe('getCurrentUrl', () => {
   let replayRecord;
   beforeEach(() => {
-    replayRecord = TestStubs.Event({
+    replayRecord = Event({
       tags: {},
       urls: [
         'https://sourcemaps.io/#initial',

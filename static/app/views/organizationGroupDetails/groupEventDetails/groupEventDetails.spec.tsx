@@ -1,4 +1,10 @@
 import {browserHistory, InjectedRouter} from 'react-router';
+import {Commit} from 'fixtures/js-stubs/commit.js';
+import {Event} from 'fixtures/js-stubs/event.js';
+import {Group} from 'fixtures/js-stubs/group.js';
+import {Project} from 'fixtures/js-stubs/project.js';
+import {router} from 'fixtures/js-stubs/router.js';
+import {SentryApp} from 'fixtures/js-stubs/sentryApp.js';
 import {Location} from 'history';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -26,9 +32,9 @@ const makeDefaultMockData = (
   return {
     organization: organization ?? initializeOrg().organization,
     project: project ?? initializeOrg().project,
-    group: TestStubs.Group(),
-    router: TestStubs.router({}),
-    event: TestStubs.Event({
+    group: Group(),
+    router: router({}),
+    event: Event({
       size: 1,
       dateCreated: '2019-03-20T00:00:00.000Z',
       errors: [],
@@ -219,7 +225,7 @@ describe('groupEventDetails', () => {
       props.organization,
       props.project,
       props.group,
-      TestStubs.Event({
+      Event({
         size: 1,
         dateCreated: '2019-03-20T00:00:00.000Z',
         errors: [],
@@ -235,7 +241,7 @@ describe('groupEventDetails', () => {
       body: event,
     });
 
-    const routerContext = TestStubs.routerContext();
+    const routerContext = routerContext();
 
     await act(async () => {
       render(
@@ -264,7 +270,7 @@ describe('groupEventDetails', () => {
       props.organization,
       props.project,
       props.group,
-      TestStubs.Event({
+      Event({
         size: 1,
         dateCreated: '2019-03-20T00:00:00.000Z',
         errors: [],
@@ -297,16 +303,13 @@ describe('EventCause', () => {
   });
 
   it('renders suspect commit', async function () {
-    const props = makeDefaultMockData(
-      undefined,
-      TestStubs.Project({firstEvent: TestStubs.Event()})
-    );
+    const props = makeDefaultMockData(undefined, Project({firstEvent: Event()}));
 
     mockGroupApis(
       props.organization,
       props.project,
       props.group,
-      TestStubs.Event({
+      Event({
         size: 1,
         dateCreated: '2019-03-20T00:00:00.000Z',
         errors: [],
@@ -333,8 +336,8 @@ describe('EventCause', () => {
       props.event.id,
       [
         {
-          commits: [TestStubs.Commit({author: TestStubs.CommitAuthor()})],
-          author: TestStubs.CommitAuthor(),
+          commits: [Commit({author: CommitAuthor()})],
+          author: CommitAuthor(),
         },
       ]
     );
@@ -346,16 +349,13 @@ describe('EventCause', () => {
   });
 
   it('renders suspect commit if `releasesCompletion` empty', async function () {
-    const props = makeDefaultMockData(
-      undefined,
-      TestStubs.Project({firstEvent: TestStubs.Event()})
-    );
+    const props = makeDefaultMockData(undefined, Project({firstEvent: Event()}));
 
     mockGroupApis(
       props.organization,
       props.project,
       props.group,
-      TestStubs.Event({
+      Event({
         size: 1,
         dateCreated: '2019-03-20T00:00:00.000Z',
         errors: [],
@@ -392,17 +392,17 @@ describe('Platform Integrations', () => {
   it('loads Integration UI components', async () => {
     const props = makeDefaultMockData();
 
-    const unpublishedIntegration = TestStubs.SentryApp({status: 'unpublished'});
-    const internalIntegration = TestStubs.SentryApp({status: 'internal'});
+    const unpublishedIntegration = SentryApp({status: 'unpublished'});
+    const internalIntegration = SentryApp({status: 'internal'});
 
-    const unpublishedInstall = TestStubs.SentryAppInstallation({
+    const unpublishedInstall = SentryAppInstallation({
       app: {
         slug: unpublishedIntegration.slug,
         uuid: unpublishedIntegration.uuid,
       },
     });
 
-    const internalInstall = TestStubs.SentryAppInstallation({
+    const internalInstall = SentryAppInstallation({
       app: {
         slug: internalIntegration.slug,
         uuid: internalIntegration.uuid,
@@ -413,7 +413,7 @@ describe('Platform Integrations', () => {
       props.organization,
       props.project,
       props.group,
-      TestStubs.Event({
+      Event({
         size: 1,
         dateCreated: '2019-03-20T00:00:00.000Z',
         errors: [],
@@ -424,7 +424,7 @@ describe('Platform Integrations', () => {
       })
     );
 
-    const component = TestStubs.SentryAppComponent({
+    const component = SentryAppComponent({
       sentryApp: {
         uuid: unpublishedIntegration.uuid,
         slug: unpublishedIntegration.slug,

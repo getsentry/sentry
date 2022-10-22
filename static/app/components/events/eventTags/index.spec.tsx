@@ -1,3 +1,5 @@
+import {Event} from 'fixtures/js-stubs/event.js';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -9,7 +11,7 @@ import {RouteContext} from 'sentry/views/routeContext';
 describe('event tags', function () {
   it('display redacted tags', async function () {
     const event = {
-      ...TestStubs.Event(),
+      ...Event(),
       tags: null,
       _meta: {
         tags: {'': {rem: [['project:2', 'x']]}},
@@ -61,7 +63,7 @@ describe('event tags', function () {
     ];
 
     const event = {
-      ...TestStubs.Event(),
+      ...Event(),
       tags,
       _meta: {
         tags: {

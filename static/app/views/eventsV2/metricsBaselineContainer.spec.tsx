@@ -1,4 +1,6 @@
 import ReactEchartsCore from 'echarts-for-react/lib/core';
+import {Organization} from 'fixtures/js-stubs/organization.js';
+import {Project} from 'fixtures/js-stubs/project.js';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {addMetricsDataMock} from 'sentry-test/performance/addMetricsDataMock';
@@ -63,7 +65,7 @@ export function renderMetricsBaselineContainer(
 
 describe('MetricsBaselineContainer', function () {
   const features = ['discover-basic'];
-  const project = TestStubs.Project();
+  const project = Project();
   const eventView = EventView.fromSavedQuery({
     id: '',
     name: 'test query',
@@ -117,7 +119,7 @@ describe('MetricsBaselineContainer', function () {
         meta: {},
       },
     });
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       features: [
         ...features,
         'discover-metrics-baseline',
@@ -156,7 +158,7 @@ describe('MetricsBaselineContainer', function () {
 
   it('displays metrics baseline', async function () {
     addMetricsDataMock();
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       features: [
         ...features,
         'discover-metrics-baseline',
@@ -199,7 +201,7 @@ describe('MetricsBaselineContainer', function () {
   });
 
   it('disables processed baseline toggle if metrics cardinality conditions not met', function () {
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       features: [...features, 'discover-metrics-baseline'],
     });
 
@@ -213,7 +215,7 @@ describe('MetricsBaselineContainer', function () {
 
   it('disables toggle if discover hits the events dataset', function () {
     addMetricsDataMock();
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       features: [
         ...features,
         'discover-metrics-baseline',
@@ -231,7 +233,7 @@ describe('MetricsBaselineContainer', function () {
 
   it('pushes toggle selection to URL', async function () {
     addMetricsDataMock();
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       features: [
         ...features,
         'discover-metrics-baseline',

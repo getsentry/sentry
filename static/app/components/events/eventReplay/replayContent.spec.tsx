@@ -1,3 +1,8 @@
+import {Event} from 'fixtures/js-stubs/event.js';
+import {Organization} from 'fixtures/js-stubs/organization.js';
+import {Project} from 'fixtures/js-stubs/project.js';
+import {ReplayReaderParams} from 'fixtures/js-stubs/replayReaderParams.js';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render as baseRender, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -17,7 +22,7 @@ const mockFinishedAt = 'Sep 22, 2022 5:00:03 PM UTC';
 const mockReplayDuration = 84; // seconds
 
 const mockEvent = {
-  ...TestStubs.Event(),
+  ...Event(),
   dateCreated: '2022-09-22T16:59:41.596000Z',
 };
 
@@ -35,7 +40,7 @@ jest.mock('screenfull', () => ({
 }));
 
 // Get replay data with the mocked replay reader params
-const replayReaderParams = TestStubs.ReplayReaderParams({
+const replayReaderParams = ReplayReaderParams({
   replayRecord: {
     startedAt: new Date(mockStartedAt),
     finishedAt: new Date(mockFinishedAt),
@@ -60,8 +65,8 @@ jest.mock('sentry/utils/replays/hooks/useReplayData', () => {
 const render: typeof baseRender = children => {
   const {router, routerContext} = initializeOrg({
     organization: {},
-    project: TestStubs.Project(),
-    projects: [TestStubs.Project()],
+    project: Project(),
+    projects: [Project()],
     router: {
       routes: [
         {path: '/'},
@@ -84,7 +89,7 @@ const render: typeof baseRender = children => {
         routes: router.routes,
       }}
     >
-      <OrganizationContext.Provider value={TestStubs.Organization()}>
+      <OrganizationContext.Provider value={Organization()}>
         {children}
       </OrganizationContext.Provider>
     </RouteContext.Provider>,

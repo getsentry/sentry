@@ -1,3 +1,5 @@
+import {Organization} from 'fixtures/js-stubs/organization.js';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import EventView from 'sentry/utils/discover/eventView';
@@ -5,7 +7,7 @@ import {IncompatibleAlertQuery} from 'sentry/views/alerts/rules/metric/incompati
 import {ALL_VIEWS, DEFAULT_EVENT_VIEW} from 'sentry/views/eventsV2/data';
 
 function renderComponent(eventView: EventView) {
-  const organization = TestStubs.Organization();
+  const organization = Organization();
   return render(
     <IncompatibleAlertQuery orgSlug={organization.slug} eventView={eventView} />
   );

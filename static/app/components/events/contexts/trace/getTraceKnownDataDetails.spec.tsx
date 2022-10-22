@@ -1,3 +1,6 @@
+import {Event} from 'fixtures/js-stubs/event.js';
+import {Organization} from 'fixtures/js-stubs/organization.js';
+
 import {traceKnownDataValues} from 'sentry/components/events/contexts/trace';
 import {getTraceKnownDataDetails} from 'sentry/components/events/contexts/trace/getTraceKnownDataDetails';
 
@@ -11,8 +14,8 @@ describe('getTraceKnownDataDetails', function () {
       const traceKnownData = getTraceKnownDataDetails({
         type: traceKnownDataValues[type],
         data: traceMockData,
-        organization: TestStubs.Organization(),
-        event: TestStubs.Event(),
+        organization: Organization(),
+        event: Event(),
       });
 
       if (!traceKnownData) {

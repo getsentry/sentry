@@ -1,3 +1,5 @@
+import {MetricRule} from 'fixtures/js-stubs/metricRule.js';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {
@@ -36,7 +38,7 @@ describe('Alert utils', function () {
         title: 'Test error alert',
         discoverQuery: 'id:test',
         projects,
-        alertRule: TestStubs.MetricRule({
+        alertRule: MetricRule({
           timeWindow: 1,
           dataset: Dataset.ERRORS,
           aggregate: 'count()',
@@ -71,7 +73,7 @@ describe('Alert utils', function () {
         title: 'Test transaction alert',
         discoverQuery: 'id:test',
         projects,
-        alertRule: TestStubs.MetricRule({
+        alertRule: MetricRule({
           timeWindow: 1,
           dataset: Dataset.TRANSACTIONS,
           aggregate: 'p90()',

@@ -1,3 +1,5 @@
+import {Organization} from 'fixtures/js-stubs/organization.js';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -9,7 +11,7 @@ import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 describe('Dashboards > IssueWidgetCard', function () {
   const {router, organization, routerContext} = initializeOrg({
-    organization: TestStubs.Organization({
+    organization: Organization({
       features: ['dashboards-edit'],
     }),
     router: {orgId: 'orgId'},

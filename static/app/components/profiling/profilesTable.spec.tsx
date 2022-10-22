@@ -1,4 +1,6 @@
 import {ReactElement, useEffect, useMemo} from 'react';
+import {Organization} from 'fixtures/js-stubs/organization.js';
+import {Project} from 'fixtures/js-stubs/project.js';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -8,8 +10,8 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {RouteContext} from 'sentry/views/routeContext';
 
-const organization = TestStubs.Organization();
-const project = TestStubs.Project();
+const organization = Organization();
+const project = Project();
 
 function TestContext({children}: {children: ReactElement}) {
   const {router} = useMemo(() => initializeOrg({organization, project} as any), []);

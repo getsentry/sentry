@@ -1,3 +1,8 @@
+import {location} from 'fixtures/js-stubs/location.js';
+import {Organization} from 'fixtures/js-stubs/organization.js';
+import {Project} from 'fixtures/js-stubs/project.js';
+import {router} from 'fixtures/js-stubs/router.js';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
@@ -9,7 +14,7 @@ import ResultsChart from 'sentry/views/eventsV2/resultsChart';
 
 describe('EventsV2 > ResultsChart', function () {
   const features = ['discover-basic'];
-  const location = TestStubs.location({
+  const location = location({
     query: {query: 'tag:value'},
     pathname: '/',
   });
@@ -17,9 +22,9 @@ describe('EventsV2 > ResultsChart', function () {
   let organization, eventView, initialData;
 
   beforeEach(() => {
-    organization = TestStubs.Organization({
+    organization = Organization({
       features,
-      projects: [TestStubs.Project()],
+      projects: [Project()],
     });
     initialData = initializeOrg({
       organization,
@@ -43,7 +48,7 @@ describe('EventsV2 > ResultsChart', function () {
   it('only allows default, daily, previous period, and bar display modes when multiple y axis are selected', function () {
     const wrapper = mountWithTheme(
       <ResultsChart
-        router={TestStubs.router()}
+        router={router()}
         disableProcessedBaselineToggle
         setShowBaseline={() => undefined}
         showBaseline
@@ -78,7 +83,7 @@ describe('EventsV2 > ResultsChart', function () {
   it('does not display a chart if no y axis is selected', function () {
     const wrapper = mountWithTheme(
       <ResultsChart
-        router={TestStubs.router()}
+        router={router()}
         disableProcessedBaselineToggle
         setShowBaseline={() => undefined}
         showBaseline
@@ -115,7 +120,7 @@ describe('EventsV2 > ResultsChart', function () {
 
     const wrapper = mountWithTheme(
       <ResultsChart
-        router={TestStubs.router()}
+        router={router()}
         disableProcessedBaselineToggle
         setShowBaseline={() => undefined}
         showBaseline

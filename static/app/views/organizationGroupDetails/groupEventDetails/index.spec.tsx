@@ -1,3 +1,9 @@
+import {Environments} from 'fixtures/js-stubs/environments.js';
+import {Event} from 'fixtures/js-stubs/event.js';
+import {Group} from 'fixtures/js-stubs/group.js';
+import {Organization} from 'fixtures/js-stubs/organization.js';
+import {Project} from 'fixtures/js-stubs/project.js';
+
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationEnvironmentsStore from 'sentry/stores/organizationEnvironmentsStore';
@@ -13,14 +19,14 @@ jest.mock(
 
 const makeProps = (props: Partial<GroupEventDetailsProps>): GroupEventDetailsProps => {
   const mergedProps: GroupEventDetailsProps = {
-    event: TestStubs.Event(),
+    event: Event(),
     eventError: false,
-    group: TestStubs.Group(),
+    group: Group(),
     loadingEvent: false,
     onRetry: () => null,
     groupReprocessingStatus: ReprocessingStatus.NO_STATUS,
-    organization: TestStubs.Organization(),
-    project: TestStubs.Project(),
+    organization: Organization(),
+    project: Project(),
     params: {groupId: '0', orgId: '0', eventId: '0'},
     ...props,
   } as GroupEventDetailsProps;
@@ -29,7 +35,7 @@ const makeProps = (props: Partial<GroupEventDetailsProps>): GroupEventDetailsPro
 };
 
 describe('groupEventDetailsContainer', () => {
-  const organization = TestStubs.Organization();
+  const organization = Organization();
 
   beforeEach(() => {
     OrganizationEnvironmentsStore.init();
@@ -38,7 +44,7 @@ describe('groupEventDetailsContainer', () => {
   it('fetches environments', async function () {
     const environmentsCall = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/environments/`,
-      body: TestStubs.Environments(),
+      body: Environments(),
     });
 
     render(<GroupEventDetailsContainer {...makeProps({organization})} />);
@@ -86,7 +92,7 @@ describe('groupEventDetailsContainer', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/environments/`,
-      body: TestStubs.Environments(),
+      body: Environments(),
     });
     const {unmount} = render(
       <GroupEventDetailsContainer {...makeProps({organization})} />

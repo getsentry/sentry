@@ -1,3 +1,6 @@
+import {Event} from 'fixtures/js-stubs/event.js';
+import {Organization} from 'fixtures/js-stubs/organization.js';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -11,7 +14,7 @@ import {StackTracePreview} from './stackTracePreview';
 
 const makeEvent = (event: Partial<Event> = {}): Event => {
   const evt: Event = {
-    ...TestStubs.Event(),
+    ...Event(),
     ...event,
   };
 
@@ -195,7 +198,7 @@ describe('StackTracePreview', () => {
     useApi.mockReturnValue(api);
 
     render(
-      <TestComponent org={TestStubs.Organization({features})}>
+      <TestComponent org={Organization({features})}>
         <StackTracePreview issueId="issue">Preview Trigger</StackTracePreview>
       </TestComponent>
     );

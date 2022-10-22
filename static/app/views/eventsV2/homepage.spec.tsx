@@ -1,4 +1,6 @@
 import {browserHistory} from 'react-router';
+import {location} from 'fixtures/js-stubs/location.js';
+import {Organization} from 'fixtures/js-stubs/organization.js';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
@@ -25,14 +27,14 @@ describe('Discover > Homepage', () => {
   let initialData, organization, mockHomepage;
 
   beforeEach(() => {
-    organization = TestStubs.Organization({
+    organization = Organization({
       features,
     });
     initialData = initializeOrg({
       ...initializeOrg(),
       organization,
       router: {
-        location: TestStubs.location(),
+        location: location(),
       },
     });
     MockApiClient.addMockResponse({
@@ -129,7 +131,7 @@ describe('Discover > Homepage', () => {
       organization,
       router: {
         location: {
-          ...TestStubs.location(),
+          ...location(),
           query: {
             ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
             field: ['project'],
@@ -256,7 +258,7 @@ describe('Discover > Homepage', () => {
       organization,
       router: {
         location: {
-          ...TestStubs.location(),
+          ...location(),
           query: {
             ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
           },
@@ -290,7 +292,7 @@ describe('Discover > Homepage', () => {
       organization,
       router: {
         location: {
-          ...TestStubs.location(),
+          ...location(),
           query: {
             ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
           },
@@ -327,7 +329,7 @@ describe('Discover > Homepage', () => {
       organization,
       router: {
         location: {
-          ...TestStubs.location(),
+          ...location(),
           query: {
             ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
             field: ['title'],
@@ -367,7 +369,7 @@ describe('Discover > Homepage', () => {
       organization,
       router: {
         location: {
-          ...TestStubs.location(),
+          ...location(),
           query: {
             ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
             field: ['event.type'],
@@ -398,7 +400,7 @@ describe('Discover > Homepage', () => {
       organization,
       router: {
         location: {
-          ...TestStubs.location(),
+          ...location(),
           query: {
             ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
             field: ['title'],
@@ -432,7 +434,7 @@ describe('Discover > Homepage', () => {
       organization,
       router: {
         location: {
-          ...TestStubs.location(),
+          ...location(),
           query: {
             ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
             field: ['event.type'],

@@ -1,3 +1,5 @@
+import {Event} from 'fixtures/js-stubs/event.js';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -5,7 +7,7 @@ import EventAttachments from 'sentry/components/events/eventAttachments';
 
 describe('EventAttachments', function () {
   const {routerContext, organization, project} = initializeOrg();
-  const event = TestStubs.Event({metadata: {stripped_crash: true}});
+  const event = Event({metadata: {stripped_crash: true}});
 
   const props = {
     orgId: organization.slug,

@@ -1,11 +1,11 @@
+import {MetricsSessionUserCountByStatusByRelease} from 'fixtures/js-stubs/metricsSessionUserCountByStatusByRelease.js';
+
 import {transformMetricsResponseToSeries} from 'sentry/utils/metrics/transformMetricsResponseToSeries';
 
 describe('transformMetricsResponseToSeries', function () {
   it('transforms metrics into series', () => {
     expect(
-      transformMetricsResponseToSeries(
-        TestStubs.MetricsSessionUserCountByStatusByRelease()
-      )
+      transformMetricsResponseToSeries(MetricsSessionUserCountByStatusByRelease())
     ).toEqual([
       {
         seriesName: 'sum(sentry.sessions.session)|session.status:crashed|release:1',
@@ -319,7 +319,7 @@ describe('transformMetricsResponseToSeries', function () {
   it('supports legend aliases', () => {
     expect(
       transformMetricsResponseToSeries(
-        TestStubs.MetricsSessionUserCountByStatusByRelease(),
+        MetricsSessionUserCountByStatusByRelease(),
         'Lorem'
       )[0]
     ).toEqual(

@@ -1,3 +1,5 @@
+import {Release} from 'fixtures/js-stubs/release.js';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {getReleaseBounds, getReleaseParams} from 'sentry/views/releases/utils';
@@ -5,7 +7,7 @@ import {getReleaseBounds, getReleaseParams} from 'sentry/views/releases/utils';
 describe('releases/utils', () => {
   describe('getReleaseBounds', () => {
     it('returns start and end of a release', () => {
-      expect(getReleaseBounds(TestStubs.Release())).toEqual({
+      expect(getReleaseBounds(Release())).toEqual({
         releaseStart: '2020-03-23T01:02:00Z',
         releaseEnd: '2020-03-24T02:04:59Z',
         type: 'normal',
@@ -15,7 +17,7 @@ describe('releases/utils', () => {
     it('higher last session takes precendence over last event', () => {
       expect(
         getReleaseBounds(
-          TestStubs.Release({
+          Release({
             currentProjectMeta: {sessionsUpperBound: '2020-03-24T03:04:55Z'},
           })
         )
@@ -27,7 +29,7 @@ describe('releases/utils', () => {
     });
 
     it('there is no last session/event, it fallbacks to now', () => {
-      expect(getReleaseBounds(TestStubs.Release({lastEvent: null}))).toEqual({
+      expect(getReleaseBounds(Release({lastEvent: null}))).toEqual({
         releaseStart: '2020-03-23T01:02:00Z',
         releaseEnd: '2017-10-17T02:41:59Z',
         type: 'normal',
@@ -37,7 +39,7 @@ describe('releases/utils', () => {
     it('adds 1 minute to end if start and end are within same minute', () => {
       expect(
         getReleaseBounds(
-          TestStubs.Release({
+          Release({
             dateCreated: '2020-03-23T01:02:30Z',
             lastEvent: '2020-03-23T01:02:39Z',
           })
@@ -52,7 +54,7 @@ describe('releases/utils', () => {
     it('clamps active releases lasting longer than 90 days', () => {
       expect(
         getReleaseBounds(
-          TestStubs.Release({
+          Release({
             dateCreated: '2017-05-17T02:41:20Z',
             lastEvent: '2017-10-12T02:41:20Z',
           })
@@ -67,7 +69,7 @@ describe('releases/utils', () => {
     it('defaults ancient releases to last 90 days', () => {
       expect(
         getReleaseBounds(
-          TestStubs.Release({
+          Release({
             dateCreated: '2010-05-17T02:41:20Z',
             lastEvent: '2011-10-17T02:41:20Z',
           })
@@ -82,7 +84,7 @@ describe('releases/utils', () => {
     it('handles no lastEvent for ancient releases', () => {
       expect(
         getReleaseBounds(
-          TestStubs.Release({
+          Release({
             dateCreated: '2010-05-17T02:41:20Z',
             lastEvent: null,
           })
@@ -97,7 +99,7 @@ describe('releases/utils', () => {
 
   describe('getReleaseParams', () => {
     const {routerContext} = initializeOrg();
-    const releaseBounds = getReleaseBounds(TestStubs.Release());
+    const releaseBounds = getReleaseBounds(Release());
 
     it('returns params related to a release', () => {
       const location = {

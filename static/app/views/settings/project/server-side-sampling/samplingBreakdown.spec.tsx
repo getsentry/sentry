@@ -1,3 +1,5 @@
+import {Project} from 'fixtures/js-stubs/project.js';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -26,7 +28,7 @@ describe('Server-Side Sampling - SamplingBreakdown', function () {
     const projectBreakdown = mockedSamplingDistribution.projectBreakdown;
 
     ProjectsStore.loadInitialData(
-      projectBreakdown!.map(p => TestStubs.Project({id: p.projectId, slug: p.project}))
+      projectBreakdown!.map(p => Project({id: p.projectId, slug: p.project}))
     );
 
     ServerSideSamplingStore.distributionRequestSuccess(mockedSamplingDistribution);

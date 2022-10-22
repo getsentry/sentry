@@ -1,3 +1,6 @@
+import {Organization} from 'fixtures/js-stubs/organization.js';
+import {router} from 'fixtures/js-stubs/router.js';
+
 import {BreadcrumbContextProvider} from 'sentry-test/providers/breadcrumbContextProvider';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -8,7 +11,7 @@ import SettingsIndex from 'sentry/views/settings/settingsIndex';
 
 describe('SettingsIndex', function () {
   const props = {
-    router: TestStubs.router(),
+    router: router(),
     location: {} as any,
     routes: [],
     route: {},
@@ -19,7 +22,7 @@ describe('SettingsIndex', function () {
   it('renders', function () {
     const {container} = render(
       <BreadcrumbContextProvider>
-        <SettingsIndex {...props} organization={TestStubs.Organization()} />
+        <SettingsIndex {...props} organization={Organization()} />
       </BreadcrumbContextProvider>
     );
     expect(container).toSnapshot();
@@ -40,7 +43,7 @@ describe('SettingsIndex', function () {
 
     render(
       <BreadcrumbContextProvider>
-        <SettingsIndex {...props} organization={TestStubs.Organization()} />
+        <SettingsIndex {...props} organization={Organization()} />
       </BreadcrumbContextProvider>
     );
 
@@ -99,7 +102,7 @@ describe('SettingsIndex', function () {
       // org already has details
       rerender(
         <BreadcrumbContextProvider>
-          <SettingsIndex {...props} organization={TestStubs.Organization()} />
+          <SettingsIndex {...props} organization={Organization()} />
         </BreadcrumbContextProvider>
       );
 

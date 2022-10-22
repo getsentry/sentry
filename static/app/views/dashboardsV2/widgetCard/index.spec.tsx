@@ -1,3 +1,6 @@
+import {Organization} from 'fixtures/js-stubs/organization.js';
+import {Project} from 'fixtures/js-stubs/project.js';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -17,9 +20,9 @@ jest.mock('sentry/views/dashboardsV2/widgetCard/releaseWidgetQueries');
 
 describe('Dashboards > WidgetCard', function () {
   const {router, organization, routerContext} = initializeOrg({
-    organization: TestStubs.Organization({
+    organization: Organization({
       features: ['dashboards-edit', 'discover-basic'],
-      projects: [TestStubs.Project()],
+      projects: [Project()],
     }),
     router: {orgId: 'orgId'},
   } as Parameters<typeof initializeOrg>[0]);

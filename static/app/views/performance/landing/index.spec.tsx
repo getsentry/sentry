@@ -1,5 +1,6 @@
 import {browserHistory} from 'react-router';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
+import {Project} from 'fixtures/js-stubs/project.js';
 
 import {addMetricsDataMock} from 'sentry-test/performance/addMetricsDataMock';
 import {initializeData} from 'sentry-test/performance/initializePerformanceData';
@@ -187,7 +188,7 @@ describe('Performance > Landing > Index', function () {
   });
 
   it('renders react-native table headers in mobile view', async function () {
-    const project = TestStubs.Project({platform: 'react-native'});
+    const project = Project({platform: 'react-native'});
     const projects = [project];
     const data = initializeData({
       query: {landingDisplay: LandingDisplayField.MOBILE},
@@ -275,7 +276,7 @@ describe('Performance > Landing > Index', function () {
     expect(screen.getByTestId('frontend-pageload-view')).toBeInTheDocument();
 
     const updatedData = initializeData({
-      projects: [TestStubs.Project({id: 123, platform: 'unknown'})],
+      projects: [Project({id: 123, platform: 'unknown'})],
       selectedProject: 123,
     });
 
@@ -286,7 +287,7 @@ describe('Performance > Landing > Index', function () {
 
   it('View correctly defaults based on project without url param', function () {
     const data = initializeData({
-      projects: [TestStubs.Project({id: 99, platform: 'javascript-react'})],
+      projects: [Project({id: 99, platform: 'javascript-react'})],
       selectedProject: 99,
     });
 

@@ -1,5 +1,8 @@
 import {browserHistory, InjectedRouter} from 'react-router';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
+import {Organization} from 'fixtures/js-stubs/organization.js';
+import {Project} from 'fixtures/js-stubs/project.js';
+import {Team} from 'fixtures/js-stubs/team.js';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -15,8 +18,8 @@ import TransactionSummary from 'sentry/views/performance/transactionSummary/tran
 import {RouteContext} from 'sentry/views/routeContext';
 
 const teams = [
-  TestStubs.Team({id: '1', slug: 'team1', name: 'Team 1'}),
-  TestStubs.Team({id: '2', slug: 'team2', name: 'Team 2'}),
+  Team({id: '1', slug: 'team1', name: 'Team 1'}),
+  Team({id: '2', slug: 'team2', name: 'Team 2'}),
 ];
 
 function initializeData({
@@ -25,8 +28,8 @@ function initializeData({
   project: prj,
 }: {features?: string[]; project?: Project; query?: Record<string, any>} = {}) {
   const features = ['discover-basic', 'performance-view', ...additionalFeatures];
-  const project = prj ?? TestStubs.Project({teams});
-  const organization = TestStubs.Organization({
+  const project = prj ?? Project({teams});
+  const organization = Organization({
     features,
     projects: [project],
     apdexThreshold: 400,
@@ -455,7 +458,7 @@ describe('Performance > TransactionSummary', function () {
 
     it('renders Web Vitals widget', async function () {
       const {organization, router, routerContext} = initializeData({
-        project: TestStubs.Project({teams, platform: 'javascript'}),
+        project: Project({teams, platform: 'javascript'}),
         query: {
           query:
             'transaction.duration:<15m transaction.op:pageload event.type:transaction transaction:/organizations/:orgId/issues/',
@@ -863,7 +866,7 @@ describe('Performance > TransactionSummary', function () {
     it('renders Web Vitals widget', async function () {
       const {organization, router, routerContext} = initializeData({
         features: ['performance-frontend-use-events-endpoint'],
-        project: TestStubs.Project({teams, platform: 'javascript'}),
+        project: Project({teams, platform: 'javascript'}),
         query: {
           query:
             'transaction.duration:<15m transaction.op:pageload event.type:transaction transaction:/organizations/:orgId/issues/',

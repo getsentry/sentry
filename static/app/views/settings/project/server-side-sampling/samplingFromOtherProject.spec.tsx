@@ -1,3 +1,5 @@
+import {Project} from 'fixtures/js-stubs/project.js';
+
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -19,9 +21,7 @@ describe('Server-Side Sampling - SamplingFromOtherProject', function () {
     const parentProjectBreakdown = mockedSamplingDistribution.parentProjectBreakdown;
 
     ProjectsStore.loadInitialData(
-      parentProjectBreakdown!.map(p =>
-        TestStubs.Project({id: p.projectId, slug: p.project})
-      )
+      parentProjectBreakdown!.map(p => Project({id: p.projectId, slug: p.project}))
     );
 
     ServerSideSamplingStore.distributionRequestSuccess(mockedSamplingDistribution);
@@ -41,9 +41,7 @@ describe('Server-Side Sampling - SamplingFromOtherProject', function () {
     const parentProjectBreakdown = mockedSamplingDistribution.parentProjectBreakdown;
 
     ProjectsStore.loadInitialData(
-      parentProjectBreakdown!.map(p =>
-        TestStubs.Project({id: p.projectId, slug: p.project})
-      )
+      parentProjectBreakdown!.map(p => Project({id: p.projectId, slug: p.project}))
     );
 
     ServerSideSamplingStore.distributionRequestSuccess({

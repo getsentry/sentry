@@ -1,3 +1,7 @@
+import {Organization} from 'fixtures/js-stubs/organization.js';
+import {Project} from 'fixtures/js-stubs/project.js';
+import {Team} from 'fixtures/js-stubs/team.js';
+
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
@@ -6,12 +10,12 @@ import TeamStore from 'sentry/stores/teamStore';
 import TeamKeyTransactionField from 'sentry/utils/discover/teamKeyTransactionField';
 
 describe('TeamKeyTransactionField', function () {
-  const organization = TestStubs.Organization();
+  const organization = Organization();
   const teams = [
-    TestStubs.Team({id: '1', slug: 'team1', name: 'Team 1'}),
-    TestStubs.Team({id: '2', slug: 'team2', name: 'Team 2'}),
+    Team({id: '1', slug: 'team1', name: 'Team 1'}),
+    Team({id: '2', slug: 'team2', name: 'Team 2'}),
   ];
-  const project = TestStubs.Project({teams});
+  const project = Project({teams});
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
@@ -383,7 +387,7 @@ describe('TeamKeyTransactionField', function () {
   });
 
   it('should render teams without access separately', async function () {
-    const myTeams = [...teams, TestStubs.Team({id: '3', slug: 'team3', name: 'Team 3'})];
+    const myTeams = [...teams, Team({id: '3', slug: 'team3', name: 'Team 3'})];
     act(() => {
       TeamStore.loadInitialData(myTeams);
     });

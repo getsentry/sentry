@@ -1,3 +1,5 @@
+import {Organization} from 'fixtures/js-stubs/organization.js';
+
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {SwitchOrganization} from 'sentry/components/sidebar/sidebarDropdown/switchOrganization';
@@ -7,7 +9,7 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 describe('SwitchOrganization', function () {
   function mountWithOrg(children, organization?: Organization) {
     if (!organization) {
-      organization = TestStubs.Organization() as Organization;
+      organization = Organization() as Organization;
     }
     return (
       <OrganizationContext.Provider value={organization}>
@@ -23,8 +25,8 @@ describe('SwitchOrganization', function () {
         <SwitchOrganization
           canCreateOrganization={false}
           organizations={[
-            TestStubs.Organization({name: 'Organization 1'}),
-            TestStubs.Organization({name: 'Organization 2', slug: 'org2'}),
+            Organization({name: 'Organization 1'}),
+            Organization({name: 'Organization 2', slug: 'org2'}),
           ]}
         />
       )
@@ -57,8 +59,8 @@ describe('SwitchOrganization', function () {
         <SwitchOrganization
           canCreateOrganization={false}
           organizations={[
-            TestStubs.Organization({name: 'Organization 1', slug: 'org1'}),
-            TestStubs.Organization({
+            Organization({name: 'Organization 1', slug: 'org1'}),
+            Organization({
               name: 'Organization 2',
               slug: 'org2',
               links: {
@@ -97,8 +99,8 @@ describe('SwitchOrganization', function () {
         <SwitchOrganization
           canCreateOrganization={false}
           organizations={[
-            TestStubs.Organization({name: 'Organization 1', slug: 'org1'}),
-            TestStubs.Organization({
+            Organization({name: 'Organization 1', slug: 'org1'}),
+            Organization({
               name: 'Organization 2',
               slug: 'org2',
               links: {
@@ -129,7 +131,7 @@ describe('SwitchOrganization', function () {
 
   it('uses sentryUrl when current org has customer domain enabled', function () {
     jest.useFakeTimers();
-    const currentOrg = TestStubs.Organization({
+    const currentOrg = Organization({
       name: 'Organization 2',
       slug: 'org2',
       links: {
@@ -143,7 +145,7 @@ describe('SwitchOrganization', function () {
         <SwitchOrganization
           canCreateOrganization={false}
           organizations={[
-            TestStubs.Organization({name: 'Organization 1', slug: 'org1'}),
+            Organization({name: 'Organization 1', slug: 'org1'}),
             currentOrg,
           ]}
         />,
@@ -176,7 +178,7 @@ describe('SwitchOrganization', function () {
 
   it('does not use sentryUrl when current org does not have customer domain feature', function () {
     jest.useFakeTimers();
-    const currentOrg = TestStubs.Organization({
+    const currentOrg = Organization({
       name: 'Organization 2',
       slug: 'org2',
       links: {
@@ -190,8 +192,8 @@ describe('SwitchOrganization', function () {
         <SwitchOrganization
           canCreateOrganization={false}
           organizations={[
-            TestStubs.Organization({name: 'Organization 1', slug: 'org1'}),
-            TestStubs.Organization({
+            Organization({name: 'Organization 1', slug: 'org1'}),
+            Organization({
               name: 'Organization 3',
               slug: 'org3',
               links: {
@@ -255,7 +257,7 @@ describe('SwitchOrganization', function () {
   });
 
   it('uses sentry URL for "Create an Org"', function () {
-    const currentOrg = TestStubs.Organization({
+    const currentOrg = Organization({
       name: 'Organization',
       slug: 'org',
       links: {
@@ -285,7 +287,7 @@ describe('SwitchOrganization', function () {
   });
 
   it('shows orgs pending deletion with a special icon', function () {
-    const orgPendingDeletion = TestStubs.Organization({
+    const orgPendingDeletion = Organization({
       slug: 'org-2',
       status: {id: 'pending_deletion', name: 'pending_deletion'},
     });
@@ -295,7 +297,7 @@ describe('SwitchOrganization', function () {
       mountWithOrg(
         <SwitchOrganization
           canCreateOrganization
-          organizations={[TestStubs.Organization(), orgPendingDeletion]}
+          organizations={[Organization(), orgPendingDeletion]}
         />
       )
     );
@@ -314,8 +316,8 @@ describe('SwitchOrganization', function () {
       <SwitchOrganization
         canCreateOrganization={false}
         organizations={[
-          TestStubs.Organization({name: 'Organization 1'}),
-          TestStubs.Organization({name: 'Organization 2', slug: 'org2'}),
+          Organization({name: 'Organization 1'}),
+          Organization({name: 'Organization 2', slug: 'org2'}),
         ]}
       />
     );

@@ -1,4 +1,5 @@
 import {InjectedRouter} from 'react-router';
+import {Event} from 'fixtures/js-stubs/event.js';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
@@ -136,7 +137,7 @@ describe('EventTagsAndScreenshot', function () {
     },
   ];
 
-  const event = TestStubs.Event({user});
+  const event = Event({user});
 
   const {organization, project, router} = initializeOrg({
     organization: {

@@ -1,3 +1,5 @@
+import {Plugins} from 'fixtures/js-stubs/plugins.js';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -16,7 +18,7 @@ describe('ProjectPlugins', function () {
         onChange={jest.fn()}
         loading={false}
         error={undefined}
-        plugins={TestStubs.Plugins()}
+        plugins={Plugins()}
         router={router}
         routes={router.routes}
         route={route}

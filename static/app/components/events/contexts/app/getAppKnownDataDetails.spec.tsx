@@ -1,3 +1,5 @@
+import {Event} from 'fixtures/js-stubs/event.js';
+
 import {appKnownDataValues} from 'sentry/components/events/contexts/app';
 import {getAppKnownDataDetails} from 'sentry/components/events/contexts/app/getAppKnownDataDetails';
 
@@ -11,7 +13,7 @@ describe('getAppKnownDataDetails', function () {
       const appKnownDataDetails = getAppKnownDataDetails({
         type: appKnownDataValues[type],
         data: appMockData,
-        event: TestStubs.Event(),
+        event: Event(),
       });
 
       if (!appKnownDataDetails) {

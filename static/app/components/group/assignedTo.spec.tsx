@@ -1,3 +1,9 @@
+import {Group} from 'fixtures/js-stubs/group.js';
+import {Organization} from 'fixtures/js-stubs/organization.js';
+import {Project} from 'fixtures/js-stubs/project.js';
+import {Team} from 'fixtures/js-stubs/team.js';
+import {User} from 'fixtures/js-stubs/user.js';
+
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import AssignedTo from 'sentry/components/group/assignedTo';
@@ -12,32 +18,32 @@ describe('Group > AssignedTo', () => {
   let PROJECT_1;
   let GROUP_1;
   let organization;
-  const project = TestStubs.Project();
+  const project = Project();
 
   beforeEach(() => {
-    organization = TestStubs.Organization();
-    USER_1 = TestStubs.User({
+    organization = Organization();
+    USER_1 = User({
       id: '1',
       name: 'Jane Bloggs',
       email: 'janebloggs@example.com',
     });
-    USER_2 = TestStubs.User({
+    USER_2 = User({
       id: '2',
       name: 'John Smith',
       email: 'johnsmith@example.com',
     });
 
-    TEAM_1 = TestStubs.Team({
+    TEAM_1 = Team({
       id: '3',
       name: 'COOL TEAM',
       slug: 'cool-team',
     });
 
-    PROJECT_1 = TestStubs.Project({
+    PROJECT_1 = Project({
       teams: [TEAM_1],
     });
 
-    GROUP_1 = TestStubs.Group({
+    GROUP_1 = Group({
       id: '1337',
       project: {
         id: PROJECT_1.id,

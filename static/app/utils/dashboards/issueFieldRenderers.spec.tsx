@@ -1,3 +1,7 @@
+import {Group} from 'fixtures/js-stubs/group.js';
+import {Project} from 'fixtures/js-stubs/project.js';
+import {User} from 'fixtures/js-stubs/user.js';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -13,8 +17,8 @@ describe('getIssueFieldRenderer', function () {
     context = initializeOrg({
       organization,
       router: {},
-      project: TestStubs.Project(),
-      projects: [TestStubs.Project()],
+      project: Project(),
+      projects: [Project()],
     });
     organization = context.organization;
     project = context.project;
@@ -71,7 +75,7 @@ describe('getIssueFieldRenderer', function () {
   describe('Issue fields', () => {
     it('can render assignee', async function () {
       MemberListStore.loadInitialData([
-        TestStubs.User({
+        User({
           name: 'Test User',
           email: 'test@sentry.io',
           avatar: {
@@ -81,7 +85,7 @@ describe('getIssueFieldRenderer', function () {
         }),
       ]);
 
-      const group = TestStubs.Group({project});
+      const group = Group({project});
       GroupStore.add([
         {
           ...group,

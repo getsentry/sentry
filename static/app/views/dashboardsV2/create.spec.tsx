@@ -1,3 +1,7 @@
+import {Dashboard} from 'fixtures/js-stubs/dashboard.js';
+import {Organization} from 'fixtures/js-stubs/organization.js';
+import {Project} from 'fixtures/js-stubs/project.js';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -6,7 +10,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import CreateDashboard from 'sentry/views/dashboardsV2/create';
 
 describe('Dashboards > Create', function () {
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features: [
       'dashboards-basic',
       'dashboards-edit',
@@ -17,7 +21,7 @@ describe('Dashboards > Create', function () {
 
   describe('new dashboards', function () {
     let initialData;
-    const projects = [TestStubs.Project()];
+    const projects = [Project()];
 
     beforeEach(function () {
       ProjectsStore.init();
@@ -36,12 +40,12 @@ describe('Dashboards > Create', function () {
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
-        body: [TestStubs.Project()],
+        body: [Project()],
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/',
         // @ts-ignore
-        body: [TestStubs.Dashboard([], {id: 'default-overview', title: 'Default'})],
+        body: [Dashboard([], {id: 'default-overview', title: 'Default'})],
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-stats/',
@@ -73,7 +77,7 @@ describe('Dashboards > Create', function () {
         url: '/organizations/org-slug/dashboards/',
         method: 'POST',
         // @ts-ignore
-        body: TestStubs.Dashboard([], {id: '1', title: 'Custom Errors'}),
+        body: Dashboard([], {id: '1', title: 'Custom Errors'}),
       });
 
       mountGlobalModal(initialData.routerContext);

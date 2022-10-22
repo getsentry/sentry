@@ -1,3 +1,6 @@
+import {Organization} from 'fixtures/js-stubs/organization.js';
+import {Project} from 'fixtures/js-stubs/project.js';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -17,9 +20,9 @@ import {EventsDisplayFilterName} from 'sentry/views/performance/transactionSumma
 import {RouteContext} from 'sentry/views/routeContext';
 
 function initializeData() {
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features: ['discover-basic', 'performance-view', 'performance-ops-breakdown'],
-    projects: [TestStubs.Project()],
+    projects: [Project()],
     apdexThreshold: 400,
   });
   const initialData = initializeOrg({

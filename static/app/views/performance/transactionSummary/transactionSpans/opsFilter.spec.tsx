@@ -1,3 +1,5 @@
+import {Organization} from 'fixtures/js-stubs/organization.js';
+import {Project} from 'fixtures/js-stubs/project.js';
 import {Location} from 'history';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -8,9 +10,9 @@ import OpsFilter from 'sentry/views/performance/transactionSummary/transactionSp
 
 function initializeData({query} = {query: {}}) {
   const features = ['performance-view', 'performance-suspect-spans-view'];
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features,
-    projects: [TestStubs.Project()],
+    projects: [Project()],
   });
   const initialData = initializeOrg({
     organization,

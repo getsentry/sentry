@@ -1,3 +1,5 @@
+import {Tags} from 'fixtures/js-stubs/tags.js';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -16,7 +18,7 @@ describe('IssueListSearchBar', function () {
 
   beforeEach(function () {
     TagStore.reset();
-    TagStore.loadTagsSuccess(TestStubs.Tags());
+    TagStore.loadTagsSuccess(Tags());
     supportedTags = TagStore.getState();
     // Add a tag that is preseeded with values.
     supportedTags.is = {

@@ -1,3 +1,6 @@
+import {Project} from 'fixtures/js-stubs/project.js';
+import {router} from 'fixtures/js-stubs/router.js';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -6,7 +9,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import AlertHeader from 'sentry/views/alerts/list/header';
 
 describe('AlertHeader', () => {
-  const project = TestStubs.Project();
+  const project = Project();
   const {routerContext, organization} = initializeOrg();
   beforeEach(() => {
     PageFiltersStore.init();
@@ -28,7 +31,7 @@ describe('AlertHeader', () => {
   });
 
   it('should pass global selection project to create alert button', () => {
-    render(<AlertHeader activeTab="stream" router={TestStubs.router()} />, {
+    render(<AlertHeader activeTab="stream" router={router()} />, {
       context: routerContext,
       organization,
     });

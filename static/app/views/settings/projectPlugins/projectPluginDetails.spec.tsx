@@ -1,3 +1,9 @@
+import {Organization} from 'fixtures/js-stubs/organization.js';
+import {Plugin} from 'fixtures/js-stubs/plugin.js';
+import {Plugins} from 'fixtures/js-stubs/plugins.js';
+import {Project} from 'fixtures/js-stubs/project.js';
+import {router} from 'fixtures/js-stubs/router.js';
+
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
@@ -6,11 +12,11 @@ import ProjectPluginDetailsContainer, {
 } from 'sentry/views/settings/projectPlugins/details';
 
 describe('ProjectPluginDetails', function () {
-  const organization = TestStubs.Organization();
-  const project = TestStubs.Project();
-  const router = TestStubs.router();
-  const plugins = TestStubs.Plugins();
-  const plugin = TestStubs.Plugin();
+  const organization = Organization();
+  const project = Project();
+  const router = router();
+  const plugins = Plugins();
+  const plugin = Plugin();
 
   beforeAll(function () {
     jest.spyOn(console, 'info').mockImplementation(() => {});

@@ -1,3 +1,5 @@
+import {Project} from 'fixtures/js-stubs/project.js';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
@@ -19,7 +21,7 @@ describe('usePerformanceOnboardingDocs', function () {
         {children}
       </OrganizationContext.Provider>
     );
-    const project = TestStubs.Project({
+    const project = Project({
       platform: 'javascript-react',
       firstTransactionEvent: false,
     });
@@ -76,7 +78,7 @@ describe('usePerformanceOnboardingDocs', function () {
         {children}
       </OrganizationContext.Provider>
     );
-    const project = TestStubs.Project({
+    const project = Project({
       platform: 'javascript-angular',
       firstTransactionEvent: false,
     });
@@ -125,7 +127,7 @@ describe('usePerformanceOnboardingDocs', function () {
         {children}
       </OrganizationContext.Provider>
     );
-    const project = TestStubs.Project({
+    const project = Project({
       platform: 'elixir',
       firstTransactionEvent: false,
     });

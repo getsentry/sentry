@@ -1,3 +1,5 @@
+import {EventsStats} from 'fixtures/js-stubs/eventsStats.js';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -12,7 +14,7 @@ import {
 describe('Incident Rules Create', () => {
   const eventStatsMock = MockApiClient.addMockResponse({
     url: '/organizations/org-slug/events-stats/',
-    body: TestStubs.EventsStats(),
+    body: EventsStats(),
   });
 
   const eventCountsMock = MockApiClient.addMockResponse({

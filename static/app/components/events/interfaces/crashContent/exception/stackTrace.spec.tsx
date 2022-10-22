@@ -1,3 +1,6 @@
+import {Event} from 'fixtures/js-stubs/event.js';
+import {Organization} from 'fixtures/js-stubs/organization.js';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
@@ -60,7 +63,7 @@ const props: React.ComponentProps<typeof ExceptionStacktraceContent> = {
   newestFirst: true,
   chainedException: false,
   event: {
-    ...TestStubs.Event(),
+    ...Event(),
     entries: [],
     crashFile: {
       sha1: 'sha1',
@@ -92,7 +95,7 @@ const props: React.ComponentProps<typeof ExceptionStacktraceContent> = {
 };
 
 describe('ExceptionStacktraceContent', function () {
-  const organization = TestStubs.Organization();
+  const organization = Organization();
 
   it('default behaviour', function () {
     const {container} = render(

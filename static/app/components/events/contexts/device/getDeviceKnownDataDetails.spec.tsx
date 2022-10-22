@@ -1,3 +1,5 @@
+import {Event} from 'fixtures/js-stubs/event.js';
+
 import {deviceKnownDataValues} from 'sentry/components/events/contexts/device';
 import {getDeviceKnownDataDetails} from 'sentry/components/events/contexts/device/getDeviceKnownDataDetails';
 
@@ -11,7 +13,7 @@ describe('getDeviceKnownDataDetails', function () {
       const deviceKnownData = getDeviceKnownDataDetails({
         type: deviceKnownDataValues[type],
         data: deviceMockData,
-        event: TestStubs.Event(),
+        event: Event(),
       });
 
       if (!deviceKnownData) {

@@ -1,3 +1,5 @@
+import {Organization} from 'fixtures/js-stubs/organization.js';
+
 import {Event} from 'sentry/types/event';
 import {TraceFull} from 'sentry/utils/performance/quickTrace/types';
 import {
@@ -170,7 +172,7 @@ describe('Quick Trace Utils', function () {
   });
 
   describe('parseQuickTrace', function () {
-    const organization = TestStubs.Organization();
+    const organization = Organization();
     it('parses empty trace', function () {
       const current = generateEventSelector({generation: 0, offset: 0}, 'transaction');
       expect(() =>

@@ -1,3 +1,6 @@
+import {router} from 'fixtures/js-stubs/router.js';
+import {routerContext} from 'fixtures/js-stubs/routerContext.js';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
@@ -6,9 +9,9 @@ const path = 'http://some.url/';
 
 describe('GlobalSelectionLink', function () {
   const getContext = (query: {environment: string; project: string[]}) =>
-    TestStubs.routerContext([
+    routerContext([
       {
-        router: TestStubs.router({
+        router: router({
           location: {query},
         }),
       },

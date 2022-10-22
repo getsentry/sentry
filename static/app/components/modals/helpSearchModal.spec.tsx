@@ -1,3 +1,8 @@
+import {Members} from 'fixtures/js-stubs/members.js';
+import {Organization} from 'fixtures/js-stubs/organization.js';
+import {Project} from 'fixtures/js-stubs/project.js';
+import {Team} from 'fixtures/js-stubs/team.js';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -8,22 +13,22 @@ describe('Docs Search Modal', function () {
   beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/',
-      body: [TestStubs.Organization({slug: 'billy-org', name: 'billy org'})],
+      body: [Organization({slug: 'billy-org', name: 'billy org'})],
     });
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
-      body: [TestStubs.Project({slug: 'foo-project'})],
+      body: [Project({slug: 'foo-project'})],
     });
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/teams/',
-      body: [TestStubs.Team({slug: 'foo-team'})],
+      body: [Team({slug: 'foo-team'})],
     });
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
-      body: TestStubs.Members(),
+      body: Members(),
     });
 
     MockApiClient.addMockResponse({

@@ -1,3 +1,6 @@
+import {Organization} from 'fixtures/js-stubs/organization.js';
+import {Project} from 'fixtures/js-stubs/project.js';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -58,9 +61,9 @@ export const EVENTS_TABLE_RESPONSE_FIELDS = [
 
 function initializeData({features: additionalFeatures = []}: Data = {}) {
   const features = ['discover-basic', 'performance-view', ...additionalFeatures];
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features,
-    projects: [TestStubs.Project()],
+    projects: [Project()],
     apdexThreshold: 400,
   });
   const initialData = initializeOrg({
@@ -92,7 +95,7 @@ describe('Performance GridEditable Table', function () {
   ];
   const totalEventCount = '100';
   let fields = EVENTS_TABLE_RESPONSE_FIELDS;
-  const organization = TestStubs.Organization();
+  const organization = Organization();
   const transactionName = 'transactionName';
   let data;
 

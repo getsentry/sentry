@@ -1,3 +1,7 @@
+import {Organization} from 'fixtures/js-stubs/organization.js';
+import {Project} from 'fixtures/js-stubs/project.js';
+import {routerContext} from 'fixtures/js-stubs/routerContext.js';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -9,8 +13,8 @@ describe('TeamInsightsContainer', () => {
   });
 
   it('blocks access if org is missing flag', () => {
-    const organization = TestStubs.Organization();
-    const context = TestStubs.routerContext([{organization}]);
+    const organization = Organization();
+    const context = routerContext([{organization}]);
     render(
       <TeamInsightsContainer organization={organization}>
         <div>test</div>
@@ -21,9 +25,9 @@ describe('TeamInsightsContainer', () => {
     expect(screen.queryByText('test')).not.toBeInTheDocument();
   });
   it('allows access for orgs with flag', () => {
-    ProjectsStore.loadInitialData([TestStubs.Project()]);
-    const organization = TestStubs.Organization({features: ['team-insights']});
-    const context = TestStubs.routerContext([{organization}]);
+    ProjectsStore.loadInitialData([Project()]);
+    const organization = Organization({features: ['team-insights']});
+    const context = routerContext([{organization}]);
     render(
       <TeamInsightsContainer organization={organization}>
         <div>test</div>
@@ -35,8 +39,8 @@ describe('TeamInsightsContainer', () => {
   });
   it('shows message for users with no teams', () => {
     ProjectsStore.loadInitialData([]);
-    const organization = TestStubs.Organization({features: ['team-insights']});
-    const context = TestStubs.routerContext([{organization}]);
+    const organization = Organization({features: ['team-insights']});
+    const context = routerContext([{organization}]);
     render(<TeamInsightsContainer organization={organization} />, {context});
 
     expect(

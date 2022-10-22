@@ -1,3 +1,6 @@
+import {Organization} from 'fixtures/js-stubs/organization.js';
+import {Project} from 'fixtures/js-stubs/project.js';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -12,7 +15,7 @@ describe('EventsV2 > ChartFooter', function () {
     {label: 'count()', value: 'count()'},
     {label: 'failure_count()', value: 'failure_count()'},
   ];
-  const project = TestStubs.Project();
+  const project = Project();
   const eventView = EventView.fromSavedQuery({
     id: '',
     name: 'test query',
@@ -24,7 +27,7 @@ describe('EventsV2 > ChartFooter', function () {
   afterEach(function () {});
 
   it('renders yAxis option using OptionCheckboxSelector using entire yAxisValue', function () {
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       features: [...features],
     });
 
@@ -69,7 +72,7 @@ describe('EventsV2 > ChartFooter', function () {
   });
 
   it('renders display limits with default limit when top 5 mode is selected', function () {
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       features,
     });
     // Start off with an invalid view (empty is invalid)
@@ -109,7 +112,7 @@ describe('EventsV2 > ChartFooter', function () {
   });
 
   it('renders multi value y-axis dropdown selector on a non-Top display', function () {
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       features,
     });
     let yAxis = ['count()'];

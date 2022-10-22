@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import {location} from 'fixtures/js-stubs/location.js';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render} from 'sentry-test/reactTestingLibrary';
@@ -37,7 +38,7 @@ describe('Dashboards > ViewEditDashboard', function () {
 
     render(
       <ViewEditDashboard
-        location={TestStubs.location(location)}
+        location={location(location)}
         organization={initialData.organization}
         router={initialData.router}
         params={{

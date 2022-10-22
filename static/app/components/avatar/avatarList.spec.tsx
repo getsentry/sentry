@@ -1,3 +1,5 @@
+import {User} from 'fixtures/js-stubs/user.js';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import AvatarList from 'sentry/components/avatar/avatarList';
@@ -9,7 +11,7 @@ function renderComponent(
 }
 
 describe('AvatarList', () => {
-  const user = TestStubs.User();
+  const user = User();
 
   it('renders with user letter avatars', () => {
     const users = [

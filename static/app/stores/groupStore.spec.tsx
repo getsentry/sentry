@@ -1,7 +1,9 @@
+import {Group} from 'fixtures/js-stubs/group.js';
+
 import GroupStore from 'sentry/stores/groupStore';
 import {Group, GroupStats, TimeseriesValue} from 'sentry/types';
 
-const g = (id: string, params?: Partial<Group>) => TestStubs.Group({id, ...params});
+const g = (id: string, params?: Partial<Group>) => Group({id, ...params});
 
 describe('GroupStore', function () {
   beforeEach(function () {

@@ -1,10 +1,13 @@
+import {Organization} from 'fixtures/js-stubs/organization.js';
+import {Project} from 'fixtures/js-stubs/project.js';
+
 import {doMetricsRequest} from 'sentry/actionCreators/metrics';
 import {Client} from 'sentry/api';
 import {SessionMetric} from 'sentry/utils/metrics/fields';
 
 describe('Metrics ActionCreator', function () {
   const api = new Client();
-  const orgSlug = TestStubs.Organization().slug;
+  const orgSlug = Organization().slug;
 
   describe('doMetricsRequest', function () {
     const options = {
@@ -16,7 +19,7 @@ describe('Metrics ActionCreator', function () {
       interval: '1h',
       limit: 5,
       orderBy: SessionMetric.SESSION,
-      project: [TestStubs.Project().id],
+      project: [Project().id],
       query: 'release:123',
       statsPeriod: '14d',
     };

@@ -1,4 +1,10 @@
 import {ComponentProps} from 'react';
+import {EventIdQueryResult} from 'fixtures/js-stubs/eventIdQueryResult.js';
+import {Members} from 'fixtures/js-stubs/members.js';
+import {Organization} from 'fixtures/js-stubs/organization.js';
+import {Project} from 'fixtures/js-stubs/project.js';
+import {ShortIdQueryResult} from 'fixtures/js-stubs/shortIdQueryResult.js';
+import {Team} from 'fixtures/js-stubs/team.js';
 import omit from 'lodash/omit';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -29,32 +35,32 @@ describe('ApiSource', function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/',
-      body: [TestStubs.Organization({slug: 'test-org'})],
+      body: [Organization({slug: 'test-org'})],
     });
 
     orgsMock = MockApiClient.addMockResponse({
       url: '/organizations/',
-      body: [TestStubs.Organization({slug: 'foo-org'})],
+      body: [Organization({slug: 'foo-org'})],
     });
     projectsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
-      body: [TestStubs.Project({slug: 'foo-project'})],
+      body: [Project({slug: 'foo-project'})],
     });
     teamsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/teams/',
-      body: [TestStubs.Team({slug: 'foo-team'})],
+      body: [Team({slug: 'foo-team'})],
     });
     membersMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
-      body: TestStubs.Members(),
+      body: Members(),
     });
     shortIdMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/shortids/test-1/',
-      body: TestStubs.ShortIdQueryResult(),
+      body: ShortIdQueryResult(),
     });
     eventIdMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/eventids/12345678901234567890123456789012/',
-      body: TestStubs.EventIdQueryResult(),
+      body: EventIdQueryResult(),
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/plugins/?plugins=_all',

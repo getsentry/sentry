@@ -1,3 +1,6 @@
+import {Organization} from 'fixtures/js-stubs/organization.js';
+import {Project} from 'fixtures/js-stubs/project.js';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -14,8 +17,8 @@ type InitialOpts = {
 
 function initializeData(opts?: InitialOpts) {
   const {features, platform} = opts ?? {};
-  const project = TestStubs.Project({platform});
-  const organization = TestStubs.Organization({
+  const project = Project({platform});
+  const organization = Organization({
     projects: [project],
     features,
   });

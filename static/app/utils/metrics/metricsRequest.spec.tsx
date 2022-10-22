@@ -1,3 +1,6 @@
+import {Organization} from 'fixtures/js-stubs/organization.js';
+import {Project} from 'fixtures/js-stubs/project.js';
+
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import MetricsRequest from 'sentry/utils/metrics/metricsRequest';
@@ -8,8 +11,8 @@ jest.mock('sentry/utils/metrics/transformMetricsResponseToSeries', () => ({
 }));
 
 describe('MetricsRequest', () => {
-  const project = TestStubs.Project();
-  const organization = TestStubs.Organization();
+  const project = Project();
+  const organization = Organization();
   const childrenMock = jest.fn(() => null);
   const props = {
     api: new MockApiClient(),

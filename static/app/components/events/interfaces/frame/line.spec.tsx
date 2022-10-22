@@ -1,3 +1,5 @@
+import {Event} from 'fixtures/js-stubs/event.js';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
@@ -26,7 +28,7 @@ function TestComponent({children}: {children: React.ReactNode}) {
 }
 
 describe('Frame - Line', function () {
-  const event = TestStubs.Event();
+  const event = Event();
 
   const data: Frame = {
     absPath: null,

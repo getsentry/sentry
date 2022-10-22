@@ -1,3 +1,5 @@
+import {routerContext} from 'fixtures/js-stubs/routerContext.js';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -382,7 +384,7 @@ describe('Quick Trace', function () {
 
   describe('Event Node Clicks', function () {
     it('renders single event targets', async function () {
-      const routerContext = TestStubs.routerContext();
+      const routerContext = routerContext();
       render(
         <QuickTrace
           event={makeTransactionEvent(3) as Event}

@@ -1,10 +1,12 @@
+import {Organization} from 'fixtures/js-stubs/organization.js';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {Breadcrumb} from 'sentry/components/profiling/breadcrumb';
 
 describe('Breadcrumb', function () {
   it('renders the profiling link', function () {
-    const organization = TestStubs.Organization();
+    const organization = Organization();
     render(
       <Breadcrumb
         organization={organization}

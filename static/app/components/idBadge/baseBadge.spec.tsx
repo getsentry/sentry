@@ -1,3 +1,5 @@
+import {Organization} from 'fixtures/js-stubs/organization.js';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import BaseBadge from 'sentry/components/idBadge/baseBadge';
@@ -5,18 +7,13 @@ import BaseBadge from 'sentry/components/idBadge/baseBadge';
 describe('BadgeBadge', function () {
   it('has a display name', function () {
     render(
-      <BaseBadge
-        organization={TestStubs.Organization()}
-        displayName={<span>display name</span>}
-      />
+      <BaseBadge organization={Organization()} displayName={<span>display name</span>} />
     );
     expect(screen.getByText('display name')).toBeInTheDocument();
   });
 
   it('can hide avatar', function () {
-    render(
-      <BaseBadge organization={TestStubs.Organization()} displayName="hello" hideAvatar />
-    );
+    render(<BaseBadge organization={Organization()} displayName="hello" hideAvatar />);
     expect(screen.queryByTestId('badge-styled-avatar')).not.toBeInTheDocument();
     expect(screen.getByTestId('badge-display-name')).toHaveTextContent('hello');
   });
@@ -24,7 +21,7 @@ describe('BadgeBadge', function () {
   it('can hide name', function () {
     render(
       <BaseBadge
-        organization={TestStubs.Organization()}
+        organization={Organization()}
         hideName
         displayName={<span>display name</span>}
       />

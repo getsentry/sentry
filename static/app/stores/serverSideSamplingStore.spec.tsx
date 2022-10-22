@@ -1,3 +1,5 @@
+import {Outcomes} from 'fixtures/js-stubs/outcomes.js';
+
 import {ServerSideSamplingStore} from 'sentry/stores/serverSideSamplingStore';
 import {
   mockedSamplingDistribution,
@@ -51,11 +53,9 @@ describe('ServerSideSamplingStore', function () {
 
       expect(ServerSideSamplingStore.getState().projectStats48h.data).toEqual(undefined);
 
-      ServerSideSamplingStore.projectStats48hRequestSuccess(TestStubs.Outcomes());
+      ServerSideSamplingStore.projectStats48hRequestSuccess(Outcomes());
 
-      expect(ServerSideSamplingStore.getState().projectStats48h.data).toEqual(
-        TestStubs.Outcomes()
-      );
+      expect(ServerSideSamplingStore.getState().projectStats48h.data).toEqual(Outcomes());
 
       expect(ServerSideSamplingStore.trigger).toHaveBeenCalledTimes(1);
     });
@@ -67,11 +67,9 @@ describe('ServerSideSamplingStore', function () {
 
       expect(ServerSideSamplingStore.getState().projectStats30d.data).toEqual(undefined);
 
-      ServerSideSamplingStore.projectStats30dRequestSuccess(TestStubs.Outcomes());
+      ServerSideSamplingStore.projectStats30dRequestSuccess(Outcomes());
 
-      expect(ServerSideSamplingStore.getState().projectStats30d.data).toEqual(
-        TestStubs.Outcomes()
-      );
+      expect(ServerSideSamplingStore.getState().projectStats30d.data).toEqual(Outcomes());
 
       expect(ServerSideSamplingStore.trigger).toHaveBeenCalledTimes(1);
     });

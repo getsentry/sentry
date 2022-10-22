@@ -1,4 +1,5 @@
 import {InjectedRouter} from 'react-router';
+import {DataScrubbingRelayPiiConfig} from 'fixtures/js-stubs/dataScrubbingRelayPiiConfig.js';
 import {Location} from 'history';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -11,7 +12,7 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 import {RouteContext} from 'sentry/views/routeContext';
 import {DataScrubbing} from 'sentry/views/settings/components/dataScrubbing';
 
-const relayPiiConfig = JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig());
+const relayPiiConfig = JSON.stringify(DataScrubbingRelayPiiConfig());
 
 function ComponentProviders({
   router,

@@ -1,3 +1,5 @@
+import {AuditLogs} from 'fixtures/js-stubs/auditLogs.js';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -20,7 +22,7 @@ describe('OrganizationAuditLog', function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: ENDPOINT,
-      body: {rows: TestStubs.AuditLogs(), options: TestStubs.AuditLogsApiEventNames()},
+      body: {rows: AuditLogs(), options: AuditLogsApiEventNames()},
     });
   });
 
@@ -48,7 +50,7 @@ describe('OrganizationAuditLog', function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: ENDPOINT,
-      body: {rows: [], options: TestStubs.AuditLogsApiEventNames()},
+      body: {rows: [], options: AuditLogsApiEventNames()},
     });
 
     render(

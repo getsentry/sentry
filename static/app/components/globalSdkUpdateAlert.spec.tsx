@@ -1,3 +1,4 @@
+import {Organization} from 'fixtures/js-stubs/organization.js';
 import moment from 'moment';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -74,7 +75,7 @@ describe('GlobalSDKUpdateAlert', () => {
     });
 
     const {rerender} = render(<InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} />, {
-      organization: TestStubs.Organization(),
+      organization: Organization(),
     });
 
     expect(
@@ -105,7 +106,7 @@ describe('GlobalSDKUpdateAlert', () => {
     });
 
     render(<InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} />, {
-      organization: TestStubs.Organization(),
+      organization: Organization(),
     });
 
     expect(
@@ -130,7 +131,7 @@ describe('GlobalSDKUpdateAlert', () => {
     });
 
     render(<InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} />, {
-      organization: TestStubs.Organization(),
+      organization: Organization(),
     });
 
     await waitFor(() =>
@@ -157,7 +158,7 @@ describe('GlobalSDKUpdateAlert', () => {
     });
 
     render(<InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} />, {
-      organization: TestStubs.Organization(),
+      organization: Organization(),
     });
 
     expect(
@@ -182,7 +183,7 @@ describe('GlobalSDKUpdateAlert', () => {
     });
 
     render(<InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} />, {
-      organization: TestStubs.Organization(),
+      organization: Organization(),
     });
 
     await waitFor(() =>
@@ -209,7 +210,7 @@ describe('GlobalSDKUpdateAlert', () => {
     });
 
     render(<InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} />, {
-      organization: TestStubs.Organization(),
+      organization: Organization(),
     });
 
     expect(
@@ -236,7 +237,7 @@ describe('GlobalSDKUpdateAlert', () => {
     });
 
     render(<InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} />, {
-      organization: TestStubs.Organization(),
+      organization: Organization(),
     });
 
     userEvent.click(await screen.findByText(/Remind me later/));

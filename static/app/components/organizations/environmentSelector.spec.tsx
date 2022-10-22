@@ -1,3 +1,8 @@
+import {Config} from 'fixtures/js-stubs/config.js';
+import {Organization} from 'fixtures/js-stubs/organization.js';
+import {Project} from 'fixtures/js-stubs/project.js';
+import {routerContext} from 'fixtures/js-stubs/routerContext.js';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import EnvironmentSelector from 'sentry/components/organizations/environmentSelector';
@@ -8,26 +13,26 @@ describe('EnvironmentSelector', function () {
   const onUpdate = jest.fn();
 
   const projects = [
-    TestStubs.Project({
+    Project({
       id: '1',
       slug: 'first',
       environments: ['production', 'staging'],
     }),
-    TestStubs.Project({
+    Project({
       id: '2',
       slug: 'second',
       environments: ['dev'],
     }),
-    TestStubs.Project({
+    Project({
       id: '3',
       slug: 'no member',
       environments: ['no-env'],
       isMember: false,
     }),
   ];
-  const organization = TestStubs.Organization({projects});
+  const organization = Organization({projects});
   const selectedProjects = [1, 2];
-  const routerContext = TestStubs.routerContext([
+  const routerContext = routerContext([
     {
       organization,
     },
@@ -35,7 +40,7 @@ describe('EnvironmentSelector', function () {
 
   beforeEach(function () {
     ConfigStore.init();
-    ConfigStore.loadInitialData(TestStubs.Config());
+    ConfigStore.loadInitialData(Config());
     onUpdate.mockReset();
   });
 
@@ -152,13 +157,13 @@ describe('EnvironmentSelector', function () {
       renderSelector({
         selectedProjects: [],
         projects: [
-          TestStubs.Project({
+          Project({
             id: '1',
             slug: 'first',
             environments: ['production', 'staging'],
             isMember: false,
           }),
-          TestStubs.Project({
+          Project({
             id: '2',
             slug: 'second',
             environments: ['dev'],
@@ -185,12 +190,12 @@ describe('EnvironmentSelector', function () {
       renderSelector({
         selectedProjects: [],
         projects: [
-          TestStubs.Project({
+          Project({
             id: '1',
             slug: 'first',
             environments: ['production', 'staging'],
           }),
-          TestStubs.Project({
+          Project({
             id: '2',
             slug: 'second',
             environments: ['dev'],
@@ -216,13 +221,13 @@ describe('EnvironmentSelector', function () {
       renderSelector({
         selectedProjects: [ALL_ACCESS_PROJECTS],
         projects: [
-          TestStubs.Project({
+          Project({
             id: '1',
             slug: 'first',
             environments: ['production', 'staging'],
             isMember: false,
           }),
-          TestStubs.Project({
+          Project({
             id: '2',
             slug: 'second',
             environments: ['dev'],
@@ -248,12 +253,12 @@ describe('EnvironmentSelector', function () {
       renderSelector({
         selectedProjects: [ALL_ACCESS_PROJECTS],
         projects: [
-          TestStubs.Project({
+          Project({
             id: '1',
             slug: 'first',
             environments: ['production', 'staging'],
           }),
-          TestStubs.Project({
+          Project({
             id: '2',
             slug: 'second',
             environments: ['dev'],

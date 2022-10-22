@@ -1,3 +1,6 @@
+import {DataScrubbingRelayPiiConfig} from 'fixtures/js-stubs/dataScrubbingRelayPiiConfig.js';
+import {Event} from 'fixtures/js-stubs/event.js';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -9,7 +12,7 @@ import {RouteContext} from 'sentry/views/routeContext';
 describe('EventExtraData', function () {
   it('display redacted data', async function () {
     const event = {
-      ...TestStubs.Event(),
+      ...Event(),
       context: {
         'sys.argv': ['', '', '', '', '', '', '', '', '', ''],
         sdk: {
@@ -177,7 +180,7 @@ describe('EventExtraData', function () {
       ...initializeOrg(),
       organization: {
         ...initializeOrg().organization,
-        relayPiiConfig: JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig()),
+        relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfig()),
       },
     });
 

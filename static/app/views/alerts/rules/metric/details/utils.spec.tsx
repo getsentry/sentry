@@ -1,3 +1,4 @@
+import {Incident} from 'fixtures/js-stubs/incident.js';
 import MockDate from 'mockdate';
 import moment from 'moment';
 
@@ -14,7 +15,7 @@ describe('buildMetricGraphDateRange', () => {
   });
 
   it('should use current date for an active alert', () => {
-    const incident = TestStubs.Incident({
+    const incident = Incident({
       dateStarted: '2022-05-16T18:55:00Z',
       dateClosed: null,
       alertRule: {timeWindow: 1},
@@ -25,7 +26,7 @@ describe('buildMetricGraphDateRange', () => {
   });
 
   it('should use current date for a recently closed alert', () => {
-    const incident = TestStubs.Incident({
+    const incident = Incident({
       dateStarted: '2022-05-16T18:55:00Z',
       dateClosed: '2022-05-16T18:57:00Z',
       alertRule: {timeWindow: 1},
@@ -37,7 +38,7 @@ describe('buildMetricGraphDateRange', () => {
 
   it('should use a past date for an older alert', () => {
     // Incident is from over a week ago
-    const incident = TestStubs.Incident({
+    const incident = Incident({
       dateStarted: '2022-05-04T18:55:00Z',
       dateClosed: '2022-05-04T18:57:00Z',
       alertRule: {timeWindow: 1},
@@ -48,7 +49,7 @@ describe('buildMetricGraphDateRange', () => {
   });
 
   it('should handle large time windows', () => {
-    const incident = TestStubs.Incident({
+    const incident = Incident({
       dateStarted: '2022-04-20T20:28:00Z',
       dateClosed: null,
       // 1 day time window

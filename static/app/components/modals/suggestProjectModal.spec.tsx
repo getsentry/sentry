@@ -1,3 +1,5 @@
+import {Organization} from 'fixtures/js-stubs/organization.js';
+
 import {renderGlobalModal} from 'sentry-test/reactTestingLibrary';
 
 import {openModal} from 'sentry/actionCreators/modal';
@@ -10,7 +12,7 @@ describe('SuggestProjectModal', function () {
     openModal(modalProps => (
       <SuggestProjectModal
         {...modalProps}
-        organization={TestStubs.Organization()}
+        organization={Organization()}
         matchedUserAgentString="okhttp/"
       />
     ));

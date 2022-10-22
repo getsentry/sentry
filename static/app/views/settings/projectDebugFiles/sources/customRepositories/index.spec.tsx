@@ -1,4 +1,6 @@
 import {InjectedRouter} from 'react-router';
+import {location} from 'fixtures/js-stubs/location.js';
+import {router} from 'fixtures/js-stubs/router.js';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -452,9 +454,9 @@ describe('Custom Repositories', function () {
   describe('Update saved store', function () {
     const props = getProps({
       router: {
-        ...TestStubs.router(),
+        ...router(),
         location: {
-          ...TestStubs.location(),
+          ...location(),
           pathname: `/settings/org-slug/projects/project-2/debug-symbols/`,
           query: {
             customRepository: appStoreConnectRepository.id,

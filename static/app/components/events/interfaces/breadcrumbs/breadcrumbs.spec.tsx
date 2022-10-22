@@ -1,4 +1,7 @@
 import {InjectedRouter} from 'react-router';
+import {Event} from 'fixtures/js-stubs/event.js';
+import {Organization} from 'fixtures/js-stubs/organization.js';
+import {ReplayReaderParams} from 'fixtures/js-stubs/replayReaderParams.js';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -11,7 +14,7 @@ import ReplayReader from 'sentry/utils/replays/replayReader';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {RouteContext} from 'sentry/views/routeContext';
 
-const mockReplay = ReplayReader.factory(TestStubs.ReplayReaderParams());
+const mockReplay = ReplayReader.factory(ReplayReaderParams());
 
 jest.mock('screenfull', () => ({
   enabled: true,
@@ -67,10 +70,10 @@ describe('Breadcrumbs', () => {
     props = {
       route: {},
       router,
-      organization: TestStubs.Organization(),
+      organization: Organization(),
       projectSlug: 'project-slug',
       isShare: false,
-      event: TestStubs.Event({entries: []}),
+      event: Event({entries: []}),
       data: {
         values: [
           {
@@ -238,11 +241,11 @@ describe('Breadcrumbs', () => {
         <TestComponent organization={organization} router={router}>
           <Breadcrumbs
             {...props}
-            event={TestStubs.Event({
+            event={Event({
               entries: [],
               tags: [{key: 'replayId', value: '761104e184c64d439ee1014b72b4d83b'}],
             })}
-            organization={TestStubs.Organization({
+            organization={Organization({
               features: ['session-replay-ui'],
             })}
           />

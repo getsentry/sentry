@@ -1,10 +1,13 @@
+import {GitHubIntegrationProvider} from 'fixtures/js-stubs/gitHubIntegrationProvider.js';
+import {Organization} from 'fixtures/js-stubs/organization.js';
+
 /* global global */
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {AddIntegrationButton} from 'sentry/views/organizationIntegrations/addIntegrationButton';
 
 describe('AddIntegrationButton', function () {
-  const provider = TestStubs.GitHubIntegrationProvider();
+  const provider = GitHubIntegrationProvider();
 
   it('Opens the setup dialog on click', function () {
     const focus = jest.fn();
@@ -16,7 +19,7 @@ describe('AddIntegrationButton', function () {
       <AddIntegrationButton
         provider={provider}
         onAddIntegration={jest.fn()}
-        organization={TestStubs.Organization()}
+        organization={Organization()}
       />
     );
 

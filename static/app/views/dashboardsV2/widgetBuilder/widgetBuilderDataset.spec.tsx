@@ -1,5 +1,8 @@
 import selectEvent from 'react-select-event';
 import {urlEncode} from '@sentry/utils';
+import {MetricsField} from 'fixtures/js-stubs/metricsField.js';
+import {SessionsField} from 'fixtures/js-stubs/sessionsField.js';
+import {Tags} from 'fixtures/js-stubs/tags.js';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -209,7 +212,7 @@ describe('WidgetBuilder', function () {
     sessionsDataMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/sessions/',
-      body: TestStubs.SessionsField({
+      body: SessionsField({
         field: `sum(session)`,
       }),
     });
@@ -217,7 +220,7 @@ describe('WidgetBuilder', function () {
     metricsDataMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/metrics/data/',
-      body: TestStubs.MetricsField({
+      body: MetricsField({
         field: 'sum(sentry.sessions.session)',
       }),
     });
@@ -225,7 +228,7 @@ describe('WidgetBuilder', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       method: 'GET',
-      body: TestStubs.Tags(),
+      body: Tags(),
     });
 
     measurementsMetaMock = MockApiClient.addMockResponse({

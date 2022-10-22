@@ -1,4 +1,6 @@
 import {Fragment} from 'react';
+import {Member} from 'fixtures/js-stubs/member.js';
+import {MetricRule} from 'fixtures/js-stubs/metricRule.js';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -42,12 +44,12 @@ describe('Incident Rules Duplicate', function () {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
-      body: [TestStubs.Member()],
+      body: [Member()],
     });
   });
 
   it('renders new alert form with values copied over', function () {
-    const rule = TestStubs.MetricRule();
+    const rule = MetricRule();
     rule.triggers.push({
       label: AlertRuleTriggerType.WARNING,
       alertThreshold: 60,

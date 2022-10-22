@@ -1,3 +1,5 @@
+import {Event} from 'fixtures/js-stubs/event.js';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -14,7 +16,7 @@ describe('tags table', function () {
     ];
 
     const event = {
-      ...TestStubs.Event(),
+      ...Event(),
       tags,
       _meta: {
         tags: {
@@ -68,7 +70,7 @@ describe('tags table', function () {
     ];
 
     const event = {
-      ...TestStubs.Event(),
+      ...Event(),
       tags,
       _meta: {
         tags: {

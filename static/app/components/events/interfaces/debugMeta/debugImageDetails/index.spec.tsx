@@ -1,3 +1,6 @@
+import {Event} from 'fixtures/js-stubs/event.js';
+import {EventEntryDebugMeta} from 'fixtures/js-stubs/eventEntryDebugMeta.js';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {renderGlobalModal, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -5,8 +8,8 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {DebugImageDetails} from 'sentry/components/events/interfaces/debugMeta/debugImageDetails';
 
 describe('Debug Meta - Image Details', function () {
-  const eventEntryDebugMeta = TestStubs.EventEntryDebugMeta();
-  const event = TestStubs.Event({entries: [eventEntryDebugMeta]});
+  const eventEntryDebugMeta = EventEntryDebugMeta();
+  const event = Event({entries: [eventEntryDebugMeta]});
   const {organization, project} = initializeOrg();
 
   beforeAll(function () {

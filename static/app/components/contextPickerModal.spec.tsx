@@ -1,4 +1,8 @@
 import selectEvent from 'react-select-event';
+import {GitHubIntegration} from 'fixtures/js-stubs/gitHubIntegration.js';
+import {Organization} from 'fixtures/js-stubs/organization.js';
+import {Project} from 'fixtures/js-stubs/project.js';
+import {User} from 'fixtures/js-stubs/user.js';
 
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -18,14 +22,14 @@ describe('ContextPickerModal', function () {
     act(() => ProjectsStore.reset());
     MockApiClient.clearMockResponses();
 
-    project = TestStubs.Project();
-    org = TestStubs.Organization({projects: [project]});
-    project2 = TestStubs.Project({slug: 'project2'});
-    org2 = TestStubs.Organization({
+    project = Project();
+    org = Organization({projects: [project]});
+    project2 = Project({slug: 'project2'});
+    org2 = Organization({
       slug: 'org2',
       id: '21',
     });
-    project4 = TestStubs.Project({slug: 'project4', isMember: false});
+    project4 = Project({slug: 'project4', isMember: false});
 
     act(() => OrganizationsStore.load([]));
     act(() => OrganizationStore.reset());
@@ -146,7 +150,7 @@ describe('ContextPickerModal', function () {
       },
       {
         ...org2,
-        projects: [project2, TestStubs.Project({slug: 'project3'})],
+        projects: [project2, Project({slug: 'project3'})],
       },
     ];
     const fetchProjectsForOrg = MockApiClient.addMockResponse({
@@ -187,11 +191,11 @@ describe('ContextPickerModal', function () {
   it('isSuperUser and selects an integrationConfig and calls `onFinish` with URL to that configuration', async function () {
     OrganizationsStore.load([org]);
     OrganizationStore.onUpdate(org);
-    ConfigStore.config.user = TestStubs.User({isSuperuser: true});
+    ConfigStore.config.user = User({isSuperuser: true});
 
     const provider = {slug: 'github'};
     const configUrl = `/api/0/organizations/${org.slug}/integrations/?provider_key=${provider.slug}&includeConfig=0`;
-    const integration = TestStubs.GitHubIntegration();
+    const integration = GitHubIntegration();
     const fetchGithubConfigs = MockApiClient.addMockResponse({
       url: configUrl,
       body: [integration],
@@ -227,14 +231,14 @@ describe('ContextPickerModal', function () {
   it('not superUser and cannot select an integrationConfig and calls `onFinish` with URL to integration overview page', async function () {
     OrganizationsStore.load([org]);
     OrganizationStore.onUpdate(org);
-    ConfigStore.config.user = TestStubs.User({isSuperuser: false});
+    ConfigStore.config.user = User({isSuperuser: false});
 
     const provider = {slug: 'github'};
     const configUrl = `/api/0/organizations/${org.slug}/integrations/?provider_key=${provider.slug}&includeConfig=0`;
 
     const fetchGithubConfigs = MockApiClient.addMockResponse({
       url: configUrl,
-      body: [TestStubs.GitHubIntegration()],
+      body: [GitHubIntegration()],
     });
 
     MockApiClient.addMockResponse({
@@ -259,7 +263,7 @@ describe('ContextPickerModal', function () {
   it('is superUser and no integration configurations and calls `onFinish` with URL to integration overview page', async function () {
     OrganizationsStore.load([org]);
     OrganizationStore.onUpdate(org);
-    ConfigStore.config = TestStubs.User({isSuperuser: false});
+    ConfigStore.config = User({isSuperuser: false});
 
     const provider = {slug: 'github'};
     const configUrl = `/api/0/organizations/${org.slug}/integrations/?provider_key=${provider.slug}&includeConfig=0`;

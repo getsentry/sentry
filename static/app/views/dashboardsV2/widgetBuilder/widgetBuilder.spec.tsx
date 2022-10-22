@@ -1,5 +1,9 @@
 import selectEvent from 'react-select-event';
 import {urlEncode} from '@sentry/utils';
+import {MetricsField} from 'fixtures/js-stubs/metricsField.js';
+import {Release} from 'fixtures/js-stubs/release.js';
+import {SessionsField} from 'fixtures/js-stubs/sessionsField.js';
+import {Tags} from 'fixtures/js-stubs/tags.js';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
@@ -227,7 +231,7 @@ describe('WidgetBuilder', function () {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/sessions/',
-      body: TestStubs.SessionsField({
+      body: SessionsField({
         field: `sum(session)`,
       }),
     });
@@ -235,7 +239,7 @@ describe('WidgetBuilder', function () {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/metrics/data/',
-      body: TestStubs.MetricsField({
+      body: MetricsField({
         field: 'sum(sentry.sessions.session)',
       }),
     });
@@ -243,7 +247,7 @@ describe('WidgetBuilder', function () {
     tagsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       method: 'GET',
-      body: TestStubs.Tags(),
+      body: Tags(),
     });
 
     MockApiClient.addMockResponse({
@@ -1077,7 +1081,7 @@ describe('WidgetBuilder', function () {
     it('renders page filters in the filter step', async () => {
       const mockReleases = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/',
-        body: [TestStubs.Release()],
+        body: [Release()],
       });
 
       renderTestComponent({
@@ -1097,7 +1101,7 @@ describe('WidgetBuilder', function () {
     it('appends dashboard filters to widget builder fetch data request', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/',
-        body: [TestStubs.Release()],
+        body: [Release()],
       });
 
       const mock = MockApiClient.addMockResponse({
@@ -1257,7 +1261,7 @@ describe('WidgetBuilder', function () {
 
     it('does not fetch tags when tag store is not empty', async function () {
       await act(async () => {
-        TagStore.loadTagsSuccess(TestStubs.Tags());
+        TagStore.loadTagsSuccess(Tags());
         renderTestComponent();
         await tick();
       });

@@ -1,3 +1,6 @@
+import {Group} from 'fixtures/js-stubs/group.js';
+import {Organization} from 'fixtures/js-stubs/organization.js';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import GroupStore from 'sentry/stores/groupStore';
@@ -32,7 +35,7 @@ const renderComponent = (
   dataRow: TableDataRow = defaultRow,
   column: TableColumn<keyof TableDataRow> = defaultColumn
 ) => {
-  const organization = TestStubs.Organization();
+  const organization = Organization();
   render(<QuickContext dataRow={dataRow} column={column} />, {organization});
 };
 
@@ -60,7 +63,7 @@ describe('Quick Context Container', function () {
   });
 
   describe('Quick Context for Issue Column', function () {
-    let mockedGroup = TestStubs.Group({
+    let mockedGroup = Group({
       id: '3512441874',
       project: {
         id: '1',

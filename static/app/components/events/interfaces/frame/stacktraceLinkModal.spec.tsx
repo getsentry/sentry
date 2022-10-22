@@ -1,3 +1,8 @@
+import {GitHubIntegration} from 'fixtures/js-stubs/gitHubIntegration.js';
+import {Organization} from 'fixtures/js-stubs/organization.js';
+import {Project} from 'fixtures/js-stubs/project.js';
+import {Repository} from 'fixtures/js-stubs/repository.js';
+
 import {
   renderGlobalModal,
   screen,
@@ -9,12 +14,12 @@ import {openModal} from 'sentry/actionCreators/modal';
 import StacktraceLinkModal from 'sentry/components/events/interfaces/frame/stacktraceLinkModal';
 
 function createWrapper(statusCode: number, closeModal: () => {}) {
-  const org = TestStubs.Organization();
-  const project = TestStubs.Project();
-  const integration = TestStubs.GitHubIntegration();
+  const org = Organization();
+  const project = Project();
+  const integration = GitHubIntegration();
   const filename = '/sentry/app.py';
-  const repo = TestStubs.Repository({integrationId: integration.id});
-  const config = TestStubs.RepositoryProjectPathConfig({project, repo, integration});
+  const repo = Repository({integrationId: integration.id});
+  const config = RepositoryProjectPathConfig({project, repo, integration});
   const sourceUrl = 'https://github.com/getsentry/sentry/blob/master/src/sentry/app.py';
 
   const configData = {

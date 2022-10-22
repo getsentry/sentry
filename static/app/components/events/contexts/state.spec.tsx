@@ -1,3 +1,5 @@
+import {Event} from 'fixtures/js-stubs/event.js';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -34,7 +36,7 @@ describe('StateContext', function () {
                 },
               },
             }}
-            event={TestStubs.Event()}
+            event={Event()}
           />
         </RouteContext.Provider>
       </OrganizationContext.Provider>
@@ -49,7 +51,7 @@ describe('StateContext', function () {
 
   it('display redacted data', async function () {
     const event = {
-      ...TestStubs.Event(),
+      ...Event(),
       _meta: {
         contexts: {
           state: {

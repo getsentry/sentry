@@ -1,3 +1,7 @@
+import {EventAttachment} from 'fixtures/js-stubs/eventAttachment.js';
+import {Organization} from 'fixtures/js-stubs/organization.js';
+import {Project} from 'fixtures/js-stubs/project.js';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -61,19 +65,19 @@ describe('Modals -> ScreenshotModal', function () {
   let getAttachmentsMock;
   beforeEach(() => {
     initialData = initializeOrg({
-      organization: TestStubs.Organization({features: ['mobile-screenshot-gallery']}),
+      organization: Organization({features: ['mobile-screenshot-gallery']}),
       router: {
         params: {orgId: 'org-slug', groupId: 'group-id'},
         location: {query: {types: 'event.screenshot'}},
       },
     } as Parameters<typeof initializeOrg>[0]);
-    project = TestStubs.Project();
+    project = Project();
     ProjectsStore.loadInitialData([project]);
     GroupStore.init();
 
     getAttachmentsMock = MockApiClient.addMockResponse({
       url: '/issues/group-id/attachments/',
-      body: [TestStubs.EventAttachment()],
+      body: [EventAttachment()],
       headers: {
         link:
           '<http://localhost/api/0/issues/group-id/attachments/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1",' +
@@ -86,7 +90,7 @@ describe('Modals -> ScreenshotModal', function () {
     MockApiClient.clearMockResponses();
   });
   it('paginates single screenshots correctly', function () {
-    const eventAttachment = TestStubs.EventAttachment();
+    const eventAttachment = EventAttachment();
     renderModal({
       eventAttachment,
       initialData,
@@ -94,11 +98,11 @@ describe('Modals -> ScreenshotModal', function () {
       attachmentIndex: 0,
       attachments: [
         eventAttachment,
-        TestStubs.EventAttachment({id: '2', event_id: 'new event id'}),
-        TestStubs.EventAttachment({id: '3'}),
-        TestStubs.EventAttachment({id: '4'}),
-        TestStubs.EventAttachment({id: '5'}),
-        TestStubs.EventAttachment({id: '6'}),
+        EventAttachment({id: '2', event_id: 'new event id'}),
+        EventAttachment({id: '3'}),
+        EventAttachment({id: '4'}),
+        EventAttachment({id: '5'}),
+        EventAttachment({id: '6'}),
       ],
       enablePagination: true,
       groupId: 'group-id',
@@ -111,18 +115,18 @@ describe('Modals -> ScreenshotModal', function () {
   });
 
   it('fetches a new batch of screenshots correctly', async function () {
-    const eventAttachment = TestStubs.EventAttachment();
+    const eventAttachment = EventAttachment();
     renderModal({
       eventAttachment,
       initialData,
       projectSlug: project.slug,
       attachmentIndex: 5,
       attachments: [
-        TestStubs.EventAttachment({id: '2'}),
-        TestStubs.EventAttachment({id: '3'}),
-        TestStubs.EventAttachment({id: '4'}),
-        TestStubs.EventAttachment({id: '5'}),
-        TestStubs.EventAttachment({id: '6'}),
+        EventAttachment({id: '2'}),
+        EventAttachment({id: '3'}),
+        EventAttachment({id: '4'}),
+        EventAttachment({id: '5'}),
+        EventAttachment({id: '6'}),
         eventAttachment,
       ],
       enablePagination: true,

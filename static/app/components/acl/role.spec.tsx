@@ -1,3 +1,6 @@
+import {Organization} from 'fixtures/js-stubs/organization.js';
+import {routerContext} from 'fixtures/js-stubs/routerContext.js';
+import {User} from 'fixtures/js-stubs/user.js';
 import Cookies from 'js-cookie';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -6,7 +9,7 @@ import {Role} from 'sentry/components/acl/role';
 import ConfigStore from 'sentry/stores/configStore';
 
 describe('Role', function () {
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     role: 'admin',
     orgRoleList: [
       {
@@ -35,7 +38,7 @@ describe('Role', function () {
       },
     ],
   });
-  const routerContext = TestStubs.routerContext([
+  const routerContext = routerContext([
     {
       organization,
     },
@@ -66,7 +69,7 @@ describe('Role', function () {
     });
 
     it('gives access to a superuser with insufficient role', function () {
-      ConfigStore.config.user = TestStubs.User({isSuperuser: true});
+      ConfigStore.config.user = User({isSuperuser: true});
       Cookies.set = jest.fn();
 
       render(<Role role="owner">{childrenMock}</Role>, {context: routerContext});
@@ -75,7 +78,7 @@ describe('Role', function () {
         hasRole: true,
       });
       expect(Cookies.set).toHaveBeenCalledWith('su-test-cookie', 'test');
-      ConfigStore.config.user = TestStubs.User({isSuperuser: false});
+      ConfigStore.config.user = User({isSuperuser: false});
     });
 
     it('does not give access to a made up role', function () {

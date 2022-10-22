@@ -1,3 +1,6 @@
+import {Organization} from 'fixtures/js-stubs/organization.js';
+import {Project} from 'fixtures/js-stubs/project.js';
+
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -9,16 +12,16 @@ import {mockedSamplingSdkVersions} from '../testUtils';
 describe('useRecommendedSdkUpgrades', function () {
   it('works', function () {
     ProjectsStore.loadInitialData([
-      TestStubs.Project({id: '1', slug: 'sentry'}),
-      TestStubs.Project({id: '2', slug: 'java'}),
-      TestStubs.Project({id: '3', slug: 'angular'}),
-      TestStubs.Project({id: '4', slug: 'javascript'}),
+      Project({id: '1', slug: 'sentry'}),
+      Project({id: '2', slug: 'java'}),
+      Project({id: '3', slug: 'angular'}),
+      Project({id: '4', slug: 'javascript'}),
     ]);
 
     ServerSideSamplingStore.sdkVersionsRequestSuccess(mockedSamplingSdkVersions);
 
     const {result} = reactHooks.renderHook(useRecommendedSdkUpgrades, {
-      initialProps: {organization: TestStubs.Organization(), projectId: '3'},
+      initialProps: {organization: Organization(), projectId: '3'},
     });
 
     expect(result.current.recommendedSdkUpgrades.length).toBe(2);

@@ -1,5 +1,7 @@
 import {browserHistory} from 'react-router';
 import selectEvent from 'react-select-event';
+import {Organization} from 'fixtures/js-stubs/organization.js';
+import {Project} from 'fixtures/js-stubs/project.js';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -12,9 +14,9 @@ const TEST_RELEASE_NAME = 'test-project@1.0.0';
 function initializeData({query} = {query: {}}) {
   const features = ['discover-basic', 'performance-view'];
 
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features,
-    projects: [TestStubs.Project()],
+    projects: [Project()],
   });
 
   const initialData = initializeOrg({

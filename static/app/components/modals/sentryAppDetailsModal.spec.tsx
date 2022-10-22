@@ -1,3 +1,6 @@
+import {Organization} from 'fixtures/js-stubs/organization.js';
+import {SentryApp} from 'fixtures/js-stubs/sentryApp.js';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import SentryAppDetailsModal from 'sentry/components/modals/sentryAppDetailsModal';
@@ -20,7 +23,7 @@ function renderMockRequests({sentryAppSlug}: {sentryAppSlug: string}) {
 }
 
 describe('SentryAppDetailsModal', function () {
-  const sentryApp = TestStubs.SentryApp();
+  const sentryApp = SentryApp();
 
   it('renders', function () {
     renderMockRequests({sentryAppSlug: sentryApp.slug});
@@ -30,7 +33,7 @@ describe('SentryAppDetailsModal', function () {
         closeModal={jest.fn()}
         isInstalled={false}
         onInstall={jest.fn()}
-        organization={TestStubs.Organization()}
+        organization={Organization()}
         sentryApp={sentryApp}
       />
     );
@@ -46,7 +49,7 @@ describe('SentryAppDetailsModal', function () {
         closeModal={jest.fn()}
         isInstalled={false}
         onInstall={jest.fn()}
-        organization={TestStubs.Organization()}
+        organization={Organization()}
         sentryApp={sentryApp}
       />
     );
@@ -70,7 +73,7 @@ describe('SentryAppDetailsModal', function () {
         closeModal={jest.fn()}
         isInstalled={false}
         onInstall={jest.fn()}
-        organization={TestStubs.Organization()}
+        organization={Organization()}
         sentryApp={sentryApp}
       />
     );
@@ -88,7 +91,7 @@ describe('SentryAppDetailsModal', function () {
         closeModal={handleCloseModal}
         isInstalled={false}
         onInstall={jest.fn()}
-        organization={TestStubs.Organization()}
+        organization={Organization()}
         sentryApp={sentryApp}
       />
     );
@@ -108,7 +111,7 @@ describe('SentryAppDetailsModal', function () {
         closeModal={jest.fn()}
         isInstalled={false}
         onInstall={handleOnInstall}
-        organization={TestStubs.Organization()}
+        organization={Organization()}
         sentryApp={sentryApp}
       />
     );
@@ -126,7 +129,7 @@ describe('SentryAppDetailsModal', function () {
         closeModal={jest.fn()}
         isInstalled={false}
         onInstall={jest.fn()}
-        organization={TestStubs.Organization({access: []})}
+        organization={Organization({access: []})}
         sentryApp={sentryApp}
       />
     );
@@ -144,7 +147,7 @@ describe('SentryAppDetailsModal', function () {
         closeModal={jest.fn()}
         isInstalled
         onInstall={jest.fn()}
-        organization={TestStubs.Organization()}
+        organization={Organization()}
         sentryApp={sentryApp}
       />
     );
@@ -160,7 +163,7 @@ describe('SentryAppDetailsModal', function () {
         closeModal={jest.fn()}
         isInstalled={false}
         onInstall={jest.fn()}
-        organization={TestStubs.Organization()}
+        organization={Organization()}
         sentryApp={{...sentryApp, scopes: []}}
       />
     );

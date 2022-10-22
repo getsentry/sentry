@@ -1,3 +1,6 @@
+import {Event} from 'fixtures/js-stubs/event.js';
+import {Group} from 'fixtures/js-stubs/group.js';
+
 import {initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
@@ -44,7 +47,7 @@ async function renderComponent(event: Event, errors?: Array<Error>) {
 }
 
 describe('EventEntries', function () {
-  const event = TestStubs.Event();
+  const event = Event();
 
   beforeEach(() => {
     MockApiClient.addMockResponse({
@@ -305,7 +308,7 @@ describe('EventEntries', function () {
   });
   describe('Rendering', function () {
     it('renders the Resources section for Performance Issues', function () {
-      const group: Group = TestStubs.Group({issueCategory: IssueCategory.PERFORMANCE});
+      const group: Group = Group({issueCategory: IssueCategory.PERFORMANCE});
 
       const newEvent = {
         ...event,
@@ -333,7 +336,7 @@ describe('EventEntries', function () {
     });
 
     it('injects the resources section in the correct spot', function () {
-      const group: Group = TestStubs.Group({issueCategory: IssueCategory.PERFORMANCE});
+      const group: Group = Group({issueCategory: IssueCategory.PERFORMANCE});
       group.issueCategory = IssueCategory.PERFORMANCE;
       const sampleBreadcrumb = {
         type: 'default',

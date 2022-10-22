@@ -1,3 +1,7 @@
+import {Organization} from 'fixtures/js-stubs/organization.js';
+import {Team} from 'fixtures/js-stubs/team.js';
+import {User} from 'fixtures/js-stubs/user.js';
+
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
@@ -8,13 +12,13 @@ import {Team, User} from 'sentry/types';
 
 describe('ActorAvatar', function () {
   const user: User = {
-    ...TestStubs.User(),
+    ...User(),
     id: '1',
     name: 'JanActore Bloggs',
     email: 'janebloggs@example.com',
   };
   const team1: Team = {
-    ...TestStubs.Team(),
+    ...Team(),
     id: '3',
     slug: 'cool-team',
     name: 'COOL TEAM',
@@ -72,11 +76,11 @@ describe('ActorAvatar', function () {
     });
 
     it('should fetch a team not in the store', async function () {
-      const organization = TestStubs.Organization();
+      const organization = Organization();
 
       OrganizationStore.onUpdate(organization, {replace: true});
 
-      const team2 = TestStubs.Team({id: '2', name: 'COOL TEAM', slug: 'cool-team'});
+      const team2 = Team({id: '2', name: 'COOL TEAM', slug: 'cool-team'});
 
       const mockRequest = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/teams/`,

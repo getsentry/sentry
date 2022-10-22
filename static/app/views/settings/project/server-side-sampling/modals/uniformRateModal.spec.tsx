@@ -1,3 +1,6 @@
+import {Outcomes} from 'fixtures/js-stubs/outcomes.js';
+import {Project} from 'fixtures/js-stubs/project.js';
+
 import {
   render,
   renderGlobalModal,
@@ -32,7 +35,7 @@ function renderMockRequests({
     url: `/organizations/${organizationSlug}/projects/`,
     method: 'GET',
     body: mockedSamplingDistribution.projectBreakdown!.map(p =>
-      TestStubs.Project({id: p.projectId, slug: p.project})
+      Project({id: p.projectId, slug: p.project})
     ),
   });
 }
@@ -50,8 +53,8 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
     const handleSubmit = jest.fn();
     const handleReadDocs = jest.fn();
 
-    ServerSideSamplingStore.projectStats30dRequestSuccess(TestStubs.Outcomes());
-    ServerSideSamplingStore.projectStats48hRequestSuccess(TestStubs.Outcomes());
+    ServerSideSamplingStore.projectStats30dRequestSuccess(Outcomes());
+    ServerSideSamplingStore.projectStats48hRequestSuccess(Outcomes());
 
     const {container} = renderGlobalModal();
 
@@ -174,9 +177,9 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
   });
 
   it('render done button', async function () {
-    ServerSideSamplingStore.projectStats30dRequestSuccess(TestStubs.Outcomes());
+    ServerSideSamplingStore.projectStats30dRequestSuccess(Outcomes());
     ServerSideSamplingStore.projectStats48hRequestSuccess({
-      ...TestStubs.Outcomes(),
+      ...Outcomes(),
       groups: [],
     });
 
@@ -253,9 +256,9 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
   });
 
   it('cancel flow', async function () {
-    ServerSideSamplingStore.projectStats30dRequestSuccess(TestStubs.Outcomes());
+    ServerSideSamplingStore.projectStats30dRequestSuccess(Outcomes());
     ServerSideSamplingStore.projectStats48hRequestSuccess({
-      ...TestStubs.Outcomes(),
+      ...Outcomes(),
       groups: [],
     });
 
@@ -295,7 +298,7 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       method: 'GET',
-      body: [TestStubs.Project({id: project.id, slug: project.slug})],
+      body: [Project({id: project.id, slug: project.slug})],
     });
 
     ServerSideSamplingStore.projectStats30dRequestSuccess(outcomesWithoutClientDiscarded);
@@ -357,7 +360,7 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
   });
 
   it('does not display "Specify client rate modal" if no groups', async function () {
-    ServerSideSamplingStore.projectStats30dRequestSuccess(TestStubs.Outcomes());
+    ServerSideSamplingStore.projectStats30dRequestSuccess(Outcomes());
     ServerSideSamplingStore.projectStats48hRequestSuccess({
       ...outcomesWithoutClientDiscarded,
       groups: [],

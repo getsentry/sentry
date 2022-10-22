@@ -1,3 +1,5 @@
+import {Project} from 'fixtures/js-stubs/project.js';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -40,8 +42,8 @@ const getComponent = ({
     organization: {
       ...organizationProps,
     },
-    project: TestStubs.Project(),
-    projects: [TestStubs.Project()],
+    project: Project(),
+    projects: [Project()],
     router: {
       routes: [
         {path: '/'},

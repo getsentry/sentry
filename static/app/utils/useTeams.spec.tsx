@@ -1,3 +1,6 @@
+import {Organization} from 'fixtures/js-stubs/organization.js';
+import {Team} from 'fixtures/js-stubs/team.js';
+
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -5,9 +8,9 @@ import TeamStore from 'sentry/stores/teamStore';
 import useTeams from 'sentry/utils/useTeams';
 
 describe('useTeams', function () {
-  const org = TestStubs.Organization();
+  const org = Organization();
 
-  const mockTeams = [TestStubs.Team()];
+  const mockTeams = [Team()];
 
   beforeEach(function () {
     TeamStore.reset();
@@ -25,8 +28,8 @@ describe('useTeams', function () {
   it('loads more teams when using onSearch', async function () {
     TeamStore.loadInitialData(mockTeams);
     OrganizationStore.onUpdate(org, {replace: true});
-    const newTeam2 = TestStubs.Team({id: '2', slug: 'test-team2'});
-    const newTeam3 = TestStubs.Team({id: '3', slug: 'test-team3'});
+    const newTeam2 = Team({id: '2', slug: 'test-team2'});
+    const newTeam3 = Team({id: '3', slug: 'test-team3'});
 
     const mockRequest = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/teams/`,
@@ -60,8 +63,8 @@ describe('useTeams', function () {
   });
 
   it('provides only the users teams', function () {
-    const userTeams = [TestStubs.Team({id: '1', isMember: true})];
-    const nonUserTeams = [TestStubs.Team({id: '2', isMember: false})];
+    const userTeams = [Team({id: '1', isMember: true})];
+    const nonUserTeams = [Team({id: '2', isMember: false})];
     TeamStore.loadInitialData([...userTeams, ...nonUserTeams], false, null);
 
     const {result} = reactHooks.renderHook(useTeams, {
@@ -75,7 +78,7 @@ describe('useTeams', function () {
 
   it('provides only the specified slugs', async function () {
     TeamStore.loadInitialData(mockTeams);
-    const teamFoo = TestStubs.Team({slug: 'foo'});
+    const teamFoo = Team({slug: 'foo'});
     const mockRequest = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/teams/`,
       method: 'GET',
@@ -108,7 +111,7 @@ describe('useTeams', function () {
   });
 
   it('can load teams by id', async function () {
-    const requestedTeams = [TestStubs.Team({id: '2', slug: 'requested-team'})];
+    const requestedTeams = [Team({id: '2', slug: 'requested-team'})];
     const mockRequest = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/teams/`,
       method: 'GET',

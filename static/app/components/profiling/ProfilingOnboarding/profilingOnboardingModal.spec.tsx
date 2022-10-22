@@ -1,3 +1,6 @@
+import {Organization} from 'fixtures/js-stubs/organization.js';
+import {Project} from 'fixtures/js-stubs/project.js';
+
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -23,7 +26,7 @@ function selectProject(project: Project) {
   userEvent.click(screen.getByText(project.slug));
 }
 
-const organization = TestStubs.Organization();
+const organization = Organization();
 
 describe('ProfilingOnboarding', function () {
   beforeEach(() => {
@@ -51,9 +54,9 @@ describe('ProfilingOnboarding', function () {
   });
 
   it('goes to next step and previous step if project is supported', async () => {
-    const project = TestStubs.Project({name: 'iOS Project'});
+    const project = Project({name: 'iOS Project'});
     ProjectsStore.loadInitialData([
-      TestStubs.Project({name: 'iOS Project', platform: 'apple-ios'}),
+      Project({name: 'iOS Project', platform: 'apple-ios'}),
     ]);
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/project-slug/keys/`,
@@ -83,7 +86,7 @@ describe('ProfilingOnboarding', function () {
 
   it('does not allow going to next step if project is unsupported', () => {
     ProjectsStore.loadInitialData([
-      TestStubs.Project({name: 'javascript', platform: 'javascript'}),
+      Project({name: 'javascript', platform: 'javascript'}),
     ]);
 
     MockApiClient.addMockResponse({
@@ -98,14 +101,14 @@ describe('ProfilingOnboarding', function () {
     render(
       <ProfilingOnboardingModal organization={organization} {...MockRenderModalProps} />
     );
-    selectProject(TestStubs.Project({name: 'javascript'}));
+    selectProject(Project({name: 'javascript'}));
     userEvent.click(screen.getAllByText('Next')[0]);
 
     expect(screen.getByRole('button', {name: /Next/i})).toBeDisabled();
   });
 
   it('shows sdk updates are required if version is lower than required', async () => {
-    const project = TestStubs.Project({name: 'iOS Project', platform: 'apple-ios'});
+    const project = Project({name: 'iOS Project', platform: 'apple-ios'});
     ProjectsStore.loadInitialData([project]);
 
     MockApiClient.addMockResponse({
@@ -136,7 +139,7 @@ describe('ProfilingOnboarding', function () {
   });
 
   it('shows a sdk update URL when receiving a updateSdk suggestion if a version is lower than required', async () => {
-    const project = TestStubs.Project({name: 'iOS Project', platform: 'apple-ios'});
+    const project = Project({name: 'iOS Project', platform: 'apple-ios'});
     ProjectsStore.loadInitialData([project]);
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/project-slug/keys/`,
@@ -173,7 +176,7 @@ describe('ProfilingOnboarding', function () {
   });
 
   it('shows the public dsn within the codesnippet', async () => {
-    const project = TestStubs.Project({name: 'iOS Project', platform: 'apple-ios'});
+    const project = Project({name: 'iOS Project', platform: 'apple-ios'});
     ProjectsStore.loadInitialData([project]);
 
     MockApiClient.addMockResponse({

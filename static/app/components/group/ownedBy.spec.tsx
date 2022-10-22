@@ -1,3 +1,9 @@
+import {Group} from 'fixtures/js-stubs/group.js';
+import {Organization} from 'fixtures/js-stubs/organization.js';
+import {Project} from 'fixtures/js-stubs/project.js';
+import {Team} from 'fixtures/js-stubs/team.js';
+import {User} from 'fixtures/js-stubs/user.js';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {openCreateOwnershipRule} from 'sentry/actionCreators/modal';
@@ -9,20 +15,14 @@ jest.mock('sentry/actionCreators/modal');
 
 describe('Group > OwnedBy', () => {
   it('renders unowned', () => {
-    const group = TestStubs.Group();
-    render(
-      <OwnedBy
-        group={group}
-        organization={TestStubs.Organization()}
-        project={TestStubs.Project()}
-      />
-    );
+    const group = Group();
+    render(<OwnedBy group={group} organization={Organization()} project={Project()} />);
     expect(screen.getByText('No-one')).toBeInTheDocument();
   });
 
   it('renders team owner', () => {
-    const team = TestStubs.Team();
-    const group = TestStubs.Group({
+    const team = Team();
+    const group = Group({
       owners: [
         {
           date_added: new Date(),
@@ -34,17 +34,17 @@ describe('Group > OwnedBy', () => {
     render(
       <OwnedBy
         group={group}
-        organization={TestStubs.Organization()}
-        project={TestStubs.Project({teams: [team]})}
+        organization={Organization()}
+        project={Project({teams: [team]})}
       />
     );
     expect(screen.getByText(`#${team.slug}`)).toBeInTheDocument();
   });
 
   it('renders member owner', () => {
-    const user = TestStubs.User();
+    const user = User();
     MemberListStore.loadInitialData([user]);
-    const group = TestStubs.Group({
+    const group = Group({
       owners: [
         {
           date_added: new Date(),
@@ -53,20 +53,14 @@ describe('Group > OwnedBy', () => {
         },
       ],
     });
-    render(
-      <OwnedBy
-        group={group}
-        organization={TestStubs.Organization()}
-        project={TestStubs.Project()}
-      />
-    );
+    render(<OwnedBy group={group} organization={Organization()} project={Project()} />);
     expect(screen.getByText(user.name)).toBeInTheDocument();
   });
 
   it('does not render suspect commit', () => {
-    const user = TestStubs.User();
+    const user = User();
     MemberListStore.loadInitialData([user]);
-    const group = TestStubs.Group({
+    const group = Group({
       owners: [
         {
           date_added: new Date(),
@@ -75,24 +69,12 @@ describe('Group > OwnedBy', () => {
         },
       ],
     });
-    render(
-      <OwnedBy
-        group={group}
-        organization={TestStubs.Organization()}
-        project={TestStubs.Project()}
-      />
-    );
+    render(<OwnedBy group={group} organization={Organization()} project={Project()} />);
     expect(screen.getByText('No-one')).toBeInTheDocument();
   });
 
   it('allows project:write to edit owners', () => {
-    render(
-      <OwnedBy
-        group={TestStubs.Group()}
-        organization={TestStubs.Organization()}
-        project={TestStubs.Project()}
-      />
-    );
+    render(<OwnedBy group={Group()} organization={Organization()} project={Project()} />);
 
     userEvent.click(screen.getByLabelText('Create Ownership Rule'));
 

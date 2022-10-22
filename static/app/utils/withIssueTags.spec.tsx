@@ -1,3 +1,6 @@
+import {Team} from 'fixtures/js-stubs/team.js';
+import {User} from 'fixtures/js-stubs/user.js';
+
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import MemberListStore from 'sentry/stores/memberListStore';
@@ -66,12 +69,9 @@ describe('withIssueTags HoC', function () {
 
     act(() => {
       TeamStore.loadInitialData([
-        TestStubs.Team({slug: 'best-team-na', name: 'Best Team NA', isMember: true}),
+        Team({slug: 'best-team-na', name: 'Best Team NA', isMember: true}),
       ]);
-      MemberListStore.loadInitialData([
-        TestStubs.User(),
-        TestStubs.User({username: 'joe@example.com'}),
-      ]);
+      MemberListStore.loadInitialData([User(), User({username: 'joe@example.com'})]);
     });
 
     expect(

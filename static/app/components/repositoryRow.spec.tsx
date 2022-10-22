@@ -1,3 +1,7 @@
+import {Organization} from 'fixtures/js-stubs/organization.js';
+import {Repository} from 'fixtures/js-stubs/repository.js';
+import {routerContext} from 'fixtures/js-stubs/routerContext.js';
+
 import {
   render,
   renderGlobalModal,
@@ -13,16 +17,16 @@ describe('RepositoryRow', function () {
     MockApiClient.clearMockResponses();
   });
 
-  const repository = TestStubs.Repository();
-  const pendingRepo = TestStubs.Repository({
+  const repository = Repository();
+  const pendingRepo = Repository({
     status: 'pending_deletion',
   });
-  const customRepo = TestStubs.Repository({
+  const customRepo = Repository({
     provider: {
       id: 'integrations:custom_scm',
     },
   });
-  const customPendingRepo = TestStubs.Repository({
+  const customPendingRepo = Repository({
     provider: {
       id: 'integrations:custom_scm',
     },
@@ -31,10 +35,10 @@ describe('RepositoryRow', function () {
   const api = new Client();
 
   describe('rendering with access', function () {
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       access: ['org:integrations'],
     });
-    const routerContext = TestStubs.routerContext([{organization}]);
+    const routerContext = routerContext([{organization}]);
 
     it('displays provider information', function () {
       render(
@@ -77,10 +81,10 @@ describe('RepositoryRow', function () {
   });
 
   describe('rendering without access', function () {
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       access: ['org:write'],
     });
-    const routerContext = TestStubs.routerContext([{organization}]);
+    const routerContext = routerContext([{organization}]);
 
     it('displays disabled trash', function () {
       render(
@@ -114,10 +118,10 @@ describe('RepositoryRow', function () {
   });
 
   describe('deletion', function () {
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       access: ['org:integrations'],
     });
-    const routerContext = TestStubs.routerContext([{organization}]);
+    const routerContext = routerContext([{organization}]);
 
     it('sends api request on delete', function () {
       const deleteRepo = MockApiClient.addMockResponse({
@@ -147,10 +151,10 @@ describe('RepositoryRow', function () {
   });
 
   describe('cancel deletion', function () {
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       access: ['org:integrations'],
     });
-    const routerContext = TestStubs.routerContext([{organization}]);
+    const routerContext = routerContext([{organization}]);
 
     it('sends api request to cancel', function () {
       const cancel = MockApiClient.addMockResponse({
@@ -176,11 +180,11 @@ describe('RepositoryRow', function () {
   });
 
   describe('renders custom_scm repo', function () {
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       access: ['org:integrations'],
       features: ['integrations-custom-scm'],
     });
-    const routerContext = TestStubs.routerContext([{organization}]);
+    const routerContext = routerContext([{organization}]);
 
     it('displays edit button', function () {
       render(

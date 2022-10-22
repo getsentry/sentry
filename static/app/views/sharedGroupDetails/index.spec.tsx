@@ -1,23 +1,30 @@
+import {Event} from 'fixtures/js-stubs/event.js';
+import {EventEntry} from 'fixtures/js-stubs/eventEntry.js';
+import {EventStacktraceException} from 'fixtures/js-stubs/eventStacktraceException.js';
+import {Group} from 'fixtures/js-stubs/group.js';
+import {Project} from 'fixtures/js-stubs/project.js';
+import {router} from 'fixtures/js-stubs/router.js';
+
 import {render} from 'sentry-test/reactTestingLibrary';
 
 import {RouteContext} from 'sentry/views/routeContext';
 import SharedGroupDetails from 'sentry/views/sharedGroupDetails';
 
 describe('SharedGroupDetails', function () {
-  const eventEntry = TestStubs.EventEntry();
-  const exception = TestStubs.EventStacktraceException().entries[0];
+  const eventEntry = EventEntry();
+  const exception = EventStacktraceException().entries[0];
   const params = {shareId: 'a'};
-  const router = TestStubs.router({params});
+  const router = router({params});
 
   beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/shared/issues/a/',
-      body: TestStubs.Group({
+      body: Group({
         title: 'ZeroDivisionError',
-        latestEvent: TestStubs.Event({
+        latestEvent: Event({
           entries: [eventEntry, exception],
         }),
-        project: TestStubs.Project({organization: {slug: 'test-org'}}),
+        project: Project({organization: {slug: 'test-org'}}),
       }),
     });
   });

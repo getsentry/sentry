@@ -1,3 +1,6 @@
+import {Event} from 'fixtures/js-stubs/event.js';
+import {EventEntryStacktrace} from 'fixtures/js-stubs/eventEntryStacktrace.js';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -6,8 +9,8 @@ import {StacktraceType} from 'sentry/types/stacktrace';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {RouteContext} from 'sentry/views/routeContext';
 
-const eventEntryStacktrace = TestStubs.EventEntryStacktrace();
-const event = TestStubs.Event({entries: [eventEntryStacktrace]});
+const eventEntryStacktrace = EventEntryStacktrace();
+const event = Event({entries: [eventEntryStacktrace]});
 
 const data = eventEntryStacktrace.data as Required<StacktraceType>;
 

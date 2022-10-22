@@ -5,6 +5,8 @@ import {
   Router,
   RouterContext,
 } from 'react-router';
+import {Outcomes} from 'fixtures/js-stubs/outcomes.js';
+import {Project} from 'fixtures/js-stubs/project.js';
 
 import {
   render,
@@ -57,14 +59,14 @@ function renderMockRequests({
     url: `/organizations/${organizationSlug}/projects/`,
     method: 'GET',
     body: mockedSamplingDistribution.projectBreakdown!.map(p =>
-      TestStubs.Project({id: p.projectId, slug: p.project})
+      Project({id: p.projectId, slug: p.project})
     ),
   });
 
   const statsV2 = MockApiClient.addMockResponse({
     url: `/organizations/${organizationSlug}/stats_v2/`,
     method: 'GET',
-    body: TestStubs.Outcomes(),
+    body: Outcomes(),
   });
 
   return {distribution, sdkVersions, projects, statsV2};
@@ -156,7 +158,7 @@ describe('Server-Side Sampling', function () {
   it('renders rules panel', async function () {
     const {router, organization, project} = getMockData({
       projects: [
-        TestStubs.Project({
+        Project({
           dynamicSampling: {
             rules: [{...uniformRule, sampleRate: 1}],
           },
@@ -204,7 +206,7 @@ describe('Server-Side Sampling', function () {
   it('does not let you delete the base rule', async function () {
     const {router, organization, project} = getMockData({
       projects: [
-        TestStubs.Project({
+        Project({
           dynamicSampling: {
             rules: [
               {
@@ -325,7 +327,7 @@ describe('Server-Side Sampling', function () {
   it('open specific conditions modal when adding rule', async function () {
     const {project, organization} = getMockData({
       projects: [
-        TestStubs.Project({
+        Project({
           dynamicSampling: {
             rules: [
               {
@@ -421,7 +423,7 @@ describe('Server-Side Sampling', function () {
   it('does not let user add without permissions', async function () {
     const {organization, router, project} = getMockData({
       projects: [
-        TestStubs.Project({
+        Project({
           dynamicSampling: {
             rules: [uniformRule],
           },
@@ -452,7 +454,7 @@ describe('Server-Side Sampling', function () {
   it('does not let the user activate a rule if sdk updates exists', async function () {
     const {organization, router, project} = getMockData({
       projects: [
-        TestStubs.Project({
+        Project({
           dynamicSampling: {
             rules: [uniformRule],
           },
@@ -485,7 +487,7 @@ describe('Server-Side Sampling', function () {
   it('does not let the user activate an uniform rule if still processing', async function () {
     const {organization, router, project} = getMockData({
       projects: [
-        TestStubs.Project({
+        Project({
           dynamicSampling: {
             rules: [uniformRule],
           },
@@ -517,7 +519,7 @@ describe('Server-Side Sampling', function () {
   it('open uniform rate modal when editing a uniform rule', async function () {
     const {organization, project} = getMockData({
       projects: [
-        TestStubs.Project({
+        Project({
           dynamicSampling: {
             rules: [uniformRule],
           },
@@ -577,7 +579,7 @@ describe('Server-Side Sampling', function () {
   it('does not let user reorder uniform rule', async function () {
     const {organization, router, project} = getMockData({
       projects: [
-        TestStubs.Project({
+        Project({
           dynamicSampling: {
             rules: [specificRule, uniformRule],
           },

@@ -1,3 +1,5 @@
+import {Release} from 'fixtures/js-stubs/release.js';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -33,15 +35,15 @@ describe('useReleases', function () {
     const mockReleases = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
       body: [
-        TestStubs.Release({
+        Release({
           shortVersion: 'sentry-android-shop@1.2.0',
           version: 'sentry-android-shop@1.2.0',
         }),
-        TestStubs.Release({
+        Release({
           shortVersion: 'sentry-android-shop@1.3.0',
           version: 'sentry-android-shop@1.3.0',
         }),
-        TestStubs.Release({
+        Release({
           shortVersion: 'sentry-android-shop@1.4.0',
           version: 'sentry-android-shop@1.4.0',
         }),

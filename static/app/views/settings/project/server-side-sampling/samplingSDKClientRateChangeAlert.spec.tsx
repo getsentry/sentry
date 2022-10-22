@@ -1,3 +1,5 @@
+import {Outcomes} from 'fixtures/js-stubs/outcomes.js';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {SamplingSDKClientRateChangeAlert} from 'sentry/views/settings/project/server-side-sampling/samplingSDKClientRateChangeAlert';
@@ -13,7 +15,7 @@ describe('Server-Side Sampling - Client Rate Change Alert', function () {
         organization={organization}
         projectId={project.id}
         onReadDocs={jest.fn()}
-        projectStats={TestStubs.Outcomes()}
+        projectStats={Outcomes()}
       />
     );
 
@@ -32,7 +34,7 @@ describe('Server-Side Sampling - Client Rate Change Alert', function () {
         organization={organization}
         projectId={project.id}
         onReadDocs={jest.fn()}
-        projectStats={TestStubs.OutcomesWithLowProcessedEvents()}
+        projectStats={OutcomesWithLowProcessedEvents()}
       />
     );
 

@@ -1,3 +1,6 @@
+import {Group} from 'fixtures/js-stubs/group.js';
+import {Project} from 'fixtures/js-stubs/project.js';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -24,7 +27,7 @@ jest.mock('sentry/utils/useMedia', () => ({
 const mockUrl = '/organizations/org-slug/replays/';
 
 const mockProps = {
-  group: TestStubs.Group(),
+  group: Group(),
   replayIds: ['346789a703f6454384f1de473b8b9fcc', 'b05dae9b6be54d21a4d5ad9f8f02b780'],
 };
 
@@ -41,8 +44,8 @@ const getComponent = ({
     organization: {
       ...organizationProps,
     },
-    project: TestStubs.Project(),
-    projects: [TestStubs.Project()],
+    project: Project(),
+    projects: [Project()],
     router: {
       routes: [
         {path: '/'},

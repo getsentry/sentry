@@ -1,3 +1,5 @@
+import {Release} from 'fixtures/js-stubs/release.js';
+
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ReleasesContext} from 'sentry/utils/releases/releasesProvider';
@@ -15,17 +17,17 @@ function renderReleasesSelect({
     <ReleasesContext.Provider
       value={{
         releases: [
-          TestStubs.Release({
+          Release({
             id: '1',
             shortVersion: 'sentry-android-shop@1.2.0',
             version: 'sentry-android-shop@1.2.0',
           }),
-          TestStubs.Release({
+          Release({
             id: '2',
             shortVersion: 'sentry-android-shop@1.3.0',
             version: 'sentry-android-shop@1.3.0',
           }),
-          TestStubs.Release({
+          Release({
             id: '3',
             shortVersion: 'sentry-android-shop@1.4.0',
             version: 'sentry-android-shop@1.4.0',

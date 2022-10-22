@@ -1,3 +1,8 @@
+import {Organization} from 'fixtures/js-stubs/organization.js';
+import {Project} from 'fixtures/js-stubs/project.js';
+import {SentryApp} from 'fixtures/js-stubs/sentryApp.js';
+import {Team} from 'fixtures/js-stubs/team.js';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import AvatarComponent from 'sentry/components/avatar';
@@ -123,7 +128,7 @@ describe('Avatar', function () {
     });
 
     it('can display a team Avatar', function () {
-      const team = TestStubs.Team({slug: 'test-team_test'});
+      const team = Team({slug: 'test-team_test'});
 
       render(<AvatarComponent team={team} />);
 
@@ -132,7 +137,7 @@ describe('Avatar', function () {
     });
 
     it('can display an organization Avatar', function () {
-      const organization = TestStubs.Organization({slug: 'test-organization'});
+      const organization = Organization({slug: 'test-organization'});
 
       render(<AvatarComponent organization={organization} />);
 
@@ -141,7 +146,7 @@ describe('Avatar', function () {
     });
 
     it('displays platform list icons for project Avatar', function () {
-      const project = TestStubs.Project({
+      const project = Project({
         platforms: ['python', 'javascript'],
         platform: 'java',
       });
@@ -157,7 +162,7 @@ describe('Avatar', function () {
     });
 
     it('displays a fallback platform list for project Avatar using the `platform` specified during onboarding', function () {
-      const project = TestStubs.Project({platform: 'java'});
+      const project = Project({platform: 'java'});
 
       render(<AvatarComponent project={project} />);
 
@@ -170,7 +175,7 @@ describe('Avatar', function () {
     });
 
     it('uses onboarding project when platforms is an empty array', function () {
-      const project = TestStubs.Project({platforms: [], platform: 'java'});
+      const project = Project({platforms: [], platform: 'java'});
 
       render(<AvatarComponent project={project} />);
 
@@ -186,7 +191,7 @@ describe('Avatar', function () {
       const colorAvatar = {avatarUuid: 'abc', avatarType: 'upload', color: true};
       const simpleAvatar = {avatarUuid: 'def', avatarType: 'upload', color: false};
 
-      const sentryApp = TestStubs.SentryApp({
+      const sentryApp = SentryApp({
         avatars: [colorAvatar, simpleAvatar],
       });
 
@@ -210,7 +215,7 @@ describe('Avatar', function () {
 
     it('renders the correct fallbacks for SentryAppAvatars', async function () {
       const colorAvatar = {avatarUuid: 'abc', avatarType: 'upload', color: true};
-      const sentryApp = TestStubs.SentryApp({avatars: []});
+      const sentryApp = SentryApp({avatars: []});
 
       // No existing avatars
       const avatar1 = render(<AvatarComponent sentryApp={sentryApp} isColor />);

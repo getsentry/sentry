@@ -1,3 +1,5 @@
+import {Event} from 'fixtures/js-stubs/event.js';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -72,7 +74,7 @@ describe('ContextSummary', function () {
   describe('render()', function () {
     it('renders nothing without contexts', function () {
       const event = {
-        ...TestStubs.Event(),
+        ...Event(),
         id: '',
         contexts: {},
       };
@@ -87,7 +89,7 @@ describe('ContextSummary', function () {
 
     it('renders nothing with a single user context', function () {
       const event = {
-        ...TestStubs.Event(),
+        ...Event(),
         id: '',
         user: CONTEXT_USER,
         contexts: {},
@@ -103,7 +105,7 @@ describe('ContextSummary', function () {
 
     it('should bail out with empty contexts', function () {
       const event = {
-        ...TestStubs.Event(),
+        ...Event(),
         id: '',
         user: CONTEXT_USER,
         contexts: {
@@ -122,7 +124,7 @@ describe('ContextSummary', function () {
 
     it('renders at least three contexts', function () {
       const event = {
-        ...TestStubs.Event(),
+        ...Event(),
         id: '',
         user: CONTEXT_USER,
         contexts: {
@@ -140,7 +142,7 @@ describe('ContextSummary', function () {
 
     it('renders up to four contexts', function () {
       const event = {
-        ...TestStubs.Event(),
+        ...Event(),
         id: '',
         user: CONTEXT_USER,
         contexts: {
@@ -161,7 +163,7 @@ describe('ContextSummary', function () {
 
     it('should prefer client_os over os', function () {
       const event = {
-        ...TestStubs.Event(),
+        ...Event(),
         id: '',
         user: CONTEXT_USER,
         contexts: {
@@ -182,7 +184,7 @@ describe('ContextSummary', function () {
 
     it('renders client_os too', function () {
       const event = {
-        ...TestStubs.Event(),
+        ...Event(),
         id: '',
         user: CONTEXT_USER,
         contexts: {
@@ -202,7 +204,7 @@ describe('ContextSummary', function () {
 
     it('should skip non-default named contexts', function () {
       const event = {
-        ...TestStubs.Event(),
+        ...Event(),
         id: '',
         user: CONTEXT_USER,
         contexts: {
@@ -223,7 +225,7 @@ describe('ContextSummary', function () {
 
     it('should skip a missing user context', function () {
       const event = {
-        ...TestStubs.Event(),
+        ...Event(),
         id: '',
         contexts: {
           os: CONTEXT_OS,

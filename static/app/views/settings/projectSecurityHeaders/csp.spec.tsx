@@ -1,3 +1,5 @@
+import {location} from 'fixtures/js-stubs/location.js';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -32,7 +34,7 @@ describe('ProjectCspReports', function () {
         routeParams={router.params}
         router={router}
         routes={router.routes}
-        location={TestStubs.location({pathname: routeUrl})}
+        location={location({pathname: routeUrl})}
         params={{orgId: organization.slug, projectId: project.slug}}
       />
     );
@@ -46,7 +48,7 @@ describe('ProjectCspReports', function () {
         routeParams={router.params}
         router={router}
         routes={router.routes}
-        location={TestStubs.location({pathname: routeUrl})}
+        location={location({pathname: routeUrl})}
         params={{orgId: organization.slug, projectId: project.slug}}
       />
     );
@@ -81,7 +83,7 @@ describe('ProjectCspReports', function () {
         routeParams={router.params}
         router={router}
         routes={router.routes}
-        location={TestStubs.location({pathname: routeUrl})}
+        location={location({pathname: routeUrl})}
         params={{orgId: organization.slug, projectId: project.slug}}
       />
     );

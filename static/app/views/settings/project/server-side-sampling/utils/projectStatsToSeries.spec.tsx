@@ -1,10 +1,12 @@
+import {OutcomesWithReason} from 'fixtures/js-stubs/outcomesWithReason.js';
+
 import {projectStatsToSeries} from 'sentry/views/settings/project/server-side-sampling/utils/projectStatsToSeries';
 
 import {outcomesWithoutClientDiscarded} from '../testUtils';
 
 describe('projectStatsToSeries', function () {
   it('returns correct series', function () {
-    expect(projectStatsToSeries(TestStubs.OutcomesWithReason())).toEqual([
+    expect(projectStatsToSeries(OutcomesWithReason())).toEqual([
       {
         seriesName: 'Indexed and Processed',
         color: '#2BA185',

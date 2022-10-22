@@ -1,3 +1,4 @@
+import {routerContext} from 'fixtures/js-stubs/routerContext.js';
 import Fuse from 'fuse.js';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -75,7 +76,7 @@ describe('Search', () => {
   });
   it('renders search results from source', () => {
     render(<Search {...makeSearchProps()} />, {
-      context: TestStubs.routerContext(),
+      context: routerContext(),
     });
 
     userEvent.click(screen.getByPlaceholderText('Search Input'));
@@ -109,7 +110,7 @@ describe('Search', () => {
         })}
       />,
       {
-        context: TestStubs.routerContext(),
+        context: routerContext(),
       }
     );
 
@@ -148,7 +149,7 @@ describe('Search', () => {
         })}
       />,
       {
-        context: TestStubs.routerContext(),
+        context: routerContext(),
       }
     );
 
@@ -185,7 +186,7 @@ describe('Search', () => {
         })}
       />,
       {
-        context: TestStubs.routerContext(),
+        context: routerContext(),
       }
     );
 
@@ -208,7 +209,7 @@ describe('Search', () => {
         })}
       />,
       {
-        context: TestStubs.routerContext(),
+        context: routerContext(),
       }
     );
 

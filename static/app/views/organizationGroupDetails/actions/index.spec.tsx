@@ -1,3 +1,8 @@
+import {EventStacktraceException} from 'fixtures/js-stubs/eventStacktraceException.js';
+import {Group} from 'fixtures/js-stubs/group.js';
+import {Organization} from 'fixtures/js-stubs/organization.js';
+import {ProjectDetails} from 'fixtures/js-stubs/projectDetails.js';
+
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
@@ -5,20 +10,20 @@ import ModalStore from 'sentry/stores/modalStore';
 import {IssueCategory} from 'sentry/types';
 import GroupActions from 'sentry/views/organizationGroupDetails/actions';
 
-const group = TestStubs.Group({
+const group = Group({
   id: '1337',
   pluginActions: [],
   pluginIssues: [],
   issueCategory: IssueCategory.ERROR,
 });
 
-const project = TestStubs.ProjectDetails({
+const project = ProjectDetails({
   id: '2448',
   name: 'project name',
   slug: 'project',
 });
 
-const organization = TestStubs.Organization({
+const organization = Organization({
   id: '4660',
   slug: 'org',
   features: ['reprocessing-v2'],
@@ -50,7 +55,7 @@ describe('GroupActions', function () {
       issuesApi = MockApiClient.addMockResponse({
         url: '/projects/org/project/issues/',
         method: 'PUT',
-        body: TestStubs.Group({isSubscribed: false}),
+        body: Group({isSubscribed: false}),
       });
     });
 
@@ -81,7 +86,7 @@ describe('GroupActions', function () {
       issuesApi = MockApiClient.addMockResponse({
         url: '/projects/org/project/issues/',
         method: 'PUT',
-        body: TestStubs.Group({isBookmarked: false}),
+        body: Group({isBookmarked: false}),
       });
     });
 
@@ -111,7 +116,7 @@ describe('GroupActions', function () {
 
   describe('reprocessing', function () {
     it('renders ReprocessAction component if org has feature flag reprocessing-v2 and native exception event', async function () {
-      const event = TestStubs.EventStacktraceException({
+      const event = EventStacktraceException({
         platform: 'native',
       });
 
@@ -132,7 +137,7 @@ describe('GroupActions', function () {
     });
 
     it('open dialog by clicking on the ReprocessAction component', async function () {
-      const event = TestStubs.EventStacktraceException({
+      const event = EventStacktraceException({
         platform: 'native',
       });
 

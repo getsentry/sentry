@@ -1,3 +1,5 @@
+import {routerContext} from 'fixtures/js-stubs/routerContext.js';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import DeployBadge from 'sentry/components/deployBadge';
@@ -31,7 +33,7 @@ describe('DeployBadge', () => {
         version="1.2.3"
         projectId={projectId}
       />,
-      {context: TestStubs.routerContext()}
+      {context: routerContext()}
     );
 
     expect(screen.queryByRole('link')).toHaveAttribute(

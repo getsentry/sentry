@@ -1,3 +1,7 @@
+import {Event} from 'fixtures/js-stubs/event.js';
+import {Span} from 'fixtures/js-stubs/span.js';
+import {TraceError} from 'fixtures/js-stubs/traceError.js';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import TraceErrorList from 'sentry/components/events/interfaces/spans/traceErrorList';
@@ -5,12 +9,12 @@ import {parseTrace} from 'sentry/components/events/interfaces/spans/utils';
 
 describe('TraceErrorList', () => {
   it('aggregates errors by span and level', () => {
-    const event = TestStubs.Event({
+    const event = Event({
       entries: [
         {
           type: 'spans',
           data: [
-            TestStubs.Span({
+            Span({
               op: '/api/fetchitems',
               span_id: '42118aba',
             }),
@@ -20,17 +24,17 @@ describe('TraceErrorList', () => {
     });
 
     const errors = [
-      TestStubs.TraceError({
+      TraceError({
         event_id: '1',
         span: '42118aba',
         level: 'warning',
       }),
-      TestStubs.TraceError({
+      TraceError({
         event_id: '2',
         span: '42118aba',
         level: 'warning',
       }),
-      TestStubs.TraceError({
+      TraceError({
         event_id: '3',
         span: '42118aba',
         level: 'error',
@@ -48,7 +52,7 @@ describe('TraceErrorList', () => {
   });
 
   it('groups span-less errors under the transaction', () => {
-    const event = TestStubs.Event({
+    const event = Event({
       contexts: {
         trace: {
           op: '/path',
@@ -58,7 +62,7 @@ describe('TraceErrorList', () => {
         {
           type: 'spans',
           data: [
-            TestStubs.Span({
+            Span({
               op: '/api/fetchitems',
               span_id: '42118aba',
             }),
@@ -68,7 +72,7 @@ describe('TraceErrorList', () => {
     });
 
     const errors = [
-      TestStubs.TraceError({
+      TraceError({
         event_id: '1',
         level: 'warning',
       }),

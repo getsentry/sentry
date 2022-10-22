@@ -1,3 +1,6 @@
+import {Event} from 'fixtures/js-stubs/event.js';
+import {Group} from 'fixtures/js-stubs/group.js';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -6,7 +9,7 @@ import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import {EventOrGroupType} from 'sentry/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
-const group = TestStubs.Group({
+const group = Group({
   level: 'error',
   metadata: {
     type: 'metadata type',
@@ -18,7 +21,7 @@ const group = TestStubs.Group({
   culprit: 'culprit',
 });
 
-const event = TestStubs.Event({
+const event = Event({
   id: 'id',
   eventID: 'eventID',
   groupID: 'groupID',

@@ -11,7 +11,7 @@ function lowercasefirst(string) {
   return string.charAt(0).toLowerCase() + string.slice(1);
 }
 
-for (const file of [files[0]]) {
+for (const file of files) {
   if (!file) {
     continue;
   }

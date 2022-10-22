@@ -1,3 +1,9 @@
+import {EventsStats} from 'fixtures/js-stubs/eventsStats.js';
+import {Group} from 'fixtures/js-stubs/group.js';
+import {Incident} from 'fixtures/js-stubs/incident.js';
+import {MetricRule} from 'fixtures/js-stubs/metricRule.js';
+import {Project} from 'fixtures/js-stubs/project.js';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -8,7 +14,7 @@ import MetricAlertDetails from 'sentry/views/alerts/rules/metric/details';
 jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
 
 describe('MetricAlertDetails', () => {
-  const project = TestStubs.Project({slug: 'earth', platform: 'javascript'});
+  const project = Project({slug: 'earth', platform: 'javascript'});
   beforeEach(() => {
     act(() => ProjectsStore.loadInitialData([project]));
     MockApiClient.addMockResponse({
@@ -21,11 +27,11 @@ describe('MetricAlertDetails', () => {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
-      body: TestStubs.EventsStats(),
+      body: EventsStats(),
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/?end=2017-10-17T02%3A41%3A20&groupStatsPeriod=auto&limit=5&project=2&query=event.type%3Aerror&sort=freq&start=2017-10-10T02%3A41%3A20',
-      body: [TestStubs.Group()],
+      body: [Group()],
     });
   });
 
@@ -37,8 +43,8 @@ describe('MetricAlertDetails', () => {
 
   it('renders', async () => {
     const {routerContext, organization, router} = initializeOrg();
-    const incident = TestStubs.Incident();
-    const rule = TestStubs.MetricRule({
+    const incident = Incident();
+    const rule = MetricRule({
       projects: [project.slug],
       latestIncident: incident,
     });
@@ -82,8 +88,8 @@ describe('MetricAlertDetails', () => {
 
   it('renders selected incident', async () => {
     const {routerContext, organization, router} = initializeOrg();
-    const rule = TestStubs.MetricRule({projects: [project.slug]});
-    const incident = TestStubs.Incident();
+    const rule = MetricRule({projects: [project.slug]});
+    const incident = Incident();
 
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/alert-rules/${rule.id}/`,
@@ -100,7 +106,7 @@ describe('MetricAlertDetails', () => {
     // Related issues to the selected incident
     const issuesRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/?end=2016-04-26T19%3A44%3A05&groupStatsPeriod=auto&limit=5&project=2&query=event.type%3Aerror&sort=freq&start=2016-03-29T19%3A44%3A05',
-      body: [TestStubs.Group()],
+      body: [Group()],
     });
 
     render(

@@ -1,13 +1,16 @@
+import {MetricRule} from 'fixtures/js-stubs/metricRule.js';
+import {Project} from 'fixtures/js-stubs/project.js';
+
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {getMetricRuleDiscoverQuery} from 'sentry/views/alerts/utils/getMetricRuleDiscoverUrl';
 
 describe('getMetricRuleDiscoverQuery', () => {
   it('should use metric aggregate in discover query', () => {
-    const rule = TestStubs.MetricRule({
+    const rule = MetricRule({
       aggregate: 'failure_rate()',
       dataset: Dataset.TRANSACTIONS,
     });
-    const projects = [TestStubs.Project()];
+    const projects = [Project()];
     const query = getMetricRuleDiscoverQuery({
       rule,
       projects,

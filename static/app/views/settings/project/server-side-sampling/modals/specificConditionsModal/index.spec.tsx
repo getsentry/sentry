@@ -1,3 +1,5 @@
+import {Project} from 'fixtures/js-stubs/project.js';
+
 import {
   renderGlobalModal,
   screen,
@@ -29,7 +31,7 @@ describe('Server-Side Sampling - Specific Conditions Modal', function () {
 
     const {organization, project} = getMockData({
       projects: [
-        TestStubs.Project({
+        Project({
           dynamicSampling: {
             rules: [uniformRule],
           },
@@ -51,7 +53,7 @@ describe('Server-Side Sampling - Specific Conditions Modal', function () {
     const saveMock = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/',
       method: 'PUT',
-      body: TestStubs.Project({
+      body: Project({
         dynamicSampling: {
           rules: [newRule, uniformRule],
         },
@@ -167,7 +169,7 @@ describe('Server-Side Sampling - Specific Conditions Modal', function () {
 
     const {organization, project} = getMockData({
       projects: [
-        TestStubs.Project({
+        Project({
           dynamicSampling: {
             rules: [specificRule, uniformRule],
           },
@@ -193,7 +195,7 @@ describe('Server-Side Sampling - Specific Conditions Modal', function () {
     const saveMock = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/',
       method: 'PUT',
-      body: TestStubs.Project({
+      body: Project({
         dynamicSampling: {
           rules: [newRule, uniformRule],
         },
@@ -281,7 +283,7 @@ describe('Server-Side Sampling - Specific Conditions Modal', function () {
 
     const {organization, project} = getMockData({
       projects: [
-        TestStubs.Project({
+        Project({
           dynamicSampling: {
             rules: [specificRule, uniformRule],
           },
@@ -292,7 +294,7 @@ describe('Server-Side Sampling - Specific Conditions Modal', function () {
     const saveMock = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/',
       method: 'PUT',
-      body: TestStubs.Project({
+      body: Project({
         dynamicSampling: {
           rules: [specificRule, newRule, uniformRule],
         },
@@ -359,7 +361,7 @@ describe('Server-Side Sampling - Specific Conditions Modal', function () {
 
     const {organization, project} = getMockData({
       projects: [
-        TestStubs.Project({
+        Project({
           dynamicSampling: {
             rules: [uniformRule],
           },

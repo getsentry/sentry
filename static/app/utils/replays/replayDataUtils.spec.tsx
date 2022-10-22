@@ -1,3 +1,5 @@
+import {Event} from 'fixtures/js-stubs/event.js';
+
 import {
   breadcrumbFactory,
   isMemorySpan,
@@ -57,7 +59,7 @@ describe('breadcrumbFactory', () => {
     const rawSpans = [fooSpan, lcpSpan];
 
     const results = breadcrumbFactory(
-      TestStubs.Event({
+      Event({
         startedAt: new Date(0),
       }),
       [],
@@ -103,7 +105,7 @@ describe('breadcrumbFactory', () => {
     const rawSpans = [fooSpan, navigateSpan];
 
     const results = breadcrumbFactory(
-      TestStubs.Event({
+      Event({
         startedAt: new Date(0),
       }),
       [],

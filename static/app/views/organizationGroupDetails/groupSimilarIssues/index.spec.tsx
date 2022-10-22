@@ -1,4 +1,8 @@
 import {browserHistory} from 'react-router';
+import {Groups} from 'fixtures/js-stubs/groups.js';
+import {Project} from 'fixtures/js-stubs/project.js';
+import {router} from 'fixtures/js-stubs/router.js';
+import {routerContext} from 'fixtures/js-stubs/routerContext.js';
 
 import {
   render,
@@ -13,14 +17,14 @@ import GroupSimilarIssues from 'sentry/views/organizationGroupDetails/groupSimil
 describe('Issues Similar View', function () {
   let mock;
 
-  const project = TestStubs.Project({
+  const project = Project({
     features: ['similarity-view'],
   });
 
-  const routerContext = TestStubs.routerContext([
+  const routerContext = routerContext([
     {
       router: {
-        ...TestStubs.router(),
+        ...router(),
         params: {orgId: 'org-slug', projectId: 'project-slug', groupId: 'group-id'},
       },
     },
@@ -34,10 +38,10 @@ describe('Issues Similar View', function () {
   ];
 
   const mockData = {
-    similar: TestStubs.Groups().map((issue, i) => [issue, scores[i]]),
+    similar: Groups().map((issue, i) => [issue, scores[i]]),
   };
 
-  const router = TestStubs.router();
+  const router = router();
 
   beforeEach(function () {
     mock = MockApiClient.addMockResponse({

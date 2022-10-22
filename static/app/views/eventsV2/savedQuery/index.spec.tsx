@@ -1,3 +1,5 @@
+import {Organization} from 'fixtures/js-stubs/organization.js';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -73,7 +75,7 @@ function generateWrappedComponent(
 }
 
 describe('EventsV2 > SaveQueryButtonGroup', function () {
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features: ['discover-query', 'dashboards-edit'],
   });
   const location = {

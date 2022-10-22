@@ -1,4 +1,5 @@
 import selectEvent from 'react-select-event';
+import {Project} from 'fixtures/js-stubs/project.js';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -8,8 +9,8 @@ describe('SentryProjectSelectorField', () => {
   it('can change values', async () => {
     const mock = jest.fn();
     const projects = [
-      TestStubs.Project(),
-      TestStubs.Project({
+      Project(),
+      Project({
         id: '23',
         slug: 'my-proj',
         name: 'My Proj',

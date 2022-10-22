@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import {Project} from 'fixtures/js-stubs/project.js';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';
@@ -12,10 +13,7 @@ import Table from 'sentry/views/performance/table';
 const FEATURES = ['performance-view'];
 
 const initializeData = (settings = {}, features: string[] = []) => {
-  const projects = [
-    TestStubs.Project({id: '1', slug: '1'}),
-    TestStubs.Project({id: '2', slug: '2'}),
-  ];
+  const projects = [Project({id: '1', slug: '1'}), Project({id: '2', slug: '2'})];
   return _initializeData({
     features: [...FEATURES, ...features],
     projects,

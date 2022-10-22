@@ -1,10 +1,12 @@
+import {User} from 'fixtures/js-stubs/user.js';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import {AvatarUser} from 'sentry/types';
 
 describe('UserBadge', function () {
-  const user: AvatarUser = TestStubs.User();
+  const user: AvatarUser = User();
 
   it('renders with no link when user is supplied', function () {
     render(<UserBadge user={user} />);
@@ -27,7 +29,7 @@ describe('UserBadge', function () {
   });
 
   it('can coalesce using username', function () {
-    const username = TestStubs.User({
+    const username = User({
       name: null,
       email: null,
       username: 'the-batman',
@@ -38,7 +40,7 @@ describe('UserBadge', function () {
   });
 
   it('can coalesce using ipaddress', function () {
-    const ipUser = TestStubs.User({
+    const ipUser = User({
       name: null,
       email: null,
       username: null,
@@ -50,7 +52,7 @@ describe('UserBadge', function () {
   });
 
   it('can coalesce using id', function () {
-    const idUser = TestStubs.User({
+    const idUser = User({
       id: '99',
       name: null,
       email: null,
@@ -68,7 +70,7 @@ describe('UserBadge', function () {
   });
 
   it('can coalesce using ip', function () {
-    const ipUser = TestStubs.User({
+    const ipUser = User({
       name: null,
       email: null,
       username: null,

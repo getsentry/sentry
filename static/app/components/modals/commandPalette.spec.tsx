@@ -1,3 +1,10 @@
+import {Members} from 'fixtures/js-stubs/members.js';
+import {Organization} from 'fixtures/js-stubs/organization.js';
+import {Project} from 'fixtures/js-stubs/project.js';
+import {router} from 'fixtures/js-stubs/router.js';
+import {routerContext} from 'fixtures/js-stubs/routerContext.js';
+import {Team} from 'fixtures/js-stubs/team.js';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
@@ -18,22 +25,22 @@ function renderMockRequests() {
 
   const organization = MockApiClient.addMockResponse({
     url: '/organizations/',
-    body: [TestStubs.Organization({slug: 'billy-org', name: 'billy org'})],
+    body: [Organization({slug: 'billy-org', name: 'billy org'})],
   });
 
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/projects/',
-    body: [TestStubs.Project({slug: 'foo-project'})],
+    body: [Project({slug: 'foo-project'})],
   });
 
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/teams/',
-    body: [TestStubs.Team({slug: 'foo-team'})],
+    body: [Team({slug: 'foo-team'})],
   });
 
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/members/',
-    body: TestStubs.Members(),
+    body: Members(),
   });
 
   MockApiClient.addMockResponse({
@@ -89,9 +96,9 @@ describe('Command Palette Modal', function () {
         Footer={ModalFooter}
       />,
       {
-        context: TestStubs.routerContext([
+        context: routerContext([
           {
-            router: TestStubs.router({
+            router: router({
               params: {orgId: 'org-slug'},
             }),
           },

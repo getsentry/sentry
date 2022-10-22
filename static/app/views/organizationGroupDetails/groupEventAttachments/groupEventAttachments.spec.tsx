@@ -1,3 +1,7 @@
+import {EventAttachment} from 'fixtures/js-stubs/eventAttachment.js';
+import {Organization} from 'fixtures/js-stubs/organization.js';
+import {Project} from 'fixtures/js-stubs/project.js';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -11,7 +15,7 @@ jest.mock('sentry/actionCreators/modal');
 
 describe('GroupEventAttachments > Screenshots', function () {
   const {organization, routerContext} = initializeOrg({
-    organization: TestStubs.Organization({features: ['mobile-screenshot-gallery']}),
+    organization: Organization({features: ['mobile-screenshot-gallery']}),
     router: {
       params: {orgId: 'org-slug', groupId: 'group-id'},
       location: {query: {types: 'event.screenshot'}},
@@ -21,13 +25,13 @@ describe('GroupEventAttachments > Screenshots', function () {
   let getAttachmentsMock;
 
   beforeEach(function () {
-    project = TestStubs.Project();
+    project = Project();
     ProjectsStore.loadInitialData([project]);
     GroupStore.init();
 
     getAttachmentsMock = MockApiClient.addMockResponse({
       url: '/issues/group-id/attachments/',
-      body: [TestStubs.EventAttachment()],
+      body: [EventAttachment()],
     });
   });
 

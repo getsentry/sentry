@@ -1,3 +1,6 @@
+import {location} from 'fixtures/js-stubs/location.js';
+import {Project} from 'fixtures/js-stubs/project.js';
+
 import {TrendColumnField} from 'sentry/views/performance/trends/types';
 import {
   getCurrentTrendParameter,
@@ -47,26 +50,26 @@ describe('Trend parameter utils', function () {
 
   describe('getCurrentTrendParameter', function () {
     it('returns trend parameter from location', () => {
-      const location = TestStubs.location({query: {trendParameter: 'FCP'}});
+      const location = location({query: {trendParameter: 'FCP'}});
       const expectedTrendParameter = {
         label: 'FCP',
         column: TrendColumnField.FCP,
       };
       // project with performance type 'any'
-      const projects = [TestStubs.Project({id: 1, platform: null})];
+      const projects = [Project({id: 1, platform: null})];
 
       const output = getCurrentTrendParameter(location, projects, [1]);
       expect(output).toEqual(expectedTrendParameter);
     });
 
     it('returns default trend parameter based on project type if no trend parameter set in location', function () {
-      const location = TestStubs.location();
+      const location = location();
       const expectedTrendParameter = {
         label: 'Duration',
         column: TrendColumnField.DURATION,
       };
       // project with performance type 'any'
-      const projects = [TestStubs.Project({id: 1, platform: null})];
+      const projects = [Project({id: 1, platform: null})];
 
       const output = getCurrentTrendParameter(location, projects, [1]);
       expect(output).toEqual(expectedTrendParameter);

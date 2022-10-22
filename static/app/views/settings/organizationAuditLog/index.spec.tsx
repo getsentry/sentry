@@ -1,3 +1,6 @@
+import {AuditLogsApiEventNames} from 'fixtures/js-stubs/auditLogsApiEventNames.js';
+import {User} from 'fixtures/js-stubs/user.js';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -8,7 +11,7 @@ import OrganizationAuditLog from 'sentry/views/settings/organizationAuditLog';
 
 describe('OrganizationAuditLog', function () {
   const user: User = {
-    ...TestStubs.User(),
+    ...User(),
     options: {
       clock24Hours: true,
       timezone: 'America/Los_Angeles',
@@ -29,7 +32,7 @@ describe('OrganizationAuditLog', function () {
         rows: [
           {
             id: '4500000',
-            actor: TestStubs.User(),
+            actor: User(),
             event: 'project.remove',
             ipAddress: '127.0.0.1',
             note: 'removed project test',
@@ -40,7 +43,7 @@ describe('OrganizationAuditLog', function () {
           },
           {
             id: '430000',
-            actor: TestStubs.User(),
+            actor: User(),
             event: 'org.create',
             ipAddress: '127.0.0.1',
             note: 'created the organization',
@@ -50,7 +53,7 @@ describe('OrganizationAuditLog', function () {
             dateCreated: '2016-11-21T04:02:45.929313Z',
           },
         ],
-        options: TestStubs.AuditLogsApiEventNames(),
+        options: AuditLogsApiEventNames(),
       },
     });
 

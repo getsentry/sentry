@@ -1,4 +1,7 @@
 import {act} from 'react-dom/test-utils';
+import {location} from 'fixtures/js-stubs/location.js';
+import {Organization} from 'fixtures/js-stubs/organization.js';
+import {Project} from 'fixtures/js-stubs/project.js';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -37,7 +40,7 @@ jest.mock('sentry/components/charts/eventsGeoRequest', () =>
 
 describe('EventsV2 > MiniGraph', function () {
   const features = ['discover-basic'];
-  const location = TestStubs.location({
+  const location = location({
     query: {query: 'tag:value'},
     pathname: '/',
   });
@@ -45,9 +48,9 @@ describe('EventsV2 > MiniGraph', function () {
   let organization, eventView, initialData;
 
   beforeEach(() => {
-    organization = TestStubs.Organization({
+    organization = Organization({
       features,
-      projects: [TestStubs.Project()],
+      projects: [Project()],
     });
     initialData = initializeOrg({
       organization,

@@ -1,3 +1,6 @@
+import {DataScrubbingRelayPiiConfig} from 'fixtures/js-stubs/dataScrubbingRelayPiiConfig.js';
+import {Event} from 'fixtures/js-stubs/event.js';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -12,12 +15,12 @@ describe('event sdk', function () {
       ...initializeOrg(),
       organization: {
         ...initializeOrg().organization,
-        relayPiiConfig: JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig()),
+        relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfig()),
       },
     });
 
     const event = {
-      ...TestStubs.Event(),
+      ...Event(),
       sdk: {
         name: 'sentry.cocoa',
         version: '',

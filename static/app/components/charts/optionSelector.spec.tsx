@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {Organization} from 'fixtures/js-stubs/organization.js';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
@@ -16,7 +17,7 @@ describe('EventsV2 > OptionSelector (Multiple)', function () {
     {label: 'avg(transaction.duration)', value: 'avg(transaction.duration)'},
   ];
   const onChangeStub = jest.fn();
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features: [...features],
   });
 

@@ -1,3 +1,6 @@
+import {Organization} from 'fixtures/js-stubs/organization.js';
+import {Project} from 'fixtures/js-stubs/project.js';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import NoProjectMessage from 'sentry/components/noProjectMessage';
@@ -9,10 +12,10 @@ describe('NoProjectMessage', function () {
     ProjectsStore.reset();
   });
 
-  const org = TestStubs.Organization();
+  const org = Organization();
 
   it('renders', function () {
-    const organization = TestStubs.Organization({slug: 'org-slug'});
+    const organization = Organization({slug: 'org-slug'});
     const childrenMock = jest.fn().mockReturnValue(null);
     delete organization.projects;
     ProjectsStore.loadInitialData([]);
@@ -36,7 +39,7 @@ describe('NoProjectMessage', function () {
   it('"Create Project" is disabled when no access to `project:write`', function () {
     ProjectsStore.loadInitialData([]);
 
-    render(<NoProjectMessage organization={TestStubs.Organization({access: []})} />);
+    render(<NoProjectMessage organization={Organization({access: []})} />);
 
     expect(screen.getByRole('button', {name: 'Create project'})).toBeDisabled();
   });
@@ -51,7 +54,7 @@ describe('NoProjectMessage', function () {
   });
 
   it('has a "Join a Team" button when no projects but org has projects', function () {
-    ProjectsStore.loadInitialData([TestStubs.Project({hasAccess: false})]);
+    ProjectsStore.loadInitialData([Project({hasAccess: false})]);
 
     render(<NoProjectMessage organization={org} />);
 
@@ -59,7 +62,7 @@ describe('NoProjectMessage', function () {
   });
 
   it('has a disabled "Join a Team" button if no access to `team:read`', function () {
-    ProjectsStore.loadInitialData([TestStubs.Project({hasAccess: false})]);
+    ProjectsStore.loadInitialData([Project({hasAccess: false})]);
 
     render(<NoProjectMessage organization={{...org, access: []}} />);
 
@@ -67,9 +70,7 @@ describe('NoProjectMessage', function () {
   });
 
   it('shows empty message to superusers that are not members', function () {
-    ProjectsStore.loadInitialData([
-      TestStubs.Project({hasAccess: true, isMember: false}),
-    ]);
+    ProjectsStore.loadInitialData([Project({hasAccess: true, isMember: false})]);
 
     ConfigStore.set('user', {...ConfigStore.get('user'), isSuperuser: true});
 

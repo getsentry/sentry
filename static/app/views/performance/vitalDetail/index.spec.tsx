@@ -1,4 +1,8 @@
 import {browserHistory, InjectedRouter} from 'react-router';
+import {MetricsField} from 'fixtures/js-stubs/metricsField.js';
+import {Organization} from 'fixtures/js-stubs/organization.js';
+import {Project} from 'fixtures/js-stubs/project.js';
+import {routerContext} from 'fixtures/js-stubs/routerContext.js';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
@@ -12,9 +16,9 @@ import VitalDetail from 'sentry/views/performance/vitalDetail';
 import {vitalSupportedBrowsers} from 'sentry/views/performance/vitalDetail/utils';
 
 const api = new MockApiClient();
-const organization = TestStubs.Organization({
+const organization = Organization({
   features: ['discover-basic', 'performance-view'],
-  projects: [TestStubs.Project()],
+  projects: [Project()],
 });
 
 const {
@@ -202,7 +206,7 @@ describe('Performance > VitalDetail', function () {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/${organization.slug}/metrics/data/`,
-      body: TestStubs.MetricsField({
+      body: MetricsField({
         field: 'p75(sentry.transactions.measurements.lcp)',
       }),
       match: [
@@ -215,7 +219,7 @@ describe('Performance > VitalDetail', function () {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/${organization.slug}/metrics/data/`,
-      body: TestStubs.MetricsFieldByMeasurementRating({
+      body: MetricsFieldByMeasurementRating({
         field: 'count(sentry.transactions.measurements.lcp)',
       }),
       match: [
@@ -229,7 +233,7 @@ describe('Performance > VitalDetail', function () {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/${organization.slug}/metrics/data/`,
-      body: TestStubs.MetricsField({
+      body: MetricsField({
         field: 'p75(sentry.transactions.measurements.cls)',
       }),
       match: [
@@ -242,7 +246,7 @@ describe('Performance > VitalDetail', function () {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/${organization.slug}/metrics/data/`,
-      body: TestStubs.MetricsFieldByMeasurementRating({
+      body: MetricsFieldByMeasurementRating({
         field: 'count(sentry.transactions.measurements.cls)',
       }),
       match: [
@@ -318,7 +322,7 @@ describe('Performance > VitalDetail', function () {
       },
     };
 
-    const context = TestStubs.routerContext([
+    const context = routerContext([
       {
         organization,
         project,
@@ -371,7 +375,7 @@ describe('Performance > VitalDetail', function () {
       },
     };
 
-    const context = TestStubs.routerContext([
+    const context = routerContext([
       {
         organization,
         project,
@@ -425,7 +429,7 @@ describe('Performance > VitalDetail', function () {
       },
     };
 
-    const context = TestStubs.routerContext([
+    const context = routerContext([
       {
         organization,
         project,

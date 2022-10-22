@@ -1,3 +1,5 @@
+import {DebugFile} from 'fixtures/js-stubs/debugFile.js';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -28,7 +30,7 @@ describe('ProjectDebugFiles', function () {
   beforeEach(function () {
     MockApiClient.addMockResponse({
       url: endpoint,
-      body: [TestStubs.DebugFile()],
+      body: [DebugFile()],
     });
   });
 
@@ -60,7 +62,7 @@ describe('ProjectDebugFiles', function () {
     const deleteMock = MockApiClient.addMockResponse({
       method: 'DELETE',
       url: `/projects/${organization.slug}/${project.slug}/files/dsyms/?id=${
-        TestStubs.DebugFile().id
+        DebugFile().id
       }`,
     });
 

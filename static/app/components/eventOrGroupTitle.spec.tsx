@@ -1,4 +1,6 @@
 import {FC} from 'react';
+import {Organization} from 'fixtures/js-stubs/organization.js';
+import {routerContext} from 'fixtures/js-stubs/routerContext.js';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -85,8 +87,8 @@ describe('EventOrGroupTitle', function () {
   });
 
   it('renders with title override', function () {
-    const routerContext = TestStubs.routerContext([
-      {organization: TestStubs.Organization({features: ['custom-event-title']})},
+    const routerContext = routerContext([
+      {organization: Organization({features: ['custom-event-title']})},
     ]);
 
     render(
@@ -140,8 +142,8 @@ describe('EventOrGroupTitle', function () {
     } as BaseGroup;
 
     it('should correctly render title', () => {
-      const routerContext = TestStubs.routerContext([
-        {organization: TestStubs.Organization({features: ['custom-event-title']})},
+      const routerContext = routerContext([
+        {organization: Organization({features: ['custom-event-title']})},
       ]);
 
       render(
