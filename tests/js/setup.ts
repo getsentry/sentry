@@ -224,7 +224,7 @@ const specialMapping = {
   Events: 'events.js',
   OutcomesWithReason: 'outcomes.js',
   SentryAppComponentAsync: 'sentryAppComponent.js',
-  EventStacktraceMessage: 'EventStacktraceException.js',
+  EventStacktraceMessage: 'eventStacktraceException.js',
   MetricsTotalCountByReleaseIn24h: 'metrics.js',
   MetricsSessionUserCountByStatusByRelease: 'metrics.js',
   MOCK_RESP_VERBOSE: 'ruleConditions.js',
@@ -241,7 +241,7 @@ const specialMapping = {
   SentryAppInstalls: 'integrationListDirectory.js',
   PluginListConfig: 'integrationListDirectory.js',
   DiscoverSavedQuery: 'discover.js',
-  VercelProvider: 'VercelIntegration.js',
+  VercelProvider: 'vercelIntegration.js',
 };
 
 function tryRequire(dir: string, name: string): any {
@@ -316,7 +316,7 @@ declare global {
   var MockApiClient: typeof Client;
 }
 
-global.TestStubs = global.TestStubs || (lazyFixtures as TestStubTypes);
+global.TestStubs = lazyFixtures as TestStubTypes;
 
 // This is so we can use async/await in tests instead of wrapping with `setTimeout`.
 window.tick = () => new Promise(resolve => setTimeout(resolve));
