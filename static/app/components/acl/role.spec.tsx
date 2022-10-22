@@ -1,6 +1,6 @@
-import {Organization} from 'fixtures/js-stubs/organization.js';
-import {routerContext} from 'fixtures/js-stubs/routerContext.js';
-import {User} from 'fixtures/js-stubs/user.js';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {routerContext} from 'fixtures/js-stubs/routerContext';
+import {User} from 'fixtures/js-stubs/user';
 import Cookies from 'js-cookie';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';

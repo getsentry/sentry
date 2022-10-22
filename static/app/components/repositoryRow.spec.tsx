@@ -1,6 +1,6 @@
-import {Organization} from 'fixtures/js-stubs/organization.js';
-import {Repository} from 'fixtures/js-stubs/repository.js';
-import {routerContext} from 'fixtures/js-stubs/routerContext.js';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Repository} from 'fixtures/js-stubs/repository';
+import {routerContext} from 'fixtures/js-stubs/routerContext';
 
 import {
   render,

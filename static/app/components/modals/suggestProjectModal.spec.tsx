@@ -1,4 +1,4 @@
-import {Organization} from 'fixtures/js-stubs/organization.js';
+import {Organization} from 'fixtures/js-stubs/organization';
 
 import {renderGlobalModal} from 'sentry-test/reactTestingLibrary';
 

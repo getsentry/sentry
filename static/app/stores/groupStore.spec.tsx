@@ -1,4 +1,4 @@
-import {Group} from 'fixtures/js-stubs/group.js';
+import {Group} from 'fixtures/js-stubs/group';
 
 import GroupStore from 'sentry/stores/groupStore';
 import {Group, GroupStats, TimeseriesValue} from 'sentry/types';

@@ -1,10 +1,10 @@
 import {browserHistory, InjectedRouter} from 'react-router';
-import {Commit} from 'fixtures/js-stubs/commit.js';
-import {Event} from 'fixtures/js-stubs/event.js';
-import {Group} from 'fixtures/js-stubs/group.js';
-import {Project} from 'fixtures/js-stubs/project.js';
-import {router} from 'fixtures/js-stubs/router.js';
-import {SentryApp} from 'fixtures/js-stubs/sentryApp.js';
+import {Commit} from 'fixtures/js-stubs/commit';
+import {Event} from 'fixtures/js-stubs/event';
+import {Group} from 'fixtures/js-stubs/group';
+import {Project} from 'fixtures/js-stubs/project';
+import {router} from 'fixtures/js-stubs/router';
+import {SentryApp} from 'fixtures/js-stubs/sentryApp';
 import {Location} from 'history';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';

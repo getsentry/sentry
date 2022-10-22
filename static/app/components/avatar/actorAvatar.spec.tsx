@@ -1,6 +1,6 @@
-import {Organization} from 'fixtures/js-stubs/organization.js';
-import {Team} from 'fixtures/js-stubs/team.js';
-import {User} from 'fixtures/js-stubs/user.js';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Team} from 'fixtures/js-stubs/team';
+import {User} from 'fixtures/js-stubs/user';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 

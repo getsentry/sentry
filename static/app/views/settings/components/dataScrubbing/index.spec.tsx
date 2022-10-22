@@ -1,5 +1,5 @@
 import {InjectedRouter} from 'react-router';
-import {DataScrubbingRelayPiiConfig} from 'fixtures/js-stubs/dataScrubbingRelayPiiConfig.js';
+import {DataScrubbingRelayPiiConfig} from 'fixtures/js-stubs/dataScrubbingRelayPiiConfig';
 import {Location} from 'history';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';

@@ -1,8 +1,8 @@
-import {Environments} from 'fixtures/js-stubs/environments.js';
-import {Event} from 'fixtures/js-stubs/event.js';
-import {Group} from 'fixtures/js-stubs/group.js';
-import {Organization} from 'fixtures/js-stubs/organization.js';
-import {Project} from 'fixtures/js-stubs/project.js';
+import {Environments} from 'fixtures/js-stubs/environments';
+import {Event} from 'fixtures/js-stubs/event';
+import {Group} from 'fixtures/js-stubs/group';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 

@@ -1,7 +1,7 @@
 import {InjectedRouter} from 'react-router';
-import {Organization} from 'fixtures/js-stubs/organization.js';
-import {Project} from 'fixtures/js-stubs/project.js';
-import {routerContext} from 'fixtures/js-stubs/routerContext.js';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
+import {routerContext} from 'fixtures/js-stubs/routerContext';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';

@@ -1,4 +1,4 @@
-import {DetailedEvents} from 'fixtures/js-stubs/detailedEvents.js';
+import {DetailedEvents} from 'fixtures/js-stubs/detailedEvents';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';

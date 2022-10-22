@@ -1,10 +1,10 @@
-import {SessionStatusCountByProjectInPeriod} from 'fixtures/js-stubs/sessionStatusCountByProjectInPeriod.js';
-import {SessionStatusCountByReleaseInPeriod} from 'fixtures/js-stubs/sessionStatusCountByReleaseInPeriod.js';
-import {SessionTotalCountByProjectIn24h} from 'fixtures/js-stubs/sessionTotalCountByProjectIn24h.js';
-import {SessionUserStatusCountByReleaseInPeriod} from 'fixtures/js-stubs/sessionUserStatusCountByReleaseInPeriod.js';
-import {SesssionTotalCountByReleaseIn24h} from 'fixtures/js-stubs/sesssionTotalCountByReleaseIn24h.js';
-import {UserTotalCountByProjectIn24h} from 'fixtures/js-stubs/userTotalCountByProjectIn24h.js';
-import {UserTotalCountByReleaseIn24h} from 'fixtures/js-stubs/userTotalCountByReleaseIn24h.js';
+import {SessionStatusCountByProjectInPeriod} from 'fixtures/js-stubs/sessionStatusCountByProjectInPeriod';
+import {SessionStatusCountByReleaseInPeriod} from 'fixtures/js-stubs/sessionStatusCountByReleaseInPeriod';
+import {SessionTotalCountByProjectIn24h} from 'fixtures/js-stubs/sessionTotalCountByProjectIn24h';
+import {SessionUserStatusCountByReleaseInPeriod} from 'fixtures/js-stubs/sessionUserStatusCountByReleaseInPeriod';
+import {SesssionTotalCountByReleaseIn24h} from 'fixtures/js-stubs/sesssionTotalCountByReleaseIn24h';
+import {UserTotalCountByProjectIn24h} from 'fixtures/js-stubs/userTotalCountByProjectIn24h';
+import {UserTotalCountByReleaseIn24h} from 'fixtures/js-stubs/userTotalCountByReleaseIn24h';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';

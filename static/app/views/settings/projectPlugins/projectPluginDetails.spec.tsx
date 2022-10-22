@@ -1,8 +1,8 @@
-import {Organization} from 'fixtures/js-stubs/organization.js';
-import {Plugin} from 'fixtures/js-stubs/plugin.js';
-import {Plugins} from 'fixtures/js-stubs/plugins.js';
-import {Project} from 'fixtures/js-stubs/project.js';
-import {router} from 'fixtures/js-stubs/router.js';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Plugin} from 'fixtures/js-stubs/plugin';
+import {Plugins} from 'fixtures/js-stubs/plugins';
+import {Project} from 'fixtures/js-stubs/project';
+import {router} from 'fixtures/js-stubs/router';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 

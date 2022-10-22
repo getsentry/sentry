@@ -1,4 +1,4 @@
-import {ApiToken} from 'fixtures/js-stubs/apiToken.js';
+import {ApiToken} from 'fixtures/js-stubs/apiToken';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 

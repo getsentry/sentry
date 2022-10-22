@@ -1,5 +1,5 @@
-import {MetricRule} from 'fixtures/js-stubs/metricRule.js';
-import {Project} from 'fixtures/js-stubs/project.js';
+import {MetricRule} from 'fixtures/js-stubs/metricRule';
+import {Project} from 'fixtures/js-stubs/project';
 
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {getMetricRuleDiscoverQuery} from 'sentry/views/alerts/utils/getMetricRuleDiscoverUrl';

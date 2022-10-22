@@ -1,5 +1,5 @@
-import {Organization} from 'fixtures/js-stubs/organization.js';
-import {SentryApp} from 'fixtures/js-stubs/sentryApp.js';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {SentryApp} from 'fixtures/js-stubs/sentryApp';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 

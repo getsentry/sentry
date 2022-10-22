@@ -1,5 +1,5 @@
 import {browserHistory} from 'react-router';
-import {location} from 'fixtures/js-stubs/location.js';
+import {location} from 'fixtures/js-stubs/location';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render} from 'sentry-test/reactTestingLibrary';

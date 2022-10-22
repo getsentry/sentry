@@ -1,4 +1,4 @@
-import {Tags} from 'fixtures/js-stubs/tags.js';
+import {Tags} from 'fixtures/js-stubs/tags';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';

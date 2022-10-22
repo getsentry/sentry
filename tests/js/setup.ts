@@ -6,6 +6,11 @@ import {InjectedRouter} from 'react-router';
 import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import Adapter from '@wojtekmaj/enzyme-adapter-react-17';
 import {configure as configureEnzyme} from 'enzyme'; // eslint-disable-line no-restricted-imports
+import {Config} from 'fixtures/js-stubs/config';
+import {location} from 'fixtures/js-stubs/location';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
+import {router} from 'fixtures/js-stubs/router';
 import {Location} from 'history';
 import MockDate from 'mockdate';
 import * as PropTypes from 'prop-types';
@@ -16,8 +21,6 @@ import type {Client} from 'sentry/__mocks__/api';
 import ConfigStore from 'sentry/stores/configStore';
 
 import TestStubFixtures from '../../fixtures/js-stubs/types';
-
-import {loadFixtures} from './sentry-test/loadFixtures';
 
 // needed by cbor-web for webauthn
 window.TextEncoder = TextEncoder;
@@ -57,15 +60,9 @@ const constantDate = new Date(1508208080000);
 MockDate.set(constantDate);
 
 /**
- * Load all files in `tests/js/fixtures/*` as a module.
- * These will then be added to the `TestStubs` global below
- */
-const fixtures = loadFixtures('js-stubs', {flatten: true});
-
-/**
  * Global testing configuration
  */
-ConfigStore.loadInitialData(fixtures.Config());
+ConfigStore.loadInitialData(Config());
 
 /**
  * Mocks
@@ -202,10 +199,10 @@ const routerFixtures = {
 
   routerContext: ([context, childContextTypes] = []) => ({
     context: {
-      location: TestStubs.location(),
-      router: TestStubs.router(),
-      organization: fixtures.Organization(),
-      project: fixtures.Project(),
+      location: location(),
+      router: router(),
+      organization: Organization(),
+      project: Project(),
       ...context,
     },
     childContextTypes: {
@@ -241,8 +238,6 @@ declare global {
   // eslint-disable-next-line no-var
   var MockApiClient: typeof Client;
 }
-
-window.TestStubs = {...fixtures, ...routerFixtures};
 
 // This is so we can use async/await in tests instead of wrapping with `setTimeout`.
 window.tick = () => new Promise(resolve => setTimeout(resolve));

@@ -1,7 +1,7 @@
-import {GitHubIntegration} from 'fixtures/js-stubs/gitHubIntegration.js';
-import {Organization} from 'fixtures/js-stubs/organization.js';
-import {Project} from 'fixtures/js-stubs/project.js';
-import {Repository} from 'fixtures/js-stubs/repository.js';
+import {GitHubIntegration} from 'fixtures/js-stubs/gitHubIntegration';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
+import {Repository} from 'fixtures/js-stubs/repository';
 
 import {
   renderGlobalModal,

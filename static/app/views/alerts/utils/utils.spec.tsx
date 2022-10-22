@@ -1,4 +1,4 @@
-import {MetricRule} from 'fixtures/js-stubs/metricRule.js';
+import {MetricRule} from 'fixtures/js-stubs/metricRule';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 

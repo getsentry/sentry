@@ -1,5 +1,5 @@
-import {Event} from 'fixtures/js-stubs/event.js';
-import {Group} from 'fixtures/js-stubs/group.js';
+import {Event} from 'fixtures/js-stubs/event';
+import {Group} from 'fixtures/js-stubs/group';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';

@@ -1,4 +1,4 @@
-import {User} from 'fixtures/js-stubs/user.js';
+import {User} from 'fixtures/js-stubs/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 

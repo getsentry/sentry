@@ -1,4 +1,4 @@
-import {DebugFile} from 'fixtures/js-stubs/debugFile.js';
+import {DebugFile} from 'fixtures/js-stubs/debugFile';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';

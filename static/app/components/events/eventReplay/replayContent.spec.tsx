@@ -1,7 +1,7 @@
-import {Event} from 'fixtures/js-stubs/event.js';
-import {Organization} from 'fixtures/js-stubs/organization.js';
-import {Project} from 'fixtures/js-stubs/project.js';
-import {ReplayReaderParams} from 'fixtures/js-stubs/replayReaderParams.js';
+import {Event} from 'fixtures/js-stubs/event';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
+import {ReplayReaderParams} from 'fixtures/js-stubs/replayReaderParams';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render as baseRender, screen} from 'sentry-test/reactTestingLibrary';

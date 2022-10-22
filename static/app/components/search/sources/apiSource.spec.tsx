@@ -1,10 +1,10 @@
 import {ComponentProps} from 'react';
-import {EventIdQueryResult} from 'fixtures/js-stubs/eventIdQueryResult.js';
-import {Members} from 'fixtures/js-stubs/members.js';
-import {Organization} from 'fixtures/js-stubs/organization.js';
-import {Project} from 'fixtures/js-stubs/project.js';
-import {ShortIdQueryResult} from 'fixtures/js-stubs/shortIdQueryResult.js';
-import {Team} from 'fixtures/js-stubs/team.js';
+import {EventIdQueryResult} from 'fixtures/js-stubs/eventIdQueryResult';
+import {Members} from 'fixtures/js-stubs/members';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
+import {ShortIdQueryResult} from 'fixtures/js-stubs/shortIdQueryResult';
+import {Team} from 'fixtures/js-stubs/team';
 import omit from 'lodash/omit';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';

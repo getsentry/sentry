@@ -1,7 +1,7 @@
 import {InjectedRouter} from 'react-router';
-import {Event} from 'fixtures/js-stubs/event.js';
-import {Organization} from 'fixtures/js-stubs/organization.js';
-import {ReplayReaderParams} from 'fixtures/js-stubs/replayReaderParams.js';
+import {Event} from 'fixtures/js-stubs/event';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {ReplayReaderParams} from 'fixtures/js-stubs/replayReaderParams';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';

@@ -1,5 +1,5 @@
 import ReactEchartsCore from 'echarts-for-react/lib/core';
-import {MetricsTotalCountByReleaseIn24h} from 'fixtures/js-stubs/metricsTotalCountByReleaseIn24h.js';
+import {MetricsTotalCountByReleaseIn24h} from 'fixtures/js-stubs/metricsTotalCountByReleaseIn24h';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';

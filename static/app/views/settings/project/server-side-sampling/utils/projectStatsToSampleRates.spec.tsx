@@ -1,4 +1,4 @@
-import {Outcomes} from 'fixtures/js-stubs/outcomes.js';
+import {Outcomes} from 'fixtures/js-stubs/outcomes';
 
 import {projectStatsToSampleRates} from 'sentry/views/settings/project/server-side-sampling/utils/projectStatsToSampleRates';
 

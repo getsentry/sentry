@@ -1,4 +1,4 @@
-import {Event} from 'fixtures/js-stubs/event.js';
+import {Event} from 'fixtures/js-stubs/event';
 
 import {
   breadcrumbFactory,

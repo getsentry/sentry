@@ -1,5 +1,5 @@
-import {location} from 'fixtures/js-stubs/location.js';
-import {Organization} from 'fixtures/js-stubs/organization.js';
+import {location} from 'fixtures/js-stubs/location';
+import {Organization} from 'fixtures/js-stubs/organization';
 
 import {
   DashboardDetails,

@@ -1,4 +1,4 @@
-import {SessionUserCountByStatusByRelease} from 'fixtures/js-stubs/sessionUserCountByStatusByRelease.js';
+import {SessionUserCountByStatusByRelease} from 'fixtures/js-stubs/sessionUserCountByStatusByRelease';
 
 import {transformSessionsResponseToTable} from 'sentry/views/dashboardsV2/widgetCard/transformSessionsResponseToTable';
 

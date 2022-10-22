@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
-import {Event} from 'fixtures/js-stubs/event.js';
-import {EventEntryDebugMeta} from 'fixtures/js-stubs/eventEntryDebugMeta.js';
+import {Event} from 'fixtures/js-stubs/event';
+import {EventEntryDebugMeta} from 'fixtures/js-stubs/eventEntryDebugMeta';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';

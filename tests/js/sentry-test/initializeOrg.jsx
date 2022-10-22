@@ -1,3 +1,8 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
+import {OrgRoleList, TeamRoleList} from 'fixtures/js-stubs/roleList';
+import {router as routerStub} from 'fixtures/js-stubs/router';
+import {routerContext as routerContextStub} from 'fixtures/js-stubs/routerContext';
 /**
  * Creates stubs for:
  *   - a project or projects
@@ -14,15 +19,15 @@ export function initializeOrg({
   const projects = (
     additionalProjects ||
     (additionalProject && [additionalProject]) || [{}]
-  ).map(p => TestStubs.Project(p));
+  ).map(p => Project(p));
   const [project] = projects;
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     projects,
     ...additionalOrg,
-    orgRoleList: TestStubs.OrgRoleList(),
-    teamRoleList: TestStubs.TeamRoleList(),
+    orgRoleList: OrgRoleList(),
+    teamRoleList: TeamRoleList(),
   });
-  const router = TestStubs.router({
+  const router = routerStub({
     ...additionalRouter,
     params: {
       orgId: organization.slug,
@@ -30,7 +35,7 @@ export function initializeOrg({
     },
   });
 
-  const routerContext = TestStubs.routerContext([
+  const routerContext = routerContextStub([
     {
       organization,
       project,

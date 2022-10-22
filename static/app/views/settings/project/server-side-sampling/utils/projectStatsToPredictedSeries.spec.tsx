@@ -1,4 +1,4 @@
-import {OutcomesWithReason} from 'fixtures/js-stubs/outcomesWithReason.js';
+import {OutcomesWithReason} from 'fixtures/js-stubs/outcomesWithReason';
 
 import {projectStatsToPredictedSeries} from 'sentry/views/settings/project/server-side-sampling/utils/projectStatsToPredictedSeries';
 

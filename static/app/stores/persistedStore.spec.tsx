@@ -1,5 +1,5 @@
 import {act} from 'react-test-renderer';
-import {Organization} from 'fixtures/js-stubs/organization.js';
+import {Organization} from 'fixtures/js-stubs/organization';
 
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 

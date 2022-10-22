@@ -1,6 +1,6 @@
-import {MetricsField} from 'fixtures/js-stubs/metricsField.js';
-import {MetricsSessionUserCountByStatusByRelease} from 'fixtures/js-stubs/metricsSessionUserCountByStatusByRelease.js';
-import {SessionsField} from 'fixtures/js-stubs/sessionsField.js';
+import {MetricsField} from 'fixtures/js-stubs/metricsField';
+import {MetricsSessionUserCountByStatusByRelease} from 'fixtures/js-stubs/metrics';
+import {SessionsField} from 'fixtures/js-stubs/sessionsField';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';

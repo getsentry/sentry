@@ -1,4 +1,4 @@
-import {ApiApplication} from 'fixtures/js-stubs/apiApplication.js';
+import {ApiApplication} from 'fixtures/js-stubs/apiApplication';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';

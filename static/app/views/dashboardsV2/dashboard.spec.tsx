@@ -1,5 +1,5 @@
-import {Organization} from 'fixtures/js-stubs/organization.js';
-import {Tags} from 'fixtures/js-stubs/tags.js';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Tags} from 'fixtures/js-stubs/tags';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';

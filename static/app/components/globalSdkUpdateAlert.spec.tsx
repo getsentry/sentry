@@ -1,4 +1,4 @@
-import {Organization} from 'fixtures/js-stubs/organization.js';
+import {Organization} from 'fixtures/js-stubs/organization';
 import moment from 'moment';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';

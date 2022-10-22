@@ -1,5 +1,5 @@
-import {Event} from 'fixtures/js-stubs/event.js';
-import {EventEntryStacktrace} from 'fixtures/js-stubs/eventEntryStacktrace.js';
+import {Event} from 'fixtures/js-stubs/event';
+import {EventEntryStacktrace} from 'fixtures/js-stubs/eventEntryStacktrace';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';

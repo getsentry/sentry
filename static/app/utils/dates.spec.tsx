@@ -1,4 +1,4 @@
-import {User} from 'fixtures/js-stubs/user.js';
+import {User} from 'fixtures/js-stubs/user';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {

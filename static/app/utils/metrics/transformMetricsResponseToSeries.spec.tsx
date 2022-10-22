@@ -1,4 +1,4 @@
-import {MetricsSessionUserCountByStatusByRelease} from 'fixtures/js-stubs/metricsSessionUserCountByStatusByRelease.js';
+import {MetricsSessionUserCountByStatusByRelease} from 'fixtures/js-stubs/metrics';
 
 import {transformMetricsResponseToSeries} from 'sentry/utils/metrics/transformMetricsResponseToSeries';
 

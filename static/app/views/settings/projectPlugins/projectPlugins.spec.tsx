@@ -1,4 +1,4 @@
-import {Plugins} from 'fixtures/js-stubs/plugins.js';
+import {Plugins} from 'fixtures/js-stubs/plugins';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';

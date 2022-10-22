@@ -1,4 +1,4 @@
-import {Event} from 'fixtures/js-stubs/event.js';
+import {Event} from 'fixtures/js-stubs/event';
 
 import {appKnownDataValues} from 'sentry/components/events/contexts/app';
 import {getAppKnownDataDetails} from 'sentry/components/events/contexts/app/getAppKnownDataDetails';

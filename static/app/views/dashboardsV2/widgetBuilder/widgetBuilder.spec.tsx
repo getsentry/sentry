@@ -1,9 +1,9 @@
 import selectEvent from 'react-select-event';
 import {urlEncode} from '@sentry/utils';
-import {MetricsField} from 'fixtures/js-stubs/metricsField.js';
-import {Release} from 'fixtures/js-stubs/release.js';
-import {SessionsField} from 'fixtures/js-stubs/sessionsField.js';
-import {Tags} from 'fixtures/js-stubs/tags.js';
+import {MetricsField} from 'fixtures/js-stubs/metricsField';
+import {Release} from 'fixtures/js-stubs/release';
+import {SessionsField} from 'fixtures/js-stubs/sessionsField';
+import {Tags} from 'fixtures/js-stubs/tags';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';

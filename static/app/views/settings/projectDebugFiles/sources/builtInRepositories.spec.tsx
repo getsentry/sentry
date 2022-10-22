@@ -1,4 +1,4 @@
-import {BuiltInSymbolSources} from 'fixtures/js-stubs/builtInSymbolSources.js';
+import {BuiltInSymbolSources} from 'fixtures/js-stubs/builtInSymbolSources';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';

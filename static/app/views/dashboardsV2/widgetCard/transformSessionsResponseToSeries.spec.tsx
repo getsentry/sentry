@@ -1,5 +1,5 @@
-import {SessionEmptyGroupedResponse} from 'fixtures/js-stubs/sessionEmptyGroupedResponse.js';
-import {SessionUserCountByStatusByRelease} from 'fixtures/js-stubs/sessionUserCountByStatusByRelease.js';
+import {SessionEmptyGroupedResponse} from 'fixtures/js-stubs/sessionEmptyGroupedResponse';
+import {SessionUserCountByStatusByRelease} from 'fixtures/js-stubs/sessionUserCountByStatusByRelease';
 
 import {transformSessionsResponseToSeries} from 'sentry/views/dashboardsV2/widgetCard/transformSessionsResponseToSeries';
 

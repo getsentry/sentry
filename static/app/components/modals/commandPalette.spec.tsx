@@ -1,9 +1,9 @@
-import {Members} from 'fixtures/js-stubs/members.js';
-import {Organization} from 'fixtures/js-stubs/organization.js';
-import {Project} from 'fixtures/js-stubs/project.js';
-import {router} from 'fixtures/js-stubs/router.js';
-import {routerContext} from 'fixtures/js-stubs/routerContext.js';
-import {Team} from 'fixtures/js-stubs/team.js';
+import {Members} from 'fixtures/js-stubs/members';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
+import {router} from 'fixtures/js-stubs/router';
+import {routerContext} from 'fixtures/js-stubs/routerContext';
+import {Team} from 'fixtures/js-stubs/team';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 

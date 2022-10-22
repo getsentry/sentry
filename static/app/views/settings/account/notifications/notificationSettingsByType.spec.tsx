@@ -1,5 +1,5 @@
-import {Organization} from 'fixtures/js-stubs/organization.js';
-import {UserIdentity} from 'fixtures/js-stubs/userIdentity.js';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {UserIdentity} from 'fixtures/js-stubs/userIdentity';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';

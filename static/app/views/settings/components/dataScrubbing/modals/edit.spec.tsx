@@ -1,4 +1,4 @@
-import {DataScrubbingRelayPiiConfig} from 'fixtures/js-stubs/dataScrubbingRelayPiiConfig.js';
+import {DataScrubbingRelayPiiConfig} from 'fixtures/js-stubs/dataScrubbingRelayPiiConfig';
 import sortBy from 'lodash/sortBy';
 
 import {mountGlobalModal} from 'sentry-test/modal';

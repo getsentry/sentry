@@ -1,5 +1,5 @@
-import {location} from 'fixtures/js-stubs/location.js';
-import {Project} from 'fixtures/js-stubs/project.js';
+import {location as locationStub} from 'fixtures/js-stubs/location';
+import {Project} from 'fixtures/js-stubs/project';
 
 import {TrendColumnField} from 'sentry/views/performance/trends/types';
 import {
@@ -50,7 +50,7 @@ describe('Trend parameter utils', function () {
 
   describe('getCurrentTrendParameter', function () {
     it('returns trend parameter from location', () => {
-      const location = location({query: {trendParameter: 'FCP'}});
+      const location = locationStub({query: {trendParameter: 'FCP'}});
       const expectedTrendParameter = {
         label: 'FCP',
         column: TrendColumnField.FCP,
@@ -63,7 +63,7 @@ describe('Trend parameter utils', function () {
     });
 
     it('returns default trend parameter based on project type if no trend parameter set in location', function () {
-      const location = location();
+      const location = locationStub();
       const expectedTrendParameter = {
         label: 'Duration',
         column: TrendColumnField.DURATION,

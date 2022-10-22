@@ -1,5 +1,5 @@
-import {DataScrubbingRelayPiiConfig} from 'fixtures/js-stubs/dataScrubbingRelayPiiConfig.js';
-import {Project} from 'fixtures/js-stubs/project.js';
+import {DataScrubbingRelayPiiConfig} from 'fixtures/js-stubs/dataScrubbingRelayPiiConfig';
+import {Project} from 'fixtures/js-stubs/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';

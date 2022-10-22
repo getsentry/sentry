@@ -1,5 +1,5 @@
-import {Event} from 'fixtures/js-stubs/event.js';
-import {Organization} from 'fixtures/js-stubs/organization.js';
+import {Event} from 'fixtures/js-stubs/event';
+import {Organization} from 'fixtures/js-stubs/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';

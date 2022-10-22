@@ -1,5 +1,5 @@
-import {Group} from 'fixtures/js-stubs/group.js';
-import {SentryAppInstallation} from 'fixtures/js-stubs/sentryAppInstallation.js';
+import {Group} from 'fixtures/js-stubs/group';
+import {SentryAppInstallation} from 'fixtures/js-stubs/sentryAppInstallation';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 

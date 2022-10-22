@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
-import {Organization} from 'fixtures/js-stubs/organization.js';
-import {Project} from 'fixtures/js-stubs/project.js';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
 
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 

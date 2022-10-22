@@ -1,4 +1,4 @@
-import {Release} from 'fixtures/js-stubs/release.js';
+import {Release} from 'fixtures/js-stubs/release';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 

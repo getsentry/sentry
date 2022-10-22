@@ -1,6 +1,6 @@
-import {Event} from 'fixtures/js-stubs/event.js';
-import {Span} from 'fixtures/js-stubs/span.js';
-import {TraceError} from 'fixtures/js-stubs/traceError.js';
+import {Event} from 'fixtures/js-stubs/event';
+import {Span} from 'fixtures/js-stubs/span';
+import {TraceError} from 'fixtures/js-stubs/traceError';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 

@@ -1,8 +1,8 @@
 import {browserHistory} from 'react-router';
-import {Groups} from 'fixtures/js-stubs/groups.js';
-import {Project} from 'fixtures/js-stubs/project.js';
-import {router} from 'fixtures/js-stubs/router.js';
-import {routerContext} from 'fixtures/js-stubs/routerContext.js';
+import {Groups} from 'fixtures/js-stubs/groups';
+import {Project} from 'fixtures/js-stubs/project';
+import {router} from 'fixtures/js-stubs/router';
+import {routerContext} from 'fixtures/js-stubs/routerContext';
 
 import {
   render,

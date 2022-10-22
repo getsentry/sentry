@@ -1,5 +1,5 @@
 import {ReactElement, useMemo} from 'react';
-import {Project} from 'fixtures/js-stubs/project.js';
+import {Project} from 'fixtures/js-stubs/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {reactHooks} from 'sentry-test/reactTestingLibrary';

@@ -1,6 +1,6 @@
 import {InjectedRouter} from 'react-router';
-import {location} from 'fixtures/js-stubs/location.js';
-import {router} from 'fixtures/js-stubs/router.js';
+import {location} from 'fixtures/js-stubs/location';
+import {router} from 'fixtures/js-stubs/router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {

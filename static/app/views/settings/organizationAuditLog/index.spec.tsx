@@ -1,5 +1,5 @@
-import {AuditLogsApiEventNames} from 'fixtures/js-stubs/auditLogsApiEventNames.js';
-import {User} from 'fixtures/js-stubs/user.js';
+import {AuditLogsApiEventNames} from 'fixtures/js-stubs/auditLogsApiEventNames';
+import {User} from 'fixtures/js-stubs/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -10,7 +10,7 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 import OrganizationAuditLog from 'sentry/views/settings/organizationAuditLog';
 
 describe('OrganizationAuditLog', function () {
-  const user: User = {
+  const user = {
     ...User(),
     options: {
       clock24Hours: true,

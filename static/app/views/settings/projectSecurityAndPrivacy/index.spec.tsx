@@ -1,5 +1,5 @@
 import {InjectedRouter} from 'react-router';
-import {ProjectDetails} from 'fixtures/js-stubs/projectDetails.js';
+import {ProjectDetails} from 'fixtures/js-stubs/projectDetails';
 import {Location} from 'history';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';

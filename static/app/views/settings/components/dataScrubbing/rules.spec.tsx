@@ -1,4 +1,4 @@
-import {DataScrubbingRelayPiiConfig} from 'fixtures/js-stubs/dataScrubbingRelayPiiConfig.js';
+import {DataScrubbingRelayPiiConfig} from 'fixtures/js-stubs/dataScrubbingRelayPiiConfig';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';

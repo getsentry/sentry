@@ -1,7 +1,7 @@
-import {location} from 'fixtures/js-stubs/location.js';
-import {Organization} from 'fixtures/js-stubs/organization.js';
-import {Project} from 'fixtures/js-stubs/project.js';
-import {router} from 'fixtures/js-stubs/router.js';
+import {location as locationStub} from 'fixtures/js-stubs/location';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
+import {router} from 'fixtures/js-stubs/router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -14,7 +14,7 @@ import ResultsChart from 'sentry/views/eventsV2/resultsChart';
 
 describe('EventsV2 > ResultsChart', function () {
   const features = ['discover-basic'];
-  const location = location({
+  const location = locationStub({
     query: {query: 'tag:value'},
     pathname: '/',
   });

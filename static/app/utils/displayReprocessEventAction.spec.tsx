@@ -1,5 +1,5 @@
-import {EventStacktraceException} from 'fixtures/js-stubs/eventStacktraceException.js';
-import {EventStacktraceMessage} from 'fixtures/js-stubs/eventStacktraceMessage.js';
+import {EventStacktraceException} from 'fixtures/js-stubs/eventStacktraceException';
+import {EventStacktraceMessage} from 'fixtures/js-stubs/eventStacktraceMessage';
 
 import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAction';
 

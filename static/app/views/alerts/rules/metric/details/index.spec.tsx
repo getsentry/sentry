@@ -1,8 +1,8 @@
-import {EventsStats} from 'fixtures/js-stubs/eventsStats.js';
-import {Group} from 'fixtures/js-stubs/group.js';
-import {Incident} from 'fixtures/js-stubs/incident.js';
-import {MetricRule} from 'fixtures/js-stubs/metricRule.js';
-import {Project} from 'fixtures/js-stubs/project.js';
+import {EventsStats} from 'fixtures/js-stubs/eventsStats';
+import {Group} from 'fixtures/js-stubs/group';
+import {Incident} from 'fixtures/js-stubs/incident';
+import {MetricRule} from 'fixtures/js-stubs/metricRule';
+import {Project} from 'fixtures/js-stubs/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';

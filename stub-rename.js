@@ -30,7 +30,7 @@ for (const file of files) {
   const contentByLine = content.split('\n');
   for (const importName of imports) {
     contentByLine.unshift(
-      `import {${importName}} from 'fixtures/js-stubs/${lowercasefirst(importName)}.js';`
+      `import {${importName}} from 'fixtures/js-stubs/${lowercasefirst(importName)}';`
     );
 
     fs.writeFileSync(file, contentByLine.join('\n'), 'utf8');

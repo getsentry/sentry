@@ -1,4 +1,4 @@
-import {Team} from 'fixtures/js-stubs/team.js';
+import {Team} from 'fixtures/js-stubs/team';
 
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 

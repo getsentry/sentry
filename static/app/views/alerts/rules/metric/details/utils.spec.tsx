@@ -1,4 +1,4 @@
-import {Incident} from 'fixtures/js-stubs/incident.js';
+import {Incident} from 'fixtures/js-stubs/incident';
 import MockDate from 'mockdate';
 import moment from 'moment';
 

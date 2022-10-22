@@ -1,5 +1,5 @@
-import {Event} from 'fixtures/js-stubs/event.js';
-import {Organization} from 'fixtures/js-stubs/organization.js';
+import {Event} from 'fixtures/js-stubs/event';
+import {Organization} from 'fixtures/js-stubs/organization';
 
 import {traceKnownDataValues} from 'sentry/components/events/contexts/trace';
 import {getTraceKnownDataDetails} from 'sentry/components/events/contexts/trace/getTraceKnownDataDetails';

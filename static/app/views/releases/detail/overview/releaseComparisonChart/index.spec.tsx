@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
-import {Release} from 'fixtures/js-stubs/release.js';
-import {SessionUserCountByStatus} from 'fixtures/js-stubs/sessionUserCountByStatus.js';
+import {Release} from 'fixtures/js-stubs/release';
+import {SessionUserCountByStatus} from 'fixtures/js-stubs/sessionUserCountByStatus';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';

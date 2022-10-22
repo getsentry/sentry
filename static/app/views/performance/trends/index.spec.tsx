@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
-import {Organization} from 'fixtures/js-stubs/organization.js';
-import {Project} from 'fixtures/js-stubs/project.js';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
 import {Location} from 'history';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';

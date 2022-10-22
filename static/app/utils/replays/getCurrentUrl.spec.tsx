@@ -1,4 +1,4 @@
-import {Event} from 'fixtures/js-stubs/event.js';
+import {Event} from 'fixtures/js-stubs/event';
 
 import type {Crumb} from 'sentry/types/breadcrumbs';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';

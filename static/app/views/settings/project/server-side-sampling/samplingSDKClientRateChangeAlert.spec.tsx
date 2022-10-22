@@ -1,4 +1,4 @@
-import {Outcomes} from 'fixtures/js-stubs/outcomes.js';
+import {Outcomes} from 'fixtures/js-stubs/outcomes';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 

@@ -1,4 +1,4 @@
-export function router() {
+export function router(params) {
   return {
     push: jest.fn(),
     replace: jest.fn(),

@@ -1,4 +1,4 @@
-import {Event} from 'fixtures/js-stubs/event.js';
+import {Event} from 'fixtures/js-stubs/event';
 
 import {deviceKnownDataValues} from 'sentry/components/events/contexts/device';
 import {getDeviceKnownDataDetails} from 'sentry/components/events/contexts/device/getDeviceKnownDataDetails';

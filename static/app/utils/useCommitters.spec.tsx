@@ -1,8 +1,8 @@
-import {Commit} from 'fixtures/js-stubs/commit.js';
-import {CommitAuthor} from 'fixtures/js-stubs/commitAuthor.js';
-import {Event} from 'fixtures/js-stubs/event.js';
-import {Organization} from 'fixtures/js-stubs/organization.js';
-import {Project} from 'fixtures/js-stubs/project.js';
+import {Commit} from 'fixtures/js-stubs/commit';
+import {CommitAuthor} from 'fixtures/js-stubs/commitAuthor';
+import {Event} from 'fixtures/js-stubs/event';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
 
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 

@@ -1,4 +1,4 @@
-import {Organization} from 'fixtures/js-stubs/organization.js';
+import {Organization} from 'fixtures/js-stubs/organization';
 
 import {Event} from 'sentry/types/event';
 import {TraceFull} from 'sentry/utils/performance/quickTrace/types';

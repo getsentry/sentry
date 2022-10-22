@@ -1,5 +1,5 @@
-import {GitHubIntegrationProvider} from 'fixtures/js-stubs/gitHubIntegrationProvider.js';
-import {Organization} from 'fixtures/js-stubs/organization.js';
+import {GitHubIntegrationProvider} from 'fixtures/js-stubs/gitHubIntegrationProvider';
+import {Organization} from 'fixtures/js-stubs/organization';
 
 /* global global */
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';

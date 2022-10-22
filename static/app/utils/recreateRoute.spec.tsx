@@ -1,4 +1,4 @@
-import {location} from 'fixtures/js-stubs/location.js';
+import {location} from 'fixtures/js-stubs/location';
 
 import recreateRoute from 'sentry/utils/recreateRoute';
 

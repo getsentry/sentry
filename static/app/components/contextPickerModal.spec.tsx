@@ -1,8 +1,8 @@
 import selectEvent from 'react-select-event';
-import {GitHubIntegration} from 'fixtures/js-stubs/gitHubIntegration.js';
-import {Organization} from 'fixtures/js-stubs/organization.js';
-import {Project} from 'fixtures/js-stubs/project.js';
-import {User} from 'fixtures/js-stubs/user.js';
+import {GitHubIntegration} from 'fixtures/js-stubs/gitHubIntegration';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
+import {User} from 'fixtures/js-stubs/user';
 
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 

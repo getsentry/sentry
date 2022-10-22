@@ -1,4 +1,4 @@
-import {Commit} from 'fixtures/js-stubs/commit.js';
+import {Commit} from 'fixtures/js-stubs/commit';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 

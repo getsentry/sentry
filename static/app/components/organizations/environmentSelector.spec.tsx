@@ -1,7 +1,7 @@
-import {Config} from 'fixtures/js-stubs/config.js';
-import {Organization} from 'fixtures/js-stubs/organization.js';
-import {Project} from 'fixtures/js-stubs/project.js';
-import {routerContext} from 'fixtures/js-stubs/routerContext.js';
+import {Config} from 'fixtures/js-stubs/config';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
+import {routerContext} from 'fixtures/js-stubs/routerContext';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 

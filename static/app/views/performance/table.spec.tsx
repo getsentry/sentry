@@ -1,5 +1,5 @@
 import {browserHistory} from 'react-router';
-import {Project} from 'fixtures/js-stubs/project.js';
+import {Project} from 'fixtures/js-stubs/project';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';

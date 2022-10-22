@@ -1,7 +1,7 @@
-import {EventStacktraceException} from 'fixtures/js-stubs/eventStacktraceException.js';
-import {Group} from 'fixtures/js-stubs/group.js';
-import {Organization} from 'fixtures/js-stubs/organization.js';
-import {ProjectDetails} from 'fixtures/js-stubs/projectDetails.js';
+import {EventStacktraceException} from 'fixtures/js-stubs/eventStacktraceException';
+import {Group} from 'fixtures/js-stubs/group';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {ProjectDetails} from 'fixtures/js-stubs/projectDetails';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 

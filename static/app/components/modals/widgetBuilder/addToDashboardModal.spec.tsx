@@ -1,5 +1,5 @@
 import selectEvent from 'react-select-event';
-import {location} from 'fixtures/js-stubs/location.js';
+import {location} from 'fixtures/js-stubs/location';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';

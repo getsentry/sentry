@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/react';
-import {router} from 'fixtures/js-stubs/router.js';
+import {router} from 'fixtures/js-stubs/router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';

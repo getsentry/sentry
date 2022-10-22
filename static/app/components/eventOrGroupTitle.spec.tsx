@@ -1,6 +1,6 @@
 import {FC} from 'react';
-import {Organization} from 'fixtures/js-stubs/organization.js';
-import {routerContext} from 'fixtures/js-stubs/routerContext.js';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {routerContext} from 'fixtures/js-stubs/routerContext';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';

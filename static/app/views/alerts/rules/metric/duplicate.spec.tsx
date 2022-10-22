@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
-import {Member} from 'fixtures/js-stubs/member.js';
-import {MetricRule} from 'fixtures/js-stubs/metricRule.js';
+import {Member} from 'fixtures/js-stubs/member';
+import {MetricRule} from 'fixtures/js-stubs/metricRule';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';

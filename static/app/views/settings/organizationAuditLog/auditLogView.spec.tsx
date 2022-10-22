@@ -1,4 +1,5 @@
-import {AuditLogs} from 'fixtures/js-stubs/auditLogs.js';
+import {AuditLogs} from 'fixtures/js-stubs/auditLogs';
+import {AuditLogsApiEventNames} from 'fixtures/js-stubs/auditLogsApiEventNames';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';

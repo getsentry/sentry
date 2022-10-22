@@ -1,9 +1,9 @@
-import {Event} from 'fixtures/js-stubs/event.js';
-import {EventEntry} from 'fixtures/js-stubs/eventEntry.js';
-import {EventStacktraceException} from 'fixtures/js-stubs/eventStacktraceException.js';
-import {Group} from 'fixtures/js-stubs/group.js';
-import {Project} from 'fixtures/js-stubs/project.js';
-import {router} from 'fixtures/js-stubs/router.js';
+import {Event} from 'fixtures/js-stubs/event';
+import {EventEntry} from 'fixtures/js-stubs/eventEntry';
+import {EventStacktraceException} from 'fixtures/js-stubs/eventStacktraceException';
+import {Group} from 'fixtures/js-stubs/group';
+import {Project} from 'fixtures/js-stubs/project';
+import {router} from 'fixtures/js-stubs/router';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 

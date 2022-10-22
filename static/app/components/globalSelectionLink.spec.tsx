@@ -1,5 +1,5 @@
-import {router} from 'fixtures/js-stubs/router.js';
-import {routerContext} from 'fixtures/js-stubs/routerContext.js';
+import {router} from 'fixtures/js-stubs/router';
+import {routerContext} from 'fixtures/js-stubs/routerContext';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 

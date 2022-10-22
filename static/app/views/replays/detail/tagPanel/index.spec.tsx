@@ -1,4 +1,4 @@
-import {ReplayReaderParams} from 'fixtures/js-stubs/replayReaderParams.js';
+import {ReplayReaderParams} from 'fixtures/js-stubs/replayReaderParams';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';

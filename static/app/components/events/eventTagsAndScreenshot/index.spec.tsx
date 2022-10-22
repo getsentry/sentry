@@ -1,5 +1,5 @@
 import {InjectedRouter} from 'react-router';
-import {Event} from 'fixtures/js-stubs/event.js';
+import {Event} from 'fixtures/js-stubs/event';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';

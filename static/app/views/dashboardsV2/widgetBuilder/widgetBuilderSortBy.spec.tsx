@@ -1,8 +1,8 @@
 import selectEvent from 'react-select-event';
 import {urlEncode} from '@sentry/utils';
-import {MetricsField} from 'fixtures/js-stubs/metricsField.js';
-import {SessionsField} from 'fixtures/js-stubs/sessionsField.js';
-import {Tags} from 'fixtures/js-stubs/tags.js';
+import {MetricsField} from 'fixtures/js-stubs/metricsField';
+import {SessionsField} from 'fixtures/js-stubs/sessionsField';
+import {Tags} from 'fixtures/js-stubs/tags';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';

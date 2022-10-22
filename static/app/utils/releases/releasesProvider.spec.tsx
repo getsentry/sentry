@@ -1,4 +1,4 @@
-import {Release} from 'fixtures/js-stubs/release.js';
+import {Release} from 'fixtures/js-stubs/release';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';

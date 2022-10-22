@@ -1,5 +1,5 @@
-import {Group} from 'fixtures/js-stubs/group.js';
-import {Organization} from 'fixtures/js-stubs/organization.js';
+import {Group} from 'fixtures/js-stubs/group';
+import {Organization} from 'fixtures/js-stubs/organization';
 
 import {mountGlobalModal} from 'sentry-test/modal';
 

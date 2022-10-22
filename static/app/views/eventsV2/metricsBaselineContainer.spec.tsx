@@ -1,6 +1,6 @@
 import ReactEchartsCore from 'echarts-for-react/lib/core';
-import {Organization} from 'fixtures/js-stubs/organization.js';
-import {Project} from 'fixtures/js-stubs/project.js';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {addMetricsDataMock} from 'sentry-test/performance/addMetricsDataMock';

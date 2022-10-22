@@ -1,4 +1,4 @@
-import {routerContext} from 'fixtures/js-stubs/routerContext.js';
+import {routerContext} from 'fixtures/js-stubs/routerContext';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';

@@ -1,12 +1,11 @@
-import {Organization} from 'fixtures/js-stubs/organization.js';
-import {router} from 'fixtures/js-stubs/router.js';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {router} from 'fixtures/js-stubs/router';
 
 import {BreadcrumbContextProvider} from 'sentry-test/providers/breadcrumbContextProvider';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import * as OrgActions from 'sentry/actionCreators/organizations';
 import ConfigStore from 'sentry/stores/configStore';
-import {Organization} from 'sentry/types';
 import SettingsIndex from 'sentry/views/settings/settingsIndex';
 
 describe('SettingsIndex', function () {

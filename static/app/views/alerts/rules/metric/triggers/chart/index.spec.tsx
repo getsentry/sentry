@@ -1,4 +1,4 @@
-import {EventsStats} from 'fixtures/js-stubs/eventsStats.js';
+import {EventsStats} from 'fixtures/js-stubs/eventsStats';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';

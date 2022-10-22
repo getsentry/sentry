@@ -5,8 +5,8 @@ import {
   Router,
   RouterContext,
 } from 'react-router';
-import {Outcomes} from 'fixtures/js-stubs/outcomes.js';
-import {Project} from 'fixtures/js-stubs/project.js';
+import {Outcomes} from 'fixtures/js-stubs/outcomes';
+import {Project} from 'fixtures/js-stubs/project';
 
 import {
   render,

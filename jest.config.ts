@@ -178,6 +178,8 @@ const config: Config.InitialOptions = {
     '<rootDir>/tests/js/**/*(*.)@(spec|test).(js|ts)?(x)',
   ],
   testPathIgnorePatterns: ['<rootDir>/tests/sentry/lang/javascript/'],
+  roots: ['<rootDir>'],
+  modulePaths: ['<rootDir>'],
 
   unmockedModulePathPatterns: [
     '<rootDir>/node_modules/react',
