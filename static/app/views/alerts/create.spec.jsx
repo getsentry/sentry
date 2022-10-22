@@ -13,7 +13,7 @@ import ProjectAlertsCreate from 'sentry/views/alerts/create';
 
 jest.unmock('sentry/utils/recreateRoute');
 jest.mock('sentry/actionCreators/members', () => ({
-  fetchOrgMembers: jest.fn(() => Promise.resolve()),
+  fetchOrgMembers: jest.fn(() => Promise.resolve([])),
   indexMembersByProject: jest.fn(() => {
     return {};
   }),
@@ -97,28 +97,34 @@ describe('ProjectAlertsCreate', function () {
     };
   };
 
-  it('adds default parameters if wizard was skipped', function () {
+  it('adds default parameters if wizard was skipped', async function () {
     const location = {query: {}};
     const wrapper = createWrapper(undefined, location);
-
-    expect(wrapper.router.replace).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/alerts/new/metric',
-      query: {
-        aggregate: 'count()',
-        dataset: 'events',
-        eventTypes: 'error',
-        project: 'project-slug',
-      },
+    await waitFor(() => {
+      expect(wrapper.router.replace).toHaveBeenCalledWith({
+        pathname: '/organizations/org-slug/alerts/new/metric',
+        query: {
+          aggregate: 'count()',
+          dataset: 'events',
+          eventTypes: 'error',
+          project: 'project-slug',
+        },
+      });
     });
   });
 
   describe('Issue Alert', function () {
-    it('loads default values', function () {
+    it('loads default values', async function () {
       createWrapper();
-
-      expect(screen.getByText('All Environments')).toBeInTheDocument();
-      expect(screen.getAllByDisplayValue('all')).toHaveLength(2);
-      expect(screen.getByText('30 minutes')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText('All Environments')).toBeInTheDocument();
+      });
+      await waitFor(() => {
+        expect(screen.getAllByDisplayValue('all')).toHaveLength(2);
+      });
+      await waitFor(() => {
+        expect(screen.getByText('30 minutes')).toBeInTheDocument();
+      });
     });
 
     it('can remove filters', async function () {
@@ -141,21 +147,23 @@ describe('ProjectAlertsCreate', function () {
 
       userEvent.click(screen.getByText('Save Rule'));
 
-      expect(mock).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({
-          data: {
-            actionMatch: 'all',
-            actions: [],
-            conditions: [],
-            filterMatch: 'all',
-            filters: [],
-            frequency: 30,
-            name: 'My Rule Name',
-            owner: null,
-          },
-        })
-      );
+      await waitFor(() => {
+        expect(mock).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.objectContaining({
+            data: {
+              actionMatch: 'all',
+              actions: [],
+              conditions: [],
+              filterMatch: 'all',
+              filters: [],
+              frequency: 30,
+              name: 'My Rule Name',
+              owner: null,
+            },
+          })
+        );
+      });
 
       // updateOnboardingTask triggers an out of band state update
       await act(tick);
@@ -179,33 +187,37 @@ describe('ProjectAlertsCreate', function () {
 
       userEvent.click(screen.getByLabelText('Delete Node'));
 
-      expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
-        'edit_alert_rule.add_row',
-        {
-          name: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
-          organization,
-          project_id: '2',
-          type: 'conditions',
-        }
-      );
+      await waitFor(() => {
+        expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
+          'edit_alert_rule.add_row',
+          {
+            name: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
+            organization,
+            project_id: '2',
+            type: 'conditions',
+          }
+        );
+      });
 
       userEvent.click(screen.getByText('Save Rule'));
 
-      expect(mock).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({
-          data: {
-            actionMatch: 'all',
-            actions: [],
-            conditions: [],
-            filterMatch: 'all',
-            filters: [],
-            frequency: 30,
-            name: 'My Rule Name',
-            owner: null,
-          },
-        })
-      );
+      await waitFor(() => {
+        expect(mock).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.objectContaining({
+            data: {
+              actionMatch: 'all',
+              actions: [],
+              conditions: [],
+              filterMatch: 'all',
+              filters: [],
+              frequency: 30,
+              name: 'My Rule Name',
+              owner: null,
+            },
+          })
+        );
+      });
 
       // updateOnboardingTask triggers an out of band state update
       await act(tick);
@@ -231,21 +243,23 @@ describe('ProjectAlertsCreate', function () {
 
       userEvent.click(screen.getByText('Save Rule'));
 
-      expect(mock).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({
-          data: {
-            actionMatch: 'all',
-            actions: [],
-            conditions: [],
-            filterMatch: 'all',
-            filters: [],
-            frequency: 30,
-            name: 'My Rule Name',
-            owner: null,
-          },
-        })
-      );
+      await waitFor(() => {
+        expect(mock).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.objectContaining({
+            data: {
+              actionMatch: 'all',
+              actions: [],
+              conditions: [],
+              filterMatch: 'all',
+              filters: [],
+              frequency: 30,
+              name: 'My Rule Name',
+              owner: null,
+            },
+          })
+        );
+      });
 
       // updateOnboardingTask triggers an out of band state update
       await act(tick);
