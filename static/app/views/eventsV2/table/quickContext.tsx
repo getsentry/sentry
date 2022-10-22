@@ -128,7 +128,7 @@ function IssueContext(props: {data: Group}) {
   const {status} = props.data;
 
   const renderStatus = () => (
-    <ContextContainer>
+    <IssueContextContainer>
       <ContextTitle>{statusTitle}</ContextTitle>
       <ContextBody>
         {status === 'ignored' ? (
@@ -144,13 +144,13 @@ function IssueContext(props: {data: Group}) {
         )}
         <StatusText>{status}</StatusText>
       </ContextBody>
-    </ContextContainer>
+    </IssueContextContainer>
   );
 
   const renderAssigneeSelector = () => (
-    <ContextContainer>
+    <IssueContextContainer>
       <AssignedTo group={props.data} projectId={props.data.project.id} />
-    </ContextContainer>
+    </IssueContextContainer>
   );
 
   return (
@@ -164,9 +164,19 @@ function IssueContext(props: {data: Group}) {
 const ContextContainer = styled('div')`
   display: flex;
   flex-direction: column;
-  margin: ${space(1.5)};
+
+  & + & {
+    margin-top: ${space(2)};
+  }
+`;
+
+const IssueContextContainer = styled(ContextContainer)`
   ${SidebarSection.Wrap} {
     margin-bottom: 0;
+  }
+
+  ${SidebarSection.Title} {
+    margin: 0;
   }
 `;
 
@@ -196,7 +206,8 @@ const Wrapper = styled('div')`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   box-shadow: ${p => p.theme.dropShadowHeavy};
-  min-width: 200px;
+  min-width: 280px;
+  padding: ${space(1.5)};
 `;
 
 const NoContextWrapper = styled('div')`
