@@ -4,7 +4,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {AddIntegrationButton} from 'sentry/views/organizationIntegrations/addIntegrationButton';
 
 describe('AddIntegrationButton', function () {
-  const provider = TestStubs.GitHubIntegrationProvider();
+  const provider = TestStubs.GithubIntegrationProvider();
 
   it('Opens the setup dialog on click', function () {
     const focus = jest.fn();

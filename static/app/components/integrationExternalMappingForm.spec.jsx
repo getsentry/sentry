@@ -5,7 +5,7 @@ import IntegrationExternalMappingForm from 'sentry/components/integrationExterna
 describe('IntegrationExternalMappingForm', function () {
   const dataEndpoint = '/test/dataEndpoint/';
   const baseProps = {
-    integration: TestStubs.GitHubIntegration(),
+    integration: TestStubs.GithubIntegration(),
     dataEndpoint,
     getBaseFormEndpoint: jest.fn(_mapping => dataEndpoint),
     sentryNamesMapper: mappings => mappings,

@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import QuickTraceMeta from 'sentry/views/performance/transactionDetails/quickTraceMeta';
@@ -30,8 +30,8 @@ describe('QuickTraceMeta', function () {
     errors: 0,
   };
 
-  it('renders basic UI', async function () {
-    const wrapper = mountWithTheme(
+  it('renders basic UI', function () {
+    render(
       <WrappedQuickTraceMeta
         event={event}
         project={project}
@@ -42,24 +42,18 @@ describe('QuickTraceMeta', function () {
         anchor="left"
         errorDest="issue"
         transactionDest="performance"
-      />,
-      routerContext
+      />
     );
 
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('MetaData').exists()).toBe(true);
-    expect(wrapper.find('div[data-test-id="quick-trace-body"] QuickTrace').exists()).toBe(
-      true
-    );
-    expect(wrapper.find('div[data-test-id="quick-trace-footer"]').text()).toEqual(
+    expect(screen.getByRole('heading', {name: 'Trace Navigator'})).toBeInTheDocument();
+    expect(screen.getByTestId('quick-trace-body')).toBeInTheDocument();
+    expect(screen.getByTestId('quick-trace-footer')).toHaveTextContent(
       `View Full Trace: ${'a'.repeat(8)} (0 events)`
     );
   });
 
-  it('renders placeholder while loading', async function () {
-    const wrapper = mountWithTheme(
+  it('renders placeholder while loading', function () {
+    render(
       <WrappedQuickTraceMeta
         event={event}
         project={project}
@@ -73,24 +67,19 @@ describe('QuickTraceMeta', function () {
         anchor="left"
         errorDest="issue"
         transactionDest="performance"
-      />,
-      routerContext
+      />
     );
 
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('MetaData').exists()).toBe(true);
-    expect(
-      wrapper.find('div[data-test-id="quick-trace-body"] Placeholder').exists()
-    ).toBe(true);
-    expect(wrapper.find('div[data-test-id="quick-trace-footer"]').text()).toEqual(
+    expect(screen.getByRole('heading', {name: 'Trace Navigator'})).toBeInTheDocument();
+    const qtBody = screen.getByTestId('quick-trace-body');
+    expect(within(qtBody).getByTestId('loading-placeholder')).toBeInTheDocument();
+    expect(screen.getByTestId('quick-trace-footer')).toHaveTextContent(
       `View Full Trace: ${'a'.repeat(8)} (0 events)`
     );
   });
 
-  it('renders errors', async function () {
-    const wrapper = mountWithTheme(
+  it('renders errors', function () {
+    render(
       <WrappedQuickTraceMeta
         event={event}
         project={project}
@@ -104,23 +93,19 @@ describe('QuickTraceMeta', function () {
         anchor="left"
         errorDest="issue"
         transactionDest="performance"
-      />,
-      routerContext
+      />
     );
 
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('MetaData').exists()).toBe(true);
-    expect(wrapper.find('div[data-test-id="quick-trace-body"]').text()).toEqual('\u2014');
-    expect(wrapper.find('div[data-test-id="quick-trace-footer"]').text()).toEqual(
+    expect(screen.getByRole('heading', {name: 'Trace Navigator'})).toBeInTheDocument();
+    expect(screen.getByTestId('quick-trace-body')).toHaveTextContent('\u2014');
+    expect(screen.getByTestId('quick-trace-footer')).toHaveTextContent(
       `View Full Trace: ${'a'.repeat(8)} (0 events)`
     );
   });
 
-  it('renders missing trace when trace id is not present', async function () {
+  it('renders missing trace when trace id is not present', function () {
     const newEvent = TestStubs.Event();
-    const wrapper = mountWithTheme(
+    render(
       <WrappedQuickTraceMeta
         event={newEvent}
         project={project}
@@ -131,26 +116,18 @@ describe('QuickTraceMeta', function () {
         anchor="left"
         errorDest="issue"
         transactionDest="performance"
-      />,
-      routerContext
+      />
     );
 
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('MetaData').exists()).toBe(true);
-    expect(wrapper.find('div[data-test-id="quick-trace-body"]').text()).toEqual(
-      'Missing Trace'
-    );
-    expect(wrapper.find('div[data-test-id="quick-trace-footer"]').text()).toEqual(
-      'Read the docs'
-    );
+    expect(screen.getByRole('heading', {name: 'Trace Navigator'})).toBeInTheDocument();
+    expect(screen.getByTestId('quick-trace-body')).toHaveTextContent('Missing Trace');
+    expect(screen.getByTestId('quick-trace-footer')).toHaveTextContent('Read the docs');
   });
 
   it('renders missing trace with hover card when feature disabled', async function () {
     const newEvent = TestStubs.Event();
     const newOrg = TestStubs.Organization();
-    const wrapper = mountWithTheme(
+    render(
       <WrappedQuickTraceMeta
         event={newEvent}
         project={project}
@@ -162,28 +139,23 @@ describe('QuickTraceMeta', function () {
         errorDest="issue"
         transactionDest="performance"
       />,
-      routerContext
+      {context: routerContext}
     );
 
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('MetaData').exists()).toBe(true);
-    expect(wrapper.find('div[data-test-id="quick-trace-body"]').text()).toEqual(
-      'Missing Trace'
-    );
-    expect(wrapper.find('div[data-test-id="quick-trace-footer"]').text()).toEqual(
-      'Read the docs'
-    );
+    expect(screen.getByRole('heading', {name: 'Trace Navigator'})).toBeInTheDocument();
+    expect(screen.getByTestId('quick-trace-body')).toHaveTextContent('Missing Trace');
+    const qtFooter = screen.getByTestId('quick-trace-footer');
+    expect(qtFooter).toHaveTextContent('Read the docs');
+    userEvent.hover(qtFooter.firstChild);
     expect(
-      wrapper.find('div[data-test-id="quick-trace-footer"] Hovercard').exists()
-    ).toEqual(true);
+      await screen.findByText('Requires performance monitoring.')
+    ).toBeInTheDocument();
   });
 
-  it('does not render when platform does not support tracing', async function () {
+  it('does not render when platform does not support tracing', function () {
     const newProject = TestStubs.Project();
     const newEvent = TestStubs.Event();
-    const wrapper = mountWithTheme(
+    const result = render(
       <WrappedQuickTraceMeta
         event={newEvent}
         project={newProject}
@@ -194,13 +166,9 @@ describe('QuickTraceMeta', function () {
         anchor="left"
         errorDest="issue"
         transactionDest="performance"
-      />,
-      routerContext
+      />
     );
 
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.isEmptyRender()).toBe(true);
+    expect(result.container).toBeEmptyDOMElement();
   });
 });

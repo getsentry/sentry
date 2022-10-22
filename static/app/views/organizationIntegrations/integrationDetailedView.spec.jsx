@@ -124,7 +124,7 @@ describe('IntegrationDetailedView', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/config/integrations/?provider_key=github`,
       body: {
-        providers: [TestStubs.GitHubIntegrationProvider()],
+        providers: [TestStubs.GithubIntegrationProvider()],
       },
     });
     MockApiClient.addMockResponse({

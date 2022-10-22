@@ -31,6 +31,7 @@ type State = AsyncComponent['state'] & {
     repos: {identifier: string; name: string}[];
     searchable: boolean;
   };
+  integrationReposErrorStatus: number | null;
   itemList: Repository[];
 };
 
@@ -41,19 +42,18 @@ class IntegrationRepos extends AsyncComponent<Props, State> {
       adding: false,
       itemList: [],
       integrationRepos: {repos: [], searchable: false},
-      dropdownBusy: false,
+      integrationReposErrorStatus: null,
+      dropdownBusy: true,
     };
+  }
+
+  componentDidMount() {
+    this.searchRepositoriesRequest();
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const orgId = this.props.organization.slug;
-    return [
-      ['itemList', `/organizations/${orgId}/repos/`, {query: {status: ''}}],
-      [
-        'integrationRepos',
-        `/organizations/${orgId}/integrations/${this.props.integration.id}/repos/`,
-      ],
-    ];
+    return [['itemList', `/organizations/${orgId}/repos/`, {query: {status: ''}}]];
   }
 
   getIntegrationRepos() {
@@ -82,7 +82,7 @@ class IntegrationRepos extends AsyncComponent<Props, State> {
     200
   );
 
-  searchRepositoriesRequest = (searchQuery: string) => {
+  searchRepositoriesRequest = (searchQuery?: string) => {
     const orgId = this.props.organization.slug;
     const query = {search: searchQuery};
     const endpoint = `/organizations/${orgId}/integrations/${this.props.integration.id}/repos/`;
@@ -92,15 +92,15 @@ class IntegrationRepos extends AsyncComponent<Props, State> {
       success: data => {
         this.setState({integrationRepos: data, dropdownBusy: false});
       },
-      error: () => {
-        this.setState({dropdownBusy: false});
+      error: error => {
+        this.setState({dropdownBusy: false, integrationReposErrorStatus: error?.status});
       },
     });
   };
 
-  handleSearchRepositories = (e: React.ChangeEvent<HTMLInputElement>) => {
-    this.setState({dropdownBusy: true});
-    this.debouncedSearchRepositoriesRequest(e.target.value);
+  handleSearchRepositories = (e?: React.ChangeEvent<HTMLInputElement>) => {
+    this.setState({dropdownBusy: true, integrationReposErrorStatus: null});
+    this.debouncedSearchRepositoriesRequest(e?.target.value);
   };
 
   addRepo(selection: {label: JSX.Element; searchKey: string; value: string}) {
@@ -192,38 +192,25 @@ class IntegrationRepos extends AsyncComponent<Props, State> {
     );
   }
 
-  renderError(error) {
-    const badRequest = Object.values(this.state.errors).find(
-      resp => resp && resp.status === 400
-    );
-    if (badRequest) {
-      return (
-        <Alert type="error" showIcon>
-          {t(
-            'We were unable to fetch repositories for this integration. Try again later. If this error continues, please reconnect this integration by uninstalling and then reinstalling.'
-          )}
-        </Alert>
-      );
-    }
-
-    return super.renderError(error);
-  }
-
   renderBody() {
-    const {itemListPageLinks} = this.state;
+    const {itemListPageLinks, integrationReposErrorStatus} = this.state;
     const orgId = this.props.organization.slug;
     const itemList = this.getIntegrationRepos() || [];
-    const header = (
-      <PanelHeader disablePadding hasButtons>
-        <HeaderText>{t('Repositories')}</HeaderText>
-        <DropdownWrapper>{this.renderDropdown()}</DropdownWrapper>
-      </PanelHeader>
-    );
-
     return (
       <Fragment>
+        {integrationReposErrorStatus === 400 && (
+          <Alert type="error" showIcon>
+            {t(
+              'We were unable to fetch repositories for this integration. Try again later. If this error continues, please reconnect this integration by uninstalling and then reinstalling.'
+            )}
+          </Alert>
+        )}
+
         <Panel>
-          {header}
+          <PanelHeader hasButtons>
+            <div>{t('Repositories')}</div>
+            <DropdownWrapper>{this.renderDropdown()}</DropdownWrapper>
+          </PanelHeader>
           <PanelBody>
             {itemList.length === 0 && (
               <EmptyMessage
@@ -260,21 +247,15 @@ class IntegrationRepos extends AsyncComponent<Props, State> {
 
 export default withOrganization(IntegrationRepos);
 
-const HeaderText = styled('div')`
-  padding-left: ${space(2)};
-  flex: 1;
-`;
-
-const DropdownWrapper = styled('div')`
-  padding-right: ${space(1)};
-  text-transform: none;
-`;
-
 const StyledReposLabel = styled('div')`
   width: 250px;
   font-size: 0.875em;
   padding: ${space(1)} 0;
   text-transform: uppercase;
+`;
+
+const DropdownWrapper = styled('div')`
+  text-transform: none;
 `;
 
 const StyledListElement = styled('div')`

@@ -26,7 +26,7 @@ describe('ExternalIssueForm', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     group = TestStubs.Group();
-    integration = TestStubs.GitHubIntegration({externalIssues: []});
+    integration = TestStubs.GithubIntegration({externalIssues: []});
     onChange = jest.fn();
   });
 
