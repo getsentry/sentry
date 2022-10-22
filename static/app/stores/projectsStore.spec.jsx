@@ -1,20 +1,23 @@
+import {Project} from 'fixtures/js-stubs/project';
+import {Team} from 'fixtures/js-stubs/team';
+
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 
 describe('ProjectsStore', function () {
-  const teamFoo = TestStubs.Team({
+  const teamFoo = Team({
     slug: 'team-foo',
   });
-  const teamBar = TestStubs.Team({
+  const teamBar = Team({
     slug: 'team-bar',
   });
-  const projectFoo = TestStubs.Project({
+  const projectFoo = Project({
     id: '2',
     slug: 'foo',
     name: 'Foo',
     teams: [teamFoo],
   });
-  const projectBar = TestStubs.Project({
+  const projectBar = Project({
     id: '10',
     slug: 'bar',
     name: 'Bar',
@@ -55,7 +58,7 @@ describe('ProjectsStore', function () {
     });
 
     it('adds project to store on "create success"', function () {
-      const project = TestStubs.Project({id: '11', slug: 'created-project'});
+      const project = Project({id: '11', slug: 'created-project'});
       const reloadOrgRequest = MockApiClient.addMockResponse({
         url: '/organizations/my-org/',
         body: {},
@@ -90,7 +93,7 @@ describe('ProjectsStore', function () {
 
     it('updates a project in store', function () {
       // Create a new project, but should have same id as `projectBar`
-      const project = TestStubs.Project({id: '10', slug: 'bar', name: 'New Name'});
+      const project = Project({id: '10', slug: 'bar', name: 'New Name'});
       ProjectsStore.onUpdateSuccess(project);
       expect(ProjectsStore.itemsById[projectBar.id]).toMatchObject({
         id: '10',
@@ -143,7 +146,7 @@ describe('ProjectsStore', function () {
     });
 
     it('can add a team to a project', function () {
-      const team = TestStubs.Team({
+      const team = Team({
         slug: 'new-team',
       });
       ProjectsStore.onAddTeam(team, 'foo');

@@ -1,3 +1,6 @@
+import {Member} from 'fixtures/js-stubs/member';
+import {User} from 'fixtures/js-stubs/user';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import MemberBadge from 'sentry/components/idBadge/memberBadge';
@@ -5,7 +8,7 @@ import MemberBadge from 'sentry/components/idBadge/memberBadge';
 describe('MemberBadge', function () {
   let member;
   beforeEach(() => {
-    member = TestStubs.Member();
+    member = Member();
   });
 
   it('renders with link when member and orgId are supplied', function () {
@@ -45,7 +48,7 @@ describe('MemberBadge', function () {
   });
 
   it('can coalesce using username', function () {
-    member.user = TestStubs.User({
+    member.user = User({
       name: null,
       email: null,
       username: 'the-batman',
@@ -57,7 +60,7 @@ describe('MemberBadge', function () {
   });
 
   it('can coalesce using ipaddress', function () {
-    member.user = TestStubs.User({
+    member.user = User({
       name: null,
       email: null,
       username: null,

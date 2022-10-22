@@ -1,10 +1,12 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
 
 describe('ReleaseSeries', function () {
   const renderFunc = jest.fn(() => null);
-  const organization = TestStubs.Organization();
+  const organization = Organization();
   let releases;
   let releasesMock;
 

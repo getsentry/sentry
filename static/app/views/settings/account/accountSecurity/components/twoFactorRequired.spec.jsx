@@ -1,3 +1,7 @@
+import {AccountEmails} from 'fixtures/js-stubs/accountEmails';
+import {Authenticators} from 'fixtures/js-stubs/authenticators';
+import {Organizations} from 'fixtures/js-stubs/organizations';
+import {routerContext} from 'fixtures/js-stubs/routerContext';
 import Cookies from 'js-cookie';
 import * as qs from 'query-string';
 
@@ -17,19 +21,19 @@ describe('TwoFactorRequired', function () {
 
     MockApiClient.addMockResponse({
       url: ENDPOINT,
-      body: [TestStubs.Authenticators().Totp({isEnrolled: false})],
+      body: [Authenticators().Totp({isEnrolled: false})],
     });
     MockApiClient.addMockResponse({
       url: ORG_ENDPOINT,
-      body: TestStubs.Organizations(),
+      body: Organizations(),
     });
     MockApiClient.addMockResponse({
       url: ACCOUNT_EMAILS_ENDPOINT,
-      body: TestStubs.AccountEmails(),
+      body: AccountEmails(),
     });
   });
 
-  const routerContext = TestStubs.routerContext();
+  const routerContext = routerContext();
 
   it('renders empty', function () {
     MockApiClient.addMockResponse({
@@ -61,7 +65,7 @@ describe('TwoFactorRequired', function () {
   it('does not render when 2FA is enrolled and no pendingInvite cookie', function () {
     MockApiClient.addMockResponse({
       url: ENDPOINT,
-      body: [TestStubs.Authenticators().Totp({isEnrolled: true})],
+      body: [Authenticators().Totp({isEnrolled: true})],
     });
 
     render(
@@ -83,11 +87,11 @@ describe('TwoFactorRequired', function () {
     Cookies.set(INVITE_COOKIE, qs.stringify(cookieData));
     MockApiClient.addMockResponse({
       url: ENDPOINT,
-      body: [TestStubs.Authenticators().Totp({isEnrolled: true})],
+      body: [Authenticators().Totp({isEnrolled: true})],
     });
     MockApiClient.addMockResponse({
       url: ORG_ENDPOINT,
-      body: TestStubs.Organizations({require2FA: true}),
+      body: Organizations({require2FA: true}),
     });
 
     render(
@@ -105,7 +109,7 @@ describe('TwoFactorRequired', function () {
     Cookies.set(INVITE_COOKIE, '/accept/5/abcde/');
     MockApiClient.addMockResponse({
       url: ORG_ENDPOINT,
-      body: TestStubs.Organizations({require2FA: true}),
+      body: Organizations({require2FA: true}),
     });
 
     render(

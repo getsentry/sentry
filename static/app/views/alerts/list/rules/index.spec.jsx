@@ -1,3 +1,9 @@
+import {Incident} from 'fixtures/js-stubs/incident';
+import {MetricRule} from 'fixtures/js-stubs/metricRule';
+import {Project} from 'fixtures/js-stubs/project';
+import {ProjectAlertRule} from 'fixtures/js-stubs/projectAlertRule';
+import {Team} from 'fixtures/js-stubs/team';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
@@ -17,7 +23,7 @@ describe('AlertRulesList', () => {
       access: ['alerts:write'],
     },
   });
-  TeamStore.loadInitialData([TestStubs.Team()], false, null);
+  TeamStore.loadInitialData([Team()], false, null);
   let rulesMock;
   let projectMock;
   const pageLinks =
@@ -43,20 +49,20 @@ describe('AlertRulesList', () => {
       url: '/organizations/org-slug/combined-rules/',
       headers: {Link: pageLinks},
       body: [
-        TestStubs.ProjectAlertRule({
+        ProjectAlertRule({
           id: '123',
           name: 'First Issue Alert',
           projects: ['earth'],
           createdBy: {name: 'Samwise', id: 1, email: ''},
         }),
-        TestStubs.MetricRule({
+        MetricRule({
           id: '345',
           projects: ['earth'],
-          latestIncident: TestStubs.Incident({
+          latestIncident: Incident({
             status: IncidentStatus.CRITICAL,
           }),
         }),
-        TestStubs.MetricRule({
+        MetricRule({
           id: '678',
           projects: ['earth'],
           latestIncident: null,
@@ -66,10 +72,10 @@ describe('AlertRulesList', () => {
     projectMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [
-        TestStubs.Project({
+        Project({
           slug: 'earth',
           platform: 'javascript',
-          teams: [TestStubs.Team()],
+          teams: [Team()],
         }),
       ],
     });

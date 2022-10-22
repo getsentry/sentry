@@ -1,4 +1,6 @@
 import {Fragment} from 'react';
+import {Member} from 'fixtures/js-stubs/member';
+import {MetricRule} from 'fixtures/js-stubs/metricRule';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -55,7 +57,7 @@ describe('MetricRulesEdit', function () {
 
   it('renders and edits trigger', function () {
     const {organization, project} = initializeOrg();
-    const rule = TestStubs.MetricRule();
+    const rule = MetricRule();
     const onChangeTitleMock = jest.fn();
     const req = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/alert-rules/${rule.id}/`,
@@ -64,7 +66,7 @@ describe('MetricRulesEdit', function () {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
-      body: [TestStubs.Member()],
+      body: [Member()],
     });
 
     const editRule = MockApiClient.addMockResponse({
@@ -159,7 +161,7 @@ describe('MetricRulesEdit', function () {
 
   it('clears trigger', async function () {
     const {organization, project} = initializeOrg();
-    const rule = TestStubs.MetricRule();
+    const rule = MetricRule();
     rule.triggers.push({
       label: AlertRuleTriggerType.WARNING,
       alertThreshold: 13,
@@ -175,7 +177,7 @@ describe('MetricRulesEdit', function () {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
-      body: [TestStubs.Member()],
+      body: [Member()],
     });
 
     const editRule = MockApiClient.addMockResponse({

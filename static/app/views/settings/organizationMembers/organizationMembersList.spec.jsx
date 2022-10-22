@@ -1,4 +1,11 @@
 import {browserHistory} from 'react-router';
+import {AuthProvider} from 'fixtures/js-stubs/authProvider';
+import {Member} from 'fixtures/js-stubs/member';
+import {Members} from 'fixtures/js-stubs/members';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {routerContext} from 'fixtures/js-stubs/routerContext';
+import {Team} from 'fixtures/js-stubs/team';
+import {User} from 'fixtures/js-stubs/user';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
@@ -32,7 +39,7 @@ const roles = [
 ];
 
 describe('OrganizationMembersList', function () {
-  const members = TestStubs.Members();
+  const members = Members();
   const currentUser = members[1];
   const defaultProps = {
     orgId: 'org-slug',
@@ -49,7 +56,7 @@ describe('OrganizationMembersList', function () {
     onLeave: () => {},
     location: {query: {}},
   };
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     access: ['member:admin', 'org:admin', 'member:write'],
     status: {
       id: 'active',
@@ -72,7 +79,7 @@ describe('OrganizationMembersList', function () {
     Client.addMockResponse({
       url: '/organizations/org-id/members/',
       method: 'GET',
-      body: TestStubs.Members(),
+      body: Members(),
     });
     Client.addMockResponse({
       url: '/organizations/org-id/access-requests/',
@@ -91,7 +98,7 @@ describe('OrganizationMembersList', function () {
               name: 'sentry@test.com',
             },
           },
-          team: TestStubs.Team(),
+          team: Team(),
         },
       ],
     });
@@ -99,14 +106,14 @@ describe('OrganizationMembersList', function () {
       url: '/organizations/org-id/auth-provider/',
       method: 'GET',
       body: {
-        ...TestStubs.AuthProvider(),
+        ...AuthProvider(),
         require_link: true,
       },
     });
     Client.addMockResponse({
       url: '/organizations/org-id/teams/',
       method: 'GET',
-      body: TestStubs.Team(),
+      body: Team(),
     });
     Client.addMockResponse({
       url: '/organizations/org-id/invite-requests/',
@@ -125,7 +132,7 @@ describe('OrganizationMembersList', function () {
 
     const wrapper = mountWithTheme(
       <OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />,
-      TestStubs.routerContext([{organization}])
+      routerContext([{organization}])
     );
 
     wrapper.find('Button[data-test-id="remove"]').at(0).simulate('click');
@@ -151,7 +158,7 @@ describe('OrganizationMembersList', function () {
 
     const wrapper = mountWithTheme(
       <OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />,
-      TestStubs.routerContext([{organization}])
+      routerContext([{organization}])
     );
 
     wrapper.find('Button[data-test-id="remove"]').at(0).simulate('click');
@@ -177,7 +184,7 @@ describe('OrganizationMembersList', function () {
 
     const wrapper = mountWithTheme(
       <OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />,
-      TestStubs.routerContext([{organization}])
+      routerContext([{organization}])
     );
 
     wrapper.find('Button[priority="danger"]').at(0).simulate('click');
@@ -199,7 +206,7 @@ describe('OrganizationMembersList', function () {
       url: `/organizations/org-id/members/${members[1].id}/`,
       method: 'DELETE',
     });
-    const secondOrg = TestStubs.Organization({
+    const secondOrg = Organization({
       slug: 'org-two',
       status: {
         id: 'active',
@@ -209,7 +216,7 @@ describe('OrganizationMembersList', function () {
 
     const wrapper = mountWithTheme(
       <OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />,
-      TestStubs.routerContext([{organization}])
+      routerContext([{organization}])
     );
 
     wrapper.find('Button[priority="danger"]').at(0).simulate('click');
@@ -236,7 +243,7 @@ describe('OrganizationMembersList', function () {
 
     const wrapper = mountWithTheme(
       <OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />,
-      TestStubs.routerContext([{organization}])
+      routerContext([{organization}])
     );
 
     wrapper.find('Button[priority="danger"]').at(0).simulate('click');
@@ -265,7 +272,7 @@ describe('OrganizationMembersList', function () {
 
     const wrapper = mountWithTheme(
       <OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />,
-      TestStubs.routerContext([{organization}])
+      routerContext([{organization}])
     );
 
     expect(inviteMock).not.toHaveBeenCalled();
@@ -287,7 +294,7 @@ describe('OrganizationMembersList', function () {
 
     const wrapper = mountWithTheme(
       <OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />,
-      TestStubs.routerContext([{organization}])
+      routerContext([{organization}])
     );
 
     expect(inviteMock).not.toHaveBeenCalled();
@@ -303,7 +310,7 @@ describe('OrganizationMembersList', function () {
       url: '/organizations/org-id/members/',
       body: [],
     });
-    const routerContext = TestStubs.routerContext();
+    const routerContext = routerContext();
     const wrapper = mountWithTheme(
       <OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />,
       routerContext
@@ -333,7 +340,7 @@ describe('OrganizationMembersList', function () {
       url: '/organizations/org-id/members/',
       body: [],
     });
-    const routerContext = TestStubs.routerContext();
+    const routerContext = routerContext();
     const wrapper = mountWithTheme(
       <OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />,
       routerContext
@@ -389,15 +396,15 @@ describe('OrganizationMembersList', function () {
   });
 
   describe('OrganizationInviteRequests', function () {
-    const inviteRequest = TestStubs.Member({
+    const inviteRequest = Member({
       id: '123',
       user: null,
       inviteStatus: 'requested_to_be_invited',
-      inviter: TestStubs.User(),
+      inviter: User(),
       role: 'member',
       teams: [],
     });
-    const joinRequest = TestStubs.Member({
+    const joinRequest = Member({
       id: '456',
       user: null,
       email: 'test@gmail.com',
@@ -406,7 +413,7 @@ describe('OrganizationMembersList', function () {
       teams: [],
     });
     it('disable buttons for no access', function () {
-      const org = TestStubs.Organization({
+      const org = Organization({
         status: {
           id: 'active',
         },
@@ -427,7 +434,7 @@ describe('OrganizationMembersList', function () {
           params={{orgId: 'org-id'}}
           organization={org}
         />,
-        TestStubs.routerContext([{organization: org}])
+        routerContext([{organization: org}])
       );
 
       expect(wrapper.find('InviteRequestRow').exists()).toBe(true);
@@ -442,7 +449,7 @@ describe('OrganizationMembersList', function () {
     });
 
     it('can approve invite request and update', async function () {
-      const org = TestStubs.Organization({
+      const org = Organization({
         access: ['member:admin', 'org:admin', 'member:write'],
         status: {
           id: 'active',
@@ -464,7 +471,7 @@ describe('OrganizationMembersList', function () {
           params={{orgId: 'org-id'}}
           organization={org}
         />,
-        TestStubs.routerContext([{organization: org}])
+        routerContext([{organization: org}])
       );
 
       expect(wrapper.find('InviteRequestRow').exists()).toBe(true);
@@ -494,7 +501,7 @@ describe('OrganizationMembersList', function () {
     });
 
     it('can deny invite request and remove', async function () {
-      const org = TestStubs.Organization({
+      const org = Organization({
         access: ['member:admin', 'org:admin', 'member:write'],
         status: {
           id: 'active',
@@ -516,7 +523,7 @@ describe('OrganizationMembersList', function () {
           params={{orgId: 'org-id'}}
           organization={org}
         />,
-        TestStubs.routerContext([{organization: org}])
+        routerContext([{organization: org}])
       );
 
       expect(wrapper.find('InviteRequestRow').exists()).toBe(true);
@@ -540,7 +547,7 @@ describe('OrganizationMembersList', function () {
     });
 
     it('can update invite requests', async function () {
-      const org = TestStubs.Organization({
+      const org = Organization({
         access: ['member:admin', 'org:admin', 'member:write'],
         status: {
           id: 'active',
@@ -563,7 +570,7 @@ describe('OrganizationMembersList', function () {
           params={{orgId: 'org-id'}}
           organization={org}
         />,
-        TestStubs.routerContext([{organization: org}])
+        routerContext([{organization: org}])
       );
 
       selectByValue(wrapper, 'admin', {name: 'role', control: true});

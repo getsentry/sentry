@@ -1,3 +1,5 @@
+import {SentryApp} from 'fixtures/js-stubs/sentryApp';
+
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import SentryAppRuleModal from 'sentry/views/alerts/rules/issue/sentryAppRuleModal';
@@ -12,8 +14,8 @@ describe('SentryAppRuleModal', function () {
   let sentryAppInstallation;
 
   beforeEach(function () {
-    sentryApp = TestStubs.SentryApp();
-    sentryAppInstallation = TestStubs.SentryAppInstallation({sentryApp});
+    sentryApp = SentryApp();
+    sentryAppInstallation = SentryAppInstallation({sentryApp});
   });
 
   const _submit = () => {

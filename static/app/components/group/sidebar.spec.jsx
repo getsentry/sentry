@@ -1,10 +1,15 @@
+import {Event} from 'fixtures/js-stubs/event';
+import {Group} from 'fixtures/js-stubs/group';
+import {Tags} from 'fixtures/js-stubs/tags';
+import {User} from 'fixtures/js-stubs/user';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import GroupSidebar from 'sentry/components/group/sidebar';
 
 describe('GroupSidebar', function () {
-  let group = TestStubs.Group({tags: TestStubs.Tags()});
+  let group = Group({tags: Tags()});
   const {organization, project} = initializeOrg();
   const environment = {name: 'production', displayName: 'Production', id: '1'};
   let tagsMock;
@@ -59,7 +64,7 @@ describe('GroupSidebar', function () {
     });
     tagsMock = MockApiClient.addMockResponse({
       url: '/issues/1/tags/',
-      body: TestStubs.Tags(),
+      body: Tags(),
     });
   });
 
@@ -74,7 +79,7 @@ describe('GroupSidebar', function () {
           group={group}
           project={project}
           organization={organization}
-          event={TestStubs.Event()}
+          event={Event()}
           environments={[environment]}
         />,
         {organization}
@@ -92,7 +97,7 @@ describe('GroupSidebar', function () {
           group={group}
           project={project}
           organization={organization}
-          event={TestStubs.Event()}
+          event={Event()}
           environments={[environment]}
         />,
         {organization}
@@ -113,7 +118,7 @@ describe('GroupSidebar', function () {
           group={group}
           project={project}
           organization={organization}
-          event={TestStubs.Event()}
+          event={Event()}
           environments={[environment]}
         />,
         {organization}
@@ -125,7 +130,7 @@ describe('GroupSidebar', function () {
           group={group}
           project={project}
           organization={organization}
-          event={TestStubs.Event()}
+          event={Event()}
           environments={[stagingEnv]}
         />,
         {organization}
@@ -144,7 +149,7 @@ describe('GroupSidebar', function () {
 
   describe('renders without tags', function () {
     beforeEach(function () {
-      group = TestStubs.Group();
+      group = Group();
 
       MockApiClient.addMockResponse({
         url: '/issues/1/',
@@ -162,7 +167,7 @@ describe('GroupSidebar', function () {
           group={group}
           project={project}
           organization={organization}
-          event={TestStubs.Event()}
+          event={Event()}
           environments={[environment]}
         />,
         {organization}
@@ -175,12 +180,12 @@ describe('GroupSidebar', function () {
 
   it('renders participants and viewers', () => {
     const users = [
-      TestStubs.User({
+      User({
         id: '2',
         name: 'John Smith',
         email: 'johnsmith@example.com',
       }),
-      TestStubs.User({
+      User({
         id: '3',
         name: 'Sohn Jmith',
         email: 'sohnjmith@example.com',
@@ -196,7 +201,7 @@ describe('GroupSidebar', function () {
         }}
         project={project}
         organization={org}
-        event={TestStubs.Event()}
+        event={Event()}
         environments={[]}
       />,
       {organization: org}
@@ -208,7 +213,7 @@ describe('GroupSidebar', function () {
 
   describe('displays mobile tags when issue platform is mobile', function () {
     beforeEach(function () {
-      group = TestStubs.Group();
+      group = Group();
 
       MockApiClient.addMockResponse({
         url: '/issues/1/',
@@ -225,7 +230,7 @@ describe('GroupSidebar', function () {
             ...organization,
             features: [...organization.features, 'issue-details-tag-improvements'],
           }}
-          event={TestStubs.Event()}
+          event={Event()}
           environments={[environment]}
         />,
         {organization}
@@ -242,7 +247,7 @@ describe('GroupSidebar', function () {
             ...organization,
             features: [...organization.features, 'issue-details-tag-improvements'],
           }}
-          event={TestStubs.Event()}
+          event={Event()}
           environments={[environment]}
         />,
         {organization}

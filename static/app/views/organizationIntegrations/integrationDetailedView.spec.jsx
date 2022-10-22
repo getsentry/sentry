@@ -1,3 +1,6 @@
+import {GitHubIntegrationProvider} from 'fixtures/js-stubs/gitHubIntegrationProvider';
+import {Organization} from 'fixtures/js-stubs/organization';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import IntegrationDetailedView from 'sentry/views/organizationIntegrations/integrationDetailedView';
@@ -12,7 +15,7 @@ const mockResponse = mocks => {
 };
 
 describe('IntegrationDetailedView', function () {
-  const org = TestStubs.Organization({
+  const org = Organization({
     access: ['org:integrations'],
   });
 
@@ -113,7 +116,7 @@ describe('IntegrationDetailedView', function () {
       <IntegrationDetailedView
         params={{integrationSlug: 'bitbucket', orgId: org.slug}}
         location={{query: {tab: 'configurations'}}}
-        organization={TestStubs.Organization({access: ['org:read']})}
+        organization={Organization({access: ['org:read']})}
       />
     );
 
@@ -124,7 +127,7 @@ describe('IntegrationDetailedView', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/config/integrations/?provider_key=github`,
       body: {
-        providers: [TestStubs.GitHubIntegrationProvider()],
+        providers: [GitHubIntegrationProvider()],
       },
     });
     MockApiClient.addMockResponse({
@@ -156,7 +159,7 @@ describe('IntegrationDetailedView', function () {
       <IntegrationDetailedView
         params={{integrationSlug: 'github', orgId: org.slug}}
         location={{query: {tab: 'configurations'}}}
-        organization={TestStubs.Organization({access: ['org:read']})}
+        organization={Organization({access: ['org:read']})}
       />
     );
 

@@ -1,4 +1,5 @@
 import selectEvent from 'react-select-event';
+import {Release} from 'fixtures/js-stubs/release';
 
 import {
   act,
@@ -149,7 +150,7 @@ describe('ResolveActions', function () {
     const onUpdate = jest.fn();
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/releases/',
-      body: [TestStubs.Release()],
+      body: [Release()],
     });
     render(
       <ResolveActions

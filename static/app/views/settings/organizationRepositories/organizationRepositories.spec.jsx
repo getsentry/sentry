@@ -1,3 +1,6 @@
+import {GitHubRepositoryProvider} from 'fixtures/js-stubs/gitHubRepositoryProvider';
+import {Repository} from 'fixtures/js-stubs/repository';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'sentry/api';
@@ -19,7 +22,7 @@ describe('OrganizationRepositories', function () {
     const wrapper = mountWithTheme(
       <OrganizationRepositories
         params={{orgId: 'org-slug'}}
-        repoConfig={{providers: [TestStubs.GitHubRepositoryProvider({id: 'github'})]}}
+        repoConfig={{providers: [GitHubRepositoryProvider({id: 'github'})]}}
         itemList={[]}
       />
     );
@@ -29,14 +32,14 @@ describe('OrganizationRepositories', function () {
   it('renders with a repository', function () {
     Client.addMockResponse({
       url: '/organizations/org-slug/repos/',
-      body: [TestStubs.Repository()],
+      body: [Repository()],
     });
     const wrapper = mountWithTheme(
       <OrganizationRepositories
         api={new Client()}
         params={{orgId: 'org-slug'}}
-        repoConfig={{providers: [TestStubs.GitHubRepositoryProvider({id: 'github'})]}}
-        itemList={[TestStubs.Repository()]}
+        repoConfig={{providers: [GitHubRepositoryProvider({id: 'github'})]}}
+        itemList={[Repository()]}
       />
     );
     expect(wrapper).toSnapshot();

@@ -1,11 +1,14 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Team} from 'fixtures/js-stubs/team';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import InviteMembersModal from 'sentry/components/modals/inviteMembersModal';
 import TeamStore from 'sentry/stores/teamStore';
 
 describe('InviteMembersModal', function () {
-  const team = TestStubs.Team();
-  const org = TestStubs.Organization({access: ['member:write'], teams: [team]});
+  const team = Team();
+  const org = Organization({access: ['member:write'], teams: [team]});
   TeamStore.loadInitialData([team]);
 
   const modalProps = {
@@ -14,7 +17,7 @@ describe('InviteMembersModal', function () {
     Footer: p => p.children,
   };
 
-  const noWriteOrg = TestStubs.Organization({
+  const noWriteOrg = Organization({
     access: [],
   });
 
@@ -54,7 +57,7 @@ describe('InviteMembersModal', function () {
   });
 
   it('renders without organization.access', function () {
-    const organization = TestStubs.Organization({access: undefined});
+    const organization = Organization({access: undefined});
     const wrapper = mountWithTheme(
       <InviteMembersModal {...modalProps} organization={organization} />
     );

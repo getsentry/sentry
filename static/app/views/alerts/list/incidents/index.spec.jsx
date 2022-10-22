@@ -1,4 +1,8 @@
 import selectEvent from 'react-select-event';
+import {Incident} from 'fixtures/js-stubs/incident';
+import {MetricRule} from 'fixtures/js-stubs/metricRule';
+import {Project} from 'fixtures/js-stubs/project';
+import {Team} from 'fixtures/js-stubs/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
@@ -42,13 +46,13 @@ describe('IncidentsList', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/',
       body: [
-        TestStubs.Incident({
+        Incident({
           id: '123',
           identifier: '1',
           title: 'First incident',
           projects: projects1,
         }),
-        TestStubs.Incident({
+        Incident({
           id: '342',
           identifier: '2',
           title: 'Second incident',
@@ -59,7 +63,7 @@ describe('IncidentsList', () => {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/2/stats/',
-      body: TestStubs.IncidentStats({
+      body: IncidentStats({
         totalEvents: 1000,
         uniqueUsers: 32,
         eventStats: {
@@ -69,10 +73,10 @@ describe('IncidentsList', () => {
     });
 
     const projects = [
-      TestStubs.Project({slug: 'a', platform: 'javascript'}),
-      TestStubs.Project({slug: 'b'}),
-      TestStubs.Project({slug: 'c'}),
-      TestStubs.Project({slug: 'd'}),
+      Project({slug: 'a', platform: 'javascript'}),
+      Project({slug: 'b'}),
+      Project({slug: 'c'}),
+      Project({slug: 'd'}),
     ];
 
     projectMock = MockApiClient.addMockResponse({
@@ -238,16 +242,16 @@ describe('IncidentsList', () => {
   });
 
   it('displays owner from alert rule', async () => {
-    const team = TestStubs.Team();
+    const team = Team();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/',
       body: [
-        TestStubs.Incident({
+        Incident({
           id: '123',
           identifier: '1',
           title: 'First incident',
           projects: projects1,
-          alertRule: TestStubs.MetricRule({owner: `team:${team.id}`}),
+          alertRule: MetricRule({owner: `team:${team.id}`}),
         }),
       ],
     });

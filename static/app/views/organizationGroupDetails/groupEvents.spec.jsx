@@ -1,4 +1,6 @@
 import {browserHistory} from 'react-router';
+import {Event} from 'fixtures/js-stubs/event';
+import {Group} from 'fixtures/js-stubs/group';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -22,13 +24,13 @@ describe('groupEvents', function () {
     request = MockApiClient.addMockResponse({
       url: '/issues/1/events/',
       body: [
-        TestStubs.Event({
+        Event({
           eventID: '12345',
           id: '1',
           message: 'ApiException',
           groupID: '1',
         }),
-        TestStubs.Event({
+        Event({
           crashFile: {
             sha1: 'sha1',
             name: 'name.dmp',
@@ -120,7 +122,7 @@ describe('groupEvents', function () {
         <GroupEvents
           organization={organization}
           api={new MockApiClient()}
-          group={TestStubs.Group()}
+          group={Group()}
           params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
           location={{query: {}}}
         />
@@ -138,7 +140,7 @@ describe('groupEvents', function () {
           organization={organization}
           api={new MockApiClient()}
           params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
-          group={TestStubs.Group()}
+          group={Group()}
           location={{query: {}}}
         />
       </RouteContext.Provider>,
@@ -172,7 +174,7 @@ describe('groupEvents', function () {
           organization={organization}
           api={new MockApiClient()}
           params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
-          group={TestStubs.Group()}
+          group={Group()}
           location={{query: {environment: ['prod', 'staging']}}}
         />
       </RouteContext.Provider>,
@@ -194,7 +196,7 @@ describe('groupEvents', function () {
       org = initializeOrg({
         organization: {features: ['performance-issues-all-events-tab']},
       });
-      group = TestStubs.Group();
+      group = Group();
     });
 
     it('renders new events table for performance', function () {
@@ -414,7 +416,7 @@ describe('groupEvents', function () {
 
   it('does not renders new events table if error', function () {
     const org = initializeOrg();
-    const group = TestStubs.Group();
+    const group = Group();
 
     render(
       <RouteContext.Provider value={routerContext}>

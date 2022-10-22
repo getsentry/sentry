@@ -1,3 +1,7 @@
+import {Member} from 'fixtures/js-stubs/member';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Team} from 'fixtures/js-stubs/team';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import TeamAccessRequestModal from 'sentry/components/modals/teamAccessRequestModal';
@@ -7,9 +11,9 @@ describe('TeamAccessRequestModal', function () {
 
   const closeModal = jest.fn();
   const onClose = jest.fn();
-  const orgId = TestStubs.Organization().slug;
-  const memberId = TestStubs.Member().id;
-  const teamId = TestStubs.Team().slug;
+  const orgId = Organization().slug;
+  const memberId = Member().id;
+  const teamId = Team().slug;
 
   const modalRenderProps = {
     Body: p => p.children,

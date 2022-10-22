@@ -1,3 +1,7 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+import {routerContext} from 'fixtures/js-stubs/routerContext';
+import {SentryApp} from 'fixtures/js-stubs/sentryApp';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {selectByValue} from 'sentry-test/select-new';
 
@@ -22,7 +26,7 @@ describe('Sentry Application Details', function () {
   beforeEach(() => {
     Client.clearMockResponses();
 
-    org = TestStubs.Organization({features: ['sentry-app-logo-upload']});
+    org = Organization({features: ['sentry-app-logo-upload']});
     orgId = org.slug;
   });
 
@@ -36,7 +40,7 @@ describe('Sentry Application Details', function () {
 
       wrapper = mountWithTheme(
         <SentryApplicationDetails params={{orgId}} route={{path: 'new-public/'}} />,
-        TestStubs.routerContext([{organization: org}])
+        routerContext([{organization: org}])
       );
     });
 
@@ -124,7 +128,7 @@ describe('Sentry Application Details', function () {
     beforeEach(() => {
       wrapper = mountWithTheme(
         <SentryApplicationDetails params={{orgId}} route={{path: 'new-internal/'}} />,
-        TestStubs.routerContext([{organization: org}])
+        routerContext([{organization: org}])
       );
     });
 
@@ -142,7 +146,7 @@ describe('Sentry Application Details', function () {
 
   describe('Renders public app', function () {
     beforeEach(() => {
-      sentryApp = TestStubs.SentryApp();
+      sentryApp = SentryApp();
       sentryApp.events = ['issue'];
 
       Client.addMockResponse({
@@ -157,7 +161,7 @@ describe('Sentry Application Details', function () {
 
       wrapper = mountWithTheme(
         <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
-        TestStubs.routerContext([{organization: org}])
+        routerContext([{organization: org}])
       );
     });
 
@@ -187,10 +191,10 @@ describe('Sentry Application Details', function () {
 
   describe('Renders for internal apps', () => {
     beforeEach(() => {
-      sentryApp = TestStubs.SentryApp({
+      sentryApp = SentryApp({
         status: 'internal',
       });
-      token = TestStubs.SentryAppToken();
+      token = SentryAppToken();
       sentryApp.events = ['issue'];
 
       Client.addMockResponse({
@@ -205,7 +209,7 @@ describe('Sentry Application Details', function () {
 
       wrapper = mountWithTheme(
         <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
-        TestStubs.routerContext([{organization: org}])
+        routerContext([{organization: org}])
       );
     });
 
@@ -233,11 +237,11 @@ describe('Sentry Application Details', function () {
 
   describe('Renders masked values', () => {
     beforeEach(() => {
-      sentryApp = TestStubs.SentryApp({
+      sentryApp = SentryApp({
         status: 'internal',
         clientSecret: maskedValue,
       });
-      token = TestStubs.SentryAppToken({token: maskedValue, refreshToken: maskedValue});
+      token = SentryAppToken({token: maskedValue, refreshToken: maskedValue});
       sentryApp.events = ['issue'];
 
       Client.addMockResponse({
@@ -252,7 +256,7 @@ describe('Sentry Application Details', function () {
 
       wrapper = mountWithTheme(
         <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
-        TestStubs.routerContext([{organization: org}])
+        routerContext([{organization: org}])
       );
     });
 
@@ -267,11 +271,11 @@ describe('Sentry Application Details', function () {
 
   describe('Editing internal app tokens', () => {
     beforeEach(() => {
-      sentryApp = TestStubs.SentryApp({
+      sentryApp = SentryApp({
         status: 'internal',
         isAlertable: true,
       });
-      token = TestStubs.SentryAppToken();
+      token = SentryAppToken();
       sentryApp.events = ['issue'];
 
       Client.addMockResponse({
@@ -286,7 +290,7 @@ describe('Sentry Application Details', function () {
 
       wrapper = mountWithTheme(
         <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
-        TestStubs.routerContext([{organization: org}])
+        routerContext([{organization: org}])
       );
     });
     it('adding token to list', async function () {
@@ -294,7 +298,7 @@ describe('Sentry Application Details', function () {
         url: `/sentry-apps/${sentryApp.slug}/api-tokens/`,
         method: 'POST',
         body: [
-          TestStubs.SentryAppToken({
+          SentryAppToken({
             token: '392847329',
             dateCreated: '2018-03-02T18:30:26Z',
           }),
@@ -335,7 +339,7 @@ describe('Sentry Application Details', function () {
 
   describe('Editing an existing public Sentry App', () => {
     beforeEach(() => {
-      sentryApp = TestStubs.SentryApp();
+      sentryApp = SentryApp();
       sentryApp.events = ['issue'];
 
       editAppRequest = Client.addMockResponse({
@@ -356,7 +360,7 @@ describe('Sentry Application Details', function () {
 
       wrapper = mountWithTheme(
         <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
-        TestStubs.routerContext([{organization: org}])
+        routerContext([{organization: org}])
       );
     });
 
@@ -412,7 +416,7 @@ describe('Sentry Application Details', function () {
 
   describe('Editing an existing public Sentry App with a scope error', () => {
     beforeEach(() => {
-      sentryApp = TestStubs.SentryApp();
+      sentryApp = SentryApp();
 
       editAppRequest = Client.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/`,
@@ -438,7 +442,7 @@ describe('Sentry Application Details', function () {
 
       wrapper = mountWithTheme(
         <SentryApplicationDetails params={{appSlug: sentryApp.slug, orgId}} />,
-        TestStubs.routerContext([{organization: org}])
+        routerContext([{organization: org}])
       );
     });
 

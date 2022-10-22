@@ -1,10 +1,15 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
+import {routerContext} from 'fixtures/js-stubs/routerContext';
+import {Tombstones} from 'fixtures/js-stubs/tombstones';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ProjectFilters from 'sentry/views/settings/project/projectFilters';
 
 describe('ProjectFilters', function () {
-  const org = TestStubs.Organization();
-  const project = TestStubs.Project({options: {}});
+  const org = Organization();
+  const project = Project({options: {}});
   const PROJECT_URL = `/projects/${org.slug}/${project.slug}/`;
   let wrapper;
 
@@ -46,12 +51,12 @@ describe('ProjectFilters', function () {
 
     MockApiClient.addMockResponse({
       url: `${PROJECT_URL}filters/`,
-      body: TestStubs.ProjectFilters(),
+      body: ProjectFilters(),
     });
 
     MockApiClient.addMockResponse({
       url: `${PROJECT_URL}tombstones/`,
-      body: TestStubs.Tombstones(),
+      body: Tombstones(),
     });
 
     creator();
@@ -249,7 +254,7 @@ describe('ProjectFilters', function () {
         location={{}}
         project={project}
       />,
-      TestStubs.routerContext([{organization: TestStubs.Organization({access: []})}])
+      routerContext([{organization: Organization({access: []})}])
     );
 
     expect(wrapper.find('FormField[disabled=false]')).toHaveLength(0);
@@ -269,15 +274,15 @@ describe('ProjectFilters', function () {
       />,
       {
         context: {
-          // removing TestStubs.routerContext causes our test to fail. Should be investigated because it does not
+          // removing routerContext causes our test to fail. Should be investigated because it does not
           // seem clear the routerContext should impact the project that we are passing as props.
-          ...TestStubs.routerContext().context,
+          ...routerContext().context,
           project: {
             ...project,
             features: ['custom-inbound-filters'],
           },
         },
-        childContextTypes: TestStubs.routerContext().childContextTypes,
+        childContextTypes: routerContext().childContextTypes,
       }
     );
 

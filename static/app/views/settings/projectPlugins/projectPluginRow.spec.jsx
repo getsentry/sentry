@@ -1,13 +1,18 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Plugin} from 'fixtures/js-stubs/plugin';
+import {Project} from 'fixtures/js-stubs/project';
+import {routerContext} from 'fixtures/js-stubs/routerContext';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectPluginRow from 'sentry/views/settings/projectPlugins/projectPluginRow';
 
 describe('ProjectPluginRow', function () {
-  const plugin = TestStubs.Plugin();
-  const org = TestStubs.Organization({access: ['project:write']});
-  const project = TestStubs.Project();
+  const plugin = Plugin();
+  const org = Organization({access: ['project:write']});
+  const project = Project();
   const params = {orgId: org.slug, projectId: project.slug};
-  const routerContext = TestStubs.routerContext([{organization: org, project}]);
+  const routerContext = routerContext([{organization: org, project}]);
 
   it('renders', function () {
     const {container} = render(
@@ -39,9 +44,7 @@ describe('ProjectPluginRow', function () {
     render(
       <ProjectPluginRow {...params} {...plugin} onChange={onChange} project={project} />,
       {
-        context: TestStubs.routerContext([
-          {organization: TestStubs.Organization({access: []})},
-        ]),
+        context: routerContext([{organization: Organization({access: []})}]),
       }
     );
 

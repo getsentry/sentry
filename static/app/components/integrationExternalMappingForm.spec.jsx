@@ -1,3 +1,5 @@
+import {GitHubIntegration} from 'fixtures/js-stubs/gitHubIntegration';
+
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import IntegrationExternalMappingForm from 'sentry/components/integrationExternalMappingForm';
@@ -5,7 +7,7 @@ import IntegrationExternalMappingForm from 'sentry/components/integrationExterna
 describe('IntegrationExternalMappingForm', function () {
   const dataEndpoint = '/test/dataEndpoint/';
   const baseProps = {
-    integration: TestStubs.GitHubIntegration(),
+    integration: GitHubIntegration(),
     dataEndpoint,
     getBaseFormEndpoint: jest.fn(_mapping => dataEndpoint),
     sentryNamesMapper: mappings => mappings,

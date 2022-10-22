@@ -1,3 +1,6 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+import {routerContext} from 'fixtures/js-stubs/routerContext';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -12,7 +15,7 @@ describe('ProjectDetail > ProjectFilters', () => {
   });
 
   it('recommends semver search tag', async () => {
-    const organization = TestStubs.Organization();
+    const organization = Organization();
     tagValueLoader.mockResolvedValue([
       {
         count: null,
@@ -27,7 +30,7 @@ describe('ProjectDetail > ProjectFilters', () => {
       <OrganizationContext.Provider value={organization}>
         <ProjectFilters query="" onSearch={onSearch} tagValueLoader={tagValueLoader} />
       </OrganizationContext.Provider>,
-      {context: TestStubs.routerContext()}
+      {context: routerContext()}
     );
 
     userEvent.click(screen.getByRole('textbox'));

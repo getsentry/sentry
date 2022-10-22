@@ -1,4 +1,6 @@
 import {browserHistory} from 'react-router';
+import {Group} from 'fixtures/js-stubs/group';
+import {Project} from 'fixtures/js-stubs/project';
 import moment from 'moment';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -11,8 +13,8 @@ import AlertRuleDetails from 'sentry/views/alerts/rules/issue/details/ruleDetail
 describe('AlertRuleDetails', () => {
   const context = initializeOrg();
   const organization = context.organization;
-  const project = TestStubs.Project();
-  const rule = TestStubs.ProjectAlertRule({
+  const project = Project();
+  const rule = ProjectAlertRule({
     lastTriggered: moment().subtract(2, 'day').format(),
   });
 
@@ -56,7 +58,7 @@ describe('AlertRuleDetails', () => {
       body: [
         {
           count: 1,
-          group: TestStubs.Group(),
+          group: Group(),
           lastTriggered: moment('Apr 11, 2019 1:08:59 AM UTC').format(),
           eventId: 'eventId',
         },
@@ -96,9 +98,7 @@ describe('AlertRuleDetails', () => {
       'href',
       expect.stringMatching(
         RegExp(
-          `/organizations/${organization.slug}/issues/${
-            TestStubs.Group().id
-          }/events/eventId.*`
+          `/organizations/${organization.slug}/issues/${Group().id}/events/eventId.*`
         )
       )
     );

@@ -1,4 +1,7 @@
 import {browserHistory} from 'react-router';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {routerContext} from 'fixtures/js-stubs/routerContext';
+import {Team} from 'fixtures/js-stubs/team';
 
 import {
   render,
@@ -22,7 +25,7 @@ describe('TeamSettings', function () {
   });
 
   it('can change slug', async function () {
-    const team = TestStubs.Team();
+    const team = Team();
     const putMock = MockApiClient.addMockResponse({
       url: `/teams/org/${team.slug}/`,
       method: 'PUT',
@@ -53,11 +56,11 @@ describe('TeamSettings', function () {
   });
 
   it('needs team:admin in order to see an enabled Remove Team button', function () {
-    const team = TestStubs.Team();
+    const team = Team();
 
-    const context = TestStubs.routerContext([
+    const context = routerContext([
       {
-        organization: TestStubs.Organization({access: []}),
+        organization: Organization({access: []}),
       },
     ]);
 
@@ -69,7 +72,7 @@ describe('TeamSettings', function () {
   });
 
   it('can remove team', async function () {
-    const team = TestStubs.Team({hasAccess: true});
+    const team = Team({hasAccess: true});
     const deleteMock = MockApiClient.addMockResponse({
       url: `/teams/org/${team.slug}/`,
       method: 'DELETE',

@@ -1,3 +1,8 @@
+import {GithubIntegrationConfig} from 'fixtures/js-stubs/githubIntegrationConfig';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {ProjectDetails} from 'fixtures/js-stubs/projectDetails';
+import {routerContext} from 'fixtures/js-stubs/routerContext';
+
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {openModal} from 'sentry/actionCreators/modal';
@@ -6,8 +11,8 @@ import ProjectOwnership from 'sentry/views/settings/project/projectOwnership';
 jest.mock('sentry/actionCreators/modal');
 
 describe('Project Ownership', () => {
-  let org = TestStubs.Organization();
-  const project = TestStubs.ProjectDetails();
+  let org = Organization();
+  const project = ProjectDetails();
 
   beforeEach(() => {
     MockApiClient.addMockResponse({
@@ -29,7 +34,7 @@ describe('Project Ownership', () => {
       url: `/organizations/${org.slug}/integrations/`,
       query: {features: 'codeowners'},
       method: 'GET',
-      body: [TestStubs.GithubIntegrationConfig()],
+      body: [GithubIntegrationConfig()],
     });
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/codeowners/`,
@@ -62,7 +67,7 @@ describe('Project Ownership', () => {
 
   describe('with codeowners', () => {
     it('codeowners button opens modal', () => {
-      org = TestStubs.Organization({
+      org = Organization({
         features: ['integrations-codeowners'],
         access: ['org:integrations'],
       });
@@ -72,7 +77,7 @@ describe('Project Ownership', () => {
           organization={org}
           project={project}
         />,
-        {context: TestStubs.routerContext([{organization: org}])}
+        {context: routerContext([{organization: org}])}
       );
 
       // Renders button

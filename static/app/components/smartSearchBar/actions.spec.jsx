@@ -1,10 +1,13 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Search} from 'fixtures/js-stubs/search';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {makePinSearchAction} from 'sentry/components/smartSearchBar/actions';
 
 describe('SmartSearchBar', () => {
   describe('actions', function () {
-    const organization = TestStubs.Organization({id: '123'});
+    const organization = Organization({id: '123'});
     const api = new MockApiClient();
 
     let pinRequest, unpinRequest, location;
@@ -70,7 +73,7 @@ describe('SmartSearchBar', () => {
     });
 
     it('removes pins', function () {
-      const pinnedSearch = TestStubs.Search({isPinned: true});
+      const pinnedSearch = Search({isPinned: true});
       const {makeAction} = makePinSearchAction({pinnedSearch, sort: '', location});
 
       const Action = makeAction({

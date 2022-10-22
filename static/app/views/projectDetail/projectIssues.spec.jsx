@@ -1,3 +1,5 @@
+import {Group} from 'fixtures/js-stubs/group';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -16,12 +18,12 @@ describe('ProjectDetail > ProjectIssues', function () {
   beforeEach(function () {
     endpointMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/?limit=5&query=error.unhandled%3Atrue%20is%3Aunresolved&sort=freq&statsPeriod=14d`,
-      body: [TestStubs.Group(), TestStubs.Group({id: '2'})],
+      body: [Group(), Group({id: '2'})],
     });
 
     filteredEndpointMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/?environment=staging&limit=5&query=error.unhandled%3Atrue%20is%3Aunresolved&sort=freq&statsPeriod=7d`,
-      body: [TestStubs.Group(), TestStubs.Group({id: '2'})],
+      body: [Group(), Group({id: '2'})],
     });
 
     MockApiClient.addMockResponse({
@@ -38,7 +40,7 @@ describe('ProjectDetail > ProjectIssues', function () {
   it('renders a list', async function () {
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/?limit=5&query=error.unhandled%3Atrue%20is%3Aunresolved&sort=freq&statsPeriod=14d`,
-      body: [TestStubs.Group(), TestStubs.Group({id: '2'})],
+      body: [Group(), Group({id: '2'})],
     });
     render(
       <OrganizationContext.Provider value={organization}>

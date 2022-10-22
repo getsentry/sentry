@@ -1,3 +1,6 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+import {routerContext} from 'fixtures/js-stubs/routerContext';
+
 import {
   render,
   renderGlobalModal,
@@ -41,13 +44,13 @@ describe('IssueListSavedSearchTab', () => {
   function renderSavedSearch({organization} = {}) {
     render(
       <IssueListSavedSearchTab
-        organization={organization ?? TestStubs.Organization({access: ['org:write']})}
+        organization={organization ?? Organization({access: ['org:write']})}
         savedSearchList={savedSearchList}
         onSavedSearchSelect={onSelect}
         onSavedSearchDelete={onDelete}
         query="is:unresolved assigned:lyn@sentry.io"
       />,
-      {context: TestStubs.routerContext()}
+      {context: routerContext()}
     );
 
     // Open the saved searches menu
@@ -67,7 +70,7 @@ describe('IssueListSavedSearchTab', () => {
   });
 
   it('does not show a delete button without access', () => {
-    renderSavedSearch({organization: TestStubs.Organization({access: []})});
+    renderSavedSearch({organization: Organization({access: []})});
     const assignedToMe = screen.getByTestId('saved-search-444');
     expect(
       within(assignedToMe).queryByRole('button', {name: 'delete'})

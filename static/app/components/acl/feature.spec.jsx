@@ -1,3 +1,7 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
+import {routerContext} from 'fixtures/js-stubs/routerContext';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import Feature from 'sentry/components/acl/feature';
@@ -5,13 +9,13 @@ import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 
 describe('Feature', function () {
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features: ['org-foo', 'org-bar', 'bar'],
   });
-  const project = TestStubs.Project({
+  const project = Project({
     features: ['project-foo', 'project-bar'],
   });
-  const routerContext = TestStubs.routerContext([
+  const routerContext = routerContext([
     {
       organization,
       project,
@@ -93,7 +97,7 @@ describe('Feature', function () {
     });
 
     it('can specify org from props', function () {
-      const customOrg = TestStubs.Organization({features: ['org-bazar']});
+      const customOrg = Organization({features: ['org-bazar']});
       render(
         <Feature organization={customOrg} features={['org-bazar']}>
           {childrenMock}
@@ -111,7 +115,7 @@ describe('Feature', function () {
     });
 
     it('can specify project from props', function () {
-      const customProject = TestStubs.Project({features: ['project-baz']});
+      const customProject = Project({features: ['project-baz']});
       render(
         <Feature project={customProject} features={['project-baz']}>
           {childrenMock}

@@ -1,5 +1,5 @@
-import {MetricsField} from 'fixtures/js-stubs/metricsField';
 import {MetricsSessionUserCountByStatusByRelease} from 'fixtures/js-stubs/metrics';
+import {MetricsField} from 'fixtures/js-stubs/metricsField';
 import {SessionsField} from 'fixtures/js-stubs/sessionsField';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';

@@ -1,3 +1,5 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
 import range from 'lodash/range';
 
 import {
@@ -11,7 +13,7 @@ import TeamMisery from 'sentry/views/organizationStats/teamInsights/teamMisery';
 
 describe('TeamMisery', () => {
   it('should render misery from projects and expand hidden items', async () => {
-    const project = TestStubs.Project();
+    const project = Project();
     const meta = {
       fields: {
         transaction: 'string',
@@ -79,7 +81,7 @@ describe('TeamMisery', () => {
 
     render(
       <TeamMisery
-        organization={TestStubs.Organization()}
+        organization={Organization()}
         projects={[project]}
         period="8w"
         location={location}
@@ -106,7 +108,7 @@ describe('TeamMisery', () => {
   it('should render empty state', () => {
     render(
       <TeamMisery
-        organization={TestStubs.Organization()}
+        organization={Organization()}
         projects={[]}
         period="8w"
         location={location}
@@ -127,8 +129,8 @@ describe('TeamMisery', () => {
 
     render(
       <TeamMisery
-        organization={TestStubs.Organization()}
-        projects={[TestStubs.Project()]}
+        organization={Organization()}
+        projects={[Project()]}
         period="8w"
         location={location}
       />

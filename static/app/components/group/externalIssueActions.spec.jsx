@@ -1,12 +1,15 @@
+import {GitHubIntegration} from 'fixtures/js-stubs/gitHubIntegration';
+import {Group} from 'fixtures/js-stubs/group';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ExternalIssueActions from 'sentry/components/group/externalIssueActions';
 
 describe('ExternalIssueActions', function () {
-  const group = TestStubs.Group();
+  const group = Group();
 
   describe('with no external issues linked', function () {
-    const integration = TestStubs.GitHubIntegration({externalIssues: []});
+    const integration = GitHubIntegration({externalIssues: []});
     const configurations = [integration];
     const wrapper = mountWithTheme(
       <ExternalIssueActions
@@ -54,7 +57,7 @@ describe('ExternalIssueActions', function () {
         key: 'getsentry/sentry#2',
       },
     ];
-    const integration = TestStubs.GitHubIntegration({externalIssues});
+    const integration = GitHubIntegration({externalIssues});
     const configurations = [integration];
     const wrapper = mountWithTheme(
       <ExternalIssueActions

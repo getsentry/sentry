@@ -1,4 +1,5 @@
 import selectEvent from 'react-select-event';
+import {Organization} from 'fixtures/js-stubs/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -7,7 +8,7 @@ import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 describe('CreateSavedSearchModal', function () {
   let createMock;
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     access: ['org:write'],
   });
 

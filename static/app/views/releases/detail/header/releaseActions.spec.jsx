@@ -1,4 +1,7 @@
 import {browserHistory} from 'react-router';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Release} from 'fixtures/js-stubs/release';
+import {routerContext} from 'fixtures/js-stubs/routerContext';
 
 import {
   render,
@@ -11,8 +14,8 @@ import {
 import ReleaseActions from 'sentry/views/releases/detail/header/releaseActions';
 
 describe('ReleaseActions', function () {
-  const organization = TestStubs.Organization();
-  const release = TestStubs.Release({projects: [{slug: 'project1'}, {slug: 'project2'}]});
+  const organization = Organization();
+  const release = Release({projects: [{slug: 'project1'}, {slug: 'project2'}]});
   const location = {
     pathname: `/organizations/sentry/releases/${release.version}/`,
     query: {
@@ -126,7 +129,7 @@ describe('ReleaseActions', function () {
   });
 
   it('navigates to a next/prev release', function () {
-    const routerContext = TestStubs.routerContext();
+    const routerContext = routerContext();
     const {rerender} = render(
       <ReleaseActions
         organization={organization}

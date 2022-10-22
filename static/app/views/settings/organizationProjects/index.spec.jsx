@@ -1,3 +1,7 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
+import {routerContext} from 'fixtures/js-stubs/routerContext';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
@@ -9,11 +13,11 @@ describe('OrganizationProjects', function () {
   let projectsGetMock;
   let statsGetMock;
   let projectsPutMock;
-  const routerContext = TestStubs.routerContext();
+  const routerContext = routerContext();
 
   beforeEach(function () {
-    project = TestStubs.Project();
-    org = TestStubs.Organization();
+    project = Project();
+    org = Organization();
 
     projectsGetMock = Client.addMockResponse({
       url: '/organizations/org-slug/projects/',

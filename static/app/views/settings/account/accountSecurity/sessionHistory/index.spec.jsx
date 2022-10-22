@@ -1,3 +1,5 @@
+import {routerContext} from 'fixtures/js-stubs/routerContext';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import SessionHistory from 'sentry/views/settings/account/accountSecurity/sessionHistory';
@@ -32,7 +34,7 @@ describe('AccountSecuritySessionHistory', function () {
       ],
     });
 
-    render(<SessionHistory />, {context: TestStubs.routerContext()});
+    render(<SessionHistory />, {context: routerContext()});
 
     expect(screen.getByText('127.0.0.1')).toBeInTheDocument();
     expect(screen.getByText('192.168.0.1')).toBeInTheDocument();

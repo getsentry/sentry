@@ -1,3 +1,6 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+import {router} from 'fixtures/js-stubs/router';
+
 import {BreadcrumbContextProvider} from 'sentry-test/providers/breadcrumbContextProvider';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -15,7 +18,7 @@ describe('SettingsLayout', function () {
     });
     Client.addMockResponse({
       url: '/organizations/',
-      body: [TestStubs.Organization()],
+      body: [Organization()],
     });
     Client.addMockResponse({
       url: '/organizations/org-slug/',
@@ -34,7 +37,7 @@ describe('SettingsLayout', function () {
   it('renders', function () {
     const {container} = render(
       <BreadcrumbContextProvider>
-        <SettingsLayout router={TestStubs.router()} route={{}} routes={[]} />
+        <SettingsLayout router={router()} route={{}} routes={[]} />
       </BreadcrumbContextProvider>
     );
 
@@ -45,7 +48,7 @@ describe('SettingsLayout', function () {
     render(
       <BreadcrumbContextProvider>
         <SettingsLayout
-          router={TestStubs.router()}
+          router={router()}
           route={{}}
           routes={[]}
           renderNavigation={() => <nav />}
@@ -60,7 +63,7 @@ describe('SettingsLayout', function () {
     render(
       <BreadcrumbContextProvider>
         <SettingsLayout
-          router={TestStubs.router()}
+          router={router()}
           route={{}}
           routes={[]}
           renderNavigation={opts => (opts.isMobileNavVisible ? <nav /> : null)}

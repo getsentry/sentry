@@ -1,10 +1,12 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ReleaseStore from 'sentry/stores/releaseStore';
 import withRelease from 'sentry/utils/withRelease';
 
 describe('withRelease HoC', function () {
-  const organization = TestStubs.Organization();
+  const organization = Organization();
   const orgSlug = organization.slug;
   const projectSlug = 'myProject';
   const releaseVersion = 'myRelease';

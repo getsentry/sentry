@@ -1,3 +1,5 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {createTeam} from 'sentry/actionCreators/teams';
@@ -8,7 +10,7 @@ jest.mock('sentry/actionCreators/teams', () => ({
 }));
 
 describe('CreateTeamModal', function () {
-  const org = TestStubs.Organization();
+  const org = Organization();
   const closeModal = jest.fn();
   const onClose = jest.fn();
   const onSuccess = jest.fn();

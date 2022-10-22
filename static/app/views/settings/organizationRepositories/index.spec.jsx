@@ -1,10 +1,12 @@
+import {routerContext} from 'fixtures/js-stubs/routerContext';
+
 import {render} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import OrganizationRepositoriesContainer from 'sentry/views/settings/organizationRepositories';
 
 describe('OrganizationRepositoriesContainer', function () {
-  const context = TestStubs.routerContext();
+  const context = routerContext();
 
   beforeEach(function () {
     Client.clearMockResponses();

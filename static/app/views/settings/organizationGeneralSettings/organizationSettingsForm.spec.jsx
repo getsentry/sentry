@@ -1,3 +1,6 @@
+import {location} from 'fixtures/js-stubs/location';
+import {Organization} from 'fixtures/js-stubs/organization';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {saveOnBlurUndoMessage} from 'sentry/actionCreators/indicator';
@@ -6,7 +9,7 @@ import OrganizationSettingsForm from 'sentry/views/settings/organizationGeneralS
 jest.mock('sentry/actionCreators/indicator');
 
 describe('OrganizationSettingsForm', function () {
-  const organization = TestStubs.Organization();
+  const organization = Organization();
   let putMock;
   const onSave = jest.fn();
 
@@ -30,10 +33,10 @@ describe('OrganizationSettingsForm', function () {
 
     const wrapper = mountWithTheme(
       <OrganizationSettingsForm
-        location={TestStubs.location()}
+        location={location()}
         orgId={organization.slug}
         access={new Set('org:admin')}
-        initialData={TestStubs.Organization()}
+        initialData={Organization()}
         onSave={onSave}
       />
     );
@@ -92,10 +95,10 @@ describe('OrganizationSettingsForm', function () {
 
     const wrapper = mountWithTheme(
       <OrganizationSettingsForm
-        location={TestStubs.location()}
+        location={location()}
         orgId={organization.slug}
         access={new Set('org:admin')}
-        initialData={TestStubs.Organization()}
+        initialData={Organization()}
         onSave={onSave}
       />
     );

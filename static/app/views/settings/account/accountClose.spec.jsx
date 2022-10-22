@@ -1,3 +1,5 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+
 import {
   render,
   renderGlobalModal,
@@ -18,13 +20,13 @@ describe('AccountClose', function () {
       url: '/organizations/?owner=1',
       body: [
         {
-          organization: TestStubs.Organization({
+          organization: Organization({
             slug: soloOrgSlug,
           }),
           singleOwner: true,
         },
         {
-          organization: TestStubs.Organization({
+          organization: Organization({
             id: '4',
             slug: nonSingleOwnerSlug,
           }),

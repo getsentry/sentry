@@ -1,3 +1,6 @@
+import {EventsStats} from 'fixtures/js-stubs/eventsStats';
+import {Organization} from 'fixtures/js-stubs/organization';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -12,7 +15,7 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 
 describe('Dashboards > WidgetQueries', function () {
   const initialData = initializeOrg({
-    organization: TestStubs.Organization(),
+    organization: Organization(),
   });
 
   const renderWithProviders = (component, context) =>
@@ -709,7 +712,7 @@ describe('Dashboards > WidgetQueries', function () {
   it('does not re-query events and sets name in widgets', async function () {
     const eventsStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
-      body: TestStubs.EventsStats(),
+      body: EventsStats(),
     });
     const lineWidget = {
       ...singleQueryWidget,
@@ -982,7 +985,7 @@ describe('Dashboards > WidgetQueries', function () {
   it('does not inject equation aliases for top N requests', async function () {
     const testData = initializeOrg({
       organization: {
-        ...TestStubs.Organization(),
+        ...Organization(),
       },
     });
     const eventsStatsMock = MockApiClient.addMockResponse({

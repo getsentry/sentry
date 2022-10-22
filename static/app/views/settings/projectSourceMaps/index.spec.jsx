@@ -1,3 +1,5 @@
+import {SourceMapArchive} from 'fixtures/js-stubs/sourceMapArchive';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -26,10 +28,7 @@ describe('ProjectSourceMaps', function () {
   it('renders', function () {
     MockApiClient.addMockResponse({
       url: endpoint,
-      body: [
-        TestStubs.SourceMapArchive(),
-        TestStubs.SourceMapArchive({id: 2, name: 'abc'}),
-      ],
+      body: [SourceMapArchive(), SourceMapArchive({id: 2, name: 'abc'})],
     });
 
     render(<ProjectSourceMaps {...props} />);
@@ -54,7 +53,7 @@ describe('ProjectSourceMaps', function () {
   });
 
   it('deletes the archive', function () {
-    const archive = TestStubs.SourceMapArchive();
+    const archive = SourceMapArchive();
 
     MockApiClient.addMockResponse({
       url: endpoint,

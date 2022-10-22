@@ -1,3 +1,6 @@
+import {InstallWizard} from 'fixtures/js-stubs/installWizard';
+import {Organization} from 'fixtures/js-stubs/organization';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
@@ -7,7 +10,7 @@ describe('App', function () {
   beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/',
-      body: [TestStubs.Organization({slug: 'billy-org', name: 'billy org'})],
+      body: [Organization({slug: 'billy-org', name: 'billy org'})],
     });
 
     MockApiClient.addMockResponse({
@@ -24,7 +27,7 @@ describe('App', function () {
 
     MockApiClient.addMockResponse({
       url: '/internal/options/?query=is:required',
-      body: TestStubs.InstallWizard(),
+      body: InstallWizard(),
     });
   });
 

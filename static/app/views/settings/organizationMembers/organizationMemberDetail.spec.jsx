@@ -1,3 +1,11 @@
+import {Authenticators} from 'fixtures/js-stubs/authenticators';
+import {Member} from 'fixtures/js-stubs/member';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {OrgRoleList} from 'fixtures/js-stubs/orgRoleList';
+import {routerContext} from 'fixtures/js-stubs/routerContext';
+import {Team} from 'fixtures/js-stubs/team';
+import {User} from 'fixtures/js-stubs/user';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 
@@ -13,32 +21,32 @@ describe('OrganizationMemberDetail', function () {
   let organization;
   let wrapper;
   let routerContext;
-  const team = TestStubs.Team();
+  const team = Team();
   const teams = [
     team,
-    TestStubs.Team({
+    Team({
       id: '2',
       slug: 'new-team',
       name: 'New Team',
       isMember: false,
     }),
   ];
-  const member = TestStubs.Member({
-    roles: TestStubs.OrgRoleList(),
+  const member = Member({
+    roles: OrgRoleList(),
     dateCreated: new Date(),
     teams: [team.slug],
   });
-  const pendingMember = TestStubs.Member({
+  const pendingMember = Member({
     id: 2,
-    roles: TestStubs.OrgRoleList(),
+    roles: OrgRoleList(),
     dateCreated: new Date(),
     teams: [team.slug],
     invite_link: 'http://example.com/i/abc123',
     pending: true,
   });
-  const expiredMember = TestStubs.Member({
+  const expiredMember = Member({
     id: 3,
-    roles: TestStubs.OrgRoleList(),
+    roles: OrgRoleList(),
     dateCreated: new Date(),
     teams: [team.slug],
     invite_link: 'http://example.com/i/abc123',
@@ -48,8 +56,8 @@ describe('OrganizationMemberDetail', function () {
 
   describe('Can Edit', function () {
     beforeAll(function () {
-      organization = TestStubs.Organization({teams});
-      routerContext = TestStubs.routerContext([{organization}]);
+      organization = Organization({teams});
+      routerContext = routerContext([{organization}]);
     });
 
     TeamStore.loadInitialData(teams);
@@ -162,8 +170,8 @@ describe('OrganizationMemberDetail', function () {
 
   describe('Cannot Edit', function () {
     beforeAll(function () {
-      organization = TestStubs.Organization({teams, access: ['org:read']});
-      routerContext = TestStubs.routerContext([{organization}]);
+      organization = Organization({teams, access: ['org:read']});
+      routerContext = routerContext([{organization}]);
     });
 
     it('can not change roles, teams, or save', function () {
@@ -185,8 +193,8 @@ describe('OrganizationMemberDetail', function () {
 
   describe('Display status', function () {
     beforeAll(function () {
-      organization = TestStubs.Organization({teams, access: ['org:read']});
-      routerContext = TestStubs.routerContext([{organization}]);
+      organization = Organization({teams, access: ['org:read']});
+      routerContext = routerContext([{organization}]);
     });
 
     it('display pending status', function () {
@@ -214,8 +222,8 @@ describe('OrganizationMemberDetail', function () {
 
   describe('Show resend button', function () {
     beforeAll(function () {
-      organization = TestStubs.Organization({teams, access: ['org:read']});
-      routerContext = TestStubs.routerContext([{organization}]);
+      organization = Organization({teams, access: ['org:read']});
+      routerContext = routerContext([{organization}]);
     });
 
     it('shows for pending', function () {
@@ -240,50 +248,50 @@ describe('OrganizationMemberDetail', function () {
 
   describe('Reset member 2FA', function () {
     const fields = {
-      roles: TestStubs.OrgRoleList(),
+      roles: OrgRoleList(),
       dateCreated: new Date(),
       teams: [team.slug],
     };
 
-    const noAccess = TestStubs.Member({
+    const noAccess = Member({
       ...fields,
       id: '4',
-      user: TestStubs.User({has2fa: false}),
+      user: User({has2fa: false}),
     });
 
-    const no2fa = TestStubs.Member({
+    const no2fa = Member({
       ...fields,
       id: '5',
-      user: TestStubs.User({has2fa: false, authenticators: [], canReset2fa: true}),
+      user: User({has2fa: false, authenticators: [], canReset2fa: true}),
     });
 
-    const has2fa = TestStubs.Member({
+    const has2fa = Member({
       ...fields,
       id: '6',
-      user: TestStubs.User({
+      user: User({
         has2fa: true,
         authenticators: [
-          TestStubs.Authenticators().Totp(),
-          TestStubs.Authenticators().Sms(),
-          TestStubs.Authenticators().U2f(),
+          Authenticators().Totp(),
+          Authenticators().Sms(),
+          Authenticators().U2f(),
         ],
         canReset2fa: true,
       }),
     });
 
-    const multipleOrgs = TestStubs.Member({
+    const multipleOrgs = Member({
       ...fields,
       id: '7',
-      user: TestStubs.User({
+      user: User({
         has2fa: true,
-        authenticators: [TestStubs.Authenticators().Totp()],
+        authenticators: [Authenticators().Totp()],
         canReset2fa: false,
       }),
     });
 
     beforeAll(function () {
-      organization = TestStubs.Organization({teams});
-      routerContext = TestStubs.routerContext([{organization}]);
+      organization = Organization({teams});
+      routerContext = routerContext([{organization}]);
 
       MockApiClient.clearMockResponses();
       MockApiClient.addMockResponse({

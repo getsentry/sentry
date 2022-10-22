@@ -1,3 +1,5 @@
+import {Searches} from 'fixtures/js-stubs/searches';
+
 import {
   deleteSavedSearch,
   fetchSavedSearches,
@@ -18,7 +20,7 @@ describe('SavedSearchesStore', function () {
   beforeEach(function () {
     Client.addMockResponse({
       url: '/organizations/org-1/searches/',
-      body: TestStubs.Searches(),
+      body: Searches(),
     });
     Client.addMockResponse({
       url: '/organizations/org-1/pinned-searches/',
@@ -98,7 +100,7 @@ describe('SavedSearchesStore', function () {
   });
 
   it('changes pinned search from a custom search to an existing search', async function () {
-    const searches = TestStubs.Searches();
+    const searches = Searches();
 
     Client.addMockResponse({
       url: '/organizations/org-1/searches/',
@@ -157,7 +159,7 @@ describe('SavedSearchesStore', function () {
   });
 
   it('changes pinned search from an existing search to another existing search', async function () {
-    const searches = TestStubs.Searches();
+    const searches = Searches();
 
     Client.addMockResponse({
       url: '/organizations/org-1/searches/',
@@ -215,7 +217,7 @@ describe('SavedSearchesStore', function () {
   });
 
   it('unpins a user custom search (not global, and not org custom)', async function () {
-    const searches = TestStubs.Searches();
+    const searches = Searches();
 
     Client.addMockResponse({
       url: '/organizations/org-1/searches/',
@@ -264,7 +266,7 @@ describe('SavedSearchesStore', function () {
   });
 
   it('unpins an existing global saved search', async function () {
-    const searches = TestStubs.Searches();
+    const searches = Searches();
 
     Client.addMockResponse({
       url: '/organizations/org-1/searches/',
@@ -303,7 +305,7 @@ describe('SavedSearchesStore', function () {
   });
 
   it('unpins an existing org saved search', async function () {
-    const searches = TestStubs.Searches();
+    const searches = Searches();
 
     Client.addMockResponse({
       url: '/organizations/org-1/searches/',

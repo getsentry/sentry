@@ -1,3 +1,6 @@
+import {Member} from 'fixtures/js-stubs/member';
+import {Organization} from 'fixtures/js-stubs/organization';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
@@ -11,8 +14,8 @@ jest.mock('sentry/actionCreators/modal', () => ({
 }));
 
 describe('OrganizationMembersWrapper', function () {
-  const member = TestStubs.Member();
-  const organization = TestStubs.Organization({
+  const member = Member();
+  const organization = Organization({
     features: ['invite-members'],
     access: ['member:admin', 'org:admin', 'member:write'],
     status: {
@@ -63,7 +66,7 @@ describe('OrganizationMembersWrapper', function () {
   });
 
   it('can not invite members without the invite-members feature', function () {
-    const org = TestStubs.Organization({
+    const org = Organization({
       features: [],
       access: ['member:admin', 'org:admin', 'member:write'],
       status: {
@@ -76,7 +79,7 @@ describe('OrganizationMembersWrapper', function () {
   });
 
   it('can invite without permissions', function () {
-    const org = TestStubs.Organization({
+    const org = Organization({
       features: ['invite-members'],
       access: [],
       status: {

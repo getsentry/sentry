@@ -1,4 +1,8 @@
 import {browserHistory} from 'react-router';
+import {Event} from 'fixtures/js-stubs/event';
+import {Group} from 'fixtures/js-stubs/group';
+import {Project} from 'fixtures/js-stubs/project';
+import {Team} from 'fixtures/js-stubs/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -17,9 +21,9 @@ const SAMPLE_EVENT_ALERT_TEXT =
   'You are viewing a sample error. Configure Sentry to start viewing real errors.';
 
 describe('groupDetails', () => {
-  const group = TestStubs.Group({issueCategory: IssueCategory.ERROR});
-  const event = TestStubs.Event();
-  const project = TestStubs.Project({teams: [TestStubs.Team()]});
+  const group = Group({issueCategory: IssueCategory.ERROR});
+  const event = Event();
+  const project = Project({teams: [Team()]});
   const selection = {environments: []};
 
   const routes = [
@@ -256,7 +260,7 @@ describe('groupDetails', () => {
   });
 
   it('renders alert for sample event', async function () {
-    const sampleGroup = TestStubs.Group({issueCategory: IssueCategory.ERROR});
+    const sampleGroup = Group({issueCategory: IssueCategory.ERROR});
     sampleGroup.tags.push({key: 'sample_event'});
     MockApiClient.addMockResponse({
       url: `/issues/${group.id}/`,

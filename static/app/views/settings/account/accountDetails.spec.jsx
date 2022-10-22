@@ -1,3 +1,5 @@
+import {UserDetails} from 'fixtures/js-stubs/userDetails';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import AccountDetails from 'sentry/views/settings/account/accountDetails';
@@ -10,7 +12,7 @@ const mockUserDetails = params => {
   MockApiClient.addMockResponse({
     url: '/users/me/',
     method: 'GET',
-    body: TestStubs.UserDetails(params),
+    body: UserDetails(params),
   });
 };
 

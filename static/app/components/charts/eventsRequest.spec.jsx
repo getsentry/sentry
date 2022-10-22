@@ -1,3 +1,6 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -13,8 +16,8 @@ jest.mock('sentry/actionCreators/events', () => ({
 }));
 
 describe('EventsRequest', function () {
-  const project = TestStubs.Project();
-  const organization = TestStubs.Organization();
+  const project = Project();
+  const organization = Organization();
   const mock = jest.fn(() => null);
   const DEFAULTS = {
     api: new MockApiClient(),

@@ -1,9 +1,11 @@
+import {routerContext} from 'fixtures/js-stubs/routerContext';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 
 describe('Breadcrumbs', () => {
-  const routerContext = TestStubs.routerContext();
+  const routerContext = routerContext();
 
   afterEach(() => {
     jest.resetAllMocks();

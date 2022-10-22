@@ -1,3 +1,6 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+import {SentryApp} from 'fixtures/js-stubs/sentryApp';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'sentry/api';
@@ -17,13 +20,13 @@ describe('Sentry Application Dashboard', function () {
   beforeEach(() => {
     Client.clearMockResponses();
 
-    org = TestStubs.Organization();
+    org = Organization();
     orgId = org.slug;
   });
 
   describe('Viewing the Sentry App Dashboard for a published integration', () => {
     beforeEach(() => {
-      sentryApp = TestStubs.SentryApp({
+      sentryApp = SentryApp({
         status: 'published',
         schema: {
           elements: [
@@ -36,7 +39,7 @@ describe('Sentry Application Dashboard', function () {
           ],
         },
       });
-      request = TestStubs.SentryAppWebhookRequest();
+      request = SentryAppWebhookRequest();
 
       Client.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/stats/`,
@@ -169,13 +172,13 @@ describe('Sentry Application Dashboard', function () {
 
   describe('Viewing the Sentry App Dashboard for an internal integration', () => {
     beforeEach(() => {
-      sentryApp = TestStubs.SentryApp({
+      sentryApp = SentryApp({
         status: 'internal',
         schema: {
           elements: [{type: 'stacktrace-link', uri: '/test'}],
         },
       });
-      request = TestStubs.SentryAppWebhookRequest();
+      request = SentryAppWebhookRequest();
 
       Client.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/stats/`,

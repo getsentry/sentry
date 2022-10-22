@@ -1,3 +1,5 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import EventView, {
   isAPIPayloadSimilar,
@@ -2783,7 +2785,7 @@ describe('EventView.getResultsViewUrlTarget()', function () {
     environment: ['staging'],
     display: 'previous',
   };
-  const organization = TestStubs.Organization();
+  const organization = Organization();
 
   it('generates a URL', function () {
     const view = new EventView(state);
@@ -2809,7 +2811,7 @@ describe('EventView.getResultsViewShortUrlTarget()', function () {
     environment: ['staging'],
     display: 'previous',
   };
-  const organization = TestStubs.Organization();
+  const organization = Organization();
 
   it('generates a URL', function () {
     const view = new EventView(state);
@@ -2839,7 +2841,7 @@ describe('EventView.getPerformanceTransactionEventsViewUrlTarget()', function ()
     environment: ['staging'],
     display: 'previous',
   };
-  const organization = TestStubs.Organization();
+  const organization = Organization();
   const showTransactions = 'p99';
   const breakdown = 'http';
   const webVital = 'measurements.lcp';

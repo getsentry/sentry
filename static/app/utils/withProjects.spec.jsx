@@ -1,3 +1,5 @@
+import {Project} from 'fixtures/js-stubs/project';
+
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -27,7 +29,7 @@ describe('withProjects HoC', function () {
     expect(await screen.findByText('Loading')).toBeInTheDocument();
 
     // Insert into projects store
-    const project = TestStubs.Project();
+    const project = Project();
     act(() => ProjectsStore.loadInitialData([project]));
 
     expect(await screen.findByText(project.slug)).toBeInTheDocument();

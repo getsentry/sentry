@@ -1,10 +1,13 @@
+import {DocIntegration} from 'fixtures/js-stubs/docIntegration';
+import {Organization} from 'fixtures/js-stubs/organization';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import DocIntegrationDetailedView from 'sentry/views/organizationIntegrations/docIntegrationDetailedView';
 
 describe('DocIntegrationDetailedView', function () {
-  const organization = TestStubs.Organization();
-  const doc = TestStubs.DocIntegration();
+  const organization = Organization();
+  const doc = DocIntegration();
 
   beforeEach(function () {});
 

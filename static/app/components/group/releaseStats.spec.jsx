@@ -1,18 +1,23 @@
+import {Environments} from 'fixtures/js-stubs/environments';
+import {Group} from 'fixtures/js-stubs/group';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import GroupReleaseStats from 'sentry/components/group/releaseStats';
 
 describe('GroupReleaseStats', function () {
-  const organization = TestStubs.Organization();
-  const project = TestStubs.Project();
+  const organization = Organization();
+  const project = Project();
 
   const createWrapper = props =>
     render(
       <GroupReleaseStats
-        group={TestStubs.Group()}
+        group={Group()}
         project={project}
         organization={organization}
-        allEnvironments={TestStubs.Group()}
+        allEnvironments={Group()}
         environments={[]}
         {...props}
       />
@@ -30,7 +35,7 @@ describe('GroupReleaseStats', function () {
   });
 
   it('renders specific environments', function () {
-    createWrapper({environments: TestStubs.Environments()});
+    createWrapper({environments: Environments()});
     expect(screen.getByText('Last 24 Hours')).toBeInTheDocument();
     expect(screen.getByText('Last 30 Days')).toBeInTheDocument();
     expect(screen.getByText('Last Seen')).toBeInTheDocument();

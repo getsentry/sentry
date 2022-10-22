@@ -1,3 +1,8 @@
+import {Group} from 'fixtures/js-stubs/group';
+import {Project} from 'fixtures/js-stubs/project';
+import {Team} from 'fixtures/js-stubs/team';
+import {User} from 'fixtures/js-stubs/user';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   act,
@@ -19,7 +24,7 @@ describe('GroupActivity', function () {
   let project;
 
   beforeEach(function () {
-    project = TestStubs.Project();
+    project = Project();
     ProjectsStore.loadInitialData([project]);
     ConfigStore.init();
     ConfigStore.set('user', {id: '123'});
@@ -32,10 +37,10 @@ describe('GroupActivity', function () {
   });
 
   function createWrapper({activity, organization: additionalOrg} = {}) {
-    const group = TestStubs.Group({
+    const group = Group({
       id: '1337',
       activity: activity ?? [
-        {type: 'note', id: 'note-1', data: {text: 'Test Note'}, user: TestStubs.User()},
+        {type: 'note', id: 'note-1', data: {text: 'Test Note'}, user: User()},
       ],
       project,
     });
@@ -44,7 +49,7 @@ describe('GroupActivity', function () {
       group,
     });
     GroupStore.add([group]);
-    TeamStore.loadInitialData([TestStubs.Team({id: '999', slug: 'no-team'})]);
+    TeamStore.loadInitialData([Team({id: '999', slug: 'no-team'})]);
     OrganizationStore.onUpdate(organization, {replace: true});
     return render(
       <GroupActivity
@@ -63,7 +68,7 @@ describe('GroupActivity', function () {
   });
 
   it('renders a marked reviewed activity', function () {
-    const user = TestStubs.User({name: 'Samwise'});
+    const user = User({name: 'Samwise'});
     createWrapper({
       activity: [{type: 'mark_reviewed', id: 'reviewed-1', data: {}, user}],
     });
@@ -72,7 +77,7 @@ describe('GroupActivity', function () {
   });
 
   it('renders a assigned to self activity', function () {
-    const user = TestStubs.User({id: '301', name: 'Mark'});
+    const user = User({id: '301', name: 'Mark'});
     createWrapper({
       activity: [
         {
@@ -117,7 +122,7 @@ describe('GroupActivity', function () {
   });
 
   it('renders an assigned via slack activity', function () {
-    const user = TestStubs.User({id: '301', name: 'Mark'});
+    const user = User({id: '301', name: 'Mark'});
     createWrapper({
       activity: [
         {
@@ -153,7 +158,7 @@ describe('GroupActivity', function () {
               releases: [],
             },
           },
-          user: TestStubs.User(),
+          user: User(),
         },
       ],
     });
@@ -182,7 +187,7 @@ describe('GroupActivity', function () {
               ],
             },
           },
-          user: TestStubs.User(),
+          user: User(),
         },
       ],
     });
@@ -225,7 +230,7 @@ describe('GroupActivity', function () {
               ],
             },
           },
-          user: TestStubs.User(),
+          user: User(),
         },
       ],
     });
@@ -235,7 +240,7 @@ describe('GroupActivity', function () {
   });
 
   it('requests assignees that are not in the team store', async function () {
-    const team = TestStubs.Team({id: '123', name: 'workflow'});
+    const team = Team({id: '123', name: 'workflow'});
     const teamRequest = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/teams/`,
       body: [team],

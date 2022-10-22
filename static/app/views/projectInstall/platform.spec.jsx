@@ -1,4 +1,7 @@
 import {browserHistory} from 'react-router';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
+import {routerContext} from 'fixtures/js-stubs/routerContext';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -8,8 +11,8 @@ describe('ProjectInstallPlatform', function () {
   describe('render()', function () {
     const baseProps = {
       api: new MockApiClient(),
-      organization: TestStubs.Organization(),
-      project: TestStubs.Project(),
+      organization: Organization(),
+      project: Project(),
       location: {query: {}},
     };
 
@@ -29,7 +32,7 @@ describe('ProjectInstallPlatform', function () {
       });
 
       render(<ProjectInstallPlatform {...props} />, {
-        context: TestStubs.routerContext([{organization: {id: '1337'}}]),
+        context: routerContext([{organization: {id: '1337'}}]),
       });
 
       expect(browserHistory.push).toHaveBeenCalledTimes(1);
@@ -51,7 +54,7 @@ describe('ProjectInstallPlatform', function () {
       });
 
       render(<ProjectInstallPlatform {...props} />, {
-        context: TestStubs.routerContext([{organization: {id: '1337'}}]),
+        context: routerContext([{organization: {id: '1337'}}]),
       });
 
       expect(await screen.findByText('Page Not Found')).toBeInTheDocument();
@@ -73,7 +76,7 @@ describe('ProjectInstallPlatform', function () {
       });
 
       render(<ProjectInstallPlatform {...props} />, {
-        context: TestStubs.routerContext([{organization: {id: '1337'}}]),
+        context: routerContext([{organization: {id: '1337'}}]),
       });
 
       expect(await screen.findByText('Documentation here')).toBeInTheDocument();

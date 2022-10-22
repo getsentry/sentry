@@ -2,7 +2,7 @@ const fs = require('fs');
 const child = require('child_process');
 
 const results = child
-  .execSync("find . -type f -name '*.spec.tsx' -exec grep -lH 'TestStubs' {}  \\;")
+  .execSync("find . -type f -name '*.spec.jsx' -exec grep -lH 'TestStubs' {}  \\;")
   .toString();
 
 const files = results.split('\n');

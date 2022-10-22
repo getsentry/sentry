@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import {Organization} from 'fixtures/js-stubs/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -11,7 +12,7 @@ describe('OrganizationCrumb', function () {
   const {organization, project, routerContext} = initializeOrg();
   const organizations = [
     organization,
-    TestStubs.Organization({
+    Organization({
       id: '234',
       slug: 'org-slug2',
     }),

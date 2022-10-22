@@ -1,5 +1,11 @@
 import {browserHistory} from 'react-router';
 import selectEvent from 'react-select-event';
+import {GroupingConfigs} from 'fixtures/js-stubs/groupingConfigs';
+import {GroupingEnhancements} from 'fixtures/js-stubs/groupingEnhancements';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {ProjectDetails} from 'fixtures/js-stubs/projectDetails';
+import {router} from 'fixtures/js-stubs/router';
+import {routerContext} from 'fixtures/js-stubs/routerContext';
 
 import {
   act,
@@ -25,18 +31,18 @@ function getField(role, name) {
 }
 
 describe('projectGeneralSettings', function () {
-  const org = TestStubs.Organization();
-  const project = TestStubs.ProjectDetails();
-  const groupingConfigs = TestStubs.GroupingConfigs();
-  const groupingEnhancements = TestStubs.GroupingEnhancements();
+  const org = Organization();
+  const project = ProjectDetails();
+  const groupingConfigs = GroupingConfigs();
+  const groupingEnhancements = GroupingEnhancements();
   let routerContext;
   let putMock;
 
   beforeEach(function () {
     jest.spyOn(window.location, 'assign');
-    routerContext = TestStubs.routerContext([
+    routerContext = routerContext([
       {
-        router: TestStubs.router({
+        router: router({
           params: {
             projectId: project.slug,
             orgId: org.slug,

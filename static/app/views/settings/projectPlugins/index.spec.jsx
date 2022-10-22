@@ -1,3 +1,7 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Plugins} from 'fixtures/js-stubs/plugins';
+import {Project} from 'fixtures/js-stubs/project';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {disablePlugin, enablePlugin, fetchPlugins} from 'sentry/actionCreators/plugins';
@@ -13,9 +17,9 @@ describe('ProjectPluginsContainer', function () {
   let org, project, plugins, wrapper, params, organization;
 
   beforeEach(function () {
-    org = TestStubs.Organization();
-    project = TestStubs.Project();
-    plugins = TestStubs.Plugins();
+    org = Organization();
+    project = Project();
+    plugins = Plugins();
     params = {
       orgId: org.slug,
       projectId: project.slug,

@@ -1,3 +1,5 @@
+import {Project} from 'fixtures/js-stubs/project';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -34,7 +36,7 @@ describe('getCustomFieldRenderer', function () {
   });
 
   it('links event ids to event details', async function () {
-    const project = TestStubs.Project();
+    const project = Project();
     const customFieldRenderer = getCustomEventsFieldRenderer('id', {});
     render(
       customFieldRenderer(
@@ -72,7 +74,7 @@ describe('getCustomFieldRenderer', function () {
   });
 
   it('links << unparameterized >> title/transaction columns to event details', async function () {
-    const project = TestStubs.Project();
+    const project = Project();
     const customFieldRenderer = getCustomEventsFieldRenderer('title', {});
     render(
       customFieldRenderer(

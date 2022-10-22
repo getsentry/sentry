@@ -1,4 +1,11 @@
 import {browserHistory} from 'react-router';
+import {Group} from 'fixtures/js-stubs/group';
+import {Member} from 'fixtures/js-stubs/member';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
+import {ProjectDetails} from 'fixtures/js-stubs/projectDetails';
+import {Search} from 'fixtures/js-stubs/search';
+import {Tags} from 'fixtures/js-stubs/tags';
 import cloneDeep from 'lodash/cloneDeep';
 import range from 'lodash/range';
 
@@ -51,13 +58,13 @@ describe('IssueList', function () {
     jest.spyOn(console, 'error').mockImplementation(jest.fn());
 
     MockApiClient.clearMockResponses();
-    project = TestStubs.ProjectDetails({
+    project = ProjectDetails({
       id: '3559',
       name: 'Foo Project',
       slug: 'project-slug',
       firstEvent: true,
     });
-    organization = TestStubs.Organization({
+    organization = Organization({
       id: '1337',
       slug: 'org-slug',
       access: ['releases'],
@@ -65,7 +72,7 @@ describe('IssueList', function () {
       projects: [project],
     });
 
-    savedSearch = TestStubs.Search({
+    savedSearch = Search({
       id: '789',
       query: 'is:unresolved TypeError',
       sort: 'date',
@@ -73,7 +80,7 @@ describe('IssueList', function () {
       projectId: project.id,
     });
 
-    group = TestStubs.Group({project});
+    group = Group({project});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
       body: [group],
@@ -81,7 +88,7 @@ describe('IssueList', function () {
         Link: DEFAULT_LINKS_HEADER,
       },
     });
-    groupStats = TestStubs.GroupStats();
+    groupStats = GroupStats();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues-stats/',
       body: [groupStats],
@@ -116,7 +123,7 @@ describe('IssueList', function () {
         },
       ],
     });
-    const tags = TestStubs.Tags();
+    const tags = Tags();
     fetchTagsRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       method: 'GET',
@@ -125,7 +132,7 @@ describe('IssueList', function () {
     fetchMembersRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/',
       method: 'GET',
-      body: [TestStubs.Member({projects: [project.slug]})],
+      body: [Member({projects: [project.slug]})],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sent-first-event/',
@@ -280,7 +287,7 @@ describe('IssueList', function () {
         url: '/organizations/org-slug/searches/',
         body: [
           savedSearch,
-          TestStubs.Search({
+          Search({
             id: '123',
             name: 'My Pinned Search',
             isPinned: true,
@@ -322,7 +329,7 @@ describe('IssueList', function () {
         url: '/organizations/org-slug/searches/',
         body: [
           savedSearch,
-          TestStubs.Search({
+          Search({
             id: '123',
             name: 'Org Custom',
             isPinned: true,
@@ -357,7 +364,7 @@ describe('IssueList', function () {
         url: '/organizations/org-slug/searches/',
         body: [
           savedSearch,
-          TestStubs.Search({
+          Search({
             id: '123',
             name: 'My Pinned Search',
             isPinned: true,
@@ -391,7 +398,7 @@ describe('IssueList', function () {
       savedSearchesRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/searches/',
         body: [
-          TestStubs.Search({
+          Search({
             id: '123',
             name: 'Assigned to Me',
             isPinned: false,
@@ -429,7 +436,7 @@ describe('IssueList', function () {
       savedSearchesRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/searches/',
         body: [
-          TestStubs.Search({
+          Search({
             id: '123',
             name: 'Assigned to Me',
             isPinned: false,
@@ -464,7 +471,7 @@ describe('IssueList', function () {
       savedSearchesRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/searches/',
         body: [
-          TestStubs.Search({
+          Search({
             id: '123',
             name: 'My Pinned Search',
             isPinned: true,
@@ -526,7 +533,7 @@ describe('IssueList', function () {
         url: '/organizations/org-slug/searches/',
         body: [
           savedSearch,
-          TestStubs.Search({
+          Search({
             id: '123',
             name: 'Pinned search',
             isPinned: true,
@@ -662,7 +669,7 @@ describe('IssueList', function () {
     });
 
     it('pins and unpins a saved query', async function () {
-      const assignedToMe = TestStubs.Search({
+      const assignedToMe = Search({
         id: '234',
         name: 'Assigned to Me',
         isPinned: false,
@@ -1448,7 +1455,7 @@ describe('IssueList', function () {
         },
         location: {query: {query: 'is:unresolved'}, search: 'query=is:unresolved'},
         params: {orgId: organization.slug},
-        organization: TestStubs.Organization({
+        organization: Organization({
           projects: [],
         }),
         ...moreProps,
@@ -1465,19 +1472,19 @@ describe('IssueList', function () {
 
     it('displays when no projects selected and all projects user is member of, does not have first event', async function () {
       const projects = [
-        TestStubs.Project({
+        Project({
           id: '1',
           slug: 'foo',
           isMember: true,
           firstEvent: false,
         }),
-        TestStubs.Project({
+        Project({
           id: '2',
           slug: 'bar',
           isMember: true,
           firstEvent: false,
         }),
-        TestStubs.Project({
+        Project({
           id: '3',
           slug: 'baz',
           isMember: true,
@@ -1500,7 +1507,7 @@ describe('IssueList', function () {
         body: [],
       });
       wrapper = createWrapper({
-        organization: TestStubs.Organization({
+        organization: Organization({
           projects,
         }),
       });
@@ -1512,19 +1519,19 @@ describe('IssueList', function () {
 
     it('does not display when no projects selected and any projects have a first event', async function () {
       const projects = [
-        TestStubs.Project({
+        Project({
           id: '1',
           slug: 'foo',
           isMember: true,
           firstEvent: false,
         }),
-        TestStubs.Project({
+        Project({
           id: '2',
           slug: 'bar',
           isMember: true,
           firstEvent: true,
         }),
-        TestStubs.Project({
+        Project({
           id: '3',
           slug: 'baz',
           isMember: true,
@@ -1543,7 +1550,7 @@ describe('IssueList', function () {
         body: projects,
       });
       wrapper = createWrapper({
-        organization: TestStubs.Organization({
+        organization: Organization({
           projects,
         }),
       });
@@ -1555,19 +1562,19 @@ describe('IssueList', function () {
 
     it('displays when all selected projects do not have first event', async function () {
       const projects = [
-        TestStubs.Project({
+        Project({
           id: '1',
           slug: 'foo',
           isMember: true,
           firstEvent: false,
         }),
-        TestStubs.Project({
+        Project({
           id: '2',
           slug: 'bar',
           isMember: true,
           firstEvent: false,
         }),
-        TestStubs.Project({
+        Project({
           id: '3',
           slug: 'baz',
           isMember: true,
@@ -1596,7 +1603,7 @@ describe('IssueList', function () {
           environments: [],
           datetime: {period: '14d'},
         },
-        organization: TestStubs.Organization({
+        organization: Organization({
           projects,
         }),
       });
@@ -1608,19 +1615,19 @@ describe('IssueList', function () {
 
     it('does not display when any selected projects have first event', function () {
       const projects = [
-        TestStubs.Project({
+        Project({
           id: '1',
           slug: 'foo',
           isMember: true,
           firstEvent: false,
         }),
-        TestStubs.Project({
+        Project({
           id: '2',
           slug: 'bar',
           isMember: true,
           firstEvent: true,
         }),
-        TestStubs.Project({
+        Project({
           id: '3',
           slug: 'baz',
           isMember: true,
@@ -1645,7 +1652,7 @@ describe('IssueList', function () {
           environments: [],
           datetime: {period: '14d'},
         },
-        organization: TestStubs.Organization({
+        organization: Organization({
           projects,
         }),
       });
@@ -1841,7 +1848,7 @@ describe('IssueList', function () {
       });
 
       it('for multiple projects', function () {
-        const projectBar = TestStubs.ProjectDetails({
+        const projectBar = ProjectDetails({
           id: '3560',
           name: 'Bar Project',
           slug: 'project-slug-bar',

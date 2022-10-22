@@ -1,3 +1,5 @@
+import {Team} from 'fixtures/js-stubs/team';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
@@ -23,7 +25,7 @@ describe('TeamNotificationSettings', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    team = TestStubs.Team();
+    team = Team();
   });
 
   it('should render empty message when there are no integrations', () => {

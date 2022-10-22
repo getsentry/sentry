@@ -1,3 +1,8 @@
+import {AccessRequest} from 'fixtures/js-stubs/accessRequest';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Team} from 'fixtures/js-stubs/team';
+import {User} from 'fixtures/js-stubs/user';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -49,7 +54,7 @@ describe('OrganizationTeams', function () {
     });
 
     it('can join team and have link to details', function () {
-      const mockTeams = [TestStubs.Team({hasAccess: true, isMember: false})];
+      const mockTeams = [Team({hasAccess: true, isMember: false})];
       act(() => void TeamStore.loadInitialData(mockTeams, false, null));
       createWrapper({
         access: new Set([]),
@@ -61,10 +66,10 @@ describe('OrganizationTeams', function () {
     });
 
     it('reloads projects after joining a team', async function () {
-      const team = TestStubs.Team({hasAccess: true, isMember: false});
+      const team = Team({hasAccess: true, isMember: false});
       const getOrgMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/',
-        body: TestStubs.Organization(),
+        body: Organization(),
       });
       MockApiClient.addMockResponse({
         url: `/organizations/org-slug/members/me/teams/${team.slug}/`,
@@ -104,7 +109,7 @@ describe('OrganizationTeams', function () {
       );
 
     it('can request access to team and does not have link to details', function () {
-      const mockTeams = [TestStubs.Team({hasAccess: false, isMember: false})];
+      const mockTeams = [Team({hasAccess: false, isMember: false})];
       act(() => void TeamStore.loadInitialData(mockTeams, false, null));
       createWrapper({access: new Set([])});
 
@@ -115,7 +120,7 @@ describe('OrganizationTeams', function () {
     });
 
     it('can leave team when you are a member', function () {
-      const mockTeams = [TestStubs.Team({hasAccess: true, isMember: true})];
+      const mockTeams = [Team({hasAccess: true, isMember: true})];
       act(() => void TeamStore.loadInitialData(mockTeams, false, null));
       createWrapper({
         access: new Set([]),
@@ -132,14 +137,14 @@ describe('OrganizationTeams', function () {
         openMembership: false,
       },
     });
-    const accessRequest = TestStubs.AccessRequest();
-    const requester = TestStubs.User({
+    const accessRequest = AccessRequest();
+    const requester = User({
       id: '9',
       username: 'requester@example.com',
       email: 'requester@example.com',
       name: 'Requester',
     });
-    const requestList = [accessRequest, TestStubs.AccessRequest({id: '4', requester})];
+    const requestList = [accessRequest, AccessRequest({id: '4', requester})];
 
     const createWrapper = props =>
       render(

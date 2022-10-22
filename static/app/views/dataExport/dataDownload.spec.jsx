@@ -1,3 +1,5 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
@@ -7,7 +9,7 @@ import DataDownload, {DownloadStatus} from 'sentry/views/dataExport/dataDownload
 describe('DataDownload', function () {
   beforeEach(MockApiClient.clearMockResponses);
   const dateExpired = new Date();
-  const organization = TestStubs.Organization();
+  const organization = Organization();
   const mockRouteParams = {
     orgId: organization.slug,
     dataExportId: 721,

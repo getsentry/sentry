@@ -1,3 +1,8 @@
+import {AccountEmails} from 'fixtures/js-stubs/accountEmails';
+import {Authenticators} from 'fixtures/js-stubs/authenticators';
+import {Organizations} from 'fixtures/js-stubs/organizations';
+import {routerContext} from 'fixtures/js-stubs/routerContext';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 
@@ -18,11 +23,11 @@ describe('AccountSecurity', function () {
     Client.clearMockResponses();
     Client.addMockResponse({
       url: ORG_ENDPOINT,
-      body: TestStubs.Organizations(),
+      body: Organizations(),
     });
     Client.addMockResponse({
       url: ACCOUNT_EMAILS_ENDPOINT,
-      body: TestStubs.AccountEmails(),
+      body: AccountEmails(),
     });
   });
 
@@ -40,7 +45,7 @@ describe('AccountSecurity', function () {
       <AccountSecurityWrapper>
         <AccountSecurity />
       </AccountSecurityWrapper>,
-      TestStubs.routerContext()
+      routerContext()
     );
 
     expect(wrapper.find('EmptyMessage')).toHaveLength(1);
@@ -50,14 +55,14 @@ describe('AccountSecurity', function () {
   it('renders a primary interface that is enrolled', function () {
     Client.addMockResponse({
       url: ENDPOINT,
-      body: [TestStubs.Authenticators().Totp({configureButton: 'Info'})],
+      body: [Authenticators().Totp({configureButton: 'Info'})],
     });
 
     const wrapper = mountWithTheme(
       <AccountSecurityWrapper>
         <AccountSecurity />
       </AccountSecurityWrapper>,
-      TestStubs.routerContext()
+      routerContext()
     );
 
     expect(wrapper.find('AuthenticatorName').prop('children')).toBe('Authenticator App');
@@ -78,7 +83,7 @@ describe('AccountSecurity', function () {
     Client.addMockResponse({
       url: ENDPOINT,
       body: [
-        TestStubs.Authenticators().Totp({
+        Authenticators().Totp({
           authId: '15',
           configureButton: 'Info',
         }),
@@ -96,7 +101,7 @@ describe('AccountSecurity', function () {
       <AccountSecurityWrapper>
         <AccountSecurity />
       </AccountSecurityWrapper>,
-      TestStubs.routerContext()
+      routerContext()
     );
     expect(wrapper.find('AuthenticatorStatus').prop('enabled')).toBe(true);
 
@@ -104,7 +109,7 @@ describe('AccountSecurity', function () {
     const authenticatorsMock = Client.addMockResponse({
       url: ENDPOINT,
       body: [
-        TestStubs.Authenticators().Totp({
+        Authenticators().Totp({
           isEnrolled: false,
           authId: '15',
           configureButton: 'Info',
@@ -137,16 +142,16 @@ describe('AccountSecurity', function () {
     Client.addMockResponse({
       url: ENDPOINT,
       body: [
-        TestStubs.Authenticators().Totp({
+        Authenticators().Totp({
           authId: '15',
           configureButton: 'Info',
         }),
-        TestStubs.Authenticators().U2f(),
+        Authenticators().U2f(),
       ],
     });
     Client.addMockResponse({
       url: ORG_ENDPOINT,
-      body: TestStubs.Organizations({require2FA: true}),
+      body: Organizations({require2FA: true}),
     });
     const deleteMock = Client.addMockResponse({
       url: `${ENDPOINT}15/`,
@@ -159,7 +164,7 @@ describe('AccountSecurity', function () {
       <AccountSecurityWrapper>
         <AccountSecurity />
       </AccountSecurityWrapper>,
-      TestStubs.routerContext()
+      routerContext()
     );
 
     expect(wrapper.find('AuthenticatorStatus').first().prop('enabled')).toBe(true);
@@ -181,7 +186,7 @@ describe('AccountSecurity', function () {
     Client.addMockResponse({
       url: ENDPOINT,
       body: [
-        TestStubs.Authenticators().Totp({
+        Authenticators().Totp({
           authId: '15',
           configureButton: 'Info',
         }),
@@ -189,7 +194,7 @@ describe('AccountSecurity', function () {
     });
     Client.addMockResponse({
       url: ORG_ENDPOINT,
-      body: TestStubs.Organizations({require2FA: true}),
+      body: Organizations({require2FA: true}),
     });
     const deleteMock = Client.addMockResponse({
       url: `${ENDPOINT}15/`,
@@ -202,7 +207,7 @@ describe('AccountSecurity', function () {
       <AccountSecurityWrapper>
         <AccountSecurity />
       </AccountSecurityWrapper>,
-      TestStubs.routerContext()
+      routerContext()
     );
     expect(wrapper.find('AuthenticatorStatus').prop('enabled')).toBe(true);
 
@@ -220,7 +225,7 @@ describe('AccountSecurity', function () {
   it('cannot enroll without verified email', async function () {
     Client.addMockResponse({
       url: ENDPOINT,
-      body: [TestStubs.Authenticators().Totp({isEnrolled: false})],
+      body: [Authenticators().Totp({isEnrolled: false})],
     });
     Client.addMockResponse({
       url: ACCOUNT_EMAILS_ENDPOINT,
@@ -237,7 +242,7 @@ describe('AccountSecurity', function () {
       <AccountSecurityWrapper>
         <AccountSecurity />
       </AccountSecurityWrapper>,
-      TestStubs.routerContext()
+      routerContext()
     );
 
     expect(wrapper.find('AuthenticatorName').prop('children')).toBe('Authenticator App');
@@ -261,14 +266,14 @@ describe('AccountSecurity', function () {
   it('renders a backup interface that is not enrolled', function () {
     Client.addMockResponse({
       url: ENDPOINT,
-      body: [TestStubs.Authenticators().Recovery({isEnrolled: false})],
+      body: [Authenticators().Recovery({isEnrolled: false})],
     });
 
     const wrapper = mountWithTheme(
       <AccountSecurityWrapper>
         <AccountSecurity />
       </AccountSecurityWrapper>,
-      TestStubs.routerContext()
+      routerContext()
     );
 
     expect(wrapper.find('AuthenticatorName').prop('children')).toBe('Recovery Codes');
@@ -283,14 +288,14 @@ describe('AccountSecurity', function () {
   it('renders a primary interface that is not enrolled', function () {
     Client.addMockResponse({
       url: ENDPOINT,
-      body: [TestStubs.Authenticators().Totp({isEnrolled: false})],
+      body: [Authenticators().Totp({isEnrolled: false})],
     });
 
     const wrapper = mountWithTheme(
       <AccountSecurityWrapper>
         <AccountSecurity />
       </AccountSecurityWrapper>,
-      TestStubs.routerContext()
+      routerContext()
     );
 
     expect(wrapper.find('AuthenticatorName').prop('children')).toBe('Authenticator App');
@@ -307,9 +312,9 @@ describe('AccountSecurity', function () {
     Client.addMockResponse({
       url: ENDPOINT,
       body: [
-        TestStubs.Authenticators().Totp({disallowNewEnrollment: false}),
-        TestStubs.Authenticators().U2f({disallowNewEnrollment: null}),
-        TestStubs.Authenticators().Sms({disallowNewEnrollment: true}),
+        Authenticators().Totp({disallowNewEnrollment: false}),
+        Authenticators().U2f({disallowNewEnrollment: null}),
+        Authenticators().Sms({disallowNewEnrollment: true}),
       ],
     });
 
@@ -317,7 +322,7 @@ describe('AccountSecurity', function () {
       <AccountSecurityWrapper>
         <AccountSecurity />
       </AccountSecurityWrapper>,
-      TestStubs.routerContext()
+      routerContext()
     );
 
     // There should only be two authenticators rendered
@@ -327,16 +332,14 @@ describe('AccountSecurity', function () {
   it('renders primary interface if new enrollments are disallowed, but we are enrolled', function () {
     Client.addMockResponse({
       url: ENDPOINT,
-      body: [
-        TestStubs.Authenticators().Sms({isEnrolled: true, disallowNewEnrollment: true}),
-      ],
+      body: [Authenticators().Sms({isEnrolled: true, disallowNewEnrollment: true})],
     });
 
     const wrapper = mountWithTheme(
       <AccountSecurityWrapper>
         <AccountSecurity />
       </AccountSecurityWrapper>,
-      TestStubs.routerContext()
+      routerContext()
     );
 
     // Should still render the authenticator since we are already enrolled
@@ -347,14 +350,14 @@ describe('AccountSecurity', function () {
   it('renders a backup interface that is enrolled', function () {
     Client.addMockResponse({
       url: ENDPOINT,
-      body: [TestStubs.Authenticators().Recovery({isEnrolled: true})],
+      body: [Authenticators().Recovery({isEnrolled: true})],
     });
 
     const wrapper = mountWithTheme(
       <AccountSecurityWrapper>
         <AccountSecurity />
       </AccountSecurityWrapper>,
-      TestStubs.routerContext()
+      routerContext()
     );
 
     expect(wrapper.find('AuthenticatorName').prop('children')).toBe('Recovery Codes');
@@ -368,7 +371,7 @@ describe('AccountSecurity', function () {
   it('can change password', function () {
     Client.addMockResponse({
       url: ENDPOINT,
-      body: [TestStubs.Authenticators().Recovery({isEnrolled: false})],
+      body: [Authenticators().Recovery({isEnrolled: false})],
     });
 
     const url = '/users/me/password/';
@@ -381,7 +384,7 @@ describe('AccountSecurity', function () {
       <AccountSecurityWrapper>
         <AccountSecurity />
       </AccountSecurityWrapper>,
-      TestStubs.routerContext()
+      routerContext()
     );
 
     wrapper
@@ -413,7 +416,7 @@ describe('AccountSecurity', function () {
   it('requires current password to be entered', function () {
     Client.addMockResponse({
       url: ENDPOINT,
-      body: [TestStubs.Authenticators().Recovery({isEnrolled: false})],
+      body: [Authenticators().Recovery({isEnrolled: false})],
     });
     const url = '/users/me/password/';
     const mock = Client.addMockResponse({
@@ -425,7 +428,7 @@ describe('AccountSecurity', function () {
       <AccountSecurityWrapper>
         <AccountSecurity />
       </AccountSecurityWrapper>,
-      TestStubs.routerContext()
+      routerContext()
     );
 
     wrapper
@@ -444,7 +447,7 @@ describe('AccountSecurity', function () {
   it('can expire all sessions', async function () {
     Client.addMockResponse({
       url: ENDPOINT,
-      body: [TestStubs.Authenticators().Recovery({isEnrolled: false})],
+      body: [Authenticators().Recovery({isEnrolled: false})],
     });
     const mock = Client.addMockResponse({
       url: AUTH_ENDPOINT,
@@ -457,7 +460,7 @@ describe('AccountSecurity', function () {
       <AccountSecurityWrapper>
         <AccountSecurity />
       </AccountSecurityWrapper>,
-      TestStubs.routerContext()
+      routerContext()
     );
 
     wrapper.find('Button[data-test-id="signoutAll"]').simulate('click');

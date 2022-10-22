@@ -1,17 +1,24 @@
+import {Event} from 'fixtures/js-stubs/event';
+import {GitHubIntegration} from 'fixtures/js-stubs/gitHubIntegration';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
+import {Repository} from 'fixtures/js-stubs/repository';
+import {routerContext} from 'fixtures/js-stubs/routerContext';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
 
 describe('StacktraceLink', function () {
-  const org = TestStubs.Organization();
-  const project = TestStubs.Project();
-  const event = TestStubs.Event({projectID: project.id});
-  const integration = TestStubs.GitHubIntegration();
-  const repo = TestStubs.Repository({integrationId: integration.id});
+  const org = Organization();
+  const project = Project();
+  const event = Event({projectID: project.id});
+  const integration = GitHubIntegration();
+  const repo = Repository({integrationId: integration.id});
 
   const frame = {filename: '/sentry/app.py', lineNo: 233};
   const platform = 'python';
-  const config = TestStubs.RepositoryProjectPathConfig({project, repo, integration});
+  const config = RepositoryProjectPathConfig({project, repo, integration});
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
@@ -36,7 +43,7 @@ describe('StacktraceLink', function () {
         organization={org}
         lineNo={frame.lineNo}
       />,
-      {context: TestStubs.routerContext()}
+      {context: routerContext()}
     );
     expect(
       await screen.findByText('Link your stack trace to your source code.')
@@ -57,7 +64,7 @@ describe('StacktraceLink', function () {
         organization={org}
         lineNo={frame.lineNo}
       />,
-      {context: TestStubs.routerContext()}
+      {context: routerContext()}
     );
     expect(screen.getByRole('link', {name: 'GitHub'})).toHaveAttribute(
       'href',
@@ -86,7 +93,7 @@ describe('StacktraceLink', function () {
         organization={org}
         lineNo={frame.lineNo}
       />,
-      {context: TestStubs.routerContext()}
+      {context: routerContext()}
     );
     expect(
       screen.getByRole('link', {name: 'Configure Stack Trace Linking'})
@@ -119,7 +126,7 @@ describe('StacktraceLink', function () {
         organization={org}
         lineNo={frame.lineNo}
       />,
-      {context: TestStubs.routerContext()}
+      {context: routerContext()}
     );
     expect(
       screen.getByRole('link', {name: 'Configure Stack Trace Linking'})
@@ -148,7 +155,7 @@ describe('StacktraceLink', function () {
         organization={org}
         lineNo={frame.lineNo}
       />,
-      {context: TestStubs.routerContext()}
+      {context: routerContext()}
     );
     expect(
       screen.getByRole('link', {name: 'Configure Stack Trace Linking'})

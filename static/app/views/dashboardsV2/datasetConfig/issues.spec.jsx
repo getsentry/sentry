@@ -1,3 +1,6 @@
+import {GlobalSelection} from 'fixtures/js-stubs/globalSelection';
+import {Organization} from 'fixtures/js-stubs/organization';
+
 import {transformIssuesResponseToTable} from 'sentry/views/dashboardsV2/datasetConfig/issues';
 
 describe('transformIssuesResponseToTable', function () {
@@ -32,8 +35,8 @@ describe('transformIssuesResponseToTable', function () {
           conditions: 'assigned_or_suggested:#visibility timesSeen:>100',
           orderby: '',
         },
-        TestStubs.Organization(),
-        TestStubs.GlobalSelection()
+        Organization(),
+        GlobalSelection()
       )
     ).toEqual({
       data: [

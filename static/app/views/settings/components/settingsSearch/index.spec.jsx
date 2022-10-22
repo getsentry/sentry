@@ -1,3 +1,10 @@
+import {Members} from 'fixtures/js-stubs/members';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
+import {router} from 'fixtures/js-stubs/router';
+import {routerContext} from 'fixtures/js-stubs/routerContext';
+import {Team} from 'fixtures/js-stubs/team';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
@@ -10,9 +17,9 @@ jest.mock('sentry/actionCreators/navigation');
 
 describe('SettingsSearch', function () {
   let orgsMock;
-  const routerContext = TestStubs.routerContext([
+  const routerContext = routerContext([
     {
-      router: TestStubs.router({
+      router: router({
         params: {orgId: 'org-slug'},
       }),
     },
@@ -23,22 +30,22 @@ describe('SettingsSearch', function () {
     MockApiClient.clearMockResponses();
     orgsMock = MockApiClient.addMockResponse({
       url: '/organizations/',
-      body: [TestStubs.Organization({slug: 'billy-org', name: 'billy org'})],
+      body: [Organization({slug: 'billy-org', name: 'billy org'})],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       query: 'foo',
-      body: [TestStubs.Project({slug: 'foo-project'})],
+      body: [Project({slug: 'foo-project'})],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/teams/',
       query: 'foo',
-      body: [TestStubs.Team({slug: 'foo-team'})],
+      body: [Team({slug: 'foo-team'})],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
       query: 'foo',
-      body: TestStubs.Members(),
+      body: Members(),
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/plugins/?plugins=_all',

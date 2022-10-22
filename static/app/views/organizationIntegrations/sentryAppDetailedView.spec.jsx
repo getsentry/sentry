@@ -1,3 +1,5 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mockRouterPush} from 'sentry-test/mockRouterPush';
@@ -16,7 +18,7 @@ const mockResponse = mocks => {
 };
 
 describe('SentryAppDetailedView', function () {
-  const org = TestStubs.Organization();
+  const org = Organization();
 
   let wrapper;
   const {router} = initializeOrg({

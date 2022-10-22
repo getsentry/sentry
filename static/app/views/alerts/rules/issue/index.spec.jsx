@@ -1,5 +1,9 @@
 import {browserHistory} from 'react-router';
 import selectEvent from 'react-select-event';
+import {Environments} from 'fixtures/js-stubs/environments';
+import {Project} from 'fixtures/js-stubs/project';
+import {ProjectAlertRule} from 'fixtures/js-stubs/projectAlertRule';
+import {ProjectAlertRuleConfiguration} from 'fixtures/js-stubs/projectAlertRuleConfiguration';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -115,15 +119,15 @@ describe('IssueRuleEditor', function () {
     browserHistory.replace = jest.fn();
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/rules/configuration/',
-      body: TestStubs.ProjectAlertRuleConfiguration(),
+      body: ProjectAlertRuleConfiguration(),
     });
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/rules/1/',
-      body: TestStubs.ProjectAlertRule(),
+      body: ProjectAlertRule(),
     });
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/environments/',
-      body: TestStubs.Environments(),
+      body: Environments(),
     });
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/project-slug/?expand=hasAlertIntegration`,
@@ -137,7 +141,7 @@ describe('IssueRuleEditor', function () {
         autoAssignment: false,
       },
     });
-    ProjectsStore.loadInitialData([TestStubs.Project()]);
+    ProjectsStore.loadInitialData([Project()]);
   });
 
   afterEach(function () {
@@ -153,12 +157,12 @@ describe('IssueRuleEditor', function () {
       mock = MockApiClient.addMockResponse({
         url: endpoint,
         method: 'PUT',
-        body: TestStubs.ProjectAlertRule(),
+        body: ProjectAlertRule(),
       });
     });
 
     it('gets correct rule name', function () {
-      const rule = TestStubs.ProjectAlertRule();
+      const rule = ProjectAlertRule();
       mock = MockApiClient.addMockResponse({
         url: endpoint,
         method: 'GET',
@@ -248,7 +252,7 @@ describe('IssueRuleEditor', function () {
     it('success status updates the rule', async function () {
       const mockSuccess = MockApiClient.addMockResponse({
         url: `/projects/org-slug/project-slug/rule-task/${uuid}/`,
-        body: {status: 'success', rule: TestStubs.ProjectAlertRule({name: 'Slack Rule'})},
+        body: {status: 'success', rule: ProjectAlertRule({name: 'Slack Rule'})},
       });
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/rules/1/',
@@ -315,7 +319,7 @@ describe('IssueRuleEditor', function () {
 
   describe('Duplicate Rule', function () {
     let mock;
-    const rule = TestStubs.ProjectAlertRule();
+    const rule = ProjectAlertRule();
     const endpoint = `/projects/org-slug/project-slug/rules/${rule.id}/`;
 
     beforeEach(function () {

@@ -1,3 +1,6 @@
+import {Project} from 'fixtures/js-stubs/project';
+import {Team} from 'fixtures/js-stubs/team';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -10,7 +13,7 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
     render(
       <ProjectTeamAccess
         organization={organization}
-        project={TestStubs.Project({teams: [TestStubs.Team()]})}
+        project={Project({teams: [Team()]})}
       />,
       {context: routerContext}
     );
@@ -23,7 +26,7 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
     render(
       <ProjectTeamAccess
         organization={organization}
-        project={TestStubs.Project({teams: [TestStubs.Team()]})}
+        project={Project({teams: [Team()]})}
       />,
       {context: routerContext}
     );
@@ -35,10 +38,9 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
   });
 
   it('display the right empty state with access', function () {
-    render(
-      <ProjectTeamAccess organization={organization} project={TestStubs.Project()} />,
-      {context: routerContext}
-    );
+    render(<ProjectTeamAccess organization={organization} project={Project()} />, {
+      context: routerContext,
+    });
 
     expect(screen.getByRole('button', {name: 'Assign Team'})).toHaveAttribute(
       'href',
@@ -50,7 +52,7 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
     render(
       <ProjectTeamAccess
         organization={{...organization, access: []}}
-        project={TestStubs.Project({teams: []})}
+        project={Project({teams: []})}
       />,
       {context: routerContext}
     );
@@ -61,15 +63,15 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
     render(
       <ProjectTeamAccess
         organization={organization}
-        project={TestStubs.Project({
+        project={Project({
           teams: [
-            TestStubs.Team({slug: 'team1'}),
-            TestStubs.Team({slug: 'team2'}),
-            TestStubs.Team({slug: 'team3'}),
-            TestStubs.Team({slug: 'team4'}),
-            TestStubs.Team({slug: 'team5'}),
-            TestStubs.Team({slug: 'team6'}),
-            TestStubs.Team({slug: 'team7'}),
+            Team({slug: 'team1'}),
+            Team({slug: 'team2'}),
+            Team({slug: 'team3'}),
+            Team({slug: 'team4'}),
+            Team({slug: 'team5'}),
+            Team({slug: 'team6'}),
+            Team({slug: 'team7'}),
           ],
         })}
       />,
@@ -89,12 +91,8 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
     render(
       <ProjectTeamAccess
         organization={organization}
-        project={TestStubs.Project({
-          teams: [
-            TestStubs.Team({slug: 'c'}),
-            TestStubs.Team({slug: 'z'}),
-            TestStubs.Team({slug: 'a'}),
-          ],
+        project={Project({
+          teams: [Team({slug: 'c'}), Team({slug: 'z'}), Team({slug: 'a'})],
         })}
       />,
       {context: routerContext}

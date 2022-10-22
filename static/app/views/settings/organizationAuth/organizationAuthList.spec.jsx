@@ -1,3 +1,7 @@
+import {AuthProviders} from 'fixtures/js-stubs/authProviders';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {routerContext} from 'fixtures/js-stubs/routerContext';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import OrganizationAuthList from 'sentry/views/settings/organizationAuth/organizationAuthList';
@@ -14,7 +18,7 @@ describe('OrganizationAuthList', function () {
       <OrganizationAuthList
         orgId="org-slug"
         onSendReminders={() => {}}
-        providerList={TestStubs.AuthProviders()}
+        providerList={AuthProviders()}
       />
     );
 
@@ -26,12 +30,12 @@ describe('OrganizationAuthList', function () {
       <OrganizationAuthList
         orgId="org-slug"
         onSendReminders={() => {}}
-        providerList={TestStubs.AuthProviders()}
-        activeProvider={TestStubs.AuthProviders()[0]}
+        providerList={AuthProviders()}
+        activeProvider={AuthProviders()[0]}
       />,
-      TestStubs.routerContext([
+      routerContext([
         {
-          organization: TestStubs.Organization({access: ['org:read']}),
+          organization: Organization({access: ['org:read']}),
         },
       ])
     );
@@ -45,15 +49,15 @@ describe('OrganizationAuthList', function () {
     const withSAML = {features: ['sso-saml2']};
 
     it('renders', function () {
-      const context = TestStubs.routerContext([
-        {organization: TestStubs.Organization({...require2fa, ...withSSO})},
+      const context = routerContext([
+        {organization: Organization({...require2fa, ...withSSO})},
       ]);
 
       const wrapper = mountWithTheme(
         <OrganizationAuthList
           orgId="org-slug"
           onSendReminders={() => {}}
-          providerList={TestStubs.AuthProviders()}
+          providerList={AuthProviders()}
         />,
         context
       );
@@ -62,15 +66,15 @@ describe('OrganizationAuthList', function () {
     });
 
     it('renders with saml available', function () {
-      const context = TestStubs.routerContext([
-        {organization: TestStubs.Organization({...require2fa, ...withSAML})},
+      const context = routerContext([
+        {organization: Organization({...require2fa, ...withSAML})},
       ]);
 
       const wrapper = mountWithTheme(
         <OrganizationAuthList
           orgId="org-slug"
           onSendReminders={() => {}}
-          providerList={TestStubs.AuthProviders()}
+          providerList={AuthProviders()}
         />,
         context
       );
@@ -79,15 +83,13 @@ describe('OrganizationAuthList', function () {
     });
 
     it('does not render without sso available', function () {
-      const context = TestStubs.routerContext([
-        {organization: TestStubs.Organization({...require2fa})},
-      ]);
+      const context = routerContext([{organization: Organization({...require2fa})}]);
 
       const wrapper = mountWithTheme(
         <OrganizationAuthList
           orgId="org-slug"
           onSendReminders={() => {}}
-          providerList={TestStubs.AuthProviders()}
+          providerList={AuthProviders()}
         />,
         context
       );
@@ -96,15 +98,13 @@ describe('OrganizationAuthList', function () {
     });
 
     it('does not render with sso and require 2fa disabled', function () {
-      const context = TestStubs.routerContext([
-        {organization: TestStubs.Organization({...withSSO})},
-      ]);
+      const context = routerContext([{organization: Organization({...withSSO})}]);
 
       const wrapper = mountWithTheme(
         <OrganizationAuthList
           orgId="org-slug"
           onSendReminders={() => {}}
-          providerList={TestStubs.AuthProviders()}
+          providerList={AuthProviders()}
         />,
         context
       );
@@ -113,15 +113,13 @@ describe('OrganizationAuthList', function () {
     });
 
     it('does not render with saml and require 2fa disabled', function () {
-      const context = TestStubs.routerContext([
-        {organization: TestStubs.Organization({...withSAML})},
-      ]);
+      const context = routerContext([{organization: Organization({...withSAML})}]);
 
       const wrapper = mountWithTheme(
         <OrganizationAuthList
           orgId="org-slug"
           onSendReminders={() => {}}
-          providerList={TestStubs.AuthProviders()}
+          providerList={AuthProviders()}
         />,
         context
       );

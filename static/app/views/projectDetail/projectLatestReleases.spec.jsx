@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {Release} from 'fixtures/js-stubs/release';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -13,14 +14,11 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
   beforeEach(function () {
     endpointMock = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/releases/`,
-      body: [
-        TestStubs.Release({version: '1.0.0'}),
-        TestStubs.Release({version: '1.0.1'}),
-      ],
+      body: [Release({version: '1.0.0'}), Release({version: '1.0.1'})],
     });
     endpointOlderReleasesMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/releases/stats/`,
-      body: [TestStubs.Release({version: '1.0.0'})],
+      body: [Release({version: '1.0.0'})],
     });
   });
 

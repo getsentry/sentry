@@ -1,8 +1,11 @@
+import {EventStacktraceException} from 'fixtures/js-stubs/eventStacktraceException';
+import {EventStacktraceMessage} from 'fixtures/js-stubs/eventStacktraceMessage';
+
 import getStacktraceBody from 'sentry/utils/getStacktraceBody';
 
 describe('getStacktraceBody', function () {
-  const eventException = TestStubs.EventStacktraceException({platform: 'python'});
-  const eventMessage = TestStubs.EventStacktraceMessage({platform: 'python'});
+  const eventException = EventStacktraceException({platform: 'python'});
+  const eventMessage = EventStacktraceMessage({platform: 'python'});
 
   it('formats with an exception', function () {
     const result = getStacktraceBody(eventException);

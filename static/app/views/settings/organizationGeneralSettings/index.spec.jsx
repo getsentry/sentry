@@ -1,4 +1,8 @@
 import {browserHistory} from 'react-router';
+import {AuthProvider} from 'fixtures/js-stubs/authProvider';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
+import {routerContext} from 'fixtures/js-stubs/routerContext';
 
 import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -94,7 +98,7 @@ describe('OrganizationGeneralSettings', function () {
 
   it('disables the entire form if user does not have write access', async function () {
     ({organization, routerContext} = initializeOrg({
-      organization: TestStubs.Organization({access: ['org:read']}),
+      organization: Organization({access: ['org:read']}),
     }));
     const wrapper = mountWithTheme(
       <OrganizationGeneralSettings
@@ -118,7 +122,7 @@ describe('OrganizationGeneralSettings', function () {
     const wrapper = mountWithTheme(
       <OrganizationGeneralSettings
         params={{orgId: organization.slug}}
-        organization={TestStubs.Organization({
+        organization={Organization({
           access: ['org:write'],
         })}
       />,
@@ -131,12 +135,12 @@ describe('OrganizationGeneralSettings', function () {
   });
 
   it('can remove organization when org admin', async function () {
-    act(() => ProjectsStore.loadInitialData([TestStubs.Project({slug: 'project'})]));
+    act(() => ProjectsStore.loadInitialData([Project({slug: 'project'})]));
 
     const wrapper = mountWithTheme(
       <OrganizationGeneralSettings
         params={{orgId: organization.slug}}
-        organization={TestStubs.Organization({access: ['org:admin']})}
+        organization={Organization({access: ['org:admin']})}
       />,
       routerContext
     );
@@ -170,12 +174,12 @@ describe('OrganizationGeneralSettings', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/auth-provider/`,
       method: 'GET',
-      body: TestStubs.AuthProvider(),
+      body: AuthProvider(),
     });
 
     const wrapper = mountWithTheme(
       <OrganizationGeneralSettings params={{orgId: organization.slug}} />,
-      TestStubs.routerContext([{organization}])
+      routerContext([{organization}])
     );
 
     await tick();

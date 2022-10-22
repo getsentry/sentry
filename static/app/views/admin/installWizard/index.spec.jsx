@@ -1,3 +1,5 @@
+import {InstallWizard} from 'fixtures/js-stubs/installWizard';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
@@ -8,7 +10,7 @@ describe('InstallWizard', function () {
     ConfigStore.set('version', '1.33.7');
     MockApiClient.addMockResponse({
       url: '/internal/options/?query=is:required',
-      body: TestStubs.InstallWizard(),
+      body: InstallWizard(),
     });
   });
 
@@ -24,7 +26,7 @@ describe('InstallWizard', function () {
   it('has no option selected when beacon.anonymous is unset', function () {
     MockApiClient.addMockResponse({
       url: '/internal/options/?query=is:required',
-      body: TestStubs.InstallWizard({
+      body: InstallWizard({
         'beacon.anonymous': {
           field: {
             disabledReason: null,
@@ -54,7 +56,7 @@ describe('InstallWizard', function () {
   it('has no option selected even when beacon.anonymous is set', function () {
     MockApiClient.addMockResponse({
       url: '/internal/options/?query=is:required',
-      body: TestStubs.InstallWizard({
+      body: InstallWizard({
         'beacon.anonymous': {
           field: {
             disabledReason: null,

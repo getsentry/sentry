@@ -1,3 +1,8 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
+import {routerContext} from 'fixtures/js-stubs/routerContext';
+import {Tags} from 'fixtures/js-stubs/tags';
+
 import {
   render,
   renderGlobalModal,
@@ -12,14 +17,14 @@ describe('ProjectTags', function () {
   let org, project;
 
   beforeEach(function () {
-    org = TestStubs.Organization();
-    project = TestStubs.Project();
+    org = Organization();
+    project = Project();
 
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/tags/`,
       method: 'GET',
-      body: TestStubs.Tags(),
+      body: Tags(),
     });
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/tags/browser/`,
@@ -49,11 +54,11 @@ describe('ProjectTags', function () {
 
   it('disables delete button for users without access', function () {
     const context = {
-      organization: TestStubs.Organization({access: []}),
+      organization: Organization({access: []}),
     };
 
     render(<ProjectTags params={{orgId: org.slug, projectId: project.slug}} />, {
-      context: TestStubs.routerContext([context]),
+      context: routerContext([context]),
     });
 
     screen

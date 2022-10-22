@@ -1,3 +1,7 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
+import {routerContext} from 'fixtures/js-stubs/routerContext';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
@@ -9,7 +13,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {DEFAULT_EVENT_VIEW} from 'sentry/views/eventsV2/data';
 
 const onClickMock = jest.fn();
-const context = TestStubs.routerContext();
+const context = routerContext();
 
 jest.mock('sentry/actionCreators/navigation');
 
@@ -19,7 +23,7 @@ function renderComponent(organization, eventView) {
       location={location}
       organization={organization}
       eventView={eventView}
-      projects={[TestStubs.Project()]}
+      projects={[Project()]}
       onClick={onClickMock}
     />,
     {context}
@@ -31,7 +35,7 @@ function renderSimpleComponent(organization, extraProps) {
 }
 
 describe('CreateAlertFromViewButton', () => {
-  const organization = TestStubs.Organization();
+  const organization = Organization();
 
   afterEach(() => {
     jest.resetAllMocks();

@@ -1,4 +1,7 @@
 import selectEvent from 'react-select-event';
+import {EventsStats} from 'fixtures/js-stubs/eventsStats';
+import {IncidentTrigger} from 'fixtures/js-stubs/incidentTrigger';
+import {MetricRule} from 'fixtures/js-stubs/metricRule';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -52,7 +55,7 @@ describe('Incident Rules Form', () => {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
-      body: TestStubs.EventsStats({
+      body: EventsStats({
         isMetricsData: true,
       }),
     });
@@ -91,7 +94,7 @@ describe('Incident Rules Form', () => {
      * Note this isn't necessarily the desired behavior, as it is just documenting the behavior
      */
     it('creates a rule', async () => {
-      const rule = TestStubs.MetricRule();
+      const rule = MetricRule();
       createWrapper({
         rule: {
           ...rule,
@@ -131,7 +134,7 @@ describe('Incident Rules Form', () => {
         'metrics-performance-alerts',
         'mep-rollout-flag',
       ];
-      const rule = TestStubs.MetricRule();
+      const rule = MetricRule();
       createWrapper({
         rule: {
           ...rule,
@@ -169,7 +172,7 @@ describe('Incident Rules Form', () => {
   describe('Editing a rule', () => {
     let editRule;
     let editTrigger;
-    const rule = TestStubs.MetricRule();
+    const rule = MetricRule();
 
     beforeEach(() => {
       editRule = MockApiClient.addMockResponse({
@@ -180,7 +183,7 @@ describe('Incident Rules Form', () => {
       editTrigger = MockApiClient.addMockResponse({
         url: `/organizations/org-slug/alert-rules/${rule.id}/triggers/1/`,
         method: 'PUT',
-        body: TestStubs.IncidentTrigger({id: 1}),
+        body: IncidentTrigger({id: 1}),
       });
     });
     afterEach(() => {
@@ -280,7 +283,7 @@ describe('Incident Rules Form', () => {
     });
 
     it('success status updates the rule', async () => {
-      const alertRule = TestStubs.MetricRule({name: 'Slack Alert Rule'});
+      const alertRule = MetricRule({name: 'Slack Alert Rule'});
       MockApiClient.addMockResponse({
         url: `/projects/org-slug/project-slug/alert-rules/${alertRule.id}/`,
         method: 'PUT',
@@ -326,7 +329,7 @@ describe('Incident Rules Form', () => {
     });
 
     it('pending status keeps loading true', () => {
-      const alertRule = TestStubs.MetricRule({name: 'Slack Alert Rule'});
+      const alertRule = MetricRule({name: 'Slack Alert Rule'});
       MockApiClient.addMockResponse({
         url: `/projects/org-slug/project-slug/alert-rules/${alertRule.id}/`,
         method: 'PUT',
@@ -352,7 +355,7 @@ describe('Incident Rules Form', () => {
     });
 
     it('failed status renders error message', async () => {
-      const alertRule = TestStubs.MetricRule({name: 'Slack Alert Rule'});
+      const alertRule = MetricRule({name: 'Slack Alert Rule'});
       MockApiClient.addMockResponse({
         url: `/projects/org-slug/project-slug/alert-rules/${alertRule.id}/`,
         method: 'PUT',

@@ -1,3 +1,6 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+import {ProjectDetails} from 'fixtures/js-stubs/projectDetails';
+
 import {render} from 'sentry-test/reactTestingLibrary';
 
 import EventWaiter from 'sentry/utils/eventWaiter';
@@ -6,8 +9,8 @@ jest.useFakeTimers();
 
 describe('EventWaiter', function () {
   it('waits for the first projet event', async function () {
-    const org = TestStubs.Organization();
-    const project = TestStubs.ProjectDetails({
+    const org = Organization();
+    const project = ProjectDetails({
       firstEvent: null,
     });
 
@@ -72,8 +75,8 @@ describe('EventWaiter', function () {
   });
 
   it('receives a first event of `true` when first even has expired', async function () {
-    const org = TestStubs.Organization();
-    const project = TestStubs.ProjectDetails({
+    const org = Organization();
+    const project = ProjectDetails({
       firstEvent: '2019-05-01T00:00:00.000Z',
     });
 
@@ -113,8 +116,8 @@ describe('EventWaiter', function () {
   });
 
   it('does not poll when disabled', function () {
-    const org = TestStubs.Organization();
-    const project = TestStubs.ProjectDetails();
+    const org = Organization();
+    const project = ProjectDetails();
 
     const projectApiMock = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,

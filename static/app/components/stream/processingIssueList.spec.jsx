@@ -1,3 +1,5 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProcessingIssueList from 'sentry/components/stream/processingIssueList';
@@ -24,7 +26,7 @@ describe('ProcessingIssueList', function () {
         },
       ],
     });
-    organization = TestStubs.Organization();
+    organization = Organization();
     projects = [1, 2];
   });
 

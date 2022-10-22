@@ -1,3 +1,7 @@
+import {Group} from 'fixtures/js-stubs/group';
+import {Tags} from 'fixtures/js-stubs/tags';
+import {TagValues} from 'fixtures/js-stubs/tagValues';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -5,8 +9,8 @@ import GroupTagValues from 'sentry/views/organizationGroupDetails/groupTagValues
 
 describe('GroupTagValues', () => {
   const {routerContext, router, project} = initializeOrg({});
-  const group = TestStubs.Group();
-  const tags = TestStubs.Tags();
+  const group = Group();
+  const tags = Tags();
 
   beforeEach(() => {
     MockApiClient.addMockResponse({
@@ -22,7 +26,7 @@ describe('GroupTagValues', () => {
   it('navigates to issue details events tab with correct query params', () => {
     MockApiClient.addMockResponse({
       url: '/issues/1/tags/user/values/',
-      body: TestStubs.TagValues(),
+      body: TagValues(),
     });
     render(
       <GroupTagValues

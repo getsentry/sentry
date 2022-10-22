@@ -1,3 +1,6 @@
+import {ApiKey} from 'fixtures/js-stubs/apiKey';
+import {location} from 'fixtures/js-stubs/location';
+
 import {
   render,
   renderGlobalModal,
@@ -22,12 +25,12 @@ describe('OrganizationApiKeys', function () {
     getMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/api-keys/',
       method: 'GET',
-      body: [TestStubs.ApiKey()],
+      body: [ApiKey()],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/api-keys/1/',
       method: 'GET',
-      body: TestStubs.ApiKey(),
+      body: ApiKey(),
     });
     deleteMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/api-keys/1/',
@@ -38,7 +41,7 @@ describe('OrganizationApiKeys', function () {
   it('fetches api keys', function () {
     render(
       <OrganizationApiKeys
-        location={TestStubs.location()}
+        location={location()}
         params={{orgId: 'org-slug'}}
         routes={routes}
       />
@@ -51,7 +54,7 @@ describe('OrganizationApiKeys', function () {
   it('can delete a key', function () {
     render(
       <OrganizationApiKeys
-        location={TestStubs.location()}
+        location={location()}
         params={{orgId: 'org-slug'}}
         routes={routes}
       />

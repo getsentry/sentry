@@ -1,10 +1,16 @@
+import {Commit} from 'fixtures/js-stubs/commit';
+import {CommitAuthor} from 'fixtures/js-stubs/commitAuthor';
+import {Event} from 'fixtures/js-stubs/event';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
+
 import {getCommitters} from 'sentry/actionCreators/committers';
 import CommitterStore, {getCommitterStoreKey} from 'sentry/stores/committerStore';
 
 describe('CommitterActionCreator', function () {
-  const organization = TestStubs.Organization();
-  const project = TestStubs.Project();
-  const event = TestStubs.Event();
+  const organization = Organization();
+  const project = Project();
+  const event = Event();
 
   const storeKey = getCommitterStoreKey(organization.slug, project.slug, event.id);
   const endpoint = `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`;
@@ -13,8 +19,8 @@ describe('CommitterActionCreator', function () {
   const mockData = {
     committers: [
       {
-        author: TestStubs.CommitAuthor(),
-        commits: [TestStubs.Commit()],
+        author: CommitAuthor(),
+        commits: [Commit()],
       },
     ],
   };

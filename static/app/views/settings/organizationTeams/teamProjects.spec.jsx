@@ -1,3 +1,7 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
+import {Team} from 'fixtures/js-stubs/team';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -11,20 +15,20 @@ describe('OrganizationTeamProjects', function () {
   let postMock;
   let deleteMock;
 
-  const project = TestStubs.Project({teams: [team]});
-  const project2 = TestStubs.Project({
+  const project = Project({teams: [team]});
+  const project2 = Project({
     id: '3',
     slug: 'project-slug-2',
     name: 'Project Name 2',
   });
 
   const {routerContext, organization} = initializeOrg({
-    organization: TestStubs.Organization({slug: 'org-slug'}),
+    organization: Organization({slug: 'org-slug'}),
     projects: [project, project2],
   });
 
   beforeEach(function () {
-    team = TestStubs.Team({slug: 'team-slug'});
+    team = Team({slug: 'team-slug'});
 
     getMock = Client.addMockResponse({
       url: '/organizations/org-slug/projects/',

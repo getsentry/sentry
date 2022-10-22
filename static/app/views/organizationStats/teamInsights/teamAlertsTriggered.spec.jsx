@@ -1,14 +1,17 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Team} from 'fixtures/js-stubs/team';
+
 import {render} from 'sentry-test/reactTestingLibrary';
 
 import TeamAlertsTriggered from 'sentry/views/organizationStats/teamInsights/teamAlertsTriggered';
 
 describe('TeamAlertsTriggered', () => {
   it('should render graph of alerts triggered', () => {
-    const team = TestStubs.Team();
-    const organization = TestStubs.Organization();
+    const team = Team();
+    const organization = Organization();
     const alertsTriggeredApi = MockApiClient.addMockResponse({
       url: `/teams/${organization.slug}/${team.slug}/alerts-triggered/`,
-      body: TestStubs.TeamAlertsTriggered(),
+      body: TeamAlertsTriggered(),
     });
 
     MockApiClient.addMockResponse({

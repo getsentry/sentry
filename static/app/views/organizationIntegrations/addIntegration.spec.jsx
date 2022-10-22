@@ -1,10 +1,13 @@
+import {GitHubIntegration} from 'fixtures/js-stubs/gitHubIntegration';
+import {GitHubIntegrationProvider} from 'fixtures/js-stubs/gitHubIntegrationProvider';
+
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import AddIntegration from 'sentry/views/organizationIntegrations/addIntegration';
 
 describe('AddIntegration', function () {
-  const provider = TestStubs.GitHubIntegrationProvider();
-  const integration = TestStubs.GitHubIntegration();
+  const provider = GitHubIntegrationProvider();
+  const integration = GitHubIntegration();
 
   it('Adds an integration on dialog completion', async function () {
     const onAdd = jest.fn();

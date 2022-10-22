@@ -1,3 +1,5 @@
+import {ApiKey} from 'fixtures/js-stubs/apiKey';
+
 import {mountGlobalModal} from 'sentry-test/modal';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -18,7 +20,7 @@ describe('OrganizationApiKeysList', function () {
       <OrganizationApiKeysList
         params={{orgId: 'org-slug'}}
         routes={routes}
-        keys={[TestStubs.ApiKey()]}
+        keys={[ApiKey()]}
       />
     );
 

@@ -1,3 +1,7 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+import {routerContext} from 'fixtures/js-stubs/routerContext';
+import {Team} from 'fixtures/js-stubs/team';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
@@ -7,10 +11,10 @@ import TeamDetails from 'sentry/views/settings/organizationTeams/teamDetails';
 describe('TeamMembers', () => {
   let joinMock;
 
-  const organization = TestStubs.Organization();
-  const team = TestStubs.Team({hasAccess: false});
-  const teamHasAccess = TestStubs.Team({id: '1337', slug: 'django', hasAccess: true});
-  const context = TestStubs.routerContext();
+  const organization = Organization();
+  const team = Team({hasAccess: false});
+  const teamHasAccess = Team({id: '1337', slug: 'django', hasAccess: true});
+  const context = routerContext();
 
   beforeEach(() => {
     TeamStore.init();

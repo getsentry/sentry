@@ -1,4 +1,7 @@
 import {Fragment} from 'react';
+import {Group} from 'fixtures/js-stubs/group';
+import {PlatformExternalIssue} from 'fixtures/js-stubs/platformExternalIssue';
+import {SentryApp} from 'fixtures/js-stubs/sentryApp';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
@@ -15,9 +18,9 @@ describe('SentryAppExternalIssueActions', () => {
   let wrapper;
 
   beforeEach(() => {
-    group = TestStubs.Group();
-    sentryApp = TestStubs.SentryApp();
-    component = TestStubs.SentryAppComponent({
+    group = Group();
+    sentryApp = SentryApp();
+    component = SentryAppComponent({
       sentryApp: {
         uuid: sentryApp.uuid,
         slug: sentryApp.slug,
@@ -26,9 +29,9 @@ describe('SentryAppExternalIssueActions', () => {
     });
     // unable to use the selectByValue here so remove the select option
     component.schema.create.required_fields.pop();
-    install = TestStubs.SentryAppInstallation({sentryApp});
+    install = SentryAppInstallation({sentryApp});
     submitUrl = `/sentry-app-installations/${install.uuid}/external-issue-actions/`;
-    externalIssue = TestStubs.PlatformExternalIssue({
+    externalIssue = PlatformExternalIssue({
       groupId: group.id,
       serviceType: component.sentryApp.slug,
     });

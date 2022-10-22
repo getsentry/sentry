@@ -1,4 +1,7 @@
 import selectEvent from 'react-select-event';
+import {Member} from 'fixtures/js-stubs/member';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {User} from 'fixtures/js-stubs/user';
 
 import {
   render,
@@ -33,24 +36,24 @@ const roles = [
 
 describe('InviteRequestRow', function () {
   const orgId = 'org-slug';
-  const orgWithoutAdminAccess = TestStubs.Organization({
+  const orgWithoutAdminAccess = Organization({
     access: [],
   });
-  const orgWithAdminAccess = TestStubs.Organization({
+  const orgWithAdminAccess = Organization({
     access: ['member:admin'],
   });
   const inviteRequestBusy = new Map();
 
-  const inviteRequest = TestStubs.Member({
+  const inviteRequest = Member({
     user: null,
-    inviterName: TestStubs.User().name,
-    inviterId: TestStubs.User().id,
+    inviterName: User().name,
+    inviterId: User().id,
     inviteStatus: 'requested_to_be_invited',
     role: 'member',
     teams: ['myteam'],
   });
 
-  const joinRequest = TestStubs.Member({
+  const joinRequest = Member({
     user: null,
     inviteStatus: 'requested_to_join',
     role: 'member',
@@ -153,10 +156,10 @@ describe('InviteRequestRow', function () {
   });
 
   it('admin can change role and teams', async function () {
-    const adminInviteRequest = TestStubs.Member({
+    const adminInviteRequest = Member({
       user: null,
-      inviterName: TestStubs.User().name,
-      inviterId: TestStubs.User().id,
+      inviterName: User().name,
+      inviterId: User().id,
       inviteStatus: 'requested_to_be_invited',
       role: 'admin',
       teams: ['myteam'],
@@ -191,10 +194,10 @@ describe('InviteRequestRow', function () {
   });
 
   it('cannot be approved when invitee role is not allowed', function () {
-    const ownerInviteRequest = TestStubs.Member({
+    const ownerInviteRequest = Member({
       user: null,
-      inviterName: TestStubs.User().name,
-      inviterId: TestStubs.User().id,
+      inviterName: User().name,
+      inviterId: User().id,
       inviteStatus: 'requested_to_be_invited',
       role: 'owner',
       teams: ['myteam'],

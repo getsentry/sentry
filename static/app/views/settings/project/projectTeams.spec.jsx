@@ -1,3 +1,7 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+import {ProjectDetails} from 'fixtures/js-stubs/projectDetails';
+import {Team} from 'fixtures/js-stubs/team';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 import {act} from 'sentry-test/reactTestingLibrary';
@@ -13,8 +17,8 @@ describe('ProjectTeams', function () {
   let org;
   let project;
 
-  const team1 = TestStubs.Team();
-  const team2 = TestStubs.Team({
+  const team1 = Team();
+  const team2 = Team({
     id: '2',
     slug: 'team-slug-2',
     name: 'Team Name 2',
@@ -23,8 +27,8 @@ describe('ProjectTeams', function () {
 
   beforeEach(function () {
     jest.spyOn(modals, 'openCreateTeamModal');
-    org = TestStubs.Organization();
-    project = TestStubs.ProjectDetails();
+    org = Organization();
+    project = ProjectDetails();
 
     act(() => void TeamStore.loadInitialData([team1, team2]));
 
@@ -147,7 +151,7 @@ describe('ProjectTeams', function () {
       url: `/organizations/${org.slug}/teams/`,
       method: 'GET',
       body: [
-        TestStubs.Team({
+        Team({
           id: '3',
           slug: 'team-slug-3',
           name: 'Team Name 3',

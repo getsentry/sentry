@@ -1,4 +1,8 @@
 import selectEvent from 'react-select-event';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
+import {Team} from 'fixtures/js-stubs/team';
+import {User} from 'fixtures/js-stubs/user';
 
 import {
   render,
@@ -14,10 +18,10 @@ import TeamStore from 'sentry/stores/teamStore';
 import RuleBuilder from 'sentry/views/settings/project/projectOwnership/ruleBuilder';
 
 describe('RuleBuilder', function () {
-  const organization = TestStubs.Organization();
+  const organization = Organization();
   let project;
   let handleAdd;
-  const USER_1 = TestStubs.User({
+  const USER_1 = User({
     id: '1',
     name: 'Jane Bloggs',
     email: 'janebloggs@example.com',
@@ -27,7 +31,7 @@ describe('RuleBuilder', function () {
       email: 'janebloggs@example.com',
     },
   });
-  const USER_2 = TestStubs.User({
+  const USER_2 = User({
     id: '2',
     name: 'John Smith',
     email: 'johnsmith@example.com',
@@ -38,13 +42,13 @@ describe('RuleBuilder', function () {
     },
   });
 
-  const TEAM_1 = TestStubs.Team({
+  const TEAM_1 = Team({
     id: '3',
     slug: 'cool-team',
   });
 
   // This team is in project
-  const TEAM_2 = TestStubs.Team({
+  const TEAM_2 = Team({
     id: '4',
     slug: 'team-not-in-project',
   });
@@ -57,7 +61,7 @@ describe('RuleBuilder', function () {
 
     handleAdd = jest.fn();
 
-    project = TestStubs.Project({
+    project = Project({
       // Teams in project
       teams: [TEAM_1],
     });

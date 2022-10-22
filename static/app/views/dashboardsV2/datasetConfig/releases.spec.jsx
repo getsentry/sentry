@@ -1,3 +1,5 @@
+import {SessionUserCountByStatusByRelease} from 'fixtures/js-stubs/sessionUserCountByStatusByRelease';
+
 import {transformSessionsResponseToTable} from 'sentry/views/dashboardsV2/datasetConfig/releases';
 
 describe('transformSessionsResponseToTable', function () {
@@ -11,10 +13,7 @@ describe('transformSessionsResponseToTable', function () {
   };
   it('transforms sessions into table', () => {
     expect(
-      transformSessionsResponseToTable(
-        TestStubs.SessionUserCountByStatusByRelease(),
-        widgetQuery
-      )
+      transformSessionsResponseToTable(SessionUserCountByStatusByRelease(), widgetQuery)
     ).toEqual({
       data: [
         {
@@ -84,7 +83,7 @@ describe('transformSessionsResponseToTable', function () {
   });
   it('adds derived metric fields', () => {
     expect(
-      transformSessionsResponseToTable(TestStubs.SessionUserCountByStatusByRelease(), {
+      transformSessionsResponseToTable(SessionUserCountByStatusByRelease(), {
         ...widgetQuery,
         aggregates: ['count_unique(user)', 'sum(session)', 'count_crashed(session)'],
       })
@@ -166,7 +165,7 @@ describe('transformSessionsResponseToTable', function () {
   });
   it('strips away injected fields', () => {
     expect(
-      transformSessionsResponseToTable(TestStubs.SessionUserCountByStatusByRelease(), {
+      transformSessionsResponseToTable(SessionUserCountByStatusByRelease(), {
         ...widgetQuery,
         aggregates: ['count_unique(user)', 'count_crashed(session)'],
       })

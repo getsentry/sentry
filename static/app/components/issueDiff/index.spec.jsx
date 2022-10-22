@@ -1,3 +1,6 @@
+import {Entries} from 'fixtures/js-stubs/entries';
+import {ProjectDetails} from 'fixtures/js-stubs/projectDetails';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {IssueDiff} from 'sentry/components/issueDiff';
@@ -5,9 +8,9 @@ import {IssueDiff} from 'sentry/components/issueDiff';
 jest.mock('sentry/api');
 
 describe('IssueDiff', function () {
-  const entries = TestStubs.Entries();
+  const entries = Entries();
   const api = new MockApiClient();
-  const project = TestStubs.ProjectDetails();
+  const project = ProjectDetails();
 
   beforeEach(function () {
     MockApiClient.addMockResponse({

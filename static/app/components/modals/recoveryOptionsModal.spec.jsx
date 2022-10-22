@@ -1,3 +1,6 @@
+import {AllAuthenticators} from 'fixtures/js-stubs/allAuthenticators';
+import {Authenticators} from 'fixtures/js-stubs/authenticators';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import RecoveryOptionsModal from 'sentry/components/modals/recoveryOptionsModal';
@@ -5,14 +8,14 @@ import RecoveryOptionsModal from 'sentry/components/modals/recoveryOptionsModal'
 describe('RecoveryOptionsModal', function () {
   const closeModal = jest.fn();
   const onClose = jest.fn();
-  const mockId = TestStubs.Authenticators().Recovery().authId;
+  const mockId = Authenticators().Recovery().authId;
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/users/me/authenticators/',
       method: 'GET',
-      body: TestStubs.AllAuthenticators(),
+      body: AllAuthenticators(),
     });
   });
 
@@ -70,7 +73,7 @@ describe('RecoveryOptionsModal', function () {
     MockApiClient.addMockResponse({
       url: '/users/me/authenticators/',
       method: 'GET',
-      body: [TestStubs.Authenticators().Totp(), TestStubs.Authenticators().Recovery()],
+      body: [Authenticators().Totp(), Authenticators().Recovery()],
     });
 
     renderComponent();

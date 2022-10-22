@@ -1,9 +1,12 @@
+import {ApiToken} from 'fixtures/js-stubs/apiToken';
+import {Organization} from 'fixtures/js-stubs/organization';
+
 import {fireEvent, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import {ApiTokens} from 'sentry/views/settings/account/apiTokens';
 
-const organization = TestStubs.Organization();
+const organization = Organization();
 
 describe('ApiTokens', function () {
   beforeEach(function () {
@@ -25,7 +28,7 @@ describe('ApiTokens', function () {
   it('renders with result', function () {
     Client.addMockResponse({
       url: '/api-tokens/',
-      body: [TestStubs.ApiToken()],
+      body: [ApiToken()],
     });
 
     const {container} = render(<ApiTokens organization={organization} />);
@@ -37,7 +40,7 @@ describe('ApiTokens', function () {
   it('can delete token', function () {
     Client.addMockResponse({
       url: '/api-tokens/',
-      body: [TestStubs.ApiToken()],
+      body: [ApiToken()],
     });
 
     const mock = Client.addMockResponse({

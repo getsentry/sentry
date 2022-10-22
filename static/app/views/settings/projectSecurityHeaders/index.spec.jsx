@@ -1,10 +1,15 @@
+import {location} from 'fixtures/js-stubs/location';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
+import {routerProps} from 'fixtures/js-stubs/routerProps';
+
 import {render} from 'sentry-test/reactTestingLibrary';
 
 import ProjectSecurityHeaders from 'sentry/views/settings/projectSecurityHeaders';
 
 describe('ProjectSecurityHeaders', function () {
-  const org = TestStubs.Organization();
-  const project = TestStubs.Project();
+  const org = Organization();
+  const project = Project();
   const url = `/projects/${org.slug}/${project.slug}/`;
 
   beforeEach(function () {
@@ -21,9 +26,9 @@ describe('ProjectSecurityHeaders', function () {
       <ProjectSecurityHeaders
         organization={org}
         project={project}
-        {...TestStubs.routerProps({
+        {...routerProps({
           params: {orgId: org.slug, projectId: project.slug},
-          location: TestStubs.location({pathname: url}),
+          location: location({pathname: url}),
         })}
       />
     );

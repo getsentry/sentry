@@ -1,14 +1,18 @@
+import {AuthProviders} from 'fixtures/js-stubs/authProviders';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {routerContext} from 'fixtures/js-stubs/routerContext';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {descopeFeatureName} from 'sentry/utils';
 import ProviderItem from 'sentry/views/settings/organizationAuth/providerItem';
 
 describe('ProviderItem', function () {
-  const provider = TestStubs.AuthProviders()[0];
-  const org = TestStubs.Organization({
+  const provider = AuthProviders()[0];
+  const org = Organization({
     features: [descopeFeatureName(provider.requiredFeature)],
   });
-  const routerContext = TestStubs.routerContext([{organization: org}]);
+  const routerContext = routerContext([{organization: org}]);
 
   it('renders', function () {
     render(
@@ -32,7 +36,7 @@ describe('ProviderItem', function () {
   });
 
   it('renders a disabled Tag when disabled', function () {
-    const noFeatureRouterContext = TestStubs.routerContext();
+    const noFeatureRouterContext = routerContext();
     render(
       <ProviderItem organization={org} provider={provider} onConfigure={() => {}} />,
       {context: noFeatureRouterContext}

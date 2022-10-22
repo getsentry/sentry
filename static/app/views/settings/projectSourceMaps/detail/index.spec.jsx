@@ -1,3 +1,5 @@
+import {SourceMapArtifact} from 'fixtures/js-stubs/sourceMapArtifact';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -27,10 +29,7 @@ describe('ProjectSourceMapsDetail', () => {
   it('renders', () => {
     MockApiClient.addMockResponse({
       url: endpoint,
-      body: [
-        TestStubs.SourceMapArtifact(),
-        TestStubs.SourceMapArtifact({name: 'abc', id: '2'}),
-      ],
+      body: [SourceMapArtifact(), SourceMapArtifact({name: 'abc', id: '2'})],
     });
 
     render(<ProjectSourceMapsDetail {...props} />);
@@ -126,7 +125,7 @@ describe('ProjectSourceMapsDetail', () => {
   });
 
   it('deletes single artifact', () => {
-    const artifact = TestStubs.SourceMapArtifact();
+    const artifact = SourceMapArtifact();
 
     MockApiClient.addMockResponse({
       url: endpoint,

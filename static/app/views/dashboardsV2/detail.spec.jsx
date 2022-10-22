@@ -1,4 +1,10 @@
 import {browserHistory} from 'react-router';
+import {Dashboard} from 'fixtures/js-stubs/dashboard';
+import {location} from 'fixtures/js-stubs/location';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
+import {Release} from 'fixtures/js-stubs/release';
+import {Widget} from 'fixtures/js-stubs/widget';
 
 import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -26,7 +32,7 @@ jest.mock('sentry/components/charts/worldMapChart', () => ({
 describe('Dashboards > Detail', function () {
   enforceActOnUseLegacyStoreHook();
 
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features: [
       'global-views',
       'dashboards-basic',
@@ -35,7 +41,7 @@ describe('Dashboards > Detail', function () {
       'dashboard-grid-layout',
     ],
   });
-  const projects = [TestStubs.Project()];
+  const projects = [Project()];
 
   describe('prebuilt dashboards', function () {
     let wrapper, initialData;
@@ -50,18 +56,18 @@ describe('Dashboards > Detail', function () {
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
-        body: [TestStubs.Project()],
+        body: [Project()],
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/',
         body: [
-          TestStubs.Dashboard([], {id: 'default-overview', title: 'Default'}),
-          TestStubs.Dashboard([], {id: '1', title: 'Custom Errors'}),
+          Dashboard([], {id: 'default-overview', title: 'Default'}),
+          Dashboard([], {id: '1', title: 'Custom Errors'}),
         ],
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/default-overview/',
-        body: TestStubs.Dashboard([], {id: 'default-overview', title: 'Default'}),
+        body: Dashboard([], {id: 'default-overview', title: 'Default'}),
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/visit/',
@@ -117,9 +123,9 @@ describe('Dashboards > Detail', function () {
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/default-overview/',
-        body: TestStubs.Dashboard(
+        body: Dashboard(
           [
-            TestStubs.Widget(
+            Widget(
               [
                 {
                   name: '',
@@ -134,7 +140,7 @@ describe('Dashboards > Detail', function () {
                 interval: '1d',
               }
             ),
-            TestStubs.Widget(
+            Widget(
               [
                 {
                   name: '',
@@ -154,14 +160,14 @@ describe('Dashboards > Detail', function () {
         ),
       });
       initialData = initializeOrg({
-        organization: TestStubs.Organization({
+        organization: Organization({
           features: [
             'global-views',
             'dashboards-basic',
             'discover-query',
             'dashboard-grid-layout',
           ],
-          projects: [TestStubs.Project()],
+          projects: [Project()],
         }),
       });
 
@@ -237,11 +243,11 @@ describe('Dashboards > Detail', function () {
       initialData = initializeOrg({
         organization,
         router: {
-          location: TestStubs.location(),
+          location: location(),
         },
       });
       widgets = [
-        TestStubs.Widget(
+        Widget(
           [
             {
               name: '',
@@ -258,7 +264,7 @@ describe('Dashboards > Detail', function () {
             id: '1',
           }
         ),
-        TestStubs.Widget(
+        Widget(
           [
             {
               name: '',
@@ -275,7 +281,7 @@ describe('Dashboards > Detail', function () {
             id: '2',
           }
         ),
-        TestStubs.Widget(
+        Widget(
           [
             {
               name: '',
@@ -304,17 +310,17 @@ describe('Dashboards > Detail', function () {
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
-        body: [TestStubs.Project()],
+        body: [Project()],
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/',
         body: [
-          TestStubs.Dashboard([], {
+          Dashboard([], {
             id: 'default-overview',
             title: 'Default',
             widgetDisplay: ['area'],
           }),
-          TestStubs.Dashboard([], {
+          Dashboard([], {
             id: '1',
             title: 'Custom Errors',
             widgetDisplay: ['area'],
@@ -323,7 +329,7 @@ describe('Dashboards > Detail', function () {
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
-        body: TestStubs.Dashboard(widgets, {
+        body: Dashboard(widgets, {
           id: '1',
           title: 'Custom Errors',
           filters: {},
@@ -332,7 +338,7 @@ describe('Dashboards > Detail', function () {
       mockPut = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
         method: 'PUT',
-        body: TestStubs.Dashboard(widgets, {id: '1', title: 'Custom Errors'}),
+        body: Dashboard(widgets, {id: '1', title: 'Custom Errors'}),
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-stats/',
@@ -394,7 +400,7 @@ describe('Dashboards > Detail', function () {
       const updateMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
         method: 'PUT',
-        body: TestStubs.Dashboard([widgets[0]], {id: '1', title: 'Custom Errors'}),
+        body: Dashboard([widgets[0]], {id: '1', title: 'Custom Errors'}),
       });
       await act(async () => {
         wrapper = mountWithTheme(
@@ -452,7 +458,7 @@ describe('Dashboards > Detail', function () {
     it('appends dashboard-level filters to series request', async function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
-        body: TestStubs.Dashboard(widgets, {
+        body: Dashboard(widgets, {
           id: '1',
           title: 'Custom Errors',
           filters: {release: ['abc@1.2.0']},
@@ -515,11 +521,11 @@ describe('Dashboards > Detail', function () {
     it('shows top level release filter', async function () {
       const mockReleases = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/',
-        body: [TestStubs.Release()],
+        body: [Release()],
       });
 
       initialData = initializeOrg({
-        organization: TestStubs.Organization({
+        organization: Organization({
           features: [
             'global-views',
             'dashboards-basic',
@@ -527,7 +533,7 @@ describe('Dashboards > Detail', function () {
             'discover-query',
             'dashboards-top-level-filter',
           ],
-          projects: [TestStubs.Project()],
+          projects: [Project()],
         }),
       });
 
@@ -579,9 +585,9 @@ describe('Dashboards > Detail', function () {
       // A case where someone has async added widgets to a dashboard
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
-        body: TestStubs.Dashboard(
+        body: Dashboard(
           [
-            TestStubs.Widget(
+            Widget(
               [
                 {
                   name: '',
@@ -598,7 +604,7 @@ describe('Dashboards > Detail', function () {
                 layout: {i: 'grid-item-1', x: 0, y: 0, w: 2, h: 6},
               }
             ),
-            TestStubs.Widget(
+            Widget(
               [
                 {
                   name: '',
@@ -638,9 +644,9 @@ describe('Dashboards > Detail', function () {
     it('does not trigger request if layout not updated', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
-        body: TestStubs.Dashboard(
+        body: Dashboard(
           [
-            TestStubs.Widget(
+            Widget(
               [
                 {
                   name: '',
@@ -685,9 +691,9 @@ describe('Dashboards > Detail', function () {
     it('renders the custom resize handler for a widget', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
-        body: TestStubs.Dashboard(
+        body: Dashboard(
           [
-            TestStubs.Widget(
+            Widget(
               [
                 {
                   name: '',
@@ -732,9 +738,9 @@ describe('Dashboards > Detail', function () {
     it('does not trigger an alert when the widgets have no layout and user cancels without changes', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
-        body: TestStubs.Dashboard(
+        body: Dashboard(
           [
-            TestStubs.Widget(
+            Widget(
               [
                 {
                   name: '',
@@ -778,7 +784,7 @@ describe('Dashboards > Detail', function () {
 
     it('opens the widget viewer modal using the widget id specified in the url', async () => {
       const openWidgetViewerModal = jest.spyOn(modals, 'openWidgetViewerModal');
-      const widget = TestStubs.Widget(
+      const widget = Widget(
         [
           {
             name: '',
@@ -798,7 +804,7 @@ describe('Dashboards > Detail', function () {
       );
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
-        body: TestStubs.Dashboard([widget], {id: '1', title: 'Custom Errors'}),
+        body: Dashboard([widget], {id: '1', title: 'Custom Errors'}),
       });
 
       await act(async () => {
@@ -827,7 +833,7 @@ describe('Dashboards > Detail', function () {
       const openWidgetViewerModal = jest.spyOn(modals, 'openWidgetViewerModal');
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
-        body: TestStubs.Dashboard([], {id: '1', title: 'Custom Errors'}),
+        body: Dashboard([], {id: '1', title: 'Custom Errors'}),
       });
       render(
         <ViewEditDashboard
@@ -944,7 +950,7 @@ describe('Dashboards > Detail', function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/',
         body: [
-          TestStubs.Release({
+          Release({
             shortVersion: 'sentry-android-shop@1.2.0',
             version: 'sentry-android-shop@1.2.0',
           }),
@@ -980,14 +986,14 @@ describe('Dashboards > Detail', function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/',
         body: [
-          TestStubs.Release({
+          Release({
             shortVersion: 'sentry-android-shop@1.2.0',
             version: 'sentry-android-shop@1.2.0',
           }),
         ],
       });
       const testData = initializeOrg({
-        organization: TestStubs.Organization({
+        organization: Organization({
           features: [
             'global-views',
             'dashboards-basic',
@@ -999,7 +1005,7 @@ describe('Dashboards > Detail', function () {
         }),
         router: {
           location: {
-            ...TestStubs.location(),
+            ...location(),
             query: {
               statsPeriod: '7d',
               release: ['sentry-android-shop@1.2.0'],
@@ -1033,7 +1039,7 @@ describe('Dashboards > Detail', function () {
     it('can clear dashboard filters in compact select', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
-        body: TestStubs.Dashboard(widgets, {
+        body: Dashboard(widgets, {
           id: '1',
           title: 'Custom Errors',
           filters: {release: ['sentry-android-shop@1.2.0']},
@@ -1043,14 +1049,14 @@ describe('Dashboards > Detail', function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/',
         body: [
-          TestStubs.Release({
+          Release({
             shortVersion: 'sentry-android-shop@1.2.0',
             version: 'sentry-android-shop@1.2.0',
           }),
         ],
       });
       const testData = initializeOrg({
-        organization: TestStubs.Organization({
+        organization: Organization({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1062,7 +1068,7 @@ describe('Dashboards > Detail', function () {
         }),
         router: {
           location: {
-            ...TestStubs.location(),
+            ...location(),
             query: {
               statsPeriod: '7d',
             },
@@ -1096,7 +1102,7 @@ describe('Dashboards > Detail', function () {
 
     it('can save absolute time range in existing dashboard', async () => {
       const testData = initializeOrg({
-        organization: TestStubs.Organization({
+        organization: Organization({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1108,7 +1114,7 @@ describe('Dashboards > Detail', function () {
         }),
         router: {
           location: {
-            ...TestStubs.location(),
+            ...location(),
             query: {
               start: '2022-07-14T07:00:00',
               end: '2022-07-19T23:59:59',
@@ -1145,14 +1151,14 @@ describe('Dashboards > Detail', function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/',
         body: [
-          TestStubs.Release({
+          Release({
             shortVersion: 'sentry-android-shop@1.2.0',
             version: 'sentry-android-shop@1.2.0',
           }),
         ],
       });
       const testData = initializeOrg({
-        organization: TestStubs.Organization({
+        organization: Organization({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1164,7 +1170,7 @@ describe('Dashboards > Detail', function () {
         }),
         router: {
           location: {
-            ...TestStubs.location(),
+            ...location(),
             query: {
               statsPeriod: '7d',
               project: [1, 2],
@@ -1206,14 +1212,14 @@ describe('Dashboards > Detail', function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/',
         body: [
-          TestStubs.Release({
+          Release({
             shortVersion: 'sentry-android-shop@1.2.0',
             version: 'sentry-android-shop@1.2.0',
           }),
         ],
       });
       const testData = initializeOrg({
-        organization: TestStubs.Organization({
+        organization: Organization({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1226,7 +1232,7 @@ describe('Dashboards > Detail', function () {
         }),
         router: {
           location: {
-            ...TestStubs.location(),
+            ...location(),
             query: {
               statsPeriod: '7d',
               project: [1, 2],
@@ -1252,8 +1258,8 @@ describe('Dashboards > Detail', function () {
 
     it('ignores the order of selection of page filters to render unsaved filters', async () => {
       const testProjects = [
-        TestStubs.Project({id: '1', name: 'first', environments: ['alpha', 'beta']}),
-        TestStubs.Project({id: '2', name: 'second', environments: ['alpha', 'beta']}),
+        Project({id: '1', name: 'first', environments: ['alpha', 'beta']}),
+        Project({id: '2', name: 'second', environments: ['alpha', 'beta']}),
       ];
 
       act(() => ProjectsStore.loadInitialData(testProjects));
@@ -1263,7 +1269,7 @@ describe('Dashboards > Detail', function () {
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
-        body: TestStubs.Dashboard(widgets, {
+        body: Dashboard(widgets, {
           id: '1',
           title: 'Custom Errors',
           filters: {},
@@ -1272,7 +1278,7 @@ describe('Dashboards > Detail', function () {
       });
 
       const testData = initializeOrg({
-        organization: TestStubs.Organization({
+        organization: Organization({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1284,7 +1290,7 @@ describe('Dashboards > Detail', function () {
         }),
         router: {
           location: {
-            ...TestStubs.location(),
+            ...location(),
             query: {
               environment: ['beta', 'alpha'], // Reversed order from saved dashboard
             },
@@ -1311,7 +1317,7 @@ describe('Dashboards > Detail', function () {
 
     it('uses releases from the URL query params', async function () {
       const testData = initializeOrg({
-        organization: TestStubs.Organization({
+        organization: Organization({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1323,7 +1329,7 @@ describe('Dashboards > Detail', function () {
         }),
         router: {
           location: {
-            ...TestStubs.location(),
+            ...location(),
             query: {
               release: ['not-selected-1'],
             },
@@ -1348,7 +1354,7 @@ describe('Dashboards > Detail', function () {
     it('resets release in URL params', async function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
-        body: TestStubs.Dashboard(widgets, {
+        body: Dashboard(widgets, {
           id: '1',
           title: 'Custom Errors',
           filters: {
@@ -1357,7 +1363,7 @@ describe('Dashboards > Detail', function () {
         }),
       });
       const testData = initializeOrg({
-        organization: TestStubs.Organization({
+        organization: Organization({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1369,7 +1375,7 @@ describe('Dashboards > Detail', function () {
         }),
         router: {
           location: {
-            ...TestStubs.location(),
+            ...location(),
             query: {
               release: ['not-selected-1'],
             },
@@ -1408,14 +1414,14 @@ describe('Dashboards > Detail', function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/',
         body: [
-          TestStubs.Release({
+          Release({
             shortVersion: 'sentry-android-shop@1.2.0',
             version: 'sentry-android-shop@1.2.0',
           }),
         ],
       });
       const testData = initializeOrg({
-        organization: TestStubs.Organization({
+        organization: Organization({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1426,7 +1432,7 @@ describe('Dashboards > Detail', function () {
           ],
         }),
         router: {
-          location: TestStubs.location(),
+          location: location(),
         },
       });
       render(
@@ -1457,7 +1463,7 @@ describe('Dashboards > Detail', function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/',
         body: [
-          TestStubs.Release({
+          Release({
             shortVersion: 'sentry-android-shop@1.2.0',
             version: 'sentry-android-shop@1.2.0',
           }),
@@ -1467,7 +1473,7 @@ describe('Dashboards > Detail', function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/',
         body: [
-          TestStubs.Release({
+          Release({
             id: '9',
             shortVersion: 'search-result',
             version: 'search-result',
@@ -1476,7 +1482,7 @@ describe('Dashboards > Detail', function () {
         match: [MockApiClient.matchData({query: 's'})],
       });
       const testData = initializeOrg({
-        organization: TestStubs.Organization({
+        organization: Organization({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1488,7 +1494,7 @@ describe('Dashboards > Detail', function () {
           ],
         }),
         router: {
-          location: TestStubs.location(),
+          location: location(),
         },
       });
       render(

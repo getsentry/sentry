@@ -1,3 +1,7 @@
+import {Group} from 'fixtures/js-stubs/group';
+import {SentryApp} from 'fixtures/js-stubs/sentryApp';
+import {SentryAppComponent} from 'fixtures/js-stubs/sentryAppComponent';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {changeInputValue, selectByValue} from 'sentry-test/select-new';
 
@@ -17,14 +21,14 @@ describe('SentryAppExternalIssueForm', () => {
   let externalIssueRequest;
 
   beforeEach(() => {
-    group = TestStubs.Group({
+    group = Group({
       title: 'ApiError: Broken',
       shortId: 'SEN123',
       permalink: 'https://sentry.io/organizations/sentry/issues/123/?project=1',
     });
-    component = TestStubs.SentryAppComponent();
-    sentryApp = TestStubs.SentryApp();
-    sentryAppInstallation = TestStubs.SentryAppInstallation({sentryApp});
+    component = SentryAppComponent();
+    sentryApp = SentryApp();
+    sentryAppInstallation = SentryAppInstallation({sentryApp});
     submitUrl = `/sentry-app-installations/${sentryAppInstallation.uuid}/external-issue-actions/`;
     externalIssueRequest = Client.addMockResponse({
       url: submitUrl,
@@ -142,16 +146,16 @@ describe('SentryAppExternalIssueForm Async Field', () => {
   let group;
   let sentryApp;
   let sentryAppInstallation;
-  const component = TestStubs.SentryAppComponentAsync();
+  const component = SentryAppComponentAsync();
 
   beforeEach(() => {
-    group = TestStubs.Group({
+    group = Group({
       title: 'ApiError: Broken',
       shortId: 'SEN123',
       permalink: 'https://sentry.io/organizations/sentry/issues/123/?project=1',
     });
-    sentryApp = TestStubs.SentryApp();
-    sentryAppInstallation = TestStubs.SentryAppInstallation({sentryApp});
+    sentryApp = SentryApp();
+    sentryAppInstallation = SentryAppInstallation({sentryApp});
   });
 
   afterEach(() => {
@@ -199,16 +203,16 @@ describe('SentryAppExternalIssueForm Dependent fields', () => {
   let group;
   let sentryApp;
   let sentryAppInstallation;
-  const component = TestStubs.SentryAppComponentDependent();
+  const component = SentryAppComponentDependent();
 
   beforeEach(() => {
-    group = TestStubs.Group({
+    group = Group({
       title: 'ApiError: Broken',
       shortId: 'SEN123',
       permalink: 'https://sentry.io/organizations/sentry/issues/123/?project=1',
     });
-    sentryApp = TestStubs.SentryApp();
-    sentryAppInstallation = TestStubs.SentryAppInstallation({sentryApp});
+    sentryApp = SentryApp();
+    sentryAppInstallation = SentryAppInstallation({sentryApp});
 
     wrapper = mountWithTheme(
       <SentryAppExternalIssueForm

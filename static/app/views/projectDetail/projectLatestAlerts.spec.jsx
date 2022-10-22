@@ -1,3 +1,6 @@
+import {Incident} from 'fixtures/js-stubs/incident';
+import {MetricRule} from 'fixtures/js-stubs/metricRule';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
@@ -11,14 +14,14 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
     endpointMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/incidents/`,
       body: [
-        TestStubs.Incident({id: 1, status: 20}), // critical
-        TestStubs.Incident({id: 2, status: 10}), // warning
-        TestStubs.Incident({id: 3, status: 2}), // closed
+        Incident({id: 1, status: 20}), // critical
+        Incident({id: 2, status: 10}), // warning
+        Incident({id: 3, status: 2}), // closed
       ],
     });
     rulesEndpointMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/alert-rules/`,
-      body: [TestStubs.MetricRule()],
+      body: [MetricRule()],
     });
   });
 
@@ -163,9 +166,9 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/incidents/`,
       body: [
-        TestStubs.Incident({id: 1, status: 20}), // critical
-        TestStubs.Incident({id: 2, status: 10}), // warning
-        TestStubs.Incident({id: 3, status: 2, dateClosed: null}), // closed with null dateClosed
+        Incident({id: 1, status: 20}), // critical
+        Incident({id: 2, status: 10}), // warning
+        Incident({id: 3, status: 2, dateClosed: null}), // closed with null dateClosed
       ],
     });
 

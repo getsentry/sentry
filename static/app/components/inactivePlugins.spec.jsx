@@ -1,3 +1,5 @@
+import {Plugins} from 'fixtures/js-stubs/plugins';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import InactivePlugins from 'sentry/components/inactivePlugins';
@@ -12,14 +14,14 @@ describe('InactivePlugins', function () {
 
   it('renders plugins list', function () {
     const {container} = render(
-      <InactivePlugins onEnablePlugin={() => {}} plugins={TestStubs.Plugins()} />
+      <InactivePlugins onEnablePlugin={() => {}} plugins={Plugins()} />
     );
     expect(container).toSnapshot();
   });
 
   it('enables a plugin', function () {
     const enableFn = jest.fn();
-    const plugins = TestStubs.Plugins();
+    const plugins = Plugins();
     render(<InactivePlugins onEnablePlugin={enableFn} plugins={plugins} />);
     userEvent.click(screen.getByRole('button', {name: plugins[0].name}));
     expect(enableFn).toHaveBeenCalledWith(expect.objectContaining(plugins[0]));

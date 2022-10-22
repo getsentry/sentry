@@ -1,3 +1,5 @@
+import {AccountEmails} from 'fixtures/js-stubs/accountEmails';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
@@ -12,7 +14,7 @@ describe('AccountEmails', function () {
     Client.clearMockResponses();
     Client.addMockResponse({
       url: ENDPOINT,
-      body: TestStubs.AccountEmails(),
+      body: AccountEmails(),
     });
   });
 

@@ -1,12 +1,15 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+import {ProjectDetails} from 'fixtures/js-stubs/projectDetails';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectPerformance from 'sentry/views/settings/projectPerformance/projectPerformance';
 
 describe('projectPerformance', function () {
-  const org = TestStubs.Organization({
+  const org = Organization({
     features: ['performance-view', 'performance-issues-dev'],
   });
-  const project = TestStubs.ProjectDetails();
+  const project = ProjectDetails();
   const configUrl = '/projects/org-slug/project-slug/transaction-threshold/configure/';
   let getMock, postMock, deleteMock, performanceIssuesMock;
 
@@ -106,7 +109,7 @@ describe('projectPerformance', function () {
   });
 
   it('does not get performance issues settings without the feature flag', function () {
-    const orgWithoutPerfIssues = TestStubs.Organization({
+    const orgWithoutPerfIssues = Organization({
       features: ['performance-view'],
     });
 

@@ -1,3 +1,5 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
@@ -22,7 +24,7 @@ describe('Sudo Modal', function () {
     });
     Client.addMockResponse({
       url: '/organizations/',
-      body: [TestStubs.Organization()],
+      body: [Organization()],
     });
     Client.addMockResponse({
       url: '/organizations/org-slug/',

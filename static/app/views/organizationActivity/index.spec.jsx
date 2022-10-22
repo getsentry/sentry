@@ -1,3 +1,5 @@
+import {ActivityFeed} from 'fixtures/js-stubs/activityFeed';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -11,8 +13,8 @@ describe('OrganizationActivity', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/activity/',
       body: [
-        TestStubs.ActivityFeed(),
-        TestStubs.ActivityFeed({
+        ActivityFeed(),
+        ActivityFeed({
           id: '49',
           data: {},
           type: 'set_public',

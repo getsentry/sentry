@@ -1,3 +1,7 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
+import {Release} from 'fixtures/js-stubs/release';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   act,
@@ -47,10 +51,10 @@ describe('ReleasesList', () => {
     endpointMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
       body: [
-        TestStubs.Release({version: '1.0.0'}),
-        TestStubs.Release({version: '1.0.1'}),
+        Release({version: '1.0.0'}),
+        Release({version: '1.0.1'}),
         {
-          ...TestStubs.Release({version: 'af4f231ec9a8'}),
+          ...Release({version: 'af4f231ec9a8'}),
           projects: [
             {
               id: 4383604,
@@ -97,19 +101,19 @@ describe('ReleasesList', () => {
   it('displays the right empty state', async () => {
     let location;
 
-    const project = TestStubs.Project({
+    const project = Project({
       id: '3',
       slug: 'test-slug',
       name: 'test-name',
       features: ['releases'],
     });
-    const projectWithouReleases = TestStubs.Project({
+    const projectWithouReleases = Project({
       id: '4',
       slug: 'test-slug-2',
       name: 'test-name-2',
       features: [],
     });
-    const org = TestStubs.Organization({projects: [project, projectWithouReleases]});
+    const org = Organization({projects: [project, projectWithouReleases]});
     ProjectsStore.loadInitialData(org.projects);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
@@ -486,7 +490,7 @@ describe('ReleasesList', () => {
       url: '/organizations/org-slug/releases/',
       body: [
         {
-          ...TestStubs.Release({version: '2.0.0'}),
+          ...Release({version: '2.0.0'}),
           projects: [
             {
               id: 1,
@@ -522,7 +526,7 @@ describe('ReleasesList', () => {
   it('does not hide health rows when "All Projects" are selected in global header', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
-      body: [TestStubs.Release({version: '2.0.0'})],
+      body: [Release({version: '2.0.0'})],
     });
     render(<ReleasesList {...props} selection={{...props.selection, projects: [-1]}} />, {
       context: routerContext,

@@ -1,3 +1,8 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
+import {routerContext} from 'fixtures/js-stubs/routerContext';
+import {Team} from 'fixtures/js-stubs/team';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -14,33 +19,33 @@ jest.mock('sentry/utils/isActiveSuperuser', () => ({
 describe('TeamStatsIssues', () => {
   const env1 = 'prod';
   const env2 = 'dev';
-  const project1 = TestStubs.Project({
+  const project1 = Project({
     id: '2',
     name: 'js',
     slug: 'js',
     environments: [env1, env2],
   });
-  const project2 = TestStubs.Project({
+  const project2 = Project({
     id: '3',
     name: 'py',
     slug: 'py',
     environments: [env1, env2],
   });
-  const team1 = TestStubs.Team({
+  const team1 = Team({
     id: '2',
     slug: 'frontend',
     name: 'frontend',
     projects: [project1],
     isMember: true,
   });
-  const team2 = TestStubs.Team({
+  const team2 = Team({
     id: '3',
     slug: 'backend',
     name: 'backend',
     projects: [project2],
     isMember: true,
   });
-  const team3 = TestStubs.Team({
+  const team3 = Team({
     id: '4',
     slug: 'internal',
     name: 'internal',
@@ -57,11 +62,11 @@ describe('TeamStatsIssues', () => {
     });
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team1.slug}/time-to-resolution/`,
-      body: TestStubs.TeamResolutionTime(),
+      body: TeamResolutionTime(),
     });
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team1.slug}/issue-breakdown/`,
-      body: TestStubs.TeamIssuesBreakdown(),
+      body: TeamIssuesBreakdown(),
     });
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team2.slug}/alerts-triggered-index/`,
@@ -69,11 +74,11 @@ describe('TeamStatsIssues', () => {
     });
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team2.slug}/time-to-resolution/`,
-      body: TestStubs.TeamResolutionTime(),
+      body: TeamResolutionTime(),
     });
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team2.slug}/issue-breakdown/`,
-      body: TestStubs.TeamIssuesBreakdown(),
+      body: TeamIssuesBreakdown(),
     });
     MockApiClient.addMockResponse({
       method: 'GET',
@@ -127,11 +132,11 @@ describe('TeamStatsIssues', () => {
     teams = teams ?? [team1, team2, team3];
     projects = projects ?? [project1, project2];
     ProjectsStore.loadInitialData(projects);
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       teams,
       projects,
     });
-    const context = TestStubs.routerContext([{organization}]);
+    const context = routerContext([{organization}]);
     TeamStore.loadInitialData(teams, false, null);
 
     return render(<TeamStatsIssues router={mockRouter} location={{}} />, {

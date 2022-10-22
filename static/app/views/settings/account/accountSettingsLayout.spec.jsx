@@ -1,3 +1,5 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+
 import {BreadcrumbContextProvider} from 'sentry-test/providers/breadcrumbContextProvider';
 import {render} from 'sentry-test/reactTestingLibrary';
 
@@ -51,7 +53,7 @@ describe('AccountSettingsLayout', function () {
 
     rerender(
       <BreadcrumbContextProvider>
-        <AccountSettingsLayout params={{}} organization={TestStubs.Organization()} />
+        <AccountSettingsLayout params={{}} organization={Organization()} />
       </BreadcrumbContextProvider>
     );
 

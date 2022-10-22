@@ -1,3 +1,7 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
+import {Team} from 'fixtures/js-stubs/team';
+
 import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -10,9 +14,9 @@ describe('actionCreators/onboardingTasks', function () {
 
   describe('updateOnboardingTask', function () {
     it('Adds the task to the organization when task does not exists', async function () {
-      const detailedOrg = TestStubs.Organization({
-        teams: [TestStubs.Team()],
-        projects: [TestStubs.Project()],
+      const detailedOrg = Organization({
+        teams: [Team()],
+        projects: [Project()],
       });
 
       // User is not passed into the update request
@@ -38,9 +42,9 @@ describe('actionCreators/onboardingTasks', function () {
     });
 
     it('Updates existing onboarding task', async function () {
-      const detailedOrg = TestStubs.Organization({
-        teams: [TestStubs.Team()],
-        projects: [TestStubs.Project()],
+      const detailedOrg = Organization({
+        teams: [Team()],
+        projects: [Project()],
         onboardingTasks: [{task: 'first_event', status: 'skipped'}],
       });
 
@@ -69,9 +73,9 @@ describe('actionCreators/onboardingTasks', function () {
     });
 
     it('Does not make API request without api object', async function () {
-      const detailedOrg = TestStubs.Organization({
-        teams: [TestStubs.Team()],
-        projects: [TestStubs.Project()],
+      const detailedOrg = Organization({
+        teams: [Team()],
+        projects: [Project()],
       });
 
       const testTask = {

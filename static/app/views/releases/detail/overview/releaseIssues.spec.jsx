@@ -1,3 +1,6 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Release} from 'fixtures/js-stubs/release';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ReleaseIssues from 'sentry/views/releases/detail/overview/releaseIssues';
@@ -11,11 +14,11 @@ describe('ReleaseIssues', function () {
 
   const props = {
     orgId: 'org',
-    organization: TestStubs.Organization(),
+    organization: Organization(),
     version: '1.0.0',
     selection: {projects: [], environments: [], datetime: {}},
     location: {href: '', query: {}},
-    releaseBounds: getReleaseBounds(TestStubs.Release({version: '1.0.0'})),
+    releaseBounds: getReleaseBounds(Release({version: '1.0.0'})),
   };
 
   beforeEach(function () {

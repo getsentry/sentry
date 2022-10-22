@@ -1,3 +1,7 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Plugins} from 'fixtures/js-stubs/plugins';
+import {Project} from 'fixtures/js-stubs/project';
+
 import {
   render,
   renderGlobalModal,
@@ -15,8 +19,8 @@ jest.mock('sentry/actionCreators/plugins', () => ({
 }));
 
 describe('ProjectReleaseTracking', function () {
-  const org = TestStubs.Organization();
-  const project = TestStubs.Project();
+  const org = Organization();
+  const project = Project();
   const url = `/projects/${org.slug}/${project.slug}/releases/token/`;
 
   beforeEach(function () {
@@ -24,7 +28,7 @@ describe('ProjectReleaseTracking', function () {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/plugins/`,
       method: 'GET',
-      body: TestStubs.Plugins(),
+      body: Plugins(),
     });
     MockApiClient.addMockResponse({
       url,
@@ -41,7 +45,7 @@ describe('ProjectReleaseTracking', function () {
       <ProjectReleaseTracking
         organization={org}
         project={project}
-        plugins={{loading: false, plugins: TestStubs.Plugins()}}
+        plugins={{loading: false, plugins: Plugins()}}
         params={{orgId: org.slug, projectId: project.slug}}
       />
     );
@@ -54,7 +58,7 @@ describe('ProjectReleaseTracking', function () {
       <ProjectReleaseTracking
         organization={org}
         project={project}
-        plugins={{loading: false, plugins: TestStubs.Plugins()}}
+        plugins={{loading: false, plugins: Plugins()}}
         params={{orgId: org.slug, projectId: project.slug}}
       />
     );

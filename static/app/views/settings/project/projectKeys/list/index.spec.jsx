@@ -1,3 +1,6 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
+
 import {
   render,
   renderGlobalModal,
@@ -14,9 +17,9 @@ describe('ProjectKeys', function () {
   let projectKeys;
 
   beforeEach(function () {
-    org = TestStubs.Organization();
-    project = TestStubs.Project();
-    projectKeys = TestStubs.ProjectKeys();
+    org = Organization();
+    project = Project();
+    projectKeys = ProjectKeys();
 
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -52,7 +55,7 @@ describe('ProjectKeys', function () {
       <ProjectKeys
         routes={[]}
         params={{orgId: org.slug, projectId: project.slug}}
-        project={TestStubs.Project()}
+        project={Project()}
       />
     );
 
@@ -67,7 +70,7 @@ describe('ProjectKeys', function () {
       <ProjectKeys
         routes={[]}
         params={{orgId: org.slug, projectId: project.slug}}
-        project={TestStubs.Project()}
+        project={Project()}
       />
     );
 
@@ -83,7 +86,7 @@ describe('ProjectKeys', function () {
       <ProjectKeys
         routes={[]}
         params={{orgId: org.slug, projectId: project.slug}}
-        project={TestStubs.Project()}
+        project={Project()}
       />
     );
 

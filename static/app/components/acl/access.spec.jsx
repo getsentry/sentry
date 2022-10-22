@@ -1,13 +1,16 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+import {routerContext} from 'fixtures/js-stubs/routerContext';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import Access from 'sentry/components/acl/access';
 import ConfigStore from 'sentry/stores/configStore';
 
 describe('Access', function () {
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     access: ['project:write', 'project:read'],
   });
-  const routerContext = TestStubs.routerContext([{organization}]);
+  const routerContext = routerContext([{organization}]);
 
   describe('as render prop', function () {
     const childrenMock = jest.fn().mockReturnValue(null);
@@ -68,7 +71,7 @@ describe('Access', function () {
     it('can specify org from props', function () {
       render(
         <Access
-          organization={TestStubs.Organization({access: ['org:write']})}
+          organization={Organization({access: ['org:write']})}
           access={['org:write']}
         >
           {childrenMock}

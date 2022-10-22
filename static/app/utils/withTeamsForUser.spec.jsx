@@ -1,3 +1,6 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -6,7 +9,7 @@ import withTeamsForUser from 'sentry/utils/withTeamsForUser';
 
 describe('withUserTeams HoC', function () {
   const api = new MockApiClient();
-  const organization = TestStubs.Organization();
+  const organization = Organization();
   delete organization.projects;
 
   function Output({error, teams}) {
@@ -39,8 +42,8 @@ describe('withUserTeams HoC', function () {
   });
 
   it('fetches teams and loads stores', async function () {
-    const mockProjectA = TestStubs.Project({slug: 'a', id: '1'});
-    const mockProjectB = TestStubs.Project({slug: 'b', id: '2'});
+    const mockProjectA = Project({slug: 'a', id: '1'});
+    const mockProjectB = Project({slug: 'b', id: '2'});
     const mockTeams = [
       {
         slug: 'sentry',

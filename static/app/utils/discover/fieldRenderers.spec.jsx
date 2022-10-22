@@ -1,3 +1,5 @@
+import {Project} from 'fixtures/js-stubs/project';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
@@ -12,7 +14,7 @@ describe('getFieldRenderer', function () {
 
   beforeEach(function () {
     context = initializeOrg({
-      project: TestStubs.Project(),
+      project: Project(),
     });
     organization = context.organization;
     project = context.project;

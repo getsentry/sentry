@@ -1,3 +1,5 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
 import * as PropTypes from 'prop-types';
 
 import {
@@ -18,9 +20,9 @@ describe('ProjectKeyDetails', function () {
   let projectKeys;
 
   beforeEach(function () {
-    org = TestStubs.Organization();
-    project = TestStubs.Project();
-    projectKeys = TestStubs.ProjectKeys();
+    org = Organization();
+    project = Project();
+    projectKeys = ProjectKeys();
 
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -76,7 +78,7 @@ describe('ProjectKeyDetails', function () {
 
     const context = {
       context: {
-        project: TestStubs.Project(),
+        project: Project(),
       },
       childContextTypes: {
         project: PropTypes.object,

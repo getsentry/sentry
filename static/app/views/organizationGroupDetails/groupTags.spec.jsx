@@ -1,3 +1,6 @@
+import {Group} from 'fixtures/js-stubs/group';
+import {Tags} from 'fixtures/js-stubs/tags';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -5,12 +8,12 @@ import GroupTags from 'sentry/views/organizationGroupDetails/groupTags';
 
 describe('GroupTags', function () {
   const {routerContext, router, organization} = initializeOrg();
-  const group = TestStubs.Group();
+  const group = Group();
   let tagsMock;
   beforeEach(function () {
     tagsMock = MockApiClient.addMockResponse({
       url: '/issues/1/tags/',
-      body: TestStubs.Tags(),
+      body: Tags(),
     });
   });
 

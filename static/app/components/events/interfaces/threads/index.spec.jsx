@@ -1,3 +1,8 @@
+import {Entries} from 'fixtures/js-stubs/entries';
+import {Event} from 'fixtures/js-stubs/event';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {router} from 'fixtures/js-stubs/router';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import Threads from 'sentry/components/events/interfaces/threads';
@@ -5,10 +10,10 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 import {RouteContext} from 'sentry/views/routeContext';
 
 describe('Threads', () => {
-  const entries = TestStubs.Entries()[0];
-  const event = TestStubs.Event({entries});
-  const organization = TestStubs.Organization();
-  const router = TestStubs.router();
+  const entries = Entries()[0];
+  const event = Event({entries});
+  const organization = Organization();
+  const router = router();
   const exceptionEntry = entries[0];
   const data = exceptionEntry.data;
   const type = exceptionEntry.type;

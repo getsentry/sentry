@@ -1,10 +1,13 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
+
 import {render} from 'sentry-test/reactTestingLibrary';
 
 import SetupAlertIntegrationButton from 'sentry/views/alerts/rules/issue/setupAlertIntegrationButton';
 
 describe('SetupAlertIntegrationButton', function () {
-  const organization = TestStubs.Organization();
-  const project = TestStubs.Project();
+  const organization = Organization();
+  const project = Project();
   it('renders button if no alert integrations', function () {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/?expand=hasAlertIntegration`,

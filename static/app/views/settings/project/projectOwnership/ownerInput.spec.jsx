@@ -1,4 +1,8 @@
 import selectEvent from 'react-select-event';
+import {Members} from 'fixtures/js-stubs/members';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
+import {User} from 'fixtures/js-stubs/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -11,13 +15,13 @@ describe('Project Ownership Input', function () {
   let put;
 
   beforeEach(function () {
-    org = TestStubs.Organization();
-    project = TestStubs.Project();
+    org = Organization();
+    project = Project();
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
       method: 'GET',
-      body: TestStubs.Members(),
+      body: Members(),
     });
     put = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/ownership/`,
@@ -25,9 +29,7 @@ describe('Project Ownership Input', function () {
       body: {raw: 'url:src @dummy@example.com'},
     });
     MemberListStore.init();
-    MemberListStore.loadInitialData([
-      TestStubs.User({id: '1', email: 'bob@example.com'}),
-    ]);
+    MemberListStore.loadInitialData([User({id: '1', email: 'bob@example.com'})]);
   });
 
   it('renders', function () {

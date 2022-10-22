@@ -1,3 +1,8 @@
+import {AccountEmails} from 'fixtures/js-stubs/accountEmails';
+import {AllAuthenticators} from 'fixtures/js-stubs/allAuthenticators';
+import {Authenticators} from 'fixtures/js-stubs/authenticators';
+import {Organizations} from 'fixtures/js-stubs/organizations';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
@@ -31,19 +36,19 @@ describe('AccountSecurityDetails', function () {
 
       Client.addMockResponse({
         url: ENDPOINT,
-        body: TestStubs.AllAuthenticators(),
+        body: AllAuthenticators(),
       });
       Client.addMockResponse({
         url: ORG_ENDPOINT,
-        body: TestStubs.Organizations(),
+        body: Organizations(),
       });
       Client.addMockResponse({
         url: `${ENDPOINT}15/`,
-        body: TestStubs.Authenticators().Totp(),
+        body: Authenticators().Totp(),
       });
       Client.addMockResponse({
         url: ACCOUNT_EMAILS_ENDPOINT,
-        body: TestStubs.AccountEmails(),
+        body: AccountEmails(),
       });
       wrapper = mountWithTheme(
         <AccountSecurityWrapper router={router} params={params}>
@@ -78,7 +83,7 @@ describe('AccountSecurityDetails', function () {
     it('can remove one of multiple 2fa methods when org requires 2fa', async function () {
       Client.addMockResponse({
         url: ORG_ENDPOINT,
-        body: TestStubs.Organizations({require2FA: true}),
+        body: Organizations({require2FA: true}),
       });
       const deleteMock = Client.addMockResponse({
         url: `${ENDPOINT}15/`,
@@ -102,11 +107,11 @@ describe('AccountSecurityDetails', function () {
     it('can not remove last 2fa method when org requires 2fa', async function () {
       Client.addMockResponse({
         url: ORG_ENDPOINT,
-        body: TestStubs.Organizations({require2FA: true}),
+        body: Organizations({require2FA: true}),
       });
       Client.addMockResponse({
         url: ENDPOINT,
-        body: [TestStubs.Authenticators().Totp()],
+        body: [Authenticators().Totp()],
       });
       const deleteMock = Client.addMockResponse({
         url: `${ENDPOINT}15/`,
@@ -140,19 +145,19 @@ describe('AccountSecurityDetails', function () {
       Client.clearMockResponses();
       Client.addMockResponse({
         url: ENDPOINT,
-        body: TestStubs.AllAuthenticators(),
+        body: AllAuthenticators(),
       });
       Client.addMockResponse({
         url: ORG_ENDPOINT,
-        body: TestStubs.Organizations(),
+        body: Organizations(),
       });
       Client.addMockResponse({
         url: `${ENDPOINT}16/`,
-        body: TestStubs.Authenticators().Recovery(),
+        body: Authenticators().Recovery(),
       });
       Client.addMockResponse({
         url: ACCOUNT_EMAILS_ENDPOINT,
-        body: TestStubs.AccountEmails(),
+        body: AccountEmails(),
       });
 
       wrapper = mountWithTheme(

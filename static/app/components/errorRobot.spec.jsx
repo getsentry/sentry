@@ -1,3 +1,7 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
+import {routerContext} from 'fixtures/js-stubs/routerContext';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
@@ -8,7 +12,7 @@ describe('ErrorRobot', function () {
   let routerContext;
 
   beforeEach(function () {
-    routerContext = TestStubs.routerContext();
+    routerContext = routerContext();
     getIssues = Client.addMockResponse({
       url: '/projects/org-slug/project-slug/issues/',
       method: 'GET',
@@ -24,11 +28,7 @@ describe('ErrorRobot', function () {
   describe('with a project', function () {
     function createWrapper() {
       return render(
-        <ErrorRobot
-          api={new MockApiClient()}
-          org={TestStubs.Organization()}
-          project={TestStubs.Project()}
-        />,
+        <ErrorRobot api={new MockApiClient()} org={Organization()} project={Project()} />,
         {context: routerContext}
       );
     }
@@ -51,10 +51,9 @@ describe('ErrorRobot', function () {
 
   describe('without a project', function () {
     function createWrapper() {
-      return render(
-        <ErrorRobot api={new MockApiClient()} org={TestStubs.Organization()} />,
-        {context: routerContext}
-      );
+      return render(<ErrorRobot api={new MockApiClient()} org={Organization()} />, {
+        context: routerContext,
+      });
     }
 
     it('Renders a disabled create event button', function () {

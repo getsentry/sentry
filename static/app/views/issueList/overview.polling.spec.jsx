@@ -1,3 +1,9 @@
+import {Group} from 'fixtures/js-stubs/group';
+import {Member} from 'fixtures/js-stubs/member';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Search} from 'fixtures/js-stubs/search';
+import {Tags} from 'fixtures/js-stubs/tags';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -33,14 +39,14 @@ describe('IssueList -> Polling', function () {
       access: ['releases'],
     },
   });
-  const savedSearch = TestStubs.Search({
+  const savedSearch = Search({
     id: '789',
     query: 'is:unresolved',
     name: 'Unresolved Issues',
     projectId: project.id,
   });
 
-  const group = TestStubs.Group({project});
+  const group = Group({project});
 
   const defaultProps = {
     location: {query: {query: 'is:unresolved'}, search: 'query=is:unresolved'},
@@ -63,7 +69,7 @@ describe('IssueList -> Polling', function () {
     };
 
     render(
-      <OrganizationContext.Provider value={TestStubs.Organization()}>
+      <OrganizationContext.Provider value={Organization()}>
         <IssueList {...newRouter} {...defaultProps} {...p} />
       </OrganizationContext.Provider>,
       {context: routerContext}
@@ -109,12 +115,12 @@ describe('IssueList -> Polling', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       method: 'GET',
-      body: TestStubs.Tags(),
+      body: Tags(),
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/',
       method: 'GET',
-      body: [TestStubs.Member({projects: [project.slug]})],
+      body: [Member({projects: [project.slug]})],
     });
 
     MockApiClient.addMockResponse({
@@ -135,7 +141,7 @@ describe('IssueList -> Polling', function () {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues-stats/',
-      body: [TestStubs.GroupStats()],
+      body: [GroupStats()],
     });
     pollRequest = MockApiClient.addMockResponse({
       url: `/api/0/organizations/org-slug/issues/?cursor=${PREVIOUS_PAGE_CURSOR}:0:1`,

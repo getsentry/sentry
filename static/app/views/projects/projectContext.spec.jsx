@@ -1,3 +1,7 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
+import {router} from 'fixtures/js-stubs/router';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {ProjectContext} from 'sentry/views/projects/projectContext';
@@ -16,8 +20,8 @@ describe('projectContext component', function () {
 
   const location = {query: {}};
 
-  const project = TestStubs.Project();
-  const org = TestStubs.Organization();
+  const project = Project();
+  const org = Organization();
   beforeEach(function () {
     MockApiClient.clearMockResponses();
     [project.slug, 'new-slug'].forEach(slug => {
@@ -35,7 +39,7 @@ describe('projectContext component', function () {
   });
 
   it('displays error on 404s', async function () {
-    const router = TestStubs.router();
+    const router = router();
 
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,
@@ -67,7 +71,7 @@ describe('projectContext component', function () {
   });
 
   it('fetches data again if projectId changes', function () {
-    const router = TestStubs.router();
+    const router = router();
     let fetchMock = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,
       method: 'GET',
@@ -100,7 +104,7 @@ describe('projectContext component', function () {
       url: `/projects/${org.slug}/new-slug/`,
       method: 'GET',
       statusCode: 200,
-      body: TestStubs.Project({slug: 'new-slug'}),
+      body: Project({slug: 'new-slug'}),
     });
 
     wrapper.setProps({
@@ -112,7 +116,7 @@ describe('projectContext component', function () {
   });
 
   it('fetches data again if projects list changes', function () {
-    const router = TestStubs.router();
+    const router = router();
     const fetchMock = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,
       method: 'GET',

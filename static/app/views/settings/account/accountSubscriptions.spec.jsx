@@ -1,3 +1,6 @@
+import {routerContext} from 'fixtures/js-stubs/routerContext';
+import {Subscriptions} from 'fixtures/js-stubs/subscriptions';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
@@ -16,7 +19,7 @@ describe('AccountSubscriptions', function () {
       body: [],
     });
     const wrapper = render(<AccountSubscriptions />, {
-      context: TestStubs.routerContext(),
+      context: routerContext(),
     });
 
     expect(wrapper.container).toSnapshot();
@@ -25,7 +28,7 @@ describe('AccountSubscriptions', function () {
   it('renders list and can toggle', function () {
     Client.addMockResponse({
       url: ENDPOINT,
-      body: TestStubs.Subscriptions(),
+      body: Subscriptions(),
     });
     const mock = Client.addMockResponse({
       url: ENDPOINT,
@@ -33,7 +36,7 @@ describe('AccountSubscriptions', function () {
     });
 
     const wrapper = render(<AccountSubscriptions />, {
-      context: TestStubs.routerContext(),
+      context: routerContext(),
     });
 
     expect(wrapper.container).toSnapshot();

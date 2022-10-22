@@ -1,3 +1,7 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
+import {Team} from 'fixtures/js-stubs/team';
+
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {addTeamToProject} from 'sentry/actionCreators/projects';
@@ -27,9 +31,9 @@ const teamData = [
     name: 'Team 3',
   },
 ];
-const teams = teamData.map(data => TestStubs.Team(data));
-const project = TestStubs.Project({teams: [teams[0]]});
-const organization = TestStubs.Organization({access: ['project:write']});
+const teams = teamData.map(data => Team(data));
+const project = Project({teams: [teams[0]]});
+const organization = Organization({access: ['project:write']});
 act(() => OrganizationStore.onUpdate(organization, {replace: true}));
 
 function createWrapper(props = {}) {

@@ -1,3 +1,6 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+import {routerContext} from 'fixtures/js-stubs/routerContext';
+
 import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import TimeRangeSelector from 'sentry/components/organizations/timeRangeSelector';
@@ -5,8 +8,8 @@ import ConfigStore from 'sentry/stores/configStore';
 
 describe('TimeRangeSelector', function () {
   const onChange = jest.fn();
-  const routerContext = TestStubs.routerContext();
-  const organization = TestStubs.Organization();
+  const routerContext = routerContext();
+  const organization = Organization();
 
   function getComponent(props = {}) {
     return (

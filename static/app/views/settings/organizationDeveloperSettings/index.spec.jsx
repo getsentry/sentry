@@ -1,3 +1,6 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+import {SentryApp} from 'fixtures/js-stubs/sentryApp';
+
 import {
   render,
   renderGlobalModal,
@@ -11,8 +14,8 @@ import {Client} from 'sentry/api';
 import OrganizationDeveloperSettings from 'sentry/views/settings/organizationDeveloperSettings/index';
 
 describe('Organization Developer Settings', function () {
-  const org = TestStubs.Organization();
-  const sentryApp = TestStubs.SentryApp({
+  const org = Organization();
+  const sentryApp = SentryApp({
     scopes: [
       'team:read',
       'project:releases',
@@ -169,7 +172,7 @@ describe('Organization Developer Settings', function () {
 
   describe('with published apps', () => {
     beforeEach(() => {
-      const publishedSentryApp = TestStubs.SentryApp({status: 'published'});
+      const publishedSentryApp = SentryApp({status: 'published'});
       Client.addMockResponse({
         url: `/organizations/${org.slug}/sentry-apps/`,
         body: [publishedSentryApp],
@@ -213,7 +216,7 @@ describe('Organization Developer Settings', function () {
 
   describe('with Internal Integrations', () => {
     beforeEach(() => {
-      const internalIntegration = TestStubs.SentryApp({status: 'internal'});
+      const internalIntegration = SentryApp({status: 'internal'});
 
       Client.addMockResponse({
         url: `/organizations/${org.slug}/sentry-apps/`,
@@ -238,7 +241,7 @@ describe('Organization Developer Settings', function () {
   });
 
   describe('without Owner permissions', () => {
-    const newOrg = TestStubs.Organization({access: ['org:read']});
+    const newOrg = Organization({access: ['org:read']});
     beforeEach(() => {
       Client.addMockResponse({
         url: `/organizations/${newOrg.slug}/sentry-apps/`,

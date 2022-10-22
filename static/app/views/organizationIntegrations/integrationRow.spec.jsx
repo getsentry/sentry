@@ -1,3 +1,5 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'sentry/api';
@@ -8,7 +10,7 @@ describe('IntegrationRow', function () {
     Client.clearMockResponses();
   });
 
-  const org = TestStubs.Organization();
+  const org = Organization();
 
   describe('SentryApp', function () {
     it('is an internal SentryApp', function () {

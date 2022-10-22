@@ -1,3 +1,7 @@
+import {Environments} from 'fixtures/js-stubs/environments';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import recreateRoute from 'sentry/utils/recreateRoute';
@@ -7,8 +11,8 @@ jest.mock('sentry/utils/recreateRoute');
 recreateRoute.mockReturnValue('/org-slug/project-slug/settings/environments/');
 
 function renderComponent(isHidden) {
-  const org = TestStubs.Organization();
-  const project = TestStubs.Project();
+  const org = Organization();
+  const project = Project();
   const pathname = isHidden ? 'environments/hidden/' : 'environments/';
   return render(
     <ProjectEnvironments
@@ -26,7 +30,7 @@ describe('ProjectEnvironments', function () {
   let project;
 
   beforeEach(function () {
-    project = TestStubs.Project({
+    project = Project({
       defaultEnvironment: 'production',
     });
     MockApiClient.addMockResponse({
@@ -58,7 +62,7 @@ describe('ProjectEnvironments', function () {
     it('renders environment list', function () {
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/environments/',
-        body: TestStubs.Environments(false),
+        body: Environments(false),
       });
       renderComponent(false);
 
@@ -86,7 +90,7 @@ describe('ProjectEnvironments', function () {
     it('renders environment list', function () {
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/environments/',
-        body: TestStubs.Environments(true),
+        body: Environments(true),
       });
       const {container} = renderComponent(true);
 
@@ -117,7 +121,7 @@ describe('ProjectEnvironments', function () {
     it('hides', function () {
       MockApiClient.addMockResponse({
         url: baseUrl,
-        body: TestStubs.Environments(false),
+        body: Environments(false),
       });
 
       renderComponent(false);
@@ -163,7 +167,7 @@ describe('ProjectEnvironments', function () {
     it('shows', function () {
       MockApiClient.addMockResponse({
         url: baseUrl,
-        body: TestStubs.Environments(true),
+        body: Environments(true),
       });
 
       renderComponent(true);
@@ -181,7 +185,7 @@ describe('ProjectEnvironments', function () {
     it('does not have "All Environments" rows', function () {
       MockApiClient.addMockResponse({
         url: baseUrl,
-        body: TestStubs.Environments(true),
+        body: Environments(true),
       });
 
       renderComponent(true);

@@ -1,3 +1,8 @@
+import {GitHubIntegration} from 'fixtures/js-stubs/gitHubIntegration';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
+import {Repository} from 'fixtures/js-stubs/repository';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 import {selectByValue} from 'sentry-test/select-new';
@@ -18,8 +23,8 @@ const mockResponse = mocks => {
 
 describe('IntegrationCodeMappings', function () {
   const projects = [
-    TestStubs.Project(),
-    TestStubs.Project({
+    Project(),
+    Project({
       id: '3',
       slug: 'some-project',
       name: 'Some Project',
@@ -28,21 +33,21 @@ describe('IntegrationCodeMappings', function () {
 
   ProjectsStore.loadInitialData(projects);
 
-  const org = TestStubs.Organization();
-  const integration = TestStubs.GitHubIntegration();
+  const org = Organization();
+  const integration = GitHubIntegration();
   const repos = [
-    TestStubs.Repository({
+    Repository({
       integrationId: integration.id,
     }),
 
-    TestStubs.Repository({
+    Repository({
       integrationId: integration.id,
       id: '5',
       name: 'example/hello-there',
     }),
   ];
 
-  const pathConfig1 = TestStubs.RepositoryProjectPathConfig({
+  const pathConfig1 = RepositoryProjectPathConfig({
     project: projects[0],
     repo: repos[0],
     integration,
@@ -50,7 +55,7 @@ describe('IntegrationCodeMappings', function () {
     sourceRoot: 'source/root',
   });
 
-  const pathConfig2 = TestStubs.RepositoryProjectPathConfig({
+  const pathConfig2 = RepositoryProjectPathConfig({
     project: projects[1],
     repo: repos[1],
     integration,
@@ -106,7 +111,7 @@ describe('IntegrationCodeMappings', function () {
     const createMock = Client.addMockResponse({
       url,
       method: 'POST',
-      body: TestStubs.RepositoryProjectPathConfig({
+      body: RepositoryProjectPathConfig({
         project: projects[1],
         repo: repos[1],
         integration,
@@ -156,7 +161,7 @@ describe('IntegrationCodeMappings', function () {
     const editMock = Client.addMockResponse({
       url,
       method: 'PUT',
-      body: TestStubs.RepositoryProjectPathConfig({
+      body: RepositoryProjectPathConfig({
         project: projects[0],
         repo: repos[0],
         integration,

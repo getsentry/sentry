@@ -1,3 +1,8 @@
+import {Broadcast} from 'fixtures/js-stubs/broadcast';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {ServiceIncident} from 'fixtures/js-stubs/serviceIncident';
+import {User} from 'fixtures/js-stubs/user';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -12,8 +17,8 @@ jest.mock('sentry/actionCreators/serviceIncidents');
 
 describe('Sidebar', function () {
   const {organization, router} = initializeOrg();
-  const broadcast = TestStubs.Broadcast();
-  const user = TestStubs.User();
+  const broadcast = Broadcast();
+  const user = User();
   const apiMocks = {};
 
   const location = {...router.location, ...{pathname: '/test/'}};
@@ -82,7 +87,7 @@ describe('Sidebar', function () {
     jest.spyOn(window.location, 'assign').mockImplementation(() => {});
 
     renderSidebar({
-      organization: TestStubs.Organization({access: ['member:read']}),
+      organization: Organization({access: ['member:read']}),
     });
 
     userEvent.click(screen.getByTestId('sidebar-dropdown'));
@@ -117,7 +122,7 @@ describe('Sidebar', function () {
     });
     it('has link to Members settings with `member:write`', async function () {
       const {container} = renderSidebar({
-        organization: TestStubs.Organization({access: ['member:read']}),
+        organization: Organization({access: ['member:read']}),
       });
       await waitFor(() => container);
 
@@ -253,7 +258,7 @@ describe('Sidebar', function () {
 
     it('can show Incidents in Sidebar Panel', async function () {
       incidentActions.loadIncidents = jest.fn(() => ({
-        incidents: [TestStubs.ServiceIncident()],
+        incidents: [ServiceIncident()],
       }));
 
       const {container} = renderSidebar();

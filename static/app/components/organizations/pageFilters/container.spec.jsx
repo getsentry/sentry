@@ -1,3 +1,6 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
+
 import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
@@ -502,7 +505,7 @@ describe('PageFiltersContainer', function () {
         ...organization,
         slug: 'org-slug',
         features: [],
-        projects: [TestStubs.Project({id: '123', slug: 'org-slug-project1'})],
+        projects: [Project({id: '123', slug: 'org-slug-project1'})],
       };
 
       MockApiClient.addMockResponse({
@@ -556,8 +559,8 @@ describe('PageFiltersContainer', function () {
     });
 
     it('selects first project if none (i.e. all) is requested', function () {
-      const project = TestStubs.Project({id: '3'});
-      const org = TestStubs.Organization({projects: [project]});
+      const project = Project({id: '3'});
+      const org = Organization({projects: [project]});
 
       ProjectsStore.loadInitialData(org.projects);
 

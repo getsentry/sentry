@@ -1,3 +1,7 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
+import {routerContext} from 'fixtures/js-stubs/routerContext';
+
 import {
   render,
   screen,
@@ -9,26 +13,26 @@ import ProjectSelector from 'sentry/components/organizations/projectSelector';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 
 describe('ProjectSelector', function () {
-  const testProject = TestStubs.Project({
+  const testProject = Project({
     id: '1',
     slug: 'test-project',
     isBookmarked: true,
     isMember: true,
   });
-  const anotherProject = TestStubs.Project({
+  const anotherProject = Project({
     id: '2',
     slug: 'another-project',
     isMember: true,
   });
 
-  const mockOrg = TestStubs.Organization({
+  const mockOrg = Organization({
     id: '1',
     slug: 'org',
     features: ['new-teams', 'global-views'],
     access: [],
   });
 
-  const routerContext = TestStubs.routerContext([{organization: mockOrg}]);
+  const routerContext = routerContext([{organization: mockOrg}]);
 
   function openMenu() {
     userEvent.click(screen.getByRole('button'));
@@ -191,7 +195,7 @@ describe('ProjectSelector', function () {
   });
 
   it('displays multi projects with non member projects', function () {
-    const nonMemberProject = TestStubs.Project({id: '2'});
+    const nonMemberProject = Project({id: '2'});
 
     render(<ProjectSelector {...props} nonMemberProjects={[nonMemberProject]} />, {
       context: routerContext,
@@ -203,10 +207,10 @@ describe('ProjectSelector', function () {
   });
 
   it('displays projects in alphabetical order partitioned by project membership', function () {
-    const projectA = TestStubs.Project({id: '1', slug: 'a-project'});
-    const projectB = TestStubs.Project({id: '2', slug: 'b-project'});
-    const projectANonM = TestStubs.Project({id: '3', slug: 'a-non-m-project'});
-    const projectBNonM = TestStubs.Project({id: '4', slug: 'b-non-m-project'});
+    const projectA = Project({id: '1', slug: 'a-project'});
+    const projectB = Project({id: '2', slug: 'b-project'});
+    const projectANonM = Project({id: '3', slug: 'a-non-m-project'});
+    const projectBNonM = Project({id: '4', slug: 'b-non-m-project'});
 
     const multiProjectProps = {
       ...props,
@@ -230,37 +234,37 @@ describe('ProjectSelector', function () {
   });
 
   it('displays multi projects in sort order rules: selected, bookmarked, alphabetical', function () {
-    const projectA = TestStubs.Project({id: '1', slug: 'a-project'});
-    const projectBBookmarked = TestStubs.Project({
+    const projectA = Project({id: '1', slug: 'a-project'});
+    const projectBBookmarked = Project({
       id: '2',
       slug: 'b-project',
       isBookmarked: true,
     });
-    const projectCBookmarked = TestStubs.Project({
+    const projectCBookmarked = Project({
       id: '3',
       slug: 'c-project',
       isBookmarked: true,
     });
-    const projectDSelected = TestStubs.Project({id: '4', slug: 'd-project'});
-    const projectESelected = TestStubs.Project({id: '5', slug: 'e-project'});
-    const projectFSelectedBookmarked = TestStubs.Project({
+    const projectDSelected = Project({id: '4', slug: 'd-project'});
+    const projectESelected = Project({id: '5', slug: 'e-project'});
+    const projectFSelectedBookmarked = Project({
       id: '6',
       slug: 'f-project',
       isBookmarked: true,
     });
-    const projectGSelectedBookmarked = TestStubs.Project({
+    const projectGSelectedBookmarked = Project({
       id: '7',
       slug: 'g-project',
       isBookmarked: true,
     });
-    const projectH = TestStubs.Project({id: '8', slug: 'h-project'});
-    const projectJ = TestStubs.Project({id: '9', slug: 'j-project'});
-    const projectKSelectedBookmarked = TestStubs.Project({
+    const projectH = Project({id: '8', slug: 'h-project'});
+    const projectJ = Project({id: '9', slug: 'j-project'});
+    const projectKSelectedBookmarked = Project({
       id: '10',
       slug: 'k-project',
       isBookmarked: true,
     });
-    const projectL = TestStubs.Project({id: '11', slug: 'l-project'});
+    const projectL = Project({id: '11', slug: 'l-project'});
 
     const multiProjectProps = {
       ...props,
@@ -310,13 +314,13 @@ describe('ProjectSelector', function () {
   });
 
   it('does not change sort order while selecting projects with the dropdown open', function () {
-    const projectA = TestStubs.Project({id: '1', slug: 'a-project'});
-    const projectBBookmarked = TestStubs.Project({
+    const projectA = Project({id: '1', slug: 'a-project'});
+    const projectBBookmarked = Project({
       id: '2',
       slug: 'b-project',
       isBookmarked: true,
     });
-    const projectDSelected = TestStubs.Project({id: '4', slug: 'd-project'});
+    const projectDSelected = Project({id: '4', slug: 'd-project'});
 
     const multiProjectProps = {
       ...props,

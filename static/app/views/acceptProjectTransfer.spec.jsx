@@ -1,3 +1,7 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
+import {Team} from 'fixtures/js-stubs/team';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import AcceptProjectTransfer from 'sentry/views/acceptProjectTransfer';
@@ -13,8 +17,8 @@ describe('AcceptProjectTransfer', function () {
       url: '/accept-transfer/',
       method: 'GET',
       body: {
-        project: TestStubs.Project(),
-        organizations: [TestStubs.Organization({teams: [TestStubs.Team()]})],
+        project: Project(),
+        organizations: [Organization({teams: [Team()]})],
       },
     });
 

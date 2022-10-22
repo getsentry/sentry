@@ -1,3 +1,6 @@
+import {Group} from 'fixtures/js-stubs/group';
+import {Project} from 'fixtures/js-stubs/project';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -12,7 +15,7 @@ describe('StreamGroup', function () {
   let group1;
 
   beforeEach(function () {
-    group1 = TestStubs.Group({
+    group1 = Group({
       id: '1337',
       project: {
         id: '13',
@@ -28,7 +31,7 @@ describe('StreamGroup', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       query: 'foo',
-      body: [TestStubs.Project({slug: 'foo-project'})],
+      body: [Project({slug: 'foo-project'})],
     });
     GroupStore.loadInitialData([group1]);
   });

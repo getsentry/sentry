@@ -1,10 +1,12 @@
+import {ProjectDetails} from 'fixtures/js-stubs/projectDetails';
+
 import {render} from 'sentry-test/reactTestingLibrary';
 
 import DiffModal from 'sentry/components/modals/diffModal';
 
 describe('DiffModal', function () {
   it('renders', function () {
-    const project = TestStubs.ProjectDetails();
+    const project = ProjectDetails();
     MockApiClient.addMockResponse({
       url: '/issues/123/events/latest/',
       body: {

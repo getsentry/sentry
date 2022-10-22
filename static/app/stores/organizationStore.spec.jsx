@@ -1,3 +1,5 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+
 import OrganizationStore from 'sentry/stores/organizationStore';
 
 describe('OrganizationStore', function () {
@@ -16,7 +18,7 @@ describe('OrganizationStore', function () {
   });
 
   it('updates correctly', function () {
-    const organization = TestStubs.Organization();
+    const organization = Organization();
     OrganizationStore.onUpdate(organization);
     expect(OrganizationStore.get()).toMatchObject({
       loading: false,
@@ -39,7 +41,7 @@ describe('OrganizationStore', function () {
   });
 
   it('updates correctly from setting changes', function () {
-    const organization = TestStubs.Organization();
+    const organization = Organization();
     OrganizationStore.onUpdate(organization);
     expect(OrganizationStore.get()).toMatchObject({
       loading: false,

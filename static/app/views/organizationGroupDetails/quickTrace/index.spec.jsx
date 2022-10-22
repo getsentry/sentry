@@ -1,3 +1,6 @@
+import {Event} from 'fixtures/js-stubs/event';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
 import moment from 'moment';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
@@ -9,9 +12,9 @@ jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
 
 describe('ConfigureDistributedTracing', function () {
   let putMock;
-  const organization = TestStubs.Organization({features: ['performance-view']});
-  const project = TestStubs.Project({platform: 'javascript'});
-  const event = TestStubs.Event({
+  const organization = Organization({features: ['performance-view']});
+  const project = Project({platform: 'javascript'});
+  const event = Event({
     id: '2',
     eventID: '21098765432109876543210987654321',
   });
@@ -49,7 +52,7 @@ describe('ConfigureDistributedTracing', function () {
   });
 
   it('renders hover card when feature is disabled', async function () {
-    const newOrganization = TestStubs.Organization();
+    const newOrganization = Organization();
     const wrapper = mountWithTheme(
       <ConfigureDistributedTracing
         event={event}
@@ -70,7 +73,7 @@ describe('ConfigureDistributedTracing', function () {
    * the show configure distributed tracing prompt.
    */
   it('doesnt render when event id starts with odd char', async function () {
-    const newEvent = TestStubs.Event({
+    const newEvent = Event({
       id: 'B',
       eventID: 'BAFEDCBAFEDCBAFEDCBAFEDCBAFEDCBA',
     });
@@ -89,7 +92,7 @@ describe('ConfigureDistributedTracing', function () {
   });
 
   it('doesnt render when the project platform doesnt support tracing', async function () {
-    const newProject = TestStubs.Project({platform: ''});
+    const newProject = Project({platform: ''});
     const wrapper = mountWithTheme(
       <ConfigureDistributedTracing
         event={event}

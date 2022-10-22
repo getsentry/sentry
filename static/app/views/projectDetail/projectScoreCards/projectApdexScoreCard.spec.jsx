@@ -1,10 +1,12 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+
 import {render} from 'sentry-test/reactTestingLibrary';
 
 import ProjectApdexScoreCard from 'sentry/views/projectDetail/projectScoreCards/projectApdexScoreCard';
 
 describe('ProjectDetail > ProjectApdex', function () {
   let endpointMock;
-  const organization = TestStubs.Organization({apdexThreshold: 500});
+  const organization = Organization({apdexThreshold: 500});
 
   const selection = {
     projects: [1],

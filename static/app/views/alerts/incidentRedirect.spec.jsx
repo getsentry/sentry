@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import {Incident} from 'fixtures/js-stubs/incident';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -15,7 +16,7 @@ describe('IncidentRedirect', () => {
       params,
     },
   });
-  const mockIncident = TestStubs.Incident({projects: [project.slug]});
+  const mockIncident = Incident({projects: [project.slug]});
 
   beforeEach(() => {
     MockApiClient.addMockResponse({

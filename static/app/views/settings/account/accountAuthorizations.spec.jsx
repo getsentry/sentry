@@ -1,3 +1,5 @@
+import {routerContext} from 'fixtures/js-stubs/routerContext';
+
 import {render} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
@@ -16,7 +18,7 @@ describe('AccountAuthorizations', function () {
     });
 
     const wrapper = render(<AccountAuthorizations />, {
-      context: TestStubs.routerContext(),
+      context: routerContext(),
     });
 
     expect(wrapper.container).toSnapshot();

@@ -1,15 +1,18 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import Settings from 'sentry/views/settings/projectAlerts/settings';
 
 describe('ProjectAlertSettings', () => {
-  const organization = TestStubs.Organization();
+  const organization = Organization();
   // 12 minutes
   const digestsMinDelay = 12 * 60;
   // 55 minutes
   const digestsMaxDelay = 55 * 60;
-  const project = TestStubs.Project({
+  const project = Project({
     digestsMinDelay,
     digestsMaxDelay,
   });

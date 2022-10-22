@@ -1,3 +1,5 @@
+import {DetailedEvents} from 'fixtures/js-stubs/detailedEvents';
+
 import {render} from 'sentry-test/reactTestingLibrary';
 
 import EventsTable from 'sentry/components/eventsTable/eventsTable';
@@ -10,7 +12,7 @@ describe('EventsTable', function () {
         orgId="orgId"
         projectId="projectId"
         groupId="groupId"
-        events={TestStubs.DetailedEvents()}
+        events={DetailedEvents()}
       />
     );
     expect(container).toSnapshot();

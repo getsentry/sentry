@@ -1,4 +1,8 @@
 import selectEvent from 'react-select-event';
+import {Environments} from 'fixtures/js-stubs/environments';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {ProjectAlertRule} from 'fixtures/js-stubs/projectAlertRule';
+import {ProjectAlertRuleConfiguration} from 'fixtures/js-stubs/projectAlertRuleConfiguration';
 import moment from 'moment';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -35,15 +39,15 @@ describe('ProjectAlertsCreate', function () {
     TeamStore.loadInitialData([], false, null);
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/rules/configuration/',
-      body: TestStubs.ProjectAlertRuleConfiguration(),
+      body: ProjectAlertRuleConfiguration(),
     });
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/rules/1/',
-      body: TestStubs.ProjectAlertRule(),
+      body: ProjectAlertRule(),
     });
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/environments/',
-      body: TestStubs.Environments(),
+      body: Environments(),
     });
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/project-slug/?expand=hasAlertIntegration`,
@@ -122,7 +126,7 @@ describe('ProjectAlertsCreate', function () {
       const mock = MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/rules/',
         method: 'POST',
-        body: TestStubs.ProjectAlertRule(),
+        body: ProjectAlertRule(),
       });
 
       // Change name of alert rule
@@ -162,7 +166,7 @@ describe('ProjectAlertsCreate', function () {
       const mock = MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/rules/',
         method: 'POST',
-        body: TestStubs.ProjectAlertRule(),
+        body: ProjectAlertRule(),
       });
 
       // Change name of alert rule
@@ -212,7 +216,7 @@ describe('ProjectAlertsCreate', function () {
       const mock = MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/rules/',
         method: 'POST',
-        body: TestStubs.ProjectAlertRule(),
+        body: ProjectAlertRule(),
       });
 
       // Change name of alert rule
@@ -254,7 +258,7 @@ describe('ProjectAlertsCreate', function () {
         mock = MockApiClient.addMockResponse({
           url: '/projects/org-slug/project-slug/rules/',
           method: 'POST',
-          body: TestStubs.ProjectAlertRule(),
+          body: ProjectAlertRule(),
         });
       });
 
@@ -442,7 +446,7 @@ describe('ProjectAlertsCreate', function () {
   });
 
   describe('test preview chart', () => {
-    const organization = TestStubs.Organization({features: ['issue-alert-preview']});
+    const organization = Organization({features: ['issue-alert-preview']});
     afterEach(() => {
       jest.clearAllMocks();
     });

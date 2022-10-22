@@ -1,3 +1,5 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+
 import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationRateLimits from 'sentry/views/settings/organizationRateLimits/organizationRateLimits';
@@ -6,7 +8,7 @@ const ENDPOINT = '/organizations/org-slug/';
 
 describe('Organization Rate Limits', function () {
   const organization = {
-    ...TestStubs.Organization(),
+    ...Organization(),
     quota: {
       projectLimit: 75,
       accountLimit: 70000,

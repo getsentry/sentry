@@ -1,3 +1,5 @@
+import {Environments} from 'fixtures/js-stubs/environments';
+
 import OrganizationEnvironmentsStore from 'sentry/stores/organizationEnvironmentsStore';
 
 describe('OrganizationEnvironmentsStore', function () {
@@ -13,7 +15,7 @@ describe('OrganizationEnvironmentsStore', function () {
   });
 
   it('loads data from a fetch', async function () {
-    OrganizationEnvironmentsStore.onFetchEnvironmentsSuccess(TestStubs.Environments());
+    OrganizationEnvironmentsStore.onFetchEnvironmentsSuccess(Environments());
 
     await tick();
 

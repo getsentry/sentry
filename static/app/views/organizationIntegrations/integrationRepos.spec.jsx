@@ -1,3 +1,7 @@
+import {GitHubIntegration} from 'fixtures/js-stubs/gitHubIntegration';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Repository} from 'fixtures/js-stubs/repository';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'sentry/api';
@@ -5,8 +9,8 @@ import RepositoryStore from 'sentry/stores/repositoryStore';
 import IntegrationRepos from 'sentry/views/organizationIntegrations/integrationRepos';
 
 describe('IntegrationRepos', function () {
-  const org = TestStubs.Organization();
-  const integration = TestStubs.GitHubIntegration();
+  const org = Organization();
+  const integration = GitHubIntegration();
 
   beforeEach(() => {
     Client.clearMockResponses();
@@ -41,7 +45,7 @@ describe('IntegrationRepos', function () {
       const addRepo = Client.addMockResponse({
         url: `/organizations/${org.slug}/repos/`,
         method: 'POST',
-        body: TestStubs.Repository({integrationId: '1'}),
+        body: Repository({integrationId: '1'}),
       });
       Client.addMockResponse({
         url: `/organizations/${org.slug}/integrations/1/repos/`,
@@ -128,7 +132,7 @@ describe('IntegrationRepos', function () {
       const wrapper = mountWithTheme(
         <IntegrationRepos
           integration={integration}
-          organization={TestStubs.Organization({access: []})}
+          organization={Organization({access: []})}
         />
       );
       expect(wrapper.find('DropdownButton').props().disabled).toBeFalsy();
@@ -140,7 +144,7 @@ describe('IntegrationRepos', function () {
       Client.addMockResponse({
         url: `/organizations/${org.slug}/repos/`,
         body: [
-          TestStubs.Repository({
+          Repository({
             integrationId: null,
             externalSlug: 'example/repo-name',
             provider: {
@@ -179,7 +183,7 @@ describe('IntegrationRepos', function () {
       Client.addMockResponse({
         url: `/organizations/${org.slug}/repos/`,
         method: 'GET',
-        body: [TestStubs.Repository({name: 'repo-name', externalSlug: 9876})],
+        body: [Repository({name: 'repo-name', externalSlug: 9876})],
       });
       const getItems = Client.addMockResponse({
         url: `/organizations/${org.slug}/integrations/${integration.id}/repos/`,

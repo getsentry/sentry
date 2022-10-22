@@ -237,7 +237,7 @@
     "test-debug": "node --inspect-brk scripts/test.js --runInBand",
     "test-precommit": "yarn test-wrap --bail --findRelatedTests -u",
     "test-staged": "yarn test-wrap --findRelatedTests $(git diff --name-only --cached)",
-    "lint": "yarn eslint static/app tests/js docs-ui/ --ext .js,.jsx,.ts,.tsx",
+    "lint": "yarn eslint static/app tests/js docs-ui/ --ext .js,.jsx,.ts,.tsx --fix",
     "lint:css": "yarn stylelint 'static/app/**/*.[jt]sx'",
     "dev": "(yarn check --verify-tree || yarn install --check-files) && sentry devserver",
     "dev-ui": "SENTRY_UI_DEV_ONLY=1 SENTRY_WEBPACK_PROXY_PORT=7999 yarn webpack serve",

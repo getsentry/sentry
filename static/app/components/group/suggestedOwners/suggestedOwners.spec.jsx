@@ -1,3 +1,13 @@
+import {Commit} from 'fixtures/js-stubs/commit';
+import {CommitAuthor} from 'fixtures/js-stubs/commitAuthor';
+import {Event} from 'fixtures/js-stubs/event';
+import {Group} from 'fixtures/js-stubs/group';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
+import {Release} from 'fixtures/js-stubs/release';
+import {Team} from 'fixtures/js-stubs/team';
+import {User} from 'fixtures/js-stubs/user';
+
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
@@ -7,18 +17,18 @@ import MemberListStore from 'sentry/stores/memberListStore';
 import TeamStore from 'sentry/stores/teamStore';
 
 describe('SuggestedOwners', function () {
-  const user = TestStubs.User();
-  const organization = TestStubs.Organization();
-  const project = TestStubs.Project();
-  const event = TestStubs.Event();
-  const group = TestStubs.Group({firstRelease: {}});
+  const user = User();
+  const organization = Organization();
+  const project = Project();
+  const event = Event();
+  const group = Group({firstRelease: {}});
 
   const endpoint = `/projects/${organization.slug}/${project.slug}/events/${event.id}`;
 
   beforeEach(function () {
     CommitterStore.init();
     TeamStore.init();
-    MemberListStore.loadInitialData([user, TestStubs.CommitAuthor()]);
+    MemberListStore.loadInitialData([user, CommitAuthor()]);
     Client.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/codeowners/`,
       body: [],
@@ -45,8 +55,8 @@ describe('SuggestedOwners', function () {
       body: {
         committers: [
           {
-            author: TestStubs.CommitAuthor(),
-            commits: [TestStubs.Commit()],
+            author: CommitAuthor(),
+            commits: [Commit()],
           },
         ],
       },
@@ -71,12 +81,12 @@ describe('SuggestedOwners', function () {
   });
 
   it('Merges owner matching rules and having suspect commits', async function () {
-    const author = TestStubs.CommitAuthor();
+    const author = CommitAuthor();
 
     Client.addMockResponse({
       url: `${endpoint}/committers/`,
       body: {
-        committers: [{author, commits: [TestStubs.Commit()]}],
+        committers: [{author, commits: [Commit()]}],
       },
     });
 
@@ -99,14 +109,14 @@ describe('SuggestedOwners', function () {
   });
 
   it('displays two teams when there are committers', async function () {
-    const team1 = TestStubs.Team({slug: 'team-1', id: '1'});
-    const team2 = TestStubs.Team({slug: 'team-2', id: '2'});
+    const team1 = Team({slug: 'team-1', id: '1'});
+    const team2 = Team({slug: 'team-2', id: '2'});
     TeamStore.loadInitialData([team1, team2], false, null);
 
     Client.addMockResponse({
       url: `${endpoint}/committers/`,
       body: {
-        committers: [{author: TestStubs.CommitAuthor(), commits: [TestStubs.Commit()]}],
+        committers: [{author: CommitAuthor(), commits: [Commit()]}],
       },
     });
 
@@ -131,8 +141,8 @@ describe('SuggestedOwners', function () {
   });
 
   it('displays release committers', async function () {
-    const team1 = TestStubs.Team({slug: 'team-1', id: '1'});
-    const team2 = TestStubs.Team({slug: 'team-2', id: '2'});
+    const team1 = Team({slug: 'team-1', id: '1'});
+    const team2 = Team({slug: 'team-2', id: '2'});
     TeamStore.loadInitialData([team1, team2], false, null);
 
     Client.addMockResponse({
@@ -141,9 +151,9 @@ describe('SuggestedOwners', function () {
         committers: [],
         releaseCommitters: [
           {
-            author: TestStubs.CommitAuthor(),
-            commits: [TestStubs.Commit()],
-            release: TestStubs.Release(),
+            author: CommitAuthor(),
+            commits: [Commit()],
+            release: Release(),
           },
         ],
       },

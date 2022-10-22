@@ -1,3 +1,6 @@
+import {Plugin} from 'fixtures/js-stubs/plugin';
+import {Plugins} from 'fixtures/js-stubs/plugins';
+
 import PluginsStore from 'sentry/stores/pluginsStore';
 
 describe('PluginsStore', function () {
@@ -34,13 +37,13 @@ describe('PluginsStore', function () {
         plugins: [],
       });
 
-      PluginsStore.onFetchAllSuccess(TestStubs.Plugins(), {pageLinks: null});
+      PluginsStore.onFetchAllSuccess(Plugins(), {pageLinks: null});
 
       expect(PluginsStore.trigger).toHaveBeenCalledWith({
         loading: false,
         error: null,
         pageLinks: null,
-        plugins: TestStubs.Plugins(),
+        plugins: Plugins(),
       });
     });
 
@@ -73,13 +76,13 @@ describe('PluginsStore', function () {
         plugins: [],
       });
 
-      PluginsStore.onFetchAllSuccess(TestStubs.Plugins(), {pageLinks: null});
+      PluginsStore.onFetchAllSuccess(Plugins(), {pageLinks: null});
 
       expect(PluginsStore.trigger).toHaveBeenCalledWith({
         loading: false,
         error: null,
         pageLinks: null,
-        plugins: TestStubs.Plugins(),
+        plugins: Plugins(),
       });
 
       PluginsStore.onFetchAll();
@@ -87,16 +90,16 @@ describe('PluginsStore', function () {
         loading: false,
         error: null,
         pageLinks: null,
-        plugins: TestStubs.Plugins(),
+        plugins: Plugins(),
       });
     });
   });
 
   describe('update', function () {
-    const plugin = TestStubs.Plugin();
+    const plugin = Plugin();
     beforeEach(function () {
       PluginsStore.reset();
-      PluginsStore.plugins = new Map(TestStubs.Plugins().map(p => [p.id, p]));
+      PluginsStore.plugins = new Map(Plugins().map(p => [p.id, p]));
     });
 
     it('has optimistic state when updating', function () {

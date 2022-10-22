@@ -1,3 +1,7 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+import {router} from 'fixtures/js-stubs/router';
+import {routerContext} from 'fixtures/js-stubs/routerContext';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
@@ -45,7 +49,7 @@ const queryCountsMaxed = {
 describe('IssueListHeader', () => {
   let organization;
   beforeEach(() => {
-    organization = TestStubs.Organization();
+    organization = Organization();
   });
 
   afterEach(() => {
@@ -137,7 +141,7 @@ describe('IssueListHeader', () => {
   });
 
   it('transitions to new query on tab click', () => {
-    const routerContext = TestStubs.routerContext();
+    const routerContext = routerContext();
 
     render(
       <IssueListHeader
@@ -166,14 +170,14 @@ describe('IssueListHeader', () => {
   });
 
   it('removes inbox sort for non-inbox tabs', () => {
-    const routerContext = TestStubs.routerContext();
+    const routerContext = routerContext();
     render(
       <IssueListHeader
         organization={organization}
         queryCounts={queryCounts}
         projectIds={[]}
         savedSearchList={[]}
-        router={TestStubs.router({
+        router={router({
           location: {
             pathname: '/test/',
             query: {sort: 'inbox'},
@@ -200,14 +204,14 @@ describe('IssueListHeader', () => {
   });
 
   it('changes sort for inbox tab', () => {
-    const routerContext = TestStubs.routerContext();
+    const routerContext = routerContext();
     render(
       <IssueListHeader
         organization={organization}
         queryCounts={queryCounts}
         projectIds={[]}
         savedSearchList={[]}
-        router={TestStubs.router({
+        router={router({
           location: {
             pathname: '/test/',
             query: {sort: 'date'},
@@ -236,7 +240,7 @@ describe('IssueListHeader', () => {
         projectIds={[]}
         savedSearchList={[]}
       />,
-      {context: TestStubs.routerContext()}
+      {context: routerContext()}
     );
     userEvent.click(screen.getByText('For Review'));
     expect(trackAnalyticsEvent).toHaveBeenCalledTimes(1);
@@ -251,7 +255,7 @@ describe('IssueListHeader', () => {
         projectIds={[]}
         savedSearchList={[]}
       />,
-      {context: TestStubs.routerContext()}
+      {context: routerContext()}
     );
     userEvent.click(screen.getByText('For Review'));
     expect(trackAnalyticsEvent).toHaveBeenCalledTimes(0);

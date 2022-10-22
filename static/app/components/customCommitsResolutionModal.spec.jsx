@@ -1,4 +1,5 @@
 import selectEvent from 'react-select-event';
+import {Commit} from 'fixtures/js-stubs/commit';
 
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -9,7 +10,7 @@ describe('CustomCommitsResolutionModal', function () {
   beforeEach(function () {
     commitsMock = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/commits/',
-      body: [TestStubs.Commit()],
+      body: [Commit()],
     });
   });
 

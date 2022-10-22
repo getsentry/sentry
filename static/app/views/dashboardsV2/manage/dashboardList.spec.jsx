@@ -1,4 +1,8 @@
 import {act} from 'react-dom/test-utils';
+import {Dashboard} from 'fixtures/js-stubs/dashboard';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
+import {Widget} from 'fixtures/js-stubs/widget';
 
 import {selectDropdownMenuItem} from 'sentry-test/dropdownMenu';
 import {mountWithTheme} from 'sentry-test/enzyme';
@@ -9,9 +13,9 @@ import DashboardList from 'sentry/views/dashboardsV2/manage/dashboardList';
 
 describe('Dashboards > DashboardList', function () {
   let dashboards, widgets, deleteMock, dashboardUpdateMock, createMock;
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features: ['global-views', 'dashboards-basic', 'dashboards-edit', 'discover-query'],
-    projects: [TestStubs.Project()],
+    projects: [Project()],
   });
 
   beforeEach(function () {
@@ -20,23 +24,17 @@ describe('Dashboards > DashboardList', function () {
       body: [],
     });
     widgets = [
-      TestStubs.Widget(
-        [{name: '', conditions: 'event.type:error', fields: ['count()']}],
-        {
-          title: 'Errors',
-          interval: '1d',
-          id: '1',
-        }
-      ),
-      TestStubs.Widget(
-        [{name: '', conditions: 'event.type:transaction', fields: ['count()']}],
-        {
-          title: 'Transactions',
-          interval: '1d',
-          id: '2',
-        }
-      ),
-      TestStubs.Widget(
+      Widget([{name: '', conditions: 'event.type:error', fields: ['count()']}], {
+        title: 'Errors',
+        interval: '1d',
+        id: '1',
+      }),
+      Widget([{name: '', conditions: 'event.type:transaction', fields: ['count()']}], {
+        title: 'Transactions',
+        interval: '1d',
+        id: '2',
+      }),
+      Widget(
         [
           {
             name: '',
@@ -52,14 +50,14 @@ describe('Dashboards > DashboardList', function () {
       ),
     ];
     dashboards = [
-      TestStubs.Dashboard([], {
+      Dashboard([], {
         id: '1',
         title: 'Dashboard 1',
         dateCreated: '2021-04-19T13:13:23.962105Z',
         createdBy: {id: '1'},
         widgetDisplay: [],
       }),
-      TestStubs.Dashboard(widgets, {
+      Dashboard(widgets, {
         id: '2',
         title: 'Dashboard 2',
         dateCreated: '2021-04-19T13:13:23.962105Z',
@@ -203,7 +201,7 @@ describe('Dashboards > DashboardList', function () {
 
   it('cannot delete last dashboard', async function () {
     const singleDashboard = [
-      TestStubs.Dashboard([], {
+      Dashboard([], {
         id: '1',
         title: 'Dashboard 1',
         dateCreated: '2021-04-19T13:13:23.962105Z',

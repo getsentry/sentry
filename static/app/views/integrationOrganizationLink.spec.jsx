@@ -1,4 +1,6 @@
 import selectEvent from 'react-select-event';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {VercelProvider} from 'fixtures/js-stubs/vercelProvider';
 import pick from 'lodash/pick';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -10,12 +12,12 @@ describe('IntegrationOrganizationLink', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    org1 = TestStubs.Organization({
+    org1 = Organization({
       slug: 'org1',
       name: 'Organization 1',
     });
 
-    org2 = TestStubs.Organization({
+    org2 = Organization({
       slug: 'org2',
       name: 'Organization 2',
     });
@@ -37,7 +39,7 @@ describe('IntegrationOrganizationLink', () => {
 
     getProviderMock = MockApiClient.addMockResponse({
       url: `/organizations/${org2.slug}/config/integrations/?provider_key=vercel`,
-      body: {providers: [TestStubs.VercelProvider()]},
+      body: {providers: [VercelProvider()]},
     });
 
     render(<IntegrationOrganizationLink params={{integrationSlug: 'vercel'}} />);

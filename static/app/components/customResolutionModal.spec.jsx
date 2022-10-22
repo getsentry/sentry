@@ -1,4 +1,6 @@
 import selectEvent from 'react-select-event';
+import {Release} from 'fixtures/js-stubs/release';
+import {User} from 'fixtures/js-stubs/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -11,7 +13,7 @@ describe('CustomResolutionModal', () => {
     ConfigStore.init();
     releasesMock = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/releases/',
-      body: [TestStubs.Release({authors: [TestStubs.User()]})],
+      body: [Release({authors: [User()]})],
     });
   });
 
@@ -45,7 +47,7 @@ describe('CustomResolutionModal', () => {
   });
 
   it('indicates which releases had commits from the user', async () => {
-    const user = TestStubs.User();
+    const user = User();
     ConfigStore.set('user', user);
     render(
       <CustomResolutionModal

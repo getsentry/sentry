@@ -1,3 +1,5 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import Hook from 'sentry/components/hook';
@@ -24,7 +26,7 @@ describe('Hook', function () {
 
     render(
       <div>
-        <Hook name="footer" organization={TestStubs.Organization()} />
+        <Hook name="footer" organization={Organization()} />
       </div>
     );
 
@@ -42,7 +44,7 @@ describe('Hook', function () {
 
     render(
       <div>
-        <Hook name="invalid-hook" organization={TestStubs.Organization()} />
+        <Hook name="invalid-hook" organization={Organization()} />
         invalid
       </div>
     );
@@ -58,9 +60,7 @@ describe('Hook', function () {
       </HookWrapper>
     ));
 
-    const {rerender} = render(
-      <Hook name="footer" organization={TestStubs.Organization()} />
-    );
+    const {rerender} = render(<Hook name="footer" organization={Organization()} />);
 
     expect(screen.getByTestId('hook-wrapper')).toBeInTheDocument();
 
@@ -70,7 +70,7 @@ describe('Hook', function () {
       </HookWrapper>
     ));
 
-    rerender(<Hook name="footer" organization={TestStubs.Organization()} />);
+    rerender(<Hook name="footer" organization={Organization()} />);
 
     expect(screen.getAllByTestId('hook-wrapper')).toHaveLength(2);
     expect(screen.getByText(/New Hook/)).toBeInTheDocument();
@@ -80,7 +80,7 @@ describe('Hook', function () {
   it('can use children as a render prop', function () {
     let idx = 0;
     render(
-      <Hook name="footer" organization={TestStubs.Organization()}>
+      <Hook name="footer" organization={Organization()}>
         {({hooks}) =>
           hooks.map((hook, i) => (
             <HookWrapper key={i}>

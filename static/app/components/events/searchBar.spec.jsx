@@ -1,3 +1,6 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+import {routerContext} from 'fixtures/js-stubs/routerContext';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -39,7 +42,7 @@ describe('Events > SearchBar', function () {
   let props;
 
   beforeEach(function () {
-    organization = TestStubs.Organization();
+    organization = Organization();
     props = {
       organization,
       projectIds: [1, 2],
@@ -51,7 +54,7 @@ describe('Events > SearchBar', function () {
       {count: 0, key: 'browser', name: 'Browser'},
     ]);
 
-    options = TestStubs.routerContext();
+    options = routerContext();
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',

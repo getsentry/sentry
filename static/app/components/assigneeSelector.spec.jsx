@@ -1,3 +1,8 @@
+import {Group} from 'fixtures/js-stubs/group';
+import {Project} from 'fixtures/js-stubs/project';
+import {Team} from 'fixtures/js-stubs/team';
+import {User} from 'fixtures/js-stubs/user';
+
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
@@ -24,33 +29,33 @@ describe('AssigneeSelector', () => {
   let GROUP_2;
 
   beforeEach(() => {
-    USER_1 = TestStubs.User({
+    USER_1 = User({
       id: '1',
       name: 'Jane Bloggs',
       email: 'janebloggs@example.com',
     });
-    USER_2 = TestStubs.User({
+    USER_2 = User({
       id: '2',
       name: 'John Smith',
       email: 'johnsmith@example.com',
     });
-    USER_3 = TestStubs.User({
+    USER_3 = User({
       id: '3',
       name: 'J J',
       email: 'jj@example.com',
     });
 
-    TEAM_1 = TestStubs.Team({
+    TEAM_1 = Team({
       id: '3',
       name: 'COOL TEAM',
       slug: 'cool-team',
     });
 
-    PROJECT_1 = TestStubs.Project({
+    PROJECT_1 = Project({
       teams: [TEAM_1],
     });
 
-    GROUP_1 = TestStubs.Group({
+    GROUP_1 = Group({
       id: '1337',
       project: {
         id: PROJECT_1.id,
@@ -58,7 +63,7 @@ describe('AssigneeSelector', () => {
       },
     });
 
-    GROUP_2 = TestStubs.Group({
+    GROUP_2 = Group({
       id: '1338',
       project: {
         id: PROJECT_1.id,

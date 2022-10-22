@@ -1,4 +1,5 @@
 import selectEvent from 'react-select-event';
+import {Project} from 'fixtures/js-stubs/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -11,10 +12,7 @@ describe('AwsLambdaProjectSelect', () => {
   beforeEach(() => {
     windowAssignMock = jest.fn();
     window.location.assign = windowAssignMock;
-    projects = [
-      TestStubs.Project(),
-      TestStubs.Project({id: '53', name: 'My Proj', slug: 'my-proj'}),
-    ];
+    projects = [Project(), Project({id: '53', name: 'My Proj', slug: 'my-proj'})];
   });
 
   it('submit project', async () => {

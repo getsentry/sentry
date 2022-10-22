@@ -1,3 +1,6 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+import {routerContext} from 'fixtures/js-stubs/routerContext';
+
 import {act, fireEvent, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -5,10 +8,10 @@ import WrappedDataExport from 'sentry/components/dataExport';
 
 jest.mock('sentry/actionCreators/indicator');
 
-const mockUnauthorizedOrg = TestStubs.Organization({
+const mockUnauthorizedOrg = Organization({
   features: [],
 });
-const mockAuthorizedOrg = TestStubs.Organization({
+const mockAuthorizedOrg = Organization({
   features: ['discover-query'],
 });
 const mockPayload = {
@@ -16,7 +19,7 @@ const mockPayload = {
   queryInfo: {project_id: '1', group_id: '1027', key: 'user'},
 };
 const mockRouterContext = mockOrganization =>
-  TestStubs.routerContext([
+  routerContext([
     {
       organization: mockOrganization,
     },

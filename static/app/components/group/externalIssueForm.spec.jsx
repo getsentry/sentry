@@ -1,3 +1,6 @@
+import {GitHubIntegration} from 'fixtures/js-stubs/gitHubIntegration';
+import {Group} from 'fixtures/js-stubs/group';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import ExternalIssueForm from 'sentry/components/group/externalIssueForm';
@@ -25,8 +28,8 @@ describe('ExternalIssueForm', () => {
   let group, integration, onChange, wrapper, formConfig;
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    group = TestStubs.Group();
-    integration = TestStubs.GitHubIntegration({externalIssues: []});
+    group = Group();
+    integration = GitHubIntegration({externalIssues: []});
     onChange = jest.fn();
   });
 
