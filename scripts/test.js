@@ -24,6 +24,4 @@ if (process.env.CI || process.env.SENTRY_PRECOMMIT || argv.includes('--coverage'
   argv = argv.filter(arg => arg !== '--watch');
 }
 
-argv.push('--maxWorkers=4');
-
 jest.run(argv);

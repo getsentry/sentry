@@ -234,8 +234,8 @@
   "proxyURL": "http://localhost:8000",
   "scripts": {
     "test-wrap": "node scripts/test.js",
-    "test": "yarn test-wrap --colors",
-    "test-ci": "yarn test-wrap --ci --coverage --colors",
+    "test": "yarn test-wrap --runInBand --colors",
+    "test-ci": "yarn test-wrap --ci --coverage --runInBand --colors",
     "test-debug": "node --inspect-brk scripts/test.js --runInBand",
     "test-precommit": "yarn test-wrap --bail --findRelatedTests -u",
     "test-staged": "yarn test-wrap --findRelatedTests $(git diff --name-only --cached)",
