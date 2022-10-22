@@ -1,3 +1,5 @@
+import {DiscoverSavedQuery} from 'fixtures/js-stubs/discoverSavedQuery';
+import {Organization} from 'fixtures/js-stubs/organization';
 import {act} from 'react-dom/test-utils';
 import {browserHistory} from 'react-router';
 
@@ -29,7 +31,7 @@ describe('EventsV2 > QueryList', function () {
   });
 
   beforeEach(function () {
-    organization = TestStubs.Organization({
+    organization = Organization({
       features: [
         'discover-basic',
         'discover-query',
@@ -37,8 +39,8 @@ describe('EventsV2 > QueryList', function () {
       ],
     });
     savedQueries = [
-      TestStubs.DiscoverSavedQuery(),
-      TestStubs.DiscoverSavedQuery({name: 'saved query 2', id: '2'}),
+      DiscoverSavedQuery(),
+      DiscoverSavedQuery({name: 'saved query 2', id: '2'}),
     ];
 
     MockApiClient.addMockResponse({
@@ -210,7 +212,7 @@ describe('EventsV2 > QueryList', function () {
   });
 
   it('renders Add to Dashboard in context menu with feature flag', async function () {
-    const featuredOrganization = TestStubs.Organization({
+    const featuredOrganization = Organization({
       features: ['dashboards-edit'],
     });
     wrapper = mountWithTheme(
@@ -269,7 +271,7 @@ describe('EventsV2 > QueryList', function () {
   });
 
   it('passes yAxis from the savedQuery to MiniGraph', function () {
-    const featuredOrganization = TestStubs.Organization({
+    const featuredOrganization = Organization({
       features: ['dashboards-edit'],
     });
     const yAxis = ['count()', 'failure_count()'];
@@ -314,14 +316,14 @@ describe('EventsV2 > QueryList', function () {
 
   describe('Add to Dashboard modal', () => {
     it('opens a modal with the correct params for Top 5 chart', async function () {
-      const featuredOrganization = TestStubs.Organization({
+      const featuredOrganization = Organization({
         features: ['dashboards-edit'],
       });
       wrapper = mountWithTheme(
         <QueryList
           organization={featuredOrganization}
           savedQueries={[
-            TestStubs.DiscoverSavedQuery({
+            DiscoverSavedQuery({
               display: DisplayModes.TOP5,
               orderby: 'test',
               fields: ['test', 'count()'],
@@ -384,14 +386,14 @@ describe('EventsV2 > QueryList', function () {
     });
 
     it('opens a modal with the correct params for other chart', async function () {
-      const featuredOrganization = TestStubs.Organization({
+      const featuredOrganization = Organization({
         features: ['dashboards-edit'],
       });
       wrapper = mountWithTheme(
         <QueryList
           organization={featuredOrganization}
           savedQueries={[
-            TestStubs.DiscoverSavedQuery({
+            DiscoverSavedQuery({
               display: DisplayModes.DEFAULT,
               orderby: 'count()',
               fields: ['test', 'count()'],

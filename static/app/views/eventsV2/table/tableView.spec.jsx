@@ -1,3 +1,5 @@
+import {Project} from 'fixtures/js-stubs/project';
+import {Organization} from 'fixtures/js-stubs/organization';
 import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
@@ -67,9 +69,9 @@ describe('TableView > CellActions', function () {
     browserHistory.push.mockReset();
     browserHistory.replace.mockReset();
 
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       features: ['discover-basic'],
-      projects: [TestStubs.Project()],
+      projects: [Project()],
     });
 
     initialData = initializeOrg({
@@ -346,9 +348,9 @@ describe('TableView > CellActions', function () {
   });
 
   it('renders size columns correctly', function () {
-    const orgWithFeature = TestStubs.Organization({
+    const orgWithFeature = Organization({
       features: ['discover-frontend-use-events-endpoint'],
-      projects: [TestStubs.Project()],
+      projects: [Project()],
     });
     render(
       <TableView
@@ -394,9 +396,9 @@ describe('TableView > CellActions', function () {
   });
 
   it('shows events with value less than selected custom performance metric', function () {
-    const orgWithFeature = TestStubs.Organization({
+    const orgWithFeature = Organization({
       features: ['discover-frontend-use-events-endpoint'],
-      projects: [TestStubs.Project()],
+      projects: [Project()],
     });
     render(
       <TableView

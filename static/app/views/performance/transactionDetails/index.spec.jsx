@@ -1,3 +1,7 @@
+import {routerContext} from 'fixtures/js-stubs/routerContext';
+import {Event} from 'fixtures/js-stubs/event';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
 import {act, cleanup, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -11,15 +15,15 @@ describe('EventDetails', () => {
   afterEach(cleanup);
 
   it('renders alert for sample transaction', async () => {
-    const project = TestStubs.Project();
+    const project = Project();
     ProjectsStore.loadInitialData([project]);
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       features: ['performance-view'],
       projects: [project],
     });
-    const event = TestStubs.Event();
+    const event = Event();
     event.tags.push({key: 'sample_event', value: 'yes'});
-    const routerContext = TestStubs.routerContext([]);
+    const routerContext = routerContext([]);
 
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/latest/events/1/grouping-info/`,
@@ -60,14 +64,14 @@ describe('EventDetails', () => {
   });
 
   it('does not reender alert if already received transaction', async () => {
-    const project = TestStubs.Project();
+    const project = Project();
     ProjectsStore.loadInitialData([project]);
-    const organization = TestStubs.Organization({
+    const organization = Organization({
       features: ['performance-view'],
       projects: [project],
     });
-    const event = TestStubs.Event();
-    const routerContext = TestStubs.routerContext([]);
+    const event = Event();
+    const routerContext = routerContext([]);
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/latest/`,

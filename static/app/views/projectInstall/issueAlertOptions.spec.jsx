@@ -1,4 +1,10 @@
 import selectEvent from 'react-select-event';
+import {
+  MOCK_RESP_INCONSISTENT_INTERVALS,
+  MOCK_RESP_INCONSISTENT_PLACEHOLDERS,
+  MOCK_RESP_ONLY_IGNORED_CONDITIONS_INVALID,
+  MOCK_RESP_VERBOSE,
+} from 'fixtures/js-stubs/ruleConditions';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -14,7 +20,7 @@ describe('IssueAlertOptions', function () {
   beforeEach(() => {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/rule-conditions/`,
-      body: TestStubs.MOCK_RESP_VERBOSE,
+      body: MOCK_RESP_VERBOSE,
     });
   });
   afterEach(() => {
@@ -45,7 +51,7 @@ describe('IssueAlertOptions', function () {
   it('should render only the `Default Rule` and `Create Later` option on responses with different allowable intervals', () => {
     MockApiClient.addMockResponse({
       url: URL,
-      body: TestStubs.MOCK_RESP_INCONSISTENT_INTERVALS,
+      body: MOCK_RESP_INCONSISTENT_INTERVALS,
     });
 
     render(<IssueAlertOptions {...props} />, {organization});
@@ -55,7 +61,7 @@ describe('IssueAlertOptions', function () {
   it('should render all(three) options on responses with different placeholder values', () => {
     MockApiClient.addMockResponse({
       url: URL,
-      body: TestStubs.MOCK_RESP_INCONSISTENT_PLACEHOLDERS,
+      body: MOCK_RESP_INCONSISTENT_PLACEHOLDERS,
     });
     render(<IssueAlertOptions {...props} />, {organization});
     expect(screen.getAllByRole('radio')).toHaveLength(3);
@@ -64,7 +70,7 @@ describe('IssueAlertOptions', function () {
   it('should ignore conditions that are not `sentry.rules.conditions.event_frequency.EventFrequencyCondition` and `sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition`', async () => {
     MockApiClient.addMockResponse({
       url: URL,
-      body: TestStubs.MOCK_RESP_ONLY_IGNORED_CONDITIONS_INVALID,
+      body: MOCK_RESP_ONLY_IGNORED_CONDITIONS_INVALID,
     });
 
     render(<IssueAlertOptions {...props} />, {organization});
@@ -81,7 +87,7 @@ describe('IssueAlertOptions', function () {
   it('should render all(three) options on a valid response', () => {
     MockApiClient.addMockResponse({
       url: URL,
-      body: TestStubs.MOCK_RESP_VERBOSE,
+      body: MOCK_RESP_VERBOSE,
     });
 
     render(<IssueAlertOptions {...props} />);
@@ -91,7 +97,7 @@ describe('IssueAlertOptions', function () {
   it('should pre-populate fields from server response', async () => {
     MockApiClient.addMockResponse({
       url: URL,
-      body: TestStubs.MOCK_RESP_VERBOSE,
+      body: MOCK_RESP_VERBOSE,
     });
 
     render(<IssueAlertOptions {...props} />);
@@ -108,7 +114,7 @@ describe('IssueAlertOptions', function () {
   it('should not pre-fill threshold value after a valid server response', () => {
     MockApiClient.addMockResponse({
       url: URL,
-      body: TestStubs.MOCK_RESP_VERBOSE,
+      body: MOCK_RESP_VERBOSE,
     });
 
     render(<IssueAlertOptions {...props} />);

@@ -1,3 +1,4 @@
+import {Project} from 'fixtures/js-stubs/project';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -61,13 +62,13 @@ describe('Onboarding', function () {
   });
   it('renders the setup docs step', async () => {
     const projects = [
-      TestStubs.Project({
+      Project({
         platform: 'javascript-react',
         id: '4',
         slug: 'javascript-reactslug',
       }),
-      TestStubs.Project({platform: 'ruby', id: '5', slug: 'ruby-slug'}),
-      TestStubs.Project({
+      Project({platform: 'ruby', id: '5', slug: 'ruby-slug'}),
+      Project({
         platform: 'javascript-nextjs',
         id: '6',
         slug: 'javascript-nextslug',

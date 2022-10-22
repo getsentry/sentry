@@ -1,3 +1,5 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
 import selectEvent from 'react-select-event';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -10,7 +12,7 @@ describe('EventsV2 > Landing', function () {
   const features = ['discover-basic', 'discover-query'];
 
   beforeEach(function () {
-    ProjectsStore.loadInitialData([TestStubs.Project()]);
+    ProjectsStore.loadInitialData([Project()]);
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -74,7 +76,7 @@ describe('EventsV2 > Landing', function () {
 
     render(
       <DiscoverLanding
-        organization={TestStubs.Organization({features})}
+        organization={Organization({features})}
         location={{query: {}}}
         router={{}}
       />
@@ -88,7 +90,7 @@ describe('EventsV2 > Landing', function () {
   it('denies access on missing feature', function () {
     render(
       <DiscoverLanding
-        organization={TestStubs.Organization()}
+        organization={Organization()}
         location={{query: {}}}
         router={{}}
       />
@@ -98,7 +100,7 @@ describe('EventsV2 > Landing', function () {
   });
 
   it('has the right sorts', function () {
-    const org = TestStubs.Organization({features});
+    const org = Organization({features});
 
     render(<DiscoverLanding organization={org} location={{query: {}}} router={{}} />);
 

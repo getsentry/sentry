@@ -1,3 +1,7 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Environments} from 'fixtures/js-stubs/environments';
+import {UserFeedback} from 'fixtures/js-stubs/userFeedback';
+import {Project} from 'fixtures/js-stubs/project';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -11,20 +15,20 @@ describe('UserFeedback', function () {
     '<https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", ' +
     '<https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"';
 
-  const project = TestStubs.Project({isMember: true});
+  const project = Project({isMember: true});
 
   beforeEach(function () {
     ProjectsStore.loadInitialData([project]);
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/user-feedback/',
-      body: [TestStubs.UserFeedback()],
+      body: [UserFeedback()],
       headers: {Link: pageLinks},
     });
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/environments/',
-      body: TestStubs.Environments(),
+      body: Environments(),
     });
   });
 
@@ -34,7 +38,7 @@ describe('UserFeedback', function () {
 
   it('renders', function () {
     const params = {
-      organization: TestStubs.Organization(),
+      organization: Organization(),
       location: {query: {}, search: ''},
       params: {
         orgId: organization.slug,
@@ -61,7 +65,7 @@ describe('UserFeedback', function () {
     ProjectsStore.loadInitialData([]);
 
     const params = {
-      organization: TestStubs.Organization(),
+      organization: Organization(),
       location: {query: {}, search: ''},
       params: {
         orgId: organization.slug,
@@ -86,8 +90,8 @@ describe('UserFeedback', function () {
     });
 
     const params = {
-      organization: TestStubs.Organization({
-        projects: [TestStubs.Project({isMember: true})],
+      organization: Organization({
+        projects: [Project({isMember: true})],
       }),
       location: {query: {}, search: ''},
       params: {
@@ -111,8 +115,8 @@ describe('UserFeedback', function () {
     });
 
     const params = {
-      organization: TestStubs.Organization({
-        projects: [TestStubs.Project({isMember: true})],
+      organization: Organization({
+        projects: [Project({isMember: true})],
       }),
       location: {pathname: 'sentry', query: {project: '112'}, search: ''},
       params: {
@@ -141,8 +145,8 @@ describe('UserFeedback', function () {
     });
 
     const params = {
-      organization: TestStubs.Organization({
-        projects: [TestStubs.Project({isMember: true})],
+      organization: Organization({
+        projects: [Project({isMember: true})],
       }),
       location: {pathname: 'sentry', query: {project: ['112', '113']}, search: ''},
       params: {

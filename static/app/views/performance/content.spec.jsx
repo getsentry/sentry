@@ -1,3 +1,5 @@
+import {Project} from 'fixtures/js-stubs/project';
+import {Organization} from 'fixtures/js-stubs/organization';
 import {browserHistory} from 'react-router';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
@@ -41,7 +43,7 @@ function WrappedComponent({organization, isMEPEnabled = false, router}) {
 }
 
 function initializeData(projects, query, features = FEATURES) {
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features,
     projects,
   });
@@ -61,10 +63,10 @@ function initializeData(projects, query, features = FEATURES) {
 
 function initializeTrendsData(query, addDefaultQuery = true) {
   const projects = [
-    TestStubs.Project({id: '1', firstTransactionEvent: false}),
-    TestStubs.Project({id: '2', firstTransactionEvent: true}),
+    Project({id: '1', firstTransactionEvent: false}),
+    Project({id: '2', firstTransactionEvent: true}),
   ];
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     FEATURES,
     projects,
   });
@@ -293,7 +295,7 @@ describe('Performance > Content', function () {
   });
 
   it('renders basic UI elements', async function () {
-    const projects = [TestStubs.Project({firstTransactionEvent: true})];
+    const projects = [Project({firstTransactionEvent: true})];
     const data = initializeData(projects, {});
 
     const wrapper = mountWithTheme(
@@ -322,8 +324,8 @@ describe('Performance > Content', function () {
 
   it('renders onboarding state when the selected project has no events', async function () {
     const projects = [
-      TestStubs.Project({id: 1, firstTransactionEvent: false}),
-      TestStubs.Project({id: 2, firstTransactionEvent: true}),
+      Project({id: 1, firstTransactionEvent: false}),
+      Project({id: 2, firstTransactionEvent: true}),
     ];
     const data = initializeData(projects, {project: [1]});
 
@@ -347,8 +349,8 @@ describe('Performance > Content', function () {
 
   it('does not render onboarding for "my projects"', async function () {
     const projects = [
-      TestStubs.Project({id: '1', firstTransactionEvent: false}),
-      TestStubs.Project({id: '2', firstTransactionEvent: true}),
+      Project({id: '1', firstTransactionEvent: false}),
+      Project({id: '2', firstTransactionEvent: true}),
     ];
     const data = initializeData(projects, {project: ['-1']});
 
@@ -367,7 +369,7 @@ describe('Performance > Content', function () {
   });
 
   it('forwards conditions to transaction summary', async function () {
-    const projects = [TestStubs.Project({id: '1', firstTransactionEvent: true})];
+    const projects = [Project({id: '1', firstTransactionEvent: true})];
     const data = initializeData(projects, {project: ['1'], query: 'sentry:yes'});
 
     const wrapper = mountWithTheme(
@@ -445,8 +447,8 @@ describe('Performance > Content', function () {
 
   it('Default page (transactions) without trends feature will not update filters if none are set', async function () {
     const projects = [
-      TestStubs.Project({id: 1, firstTransactionEvent: false}),
-      TestStubs.Project({id: 2, firstTransactionEvent: true}),
+      Project({id: 1, firstTransactionEvent: false}),
+      Project({id: 2, firstTransactionEvent: true}),
     ];
     const data = initializeData(projects, {view: undefined});
 
@@ -510,8 +512,8 @@ describe('Performance > Content', function () {
 
   it('Display Create Sample Transaction Button', async function () {
     const projects = [
-      TestStubs.Project({id: 1, firstTransactionEvent: false}),
-      TestStubs.Project({id: 2, firstTransactionEvent: false}),
+      Project({id: 1, firstTransactionEvent: false}),
+      Project({id: 2, firstTransactionEvent: false}),
     ];
     const data = initializeData(projects, {view: undefined});
 

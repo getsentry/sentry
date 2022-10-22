@@ -1,3 +1,7 @@
+import {Event} from 'fixtures/js-stubs/event';
+import {Project} from 'fixtures/js-stubs/project';
+import {Organization} from 'fixtures/js-stubs/organization';
+import {routerContext} from 'fixtures/js-stubs/routerContext';
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -12,11 +16,11 @@ const WrappedQuickTraceMeta = ({organization, ...rest}) => {
 };
 
 describe('QuickTraceMeta', function () {
-  const routerContext = TestStubs.routerContext();
+  const routerContext = routerContext();
   const location = routerContext.context.location;
-  const organization = TestStubs.Organization({features: ['performance-view']});
-  const project = TestStubs.Project({platform: 'javascript'});
-  const event = TestStubs.Event({contexts: {trace: {trace_id: 'a'.repeat(32)}}});
+  const organization = Organization({features: ['performance-view']});
+  const project = Project({platform: 'javascript'});
+  const event = Event({contexts: {trace: {trace_id: 'a'.repeat(32)}}});
   const emptyQuickTrace = {
     isLoading: false,
     error: null,
@@ -119,7 +123,7 @@ describe('QuickTraceMeta', function () {
   });
 
   it('renders missing trace when trace id is not present', async function () {
-    const newEvent = TestStubs.Event();
+    const newEvent = Event();
     const wrapper = mountWithTheme(
       <WrappedQuickTraceMeta
         event={newEvent}
@@ -148,8 +152,8 @@ describe('QuickTraceMeta', function () {
   });
 
   it('renders missing trace with hover card when feature disabled', async function () {
-    const newEvent = TestStubs.Event();
-    const newOrg = TestStubs.Organization();
+    const newEvent = Event();
+    const newOrg = Organization();
     const wrapper = mountWithTheme(
       <WrappedQuickTraceMeta
         event={newEvent}
@@ -181,8 +185,8 @@ describe('QuickTraceMeta', function () {
   });
 
   it('does not render when platform does not support tracing', async function () {
-    const newProject = TestStubs.Project();
-    const newEvent = TestStubs.Event();
+    const newProject = Project();
+    const newEvent = Event();
     const wrapper = mountWithTheme(
       <WrappedQuickTraceMeta
         event={newEvent}

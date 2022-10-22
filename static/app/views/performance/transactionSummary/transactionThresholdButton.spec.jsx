@@ -1,3 +1,5 @@
+import {Project} from 'fixtures/js-stubs/project';
+import {Organization} from 'fixtures/js-stubs/organization';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {act} from 'sentry-test/reactTestingLibrary';
 
@@ -18,8 +20,8 @@ function mountComponent(eventView, organization, onChangeThreshold) {
 }
 
 describe('TransactionThresholdButton', function () {
-  const organization = TestStubs.Organization({features: ['performance-view']});
-  const project = TestStubs.Project();
+  const organization = Organization({features: ['performance-view']});
+  const project = Project();
   const eventView = new EventView({
     id: '1',
     name: 'my query',

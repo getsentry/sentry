@@ -1,3 +1,6 @@
+import {Project} from 'fixtures/js-stubs/project';
+import {Team} from 'fixtures/js-stubs/team';
+import {Organization} from 'fixtures/js-stubs/organization';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {act} from 'sentry-test/reactTestingLibrary';
 
@@ -14,12 +17,12 @@ async function clickTeamKeyTransactionDropdown(wrapper) {
 }
 
 describe('TeamKeyTransactionButton', function () {
-  const organization = TestStubs.Organization({features: ['performance-view']});
+  const organization = Organization({features: ['performance-view']});
   const teams = [
-    TestStubs.Team({id: '1', slug: 'team1', name: 'Team 1'}),
-    TestStubs.Team({id: '2', slug: 'team2', name: 'Team 2'}),
+    Team({id: '1', slug: 'team1', name: 'Team 1'}),
+    Team({id: '2', slug: 'team2', name: 'Team 2'}),
   ];
-  const project = TestStubs.Project({teams});
+  const project = Project({teams});
   const eventView = new EventView({
     id: '1',
     name: 'my query',

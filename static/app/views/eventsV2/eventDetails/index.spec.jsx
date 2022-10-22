@@ -1,3 +1,6 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Group} from 'fixtures/js-stubs/group';
+import {Project} from 'fixtures/js-stubs/project';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -22,7 +25,7 @@ describe('EventsV2 > EventDetails', function () {
   );
 
   beforeEach(function () {
-    act(() => ProjectsStore.loadInitialData([TestStubs.Project()]));
+    act(() => ProjectsStore.loadInitialData([Project()]));
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -78,7 +81,7 @@ describe('EventsV2 > EventDetails', function () {
     MockApiClient.addMockResponse({
       url: '/issues/123/',
       method: 'GET',
-      body: TestStubs.Group({id: '123'}),
+      body: Group({id: '123'}),
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
@@ -113,7 +116,7 @@ describe('EventsV2 > EventDetails', function () {
   it('renders', async function () {
     render(
       <WrappedEventDetails
-        organization={TestStubs.Organization()}
+        organization={Organization()}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={{query: allEventsView.generateQueryStringObject()}}
       />
@@ -124,7 +127,7 @@ describe('EventsV2 > EventDetails', function () {
   it('renders a 404', async function () {
     render(
       <WrappedEventDetails
-        organization={TestStubs.Organization()}
+        organization={Organization()}
         params={{eventSlug: 'project-slug:abad1'}}
         location={{query: allEventsView.generateQueryStringObject()}}
       />
@@ -136,7 +139,7 @@ describe('EventsV2 > EventDetails', function () {
   it('renders a chart in grouped view', async function () {
     render(
       <WrappedEventDetails
-        organization={TestStubs.Organization()}
+        organization={Organization()}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={{query: errorsView.generateQueryStringObject()}}
       />
@@ -153,7 +156,7 @@ describe('EventsV2 > EventDetails', function () {
     });
     render(
       <WrappedEventDetails
-        organization={TestStubs.Organization()}
+        organization={Organization()}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={{query: allEventsView.generateQueryStringObject()}}
       />
@@ -167,7 +170,7 @@ describe('EventsV2 > EventDetails', function () {
 
   it('navigates when tag values are clicked', async function () {
     const {organization, routerContext} = initializeOrg({
-      organization: TestStubs.Organization(),
+      organization: Organization(),
       router: {
         location: {
           pathname: '/organizations/org-slug/discover/project-slug:deadbeef',
@@ -206,7 +209,7 @@ describe('EventsV2 > EventDetails', function () {
 
   it('appends tag value to existing query when clicked', async function () {
     const {organization, routerContext} = initializeOrg({
-      organization: TestStubs.Organization(),
+      organization: Organization(),
       router: {
         location: {
           pathname: '/organizations/org-slug/discover/project-slug:deadbeef',
@@ -246,7 +249,7 @@ describe('EventsV2 > EventDetails', function () {
 
   it('links back to the homepage if the query param contains homepage flag', async () => {
     const {organization, router, routerContext} = initializeOrg({
-      organization: TestStubs.Organization({
+      organization: Organization({
         features: ['discover-query-builder-as-landing-page'],
       }),
       router: {

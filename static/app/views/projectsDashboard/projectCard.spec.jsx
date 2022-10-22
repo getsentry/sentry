@@ -1,3 +1,5 @@
+import {Project} from 'fixtures/js-stubs/project';
+import {Organization} from 'fixtures/js-stubs/organization';
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectCard} from 'sentry/views/projectsDashboard/projectCard';
@@ -9,8 +11,8 @@ describe('ProjectCard', function () {
   const createWrapper = () =>
     render(
       <ProjectCard
-        organization={TestStubs.Organization()}
-        project={TestStubs.Project({
+        organization={Organization()}
+        project={Project({
           stats: [
             [1525042800, 1],
             [1525046400, 2],
@@ -52,8 +54,8 @@ describe('ProjectCard', function () {
 
     render(
       <ProjectCard
-        organization={TestStubs.Organization()}
-        project={TestStubs.Project({
+        organization={Organization()}
+        project={Project({
           stats: [
             [1525042800, 1],
             [1525046400, 2],
@@ -87,8 +89,8 @@ describe('ProjectCard', function () {
   it('renders header link for errors', function () {
     render(
       <ProjectCard
-        organization={TestStubs.Organization()}
-        project={TestStubs.Project({
+        organization={Organization()}
+        project={Project({
           stats: [
             [1525042800, 3],
             [1525046400, 3],
@@ -109,8 +111,8 @@ describe('ProjectCard', function () {
   it('renders header link for transactions', function () {
     render(
       <ProjectCard
-        organization={TestStubs.Organization({features: ['performance-view']})}
-        project={TestStubs.Project({
+        organization={Organization({features: ['performance-view']})}
+        project={Project({
           stats: [
             [1525042800, 3],
             [1525046400, 3],
@@ -133,8 +135,8 @@ describe('ProjectCard', function () {
   it('renders loading placeholder card if there are no stats', function () {
     render(
       <ProjectCard
-        organization={TestStubs.Organization()}
-        project={TestStubs.Project()}
+        organization={Organization()}
+        project={Project()}
         params={{orgId: 'org-slug'}}
       />
     );

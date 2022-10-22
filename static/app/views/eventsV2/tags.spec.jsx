@@ -1,3 +1,4 @@
+import {Organization} from 'fixtures/js-stubs/organization';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -15,7 +16,7 @@ describe('Tags', function () {
     return `/endpoint/${key}/${value}`;
   }
 
-  const org = TestStubs.Organization();
+  const org = Organization();
   beforeEach(function () {
     Client.addMockResponse({
       url: `/organizations/${org.slug}/events-facets/`,

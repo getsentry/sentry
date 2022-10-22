@@ -1,3 +1,5 @@
+import {Project} from 'fixtures/js-stubs/project';
+import {Organization} from 'fixtures/js-stubs/organization';
 import {browserHistory} from 'react-router';
 import * as Sentry from '@sentry/react';
 
@@ -10,8 +12,8 @@ jest.useFakeTimers();
 jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
 
 describe('CreateSampleEventButton', function () {
-  const org = TestStubs.Organization();
-  const project = TestStubs.Project();
+  const org = Organization();
+  const project = Project();
   const groupID = '123';
   const createSampleText = 'Create a sample event';
 

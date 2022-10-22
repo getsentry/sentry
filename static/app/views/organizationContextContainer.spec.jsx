@@ -1,3 +1,7 @@
+import {Environments} from 'fixtures/js-stubs/environments';
+import {Project} from 'fixtures/js-stubs/project';
+import {Team} from 'fixtures/js-stubs/team';
+import {Organization} from 'fixtures/js-stubs/organization';
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {openSudo} from 'sentry/actionCreators/modal';
@@ -17,9 +21,9 @@ jest.mock('sentry/actionCreators/modal', () => ({
 
 describe('OrganizationContextContainer', function () {
   let wrapper;
-  const org = TestStubs.Organization();
-  const teams = [TestStubs.Team()];
-  const projects = [TestStubs.Project()];
+  const org = Organization();
+  const teams = [Team()];
+  const projects = [Project()];
 
   const api = new MockApiClient();
   let getOrgMock;
@@ -96,7 +100,7 @@ describe('OrganizationContextContainer', function () {
   });
 
   it('fetches new org when router params change', async function () {
-    const newOrg = TestStubs.Organization({slug: 'new-slug'});
+    const newOrg = Organization({slug: 'new-slug'});
 
     wrapper = createWrapper();
     const instance = wrapper.instance();
@@ -208,7 +212,7 @@ describe('OrganizationContextContainer', function () {
   it('uses last organization from `organizations` prop', async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/foo/environments/',
-      body: TestStubs.Environments(),
+      body: Environments(),
     });
     getOrgMock = MockApiClient.addMockResponse({
       url: '/organizations/foo/',
@@ -237,8 +241,8 @@ describe('OrganizationContextContainer', function () {
     wrapper.setProps({
       organizationsLoading: false,
       organizations: [
-        TestStubs.Organization({slug: 'foo'}),
-        TestStubs.Organization({slug: 'bar'}),
+        Organization({slug: 'foo'}),
+        Organization({slug: 'bar'}),
       ],
     });
 
@@ -256,7 +260,7 @@ describe('OrganizationContextContainer', function () {
     ConfigStore.get.mockImplementation(() => 'my-last-org');
     getOrgMock = MockApiClient.addMockResponse({
       url: '/organizations/my-last-org/',
-      body: TestStubs.Organization({slug: 'my-last-org'}),
+      body: Organization({slug: 'my-last-org'}),
     });
     getProjectsMock = MockApiClient.addMockResponse({
       url: '/organizations/my-last-org/projects/',
@@ -285,8 +289,8 @@ describe('OrganizationContextContainer', function () {
     wrapper.setProps({
       organizationsLoading: false,
       organizations: [
-        TestStubs.Organization({slug: 'foo'}),
-        TestStubs.Organization({slug: 'bar'}),
+        Organization({slug: 'foo'}),
+        Organization({slug: 'bar'}),
       ],
     });
 
@@ -314,8 +318,8 @@ describe('OrganizationContextContainer', function () {
     wrapper.setProps({
       organizationsLoading: false,
       organizations: [
-        TestStubs.Organization({slug: 'foo'}),
-        TestStubs.Organization({slug: 'bar'}),
+        Organization({slug: 'foo'}),
+        Organization({slug: 'bar'}),
       ],
     });
 

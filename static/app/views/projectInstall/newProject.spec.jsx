@@ -1,3 +1,5 @@
+import {MOCK_RESP_VERBOSE} from 'fixtures/js-stubs/ruleConditions';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render} from 'sentry-test/reactTestingLibrary';
 
@@ -7,7 +9,7 @@ describe('NewProjectPlatform', function () {
   beforeEach(() => {
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/rule-conditions/`,
-      body: TestStubs.MOCK_RESP_VERBOSE,
+      body: MOCK_RESP_VERBOSE,
     });
   });
 

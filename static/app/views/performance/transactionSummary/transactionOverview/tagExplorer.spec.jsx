@@ -1,3 +1,5 @@
+import {Project} from 'fixtures/js-stubs/project';
+import {Organization} from 'fixtures/js-stubs/organization';
 import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
@@ -23,7 +25,7 @@ const WrapperComponent = props => {
 
 function initialize(projects, query, additionalFeatures = []) {
   const features = ['transaction-event', 'performance-view', ...additionalFeatures];
-  const organization = TestStubs.Organization({
+  const organization = Organization({
     features,
     projects,
   });
@@ -101,7 +103,7 @@ describe('WrapperComponent', function () {
   });
 
   it('renders basic UI elements', async function () {
-    const projects = [TestStubs.Project()];
+    const projects = [Project()];
     const {
       organization,
       location,
@@ -131,7 +133,7 @@ describe('WrapperComponent', function () {
   });
 
   it('Tag explorer uses LCP if projects are frontend', async function () {
-    const projects = [TestStubs.Project({id: '123', platform: 'javascript-react'})];
+    const projects = [Project({id: '123', platform: 'javascript-react'})];
     const {
       organization,
       location,
@@ -172,7 +174,7 @@ describe('WrapperComponent', function () {
   });
 
   it('Tag explorer view all tags button links to tags page', async function () {
-    const projects = [TestStubs.Project({id: '123', platform: 'javascript-react'})];
+    const projects = [Project({id: '123', platform: 'javascript-react'})];
     const {
       organization,
       location,
@@ -221,7 +223,7 @@ describe('WrapperComponent', function () {
   });
 
   it('Tag explorer uses the operation breakdown as a column', async function () {
-    const projects = [TestStubs.Project({platform: 'javascript-react'})];
+    const projects = [Project({platform: 'javascript-react'})];
     const {organization, location, eventView, api, transactionName} = initialize(
       projects,
       {}
@@ -256,7 +258,7 @@ describe('WrapperComponent', function () {
   });
 
   it('Check sort links of headers', async function () {
-    const projects = [TestStubs.Project()];
+    const projects = [Project()];
     const {
       organization,
       location,

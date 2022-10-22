@@ -1,3 +1,4 @@
+import {Organization} from 'fixtures/js-stubs/organization';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -99,7 +100,7 @@ describe('Discover -> CellAction', function () {
   });
 
   describe('hover context button', function () {
-    const organization = TestStubs.Organization({features});
+    const organization = Organization({features});
     let wrapper = makeWrapper(view, jest.fn(), 9, defaultData, organization);
 
     it('shows no context button by default', function () {
@@ -142,7 +143,7 @@ describe('Discover -> CellAction', function () {
   });
 
   describe('opening and closing the context popover', function () {
-    const organization = TestStubs.Organization({features});
+    const organization = Organization({features});
     const wrapper = makeWrapper(view, jest.fn(), 9, defaultData, organization);
     wrapper.find('Container').simulate('mouseEnter');
 

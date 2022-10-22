@@ -1,3 +1,5 @@
+import {Organization} from 'fixtures/js-stubs/organization';
+import {Project} from 'fixtures/js-stubs/project';
 import {browserHistory} from 'react-router';
 
 import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
@@ -14,10 +16,10 @@ import {
 
 function initialize({project, features, transaction, query} = {}) {
   features = features || ['performance-view'];
-  project = project || TestStubs.Project();
+  project = project || Project();
   query = query || {};
   const data = initializeOrg({
-    organization: TestStubs.Organization({
+    organization: Organization({
       features,
       projects: [project],
     }),

@@ -1,3 +1,5 @@
+import {Project} from 'fixtures/js-stubs/project';
+import {Organization} from 'fixtures/js-stubs/organization';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {act} from 'sentry-test/reactTestingLibrary';
 import {selectByLabel} from 'sentry-test/select-new';
@@ -40,8 +42,8 @@ function mountModal(eventView, organization, onApply) {
 }
 
 describe('TransactionThresholdModal', function () {
-  const organization = TestStubs.Organization({features: ['performance-view']});
-  const project = TestStubs.Project();
+  const organization = Organization({features: ['performance-view']});
+  const project = Project();
   const eventView = new EventView({
     id: '1',
     name: 'my query',
