@@ -13,7 +13,7 @@ import {AddCodeOwnerModal} from 'sentry/views/settings/project/projectOwnership/
 describe('AddCodeOwnerModal', function () {
   const org = TestStubs.Organization({features: ['integrations-codeowners']});
   const project = TestStubs.ProjectDetails();
-  const integration = TestStubs.GitHubIntegration();
+  const integration = TestStubs.GithubIntegration();
   const repo = TestStubs.Repository({
     integrationId: integration.id,
     id: '5',

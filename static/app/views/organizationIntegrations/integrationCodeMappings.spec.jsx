@@ -29,7 +29,7 @@ describe('IntegrationCodeMappings', function () {
   ProjectsStore.loadInitialData(projects);
 
   const org = TestStubs.Organization();
-  const integration = TestStubs.GitHubIntegration();
+  const integration = TestStubs.GithubIntegration();
   const repos = [
     TestStubs.Repository({
       integrationId: integration.id,

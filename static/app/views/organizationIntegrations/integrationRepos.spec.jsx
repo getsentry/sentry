@@ -6,7 +6,7 @@ import IntegrationRepos from 'sentry/views/organizationIntegrations/integrationR
 
 describe('IntegrationRepos', function () {
   const org = TestStubs.Organization();
-  const integration = TestStubs.GitHubIntegration();
+  const integration = TestStubs.GithubIntegration();
 
   beforeEach(() => {
     Client.clearMockResponses();

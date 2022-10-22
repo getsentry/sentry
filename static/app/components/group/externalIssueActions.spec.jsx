@@ -6,7 +6,7 @@ describe('ExternalIssueActions', function () {
   const group = TestStubs.Group();
 
   describe('with no external issues linked', function () {
-    const integration = TestStubs.GitHubIntegration({externalIssues: []});
+    const integration = TestStubs.GithubIntegration({externalIssues: []});
     const configurations = [integration];
     const wrapper = mountWithTheme(
       <ExternalIssueActions
@@ -54,7 +54,7 @@ describe('ExternalIssueActions', function () {
         key: 'getsentry/sentry#2',
       },
     ];
-    const integration = TestStubs.GitHubIntegration({externalIssues});
+    const integration = TestStubs.GithubIntegration({externalIssues});
     const configurations = [integration];
     const wrapper = mountWithTheme(
       <ExternalIssueActions

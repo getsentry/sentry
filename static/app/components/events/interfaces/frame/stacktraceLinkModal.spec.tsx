@@ -11,7 +11,7 @@ import StacktraceLinkModal from 'sentry/components/events/interfaces/frame/stack
 function createWrapper(statusCode: number, closeModal: () => {}) {
   const org = TestStubs.Organization();
   const project = TestStubs.Project();
-  const integration = TestStubs.GitHubIntegration();
+  const integration = TestStubs.GithubIntegration();
   const filename = '/sentry/app.py';
   const repo = TestStubs.Repository({integrationId: integration.id});
   const config = TestStubs.RepositoryProjectPathConfig({project, repo, integration});

@@ -6,7 +6,7 @@ describe('StacktraceLink', function () {
   const org = TestStubs.Organization();
   const project = TestStubs.Project();
   const event = TestStubs.Event({projectID: project.id});
-  const integration = TestStubs.GitHubIntegration();
+  const integration = TestStubs.GithubIntegration();
   const repo = TestStubs.Repository({integrationId: integration.id});
 
   const frame = {filename: '/sentry/app.py', lineNo: 233};
