@@ -18,7 +18,7 @@ import {Commit} from 'sentry/types';
 
 import Button from './button';
 
-function formatCommitMessage(message: string | null) {
+export function formatCommitMessage(message: string | null) {
   if (!message) {
     return t('No message provided');
   }

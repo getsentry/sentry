@@ -2,8 +2,11 @@ import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Client} from 'sentry/api';
+import EventCause from 'sentry/components/events/eventCause';
+import {DataSection} from 'sentry/components/events/styles';
 import AssignedTo from 'sentry/components/group/assignedTo';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {IconCheckmark, IconMute, IconNot} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -114,7 +117,7 @@ export default function QuickContext(props: Props) {
       ) : error ? (
         <NoContextWrapper>{t('Failed to load context for column.')}</NoContextWrapper>
       ) : isIssueContext(props.dataRow, props.column) && data ? (
-        <IssueContext data={data} />
+        <IssueContext data={data} eventID={props.dataRow.id} />
       ) : (
         <NoContextWrapper>{t('There is no context available.')}</NoContextWrapper>
       )}
@@ -122,8 +125,12 @@ export default function QuickContext(props: Props) {
   );
 }
 
-// NOTE: Only includes issue status and assignee context for now.
-function IssueContext(props: {data: Group}) {
+type IssueContextProps = {
+  data: Group;
+  eventID?: string;
+};
+
+function IssueContext(props: IssueContextProps) {
   const statusTitle = t('Issue Status');
   const {status} = props.data;
 
@@ -153,10 +160,22 @@ function IssueContext(props: {data: Group}) {
     </IssueContextContainer>
   );
 
+  const renderSuspectCommits = () =>
+    props.eventID && (
+      <IssueContextContainer>
+        <EventCause
+          project={props.data.project}
+          eventId={props.eventID}
+          fromQuickContext
+        />
+      </IssueContextContainer>
+    );
+
   return (
     <Fragment>
       {renderStatus()}
       {renderAssigneeSelector()}
+      {renderSuspectCommits()}
     </Fragment>
   );
 }
@@ -171,12 +190,17 @@ const ContextContainer = styled('div')`
 `;
 
 const IssueContextContainer = styled(ContextContainer)`
-  ${SidebarSection.Wrap} {
-    margin-bottom: 0;
+  ${SidebarSection.Wrap}, ${Panel}, ${SidebarSection.Title} {
+    margin: 0;
   }
 
-  ${SidebarSection.Title} {
-    margin: 0;
+  ${Panel} {
+    border: none;
+    box-shadow: none;
+  }
+
+  ${DataSection} {
+    padding: 0;
   }
 `;
 
@@ -206,7 +230,7 @@ const Wrapper = styled('div')`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   box-shadow: ${p => p.theme.dropShadowHeavy};
-  min-width: 280px;
+  width: 300px;
   padding: ${space(1.5)};
 `;
 

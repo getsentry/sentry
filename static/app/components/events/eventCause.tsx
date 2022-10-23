@@ -10,23 +10,25 @@ import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {AvatarProject, Group, IssueCategory} from 'sentry/types';
-import type {Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useCommitters from 'sentry/utils/useCommitters';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 import useOrganization from 'sentry/utils/useOrganization';
 
+import {QuickContextCommitRow} from '../discover/quickContextCommitRow';
+
 interface Props {
-  event: Event;
+  eventId: string;
   project: AvatarProject;
+  fromQuickContext?: boolean;
   group?: Group;
 }
 
-function EventCause({group, event, project}: Props) {
+function EventCause({group, eventId, project, fromQuickContext = false}: Props) {
   const organization = useOrganization();
   const [isExpanded, setIsExpanded] = useState(false);
   const {committers, fetching} = useCommitters({
-    eventId: event.id,
+    eventId,
     projectSlug: project.slug,
   });
 
@@ -109,14 +111,20 @@ function EventCause({group, event, project}: Props) {
         )}
       </CauseHeader>
       <Panel>
-        {commits.slice(0, isExpanded ? 100 : 1).map(commit => (
-          <CommitRow
-            key={commit.id}
-            commit={commit}
-            onCommitClick={handleCommitClick}
-            onPullRequestClick={handlePullRequestClick}
-          />
-        ))}
+        {commits
+          .slice(0, isExpanded ? 100 : 1)
+          .map(commit =>
+            !fromQuickContext ? (
+              <CommitRow
+                key={commit.id}
+                commit={commit}
+                onCommitClick={handleCommitClick}
+                onPullRequestClick={handlePullRequestClick}
+              />
+            ) : (
+              <QuickContextCommitRow key={commit.id} commit={commit} />
+            )
+          )}
       </Panel>
     </DataSection>
   );
