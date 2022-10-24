@@ -180,7 +180,7 @@ class QueryList extends Component<Props> {
           ? [
               {
                 key: 'set-as-default',
-                label: t('Set As Default'),
+                label: t('Set as Default'),
                 onAction: () => {
                   handleUpdateHomepageQuery(api, organization, eventView.toNewQuery());
                 },
@@ -266,7 +266,7 @@ class QueryList extends Component<Props> {
           ? [
               {
                 key: 'set-as-default',
-                label: t('Set As Default'),
+                label: t('Set as Default'),
                 onAction: () => {
                   handleUpdateHomepageQuery(api, organization, eventView.toNewQuery());
                 },
