@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {Component, Fragment} from 'react';
 import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -8,6 +8,9 @@ import {fetchHomepageQuery} from 'sentry/actionCreators/discoverHomepageQueries'
 import {fetchSavedQuery} from 'sentry/actionCreators/discoverSavedQueries';
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {Label} from 'sentry/components/editableText';
+import {Title} from 'sentry/components/layouts/thirds';
 import * as Layout from 'sentry/components/layouts/thirds';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
@@ -142,18 +145,28 @@ class ResultsHeader extends Component<Props, State> {
     return (
       <Layout.Header>
         <StyledHeaderContent>
-          <DiscoverBreadcrumb
-            eventView={eventView}
-            organization={organization}
-            location={location}
-            isHomepage={isHomepage}
-          />
-          <EventInputName
-            savedQuery={savedQuery}
-            organization={organization}
-            eventView={eventView}
-            isHomepage={isHomepage}
-          />
+          {isHomepage ? (
+            <StyledTitle>
+              <GuideAnchor target="discover_landing_header">
+                <Label isDisabled>{t('Discover')}</Label>
+              </GuideAnchor>
+            </StyledTitle>
+          ) : (
+            <Fragment>
+              <DiscoverBreadcrumb
+                eventView={eventView}
+                organization={organization}
+                location={location}
+                isHomepage={isHomepage}
+              />
+              <EventInputName
+                savedQuery={savedQuery}
+                organization={organization}
+                eventView={eventView}
+                isHomepage={isHomepage}
+              />
+            </Fragment>
+          )}
           {this.renderAuthor()}
         </StyledHeaderContent>
         <Layout.HeaderActions>
@@ -204,6 +217,11 @@ const StyledHeaderContent = styled(Layout.HeaderContent)`
 
 const BannerWrapper = styled('div')`
   grid-column: 1 / -1;
+`;
+
+const StyledTitle = styled(Title)`
+  overflow: unset;
+  margin-top: 0;
 `;
 
 export default withApi(ResultsHeader);

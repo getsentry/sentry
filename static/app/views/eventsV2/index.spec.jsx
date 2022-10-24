@@ -121,4 +121,17 @@ describe('EventsV2 > Landing', function () {
       expect(screen.getAllByText(sort)[0]).toBeInTheDocument()
     );
   });
+
+  it('links back to the homepage', () => {
+    const org = TestStubs.Organization({
+      features: [...features, 'discover-query-builder-as-landing-page'],
+    });
+
+    render(<DiscoverLanding organization={org} location={{query: {}}} router={{}} />);
+
+    expect(screen.getByText('Discover')).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/discover/homepage/'
+    );
+  });
 });
