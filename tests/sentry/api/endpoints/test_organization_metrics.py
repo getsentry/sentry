@@ -320,6 +320,7 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
                         "p90",
                         "p95",
                         "p99",
+                        "sum",
                     ],
                     "unit": None,
                 },

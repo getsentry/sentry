@@ -1387,6 +1387,7 @@ class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
                     "p90",
                     "p95",
                     "p99",
+                    "sum",
                 ],
                 "unit": "millisecond",
                 "metric_id": indexer.resolve(
@@ -1436,6 +1437,7 @@ class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
                     "p90",
                     "p95",
                     "p99",
+                    "sum",
                 ],
                 "unit": "millisecond",
                 "metric_id": indexer.resolve(
