@@ -116,7 +116,6 @@ from .endpoints.codeowners import (
     ExternalUserEndpoint,
     ProjectCodeOwnersDetailsEndpoint,
     ProjectCodeOwnersEndpoint,
-    ProjectCodeOwnersRequestEndpoint,
 )
 from .endpoints.data_scrubbing_selector_suggestions import DataScrubbingSelectorSuggestionsEndpoint
 from .endpoints.debug_files import (
@@ -2211,11 +2210,6 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/codeowners/(?P<codeowners_id>[^\/]+)/$",
                     ProjectCodeOwnersDetailsEndpoint.as_view(),
                     name="sentry-api-0-project-codeowners-details",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/codeowners-request/$",
-                    ProjectCodeOwnersRequestEndpoint.as_view(),
-                    name="getsentry-api-0-project-codeowners-request",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/transaction-threshold/configure/$",

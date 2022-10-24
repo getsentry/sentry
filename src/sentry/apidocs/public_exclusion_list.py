@@ -34,7 +34,6 @@ from sentry.api.endpoints.codeowners import (
     ExternalUserEndpoint,
     ProjectCodeOwnersDetailsEndpoint,
     ProjectCodeOwnersEndpoint,
-    ProjectCodeOwnersRequestEndpoint,
 )
 from sentry.api.endpoints.data_scrubbing_selector_suggestions import (
     DataScrubbingSelectorSuggestionsEndpoint,
@@ -856,7 +855,6 @@ __EXCLUDED_FROM_PUBLIC_ENDPOINTS = {
     ProjectOwnershipEndpoint,
     ProjectCodeOwnersEndpoint,
     ProjectCodeOwnersDetailsEndpoint,
-    ProjectCodeOwnersRequestEndpoint,
     ProjectTransactionThresholdEndpoint,
     ProjectPluginsEndpoint,
     ProjectPluginDetailsEndpoint,
