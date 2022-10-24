@@ -11,9 +11,12 @@ import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import DiscoverQuery, {TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
-import {Sort} from 'sentry/utils/discover/fields';
+import DiscoverQuery, {
+  TableData,
+  TableDataRow,
+} from 'sentry/utils/discover/discoverQuery';
+import EventView, {MetaType} from 'sentry/utils/discover/eventView';
+import {Field, Sort} from 'sentry/utils/discover/fields';
 import {TrendsEventsDiscoverQuery} from 'sentry/utils/performance/trends/trendsDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -218,6 +221,18 @@ class _TransactionsList extends Component<Props> {
     );
   }
 
+  sortByReplay(tableData: TableData | null): TableData | null {
+    const isReplayEnabled =
+      this.props.organization.features.includes('session-replay-ui');
+    if (!isReplayEnabled || !tableData) {
+      return tableData;
+    }
+    return {
+      ...tableData,
+      data: tableData?.data?.sort((a, b) => +Boolean(b.replayId) - +Boolean(a.replayId)),
+    };
+  }
+
   renderTransactionTable(): React.ReactNode {
     const {
       location,
@@ -253,7 +268,7 @@ class _TransactionsList extends Component<Props> {
             organization={organization}
             location={location}
             isLoading={isLoading}
-            tableData={tableData}
+            tableData={this.sortByReplay(tableData)}
             columnOrder={columnOrder}
             titles={titles}
             generateLink={generateLink}
