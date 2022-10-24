@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Mapping, Optional, Sequence, Tuple, TypedDict,
 import sentry_sdk
 from django.conf import settings
 
-from sentry import analytics, features
+from sentry import features
 from sentry.exceptions import PluginError
 from sentry.killswitches import killswitch_matches_context
 from sentry.signals import event_processed, issue_unignored, transaction_processed
@@ -122,93 +122,68 @@ def handle_owner_assignment(job):
         return
 
     with sentry_sdk.start_span(op="tasks.post_process_group.handle_owner_assignment"):
-        from sentry.models import GroupAssignee, ProjectOwnership
+        try:
+            from sentry.models import ProjectOwnership
 
-        event = job["event"]
-        project, group = event.project, event.group
+            event = job["event"]
+            project, group = event.project, event.group
 
-        with metrics.timer("post_process.handle_owner_assignment"):
-            with sentry_sdk.start_span(op="post_process.handle_owner_assignment.cache_set_owner"):
-                owner_key = "owner_exists:1:%s" % group.id
-                owners_exists = cache.get(owner_key)
-                if owners_exists is None:
-                    owners_exists = group.groupowner_set.exists()
-                    # Cache for an hour if it's assigned. We don't need to move that fast.
-                    cache.set(owner_key, owners_exists, 3600 if owners_exists else 60)
-
-            with sentry_sdk.start_span(
-                op="post_process.handle_owner_assignment.cache_set_assignee"
-            ):
-                # Is the issue already assigned to a team or user?
-                assignee_key = "assignee_exists:1:%s" % group.id
-                assignees_exists = cache.get(assignee_key)
-                if assignees_exists is None:
-                    assignees_exists = group.assignee_set.exists()
-                    # Cache for an hour if it's assigned. We don't need to move that fast.
-                    cache.set(assignee_key, assignees_exists, 3600 if assignees_exists else 60)
-
-            if owners_exists and assignees_exists:
-                return
-
-            with sentry_sdk.start_span(
-                op="post_process.handle_owner_assignment.get_autoassign_owners"
-            ):
-                if killswitch_matches_context(
-                    "post_process.get-autoassign-owners",
-                    {
-                        "project_id": project.id,
-                    },
+            with metrics.timer("post_process.handle_owner_assignment"):
+                with sentry_sdk.start_span(
+                    op="post_process.handle_owner_assignment.cache_set_owner"
                 ):
-                    # see ProjectOwnership.get_autoassign_owners
-                    auto_assignment = False
-                    owners = []
-                    assigned_by_codeowners = False
-                    auto_assignment_rule = None
-                    owner_source = []
-                else:
-                    (
-                        auto_assignment,
-                        owners,
-                        assigned_by_codeowners,
-                        auto_assignment_rule,
-                        owner_source,
-                    ) = ProjectOwnership.get_autoassign_owners(group.project_id, event.data)
+                    owner_key = "owner_exists:1:%s" % group.id
+                    owners_exists = cache.get(owner_key)
+                    if owners_exists is None:
+                        owners_exists = group.groupowner_set.exists()
+                        # Cache for an hour if it's assigned. We don't need to move that fast.
+                        cache.set(owner_key, owners_exists, 3600 if owners_exists else 60)
 
-            with sentry_sdk.start_span(op="post_process.handle_owner_assignment.analytics_record"):
-                if auto_assignment and owners and not assignees_exists:
-                    from sentry.models.activity import ActivityIntegration
+                with sentry_sdk.start_span(
+                    op="post_process.handle_owner_assignment.cache_set_assignee"
+                ):
+                    # Is the issue already assigned to a team or user?
+                    assignee_key = "assignee_exists:1:%s" % group.id
+                    assignees_exists = cache.get(assignee_key)
+                    if assignees_exists is None:
+                        assignees_exists = group.assignee_set.exists()
+                        # Cache for an hour if it's assigned. We don't need to move that fast.
+                        cache.set(assignee_key, assignees_exists, 3600 if assignees_exists else 60)
 
-                    assignment = GroupAssignee.objects.assign(
-                        group,
-                        owners[0],
-                        create_only=True,
-                        extra={
-                            "integration": ActivityIntegration.CODEOWNERS.value
-                            if assigned_by_codeowners
-                            else ActivityIntegration.PROJECT_OWNERSHIP.value,
-                            "rule": str(auto_assignment_rule),
+                if owners_exists and assignees_exists:
+                    return
+
+                with sentry_sdk.start_span(
+                    op="post_process.handle_owner_assignment.get_issue_owners"
+                ):
+                    if killswitch_matches_context(
+                        "post_process.get-autoassign-owners",
+                        {
+                            "project_id": project.id,
                         },
-                    )
-                    if assignment["new_assignment"] or assignment["updated_assignment"]:
-                        analytics.record(
-                            "codeowners.assignment"
-                            if assigned_by_codeowners
-                            else "issueowners.assignment",
-                            organization_id=project.organization_id,
-                            project_id=project.id,
-                            group_id=group.id,
+                    ):
+                        # see ProjectOwnership.get_issue_owners
+                        issue_owners = []
+                    else:
+                        issue_owners = ProjectOwnership.get_issue_owners(
+                            group.project_id, event.data
                         )
 
-            with sentry_sdk.start_span(
-                op="post_process.handle_owner_assignment.handle_group_owners"
-            ):
-                if owners and not owners_exists:
-                    handle_group_owners(project, group, owners, owner_source)
+                with sentry_sdk.start_span(
+                    op="post_process.handle_owner_assignment.handle_group_owners"
+                ):
+                    if issue_owners and not owners_exists:
+                        try:
+                            handle_group_owners(project, group, issue_owners)
+                        except Exception:
+                            logger.exception("Failed to store group owners")
+        except Exception:
+            logger.exception("Failed to handle owner assignments")
 
 
-def handle_group_owners(project, group, owners, owner_source):
+def handle_group_owners(project, group, issue_owners):
     """
-    Stores group owners generated by `ProjectOwnership.get_autoassign_owners` in the
+    Stores group owners generated by `ProjectOwnership.get_issue_owners` in the
     `GroupOwner` model, and handles any diffing/changes of which owners we're keeping.
     :return:
     """
@@ -225,9 +200,15 @@ def handle_group_owners(project, group, owners, owner_source):
                 group=group,
                 type__in=[GroupOwnerType.OWNERSHIP_RULE.value, GroupOwnerType.CODEOWNERS.value],
             )
-            new_owners = {
-                (type(owner), owner.id, source) for owner, source in zip(owners, owner_source)
-            }
+            new_owners = {}
+            for rule, owners, source in issue_owners:
+                for owner in owners:
+                    # Can potentially have multiple rules pointing to the same owner
+                    if new_owners.get((type(owner), owner.id, source)):
+                        new_owners[(type(owner), owner.id, source)].append(rule)
+                    else:
+                        new_owners[(type(owner), owner.id, source)] = [rule]
+
             # Owners already in the database that we'll keep
             keeping_owners = set()
             for owner in current_group_owners:
@@ -241,16 +222,23 @@ def handle_group_owners(project, group, owners, owner_source):
                     if owner.team_id is not None
                     else (User, owner.user_id, owner_type)
                 )
+                # Old groupowner assignments get deleted
                 if lookup_key not in new_owners:
+                    owner.delete()
+                # Old groupowner assignment from outdated rules get deleted
+                if new_owners.get(lookup_key) and (owner.context or {}).get(
+                    "rule"
+                ) not in new_owners.get(lookup_key):
                     owner.delete()
                 else:
                     keeping_owners.add(lookup_key)
 
             new_group_owners = []
 
-            for key in new_owners:
+            for key in new_owners.keys():
                 if key not in keeping_owners:
                     owner_type, owner_id, owner_source = key
+                    rules = new_owners[key]
                     group_owner_type = (
                         GroupOwnerType.OWNERSHIP_RULE.value
                         if owner_source == OwnerRuleType.OWNERSHIP_RULE.value
@@ -262,16 +250,18 @@ def handle_group_owners(project, group, owners, owner_source):
                         user_id = owner_id
                     if owner_type is Team:
                         team_id = owner_id
-                    new_group_owners.append(
-                        GroupOwner(
-                            group=group,
-                            type=group_owner_type,
-                            user_id=user_id,
-                            team_id=team_id,
-                            project=project,
-                            organization=project.organization,
+                    for rule in rules:
+                        new_group_owners.append(
+                            GroupOwner(
+                                group=group,
+                                type=group_owner_type,
+                                user_id=user_id,
+                                team_id=team_id,
+                                project=project,
+                                organization=project.organization,
+                                context={"rule": str(rule)},
+                            )
                         )
-                    )
             if new_group_owners:
                 GroupOwner.objects.bulk_create(new_group_owners)
     except UnableToAcquireLock:
@@ -421,21 +411,21 @@ def post_process_group(
 
 
 def run_post_process_job(job: PostProcessJob):
-    event = job["event"]
-    if event.group.issue_category not in GROUP_CATEGORY_POST_PROCESS_PIPELINE:
+    group_event = job["event"]
+    if group_event.group.issue_category not in GROUP_CATEGORY_POST_PROCESS_PIPELINE:
         logger.error(
             "No post process pipeline configured for issue category",
-            extra={"category": event.group.issue_category},
+            extra={"category": group_event.group.issue_category},
         )
         return
-    pipeline = GROUP_CATEGORY_POST_PROCESS_PIPELINE[event.group.issue_category]
+    pipeline = GROUP_CATEGORY_POST_PROCESS_PIPELINE[group_event.group.issue_category]
     for pipeline_step in pipeline:
         try:
             pipeline_step(job)
         except Exception:
             logger.exception(
                 f"Failed to process pipeline step {pipeline_step.__name__}",
-                extra={"event": event, "group": event.group},
+                extra={"event": group_event, "group": group_event.group},
             )
 
 
@@ -586,21 +576,21 @@ def process_rules(job: PostProcessJob) -> None:
 
     from sentry.rules.processor import RuleProcessor
 
-    event = job["event"]
+    group_event = job["event"]
     is_new = job["group_state"]["is_new"]
     is_regression = job["group_state"]["is_regression"]
     is_new_group_environment = job["group_state"]["is_new_group_environment"]
     has_reappeared = job["has_reappeared"]
 
-    rp = RuleProcessor(event, is_new, is_regression, is_new_group_environment, has_reappeared)
-
     has_alert = False
+
+    rp = RuleProcessor(group_event, is_new, is_regression, is_new_group_environment, has_reappeared)
     with sentry_sdk.start_span(op="tasks.post_process_group.rule_processor_callbacks"):
         # TODO(dcramer): ideally this would fanout, but serializing giant
         # objects back and forth isn't super efficient
         for callback, futures in rp.apply():
             has_alert = True
-            safe_execute(callback, event, futures, _with_transaction=False)
+            safe_execute(callback, group_event, futures, _with_transaction=False)
 
     job["has_alert"] = has_alert
     return
@@ -664,6 +654,19 @@ def process_commits(job: PostProcessJob) -> None:
                         )
     except UnableToAcquireLock:
         pass
+
+
+def handle_auto_assignment(job: PostProcessJob) -> None:
+    if job["is_reprocessed"]:
+        return
+
+    from sentry.models import ProjectOwnership
+
+    event = job["event"]
+    try:
+        ProjectOwnership.handle_auto_assignment(event.project.id, event)
+    except Exception:
+        logger.exception("Failed to set auto-assignment")
 
 
 def process_service_hooks(job: PostProcessJob) -> None:
@@ -768,14 +771,22 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         _capture_group_stats,
         process_snoozes,
         process_inbox_adds,
-        handle_owner_assignment,
-        process_rules,
         process_commits,
+        handle_owner_assignment,
+        handle_auto_assignment,
+        process_rules,
         process_service_hooks,
         process_resource_change_bounds,
         process_plugins,
         process_similarity,
         update_existing_attachments,
         fire_error_processed,
+    ],
+    GroupCategory.PERFORMANCE: [
+        process_snoozes,
+        process_inbox_adds,
+        process_rules,
+        # TODO: Uncomment this when we want to send perf issues out via plugins as well
+        # process_plugins,
     ],
 }

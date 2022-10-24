@@ -1,6 +1,6 @@
 import type u2f from 'u2f-api';
 
-import type {Field} from 'sentry/components/forms/type';
+import type {Field} from 'sentry/components/forms/types';
 
 import type {Organization} from './organization';
 

@@ -3,6 +3,7 @@ from urllib.parse import urlencode
 
 import pytest
 import responses
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test.client import RequestFactory
 from rest_framework.exceptions import NotFound
 
@@ -10,6 +11,7 @@ from sentry.api_gateway.proxy import proxy_request
 from sentry.testutils.helpers.api_gateway import (
     SENTRY_REGION_CONFIG,
     ApiGatewayTestCase,
+    verify_file_body,
     verify_request_body,
     verify_request_headers,
 )
@@ -27,6 +29,8 @@ class ProxyTestCase(ApiGatewayTestCase):
         assert resp_json["proxy"]
         assert resp.has_header("test")
         assert resp["test"] == "header"
+        assert resp.has_header("X-Sentry-Proxy-URL")
+        assert resp["X-Sentry-Proxy-URL"] == "http://region1.testserver/get"
 
         request = RequestFactory().get("http://sentry.io/error")
         resp = proxy_request(request, self.organization.slug)
@@ -35,6 +39,8 @@ class ProxyTestCase(ApiGatewayTestCase):
         assert resp_json["proxy"]
         assert resp.has_header("test")
         assert resp["test"] == "header"
+        assert resp.has_header("X-Sentry-Proxy-URL")
+        assert resp["X-Sentry-Proxy-URL"] == "http://region1.testserver/error"
 
     @responses.activate
     def test_query_params(self, _):
@@ -75,6 +81,8 @@ class ProxyTestCase(ApiGatewayTestCase):
 
         assert resp.status_code == 200
         assert resp_json["proxy"]
+        assert resp.has_header("X-Sentry-Proxy-URL")
+        assert resp["X-Sentry-Proxy-URL"] == "http://region1.testserver/post"
 
     @responses.activate
     def test_put(self, _):
@@ -93,6 +101,8 @@ class ProxyTestCase(ApiGatewayTestCase):
 
         assert resp.status_code == 200
         assert resp_json["proxy"]
+        assert resp.has_header("X-Sentry-Proxy-URL")
+        assert resp["X-Sentry-Proxy-URL"] == "http://region1.testserver/put"
 
     @responses.activate
     def test_patch(self, _):
@@ -111,6 +121,8 @@ class ProxyTestCase(ApiGatewayTestCase):
 
         assert resp.status_code == 200
         assert resp_json["proxy"]
+        assert resp.has_header("X-Sentry-Proxy-URL")
+        assert resp["X-Sentry-Proxy-URL"] == "http://region1.testserver/patch"
 
     @responses.activate
     def test_head(self, _):
@@ -129,6 +141,8 @@ class ProxyTestCase(ApiGatewayTestCase):
 
         assert resp.status_code == 200
         assert resp_json["proxy"]
+        assert resp.has_header("X-Sentry-Proxy-URL")
+        assert resp["X-Sentry-Proxy-URL"] == "http://region1.testserver/head"
 
     @responses.activate
     def test_delete(self, _):
@@ -141,6 +155,53 @@ class ProxyTestCase(ApiGatewayTestCase):
 
         request = RequestFactory().delete(
             "http://sentry.io/delete", data=request_body, content_type="application/json"
+        )
+        resp = proxy_request(request, self.organization.slug)
+        resp_json = json.loads(b"".join(resp.streaming_content))
+
+        assert resp.status_code == 200
+        assert resp_json["proxy"]
+        assert resp.has_header("X-Sentry-Proxy-URL")
+        assert resp["X-Sentry-Proxy-URL"] == "http://region1.testserver/delete"
+
+    @responses.activate
+    def test_file_upload(self, _):
+        foo = dict(test="a", file="b", what="c")
+        contents = json.dumps(foo).encode()
+        request_body = {
+            "test.js": SimpleUploadedFile("test.js", contents, content_type="application/json"),
+            "foo": "bar",
+        }
+
+        responses.add_callback(
+            responses.POST,
+            "http://region1.testserver/post",
+            verify_file_body(contents, {"test": "header"}),
+        )
+        request = RequestFactory().post(
+            "http://sentry.io/post", data=request_body, format="multipart"
+        )
+        resp = proxy_request(request, self.organization.slug)
+        resp_json = json.loads(b"".join(resp.streaming_content))
+
+        assert resp.status_code == 200
+        assert resp_json["proxy"]
+
+    @responses.activate
+    def test_alternate_content_type(self, _):
+        # Check form encoded files also work
+        foo = dict(test="a", file="b", what="c")
+        contents = urlencode(foo, doseq=True).encode("utf-8")
+        request_body = contents
+        responses.add_callback(
+            responses.POST,
+            "http://region1.testserver/post",
+            verify_request_body(contents, {"test": "header"}),
+        )
+        request = RequestFactory().post(
+            "http://sentry.io/post",
+            data=request_body,
+            content_type="application/x-www-form-urlencoded",
         )
         resp = proxy_request(request, self.organization.slug)
         resp_json = json.loads(b"".join(resp.streaming_content))

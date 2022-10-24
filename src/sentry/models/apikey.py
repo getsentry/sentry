@@ -11,7 +11,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_model,
+    region_silo_only_model,
     sane_repr,
 )
 
@@ -22,7 +22,7 @@ class ApiKeyStatus:
     INACTIVE = 1
 
 
-@region_silo_model
+@region_silo_only_model
 class ApiKey(Model):
     __include_in_export__ = True
 

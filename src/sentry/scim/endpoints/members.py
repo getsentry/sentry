@@ -395,17 +395,27 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
 
         result = serializer.validated_data
         with transaction.atomic():
-            member = OrganizationMember(
-                organization=organization,
-                email=result["email"],
-                role=result["role"],
-                inviter=request.user,
+            member_query = OrganizationMember.objects.filter(
+                organization=organization, email=result["email"], role=result["role"]
             )
 
-            # TODO: are invite tokens needed for SAML orgs?
-            if settings.SENTRY_ENABLE_INVITES:
-                member.token = member.generate_token()
-            member.save()
+            if member_query.exists():
+                member = member_query.first()
+                if member.token_expired:
+                    member.regenerate_token()
+
+            else:
+                member = OrganizationMember(
+                    organization=organization,
+                    email=result["email"],
+                    role=result["role"],
+                    inviter=request.user,
+                )
+
+                # TODO: are invite tokens needed for SAML orgs?
+                if settings.SENTRY_ENABLE_INVITES:
+                    member.token = member.generate_token()
+                member.save()
 
         self.create_audit_entry(
             request=request,

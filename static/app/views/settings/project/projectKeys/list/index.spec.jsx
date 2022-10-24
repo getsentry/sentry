@@ -3,6 +3,7 @@ import {
   renderGlobalModal,
   screen,
   userEvent,
+  waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
 import ProjectKeys from 'sentry/views/settings/project/projectKeys/list';
@@ -72,13 +73,12 @@ describe('ProjectKeys', function () {
 
     userEvent.click(screen.getByRole('button', {name: 'Delete'}));
     renderGlobalModal();
-
     userEvent.click(screen.getByTestId('confirm-button'));
 
     expect(deleteMock).toHaveBeenCalled();
   });
 
-  it('disable and enables key', function () {
+  it('disable and enables key', async function () {
     render(
       <ProjectKeys
         routes={[]}
@@ -92,7 +92,12 @@ describe('ProjectKeys', function () {
       method: 'PUT',
     });
 
+    renderGlobalModal();
+
     userEvent.click(screen.getByRole('button', {name: 'Disable'}));
+    userEvent.click(screen.getByTestId('confirm-button'));
+
+    await waitForElementToBeRemoved(() => screen.getByRole('dialog'));
 
     expect(enableMock).toHaveBeenCalledWith(
       expect.anything(),
@@ -102,6 +107,7 @@ describe('ProjectKeys', function () {
     );
 
     userEvent.click(screen.getByRole('button', {name: 'Enable'}));
+    userEvent.click(screen.getByTestId('confirm-button'));
 
     expect(enableMock).toHaveBeenCalledWith(
       expect.anything(),

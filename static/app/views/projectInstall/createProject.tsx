@@ -8,10 +8,10 @@ import {PlatformIcon} from 'platformicons';
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
-import TeamSelector from 'sentry/components/forms/teamSelector';
 import Input from 'sentry/components/input';
 import PageHeading from 'sentry/components/pageHeading';
 import PlatformPicker from 'sentry/components/platformPicker';
+import TeamSelector from 'sentry/components/teamSelector';
 import categoryList from 'sentry/data/platformCategories';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -249,14 +249,23 @@ class CreateProject extends Component<Props, State> {
     }
   };
 
-  setPlatform = (platformId: PlatformName | null) =>
-    this.setState(({projectName, platform}: State) => ({
-      platform: platformId,
-      projectName:
-        !projectName || (platform && getPlatformName(platform) === projectName)
-          ? getPlatformName(platformId) || ''
-          : projectName,
-    }));
+  setPlatform = (platformKey: PlatformName | null) => {
+    if (!platformKey) {
+      this.setState({platform: null, projectName: ''});
+      return;
+    }
+
+    this.setState(({projectName, platform}) => {
+      // Avoid replacing project name when the user already modified it
+      const userModifiedName = projectName && projectName !== platform;
+      const newName = userModifiedName ? projectName : platformKey;
+
+      return {
+        platform: platformKey,
+        projectName: slugify(newName),
+      };
+    });
+  };
 
   render() {
     const {platform, error} = this.state;

@@ -25,7 +25,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_model,
+    region_silo_only_model,
     sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
@@ -102,7 +102,7 @@ class ProjectManager(BaseManager):
         return sorted(project_list, key=lambda x: x.name.lower())
 
 
-@region_silo_model
+@region_silo_only_model
 class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
     from sentry.models.projectteam import ProjectTeam
 
@@ -140,6 +140,7 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
             ("has_alert_filters", "This Project has filters"),
             ("has_sessions", "This Project has sessions"),
             ("has_profiles", "This Project has sent profiles"),
+            ("has_replays", "This Project has sent replays"),
         ),
         default=10,
         null=True,

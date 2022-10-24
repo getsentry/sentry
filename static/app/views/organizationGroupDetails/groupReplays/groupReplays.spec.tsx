@@ -16,6 +16,11 @@ type InitializeOrgProps = {
   };
 };
 
+jest.mock('sentry/utils/useMedia', () => ({
+  __esModule: true,
+  default: jest.fn(() => true),
+}));
+
 const mockUrl = '/organizations/org-slug/replays/';
 
 const mockProps = {
@@ -387,7 +392,7 @@ describe('GroupReplays', () => {
     expect(mockRouterContext.context.router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/replays/',
       query: {
-        sort: 'duration',
+        sort: '-duration',
       },
     });
 
@@ -396,7 +401,7 @@ describe('GroupReplays', () => {
       getComponent({
         location: {
           query: {
-            sort: 'duration',
+            sort: '-duration',
           },
         },
       })
@@ -408,7 +413,7 @@ describe('GroupReplays', () => {
         mockUrl,
         expect.objectContaining({
           query: expect.objectContaining({
-            sort: 'duration',
+            sort: '-duration',
           }),
         })
       );
@@ -443,7 +448,7 @@ describe('GroupReplays', () => {
     expect(mockRouterContext.context.router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/replays/',
       query: {
-        sort: 'countErrors',
+        sort: '-countErrors',
       },
     });
 
@@ -452,7 +457,7 @@ describe('GroupReplays', () => {
       getComponent({
         location: {
           query: {
-            sort: 'countErrors',
+            sort: '-countErrors',
           },
         },
       })
@@ -464,7 +469,7 @@ describe('GroupReplays', () => {
         mockUrl,
         expect.objectContaining({
           query: expect.objectContaining({
-            sort: 'countErrors',
+            sort: '-countErrors',
           }),
         })
       );

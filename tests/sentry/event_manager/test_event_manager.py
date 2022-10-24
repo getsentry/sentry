@@ -27,6 +27,8 @@ from sentry.event_manager import (
     EventManager,
     EventUser,
     HashDiscarded,
+    _get_event_instance,
+    _save_grouphash_and_group,
     has_pending_commit_resolution,
 )
 from sentry.eventstore.models import Event
@@ -60,7 +62,12 @@ from sentry.models import (
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG
 from sentry.spans.grouping.utils import hash_values
-from sentry.testutils import TestCase, assert_mock_called_once_with_partial
+from sentry.testutils import (
+    SnubaTestCase,
+    TestCase,
+    TransactionTestCase,
+    assert_mock_called_once_with_partial,
+)
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
@@ -73,6 +80,7 @@ from sentry.utils.performance_issues.performance_detection import (
     EventPerformanceProblem,
     PerformanceProblem,
 )
+from sentry.utils.samples import load_data
 from tests.sentry.integrations.github.test_repository import stub_installation_token
 from tests.sentry.utils.performance_issues.test_performance_detection import EVENTS
 
@@ -97,15 +105,7 @@ class EventManagerTestMixin:
 
 
 @region_silo_test
-class EventManagerTest(TestCase, EventManagerTestMixin):
-    @pytest.fixture(autouse=True)
-    def initialize(self, reset_snuba):
-        """
-        EventManager writes events to snuba, so make sure to reset
-        snuba to avoid states being persisted between runs.
-        """
-        pass
-
+class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
     def test_similar_message_prefix_doesnt_group(self):
         # we had a regression which caused the default hash to just be
         # 'event.message' instead of '[event.message]' which caused it to
@@ -2697,3 +2697,17 @@ class ReleaseIssueTest(TestCase):
             last_seen=self.timestamp + 100,
             first_seen=self.timestamp + 100,
         )
+
+
+class TestSaveGroupHashAndGroup(TransactionTestCase):
+    def test(self):
+        perf_data = load_data("transaction-n-plus-one", timestamp=before_now(minutes=10))
+        event = _get_event_instance(perf_data, project_id=self.project.id)
+        group_hash = "some_group"
+        group = _save_grouphash_and_group(self.project, event, group_hash)
+        group_2 = _save_grouphash_and_group(self.project, event, group_hash)
+        assert group.id == group_2.id
+        assert Group.objects.filter(grouphash__hash=group_hash).count() == 1
+        group_3 = _save_grouphash_and_group(self.project, event, "new_hash")
+        assert group_2.id != group_3.id
+        assert Group.objects.filter(grouphash__hash=group_hash).count() == 1

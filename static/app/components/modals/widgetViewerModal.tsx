@@ -19,8 +19,8 @@ import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import SelectControl from 'sentry/components/forms/selectControl';
-import Option from 'sentry/components/forms/selectOption';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
+import Option from 'sentry/components/forms/controls/selectOption';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnOrder,

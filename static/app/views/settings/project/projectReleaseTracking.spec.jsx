@@ -1,5 +1,9 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {mountGlobalModal} from 'sentry-test/modal';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
 
 import {fetchPlugins} from 'sentry/actionCreators/plugins';
 import ProjectReleaseTrackingContainer, {
@@ -33,7 +37,7 @@ describe('ProjectReleaseTracking', function () {
   });
 
   it('renders with token', function () {
-    const wrapper = mountWithTheme(
+    render(
       <ProjectReleaseTracking
         organization={org}
         project={project}
@@ -42,11 +46,11 @@ describe('ProjectReleaseTracking', function () {
       />
     );
 
-    expect(wrapper.find('TextCopyInput').prop('children')).toBe('token token token');
+    expect(screen.getByRole('textbox')).toHaveValue('token token token');
   });
 
-  it('can regenerate token', async function () {
-    const wrapper = mountWithTheme(
+  it('can regenerate token', function () {
+    render(
       <ProjectReleaseTracking
         organization={org}
         project={project}
@@ -65,16 +69,15 @@ describe('ProjectReleaseTracking', function () {
     });
 
     // Click Regenerate Token
-    wrapper.find('Field[label="Regenerate Token"] Button').simulate('click');
+    userEvent.click(screen.getByRole('button', {name: 'Regenerate Token'}));
 
-    const modal = await mountGlobalModal();
-    expect(modal.find('Modal')).toHaveLength(1);
+    renderGlobalModal();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
 
     expect(mock).not.toHaveBeenCalled();
 
-    modal.find('Button[priority="danger"]').simulate('click');
+    userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
-    await tick();
     expect(mock).toHaveBeenCalledWith(
       url,
       expect.objectContaining({
@@ -87,7 +90,7 @@ describe('ProjectReleaseTracking', function () {
   });
 
   it('fetches new plugins when project changes', function () {
-    const wrapper = mountWithTheme(
+    const {rerender} = render(
       <ProjectReleaseTrackingContainer
         organization={org}
         project={project}
@@ -99,8 +102,13 @@ describe('ProjectReleaseTracking', function () {
     fetchPlugins.mockClear();
 
     // For example, this happens when we switch to a new project using settings breadcrumb
-    wrapper.setProps({...wrapper.props(), project: {...project, slug: 'new-project'}});
-    wrapper.update();
+    rerender(
+      <ProjectReleaseTrackingContainer
+        organization={org}
+        project={{...project, slug: 'new-project'}}
+        params={{orgId: org.slug, projectId: 'new-project'}}
+      />
+    );
 
     expect(fetchPlugins).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -111,8 +119,13 @@ describe('ProjectReleaseTracking', function () {
     fetchPlugins.mockClear();
 
     // Does not call fetchPlugins if slug is the same
-    wrapper.setProps({...wrapper.props(), project: {...project, slug: 'new-project'}});
-    wrapper.update();
+    rerender(
+      <ProjectReleaseTrackingContainer
+        organization={org}
+        project={{...project, slug: 'new-project'}}
+        params={{orgId: org.slug, projectId: 'new-project'}}
+      />
+    );
     expect(fetchPlugins).not.toHaveBeenCalled();
   });
 });

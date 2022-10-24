@@ -25,6 +25,7 @@ class TitleButton extends Component<TitleProps> {
     const button = (
       <Button
         {...props}
+        size="sm"
         icon={keyedTeamsCount ? <IconStar color="yellow300" isSolid /> : <IconStar />}
       >
         {keyedTeamsCount

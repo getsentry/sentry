@@ -20,6 +20,6 @@ class ApiGatewayMiddleware:
     def process_view(
         self, request: Request, view_func, view_args, view_kwargs
     ) -> HttpResponseBase | None:
-        proxy_response = proxy_request_if_needed(request, view_kwargs)
+        proxy_response = proxy_request_if_needed(request, view_func, view_kwargs)
         if proxy_response is not None:
             return proxy_response

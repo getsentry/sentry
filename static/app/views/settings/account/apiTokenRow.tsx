@@ -2,8 +2,8 @@ import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
 import DateTime from 'sentry/components/dateTime';
-import TextCopyInput from 'sentry/components/forms/textCopyInput';
 import {PanelItem} from 'sentry/components/panels';
+import TextCopyInput from 'sentry/components/textCopyInput';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';

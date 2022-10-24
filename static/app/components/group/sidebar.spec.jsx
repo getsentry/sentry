@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import GroupSidebar from 'sentry/components/group/sidebar';
 
@@ -25,11 +25,6 @@ describe('GroupSidebar', function () {
 
     MockApiClient.addMockResponse({
       url: '/groups/1/integrations/',
-      body: [],
-    });
-
-    MockApiClient.addMockResponse({
-      url: '/issues/1/participants/',
       body: [],
     });
 
@@ -103,10 +98,10 @@ describe('GroupSidebar', function () {
         {organization}
       );
       expect(await screen.findByText('browser')).toBeInTheDocument();
-      expect(await screen.getByText('device')).toBeInTheDocument();
-      expect(await screen.getByText('url')).toBeInTheDocument();
-      expect(await screen.getByText('environment')).toBeInTheDocument();
-      expect(await screen.getByText('user')).toBeInTheDocument();
+      expect(screen.getByText('device')).toBeInTheDocument();
+      expect(screen.getByText('url')).toBeInTheDocument();
+      expect(screen.getByText('environment')).toBeInTheDocument();
+      expect(screen.getByText('user')).toBeInTheDocument();
     });
   });
 
@@ -175,6 +170,85 @@ describe('GroupSidebar', function () {
       expect(
         await screen.findByText('No tags found in the selected environments')
       ).toBeInTheDocument();
+    });
+  });
+
+  it('renders participants and viewers', () => {
+    const users = [
+      TestStubs.User({
+        id: '2',
+        name: 'John Smith',
+        email: 'johnsmith@example.com',
+      }),
+      TestStubs.User({
+        id: '3',
+        name: 'Sohn Jmith',
+        email: 'sohnjmith@example.com',
+      }),
+    ];
+    const org = {...organization, features: ['issue-actions-v2']};
+    render(
+      <GroupSidebar
+        group={{
+          ...group,
+          participants: users,
+          seenBy: users,
+        }}
+        project={project}
+        organization={org}
+        event={TestStubs.Event()}
+        environments={[]}
+      />,
+      {organization: org}
+    );
+
+    expect(screen.getByText('Participants (2)')).toBeInTheDocument();
+    expect(screen.getByText('Viewers (2)')).toBeInTheDocument();
+  });
+
+  describe('displays mobile tags when issue platform is mobile', function () {
+    beforeEach(function () {
+      group = TestStubs.Group();
+
+      MockApiClient.addMockResponse({
+        url: '/issues/1/',
+        body: group,
+      });
+    });
+
+    it('renders mobile tags on mobile platform', async function () {
+      render(
+        <GroupSidebar
+          group={group}
+          project={{...project, platform: 'android'}}
+          organization={{
+            ...organization,
+            features: [...organization.features, 'issue-details-tag-improvements'],
+          }}
+          event={TestStubs.Event()}
+          environments={[environment]}
+        />,
+        {organization}
+      );
+      expect(await screen.findByText('device')).toBeInTheDocument();
+    });
+
+    it('does not render mobile tags on non mobile platform', async function () {
+      render(
+        <GroupSidebar
+          group={group}
+          project={project}
+          organization={{
+            ...organization,
+            features: [...organization.features, 'issue-details-tag-improvements'],
+          }}
+          event={TestStubs.Event()}
+          environments={[environment]}
+        />,
+        {organization}
+      );
+      await waitFor(() => expect(tagsMock).toHaveBeenCalled());
+      expect(screen.queryByText('device')).not.toBeInTheDocument();
     });
   });
 });

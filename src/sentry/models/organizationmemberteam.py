@@ -7,14 +7,14 @@ from sentry.db.models import (
     BaseModel,
     BoundedAutoField,
     FlexibleForeignKey,
-    region_silo_model,
+    region_silo_only_model,
     sane_repr,
 )
 from sentry.roles import team_roles
 from sentry.roles.manager import TeamRole
 
 
-@region_silo_model
+@region_silo_only_model
 class OrganizationMemberTeam(BaseModel):
     """
     Identifies relationships between organization members and the teams they are on.

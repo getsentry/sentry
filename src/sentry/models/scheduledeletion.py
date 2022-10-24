@@ -6,7 +6,7 @@ from django.apps import apps
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import BoundedBigIntegerField, JSONField, Model, all_silo_model
+from sentry.db.models import BoundedBigIntegerField, JSONField, Model, control_silo_only_model
 
 delete_logger = logging.getLogger("sentry.deletions.api")
 
@@ -19,7 +19,7 @@ def default_date_schedule():
     return timezone.now() + timedelta(days=30)
 
 
-@all_silo_model
+@control_silo_only_model
 class ScheduledDeletion(Model):
     __include_in_export__ = False
 

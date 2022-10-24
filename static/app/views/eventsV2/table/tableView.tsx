@@ -1,5 +1,6 @@
 import {Component, Fragment} from 'react';
-import {browserHistory} from 'react-router';
+// eslint-disable-next-line no-restricted-imports
+import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {Location, LocationDescriptorObject} from 'history';
@@ -40,6 +41,7 @@ import {
   eventDetailsRouteWithEventView,
   generateEventSlug,
 } from 'sentry/utils/discover/urls';
+import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withProjects from 'sentry/utils/withProjects';
@@ -89,7 +91,7 @@ export type TableViewProps = {
  * In most cases, the new EventView object differs from the previous EventView
  * object. The new EventView object is pushed to the location object.
  */
-class TableView extends Component<TableViewProps> {
+class TableView extends Component<TableViewProps & WithRouterProps> {
   /**
    * Updates a column on resizing
    */
@@ -300,6 +302,25 @@ class TableView extends Component<TableViewProps> {
           </Tooltip>
         );
       }
+    } else if (columnKey === 'replayId') {
+      if (dataRow.replayId) {
+        const replaySlug = `${dataRow['project.name']}:${dataRow.replayId}`;
+        const referrer = encodeURIComponent(getRouteStringFromRoutes(this.props.routes));
+
+        const target = {
+          pathname: `/organizations/${organization.slug}/replays/${replaySlug}`,
+          query: {
+            referrer,
+          },
+        };
+        cell = (
+          <Tooltip title={t('View Replay')}>
+            <StyledLink data-test-id="view-replay" to={target}>
+              {cell}
+            </StyledLink>
+          </Tooltip>
+        );
+      }
     }
 
     const topResultsIndicator =
@@ -322,6 +343,8 @@ class TableView extends Component<TableViewProps> {
             column={column}
             dataRow={dataRow}
             handleCellAction={this.handleCellAction(dataRow, column)}
+            organization={organization}
+            showQuickContextMenu
           >
             {cell}
           </CellAction>
@@ -336,6 +359,8 @@ class TableView extends Component<TableViewProps> {
           column={column}
           dataRow={dataRow}
           handleCellAction={this.handleCellAction(dataRow, column)}
+          organization={organization}
+          showQuickContextMenu
         >
           {cell}
         </CellAction>
@@ -569,7 +594,7 @@ const StyledTooltip = styled(Tooltip)`
 `;
 
 const StyledLink = styled(Link)`
-  > div {
+  & div {
     display: inline;
   }
 `;
@@ -578,4 +603,4 @@ const StyledIcon = styled(IconStack)`
   vertical-align: middle;
 `;
 
-export default withProjects(TableView);
+export default withRouter(withProjects(TableView));

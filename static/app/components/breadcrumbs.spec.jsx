@@ -84,10 +84,6 @@ describe('Breadcrumbs', () => {
     expect(item3).toBeInTheDocument();
 
     userEvent.click(item3);
-    expect(onSelect).toHaveBeenCalledWith(
-      expect.objectContaining({label: 'item3'}),
-      expect.anything(),
-      expect.anything()
-    );
+    expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({label: 'item3'}));
   });
 });

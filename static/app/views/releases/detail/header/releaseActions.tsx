@@ -189,6 +189,7 @@ function ReleaseActions({
   return (
     <ButtonBar gap={1}>
       <NavigationButtonGroup
+        size="sm"
         hasPrevious={!!prevReleaseVersion}
         hasNext={!!nextReleaseVersion}
         links={[
@@ -203,13 +204,14 @@ function ReleaseActions({
         onNewestClick={() => handleNavigationClick('newest')}
       />
       <DropdownMenuControl
+        size="sm"
         items={menuItems}
         triggerProps={{
           showChevron: false,
-          icon: <IconEllipsis />,
+          icon: <IconEllipsis size="xs" />,
           'aria-label': t('Actions'),
         }}
-        placement="bottom right"
+        position="bottom-end"
       />
     </ButtonBar>
   );

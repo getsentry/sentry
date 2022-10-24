@@ -79,6 +79,7 @@ function GroupListBody({
         sort,
         displayReprocessingLayout,
         groupStatsPeriod,
+        source: 'group-list',
       }}
     />
   );

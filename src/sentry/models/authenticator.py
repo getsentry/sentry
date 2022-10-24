@@ -16,7 +16,7 @@ from sentry.db.models import (
     BoundedAutoField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
-    region_silo_model,
+    control_silo_only_model,
 )
 from sentry.db.models.fields.picklefield import PickledObjectField
 
@@ -112,7 +112,7 @@ class AuthenticatorManager(BaseManager):
         return {id: id in authenticators for id in user_ids}
 
 
-@region_silo_model
+@control_silo_only_model
 class Authenticator(BaseModel):
     __include_in_export__ = True
 

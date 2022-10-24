@@ -422,8 +422,6 @@ register("eventstream:kafka-headers", default=True)
 # Post process forwarder options
 # Gets data from Kafka headers
 register("post-process-forwarder:kafka-headers", default=True)
-# Number of threads to use for post processing
-register("post-process-forwarder:concurrency", default=1)
 
 # Subscription queries sampling rate
 register("subscriptions-query.sample-rate", default=0.01)
@@ -450,14 +448,6 @@ register("reprocessing2.drop-delete-old-primary-hash", default=[])
 # contents are a list of project IDs to message types to be randomly assigned
 # e.g. [{"project_id": 2, "message_type": "error"}, {"project_id": 3, "message_type": "transaction"}]
 register("kafka.send-project-events-to-random-partitions", default=[])
-
-# Temporary option to be removed after rollout.
-# This sends events for the project IDs being passed here to the KAFKA_NEW_TRANSACTIONS
-# topic (default "transactions") instead of the KAFKA_TRANSACTIONS topic (currently "events").
-# e.g. [{"project_id": 2}, {"project_id": 3}]
-# Once transactions is fully rolled out and KAFKA_TRANSACTIONS is mapped to "transactions" instead
-# of "events" this should be removed.
-register("kafka.send-project-transactions-to-new-topic", default=[])
 
 # Rate to project_configs_v3, no longer used.
 register("relay.project-config-v3-enable", default=0.0)
@@ -526,8 +516,14 @@ register(
     "performance.issues.all.early-adopter-rollout", default=0.0
 )  # Only used for EA rollout, bound to the feature flag handler for performance-issue-ingest
 register(
+    "performance.issues.all.general-availability-rollout", default=0.0
+)  # Only used for GA rollout, bound to the feature flag handler for performance-issue-ingest
+register(
     "performance.issues.all.post-process-group-early-adopter-rollout", default=0.0
 )  # EA rollout for processing transactions in post_process_group
+register(
+    "performance.issues.all.post-process-group-ga-rollout", default=0.0
+)  # GA rollout for processing transactions in post_process_group
 
 # Individual system-wide options in case we need to turn off specific detectors for load concerns, ignoring the set project options.
 register("performance.issues.n_plus_one_db.problem-detection", default=0.0)
@@ -537,7 +533,3 @@ register("performance.issues.n_plus_one_db_ext.problem-creation", default=0.0)
 # System-wide options for default performance detection settings for any org opted into the performance-issues-ingest feature. Meant for rollout.
 register("performance.issues.n_plus_one_db.count_threshold", default=5)
 register("performance.issues.n_plus_one_db.duration_threshold", default=100.0)
-
-# region to control silo multi region mode controls
-# It is safe to switch this off or on freely, it is purely for testing features ahead of hybrid cloud rollout.
-register("hc.region-to-control.monolith-publish", default=False)

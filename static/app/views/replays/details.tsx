@@ -17,17 +17,19 @@ import useReplayPageview from 'sentry/utils/replays/hooks/useReplayPageview';
 import Layout from 'sentry/views/replays/detail/layout';
 import Page from 'sentry/views/replays/detail/page';
 import type {ReplayRecord} from 'sentry/views/replays/types';
+import {getInitialTimeOffset} from 'sentry/views/replays/utils';
 
 type Props = RouteComponentProps<
   {orgId: string; replaySlug: string},
   {},
   any,
-  {t: number}
+  {event_t: string; t: number}
 >;
 
 function ReplayDetails({
   location: {
     query: {
+      event_t: eventTimestamp, // Timestamp of the event or activity that was selected
       t: initialTimeOffset, // Time, in seconds, where the video should start
     },
   },
@@ -39,6 +41,8 @@ function ReplayDetails({
     replaySlug,
     orgSlug,
   });
+
+  const startTimestampMs = replayRecord?.startedAt.getTime() ?? 0;
 
   if (!fetching && !replay && fetchError) {
     if (fetchError.statusText === 'Not Found') {
@@ -100,7 +104,14 @@ function ReplayDetails({
   }
 
   return (
-    <ReplayContextProvider replay={replay} initialTimeOffset={initialTimeOffset}>
+    <ReplayContextProvider
+      replay={replay}
+      initialTimeOffset={getInitialTimeOffset({
+        eventTimestamp,
+        initialTimeOffset,
+        startTimestampMs,
+      })}
+    >
       <LoadedDetails orgSlug={orgSlug} replayRecord={replayRecord} />
     </ReplayContextProvider>
   );

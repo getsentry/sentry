@@ -1,4 +1,5 @@
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -51,6 +52,11 @@ describe('IssueListActions', function () {
     GroupStore.reset();
     SelectedGroupStore.reset();
     SelectedGroupStore.add(['1', '2', '3']);
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [TestStubs.Project({id: 1})],
+    });
   });
 
   describe('Bulk', function () {
@@ -195,8 +201,11 @@ describe('IssueListActions', function () {
 
         const modal = screen.getByRole('dialog');
 
-        userEvent.clear(within(modal).getByLabelText('Number of users'));
-        userEvent.type(within(modal).getByLabelText('Number of users'), '300');
+        userEvent.clear(within(modal).getByRole('spinbutton', {name: 'Number of users'}));
+        userEvent.type(
+          within(modal).getByRole('spinbutton', {name: 'Number of users'}),
+          '300'
+        );
 
         userEvent.click(within(modal).getByRole('textbox'));
         userEvent.click(within(modal).getByText('per week'));
@@ -247,6 +256,11 @@ describe('IssueListActions', function () {
     it('acknowledges group', function () {
       const mockOnMarkReviewed = jest.fn();
 
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        method: 'PUT',
+      });
+
       jest
         .spyOn(SelectedGroupStore, 'getSelectedIds')
         .mockImplementation(() => new Set(['1', '2', '3']));
@@ -260,7 +274,6 @@ describe('IssueListActions', function () {
           },
         });
       });
-      MockApiClient.warnOnMissingMocks();
       render(<WrappedComponent onMarkReviewed={mockOnMarkReviewed} />);
 
       const reviewButton = screen.getByRole('button', {name: 'Mark Reviewed'});
@@ -275,7 +288,6 @@ describe('IssueListActions', function () {
       SelectedGroupStore.toggleSelectAll();
       GroupStore.loadInitialData([TestStubs.Group({id: '1', inbox: null})]);
 
-      MockApiClient.warnOnMissingMocks();
       render(<WrappedComponent {...defaultProps} />);
 
       expect(screen.getByRole('button', {name: 'Mark Reviewed'})).toBeDisabled();
@@ -313,7 +325,6 @@ describe('IssueListActions', function () {
         }
       });
 
-      MockApiClient.warnOnMissingMocks();
       render(<WrappedComponent />);
 
       // Resolve and ignore are supported
@@ -375,13 +386,13 @@ describe('IssueListActions', function () {
           expect.anything(),
           expect.objectContaining({
             query: expect.objectContaining({
-              query: 'is:unresolved !issue.category:performance',
+              query: 'is:unresolved issue.category:error',
             }),
           })
         );
       });
 
-      it('silently filters out performance issues when bulk merging', function () {
+      it('silently filters out performance issues when bulk merging', async function () {
         const bulkMergeMock = MockApiClient.addMockResponse({
           url: '/organizations/org-slug/issues/',
           method: 'PUT',
@@ -401,7 +412,6 @@ describe('IssueListActions', function () {
           </OrganizationContext.Provider>
         );
 
-        MockApiClient.warnOnMissingMocks();
         userEvent.click(screen.getByRole('checkbox'));
 
         userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
@@ -414,13 +424,16 @@ describe('IssueListActions', function () {
           within(modal).getByText(/merging performance issues is not yet supported/i)
         ).toBeInTheDocument();
 
+        // Wait for ProjectStore to update before closing the modal
+        await act(tick);
+
         userEvent.click(within(modal).getByRole('button', {name: 'Bulk merge issues'}));
 
         expect(bulkMergeMock).toHaveBeenCalledWith(
           expect.anything(),
           expect.objectContaining({
             query: expect.objectContaining({
-              query: 'is:unresolved !issue.category:performance',
+              query: 'is:unresolved issue.category:error',
             }),
           })
         );

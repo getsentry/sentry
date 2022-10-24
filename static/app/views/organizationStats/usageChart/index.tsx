@@ -64,6 +64,12 @@ export const CHART_OPTIONS_DATACATEGORY: CategoryOption[] = [
     disabled: false,
     yAxisMinInterval: 0.5 * GIGABYTE,
   },
+  {
+    label: DATA_CATEGORY_NAMES[DataCategory.PROFILES],
+    value: DataCategory.PROFILES,
+    disabled: false,
+    yAxisMinInterval: 100,
+  },
 ];
 
 export enum ChartDataTransform {
@@ -412,7 +418,7 @@ export class UsageChart extends Component<Props, State> {
       return (
         <Placeholder height="200px">
           <IconWarning size={theme.fontSizeExtraLarge} />
-          <ErrorMessages>
+          <ErrorMessages data-test-id="error-messages">
             {errors &&
               Object.keys(errors).map(k => <span key={k}>{errors[k]?.message}</span>)}
           </ErrorMessages>

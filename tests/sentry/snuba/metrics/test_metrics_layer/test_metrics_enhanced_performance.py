@@ -9,6 +9,7 @@ import pytest
 from django.utils import timezone
 from django.utils.datastructures import MultiValueDict
 from freezegun import freeze_time
+from freezegun.api import FakeDatetime
 from snuba_sdk import Column, Condition, Direction, Function, Granularity, Limit, Offset, Op
 
 from sentry.api.utils import InvalidParams
@@ -25,10 +26,10 @@ from sentry.snuba.metrics import (
 )
 from sentry.snuba.metrics.datasource import get_custom_measurements, get_series
 from sentry.snuba.metrics.naming_layer import TransactionMetricKey, TransactionMRI
-from sentry.snuba.metrics.query_builder import QueryDefinition, get_date_range
+from sentry.snuba.metrics.query_builder import QueryDefinition
 from sentry.testutils import TestCase
 from sentry.testutils.cases import BaseMetricsLayerTestCase, MetricsEnhancedPerformanceTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -376,6 +377,73 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             key=lambda elem: elem["name"],
         )
 
+    def test_query_with_has_condition(self):
+        for value, transaction in ((10, "/foo"), (20, "/bar"), (30, "/lorem")):
+            self.store_performance_metric(
+                name=TransactionMRI.DURATION.value,
+                tags={"transaction": transaction},
+                value=value,
+            )
+
+        # We also store a metric without the transaction tag.
+        self.store_performance_metric(
+            name=TransactionMRI.DURATION.value,
+            tags={},
+            value=value,
+        )
+
+        metrics_query = self.build_metrics_query(
+            before_now="1m",
+            granularity="1m",
+            select=[
+                MetricField(
+                    op="count",
+                    metric_mri=TransactionMRI.DURATION.value,
+                ),
+            ],
+            groupby=[],
+            where=[
+                Condition(
+                    lhs=Function(
+                        function="has",
+                        parameters=[
+                            Column(
+                                name="tags.key",
+                            ),
+                            "transaction",
+                        ],
+                    ),
+                    op=Op.EQ,
+                    rhs=1,
+                )
+            ],
+            limit=Limit(limit=1),
+            offset=Offset(offset=0),
+            include_series=False,
+        )
+
+        data = get_series(
+            [self.project],
+            metrics_query=metrics_query,
+            include_meta=True,
+            use_case_id=UseCaseKey.PERFORMANCE,
+        )
+
+        groups = data["groups"]
+        assert len(groups) == 1
+
+        expected_count = 3
+        expected_alias = "count(transaction.duration)"
+        assert groups[0]["totals"] == {
+            expected_alias: expected_count,
+        }
+        assert data["meta"] == sorted(
+            [
+                {"name": expected_alias, "type": "UInt64"},
+            ],
+            key=lambda elem: elem["name"],
+        )
+
     def test_count_transaction_with_valid_condition(self):
         for transaction, values in (
             ("<< unparameterized >>", [1]),
@@ -628,8 +696,8 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         assert data["meta"] == sorted(
             [
                 {"name": "bucketed_time", "type": "DateTime('Universal')"},
-                {"name": "p50_fcp", "type": "Array(Float64)"},
-                {"name": "p50_lcp", "type": "Array(Float64)"},
+                {"name": "p50_fcp", "type": "Float64"},
+                {"name": "p50_lcp", "type": "Float64"},
                 {"name": "project", "type": "string"},
                 {"name": "project_alias", "type": "string"},
                 {"name": "transaction_group", "type": "string"},
@@ -788,31 +856,21 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             }
         ]
 
-    @pytest.mark.skip(reason="Contains granularity/rollup logic that is not yet implemented")
     def test_throughput_epm_hour_rollup_offset_of_hour(self):
         # Each of these denotes how many events to create in each hour
         day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
 
         event_counts = [6, 0, 6, 3, 0, 3]
-
-        self.store_metric(
-            org_id=self.organization.id,
-            project_id=self.project.id,
-            name=TransactionMRI.DURATION.value,
-            tags={},
-            timestamp=(day_ago + timedelta(hours=0, minutes=25)).timestamp(),
-            value=1,
-            use_case_id=UseCaseKey.PERFORMANCE,
-        )
-
         for hour, count in enumerate(event_counts):
             for minute in range(count):
-                self.store_metric(
+                self.store_performance_metric(
                     name=TransactionMRI.DURATION.value,
                     tags={},
-                    timestamp=(day_ago + timedelta(hours=hour, minutes=minute + 30)).timestamp(),
                     value=1,
-                    use_case_id=UseCaseKey.PERFORMANCE,
+                    minutes_before_now=-(minute + 30),
+                    days_before_now=1,
+                    hours_before_now=-hour,
+                    seconds_before_now=-1,
                 )
 
         metrics_query = MetricsQuery(
@@ -831,26 +889,48 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             ],
             start=day_ago + timedelta(minutes=30),
             end=day_ago + timedelta(hours=6, minutes=30),
-            granularity=Granularity(granularity=1800),
+            granularity=Granularity(granularity=60),
             limit=Limit(limit=5),
             offset=Offset(offset=0),
             include_series=True,
+            interval=3600,
         )
-
-        start, end, rollup = get_date_range(
-            {
-                "start": iso_format(day_ago + timedelta(minutes=30)),
-                "end": iso_format(day_ago + timedelta(hours=6, minutes=30)),
-            }
-        )
-
         data = get_series(
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
             use_case_id=UseCaseKey.PERFORMANCE,
         )
-        assert data
+        assert data == {
+            "start": FakeDatetime(2022, 9, 28, 10, 30),
+            "end": FakeDatetime(2022, 9, 28, 16, 30),
+            "intervals": [
+                FakeDatetime(2022, 9, 28, 10, 0, tzinfo=timezone.utc),
+                FakeDatetime(2022, 9, 28, 11, 0, tzinfo=timezone.utc),
+                FakeDatetime(2022, 9, 28, 12, 0, tzinfo=timezone.utc),
+                FakeDatetime(2022, 9, 28, 13, 0, tzinfo=timezone.utc),
+                FakeDatetime(2022, 9, 28, 14, 0, tzinfo=timezone.utc),
+                FakeDatetime(2022, 9, 28, 15, 0, tzinfo=timezone.utc),
+            ],
+            "groups": [
+                {
+                    "by": {},
+                    "series": {
+                        "rate(transaction.duration)": [0.1, 0, 0.1, 0.05, 0, 0.05],
+                        "count(transaction.duration)": [6, 0, 6, 3, 0, 3],
+                    },
+                    "totals": {
+                        "rate(transaction.duration)": 0.3,
+                        "count(transaction.duration)": 18,
+                    },
+                }
+            ],
+            "meta": [
+                {"name": "bucketed_time", "type": "DateTime('Universal')"},
+                {"name": "count(transaction.duration)", "type": "UInt64"},
+                {"name": "rate(transaction.duration)", "type": "Float64"},
+            ],
+        }
 
     def test_throughput_eps_minute_rollup(self):
         event_counts = [6, 0, 6, 3, 0, 3]
@@ -1147,7 +1227,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         ]
         assert data["meta"] == sorted(
             [
-                {"name": "p95", "type": "Array(Float64)"},
+                {"name": "p95", "type": "Float64"},
                 {"name": "team_key_transactions", "type": "boolean"},
                 {"name": "transaction", "type": "string"},
             ],
@@ -1307,11 +1387,13 @@ class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
                     "p90",
                     "p95",
                     "p99",
+                    "sum",
                 ],
                 "unit": "millisecond",
                 "metric_id": indexer.resolve(
                     UseCaseKey.PERFORMANCE, self.organization.id, something_custom_metric
                 ),
+                "mri_string": something_custom_metric,
             }
         ]
 
@@ -1355,11 +1437,13 @@ class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
                     "p90",
                     "p95",
                     "p99",
+                    "sum",
                 ],
                 "unit": "millisecond",
                 "metric_id": indexer.resolve(
                     UseCaseKey.PERFORMANCE, self.organization.id, something_custom_metric
                 ),
+                "mri_string": something_custom_metric,
             }
         ]
 

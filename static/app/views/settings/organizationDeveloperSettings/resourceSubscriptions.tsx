@@ -1,7 +1,6 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Context} from 'sentry/components/deprecatedforms/form';
 import FormContext from 'sentry/components/forms/formContext';
 import {Permissions, WebhookEvent} from 'sentry/types';
 import {
@@ -27,24 +26,23 @@ export default class Subscriptions extends Component<Props> {
     webhookDisabled: false,
   };
 
-  constructor(props: Props, context: Context) {
+  constructor(props: Props, context) {
     super(props, context);
     this.context.form.setValue('events', this.props.events);
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps: Props) {
-    // if webhooks are disabled, unset the events
-    if (nextProps.webhookDisabled && this.props.events.length) {
-      this.save([]);
-    }
-  }
-
-  componentDidUpdate() {
-    const {permissions, events} = this.props;
+  componentDidUpdate(prevProps: Props) {
+    const {webhookDisabled, permissions, events} = this.props;
 
     const permittedEvents = events.filter(
       resource => permissions[PERMISSIONS_MAP[resource]] !== 'no-access'
     );
+
+    // When disabling webhooks unset the events
+    if (!prevProps.webhookDisabled && webhookDisabled && prevProps.events.length) {
+      this.save([]);
+      return;
+    }
 
     if (JSON.stringify(events) !== JSON.stringify(permittedEvents)) {
       this.save(permittedEvents);
