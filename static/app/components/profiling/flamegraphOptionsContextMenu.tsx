@@ -62,13 +62,11 @@ export function FlamegraphOptionsContextMenu(props: FlameGraphOptionsContextMenu
             <ProfilingContextMenuHeading>{t('Frame')}</ProfilingContextMenuHeading>
             <ProfilingContextMenuItemCheckbox
               {...props.contextMenu.getMenuItemProps({
-                onClick: props.onHighlightAllOccurencesClick,
+                onClick: () => {
+                  // We need to prevent the click from propagating to the context menu layer.
+                  props.onHighlightAllOccurencesClick();
+                },
               })}
-              onClick={e => {
-                // We need to prevent the click from propagating to the context menu layer.
-                e.preventDefault();
-                props.onHighlightAllOccurencesClick();
-              }}
               checked={props.isHighlightingAllOccurences}
             >
               {t('Highlight all occurrences')}
@@ -81,13 +79,6 @@ export function FlamegraphOptionsContextMenu(props: FlameGraphOptionsContextMenu
                   props.contextMenu.setOpen(false);
                 },
               })}
-              onClick={e => {
-                // We need to prevent the click from propagating to the context menu layer.
-                e.preventDefault();
-                props.onCopyFunctionNameClick();
-                // This is a button, so close the context menu.
-                props.contextMenu.setOpen(false);
-              }}
               icon={<IconCopy size="xs" />}
             >
               {t('Copy function name')}
