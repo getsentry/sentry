@@ -69,6 +69,9 @@ class KeepAliveMessageFilter(StreamMessageFilter[TPayload]):
 
     This leads to false positives in our alerts regarding consumer group having
     some issues.
+
+    Note: This filter can only be used if the wrapped filter is not required
+    for correctness.
     """
 
     def __init__(
