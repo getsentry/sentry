@@ -72,9 +72,8 @@ class DynamicSamplingFeatureMultiplexer:
         return {bias["id"] for bias in DEFAULT_BIASES}
 
     @classmethod
-    def get_user_bias(cls, bias_id, user_set_biases):
-        if bias_id not in cls.get_supported_biases_ids():
-            raise ValueError(f"{bias_id} is not in supported biases")
+    def get_user_bias(cls, bias_id: str, user_set_biases: Optional[List[Bias]]) -> Bias:
         for bias in cls.get_user_biases(user_set_biases):
             if bias["id"] == bias_id:
                 return bias
+        raise ValueError(f"{bias_id} is not in supported biases")

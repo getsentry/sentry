@@ -27,8 +27,15 @@ UNIFORM_RULE_RESERVED_ID = 0
 UNIFORM_RULE_RESERVED_ID = 0
 >>>>>>> e04f4b0895 (fixup tests!)
 
+
+class Bias(TypedDict):
+    id: str
+    active: bool
+
+
 # These represent the biases that are applied to user by default as part of the adaptive dynamic sampling experience.
 # These can be overridden by the project details endpoint
+<<<<<<< HEAD
 class RuleType(Enum):
     UNIFORM_RULE = "uniformRule"
     BOOST_ENVIRONMENTS_RULE = "boostEnvironments"
@@ -38,6 +45,13 @@ class RuleType(Enum):
 
 DEFAULT_BIASES: List[Bias] = [
     {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": True},
+||||||| parent of a2a252608a (Add missing type hints)
+DEFAULT_BIASES = [
+    {"id": "boostEnvironments", "active": True},
+=======
+DEFAULT_BIASES: List[Bias] = [
+    {"id": "boostEnvironments", "active": True},
+>>>>>>> a2a252608a (Add missing type hints)
     {
         "id": RuleType.BOOST_LATEST_RELEASES_RULE.value,
         "active": True,
@@ -68,7 +82,7 @@ class NoneSampleRateException(Exception):
 =======
 >>>>>>> 6c49312dd6 (fixup!)
 class Inner(TypedDict):
-    op: int
+    op: str
     name: str
     value: List[str]
     options: Dict[str, bool]
@@ -87,8 +101,14 @@ class UniformRule(TypedDict):
     sampleRate: float
 =======
 class BaseRule(TypedDict):
+<<<<<<< HEAD
     sampleRate: float
 >>>>>>> 1f195d7423 (fixup!)
+||||||| parent of a2a252608a (Add missing type hints)
+    sampleRate: float
+=======
+    sampleRate: Optional[float]
+>>>>>>> a2a252608a (Add missing type hints)
     type: str
     active: bool
     condition: Condition
