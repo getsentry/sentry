@@ -2,19 +2,14 @@ from unittest import mock
 
 import responses
 
-from sentry.event_manager import EventManager
 from sentry.models import Activity
 from sentry.notifications.notifications.activity import RegressionActivityNotification
-from sentry.testutils.cases import SlackActivityNotificationTest
-from sentry.testutils.helpers import override_options
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest
 from sentry.testutils.helpers.slack import get_attachment, send_notification
 from sentry.types.activity import ActivityType
-from sentry.types.issues import GroupType
-from sentry.utils.samples import load_data
 
 
-class SlackRegressionNotificationTest(SlackActivityNotificationTest):
+class SlackRegressionNotificationTest(SlackActivityNotificationTest, PerformanceIssueTestCase):
     @responses.activate
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     def test_regression(self, mock_func):
@@ -48,27 +43,7 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest):
         """
         Test that a Slack message is sent with the expected payload when a performance issue regresses
         """
-        event_data = load_data(
-            "transaction-n-plus-one",
-            timestamp=before_now(minutes=10),
-            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE.value}-group1"],
-        )
-        perf_event_manager = EventManager(event_data)
-        perf_event_manager.normalize()
-        with override_options(
-            {
-                "performance.issues.all.problem-creation": 1.0,
-                "performance.issues.all.problem-detection": 1.0,
-                "performance.issues.n_plus_one_db.problem-creation": 1.0,
-            }
-        ), self.feature(
-            [
-                "organizations:performance-issues-ingest",
-                "projects:performance-suspect-spans-ingestion",
-            ]
-        ):
-            event = perf_event_manager.save(self.project.id)
-        event = event.for_group(event.groups[0])
+        event = self.create_performance_issue()
         perf_group = event.group
 
         with self.feature("organizations:performance-issues"):
