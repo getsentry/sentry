@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import copy
 import ipaddress
 import logging
@@ -8,7 +10,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from hashlib import md5
 from io import BytesIO
-from typing import Optional, Sequence, TypedDict
+from typing import TYPE_CHECKING, Any, Mapping, Optional, Sequence, TypedDict
 
 import sentry_sdk
 from django.conf import settings
@@ -105,6 +107,9 @@ from sentry.utils.performance_issues.performance_detection import (
     detect_performance_problems,
 )
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
+
+if TYPE_CHECKING:
+    from sentry.eventstore.models import Event
 
 logger = logging.getLogger("sentry.events")
 
@@ -2035,12 +2040,39 @@ def _detect_performance_problems(jobs, projects):
         job["performance_problems"] = detect_performance_problems(job["data"])
 
 
-class Performance_Job(TypedDict, total=False):
+class PerformanceJob(TypedDict, total=False):
     performance_problems: Sequence[PerformanceProblem]
+    event: Event
+    culprit: str
+    received_timestamp: float
+    event_metadata: Mapping[str, Any]
+    platform: str
+    level: str
+    logger_name: str
+    release: Release
+
+
+def _save_grouphash_and_group(
+    project: Project, event: Event, new_grouphash: str, **group_kwargs
+) -> Group:
+    group = None
+    with transaction.atomic():
+        group_hash, created = GroupHash.objects.get_or_create(project=project, hash=new_grouphash)
+        if created:
+            group = _create_group(project, event, **group_kwargs)
+            group_hash.update(group=group)
+
+    if group is None:
+        # If we failed to create the group it means another worker beat us to
+        # it. Since a GroupHash can only be created in a transaction with the
+        # Group, we can guarantee that the Group will exist at this point and
+        # fetch it via GroupHash
+        group = Group.objects.get(grouphash__project=project, grouphash__hash=new_grouphash)
+    return group
 
 
 @metrics.wraps("save_event.save_aggregate_performance")
-def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
+def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects):
 
     MAX_GROUPS = (
         10  # safety check in case we are passed too many. constant will live somewhere else tbd
@@ -2120,8 +2152,9 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
                             group_kwargs["data"]["metadata"], problem
                         )
 
-                        group = _create_group(project, event, **group_kwargs)
-                        GroupHash.objects.create(project=project, hash=new_grouphash, group=group)
+                        group = _save_grouphash_and_group(
+                            project, event, new_grouphash, **group_kwargs
+                        )
 
                         is_new = True
                         is_regression = False
