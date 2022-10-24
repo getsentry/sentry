@@ -1,21 +1,10 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {Request} from 'sentry/components/events/interfaces/request';
 import {EntryRequest, EntryType} from 'sentry/types/event';
-import {OrganizationContext} from 'sentry/views/organizationContext';
-import {RouteContext} from 'sentry/views/routeContext';
 
 describe('Request entry', function () {
-  const {organization, router} = initializeOrg({
-    ...initializeOrg(),
-    organization: {
-      ...initializeOrg().organization,
-      relayPiiConfig: JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig()),
-    },
-  });
-
   it('display redacted data', async function () {
     const event = {
       ...TestStubs.Event(),
@@ -170,20 +159,11 @@ describe('Request entry', function () {
       },
     };
 
-    render(
-      <OrganizationContext.Provider value={organization}>
-        <RouteContext.Provider
-          value={{
-            router,
-            location: router.location,
-            params: {},
-            routes: [],
-          }}
-        >
-          <Request event={event} data={event.entries[0].data} />
-        </RouteContext.Provider>
-      </OrganizationContext.Provider>
-    );
+    render(<Request event={event} data={event.entries[0].data} />, {
+      organization: {
+        relayPiiConfig: JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig()),
+      },
+    });
 
     expect(screen.getAllByText(/redacted/)).toHaveLength(5);
 
@@ -226,20 +206,11 @@ describe('Request entry', function () {
         ],
       };
 
-      render(
-        <OrganizationContext.Provider value={organization}>
-          <RouteContext.Provider
-            value={{
-              router,
-              location: router.location,
-              params: {},
-              routes: [],
-            }}
-          >
-            <Request event={event} data={event.entries[0].data} />
-          </RouteContext.Provider>
-        </OrganizationContext.Provider>
-      );
+      render(<Request event={event} data={event.entries[0].data} />, {
+        organization: {
+          relayPiiConfig: JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig()),
+        },
+      });
 
       expect(
         screen.getByTestId('rich-http-content-body-section-pre')
@@ -269,20 +240,11 @@ describe('Request entry', function () {
         ],
       };
 
-      render(
-        <OrganizationContext.Provider value={organization}>
-          <RouteContext.Provider
-            value={{
-              router,
-              location: router.location,
-              params: {},
-              routes: [],
-            }}
-          >
-            <Request event={event} data={event.entries[0].data} />
-          </RouteContext.Provider>
-        </OrganizationContext.Provider>
-      );
+      render(<Request event={event} data={event.entries[0].data} />, {
+        organization: {
+          relayPiiConfig: JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig()),
+        },
+      });
 
       expect(
         screen.getByTestId('rich-http-content-body-key-value-list')
@@ -312,20 +274,11 @@ describe('Request entry', function () {
         ],
       };
 
-      render(
-        <OrganizationContext.Provider value={organization}>
-          <RouteContext.Provider
-            value={{
-              router,
-              location: router.location,
-              params: {},
-              routes: [],
-            }}
-          >
-            <Request event={event} data={event.entries[0].data} />
-          </RouteContext.Provider>
-        </OrganizationContext.Provider>
-      );
+      render(<Request event={event} data={event.entries[0].data} />, {
+        organization: {
+          relayPiiConfig: JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig()),
+        },
+      });
 
       expect(
         screen.getByTestId('rich-http-content-body-context-data')
@@ -357,20 +310,11 @@ describe('Request entry', function () {
       };
 
       expect(() =>
-        render(
-          <OrganizationContext.Provider value={organization}>
-            <RouteContext.Provider
-              value={{
-                router,
-                location: router.location,
-                params: {},
-                routes: [],
-              }}
-            >
-              <Request event={event} data={event.entries[0].data} />
-            </RouteContext.Provider>
-          </OrganizationContext.Provider>
-        )
+        render(<Request event={event} data={event.entries[0].data} />, {
+          organization: {
+            relayPiiConfig: JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig()),
+          },
+        })
       ).not.toThrow();
     });
 
@@ -397,20 +341,11 @@ describe('Request entry', function () {
       };
 
       expect(() =>
-        render(
-          <OrganizationContext.Provider value={organization}>
-            <RouteContext.Provider
-              value={{
-                router,
-                location: router.location,
-                params: {},
-                routes: [],
-              }}
-            >
-              <Request event={event} data={event.entries[0].data} />
-            </RouteContext.Provider>
-          </OrganizationContext.Provider>
-        )
+        render(<Request event={event} data={event.entries[0].data} />, {
+          organization: {
+            relayPiiConfig: JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig()),
+          },
+        })
       ).not.toThrow();
     });
   });
