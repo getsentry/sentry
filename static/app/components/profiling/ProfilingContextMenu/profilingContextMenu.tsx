@@ -83,7 +83,9 @@ const MenuItemCheckbox = forwardRef(
 export {MenuItemCheckbox as ProfilingContextMenuItemCheckbox};
 
 interface MenuItemButtonProps
-  extends React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement> {}
+  extends React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement> {
+  icon?: React.ReactNode;
+}
 
 const MenuItemButton = forwardRef(
   (props: MenuItemButtonProps, ref: React.Ref<HTMLDivElement> | undefined) => {
@@ -91,7 +93,10 @@ const MenuItemButton = forwardRef(
     return (
       <MenuContentOuterContainer>
         <MenuContentContainer ref={ref} role="menuitem" {...rest}>
-          <MenuButton>{children}</MenuButton>
+          {props.icon ? <MenuLeadingItem>{props.icon}</MenuLeadingItem> : null}
+          <MenuContent>
+            <MenuButton>{children}</MenuButton>
+          </MenuContent>
         </MenuContentContainer>
       </MenuContentOuterContainer>
     );
