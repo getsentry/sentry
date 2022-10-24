@@ -1235,11 +1235,11 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         )
 
     def test_transform_null_to_unparameterized_with_null_transactions(self):
-        for transaction, value in (("", 1), ("", 2), ("/foo", 1), ("/bar", 0.5)):
+        for transaction, value in ((None, 0), ("", 1), ("", 2), ("/foo", 3), ("/bar", 4)):
             self.store_performance_metric(
                 type="distribution",
                 name=TransactionMRI.DURATION.value,
-                tags={"transaction": transaction},
+                tags={} if transaction is None else {"transaction": transaction},
                 value=value,
             )
 
@@ -1290,7 +1290,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             },
             {
                 "by": {"transformed_transaction": "<< unparameterized >>"},
-                "totals": {"duration_count": 2},
+                "totals": {"duration_count": 3},
             },
         ]
         assert data["meta"] == sorted(
@@ -1302,11 +1302,11 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         )
 
     def test_transform_null_to_unparameterized_with_null_and_unparameterized_transactions(self):
-        for transaction, value in (("", 1), ("", 2), ("<< unparameterized >>", 3)):
+        for transaction, value in ((None, 0), ("", 1), ("", 2), ("<< unparameterized >>", 3)):
             self.store_performance_metric(
                 type="distribution",
                 name=TransactionMRI.DURATION.value,
-                tags={"transaction": transaction},
+                tags={} if transaction is None else {"transaction": transaction},
                 value=value,
             )
 
@@ -1341,7 +1341,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         assert data["groups"] == [
             {
                 "by": {"transformed_transaction": "<< unparameterized >>"},
-                "totals": {"duration_count": 3},
+                "totals": {"duration_count": 4},
             },
         ]
         assert data["meta"] == sorted(
