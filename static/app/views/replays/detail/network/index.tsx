@@ -53,9 +53,10 @@ function NetworkList({replayRecord, networkSpans}: Props) {
     asc: true,
     getValue: row => row[sortConfig.by],
   });
-  const [gridWidth, setGridWidth] = useState(0);
-
+  const [scrollBarWidth, setScrollBarWidth] = useState(0);
   const multiGridRef = useRef<MultiGrid>(null);
+  const networkTableRef = useRef<HTMLDivElement>(null);
+
   const {
     items,
     status: selectedStatus,
@@ -104,13 +105,20 @@ function NetworkList({replayRecord, networkSpans}: Props) {
   );
 
   useEffect(() => {
-    // Restart cache when items changes
-    if (multiGridRef.current) {
-      // This 👇 is lagging the UI, but it's the only way to get the correct width of the columns imk
-      cache.clearAll();
-      multiGridRef.current.forceUpdate();
+    // Observe the network table for width changes
+    const observer = new ResizeObserver(() => {
+      // Recompute the column widths
+      multiGridRef.current?.recomputeGridSize({columnIndex: 1});
+    });
+
+    if (networkTableRef.current) {
+      observer.observe(networkTableRef.current);
     }
-  }, [gridWidth]);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [networkTableRef, searchTerm]);
 
   function handleSort(fieldName: keyof NetworkSpan): void;
   function handleSort(key: string, getValue: (row: NetworkSpan) => any): void;
@@ -214,7 +222,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
             <Text>{network.description}</Text>
           </Tooltip>
         ) : (
-          <EmptyText>({t('Missing')})</EmptyText>
+          <EmptyText>({t('No value')})</EmptyText>
         )}
       </Item>,
       <Item key="type" {...columnHandlers} {...columnProps}>
@@ -233,7 +241,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
         {defined(network.data.size) ? (
           <FileSize bytes={network.data.size} />
         ) : (
-          <EmptyText>({t('Missing')})</EmptyText>
+          <EmptyText>({t('No value')})</EmptyText>
         )}
       </Item>,
       <Item key="duration" {...columnHandlers} {...columnProps} numeric>
@@ -262,14 +270,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
         parent={parent}
         rowIndex={rowIndex}
       >
-        <div
-          key={key}
-          style={{
-            ...style,
-            // TODO: change this
-            minWidth: columnIndex !== 1 ? 'max-content' : 'auto',
-          }}
-        >
+        <div key={key} style={style}>
           {rowIndex === 0 ? (
             <Fragment>
               <NetworkTableHeader columns={columns.length}>
@@ -313,58 +314,60 @@ function NetworkList({replayRecord, networkSpans}: Props) {
         />
       </NetworkFilters>
 
-      <NetworkTable>
+      <NetworkTable ref={networkTableRef}>
         <AutoSizer>
           {({width, height}) => (
-            <Fragment>
-              <MultiGrid
-                ref={multiGridRef}
-                columnCount={columns.length}
-                columnWidth={({index}) => {
-                  if (width !== gridWidth) {
-                    setGridWidth(width);
-                  }
+            <MultiGrid
+              ref={multiGridRef}
+              columnCount={columns.length}
+              columnWidth={({index}) => {
+                if (index === 0) {
+                  // For the status code column, we want to set a fixed width
+                  return Math.max(80, cache.columnWidth({index}));
+                }
 
-                  // TODO(wip): improve this
-                  return width / columns.length;
+                // If the column is the path column, we want to take up the rest of the space
+                if (index === 1) {
+                  // We need to subtract the width of the other columns
+                  const otherColumnsWidth =
+                    columns.reduce((acc, _, i) => {
+                      if (i === 0) {
+                        return acc + Math.max(80, cache.columnWidth({index: i}));
+                      }
 
-                  if (index === 0) {
-                    return Math.max(
-                      80,
-                      width / columns.length / 2,
-                      cache.columnWidth({index})
-                    );
-                  }
+                      if (i === 1) {
+                        return acc;
+                      }
 
-                  if (index === 1) {
-                    return Math.min(
-                      cache.columnWidth({index}),
-                      (width / columns.length) * 2
-                    );
+                      return acc + cache.columnWidth({index: i});
+                    }, 0) - scrollBarWidth;
 
-                    // return Math.min(
-                    //   (width / columns.length) * 3,
-                    //   Math.max(cache.columnWidth({index}), (width / columns.length) * 2)
-                    // );
-                  }
-                  return Math.max(width / columns.length, cache.columnWidth({index}));
-                }}
-                deferredMeasurementCache={cache}
-                height={height}
-                // overscanColumnCount={columns.length}
-                overscanRowCount={2}
-                cellRenderer={renderTableRow}
-                rowCount={networkData.length + 1}
-                rowHeight={({index}) => (index === 0 ? headerRowHeight : 28)}
-                width={width}
-                fixedRowCount={1}
-                noContentRenderer={() => (
-                  <EmptyStateWarning withIcon={false} small>
-                    {t('No related network requests found.')}
-                  </EmptyStateWarning>
-                )}
-              />
-            </Fragment>
+                  return Math.max(width - otherColumnsWidth, width / columns.length);
+                }
+
+                return cache.columnWidth({index});
+              }}
+              deferredMeasurementCache={cache}
+              height={height}
+              overscanRowCount={5}
+              cellRenderer={renderTableRow}
+              rowCount={networkData.length + 1}
+              rowHeight={({index}) => (index === 0 ? headerRowHeight : 28)}
+              width={width}
+              fixedRowCount={1}
+              onScrollbarPresenceChange={({vertical, size}) => {
+                if (vertical) {
+                  setScrollBarWidth(size);
+                } else {
+                  setScrollBarWidth(0);
+                }
+              }}
+              noContentRenderer={() => (
+                <EmptyStateWarning withIcon small>
+                  {t('No related network requests found.')}
+                </EmptyStateWarning>
+              )}
+            />
           )}
         </AutoSizer>
       </NetworkTable>
