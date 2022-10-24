@@ -144,6 +144,7 @@ describe('IntegrationRow', function () {
         />
       );
       expect(screen.getByText('Installed')).toBeInTheDocument();
+      expect(screen.getByText('3 Configurations')).toBeInTheDocument();
       expect(screen.getByText('Twilio (SMS)')).toHaveAttribute(
         'href',
         `/settings/${org.slug}/plugins/twilio/`
