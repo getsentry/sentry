@@ -16,6 +16,7 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.http import get_server_hostname
 from sentry.models import AuthProvider, Organization, OrganizationMember, OrganizationStatus
+from sentry.services.hybrid_cloud import organization_service
 from sentry.signals import join_request_link_viewed, user_signup
 from sentry.utils import auth, json, metrics
 from sentry.utils.auth import (
@@ -216,25 +217,22 @@ class AuthLoginView(BaseView):
 
                 if not user.is_active:
                     return self.redirect(reverse("sentry-reactivate-account"))
-                if organization and self.active_organization:
+                if self.active_organization:
                     if (
                         self.active_organization.member
                         and request.user
                         and not is_active_superuser(request)
                     ):
-                        auth.set_active_org(request, organization.slug)
+                        auth.set_active_org(request, self.active_organization.slug)
 
                     if settings.SENTRY_SINGLE_ORGANIZATION:
-                        try:
-                            om = OrganizationMember.objects.get(
-                                organization=organization, email=user.email
-                            )
-                            # XXX(jferge): if user is removed / invited but has an acct,
-                            # pop _next so they aren't in infinite redirect on Single Org Mode
-                        except OrganizationMember.DoesNotExist:
+                        om = organization_service.check_membership_by_email(
+                            self.active_organization.id, user.email
+                        )
+                        if om is None:
                             request.session.pop("_next", None)
                         else:
-                            if om.user is None:
+                            if om.user_id is None:
                                 request.session.pop("_next", None)
 
                 # On login, redirect to onboarding

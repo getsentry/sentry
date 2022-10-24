@@ -36,6 +36,8 @@ class ApiProjectKey:
 
 @dataclass
 class ApiOrganizationMember:
+    # This can be null when the user is deleted.
+    user_id: Optional[int]
     pass
 
 
@@ -128,13 +130,22 @@ class OrganizationService(InterfaceWithLifecycle):
         pass
 
     @abstractmethod
+    def check_membership_by_email(
+        self, organization_id: int, email: str
+    ) -> Optional[ApiOrganizationMember]:
+        """
+        Used to look up an organization membership by an email, used in very specific edge cases.
+        """
+        pass
+
+    @abstractmethod
     def get_organization_by_slug(
         self, user_id: Optional[int], slug: str, only_visible: bool, allow_stale: bool
     ) -> Optional[ApiOrganization]:
         pass
 
     def _serialize_member(self, member: OrganizationMember) -> ApiOrganizationMember:
-        return ApiOrganizationMember()
+        return ApiOrganizationMember(user_id=member.user.id if member.user is not None else None)
 
     def _serialize_organization(
         self, org: Organization, membership: Iterable[OrganizationMember] = tuple()
@@ -150,6 +161,16 @@ class OrganizationService(InterfaceWithLifecycle):
 
 
 class DatabaseBackedOrganizationService(OrganizationService):
+    def check_membership_by_email(
+        self, organization_id: int, email: str
+    ) -> Optional[ApiOrganizationMember]:
+        try:
+            member = OrganizationMember.objects.get(organization_id=organization_id, email=email)
+        except OrganizationMember.DoesNotExist:
+            return None
+
+        return self._serialize_member(member)
+
     def get_organization_by_slug(
         self, user_id: Optional[int], slug: str, only_visible: bool, allow_stale: bool
     ) -> Optional[ApiOrganization]:

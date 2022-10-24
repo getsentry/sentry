@@ -381,8 +381,9 @@ class OrganizationView(BaseView):
             return False
 
         if not self.active_organization:
-            # Require auth if we can't lookup the organization slug, even in the cache.
-            return not organization_service.get_organization_by_slug(
+            # Require auth if we there is an organization associated with the slug that we just cannot access
+            # for some reason.
+            return organization_service.get_organization_by_slug(
                 user_id=None, slug=organization_slug, only_visible=True, allow_stale=True
             )
 
