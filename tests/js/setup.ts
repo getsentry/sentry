@@ -236,6 +236,7 @@ const specialMapping = {
   ProviderList: 'integrationListDirectory.js',
   BitbucketIntegrationConfig: 'integrationListDirectory.js',
   GitHubIntegration: 'githubIntegration.js',
+  GitHubRepositoryProvider: 'githubRepositoryProvider.js',
   GitHubIntegrationProvider: 'githubIntegrationProvider.js',
   GitHubIntegrationConfig: 'integrationListDirectory.js',
   OrgOwnedApps: 'integrationListDirectory.js',

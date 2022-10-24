@@ -1,4 +1,4 @@
-export function GithubRepositoryProvider(params = {}) {
+export function GitHubRepositoryProvider(params = {}) {
   return {
     key: 'github',
     name: 'GitHub',

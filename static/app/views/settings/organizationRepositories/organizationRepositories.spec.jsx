@@ -19,7 +19,7 @@ describe('OrganizationRepositories', function () {
     const wrapper = mountWithTheme(
       <OrganizationRepositories
         params={{orgId: 'org-slug'}}
-        repoConfig={{providers: [TestStubs.GithubRepositoryProvider({id: 'github'})]}}
+        repoConfig={{providers: [TestStubs.GitHubRepositoryProvider({id: 'github'})]}}
         itemList={[]}
       />
     );
@@ -35,7 +35,7 @@ describe('OrganizationRepositories', function () {
       <OrganizationRepositories
         api={new Client()}
         params={{orgId: 'org-slug'}}
-        repoConfig={{providers: [TestStubs.GithubRepositoryProvider({id: 'github'})]}}
+        repoConfig={{providers: [TestStubs.GitHubRepositoryProvider({id: 'github'})]}}
         itemList={[TestStubs.Repository()]}
       />
     );
