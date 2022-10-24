@@ -1,7 +1,7 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 
 import type {Organization} from 'sentry/types';
-import EventView from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
 import fetchReplayList from 'sentry/utils/replays/fetchReplayList';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -28,25 +28,35 @@ function useReplayList({eventView, organization}: Options): Result {
     replays: [],
   });
 
-  const loadReplays = useCallback(async () => {
-    setData(prev => ({
-      ...prev,
-      isFetching: true,
-    }));
-    const response = await fetchReplayList({
-      api,
-      organization,
-      location,
-      eventView,
-    });
-    setData(response);
-  }, [api, organization, location, eventView]);
+  const loadReplays = useCallback(
+    async (abortSignal: AbortSignal) => {
+      setData(prev => ({
+        ...prev,
+        isFetching: true,
+      }));
+      const response = await fetchReplayList({
+        api,
+        organization,
+        location,
+        eventView,
+      });
+      if (!abortSignal.aborted) {
+        setData(response);
+      }
+    },
+    [api, organization, location, eventView]
+  );
 
   useEffect(() => {
     if (!querySearchRef.current || querySearchRef.current !== location.search) {
+      const controller = new AbortController();
       querySearchRef.current = location.search;
-      loadReplays();
+      loadReplays(controller.signal);
+      return () => {
+        controller.abort();
+      };
     }
+    return () => {};
   }, [loadReplays, location.search]);
 
   return data;
