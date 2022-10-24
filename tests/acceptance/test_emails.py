@@ -19,7 +19,7 @@ EMAILS = (
     ("/debug/mail/unable-to-fetch-commits/", "unable to fetch commits"),
     ("/debug/mail/unable-to-delete-repo/", "unable to delete repo"),
     ("/debug/mail/error-alert/", "alert"),
-    # ("/debug/mail/performance-alert/", "performance"), # TODO(ceo) this is flaky
+    ("/debug/mail/performance-alert/", "performance"),
     ("/debug/mail/digest/", "digest"),
     ("/debug/mail/invalid-identity/", "invalid identity"),
     ("/debug/mail/invitation/", "invitation"),
