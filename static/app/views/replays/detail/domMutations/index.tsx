@@ -296,6 +296,7 @@ const MutationMessage = styled('p')`
 const CodeContainer = styled('div')`
   max-height: 400px;
   max-width: 100%;
+  overflow: auto;
 `;
 
 export default DomMutations;

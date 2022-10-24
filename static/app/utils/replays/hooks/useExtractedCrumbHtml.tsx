@@ -139,6 +139,7 @@ class BreadcrumbReferencesPlugin {
   isFinished: (event: eventWithTime) => boolean;
   onFinish: (mutations: Extraction[]) => void;
 
+  nextExtract: null | Extraction['html'] = null;
   activities: Extraction[] = [];
 
   constructor({crumbs, isFinished, onFinish}: PluginOpts) {
@@ -149,40 +150,63 @@ class BreadcrumbReferencesPlugin {
 
   handler(event: eventWithTime, _isSync: boolean, {replayer}: {replayer: Replayer}) {
     if (event.type === EventType.IncrementalSnapshot) {
-      const crumb = first(this.crumbs);
-      const nextTimestamp = +new Date(crumb?.timestamp || '');
-
-      if (crumb && nextTimestamp && nextTimestamp <= event.timestamp) {
-        // we passed the next one, grab the dom, and pop the timestamp off
-        const mirror = replayer.getMirror();
-        // @ts-expect-error
-        const node = mirror.getNode(crumb.data?.nodeId || '');
-        // @ts-expect-error
-        const html = node?.outerHTML || node?.textContent || '';
-
-        // Limit document node depth to 2
-        let truncated = removeNodesAtLevel(html, 2);
-        // If still very long and/or removeNodesAtLevel failed, truncate
-        if (truncated.length > 1500) {
-          truncated = truncated.substring(0, 1500);
-        }
-
-        if (truncated) {
-          this.activities.push({
-            crumb,
-            html: truncated,
-            timestamp: nextTimestamp,
-          });
-        }
-
-        this.crumbs.shift();
-      }
+      this.extractCurrentCrumb(event, {replayer});
+      this.extractNextCrumb({replayer});
     }
 
     if (this.isFinished(event)) {
       this.onFinish(this.activities);
     }
   }
+
+  extractCurrentCrumb(event: eventWithTime, {replayer}: {replayer: Replayer}) {
+    const crumb = first(this.crumbs);
+    const crumbTimestamp = +new Date(crumb?.timestamp || '');
+
+    if (!crumb || !crumbTimestamp || crumbTimestamp > event.timestamp) {
+      return;
+    }
+
+    const truncated = extractNode(crumb, replayer) || this.nextExtract;
+    if (truncated) {
+      this.activities.push({
+        crumb,
+        html: truncated,
+        timestamp: crumbTimestamp,
+      });
+    }
+
+    this.nextExtract = null;
+    this.crumbs.shift();
+  }
+
+  extractNextCrumb({replayer}: {replayer: Replayer}) {
+    const crumb = first(this.crumbs);
+    const crumbTimestamp = +new Date(crumb?.timestamp || '');
+
+    if (!crumb || !crumbTimestamp) {
+      return;
+    }
+
+    this.nextExtract = extractNode(crumb, replayer);
+  }
+}
+
+function extractNode(crumb: Crumb, replayer: Replayer) {
+  const mirror = replayer.getMirror();
+  // @ts-expect-error
+  const nodeId = crumb.data?.nodeId || '';
+  const node = mirror.getNode(nodeId);
+  // @ts-expect-error
+  const html = node?.outerHTML || node?.textContent || '';
+
+  // Limit document node depth to 2
+  let truncated = removeNodesAtLevel(html, 2);
+  // If still very long and/or removeNodesAtLevel failed, truncate
+  if (truncated.length > 1500) {
+    truncated = truncated.substring(0, 1500);
+  }
+  return truncated;
 }
 
 function removeNodesAtLevel(html: string, level: number) {
