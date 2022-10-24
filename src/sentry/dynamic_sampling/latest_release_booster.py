@@ -1,0 +1,72 @@
+from datetime import datetime
+
+from django.conf import settings
+from pytz import UTC
+
+from sentry.utils import redis
+
+BOOSTED_RELEASE_TIMEOUT = 60 * 60
+ONE_DAY_TIMEOUT = 60 * 60 * 24
+
+
+def get_redis_client_for_ds():
+    cluster_key = getattr(settings, "SENTRY_DYNAMIC_SAMPLING_RULES_REDIS_CLUSTER", "default")
+    return redis.redis_clusters.get(cluster_key)
+
+
+def generate_dynamic_sampling_lock_key(project_id):
+    return f"dynamic-sampling-boost-lock:{project_id}"
+
+
+def generate_cache_key_for_observed_release(project_id, release_id):
+    """
+    Generates a cache key for releases that had a transaction observed in the last 24 hours
+    """
+    return f"ds::p:{project_id}:r:{release_id}"
+
+
+def generate_cache_key_for_boosted_release(project_id):
+    """
+    Generates a cache key for the boosted releases for a given project.
+    """
+    return f"ds::p:{project_id}:boosted_releases"
+
+
+def observe_release_in_last_24h(project_id, release_id):
+    redis_client = get_redis_client_for_ds()
+    cache_key = generate_cache_key_for_observed_release(project_id, release_id)
+
+    release_observed_in_last_24h = redis_client.getset(name=cache_key, value=1)
+    redis_client.pexpire(cache_key, ONE_DAY_TIMEOUT)
+    return release_observed_in_last_24h
+
+
+def get_boosted_releases(project_id):
+    """
+    Function that returns the releases that should be boosted for a given project, and excludes expired releases.
+    """
+    boosted_releases = []
+    cache_key = generate_cache_key_for_boosted_release(project_id)
+    current_timestamp = datetime.utcnow().replace(tzinfo=UTC).timestamp()
+
+    redis_client = get_redis_client_for_ds()
+    old_boosted_releases = redis_client.hgetall(cache_key)
+    with get_redis_client_for_ds().pipeline() as redis_pipeline:
+        for release_id, timestamp in old_boosted_releases.items():
+            if current_timestamp <= float(timestamp) + BOOSTED_RELEASE_TIMEOUT:
+                boosted_releases.append((int(release_id), float(timestamp)))
+            else:
+                redis_pipeline.hdel(cache_key, release_id)
+        redis_pipeline.execute()
+    return boosted_releases
+
+
+def add_boosted_release(project_id, release_id):
+    """
+    Function that adds a release to the list of active boosted releases for a given project.
+    """
+    get_redis_client_for_ds().hset(
+        generate_cache_key_for_boosted_release(project_id),
+        release_id,
+        datetime.utcnow().replace(tzinfo=UTC).timestamp(),
+    )

@@ -30,7 +30,6 @@ from sentry import (
     tsdb,
 )
 from sentry.attachments import MissingAttachmentChunks, attachment_cache
-from sentry.cache import default_cache
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
     LOG_LEVELS_MAP,
@@ -38,11 +37,9 @@ from sentry.constants import (
     DataCategory,
 )
 from sentry.culprit import generate_culprit
-from sentry.dynamic_sampling.lastest_release_booster import (
-    ONE_DAY_TIMEOUT,
+from sentry.dynamic_sampling.latest_release_booster import (
     add_boosted_release,
-    generate_cache_key_for_observed_release,
-    generate_dynamic_sampling_lock_key,
+    observe_release_in_last_24h,
 )
 from sentry.eventstore.processing import event_processing_store
 from sentry.grouping.api import (
@@ -106,7 +103,6 @@ from sentry.utils import json, metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.dates import to_datetime, to_timestamp
-from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.performance_issues.performance_detection import (
     EventPerformanceProblem,
@@ -831,24 +827,17 @@ def _get_or_create_release_many(jobs, projects):
                     set_tag(job["data"], "sentry:dist", job["dist"].name)
 
                 # Dynamic Sampling - Boosting latest release functionality
-                release_observed_in_last_24h = default_cache.set(
-                    generate_cache_key_for_observed_release(project_id, release.id),
-                    1,
-                    ONE_DAY_TIMEOUT,
-                )
-                if release_observed_in_last_24h is None:
-                    try:
-                        with locks.get(
-                            generate_dynamic_sampling_lock_key(project_id),
-                            duration=60,
-                            name="dynamic-sampling-lock",
-                        ).acquire():
-                            add_boosted_release(project_id, release.id)
-                            schedule_invalidate_project_config(
-                                project_id=project_id, trigger="dynamic_sampling:boost_release"
-                            )
-                    except UnableToAcquireLock:
-                        pass
+                try:
+                    release_observed_in_last_24h = observe_release_in_last_24h(
+                        project_id, release.id
+                    )
+                    if release_observed_in_last_24h is None:
+                        add_boosted_release(project_id, release.id)
+                        schedule_invalidate_project_config(
+                            project_id=project_id, trigger="dynamic_sampling:boost_release"
+                        )
+                except Exception:
+                    pass
 
 
 @metrics.wraps("save_event.get_event_user_many")
