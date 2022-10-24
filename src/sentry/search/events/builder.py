@@ -139,6 +139,7 @@ class QueryBuilder:
         skip_time_conditions: bool = False,
         parser_config_overrides: Optional[Mapping[str, Any]] = None,
         has_metrics: bool = False,
+        use_metrics_layer: bool = False,
     ):
         self.dataset = dataset
 
@@ -146,7 +147,7 @@ class QueryBuilder:
 
         self.organization_id = params.get("organization_id")
         self.has_metrics = has_metrics
-        self.use_metrics_layer = False
+        self.use_metrics_layer = use_metrics_layer
         self.auto_fields = auto_fields
         self.functions_acl = set() if functions_acl is None else functions_acl
         self.equation_config = {} if equation_config is None else equation_config
@@ -1801,7 +1802,6 @@ class MetricsQueryBuilder(QueryBuilder):
         dataset: Optional[Dataset] = None,
         allow_metric_aggregates: Optional[bool] = False,
         dry_run: Optional[bool] = False,
-        use_metrics_layer: bool = False,
         **kwargs: Any,
     ):
         self.distributions: List[CurriedFunction] = []
@@ -1813,7 +1813,6 @@ class MetricsQueryBuilder(QueryBuilder):
         self.tag_values_are_strings = options.get(
             "sentry-metrics.performance.tags-values-are-strings"
         )
-        self.use_metrics_layer = use_metrics_layer
         # Don't do any of the actions that would impact performance in anyway
         # Skips all indexer checks, and won't interact with clickhouse
         self.dry_run = dry_run
@@ -2364,6 +2363,7 @@ class MetricsQueryBuilder(QueryBuilder):
                     include_meta=True,
                 )
             except Exception as err:
+                raise err
                 raise IncompatibleMetricsQuery(err)
             # series does some strange stuff to the clickhouse response, turn it back so we can handle it
             metric_layer_result: Any = {
