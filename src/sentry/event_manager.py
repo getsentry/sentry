@@ -37,10 +37,7 @@ from sentry.constants import (
     DataCategory,
 )
 from sentry.culprit import generate_culprit
-from sentry.dynamic_sampling.latest_release_booster import (
-    add_boosted_release,
-    observe_release_in_last_24h,
-)
+from sentry.dynamic_sampling.latest_release_booster import add_boosted_release, observe_release
 from sentry.eventstore.processing import event_processing_store
 from sentry.grouping.api import (
     BackgroundGroupingConfigLoader,
@@ -828,10 +825,8 @@ def _get_or_create_release_many(jobs, projects):
 
                 # Dynamic Sampling - Boosting latest release functionality
                 try:
-                    release_observed_in_last_24h = observe_release_in_last_24h(
-                        project_id, release.id
-                    )
-                    if release_observed_in_last_24h is None:
+                    release_observed_in_last_24h = observe_release(project_id, release.id)
+                    if not release_observed_in_last_24h:
                         add_boosted_release(project_id, release.id)
                         schedule_invalidate_project_config(
                             project_id=project_id, trigger="dynamic_sampling:boost_release"
