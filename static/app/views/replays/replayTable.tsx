@@ -119,7 +119,7 @@ function ReplayTable({
           size="xs"
           position="top"
           title={t(
-            'The duration of the slowest transaction operation that was recorded during the replay session.'
+            'Slowest single instance of this transaction captured by this session.'
           )}
         />
       </Header>
@@ -258,7 +258,7 @@ function ReplayTableRow({
         </Item>
       )}
       <Item>
-        <Duration seconds={Math.floor(replay.duration)} exact abbreviation />
+        <Duration seconds={replay.duration.asSeconds()} exact abbreviation />
       </Item>
       <Item data-test-id="replay-table-count-errors">{replay.countErrors || 0}</Item>
       <Item>

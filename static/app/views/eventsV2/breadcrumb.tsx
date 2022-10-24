@@ -6,7 +6,7 @@ import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import EventView from 'sentry/utils/discover/eventView';
-import {getDiscoverLandingUrl, getDiscoverQueriesUrl} from 'sentry/utils/discover/urls';
+import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 
 type Props = {
   eventView: EventView;
@@ -15,8 +15,6 @@ type Props = {
   event?: Event;
   isHomepage?: boolean;
 };
-
-const HOMEPAGE_DEFAULT_LABEL = t('New Query');
 
 function DiscoverBreadcrumb({
   eventView,
@@ -28,9 +26,7 @@ function DiscoverBreadcrumb({
   const crumbs: Crumb[] = [];
   const discoverTarget = organization.features.includes('discover-query')
     ? {
-        pathname: organization.features.includes('discover-query-builder-as-landing-page')
-          ? getDiscoverQueriesUrl(organization)
-          : getDiscoverLandingUrl(organization),
+        pathname: getDiscoverLandingUrl(organization),
         query: {
           ...omit(location.query, 'homepage'),
           ...eventView.generateBlankQueryStringObject(),
@@ -40,14 +36,19 @@ function DiscoverBreadcrumb({
     : null;
 
   crumbs.push({
-    to: discoverTarget,
+    to:
+      organization.features.includes('discover-query-builder-as-landing-page') &&
+      isHomepage &&
+      eventView
+        ? eventView.getResultsViewUrlTarget(organization.slug, isHomepage)
+        : discoverTarget,
     label: t('Discover'),
   });
 
-  if (eventView && eventView.isValid()) {
+  if (!isHomepage && eventView && eventView.isValid()) {
     crumbs.push({
       to: eventView.getResultsViewUrlTarget(organization.slug, isHomepage),
-      label: isHomepage ? HOMEPAGE_DEFAULT_LABEL : eventView.name || '',
+      label: eventView.name || '',
     });
   }
 
