@@ -3,7 +3,7 @@ import CHART_PALETTE from 'sentry/constants/chartPalette';
 import space from 'sentry/styles/space';
 import {Theme} from 'sentry/utils/theme';
 
-import {SPAN_HATCH_TYPE_COLOURS, SpanBarHatch} from './constants';
+import {getSpanBarColours, SpanBarType} from './constants';
 
 export const getBackgroundColor = ({
   showStriping,
@@ -25,9 +25,9 @@ export const getBackgroundColor = ({
   return theme.background;
 };
 
-export function getHatchPattern(spanBarHatch: SpanBarHatch | undefined) {
-  if (spanBarHatch) {
-    const {primary, alternate} = SPAN_HATCH_TYPE_COLOURS[spanBarHatch];
+export function getHatchPattern(spanBarType: SpanBarType | undefined, theme: Theme) {
+  if (spanBarType) {
+    const {primary, alternate} = getSpanBarColours(theme, spanBarType);
 
     return `
       background-image: linear-gradient(135deg,
@@ -59,7 +59,7 @@ export const getDurationPillAlignment = ({
 }: {
   durationDisplay: DurationDisplay;
   theme: Theme;
-  spanBarHatch?: SpanBarHatch;
+  spanBarType?: SpanBarType;
 }) => {
   switch (durationDisplay) {
     case 'left':
@@ -73,24 +73,25 @@ export const getDurationPillAlignment = ({
   }
 };
 
-export const getDurationPillColour = ({
+export const getDurationPillColours = ({
   durationDisplay,
   theme,
   showDetail,
-  spanBarHatch,
+  spanBarType,
 }: {
   durationDisplay: DurationDisplay;
   showDetail: boolean;
   theme: Theme;
-  spanBarHatch?: SpanBarHatch;
+  spanBarType?: SpanBarType;
 }) => {
   if (durationDisplay === 'inset') {
-    return `color: ${
-      spanBarHatch && spanBarHatch === SpanBarHatch.gap ? theme.gray300 : theme.white
-    };`;
+    const {alternate, insetTextColour} = getSpanBarColours(theme, spanBarType);
+    return `background: ${alternate}; color: ${insetTextColour};`;
+    // const isGapSpan = spanBarType && spanBarType === SpanBarType.GAP;
+    // return `color: ${isGapSpan ? theme.gray300 : theme.white};`;
   }
 
-  return `color: ${showDetail === true ? theme.gray200 : theme.gray300};`;
+  return `color: ${showDetail ? theme.gray200 : theme.gray300};`;
 };
 
 export const getToggleTheme = ({
