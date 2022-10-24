@@ -308,7 +308,7 @@ class TableView extends Component<TableViewProps & WithRouterProps> {
         const referrer = getRouteStringFromRoutes(this.props.routes);
 
         const target = {
-          pathname: `/organizations/${organization.slug}/replays/${replaySlug}`,
+          pathname: `/organizations/${organization.slug}/replays/${replaySlug}/`,
           query: {
             referrer,
           },

@@ -223,7 +223,7 @@ function ReplayTableRow({
         displayName={
           <Link
             to={{
-              pathname: `/organizations/${organization.slug}/replays/${project?.slug}:${replay.id}`,
+              pathname: `/organizations/${organization.slug}/replays/${project?.slug}:${replay.id}/`,
               query: {
                 referrer,
               },
