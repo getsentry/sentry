@@ -357,7 +357,7 @@ describe('TransactionReplays', () => {
     expect(mockRouterContext.context.router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/replays/',
       query: {
-        sort: 'duration',
+        sort: '-duration',
         project: '1',
         transaction: 'transaction',
       },
@@ -369,7 +369,7 @@ describe('TransactionReplays', () => {
         getComponent({
           location: {
             query: {
-              sort: 'duration',
+              sort: '-duration',
               project: '1',
               transaction: 'transaction',
             },
@@ -384,7 +384,7 @@ describe('TransactionReplays', () => {
         mockUrl,
         expect.objectContaining({
           query: expect.objectContaining({
-            sort: 'duration',
+            sort: '-duration',
           }),
         })
       );
@@ -419,7 +419,7 @@ describe('TransactionReplays', () => {
     expect(mockRouterContext.context.router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/replays/',
       query: {
-        sort: 'countErrors',
+        sort: '-countErrors',
         project: '1',
         transaction: 'transaction',
       },
@@ -431,7 +431,7 @@ describe('TransactionReplays', () => {
         getComponent({
           location: {
             query: {
-              sort: 'countErrors',
+              sort: '-countErrors',
               project: '1',
               transaction: 'transaction',
             },
@@ -446,7 +446,7 @@ describe('TransactionReplays', () => {
         mockUrl,
         expect.objectContaining({
           query: expect.objectContaining({
-            sort: 'countErrors',
+            sort: '-countErrors',
           }),
         })
       );

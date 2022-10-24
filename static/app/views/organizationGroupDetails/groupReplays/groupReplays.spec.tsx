@@ -392,7 +392,7 @@ describe('GroupReplays', () => {
     expect(mockRouterContext.context.router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/replays/',
       query: {
-        sort: 'duration',
+        sort: '-duration',
       },
     });
 
@@ -401,7 +401,7 @@ describe('GroupReplays', () => {
       getComponent({
         location: {
           query: {
-            sort: 'duration',
+            sort: '-duration',
           },
         },
       })
@@ -413,7 +413,7 @@ describe('GroupReplays', () => {
         mockUrl,
         expect.objectContaining({
           query: expect.objectContaining({
-            sort: 'duration',
+            sort: '-duration',
           }),
         })
       );
@@ -448,7 +448,7 @@ describe('GroupReplays', () => {
     expect(mockRouterContext.context.router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/replays/',
       query: {
-        sort: 'countErrors',
+        sort: '-countErrors',
       },
     });
 
@@ -457,7 +457,7 @@ describe('GroupReplays', () => {
       getComponent({
         location: {
           query: {
-            sort: 'countErrors',
+            sort: '-countErrors',
           },
         },
       })
@@ -469,7 +469,7 @@ describe('GroupReplays', () => {
         mockUrl,
         expect.objectContaining({
           query: expect.objectContaining({
-            sort: 'countErrors',
+            sort: '-countErrors',
           }),
         })
       );
