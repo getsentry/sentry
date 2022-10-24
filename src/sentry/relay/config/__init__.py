@@ -20,7 +20,7 @@ from sentry_sdk import Hub, capture_exception
 from sentry import features, killswitches, quotas, utils
 from sentry.constants import ObjectStatus
 from sentry.datascrubbing import get_datascrubbing_settings, get_pii_config
-from sentry.dynamic_sampling.utils import NoneSampleRateException, generate_uniform_rule
+from sentry.dynamic_sampling import generate_rules
 from sentry.grouping.api import get_grouping_config_dict_for_project
 from sentry.ingest.inbound_filters import (
     FilterStatKeys,
@@ -136,7 +136,6 @@ def get_quotas(project, keys=None):
 
 def get_project_config(project, full_config=True, project_keys=None):
     """Constructs the ProjectConfig information.
-
     :param project: The project to load configuration for. Ensure that
         organization is bound on this object; otherwise it will be loaded from
         the database.
@@ -147,7 +146,6 @@ def get_project_config(project, full_config=True, project_keys=None):
         no project keys are provided it is assumed that the config does not
         need to contain auth information (this is the case when used in
         python's StoreView)
-
     :return: a ProjectConfig object for the given project
     """
     with sentry_sdk.push_scope() as scope:
@@ -169,12 +167,7 @@ def get_dynamic_sampling_config(project) -> Optional[Mapping[str, Any]]:
     # In this case we should override old conditionnal rules if they exists
     # or just return uniform rule
     if allow_dynamic_sampling:
-        try:
-            return {"rules": [generate_uniform_rule(project)]}
-        except NoneSampleRateException:
-            # just to be consistent with old code, where if there is no active active_rules
-            # we return empty list
-            return {"rules": []}
+        return {"rules": generate_rules(project)}
     elif allow_server_side_sampling:
         dynamic_sampling = project.get_option("sentry:dynamic_sampling")
         if dynamic_sampling is not None:
@@ -208,10 +201,8 @@ def add_experimental_config(
     **kwargs: Any,
 ) -> None:
     """Try to set `config[key] = function(*args, **kwargs)`.
-
     If the result of the function call is None, the key is not set.
     If the function call raises an exception, we log it to sentry and the key remains unset.
-
     NOTE: Only use this function if you expect Relay to behave reasonably
     if ``key`` is missing from the config.
     """
@@ -309,9 +300,7 @@ def _get_project_config(project, full_config=True, project_keys=None):
 class _ConfigBase:
     """
     Base class for configuration objects
-
     Offers a readonly configuration class that can be serialized to json and viewed as a simple dictionary
-
     >>> x = _ConfigBase( a= 1, b="The b", c= _ConfigBase(x=33, y = _ConfigBase(m=3.14159 , w=[1,2,3], z={'t':1})))
     >>> x.a
     1
@@ -321,7 +310,6 @@ class _ConfigBase:
     True
     >>> x.c.y.w
     [1, 2, 3]
-
     """
 
     def __init__(self, **kwargs):
@@ -341,9 +329,7 @@ class _ConfigBase:
     def to_dict(self):
         """
         Converts the config object into a dictionary
-
         :return: A dictionary containing the object properties, with config properties also converted in dictionaries
-
         >>> x = _ConfigBase( a= 1, b="The b", c= _ConfigBase(x=33, y = _ConfigBase(m=3.14159 , w=[1,2,3], z={'t':1})))
         >>> x.to_dict() == {'a': 1, 'c': {'y': {'m': 3.14159, 'w': [1, 2, 3], 'z':{'t': 1}}, 'x': 33}, 'b': 'The b'}
         True
@@ -359,7 +345,6 @@ class _ConfigBase:
         >>> x = _ConfigBase( a = _ConfigBase(b = _ConfigBase( w=[1,2,3])))
         >>> x.to_json_string()
         '{"a": {"b": {"w": [1, 2, 3]}}}'
-
         :return:
         """
         data = self.to_dict()
@@ -368,10 +353,8 @@ class _ConfigBase:
     def get_at_path(self, *args):
         """
         Gets an element at the specified path returning None if the element or the path doesn't exists
-
         :param args: the path to follow ( a list of strings)
         :return: the element if present at specified path or None otherwise)
-
         >>> x = _ConfigBase( a= 1, b="The b", c= _ConfigBase(x=33, y = _ConfigBase(m=3.14159 , w=[1,2,3], z={'t':1})))
         >>> x.get_at_path('c','y','m')
         3.14159
@@ -383,7 +366,6 @@ class _ConfigBase:
         {'t': 1}
         >>> x.get_at_path('c','y','z','t') is None # only navigates in ConfigBase does not try to go into normal dicts.
         True
-
         """
         if len(args) == 0:
             return self
@@ -426,7 +408,6 @@ class ProjectConfig(_ConfigBase):
 def _load_filter_settings(flt, project):
     """
     Returns the filter settings for the specified project
-
     :param flt: the filter function
     :param project: the project for which we want to retrieve the options
     :return: a dictionary with the filter options.
@@ -443,7 +424,6 @@ def _load_filter_settings(flt, project):
 def _filter_option_to_config_setting(flt, setting):
     """
     Encapsulates the logic for associating a filter database option with the filter setting from project_config
-
     :param flt: the filter
     :param setting: the option deserialized from the database
     :return: the option as viewed from project_config
