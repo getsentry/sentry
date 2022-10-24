@@ -2,7 +2,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Organization, Project} from 'sentry/types';
-import {DynamicSamplingBiaseType} from 'sentry/types/sampling';
+import {DynamicSamplingBiasType} from 'sentry/types/sampling';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import DynamicSampling from '.';
@@ -14,9 +14,9 @@ const ORG_FEATURES = [
 ];
 
 const dynamicSamplingBiases = [
-  {id: DynamicSamplingBiaseType.BOOST_LATEST_RELEASES, active: true},
-  {id: DynamicSamplingBiaseType.BOOST_ENVIRONMENTS, active: true},
-  {id: DynamicSamplingBiaseType.IGNORE_HEALTH_CHECKS, active: true},
+  {id: DynamicSamplingBiasType.BOOST_LATEST_RELEASES, active: true},
+  {id: DynamicSamplingBiasType.BOOST_ENVIRONMENTS, active: true},
+  {id: DynamicSamplingBiasType.IGNORE_HEALTH_CHECKS, active: true},
 ];
 
 function renderMockRequests(
@@ -165,9 +165,9 @@ describe('Dynamic Sampling', function () {
       expect.objectContaining({
         data: {
           dynamicSamplingBiases: [
-            {id: DynamicSamplingBiaseType.BOOST_LATEST_RELEASES, active: false},
-            {id: DynamicSamplingBiaseType.BOOST_ENVIRONMENTS, active: true},
-            {id: DynamicSamplingBiaseType.IGNORE_HEALTH_CHECKS, active: true},
+            {id: DynamicSamplingBiasType.BOOST_LATEST_RELEASES, active: false},
+            {id: DynamicSamplingBiasType.BOOST_ENVIRONMENTS, active: true},
+            {id: DynamicSamplingBiasType.IGNORE_HEALTH_CHECKS, active: true},
           ],
         },
       })
