@@ -52,6 +52,7 @@ function EventsTableRow({
 
   const tagMap = Object.fromEntries(event.tags.map(tag => [tag.key, tag.value]));
 
+  const hasReplay = Boolean(tagMap.replayId);
   const fullReplayUrl = {
     pathname: `/organizations/${organization.slug}/replays/${projectId}:${tagMap.replayId}/`,
     query: {
@@ -100,12 +101,14 @@ function EventsTableRow({
             {tag.key === 'device' ? (
               <DeviceName value={tagMap[tag.key]} />
             ) : tag.key === 'replayId' ? (
-              <Button
-                to={fullReplayUrl}
-                size="sm"
-                icon={<IconPlay size="sm" />}
-                aria-label={t('View Full Replay')}
-              />
+              hasReplay ? (
+                <Button
+                  to={fullReplayUrl}
+                  size="sm"
+                  icon={<IconPlay size="sm" />}
+                  aria-label={t('View Full Replay')}
+                />
+              ) : null
             ) : (
               tagMap[tag.key]
             )}

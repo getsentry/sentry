@@ -14,7 +14,7 @@ describe('EventsTable', function () {
         orgId="orgId"
         projectId="projectId"
         groupId="groupId"
-        orgFeatures={TestStubs.Organization().features}
+        orgFeatures={[]}
         events={TestStubs.DetailedEvents()}
       />
     );

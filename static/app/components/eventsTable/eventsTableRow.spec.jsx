@@ -1,4 +1,4 @@
-import {render} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import Button from 'sentry/components/button';
 import EventsTableRow from 'sentry/components/eventsTable/eventsTableRow';
@@ -36,6 +36,30 @@ describe('EventsTableRow', function () {
     expect(container).toSnapshot();
   });
 
+  it('does not render the replay button when there is no replay', () => {
+    render(
+      <table>
+        <tbody>
+          <EventsTableRow
+            organization={TestStubs.Organization()}
+            tagList={[
+              {
+                key: 'replayId',
+                name: 'Replayid',
+                totalValues: 5,
+              },
+            ]}
+            {...{orgId: 'orgId', projectId: 'projectId', groupId: 'groupId'}}
+            event={TestStubs.DetailedEvents()[0]}
+          />
+        </tbody>
+      </table>
+    );
+
+    expect(screen.queryAllByRole('cell').length).toBe(2);
+    expect(Button).not.toHaveBeenCalled();
+  });
+
   it('renders the replay column with a correct link', () => {
     const event = TestStubs.DetailedEvents()[0];
 
@@ -66,6 +90,7 @@ describe('EventsTableRow', function () {
       </table>
     );
 
+    expect(screen.queryAllByRole('cell').length).toBe(2);
     expect(Button).toHaveBeenCalledWith(
       expect.objectContaining({
         'aria-label': 'View Full Replay',
