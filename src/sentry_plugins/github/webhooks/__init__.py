@@ -1,7 +1,7 @@
-from .integration import GithubIntegrationsWebhookEndpoint
+from .integration import GitHubIntegrationsWebhookEndpoint
 from .non_integration import GithubWebhookEndpoint
 
 __all__ = (
-    "GithubIntegrationsWebhookEndpoint",
+    "GitHubIntegrationsWebhookEndpoint",
     "GithubWebhookEndpoint",
 )

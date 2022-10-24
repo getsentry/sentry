@@ -73,7 +73,7 @@ describe('IntegrationExternalMappings', function () {
     render(
       <IntegrationExternalMappings
         organization={organization}
-        integration={TestStubs.GithubIntegration()}
+        integration={TestStubs.GitHubIntegration()}
         mappings={[]}
         type="user"
         onCreate={onCreateMock}
@@ -92,7 +92,7 @@ describe('IntegrationExternalMappings', function () {
     render(
       <IntegrationExternalMappings
         organization={organization}
-        integration={TestStubs.GithubIntegration()}
+        integration={TestStubs.GitHubIntegration()}
         mappings={[]}
         type="user"
         onCreate={onCreateMock}
@@ -116,7 +116,7 @@ describe('IntegrationExternalMappings', function () {
     render(
       <IntegrationExternalMappings
         organization={organization}
-        integration={TestStubs.GithubIntegration()}
+        integration={TestStubs.GitHubIntegration()}
         mappings={MOCK_TEAM_MAPPINGS}
         type="team"
         onCreate={onCreateMock}
@@ -145,7 +145,7 @@ describe('IntegrationExternalMappings', function () {
     render(
       <IntegrationExternalMappings
         organization={organization}
-        integration={TestStubs.GithubIntegration()}
+        integration={TestStubs.GitHubIntegration()}
         mappings={MOCK_USER_MAPPINGS}
         type="user"
         onCreate={onCreateMock}

@@ -1,4 +1,4 @@
-export function GithubIntegration(params = {}) {
+export function GitHubIntegration(params = {}) {
   return {
     domainName: 'github.com/test-integration',
     icon: 'http://example.com/integration_icon.png',

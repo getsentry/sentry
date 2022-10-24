@@ -3,8 +3,8 @@ import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 import AddIntegration from 'sentry/views/organizationIntegrations/addIntegration';
 
 describe('AddIntegration', function () {
-  const provider = TestStubs.GithubIntegrationProvider();
-  const integration = TestStubs.GithubIntegration();
+  const provider = TestStubs.GitHubIntegrationProvider();
+  const integration = TestStubs.GitHubIntegration();
 
   it('Adds an integration on dialog completion', async function () {
     const onAdd = jest.fn();

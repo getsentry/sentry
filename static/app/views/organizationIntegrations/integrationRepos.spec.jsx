@@ -5,7 +5,7 @@ import IntegrationRepos from 'sentry/views/organizationIntegrations/integrationR
 
 describe('IntegrationRepos', function () {
   const org = TestStubs.Organization();
-  const integration = TestStubs.GithubIntegration();
+  const integration = TestStubs.GitHubIntegration();
   let resetReposSpy;
 
   beforeEach(() => {

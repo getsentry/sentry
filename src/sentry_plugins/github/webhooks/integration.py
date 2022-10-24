@@ -13,7 +13,7 @@ from .base import GithubWebhookBase
 from .events import InstallationEventWebhook, InstallationRepositoryEventWebhook, PushEventWebhook
 
 
-class GithubIntegrationsWebhookEndpoint(GithubWebhookBase):
+class GitHubIntegrationsWebhookEndpoint(GithubWebhookBase):
     _handlers = {
         "push": PushEventWebhook,
         "installation": InstallationEventWebhook,

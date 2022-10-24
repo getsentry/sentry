@@ -235,7 +235,9 @@ const specialMapping = {
   SessionsField: 'sessions.js',
   ProviderList: 'integrationListDirectory.js',
   BitbucketIntegrationConfig: 'integrationListDirectory.js',
-  GithubIntegrationConfig: 'integrationListDirectory.js',
+  GitHubIntegration: 'githubIntegration.js',
+  GitHubIntegrationProvider: 'gitHubIntegrationProvider.js',
+  GitHubIntegrationConfig: 'integrationListDirectory.js',
   OrgOwnedApps: 'integrationListDirectory.js',
   PublishedApps: 'integrationListDirectory.js',
   SentryAppInstalls: 'integrationListDirectory.js',
@@ -252,15 +254,15 @@ function tryRequire(dir: string, name: string): any {
   for (const ext of extensions) {
     try {
       return require(path.resolve(dir, lowercasefirst(name) + ext));
-    } catch (err) {
+    } catch {
       // ignore
     }
   }
   throw new Error('Failed to resolve file');
 }
 
-function lowercasefirst(string) {
-  return string.charAt(0).toLowerCase() + string.slice(1);
+function lowercasefirst(value: string): string {
+  return value.charAt(0).toLowerCase() + value.slice(1);
 }
 
 const lazyFixtures = new Proxy(
@@ -279,8 +281,8 @@ const lazyFixtures = new Proxy(
         for (const exportKey in maybeModule) {
           target[exportKey] = maybeModule[exportKey];
         }
-      } catch (e) {
-        // beep-boop
+      } catch {
+        // ignore
       }
 
       if (target[prop] === undefined) {
@@ -317,7 +319,7 @@ declare global {
   var MockApiClient: typeof Client;
 }
 
-global.TestStubs = lazyFixtures as TestStubTypes;
+window.TestStubs = lazyFixtures as TestStubTypes;
 
 // This is so we can use async/await in tests instead of wrapping with `setTimeout`.
 window.tick = () => new Promise(resolve => setTimeout(resolve));

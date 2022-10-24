@@ -191,7 +191,7 @@ describe('ContextPickerModal', function () {
 
     const provider = {slug: 'github'};
     const configUrl = `/api/0/organizations/${org.slug}/integrations/?provider_key=${provider.slug}&includeConfig=0`;
-    const integration = TestStubs.GithubIntegration();
+    const integration = TestStubs.GitHubIntegration();
     const fetchGithubConfigs = MockApiClient.addMockResponse({
       url: configUrl,
       body: [integration],
@@ -234,7 +234,7 @@ describe('ContextPickerModal', function () {
 
     const fetchGithubConfigs = MockApiClient.addMockResponse({
       url: configUrl,
-      body: [TestStubs.GithubIntegration()],
+      body: [TestStubs.GitHubIntegration()],
     });
 
     MockApiClient.addMockResponse({
