@@ -1,25 +1,53 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {Organization, Project} from 'sentry/types';
+import {DynamicSamplingBiasType} from 'sentry/types/sampling';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import DynamicSampling from '.';
 
 const ORG_FEATURES = [
   'server-side-sampling',
-  'server-side-sampling-ui',
-  'dynamic-sampling-opinionated',
+  'dynamic-sampling-deprecated',
+  'dynamic-sampling',
 ];
+
+const dynamicSamplingBiases = [
+  {id: DynamicSamplingBiasType.BOOST_LATEST_RELEASES, active: true},
+  {id: DynamicSamplingBiasType.BOOST_ENVIRONMENTS, active: true},
+  {id: DynamicSamplingBiasType.IGNORE_HEALTH_CHECKS, active: true},
+];
+
+function renderMockRequests(
+  organizationSlug: Organization['slug'],
+  projectSlug: Project['slug']
+) {
+  const projectDetails = MockApiClient.addMockResponse({
+    url: `/projects/${organizationSlug}/${projectSlug}/`,
+    method: 'PUT',
+    body: {},
+  });
+
+  return {projectDetails};
+}
 
 describe('Dynamic Sampling', function () {
   it('renders default ui', function () {
     const {project, organization} = initializeOrg({
       ...initializeOrg(),
+      projects: [
+        TestStubs.Project({
+          dynamicSamplingBiases,
+        }),
+      ],
       organization: {
         ...initializeOrg().organization,
         features: ORG_FEATURES,
       },
     });
+
+    renderMockRequests(organization.slug, project.slug);
 
     render(
       <OrganizationContext.Provider value={organization}>
@@ -58,12 +86,19 @@ describe('Dynamic Sampling', function () {
   it('renders disabled default UI, when user has not permission to edit', function () {
     const {project, organization} = initializeOrg({
       ...initializeOrg(),
+      projects: [
+        TestStubs.Project({
+          dynamicSamplingBiases,
+        }),
+      ],
       organization: {
         ...initializeOrg().organization,
         features: ORG_FEATURES,
         access: [],
       },
     });
+
+    renderMockRequests(organization.slug, project.slug);
 
     render(
       <OrganizationContext.Provider value={organization}>
@@ -104,11 +139,18 @@ describe('Dynamic Sampling', function () {
   it('user can toggle option', function () {
     const {project, organization} = initializeOrg({
       ...initializeOrg(),
+      projects: [
+        TestStubs.Project({
+          dynamicSamplingBiases,
+        }),
+      ],
       organization: {
         ...initializeOrg().organization,
         features: ORG_FEATURES,
       },
     });
+
+    const mockRequests = renderMockRequests(organization.slug, project.slug);
 
     render(
       <OrganizationContext.Provider value={organization}>
@@ -118,10 +160,17 @@ describe('Dynamic Sampling', function () {
 
     userEvent.click(screen.getByRole('checkbox', {name: 'Prioritize new releases'}));
 
-    expect(
-      screen.getByRole('checkbox', {
-        name: 'Prioritize new releases',
+    expect(mockRequests.projectDetails).toHaveBeenCalledWith(
+      `/projects/${organization.slug}/${project.slug}/`,
+      expect.objectContaining({
+        data: {
+          dynamicSamplingBiases: [
+            {id: DynamicSamplingBiasType.BOOST_LATEST_RELEASES, active: false},
+            {id: DynamicSamplingBiasType.BOOST_ENVIRONMENTS, active: true},
+            {id: DynamicSamplingBiasType.IGNORE_HEALTH_CHECKS, active: true},
+          ],
+        },
       })
-    ).not.toBeChecked();
+    );
   });
 });
