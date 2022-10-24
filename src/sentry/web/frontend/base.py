@@ -73,7 +73,7 @@ class OrganizationMixin:
                 return
             active_organization = backup_organization
 
-        if active_organization and active_organization.is_member:
+        if active_organization and active_organization.member:
             auth.set_active_org(request, active_organization.slug)
 
         self.active_organization = active_organization
