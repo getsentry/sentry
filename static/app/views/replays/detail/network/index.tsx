@@ -494,29 +494,6 @@ const NetworkTableHeader = styled('div')<{columns: number}>`
 
   border-right: 1px solid ${p => p.theme.innerBorder};
   border-bottom: 1px solid ${p => p.theme.innerBorder};
-
-  /* Last column */
-  &:nth-child(${p => p.columns}n) {
-    border-right: 0;
-    text-align: right;
-    justify-content: end;
-  }
-
-  /* 3rd and 2nd last column */
-  &:nth-child(${p => p.columns}n - 1),
-  &:nth-child(${p => p.columns}n - 2) {
-    text-align: right;
-    justify-content: end;
-  }
-
-  /* Last, 2nd and 3rd last header columns. As these are flex direction columns we have to treat them separately */
-  &:nth-child(${p => p.columns}n),
-  &:nth-child(${p => p.columns}n - 1),
-  &:nth-child(${p => p.columns}n - 2) {
-    justify-content: center;
-    align-items: flex-start;
-    text-align: start;
-  }
 `;
 
 const SortItem = styled('span')`
