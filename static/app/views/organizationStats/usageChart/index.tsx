@@ -64,6 +64,12 @@ export const CHART_OPTIONS_DATACATEGORY: CategoryOption[] = [
     disabled: false,
     yAxisMinInterval: 0.5 * GIGABYTE,
   },
+  {
+    label: DATA_CATEGORY_NAMES[DataCategory.PROFILES],
+    value: DataCategory.PROFILES,
+    disabled: false,
+    yAxisMinInterval: 100,
+  },
 ];
 
 export enum ChartDataTransform {
