@@ -39,6 +39,8 @@ type State = {
   eventAttachments?: IssueAttachment[];
 } & AsyncComponent['state'];
 
+export const MAX_SCREENSHOTS_PER_PAGE = 6;
+
 class GroupEventAttachments extends AsyncComponent<Props, State> {
   getDefaultState() {
     return {
@@ -76,7 +78,7 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
               ...location.query,
               types: undefined, // need to explicitly set this to undefined because AsyncComponent adds location query back into the params
               screenshot: 1,
-              per_page: 6,
+              per_page: MAX_SCREENSHOTS_PER_PAGE,
             },
           },
         ],
@@ -197,6 +199,9 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
                 projectSlug={projectSlug}
                 groupId={params.groupId}
                 onDelete={this.handleDelete}
+                pageLinks={this.state.eventAttachmentsPageLinks}
+                attachments={eventAttachments}
+                attachmentIndex={index}
               />
             );
           })}
