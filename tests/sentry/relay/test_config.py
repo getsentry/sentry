@@ -79,7 +79,7 @@ SOME_EXCEPTION = RuntimeError("foo")
 
 
 @pytest.mark.django_db
-@mock.patch("sentry.relay.config.generate_uniform_rule", side_effect=SOME_EXCEPTION)
+@mock.patch("sentry.relay.config.generate_rules", side_effect=SOME_EXCEPTION)
 @mock.patch("sentry.relay.config.sentry_sdk")
 def test_get_experimental_config(mock_sentry_sdk, _, default_project):
     keys = ProjectKey.objects.filter(project=default_project)
@@ -310,7 +310,7 @@ def test_project_config_with_uniform_rules_based_on_plan_in_dynamic_sampling_rul
             "organizations:dynamic-sampling": ds_basic,
         }
     ):
-        with patch("sentry.dynamic_sampling.quotas.get_blended_sample_rate", return_value=0.1):
+        with mock.patch("sentry.dynamic_sampling.quotas.get_blended_sample_rate", return_value=0.1):
             cfg = get_project_config(default_project)
 
     cfg = cfg.to_dict()
