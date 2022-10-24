@@ -2585,6 +2585,32 @@ class EventManagerTestBase(TestCase, ABC):
         result.update(kwargs)
         return result
 
+    def make_release_transaction(self, release_version="1.0", project_id=1, **kwargs):
+        manager = EventManager(
+            make_event(
+                **{
+                    "transaction": "wait",
+                    "contexts": {
+                        "trace": {
+                            "parent_span_id": "bce14471e0e9654d",
+                            "op": "foobar",
+                            "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
+                            "span_id": "bf5be759039ede9a",
+                        }
+                    },
+                    "spans": [],
+                    "timestamp": "2019-06-14T14:01:40Z",
+                    "start_timestamp": "2019-06-14T14:01:40Z",
+                    "type": "transaction",
+                    "release": release_version,
+                    **kwargs,
+                }
+            )
+        )
+        with self.tasks():
+            event = manager.save(project_id)
+        return event
+
     def make_release_event(
         self, release_version="1.0", environment_name="prod", project_id=1, **kwargs
     ):
@@ -2707,7 +2733,7 @@ class ReleaseDSLatestReleaseBoost(EventManagerTestBase):
 
     @freeze_time()
     def test_boost_release_when_first_observed(self):
-        self.make_release_event(
+        self.make_release_transaction(
             release_version=self.release.version,
             environment_name=self.environment1.name,
             project_id=self.project.id,
@@ -2724,7 +2750,7 @@ class ReleaseDSLatestReleaseBoost(EventManagerTestBase):
 
         new_release = Release.get_or_create(self.project, "2.0")
 
-        self.make_release_event(
+        self.make_release_transaction(
             release_version=new_release.version,
             environment_name=self.environment1.name,
             project_id=self.project.id,
@@ -2740,7 +2766,7 @@ class ReleaseDSLatestReleaseBoost(EventManagerTestBase):
 
     def test_ensure_release_not_boosted_when_it_is_not_first_observed(self):
         self.redis_client.set(f"ds::p:{self.project.id}:r:{self.release.id}", 1, 60 * 60 * 24)
-        self.make_release_event(
+        self.make_release_transaction(
             release_version=self.release.version,
             environment_name=self.environment1.name,
             project_id=self.project.id,
@@ -2763,7 +2789,7 @@ class ReleaseDSLatestReleaseBoost(EventManagerTestBase):
                 time() - BOOSTED_RELEASE_TIMEOUT * 2,
             )
 
-        self.make_release_event(
+        self.make_release_transaction(
             release_version=release_3.version,
             environment_name=self.environment1.name,
             project_id=self.project.id,
@@ -2780,7 +2806,7 @@ class ReleaseDSLatestReleaseBoost(EventManagerTestBase):
     def test_project_config_invalidation_is_triggered_when_new_release_is_observed(
         self, mocked_invalidate
     ):
-        self.make_release_event(
+        self.make_release_transaction(
             release_version=self.release.version,
             environment_name=self.environment1.name,
             project_id=self.project.id,

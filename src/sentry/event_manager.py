@@ -824,15 +824,16 @@ def _get_or_create_release_many(jobs, projects):
                     set_tag(job["data"], "sentry:dist", job["dist"].name)
 
                 # Dynamic Sampling - Boosting latest release functionality
-                try:
-                    release_observed_in_last_24h = observe_release(project_id, release.id)
-                    if not release_observed_in_last_24h:
-                        add_boosted_release(project_id, release.id)
-                        schedule_invalidate_project_config(
-                            project_id=project_id, trigger="dynamic_sampling:boost_release"
-                        )
-                except Exception:
-                    pass
+                if data.get("type") == "transaction":
+                    try:
+                        release_observed_in_last_24h = observe_release(project_id, release.id)
+                        if not release_observed_in_last_24h:
+                            add_boosted_release(project_id, release.id)
+                            schedule_invalidate_project_config(
+                                project_id=project_id, trigger="dynamic_sampling:boost_release"
+                            )
+                    except Exception:
+                        pass
 
 
 @metrics.wraps("save_event.get_event_user_many")
