@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest import mock
 
 import pytest
 
@@ -34,7 +34,7 @@ PII_CONFIG = """
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("full", [False, True], ids=["slim_config", "full_config"])
-def test_get_project_config(default_project, insta_snapshot, full):
+def test_get_project_config(default_project, insta_snapshot, django_cache, full):
     # We could use the default_project fixture here, but we would like to avoid 1) hitting the db 2) creating a mock
     default_project.update_option("sentry:relay_pii_config", PII_CONFIG)
     default_project.organization.update_option("sentry:relay_pii_config", PII_CONFIG)
@@ -54,6 +54,22 @@ def test_get_project_config(default_project, insta_snapshot, full):
     assert cfg.pop("organizationId") == default_project.organization.id
 
     insta_snapshot(cfg)
+
+
+SOME_EXCEPTION = RuntimeError("foo")
+
+
+@pytest.mark.django_db
+@mock.patch("sentry.relay.config.generate_uniform_rule", side_effect=SOME_EXCEPTION)
+@mock.patch("sentry.relay.config.sentry_sdk")
+def test_get_experimental_config(mock_sentry_sdk, _, default_project):
+    keys = ProjectKey.objects.filter(project=default_project)
+    with Feature("organizations:dynamic-sampling"):
+        # Does not raise:
+        cfg = get_project_config(default_project, full_config=True, project_keys=keys)
+    # Key is missing from config:
+    assert "dynamicSampling" not in cfg.to_dict()["config"]
+    assert mock_sentry_sdk.capture_exception.call_args == mock.call(SOME_EXCEPTION)
 
 
 @pytest.mark.django_db
@@ -190,8 +206,8 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
 @pytest.mark.parametrize(
     "ss_sampling,ds_basic,current_ds_data,expected",
     [
-        # server-side-sampling: True, dynamic-sampling-basic: True
-        # `dynamic-sampling-basic` flag has the highest precedence
+        # server-side-sampling: True, dynamic-sampling: True
+        # `dynamic-sampling` flag has the highest precedence
         (
             True,
             True,
@@ -269,10 +285,10 @@ def test_project_config_with_uniform_rules_based_on_plan_in_dynamic_sampling_rul
     with Feature(
         {
             "organizations:server-side-sampling": ss_sampling,
-            "organizations:dynamic-sampling-basic": ds_basic,
+            "organizations:dynamic-sampling": ds_basic,
         }
     ):
-        with patch(
+        with mock.patch(
             "sentry.dynamic_sampling.utils.quotas.get_blended_sample_rate", return_value=0.1
         ):
             cfg = get_project_config(default_project)

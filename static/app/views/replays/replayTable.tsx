@@ -119,7 +119,7 @@ function ReplayTable({
           size="xs"
           position="top"
           title={t(
-            'The duration of the slowest transaction operation that was recorded during the replay session.'
+            'Slowest single instance of this transaction captured by this session.'
           )}
         />
       </Header>

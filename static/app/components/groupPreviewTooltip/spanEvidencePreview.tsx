@@ -59,7 +59,9 @@ const SpanEvidencePreviewBody = ({
   onUnmount,
 }: SpanEvidencePreviewBodyProps) => {
   const {data, isLoading, hasError} = useApiRequests<Response>({
-    endpoints: [['event', endpointUrl]],
+    endpoints: [
+      ['event', endpointUrl, {query: {referrer: 'api.issues.preview-performance'}}],
+    ],
     onRequestError: onRequestEnd,
     onRequestSuccess: onRequestEnd,
   });
