@@ -20,6 +20,7 @@ from sentry.signals import (
     first_event_pending,
     first_event_received,
     first_profile_received,
+    first_replay_received,
     first_transaction_received,
     integration_added,
     issue_tracker_used,
@@ -209,6 +210,17 @@ def record_first_transaction(project, event, **kwargs):
 @first_profile_received.connect(weak=False)
 def record_first_profile(project, **kwargs):
     project.update(flags=F("flags").bitor(Project.flags.has_profiles))
+
+
+@first_replay_received.connect(weak=False)
+def record_first_replay(project, **kwargs):
+    project.update(flags=F("flags").bitor(Project.flags.has_replays))
+    analytics.record(
+        "first_replay.sent",
+        organization_id=project.organization_id,
+        project_id=project.id,
+        platform=project.platform,
+    )
 
 
 @member_invited.connect(weak=False)
