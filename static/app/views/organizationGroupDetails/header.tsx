@@ -251,7 +251,7 @@ function GroupHeader({
 
   const performanceIssueTabs = useMemo(() => {
     return (
-      <StyledTabList>
+      <StyledTabList hideBorder>
         <Item key={Tab.DETAILS} disabled={disabledTabs.includes(Tab.DETAILS)}>
           {t('Details')}
         </Item>
