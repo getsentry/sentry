@@ -1,15 +1,24 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment, useCallback, useEffect} from 'react';
 import styled from '@emotion/styled';
 
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
 import Button from 'sentry/components/button';
 import FeatureBadge from 'sentry/components/featureBadge';
 import BooleanField from 'sentry/components/forms/fields/booleanField';
 import {Panel, PanelBody, PanelFooter, PanelHeader} from 'sentry/components/panels';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
+import {DynamicSamplingBiaseType} from 'sentry/types/sampling';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
+import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -24,14 +33,27 @@ type Props = {
   project: Project;
 };
 
+const biasDescriptions = {
+  [DynamicSamplingBiaseType.BOOST_ENVIRONMENTS]: {
+    label: t('Prioritize dev environments'),
+    help: t('Captures more traces from environments that contain “dev” and “test”'),
+  },
+  [DynamicSamplingBiaseType.BOOST_LATEST_RELEASES]: {
+    label: t('Prioritize new releases'),
+    help: t('Captures more traces for a new release roll-out'),
+  },
+  [DynamicSamplingBiaseType.IGNORE_HEALTH_CHECKS]: {
+    label: t('Ignore health checks'),
+    help: t('Discards transactions that contain “health” in the name'),
+  },
+};
+
 export function DynamicSampling({project}: Props) {
   const organization = useOrganization();
-
-  const [boostEnvironments, setBoostEnvironments] = useState(true);
-  const [boostLatestRelease, setBoostLatestRelease] = useState(true);
-  const [ignoreHealthChecks, setIgnoreHealthChecks] = useState(true);
+  const api = useApi();
 
   const hasAccess = organization.access.includes('project:write');
+  const biases = project.dynamicSamplingBiases ?? [];
 
   useEffect(() => {
     trackAdvancedAnalyticsEvent('sampling.settings.view', {
@@ -40,39 +62,35 @@ export function DynamicSampling({project}: Props) {
     });
   }, [project.id, organization]);
 
-  // async function handleToggleOption() {
-  //   addLoadingMessage();
-  //   try {
-  //     const result = await api.requestPromise(
-  //       `/projects/${organization.slug}/${project.slug}/`,
-  //       {
-  //         method: 'PUT',
-  //         data: {
-  //           dynamicSampling: [
-  //             {
-  //               id: 'boostEnvironments',
-  //               active: true,
-  //             },
-  //             {
-  //               id: 'boostLatestRelease',
-  //               active: true,
-  //             },
-  //             {
-  //               id: 'ignoreHealthChecks',
-  //               active: true,
-  //             },
-  //           ],
-  //         },
-  //       }
-  //     );
-  //     ProjectsStore.onUpdateSuccess(result);
-  //     addSuccessMessage(t('Successfully dynamic sampling configuration'));
-  //   } catch (error) {
-  //     const message = t('Unable to update dynamic sampling configuration');
-  //     handleXhrErrorResponse(message)(error);
-  //     addErrorMessage(message);
-  //   }
-  // }
+  async function handleToggle(type: DynamicSamplingBiaseType) {
+    addLoadingMessage();
+
+    const newDynamicSamplingBiases = biases.map(bias => {
+      if (bias.id === type) {
+        return {...bias, active: !bias.active};
+      }
+      return bias;
+    });
+
+    try {
+      const result = await api.requestPromise(
+        `/projects/${organization.slug}/${project.slug}/`,
+        {
+          method: 'PUT',
+          data: {
+            dynamicSamplingBiases: newDynamicSamplingBiases,
+          },
+        }
+      );
+
+      ProjectsStore.onUpdateSuccess(result);
+      addSuccessMessage(t('Successfully updated dynamic sampling configuration'));
+    } catch (error) {
+      const message = t('Unable to update dynamic sampling configuration');
+      handleXhrErrorResponse(message)(error);
+      addErrorMessage(message);
+    }
+  }
 
   const handleReadDocs = useCallback(() => {
     trackAdvancedAnalyticsEvent('sampling.settings.view_read_docs', {
@@ -107,47 +125,26 @@ export function DynamicSampling({project}: Props) {
         <Panel>
           <PanelHeader>{t('Dynamic Sampling')}</PanelHeader>
           <PanelBody>
-            <BooleanField
-              name="boostLatestRelease"
-              label={t('Prioritize new releases')}
-              value={boostLatestRelease}
-              onChange={() => setBoostLatestRelease(!boostLatestRelease)}
-              disabled={!hasAccess}
-              disabledReason={
-                !hasAccess
-                  ? t('You do not have permission to edit this setting')
-                  : undefined
+            {biases.map(bias => {
+              if (!biasDescriptions[bias.id]) {
+                return null;
               }
-              help={t('Captures more traces for a new release roll-out')}
-            />
-            <BooleanField
-              name="boostEnvironments"
-              label={t('Prioritize dev environments')}
-              value={boostEnvironments}
-              onChange={() => setBoostEnvironments(!boostEnvironments)}
-              disabled={!hasAccess}
-              disabledReason={
-                !hasAccess
-                  ? t('You do not have permission to edit this setting')
-                  : undefined
-              }
-              help={t(
-                'Captures more traces from environments that contain “dev” and “test”'
-              )}
-            />
-            <BooleanField
-              name="ignoreHealthChecks"
-              label={t('Ignore health checks')}
-              value={ignoreHealthChecks}
-              onChange={() => setIgnoreHealthChecks(!ignoreHealthChecks)}
-              disabled={!hasAccess}
-              disabledReason={
-                !hasAccess
-                  ? t('You do not have permission to edit this setting')
-                  : undefined
-              }
-              help={t('Discards transactions that contain “health” in the name')}
-            />
+              return (
+                <BooleanField
+                  {...biasDescriptions[bias.id]}
+                  key={bias.id}
+                  name={bias.id}
+                  value={bias.active}
+                  onChange={() => handleToggle(bias.id)}
+                  disabled={!hasAccess}
+                  disabledReason={
+                    !hasAccess
+                      ? t('You do not have permission to edit this setting')
+                      : undefined
+                  }
+                />
+              );
+            })}
           </PanelBody>
           <StyledPanelFooter>
             <Button
