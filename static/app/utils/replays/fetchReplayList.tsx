@@ -43,14 +43,6 @@ async function fetchReplayList({
   location,
   eventView,
 }: Props): Promise<Result> {
-  if (!eventView.project.length) {
-    return {
-      fetchError: undefined,
-      isFetching: false,
-      pageLinks: null,
-      replays: [],
-    };
-  }
   try {
     const path = `/organizations/${organization.slug}/replays/`;
 
