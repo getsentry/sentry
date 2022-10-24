@@ -147,7 +147,7 @@ export function generateReplayLink(routes: PlainRoute<any>[]) {
     }
 
     const replaySlug = `${tableRow['project.name']}:${replayId}`;
-    const referrer = encodeURIComponent(getRouteStringFromRoutes(routes));
+    const referrer = getRouteStringFromRoutes(routes);
 
     if (!tableRow.timestamp) {
       return {
