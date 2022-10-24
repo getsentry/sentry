@@ -1,6 +1,6 @@
 from django import forms
 
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import GroupEvent
 from sentry.rules import EventState
 from sentry.rules.filters.base import EventFilter
 
@@ -16,7 +16,7 @@ class IssueOccurrencesFilter(EventFilter):
     label = "The issue has happened at least {value} times"
     prompt = "The issue has happened at least {x} times (Note: this is approximate)"
 
-    def passes(self, event: Event, state: EventState) -> bool:
+    def passes(self, event: GroupEvent, state: EventState) -> bool:
         try:
             value = int(self.get_option("value"))
         except (TypeError, ValueError):

@@ -411,21 +411,21 @@ def post_process_group(
 
 
 def run_post_process_job(job: PostProcessJob):
-    event = job["event"]
-    if event.group.issue_category not in GROUP_CATEGORY_POST_PROCESS_PIPELINE:
+    group_event = job["event"]
+    if group_event.group.issue_category not in GROUP_CATEGORY_POST_PROCESS_PIPELINE:
         logger.error(
             "No post process pipeline configured for issue category",
-            extra={"category": event.group.issue_category},
+            extra={"category": group_event.group.issue_category},
         )
         return
-    pipeline = GROUP_CATEGORY_POST_PROCESS_PIPELINE[event.group.issue_category]
+    pipeline = GROUP_CATEGORY_POST_PROCESS_PIPELINE[group_event.group.issue_category]
     for pipeline_step in pipeline:
         try:
             pipeline_step(job)
         except Exception:
             logger.exception(
                 f"Failed to process pipeline step {pipeline_step.__name__}",
-                extra={"event": event, "group": event.group},
+                extra={"event": group_event, "group": group_event.group},
             )
 
 
@@ -576,21 +576,21 @@ def process_rules(job: PostProcessJob) -> None:
 
     from sentry.rules.processor import RuleProcessor
 
-    event = job["event"]
+    group_event = job["event"]
     is_new = job["group_state"]["is_new"]
     is_regression = job["group_state"]["is_regression"]
     is_new_group_environment = job["group_state"]["is_new_group_environment"]
     has_reappeared = job["has_reappeared"]
 
-    rp = RuleProcessor(event, is_new, is_regression, is_new_group_environment, has_reappeared)
-
     has_alert = False
+
+    rp = RuleProcessor(group_event, is_new, is_regression, is_new_group_environment, has_reappeared)
     with sentry_sdk.start_span(op="tasks.post_process_group.rule_processor_callbacks"):
         # TODO(dcramer): ideally this would fanout, but serializing giant
         # objects back and forth isn't super efficient
         for callback, futures in rp.apply():
             has_alert = True
-            safe_execute(callback, event, futures, _with_transaction=False)
+            safe_execute(callback, group_event, futures, _with_transaction=False)
 
     job["has_alert"] = has_alert
     return

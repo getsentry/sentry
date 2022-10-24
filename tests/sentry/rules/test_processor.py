@@ -50,6 +50,7 @@ class MockConditionTrue(EventCondition):
 class RuleProcessorTest(TestCase):
     def setUp(self):
         self.event = self.store_event(data={}, project_id=self.project.id)
+        self.event = next(self.event.build_group_events())
 
         Rule.objects.filter(project=self.event.project).delete()
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)

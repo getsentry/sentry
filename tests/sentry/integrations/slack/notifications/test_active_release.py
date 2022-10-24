@@ -18,6 +18,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest):
     def setUp(self):
         super().setUp()
         Rule.objects.filter(project=self.event.project).delete()
+        self.event = next(self.event.build_group_events())
         self.event.group._times_seen_pending = 0
         self.event.group.save()
         NotificationSetting.objects.update_settings(

@@ -5,7 +5,7 @@ from typing import Any
 from django import forms
 
 from sentry import tagstore
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import GroupEvent
 from sentry.rules import MATCH_CHOICES, EventState, MatchType
 from sentry.rules.conditions.base import EventCondition
 
@@ -38,7 +38,7 @@ class TaggedEventCondition(EventCondition):
         "value": {"type": "string", "placeholder": "value"},
     }
 
-    def passes(self, event: Event, state: EventState, **kwargs: Any) -> bool:
+    def passes(self, event: GroupEvent, state: EventState, **kwargs: Any) -> bool:
         key = self.get_option("key")
         match = self.get_option("match")
         value = self.get_option("value")

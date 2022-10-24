@@ -5,7 +5,7 @@ from typing import Sequence, Tuple
 from django import forms
 from django.utils import timezone
 
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import GroupEvent
 from sentry.rules import EventState
 from sentry.rules.filters.base import EventFilter
 
@@ -55,7 +55,7 @@ class AgeComparisonFilter(EventFilter):
     label = "The issue is {comparison_type} than {value} {time}"
     prompt = "The issue is older or newer than..."
 
-    def passes(self, event: Event, state: EventState) -> bool:
+    def passes(self, event: GroupEvent, state: EventState) -> bool:
         comparison_type = self.get_option("comparison_type")
         time = self.get_option("time")
         try:

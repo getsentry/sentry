@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Generator, Sequence
 
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import GroupEvent
 from sentry.integrations.slack.actions.form import SlackNotifyServiceForm
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder.issues import build_group_attachment
@@ -37,7 +37,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             "tags": {"type": "string", "placeholder": "i.e environment,user,my_tag"},
         }
 
-    def after(self, event: Event, state: EventState) -> Generator[CallbackFuture, None, None]:
+    def after(self, event: GroupEvent, state: EventState) -> Generator[CallbackFuture, None, None]:
         channel = self.get_option("channel_id")
         tags = set(self.get_tags_list())
 
@@ -47,7 +47,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             # Integration removed, rule still active.
             return
 
-        def send_notification(event: Event, futures: Sequence[RuleFuture]) -> None:
+        def send_notification(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
             rules = [f.rule for f in futures]
             attachments = [build_group_attachment(event.group, event=event, tags=tags, rules=rules)]
             # getsentry might add a billing related attachment
