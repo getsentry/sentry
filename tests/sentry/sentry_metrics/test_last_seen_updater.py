@@ -184,7 +184,7 @@ class TestFilterMethod:
     def keep_alive_message_filter(self, message_filter):
         return KeepAliveMessageFilter(message_filter, 5)
 
-    def test_message_filter_accepts_every_tenth_message(
+    def test_message_filter_accepts_every_fifth_message(
         self, message_filter, keep_alive_message_filter
     ):
         message = self.empty_message_with_headers([("mapping_sources", "fhc")])
