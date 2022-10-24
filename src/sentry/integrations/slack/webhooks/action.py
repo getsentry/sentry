@@ -4,6 +4,7 @@ from typing import Any, Mapping, MutableMapping, Sequence
 
 import requests as requests_
 from django.urls import reverse
+from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -162,6 +163,25 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         else:
             text = DEFAULT_ERROR_MESSAGE
 
+        return self.respond_ephemeral(text)
+
+    def validation_error(
+        self,
+        slack_request: SlackActionRequest,
+        group: Group,
+        error: serializers.ValidationError,
+        action_type: str,
+    ):
+        logger.info(
+            "slack.action.validation-error",
+            extra={
+                **slack_request.get_logging_data(group),
+                "response": str(error.detail),
+                "action_type": action_type,
+            },
+        )
+
+        text = list(*error.detail.values())[0]
         return self.respond_ephemeral(text)
 
     def on_assign(
@@ -340,6 +360,8 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
                     defer_attachment_update = True
             except client.ApiError as error:
                 return self.api_error(slack_request, group, identity, error, action.name)
+            except serializers.ValidationError as error:
+                return self.validation_error(slack_request, group, error, action.name)
 
         if defer_attachment_update:
             return self.respond()
