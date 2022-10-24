@@ -9,8 +9,8 @@ import DynamicSampling from '.';
 
 const ORG_FEATURES = [
   'server-side-sampling',
-  'server-side-sampling-ui',
-  'dynamic-sampling-opinionated',
+  'dynamic-sampling-deprecated',
+  'dynamic-sampling',
 ];
 
 const dynamicSamplingBiases = [

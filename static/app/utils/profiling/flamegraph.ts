@@ -110,7 +110,7 @@ export class Flamegraph {
     let idx = 0;
 
     const openFrame = (node: CallTreeNode, value: number) => {
-      const parent = lastOfArray(stack);
+      const parent = lastOfArray(stack) ?? this.root;
 
       const frame: FlamegraphFrame = {
         key: idx,
@@ -182,7 +182,7 @@ export class Flamegraph {
     let idx = 0;
 
     const openFrame = (node: CallTreeNode, value: number) => {
-      const parent = lastOfArray(stack);
+      const parent = lastOfArray(stack) ?? this.root;
       const frame: FlamegraphFrame = {
         key: idx,
         frame: node.frame,

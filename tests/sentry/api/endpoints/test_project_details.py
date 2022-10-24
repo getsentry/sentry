@@ -1260,10 +1260,9 @@ class TestProjectDetailsDynamicSamplingBase(APITestCase, ABC):
         self.org_slug = self.project.organization.slug
         self.proj_slug = self.project.slug
         self.login_as(user=self.user)
-        # ToDo(Ahmed): Rename those feature flags once the feature flags land
         self.universal_ds_flag = "organizations:server-side-sampling"
-        self.old_ds_flag = "organizations:server-side-sampling-ui"
-        self.new_ds_flag = "organizations:dynamic-sampling-basic"
+        self.old_ds_flag = "organizations:dynamic-sampling-deprecated"
+        self.new_ds_flag = "organizations:dynamic-sampling"
 
 
 @region_silo_test
@@ -2125,3 +2124,38 @@ class TestProjectDetailsDynamicSampling(TestProjectDetailsDynamicSamplingBase):
                 self.organization.slug, self.project.slug, method="get"
             )
             assert get_response.data["dynamicSamplingBiases"] == DEFAULT_BIASES
+
+    def test_put_new_dynamic_sampling_incorrect_rules_with_correct_flags(self):
+        new_biases = [
+            {"id": "foo", "active": False},
+        ]
+        with Feature(
+            {
+                self.universal_ds_flag: True,
+                self.new_ds_flag: True,
+            }
+        ):
+            response = self.client.put(
+                self.url,
+                format="json",
+                HTTP_AUTHORIZATION=self.authorization,
+                data={"dynamicSamplingBiases": new_biases},
+            )
+            assert response.status_code == 400
+            assert response.json()["dynamicSamplingBiases"][0]["id"] == [
+                '"foo" is not a valid choice.'
+            ]
+
+            new_biases = [
+                {"whatever": "foo", "bla": False},
+            ]
+            response = self.client.put(
+                self.url,
+                format="json",
+                HTTP_AUTHORIZATION=self.authorization,
+                data={"dynamicSamplingBiases": new_biases},
+            )
+            assert response.status_code == 400
+            assert response.json()["dynamicSamplingBiases"][0]["non_field_errors"] == [
+                "Error: Only 'id' and 'active' fields are allowed for bias."
+            ]

@@ -22,7 +22,7 @@ from sentry.api.serializers.rest_framework.list import EmptyListField, ListField
 from sentry.api.serializers.rest_framework.origin import OriginField
 from sentry.constants import RESERVED_PROJECT_SLUGS
 from sentry.datascrubbing import validate_pii_config_update
-from sentry.dynamic_sampling.utils import DynamicSamplingFeatureMultiplexer
+from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
 from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig
 from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
 from sentry.ingest.inbound_filters import FilterTypes
@@ -221,8 +221,17 @@ class DynamicSamplingSerializer(serializers.Serializer):
 
 
 class DynamicSamplingBiasSerializer(serializers.Serializer):
-    id = serializers.CharField(required=True)
+    id = serializers.ChoiceField(
+        required=True, choices=DynamicSamplingFeatureMultiplexer.get_supported_biases_ids()
+    )
     active = serializers.BooleanField(default=False)
+
+    def validate(self, data):
+        if data.keys() != {"id", "active"}:
+            raise serializers.ValidationError(
+                "Error: Only 'id' and 'active' fields are allowed for bias."
+            )
+        return data
 
 
 class ProjectMemberSerializer(serializers.Serializer):
@@ -516,10 +525,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if "hasAlertIntegration" in expand:
             data["hasAlertIntegrationInstalled"] = has_alert_integration(project)
 
-        ds_feature_multiplexer = DynamicSamplingFeatureMultiplexer(project, request)
+        ds_feature_multiplexer = DynamicSamplingFeatureMultiplexer(project, request.user)
 
         # Dynamic Sampling Logic
-        if ds_feature_multiplexer.is_on_dynamic_sampling():
+        if ds_feature_multiplexer.is_on_dynamic_sampling:
             ds_bias_serializer = DynamicSamplingBiasSerializer(
                 data=ds_feature_multiplexer.get_user_biases(
                     project.get_option("sentry:dynamic_sampling_biases", None)
@@ -531,8 +540,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             data["dynamicSamplingBiases"] = ds_bias_serializer.data
         else:
             data["dynamicSamplingBiases"] = None
-        # ToDo(ahmed): Deprecated dynamic sampling logic, and will be removed in the future
-        if not ds_feature_multiplexer.is_on_dynamic_sampling_deprecated():
+        # TODO(ahmed): Deprecated dynamic sampling logic, and will be removed in the future
+        if not ds_feature_multiplexer.is_on_dynamic_sampling_deprecated:
             data["dynamicSampling"] = None
         return Response(data)
 
@@ -576,18 +585,15 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         result = serializer.validated_data
 
-        ds_flags_multiplexer = DynamicSamplingFeatureMultiplexer(project, request)
-        if (
-            result.get("dynamicSamplingBiases")
-            and not ds_flags_multiplexer.is_on_dynamic_sampling()
-        ):
+        ds_flags_multiplexer = DynamicSamplingFeatureMultiplexer(project, request.user)
+        if result.get("dynamicSamplingBiases") and not ds_flags_multiplexer.is_on_dynamic_sampling:
             return Response(
                 {"detail": ["dynamicSamplingBiases is not a valid field"]},
                 status=403,
             )
         if (
             result.get("dynamicSampling")
-            and not ds_flags_multiplexer.is_on_dynamic_sampling_deprecated()
+            and not ds_flags_multiplexer.is_on_dynamic_sampling_deprecated
         ):
             return Response(
                 {"detail": ["dynamicSampling is not a valid field"]},
@@ -905,11 +911,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         )
 
         data = serialize(project, request.user, DetailedProjectSerializer())
-        if not ds_flags_multiplexer.is_on_dynamic_sampling():
+        if not ds_flags_multiplexer.is_on_dynamic_sampling:
             data["dynamicSamplingBiases"] = None
         # If here because the case of when no dynamic sampling is enabled at all, you would want to kick out both
         # keys actually
-        if not ds_flags_multiplexer.is_on_dynamic_sampling_deprecated():
+        if not ds_flags_multiplexer.is_on_dynamic_sampling_deprecated:
             data["dynamicSampling"] = None
 
         return Response(data)
