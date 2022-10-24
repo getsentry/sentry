@@ -2,13 +2,18 @@ import {Component, Fragment} from 'react';
 import {InjectedRouter} from 'react-router';
 import {cache} from '@emotion/css'; // eslint-disable-line @emotion/no-vanilla
 import {CacheProvider, ThemeProvider} from '@emotion/react';
-import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import * as rtl from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import * as reactHooks from '@testing-library/react-hooks'; // eslint-disable-line no-restricted-imports
 import userEvent from '@testing-library/user-event'; // eslint-disable-line no-restricted-imports
+import merge from 'lodash/merge';
 
 import GlobalModal from 'sentry/components/globalModal';
 import {Organization} from 'sentry/types';
+import {
+  DEFAULT_QUERY_CLIENT_CONFIG,
+  QueryClient,
+  QueryClientProvider,
+} from 'sentry/utils/reactQuery';
 import {lightTheme} from 'sentry/utils/theme';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {RouteContext} from 'sentry/views/routeContext';
@@ -28,26 +33,26 @@ type ProviderOptions = {
 type Options = ProviderOptions & rtl.RenderOptions;
 
 const makeQueryClient = () =>
-  new QueryClient({
-    defaultOptions: {
-      queries: {
-        // Disable retries for tests to allow them to fail fast
-        retry: false,
-        // Matches the config we have in prod
-        staleTime: 5000,
+  new QueryClient(
+    merge({}, DEFAULT_QUERY_CLIENT_CONFIG, {
+      defaultOptions: {
+        queries: {
+          // Disable retries for tests to allow them to fail fast
+          retry: false,
+        },
+        mutations: {
+          // Disable retries for tests to allow them to fail fast
+          retry: false,
+        },
       },
-      mutations: {
-        // Disable retries for tests to allow them to fail fast
-        retry: false,
+      // Don't want console output in tests
+      logger: {
+        log: () => {},
+        warn: () => {},
+        error: () => {},
       },
-    },
-    // Don't want console output in tests
-    logger: {
-      log: () => {},
-      warn: () => {},
-      error: () => {},
-    },
-  });
+    })
+  );
 
 function createProvider(contextDefs: Record<string, any>) {
   return class ContextProvider extends Component {

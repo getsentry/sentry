@@ -1,4 +1,5 @@
 import * as reactQuery from '@tanstack/react-query';
+import {QueryClientConfig} from '@tanstack/react-query';
 
 import RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
@@ -14,13 +15,17 @@ type UseQueryOptions<TQueryFnData, TError, TData, TQueryKey extends QueryKey> = 
   'queryKey' | 'queryFn'
 >;
 
+// We are not overriding any defaults options for stale time, retries, etc.
+// See https://tanstack.com/query/v4/docs/guides/important-defaults
+const DEFAULT_QUERY_CLIENT_CONFIG = {} as QueryClientConfig;
+
 /**
- * Wraps react-query's useQuery for consistent usage in the Sentry app.
+ * Wraps React Query's useQuery for consistent usage in the Sentry app.
  * Query keys should be an array which include an endpoint URL and options such as query params.
  * This wrapper will execute the request using the query key URL, but if you need custom behavior
  * you may supply your own query function as the second argument.
  *
- * See https://tanstack.com/query/v4/docs/overview for docs on react-query.
+ * See https://tanstack.com/query/v4/docs/overview for docs on React Query.
  *
  * Example usage:
  *
@@ -52,6 +57,14 @@ function useQuery<TQueryFnData, TError = RequestError, TData = TQueryFnData>(
   return reactQuery.useQuery(queryKey, queryFn, queryOptions);
 }
 
+const QueryClient = reactQuery.QueryClient;
+const QueryClientProvider = reactQuery.QueryClientProvider;
 const useQueryClient = reactQuery.useQueryClient;
 
-export {useQuery, useQueryClient};
+export {
+  DEFAULT_QUERY_CLIENT_CONFIG,
+  QueryClient,
+  QueryClientProvider,
+  useQuery,
+  useQueryClient,
+};
