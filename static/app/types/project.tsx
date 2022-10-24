@@ -5,7 +5,7 @@ import type {SDKUpdatesSuggestion} from './event';
 import type {Plugin} from './integrations';
 import type {Organization, Team} from './organization';
 import type {Deploy, Release} from './release';
-import type {DynamicSamplingBiase, SamplingRule} from './sampling';
+import type {DynamicSamplingBias, SamplingRule} from './sampling';
 
 // Minimal project representation for use with avatars.
 export type AvatarProject = {
@@ -23,7 +23,7 @@ export type Project = {
     next_id: number;
     rules: SamplingRule[];
   } | null;
-  dynamicSamplingBiases: DynamicSamplingBiase[];
+  dynamicSamplingBiases: DynamicSamplingBias[];
   environments: string[];
   eventProcessing: {
     symbolicationDegraded: boolean;

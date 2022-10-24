@@ -15,7 +15,7 @@ import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
-import {DynamicSamplingBiaseType} from 'sentry/types/sampling';
+import {DynamicSamplingBiasType} from 'sentry/types/sampling';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
@@ -33,18 +33,18 @@ type Props = {
   project: Project;
 };
 
-const biasDescriptions = {
-  [DynamicSamplingBiaseType.BOOST_ENVIRONMENTS]: {
+const knowBiases = {
+  [DynamicSamplingBiasType.BOOST_LATEST_RELEASES]: {
+    label: t('Prioritize new releases'),
+    help: t('Captures more transactions for your new releases as they are being adopted'),
+  },
+  [DynamicSamplingBiasType.BOOST_ENVIRONMENTS]: {
     label: t('Prioritize dev environments'),
     help: t('Captures more traces from environments that contain “dev” and “test”'),
   },
-  [DynamicSamplingBiaseType.BOOST_LATEST_RELEASES]: {
-    label: t('Prioritize new releases'),
-    help: t('Captures more traces for a new release roll-out'),
-  },
-  [DynamicSamplingBiaseType.IGNORE_HEALTH_CHECKS]: {
+  [DynamicSamplingBiasType.IGNORE_HEALTH_CHECKS]: {
     label: t('Ignore health checks'),
-    help: t('Discards transactions that contain “health” in the name'),
+    help: t('Discards your health checks transactions'),
   },
 };
 
@@ -62,7 +62,7 @@ export function DynamicSampling({project}: Props) {
     });
   }, [project.id, organization]);
 
-  async function handleToggle(type: DynamicSamplingBiaseType) {
+  async function handleToggle(type: DynamicSamplingBiasType) {
     addLoadingMessage();
 
     const newDynamicSamplingBiases = biases.map(bias => {
@@ -112,7 +112,7 @@ export function DynamicSampling({project}: Props) {
         />
         <TextBlock>
           {t(
-            'Sentry aims to capture the most valuable traces in full detail, so you have all the necessary data to resolve any performance issues.'
+            'Sentry aims to capture the most valuable transactions in full detail, so you have the necessary data to resolve any performance issues.'
           )}
         </TextBlock>
         <PermissionAlert
@@ -123,17 +123,20 @@ export function DynamicSampling({project}: Props) {
           )}
         />
         <Panel>
-          <PanelHeader>{t('Dynamic Sampling')}</PanelHeader>
+          <PanelHeader>{t('Sampling Priorities')}</PanelHeader>
           <PanelBody>
-            {biases.map(bias => {
-              if (!biasDescriptions[bias.id]) {
+            {Object.entries(knowBiases).map(([key, value]) => {
+              const bias = biases.find(b => b.id === key);
+
+              if (!bias) {
                 return null;
               }
+
               return (
                 <BooleanField
-                  {...biasDescriptions[bias.id]}
-                  key={bias.id}
-                  name={bias.id}
+                  {...value}
+                  key={key}
+                  name={key}
                   value={bias.active}
                   onChange={() => handleToggle(bias.id)}
                   disabled={!hasAccess}
