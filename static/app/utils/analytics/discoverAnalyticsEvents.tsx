@@ -5,9 +5,13 @@ export type DiscoverEventParameters = {
   'discover_v2.facet_map.clicked': {tag: string};
   'discover_v2.prebuilt_query_click': {query_name?: string};
   'discover_v2.processed_baseline_toggle.clicked': {toggled: string};
-  'discover_v2.remove_default': {isHomepage: boolean};
+  'discover_v2.remove_default': {source: 'homepage' | 'prebuilt-query' | 'saved-query'};
   'discover_v2.saved_query_click': {};
-  'discover_v2.set_as_default': {isHomepage: boolean};
+  'discover_v2.set_as_default': {
+    source: 'homepage' | 'prebuilt-query' | 'saved-query' | 'context-menu';
+    // For breaking down context-menu events
+    type?: 'prebuilt-query' | 'saved-query';
+  };
   'discover_v2.tour.advance': {duration: number; step: number};
   'discover_v2.tour.close': {duration: number; step: number};
   'discover_v2.tour.start': {};

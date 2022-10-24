@@ -457,6 +457,12 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
       queryDataLoading ||
       (!homepageQuery &&
         eventView.isEqualTo(EventView.fromSavedQuery(DEFAULT_EVENT_VIEW)));
+
+    const analyticsEventSource = isHomepage
+      ? 'homepage'
+      : eventView.id
+      ? 'saved-query'
+      : 'prebuilt-query';
     if (
       homepageQuery &&
       eventView.isEqualTo(EventView.fromSavedQuery(homepageQuery), ['id', 'name'])
@@ -469,7 +475,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
             await handleResetHomepageQuery(api, organization);
             trackAdvancedAnalyticsEvent('discover_v2.remove_default', {
               organization,
-              isHomepage: isHomepage ?? false,
+              source: analyticsEventSource,
             });
             setHomepageQuery(undefined);
             if (isHomepage) {
@@ -505,7 +511,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
           );
           trackAdvancedAnalyticsEvent('discover_v2.set_as_default', {
             organization,
-            isHomepage: isHomepage ?? false,
+            source: analyticsEventSource,
           });
           if (updatedHomepageQuery) {
             setHomepageQuery(updatedHomepageQuery);
