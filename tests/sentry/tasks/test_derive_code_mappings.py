@@ -8,8 +8,13 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 
 class TestCommitContext(TestCase):
     def setUp(self):
-        self.organization = self.create_organization(status=OrganizationStatus.ACTIVE)
-        self.project = self.create_project(organization=self.organization)
+        self.organization = self.create_organization(
+            status=OrganizationStatus.ACTIVE,
+        )
+        self.project = self.create_project(
+            organization=self.organization,
+            platform="python",
+        )
         self.test_data_1 = {
             "message": "Kaboom!",
             "platform": "python",
@@ -57,7 +62,10 @@ class TestCommitContext(TestCase):
         ]
 
     def test_finds_stacktrace_paths_multiple_projects(self):
-        project_2 = self.create_project(organization=self.organization)
+        project_2 = self.create_project(
+            organization=self.organization,
+            platform="python",
+        )
         self.store_event(data=self.test_data_1, project_id=self.project.id)
         self.store_event(data=self.test_data_2, project_id=project_2.id)
 
@@ -78,7 +86,10 @@ class TestCommitContext(TestCase):
 
     def test_finds_stacktrace_paths_multiple_orgs(self):
         new_org = self.create_organization()
-        new_project = self.create_project(organization=new_org)
+        new_project = self.create_project(
+            organization=new_org,
+            platform="python",
+        )
         self.store_event(self.test_data_1, project_id=self.project.id)
         self.store_event(data=self.test_data_2, project_id=new_project.id)
 
@@ -120,6 +131,26 @@ class TestCommitContext(TestCase):
             mapping = identify_stacktrace_paths([self.organization])
         assert self.organization.slug in mapping
         stacktrace_paths = mapping[self.organization.slug]
+        assert self.project.slug in stacktrace_paths
+        assert sorted(stacktrace_paths[self.project.slug]) == [
+            "sentry/models/release.py",
+            "sentry/tasks.py",
+        ]
+
+    def test_skips_nonpython_projects(self):
+        new_project = self.create_project(
+            organization=self.organization,
+            platform="javascript",
+        )
+        self.store_event(self.test_data_1, project_id=self.project.id)
+        self.store_event(data=self.test_data_2, project_id=new_project.id)
+
+        with self.tasks():
+            mapping = identify_stacktrace_paths([self.organization])
+        assert self.organization.slug in mapping
+        stacktrace_paths = mapping[self.organization.slug]
+        assert new_project.slug not in stacktrace_paths
+
         assert self.project.slug in stacktrace_paths
         assert sorted(stacktrace_paths[self.project.slug]) == [
             "sentry/models/release.py",
