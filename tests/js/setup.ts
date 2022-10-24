@@ -236,7 +236,7 @@ const specialMapping = {
   ProviderList: 'integrationListDirectory.js',
   BitbucketIntegrationConfig: 'integrationListDirectory.js',
   GitHubIntegration: 'githubIntegration.js',
-  GitHubIntegrationProvider: 'gitHubIntegrationProvider.js',
+  GitHubIntegrationProvider: 'githubIntegrationProvider.js',
   GitHubIntegrationConfig: 'integrationListDirectory.js',
   OrgOwnedApps: 'integrationListDirectory.js',
   PublishedApps: 'integrationListDirectory.js',
@@ -253,7 +253,7 @@ function tryRequire(dir: string, name: string): any {
   }
   for (const ext of extensions) {
     try {
-      return require(path.resolve(dir, lowercasefirst(name) + ext));
+      return require(path.resolve(dir, lowercaseFirst(name) + ext));
     } catch {
       // ignore
     }
@@ -261,7 +261,7 @@ function tryRequire(dir: string, name: string): any {
   throw new Error('Failed to resolve file');
 }
 
-function lowercasefirst(value: string): string {
+function lowercaseFirst(value: string): string {
   return value.charAt(0).toLowerCase() + value.slice(1);
 }
 
