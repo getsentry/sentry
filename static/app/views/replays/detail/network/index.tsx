@@ -342,7 +342,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
                       return acc + cache.columnWidth({index: i});
                     }, 0) - scrollBarWidth;
 
-                  return Math.max(width - otherColumnsWidth, width / columns.length);
+                  return Math.max(width - otherColumnsWidth, 200);
                 }
 
                 return cache.columnWidth({index});
