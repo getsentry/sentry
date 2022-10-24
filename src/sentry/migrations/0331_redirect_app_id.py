@@ -24,7 +24,7 @@ class Migration(CheckedMigration):
     atomic = False
 
     dependencies = [
-        ("sentry", "0329_make_app_id_nullable"),
+        ("sentry", "0330_add_project_replay_sent_flag"),
     ]
 
     operations = [
