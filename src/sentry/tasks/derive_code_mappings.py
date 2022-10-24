@@ -77,7 +77,7 @@ def get_stacktrace_paths(data: NodeData) -> Set[str]:
     stacktrace_paths = set()
     for stacktrace in stacktraces:
         try:
-            paths = [frame["filename"] for frame in stacktrace["frames"]]
+            paths = {frame["filename"] for frame in stacktrace["frames"]}
             stacktrace_paths.update(paths)
         except Exception:
             logger.exception("Error getting filenames for project {project.slug}")
