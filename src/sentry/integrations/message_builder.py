@@ -88,7 +88,6 @@ def build_attachment_text(group: Group, event: GroupEvent | None = None) -> Any 
         return ev_metadata.get("value") or ev_metadata.get("function")
     elif ev_type == "transaction":
         if not event:
-            group = getattr(obj, "group", obj)
             event = group.get_latest_event()
         problem = get_matched_problem(event)
         return get_span_evidence_value_problem(problem)
