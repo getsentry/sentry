@@ -3,8 +3,21 @@ import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, Generic, List, Mapping, Optional, Type, TypeVar, cast
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generator,
+    Generic,
+    List,
+    Mapping,
+    Optional,
+    Type,
+    TypeVar,
+    cast,
+)
 
+from bitfield.types import Bit
 from sentry.models import Organization, OrganizationMember, OrganizationStatus
 
 logger = logging.getLogger(__name__)
@@ -18,13 +31,13 @@ class ProjectKeyRole(Enum):
     store = "store"
     api = "api"
 
-    def as_orm_role(self):
+    def as_orm_role(self) -> Bit:
         from sentry.models import ProjectKey
 
         if self == ProjectKeyRole.store:
-            return ProjectKey.roles.store
+            return cast(Bit, ProjectKey.roles.store)
         elif self == ProjectKeyRole.api:
-            return ProjectKey.roles.api
+            return cast(Bit, ProjectKey.roles.api)
         else:
             raise ValueError("Unexpected project key role enum")
 
@@ -42,14 +55,14 @@ class ApiOrganization:
 
 class InterfaceWithLifecycle(ABC):
     @abstractmethod
-    def close(self):
+    def close(self) -> None:
         pass
 
 
 ServiceInterface = TypeVar("ServiceInterface", bound=InterfaceWithLifecycle)
 
 
-class DelegatedBySiloMode(Generic[ServiceInterface]):
+class DelegatedBySiloMode(Generic[ServiceInterface], InterfaceWithLifecycle):
     """
     Using a mapping of silo modes to backing type classes that match the same ServiceInterface,
     delegate method calls to a singleton that is managed based on the current SiloMode.get_current_mode().
@@ -68,7 +81,9 @@ class DelegatedBySiloMode(Generic[ServiceInterface]):
         self._singleton = {}
 
     @contextlib.contextmanager
-    def with_replacement(self, service: Optional[ServiceInterface], silo_mode: SiloMode):
+    def with_replacement(
+        self, service: Optional[ServiceInterface], silo_mode: SiloMode
+    ) -> Generator[None, None, None]:
         prev = self._singleton
         self.close()
 
@@ -80,7 +95,7 @@ class DelegatedBySiloMode(Generic[ServiceInterface]):
         self.close()
         self._singleton = prev
 
-    def __getattr__(self, item: str):
+    def __getattr__(self, item: str) -> Any:
         cur_mode = SiloMode.get_current_mode()
         if impl := self._singleton.get(cur_mode, None):
             return getattr(impl, item)
@@ -90,7 +105,7 @@ class DelegatedBySiloMode(Generic[ServiceInterface]):
 
         raise KeyError(f"No implementation found for {cur_mode}.")
 
-    def close(self):
+    def close(self) -> None:
         for impl in self._singleton.values():
             impl.close()
         self._singleton = {}
@@ -105,7 +120,7 @@ class ProjectKeyService(InterfaceWithLifecycle):
 class OrganizationService(InterfaceWithLifecycle):
     @abstractmethod
     def get_organizations(
-        self, user_id: Optional[id], scope: Optional[str], only_visible: bool
+        self, user_id: Optional[int], scope: Optional[str], only_visible: bool
     ) -> List[ApiOrganization]:
         """
         This method is expected to follow the optionally given user_id, scope, and only_visible options to filter
@@ -150,11 +165,11 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
         return None
 
-    def close(self):
+    def close(self) -> None:
         pass
 
     def get_organizations(
-        self, user_id: Optional[id], scope: Optional[str], only_visible: bool
+        self, user_id: Optional[int], scope: Optional[str], only_visible: bool
     ) -> List[ApiOrganization]:
         from django.conf import settings
 
@@ -182,7 +197,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
 
 class DatabaseBackedProjectKeyService(ProjectKeyService):
-    def close(self):
+    def close(self) -> None:
         pass
 
     def get_project_key(self, project_id: str, role: ProjectKeyRole) -> Optional[ApiProjectKey]:
@@ -210,19 +225,19 @@ def CreateStubFromBase(base: Type[ServiceInterface]) -> Type[ServiceInterface]:
     """
     Super = base.__bases__[0]
 
-    def __init__(self, *args, **kwds):
-        Super.__init__(self, *args, **kwds)
-        self.backing_service = base(*args, **kwds)
+    def __init__(self: InterfaceWithLifecycle, *args: Any, **kwds: Any) -> None:
+        Super.__init__(self, *args, **kwds)  # type: ignore
+        self.backing_service = base(*args, **kwds)  # type: ignore
 
-    def close(self):
-        self.backing_service.close()
+    def close(self: InterfaceWithLifecycle) -> None:
+        self.backing_service.close()  # type: ignore
 
-    def make_method(method_name: str):
-        def method(self, *args, **kwds):
+    def make_method(method_name: str) -> Callable[..., Any]:
+        def method(self: InterfaceWithLifecycle, *args: Any, **kwds: Any) -> Any:
             from sentry.testutils.silo import exempt_from_silo_limits
 
             with exempt_from_silo_limits():
-                return getattr(self.backing_service, method_name)(*args, **kwds)
+                return getattr(self.backing_service, method_name)(*args, **kwds)  # type: ignore
 
         return method
 
@@ -247,7 +262,7 @@ def silo_mode_delegation(mapping: Mapping[SiloMode, Type[ServiceInterface]]) -> 
     Simply creates a DelegatedBySiloMode from a mapping object, but casts it as a ServiceInterface matching
     the mapping values.
     """
-    return cast(InterfaceWithLifecycle, DelegatedBySiloMode(mapping))
+    return cast(ServiceInterface, DelegatedBySiloMode(mapping))
 
 
 @contextlib.contextmanager
@@ -255,7 +270,7 @@ def service_stubbed(
     service: InterfaceWithLifecycle,
     stub: Optional[InterfaceWithLifecycle],
     silo_mode: Optional[SiloMode] = None,
-):
+) -> Generator[None, None, None]:
     """
     Replaces a service created with silo_mode_delegation with a replacement implementation while inside of the scope,
     closing the existing implementation on enter and closing the given implementation on exit.
@@ -271,7 +286,9 @@ def service_stubbed(
 
 
 @contextlib.contextmanager
-def use_real_service(service: InterfaceWithLifecycle, silo_mode: SiloMode):
+def use_real_service(
+    service: InterfaceWithLifecycle, silo_mode: Optional[SiloMode]
+) -> Generator[None, None, None]:
     """
     Removes any stubbed implementations, forcing the default configured implementation.
     Important for integration tests that validate the integration of production service implementations.
@@ -293,7 +310,7 @@ class RegionClientBackedProjectKeyService(ProjectKeyService):
     def get_project_key(self, project_id: str, role: ProjectKeyRole) -> Optional[ApiProjectKey]:
         pass
 
-    def close(self):
+    def close(self) -> None:
         pass
 
 
@@ -301,22 +318,20 @@ class RegionClientBackedOrganizationService(ProjectKeyService):
     def get_project_key(self, project_id: str, role: ProjectKeyRole) -> Optional[ApiProjectKey]:
         pass
 
-    def close(self):
+    def close(self) -> None:
         pass
 
 
-project_key_service: ProjectKeyService = silo_mode_delegation(
-    {
-        SiloMode.MONOLITH: DatabaseBackedProjectKeyService,
-        SiloMode.REGION: DatabaseBackedProjectKeyService,
-        SiloMode.CONTROL: StubProjectKeyService,
-    }
-)
+_project_key_service_mapping: Mapping[SiloMode, Type[ProjectKeyService]] = {
+    SiloMode.MONOLITH: DatabaseBackedProjectKeyService,
+    SiloMode.REGION: DatabaseBackedProjectKeyService,
+    SiloMode.CONTROL: StubProjectKeyService,
+}
+project_key_service: ProjectKeyService = silo_mode_delegation(_project_key_service_mapping)
 
-organization_service: OrganizationService = silo_mode_delegation(
-    {
-        SiloMode.MONOLITH: DatabaseBackedOrganizationService,
-        SiloMode.REGION: DatabaseBackedOrganizationService,
-        SiloMode.CONTROL: StubOrganizationService,
-    }
-)
+_organization_service_mapping: Mapping[SiloMode, Type[OrganizationService]] = {
+    SiloMode.MONOLITH: DatabaseBackedOrganizationService,
+    SiloMode.REGION: DatabaseBackedOrganizationService,
+    SiloMode.CONTROL: StubOrganizationService,
+}
+organization_service: OrganizationService = silo_mode_delegation(_organization_service_mapping)
