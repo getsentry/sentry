@@ -50,9 +50,7 @@ class FrameFilename:
 class CodeMappingTreesHelper:
     def __init__(self, trees: Dict[str, Any]):
         self.trees = trees
-        self.code_mappings: Dict[str, Any] = {}
-        # This simplifies excluding source files for existing code mappings
-        self.reverse_mapping: List[str] = []
+        self.code_mappings: Dict[str, CodeMapping] = {}
 
     def stacktrace_buckets(self, stacktraces: List[str]) -> Dict[str, Any]:
         buckets: Dict[str, Any] = {}
@@ -86,9 +84,6 @@ class CodeMappingTreesHelper:
                     code_mapping = self._find_code_mapping(frame_filename)
                     if code_mapping:
                         # XXX: Reprocess feature
-                        # XXX: Reverse mapping may need to be on a per-repo basis
-                        # This helps excluding some source files when we have a matching code mapping
-                        self.reverse_mapping.append(code_mapping.source_path)
                         self.code_mappings[stackframe_root] = code_mapping
 
         return list(self.code_mappings.values())
@@ -139,24 +134,21 @@ class CodeMappingTreesHelper:
         )
 
     def _matches_current_code_mappings(self, src_file: str, frame_filename: FrameFilename) -> bool:
-        if not self.reverse_mapping:
-            return False
-        else:
-            # In some cases, once we have derived a code mapping we can exclude files that start with
-            # that source path.
-            #
-            # For instance sentry_plugins/slack/client.py matches these files
-            # - "src/sentry_plugins/slack/client.py",
-            # - "src/sentry/integrations/slack/client.py",
-            return any(
-                source_path
-                for source_path in self.reverse_mapping
-                if src_file.startswith(f"{source_path}/")
-            )
+        # In some cases, once we have derived a code mapping we can exclude files that start with
+        # that source path.
+        #
+        # For instance sentry_plugins/slack/client.py matches these files
+        # - "src/sentry_plugins/slack/client.py",
+        # - "src/sentry/integrations/slack/client.py",
+        return any(
+            code_mapping.source_path
+            for code_mapping in self.code_mappings.values()
+            if src_file.startswith(f"{code_mapping.source_path}/")
+        )
 
     def _potential_match(self, src_file: str, frame_filename: FrameFilename) -> bool:
         """Tries to see if the stacktrace without the root matches the file from the
-        source code. Use reverse code mappings to exclude some source files
+        source code. Use existing code mappings to exclude some source files
         """
         # Exit early because we should not be processing source files for existing code maps
         if self._matches_current_code_mappings(src_file, frame_filename):
