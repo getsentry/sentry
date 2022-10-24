@@ -47,15 +47,10 @@ class OrganizationMixin:
         Using the current request and potentially optional organization_slug, 'determines'
         the current session for this mixin object's scope, placing it into the active_organization attribute.
 
-
-        Note that this function has some side effects and should only be called once at the 'head' of a request.
+        Generally this method only need be called once at the head of a request, as it can potentially have side
+        effects in the user's session.  That said, when login occurs during a request, this method should be called
+        be called again to refresh an active organization context.
         """
-        # TODO: Really, this should be a service object, not a mixin, but unfortunately extracting that is not trivial
-        # due to the depth of references to this logic.
-
-        assert not hasattr(
-            self, "active_organization"
-        ), "determine_active_organization should only be called once!"
 
         if organization_slug is None:
             is_implicit = True

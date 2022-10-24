@@ -1,3 +1,5 @@
+from typing import Optional
+
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import REDIRECT_FIELD_NAME
@@ -117,6 +119,10 @@ class AuthLoginView(BaseView):
     def respond_login(self, request: Request, context, **kwargs):
         return self.respond("sentry/login.html", context)
 
+    def _handle_login(self, request: Request, user, organization: Optional[Organization]):
+        login(request, user, organization_id=organization.id if organization else None)
+        self.determine_active_organization(request)
+
     def handle_basic_auth(self, request: Request, **kwargs):
         can_register = self.can_register(request)
 
@@ -150,7 +156,7 @@ class AuthLoginView(BaseView):
             # HACK: grab whatever the first backend is and assume it works
             user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
-            login(request, user, organization_id=organization.id if organization else None)
+            self._handle_login(request, user, organization)
 
             # can_register should only allow a single registration
             request.session.pop("can_register", None)
@@ -203,7 +209,7 @@ class AuthLoginView(BaseView):
             elif login_form.is_valid():
                 user = login_form.get_user()
 
-                login(request, user, organization_id=organization.id if organization else None)
+                self._handle_login(request, user, organization)
                 metrics.incr(
                     "login.attempt", instance="success", skip_internal=True, sample_rate=1.0
                 )
