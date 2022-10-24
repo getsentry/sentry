@@ -22,7 +22,7 @@ def generate_rules(project: Project) -> List[BaseRule]:
         except Exception:
             sentry_sdk.capture_exception()
     else:
-        boost_environments = DynamicSamplingFeatureMultiplexer.get_user_bias(
+        boost_environments = DynamicSamplingFeatureMultiplexer.get_user_bias_by_id(
             "boostEnvironments", project.get_option("sentry:dynamic_sampling_biases", None)
         )
 
