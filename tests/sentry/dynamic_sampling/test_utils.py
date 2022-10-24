@@ -2,7 +2,11 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from sentry.dynamic_sampling.utils import NoneSampleRateException, generate_uniform_rule
+from sentry.dynamic_sampling.utils import (
+    NoneSampleRateException,
+    generate_environment_rule,
+    generate_uniform_rule,
+)
 
 
 @patch("sentry.dynamic_sampling.utils.quotas.get_blended_sample_rate")
@@ -30,3 +34,14 @@ def test_generate_uniform_rule_raise_exception(get_blended_sample_rate):
     with pytest.raises(NoneSampleRateException):
         generate_uniform_rule(fake_project)
     get_blended_sample_rate.assert_called_with(fake_project)
+
+
+def test_generate_environment_rule():
+    bias_env_rule = generate_environment_rule()
+    assert bias_env_rule["id"] == 1
+    assert bias_env_rule["condition"]["inner"][0] == {
+        "op": "glob",
+        "name": "trace.environment",
+        "value": ["*dev*", "*test*"],
+        "options": {"ignoreCase": True},
+    }
