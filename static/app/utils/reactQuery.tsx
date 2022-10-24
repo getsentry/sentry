@@ -1,4 +1,4 @@
-import * as rq from '@tanstack/react-query';
+import * as reactQuery from '@tanstack/react-query';
 
 import RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
@@ -10,7 +10,7 @@ type QueryKeyEndpointOptions = {
 type QueryKey = readonly [string] | readonly [string, QueryKeyEndpointOptions];
 
 type UseQueryOptions<TQueryFnData, TError, TData, TQueryKey extends QueryKey> = Omit<
-  rq.UseQueryOptions<TQueryFnData, TError, TData, TQueryKey>,
+  reactQuery.UseQueryOptions<TQueryFnData, TError, TData, TQueryKey>,
   'queryKey' | 'queryFn'
 >;
 
@@ -29,7 +29,7 @@ type UseQueryOptions<TQueryFnData, TError, TData, TQueryKey extends QueryKey> = 
 function useQuery<TQueryFnData, TError = RequestError, TData = TQueryFnData>(
   queryKey: QueryKey,
   queryFnOrQueryOptions?:
-    | rq.QueryFunction<TQueryFnData, QueryKey>
+    | reactQuery.QueryFunction<TQueryFnData, QueryKey>
     | UseQueryOptions<TQueryFnData, TError, TData, QueryKey>,
   queryOptions?: UseQueryOptions<TQueryFnData, TError, TData, QueryKey>
 ) {
@@ -37,7 +37,7 @@ function useQuery<TQueryFnData, TError = RequestError, TData = TQueryFnData>(
 
   const [path, endpointOptions] = queryKey;
 
-  const defaultQueryFn: rq.QueryFunction<TQueryFnData, QueryKey> = async () => {
+  const defaultQueryFn: reactQuery.QueryFunction<TQueryFnData, QueryKey> = async () => {
     const data = await api.requestPromise(path, {
       method: 'GET',
       query: endpointOptions?.query,
@@ -49,9 +49,9 @@ function useQuery<TQueryFnData, TError = RequestError, TData = TQueryFnData>(
   const queryFn =
     typeof queryFnOrQueryOptions === 'function' ? queryFnOrQueryOptions : defaultQueryFn;
 
-  return rq.useQuery(queryKey, queryFn, queryOptions);
+  return reactQuery.useQuery(queryKey, queryFn, queryOptions);
 }
 
-const useQueryClient = rq.useQueryClient;
+const useQueryClient = reactQuery.useQueryClient;
 
 export {useQuery, useQueryClient};
