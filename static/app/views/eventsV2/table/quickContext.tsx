@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Client} from 'sentry/api';
 import EventCause from 'sentry/components/events/eventCause';
-import {DataSection} from 'sentry/components/events/styles';
+import {CauseHeader, DataSection} from 'sentry/components/events/styles';
 import AssignedTo from 'sentry/components/group/assignedTo';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels';
@@ -183,10 +183,6 @@ function IssueContext(props: IssueContextProps) {
 const ContextContainer = styled('div')`
   display: flex;
   flex-direction: column;
-
-  & + & {
-    margin-top: ${space(2)};
-  }
 `;
 
 const IssueContextContainer = styled(ContextContainer)`
@@ -201,6 +197,11 @@ const IssueContextContainer = styled(ContextContainer)`
 
   ${DataSection} {
     padding: 0;
+  }
+
+  &:not(:last-child):not(:first-child),
+  ${CauseHeader} {
+    margin-top: ${space(2)};
   }
 `;
 
