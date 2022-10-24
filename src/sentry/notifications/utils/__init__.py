@@ -8,6 +8,7 @@ from typing import (
     Any,
     Dict,
     Iterable,
+    List,
     Mapping,
     MutableMapping,
     Optional,
@@ -282,6 +283,7 @@ def get_interface_list(event: Event) -> Sequence[tuple[str, str, str]]:
 
 
 def get_span_evidence_value_problem(problem: PerformanceProblem) -> str:
+    """Get the 'span evidence' data for a performance problem. This is displayed in issue alert emails."""
     value = "no value"
     if not problem:
         return value
@@ -294,7 +296,10 @@ def get_span_evidence_value_problem(problem: PerformanceProblem) -> str:
     return value
 
 
-def get_span_evidence_value(span: Optional[Dict[str, Union[str, float, None]]] = None) -> str:
+def get_span_evidence_value(
+    span: Union[Dict[str, Union[str, float]], None] = None, include_op: bool = True
+) -> str:
+    """Get the 'span evidence' data for a given span. This is displayed in issue alert emails."""
     value = "no value"
     if not span:
         return value
@@ -303,18 +308,20 @@ def get_span_evidence_value(span: Optional[Dict[str, Union[str, float, None]]] =
     if span.get("op") and not span.get("description"):
         value = cast(str, span["op"])
     if span.get("op") and span.get("description"):
-        op = span["op"]
-        desc = span["description"]
+        op = cast(str, span["op"])
+        desc = cast(str, span["description"])
         value = f"{op} - {desc}"
+        if not include_op:
+            value = desc
     return value
 
 
-def perf_to_email_html(
-    spans: Sequence[Dict[str, Union[str, float, None]]], problem: PerformanceProblem = None
-) -> Any:
-
-    if not problem:
-        return ""
+def get_parent_and_repeating_spans(
+    spans: Union[List[Dict[str, Union[str, float]]], None], problem: PerformanceProblem
+) -> tuple[Union[Dict[str, Union[str, float]], None], Union[Dict[str, Union[str, float]], None]]:
+    """Parse out the parent and repeating spans given an event's spans"""
+    if not spans:
+        return (None, None)
 
     parent_span = None
     repeating_spans = None
@@ -329,10 +336,21 @@ def perf_to_email_html(
         if parent_span is not None and repeating_spans is not None:
             break
 
+    return (parent_span, repeating_spans)
+
+
+def perf_to_email_html(
+    spans: Union[List[Dict[str, Union[str, float]]], None], problem: PerformanceProblem = None
+) -> Any:
+    """Generate the email HTML for a performance issue alert"""
+    if not problem:
+        return ""
+
+    parent_span, repeating_spans = get_parent_and_repeating_spans(spans, problem)
+
     context = {
         "transaction_name": get_span_evidence_value_problem(problem),
         "parent_span": get_span_evidence_value(parent_span),
-        # "preceding_span": "SELECT idk FROM idk_what_a_preceding_span_is",
         "repeating_spans": get_span_evidence_value(repeating_spans),
         "num_repeating_spans": str(len(problem.offender_span_ids))
         if problem.offender_span_ids
@@ -353,16 +371,46 @@ def get_matched_problem(event: Event) -> Optional[EventPerformanceProblem]:
     return None
 
 
+def get_spans(
+    entries: List[Dict[str, Union[List[Dict[str, Union[str, float]]], str]]]
+) -> Optional[List[Dict[str, Union[str, float]]]]:
+    """Get the given event's spans"""
+    if not len(entries):
+        return None
+
+    spans: Optional[List[Dict[str, Union[str, float]]]] = None
+    for entry in entries:
+        if entry.get("type") == "spans":
+            spans = cast(Optional[List[Dict[str, Union[str, float]]]], entry.get("data"))
+            break
+
+    return spans
+
+
+def get_span_and_problem(
+    event: Event,
+) -> tuple[Optional[List[Dict[str, Union[str, float]]]], Optional[EventPerformanceProblem]]:
+    """Get a given event's spans and performance problem"""
+    entries = get_entries(event, None)
+    spans = get_spans(entries[0]) if len(entries) else None
+    matched_problem = get_matched_problem(event)
+    return (spans, matched_problem)
+
+
 def get_transaction_data(event: Event) -> Any:
     """Get data about a transaction to populate alert emails."""
-    entries = get_entries(event, None)
-    spans = []
-    if len(entries):
-        spans = [entry.get("data") for entry in entries[0] if entry.get("type") == "spans"][0]
-
-    matched_problem = get_matched_problem(event)
-
+    spans, matched_problem = get_span_and_problem(event)
     return perf_to_email_html(spans, matched_problem)
+
+
+def get_performance_issue_alert_subtitle(event: Event) -> str:
+    """Generate the issue alert subtitle for performance issues"""
+    spans, matched_problem = get_span_and_problem(event)
+    repeating_span_value = ""
+    if spans and matched_problem:
+        _, repeating_spans = get_parent_and_repeating_spans(spans, matched_problem)
+        repeating_span_value = get_span_evidence_value(repeating_spans, include_op=False)
+    return repeating_span_value.replace("`", '"')
 
 
 def send_activity_notification(notification: ActivityNotification | UserReportNotification) -> None:

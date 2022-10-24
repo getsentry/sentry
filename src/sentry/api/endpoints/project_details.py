@@ -103,6 +103,12 @@ class DynamicSamplingSerializer(serializers.Serializer):
     rules = serializers.ListSerializer(child=DynamicSamplingRuleSerializer())
     next_id = serializers.IntegerField(min_value=0, required=False)
 
+    # This negative integer represents the rule id that will be sent by the frontend on every rule creation/update.
+    #
+    # We decided to opt for -1 as UNASSIGNED_ID_VALUE because we decided to reserve 0 for the uniform rule id in order
+    # to avoid making changes in Relay's validation mechanism that supports only positive integers (unsigned integers).
+    UNASSIGNED_ID_VALUE = -1
+
     @staticmethod
     def fix_rule_ids(project, raw_dynamic_sampling):
         """
@@ -132,13 +138,15 @@ class DynamicSamplingSerializer(serializers.Serializer):
             rules = raw_dynamic_sampling.get("rules", [])
 
             for rule in rules:
-                # We are setting the unassigned id to -1. It used to be 0 but we are modifying the behavior as 0 is a
-                # valid id according to relay's rule validation which states the a rule id is an unsigned integer.
-                rid = rule.get("id", -1)
+                # For each rule we will try to get the id, in case we fall back to UNASSIGNED_ID_VALUE which is a
+                # special reserved id for rules that are created/updated as explained above. In this case we use
+                # UNASSIGNED_ID_VALUE because we treat a rule with no id as a rule that has been created.
+                rid = rule.get("id", DynamicSamplingSerializer.UNASSIGNED_ID_VALUE)
                 original_rule = original_rules_dict.get(rid)
-                # ToDo(ahmed): Temporarily allowing for 0 to be the unassigned rule id for backwards compatibility,
-                #  and will remove that once the UI changes are deployed.
-                if rid in {0, -1} or original_rule is None:
+
+                # If the incoming rule is created/updated/has no id, or we didn't find any matching rule in the saved
+                # configuration then we will assign it a new monotonically increasing id.
+                if rid == DynamicSamplingSerializer.UNASSIGNED_ID_VALUE or original_rule is None:
                     # a new or unknown rule give it a new id
                     rule["id"] = next_id
                     next_id += 1
@@ -501,6 +509,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if "hasAlertIntegration" in expand:
             data["hasAlertIntegrationInstalled"] = has_alert_integration(project)
 
+        if features.has(
+            "organizations:dynamic-sampling-basic", project.organization, actor=request.user
+        ):
+            data.pop("dynamicSampling", None)
+
         return Response(data)
 
     def put(self, request: Request, project) -> Response:
@@ -542,6 +555,15 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         serializer.is_valid()
 
         result = serializer.validated_data
+
+        is_dynamic_sampling_basic = features.has(
+            "organizations:dynamic-sampling-basic", project.organization, actor=request.user
+        )
+        if is_dynamic_sampling_basic and result.get("dynamicSampling"):
+            return Response(
+                {"detail": ["dynamicSampling is not a valid field"]},
+                status=403,
+            )
 
         allow_dynamic_sampling = features.has(
             "organizations:server-side-sampling", project.organization, actor=request.user
@@ -857,6 +879,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         )
 
         data = serialize(project, request.user, DetailedProjectSerializer())
+        if is_dynamic_sampling_basic:
+            data.pop("dynamicSampling", None)
+
         return Response(data)
 
     @sudo_required

@@ -4,7 +4,7 @@ from typing import Callable, Mapping, Optional, Union
 
 import sentry_sdk
 from django.utils.functional import cached_property
-from snuba_sdk import AliasedExpression, Column, Condition, Function, Op
+from snuba_sdk import AliasedExpression, Column, Condition, Function, Op, OrderBy
 
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
@@ -632,6 +632,10 @@ class MetricsDatasetConfig(DatasetConfig):
                 function_converter[alias] = function_converter[name].alias_as(alias)
 
         return function_converter
+
+    @property
+    def orderby_converter(self) -> Mapping[str, OrderBy]:
+        return {}
 
     # Field Aliases
     def _resolve_title_alias(self, alias: str) -> SelectType:
@@ -1600,12 +1604,12 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
         )
 
     def _resolve_transaction_alias(self, alias: str) -> SelectType:
+        return AliasedExpression(Column(self.builder.resolve_column_name("transaction")), alias)
         return Function(
             "transform_null_to_unparameterized",
             [Column("d:transactions/duration@millisecond"), "transaction"],
             alias,
         )
-        return AliasedExpression(Column(self.builder.resolve_column_name("transaction")), alias)
 
     def _resolve_title_alias(self, alias: str) -> SelectType:
         """title == transaction in discover"""

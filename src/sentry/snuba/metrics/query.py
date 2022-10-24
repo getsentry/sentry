@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from functools import cached_property
 from typing import Dict, Literal, Optional, Sequence, Set, Tuple, Union
 
+from django.db.models import QuerySet
 from snuba_sdk import Column, Direction, Granularity, Limit, Offset, Op
 from snuba_sdk.conditions import BooleanCondition, Condition
 
@@ -147,7 +148,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
     interval: Optional[int] = None
 
     @cached_property
-    def projects(self) -> Sequence[Project]:
+    def projects(self) -> QuerySet:
         return Project.objects.filter(id__in=self.project_ids)
 
     @cached_property
