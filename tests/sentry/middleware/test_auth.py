@@ -1,5 +1,5 @@
 import base64
-from unittest.mock import patch
+from typing import cast
 
 from django.test import RequestFactory, override_settings
 from django.utils import timezone
@@ -8,6 +8,10 @@ from freezegun import freeze_time
 
 from sentry.middleware.auth import AuthenticationMiddleware
 from sentry.models import ApiKey, ApiToken, UserIP
+from sentry.region_to_control.producer import (
+    MockRegionToControlMessageService,
+    region_to_control_message_service,
+)
 from sentry.silo import SiloMode
 from sentry.testutils import TestCase
 from sentry.utils.auth import login
@@ -46,15 +50,16 @@ class AuthenticationMiddlewareTestCase(TestCase):
         request = self.request
         assert login(request, self.user)
 
-        with override_settings(SILO_MODE=SiloMode.REGION), patch(
-            "sentry.region_to_control.producer.write_region_to_control_message"
-        ) as publish, freeze_time("2000-01-01"):
+        with override_settings(SILO_MODE=SiloMode.REGION), freeze_time("2000-01-01"):
             self.middleware.process_request(request)
 
             # User is still authenticated,
             assert request.user.is_authenticated
             assert request.user == self.user
-            publish.assert_called_with(
+
+            cast(
+                MockRegionToControlMessageService, region_to_control_message_service
+            ).mock.write_region_to_control_message.assert_called_with(
                 dict(
                     user_ip_event=dict(
                         user_id=self.user.id,
@@ -65,7 +70,7 @@ class AuthenticationMiddlewareTestCase(TestCase):
                     ),
                     audit_log_event=None,
                 ),
-                sync=False,
+                False,
             )
 
         # But no ip logging occurs.

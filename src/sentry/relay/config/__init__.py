@@ -157,25 +157,25 @@ def get_project_config(project, full_config=True, project_keys=None):
 
 
 def get_dynamic_sampling_config(project) -> Optional[Mapping[str, Any]]:
-    allow_dynamic_sampling = features.has(
+    allow_server_side_sampling = features.has(
         "organizations:server-side-sampling",
         project.organization,
     )
-    allow_dynamic_sampling_basic = features.has(
-        "organizations:dynamic-sampling-basic",
+    allow_dynamic_sampling = features.has(
+        "organizations:dynamic-sampling",
         project.organization,
     )
 
     # In this case we should override old conditionnal rules if they exists
     # or just return uniform rule
-    if allow_dynamic_sampling_basic:
+    if allow_dynamic_sampling:
         try:
             return {"rules": [generate_uniform_rule(project)]}
         except NoneSampleRateException:
             # just to be consistent with old code, where if there is no active active_rules
             # we return empty list
             return {"rules": []}
-    elif allow_dynamic_sampling:
+    elif allow_server_side_sampling:
         dynamic_sampling = project.get_option("sentry:dynamic_sampling")
         if dynamic_sampling is not None:
             # filter out rules that do not have active set to True

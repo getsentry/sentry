@@ -42,15 +42,17 @@ describe('useRoutes', () => {
 
     expect(() =>
       render(
-        <Router history={memoryHistory}>
-          <Route
-            path="/"
-            component={() => {
-              useRoutes();
-              return null;
-            }}
-          />
-        </Router>
+        <RouteContext.Provider value={null}>
+          <Router history={memoryHistory}>
+            <Route
+              path="/"
+              component={() => {
+                useRoutes();
+                return null;
+              }}
+            />
+          </Router>
+        </RouteContext.Provider>
       )
     ).toThrow(/useRouteContext called outside of routes provider/);
   });

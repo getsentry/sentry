@@ -64,7 +64,7 @@ SOME_EXCEPTION = RuntimeError("foo")
 @mock.patch("sentry.relay.config.sentry_sdk")
 def test_get_experimental_config(mock_sentry_sdk, _, default_project):
     keys = ProjectKey.objects.filter(project=default_project)
-    with Feature("organizations:dynamic-sampling-basic"):
+    with Feature("organizations:dynamic-sampling"):
         # Does not raise:
         cfg = get_project_config(default_project, full_config=True, project_keys=keys)
     # Key is missing from config:
@@ -206,8 +206,8 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
 @pytest.mark.parametrize(
     "ss_sampling,ds_basic,current_ds_data,expected",
     [
-        # server-side-sampling: True, dynamic-sampling-basic: True
-        # `dynamic-sampling-basic` flag has the highest precedence
+        # server-side-sampling: True, dynamic-sampling: True
+        # `dynamic-sampling` flag has the highest precedence
         (
             True,
             True,
@@ -285,7 +285,7 @@ def test_project_config_with_uniform_rules_based_on_plan_in_dynamic_sampling_rul
     with Feature(
         {
             "organizations:server-side-sampling": ss_sampling,
-            "organizations:dynamic-sampling-basic": ds_basic,
+            "organizations:dynamic-sampling": ds_basic,
         }
     ):
         with mock.patch(
