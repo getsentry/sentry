@@ -252,7 +252,7 @@ def test_generate_rules_capture_exception(get_blended_sample_rate, sentry_sdk):
 
 
 @patch(
-    "sentry.dynamic_sampling.feature_multiplexer.DynamicSamplingFeatureMultiplexer.get_user_bias"
+    "sentry.dynamic_sampling.feature_multiplexer.DynamicSamplingFeatureMultiplexer.get_user_bias_by_id"
 )
 @patch("sentry.dynamic_sampling.quotas.get_blended_sample_rate")
 def test_generate_rules_return_uniform_rules_with_rate(get_blended_sample_rate, get_user_bias):
@@ -329,4 +329,9 @@ def test_generate_rules_return_uniform_rule_with_100_rate_and_without_env_rule(
         },
     ]
     get_blended_sample_rate.assert_called_with(fake_project)
+<<<<<<< HEAD
 >>>>>>> e04f4b0895 (fixup tests!)
+||||||| parent of 9cd1096c7d (feat(dynamic-sampling): Add new bias for dev envs [TET-491] (#40382))
+=======
+>>>>>>> 30e13df85c (feat(dynamic-sampling): Add new bias for dev envs [TET-491] (#40382))
+>>>>>>> 9cd1096c7d (feat(dynamic-sampling): Add new bias for dev envs [TET-491] (#40382))
