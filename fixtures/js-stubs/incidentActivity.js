@@ -1,6 +1,6 @@
-import {User} from './user';
+const {User} = require('./user');
 
-export function IncidentActivity(params = {}) {
+module.exports.IncidentActivity = function (params = {}) {
   return {
     comment: 'incident activity comment',
     type: 3,
@@ -10,4 +10,4 @@ export function IncidentActivity(params = {}) {
     incidentIdentifier: '999',
     ...params,
   };
-}
+};

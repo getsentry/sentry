@@ -1,4 +1,4 @@
-export function GitHubRepositoryProvider(params = {}) {
+module.exports.GitHubRepositoryProvider = function (params = {}) {
   return {
     key: 'github',
     name: 'GitHub',
@@ -14,4 +14,4 @@ export function GitHubRepositoryProvider(params = {}) {
     ],
     ...params,
   };
-}
+};

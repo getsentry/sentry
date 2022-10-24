@@ -1,4 +1,4 @@
-export function ProjectKeys(params = []) {
+module.exports.ProjectKeys = function (params = []) {
   return [
     {
       dsn: {
@@ -23,4 +23,4 @@ export function ProjectKeys(params = []) {
     },
     ...params,
   ];
-}
+};

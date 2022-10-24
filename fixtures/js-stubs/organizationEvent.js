@@ -1,4 +1,4 @@
-export function OrganizationEvent(params = {}) {
+module.exports.OrganizationEvent = function (params = {}) {
   return {
     projectID: '2',
     eventID: '12345678901234567890123456789012',
@@ -11,4 +11,4 @@ export function OrganizationEvent(params = {}) {
     },
     ...params,
   };
-}
+};

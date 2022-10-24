@@ -1,4 +1,4 @@
-export function DocIntegration(params = {}) {
+module.exports.DocIntegration = function (params = {}) {
   return {
     name: 'Sample Doc',
     slug: 'sample-doc',
@@ -28,4 +28,4 @@ export function DocIntegration(params = {}) {
     ],
     ...params,
   };
-}
+};

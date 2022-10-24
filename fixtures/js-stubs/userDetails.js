@@ -1,4 +1,4 @@
-export function UserDetails(params = {}) {
+module.exports.UserDetails = function (params = {}) {
   return {
     username: 'billyfirefoxusername@test.com',
     emails: [
@@ -30,4 +30,4 @@ export function UserDetails(params = {}) {
     email: 'billyfirefox@test.com',
     ...params,
   };
-}
+};

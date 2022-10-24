@@ -1,4 +1,4 @@
-export function SourceMapArchive(params = {}) {
+module.exports.SourceMapArchive = function (params = {}) {
   return {
     date: '2020-05-06T13:41:48.926535Z',
     type: 'release',
@@ -7,4 +7,4 @@ export function SourceMapArchive(params = {}) {
     name: '1234',
     ...params,
   };
-}
+};

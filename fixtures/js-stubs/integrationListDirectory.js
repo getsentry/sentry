@@ -1,4 +1,4 @@
-export function ProviderList() {
+module.exports.ProviderList = function () {
   return {
     providers: [
       {
@@ -31,9 +31,9 @@ export function ProviderList() {
       },
     ],
   };
-}
+};
 
-export function BitbucketIntegrationConfig() {
+module.exports.BitbucketIntegrationConfig = function () {
   return {
     accountType: null,
     configData: {},
@@ -53,9 +53,9 @@ export function BitbucketIntegrationConfig() {
     },
     status: 'active',
   };
-}
+};
 
-export function GithubIntegrationConfig() {
+module.exports.GithubIntegrationConfig = function () {
   return {
     accountType: null,
     configData: {},
@@ -75,9 +75,9 @@ export function GithubIntegrationConfig() {
     },
     status: 'active',
   };
-}
+};
 
-export function OrgOwnedApps() {
+module.exports.OrgOwnedApps = function () {
   return [
     {
       allowedOrigins: [],
@@ -154,9 +154,9 @@ export function OrgOwnedApps() {
       ],
     },
   ];
-}
+};
 
-export function PublishedApps() {
+module.exports.PublishedApps = function () {
   return [
     {
       allowedOrigins: [],
@@ -186,9 +186,9 @@ export function PublishedApps() {
       ],
     },
   ];
-}
+};
 
-export function SentryAppInstalls() {
+module.exports.SentryAppInstalls = function () {
   return [
     {
       app: {
@@ -201,9 +201,9 @@ export function SentryAppInstalls() {
       uuid: '5379e8e1-0554-468f-90ca-2e0c88f1ac32',
     },
   ];
-}
+};
 
-export function PluginListConfig() {
+module.exports.PluginListConfig = function () {
   return [
     {
       assets: [],
@@ -290,4 +290,4 @@ export function PluginListConfig() {
       metadata: {},
     },
   ];
-}
+};

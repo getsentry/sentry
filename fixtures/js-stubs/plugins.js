@@ -1,6 +1,6 @@
-import {Plugin} from './plugin';
+const {Plugin} = require('./plugin');
 
-export function Plugins(params = []) {
+module.exports.Plugins = function (params = []) {
   return [
     Plugin(),
     Plugin({
@@ -20,4 +20,4 @@ export function Plugins(params = []) {
     }),
     ...params,
   ];
-}
+};

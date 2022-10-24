@@ -1,6 +1,6 @@
-import {Project} from './project';
+const {Project} = require('./project');
 
-export function ProjectDetails(params = {}) {
+module.exports.ProjectDetails = function (params = {}) {
   return Project({
     subjectTemplate: '[$project] ${tag:level}: $title',
     subjectPrefix: '[my-org]',
@@ -21,4 +21,4 @@ export function ProjectDetails(params = {}) {
     features: [],
     ...params,
   });
-}
+};

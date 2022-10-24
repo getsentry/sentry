@@ -1,4 +1,4 @@
-export function AccountEmails(params = []) {
+module.exports.AccountEmails = function (params = []) {
   return [
     {
       email: 'primary@example.com',
@@ -17,4 +17,4 @@ export function AccountEmails(params = []) {
     },
     ...params,
   ];
-}
+};

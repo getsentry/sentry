@@ -1,4 +1,4 @@
-export function TeamAlertsTriggered() {
+module.exports.TeamAlertsTriggered = function () {
   return {
     '2021-08-20T00:00:00Z': 3,
     '2021-08-21T00:00:00Z': 2,
@@ -57,4 +57,4 @@ export function TeamAlertsTriggered() {
     '2021-09-11T00:00:00Z': 0,
     '2021-09-29T00:00:00Z': 0,
   };
-}
+};

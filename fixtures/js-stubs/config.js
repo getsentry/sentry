@@ -1,6 +1,6 @@
-import {User} from './user';
+const {User} = require('./user');
 
-export function Config(params = {}) {
+module.exports.Config = function (params = {}) {
   return {
     theme: 'light',
     user: User(),
@@ -51,4 +51,4 @@ export function Config(params = {}) {
     },
     ...params,
   };
-}
+};

@@ -1,4 +1,4 @@
-export function Tags(params = []) {
+module.exports.Tags = function (params = []) {
   return [
     {
       topValues: [
@@ -94,4 +94,4 @@ export function Tags(params = []) {
     },
     ...params,
   ];
-}
+};

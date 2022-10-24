@@ -1,4 +1,4 @@
-export function SentryAppComponent(params = {}) {
+module.exports.SentryAppComponent = function (params = {}) {
   return {
     uuid: 'ed517da4-a324-44c0-aeea-1894cd9923fb',
     type: 'issue-link',
@@ -45,8 +45,8 @@ export function SentryAppComponent(params = {}) {
     },
     ...params,
   };
-}
-export function SentryAppComponentAsync(params = {}) {
+};
+module.exports.SentryAppComponentAsync = function (params = {}) {
   return {
     uuid: 'ed517da4-a324-44c0-aeea-1894cd9923fb',
     type: 'issue-link',
@@ -80,9 +80,9 @@ export function SentryAppComponentAsync(params = {}) {
     },
     ...params,
   };
-}
+};
 
-export function SentryAppComponentDependent(params = {}) {
+module.exports.SentryAppComponentDependent = function (params = {}) {
   return {
     type: 'issue-link',
     uuid: 'ed517da4-a324-44c0-aeea-1894cd9923fb',
@@ -155,4 +155,4 @@ export function SentryAppComponentDependent(params = {}) {
     },
     ...params,
   };
-}
+};

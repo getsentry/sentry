@@ -1,4 +1,4 @@
-export function GitHubIntegration(params = {}) {
+module.exports.GitHubIntegration = function (params = {}) {
   return {
     domainName: 'github.com/test-integration',
     icon: 'http://example.com/integration_icon.png',
@@ -15,4 +15,4 @@ export function GitHubIntegration(params = {}) {
     configData: {},
     ...params,
   };
-}
+};

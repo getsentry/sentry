@@ -1,4 +1,4 @@
-export function VstsPlugin() {
+module.exports.VstsPlugin = function () {
   return {
     status: 'unknown',
     description: 'Integrate Visual Studio Team Services work items by linking a project.',
@@ -24,9 +24,9 @@ export function VstsPlugin() {
     type: 'issue-tracking',
     metadata: {},
   };
-}
+};
 
-export function VstsCreate() {
+module.exports.VstsCreate = function () {
   return [
     {
       name: 'project',
@@ -50,4 +50,4 @@ export function VstsCreate() {
       label: 'Description',
     },
   ];
-}
+};

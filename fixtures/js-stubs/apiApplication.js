@@ -1,4 +1,4 @@
-export function ApiApplication(params = {}) {
+module.exports.ApiApplication = function (params = {}) {
   return {
     allowedOrigins: [],
     clientID: 'aowekr12903i9i423094i23904j',
@@ -10,4 +10,4 @@ export function ApiApplication(params = {}) {
     redirectUris: [],
     ...params,
   };
-}
+};

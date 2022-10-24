@@ -1,4 +1,4 @@
-export function AuthProvider(params = {}) {
+module.exports.AuthProvider = function (params = {}) {
   return {
     auth_provider: {
       id: '1',
@@ -12,4 +12,4 @@ export function AuthProvider(params = {}) {
     content: '',
     ...params,
   };
-}
+};

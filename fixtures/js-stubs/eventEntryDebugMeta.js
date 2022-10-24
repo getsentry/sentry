@@ -1,4 +1,4 @@
-export function EventEntryDebugMeta(params = {}) {
+module.exports.EventEntryDebugMeta = function (params = {}) {
   return {
     type: 'debugmeta',
     data: {
@@ -70,4 +70,4 @@ export function EventEntryDebugMeta(params = {}) {
     },
     ...params,
   };
-}
+};

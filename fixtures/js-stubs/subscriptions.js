@@ -1,4 +1,4 @@
-export function Subscriptions(params = []) {
+module.exports.Subscriptions = function (params = []) {
   return [
     {
       subscribedDate: '2018-01-08T05:14:59.102Z',
@@ -21,4 +21,4 @@ export function Subscriptions(params = []) {
     },
     ...params,
   ];
-}
+};

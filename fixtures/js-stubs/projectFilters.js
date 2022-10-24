@@ -1,4 +1,4 @@
-export function ProjectFilters(params = []) {
+module.exports.ProjectFilters = function (params = []) {
   return [
     {
       active: true,
@@ -30,4 +30,4 @@ export function ProjectFilters(params = []) {
     },
     ...params,
   ];
-}
+};

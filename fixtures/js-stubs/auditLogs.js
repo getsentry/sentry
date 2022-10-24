@@ -1,4 +1,4 @@
-export function AuditLogs(params = []) {
+module.exports.AuditLogs = function (params = []) {
   return [
     {
       note: 'edited project ludic-science',
@@ -30,4 +30,4 @@ export function AuditLogs(params = []) {
     },
     ...params,
   ];
-}
+};

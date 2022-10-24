@@ -1,4 +1,4 @@
-export function ProjectAlertRuleConfiguration(params = {}) {
+module.exports.ProjectAlertRuleConfiguration = function (params = {}) {
   return {
     actions: [
       {
@@ -275,4 +275,4 @@ export function ProjectAlertRuleConfiguration(params = {}) {
     ],
     ...params,
   };
-}
+};

@@ -1,4 +1,4 @@
-export function TagValues(params = []) {
+module.exports.TagValues = function (params = []) {
   return [
     {
       username: 'david',
@@ -20,4 +20,4 @@ export function TagValues(params = []) {
     },
     ...params,
   ];
-}
+};

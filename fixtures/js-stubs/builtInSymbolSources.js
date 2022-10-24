@@ -1,4 +1,4 @@
-export function BuiltInSymbolSources(params = []) {
+module.exports.BuiltInSymbolSources = function (params = []) {
   return [
     {
       sentry_key: 'amd',
@@ -62,4 +62,4 @@ export function BuiltInSymbolSources(params = []) {
     },
     ...params,
   ];
-}
+};

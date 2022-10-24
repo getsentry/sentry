@@ -1,8 +1,8 @@
-import {Event} from './event';
-import {Group} from './group';
-import {User} from './user';
+const {Event} = require('./event');
+const {Group} = require('./group');
+const {User} = require('./user');
 
-export function UserFeedback(params = {}) {
+module.exports.UserFeedback = function (params = {}) {
   const event = Event();
   return {
     id: '123',
@@ -16,4 +16,4 @@ export function UserFeedback(params = {}) {
     user: User(),
     ...params,
   };
-}
+};

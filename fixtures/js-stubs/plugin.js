@@ -1,4 +1,4 @@
-export function Plugin(params = {}) {
+module.exports.Plugin = function (params = {}) {
   return {
     author: {url: 'https://github.com/getsentry/sentry', name: 'Sentry Team'},
     enabled: false,
@@ -12,4 +12,4 @@ export function Plugin(params = {}) {
     canDisable: true,
     ...params,
   };
-}
+};

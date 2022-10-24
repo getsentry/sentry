@@ -1,4 +1,4 @@
-export function JiraIntegrationProvider(params = {}) {
+module.exports.JiraIntegrationProvider = function (params = {}) {
   return {
     key: 'jira',
     name: 'Jira',
@@ -22,4 +22,4 @@ export function JiraIntegrationProvider(params = {}) {
     },
     ...params,
   };
-}
+};

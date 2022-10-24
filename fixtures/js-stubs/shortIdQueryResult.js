@@ -1,6 +1,6 @@
-import {Group} from './group';
+const {Group} = require('./group');
 
-export function ShortIdQueryResult(params = {}) {
+module.exports.ShortIdQueryResult = function (params = {}) {
   const group = Group({
     metadata: {
       type: 'group type',
@@ -15,4 +15,4 @@ export function ShortIdQueryResult(params = {}) {
     group,
     ...params,
   };
-}
+};

@@ -1,4 +1,4 @@
-export function DebugSymbols(params = {}) {
+module.exports.DebugSymbols = function (params = {}) {
   return {
     debugSymbols: [
       {
@@ -34,4 +34,4 @@ export function DebugSymbols(params = {}) {
     ],
     ...params,
   };
-}
+};

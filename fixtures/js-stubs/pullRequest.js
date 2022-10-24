@@ -1,6 +1,6 @@
-import {Repository} from './repository';
+const {Repository} = require('./repository');
 
-export function PullRequest(params = {}) {
+module.exports.PullRequest = function (params = {}) {
   return {
     id: '3',
     author: {
@@ -15,4 +15,4 @@ export function PullRequest(params = {}) {
     externalUrl: 'https://example.github.com/example/repo-name/pulls/3',
     ...params,
   };
-}
+};

@@ -1,4 +1,4 @@
-export function AccountAppearance(params = {}) {
+module.exports.AccountAppearance = function (params = {}) {
   return {
     stacktrace_order: '2',
     timezone: 'US/Pacific',
@@ -6,4 +6,4 @@ export function AccountAppearance(params = {}) {
     clock_24_hours: true,
     ...params,
   };
-}
+};

@@ -1,4 +1,4 @@
-export function Groups() {
+module.exports.Groups = function () {
   return [
     {
       lastSeen: '2017-07-25T02:22:19Z',
@@ -128,4 +128,4 @@ export function Groups() {
       statusDetails: {},
     },
   ];
-}
+};

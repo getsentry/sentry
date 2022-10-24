@@ -1,4 +1,4 @@
-export function EventEntry(params = {}) {
+module.exports.EventEntry = function (params = {}) {
   return {
     id: '1',
     type: 'message',
@@ -7,4 +7,4 @@ export function EventEntry(params = {}) {
     },
     ...params,
   };
-}
+};

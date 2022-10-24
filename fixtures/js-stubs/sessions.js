@@ -1,4 +1,4 @@
-export function SessionsField({field} = {}) {
+module.exports.SessionsField = function ({field} = {}) {
   return {
     query: '',
     intervals: [
@@ -29,9 +29,9 @@ export function SessionsField({field} = {}) {
       },
     ],
   };
-}
+};
 
-export function SessionUserCountByStatus() {
+module.exports.SessionUserCountByStatus = function () {
   return {
     query: '',
     intervals: [
@@ -113,11 +113,11 @@ export function SessionUserCountByStatus() {
       },
     ],
   };
-}
+};
 
 // this one is higher than the first one
 // first one can be used as "This Release" and the second one works nicely as "All Releases"
-export function SessionUserCountByStatus2() {
+module.exports.SessionUserCountByStatus2 = function () {
   return {
     query: '',
     intervals: [
@@ -199,9 +199,9 @@ export function SessionUserCountByStatus2() {
       },
     ],
   };
-}
+};
 
-export function SessionStatusCountByReleaseInPeriod() {
+module.exports.SessionStatusCountByReleaseInPeriod = function () {
   return {
     query:
       'release:7a82c130be9143361f20bc77252df783cf91e4fc OR release:e102abb2c46e7fe8686441091005c12aed90da99',
@@ -296,9 +296,9 @@ export function SessionStatusCountByReleaseInPeriod() {
       },
     ],
   };
-}
+};
 
-export function SessionStatusCountByProjectInPeriod() {
+module.exports.SessionStatusCountByProjectInPeriod = function () {
   return {
     query: '',
     intervals: [
@@ -352,9 +352,9 @@ export function SessionStatusCountByProjectInPeriod() {
       },
     ],
   };
-}
+};
 
-export function SesssionTotalCountByReleaseIn24h() {
+module.exports.SesssionTotalCountByReleaseIn24h = function () {
   return {
     query:
       'release:7a82c130be9143361f20bc77252df783cf91e4fc OR release:e102abb2c46e7fe8686441091005c12aed90da99',
@@ -407,9 +407,9 @@ export function SesssionTotalCountByReleaseIn24h() {
       },
     ],
   };
-}
+};
 
-export function SessionTotalCountByProjectIn24h() {
+module.exports.SessionTotalCountByProjectIn24h = function () {
   return {
     query: '',
     intervals: [
@@ -452,9 +452,9 @@ export function SessionTotalCountByProjectIn24h() {
       },
     ],
   };
-}
+};
 
-export function SessionUserStatusCountByReleaseInPeriod() {
+module.exports.SessionUserStatusCountByReleaseInPeriod = function () {
   return {
     query:
       'release:7a82c130be9143361f20bc77252df783cf91e4fc OR release:e102abb2c46e7fe8686441091005c12aed90da99',
@@ -573,9 +573,9 @@ export function SessionUserStatusCountByReleaseInPeriod() {
       },
     ],
   };
-}
+};
 
-export function SessionUserStatusCountByProjectInPeriod() {
+module.exports.SessionUserStatusCountByProjectInPeriod = function () {
   return {
     query: '',
     intervals: [
@@ -641,9 +641,9 @@ export function SessionUserStatusCountByProjectInPeriod() {
       },
     ],
   };
-}
+};
 
-export function UserTotalCountByReleaseIn24h() {
+module.exports.UserTotalCountByReleaseIn24h = function () {
   return {
     query:
       'release:7a82c130be9143361f20bc77252df783cf91e4fc OR release:e102abb2c46e7fe8686441091005c12aed90da99',
@@ -695,9 +695,9 @@ export function UserTotalCountByReleaseIn24h() {
       },
     ],
   };
-}
+};
 
-export function UserTotalCountByProjectIn24h() {
+module.exports.UserTotalCountByProjectIn24h = function () {
   return {
     query: '',
     intervals: [
@@ -739,9 +739,9 @@ export function UserTotalCountByProjectIn24h() {
       },
     ],
   };
-}
+};
 
-export function SessionUserCountByStatusByRelease() {
+module.exports.SessionUserCountByStatusByRelease = function () {
   return {
     start: '2022-01-15T00:00:00Z',
     end: '2022-01-29T00:00:00Z',
@@ -829,9 +829,9 @@ export function SessionUserCountByStatusByRelease() {
       },
     ],
   };
-}
+};
 
-export function SessionEmptyGroupedResponse() {
+module.exports.SessionEmptyGroupedResponse = function () {
   return {
     start: '2022-01-15T00:00:00Z',
     end: '2022-01-29T00:00:00Z',
@@ -854,4 +854,4 @@ export function SessionEmptyGroupedResponse() {
     ],
     groups: [],
   };
-}
+};

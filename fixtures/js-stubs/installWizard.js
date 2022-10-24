@@ -1,4 +1,4 @@
-export function InstallWizard(params = {}) {
+module.exports.InstallWizard = function (params = {}) {
   return {
     'mail.use-tls': {
       field: {
@@ -112,4 +112,4 @@ export function InstallWizard(params = {}) {
     },
     ...params,
   };
-}
+};

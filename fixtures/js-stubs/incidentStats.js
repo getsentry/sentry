@@ -1,4 +1,4 @@
-export function IncidentStats(params = {}) {
+module.exports.IncidentStats = function (params = {}) {
   return {
     totalEvents: 100,
     uniqueUsers: 20,
@@ -7,4 +7,4 @@ export function IncidentStats(params = {}) {
     },
     ...params,
   };
-}
+};

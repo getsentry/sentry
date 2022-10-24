@@ -1,4 +1,4 @@
-export function GitHubIntegrationProvider(params = {}) {
+module.exports.GitHubIntegrationProvider = function (params = {}) {
   return {
     key: 'github',
     slug: 'github',
@@ -35,4 +35,4 @@ export function GitHubIntegrationProvider(params = {}) {
     },
     ...params,
   };
-}
+};

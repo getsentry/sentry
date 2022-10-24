@@ -1,4 +1,4 @@
-export function OrgRoleList(params = [], fullAccess = false) {
+module.exports.OrgRoleList = function (params = [], fullAccess = false) {
   return [
     {
       scopes: [
@@ -96,9 +96,9 @@ export function OrgRoleList(params = [], fullAccess = false) {
     },
     ...params,
   ];
-}
+};
 
-export function TeamRoleList(params = []) {
+module.exports.TeamRoleList = function (params = []) {
   return [
     {
       id: 'contributor',
@@ -142,4 +142,4 @@ export function TeamRoleList(params = []) {
     },
     ...params,
   ];
-}
+};

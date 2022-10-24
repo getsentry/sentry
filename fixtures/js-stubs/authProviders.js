@@ -1,4 +1,4 @@
-export function AuthProviders(params = []) {
+module.exports.AuthProviders = function (params = []) {
   return [
     {
       key: 'dummy',
@@ -12,4 +12,4 @@ export function AuthProviders(params = []) {
     },
     ...params,
   ];
-}
+};

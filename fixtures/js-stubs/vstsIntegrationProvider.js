@@ -1,4 +1,4 @@
-export function VstsIntegrationProvider(params = {}) {
+module.exports.VstsIntegrationProvider = function (params = {}) {
   return {
     key: 'vsts',
     name: 'VSTS',
@@ -16,4 +16,4 @@ export function VstsIntegrationProvider(params = {}) {
     },
     ...params,
   };
-}
+};

@@ -1,4 +1,4 @@
-export function GroupStats(params = {}) {
+module.exports.GroupStats = function (params = {}) {
   return {
     count: '327482',
     firstSeen: '2019-04-05T19:44:05.963Z',
@@ -17,4 +17,4 @@ export function GroupStats(params = {}) {
     userCount: 35097,
     ...params,
   };
-}
+};

@@ -1,4 +1,4 @@
-export function RepositoryProjectPathConfig(params) {
+module.exports.RepositoryProjectPathConfig = function (params) {
   const {project, repo, integration} = params;
   return {
     id: '2',
@@ -13,4 +13,4 @@ export function RepositoryProjectPathConfig(params) {
     defaultBranch: 'master',
     ...params,
   };
-}
+};

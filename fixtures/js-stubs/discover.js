@@ -1,4 +1,4 @@
-export function DiscoverSavedQuery(params = {}) {
+module.exports.DiscoverSavedQuery = function (params = {}) {
   return {
     id: '1',
     name: 'Saved query #1',
@@ -7,4 +7,4 @@ export function DiscoverSavedQuery(params = {}) {
     fields: ['test'],
     ...params,
   };
-}
+};

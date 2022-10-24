@@ -1,4 +1,4 @@
-export function SentryAppInstallation(params = {}) {
+module.exports.SentryAppInstallation = function (params = {}) {
   return {
     uuid: 'd950595e-cba2-46f6-8a94-b79e42806f98',
     app: {
@@ -11,4 +11,4 @@ export function SentryAppInstallation(params = {}) {
     status: 'installed',
     ...params,
   };
-}
+};

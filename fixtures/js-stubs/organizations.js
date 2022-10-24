@@ -1,4 +1,4 @@
-export function Organizations(params = {}) {
+module.exports.Organizations = function (params = {}) {
   return [
     {
       id: '1',
@@ -23,4 +23,4 @@ export function Organizations(params = {}) {
       ...params,
     },
   ];
-}
+};

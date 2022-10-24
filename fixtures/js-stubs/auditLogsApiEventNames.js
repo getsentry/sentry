@@ -1,4 +1,4 @@
-export function AuditLogsApiEventNames(params = []) {
+module.exports.AuditLogsApiEventNames = function (params = []) {
   return [
     ...params,
     'member.invite',
@@ -37,4 +37,4 @@ export function AuditLogsApiEventNames(params = []) {
     'integration.edit',
     'integration.remove',
   ];
-}
+};

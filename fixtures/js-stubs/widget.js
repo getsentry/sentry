@@ -29,11 +29,11 @@ const DEFAULT_QUERIES = {
   ],
 };
 
-export function Widget(queries = {...DEFAULT_QUERIES}, options) {
+module.exports.Widget = function (queries = {...DEFAULT_QUERIES}, options) {
   return {
     type: 'line',
     queries,
     title: 'Widget',
     ...options,
   };
-}
+};

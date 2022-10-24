@@ -1,4 +1,4 @@
-export function SentryAppWebhookRequest(params = {}) {
+module.exports.SentryAppWebhookRequest = function (params = {}) {
   return {
     webhookUrl: 'https://example.com/webhook',
     sentryAppSlug: 'sample-app',
@@ -12,4 +12,4 @@ export function SentryAppWebhookRequest(params = {}) {
 
     ...params,
   };
-}
+};

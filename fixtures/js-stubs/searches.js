@@ -1,6 +1,6 @@
-import {Search} from './search';
+const {Search} = require('./search');
 
-export function Searches(params = []) {
+module.exports.Searches = function (params = []) {
   return [
     Search({
       name: 'Needs Triage',
@@ -18,4 +18,4 @@ export function Searches(params = []) {
     }),
     ...params,
   ];
-}
+};

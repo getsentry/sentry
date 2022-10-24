@@ -1,4 +1,4 @@
-export function MetricsMeta(additionalMeta = []) {
+module.exports.MetricsMeta = function (additionalMeta = []) {
   return [
     {
       name: 'sentry.sessions.session',
@@ -74,4 +74,4 @@ export function MetricsMeta(additionalMeta = []) {
     },
     ...additionalMeta,
   ];
-}
+};

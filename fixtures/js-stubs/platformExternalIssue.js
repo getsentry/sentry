@@ -1,4 +1,4 @@
-export function PlatformExternalIssue(params = {}) {
+module.exports.PlatformExternalIssue = function (params = {}) {
   return {
     id: '1',
     groupId: '1',
@@ -7,4 +7,4 @@ export function PlatformExternalIssue(params = {}) {
     webUrl: 'https://example.com/1',
     ...params,
   };
-}
+};

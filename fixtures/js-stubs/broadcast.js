@@ -1,4 +1,4 @@
-export function Broadcast(params = {}) {
+module.exports.Broadcast = function (params = {}) {
   return {
     dateCreated: new Date(),
     dateExpires: new Date(),
@@ -11,4 +11,4 @@ export function Broadcast(params = {}) {
     title: 'Learn about Source Maps',
     ...params,
   };
-}
+};

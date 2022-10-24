@@ -1,7 +1,7 @@
-export function GroupingEnhancements() {
+module.exports.GroupingEnhancements = function () {
   return [
     {
       id: 'default:XXXX',
     },
   ];
-}
+};

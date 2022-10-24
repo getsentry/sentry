@@ -1,4 +1,4 @@
-export function UserIdentity() {
+module.exports.UserIdentity = function () {
   return {
     id: '52',
     identityProvider: {
@@ -9,4 +9,4 @@ export function UserIdentity() {
     externalId: 'UA1J9RTE1',
     status: 1,
   };
-}
+};

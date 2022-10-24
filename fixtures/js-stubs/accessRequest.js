@@ -1,7 +1,7 @@
-import {Member} from './member';
-import {Team} from './team';
+const {Member} = require('./member');
+const {Team} = require('./team');
 
-export function AccessRequest(params = {}) {
+module.exports.AccessRequest = function (params = {}) {
   return {
     id: '123',
     member: Member(),
@@ -9,4 +9,4 @@ export function AccessRequest(params = {}) {
     requester: null,
     ...params,
   };
-}
+};

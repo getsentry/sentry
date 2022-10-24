@@ -43,7 +43,7 @@ const defaultBreadcrumbs = [
   },
 ];
 
-export function ReplayReaderParams({
+module.exports.ReplayReaderParams = function ({
   replayRecord = {},
   rrwebEvents = defaultRRWebEvents,
   breadcrumbs = defaultBreadcrumbs,
@@ -104,4 +104,4 @@ export function ReplayReaderParams({
     spans,
     errors,
   };
-}
+};

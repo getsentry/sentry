@@ -1,4 +1,4 @@
-export function VercelProvider() {
+module.exports.VercelProvider = function () {
   return {
     setupDialog: {
       url: '/organizations/sentry/integrations/vercel/setup/',
@@ -28,4 +28,4 @@ export function VercelProvider() {
       aspects: {},
     },
   };
-}
+};

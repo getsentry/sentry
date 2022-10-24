@@ -1,6 +1,6 @@
-import {Event} from './event';
+const {Event} = require('./event');
 
-export function Events(params = []) {
+module.exports.Events = function (params = []) {
   return [
     Event({eventID: '12345', id: '1', message: 'ApiException', groupID: '1'}),
     Event({
@@ -11,9 +11,9 @@ export function Events(params = []) {
     }),
     ...params,
   ];
-}
+};
 
-export function EventsStats(params = {}) {
+module.exports.EventsStats = function (params = {}) {
   return {
     data: [
       [new Date(), [{count: 321}, {count: 79}]],
@@ -21,9 +21,9 @@ export function EventsStats(params = {}) {
     ],
     ...params,
   };
-}
+};
 
-export function DetailedEvents() {
+module.exports.DetailedEvents = function () {
   return [
     {
       eventID: '807f0de4d8c246098f21f8e0f1684f3d',
@@ -144,4 +144,4 @@ export function DetailedEvents() {
       size: 21896,
     },
   ];
-}
+};

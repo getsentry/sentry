@@ -1,4 +1,4 @@
-export function JiraIntegration(params = {}) {
+module.exports.JiraIntegration = function (params = {}) {
   return {
     domainName: 'jira.com/test-integration',
     icon: 'http://jira.example.com/integration_icon.png',
@@ -15,4 +15,4 @@ export function JiraIntegration(params = {}) {
     configData: {},
     ...params,
   };
-}
+};

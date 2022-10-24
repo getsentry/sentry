@@ -1,4 +1,4 @@
-export function SentryApp(params = {}) {
+module.exports.SentryApp = function (params = {}) {
   return {
     name: 'Sample App',
     author: 'Sentry',
@@ -16,4 +16,4 @@ export function SentryApp(params = {}) {
     schema: {},
     ...params,
   };
-}
+};

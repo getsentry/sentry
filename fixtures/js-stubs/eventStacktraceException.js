@@ -1,4 +1,4 @@
-import {Event} from './event';
+const {Event} = require('./event');
 
 const exception = {
   type: 'exception',
@@ -36,10 +36,10 @@ const message = {
   },
 };
 
-export function EventStacktraceException(params = {}) {
+module.exports.EventStacktraceException = function (params = {}) {
   return Event({entries: [{...exception}], ...params});
-}
+};
 
-export function EventStacktraceMessage(params = {}) {
+module.exports.EventStacktraceMessage = function (params = {}) {
   return Event({entries: [{...message}], ...params});
-}
+};

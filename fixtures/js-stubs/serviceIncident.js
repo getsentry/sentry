@@ -1,4 +1,4 @@
-export function ServiceIncident(params = {}) {
+module.exports.ServiceIncident = function (params = {}) {
   return {
     id: '1',
     title: 'Test Incident',
@@ -30,4 +30,4 @@ export function ServiceIncident(params = {}) {
     url: 'https://status.sentry.io',
     ...params,
   };
-}
+};

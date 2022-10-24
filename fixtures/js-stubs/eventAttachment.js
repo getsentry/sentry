@@ -1,4 +1,4 @@
-export function EventAttachment(params = {}) {
+module.exports.EventAttachment = function (params = {}) {
   return {
     id: '1',
     name: 'screenshot.png',
@@ -13,4 +13,4 @@ export function EventAttachment(params = {}) {
     event_id: '12345678901234567890123456789012',
     ...params,
   };
-}
+};

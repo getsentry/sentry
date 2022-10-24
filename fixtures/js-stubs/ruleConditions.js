@@ -11,7 +11,7 @@ const EVENT_FREQUENCY_CONDITION =
 const UNIQUE_USER_FREQUENCY_CONDITION =
   'sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition';
 
-export const MOCK_RESP_VERBOSE = [
+module.exports.MOCK_RESP_VERBOSE = [
   {
     id: 'sentry.rules.conditions.every_event.EveryEventCondition',
     label: 'An event occurs',
@@ -154,7 +154,7 @@ export const MOCK_RESP_VERBOSE = [
   },
 ];
 
-export const MOCK_RESP_ONLY_IGNORED_CONDITIONS_INVALID = [
+module.exports.MOCK_RESP_ONLY_IGNORED_CONDITIONS_INVALID = [
   {
     formFields: {
       interval: {
@@ -189,7 +189,7 @@ export const MOCK_RESP_ONLY_IGNORED_CONDITIONS_INVALID = [
   },
 ];
 
-export const MOCK_RESP_INCONSISTENT_PLACEHOLDERS = [
+module.exports.MOCK_RESP_INCONSISTENT_PLACEHOLDERS = [
   {
     formFields: {
       interval: {
@@ -220,7 +220,7 @@ export const MOCK_RESP_INCONSISTENT_PLACEHOLDERS = [
   },
 ];
 
-export const MOCK_RESP_INCONSISTENT_INTERVALS = [
+module.exports.MOCK_RESP_INCONSISTENT_INTERVALS = [
   {
     formFields: {
       interval: {

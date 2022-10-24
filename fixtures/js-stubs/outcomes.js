@@ -1,6 +1,6 @@
-import {Outcome} from 'sentry/types';
+const {Outcome} = require('sentry/types');
 
-export function Outcomes() {
+module.exports.Outcomes = function () {
   return {
     start: '2022-07-02T19:00:00Z',
     end: '2022-07-04T18:35:00Z',
@@ -115,9 +115,9 @@ export function Outcomes() {
       },
     ],
   };
-}
+};
 
-export function OutcomesWithReason() {
+module.exports.OutcomesWithReason = function () {
   return {
     start: '2022-07-02T19:00:00Z',
     end: '2022-07-04T18:35:00Z',
@@ -282,9 +282,9 @@ export function OutcomesWithReason() {
       },
     ],
   };
-}
+};
 
-export function OutcomesWithLowProcessedEvents() {
+module.exports.OutcomesWithLowProcessedEvents = function () {
   const otherOutcomesGroups = TestStubs.Outcomes().groups.filter(
     group => group.by.outcome !== 'accepted' && group.by.outcome !== 'client_discard'
   );
@@ -320,13 +320,13 @@ export function OutcomesWithLowProcessedEvents() {
       },
     ],
   };
-}
+};
 
-export function OutcomesWithoutClientDiscarded() {
+module.exports.OutcomesWithoutClientDiscarded = function () {
   return {
     ...TestStubs.OutcomesWithReason(),
     groups: TestStubs.OutcomesWithReason().groups.filter(
       group => group.by.outcome !== Outcome.CLIENT_DISCARD
     ),
   };
-}
+};

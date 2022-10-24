@@ -1,4 +1,4 @@
-export function Environments(hidden) {
+module.exports.Environments = function (hidden) {
   if (hidden) {
     return [{id: '1', name: 'zzz', isHidden: true}];
   }
@@ -7,4 +7,4 @@ export function Environments(hidden) {
     {id: '2', name: 'staging', displayName: 'Staging', isHidden: false},
     {id: '3', name: 'STAGING', displayName: 'STAGING', isHidden: true},
   ];
-}
+};

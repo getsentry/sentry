@@ -1,4 +1,4 @@
-export function Event(params = {}) {
+module.exports.Event = function (params = {}) {
   return {
     id: '1',
     message: 'ApiException',
@@ -10,4 +10,4 @@ export function Event(params = {}) {
     errors: [],
     ...params,
   };
-}
+};

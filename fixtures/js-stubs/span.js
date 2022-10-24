@@ -1,4 +1,4 @@
-export function Span(params = {}) {
+module.exports.Span = function (params = {}) {
   return {
     timestamp: 1657201239.51,
     start_timestamp: 1657201239.503,
@@ -8,4 +8,4 @@ export function Span(params = {}) {
     trace_id: '4d5c2e2102234a7d94102b4f1e41c2bb',
     ...params,
   };
-}
+};

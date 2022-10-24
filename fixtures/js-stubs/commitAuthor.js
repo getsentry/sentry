@@ -1,4 +1,4 @@
-export function CommitAuthor(params = {}) {
+module.exports.CommitAuthor = function (params = {}) {
   return {
     username: 'example@sentry.io',
     lastLogin: '2018-11-30T21:18:09.812Z',
@@ -26,4 +26,4 @@ export function CommitAuthor(params = {}) {
     email: 'example@sentry.io',
     ...params,
   };
-}
+};

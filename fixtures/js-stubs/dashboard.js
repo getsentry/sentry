@@ -1,8 +1,8 @@
-import {Widget} from './widget';
+const {Widget} = require('./widget');
 
 const DEFAULT_WIDGETS = [Widget()];
 
-export function Dashboard(widgets = DEFAULT_WIDGETS, props = {}) {
+module.exports.Dashboard = function (widgets = DEFAULT_WIDGETS, props = {}) {
   return {
     id: 1,
     title: 'Dashboard',
@@ -10,4 +10,4 @@ export function Dashboard(widgets = DEFAULT_WIDGETS, props = {}) {
     widgets,
     ...props,
   };
-}
+};

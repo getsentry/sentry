@@ -1,4 +1,4 @@
-export function Tombstones(params = []) {
+module.exports.Tombstones = function (params = []) {
   return [
     {
       culprit: 'poll(../../sentry/scripts/views.js)',
@@ -57,4 +57,4 @@ export function Tombstones(params = []) {
     },
     ...params,
   ];
-}
+};

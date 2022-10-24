@@ -1,6 +1,6 @@
-import {OrgRoleList, TeamRoleList} from './roleList';
+const {OrgRoleList, TeamRoleList} = require('./roleList');
 
-export function Organization(params = {}) {
+module.exports.Organization = function (params = {}) {
   return {
     id: '3',
     slug: 'org-slug',
@@ -39,4 +39,4 @@ export function Organization(params = {}) {
     orgRoleList: OrgRoleList(),
     teamRoleList: TeamRoleList(),
   };
-}
+};

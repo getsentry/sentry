@@ -1,6 +1,6 @@
-import {Member} from './member';
+const {Member} = require('./member');
 
-export function Members(params = []) {
+module.exports.Members = function (params = []) {
   return [
     Member(),
     {
@@ -59,4 +59,4 @@ export function Members(params = []) {
     },
     ...params,
   ];
-}
+};

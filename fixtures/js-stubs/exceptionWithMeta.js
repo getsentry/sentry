@@ -1,4 +1,4 @@
-export function ExceptionWithMeta(params = {}) {
+module.exports.ExceptionWithMeta = function (params = {}) {
   return {
     level: 'error',
     platform: 'python',
@@ -30,4 +30,4 @@ export function ExceptionWithMeta(params = {}) {
     },
     ...params,
   };
-}
+};

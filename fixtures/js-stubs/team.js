@@ -1,4 +1,4 @@
-export function Team(params = {}) {
+module.exports.Team = function (params = {}) {
   return {
     id: '1',
     slug: 'team-slug',
@@ -7,4 +7,4 @@ export function Team(params = {}) {
     memberCount: 0,
     ...params,
   };
-}
+};

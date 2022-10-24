@@ -1,4 +1,4 @@
-export function ProjectAlertRule(params = {}) {
+module.exports.ProjectAlertRule = function (params = {}) {
   return {
     id: '1',
     name: 'My alert rule',
@@ -12,4 +12,4 @@ export function ProjectAlertRule(params = {}) {
     filters: [],
     ...params,
   };
-}
+};

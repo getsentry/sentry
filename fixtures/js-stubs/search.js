@@ -1,4 +1,4 @@
-export function Search(params = {}) {
+module.exports.Search = function (params = {}) {
   return {
     dateCreated: '2017-11-14T02:22:58.026Z',
     isGlobal: false,
@@ -16,4 +16,4 @@ export function Search(params = {}) {
     id: '2',
     ...params,
   };
-}
+};

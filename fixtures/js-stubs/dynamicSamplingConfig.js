@@ -1,11 +1,11 @@
-import {
+const {
   SamplingConditionOperator,
   SamplingInnerName,
   SamplingInnerOperator,
   SamplingRuleType,
-} from 'sentry/types/sampling';
+} = require('sentry/types/sampling');
 
-export function DynamicSamplingConfig(params = {}) {
+module.exports.DynamicSamplingConfig = function (params = {}) {
   return {
     uniformRule: {
       sampleRate: 0.5,
@@ -135,4 +135,4 @@ export function DynamicSamplingConfig(params = {}) {
     ],
     ...params,
   };
-}
+};

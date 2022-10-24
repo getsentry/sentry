@@ -1,4 +1,4 @@
-export function DataScrubbingRelayPiiConfig() {
+module.exports.DataScrubbingRelayPiiConfig = function () {
   return {
     rules: {
       0: {type: 'password', redaction: {method: 'replace', text: 'Scrubbed'}},
@@ -11,4 +11,4 @@ export function DataScrubbingRelayPiiConfig() {
     },
     applications: {password: ['0'], $message: ['1', '2']},
   };
-}
+};

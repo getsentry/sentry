@@ -1,4 +1,4 @@
-export function Repository(params = {}) {
+module.exports.Repository = function (params = {}) {
   return {
     id: '4',
     name: 'example/repo-name',
@@ -8,4 +8,4 @@ export function Repository(params = {}) {
     externalSlug: 'example/repo-name',
     ...params,
   };
-}
+};

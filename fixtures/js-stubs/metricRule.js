@@ -1,6 +1,6 @@
-import {IncidentTrigger} from './incidentTrigger';
+const {IncidentTrigger} = require('./incidentTrigger');
 
-export function MetricRule(params = {}) {
+module.exports.MetricRule = function (params = {}) {
   return {
     status: 0,
     dateCreated: '2019-07-31T23:02:02.731Z',
@@ -18,4 +18,4 @@ export function MetricRule(params = {}) {
     thresholdType: 0,
     ...params,
   };
-}
+};

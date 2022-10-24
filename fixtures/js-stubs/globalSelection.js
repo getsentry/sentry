@@ -1,4 +1,4 @@
-export function GlobalSelection(params = {}) {
+module.exports.GlobalSelection = function (params = {}) {
   return {
     projects: [1],
     environments: ['production', 'staging'],
@@ -10,4 +10,4 @@ export function GlobalSelection(params = {}) {
     },
     ...params,
   };
-}
+};

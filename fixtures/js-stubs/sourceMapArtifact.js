@@ -1,4 +1,4 @@
-export function SourceMapArtifact(params = {}) {
+module.exports.SourceMapArtifact = function (params = {}) {
   return {
     sha1: '111111111',
     dist: null,
@@ -9,4 +9,4 @@ export function SourceMapArtifact(params = {}) {
     size: 8276,
     ...params,
   };
-}
+};

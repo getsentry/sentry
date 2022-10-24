@@ -1,4 +1,4 @@
-export function AsanaPlugin() {
+module.exports.AsanaPlugin = function () {
   return {
     status: 'unknown',
     description: 'Integrate Asana issues by linking a repository to a project.',
@@ -24,9 +24,9 @@ export function AsanaPlugin() {
     type: 'issue-tracking',
     metadata: {},
   };
-}
+};
 
-export function AsanaCreate() {
+module.exports.AsanaCreate = function () {
   return [
     {
       name: 'workspace',
@@ -67,10 +67,13 @@ export function AsanaCreate() {
       type: 'select',
     },
   ];
-}
+};
 
 const DEFAULT_AUTOCOMPLETE = {text: '(#724210387969378) billy', id: 724210387969378};
 
-export function AsanaAutocomplete(type = 'project', values = [DEFAULT_AUTOCOMPLETE]) {
+module.exports.AsanaAutocomplete = function (
+  type = 'project',
+  values = [DEFAULT_AUTOCOMPLETE]
+) {
   return {[type]: values};
-}
+};

@@ -1,4 +1,4 @@
-export function Project(params = {}) {
+module.exports.Project = function (params = {}) {
   return {
     id: '2',
     slug: 'project-slug',
@@ -14,4 +14,4 @@ export function Project(params = {}) {
     },
     ...params,
   };
-}
+};

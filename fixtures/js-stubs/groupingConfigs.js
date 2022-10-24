@@ -1,7 +1,7 @@
-export function GroupingConfigs() {
+module.exports.GroupingConfigs = function () {
   return [
     {
       id: 'default:XXXX',
     },
   ];
-}
+};

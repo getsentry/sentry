@@ -1,4 +1,4 @@
-export function IncidentTrigger(params = {}) {
+module.exports.IncidentTrigger = function (params = {}) {
   return {
     alertRuleId: '4',
     alertThreshold: 70,
@@ -8,4 +8,4 @@ export function IncidentTrigger(params = {}) {
     actions: [],
     ...params,
   };
-}
+};

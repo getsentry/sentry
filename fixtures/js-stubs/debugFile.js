@@ -1,4 +1,4 @@
-export function DebugFile(params = {}) {
+module.exports.DebugFile = function (params = {}) {
   return {
     objectName: 'libS.so',
     symbolType: 'elf',
@@ -19,4 +19,4 @@ export function DebugFile(params = {}) {
     codeId: '12312k3jh123',
     ...params,
   };
-}
+};

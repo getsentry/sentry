@@ -1,4 +1,4 @@
-export function ApiKey(params = {}) {
+module.exports.ApiKey = function (params = {}) {
   return {
     allowed_origins: '',
     id: 1,
@@ -8,4 +8,4 @@ export function ApiKey(params = {}) {
     status: 0,
     ...params,
   };
-}
+};

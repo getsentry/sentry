@@ -1,4 +1,4 @@
-export function TeamIssuesBreakdown() {
+module.exports.TeamIssuesBreakdown = function () {
   return {
     2: {
       '2021-11-19T00:00:00+00:00': {
@@ -283,4 +283,4 @@ export function TeamIssuesBreakdown() {
       },
     },
   };
-}
+};

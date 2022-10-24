@@ -1,4 +1,4 @@
-export function User(params = {}) {
+module.exports.User = function (params = {}) {
   return {
     id: '1',
     username: 'foo@example.com',
@@ -14,4 +14,4 @@ export function User(params = {}) {
     },
     ...params,
   };
-}
+};

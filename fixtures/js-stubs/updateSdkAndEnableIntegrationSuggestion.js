@@ -1,4 +1,4 @@
-export function UpdateSdkAndEnableIntegrationSuggestion() {
+module.exports.UpdateSdkAndEnableIntegrationSuggestion = function () {
   return {
     id: '123',
     sdk: {
@@ -22,4 +22,4 @@ export function UpdateSdkAndEnableIntegrationSuggestion() {
       },
     ],
   };
-}
+};

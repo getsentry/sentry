@@ -1,4 +1,4 @@
-export function SentryAppToken(params = {}) {
+module.exports.SentryAppToken = function (params = {}) {
   return {
     token: '123456123456123456123456-token',
     dateCreated: '2019-03-02T18:30:26Z',
@@ -8,4 +8,4 @@ export function SentryAppToken(params = {}) {
     application: null,
     ...params,
   };
-}
+};

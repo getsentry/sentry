@@ -1,4 +1,4 @@
-export function Entries() {
+module.exports.Entries = function () {
   return [
     [
       {
@@ -687,4 +687,4 @@ export function Entries() {
       },
     ],
   ];
-}
+};

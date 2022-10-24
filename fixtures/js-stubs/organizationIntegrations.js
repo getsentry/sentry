@@ -1,4 +1,4 @@
-export function OrganizationIntegrations(params = {}) {
+module.exports.OrganizationIntegrations = function (params = {}) {
   return {
     id: '15',
     name: 'hb-testing',
@@ -29,4 +29,4 @@ export function OrganizationIntegrations(params = {}) {
     externalId: 'TA99AB9CD',
     ...params,
   };
-}
+};

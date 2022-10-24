@@ -1,4 +1,4 @@
-export function PhabricatorPlugin() {
+module.exports.PhabricatorPlugin = function () {
   return {
     status: 'unknown',
     description:
@@ -33,9 +33,9 @@ export function PhabricatorPlugin() {
     type: 'issue-tracking',
     metadata: {},
   };
-}
+};
 
-export function PhabricatorCreate() {
+module.exports.PhabricatorCreate = function () {
   return [
     {
       default: 'ApiException: Authentication failed, token expired!',
@@ -69,7 +69,7 @@ export function PhabricatorCreate() {
       placeholder: 'Start typing to search for an assignee',
     },
   ];
-}
+};
 
 const DEFAULT_AUTOCOMPLETE_ASSIGNEE = {
   text: 'David Cramer (zeeg)',
@@ -79,7 +79,7 @@ const DEFAULT_AUTOCOMPLETE_ASSIGNEE = {
 const DEFAULT_AUTOCOMPLETE_TAG1 = {text: 'Bar', id: 'PHID-PROJ-biz3qujawd2dfknvhpqv'};
 const DEFAULT_AUTOCOMPLETE_TAG2 = {text: 'Foo', id: 'PHID-PROJ-3dfrsmwmavdv4gbg4fxd'};
 
-export function PhabricatorAutocomplete(type = 'project', values = null) {
+module.exports.PhabricatorAutocomplete = function (type = 'project', values = null) {
   if (values) {
     return {[type]: values};
   }
@@ -90,4 +90,4 @@ export function PhabricatorAutocomplete(type = 'project', values = null) {
     values = [DEFAULT_AUTOCOMPLETE_TAG1, DEFAULT_AUTOCOMPLETE_TAG2];
   }
   return {[type]: values};
-}
+};

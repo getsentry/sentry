@@ -1,4 +1,4 @@
-export function Release(params, healthParams) {
+module.exports.Release = function (params, healthParams) {
   return {
     dateReleased: null,
     newGroups: 0,
@@ -97,4 +97,4 @@ export function Release(params, healthParams) {
     },
     ...params,
   };
-}
+};

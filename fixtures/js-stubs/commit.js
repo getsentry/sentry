@@ -1,7 +1,7 @@
-import {CommitAuthor} from './commitAuthor';
-import {Repository} from './repository';
+const {CommitAuthor} = require('./commitAuthor');
+const {Repository} = require('./repository');
 
-export function Commit(params = {}) {
+module.exports.Commit = function (params = {}) {
   return {
     dateCreated: '2018-11-30T18:46:31Z',
     message:
@@ -11,4 +11,4 @@ export function Commit(params = {}) {
     repository: Repository(),
     ...params,
   };
-}
+};

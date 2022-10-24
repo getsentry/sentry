@@ -1,6 +1,6 @@
-import {Event} from './event';
+const {Event} = require('./event');
 
-export function EventIdQueryResult(params = {}) {
+module.exports.EventIdQueryResult = function (params = {}) {
   const event = Event({
     metadata: {
       type: 'event type',
@@ -15,4 +15,4 @@ export function EventIdQueryResult(params = {}) {
     event,
     ...params,
   };
-}
+};

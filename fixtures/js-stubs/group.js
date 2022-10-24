@@ -1,6 +1,6 @@
-import {Project} from './project';
+const {Project} = require('./project');
 
-export function Group(params = {}) {
+module.exports.Group = function (params = {}) {
   const project = Project();
   return {
     activity: [],
@@ -58,4 +58,4 @@ export function Group(params = {}) {
     userReportCount: 0,
     ...params,
   };
-}
+};

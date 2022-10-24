@@ -1,7 +1,7 @@
 // Totals will not be correct for all aggregation functions.
 // Consider adding aggregation specific fixture (e.g. MetricsP75Field) if your test depends on it.
 
-export function MetricsField({field, ...rest} = {}) {
+module.exports.MetricsField = function ({field, ...rest} = {}) {
   return {
     start: '2021-12-01T16:15:00Z',
     end: '2021-12-02T16:15:00Z',
@@ -142,9 +142,9 @@ export function MetricsField({field, ...rest} = {}) {
     ],
     ...rest,
   };
-}
+};
 
-export function MetricsFieldByTransaction({field, ...rest}) {
+module.exports.MetricsFieldByTransaction = function ({field, ...rest}) {
   return {
     start: '2021-11-28T18:00:00Z',
     end: '2021-11-29T17:07:00Z',
@@ -215,9 +215,9 @@ export function MetricsFieldByTransaction({field, ...rest}) {
     ],
     ...rest,
   };
-}
+};
 
-export function MetricsFieldByTransactionStatus({field, ...rest} = {}) {
+module.exports.MetricsFieldByTransactionStatus = function ({field, ...rest} = {}) {
   return {
     start: '2021-12-06T13:45:00Z',
     end: '2021-12-07T13:45:00Z',
@@ -433,9 +433,9 @@ export function MetricsFieldByTransactionStatus({field, ...rest} = {}) {
     ],
     ...rest,
   };
-}
+};
 
-export function MetricsFieldByMeasurementRating({field, ...rest} = {}) {
+module.exports.MetricsFieldByMeasurementRating = function ({field, ...rest} = {}) {
   return {
     start: '2022-01-11T12:00:00Z',
     end: '2022-01-12T12:00:00Z',
@@ -650,9 +650,9 @@ export function MetricsFieldByMeasurementRating({field, ...rest} = {}) {
     ],
     ...rest,
   };
-}
+};
 
-export function MetricsFieldsByMeasurementRating({fields, ...rest} = {}) {
+module.exports.MetricsFieldsByMeasurementRating = function ({fields, ...rest} = {}) {
   return {
     start: '2022-01-04T10:30:00Z',
     end: '2022-01-05T10:30:00Z',
@@ -829,9 +829,9 @@ export function MetricsFieldsByMeasurementRating({fields, ...rest} = {}) {
     ],
     ...rest,
   };
-}
+};
 
-export function MetricsTotalCountByReleaseIn24h() {
+module.exports.MetricsTotalCountByReleaseIn24h = function () {
   return {
     query:
       'release:7a82c130be9143361f20bc77252df783cf91e4fc OR release:e102abb2c46e7fe8686441091005c12aed90da99',
@@ -884,9 +884,9 @@ export function MetricsTotalCountByReleaseIn24h() {
       },
     ],
   };
-}
+};
 
-export function MetricsSessionUserCountByStatusByRelease() {
+module.exports.MetricsSessionUserCountByStatusByRelease = function () {
   return {
     start: '2022-01-15T00:00:00Z',
     end: '2022-01-29T00:00:00Z',
@@ -1018,4 +1018,4 @@ export function MetricsSessionUserCountByStatusByRelease() {
       },
     ],
   };
-}
+};

@@ -1,6 +1,6 @@
-import {MetricRule} from './metricRule';
+const {MetricRule} = require('./metricRule');
 
-export function Incident(params = {}) {
+module.exports.Incident = function (params = {}) {
   return {
     id: '321',
     identifier: '123',
@@ -58,4 +58,4 @@ export function Incident(params = {}) {
     ],
     ...params,
   };
-}
+};

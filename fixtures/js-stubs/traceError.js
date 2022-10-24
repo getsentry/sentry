@@ -1,4 +1,4 @@
-export function TraceError(params = {}) {
+module.exports.TraceError = function (params = {}) {
   return {
     event_id: '08384ee83c9145e79b5f6fbed5c37a51',
     issue_id: 62,
@@ -9,4 +9,4 @@ export function TraceError(params = {}) {
     level: 'error',
     ...params,
   };
-}
+};

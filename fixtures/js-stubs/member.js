@@ -1,6 +1,6 @@
-import {User} from './user';
+const {User} = require('./user');
 
-export function Member(params = {}) {
+module.exports.Member = function (params = {}) {
   return {
     id: '1',
     email: 'sentry1@test.com',
@@ -18,4 +18,4 @@ export function Member(params = {}) {
     inviteStatus: 'approved',
     ...params,
   };
-}
+};
