@@ -124,7 +124,7 @@ class OrganizationMixin:
         if organization_slug is not None:
             if is_active_superuser(request):
                 active_organization = organization_service.get_organization_by_slug(
-                    organization_slug, only_visible=True, allow_stale=True
+                    user_id=None, slug=organization_slug, only_visible=True, allow_stale=True
                 )
         return active_organization
 
@@ -388,7 +388,7 @@ class OrganizationView(BaseView):
         if not self.active_organization:
             # Require auth if we can't lookup the organization slug, even in the cache.
             return not organization_service.get_organization_by_slug(
-                organization_slug, only_visible=True, allow_stale=True
+                user_id=None, slug=organization_slug, only_visible=True, allow_stale=True
             )
 
         return False
