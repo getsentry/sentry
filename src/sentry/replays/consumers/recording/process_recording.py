@@ -127,7 +127,7 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
                     scope.set_tag("replay_id", message_dict["replay_id"])
                     scope.set_tag("project_id", message_dict["project_id"])
 
-                    sentry_sdk.capture_exception("Recording segment was already processed.")
+                    sentry_sdk.capture_exception("Recording segment was already processed.")  # type: ignore[arg-type]
 
                 parts.drop()
 
