@@ -22,6 +22,7 @@ from fixtures.github import (
 )
 from sentry import audit_log, nodestore, tsdb
 from sentry.attachments import CachedAttachment, attachment_cache
+from sentry.cache import default_cache
 from sentry.constants import MAX_VERSION_LENGTH, DataCategory
 from sentry.dynamic_sampling.lastest_release_booster import (
     BOOSTED_RELEASE_TIMEOUT,
@@ -2706,8 +2707,8 @@ class ReleaseIssueTest(TestCase):
 
         ts = time()
 
-        assert cache.get(f"ds::p:{self.project.id}:r:{self.release.id}:24h") == 1
-        assert json.loads(cache.get(f"ds::p:{self.project.id}:boosted_releases:1h")) == [
+        assert default_cache.get(f"ds::p:{self.project.id}:r:{self.release.id}") == 1
+        assert default_cache.get(f"ds::p:{self.project.id}:boosted_releases") == [
             [self.release.id, ts]
         ]
 
@@ -2721,14 +2722,14 @@ class ReleaseIssueTest(TestCase):
             timestamp=self.timestamp,
         )
 
-        assert cache.get(f"ds::p:{self.project.id}:r:{new_release.id}:24h") == 1
-        assert json.loads(cache.get(f"ds::p:{self.project.id}:boosted_releases:1h")) == [
+        assert default_cache.get(f"ds::p:{self.project.id}:r:{new_release.id}") == 1
+        assert default_cache.get(f"ds::p:{self.project.id}:boosted_releases") == [
             [self.release.id, ts],
             [new_release.id, ts],
         ]
 
     def test_ensure_release_not_boosted_when_it_is_not_first_observed(self):
-        cache.set(f"ds::p:{self.project.id}:r:{self.release.id}:24h", 1, 60 * 60 * 24)
+        default_cache.set(f"ds::p:{self.project.id}:r:{self.release.id}", 1, 60 * 60 * 24)
         self.make_release_event(
             release_version=self.release.version,
             environment_name=self.environment1.name,
@@ -2736,7 +2737,7 @@ class ReleaseIssueTest(TestCase):
             checksum="b" * 32,
             timestamp=self.timestamp,
         )
-        assert json.loads(cache.get(f"ds::p:{self.project.id}:boosted_releases:1h") or "[]") == []
+        assert default_cache.get(f"ds::p:{self.project.id}:boosted_releases") == []
         assert get_boosted_releases(self.project.id) == []
 
     @freeze_time()
@@ -2744,16 +2745,14 @@ class ReleaseIssueTest(TestCase):
         release_2 = Release.get_or_create(self.project, "2.0")
         release_3 = Release.get_or_create(self.project, "3.0")
 
-        cache.set(f"ds::p:{self.project.id}:r:{self.release.id}:24h", 1, 60 * 60 * 24)
-        cache.set(f"ds::p:{self.project.id}:r:{release_2.id}:24h", 1, 60 * 60 * 24)
-        cache.set(
-            f"ds::p:{self.project.id}:boosted_releases:1h",
-            json.dumps(
-                [
-                    [self.release.id, time() - BOOSTED_RELEASE_TIMEOUT * 2],
-                    [release_2.id, time() - BOOSTED_RELEASE_TIMEOUT * 2],
-                ]
-            ),
+        default_cache.set(f"ds::p:{self.project.id}:r:{self.release.id}", 1, 60 * 60 * 24)
+        default_cache.set(f"ds::p:{self.project.id}:r:{release_2.id}", 1, 60 * 60 * 24)
+        default_cache.set(
+            f"ds::p:{self.project.id}:boosted_releases",
+            [
+                [self.release.id, time() - BOOSTED_RELEASE_TIMEOUT * 2],
+                [release_2.id, time() - BOOSTED_RELEASE_TIMEOUT * 2],
+            ],
             60 * 60,
         )
 
@@ -2764,15 +2763,15 @@ class ReleaseIssueTest(TestCase):
             checksum="b" * 32,
             timestamp=self.timestamp,
         )
-        assert json.loads(cache.get(f"ds::p:{self.project.id}:boosted_releases:1h")) == [
+        assert default_cache.get(f"ds::p:{self.project.id}:boosted_releases") == [
             [release_3.id, time()]
         ]
-        assert cache.get(f"ds::p:{self.project.id}:r:{release_3.id}:24h") == 1
+        assert default_cache.get(f"ds::p:{self.project.id}:r:{release_3.id}") == 1
         assert get_boosted_releases(self.project.id) == [[release_3.id, time()]]
 
     @mock.patch("sentry.event_manager.cache.set")
     def test_cache_key_is_reset_to_24h_everytime_event_release_is_observed(self, mocked_cache_set):
-        cache.set(f"ds::p:{self.project.id}:r:{self.release.id}:24h", 1, 60 * 60 * 24)
+        default_cache.set(f"ds::p:{self.project.id}:r:{self.release.id}", 1, 60 * 60 * 24)
         self.make_release_event(
             release_version=self.release.version,
             environment_name=self.environment1.name,
@@ -2781,7 +2780,7 @@ class ReleaseIssueTest(TestCase):
             timestamp=self.timestamp,
         )
         assert any(
-            f"ds::p:{self.project.id}:r:{self.release.id}:24h" in o.args
+            f"ds::p:{self.project.id}:r:{self.release.id}" in o.args
             for o in mocked_cache_set.mock_calls
         )
 
