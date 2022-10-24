@@ -253,14 +253,8 @@ class QueryBuilderTest(TestCase):
         self.assertCountEqual(
             query.columns,
             [
-                Function(
-                    "transform",
-                    [
-                        Column("project_id"),
-                        [project1.id, project2.id],
-                        [project1.slug, project2.slug],
-                        "",
-                    ],
+                AliasedExpression(
+                    Column("project_id"),
                     "project",
                 )
             ],
@@ -289,15 +283,35 @@ class QueryBuilderTest(TestCase):
         self.assertCountEqual(
             query.columns,
             [
-                Function(
-                    "transform",
-                    [
-                        Column("project_id"),
-                        [project1.id],
-                        [project1.slug],
-                        "",
-                    ],
+                AliasedExpression(
+                    Column("project_id"),
                     "project",
+                )
+            ],
+        )
+
+    def test_orderby_project_alias(self):
+        project1 = self.create_project(name="zzz")
+        project2 = self.create_project(name="aaa")
+        self.params["project_id"] = [project1.id, project2.id]
+        query = QueryBuilder(
+            Dataset.Discover, self.params, selected_columns=["project"], orderby=["project"]
+        )
+
+        self.assertCountEqual(
+            query.orderby,
+            [
+                OrderBy(
+                    Function(
+                        "transform",
+                        [
+                            Column("project_id"),
+                            [project1.id, project2.id],
+                            [project1.slug, project2.slug],
+                            "",
+                        ],
+                    ),
+                    Direction.ASC,
                 )
             ],
         )
@@ -1073,14 +1087,8 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
         transaction = self.build_transaction_transform("transaction")
-        project = Function(
-            "transform",
-            [
-                Column("project_id"),
-                [self.project.id],
-                [self.project.slug],
-                "",
-            ],
+        project = AliasedExpression(
+            Column("project_id"),
             "project",
         )
         self.assertCountEqual(
@@ -1293,13 +1301,13 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         assert get_granularity(start, end) == 86400, "3d at boundary"
 
         # Near 3d, but 1 hour before the boundary for end
-        start = datetime.datetime(2015, 5, 1, 0, 30, 0, tzinfo=timezone.utc)
-        end = datetime.datetime(2015, 5, 3, 23, 29, 0, tzinfo=timezone.utc)
+        start = datetime.datetime(2015, 5, 1, 0, 13, 0, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 3, 23, 45, 0, tzinfo=timezone.utc)
         assert get_granularity(start, end) == 3600, "near 3d, but 1 hour before boundary for end"
 
         # Near 3d, but 1 hour after the boundary for start
-        start = datetime.datetime(2015, 5, 1, 1, 30, 0, tzinfo=timezone.utc)
-        end = datetime.datetime(2015, 5, 4, 0, 30, 0, tzinfo=timezone.utc)
+        start = datetime.datetime(2015, 5, 1, 1, 46, 0, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 4, 0, 46, 0, tzinfo=timezone.utc)
         assert get_granularity(start, end) == 3600, "near 3d, but 1 hour after boundary for start"
 
         # exactly 12 hours
@@ -1474,7 +1482,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 self.organization.id,
                 "foo_transaction",
             ),
-            "project": self.project.slug,
+            "project": self.project.id,
             "p95_transaction_duration": 100,
             "count_unique_user": 1,
         }
@@ -1484,7 +1492,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 self.organization.id,
                 "bar_transaction",
             ),
-            "project": self.project.slug,
+            "project": self.project.id,
             "p95_transaction_duration": 50,
             "count_unique_user": 2,
         }
@@ -1492,7 +1500,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             result["meta"],
             [
                 {"name": "transaction", "type": self.expected_tag_value_type},
-                {"name": "project", "type": "String"},
+                {"name": "project", "type": "UInt64"},
                 {"name": "p95_transaction_duration", "type": "Float64"},
                 {"name": "count_unique_user", "type": "UInt64"},
             ],
@@ -1520,7 +1528,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 self.organization.id,
                 "bar_transaction",
             ),
-            "project": self.project.slug,
+            "project": self.project.id,
             "p95_transaction_duration": 50,
             "count_unique_user": 2,
         }
@@ -1530,7 +1538,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 self.organization.id,
                 "foo_transaction",
             ),
-            "project": self.project.slug,
+            "project": self.project.id,
             "p95_transaction_duration": 100,
             "count_unique_user": 1,
         }
@@ -1538,7 +1546,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             result["meta"],
             [
                 {"name": "transaction", "type": self.expected_tag_value_type},
-                {"name": "project", "type": "String"},
+                {"name": "project", "type": "UInt64"},
                 {"name": "p95_transaction_duration", "type": "Float64"},
                 {"name": "count_unique_user", "type": "UInt64"},
             ],
@@ -1574,7 +1582,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 self.organization.id,
                 "foo_transaction",
             ),
-            "project": project_1.slug,
+            "project": project_1.id,
             "p95_transaction_duration": 100,
         }
         assert result["data"][1] == {
@@ -1583,7 +1591,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 self.organization.id,
                 "foo_transaction",
             ),
-            "project": project_2.slug,
+            "project": project_2.id,
             "p95_transaction_duration": 100,
         }
 
@@ -1605,7 +1613,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 self.organization.id,
                 "foo_transaction",
             ),
-            "project": project_2.slug,
+            "project": project_2.id,
             "p95_transaction_duration": 100,
         }
         assert result["data"][1] == {
@@ -1614,7 +1622,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 self.organization.id,
                 "foo_transaction",
             ),
-            "project": project_1.slug,
+            "project": project_1.id,
             "p95_transaction_duration": 100,
         }
 
@@ -1801,7 +1809,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 self.organization.id,
                 "bar_transaction",
             ),
-            "project": self.project.slug,
+            "project": self.project.id,
             "p95_transaction_duration": 50,
             "count_unique_user": 2,
         }
@@ -1811,7 +1819,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 self.organization.id,
                 "foo_transaction",
             ),
-            "project": self.project.slug,
+            "project": self.project.id,
             "p95_transaction_duration": 100,
             "count_unique_user": 1,
         }
@@ -1821,7 +1829,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 self.organization.id,
                 "baz_transaction",
             ),
-            "project": self.project.slug,
+            "project": self.project.id,
             "p95_transaction_duration": 200,
             "count_unique_user": 0,
         }
@@ -1829,7 +1837,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             result["meta"],
             [
                 {"name": "transaction", "type": self.expected_tag_value_type},
-                {"name": "project", "type": "String"},
+                {"name": "project", "type": "UInt64"},
                 {"name": "p95_transaction_duration", "type": "Float64"},
                 {"name": "count_unique_user", "type": "UInt64"},
             ],
@@ -1863,7 +1871,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 self.organization.id,
                 "baz_transaction",
             ),
-            "project": self.project.slug,
+            "project": self.project.id,
             "p95_transaction_duration": 200,
         }
         assert result["data"][1] == {
@@ -1872,7 +1880,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 self.organization.id,
                 "foo_transaction",
             ),
-            "project": self.project.slug,
+            "project": self.project.id,
             "p95_transaction_duration": 100,
             "count_unique_user": 1,
         }
@@ -1882,7 +1890,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 self.organization.id,
                 "bar_transaction",
             ),
-            "project": self.project.slug,
+            "project": self.project.id,
             "p95_transaction_duration": 50,
             "count_unique_user": 2,
         }
@@ -1983,7 +1991,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 self.organization.id,
                 "baz_transaction",
             ),
-            "project": self.project.slug,
+            "project": self.project.id,
             "p95_transaction_duration": 200,
             "count_unique_user": 2,
         }
@@ -1991,7 +1999,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             result["meta"],
             [
                 {"name": "transaction", "type": self.expected_tag_value_type},
-                {"name": "project", "type": "String"},
+                {"name": "project", "type": "UInt64"},
                 {"name": "p95_transaction_duration", "type": "Float64"},
                 {"name": "count_unique_user", "type": "UInt64"},
             ],
@@ -2037,7 +2045,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 self.organization.id,
                 "baz_transaction",
             ),
-            "project": self.project.slug,
+            "project": self.project.id,
             "p95_transaction_duration": 200,
             "count_unique_user": 1,
         }
@@ -2045,7 +2053,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             result["meta"],
             [
                 {"name": "transaction", "type": self.expected_tag_value_type},
-                {"name": "project", "type": "String"},
+                {"name": "project", "type": "UInt64"},
                 {"name": "p95_transaction_duration", "type": "Float64"},
                 {"name": "count_unique_user", "type": "UInt64"},
             ],
@@ -2268,14 +2276,8 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
         snql_query = query.get_snql_query().query
-        project = Function(
-            "transform",
-            [
-                Column("project_id"),
-                [self.project.id],
-                [self.project.slug],
-                "",
-            ],
+        project = AliasedExpression(
+            Column("project_id"),
             "project",
         )
         self.assertCountEqual(

@@ -11,7 +11,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_model,
+    control_silo_only_model,
     sane_repr,
 )
 
@@ -31,7 +31,7 @@ class ApiApplicationStatus:
     deletion_in_progress = 3
 
 
-@region_silo_model
+@control_silo_only_model
 class ApiApplication(Model):
     __include_in_export__ = True
 

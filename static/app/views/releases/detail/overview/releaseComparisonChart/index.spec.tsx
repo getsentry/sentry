@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ReleaseComparisonChart from 'sentry/views/releases/detail/overview/releaseComparisonChart';
 
@@ -135,8 +135,20 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
     expect(screen.getAllByRole('radio').length).toBe(3);
   });
 
-  it('does not show expanders if there is no health data', () => {
-    MockApiClient.warnOnMissingMocks();
+  it('does not show expanders if there is no health data', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-stats/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues-count/`,
+      body: 0,
+    });
+
     render(
       <ReleaseComparisonChart
         release={release}
@@ -161,5 +173,8 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
     expect(screen.getAllByRole('radio').length).toBe(1);
     expect(screen.queryByLabelText(/toggle chart/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/toggle additional/i)).not.toBeInTheDocument();
+
+    // Wait for api requests to propegate
+    await act(tick);
   });
 });

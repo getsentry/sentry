@@ -1,5 +1,6 @@
 import logging
 
+import sentry_sdk
 from django.urls import reverse
 
 from sentry.exceptions import InvalidIdentity, PluginError
@@ -146,6 +147,9 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
                     "start_sha": start_sha,
                 },
             )
+            span = sentry_sdk.Hub.current.scope.span
+            span.set_status("unknown_error")
+            logger.exception(e)
             if isinstance(e, InvalidIdentity) and getattr(e, "identity", None):
                 handle_invalid_identity(identity=e.identity, commit_failure=True)
             elif isinstance(e, (PluginError, InvalidIdentity, IntegrationError)):

@@ -62,6 +62,7 @@ type Props = {
   query?: string;
   queryFilterDescription?: string;
   showInboxTime?: boolean;
+  source?: string;
   statsPeriod?: string;
   useFilteredStats?: boolean;
   useTintRow?: boolean;
@@ -79,6 +80,7 @@ function BaseGroupRow({
   query,
   queryFilterDescription,
   showInboxTime,
+  source,
   statsPeriod = DEFAULT_STREAM_GROUP_STATS_PERIOD,
   canSelect = true,
   withChart = true,
@@ -95,6 +97,8 @@ function BaseGroupRow({
   const {selection} = usePageFilters();
 
   const originalInboxState = useRef(group.inbox as InboxDetails | null);
+
+  const referrer = source ? `${source}-issue-stream` : 'issue-stream';
 
   const reviewed =
     // Original state had an inbox reason
@@ -239,6 +243,7 @@ function BaseGroupRow({
     return {
       pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
       query: {
+        referrer,
         ...commonQuery,
         query: filteredQuery,
       },
@@ -331,7 +336,7 @@ function BaseGroupRow({
                   )}
 
                   <StyledMenuItem to={getDiscoverUrl()}>
-                    <MenuItemText>{t(`Total in ${summary}`)}</MenuItemText>
+                    <MenuItemText>{t('Total in %s', summary)}</MenuItemText>
                     <MenuItemCount value={group.count} />
                   </StyledMenuItem>
 
@@ -387,7 +392,7 @@ function BaseGroupRow({
                 )}
 
                 <StyledMenuItem to={getDiscoverUrl()}>
-                  <MenuItemText>{t(`Total in ${summary}`)}</MenuItemText>
+                  <MenuItemText>{t('Total in %s', summary)}</MenuItemText>
                   <MenuItemCount value={group.userCount} />
                 </StyledMenuItem>
 
@@ -436,6 +441,7 @@ function BaseGroupRow({
           query={query}
           size="normal"
           onClick={trackClick}
+          source={referrer}
         />
         <EventOrGroupExtraDetails data={group} showInboxTime={showInboxTime} />
       </GroupSummary>

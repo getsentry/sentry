@@ -1,10 +1,10 @@
 from django.db import models
 
-from sentry.db.models import Model, control_silo_model
+from sentry.db.models import Model, control_silo_with_replication_model
 from sentry.db.models.fields.jsonfield import JSONField
 
 
-@control_silo_model
+@control_silo_with_replication_model
 class DocIntegration(Model):
     """
     Document based integrations can be found in Sentry, but are installed via code change.

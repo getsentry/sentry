@@ -8,7 +8,7 @@ describe('SsoForm', function () {
   const api = new MockApiClient();
 
   function doSso(apiRequest) {
-    userEvent.type(screen.getByLabelText('Organization ID'), 'org123');
+    userEvent.type(screen.getByRole('textbox', {name: 'Organization ID'}), 'org123');
     userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 
     expect(apiRequest).toHaveBeenCalledWith(

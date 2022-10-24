@@ -119,9 +119,7 @@ class ProjectTeams extends AsyncView<Props, State> {
     const canCreateTeam = this.canCreateTeam();
     const hasAccess = organization.access.includes('project:write');
     const confirmRemove = t(
-      'This is the last team with access to this project. Removing it will mean ' +
-        'only organization owners and managers will be able to access the project pages. Are ' +
-        'you sure you want to remove this team from the project %s?',
+      'This is the last team with access to this project. Removing it will mean only organization owners and managers will be able to access the project pages. Are you sure you want to remove this team from the project %s?',
       params.projectId
     );
     const {projectTeams} = this.state;

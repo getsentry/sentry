@@ -1,4 +1,5 @@
-import {JsonFormObject} from 'sentry/components/forms/type';
+import {JsonFormObject} from 'sentry/components/forms/types';
+import {t} from 'sentry/locale';
 
 const getUserIsNotManaged = ({user}) => !user.isManaged;
 
@@ -11,9 +12,9 @@ const formGroups: JsonFormObject[] = [
         name: 'password',
         type: 'secret',
         autoComplete: 'current-password',
-        label: 'Current Password',
+        label: t('Current Password'),
+        help: t('Your current password'),
         placeholder: '',
-        help: 'Your current password',
         visible: getUserIsNotManaged,
         required: true,
       },
@@ -21,9 +22,8 @@ const formGroups: JsonFormObject[] = [
         name: 'passwordNew',
         type: 'secret',
         autoComplete: 'new-password',
-        label: 'New Password',
+        label: t('New Password'),
         placeholder: '',
-        help: '',
         required: true,
         visible: getUserIsNotManaged,
         validate: ({id, form}) => (form[id] !== form.passwordVerify ? [[id, '']] : []),
@@ -32,15 +32,15 @@ const formGroups: JsonFormObject[] = [
         name: 'passwordVerify',
         type: 'secret',
         autoComplete: 'new-password',
-        label: 'Verify New Password',
+        label: t('Verify New Password'),
+        help: t('Verify your new password'),
         placeholder: '',
-        help: 'Verify your new password',
         required: true,
         visible: getUserIsNotManaged,
         validate: ({id, form}) => {
           // If password is set, and passwords don't match, then return an error
           if (form.passwordNew && form.passwordNew !== form[id]) {
-            return [[id, 'Passwords do not match']];
+            return [[id, t('Passwords do not match')]];
           }
 
           return [];

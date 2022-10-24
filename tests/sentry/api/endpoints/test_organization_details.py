@@ -126,11 +126,10 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
 
         # make sure options are not cached the first time to get predictable number of database queries
         options.delete("system.rate-limit")
-        options.delete("hc.region-to-control.monolith-publish")
         options.delete("store.symbolicate-event-lpq-always")
         options.delete("store.symbolicate-event-lpq-never")
 
-        expected_queries += 4
+        expected_queries += 3
 
         with self.assertNumQueries(expected_queries, using="default"):
             response = self.get_success_response(self.organization.slug)

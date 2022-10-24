@@ -1,7 +1,7 @@
-from sentry.db.models import BoundedBigIntegerField, Model, region_silo_model, sane_repr
+from sentry.db.models import BoundedBigIntegerField, Model, region_silo_only_model, sane_repr
 
 
-@region_silo_model
+@region_silo_only_model
 class LatestRepoReleaseEnvironment(Model):
     """
     For each environment, tracks the latest release which is associated with

@@ -5,7 +5,7 @@ import isEqual from 'lodash/isEqual';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
-import SelectControl from 'sentry/components/forms/selectControl';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Input from 'sentry/components/input';
 import PageHeading from 'sentry/components/pageHeading';
 import {t} from 'sentry/locale';
@@ -108,7 +108,7 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
       ...super.getDefaultState(),
       conditions: [],
       intervalChoices: [],
-      alertSetting: Actions.CREATE_ALERT_LATER.toString(),
+      alertSetting: Actions.ALERT_ON_EVERY_ISSUE.toString(),
       metric: MetricValues.ERRORS,
       interval: '',
       threshold: '',
@@ -129,56 +129,53 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
   getIssueAlertsChoices(
     hasProperlyLoadedConditions: boolean
   ): [string, string | React.ReactElement][] {
-    const options: [string, React.ReactNode][] = [
-      [Actions.CREATE_ALERT_LATER.toString(), t("I'll create my own alerts later")],
-      [Actions.ALERT_ON_EVERY_ISSUE.toString(), t('Alert me on every new issue')],
+    const customizedAlertOption: [string, React.ReactNode] = [
+      Actions.CUSTOMIZED_ALERTS.toString(),
+      <CustomizeAlertsGrid
+        key={Actions.CUSTOMIZED_ALERTS}
+        onClick={e => {
+          // XXX(epurkhiser): The `e.preventDefault` here is needed to stop
+          // propagation of the click up to the label, causing it to focus
+          // the radio input and lose focus on the select.
+          e.preventDefault();
+          const alertSetting = Actions.CUSTOMIZED_ALERTS.toString();
+          this.setStateAndUpdateParents({alertSetting});
+        }}
+      >
+        {t('When there are more than')}
+        <InlineInput
+          type="number"
+          min="0"
+          name=""
+          placeholder={DEFAULT_PLACEHOLDER_VALUE}
+          value={this.state.threshold}
+          onChange={threshold =>
+            this.setStateAndUpdateParents({threshold: threshold.target.value})
+          }
+          data-test-id="range-input"
+        />
+        <InlineSelectControl
+          value={this.state.metric}
+          options={this.getAvailableMetricOptions()}
+          onChange={metric => this.setStateAndUpdateParents({metric: metric.value})}
+        />
+        {t('a unique error in')}
+        <InlineSelectControl
+          value={this.state.interval}
+          options={this.state.intervalChoices?.map(([value, label]) => ({
+            value,
+            label,
+          }))}
+          onChange={interval => this.setStateAndUpdateParents({interval: interval.value})}
+        />
+      </CustomizeAlertsGrid>,
     ];
 
-    if (hasProperlyLoadedConditions) {
-      options.push([
-        Actions.CUSTOMIZED_ALERTS.toString(),
-        <CustomizeAlertsGrid
-          key={Actions.CUSTOMIZED_ALERTS}
-          onClick={e => {
-            // XXX(epurkhiser): The `e.preventDefault` here is needed to stop
-            // propagation of the click up to the label, causing it to focus
-            // the radio input and lose focus on the select.
-            e.preventDefault();
-            const alertSetting = Actions.CUSTOMIZED_ALERTS.toString();
-            this.setStateAndUpdateParents({alertSetting});
-          }}
-        >
-          {t('When there are more than')}
-          <InlineInput
-            type="number"
-            min="0"
-            name=""
-            placeholder={DEFAULT_PLACEHOLDER_VALUE}
-            value={this.state.threshold}
-            onChange={threshold =>
-              this.setStateAndUpdateParents({threshold: threshold.target.value})
-            }
-            data-test-id="range-input"
-          />
-          <InlineSelectControl
-            value={this.state.metric}
-            options={this.getAvailableMetricOptions()}
-            onChange={metric => this.setStateAndUpdateParents({metric: metric.value})}
-          />
-          {t('a unique error in')}
-          <InlineSelectControl
-            value={this.state.interval}
-            options={this.state.intervalChoices?.map(([value, label]) => ({
-              value,
-              label,
-            }))}
-            onChange={interval =>
-              this.setStateAndUpdateParents({interval: interval.value})
-            }
-          />
-        </CustomizeAlertsGrid>,
-      ]);
-    }
+    const options: [string, React.ReactNode][] = [
+      [Actions.ALERT_ON_EVERY_ISSUE.toString(), t('Alert me on every new issue')],
+      ...(hasProperlyLoadedConditions ? [customizedAlertOption] : []),
+      [Actions.CREATE_ALERT_LATER.toString(), t("I'll create my own alerts later")],
+    ];
     return options.map(([choiceValue, node]) => [
       choiceValue,
       <RadioItemWrapper key={choiceValue}>{node}</RadioItemWrapper>,

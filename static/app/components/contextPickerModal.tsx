@@ -5,7 +5,9 @@ import styled from '@emotion/styled';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import AsyncComponent from 'sentry/components/asyncComponent';
-import SelectControl, {StylesConfig} from 'sentry/components/forms/selectControl';
+import SelectControl, {
+  StylesConfig,
+} from 'sentry/components/forms/controls/selectControl';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -270,7 +272,7 @@ class ContextPickerModal extends Component<Props> {
         label: t('My Projects'),
         options: memberProjects.map(p => ({
           value: p.slug,
-          label: t(`${p.slug}`),
+          label: p.slug,
           disabled: false,
         })),
       },
@@ -278,7 +280,7 @@ class ContextPickerModal extends Component<Props> {
         label: t('All Projects'),
         options: nonMemberProjects.map(p => ({
           value: p.slug,
-          label: t(`${p.slug}`),
+          label: p.slug,
           disabled: isSuperuser ? false : true,
         })),
       },

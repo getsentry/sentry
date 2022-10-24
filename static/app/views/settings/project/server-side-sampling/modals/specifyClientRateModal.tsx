@@ -82,7 +82,6 @@ export function SpecifyClientRateModal({
               textHighlight: <TextHighlight />,
             }
           )}
-          type="number"
           name="current-client-sampling"
           placeholder="0.1"
           step="0.1"

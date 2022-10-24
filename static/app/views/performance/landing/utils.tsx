@@ -38,23 +38,23 @@ export enum LandingDisplayField {
 
 export const LANDING_DISPLAYS = [
   {
-    label: 'All Transactions',
+    label: t('All Transactions'),
     field: LandingDisplayField.ALL,
   },
   {
-    label: 'Web Vitals',
+    label: t('Web Vitals'),
     field: LandingDisplayField.FRONTEND_PAGELOAD,
   },
   {
-    label: 'Frontend',
+    label: t('Frontend'),
     field: LandingDisplayField.FRONTEND_OTHER,
   },
   {
-    label: 'Backend',
+    label: t('Backend'),
     field: LandingDisplayField.BACKEND,
   },
   {
-    label: 'Mobile',
+    label: t('Mobile'),
     field: LandingDisplayField.MOBILE,
   },
 ];

@@ -8,9 +8,9 @@ import {
 } from 'react-virtualized';
 import styled from '@emotion/styled';
 
+import CompactSelect from 'sentry/components/compactSelect';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type/icon';
-import CompactSelect from 'sentry/components/forms/compactSelect';
 import HTMLCode from 'sentry/components/htmlCode';
 import Placeholder from 'sentry/components/placeholder';
 import {getDetails} from 'sentry/components/replays/breadcrumbs/utils';
@@ -296,6 +296,7 @@ const MutationMessage = styled('p')`
 const CodeContainer = styled('div')`
   max-height: 400px;
   max-width: 100%;
+  overflow: auto;
 `;
 
 export default DomMutations;

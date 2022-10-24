@@ -12,7 +12,6 @@ from sentry.web.frontend.debug.debug_chart_renderer import DebugChartRendererVie
 from sentry.web.frontend.debug.debug_codeowners_auto_sync_failure_email import (
     DebugCodeOwnersAutoSyncFailureView,
 )
-from sentry.web.frontend.debug.debug_codeowners_request_mail import DebugCodeOwnersRequestView
 from sentry.web.frontend.debug.debug_error_embed import DebugErrorPageEmbedView
 from sentry.web.frontend.debug.debug_incident_activity_email import DebugIncidentActivityEmailView
 from sentry.web.frontend.debug.debug_incident_trigger_email import DebugIncidentTriggerEmailView
@@ -40,6 +39,7 @@ from sentry.web.frontend.debug.debug_organization_join_request import (
     DebugOrganizationJoinRequestEmailView,
 )
 from sentry.web.frontend.debug.debug_password_changed_email import DebugPasswordChangedEmailView
+from sentry.web.frontend.debug.debug_performance_issue import DebugPerformanceIssueEmailView
 from sentry.web.frontend.debug.debug_recovery_codes_regenerated_email import (
     DebugRecoveryCodesRegeneratedEmailView,
 )
@@ -67,9 +67,11 @@ from sentry.web.frontend.debug.debug_unable_to_fetch_commits_email import (
     DebugUnableToFetchCommitsEmailView,
 )
 from sentry.web.frontend.debug.debug_unassigned_email import DebugUnassignedEmailView
+from sentry.web.frontend.debug.debug_weekly_report import DebugWeeklyReportView
 
 urlpatterns = [
-    url(r"^debug/mail/alert/$", sentry.web.frontend.debug.mail.alert),
+    url(r"^debug/mail/error-alert/$", sentry.web.frontend.debug.mail.alert),
+    url(r"^debug/mail/performance-alert/$", DebugPerformanceIssueEmailView.as_view()),
     url(r"^debug/mail/note/$", DebugNoteEmailView.as_view()),
     url(r"^debug/mail/new-release/$", DebugNewReleaseEmailView.as_view()),
     url(r"^debug/mail/release-summary/$", DebugReleaseSummaryEmailView.as_view()),
@@ -105,12 +107,12 @@ urlpatterns = [
     url(r"^debug/mail/access-approved/$", sentry.web.frontend.debug.mail.access_approved),
     url(r"^debug/mail/invitation/$", sentry.web.frontend.debug.mail.invitation),
     url(r"^debug/mail/invalid-identity/$", DebugInvalidIdentityEmailView.as_view()),
-    url(r"^debug/mail/codeowners-request/$", DebugCodeOwnersRequestView.as_view()),
     url(r"^debug/mail/confirm-email/$", sentry.web.frontend.debug.mail.confirm_email),
     url(r"^debug/mail/recover-account/$", sentry.web.frontend.debug.mail.recover_account),
     url(r"^debug/mail/unable-to-delete-repo/$", DebugUnableToDeleteRepository.as_view()),
     url(r"^debug/mail/unable-to-fetch-commits/$", DebugUnableToFetchCommitsEmailView.as_view()),
     url(r"^debug/mail/unassigned/$", DebugUnassignedEmailView.as_view()),
+    url(r"^debug/mail/weekly-reports/$", DebugWeeklyReportView.as_view()),
     url(r"^debug/mail/org-delete-confirm/$", sentry.web.frontend.debug.mail.org_delete_confirm),
     url(r"^debug/mail/mfa-removed/$", DebugMfaRemovedEmailView.as_view()),
     url(r"^debug/mail/mfa-added/$", DebugMfaAddedEmailView.as_view()),

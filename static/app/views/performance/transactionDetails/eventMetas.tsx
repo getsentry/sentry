@@ -2,13 +2,14 @@ import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import Button from 'sentry/components/button';
 import Clipboard from 'sentry/components/clipboard';
 import DateTime from 'sentry/components/dateTime';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import TimeSince from 'sentry/components/timeSince';
 import Tooltip from 'sentry/components/tooltip';
 import {frontend} from 'sentry/data/platformCategories';
-import {IconCopy} from 'sentry/icons';
+import {IconCopy, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {AvatarProject, OrganizationSummary} from 'sentry/types';
@@ -86,6 +87,13 @@ class EventMetas extends Component<Props, State> {
     } = this.props;
     const {isLargeScreen} = this.state;
 
+    // Replay preview gets rendered as part of the breadcrumb section. We need
+    // to check for presence of both to show the replay link button here.
+    const hasReplay =
+      organization.features.includes('session-replay-ui') &&
+      Boolean(event.entries.find(({type}) => type === 'breadcrumbs')) &&
+      Boolean(event?.tags?.find(({key}) => key === 'replayId')?.value);
+
     const type = isTransaction(event) ? 'transaction' : 'event';
 
     const timestamp = (
@@ -99,7 +107,7 @@ class EventMetas extends Component<Props, State> {
         {({projects}) => {
           const project = projects.find(p => p.slug === projectId);
           return (
-            <EventDetailHeader type={type}>
+            <EventDetailHeader type={type} hasReplay={hasReplay}>
               <MetaData
                 headingText={t('Event ID')}
                 tooltipText={t('The unique ID assigned to this %s.', type)}
@@ -145,6 +153,13 @@ class EventMetas extends Component<Props, State> {
                   subtext={httpStatus}
                 />
               )}
+              {hasReplay && (
+                <ReplayButtonContainer>
+                  <Button href="#breadcrumbs" size="sm" icon={<IconPlay size="xs" />}>
+                    {t('Replay')}
+                  </Button>
+                </ReplayButtonContainer>
+              )}
               <QuickTraceContainer>
                 <QuickTraceMeta
                   event={event}
@@ -165,7 +180,23 @@ class EventMetas extends Component<Props, State> {
   }
 }
 
-const EventDetailHeader = styled('div')<{type?: 'transaction' | 'event'}>`
+type EventDetailHeaderProps = {
+  hasReplay: boolean;
+  type?: 'transaction' | 'event';
+};
+
+function getEventDetailHeaderCols({hasReplay, type}: EventDetailHeaderProps): string {
+  if (type === 'transaction') {
+    return hasReplay
+      ? 'grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) minmax(160px, 1fr) 5fr minmax(325px, 1fr);'
+      : 'grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) minmax(160px, 1fr) 6fr;';
+  }
+  return hasReplay
+    ? 'grid-template-columns: minmax(160px, 1fr) minmax(200px, 1fr) 5fr minmax(325px, 1fr);'
+    : 'grid-template-columns: minmax(160px, 1fr) minmax(200px, 1fr) 6fr;';
+}
+
+const EventDetailHeader = styled('div')<EventDetailHeaderProps>`
   display: grid;
   grid-template-columns: repeat(${p => (p.type === 'transaction' ? 3 : 2)}, 1fr);
   grid-template-rows: repeat(2, auto);
@@ -178,18 +209,26 @@ const EventDetailHeader = styled('div')<{type?: 'transaction' | 'event'}>`
 
   /* This should match the breakpoint chosen for BREAKPOINT_MEDIA_QUERY above. */
   @media (min-width: ${p => p.theme.breakpoints.large}) {
-    ${p =>
-      p.type === 'transaction'
-        ? 'grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) minmax(160px, 1fr) 6fr;'
-        : 'grid-template-columns: minmax(160px, 1fr) minmax(200px, 1fr) 6fr;'};
+    ${p => getEventDetailHeaderCols(p)};
     grid-row-gap: 0;
   }
 `;
 
-const QuickTraceContainer = styled('div')`
-  grid-column: 1/4;
-
+const ReplayButtonContainer = styled('div')`
+  order: 2;
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
   @media (min-width: ${p => p.theme.breakpoints.large}) {
+    order: 4;
+  }
+`;
+
+const QuickTraceContainer = styled('div')`
+  grid-column: 1 / -2;
+  order: 1;
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
+    order: 5;
     justify-self: flex-end;
     min-width: 325px;
     grid-column: unset;

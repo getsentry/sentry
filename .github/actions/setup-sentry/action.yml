@@ -68,6 +68,7 @@ runs:
         fi
 
         echo "PIP_DISABLE_PIP_VERSION_CHECK=on" >> $GITHUB_ENV
+        echo "PIP_INDEX_URL=https://pypi.devinfra.sentry.io/simple" >> $GITHUB_ENV
         echo "PY_COLORS=1" >> "$GITHUB_ENV"
         echo "SENTRY_SKIP_BACKEND_VALIDATION=1" >> $GITHUB_ENV
 
@@ -113,10 +114,10 @@ runs:
         MATRIX_INSTANCE: ${{ matrix.instance }}
       shell: bash
       run: |
-        echo "::set-output name=yarn-cache-dir::$(yarn cache dir)"
-        echo "::set-output name=matrix-instance-number::$(($MATRIX_INSTANCE+1))"
-        echo "::set-output name=matrix-instance-total::$(($MATRIX_INSTANCE_TOTAL))"
-        echo "::set-output name=acceptance-dir::.artifacts/visual-snapshots/acceptance"
+        echo "yarn-cache-dir=$(yarn cache dir)" >> "$GITHUB_OUTPUT"
+        echo "matrix-instance-number=$(($MATRIX_INSTANCE+1))" >> "$GITHUB_OUTPUT"
+        echo "matrix-instance-total=$(($MATRIX_INSTANCE_TOTAL))" >> "$GITHUB_OUTPUT"
+        echo "acceptance-dir=.artifacts/visual-snapshots/acceptance" >> "$GITHUB_OUTPUT"
 
     - name: Install python dependencies
       shell: bash

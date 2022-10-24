@@ -70,6 +70,11 @@ describe('Performance > Transaction Summary Header', function () {
   it('should render web vitals tab when yes', function () {
     const {project, organization, router, eventView} = initializeData();
 
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-has-measurements/',
+      body: {measurements: true},
+    });
+
     render(
       <ComponentProviders organization={organization}>
         <TransactionHeader
@@ -85,11 +90,16 @@ describe('Performance > Transaction Summary Header', function () {
       </ComponentProviders>
     );
 
-    expect(screen.getByRole('link', {name: 'Web Vitals'})).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'Web Vitals'})).toBeInTheDocument();
   });
 
   it('should not render web vitals tab when no', function () {
     const {project, organization, router, eventView} = initializeData();
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-has-measurements/',
+      body: {measurements: true},
+    });
 
     <ComponentProviders organization={organization}>
       <TransactionHeader
@@ -104,12 +114,17 @@ describe('Performance > Transaction Summary Header', function () {
       />
     </ComponentProviders>;
 
-    expect(screen.queryByRole('link', {name: 'Web Vitals'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', {name: 'Web Vitals'})).not.toBeInTheDocument();
   });
 
   it('should render web vitals tab when maybe and is frontend platform', function () {
     const {project, organization, router, eventView} = initializeData({
       platform: 'javascript',
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-has-measurements/',
+      body: {measurements: true},
     });
 
     render(
@@ -127,7 +142,7 @@ describe('Performance > Transaction Summary Header', function () {
       </ComponentProviders>
     );
 
-    expect(screen.getByRole('link', {name: 'Web Vitals'})).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'Web Vitals'})).toBeInTheDocument();
   });
 
   it('should render web vitals tab when maybe and has measurements', async function () {
@@ -155,7 +170,7 @@ describe('Performance > Transaction Summary Header', function () {
 
     await waitFor(() => expect(eventHasMeasurementsMock).toHaveBeenCalled());
 
-    expect(screen.getByRole('link', {name: 'Web Vitals'})).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'Web Vitals'})).toBeInTheDocument();
   });
 
   it('should not render web vitals tab when maybe and has no measurements', async function () {
@@ -183,12 +198,17 @@ describe('Performance > Transaction Summary Header', function () {
 
     await waitFor(() => expect(eventHasMeasurementsMock).toHaveBeenCalled());
 
-    expect(screen.queryByRole('link', {name: 'Web Vitals'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', {name: 'Web Vitals'})).not.toBeInTheDocument();
   });
 
   it('should render spans tab with feature', function () {
     const {project, organization, router, eventView} = initializeData({
       features: ['performance-suspect-spans-view'],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-has-measurements/',
+      body: {measurements: true},
     });
 
     render(
@@ -206,6 +226,6 @@ describe('Performance > Transaction Summary Header', function () {
       </ComponentProviders>
     );
 
-    expect(screen.getByRole('link', {name: 'Spans'})).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'Spans'})).toBeInTheDocument();
   });
 });

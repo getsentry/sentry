@@ -1,10 +1,16 @@
-import {InjectedRouter} from 'react-router';
+import {browserHistory, InjectedRouter} from 'react-router';
 import {Location} from 'history';
 
 import {Client} from 'sentry/api';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import {
+  getDatetimeFromState,
+  normalizeDateTimeString,
+} from 'sentry/components/organizations/pageFilters/parse';
+import {getPageFilterStorage} from 'sentry/components/organizations/pageFilters/persistence';
 import {Organization, PageFilters, SavedQuery} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -19,8 +25,6 @@ type Props = {
   router: InjectedRouter;
   selection: PageFilters;
   setSavedQuery: (savedQuery: SavedQuery) => void;
-  homepageQuery?: SavedQuery;
-  savedQuery?: SavedQuery;
 };
 
 type HomepageQueryState = AsyncComponent['state'] & {
@@ -29,6 +33,53 @@ type HomepageQueryState = AsyncComponent['state'] & {
 
 class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
   shouldReload = true;
+
+  componentDidUpdate(prevProps, prevState) {
+    const hasFetchedSavedQuery = !prevState.savedQuery && this.state.savedQuery;
+    const hasInitiallyLoaded = prevState.loading && !this.state.loading;
+    const sidebarClicked = this.state.savedQuery && this.props.location.search === '';
+    const hasValidEventViewInURL = EventView.fromLocation(this.props.location).isValid();
+
+    if (
+      this.state.savedQuery &&
+      ((hasInitiallyLoaded && hasFetchedSavedQuery && !hasValidEventViewInURL) ||
+        sidebarClicked)
+    ) {
+      const eventView = EventView.fromSavedQuery(this.state.savedQuery);
+      const pageFilterState = getPageFilterStorage(this.props.organization.slug);
+      let query = {
+        ...eventView.generateQueryStringObject(),
+      };
+
+      // Handle locked filters explicitly because we can't expect
+      // PageFilterContainer to properly overwrite stored filters
+      // when pushing the homepage query to the URL
+      if (pageFilterState?.pinnedFilters) {
+        pageFilterState.pinnedFilters.forEach(pinnedFilter => {
+          if (pinnedFilter === 'projects') {
+            query.project = pageFilterState.state.project?.map(String);
+          } else if (pinnedFilter === 'datetime') {
+            const {period, start, end, utc} = getDatetimeFromState(pageFilterState.state);
+            query = {
+              ...query,
+              statsPeriod: period ?? undefined,
+              utc: utc?.toString(),
+              start: normalizeDateTimeString(start),
+              end: normalizeDateTimeString(end),
+            };
+          } else {
+            query[pinnedFilter] = pageFilterState.state[pinnedFilter];
+          }
+        });
+      }
+
+      browserHistory.replace({
+        ...this.props.location,
+        query,
+      });
+    }
+    super.componentDidUpdate(prevProps, prevState);
+  }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization} = this.props;
@@ -46,7 +97,14 @@ class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
     return endpoints;
   }
 
-  setSavedQuery = (newSavedQuery: SavedQuery) => {
+  onRequestSuccess({stateKey, data}) {
+    // No homepage query results in a 204, returning an empty string
+    if (stateKey === 'savedQuery' && data === '') {
+      this.setState({savedQuery: null});
+    }
+  }
+
+  setSavedQuery = (newSavedQuery?: SavedQuery) => {
     this.setState({savedQuery: newSavedQuery});
   };
 
@@ -66,11 +124,7 @@ class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
 
 function HomepageContainer(props: Props) {
   return (
-    <PageFiltersContainer
-      skipLoadLastUsed={
-        props.organization.features.includes('global-views') && !!props.savedQuery
-      }
-    >
+    <PageFiltersContainer skipInitializeUrlParams>
       <HomepageQueryAPI {...props} />
     </PageFiltersContainer>
   );

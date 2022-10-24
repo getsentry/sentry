@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -8,23 +8,35 @@ import Buttonbar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
 import DateTime from 'sentry/components/dateTime';
 import {getRelativeTimeFromEventDateCreated} from 'sentry/components/events/contexts/utils';
+import Link from 'sentry/components/links/link';
 import NotAvailable from 'sentry/components/notAvailable';
+import {CursorHandler} from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {EventAttachment, Organization, Project} from 'sentry/types';
+import {EventAttachment, IssueAttachment, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined, formatBytesBase2} from 'sentry/utils';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import useApi from 'sentry/utils/useApi';
+import {MAX_SCREENSHOTS_PER_PAGE} from 'sentry/views/organizationGroupDetails/groupEventAttachments/groupEventAttachments';
 
 import ImageVisualization from './imageVisualization';
+import ScreenshotPagination from './screenshotPagination';
 
 type Props = ModalRenderProps & {
   downloadUrl: string;
-  event: Event;
   eventAttachment: EventAttachment;
   onDelete: () => void;
+  onDownload: () => void;
   orgSlug: Organization['slug'];
   projectSlug: Project['slug'];
+  attachmentIndex?: number;
+  attachments?: EventAttachment[];
+  enablePagination?: boolean;
+  event?: Event;
+  groupId?: string;
+  pageLinks?: string | null | undefined;
 };
 
 function Modal({
@@ -37,13 +49,83 @@ function Modal({
   event,
   onDelete,
   downloadUrl,
+  onDownload,
+  pageLinks: initialPageLinks,
+  attachmentIndex,
+  attachments,
+  enablePagination,
+  groupId,
 }: Props) {
-  const {dateCreated, size, mimetype} = eventAttachment;
+  const api = useApi();
+
+  const [currentEventAttachment, setCurrentAttachment] =
+    useState<EventAttachment>(eventAttachment);
+  const [currentAttachmentIndex, setCurrentAttachmentIndex] = useState<
+    number | undefined
+  >(attachmentIndex);
+  const [memoizedAttachments, setMemoizedAttachments] = useState<
+    IssueAttachment[] | undefined
+  >(attachments);
+
+  const [pageLinks, setPageLinks] = useState<string | null | undefined>(initialPageLinks);
+
+  const handleCursor: CursorHandler = (cursor, _pathname, query, delta) => {
+    if (defined(currentAttachmentIndex) && memoizedAttachments?.length) {
+      const newAttachmentIndex = currentAttachmentIndex + delta;
+      if (newAttachmentIndex === MAX_SCREENSHOTS_PER_PAGE || newAttachmentIndex === -1) {
+        api
+          .requestPromise(`/issues/${groupId}/attachments/`, {
+            method: 'GET',
+            includeAllArgs: true,
+            query: {
+              ...query,
+              per_page: MAX_SCREENSHOTS_PER_PAGE,
+              types: undefined,
+              screenshot: 1,
+              cursor,
+            },
+          })
+          .then(([data, _, resp]) => {
+            if (newAttachmentIndex === MAX_SCREENSHOTS_PER_PAGE) {
+              setCurrentAttachmentIndex(0);
+              setCurrentAttachment(data[0]);
+            } else {
+              setCurrentAttachmentIndex(MAX_SCREENSHOTS_PER_PAGE - 1);
+              setCurrentAttachment(data[MAX_SCREENSHOTS_PER_PAGE - 1]);
+            }
+            setMemoizedAttachments(data);
+            setPageLinks(resp?.getResponseHeader('Link'));
+          });
+        return;
+      }
+      setCurrentAttachmentIndex(newAttachmentIndex);
+      setCurrentAttachment(memoizedAttachments[newAttachmentIndex]);
+    }
+  };
+
+  const {dateCreated, size, mimetype} = currentEventAttachment;
+  const links = pageLinks ? parseLinkHeader(pageLinks) : undefined;
+  const previousDisabled =
+    links?.previous?.results === false && currentAttachmentIndex === 0;
+  const nextDisabled = links?.next?.results === false && currentAttachmentIndex === 5;
+
   return (
     <Fragment>
       <Header closeButton>{t('Screenshot')}</Header>
       <Body>
         <GeralInfo>
+          {groupId && enablePagination && (
+            <Fragment>
+              <Label>{t('Event ID')}</Label>
+              <Value>
+                <Title
+                  to={`/organizations/${orgSlug}/issues/${groupId}/events/${currentEventAttachment.event_id}/`}
+                >
+                  {currentEventAttachment.event_id}
+                </Title>
+              </Value>
+            </Fragment>
+          )}
           <Label coloredBg>{t('Date Created')}</Label>
           <Value coloredBg>
             {dateCreated ? (
@@ -54,11 +136,12 @@ function Modal({
                     fixed: new Date(1508208080000),
                   })}
                 />
-                {getRelativeTimeFromEventDateCreated(
-                  event.dateCreated ? event.dateCreated : event.dateReceived,
-                  dateCreated,
-                  false
-                )}
+                {event &&
+                  getRelativeTimeFromEventDateCreated(
+                    event.dateCreated ? event.dateCreated : event.dateReceived,
+                    dateCreated,
+                    false
+                  )}
               </Fragment>
             ) : (
               <NotAvailable />
@@ -73,10 +156,10 @@ function Modal({
         </GeralInfo>
 
         <StyledImageVisualization
-          attachment={eventAttachment}
+          attachment={currentEventAttachment}
           orgId={orgSlug}
           projectId={projectSlug}
-          event={event}
+          eventId={currentEventAttachment.event_id}
         />
       </Body>
       <Footer>
@@ -92,7 +175,17 @@ function Modal({
           >
             <Button priority="danger">{t('Delete')}</Button>
           </Confirm>
-          <Button href={downloadUrl}>{t('Download')}</Button>
+          <Button onClick={onDownload} href={downloadUrl}>
+            {t('Download')}
+          </Button>
+          {enablePagination && (
+            <ScreenshotPagination
+              onCursor={handleCursor}
+              pageLinks={pageLinks}
+              previousDisabled={previousDisabled}
+              nextDisabled={nextDisabled}
+            />
+          )}
         </Buttonbar>
       </Footer>
     </Fragment>
@@ -125,11 +218,17 @@ const Value = styled(Label)`
 const StyledImageVisualization = styled(ImageVisualization)`
   img {
     border-radius: ${p => p.theme.borderRadius};
+    max-height: calc(100vh - 300px);
   }
+`;
+
+const Title = styled(Link)`
+  ${p => p.theme.overflowEllipsis};
+  font-weight: normal;
 `;
 
 export const modalCss = css`
   width: auto;
   height: 100%;
-  max-width: 100%;
+  max-width: 700px;
 `;

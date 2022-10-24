@@ -6,7 +6,7 @@ import styled from '@emotion/styled';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {openConfirmModal} from 'sentry/components/confirm';
 import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
-import NewBooleanField from 'sentry/components/forms/booleanField';
+import NewBooleanField from 'sentry/components/forms/fields/booleanField';
 import Placeholder from 'sentry/components/placeholder';
 import Tooltip from 'sentry/components/tooltip';
 import {IconEllipsis} from 'sentry/icons';
@@ -175,7 +175,7 @@ export function Rule({
       </ActiveColumn>
       <Column>
         <DropdownMenuControl
-          placement="bottom right"
+          position="bottom-end"
           triggerProps={{
             size: 'xs',
             icon: <IconEllipsis size="xs" />,

@@ -2,10 +2,10 @@ from typing import FrozenSet
 
 from django.db import models
 
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, control_silo_only_model, sane_repr
 
 
-@region_silo_model
+@control_silo_only_model
 class UserPermission(Model):
     """
     Permissions are applied to administrative users and control explicit scope-like permissions within the API.

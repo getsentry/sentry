@@ -7,7 +7,7 @@ from django.test import override_settings
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint, control_silo_endpoint, pending_silo_endpoint
+from sentry.api.base import control_silo_endpoint, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.testutils import APITestCase
 from sentry.types.region import Region, RegionCategory
@@ -24,12 +24,14 @@ SENTRY_REGION_CONFIG = [
 
 
 @control_silo_endpoint
-class ControlEndpoint(Endpoint):
-    def get(self, request):
+class ControlEndpoint(OrganizationEndpoint):
+    permission_classes = (AllowAny,)
+
+    def get(self, request, organization):
         return Response({"proxy": False})
 
 
-@pending_silo_endpoint
+@region_silo_endpoint
 class RegionEndpoint(OrganizationEndpoint):
     permission_classes = (AllowAny,)
 
@@ -55,7 +57,10 @@ def verify_request_body(body, headers):
     """Wrapper for a callback function for responses.add_callback"""
 
     def request_callback(request):
-        assert json.loads(request.body) == body
+        if request.headers["content-type"] == "application/json":
+            assert json.loads(request.body) == body
+        else:
+            assert request.body == body
         assert (request.headers[key] == headers[key] for key in headers)
         return 200, {}, json.dumps({"proxy": True})
 
@@ -93,7 +98,7 @@ def verify_file_body(file_body, headers):
     """Wrapper for a callback function for responses.add_callback"""
 
     def request_callback(request):
-        assert request.body == file_body
+        assert file_body in request.body or file_body in request.body.read()
         assert (request.headers[key] == headers[key] for key in headers)
         return 200, {}, json.dumps({"proxy": True})
 

@@ -9,14 +9,20 @@ import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import type {Organization, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
+import {
+  SPAN_OP_BREAKDOWN_FIELDS,
+  SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
+} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
 import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
 
+import {decodeFilterFromLocation, SpanOperationBreakdownFilter} from '../filter';
 import PageLayout, {ChildProps} from '../pageLayout';
 import Tab from '../tabs';
+import {decodeEventsDisplayFilterFromLocation} from '../transactionEvents/utils';
 
 import ReplaysContent from './content';
 import useReplaysFromTransaction from './useReplaysFromTransaction';
@@ -63,11 +69,16 @@ function ReplaysContentWrapper({
   organization,
   setError,
 }: ChildProps) {
+  const eventsDisplayFilterName = decodeEventsDisplayFilterFromLocation(location);
+  const spanOperationBreakdownFilter = decodeFilterFromLocation(location);
+
   const {eventView, replays, pageLinks, isFetching, fetchError} =
     useReplaysFromTransaction({
       eventsWithReplaysView,
       location,
       organization,
+      eventsDisplayFilterName,
+      spanOperationBreakdownFilter,
     });
 
   useEffect(() => {
@@ -90,6 +101,8 @@ function ReplaysContentWrapper({
       organization={organization}
       pageLinks={pageLinks}
       replays={replays}
+      eventsDisplayFilterName={eventsDisplayFilterName}
+      spanOperationBreakdownFilter={spanOperationBreakdownFilter}
     />
   ) : (
     <Fragment>{null}</Fragment>
@@ -114,8 +127,18 @@ function generateEventView({
   location: Location;
   transactionName: string;
 }) {
+  const fields = ['replayId', 'count()', 'transaction.duration', 'trace', 'timestamp'];
+
+  const breakdown = decodeFilterFromLocation(location);
+  if (breakdown !== SpanOperationBreakdownFilter.None) {
+    fields.push(`spans.${breakdown}`);
+  } else {
+    fields.push(...SPAN_OP_BREAKDOWN_FIELDS, SPAN_OP_RELATIVE_BREAKDOWN_FIELD);
+  }
+
   const query = decodeScalar(location.query.query, '');
   const conditions = new MutableSearch(query);
+  conditions.setFilterValues('event.type', ['transaction']);
   conditions.addFilterValues('transaction', [transactionName]);
   conditions.addFilterValues('!replayId', ['']);
 
@@ -124,9 +147,10 @@ function generateEventView({
       id: '',
       name: `Replay events within a transaction`,
       version: 2,
-      fields: ['replayId', 'count()'],
+      fields,
       query: conditions.formatString(),
       projects: [],
+      orderby: decodeScalar(location.query.sort, '-timestamp'),
     },
     location
   );

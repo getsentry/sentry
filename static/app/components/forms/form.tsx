@@ -6,7 +6,7 @@ import {APIRequestMethod} from 'sentry/api';
 import Button, {ButtonProps} from 'sentry/components/button';
 import FormContext, {FormContextData} from 'sentry/components/forms/formContext';
 import FormModel, {FormOptions} from 'sentry/components/forms/model';
-import {Data, OnSubmitCallback} from 'sentry/components/forms/type';
+import {Data, OnSubmitCallback} from 'sentry/components/forms/types';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -18,7 +18,7 @@ type RenderProps = {
 
 type RenderFunc = (props: RenderProps) => React.ReactNode;
 
-type Props = {
+export type FormProps = {
   additionalFieldProps?: {[key: string]: any};
   allowUndo?: boolean;
   /**
@@ -86,8 +86,8 @@ type Props = {
   submitPriority?: ButtonProps['priority'];
 } & Pick<FormOptions, 'onSubmitSuccess' | 'onSubmitError' | 'onFieldChange'>;
 
-export default class Form extends Component<Props> {
-  constructor(props: Props, context: FormContextData) {
+export default class Form extends Component<FormProps> {
+  constructor(props: FormProps, context: FormContextData) {
     super(props, context);
     const {
       saveOnBlur,

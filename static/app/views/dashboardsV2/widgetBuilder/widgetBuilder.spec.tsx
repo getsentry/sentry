@@ -3,7 +3,14 @@ import {urlEncode} from '@sentry/utils';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import * as modals from 'sentry/actionCreators/modal';
@@ -374,7 +381,7 @@ describe('WidgetBuilder', function () {
       expect(
         screen.getByRole('heading', {name: 'Choose your dataset'})
       ).toBeInTheDocument();
-      expect(screen.getByLabelText('Select Errors and Transactions')).toBeChecked();
+      expect(screen.getByLabelText('Errors and Transactions')).toBeChecked();
 
       // Content - Step 2
       expect(
@@ -400,12 +407,7 @@ describe('WidgetBuilder', function () {
       // because of route setup
       renderTestComponent({params: {dashboardId: undefined}});
 
-      expect(await screen.findByRole('link', {name: 'Dashboard'})).toHaveAttribute(
-        'href',
-        '/organizations/org-slug/dashboards/new/'
-      );
-
-      expect(screen.getByLabelText('Cancel')).toHaveAttribute(
+      expect(await screen.findByLabelText('Cancel')).toHaveAttribute(
         'href',
         '/organizations/org-slug/dashboards/new/'
       );
@@ -417,7 +419,7 @@ describe('WidgetBuilder', function () {
       });
 
       // Switch to line chart for time series
-      userEvent.click(await screen.findByText('Table'));
+      userEvent.click(screen.getByText('Table'));
       userEvent.click(screen.getByText('Line Chart'));
 
       // Header - Breadcrumbs
@@ -444,7 +446,7 @@ describe('WidgetBuilder', function () {
       expect(
         screen.getByRole('heading', {name: 'Choose your dataset'})
       ).toBeInTheDocument();
-      expect(screen.getByLabelText('Select Errors and Transactions')).toBeChecked();
+      expect(screen.getByLabelText('Errors and Transactions')).toBeChecked();
 
       // Content - Step 2
       expect(
@@ -495,11 +497,16 @@ describe('WidgetBuilder', function () {
         dashboard: testDashboard,
       });
 
-      userEvent.type(
-        await screen.findByRole('textbox', {name: 'Search events'}),
-        'color:blue{enter}'
-      );
+      const search = await screen.findByTestId(/smart-search-input/);
 
+      userEvent.click(search);
+
+      // Use fireEvent for performance reasons as this test suite is slow
+      fireEvent.paste(search, {
+        target: {value: 'color:blue'},
+        clipboardData: {getData: () => 'color:blue'},
+      });
+      userEvent.keyboard('{enter}');
       userEvent.click(screen.getByText('Add Widget'));
 
       await waitFor(() => {
@@ -783,9 +790,9 @@ describe('WidgetBuilder', function () {
       await screen.findByText('Line Chart');
 
       // Should be in edit 'mode'
-      expect(await screen.findByText('Update Widget')).toBeInTheDocument();
+      expect(screen.getByText('Update Widget')).toBeInTheDocument();
 
-      const customWidgetLabels = await screen.findAllByText(widget.title);
+      const customWidgetLabels = screen.getAllByText(widget.title);
       // EditableText and chart title
       expect(customWidgetLabels).toHaveLength(2);
       userEvent.click(customWidgetLabels[0]);
@@ -1051,10 +1058,7 @@ describe('WidgetBuilder', function () {
         query: {statsPeriod: '90d'},
       });
 
-      await screen.findByText('Update Widget');
-      await screen.findByText('90D');
-
-      expect(screen.getByTestId('page-filter-timerange-selector')).toBeEnabled();
+      expect(await screen.findByTestId('page-filter-timerange-selector')).toBeEnabled();
 
       userEvent.click(screen.getByText('Update Widget'));
 
@@ -1082,14 +1086,10 @@ describe('WidgetBuilder', function () {
         orgFeatures: [...defaultOrgFeatures, 'dashboards-top-level-filter'],
       });
 
-      await screen.findByText('90D');
-      expect(screen.getByTestId('page-filter-timerange-selector')).toBeDisabled();
+      expect(await screen.findByTestId('page-filter-timerange-selector')).toBeDisabled();
       expect(screen.getByTestId('page-filter-environment-selector')).toBeDisabled();
       expect(screen.getByTestId('page-filter-project-selector-loading')).toBeDisabled();
-
-      await waitFor(() => {
-        expect(mockReleases).toHaveBeenCalled();
-      });
+      expect(mockReleases).toHaveBeenCalled();
 
       expect(screen.getByRole('button', {name: /all releases/i})).toBeDisabled();
     });
@@ -1152,23 +1152,20 @@ describe('WidgetBuilder', function () {
       };
 
       const dashboard = mockDashboard({widgets: [widget]});
-
       const handleSave = jest.fn();
 
       renderTestComponent({dashboard, onSave: handleSave, params: {widgetIndex: '0'}});
 
-      await act(async () => {
-        userEvent.click(await screen.findByLabelText('Add Query'));
+      userEvent.click(await screen.findByLabelText('Add Query'));
 
-        // Triggering the onBlur of the new field should not error
-        userEvent.click(
-          screen.getAllByPlaceholderText('Search for events, users, tags, and more')[1]
-        );
-        userEvent.keyboard('{esc}');
+      // Triggering the onBlur of the new field should not error
+      userEvent.click(
+        screen.getAllByPlaceholderText('Search for events, users, tags, and more')[1]
+      );
+      userEvent.keyboard('{esc}');
 
-        // Run all timers because the handleBlur contains a setTimeout
-        jest.runAllTimers();
-      });
+      // Run all timers because the handleBlur contains a setTimeout
+      jest.runAllTimers();
     });
 
     it('does not wipe column changes when filters are modified', async function () {
@@ -1185,10 +1182,6 @@ describe('WidgetBuilder', function () {
         screen.getByPlaceholderText('Search for events, users, tags, and more')
       );
       userEvent.keyboard('{enter}');
-      act(() => {
-        // Run all timers because the handleBlur contains a setTimeout
-        jest.runAllTimers();
-      });
 
       expect(await screen.findAllByText('project')).toHaveLength(2);
     });
@@ -1229,7 +1222,7 @@ describe('WidgetBuilder', function () {
       });
 
       // Top N now opens as Area Chart
-      await screen.findByText('Area Chart');
+      expect(await screen.findByText('Area Chart')).toBeInTheDocument();
 
       // Add a group by
       userEvent.click(screen.getByText('Add Overlay'));
@@ -1255,11 +1248,11 @@ describe('WidgetBuilder', function () {
     });
 
     it('fetches tags when tag store is empty', async function () {
-      await act(async () => {
-        renderTestComponent();
-        await tick();
+      renderTestComponent();
+
+      await waitFor(() => {
+        expect(tagsMock).toHaveBeenCalled();
       });
-      expect(tagsMock).toHaveBeenCalled();
     });
 
     it('does not fetch tags when tag store is not empty', async function () {
@@ -1350,7 +1343,7 @@ describe('WidgetBuilder', function () {
       userEvent.click(screen.getByText('Add Query'));
       userEvent.click(screen.getByText('Add Overlay'));
 
-      await screen.findByText('Limit to 2 results');
+      expect(screen.getByText('Limit to 2 results')).toBeInTheDocument();
     });
 
     it('alerts the user if there are unsaved changes', async function () {
@@ -1391,10 +1384,8 @@ describe('WidgetBuilder', function () {
         alertMock();
       });
 
-      await screen.findAllByText('Custom Widget');
-
       // Click Cancel
-      userEvent.click(screen.getByText('Cancel'));
+      userEvent.click(await screen.findByText('Cancel'));
 
       // Assert an alert was triggered
       expect(alertMock).not.toHaveBeenCalled();
@@ -1577,8 +1568,6 @@ describe('WidgetBuilder', function () {
         orgFeatures: [...defaultOrgFeatures],
       });
 
-      await screen.findByText('Table');
-
       userEvent.paste(screen.getByPlaceholderText('Alias'), 'First Alias');
 
       userEvent.click(screen.getByLabelText('Add a Column'));
@@ -1603,8 +1592,6 @@ describe('WidgetBuilder', function () {
         orgFeatures: [...defaultOrgFeatures],
       });
 
-      await screen.findByText('Table');
-
       userEvent.click(screen.getByText('Add an Equation'));
       userEvent.paste(screen.getAllByPlaceholderText('Alias')[1], 'This should persist');
       userEvent.type(screen.getAllByPlaceholderText('Alias')[0], 'A');
@@ -1616,8 +1603,6 @@ describe('WidgetBuilder', function () {
       renderTestComponent({
         orgFeatures: [...defaultOrgFeatures],
       });
-
-      await screen.findByText('Table');
 
       userEvent.click(screen.getByText('Add an Equation'));
       userEvent.paste(screen.getAllByPlaceholderText('Alias')[1], 'This should persist');
@@ -1682,19 +1667,12 @@ describe('WidgetBuilder', function () {
       // Unfocus input
       userEvent.click(screen.getByText('Filter your results'));
 
-      await waitFor(() =>
-        expect(screen.getByText('Add Widget').closest('button')).toBeDisabled()
-      );
+      expect(screen.getByText('Add Widget').closest('button')).toBeDisabled();
       expect(screen.getByText('Widget query condition is invalid.')).toBeInTheDocument();
       expect(eventsStatsMock).toHaveBeenCalledTimes(1);
     });
 
     describe('Widget Library', function () {
-      it('renders', async function () {
-        renderTestComponent();
-        expect(await screen.findByText('Widget Library')).toBeInTheDocument();
-      });
-
       it('only opens the modal when the query data is changed', async function () {
         const mockModal = jest.spyOn(modals, 'openWidgetBuilderOverwriteModal');
         renderTestComponent();
@@ -1703,7 +1681,7 @@ describe('WidgetBuilder', function () {
         userEvent.click(screen.getByText('Duration Distribution'));
 
         // Widget Library, Builder title, and Chart title
-        expect(await screen.findAllByText('Duration Distribution')).toHaveLength(3);
+        expect(screen.getAllByText('Duration Distribution')).toHaveLength(3);
 
         // Confirm modal doesn't open because no changes were made
         expect(mockModal).not.toHaveBeenCalled();
@@ -1712,7 +1690,7 @@ describe('WidgetBuilder', function () {
         userEvent.click(screen.getByText('High Throughput Transactions'));
 
         // Should not have overwritten widget data, and confirm modal should open
-        expect(await screen.findAllByText('Duration Distribution')).toHaveLength(3);
+        expect(screen.getAllByText('Duration Distribution')).toHaveLength(3);
         expect(mockModal).toHaveBeenCalled();
       });
     });
@@ -1724,9 +1702,7 @@ describe('WidgetBuilder', function () {
           orgFeatures: [...defaultOrgFeatures],
         });
 
-        await screen.findByText('Group your results');
-
-        expect(screen.getByText('Select group')).toBeInTheDocument();
+        expect(await screen.findByText('Select group')).toBeInTheDocument();
 
         userEvent.click(screen.getByText('Select group'));
 
@@ -1740,8 +1716,7 @@ describe('WidgetBuilder', function () {
           orgFeatures: [...defaultOrgFeatures],
         });
 
-        await screen.findByText('Group your results');
-        userEvent.click(screen.getByText('Add Group'));
+        userEvent.click(await screen.findByText('Add Group'));
         expect(await screen.findAllByText('Select group')).toHaveLength(2);
       });
 
@@ -1804,8 +1779,7 @@ describe('WidgetBuilder', function () {
           orgFeatures: [...defaultOrgFeatures],
         });
 
-        await screen.findByText('Group your results');
-        userEvent.click(screen.getByText('Add Group'));
+        userEvent.click(await screen.findByText('Add Group'));
         expect(screen.getAllByLabelText('Remove group')).toHaveLength(2);
 
         userEvent.click(screen.getAllByLabelText('Remove group')[1]);
@@ -1819,8 +1793,6 @@ describe('WidgetBuilder', function () {
           query: {displayType: 'line'},
           orgFeatures: [...defaultOrgFeatures],
         });
-
-        await screen.findByText('Select group');
 
         expect(screen.queryByLabelText('Remove group')).not.toBeInTheDocument();
 

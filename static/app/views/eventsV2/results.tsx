@@ -23,7 +23,10 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {
+  normalizeDateTimeParams,
+  normalizeDateTimeString,
+} from 'sentry/components/organizations/pageFilters/parse';
 import {CursorHandler} from 'sentry/components/pagination';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -65,7 +68,7 @@ type Props = {
   organization: Organization;
   router: InjectedRouter;
   selection: PageFilters;
-  setSavedQuery: (savedQuery: SavedQuery) => void;
+  setSavedQuery: (savedQuery?: SavedQuery) => void;
   isHomepage?: boolean;
   savedQuery?: SavedQuery;
 };
@@ -104,26 +107,18 @@ function getYAxis(location: Location, eventView: EventView, savedQuery?: SavedQu
 
 export class Results extends Component<Props, State> {
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
-    if (
-      !nextProps.isHomepage ||
-      prevState.savedQuery ||
-      nextProps.savedQuery === undefined // When user clicks on Discover in sidebar
-    ) {
-      const eventView = EventView.fromSavedQueryOrLocation(
-        nextProps.savedQuery,
-        nextProps.location
-      );
-      return {...prevState, eventView, savedQuery: nextProps.savedQuery};
-    }
-    return prevState;
+    const eventView = EventView.fromSavedQueryOrLocation(
+      nextProps.savedQuery,
+      nextProps.location
+    );
+    return {...prevState, eventView, savedQuery: nextProps.savedQuery};
   }
 
   state: State = {
-    // If this is the homepage, force an invalid eventView so we can handle
-    // the redirect first
-    eventView: this.props.isHomepage
-      ? EventView.fromSavedQueryOrLocation(undefined, this.props.location)
-      : EventView.fromSavedQueryOrLocation(this.props.savedQuery, this.props.location),
+    eventView: EventView.fromSavedQueryOrLocation(
+      this.props.savedQuery,
+      this.props.location
+    ),
     error: '',
     errorCode: 200,
     totalValues: null,
@@ -304,6 +299,13 @@ export class Results extends Component<Props, State> {
     const nextEventView = EventView.fromNewQueryWithLocation(query, location);
     if (nextEventView.project.length === 0 && selection.projects) {
       nextEventView.project = selection.projects;
+    }
+    if (selection.datetime) {
+      const {period, utc, start, end} = selection.datetime;
+      nextEventView.statsPeriod = period ?? undefined;
+      nextEventView.utc = utc?.toString();
+      nextEventView.start = normalizeDateTimeString(start);
+      nextEventView.end = normalizeDateTimeString(end);
     }
     if (location.query?.query) {
       nextEventView.query = decodeScalar(location.query.query, '');
@@ -705,7 +707,7 @@ class SavedQueryAPI extends AsyncComponent<Props, SavedQueryState> {
     return endpoints;
   }
 
-  setSavedQuery = (newSavedQuery: SavedQuery) => {
+  setSavedQuery = (newSavedQuery?: SavedQuery) => {
     this.setState({savedQuery: newSavedQuery});
   };
 

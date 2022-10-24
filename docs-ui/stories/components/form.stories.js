@@ -1,9 +1,9 @@
-import NewBooleanField from 'sentry/components/forms/booleanField';
+import NewBooleanField from 'sentry/components/forms/fields/booleanField';
+import RadioField from 'sentry/components/forms/fields/radioField';
+import RangeField from 'sentry/components/forms/fields/rangeField';
+import SelectField from 'sentry/components/forms/fields/selectField';
+import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
-import RadioField from 'sentry/components/forms/radioField';
-import RangeField from 'sentry/components/forms/rangeField';
-import SelectField from 'sentry/components/forms/selectField';
-import TextField from 'sentry/components/forms/textField';
 
 export default {
   title: 'Components/Forms/Form',
@@ -41,10 +41,10 @@ export const Default = ({...fieldProps}) => {
       <SelectField
         name="select"
         label="Select Field"
-        choices={[
-          ['choice_one', 'Choice One'],
-          ['choice_two', 'Choice Two'],
-          ['choice_three', 'Choice Three'],
+        options={[
+          {value: 'choice_one', label: 'Choice One'},
+          {value: 'choice_two', label: 'Choice Two'},
+          {value: 'choice_three', label: 'Choice Three'},
         ]}
         {...fieldProps}
       />

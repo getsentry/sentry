@@ -1,7 +1,7 @@
 {
   "files.exclude": {
     "*.egg-info": true,
-    "*.log": true,
+    "*.log": false,
     "**/*.js.map": true,
     "**/*.min.js": true,
     "**/*.pyc": true,
@@ -18,6 +18,10 @@
 
   "files.associations": {
     "*.jsx": "javascriptreact"
+  },
+
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": true
   },
 
   "[javascript]": {
