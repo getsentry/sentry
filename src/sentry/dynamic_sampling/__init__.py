@@ -16,7 +16,7 @@ def generate_rules(project: Project) -> List[BaseRule]:
 
     sample_rate = quotas.get_blended_sample_rate(project)
 
-    boost_environments = DynamicSamplingFeatureMultiplexer.get_user_bias(
+    boost_environments = DynamicSamplingFeatureMultiplexer.get_user_bias_by_id(
         "boostEnvironments", project.get_option("sentry:dynamic_sampling_biases", None)
     )
     if sample_rate is None:
