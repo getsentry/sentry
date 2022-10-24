@@ -7,7 +7,6 @@ describe('Threads', () => {
   const event = TestStubs.Event({entries});
   const exceptionEntry = entries[0];
   const data = exceptionEntry.data;
-  const type = exceptionEntry.type;
 
   it('Display multiple frames', () => {
     const newEvent = {
@@ -50,9 +49,8 @@ describe('Threads', () => {
 
     render(
       <Threads
-        type={type}
         data={data}
-        orgId="org-slug"
+        hasHierarchicalGrouping={false}
         projectId="project-id"
         event={newEvent}
       />
@@ -69,9 +67,8 @@ describe('Threads', () => {
   it('Display no frame', () => {
     render(
       <Threads
-        type={type}
         data={{...data, values: [{...data.values[0], stacktrace: null}]}}
-        orgId="org-slug"
+        hasHierarchicalGrouping={false}
         projectId="project-id"
         event={{
           ...event,
@@ -99,11 +96,10 @@ describe('Threads', () => {
     it('Displays the exception stacktrace', () => {
       render(
         <Threads
-          type={threadsEntry.type}
           data={threadsEntry.data}
-          orgId="org-slug"
           projectId="project-id"
           event={event}
+          hasHierarchicalGrouping={false}
         />
       );
 
@@ -114,9 +110,8 @@ describe('Threads', () => {
     it('Displays the the active thread stacktrace', () => {
       render(
         <Threads
-          type={threadsEntry.type}
           data={threadsEntry.data}
-          orgId="org-slug"
+          hasHierarchicalGrouping={false}
           projectId="project-id"
           event={{
             ...event,
