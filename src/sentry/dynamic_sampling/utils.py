@@ -1,10 +1,5 @@
 from typing import Dict, List, Optional, TypedDict
 
-import sentry_sdk
-
-from sentry import quotas
-from sentry.models import Project
-
 UNIFORM_RULE_RESERVED_ID = 0
 
 # These represent the biases that are applied to user by default as part of the adaptive dynamic sampling experience.
@@ -70,24 +65,3 @@ def generate_environment_rule() -> BaseRule:
         "active": True,
         "id": 1,
     }
-
-
-def generate_rules(project: Project, enable_environment_bias=False):
-    """
-    This function handles generate rules logic or fallback empty list of rules
-    """
-    rules = []
-
-    sample_rate = quotas.get_blended_sample_rate(project)
-
-    if enable_environment_bias and sample_rate and sample_rate < 1.0:
-        rules.append(generate_environment_rule())
-    if sample_rate is None:
-        try:
-            raise Exception("get_blended_sample_rate returns none")
-        except Exception:
-            sentry_sdk.capture_exception()
-    else:
-        rules.append(generate_uniform_rule(sample_rate))
-
-    return rules
