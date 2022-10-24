@@ -146,6 +146,7 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
                     "start_sha": start_sha,
                 },
             )
+            logger.exception(e)
             if isinstance(e, InvalidIdentity) and getattr(e, "identity", None):
                 handle_invalid_identity(identity=e.identity, commit_failure=True)
             elif isinstance(e, (PluginError, InvalidIdentity, IntegrationError)):
