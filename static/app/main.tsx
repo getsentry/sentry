@@ -23,8 +23,8 @@ function renderRouter(props: any) {
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      // Prevents queries from being refetched if the data is < 20 seconds old
-      staleTime: 20_000,
+      // Prevents queries from being refetched if the data is < 5 seconds old
+      staleTime: 5000,
     },
   },
 });

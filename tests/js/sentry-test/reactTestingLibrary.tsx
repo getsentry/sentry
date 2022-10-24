@@ -34,7 +34,7 @@ const makeQueryClient = () =>
         // Disable retries for tests to allow them to fail fast
         retry: false,
         // Matches the config we have in prod
-        staleTime: 20_000,
+        staleTime: 5000,
       },
       mutations: {
         // Disable retries for tests to allow them to fail fast
