@@ -1,4 +1,4 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {getByRole, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {disablePlugin, enablePlugin, fetchPlugins} from 'sentry/actionCreators/plugins';
 import {ProjectPluginsContainer} from 'sentry/views/settings/projectPlugins';
@@ -70,7 +70,9 @@ describe('ProjectPluginsContainer', function () {
   });
 
   it('calls `enablePlugin` action creator when enabling plugin', async function () {
-    const button = (await screen.findAllByRole('checkbox'))[0];
+    const pluginItem = (await screen.findByText('Amazon SQS')).parentElement.parentElement
+      .parentElement;
+    const button = getByRole(pluginItem, 'checkbox');
 
     expect(enablePlugin).not.toHaveBeenCalled();
 
@@ -80,7 +82,9 @@ describe('ProjectPluginsContainer', function () {
   });
 
   it('calls `disablePlugin` action creator when disabling plugin', async function () {
-    const button = (await screen.findAllByRole('checkbox'))[2];
+    const pluginItem = (await screen.findByText('Disableable Plugin')).parentElement
+      .parentElement.parentElement;
+    const button = getByRole(pluginItem, 'checkbox');
 
     expect(disablePlugin).not.toHaveBeenCalled();
 
