@@ -15,7 +15,7 @@ type UseQueryOptions<TQueryFnData, TError, TData, TQueryKey extends QueryKey> = 
 >;
 
 /**
- * Wraps reqct-query's useQuery for consistent usage in the Sentry app.
+ * Wraps react-query's useQuery for consistent usage in the Sentry app.
  * Query keys should be an array which include an endpoint URL and options such as query params.
  * This wrapper will execute the request using the query key URL, but if you need custom behavior
  * you may supply your own query function as the second argument.
