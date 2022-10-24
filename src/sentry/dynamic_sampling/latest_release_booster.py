@@ -36,6 +36,8 @@ def observe_release(project_id, release_id):
     redis_client = get_redis_client_for_ds()
     cache_key = generate_cache_key_for_observed_release(project_id, release_id)
 
+    # TODO(ahmed): Modify these two statements into one once we upgrade to a higher redis-py version as in newer
+    #  versions these two operations can be done in a single call.
     release_observed = redis_client.getset(name=cache_key, value=1)
     redis_client.pexpire(cache_key, ONE_DAY_TIMEOUT)
     return release_observed == "1"
@@ -68,8 +70,13 @@ def add_boosted_release(project_id, release_id):
     """
     Function that adds a release to the list of active boosted releases for a given project.
     """
+    # Called here for expired releases cleanup
+    get_boosted_releases(project_id)
+
     cache_key = generate_cache_key_for_boosted_release(project_id)
     redis_client = get_redis_client_for_ds()
+    # TODO(ahmed): Modify these two statements into one once we upgrade to a higher redis-py version as in newer
+    #  versions these two operations can be done in a single call.
     redis_client.hset(
         cache_key,
         release_id,

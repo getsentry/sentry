@@ -2790,7 +2790,7 @@ class ReleaseDSLatestReleaseBoost(TestCase):
         for release_id in (self.release.id, release_2.id):
             self.redis_client.set(f"ds::p:{self.project.id}:r:{release_id}", 1, 60 * 60 * 24)
             self.redis_client.hset(
-                "ds::p:{self.project.id}:boosted_releases",
+                f"ds::p:{self.project.id}:boosted_releases",
                 release_id,
                 time() - BOOSTED_RELEASE_TIMEOUT * 2,
             )
