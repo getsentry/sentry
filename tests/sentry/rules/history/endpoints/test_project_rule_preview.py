@@ -32,8 +32,8 @@ class ProjectRulePreviewEndpointTest(APITestCase):
             filterMatch="all",
             frequency=10,
         )
-        assert len(resp.data["data"]) == 1
-        assert resp.data["data"][0]["id"] == str(group.id)
+        assert len(resp.data) == 1
+        assert resp.data[0]["id"] == str(group.id)
 
     def test_invalid_conditions(self):
         conditions = [

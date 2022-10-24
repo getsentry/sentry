@@ -56,11 +56,6 @@ class ProjectRulePreviewEndpoint(ProjectEndpoint):
             queryset=results,
             order_by="-id",
             on_results=lambda x: serialize(x, request.user),
+            count_hits=True,
         )
-
-        response.data = {
-            "data": response.data,
-            "totalCount": results.count(),
-        }
-
         return response
