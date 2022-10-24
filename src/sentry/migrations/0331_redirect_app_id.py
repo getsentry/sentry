@@ -37,7 +37,7 @@ class Migration(CheckedMigration):
                 migrations.AlterField(
                     model_name="appconnectbuild",
                     name="app_id",
-                    field=models.CharField(db_column="app_id_str", max_length=256),
+                    field=models.CharField(db_column="app_id_str", max_length=256, default="0"),
                 ),
             ],
             database_operations=[],
