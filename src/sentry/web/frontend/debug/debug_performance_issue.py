@@ -3,7 +3,7 @@ from django.utils.safestring import mark_safe
 from django.views.generic import View
 
 from sentry.event_manager import EventManager
-from sentry.models import Organization, Project, Rule
+from sentry.models import Project, Rule
 from sentry.notifications.utils import (
     get_group_settings_link,
     get_interface_list,
@@ -25,8 +25,8 @@ class DebugPerformanceIssueEmailView(View):
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def get(self, request):
-        org = Organization(id=1, slug="example", name="Example")
-        project = Project(id=1, slug="example", name="Example", organization=org)
+        project = Project.objects.first()
+        org = project.organization
         project.update_option("sentry:performance_issue_creation_rate", 1.0)
         with override_options(
             {
