@@ -6,7 +6,6 @@ import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {
   makePinSearchAction,
   makeSaveSearchAction,
-  makeSearchBuilderAction,
 } from 'sentry/components/smartSearchBar/actions';
 import {SavedSearch, SavedSearchType, Tag, TagCollection} from 'sentry/types';
 import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
@@ -36,7 +35,7 @@ interface Props extends React.ComponentProps<typeof SmartSearchBar>, WithRouterP
 }
 
 function IssueListSearchBar({
-  onSidebarToggle,
+  onSidebarToggle: _onSidebarToggle,
   sort,
   supportedTags,
   tagValueLoader,
@@ -67,7 +66,8 @@ function IssueListSearchBar({
           sort,
           disabled: !organization.access.includes('org:write'),
         }),
-        makeSearchBuilderAction({onSidebarToggle}),
+        // TODO: fully remove this
+        // makeSearchBuilderAction({onSidebarToggle}),
       ]}
       {...props}
       maxMenuHeight={500}
