@@ -42,11 +42,11 @@ const makeGroupPreviewRequestUrl = ({
   projectSlug?: string;
 }) => {
   if (eventId && projectSlug) {
-    return `/projects/${orgSlug}/${projectSlug}/events/${eventId}/?referrer=span-evidence-preview`;
+    return `/projects/${orgSlug}/${projectSlug}/events/${eventId}/`;
   }
 
   if (groupId) {
-    return `/issues/${groupId}/events/latest/?referrer=span-evidence-preview`;
+    return `/issues/${groupId}/events/latest/`;
   }
 
   return null;
