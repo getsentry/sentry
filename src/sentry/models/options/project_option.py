@@ -48,6 +48,7 @@ OPTION_KEYS = frozenset(
         "sentry:fingerprinting_rules",
         "sentry:relay_pii_config",
         "sentry:dynamic_sampling",
+        "sentry:dynamic_sampling_biases",
         "sentry:breakdowns",
         "sentry:span_attributes",
         "sentry:performance_issue_creation_rate",
