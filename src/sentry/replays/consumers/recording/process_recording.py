@@ -20,6 +20,7 @@ from django.conf import settings
 
 from sentry.constants import DataCategory
 from sentry.models import File
+from sentry.models.project import Project
 from sentry.replays.cache import RecordingSegmentPart, RecordingSegmentParts
 from sentry.replays.consumers.recording.types import (
     RecordingSegmentChunkMessage,
@@ -27,6 +28,7 @@ from sentry.replays.consumers.recording.types import (
     RecordingSegmentMessage,
 )
 from sentry.replays.models import ReplayRecordingSegment
+from sentry.signals import first_replay_received
 from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.sdk import configure_scope
@@ -159,6 +161,10 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
             # or do this in a separate arroyo step
             # also need to talk with other teams on only-once produce requirements
             if headers["segment_id"] == 0 and message_dict.get("org_id"):
+                project = Project.objects.get_from_cache(id=message_dict["project_id"])
+                if not project.flags.has_replays:
+                    first_replay_received.send_robust(project=project, sender=Project)
+
                 track_outcome(
                     org_id=message_dict["org_id"],
                     project_id=message_dict["project_id"],
