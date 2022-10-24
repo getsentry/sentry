@@ -377,15 +377,17 @@ class IssueRuleEditor extends AsyncView<Props, State> {
         },
       })
       .then(([data, _, resp]) => {
-        GroupStore.add(data?.data);
+        GroupStore.add(data);
 
         const pageLinks = resp?.getResponseHeader('Link');
-        const issueCount = data?.totalCount;
+        const hits = resp?.getResponseHeader('X-Hits');
+        const issueCount =
+          typeof hits !== 'undefined' && hits ? parseInt(hits, 10) || 0 : 0;
         this.setState({
-          previewGroups: data?.data.map(g => g.id),
+          previewGroups: data.map(g => g.id),
           previewError: false,
           pageLinks: pageLinks ?? '',
-          issueCount: issueCount ?? 0,
+          issueCount,
           loadingPreview: false,
         });
       })
