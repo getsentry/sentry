@@ -35,12 +35,17 @@ class ApiProjectKey:
 
 
 @dataclass
+class ApiOrganizationMember:
+    pass
+
+
+@dataclass
 class ApiOrganization:
     slug: str = ""
     id: int = -1
-    # True iff the organization was queried with a user_id context, and that user_id
+    # exists iff the organization was queried with a user_id context, and that user_id
     # was confirmed to be a member.
-    is_member: bool = False
+    member: Optional[ApiOrganizationMember] = None
 
 
 class InterfaceWithLifecycle(ABC):
@@ -128,12 +133,20 @@ class OrganizationService(InterfaceWithLifecycle):
     ) -> Optional[ApiOrganization]:
         pass
 
+    def _serialize_member(self, member: OrganizationMember) -> ApiOrganizationMember:
+        return ApiOrganizationMember()
+
     def _serialize_organization(
         self, org: Organization, membership: Iterable[OrganizationMember] = tuple()
     ) -> ApiOrganization:
-        return ApiOrganization(
-            slug=org.slug, id=org.id, is_member=any(m.organization_id == org.id for m in membership)
-        )
+        org = ApiOrganization(slug=org.slug, id=org.id)
+
+        for member in membership:
+            if member.organization.id == org.id:
+                org.member = self._serialize_member(member)
+                break
+
+        return org
 
 
 class DatabaseBackedOrganizationService(OrganizationService):
