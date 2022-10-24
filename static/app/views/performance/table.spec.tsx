@@ -219,6 +219,7 @@ describe('Performance > Table', function () {
           start: '2019-10-01T00:00:00',
           end: '2019-10-02T00:00:00',
           query: '', // drops 'transaction:/api*' and 'event.type:transaction' from the query
+          referrer: 'performance-transaction-summary',
           unselectedSeries: 'p100()',
           showTransactions: undefined,
           display: undefined,
@@ -360,6 +361,7 @@ describe('Performance > Table', function () {
           start: '2019-10-01T00:00:00',
           end: '2019-10-02T00:00:00',
           query: '', // drops 'transaction:/api*' and 'event.type:transaction' from the query
+          referrer: 'performance-transaction-summary',
           unselectedSeries: 'p100()',
           showTransactions: undefined,
           display: undefined,
