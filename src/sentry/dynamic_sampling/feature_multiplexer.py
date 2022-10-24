@@ -1,5 +1,9 @@
+from typing import List, Optional, Set
+
 from sentry import features
-from sentry.dynamic_sampling.utils import DEFAULT_BIASES
+from sentry.dynamic_sampling.utils import DEFAULT_BIASES, Bias
+from sentry.models import Project
+from sentry.models.user import User
 
 
 class DynamicSamplingFeatureMultiplexer:
@@ -13,7 +17,7 @@ class DynamicSamplingFeatureMultiplexer:
     - The `organizations:dynamic-sampling` feature flag is the flag that enables the new adaptive sampling
     """
 
-    def __init__(self, project, user):
+    def __init__(self, project: Project, user: User):
         # Feature flag that informs us that relay is handling DS rules
         self.allow_dynamic_sampling = features.has(
             "organizations:server-side-sampling", project.organization, actor=user
@@ -28,7 +32,7 @@ class DynamicSamplingFeatureMultiplexer:
         )
 
     @property
-    def is_on_dynamic_sampling_deprecated(self):
+    def is_on_dynamic_sampling_deprecated(self) -> bool:
         return (
             self.allow_dynamic_sampling
             and self.deprecated_dynamic_sampling
@@ -36,11 +40,11 @@ class DynamicSamplingFeatureMultiplexer:
         )
 
     @property
-    def is_on_dynamic_sampling(self):
+    def is_on_dynamic_sampling(self) -> bool:
         return self.allow_dynamic_sampling and self.current_dynamic_sampling
 
     @staticmethod
-    def get_user_biases(user_set_biases):
+    def get_user_biases(user_set_biases: Optional[List[Bias]]) -> List[Bias]:
         if user_set_biases is None:
             return DEFAULT_BIASES
 
@@ -54,13 +58,12 @@ class DynamicSamplingFeatureMultiplexer:
         return returned_biases
 
     @staticmethod
-    def get_supported_biases_ids():
+    def get_supported_biases_ids() -> Set[str]:
         return {bias["id"] for bias in DEFAULT_BIASES}
 
     @classmethod
-    def get_user_bias(cls, bias_id, user_set_biases):
-        if bias_id not in cls.get_supported_biases_ids():
-            raise ValueError(f"{bias_id} is not in supported biases")
+    def get_user_bias(cls, bias_id: str, user_set_biases: Optional[List[Bias]]) -> Bias:
         for bias in cls.get_user_biases(user_set_biases):
             if bias["id"] == bias_id:
                 return bias
+        raise ValueError(f"{bias_id} is not in supported biases")

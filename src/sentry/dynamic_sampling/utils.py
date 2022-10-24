@@ -2,9 +2,15 @@ from typing import Dict, List, Optional, TypedDict
 
 UNIFORM_RULE_RESERVED_ID = 0
 
+
+class Bias(TypedDict):
+    id: str
+    active: bool
+
+
 # These represent the biases that are applied to user by default as part of the adaptive dynamic sampling experience.
 # These can be overridden by the project details endpoint
-DEFAULT_BIASES = [
+DEFAULT_BIASES: List[Bias] = [
     {"id": "boostEnvironments", "active": True},
     {
         "id": "boostLatestRelease",
@@ -15,7 +21,7 @@ DEFAULT_BIASES = [
 
 
 class Inner(TypedDict):
-    op: int
+    op: str
     name: str
     value: List[str]
     options: Dict[str, bool]
@@ -27,7 +33,7 @@ class Condition(TypedDict):
 
 
 class BaseRule(TypedDict):
-    sampleRate: float
+    sampleRate: Optional[float]
     type: str
     active: bool
     condition: Condition

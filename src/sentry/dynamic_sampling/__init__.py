@@ -1,12 +1,14 @@
+from typing import List
+
 import sentry_sdk
 
 from sentry import quotas
 from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
-from sentry.dynamic_sampling.utils import generate_environment_rule, generate_uniform_rule
+from sentry.dynamic_sampling.utils import BaseRule, generate_environment_rule, generate_uniform_rule
 from sentry.models import Project
 
 
-def generate_rules(project: Project):
+def generate_rules(project: Project) -> List[BaseRule]:
     """
     This function handles generate rules logic or fallback empty list of rules
     """
