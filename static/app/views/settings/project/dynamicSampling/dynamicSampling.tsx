@@ -56,7 +56,7 @@ export function DynamicSampling({project}: Props) {
   const biases = project.dynamicSamplingBiases ?? [];
 
   useEffect(() => {
-    trackAdvancedAnalyticsEvent('sampling.settings.view', {
+    trackAdvancedAnalyticsEvent('dynamic_sampling_settings.viewed', {
       organization,
       project_id: project.id,
     });
@@ -65,12 +65,15 @@ export function DynamicSampling({project}: Props) {
   async function handleToggle(type: DynamicSamplingBiasType) {
     addLoadingMessage();
 
-    const newDynamicSamplingBiases = biases.map(bias => {
-      if (bias.id === type) {
-        return {...bias, active: !bias.active};
-      }
-      return bias;
-    });
+    const biasIndex = biases.findIndex(b => b.id === type);
+
+    if (biasIndex === -1) {
+      return;
+    }
+
+    const newDynamicSamplingBiases = [...biases];
+    newDynamicSamplingBiases[biasIndex].active =
+      !newDynamicSamplingBiases[biasIndex].active;
 
     try {
       const result = await api.requestPromise(
@@ -80,6 +83,17 @@ export function DynamicSampling({project}: Props) {
           data: {
             dynamicSamplingBiases: newDynamicSamplingBiases,
           },
+        }
+      );
+
+      trackAdvancedAnalyticsEvent(
+        biases[biasIndex].active
+          ? 'dynamic_sampling_settings.priority_disabled'
+          : 'dynamic_sampling_settings.priority_enabled',
+        {
+          organization,
+          project_id: project.id,
+          id: biases[biasIndex].id,
         }
       );
 
@@ -93,7 +107,7 @@ export function DynamicSampling({project}: Props) {
   }
 
   const handleReadDocs = useCallback(() => {
-    trackAdvancedAnalyticsEvent('sampling.settings.view_read_docs', {
+    trackAdvancedAnalyticsEvent('dynamic_sampling_settings.read_docs_clicked', {
       organization,
       project_id: project.id,
     });
