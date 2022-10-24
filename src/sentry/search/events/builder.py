@@ -146,6 +146,7 @@ class QueryBuilder:
 
         self.organization_id = params.get("organization_id")
         self.has_metrics = has_metrics
+        self.use_metrics_layer = False
         self.auto_fields = auto_fields
         self.functions_acl = set() if functions_acl is None else functions_acl
         self.equation_config = {} if equation_config is None else equation_config
@@ -269,7 +270,7 @@ class QueryBuilder:
         elif self.dataset == Dataset.Sessions:
             self.config = SessionsDatasetConfig(self)
         elif self.dataset in [Dataset.Metrics, Dataset.PerformanceMetrics]:
-            if hasattr(self, "use_metrics_layer") and self.use_metrics_layer:
+            if self.use_metrics_layer:
                 self.config = MetricsLayerDatasetConfig(self)
             else:
                 self.config = MetricsDatasetConfig(self)
@@ -941,7 +942,7 @@ class QueryBuilder:
         project_ids = cast(List[int], self.params.get("project_id", []))
 
         if len(project_ids) > 0:
-            return Project.objects.filter(id__in=project_ids)
+            return [project for project in Project.objects.filter(id__in=project_ids)]
         else:
             return []
 
@@ -2324,7 +2325,6 @@ class MetricsQueryBuilder(QueryBuilder):
         self.validate_having_clause()
         self.validate_orderby_clause()
         if self.use_metrics_layer:
-            from sentry.sentry_metrics.utils import MetricIndexNotFound
             from sentry.snuba.metrics.datasource import get_series
             from sentry.snuba.metrics.mqb_query_transformer import (
                 tranform_mqb_query_to_metrics_query,
@@ -2366,18 +2366,18 @@ class MetricsQueryBuilder(QueryBuilder):
             except Exception as err:
                 raise IncompatibleMetricsQuery(err)
             # series does some strange stuff to the clickhouse response, turn it back so we can handle it
-            result: Any = {
+            metric_layer_result: Any = {
                 "data": [],
                 "meta": metrics_data["meta"],
             }
             for group in metrics_data["groups"]:
                 data = group["by"]
                 data.update(group["totals"])
-                result["data"].append(data)
-                for meta in result["meta"]:
+                metric_layer_result["data"].append(data)
+                for meta in metric_layer_result["meta"]:
                     if data[meta["name"]] is None:
                         data[meta["name"]] = self.get_default_value(meta["type"])
-            return result
+            return metric_layer_result
         # Need to split orderby between the 3 possible tables
         primary, query_framework = self._create_query_framework()
 
