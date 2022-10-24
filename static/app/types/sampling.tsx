@@ -143,3 +143,14 @@ export type UniformModalsSubmit = (props: {
   recommendedSampleRate?: boolean;
   rule?: SamplingRule;
 }) => void;
+
+export enum DynamicSamplingBiaseType {
+  BOOST_ENVIRONMENTS = 'boostEnvironments',
+  BOOST_LATEST_RELEASES = 'boostLatestRelease',
+  IGNORE_HEALTH_CHECKS = 'ignoreHealthChecks',
+}
+
+export type DynamicSamplingBiase = {
+  active: boolean;
+  id: DynamicSamplingBiaseType;
+};
