@@ -462,9 +462,9 @@ def transform_null_to_unparameterized_snql(org_id, tag_key, alias=None):
         "transform",
         [
             Column(resolve_tag_key(UseCaseKey.PERFORMANCE, org_id, tag_key)),
-            # Here we also support the case in which the given tag value for "tag_key" is not set. In that
-            # case ClickHouse will return 0 or "" from the expression, and we want to interpret
-            # that as "<< unparameterized >>",
+            # Here we support the case in which the given tag value for "tag_key" is not set. In that
+            # case ClickHouse will return 0 or "" from the expression based on the array type, and we want to interpret
+            # that as "<< unparameterized >>".
             ["" if tags_values_are_strings else 0],
             [resolve_tag_value(UseCaseKey.PERFORMANCE, org_id, "<< unparameterized >>")],
         ],
