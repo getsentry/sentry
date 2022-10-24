@@ -210,9 +210,9 @@ class AuthLoginView(BaseView):
 
                 if not user.is_active:
                     return self.redirect(reverse("sentry-reactivate-account"))
-                if organization:
+                if organization and self.active_organization:
                     if (
-                        self._is_org_member(user, organization)
+                        self.active_organization.member
                         and request.user
                         and not is_active_superuser(request)
                     ):
