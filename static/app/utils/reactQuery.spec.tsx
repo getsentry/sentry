@@ -27,12 +27,12 @@ describe('reactQuery', function () {
           return null;
         }
 
-        return <div data-test-id="return-value">{data.value}</div>;
+        return <div>{data.value}</div>;
       };
 
       render(<TestComponent />);
 
-      expect(await screen.findByTestId('return-value')).toHaveTextContent('5');
+      expect(await screen.findByText('5')).toBeInTheDocument();
 
       expect(mock).toHaveBeenCalledWith('/some/test/path/', expect.anything());
     });
@@ -53,12 +53,12 @@ describe('reactQuery', function () {
           return null;
         }
 
-        return <div data-test-id="return-value">{data.value}</div>;
+        return <div>{data.value}</div>;
       };
 
       render(<TestComponent />);
 
-      expect(await screen.findByTestId('return-value')).toHaveTextContent('5');
+      expect(await screen.findByText('5')).toBeInTheDocument();
 
       expect(mock).toHaveBeenCalledWith(
         '/some/test/path/',
@@ -74,12 +74,12 @@ describe('reactQuery', function () {
           return null;
         }
 
-        return <div data-test-id="return-value">{data.value}</div>;
+        return <div>{data.value}</div>;
       };
 
       render(<TestComponent />);
 
-      expect(await screen.findByTestId('return-value')).toHaveTextContent('5');
+      expect(await screen.findByText('5')).toBeInTheDocument();
     });
 
     it('can return error state', async function () {
@@ -99,14 +99,12 @@ describe('reactQuery', function () {
           return null;
         }
 
-        return <div data-test-id="return-value">{error.message}</div>;
+        return <div>{error.message}</div>;
       };
 
       render(<TestComponent />);
 
-      expect(await screen.findByTestId('return-value')).toHaveTextContent(
-        'something bad happened'
-      );
+      expect(await screen.findByText('something bad happened')).toBeInTheDocument();
     });
   });
 });
