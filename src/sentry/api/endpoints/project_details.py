@@ -22,6 +22,7 @@ from sentry.api.serializers.rest_framework.list import EmptyListField, ListField
 from sentry.api.serializers.rest_framework.origin import OriginField
 from sentry.constants import RESERVED_PROJECT_SLUGS
 from sentry.datascrubbing import validate_pii_config_update
+from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
 from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig
 from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
 from sentry.ingest.inbound_filters import FilterTypes
@@ -219,6 +220,20 @@ class DynamicSamplingSerializer(serializers.Serializer):
         return data
 
 
+class DynamicSamplingBiasSerializer(serializers.Serializer):
+    id = serializers.ChoiceField(
+        required=True, choices=DynamicSamplingFeatureMultiplexer.get_supported_biases_ids()
+    )
+    active = serializers.BooleanField(default=False)
+
+    def validate(self, data):
+        if data.keys() != {"id", "active"}:
+            raise serializers.ValidationError(
+                "Error: Only 'id' and 'active' fields are allowed for bias."
+            )
+        return data
+
+
 class ProjectMemberSerializer(serializers.Serializer):
     isBookmarked = serializers.BooleanField()
     isSubscribed = serializers.BooleanField()
@@ -266,6 +281,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     platform = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     copy_from_project = serializers.IntegerField(required=False)
     dynamicSampling = DynamicSamplingSerializer(required=False)
+    dynamicSamplingBiases = DynamicSamplingBiasSerializer(required=False, many=True)
     performanceIssueCreationRate = serializers.FloatField(required=False, min_value=0, max_value=1)
 
     def validate(self, data):
@@ -509,11 +525,24 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if "hasAlertIntegration" in expand:
             data["hasAlertIntegrationInstalled"] = has_alert_integration(project)
 
-        if features.has(
-            "organizations:dynamic-sampling-basic", project.organization, actor=request.user
-        ):
-            data.pop("dynamicSampling", None)
+        ds_feature_multiplexer = DynamicSamplingFeatureMultiplexer(project, request.user)
 
+        # Dynamic Sampling Logic
+        if ds_feature_multiplexer.is_on_dynamic_sampling:
+            ds_bias_serializer = DynamicSamplingBiasSerializer(
+                data=ds_feature_multiplexer.get_user_biases(
+                    project.get_option("sentry:dynamic_sampling_biases", None)
+                ),
+                many=True,
+            )
+            if not ds_bias_serializer.is_valid():
+                return Response(ds_bias_serializer.errors, status=400)
+            data["dynamicSamplingBiases"] = ds_bias_serializer.data
+        else:
+            data["dynamicSamplingBiases"] = None
+        # TODO(ahmed): Deprecated dynamic sampling logic, and will be removed in the future
+        if not ds_feature_multiplexer.is_on_dynamic_sampling_deprecated:
+            data["dynamicSampling"] = None
         return Response(data)
 
     def put(self, request: Request, project) -> Response:
@@ -556,23 +585,18 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         result = serializer.validated_data
 
-        is_dynamic_sampling_basic = features.has(
-            "organizations:dynamic-sampling-basic", project.organization, actor=request.user
-        )
-        if is_dynamic_sampling_basic and result.get("dynamicSampling"):
+        ds_flags_multiplexer = DynamicSamplingFeatureMultiplexer(project, request.user)
+        if result.get("dynamicSamplingBiases") and not ds_flags_multiplexer.is_on_dynamic_sampling:
             return Response(
-                {"detail": ["dynamicSampling is not a valid field"]},
+                {"detail": ["dynamicSamplingBiases is not a valid field"]},
                 status=403,
             )
-
-        allow_dynamic_sampling = features.has(
-            "organizations:server-side-sampling", project.organization, actor=request.user
-        )
-
-        if not allow_dynamic_sampling and result.get("dynamicSampling"):
-            # trying to set sampling with feature disabled
+        if (
+            result.get("dynamicSampling")
+            and not ds_flags_multiplexer.is_on_dynamic_sampling_deprecated
+        ):
             return Response(
-                {"detail": ["You do not have permission to set sampling."]},
+                {"detail": ["dynamicSampling is not a valid field"]},
                 status=403,
             )
 
@@ -741,7 +765,15 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 project=project,
             )
 
-        if "dynamicSampling" in result:
+        if "dynamicSamplingBiases" in result:
+            updated_biases = ds_flags_multiplexer.get_user_biases(
+                user_set_biases=result["dynamicSamplingBiases"]
+            )
+            if project.update_option("sentry:dynamic_sampling_biases", updated_biases):
+                changed_proj_settings["sentry:dynamic_sampling_biases"] = result[
+                    "dynamicSamplingBiases"
+                ]
+        elif "dynamicSampling" in result:
             fixed_rules = result["dynamicSampling"]
             if project.update_option("sentry:dynamic_sampling", fixed_rules):
                 changed_proj_settings["sentry:dynamic_sampling"] = result["dynamicSampling"]
@@ -879,8 +911,12 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         )
 
         data = serialize(project, request.user, DetailedProjectSerializer())
-        if is_dynamic_sampling_basic:
-            data.pop("dynamicSampling", None)
+        if not ds_flags_multiplexer.is_on_dynamic_sampling:
+            data["dynamicSamplingBiases"] = None
+        # If here because the case of when no dynamic sampling is enabled at all, you would want to kick out both
+        # keys actually
+        if not ds_flags_multiplexer.is_on_dynamic_sampling_deprecated:
+            data["dynamicSampling"] = None
 
         return Response(data)
 

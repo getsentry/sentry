@@ -7,6 +7,17 @@ from sentry.models import Project
 
 UNIFORM_RULE_RESERVED_ID = 0
 
+# These represent the biases that are applied to user by default as part of the adaptive dynamic sampling experience.
+# These can be overridden by the project details endpoint
+DEFAULT_BIASES = [
+    {"id": "boostEnvironments", "active": True},
+    {
+        "id": "boostLatestRelease",
+        "active": True,
+    },
+    {"id": "ignoreHealthChecks", "active": True},
+]
+
 
 class NoneSampleRateException(Exception):
     ...
