@@ -18,10 +18,10 @@ class EventsTable extends Component<Props> {
     const {events, tagList, orgId, projectId, groupId, orgFeatures} = this.props;
 
     const hasUser = !!events.find(event => event.user);
-    const showReplayColumn = orgFeatures.includes('session-replay-ui');
 
-    const filteredTagList = tagList.filter(
-      tag => tag.key !== 'replayId' || (tag.key === 'replayId' && showReplayColumn)
+    const isReplayEnabled = orgFeatures.includes('session-replay-ui');
+    const filteredTagList = tagList.filter(tag =>
+      tag.key === 'replayId' ? isReplayEnabled : true
     );
 
     return (

@@ -21,7 +21,7 @@ describe('EventsTable', function () {
     expect(container).toSnapshot();
   });
 
-  it('removes replayId from the tag list when the feature is disabled', () => {
+  it('removes the replay column when the feature is disabled', () => {
     render(
       <EventsTable
         tagList={[
@@ -39,8 +39,7 @@ describe('EventsTable', function () {
       />
     );
 
-    // eslint-disable-next-line jest-dom/prefer-in-document
-    expect(screen.queryByText('Replay')).toBeNull();
+    expect(screen.queryByRole('columnheader', {name: 'Replay'})).not.toBeInTheDocument();
   });
 
   it('renders the replay column when the feature is enabled', () => {
@@ -61,6 +60,6 @@ describe('EventsTable', function () {
       />
     );
 
-    expect(screen.getByText('Replay')).toBeVisible();
+    expect(screen.getByRole('columnheader', {name: 'Replay'})).toBeVisible();
   });
 });

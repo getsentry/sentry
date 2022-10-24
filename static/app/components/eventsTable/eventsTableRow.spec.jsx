@@ -1,10 +1,23 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render} from 'sentry-test/reactTestingLibrary';
 
+import Button from 'sentry/components/button';
 import EventsTableRow from 'sentry/components/eventsTable/eventsTableRow';
 
 jest.mock('sentry/utils/useRoutes', () => ({
-  useRoutes: jest.fn(() => []),
+  useRoutes: jest.fn(() => [
+    {
+      path: '/',
+    },
+    {
+      path: '/organizations/:orgId/issues/:groupId/',
+    },
+    {
+      path: 'events/',
+    },
+  ]),
 }));
+
+jest.mock('sentry/components/button', () => jest.fn(() => null));
 
 describe('EventsTableRow', function () {
   it('renders', function () {
@@ -24,6 +37,8 @@ describe('EventsTableRow', function () {
   });
 
   it('renders the replay column with a correct link', () => {
+    const event = TestStubs.DetailedEvents()[0];
+
     render(
       <table>
         <tbody>
@@ -38,7 +53,7 @@ describe('EventsTableRow', function () {
             ]}
             {...{orgId: 'orgId', projectId: 'projectId', groupId: 'groupId'}}
             event={{
-              ...TestStubs.DetailedEvents()[0],
+              ...event,
               tags: [
                 {
                   key: 'replayId',
@@ -51,6 +66,18 @@ describe('EventsTableRow', function () {
       </table>
     );
 
-    expect(screen.getByRole('button')).toBeVisible();
+    expect(Button).toHaveBeenCalledWith(
+      expect.objectContaining({
+        'aria-label': 'View Full Replay',
+        to: expect.objectContaining({
+          pathname: '/organizations/org-slug/replays/projectId:test-replay-id/',
+          query: {
+            event_t: new Date(event.dateCreated).getTime(),
+            referrer: '%2Forganizations%2F%3AorgId%2Fissues%2F%3AgroupId%2Fevents%2F',
+          },
+        }),
+      }),
+      {}
+    );
   });
 });
