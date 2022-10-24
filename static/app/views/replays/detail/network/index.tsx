@@ -9,6 +9,7 @@ import {
 import styled from '@emotion/styled';
 
 import DateTime from 'sentry/components/dateTime';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import FileSize from 'sentry/components/fileSize';
 import CompactSelect from 'sentry/components/forms/compactSelect';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
@@ -52,6 +53,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
     asc: true,
     getValue: row => row[sortConfig.by],
   });
+  const [gridWidth, setGridWidth] = useState(0);
 
   const multiGridRef = useRef<MultiGrid>(null);
   const {
@@ -104,11 +106,11 @@ function NetworkList({replayRecord, networkSpans}: Props) {
   useEffect(() => {
     // Restart cache when items changes
     if (multiGridRef.current) {
-      // TODO: This 👇 is lagging the UI, but it's the only way to get the correct width of the columns imk
-      // cache.clearAll();
-      multiGridRef.current.recomputeGridSize();
+      // This 👇 is lagging the UI, but it's the only way to get the correct width of the columns imk
+      cache.clearAll();
+      multiGridRef.current.forceUpdate();
     }
-  }, [sortConfig]);
+  }, [gridWidth]);
 
   function handleSort(fieldName: keyof NetworkSpan): void;
   function handleSort(key: string, getValue: (row: NetworkSpan) => any): void;
@@ -216,7 +218,16 @@ function NetworkList({replayRecord, networkSpans}: Props) {
         )}
       </Item>,
       <Item key="type" {...columnHandlers} {...columnProps}>
-        <Text>{network.op.replace('resource.', '')}</Text>
+        <Tooltip
+          title={network.op.replace('resource.', '')}
+          isHoverable
+          overlayStyle={{
+            maxWidth: '500px !important',
+          }}
+          showOnlyOnOverflow
+        >
+          <Text>{network.op.replace('resource.', '')}</Text>
+        </Tooltip>
       </Item>,
       <Item key="size" {...columnHandlers} {...columnProps} numeric>
         {defined(network.data.size) ? (
@@ -252,16 +263,19 @@ function NetworkList({replayRecord, networkSpans}: Props) {
         rowIndex={rowIndex}
       >
         <div
+          key={key}
           style={{
             ...style,
             // TODO: change this
-            maxWidth: '500px',
+            minWidth: columnIndex !== 1 ? 'max-content' : 'auto',
           }}
         >
           {rowIndex === 0 ? (
-            <NetworkTableHeader columns={columns.length}>
-              {columns[columnIndex]}
-            </NetworkTableHeader>
+            <Fragment>
+              <NetworkTableHeader columns={columns.length}>
+                {columns[columnIndex]}
+              </NetworkTableHeader>
+            </Fragment>
           ) : (
             getNetworkColumnValue(network, columnIndex)
           )}
@@ -306,16 +320,49 @@ function NetworkList({replayRecord, networkSpans}: Props) {
               <MultiGrid
                 ref={multiGridRef}
                 columnCount={columns.length}
-                columnWidth={cache.columnWidth}
+                columnWidth={({index}) => {
+                  if (width !== gridWidth) {
+                    setGridWidth(width);
+                  }
+
+                  // TODO(wip): improve this
+                  return width / columns.length;
+
+                  if (index === 0) {
+                    return Math.max(
+                      80,
+                      width / columns.length / 2,
+                      cache.columnWidth({index})
+                    );
+                  }
+
+                  if (index === 1) {
+                    return Math.min(
+                      cache.columnWidth({index}),
+                      (width / columns.length) * 2
+                    );
+
+                    // return Math.min(
+                    //   (width / columns.length) * 3,
+                    //   Math.max(cache.columnWidth({index}), (width / columns.length) * 2)
+                    // );
+                  }
+                  return Math.max(width / columns.length, cache.columnWidth({index}));
+                }}
                 deferredMeasurementCache={cache}
                 height={height}
-                overscanColumnCount={columns.length}
+                // overscanColumnCount={columns.length}
                 overscanRowCount={2}
                 cellRenderer={renderTableRow}
-                rowCount={networkData.length}
+                rowCount={networkData.length + 1}
                 rowHeight={({index}) => (index === 0 ? headerRowHeight : 28)}
                 width={width}
                 fixedRowCount={1}
+                noContentRenderer={() => (
+                  <EmptyStateWarning withIcon={false} small>
+                    {t('No related network requests found.')}
+                  </EmptyStateWarning>
+                )}
               />
             </Fragment>
           )}
@@ -395,7 +442,7 @@ const Item = styled('div')<{
 
   border-right: 1px solid ${p => p.theme.innerBorder};
 
-  ${p => p.numeric && 'font-variant-numeric: tabular-nums;'};
+  ${p => p.numeric && 'font-variant-numeric: tabular-nums; justify-content: flex-end;'};
 
   ${EmptyText} {
     color: ${fontColor};
