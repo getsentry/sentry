@@ -2040,7 +2040,7 @@ def _detect_performance_problems(jobs, projects):
         job["performance_problems"] = detect_performance_problems(job["data"])
 
 
-class Performance_Job(TypedDict, total=False):
+class PerformanceJob(TypedDict, total=False):
     performance_problems: Sequence[PerformanceProblem]
     event: Event
     culprit: str
@@ -2072,7 +2072,7 @@ def _save_grouphash_and_group(
 
 
 @metrics.wraps("save_event.save_aggregate_performance")
-def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
+def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects):
 
     MAX_GROUPS = (
         10  # safety check in case we are passed too many. constant will live somewhere else tbd
