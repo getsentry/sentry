@@ -18,7 +18,7 @@ def test_generate_rules_capture_exception(get_blended_sample_rate, sentry_sdk):
 
 
 @patch(
-    "sentry.dynamic_sampling.feature_multiplexer.DynamicSamplingFeatureMultiplexer.get_user_bias"
+    "sentry.dynamic_sampling.feature_multiplexer.DynamicSamplingFeatureMultiplexer.get_user_bias_by_id"
 )
 @patch("sentry.dynamic_sampling.quotas.get_blended_sample_rate")
 def test_generate_rules_return_uniform_rules_with_rate(get_blended_sample_rate, get_user_bias):
