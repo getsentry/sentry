@@ -116,7 +116,7 @@ describe('ProjectAlertsCreate', function () {
   describe('Issue Alert', function () {
     it('loads default values', async function () {
       createWrapper();
-        expect(await screen.findByText('All Environments')).toBeInTheDocument();
+      expect(await screen.findByText('All Environments')).toBeInTheDocument();
       await waitFor(() => {
         expect(screen.getAllByDisplayValue('all')).toHaveLength(2);
       });
