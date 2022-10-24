@@ -467,9 +467,9 @@ describe('ProjectAlertsCreate', function () {
       const mock = MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/rules/preview',
         method: 'POST',
-        body: {
-          data: groups,
-          totalCount: groups.length,
+        body: groups,
+        headers: {
+          'X-Hits': groups.length,
         },
       });
       createWrapper({organization});
