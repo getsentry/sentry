@@ -69,7 +69,8 @@ export function useContextMenu({container}: UseContextMenuOptions) {
 
       return {
         ...menuItemProps,
-        onClick: () => {
+        onClick: (evt: React.MouseEvent) => {
+          evt.preventDefault();
           onClick?.();
         },
         onKeyDown: (evt: React.KeyboardEvent) => {

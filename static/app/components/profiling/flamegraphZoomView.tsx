@@ -2,6 +2,8 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {t} from 'sentry/locale';
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {DifferentialFlamegraph} from 'sentry/utils/profiling/differentialFlamegraph';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
@@ -720,12 +722,19 @@ function FlamegraphZoomView({
     ]);
   }, [canvasPoolManager, flamegraph, scheduler]);
 
-  const handleCopyFunctionName = useCallback(async () => {
+  const handleCopyFunctionName = useCallback(() => {
     if (!hoveredNodeOnContextMenuOpen.current) {
       return;
     }
 
-    await navigator.clipboard.writeText(hoveredNodeOnContextMenuOpen.current.frame.name);
+    navigator.clipboard
+      .writeText(hoveredNodeOnContextMenuOpen.current.frame.name)
+      .then(() => {
+        addSuccessMessage(t('Function name copied to clipboard'));
+      })
+      .catch(() => {
+        addErrorMessage(t('Failed to copy function name to clipboard'));
+      });
   }, []);
 
   return (

@@ -62,10 +62,7 @@ export function FlamegraphOptionsContextMenu(props: FlameGraphOptionsContextMenu
             <ProfilingContextMenuHeading>{t('Frame')}</ProfilingContextMenuHeading>
             <ProfilingContextMenuItemCheckbox
               {...props.contextMenu.getMenuItemProps({
-                onClick: () => {
-                  // We need to prevent the click from propagating to the context menu layer.
-                  props.onHighlightAllOccurencesClick();
-                },
+                onClick: props.onHighlightAllOccurencesClick,
               })}
               checked={props.isHighlightingAllOccurences}
             >
