@@ -78,7 +78,11 @@ function SortableHeader({
         pathname: location.pathname,
         query: {
           ...location.query,
-          sort: sort.kind === 'desc' ? fieldName : '-' + fieldName,
+          sort: sort.field.endsWith(fieldName)
+            ? sort.kind === 'desc'
+              ? fieldName
+              : '-' + fieldName
+            : '-' + fieldName,
         },
       }}
     >
