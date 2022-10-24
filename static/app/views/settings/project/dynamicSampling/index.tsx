@@ -1,4 +1,3 @@
-import Feature from 'sentry/components/acl/feature';
 import {Project} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -15,18 +14,9 @@ export default function DynamicSamplingContainer({project}: Props) {
 
   if (
     organization.features.includes('server-side-sampling') &&
-    (organization.features.includes('dynamic-sampling-opinionated') ||
-      organization.features.includes('dynamic-sampling-basic'))
+    organization.features.includes('dynamic-sampling')
   ) {
-    return (
-      <Feature
-        features={['server-side-sampling', 'server-side-sampling-ui']}
-        hookName="feature-disabled:dynamic-sampling-basic"
-        organization={organization}
-      >
-        <DynamicSampling project={project} />
-      </Feature>
-    );
+    return <DynamicSampling project={project} />;
   }
 
   return <ServerSideSampling project={project} />;

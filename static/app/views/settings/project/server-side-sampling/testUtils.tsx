@@ -163,8 +163,8 @@ export function getMockData({
       ...initializeOrg().organization,
       features: [
         'server-side-sampling',
-        'server-side-sampling-ui',
-        'dynamic-sampling-basic',
+        'dynamic-sampling-deprecated',
+        'dynamic-sampling',
       ],
       access: access ?? initializeOrg().organization.access,
       projects,
