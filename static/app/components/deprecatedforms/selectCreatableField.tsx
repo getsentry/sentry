@@ -2,12 +2,16 @@ import styled from '@emotion/styled';
 
 import {StyledForm} from 'sentry/components/deprecatedforms/form';
 import SelectField from 'sentry/components/deprecatedforms/selectField';
-import SelectControl from 'sentry/components/forms/selectControl';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {SelectValue} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import convertFromSelect2Choices from 'sentry/utils/convertFromSelect2Choices';
 
+// XXX: This is ONLY used in GenericField. If we can delete that this can go.
+
 /**
+ * @deprecated Do not use this
+ *
  * This is a <SelectField> that allows the user to create new options if one does't exist.
  *
  * This is used in some integrations

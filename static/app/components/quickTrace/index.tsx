@@ -308,7 +308,11 @@ function EventNodeSelector({
   errors = errors.filter(error => error.event_id !== currentEvent.id);
 
   if (events.length + errors.length === 0) {
-    return <EventNode type={type}>{text}</EventNode>;
+    return (
+      <EventNode type={type} data-test-id="event-node">
+        {text}
+      </EventNode>
+    );
   }
   if (events.length + errors.length === 1) {
     /**
@@ -494,7 +498,13 @@ type EventNodeProps = {
 function StyledEventNode({text, hoverText, to, onClick, type = 'white'}: EventNodeProps) {
   return (
     <Tooltip position="top" containerDisplayMode="inline-flex" title={hoverText}>
-      <EventNode type={type} icon={null} to={to} onClick={onClick}>
+      <EventNode
+        data-test-id="event-node"
+        type={type}
+        icon={null}
+        to={to}
+        onClick={onClick}
+      >
         {text}
       </EventNode>
     </Tooltip>

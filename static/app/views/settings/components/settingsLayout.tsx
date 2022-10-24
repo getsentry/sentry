@@ -15,15 +15,15 @@ import SettingsSearch from './settingsSearch';
 
 type Props = {
   children: React.ReactNode;
-  renderNavigation?: () => React.ReactNode;
+  renderNavigation?: (opts: {isMobileNavVisible: boolean}) => React.ReactNode;
 } & RouteComponentProps<{}, {}>;
 
 function SettingsLayout(props: Props) {
-  // This is used when the screen is small enough that the navigation should
-  // be hidden
+  // This is used when the screen is small enough that the navigation should be
+  // hidden. This state is only used when the media query matches.
   //
   // [!!] On large screens this state is totally unused!
-  const [navVisible, setNavVisible] = useState(false);
+  const [isMobileNavVisible, setMobileNavVisible] = useState(false);
 
   // Offset mobile settings navigation by the height of main navigation,
   // settings breadcrumbs and optional warnings.
@@ -37,7 +37,7 @@ function SettingsLayout(props: Props) {
     window.scrollTo?.(0, 0);
     bodyElement.classList[visible ? 'add' : 'remove']('scroll-lock');
 
-    setNavVisible(visible);
+    setMobileNavVisible(visible);
     setNavOffsetTop(headerRef.current?.getBoundingClientRect().bottom ?? 0);
   }
 
@@ -59,9 +59,11 @@ function SettingsLayout(props: Props) {
           {shouldRenderNavigation && (
             <NavMenuToggle
               priority="link"
-              aria-label={navVisible ? t('Close the menu') : t('Open the menu')}
-              icon={navVisible ? <IconClose aria-hidden /> : <IconMenu aria-hidden />}
-              onClick={() => toggleNav(!navVisible)}
+              aria-label={isMobileNavVisible ? t('Close the menu') : t('Open the menu')}
+              icon={
+                isMobileNavVisible ? <IconClose aria-hidden /> : <IconMenu aria-hidden />
+              }
+              onClick={() => toggleNav(!isMobileNavVisible)}
             />
           )}
           <StyledSettingsBreadcrumb
@@ -75,11 +77,11 @@ function SettingsLayout(props: Props) {
 
       <MaxWidthContainer>
         {shouldRenderNavigation && (
-          <SidebarWrapper isVisible={navVisible} offsetTop={navOffsetTop}>
-            {renderNavigation!()}
+          <SidebarWrapper isVisible={isMobileNavVisible} offsetTop={navOffsetTop}>
+            {renderNavigation({isMobileNavVisible})}
           </SidebarWrapper>
         )}
-        <NavMask isVisible={navVisible} onClick={() => toggleNav(false)} />
+        <NavMask isVisible={isMobileNavVisible} onClick={() => toggleNav(false)} />
         <Content>{children}</Content>
       </MaxWidthContainer>
     </SettingsColumn>

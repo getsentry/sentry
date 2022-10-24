@@ -21,7 +21,7 @@ import {IconEllipsis} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalytics from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import withApi from 'sentry/utils/withApi';
 import {DashboardListItem, DisplayType} from 'sentry/views/dashboardsV2/types';
 
@@ -50,10 +50,8 @@ function DashboardList({
   function handleDelete(dashboard: DashboardListItem) {
     deleteDashboard(api, organization.slug, dashboard.id)
       .then(() => {
-        trackAnalyticsEvent({
-          eventKey: 'dashboards_manage.delete',
-          eventName: 'Dashboards Manager: Dashboard Deleted',
-          organization_id: parseInt(organization.id, 10),
+        trackAdvancedAnalytics('dashboards_manage.delete', {
+          organization,
           dashboard_id: parseInt(dashboard.id, 10),
         });
         onDashboardsChange();
@@ -70,11 +68,8 @@ function DashboardList({
       const newDashboard = cloneDashboard(dashboardDetail);
       newDashboard.widgets.map(widget => (widget.id = undefined));
       await createDashboard(api, organization.slug, newDashboard, true);
-
-      trackAnalyticsEvent({
-        eventKey: 'dashboards_manage.duplicate',
-        eventName: 'Dashboards Manager: Dashboard Duplicated',
-        organization_id: parseInt(organization.id, 10),
+      trackAdvancedAnalytics('dashboards_manage.duplicate', {
+        organization,
         dashboard_id: parseInt(dashboard.id, 10),
       });
       onDashboardsChange();
@@ -108,9 +103,8 @@ function DashboardList({
     return (
       <DropdownMenuControl
         items={menuItems}
-        trigger={({props: triggerProps, ref: triggerRef}) => (
+        trigger={triggerProps => (
           <DropdownTrigger
-            ref={triggerRef}
             {...triggerProps}
             aria-label={t('Dashboard actions')}
             size="xs"
@@ -124,7 +118,7 @@ function DashboardList({
             icon={<IconEllipsis direction="down" size="sm" />}
           />
         )}
-        placement="bottom right"
+        position="bottom-end"
         disabledKeys={dashboards && dashboards.length <= 1 ? ['dashboard-delete'] : []}
         offset={4}
       />
@@ -205,12 +199,7 @@ function DashboardList({
           if (offset <= 0 && isPrevious) {
             delete newQuery.cursor;
           }
-
-          trackAnalyticsEvent({
-            eventKey: 'dashboards_manage.paginate',
-            eventName: 'Dashboards Manager: Paginate',
-            organization_id: parseInt(organization.id, 10),
-          });
+          trackAdvancedAnalytics('dashboards_manage.paginate', {organization});
 
           browserHistory.push({
             pathname: path,

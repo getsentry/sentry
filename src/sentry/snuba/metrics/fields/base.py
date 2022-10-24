@@ -69,6 +69,7 @@ from sentry.snuba.metrics.utils import (
     GENERIC_OP_TO_SNUBA_FUNCTION,
     GRANULARITY,
     OP_TO_SNUBA_FUNCTION,
+    OPERATIONS_PERCENTILES,
     TS_COL_QUERY,
     UNIT_TO_TYPE,
     DerivedMetricParseException,
@@ -354,6 +355,12 @@ class RawOp(MetricOperation):
         return False
 
     def get_meta_type(self) -> Optional[str]:
+        # If we have a percentile operation then we want to convert its type from Array(float64) to Float64
+        # because once we receive a percentile result from ClickHouse we automatically pop from the array the
+        # first element thus the datatype itself must also be changed in the metadata.
+        if self.op in OPERATIONS_PERCENTILES:
+            return "Float64"
+
         return None
 
     def run_post_query_function(
@@ -484,6 +491,13 @@ class DerivedOp(DerivedOpDefinition, MetricOperation):
 
 
 class MetricExpressionBase(ABC):
+    @abstractmethod
+    def validate_can_orderby(self) -> None:
+        """
+        Validate that the expression can be used to order a query
+        """
+        raise NotImplementedError
+
     @abstractmethod
     def get_entity(
         self, projects: Sequence[Project], use_case_id: UseCaseKey
@@ -655,6 +669,9 @@ class MetricExpression(MetricExpressionDefinition, MetricExpressionBase):
 
     def __str__(self) -> str:
         return f"{self.metric_operation.op}({self.metric_object.metric_mri})"
+
+    def validate_can_orderby(self) -> None:
+        self.metric_operation.validate_can_orderby()
 
     def get_entity(self, projects: Sequence[Project], use_case_id: UseCaseKey) -> MetricEntity:
         return _get_entity_of_metric_mri(projects, self.metric_object.metric_mri, use_case_id).value
@@ -836,6 +853,9 @@ class SingularEntityDerivedMetric(DerivedMetricExpression):
                 raise DerivedMetricParseException(
                     "SnQL cannot be None for instances of SingularEntityDerivedMetric"
                 )
+
+    def validate_can_orderby(self) -> None:
+        return
 
     @classmethod
     def __recursively_get_all_entities_in_derived_metric_dependency_tree(
@@ -1035,6 +1055,9 @@ class CompositeEntityDerivedMetric(DerivedMetricExpression):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.result_type = "numeric"
+
+    def validate_can_orderby(self) -> None:
+        raise NotSupportedOverCompositeEntityException()
 
     def generate_metric_ids(self, projects: Sequence[Project], use_case_id: UseCaseKey) -> Set[Any]:
         raise NotSupportedOverCompositeEntityException()

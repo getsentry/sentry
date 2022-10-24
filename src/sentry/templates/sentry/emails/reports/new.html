@@ -1,0 +1,386 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load sentry_helpers %}
+{% load sentry_assets %}
+
+{% block head %}
+
+  {{ block.super }}
+
+  <style type="text/css">
+
+    .container {
+      padding-top: 18px;
+      padding-bottom: 10px;
+    }
+
+    .header td {
+      text-align: right;
+      font-size: 14px;
+    }
+
+    td, th {
+      text-align: left;
+    }
+
+    .legend {
+      font-size: 14px;
+      text-align: right;
+    }
+
+    .legend span.swatch {
+      width: 16px;
+      height: 16px;
+      vertical-align: bottom;
+      display: inline-block;
+      margin: 0 15px 0 15px;
+      border-radius: 3px;
+      color: #fff;
+    }
+
+    .graph .bar {
+      margin-bottom: 0;
+    }
+
+    .graph .bar td,
+    .graph .bar th {
+      line-height: 0;
+    }
+
+    .project-breakdown {
+      margin-bottom: 20px;
+    }
+    .project-breakdown table.project-breakdown-graph-deck {
+      table-layout: fixed;
+      border-collapse: collapse;
+      border-spacing: 3px;
+      border-style: hidden;
+      width: 100%;
+    }
+    .project-breakdown table.project-breakdown-graph-deck td.project-breakdown-graph-cell.errors {
+      padding-right: 10px;
+    }
+    .project-breakdown table.project-breakdown-graph-deck td.project-breakdown-graph-cell.transactions {
+      padding-left: 10px;
+      border: 1px solid #C4C4C4;
+    }
+    .project-breakdown table.project-breakdown-graph-deck td.project-breakdown-graph-cell.transactions-empty {
+      padding-left: 10px;
+    }
+    .project-breakdown .total-count-title {
+      margin-top: 0;
+      margin-bottom: 0;
+    }
+    .project-breakdown .total-count {
+      margin-top: 5px;
+      margin-bottom: 18px;
+    }
+
+    .project-breakdown .graph {
+      table-layout: fixed;
+      margin: 0;
+    }
+
+    .project-breakdown .graph td {
+        font-size: 0;
+        border-right: 10px solid #fff;
+    }
+
+    .project-breakdown .graph td:last-child {
+        border-right: none;
+    }
+
+    .project-breakdown .graph .label {
+      font-size: 14px;
+      color: #848296;
+      text-align: center;
+      padding-top: 10px;
+    }
+
+    .project-breakdown .summary thead th {
+      font-size: 12px;
+      text-transform: uppercase;
+      color: #88859a;
+      font-weight: 500;
+    }
+
+    .project-breakdown .summary tr {
+      border-bottom: 1px solid #DEE7EB;
+    }
+
+    .project-breakdown .summary th,
+    .project-breakdown .summary td {
+      font-size: 14px;
+      padding-top: 8px;
+      padding-bottom: 8px;
+    }
+
+    .project-breakdown .summary .numeric {
+      text-align: center;
+    }
+
+    .project-breakdown .col-errors-dropped {
+      padding-right: 2rem;
+    }
+  </style>
+
+  <style type="text/css" inline="false">
+    @media only screen and (max-device-width: 480px) {
+
+      .mobile-full-width > th,
+      .mobile-full-width > td {
+          display: block;
+          width: 100%;
+      }
+
+      h4 {
+        text-align: center !important;
+      }
+
+      .header td {
+        text-align: center !important;
+      }
+
+      .project-breakdown .col-dropped {
+        display: none;
+      }
+
+      #events-by-issue-type .legend {
+        margin-bottom: 20px !important;
+        text-align: center !important;
+      }
+
+      #events-by-issue-type .quantity {
+        display: none;
+      }
+    }
+
+  </style>
+
+{% endblock %}
+
+{% block header %}
+  <table>
+    <tr class="mobile-full-width">
+      <td width="125px">
+        <h1>
+          <a href="{% absolute_uri %}"><img src="{% absolute_asset_url 'sentry' 'images/email/sentry_logo_full.png' %}" width="125px" height="29px" alt="Sentry"></a>
+        </h1>
+      </td>
+      <td class="align-right">
+        <strong>Weekly Update for {{ organization.name }}</strong><br />
+        {{ start }} &ndash; {{ end }}
+      </td>
+    </tr>
+  </table>
+{% endblock %}
+
+{% block content %}
+
+<div class="container">
+
+  <div class="project-breakdown">
+    {% with height=110 %}
+    <table class="project-breakdown-graph-deck"><tbody><tr>
+
+    <td class="project-breakdown-graph-cell errors">
+    <h4 class="total-count-title">Total Project Errors</h4>
+    <h1 style="margin: 0;" class="total-count">{{ trends.total_error_count|small_count:1 }}</h1>
+    {% url 'sentry-organization-issue-list' organization.slug as issue_list%}
+    <a href="{% absolute_uri issue_list %}?referrer=weekly-email" style="font-size: 12px; margin-bottom: 16px; display: block;">View All Errors</a>
+
+    <table class="graph">
+      <tr>
+        {% for timestamp, project_values in trends.series %}
+        <td valign="bottom" class="bar" style="height: {{ height }}px; width: {% widthratio 1 trends.series|length 100 %}%">
+            <table class="bar">
+              {% for project_value in project_values %}
+                <tr>
+                  <td height="{% widthratio project_value.error_count trends.error_maximum height %}" style="background-color: {{ project_value.color }};">&nbsp;</td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td height="1" style="background-color: #ebe9f7;"></td>
+                </tr>
+              {% endfor %}
+            </table>
+          </td>
+        {% endfor %}
+      </tr>
+      <tr>
+        {% for timestamp, project_values in trends.series %}
+          <td class="label" style="width: {% widthratio 1 trends.series|length 100 %}%">
+            {{ timestamp|date:"D" }}
+          </td>
+        {% endfor %}
+      </tr>
+    </table>
+    </td>
+
+    {% if trends.total_transaction_count > 0 %}
+    <td class="project-breakdown-graph-cell transactions">
+      <h4 class="total-count-title">Total Project Transactions</h4>
+      <h1 style="margin: 0;" class="total-count">{{ trends.total_transaction_count|small_count:1 }}</h1>
+      <a href="{% absolute_uri '/organizations/{}/performance/?referrer=weekly_email_view_all' organization.slug %}" style="font-size: 12px; margin-bottom: 16px; display: block;">View All Transactions</a>
+      <table class="graph">
+        <tr>
+          {% for timestamp, project_values in trends.series %}
+          <td valign="bottom" class="bar" style="height: {{ height }}px; width: {% widthratio 1 trends.series|length 100 %}%">
+              <table class="bar">
+                {% for project_value in project_values %}
+                  <tr>
+                    <td height="{% widthratio project_value.transaction_count trends.transaction_maximum height %}" style="background-color: {{ project_value.color }};">&nbsp;</td>
+                  </tr>
+                {% empty %}
+                  <tr>
+                    <td height="1" style="background-color: #ebe9f7;"></td>
+                  </tr>
+                {% endfor %}
+              </table>
+            </td>
+          {% endfor %}
+        </tr>
+        <tr>
+          {% for timestamp, project_values in trends.series %}
+            <td class="label" style="width: {% widthratio 1 trends.series|length 100 %}%">
+              {{ timestamp|date:"D" }}
+            </td>
+          {% endfor %}
+        </tr>
+      </table>
+      </td>
+    {% else %}
+      <td class="project-breakdown-graph-cell transactions-empty">
+        <div style="border: 1px solid #c4c4cc; border-radius: 4px; padding: 24px 16px; text-align: center; height: 170px;">
+          <img src="{% absolute_asset_url 'sentry' 'images/email/icon-circle-lightning.png' %}" width="32px" height="32px" alt="Sentry">
+          <h1 style="font-weight: bold; font-size: 17px;">Something slow?</h1>
+          <p style="font-size: 11px;">Trace those 10-second page loads to poor-performing API calls.</p>
+          <a href="{% absolute_uri '/organizations/{}/performance/?referrer=weekly_email_upsell' organization.slug %}" class="btn" style="margin-top: 8px;">Set Up Performance</a>
+        </div>
+      </td>
+    {% endif %}
+
+    </tr></tbody></table>
+
+    <table class="summary">
+      <thead>
+        <tr>
+          <th style="width: 2em; padding-right: 0.5em"></th>
+          <th>Project</th>
+          <th style="width: 5em;" class="numeric">Errors</th>
+          <th style="width: 5em;" class="numeric col-dropped col-errors-dropped">Dropped</th>
+          <th style="width: 7em;" class="numeric">Transactions</th>
+          <th style="width: 7em;" class="numeric col-dropped">Dropped</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for project in trends.legend %}
+        <tr>
+          <td>
+              {% if project.color %}<span style="background: {{ project.color }}; display: inline-block; height: 1em; width: 1em;">&nbsp;</span>{% endif %}
+          </td>
+          <td>
+              {% if project.url %}<a href="{{ project.url }}">{% endif %}{{ project.slug }}{% if project.url %}</a>{% endif %}
+          </td>
+          <td class="numeric">{{ project.accepted_error_count|small_count:1 }}</td>
+          <td class="numeric col-dropped col-errors-dropped">{{ project.dropped_error_count|small_count:1 }}</td>
+          <td class="numeric">{{ project.accepted_transaction_count|small_count:1 }}</td>
+          <td class="numeric col-dropped">{{ project.dropped_transaction_count|small_count:1 }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% endwith %}
+  </div>
+
+  <div id="events-by-issue-type">
+
+    {% if issue_summary.all_issue_count > 0 %}
+    <table class="issue-breakdown">
+      <tr class="mobile-full-width">
+        <td>
+          <h4>Errors by Issue Type</h4>
+        </td>
+        <td class="legend">
+          <span class="swatch" style="background-color: #DF5120;"></span>New<span class="quantity">: {% percent issue_summary.new_issue_count issue_summary.all_issue_count "0.1f" %}%</span>
+          <span class="swatch" style="background-color: #FF7738;"></span>Reopened<span class="quantity">: {% percent issue_summary.reopened_issue_count issue_summary.all_issue_count "0.1f" %}%</span>
+          <span class="swatch" style="background-color: #F9C7B9;"></span>Existing<span class="quantity">: {% percent issue_summary.existing_issue_count issue_summary.all_issue_count "0.1f" %}%</span>
+        </td>
+      </tr>
+      <tr>
+        <td colspan="2">
+          <table>
+            <tr>
+              <td width="{% widthratio issue_summary.new_issue_count issue_summary.all_issue_count 100 %}%" title="New: {{ issue_summary.new_issue_count }} events" style="background-color: #DF5120">
+                &nbsp;
+              </td>
+              <td width="{% widthratio issue_summary.reopened_issue_count issue_summary.all_issue_count 100 %}%" title="Reopened: {{ issue_summary.reopened_issue_count }} events" style="background-color: #FF7738">
+                &nbsp;
+              </td>
+              <td width="{% widthratio issue_summary.existing_issue_count issue_summary.all_issue_count 100 %}%" title="Existing: {{ issue_summary.existing_issue_count }} events" style="background-color: #F9C7B9">
+                &nbsp;
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+    {% endif %}
+
+  </div>
+
+  {%if key_errors|length > 0 %}
+  <div id="key-errors">
+    <h4>Issues with the most errors</h4>
+    {% for a in key_errors %}
+    <div style="display: flex; flex-direction: row; margin-bottom: 8px; align-items: flex-start;">
+      <div style="width: 10%; font-size: 17px;">{{a.count|small_count:1}}</div>
+      <div style="width: 65%;">
+        {% url 'sentry-organization-issue-detail' issue_id=a.group.id organization_slug=organization.slug as issue_detail %}
+        <a style="display: block; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; font-size: 17px; height: 24px;" href="{% absolute_uri issue_detail %}?referrer=weekly-email">{{a.group.message}}</a>
+        <div style="font-size: 12px; color: #80708F;">{{a.group.project.name}}</div>
+      </div>
+      <span style="background-color: {{a.status_color}}; border-radius: 8px; font-size: 12px; align-self: center; padding: 2px 10px; margin-left: auto; height: 100%;">{{a.status}}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {%if key_performance_issues|length > 0 %}
+  <div id="key-errors">
+    <h4>Most frequent performance issues</h4>
+    {% for a in key_performance_issues %}
+    <div style="display: flex; flex-direction: row; margin-bottom: 8px; align-items: flex-start;">
+      <div style="width: 10%; font-size: 17px;">{{a.count|small_count:1}}</div>
+      <div style="width: 65%;">
+        {% url 'sentry-organization-issue-detail' issue_id=a.group.id organization_slug=organization.slug as issue_detail %}
+        <a style="display: block; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; font-size: 17px; height: 24px;" href="{% absolute_uri issue_detail %}?referrer=weekly-email">{{a.group.message}}</a>
+        <div style="font-size: 12px; color: #80708F;">{{a.group.get_type_display}}</div>
+      </div>
+      <span style="background-color: {{a.status_color}}; border-radius: 8px; font-size: 12px; align-self: center; padding: 2px 10px; margin-left: auto; height: 100%;">{{a.status}}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {%if key_transactions|length > 0 %}
+  <div id="key-transactions">
+    <h4>Most frequent transactions</h4>
+    {% for a in key_transactions %}
+    <div style="display: flex; flex-direction: row; margin-bottom: 8px; align-items: flex-start;">
+      <div style="width: 10%; font-size: 17px;">{{a.count|small_count:1}}</div>
+      <div style="width: 65%;">
+        <a style="display: block; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; font-size: 17px;" href="{% absolute_uri '/organizations/{}/performance/summary/?project={}&transaction={}&referrer=weekly_report' organization.slug a.project.id a.name %}">{{a.name}}</a>
+        <div style="font-size: 12px; color: #80708F;">{{a.project.name}}</div>
+      </div>
+      <div style="font-size: 14px; margin-left: auto; display: flex;">
+        {% if a.p95_prev_week %}
+        <span>{{a.p95_prev_week | duration}}</span>
+        <img src="{% absolute_asset_url 'sentry' 'images/email/arrow-right.png' %}" width="16px" height="16px" style="margin: 0 8px;">
+        {% endif %}
+        <span>{{a.p95 | duration}}</span>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

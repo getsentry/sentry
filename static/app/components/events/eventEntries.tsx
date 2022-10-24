@@ -6,6 +6,7 @@ import uniq from 'lodash/uniq';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import EventContexts from 'sentry/components/events/contexts';
 import EventContextSummary from 'sentry/components/events/contextSummary';
@@ -13,7 +14,6 @@ import EventDevice from 'sentry/components/events/device';
 import EventErrors, {Error} from 'sentry/components/events/errors';
 import EventAttachments from 'sentry/components/events/eventAttachments';
 import EventCause from 'sentry/components/events/eventCause';
-import EventCauseEmpty from 'sentry/components/events/eventCauseEmpty';
 import EventDataSection from 'sentry/components/events/eventDataSection';
 import EventExtraData from 'sentry/components/events/eventExtraData';
 import {EventSdk} from 'sentry/components/events/eventSdk';
@@ -100,7 +100,6 @@ type Props = Pick<React.ComponentProps<typeof EventEntry>, 'route' | 'router'> &
   event?: Event;
   group?: Group;
   isShare?: boolean;
-  showExampleCommit?: boolean;
   showTagSummary?: boolean;
 };
 
@@ -115,7 +114,6 @@ const EventEntries = ({
   router,
   route,
   isShare = false,
-  showExampleCommit = false,
   showTagSummary = true,
 }: Props) => {
   const [isLoading, setIsLoading] = useState(true);
@@ -338,13 +336,9 @@ const EventEntries = ({
           proGuardErrors={proGuardErrors}
         />
       )}
-      {!isShare &&
-        isNotSharedOrganization(organization) &&
-        (showExampleCommit ? (
-          <EventCauseEmpty event={event} organization={organization} project={project} />
-        ) : (
-          <EventCause project={project} event={event} group={group} />
-        ))}
+      {!isShare && isNotSharedOrganization(organization) && (
+        <EventCause project={project} event={event} group={group} />
+      )}
       {event.userReport && group && (
         <StyledEventUserFeedback
           report={event.userReport}
@@ -367,7 +361,10 @@ const EventEntries = ({
           />
         ) : (
           (!!(event.tags ?? []).length || hasContext) && (
-            <StyledEventDataSection title={t('Tags')} type="tags">
+            <StyledEventDataSection
+              title={<GuideAnchor target="tags">{t('Tags')}</GuideAnchor>}
+              type="tags"
+            >
               {hasContext && <EventContextSummary event={event} />}
               <EventTags
                 event={event}
@@ -385,6 +382,7 @@ const EventEntries = ({
         organization={organization}
         route={route}
         router={router}
+        isShare={isShare}
       />
       {hasContext && <EventContexts group={group} event={event} />}
       {event && !objectIsEmpty(event.context) && <EventExtraData event={event} />}

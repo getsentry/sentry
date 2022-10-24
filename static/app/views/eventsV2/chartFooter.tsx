@@ -140,14 +140,11 @@ export default function ChartFooter({
             <FeatureBadge type="beta" />
           </Fragment>
         </Feature>
-        <Feature organization={organization} features={['discover-interval-selector']}>
-          <IntervalSelector
-            displayMode={displayMode}
-            eventView={eventView}
-            onIntervalChange={onIntervalChange}
-          />
-          <FeatureBadge type="new" space={0} />
-        </Feature>
+        <IntervalSelector
+          displayMode={displayMode}
+          eventView={eventView}
+          onIntervalChange={onIntervalChange}
+        />
         <OptionSelector
           title={t('Display')}
           selected={displayMode}

@@ -1,6 +1,5 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import StreamGroup from 'sentry/components/stream/group';
 import TagStore from 'sentry/stores/tagStore';
@@ -26,8 +25,6 @@ const DEFAULT_LINKS_HEADER =
 jest.useFakeTimers();
 
 describe('IssueList -> Polling', function () {
-  let wrapper;
-
   let issuesRequest;
   let pollRequest;
 
@@ -52,7 +49,7 @@ describe('IssueList -> Polling', function () {
   };
 
   /* helpers */
-  const createWrapper = async ({params, location, ...p} = {}) => {
+  const renderComponent = async ({params, location, ...p} = {}) => {
     const newRouter = {
       ...router,
       params: {
@@ -65,21 +62,15 @@ describe('IssueList -> Polling', function () {
       },
     };
 
-    wrapper = mountWithTheme(
+    render(
       <OrganizationContext.Provider value={TestStubs.Organization()}>
         <IssueList {...newRouter} {...defaultProps} {...p} />
       </OrganizationContext.Provider>,
-      routerContext
+      {context: routerContext}
     );
 
-    await act(async () => {
-      await Promise.resolve();
-      jest.runAllTimers();
-    });
-
-    wrapper.update();
-
-    return wrapper;
+    await Promise.resolve();
+    jest.runAllTimers();
   };
 
   beforeEach(function () {
@@ -142,10 +133,9 @@ describe('IssueList -> Polling', function () {
         Link: DEFAULT_LINKS_HEADER,
       },
     });
-    const groupStats = TestStubs.GroupStats();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues-stats/',
-      body: [groupStats],
+      body: [TestStubs.GroupStats()],
     });
     pollRequest = MockApiClient.addMockResponse({
       url: `/api/0/organizations/org-slug/issues/?cursor=${PREVIOUS_PAGE_CURSOR}:0:1`,
@@ -161,14 +151,10 @@ describe('IssueList -> Polling', function () {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
-    if (wrapper) {
-      wrapper.unmount();
-    }
-    wrapper = null;
   });
 
   it('toggles polling for new issues', async function () {
-    await createWrapper();
+    await renderComponent();
 
     expect(issuesRequest).toHaveBeenCalledWith(
       expect.anything(),
@@ -178,11 +164,8 @@ describe('IssueList -> Polling', function () {
       })
     );
 
-    // Enable real time control
-    expect(wrapper.find('button[data-test-id="real-time"] IconPlay')).toHaveLength(1);
-    wrapper.find('button[data-test-id="real-time"]').simulate('click');
-
-    expect(wrapper.find('button[data-test-id="real-time"] IconPlay')).toHaveLength(0);
+    // Enable realtime updates
+    userEvent.click(screen.getByRole('button', {name: 'Enable real-time updates'}));
 
     // Each poll request gets delayed by additional 3s, up to max of 60s
     jest.advanceTimersByTime(3001);
@@ -191,8 +174,7 @@ describe('IssueList -> Polling', function () {
     expect(pollRequest).toHaveBeenCalledTimes(2);
 
     // Pauses
-    wrapper.find('button[data-test-id="real-time"]').simulate('click');
-    expect(wrapper.find('button[data-test-id="real-time"] IconPlay')).toHaveLength(1);
+    userEvent.click(screen.getByRole('button', {name: 'Pause real-time updates'}));
 
     jest.advanceTimersByTime(12001);
     expect(pollRequest).toHaveBeenCalledTimes(2);
@@ -205,11 +187,10 @@ describe('IssueList -> Polling', function () {
       statusCode: 401,
     });
 
-    await createWrapper();
+    await renderComponent();
 
     // Enable real time control
-    wrapper.find('button[data-test-id="real-time"]').simulate('click');
-    expect(wrapper.find('button[data-test-id="real-time"] IconPlay')).toHaveLength(0);
+    userEvent.click(screen.getByRole('button', {name: 'Enable real-time updates'}));
 
     // Each poll request gets delayed by additional 3s, up to max of 60s
     jest.advanceTimersByTime(3001);
@@ -225,12 +206,10 @@ describe('IssueList -> Polling', function () {
       statusCode: 403,
     });
 
-    await createWrapper();
+    await renderComponent();
 
     // Enable real time control
-    expect(wrapper.find('button[data-test-id="real-time"] IconPlay')).toHaveLength(1);
-    wrapper.find('button[data-test-id="real-time"]').simulate('click');
-    expect(wrapper.find('button[data-test-id="real-time"] IconPlay')).toHaveLength(0);
+    userEvent.click(screen.getByRole('button', {name: 'Enable real-time updates'}));
 
     // Each poll request gets delayed by additional 3s, up to max of 60s
     jest.advanceTimersByTime(3001);
@@ -246,11 +225,10 @@ describe('IssueList -> Polling', function () {
       statusCode: 404,
     });
 
-    await createWrapper();
+    await renderComponent();
 
     // Enable real time control
-    wrapper.find('button[data-test-id="real-time"]').simulate('click');
-    expect(wrapper.find('button[data-test-id="real-time"] IconPlay')).toHaveLength(0);
+    userEvent.click(screen.getByRole('button', {name: 'Enable real-time updates'}));
 
     // Each poll request gets delayed by additional 3s, up to max of 60s
     jest.advanceTimersByTime(3001);

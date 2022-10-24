@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, Mapping, Sequence
 from django.db import models, transaction
 
 from sentry import projectoptions
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model, sane_repr
 from sentry.db.models.fields import PickledObjectField
 from sentry.db.models.manager import OptionManager, ValidateFunction, Value
 from sentry.tasks.relay import schedule_invalidate_project_config
@@ -13,6 +13,53 @@ from sentry.utils.cache import cache
 
 if TYPE_CHECKING:
     from sentry.models import Project
+
+OPTION_KEYS = frozenset(
+    [
+        # we need the epoch to fill in the defaults correctly
+        "sentry:option-epoch",
+        "sentry:origins",
+        "sentry:resolve_age",
+        "sentry:scrub_data",
+        "sentry:scrub_defaults",
+        "sentry:safe_fields",
+        "sentry:store_crash_reports",
+        "sentry:builtin_symbol_sources",
+        "sentry:symbol_sources",
+        "sentry:sensitive_fields",
+        "sentry:csp_ignored_sources_defaults",
+        "sentry:csp_ignored_sources",
+        "sentry:default_environment",
+        "sentry:reprocessing_active",
+        "sentry:blacklisted_ips",
+        "sentry:releases",
+        "sentry:error_messages",
+        "sentry:scrape_javascript",
+        "sentry:token",
+        "sentry:token_header",
+        "sentry:verify_ssl",
+        "sentry:scrub_ip_address",
+        "sentry:grouping_config",
+        "sentry:grouping_enhancements",
+        "sentry:grouping_enhancements_base",
+        "sentry:secondary_grouping_config",
+        "sentry:secondary_grouping_expiry",
+        "sentry:grouping_auto_update",
+        "sentry:fingerprinting_rules",
+        "sentry:relay_pii_config",
+        "sentry:dynamic_sampling",
+        "sentry:dynamic_sampling_biases",
+        "sentry:breakdowns",
+        "sentry:span_attributes",
+        "sentry:performance_issue_creation_rate",
+        "sentry:spike_projection_config",
+        "feedback:branding",
+        "digests:mail:minimum_delay",
+        "digests:mail:maximum_delay",
+        "mail:subject_prefix",
+        "mail:subject_template",
+    ]
+)
 
 
 class ProjectOptionManager(OptionManager["Project"]):
@@ -97,7 +144,7 @@ class ProjectOptionManager(OptionManager["Project"]):
         self.reload_cache(instance.project_id, "projectoption.post_delete")
 
 
-@region_silo_model
+@region_silo_only_model
 class ProjectOption(Model):  # type: ignore
     """
     Project options apply only to an instance of a project.

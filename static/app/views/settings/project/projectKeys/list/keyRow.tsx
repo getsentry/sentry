@@ -32,37 +32,6 @@ function KeyRow({data, onRemove, onToggle, access, routes, location, params}: Pr
   const editUrl = recreateRoute(`${data.id}/`, {routes, params, location});
   const controlActive = access.has('project:write');
 
-  const controls = [
-    <Button key="edit" to={editUrl} size="sm">
-      {t('Configure')}
-    </Button>,
-    <Button
-      key="toggle"
-      size="sm"
-      onClick={data.isActive ? handleDisable : handleEnable}
-      disabled={!controlActive}
-    >
-      {data.isActive ? t('Disable') : t('Enable')}
-    </Button>,
-    <Confirm
-      key="remove"
-      priority="danger"
-      disabled={!controlActive}
-      onConfirm={() => onRemove(data)}
-      confirmText={t('Remove Key')}
-      message={t(
-        'Are you sure you want to remove this key? This action is irreversible.'
-      )}
-    >
-      <Button
-        size="sm"
-        disabled={!controlActive}
-        icon={<IconDelete />}
-        aria-label={t('Delete')}
-      />
-    </Confirm>,
-  ];
-
   return (
     <Panel>
       <PanelHeader hasButtons>
@@ -76,9 +45,37 @@ function KeyRow({data, onRemove, onToggle, access, routes, location, params}: Pr
           )}
         </Title>
         <Controls>
-          {controls.map((c, n) => (
-            <span key={n}> {c}</span>
-          ))}
+          <Button to={editUrl} size="sm">
+            {t('Configure')}
+          </Button>
+          <Confirm
+            onConfirm={data.isActive ? handleDisable : handleEnable}
+            confirmText={data.isActive ? t('Disable Key') : t('Enable Key')}
+            message={
+              data.isActive
+                ? t('Are you sure you want to disable this key?')
+                : t('Are you sure you want to enable this key?')
+            }
+          >
+            <Button size="sm" disabled={!controlActive}>
+              {data.isActive ? t('Disable') : t('Enable')}
+            </Button>
+          </Confirm>
+          <Confirm
+            priority="danger"
+            onConfirm={() => onRemove(data)}
+            confirmText={t('Remove Key')}
+            message={t(
+              'Are you sure you want to remove this key? This action is irreversible.'
+            )}
+          >
+            <Button
+              size="sm"
+              disabled={!controlActive}
+              icon={<IconDelete />}
+              aria-label={t('Delete')}
+            />
+          </Confirm>
         </Controls>
       </PanelHeader>
 

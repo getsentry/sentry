@@ -32,6 +32,7 @@ import {useProfileGroup} from './profileGroupProvider';
 const LoadingGroup: ProfileGroup = {
   name: 'Loading',
   activeProfileIndex: 0,
+  transactionID: null,
   metadata: {},
   traceID: '',
   profiles: [Profile.Empty],

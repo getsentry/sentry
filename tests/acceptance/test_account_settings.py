@@ -1,5 +1,3 @@
-import pytest
-
 from sentry.testutils import AcceptanceTestCase
 
 
@@ -20,49 +18,6 @@ class AccountSettingsTest(AcceptanceTestCase):
             user=self.create_user("bar@example.com"), organization=second_org, role="owner"
         )
         self.login_as(self.user)
-
-    # TODO(billy): Enable this and remove the slower tests below
-    @pytest.mark.skip(
-        reason="This will be faster but does not check if old django routes are redirecting"
-    )
-    def test_account_settings(self):
-        with self.feature("organizations:onboarding"):
-            path = "/settings/account/"
-            self.browser.get(path)
-            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-            self.browser.snapshot("account settings")
-
-            self.browser.click('[href="/settings/account/security/"]')
-            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-            self.browser.snapshot("account security settings")
-
-            self.browser.click('[href="/settings/account/notifications/"]')
-            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-            self.browser.snapshot("account notification settings")
-
-            self.browser.click_when_visible("#Alerts a")
-            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-            self.browser.snapshot('account notification - fine tune "Alerts"')
-
-            self.browser.click('[href="/settings/account/emails/"]')
-            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-            self.browser.snapshot("account emails settings")
-
-            self.browser.click('[href="/settings/account/subscriptions/"]')
-            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-            self.browser.snapshot("account subscriptions settings")
-
-            self.browser.click('[href="/settings/account/authorizations/"]')
-            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-            self.browser.snapshot("account authorizations settings")
-
-            self.browser.click('[href="/settings/account/identities/"]')
-            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-            self.browser.snapshot("account identities settings")
-
-            self.browser.click('[href="/settings/account/close-account/"]')
-            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-            self.browser.snapshot("account settings - close account")
 
     def test_account_security_settings(self):
         with self.feature("organizations:onboarding"):

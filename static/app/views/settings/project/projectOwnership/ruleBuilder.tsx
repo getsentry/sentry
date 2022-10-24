@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Button from 'sentry/components/button';
-import SelectField from 'sentry/components/deprecatedforms/selectField';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Input from 'sentry/components/input';
 import Tag from 'sentry/components/tag';
 import TextOverflow from 'sentry/components/textOverflow';
@@ -118,36 +118,41 @@ class RuleBuilder extends Component<Props, State> {
     const {urls, paths, disabled, project, organization} = this.props;
     const {type, text, tagName, owners, isValid} = this.state;
 
+    const hasCandidates = paths || urls;
+
     return (
       <Fragment>
-        {(paths || urls) && (
+        {hasCandidates && (
           <Candidates>
-            {paths &&
-              paths.map(v => (
-                <RuleCandidate
-                  key={v}
-                  onClick={() => this.handleSelectCandidate(v, 'path')}
-                >
-                  <StyledIconAdd isCircled />
-                  <StyledTextOverflow>{v}</StyledTextOverflow>
-                  <Tag>{t('Path')}</Tag>
-                </RuleCandidate>
-              ))}
-            {urls &&
-              urls.map(v => (
-                <RuleCandidate
-                  key={v}
-                  onClick={() => this.handleSelectCandidate(v, 'url')}
-                >
-                  <StyledIconAdd isCircled />
-                  <StyledTextOverflow>{v}</StyledTextOverflow>
-                  <Tag>{t('URL')}</Tag>
-                </RuleCandidate>
-              ))}
+            {paths.map(v => (
+              <RuleCandidate
+                key={v}
+                role="button"
+                aria-label={t('Path rule candidate')}
+                onClick={() => this.handleSelectCandidate(v, 'path')}
+              >
+                <IconAdd color="border" isCircled />
+                <TextOverflow>{v}</TextOverflow>
+                <Tag>{t('Path')}</Tag>
+              </RuleCandidate>
+            ))}
+            {urls.map(v => (
+              <RuleCandidate
+                key={v}
+                role="button"
+                aria-label={t('URL rule candidate')}
+                onClick={() => this.handleSelectCandidate(v, 'url')}
+              >
+                <IconAdd color="border" isCircled />
+                <TextOverflow>{v}</TextOverflow>
+                <Tag>{t('URL')}</Tag>
+              </RuleCandidate>
+            ))}
           </Candidates>
         )}
         <BuilderBar>
           <BuilderSelect
+            aria-label={t('Rule type')}
             name="select-type"
             value={type}
             onChange={this.handleTypeChange}
@@ -157,7 +162,6 @@ class RuleBuilder extends Component<Props, State> {
               {value: 'tag', label: t('Tag')},
               {value: 'url', label: t('URL')},
             ]}
-            style={{width: 140}}
             clearable={false}
             disabled={disabled}
           />
@@ -169,29 +173,26 @@ class RuleBuilder extends Component<Props, State> {
               placeholder="tag-name"
             />
           )}
-          <BuilderInput
+          <Input
             value={text}
             onChange={this.handleChangeValue}
             disabled={disabled}
             placeholder={getMatchPlaceholder(type)}
+            aria-label={t('Rule pattern')}
           />
-          <Divider direction="right" />
-          <SelectOwnersWrapper>
-            <SelectOwners
-              organization={organization}
-              project={project}
-              value={owners}
-              onChange={this.handleChangeOwners}
-              disabled={disabled}
-            />
-          </SelectOwnersWrapper>
-
-          <AddButton
+          <IconChevron color="border" direction="right" />
+          <SelectOwners
+            organization={organization}
+            project={project}
+            value={owners}
+            onChange={this.handleChangeOwners}
+            disabled={disabled}
+          />
+          <Button
             priority="primary"
             disabled={!isValid}
             onClick={this.handleAddRule}
             icon={<IconAdd isCircled />}
-            size="sm"
             aria-label={t('Add rule')}
           />
         </BuilderBar>
@@ -201,10 +202,6 @@ class RuleBuilder extends Component<Props, State> {
 }
 const Candidates = styled('div')`
   margin-bottom: 10px;
-`;
-
-const StyledTextOverflow = styled(TextOverflow)`
-  flex: 1;
 `;
 
 const RuleCandidate = styled('div')`
@@ -217,55 +214,24 @@ const RuleCandidate = styled('div')`
   cursor: pointer;
   overflow: hidden;
   display: flex;
+  gap: ${space(0.5)};
   align-items: center;
-`;
-
-const StyledIconAdd = styled(IconAdd)`
-  color: ${p => p.theme.border};
-  margin-right: 5px;
-  flex-shrink: 0;
 `;
 
 const BuilderBar = styled('div')`
   display: flex;
-  height: 40px;
+  gap: ${space(1)};
   align-items: center;
   margin-bottom: ${space(2)};
 `;
 
-const BuilderSelect = styled(SelectField)`
-  margin-right: ${space(1.5)};
-  width: 50px;
+const BuilderSelect = styled(SelectControl)`
+  width: 140px;
   flex-shrink: 0;
-`;
-
-const BuilderInput = styled(Input)`
-  padding: ${space(1)};
-  line-height: 19px;
-  margin-right: ${space(0.5)};
 `;
 
 const BuilderTagNameInput = styled(Input)`
-  padding: ${space(1)};
-  line-height: 19px;
-  margin-right: ${space(0.5)};
   width: 200px;
-`;
-
-const Divider = styled(IconChevron)`
-  color: ${p => p.theme.border};
-  flex-shrink: 0;
-  margin-right: 5px;
-`;
-
-const SelectOwnersWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  margin-right: ${space(1)};
-`;
-
-const AddButton = styled(Button)`
-  padding: ${space(0.5)}; /* this sizes the button up to align with the inputs */
 `;
 
 export default RuleBuilder;

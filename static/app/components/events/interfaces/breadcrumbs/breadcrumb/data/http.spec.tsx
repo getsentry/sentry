@@ -3,7 +3,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {Http} from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/data/http';
-import ProjectStore from 'sentry/stores/projectsStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {RouteContext} from 'sentry/views/routeContext';
@@ -23,7 +23,7 @@ describe('Breadcrumb Data Http', function () {
     projects: [project],
   });
 
-  ProjectStore.loadInitialData([project]);
+  ProjectsStore.loadInitialData([project]);
 
   it('display redacted url', async function () {
     render(
@@ -76,7 +76,7 @@ describe('Breadcrumb Data Http', function () {
     expect(
       await screen.findByText(
         textWithMarkupMatcher(
-          'Replaced because of the PII rule [Replace] [Password fields] with [Scrubbed] from [password] in the settings of the project project-slug'
+          'Replaced because of the data scrubbing rule [Replace] [Password fields] with [Scrubbed] from [password] in the settings of the project project-slug'
         )
       )
     ).toBeInTheDocument(); // tooltip description
@@ -117,7 +117,7 @@ describe('Breadcrumb Data Http', function () {
     expect(
       await screen.findByText(
         textWithMarkupMatcher(
-          'Removed because of the PII rule [Replace] [Password fields] with [Scrubbed] from [password] in the settings of the project project-slug'
+          'Removed because of the data scrubbing rule [Replace] [Password fields] with [Scrubbed] from [password] in the settings of the project project-slug'
         )
       )
     ).toBeInTheDocument(); // tooltip description

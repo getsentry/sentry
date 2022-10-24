@@ -39,8 +39,12 @@ describe('ProjectAlertSettings', () => {
     );
 
     expect(screen.getByPlaceholderText('e.g. $shortID - $title')).toBeInTheDocument();
-    expect(screen.getByRole('slider', {name: '12 minutes'})).toBeInTheDocument();
-    expect(screen.getByRole('slider', {name: '55 minutes'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('slider', {name: 'Minimum delivery interval'})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('slider', {name: 'Maximum delivery interval'})
+    ).toBeInTheDocument();
     expect(
       screen.getByText(
         "Oops! Looks like there aren't any available integrations installed."

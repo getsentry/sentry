@@ -1,6 +1,7 @@
 import {useEffect} from 'react';
 
 import {DeepPartial} from 'sentry/types/utils';
+import {defined} from 'sentry/utils';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Rect} from 'sentry/utils/profiling/gl/utils';
@@ -145,7 +146,7 @@ export function FlamegraphStateProvider(
         const threadID =
           profileGroup.data.profiles[profileGroup.data.activeProfileIndex].threadId;
 
-        if (threadID) {
+        if (defined(threadID)) {
           dispatch({
             type: 'set thread id',
             payload: threadID,

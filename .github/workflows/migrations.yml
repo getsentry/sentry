@@ -77,7 +77,7 @@ jobs:
         id: file
         run: |
           echo $(git diff --diff-filter=A --name-only origin/master HEAD)
-          echo "::set-output name=added::$(git diff --diff-filter=A --name-only origin/master HEAD | grep 'src/sentry/migrations/')"
+          echo "added=$(git diff --diff-filter=A --name-only origin/master HEAD | grep 'src/sentry/migrations/')" >> "$GITHUB_OUTPUT"
 
       - name: Generate SQL for migration
         uses: getsentry/action-migrations@f1dc34590460c0fe06ec11c00fec6c16a2159977  # main

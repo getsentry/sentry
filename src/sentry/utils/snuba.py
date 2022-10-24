@@ -4,7 +4,7 @@ import os
 import random
 import re
 import time
-from collections import OrderedDict, namedtuple
+from collections import namedtuple
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from copy import deepcopy
@@ -855,7 +855,7 @@ def _bulk_snuba_query(
                     )
         except ValueError:
             if response.status != 200:
-                logger.error("snuba.query.invalid-json")
+                logger.exception("snuba.query.invalid-json", extra={"response.data", response.data})
                 raise SnubaError("Failed to parse snuba error response")
             raise UnexpectedResponseError(f"Could not decode JSON response: {response.data}")
 
@@ -972,9 +972,9 @@ def query(
         )
     except (QueryOutsideRetentionError, QueryOutsideGroupActivityError):
         if totals:
-            return OrderedDict(), {}
+            return {}, {}
         else:
-            return OrderedDict()
+            return {}
 
     # Validate and scrub response, and translate snuba keys back to IDs
     aggregate_names = [a[2] for a in aggregations]
@@ -1008,10 +1008,10 @@ def nest_groups(data, groups, aggregate_cols):
             return {c: data[0][c] for c in aggregate_cols} if data else None
     else:
         g, rest = groups[0], groups[1:]
-        inter = OrderedDict()
+        inter = {}
         for d in data:
             inter.setdefault(d[g], []).append(d)
-        return OrderedDict((k, nest_groups(v, rest, aggregate_cols)) for k, v in inter.items())
+        return {k: nest_groups(v, rest, aggregate_cols) for k, v in inter.items()}
 
 
 def resolve_column(dataset) -> Callable[[str], str]:

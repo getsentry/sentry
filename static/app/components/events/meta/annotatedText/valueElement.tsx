@@ -2,7 +2,7 @@ import {Fragment, isValidElement} from 'react';
 
 import {t} from 'sentry/locale';
 
-import Redaction from './redaction';
+import {Redaction} from './redaction';
 
 type Props = {
   value: React.ReactNode;

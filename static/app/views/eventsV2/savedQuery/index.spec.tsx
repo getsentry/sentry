@@ -36,8 +36,9 @@ function mount(
       updateCallback={() => {}}
       yAxis={yAxis}
       router={router}
-      savedQueryLoading={false}
+      queryDataLoading={false}
       setSavedQuery={jest.fn()}
+      setHomepageQuery={jest.fn()}
     />
   );
 }
@@ -63,8 +64,9 @@ function generateWrappedComponent(
         updateCallback={() => {}}
         yAxis={yAxis}
         router={router}
-        savedQueryLoading={false}
+        queryDataLoading={false}
         setSavedQuery={mockSetSavedQuery}
+        setHomepageQuery={jest.fn()}
       />
     ),
   };

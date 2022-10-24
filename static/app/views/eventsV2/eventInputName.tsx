@@ -13,16 +13,18 @@ import {handleUpdateQueryName} from './savedQuery/utils';
 type Props = {
   eventView: EventView;
   organization: Organization;
+  isHomepage?: boolean;
   savedQuery?: SavedQuery;
 };
 
 const NAME_DEFAULT = t('Untitled query');
+const HOMEPAGE_DEFAULT = t('New Query');
 
 /**
  * Allows user to edit the name of the query.
  * By pressing Enter or clicking outside the component, the changes will be saved, if valid.
  */
-function EventInputName({organization, eventView, savedQuery}: Props) {
+function EventInputName({organization, eventView, savedQuery, isHomepage}: Props) {
   const api = useApi();
 
   function handleChange(nextQueryName: string) {
@@ -52,14 +54,14 @@ function EventInputName({organization, eventView, savedQuery}: Props) {
     );
   }
 
-  const value = eventView.name || NAME_DEFAULT;
+  const value = isHomepage ? HOMEPAGE_DEFAULT : eventView.name || NAME_DEFAULT;
 
   return (
     <StyledTitle data-test-id={`discover2-query-name-${value}`}>
       <EditableText
         value={value}
         onChange={handleChange}
-        isDisabled={!eventView.id}
+        isDisabled={!eventView.id || isHomepage}
         errorMessage={t('Please set a name for this query')}
       />
     </StyledTitle>

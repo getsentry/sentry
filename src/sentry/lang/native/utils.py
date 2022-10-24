@@ -12,8 +12,9 @@ logger = logging.getLogger(__name__)
 WINDOWS_PATH_RE = re.compile(r"^([a-z]:\\|\\\\)", re.IGNORECASE)
 
 # Event platforms that could contain native stacktraces
-# il2cpp events have the "csharp" platform, and we do need to run those
-# through symbolicator to correctly symbolicate il2cpp stack frames.
+# "csharp" events are also considered "native" as they are processed by symbolicator.
+# This includes il2cpp events that are symbolicated using native debug files,
+# as well as .NET with Portable PDB files which are handled by symbolicator.
 NATIVE_PLATFORMS = ("cocoa", "native", "csharp")
 
 # Debug image types that can be handled by the symbolicator
@@ -23,6 +24,7 @@ NATIVE_IMAGE_TYPES = (
     "elf",  # Linux
     "macho",  # macOS, iOS
     "pe",  # Windows
+    "pe_dotnet",  # Portable PDB
     "wasm",  # WASM
 )
 

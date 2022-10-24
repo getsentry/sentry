@@ -1,14 +1,9 @@
 import {useEffect, useRef, useState} from 'react';
 import {Store} from 'reflux';
 
-import {SafeRefluxStore} from '../utils/makeSafeRefluxStore';
-
 import {CommonStoreDefinition} from './types';
 
-interface UnsafeStore extends Store, CommonStoreDefinition<any> {}
-interface SafeStore extends SafeRefluxStore, CommonStoreDefinition<any> {}
-
-type LegacyStoreShape = UnsafeStore | SafeStore;
+interface LegacyStoreShape extends Store, CommonStoreDefinition<any> {}
 
 /**
  * This wrapper exists because we have many old-style enzyme tests that trigger

@@ -8,7 +8,7 @@ import {defined} from 'sentry/utils';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 
 import FormPanel from './formPanel';
-import {Field, FieldObject, JsonFormObject} from './type';
+import {Field, FieldObject, JsonFormObject} from './types';
 
 type Props = {
   additionalFieldProps?: {[key: string]: any};
@@ -44,9 +44,9 @@ class JsonForm extends Component<Props, State> {
     this.scrollToHash();
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps: Props) {
-    if (nextProps.location && this.props.location.hash !== nextProps.location.hash) {
-      const hash = nextProps.location.hash;
+  componentDidUpdate(prevProps: Props) {
+    if (this.props.location && this.props.location.hash !== prevProps.location.hash) {
+      const hash = this.props.location.hash;
       this.scrollToHash(hash);
       this.setState({highlighted: hash});
     }

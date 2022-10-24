@@ -29,7 +29,7 @@ import QueryCount from 'sentry/components/queryCount';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import ProcessingIssueList from 'sentry/components/stream/processingIssueList';
 import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {t, tct} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {PageContent} from 'sentry/styles/organization';
 import {
@@ -441,17 +441,8 @@ class IssueListOverview extends Component<Props, State> {
         count: currentQueryCount,
         hasMore: false,
       };
-      const tab = getTabs(organization).find(
-        ([tabQuery]) => currentTabQuery === tabQuery
-      )?.[1];
-      if (tab && !endpointParams.cursor) {
-        trackAdvancedAnalyticsEvent('issues_tab.viewed', {
-          organization,
-          tab: tab.analyticsName,
-          num_issues: queryCounts[currentTabQuery].count,
-        });
-      }
     }
+
     this.setState({queryCounts});
 
     // If all tabs' counts are fetched, skip and only set
@@ -615,14 +606,26 @@ class IssueListOverview extends Component<Props, State> {
           (group: BaseGroup) => group.issueCategory === IssueCategory.PERFORMANCE
         ).length;
 
-        const page = parseInt(this.props.location.query.page, 10);
+        const page = this.props.location.query.page;
 
-        trackAdvancedAnalyticsEvent('issues_stream.count_perf_issues', {
+        const endpointParams = this.getEndpointParams();
+        const tabQueriesWithCounts = getTabsWithCounts(organization);
+        const currentTabQuery = tabQueriesWithCounts.includes(
+          endpointParams.query as Query
+        )
+          ? endpointParams.query
+          : null;
+        const tab = getTabs(organization).find(
+          ([tabQuery]) => currentTabQuery === tabQuery
+        )?.[1];
+
+        trackAdvancedAnalyticsEvent('issues_tab.viewed', {
           organization,
-          page,
+          tab: tab?.analyticsName,
+          page: page ? parseInt(page, 10) : 0,
           query,
           num_perf_issues: numPerfIssues,
-          num_total_issues: data.length,
+          num_issues: data.length,
         });
 
         this.fetchStats(data.map((group: BaseGroup) => group.id));
@@ -1040,10 +1043,14 @@ class IssueListOverview extends Component<Props, State> {
 
     if (!isForReviewQuery(query)) {
       if (itemIds.length > 1) {
-        addMessage(t(`Reviewed ${itemIds.length} Issues`), 'success', {duration: 4000});
+        addMessage(
+          tn('Reviewed %s Issue', 'Reviewed %s Issues', itemIds.length),
+          'success',
+          {duration: 4000}
+        );
       } else {
         const shortId = itemIds.map(item => GroupStore.get(item)?.shortId).toString();
-        addMessage(t(`Reviewed ${shortId}`), 'success', {duration: 4000});
+        addMessage(t('Reviewed %s', shortId), 'success', {duration: 4000});
       }
       return;
     }
@@ -1082,13 +1089,13 @@ class IssueListOverview extends Component<Props, State> {
     actionType: 'Reviewed' | 'Resolved' | 'Ignored'
   ) => {
     if (itemIds.length > 1) {
-      addMessage(t(`${actionType} ${itemIds.length} Issues`), 'success', {
+      addMessage(`${actionType} ${itemIds.length} ${t('Issues')}`, 'success', {
         duration: 4000,
         ...(actionType !== 'Reviewed' && {undo: this.onUndo}),
       });
     } else {
       const shortId = itemIds.map(item => GroupStore.get(item)?.shortId).toString();
-      addMessage(t(`${actionType} ${shortId}`), 'success', {
+      addMessage(`${actionType} ${shortId}`, 'success', {
         duration: 4000,
         ...(actionType !== 'Reviewed' && {undo: this.onUndo}),
       });

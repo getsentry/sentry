@@ -12,7 +12,6 @@ import Button from 'sentry/components/button';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import FeatureBadge from 'sentry/components/featureBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
@@ -350,7 +349,6 @@ class WidgetCard extends Component<Props, State> {
                                     ),
                                   }
                                 )}
-                                <FeatureBadge type="beta" />
                               </StoredDataAlert>
                             );
                           }

@@ -55,16 +55,18 @@ function AssignedTo({group, projectId}: AssignedToProps) {
             <DropdownButton data-test-id="assignee-selector" {...getActorProps({})}>
               <ActorWrapper>
                 {loading ? (
-                  <StyledLoadingIndicator mini size={20} />
+                  <StyledLoadingIndicator mini size={24} />
                 ) : assignedTo ? (
                   <ActorAvatar
                     data-test-id="assigned-avatar"
                     actor={assignedTo}
                     hasTooltip={false}
-                    size={20}
+                    size={24}
                   />
                 ) : (
-                  <IconUser size="md" />
+                  <IconWrapper>
+                    <IconUser size="md" />
+                  </IconWrapper>
                 )}
                 <ActorName>{getAssignedToDisplayName(assignedTo)}</ActorName>
               </ActorWrapper>
@@ -91,9 +93,16 @@ const ActorWrapper = styled('div')`
   align-items: center;
   gap: ${space(1)};
   max-width: 85%;
+  line-height: 1;
+`;
+
+const IconWrapper = styled('div')`
+  display: flex;
+  padding: ${space(0.25)};
 `;
 
 const ActorName = styled('div')`
+  line-height: 1.2;
   ${p => p.theme.overflowEllipsis}
 `;
 
@@ -104,7 +113,7 @@ const StyledSidebarSectionContent = styled(SidebarSection.Content)`
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
-  height: 20px;
-  width: 20px;
-  margin: 0;
+  width: 24px;
+  height: 24px;
+  margin: 0 !important;
 `;

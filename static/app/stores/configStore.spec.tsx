@@ -9,4 +9,12 @@ describe('ConfigStore', () => {
       sentryUrl: 'https://sentry.io',
     });
   });
+
+  it('should have cookie names', () => {
+    const csrfCookieName = ConfigStore.get('csrfCookieName');
+    expect(csrfCookieName).toEqual('csrf-test-cookie');
+
+    const superUserCookieName = ConfigStore.get('superUserCookieName');
+    expect(superUserCookieName).toEqual('su-test-cookie');
+  });
 });

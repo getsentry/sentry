@@ -22,9 +22,11 @@ class RedisSessionStoreTestCase(TestCase):
         assert "store:test-store" in self.request.session
 
         self.store.some_value = "test_value"
+        assert self.store.get_state()
         store2 = self.TestRedisSessionStore(self.request, "test-store")
 
         assert store2.is_valid()
+        assert store2.get_state()
         assert store2.some_value == "test_value"
 
         with pytest.raises(AttributeError):
@@ -48,3 +50,20 @@ class RedisSessionStoreTestCase(TestCase):
         assert self.store.some_value is None
 
         self.store.clear()
+
+    def test_malformed_state(self):
+        self.store.regenerate()
+        client = self.store._client
+
+        assert "store:test-store" in self.request.session
+        self.store.some_value = "test_value"
+
+        assert self.store.is_valid()
+        assert self.store.get_state()
+
+        # Redis session store should be bulletproof in case redis state values are invalid json.
+        # For example, random bit flips caused by cosmic rays.
+        client.setex(self.store.redis_key, self.store.ttl, "invalid json")
+
+        assert self.store.is_valid() is False
+        assert self.store.get_state() is None

@@ -188,15 +188,13 @@ export const fromSorts = (sorts: string | string[] | undefined): Array<Sort> => 
   }, []);
 };
 
-const decodeSorts = (location: Location): Array<Sort> => {
+export const decodeSorts = (location: Location): Array<Sort> => {
   const {query} = location;
 
   if (!query || !query.sort) {
     return [];
   }
-
   const sorts = decodeList(query.sort);
-
   return fromSorts(sorts);
 };
 
@@ -328,19 +326,20 @@ class EventView {
 
     // only include sort keys that are included in the fields
     let equations = 0;
-    const sortKeys = fields
-      .map(field => {
-        if (field.field && isEquation(field.field)) {
-          const sortKey = getSortKeyFromField(
-            {field: `equation[${equations}]`},
-            undefined
-          );
-          equations += 1;
-          return sortKey;
+    const sortKeys: string[] = [];
+    fields.forEach(field => {
+      if (field.field && isEquation(field.field)) {
+        const sortKey = getSortKeyFromField({field: `equation[${equations}]`}, undefined);
+        equations += 1;
+        if (sortKey) {
+          sortKeys.push(sortKey);
         }
-        return getSortKeyFromField(field, undefined);
-      })
-      .filter((sortKey): sortKey is string => !!sortKey);
+      }
+      const sortKey = getSortKeyFromField(field, undefined);
+      if (sortKey) {
+        sortKeys.push(sortKey);
+      }
+    });
 
     const sort = sorts.find(currentSort => sortKeys.includes(currentSort.field));
     sorts = sort ? [sort] : [];
@@ -526,7 +525,7 @@ class EventView {
     return EventView.fromLocation(location);
   }
 
-  isEqualTo(other: EventView): boolean {
+  isEqualTo(other: EventView, omitList: string[] = []): boolean {
     const defaults = {
       id: undefined,
       name: undefined,
@@ -541,7 +540,7 @@ class EventView {
       display: DisplayModes.DEFAULT,
       topEvents: '5',
     };
-    const keys = Object.keys(defaults);
+    const keys = Object.keys(defaults).filter(key => !omitList.includes(key));
     for (const key of keys) {
       const currentValue = this[key] ?? defaults[key];
       const otherValue = other[key] ?? defaults[key];
@@ -1172,9 +1171,13 @@ class EventView {
     return eventQuery;
   }
 
-  getResultsViewUrlTarget(slug: string): {pathname: string; query: Query} {
+  getResultsViewUrlTarget(
+    slug: string,
+    isHomepage: boolean = false
+  ): {pathname: string; query: Query} {
+    const target = isHomepage ? 'homepage' : 'results';
     return {
-      pathname: `/organizations/${slug}/discover/results/`,
+      pathname: `/organizations/${slug}/discover/${target}/`,
       query: this.generateQueryStringObject(),
     };
   }

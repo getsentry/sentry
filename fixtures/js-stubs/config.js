@@ -7,6 +7,7 @@ export function Config(params = {}) {
     messages: [],
     languageCode: 'en',
     csrfCookieName: 'csrf-test-cookie',
+    superUserCookieName: 'su-test-cookie',
     features: new Set(),
     singleOrganization: false,
     urlPrefix: 'https://sentry-jest-tests.example.com/',

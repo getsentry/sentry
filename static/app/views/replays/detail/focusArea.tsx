@@ -1,10 +1,5 @@
-import Feature from 'sentry/components/acl/feature';
-import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {t} from 'sentry/locale';
-import type {Crumb} from 'sentry/types/breadcrumbs';
-import {isBreadcrumbTypeDefault} from 'sentry/types/breadcrumbs';
 import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useOrganization from 'sentry/utils/useOrganization';
 import Console from 'sentry/views/replays/detail/console';
@@ -12,15 +7,9 @@ import DomMutations from 'sentry/views/replays/detail/domMutations';
 import IssueList from 'sentry/views/replays/detail/issueList';
 import MemoryChart from 'sentry/views/replays/detail/memoryChart';
 import NetworkList from 'sentry/views/replays/detail/network';
-import Trace from 'sentry/views/replays/detail/trace';
+import Trace from 'sentry/views/replays/detail/trace/index';
 
 type Props = {};
-
-function getBreadcrumbsByCategory(breadcrumbs: Crumb[], categories: string[]) {
-  return breadcrumbs
-    .filter(isBreadcrumbTypeDefault)
-    .filter(breadcrumb => categories.includes(breadcrumb.category || ''));
-}
 
 function FocusArea({}: Props) {
   const {getActiveTab} = useActiveReplayTab();
@@ -37,13 +26,9 @@ function FocusArea({}: Props) {
 
   switch (getActiveTab()) {
     case 'console':
-      const consoleMessages = getBreadcrumbsByCategory(replay?.getRawCrumbs(), [
-        'console',
-        'exception',
-      ]);
       return (
         <Console
-          breadcrumbs={consoleMessages ?? []}
+          breadcrumbs={replay.getConsoleCrumbs()}
           startTimestampMs={replayRecord.startedAt.getTime()}
         />
       );
@@ -55,26 +40,7 @@ function FocusArea({}: Props) {
         />
       );
     case 'trace':
-      const features = ['organizations:performance-view'];
-
-      const renderDisabled = () => (
-        <FeatureDisabled
-          featureName={t('Performance Monitoring')}
-          features={features}
-          message={t('Requires performance monitoring.')}
-          hideHelpToggle
-        />
-      );
-      return (
-        <Feature
-          organization={organization}
-          hookName="feature-disabled:configure-distributed-tracing"
-          features={features}
-          renderDisabled={renderDisabled}
-        >
-          <Trace organization={organization} replayRecord={replayRecord} />
-        </Feature>
-      );
+      return <Trace organization={organization} replayRecord={replayRecord} />;
     case 'issues':
       return <IssueList replayId={replayRecord.id} projectId={replayRecord.projectId} />;
     case 'dom':

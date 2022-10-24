@@ -52,6 +52,8 @@ def _merge_frame(new_frame, symbolicated, platform="native"):
             new_frame["function"] = func
     if symbolicated.get("instruction_addr"):
         new_frame["instruction_addr"] = symbolicated["instruction_addr"]
+    if symbolicated.get("function_id"):
+        new_frame["function_id"] = symbolicated["function_id"]
     if symbolicated.get("symbol"):
         new_frame["symbol"] = symbolicated["symbol"]
     if symbolicated.get("abs_path"):

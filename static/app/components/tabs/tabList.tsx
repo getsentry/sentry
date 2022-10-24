@@ -6,8 +6,8 @@ import {ListCollection} from '@react-stately/list';
 import {TabListProps as TabListStateProps, useTabListState} from '@react-stately/tabs';
 import {Node, Orientation} from '@react-types/shared';
 
+import CompactSelect from 'sentry/components/compactSelect';
 import DropdownButton from 'sentry/components/dropdownButton';
-import CompactSelect from 'sentry/components/forms/compactSelect';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -67,9 +67,10 @@ function useOverflowTabs({
 
 interface TabListProps extends TabListStateProps<any>, AriaTabListProps<any> {
   className?: string;
+  hideBorder?: boolean;
 }
 
-function BaseTabList({className, ...props}: TabListProps) {
+function BaseTabList({hideBorder = false, className, ...props}: TabListProps) {
   const tabListRef = useRef<HTMLUListElement>(null);
   const {rootProps, setTabListState} = useContext(TabsContext);
   const {value, defaultValue, onChange, orientation, disabled, ...otherRootProps} =
@@ -116,6 +117,7 @@ function BaseTabList({className, ...props}: TabListProps) {
       <TabListWrap
         {...tabListProps}
         orientation={orientation}
+        hideBorder={hideBorder}
         className={className}
         ref={tabListRef}
       >
@@ -137,12 +139,11 @@ function BaseTabList({className, ...props}: TabListProps) {
           value={[...state.selectionManager.selectedKeys][0]}
           onChange={opt => state.setSelectedKey(opt.value)}
           isDisabled={disabled}
-          placement="bottom end"
+          position="bottom-end"
           size="sm"
           offset={4}
-          trigger={({props: triggerProps, ref: triggerRef}) => (
+          trigger={triggerProps => (
             <OverflowMenuTrigger
-              ref={triggerRef}
               {...triggerProps}
               borderless
               showChevron={false}
@@ -202,6 +203,7 @@ const TabListOuterWrap = styled('div')`
 `;
 
 const TabListWrap = styled('ul', {shouldForwardProp: tabsShouldForwardProp})<{
+  hideBorder: boolean;
   orientation: Orientation;
 }>`
   position: relative;
@@ -217,15 +219,15 @@ const TabListWrap = styled('ul', {shouldForwardProp: tabsShouldForwardProp})<{
         grid-auto-flow: column;
         justify-content: start;
         gap: ${space(2)};
-        border-bottom: solid 1px ${p.theme.border};
+        ${!p.hideBorder && `border-bottom: solid 1px ${p.theme.border};`}
       `
       : `
+        height: 100%;
         grid-auto-flow: row;
         align-content: start;
         gap: 1px;
         padding-right: ${space(2)};
-        border-right: solid 1px ${p.theme.border};
-        height: 100%;
+        ${!p.hideBorder && `border-right: solid 1px ${p.theme.border};`}
       `};
 `;
 

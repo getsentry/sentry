@@ -10,12 +10,12 @@ from sentry.db.models import (
     FlexibleForeignKey,
     Model,
     get_model_if_available,
-    region_silo_model,
+    region_silo_only_model,
     sane_repr,
 )
 
 
-@region_silo_model
+@region_silo_only_model
 class Counter(Model):
     __include_in_export__ = True
 

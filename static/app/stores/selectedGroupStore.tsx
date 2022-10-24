@@ -1,7 +1,6 @@
 import {createStore} from 'reflux';
 
 import GroupStore from 'sentry/stores/groupStore';
-import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 import {CommonStoreDefinition} from './types';
 
@@ -42,11 +41,10 @@ const storeConfig: SelectedGroupStoreDefinition = {
   unsubscribeListeners: [],
 
   init() {
-    this.reset();
+    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
+    // listeners due to their leaky nature in tests.
 
-    this.unsubscribeListeners.push(
-      this.listenTo(GroupStore, this.onGroupChange, this.onGroupChange)
-    );
+    this.reset();
   },
 
   reset() {
@@ -165,5 +163,5 @@ const storeConfig: SelectedGroupStoreDefinition = {
   },
 };
 
-const SelectedGroupStore = createStore(makeSafeRefluxStore(storeConfig));
+const SelectedGroupStore = createStore(storeConfig);
 export default SelectedGroupStore;

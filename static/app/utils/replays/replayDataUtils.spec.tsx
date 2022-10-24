@@ -15,9 +15,11 @@ function createSpan(extra: {
   description?: string;
 }): ReplaySpan<Record<string, any>> {
   return {
-    startTimestamp: 1,
-    endTimestamp: 2,
     data: {},
+    endTimestamp: 2,
+    id: '0',
+    startTimestamp: 1,
+    timestamp: 1,
     ...extra,
   };
 }
@@ -64,10 +66,10 @@ describe('breadcrumbFactory', () => {
     );
 
     expect(results).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "color": "gray300",
-          "data": Object {
+          "data": {
             "action": "replay-init",
             "label": "Start recording",
             "url": undefined,
@@ -79,10 +81,10 @@ describe('breadcrumbFactory', () => {
           "timestamp": "1970-01-01T00:00:00.000Z",
           "type": "init",
         },
-        Object {
+        {
           "category": "default",
           "color": "purple300",
-          "data": Object {
+          "data": {
             "action": "largest-contentful-paint",
             "label": "LCP",
             "nodeId": 2,
@@ -110,12 +112,12 @@ describe('breadcrumbFactory', () => {
     );
 
     expect(results).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "action": "navigate",
           "category": "default",
           "color": "green300",
-          "data": Object {
+          "data": {
             "label": "Page load",
             "to": "http://test.com",
           },
@@ -167,9 +169,9 @@ describe('rrwebEventListFactory', () => {
     const results = rrwebEventListFactory(replayRecord, []);
 
     expect(results).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "data": Object {
+      [
+        {
+          "data": {
             "tag": "replay-end",
           },
           "timestamp": 13,
