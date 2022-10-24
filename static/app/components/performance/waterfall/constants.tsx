@@ -28,7 +28,7 @@ export function getSpanBarColours(
     case SpanBarType.AUTOGROUPED:
       return {
         primary: theme.blue300,
-        alternate: '#9ab9f4',
+        alternate: '#d1dff9',
         insetTextColour: theme.gray300,
       };
     default:
