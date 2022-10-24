@@ -16,7 +16,6 @@ import {Organization, SavedSearch} from 'sentry/types';
 import IssueListSearchBar from './searchBar';
 
 interface Props extends WithRouterProps {
-  isSearchDisabled: boolean;
   onSearch: (query: string) => void;
   organization: Organization;
   query: string;
@@ -28,7 +27,6 @@ function IssueListFilters({
   organization,
   savedSearch,
   query,
-  isSearchDisabled,
   sort,
   onSearch,
   location,
@@ -47,7 +45,6 @@ function IssueListFilters({
         organization={organization}
         query={query || ''}
         onSearch={onSearch}
-        disabled={isSearchDisabled}
         excludedTags={['environment']}
         actionBarItems={[
           makePinSearchAction({sort, pinnedSearch, location}),

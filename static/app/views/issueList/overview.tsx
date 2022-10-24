@@ -26,7 +26,6 @@ import {extractSelectionParameters} from 'sentry/components/organizations/pageFi
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import QueryCount from 'sentry/components/queryCount';
-import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import ProcessingIssueList from 'sentry/components/stream/processingIssueList';
 import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct, tn} from 'sentry/locale';
@@ -63,7 +62,6 @@ import IssueListActions from './actions';
 import IssueListFilters from './filters';
 import GroupListBody from './groupListBody';
 import IssueListHeader from './header';
-import IssueListSidebar from './sidebar';
 import {
   getTabs,
   getTabsWithCounts,
@@ -106,7 +104,6 @@ type State = {
   // TODO(Kelly): remove forReview once issue-list-removal-action feature is stable
   forReview: boolean;
   groupIds: string[];
-  isSidebarVisible: boolean;
   issuesLoading: boolean;
   itemsRemoved: number;
   memberList: ReturnType<typeof indexMembersByProject>;
@@ -124,7 +121,6 @@ type State = {
   // TODO(Kelly): remove reviewedIds once issue-list-removal-action feature is stable
   reviewedIds: string[];
   selectAllActive: boolean;
-  tagsLoading: boolean;
   undo: boolean;
   // Will be set to true if there is valid session data from issue-stats api call
   query?: string;
@@ -176,9 +172,7 @@ class IssueListOverview extends Component<Props, State> {
       queryCounts: {},
       queryMaxCount: 0,
       error: null,
-      isSidebarVisible: false,
       issuesLoading: true,
-      tagsLoading: true,
       memberList: {},
     };
   }
@@ -377,10 +371,7 @@ class IssueListOverview extends Component<Props, State> {
 
   fetchTags() {
     const {api, organization, selection} = this.props;
-    this.setState({tagsLoading: true});
-    loadOrganizationTags(api, organization.slug, selection).then(() =>
-      this.setState({tagsLoading: false})
-    );
+    loadOrganizationTags(api, organization.slug, selection);
   }
 
   fetchSavedSearches() {
@@ -865,16 +856,6 @@ class IssueListOverview extends Component<Props, State> {
     this.transitionTo({cursor, page: nextPage});
   };
 
-  onSidebarToggle = () => {
-    const {organization} = this.props;
-    this.setState({
-      isSidebarVisible: !this.state.isSidebarVisible,
-    });
-    trackAdvancedAnalyticsEvent('issue.search_sidebar_clicked', {
-      organization,
-    });
-  };
-
   paginationAnalyticsEvent = (direction: string) => {
     trackAdvancedAnalyticsEvent('issues_stream.paginate', {
       organization: this.props.organization,
@@ -1137,8 +1118,6 @@ class IssueListOverview extends Component<Props, State> {
     }
 
     const {
-      isSidebarVisible,
-      tagsLoading,
       pageLinks,
       queryCount,
       queryCounts,
@@ -1149,7 +1128,7 @@ class IssueListOverview extends Component<Props, State> {
       issuesLoading,
       error,
     } = this.state;
-    const {organization, savedSearch, savedSearches, tags, selection, location, router} =
+    const {organization, savedSearch, savedSearches, selection, location, router} =
       this.props;
     const links = parseLinkHeader(pageLinks);
     const query = this.getQuery();
@@ -1190,10 +1169,6 @@ class IssueListOverview extends Component<Props, State> {
       query
     );
 
-    const layoutProps = {
-      fullWidth: !isSidebarVisible,
-    };
-
     return (
       <StyledPageContent>
         <IssueListHeader
@@ -1211,15 +1186,14 @@ class IssueListOverview extends Component<Props, State> {
           displayReprocessingTab={showReprocessingTab}
           selectedProjectIds={selection.projects}
         />
-        <Layout.Body {...layoutProps}>
-          <Layout.Main {...layoutProps}>
+        <Layout.Body>
+          <Layout.Main fullWidth>
             <IssueListFilters
               organization={organization}
               query={query}
               savedSearch={savedSearch}
               sort={this.getSort()}
               onSearch={this.onSearch}
-              isSearchDisabled={isSidebarVisible}
             />
 
             <Panel>
@@ -1273,19 +1247,6 @@ class IssueListOverview extends Component<Props, State> {
               paginationAnalyticsEvent={this.paginationAnalyticsEvent}
             />
           </Layout.Main>
-          {/* Avoid rendering sidebar until first accessed */}
-          {isSidebarVisible && (
-            <Layout.Side>
-              <IssueListSidebar
-                loading={tagsLoading}
-                tags={tags}
-                query={query}
-                parsedQuery={parseSearch(query) || []}
-                onQueryChange={this.onIssueListSidebarSearch}
-                tagValueLoader={this.tagValueLoader}
-              />
-            </Layout.Side>
-          )}
         </Layout.Body>
       </StyledPageContent>
     );
