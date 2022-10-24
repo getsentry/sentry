@@ -4,6 +4,11 @@ import {Location} from 'history';
 import {Client} from 'sentry/api';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import {
+  getDatetimeFromState,
+  normalizeDateTimeString,
+} from 'sentry/components/organizations/pageFilters/parse';
+import {getPageFilterStorage} from 'sentry/components/organizations/pageFilters/persistence';
 import {Organization, PageFilters, SavedQuery} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import withApi from 'sentry/utils/withApi';
@@ -41,9 +46,37 @@ class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
         sidebarClicked)
     ) {
       const eventView = EventView.fromSavedQuery(this.state.savedQuery);
-      browserHistory.replace(
-        eventView.getResultsViewUrlTarget(this.props.organization.slug, true)
-      );
+      const pageFilterState = getPageFilterStorage(this.props.organization.slug);
+      let query = {
+        ...eventView.generateQueryStringObject(),
+      };
+
+      // Handle locked filters explicitly because we can't expect
+      // PageFilterContainer to properly overwrite stored filters
+      // when pushing the homepage query to the URL
+      if (pageFilterState?.pinnedFilters) {
+        pageFilterState.pinnedFilters.forEach(pinnedFilter => {
+          if (pinnedFilter === 'projects') {
+            query.project = pageFilterState.state.project?.map(String);
+          } else if (pinnedFilter === 'datetime') {
+            const {period, start, end, utc} = getDatetimeFromState(pageFilterState.state);
+            query = {
+              ...query,
+              statsPeriod: period ?? undefined,
+              utc: utc?.toString(),
+              start: normalizeDateTimeString(start),
+              end: normalizeDateTimeString(end),
+            };
+          } else {
+            query[pinnedFilter] = pageFilterState.state[pinnedFilter];
+          }
+        });
+      }
+
+      browserHistory.replace({
+        ...this.props.location,
+        query,
+      });
     }
     super.componentDidUpdate(prevProps, prevState);
   }
@@ -91,10 +124,7 @@ class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
 
 function HomepageContainer(props: Props) {
   return (
-    <PageFiltersContainer
-      skipLoadLastUsed={props.organization.features.includes('global-views')}
-      skipInitializeUrlParams
-    >
+    <PageFiltersContainer skipInitializeUrlParams>
       <HomepageQueryAPI {...props} />
     </PageFiltersContainer>
   );

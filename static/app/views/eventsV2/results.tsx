@@ -23,7 +23,10 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {
+  normalizeDateTimeParams,
+  normalizeDateTimeString,
+} from 'sentry/components/organizations/pageFilters/parse';
 import {CursorHandler} from 'sentry/components/pagination';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -296,6 +299,13 @@ export class Results extends Component<Props, State> {
     const nextEventView = EventView.fromNewQueryWithLocation(query, location);
     if (nextEventView.project.length === 0 && selection.projects) {
       nextEventView.project = selection.projects;
+    }
+    if (selection.datetime) {
+      const {period, utc, start, end} = selection.datetime;
+      nextEventView.statsPeriod = period ?? undefined;
+      nextEventView.utc = utc?.toString();
+      nextEventView.start = normalizeDateTimeString(start);
+      nextEventView.end = normalizeDateTimeString(end);
     }
     if (location.query?.query) {
       nextEventView.query = decodeScalar(location.query.query, '');
