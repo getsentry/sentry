@@ -1,3 +1,4 @@
+from unittest import skip
 from unittest.mock import MagicMock, Mock, patch
 
 from django.utils import timezone
@@ -14,6 +15,7 @@ from sentry.types.activity import ActivityType
 )
 @patch("sentry.integrations.msteams.MsTeamsAbstractClient.send_card")
 class MSTeamsDeployNotificationTest(MSTeamsActivityNotificationTest):
+    @skip("Flaky test")
     def test_deploy(self, mock_send_card: MagicMock):
         """
         Test that the card for MS Teams notification is generated correctly when a deployment is created.
