@@ -39,11 +39,9 @@ from sentry.constants import (
     DataCategory,
 )
 from sentry.culprit import generate_culprit
-from sentry.dynamic_sampling.latest_release_booster import (
-    TooManyBoostedReleasesException,
-    add_boosted_release,
-    observe_release,
-)
+from sentry.dynamic_sampling import DynamicSamplingFeatureMultiplexer
+from sentry.dynamic_sampling.latest_release_booster import (add_boosted_release, observe_release,
+    TooManyBoostedReleasesException)
 from sentry.eventstore.processing import event_processing_store
 from sentry.grouping.api import (
     BackgroundGroupingConfigLoader,
@@ -835,6 +833,9 @@ def _get_or_create_release_many(jobs, projects):
                 # Dynamic Sampling - Boosting latest release functionality
                 if (
                     options.get("dynamic-sampling:boost-latest-release")
+                    and DynamicSamplingFeatureMultiplexer(
+                        project=projects[project_id]
+                    ).is_on_dynamic_sampling
                     and data.get("type") == "transaction"
                 ):
                     with sentry_sdk.start_span(
