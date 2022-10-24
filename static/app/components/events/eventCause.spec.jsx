@@ -61,14 +61,19 @@ describe('EventCause', function () {
   });
 
   it('renders', async function () {
-    render(<EventCause project={project} event={event} group={group} />, {organization});
+    render(<EventCause project={project} eventId={event.id} group={group} />, {
+      organization,
+    });
 
     expect(await screen.findByTestId('commit-row')).toBeInTheDocument();
+    expect(screen.queryByTestId('quick-context-commit-row')).toBeInTheDocument();
     expect(screen.queryByTestId('email-warning')).not.toBeInTheDocument();
   });
 
   it('expands', async function () {
-    render(<EventCause project={project} event={event} group={group} />, {organization});
+    render(<EventCause project={project} eventId={event.id} group={group} />, {
+      organization,
+    });
 
     userEvent.click(await screen.findByText('Show more'));
     expect(screen.getAllByTestId('commit-row')).toHaveLength(2);
@@ -100,7 +105,7 @@ describe('EventCause', function () {
       },
     });
 
-    render(<EventCause project={project} event={event} group={group} />, {
+    render(<EventCause project={project} eventId={event.id} group={group} />, {
       organization,
     });
 

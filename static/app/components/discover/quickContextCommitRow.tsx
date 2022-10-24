@@ -23,7 +23,7 @@ function QuickContextCommitRow({commit, customAvatar}: QuickContextCommitRowProp
   const hasPullRequestURL = commit.pullRequest && commit.pullRequest.externalUrl;
 
   return (
-    <StyledPanelItem key={commit.id} data-test-id="commit-row">
+    <StyledPanelItem key={commit.id} data-test-id="quick-context-commit-row">
       {customAvatar
         ? customAvatar
         : commit.author && (
@@ -34,13 +34,16 @@ function QuickContextCommitRow({commit, customAvatar}: QuickContextCommitRowProp
 
       <CommitLinks>
         {hasPullRequestURL && commit.message && (
-          <ToPullRequest>
+          <ToPullRequest data-test-id="quick-context-commit-row-pr-link">
             <ExternalLink href={commit.pullRequest?.externalUrl}>
               {formatCommitMessage(commit.message)}
             </ExternalLink>
           </ToPullRequest>
         )}
-        <ToCommit isSubText={hasPullRequestURL && commit.message}>
+        <ToCommit
+          prTitle={hasPullRequestURL && commit.message}
+          data-test-id="quick-context-commit-row-commit-link"
+        >
           {tct('View commit [commitLink] by [author]', {
             author: isUser ? t('You') : commit.author?.name ?? t('Unknown author'),
             commitLink: (
@@ -81,9 +84,9 @@ const ToPullRequest = styled(TextOverflow)`
   line-height: 1.2;
 `;
 
-const ToCommit = styled(TextOverflow)<{isSubText: string | null | undefined}>`
-  font-size: ${p => (p.isSubText ? p.theme.fontSizeSmall : p.theme.fontSizeLarge)};
-  color: ${p => (p.isSubText ? p.theme.subText : p.theme.textColor)};
+const ToCommit = styled(TextOverflow)<{prTitle: string | null | undefined}>`
+  font-size: ${p => (p.prTitle ? p.theme.fontSizeSmall : p.theme.fontSizeLarge)};
+  color: ${p => (p.prTitle ? p.theme.subText : p.theme.textColor)};
   line-height: 1.5;
   margin: 0;
 `;

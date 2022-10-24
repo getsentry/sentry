@@ -89,7 +89,6 @@ function EventCause({group, eventId, project, fromQuickContext = false}: Props) 
   };
 
   const commits = getUniqueCommitsWithAuthors();
-
   return (
     <DataSection>
       <CauseHeader>
