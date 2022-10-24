@@ -133,6 +133,7 @@ def get_or_create_persisted_build(
         build_state = AppConnectBuild(
             project=project,
             app_id=int(build.app_id),
+            app_id_str=build.app_id,
             bundle_id=config.bundleId,
             platform=build.platform,
             bundle_short_version=build.version,
