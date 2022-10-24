@@ -7,48 +7,17 @@ from sentry.models import Organization, Project, Rule
 from sentry.notifications.utils import (
     get_group_settings_link,
     get_interface_list,
+    get_performance_issue_alert_subtitle,
     get_rules,
     get_transaction_data,
 )
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now
+from sentry.types.issues import GROUP_TYPE_TO_TEXT
 from sentry.utils import json
 from sentry.utils.samples import load_data
 
-from .mail import MailPreview
-
-COMMIT_EXAMPLE = """[
-{
-    "repository": {
-        "status": "active",
-        "name": "Example Repo",
-        "url": "https://github.com/example/example",
-        "dateCreated": "2022-10-08T23:39:22.402Z",
-        "provider": {"id": "github", "name": "GitHub"},
-        "id": "1"
-    },
-    "score": 2,
-    "subject": "feat: Make stuff better",
-    "message": "feat: Make stuff better aptent vivamus vehicula tempus volutpat hac tortor",
-    "id": "1b17483ffc4a10609e7921ee21a8567bfe0ed006",
-    "shortId": "1b17483",
-    "author": {
-        "username": "colleen@sentry.io",
-        "isManaged": false,
-        "lastActive": "2022-03-01T18:25:28.149Z",
-        "id": "1",
-        "isActive": true,
-        "has2fa": false,
-        "name": "colleen@sentry.io",
-        "avatarUrl": "https://secure.gravatar.com/avatar/51567a4f786cd8a2c41c513b592de9f9?s=32&d=mm",
-        "dateJoined": "2022-10-07T22:04:32.847Z",
-        "emails": [{"is_verified": false, "id": "1", "email": "colleen@sentry.io"}],
-        "avatar": {"avatarUuid": "", "avatarType": "letter_avatar"},
-        "lastLogin": "2022-10-07T22:04:32.847Z",
-        "email": "colleen@sentry.io"
-    }
-}
-]"""
+from .mail import COMMIT_EXAMPLE, MailPreview
 
 
 class DebugPerformanceIssueEmailView(View):
@@ -99,5 +68,7 @@ class DebugPerformanceIssueEmailView(View):
                 "project_label": project.slug,
                 "commits": json.loads(COMMIT_EXAMPLE),
                 "transaction_data": [("Span Evidence", mark_safe(transaction_data), None)],
+                "issue_type": GROUP_TYPE_TO_TEXT.get(perf_group.issue_type, "Issue"),
+                "subtitle": get_performance_issue_alert_subtitle(perf_event),
             },
         ).render(request)

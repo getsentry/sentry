@@ -166,6 +166,10 @@ class QueryBuilder:
         self.projects_to_filter: Set[int] = set()
         self.function_alias_map: Dict[str, FunctionDetails] = {}
         self.equation_alias_map: Dict[str, SelectType] = {}
+        # field: function map for post-processing values
+        self.value_resolver_map: Dict[str, Callable[[Any], Any]] = {}
+        # value_resolver_map may change type
+        self.meta_resolver_map: Dict[str, str] = {}
 
         self.auto_aggregations = auto_aggregations
         self.limit = self.resolve_limit(limit)
@@ -179,6 +183,7 @@ class QueryBuilder:
             self.field_alias_converter,
             self.function_converter,
             self.search_filter_converter,
+            self.orderby_converter,
         ) = self.load_config()
 
         self.limitby = self.resolve_limitby(limitby)
@@ -251,6 +256,7 @@ class QueryBuilder:
         Mapping[str, Callable[[str], SelectType]],
         Mapping[str, SnQLFunction],
         Mapping[str, Callable[[SearchFilter], Optional[WhereType]]],
+        Mapping[str, Callable[[Direction], OrderBy]],
     ]:
         from sentry.search.events.datasets.discover import DiscoverDatasetConfig
         from sentry.search.events.datasets.metrics import MetricsDatasetConfig
@@ -269,8 +275,9 @@ class QueryBuilder:
         field_alias_converter = self.config.field_alias_converter
         function_converter = self.config.function_converter
         search_filter_converter = self.config.search_filter_converter
+        orderby_converter = self.config.orderby_converter
 
-        return field_alias_converter, function_converter, search_filter_converter
+        return field_alias_converter, function_converter, search_filter_converter, orderby_converter
 
     def resolve_limit(self, limit: Optional[int]) -> Optional[Limit]:
         return None if limit is None else Limit(limit)
@@ -625,7 +632,11 @@ class QueryBuilder:
                         "arrayJoin", [self.resolve_column(arguments[arg.name])]
                     )
                 else:
-                    arguments[arg.name] = self.resolve_column(arguments[arg.name])
+                    column = self.resolve_column(arguments[arg.name])
+                    # Can't keep aliased expressions
+                    if isinstance(column, AliasedExpression):
+                        column = column.exp
+                    arguments[arg.name] = column
             if combinator is not None and combinator.is_applicable(arg.name):
                 arguments[arg.name] = combinator.apply(arguments[arg.name])
                 combinator_applied = True
@@ -763,6 +774,9 @@ class QueryBuilder:
                     isinstance(selected_column, AliasedExpression)
                     and selected_column.alias == bare_orderby
                 ):
+                    if bare_orderby in self.orderby_converter:
+                        validated.append(self.orderby_converter[bare_orderby](direction))
+                        break
                     # We cannot directly order by an `AliasedExpression`.
                     # Instead, we order by the column inside.
                     validated.append(OrderBy(selected_column.exp, direction))
@@ -772,6 +786,8 @@ class QueryBuilder:
                     isinstance(selected_column, CurriedFunction)
                     and selected_column.alias == bare_orderby
                 ):
+                    if bare_orderby in self.orderby_converter:
+                        validated.append(self.orderby_converter[bare_orderby](direction))
                     validated.append(OrderBy(selected_column, direction))
                     break
 
@@ -883,6 +899,8 @@ class QueryBuilder:
         return None
 
     def get_field_type(self, field: str) -> Optional[str]:
+        if field in self.meta_resolver_map:
+            return self.meta_resolver_map[field]
         if (
             field == "transaction.duration"
             or is_duration_measurement(field)
@@ -919,6 +937,10 @@ class QueryBuilder:
             project_slugs = []
 
         return {p.slug: p.id for p in project_slugs}
+
+    @cached_property  # type: ignore
+    def project_ids(self) -> Mapping[int, str]:
+        return {project_id: slug for slug, project_id in self.project_slugs.items()}
 
     def validate_having_clause(self) -> None:
         """Validate that the functions in having are selected columns
