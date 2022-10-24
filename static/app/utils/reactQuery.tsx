@@ -17,7 +17,7 @@ type UseQueryOptions<TQueryFnData, TError, TData, TQueryKey extends QueryKey> = 
 
 // We are not overriding any defaults options for stale time, retries, etc.
 // See https://tanstack.com/query/v4/docs/guides/important-defaults
-const DEFAULT_QUERY_CLIENT_CONFIG = {} as QueryClientConfig;
+const DEFAULT_QUERY_CLIENT_CONFIG: QueryClientConfig = {};
 
 /**
  * Wraps React Query's useQuery for consistent usage in the Sentry app.
