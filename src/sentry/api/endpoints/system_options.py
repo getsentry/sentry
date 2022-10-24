@@ -66,8 +66,6 @@ class SystemOptionsEndpoint(Endpoint):
             return False
 
         for k, v in request.data.items():
-            if v and isinstance(v, str):
-                v = v.strip()
             if k not in SYSTEM_OPTIONS_ALLOWLIST:
                 return False
 
