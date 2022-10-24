@@ -1,3 +1,4 @@
+import contextlib
 import os
 
 import pytest
@@ -123,17 +124,11 @@ def register_class_in_model_manifest(request: pytest.FixtureRequest):
 
 
 @pytest.fixture(autouse=True)
-def clear_producer():
-    from sentry.region_to_control.producer import clear_region_to_control_producer
-
-    try:
-        yield
-    finally:
-        clear_region_to_control_producer()
-
-
-@pytest.fixture(autouse=True)
 def setup_default_hybrid_cloud_stubs():
+    from sentry.region_to_control.producer import (
+        MockRegionToControlMessageService,
+        region_to_control_message_service,
+    )
     from sentry.services.hybrid_cloud import (
         StubOrganizationService,
         StubProjectKeyService,
@@ -143,7 +138,15 @@ def setup_default_hybrid_cloud_stubs():
     )
     from sentry.silo import SiloMode
 
-    with service_stubbed(
-        project_key_service, StubProjectKeyService(), SiloMode.CONTROL
-    ), service_stubbed(organization_service, StubOrganizationService(), SiloMode.CONTROL):
+    stubs = [
+        service_stubbed(project_key_service, StubProjectKeyService(), SiloMode.CONTROL),
+        service_stubbed(organization_service, StubOrganizationService(), SiloMode.CONTROL),
+        service_stubbed(
+            region_to_control_message_service, MockRegionToControlMessageService(), SiloMode.REGION
+        ),
+    ]
+
+    with contextlib.ExitStack() as stack:
+        for stub in stubs:
+            stack.enter_context(stub)
         yield
