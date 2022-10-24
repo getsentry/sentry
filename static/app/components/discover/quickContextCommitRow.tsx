@@ -28,7 +28,7 @@ function QuickContextCommitRow({commit}: CommitRowProps) {
           </LinkToPullRequest>
         )}
         <LinkToCommit
-          prTitle={hasPullRequestURL && commit.message}
+          hasPrTitle={hasPullRequestURL && commit.message}
           data-test-id="quick-context-commit-row-commit-link"
         >
           {tct('View commit [commitLink] by [author]', {
@@ -71,9 +71,9 @@ const LinkToPullRequest = styled(TextOverflow)`
   line-height: 1.2;
 `;
 
-const LinkToCommit = styled(TextOverflow)<{prTitle: string | null | undefined}>`
-  font-size: ${p => (p.prTitle ? p.theme.fontSizeSmall : p.theme.fontSizeLarge)};
-  color: ${p => (p.prTitle ? p.theme.subText : p.theme.textColor)};
+const LinkToCommit = styled(TextOverflow)<{hasPrTitle: string | null | undefined}>`
+  font-size: ${p => (p.hasPrTitle ? p.theme.fontSizeSmall : p.theme.fontSizeLarge)};
+  color: ${p => (p.hasPrTitle ? p.theme.subText : p.theme.textColor)};
   line-height: 1.5;
   margin: 0;
 `;
