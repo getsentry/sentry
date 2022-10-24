@@ -57,20 +57,16 @@ class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
       if (pageFilterState?.pinnedFilters) {
         pageFilterState.pinnedFilters.forEach(pinnedFilter => {
           if (pinnedFilter === 'projects') {
-            query.project = pageFilterState.state[pinnedFilter];
+            query.project = pageFilterState.state.project?.map(String);
           } else if (pinnedFilter === 'datetime') {
             const {period, start, end, utc} = getDatetimeFromState(pageFilterState.state);
-            if (period) {
-              query.statsPeriod = period;
-            } else {
-              query.statsPeriod = undefined;
-              query = {
-                ...query,
-                utc: utc?.toString(),
-                start: normalizeDateTimeString(start),
-                end: normalizeDateTimeString(end),
-              };
-            }
+            query = {
+              ...query,
+              statsPeriod: period ?? undefined,
+              utc: utc?.toString(),
+              start: normalizeDateTimeString(start),
+              end: normalizeDateTimeString(end),
+            };
           } else {
             query[pinnedFilter] = pageFilterState.state[pinnedFilter];
           }
