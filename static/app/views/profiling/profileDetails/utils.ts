@@ -17,6 +17,7 @@ export function collectProfileFrames(profile: Profile) {
     .sort((a, b) => b.selfWeight - a.selfWeight)
     .map(node => ({
       symbol: node.frame.name,
+      file: node.frame.file,
       image: node.frame.image,
       thread: profile.threadId,
       type: node.frame.is_application ? 'application' : 'system',

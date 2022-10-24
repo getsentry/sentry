@@ -104,6 +104,14 @@ export function SlowestFunctions() {
   return (
     <Fragment>
       <ActionBar>
+        <CompactSelect
+          options={[{label: 'None', value: 'none'}]}
+          value="none"
+          triggerProps={{
+            prefix: t('Group by'),
+          }}
+          placement="bottom right"
+        />
         <SearchBar
           defaultQuery=""
           query={query}
@@ -176,7 +184,7 @@ const SORTABLE_COLUMNS = new Set<TableColumnKey>(['self weight', 'total weight']
 
 const ActionBar = styled('div')`
   display: grid;
-  grid-template-columns: 1fr auto auto;
+  grid-template-columns: auto 1fr auto auto;
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 `;
@@ -243,6 +251,7 @@ function ProfilingFunctionsTableCell({
 const tableColumnKey = [
   'symbol',
   'image',
+  'file',
   'thread',
   'type',
   'self weight',
@@ -258,6 +267,7 @@ type TableColumn = GridColumnOrder<TableColumnKey>;
 const COLUMN_ORDER: TableColumnKey[] = [
   'symbol',
   'image',
+  'file',
   'thread',
   'type',
   'self weight',
@@ -274,6 +284,11 @@ const COLUMNS: Record<TableColumnKey, TableColumn> = {
   image: {
     key: 'image',
     name: t('Package'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  file: {
+    key: 'file',
+    name: t('File'),
     width: COL_WIDTH_UNDEFINED,
   },
   thread: {
