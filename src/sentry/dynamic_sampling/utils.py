@@ -7,6 +7,7 @@ from typing import Any, List, TypedDict
 from typing import Dict, List, Optional, TypedDict
 >>>>>>> 1f195d7423 (fixup!)
 
+<<<<<<< HEAD
 BOOSTED_RELEASES_LIMIT = 10
 RELEASE_BOOST_FACTOR = 5
 
@@ -15,6 +16,16 @@ class Bias(TypedDict):
     id: str
     active: bool
 
+||||||| parent of e04f4b0895 (fixup tests!)
+import sentry_sdk
+
+from sentry import quotas
+from sentry.models import Project
+
+UNIFORM_RULE_RESERVED_ID = 0
+=======
+UNIFORM_RULE_RESERVED_ID = 0
+>>>>>>> e04f4b0895 (fixup tests!)
 
 # These represent the biases that are applied to user by default as part of the adaptive dynamic sampling experience.
 # These can be overridden by the project details endpoint
@@ -143,6 +154,7 @@ def generate_environment_rule() -> BaseRule:
         "active": True,
         "id": 1,
     }
+<<<<<<< HEAD
 
 
 def generate_rules(project: Project, enable_environment_bias=False):
@@ -171,3 +183,27 @@ def generate_rules(project: Project, enable_environment_bias=False):
 
     return rules
 >>>>>>> 6c49312dd6 (fixup!)
+||||||| parent of e04f4b0895 (fixup tests!)
+
+
+def generate_rules(project: Project, enable_environment_bias=False):
+    """
+    This function handles generate rules logic or fallback empty list of rules
+    """
+    rules = []
+
+    sample_rate = quotas.get_blended_sample_rate(project)
+
+    if enable_environment_bias and sample_rate and sample_rate < 1.0:
+        rules.append(generate_environment_rule())
+    if sample_rate is None:
+        try:
+            raise Exception("get_blended_sample_rate returns none")
+        except Exception:
+            sentry_sdk.capture_exception()
+    else:
+        rules.append(generate_uniform_rule(sample_rate))
+
+    return rules
+=======
+>>>>>>> e04f4b0895 (fixup tests!)

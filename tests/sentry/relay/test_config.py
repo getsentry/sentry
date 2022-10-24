@@ -39,6 +39,7 @@ PII_CONFIG = """
 """
 
 
+<<<<<<< HEAD
 DEFAULT_ENVIRONMENT_RULE = {
     "sampleRate": 1,
     "type": "trace",
@@ -58,6 +59,28 @@ DEFAULT_ENVIRONMENT_RULE = {
 }
 
 
+||||||| parent of e04f4b0895 (fixup tests!)
+=======
+DEFAULT_ENVIRONMENT_RULE = {
+    "sampleRate": 1,
+    "type": "trace",
+    "condition": {
+        "op": "or",
+        "inner": [
+            {
+                "op": "glob",
+                "name": "trace.environment",
+                "value": ["*dev*", "*test*"],
+                "options": {"ignoreCase": True},
+            }
+        ],
+    },
+    "active": True,
+    "id": 1,
+}
+
+
+>>>>>>> e04f4b0895 (fixup tests!)
 @pytest.mark.django_db
 @pytest.mark.parametrize("full", [False, True], ids=["slim_config", "full_config"])
 def test_get_project_config(default_project, insta_snapshot, django_cache, full):
@@ -268,8 +291,16 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
                         "type": "trace",
                         "active": True,
                         "condition": {"op": "and", "inner": []},
+<<<<<<< HEAD
                         "id": 1000,
                     },
+||||||| parent of e04f4b0895 (fixup tests!)
+                        "id": 0,
+                    }
+=======
+                        "id": 0,
+                    },
+>>>>>>> e04f4b0895 (fixup tests!)
                 ]
             },
         ),
@@ -295,8 +326,16 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
                         "type": "trace",
                         "active": True,
                         "condition": {"op": "and", "inner": []},
+<<<<<<< HEAD
                         "id": 1000,
                     },
+||||||| parent of e04f4b0895 (fixup tests!)
+                        "id": 0,
+                    }
+=======
+                        "id": 0,
+                    },
+>>>>>>> e04f4b0895 (fixup tests!)
                 ]
             },
         ),
@@ -318,8 +357,16 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
                         "type": "trace",
                         "active": True,
                         "condition": {"op": "and", "inner": []},
+<<<<<<< HEAD
                         "id": 1000,
                     },
+||||||| parent of e04f4b0895 (fixup tests!)
+                        "id": 0,
+                    }
+=======
+                        "id": 0,
+                    },
+>>>>>>> e04f4b0895 (fixup tests!)
                 ]
             },
         ),
@@ -340,10 +387,18 @@ def test_project_config_with_uniform_rules_based_on_plan_in_dynamic_sampling_rul
             "organizations:dynamic-sampling-deprecated": True,
         }
     ):
+<<<<<<< HEAD
         with mock.patch(
             "sentry.dynamic_sampling.rules_generator.quotas.get_blended_sample_rate",
             return_value=0.1,
         ):
+||||||| parent of e04f4b0895 (fixup tests!)
+        with mock.patch(
+            "sentry.dynamic_sampling.utils.quotas.get_blended_sample_rate", return_value=0.1
+        ):
+=======
+        with patch("sentry.dynamic_sampling.quotas.get_blended_sample_rate", return_value=0.1):
+>>>>>>> e04f4b0895 (fixup tests!)
             cfg = get_project_config(default_project)
 
     cfg = cfg.to_dict()
