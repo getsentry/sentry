@@ -1,14 +1,10 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import Threads from 'sentry/components/events/interfaces/threads';
-import {OrganizationContext} from 'sentry/views/organizationContext';
-import {RouteContext} from 'sentry/views/routeContext';
 
 describe('Threads', () => {
   const entries = TestStubs.Entries()[0];
   const event = TestStubs.Event({entries});
-  const organization = TestStubs.Organization();
-  const router = TestStubs.router();
   const exceptionEntry = entries[0];
   const data = exceptionEntry.data;
   const type = exceptionEntry.type;
@@ -52,25 +48,14 @@ describe('Threads', () => {
       ],
     };
 
-    const wrapper = mountWithTheme(
-      <OrganizationContext.Provider value={organization}>
-        <RouteContext.Provider
-          value={{
-            router,
-            location: router.location,
-            params: {},
-            routes: [],
-          }}
-        >
-          <Threads
-            type={type}
-            data={data}
-            orgId="org-slug"
-            projectId="project-id"
-            event={newEvent}
-          />
-        </RouteContext.Provider>
-      </OrganizationContext.Provider>
+    render(
+      <Threads
+        type={type}
+        data={data}
+        orgId="org-slug"
+        projectId="project-id"
+        event={newEvent}
+      />
     );
 
     // Total frames passed
@@ -78,116 +63,80 @@ describe('Threads', () => {
       newEvent.entries[0].data.values[0].stacktrace.frames.length +
       newEvent.entries[0].data.values[1].stacktrace.frames.length;
 
-    expect(wrapper.find('Line').length).toBe(totalFramesPasses);
+    expect(screen.getAllByTestId('line')).toHaveLength(totalFramesPasses);
   });
 
   it('Display no frame', () => {
-    const wrapper = mountWithTheme(
-      <OrganizationContext.Provider value={organization}>
-        <RouteContext.Provider
-          value={{
-            router,
-            location: router.location,
-            params: {},
-            routes: [],
-          }}
-        >
-          <Threads
-            type={type}
-            data={{...data, values: [{...data.values[0], stacktrace: null}]}}
-            orgId="org-slug"
-            projectId="project-id"
-            event={{
-              ...event,
-              entries: [
-                {
-                  ...event.entries[0],
-                  data: {
-                    ...event.entries[0].data,
-                    values: [
-                      {...event.entries[0].data.values[0], id: 0, stacktrace: null},
-                    ],
-                  },
-                },
-                event.entries[1],
-                event.entries[2],
-              ],
-            }}
-          />
-        </RouteContext.Provider>
-      </OrganizationContext.Provider>
+    render(
+      <Threads
+        type={type}
+        data={{...data, values: [{...data.values[0], stacktrace: null}]}}
+        orgId="org-slug"
+        projectId="project-id"
+        event={{
+          ...event,
+          entries: [
+            {
+              ...event.entries[0],
+              data: {
+                ...event.entries[0].data,
+                values: [{...event.entries[0].data.values[0], id: 0, stacktrace: null}],
+              },
+            },
+            event.entries[1],
+            event.entries[2],
+          ],
+        }}
+      />
     );
 
-    // no exceptions or stacktraces have been found
-    expect(wrapper.find('Line').length).toBe(0);
+    expect(screen.queryByTestId('line')).not.toBeInTheDocument();
   });
 
   describe('Displays the stack trace of an exception if all threadIds of exceptionEntry.data.values do not match the threadId of the active thread and if the active thread has crashed equals true', () => {
     const threadsEntry = entries[1];
 
     it('Displays the exception stacktrace', () => {
-      const wrapper = mountWithTheme(
-        <OrganizationContext.Provider value={organization}>
-          <RouteContext.Provider
-            value={{
-              router,
-              location: router.location,
-              params: {},
-              routes: [],
-            }}
-          >
-            <Threads
-              type={threadsEntry.type}
-              data={threadsEntry.data}
-              orgId="org-slug"
-              projectId="project-id"
-              event={event}
-            />
-          </RouteContext.Provider>
-        </OrganizationContext.Provider>
+      render(
+        <Threads
+          type={threadsEntry.type}
+          data={threadsEntry.data}
+          orgId="org-slug"
+          projectId="project-id"
+          event={event}
+        />
       );
 
       // envent.entries[0].data.values[0].stacktrace is defined
-      expect(wrapper.find('Line').length).toBe(1);
+      expect(screen.getByTestId('line')).toBeInTheDocument();
     });
 
     it('Displays the the active thread stacktrace', () => {
-      const wrapper = mountWithTheme(
-        <OrganizationContext.Provider value={organization}>
-          <RouteContext.Provider
-            value={{
-              router,
-              location: router.location,
-              params: {},
-              routes: [],
-            }}
-          >
-            <Threads
-              type={threadsEntry.type}
-              data={threadsEntry.data}
-              orgId="org-slug"
-              projectId="project-id"
-              event={{
-                ...event,
-                entries: [
-                  {
-                    ...event.entries[0],
-                    data: {
-                      ...event.entries[0].data,
-                      values: [{...event.entries[0].data.values[0], stacktrace: null}],
-                    },
-                  },
-                  event.entries[1],
-                  event.entries[2],
-                ],
-              }}
-            />
-          </RouteContext.Provider>
-        </OrganizationContext.Provider>
+      render(
+        <Threads
+          type={threadsEntry.type}
+          data={threadsEntry.data}
+          orgId="org-slug"
+          projectId="project-id"
+          event={{
+            ...event,
+            entries: [
+              {
+                ...event.entries[0],
+                data: {
+                  ...event.entries[0].data,
+                  values: [{...event.entries[0].data.values[0], stacktrace: null}],
+                },
+              },
+              event.entries[1],
+              event.entries[2],
+            ],
+          }}
+        />
       );
 
       // the 'threads' entry has a stack trace with 23 frames, but as one of them is duplicated, we only display 22
-      expect(wrapper.find('Line').length).toBe(22);
+      expect(screen.getAllByTestId('line')).toHaveLength(22);
     });
   });
 });
