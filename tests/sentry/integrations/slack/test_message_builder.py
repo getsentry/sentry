@@ -167,6 +167,11 @@ class BuildGroupAttachmentTest(TestCase):
         assert attachments["text"] == f"<{group_link}|*{group.title}*> \nFirst line of Text"
         assert "title_link" not in attachments
 
+    def test_build_error_issue_fallback_text(self):
+        event = self.store_event(data={}, project_id=self.project.id)
+        attachments = SlackIssuesMessageBuilder(event.group, event).build()
+        assert attachments["fallback"] == f"[{self.project.slug}] {event.group.title}"
+
     def test_build_performance_issue(self):
         event_data = load_data(
             "transaction-n-plus-one",
@@ -196,6 +201,7 @@ class BuildGroupAttachmentTest(TestCase):
             attachments["text"]
             == "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
         )
+        assert attachments["fallback"] == f"[{self.project.slug}] N+1 Query"
 
     def test_build_group_release_with_commits_attachment(self):
         group = self.create_group(project=self.project)

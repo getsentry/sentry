@@ -277,7 +277,7 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
             actions=payload_actions,
             callback_id=json.dumps({"issue": self.group.id}),
             color=color,
-            fallback=f"[{project.slug}] {obj.title}",
+            fallback=self.build_fallback_text(obj, project.slug),
             fields=fields,
             footer=footer,
             text=text,
