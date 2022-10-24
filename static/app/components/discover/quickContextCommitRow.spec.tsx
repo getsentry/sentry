@@ -25,11 +25,6 @@ const defaultCommit: Commit = {
 };
 
 describe('Quick Context Commit Row', () => {
-  it('renders custom avatar', () => {
-    render(<QuickContextCommitRow commit={defaultCommit} customAvatar="Custom Avatar" />);
-    expect(screen.getByText(/Custom Avatar/)).toBeInTheDocument();
-  });
-
   it('Renders author name specific avatar', () => {
     render(<QuickContextCommitRow commit={defaultCommit} />);
     expect(screen.getByText(/AK/i)).toBeInTheDocument();

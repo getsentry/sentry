@@ -26,7 +26,7 @@ export function formatCommitMessage(message: string | null) {
   return message.split(/\n/)[0];
 }
 
-interface CommitRowProps {
+export interface CommitRowProps {
   commit: Commit;
   customAvatar?: React.ReactNode;
   onCommitClick?: () => void;

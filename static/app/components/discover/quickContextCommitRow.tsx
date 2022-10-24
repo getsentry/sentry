@@ -7,31 +7,18 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
-import {Commit} from 'sentry/types';
 
-import {formatCommitMessage} from '../commitRow';
+import {CommitRowProps, formatCommitMessage} from '../commitRow';
 import ExternalLink from '../links/externalLink';
 
-interface QuickContextCommitRowProps {
-  commit: Commit;
-  customAvatar?: React.ReactNode;
-}
-
-function QuickContextCommitRow({commit, customAvatar}: QuickContextCommitRowProps) {
+function QuickContextCommitRow({commit}: CommitRowProps) {
   const user = ConfigStore.get('user');
   const isUser = user?.id === commit.author?.id;
   const hasPullRequestURL = commit.pullRequest && commit.pullRequest.externalUrl;
 
   return (
     <StyledPanelItem key={commit.id} data-test-id="quick-context-commit-row">
-      {customAvatar
-        ? customAvatar
-        : commit.author && (
-            <div>
-              <UserAvatar size={24} user={commit.author} />
-            </div>
-          )}
-
+      <UserAvatar size={24} user={commit.author} />
       <CommitLinks>
         {hasPullRequestURL && commit.message && (
           <LinkToPullRequest data-test-id="quick-context-commit-row-pr-link">

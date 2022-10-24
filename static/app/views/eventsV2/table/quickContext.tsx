@@ -2,6 +2,7 @@ import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Client} from 'sentry/api';
+import {QuickContextCommitRow} from 'sentry/components/discover/quickContextCommitRow';
 import EventCause from 'sentry/components/events/eventCause';
 import {CauseHeader, DataSection} from 'sentry/components/events/styles';
 import AssignedTo from 'sentry/components/group/assignedTo';
@@ -166,7 +167,7 @@ function IssueContext(props: IssueContextProps) {
         <EventCause
           project={props.data.project}
           eventId={props.eventID}
-          fromQuickContext
+          commitRow={QuickContextCommitRow}
         />
       </IssueContextContainer>
     );
