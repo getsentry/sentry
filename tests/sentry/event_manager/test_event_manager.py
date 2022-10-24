@@ -1,6 +1,5 @@
 import logging
 import uuid
-from abc import ABC
 from datetime import datetime, timedelta
 from time import time
 from unittest import mock
@@ -2565,7 +2564,8 @@ class AutoAssociateCommitTest(TestCase, EventManagerTestMixin):
             assert commit_list[1].key == LATER_COMMIT_SHA
 
 
-class EventManagerTestBase(TestCase, ABC):
+@region_silo_test
+class ReleaseIssueTest(TestCase):
     def setUp(self):
         self.project = self.create_project()
         self.release = Release.get_or_create(self.project, "1.0")
@@ -2585,32 +2585,6 @@ class EventManagerTestBase(TestCase, ABC):
         result.update(kwargs)
         return result
 
-    def make_release_transaction(self, release_version="1.0", project_id=1, **kwargs):
-        manager = EventManager(
-            make_event(
-                **{
-                    "transaction": "wait",
-                    "contexts": {
-                        "trace": {
-                            "parent_span_id": "bce14471e0e9654d",
-                            "op": "foobar",
-                            "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
-                            "span_id": "bf5be759039ede9a",
-                        }
-                    },
-                    "spans": [],
-                    "timestamp": "2019-06-14T14:01:40Z",
-                    "start_timestamp": "2019-06-14T14:01:40Z",
-                    "type": "transaction",
-                    "release": release_version,
-                    **kwargs,
-                }
-            )
-        )
-        with self.tasks():
-            event = manager.save(project_id)
-        return event
-
     def make_release_event(
         self, release_version="1.0", environment_name="prod", project_id=1, **kwargs
     ):
@@ -2623,9 +2597,6 @@ class EventManagerTestBase(TestCase, ABC):
             event = manager.save(project_id)
         return event
 
-
-@region_silo_test
-class ReleaseIssueTest(EventManagerTestBase):
     def convert_timestamp(self, timestamp):
         date = datetime.fromtimestamp(timestamp)
         date = date.replace(tzinfo=timezone.utc)
@@ -2726,10 +2697,45 @@ class ReleaseIssueTest(EventManagerTestBase):
 
 
 @region_silo_test
-class ReleaseDSLatestReleaseBoost(EventManagerTestBase):
+class ReleaseDSLatestReleaseBoost(TestCase):
     def setUp(self):
-        super().setUp()
+        self.project = self.create_project()
+        self.release = Release.get_or_create(self.project, "1.0")
+        self.environment1 = Environment.get_or_create(self.project, "prod")
+        self.environment2 = Environment.get_or_create(self.project, "staging")
+        self.timestamp = float(int(time() - 300))
         self.redis_client = get_redis_client_for_ds()
+
+    def make_transaction_event(self, **kwargs):
+        result = {
+            "transaction": "wait",
+            "contexts": {
+                "trace": {
+                    "parent_span_id": "bce14471e0e9654d",
+                    "op": "foobar",
+                    "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
+                    "span_id": "bf5be759039ede9a",
+                }
+            },
+            "spans": [],
+            "timestamp": self.timestamp + 0.23,
+            "start_timestamp": "2019-06-14T14:01:40Z",
+            "type": "transaction",
+        }
+        result.update(kwargs)
+        return result
+
+    def make_release_transaction(
+        self, release_version="1.0", environment_name="prod", project_id=1, **kwargs
+    ):
+        transaction = self.make_transaction_event(
+            release=release_version, environment=environment_name, event_id=uuid.uuid1().hex
+        )
+        transaction.update(kwargs)
+        manager = EventManager(transaction)
+        with self.tasks():
+            event = manager.save(project_id)
+        return event
 
     @freeze_time()
     def test_boost_release_when_first_observed(self):
