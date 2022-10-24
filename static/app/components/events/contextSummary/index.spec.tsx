@@ -1,4 +1,3 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
@@ -7,8 +6,6 @@ import {ContextSummaryGPU} from 'sentry/components/events/contextSummary/context
 import {ContextSummaryOS} from 'sentry/components/events/contextSummary/contextSummaryOS';
 import {ContextSummaryUser} from 'sentry/components/events/contextSummary/contextSummaryUser';
 import {FILTER_MASK} from 'sentry/constants';
-import {OrganizationContext} from 'sentry/views/organizationContext';
-import {RouteContext} from 'sentry/views/routeContext';
 
 const CONTEXT_USER = {
   email: 'mail@example.org',
@@ -49,25 +46,6 @@ const CONTEXT_BROWSER = {
   name: 'Chrome',
 };
 
-function TestComponent({children}: {children: React.ReactNode}) {
-  const {organization, router} = initializeOrg();
-
-  return (
-    <OrganizationContext.Provider value={organization}>
-      <RouteContext.Provider
-        value={{
-          router,
-          location: router.location,
-          params: {},
-          routes: [],
-        }}
-      >
-        {children}
-      </RouteContext.Provider>
-    </OrganizationContext.Provider>
-  );
-}
-
 describe('ContextSummary', function () {
   describe('render()', function () {
     it('renders nothing without contexts', function () {
@@ -77,11 +55,7 @@ describe('ContextSummary', function () {
         contexts: {},
       };
 
-      const {container} = render(
-        <TestComponent>
-          <ContextSummary event={event} />
-        </TestComponent>
-      );
+      const {container} = render(<ContextSummary event={event} />);
       expect(container).toSnapshot();
     });
 
@@ -93,11 +67,7 @@ describe('ContextSummary', function () {
         contexts: {},
       };
 
-      const {container} = render(
-        <TestComponent>
-          <ContextSummary event={event} />
-        </TestComponent>
-      );
+      const {container} = render(<ContextSummary event={event} />);
       expect(container).toSnapshot();
     });
 
@@ -112,11 +82,7 @@ describe('ContextSummary', function () {
         },
       };
 
-      const {container} = render(
-        <TestComponent>
-          <ContextSummary event={event} />
-        </TestComponent>
-      );
+      const {container} = render(<ContextSummary event={event} />);
       expect(container).toSnapshot();
     });
 
@@ -130,11 +96,7 @@ describe('ContextSummary', function () {
         },
       };
 
-      const {container} = render(
-        <TestComponent>
-          <ContextSummary event={event} />
-        </TestComponent>
-      );
+      const {container} = render(<ContextSummary event={event} />);
       expect(container).toSnapshot();
     });
 
@@ -151,11 +113,7 @@ describe('ContextSummary', function () {
         },
       };
 
-      const {container} = render(
-        <TestComponent>
-          <ContextSummary event={event} />
-        </TestComponent>
-      );
+      const {container} = render(<ContextSummary event={event} />);
       expect(container).toSnapshot();
     });
 
@@ -172,11 +130,7 @@ describe('ContextSummary', function () {
         },
       };
 
-      const {container} = render(
-        <TestComponent>
-          <ContextSummary event={event} />
-        </TestComponent>
-      );
+      const {container} = render(<ContextSummary event={event} />);
       expect(container).toSnapshot();
     });
 
@@ -192,11 +146,7 @@ describe('ContextSummary', function () {
         },
       };
 
-      const {container} = render(
-        <TestComponent>
-          <ContextSummary event={event} />
-        </TestComponent>
-      );
+      const {container} = render(<ContextSummary event={event} />);
       expect(container).toSnapshot();
     });
 
@@ -213,11 +163,7 @@ describe('ContextSummary', function () {
         },
       };
 
-      const {container} = render(
-        <TestComponent>
-          <ContextSummary event={event} />
-        </TestComponent>
-      );
+      const {container} = render(<ContextSummary event={event} />);
       expect(container).toSnapshot();
     });
 
@@ -233,11 +179,7 @@ describe('ContextSummary', function () {
         },
       };
 
-      const {container} = render(
-        <TestComponent>
-          <ContextSummary event={event} />
-        </TestComponent>
-      );
+      const {container} = render(<ContextSummary event={event} />);
       expect(container).toSnapshot();
     });
   });
@@ -247,67 +189,59 @@ describe('OsSummary', function () {
   describe('render()', function () {
     it('renders the version string', function () {
       const {container} = render(
-        <TestComponent>
-          <ContextSummaryOS
-            data={{
-              kernel_version: '17.5.0',
-              version: '10.13.4',
-              name: 'Mac OS X',
-            }}
-            meta={{}}
-          />
-        </TestComponent>
+        <ContextSummaryOS
+          data={{
+            kernel_version: '17.5.0',
+            version: '10.13.4',
+            name: 'Mac OS X',
+          }}
+          meta={{}}
+        />
       );
       expect(container).toSnapshot();
     });
 
     it('renders the kernel version when no version', function () {
       const {container} = render(
-        <TestComponent>
-          <ContextSummaryOS
-            data={{
-              kernel_version: '17.5.0',
-              name: 'Mac OS X',
-            }}
-            meta={{}}
-          />
-        </TestComponent>
+        <ContextSummaryOS
+          data={{
+            kernel_version: '17.5.0',
+            name: 'Mac OS X',
+          }}
+          meta={{}}
+        />
       );
       expect(container).toSnapshot();
     });
 
     it('renders unknown when no version', function () {
       const {container} = render(
-        <TestComponent>
-          <ContextSummaryOS
-            data={{
-              name: 'Mac OS X',
-            }}
-            meta={{}}
-          />
-        </TestComponent>
+        <ContextSummaryOS
+          data={{
+            name: 'Mac OS X',
+          }}
+          meta={{}}
+        />
       );
       expect(container).toSnapshot();
     });
 
     it('display redacted name', async function () {
       render(
-        <TestComponent>
-          <ContextSummaryOS
-            data={{
-              name: '',
-              version: '10',
-            }}
-            meta={{
-              name: {
-                '': {
-                  rem: [['project:0', 's', 0, 0]],
-                  len: 19,
-                },
+        <ContextSummaryOS
+          data={{
+            name: '',
+            version: '10',
+          }}
+          meta={{
+            name: {
+              '': {
+                rem: [['project:0', 's', 0, 0]],
+                len: 19,
               },
-            }}
-          />
-        </TestComponent>
+            },
+          }}
+        />
       );
       userEvent.hover(screen.getByText(/redacted/));
       expect(
@@ -321,22 +255,20 @@ describe('OsSummary', function () {
 
     it('handles invalid data', async function () {
       render(
-        <TestComponent>
-          <ContextSummaryOS
-            data={{
-              name: false,
-              version: false,
-            }}
-            meta={{
-              name: {
-                '': {
-                  rem: [['project:0', 's', 0, 0]],
-                  len: 19,
-                },
+        <ContextSummaryOS
+          data={{
+            name: false,
+            version: false,
+          }}
+          meta={{
+            name: {
+              '': {
+                rem: [['project:0', 's', 0, 0]],
+                len: 19,
               },
-            }}
-          />
-        </TestComponent>
+            },
+          }}
+        />
       );
       userEvent.hover(screen.getByText(/redacted/));
       expect(
@@ -354,50 +286,44 @@ describe('GpuSummary', function () {
   describe('render()', function () {
     it('renders name and vendor', function () {
       const {container} = render(
-        <TestComponent>
-          <ContextSummaryGPU
-            data={{
-              name: 'Mali-T880',
-              vendor_name: 'ARM',
-            }}
-            meta={{}}
-          />
-        </TestComponent>
+        <ContextSummaryGPU
+          data={{
+            name: 'Mali-T880',
+            vendor_name: 'ARM',
+          }}
+          meta={{}}
+        />
       );
       expect(container).toSnapshot();
     });
 
     it('renders unknown when no vendor', function () {
       const {container} = render(
-        <TestComponent>
-          <ContextSummaryGPU
-            data={{
-              name: 'Apple A8 GPU',
-            }}
-            meta={{}}
-          />
-        </TestComponent>
+        <ContextSummaryGPU
+          data={{
+            name: 'Apple A8 GPU',
+          }}
+          meta={{}}
+        />
       );
       expect(container).toSnapshot();
     });
 
     it('display redacted name', async function () {
       render(
-        <TestComponent>
-          <ContextSummaryGPU
-            data={{
-              name: '',
-            }}
-            meta={{
-              name: {
-                '': {
-                  rem: [['project:0', 's', 0, 0]],
-                  len: 19,
-                },
+        <ContextSummaryGPU
+          data={{
+            name: '',
+          }}
+          meta={{
+            name: {
+              '': {
+                rem: [['project:0', 's', 0, 0]],
+                len: 19,
               },
-            }}
-          />
-        </TestComponent>
+            },
+          }}
+        />
       );
       userEvent.hover(screen.getByText(/redacted/));
       expect(
@@ -422,11 +348,7 @@ describe('UserSummary', function () {
         name: 'Maisey Dog',
       };
 
-      const {rerender} = render(
-        <TestComponent>
-          <ContextSummaryUser data={user1} meta={{}} />
-        </TestComponent>
-      );
+      const {rerender} = render(<ContextSummaryUser data={user1} meta={{}} />);
       expect(screen.getByText(user1.email)).toBeInTheDocument();
 
       const user2 = {
@@ -436,11 +358,7 @@ describe('UserSummary', function () {
         name: 'Maisey Dog',
       };
 
-      rerender(
-        <TestComponent>
-          <ContextSummaryUser data={user2} meta={{}} />
-        </TestComponent>
-      );
+      rerender(<ContextSummaryUser data={user2} meta={{}} />);
       expect(screen.getByTestId('user-title')?.textContent).toEqual(user2.ip_address);
 
       const user3 = {
@@ -450,16 +368,14 @@ describe('UserSummary', function () {
       };
 
       rerender(
-        <TestComponent>
-          <ContextSummaryUser
-            data={{
-              id: '26',
-              username: 'maiseythedog',
-              name: 'Maisey Dog',
-            }}
-            meta={{}}
-          />
-        </TestComponent>
+        <ContextSummaryUser
+          data={{
+            id: '26',
+            username: 'maiseythedog',
+            name: 'Maisey Dog',
+          }}
+          meta={{}}
+        />
       );
       expect(screen.getByTestId('user-title')?.textContent).toEqual(user3.id);
 
@@ -468,24 +384,18 @@ describe('UserSummary', function () {
         name: 'Maisey Dog',
       };
 
-      rerender(
-        <TestComponent>
-          <ContextSummaryUser data={user4} meta={{}} />
-        </TestComponent>
-      );
+      rerender(<ContextSummaryUser data={user4} meta={{}} />);
       expect(screen.getByTestId('user-title')).toHaveTextContent(user4.username);
     });
 
     it('renders NoSummary if no email, IP, id, or username', function () {
       render(
-        <TestComponent>
-          <ContextSummaryUser
-            data={{
-              name: 'Maisey Dog',
-            }}
-            meta={{}}
-          />
-        </TestComponent>
+        <ContextSummaryUser
+          data={{
+            name: 'Maisey Dog',
+          }}
+          meta={{}}
+        />
       );
       expect(screen.queryByTestId('user-title')).not.toBeInTheDocument();
       expect(screen.getByTestId('no-summary-title')).toHaveTextContent('Unknown User');
@@ -493,14 +403,12 @@ describe('UserSummary', function () {
 
     it('does not use filtered values for title', function () {
       const {rerender} = render(
-        <TestComponent>
-          <ContextSummaryUser
-            data={{
-              email: FILTER_MASK,
-            }}
-            meta={{}}
-          />
-        </TestComponent>
+        <ContextSummaryUser
+          data={{
+            email: FILTER_MASK,
+          }}
+          meta={{}}
+        />
       );
       expect(screen.queryByTestId('user-title')).not.toBeInTheDocument();
       expect(screen.getByTestId('no-summary-title')).toHaveTextContent('Unknown User');
@@ -511,27 +419,23 @@ describe('UserSummary', function () {
       // if/when that changes.
 
       rerender(
-        <TestComponent>
-          <ContextSummaryUser
-            data={{
-              id: FILTER_MASK,
-            }}
-            meta={{}}
-          />
-        </TestComponent>
+        <ContextSummaryUser
+          data={{
+            id: FILTER_MASK,
+          }}
+          meta={{}}
+        />
       );
       expect(screen.queryByTestId('user-title')).not.toBeInTheDocument();
       expect(screen.getByTestId('no-summary-title')).toHaveTextContent('Unknown User');
 
       rerender(
-        <TestComponent>
-          <ContextSummaryUser
-            data={{
-              username: FILTER_MASK,
-            }}
-            meta={{}}
-          />
-        </TestComponent>
+        <ContextSummaryUser
+          data={{
+            username: FILTER_MASK,
+          }}
+          meta={{}}
+        />
       );
       expect(screen.queryByTestId('user-title')).not.toBeInTheDocument();
       expect(screen.getByTestId('no-summary-title')).toHaveTextContent('Unknown User');
@@ -543,63 +447,55 @@ describe('UserSummary', function () {
       // should be
 
       const {rerender} = render(
-        <TestComponent>
-          <ContextSummaryUser
-            data={{
-              id: '26',
-              name: FILTER_MASK,
-            }}
-            meta={{}}
-          />
-        </TestComponent>
+        <ContextSummaryUser
+          data={{
+            id: '26',
+            name: FILTER_MASK,
+          }}
+          meta={{}}
+        />
       );
       expect(screen.getByText('?')).toBeInTheDocument();
 
       rerender(
-        <TestComponent>
-          <ContextSummaryUser
-            data={{
-              id: '26',
-              email: FILTER_MASK,
-            }}
-            meta={{}}
-          />
-        </TestComponent>
+        <ContextSummaryUser
+          data={{
+            id: '26',
+            email: FILTER_MASK,
+          }}
+          meta={{}}
+        />
       );
       expect(screen.getByText('?')).toBeInTheDocument();
 
       rerender(
-        <TestComponent>
-          <ContextSummaryUser
-            data={{
-              id: '26',
-              username: FILTER_MASK,
-            }}
-            meta={{}}
-          />
-        </TestComponent>
+        <ContextSummaryUser
+          data={{
+            id: '26',
+            username: FILTER_MASK,
+          }}
+          meta={{}}
+        />
       );
       expect(screen.getByText('?')).toBeInTheDocument();
     });
 
     it('display redacted email', async function () {
       render(
-        <TestComponent>
-          <ContextSummaryUser
-            data={{
-              name: 'Maisey Dog',
-              email: '',
-            }}
-            meta={{
-              email: {
-                '': {
-                  rem: [['project:0', 's', 0, 0]],
-                  len: 19,
-                },
+        <ContextSummaryUser
+          data={{
+            name: 'Maisey Dog',
+            email: '',
+          }}
+          meta={{
+            email: {
+              '': {
+                rem: [['project:0', 's', 0, 0]],
+                len: 19,
               },
-            }}
-          />
-        </TestComponent>
+            },
+          }}
+        />
       );
       userEvent.hover(screen.getByText(/redacted/));
       expect(

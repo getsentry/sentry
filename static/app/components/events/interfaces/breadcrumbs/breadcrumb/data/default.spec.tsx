@@ -5,8 +5,6 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import {Default} from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/data/default';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
-import {OrganizationContext} from 'sentry/views/organizationContext';
-import {RouteContext} from 'sentry/views/routeContext';
 
 describe('Breadcrumb Data Default', function () {
   const project = TestStubs.Project({
@@ -27,49 +25,42 @@ describe('Breadcrumb Data Default', function () {
 
   it('display redacted message', async function () {
     render(
-      <OrganizationContext.Provider value={organization}>
-        <RouteContext.Provider
-          value={{
-            router,
-            location: router.location,
-            params: {},
-            routes: [],
-          }}
-        >
-          <Default
-            meta={{
-              message: {
-                '': {
-                  rem: [['project:0', 's', 0, 0]],
-                  len: 19,
-                  chunks: [
-                    {
-                      type: 'redaction',
-                      text: '',
-                      rule_id: 'project:0',
-                      remark: 's',
-                    },
-                  ],
+      <Default
+        meta={{
+          message: {
+            '': {
+              rem: [['project:0', 's', 0, 0]],
+              len: 19,
+              chunks: [
+                {
+                  type: 'redaction',
+                  text: '',
+                  rule_id: 'project:0',
+                  remark: 's',
                 },
-              },
-            }}
-            event={TestStubs.Event()}
-            orgSlug="org-slug"
-            searchTerm=""
-            breadcrumb={{
-              type: BreadcrumbType.DEBUG,
-              timestamp: '2017-08-04T07:52:11Z',
-              level: BreadcrumbLevelType.INFO,
-              message: '',
-              category: 'started',
-              data: {
-                controller: '<sentry_ios_cocoapods.ViewController: 0x100e09ec0>',
-              },
-              event_id: null,
-            }}
-          />
-        </RouteContext.Provider>
-      </OrganizationContext.Provider>
+              ],
+            },
+          },
+        }}
+        event={TestStubs.Event()}
+        orgSlug="org-slug"
+        searchTerm=""
+        breadcrumb={{
+          type: BreadcrumbType.DEBUG,
+          timestamp: '2017-08-04T07:52:11Z',
+          level: BreadcrumbLevelType.INFO,
+          message: '',
+          category: 'started',
+          data: {
+            controller: '<sentry_ios_cocoapods.ViewController: 0x100e09ec0>',
+          },
+          event_id: null,
+        }}
+      />,
+      {
+        organization,
+        router,
+      }
     );
 
     expect(
@@ -87,38 +78,28 @@ describe('Breadcrumb Data Default', function () {
 
   it('display redacted data', async function () {
     render(
-      <OrganizationContext.Provider value={organization}>
-        <RouteContext.Provider
-          value={{
-            router,
-            location: router.location,
-            params: {},
-            routes: [],
-          }}
-        >
-          <Default
-            meta={{
-              data: {
-                '': {
-                  rem: [['project:0', 'x']],
-                },
-              },
-            }}
-            event={TestStubs.Event()}
-            orgSlug="org-slug"
-            searchTerm=""
-            breadcrumb={{
-              type: BreadcrumbType.DEBUG,
-              timestamp: '2017-08-04T07:52:11Z',
-              level: BreadcrumbLevelType.INFO,
-              message: '',
-              category: 'started',
-              data: null,
-              event_id: null,
-            }}
-          />
-        </RouteContext.Provider>
-      </OrganizationContext.Provider>
+      <Default
+        meta={{
+          data: {
+            '': {
+              rem: [['project:0', 'x']],
+            },
+          },
+        }}
+        event={TestStubs.Event()}
+        orgSlug="org-slug"
+        searchTerm=""
+        breadcrumb={{
+          type: BreadcrumbType.DEBUG,
+          timestamp: '2017-08-04T07:52:11Z',
+          level: BreadcrumbLevelType.INFO,
+          message: '',
+          category: 'started',
+          data: null,
+          event_id: null,
+        }}
+      />,
+      {organization, router}
     );
 
     expect(

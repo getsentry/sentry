@@ -7,30 +7,11 @@ import {
 } from 'sentry-test/performance/utils';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {EventTransaction} from 'sentry/types';
-import {OrganizationContext} from 'sentry/views/organizationContext';
-import {RouteContext} from 'sentry/views/routeContext';
-
 import {SpanEvidenceSection} from './spanEvidence';
 
-const {organization, router} = initializeData({
+const {organization} = initializeData({
   features: ['performance-issues'],
 });
-
-const WrappedComponent = ({event}: {event: EventTransaction}) => (
-  <OrganizationContext.Provider value={organization}>
-    <RouteContext.Provider
-      value={{
-        router,
-        location: router.location,
-        params: {},
-        routes: [],
-      }}
-    >
-      <SpanEvidenceSection organization={organization} event={event} />
-    </RouteContext.Provider>
-  </OrganizationContext.Provider>
-);
 
 describe('spanEvidence', () => {
   it('renders and highlights the correct data in the span evidence section', () => {
@@ -91,7 +72,10 @@ describe('spanEvidence', () => {
 
     builder.addSpan(parentProblemSpan);
 
-    render(<WrappedComponent event={builder.getEvent()} />);
+    render(
+      <SpanEvidenceSection event={builder.getEvent()} organization={organization} />,
+      {organization}
+    );
 
     // Verify the surfaced fields in the span evidence section are correct
     const transactionKey = screen.getByRole('cell', {name: 'Transaction'});

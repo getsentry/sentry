@@ -5,8 +5,6 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import {Http} from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/data/http';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
-import {OrganizationContext} from 'sentry/views/organizationContext';
-import {RouteContext} from 'sentry/views/routeContext';
 
 describe('Breadcrumb Data Http', function () {
   const project = TestStubs.Project({
@@ -27,47 +25,37 @@ describe('Breadcrumb Data Http', function () {
 
   it('display redacted url', async function () {
     render(
-      <OrganizationContext.Provider value={organization}>
-        <RouteContext.Provider
-          value={{
-            router,
-            location: router.location,
-            params: {},
-            routes: [],
-          }}
-        >
-          <Http
-            meta={{
-              data: {
-                url: {
-                  '': {
-                    rem: [['project:0', 's', 0, 0]],
-                    len: 19,
-                    chunks: [
-                      {
-                        type: 'redaction',
-                        text: '',
-                        rule_id: 'project:0',
-                        remark: 's',
-                      },
-                    ],
+      <Http
+        meta={{
+          data: {
+            url: {
+              '': {
+                rem: [['project:0', 's', 0, 0]],
+                len: 19,
+                chunks: [
+                  {
+                    type: 'redaction',
+                    text: '',
+                    rule_id: 'project:0',
+                    remark: 's',
                   },
-                },
+                ],
               },
-            }}
-            searchTerm=""
-            breadcrumb={{
-              type: BreadcrumbType.HTTP,
-              level: BreadcrumbLevelType.INFO,
-              data: {
-                method: 'POST',
-                url: '',
-                status_code: 0,
-              },
-            }}
-          />
-        </RouteContext.Provider>
-      </OrganizationContext.Provider>
+            },
+          },
+        }}
+        searchTerm=""
+        breadcrumb={{
+          type: BreadcrumbType.HTTP,
+          level: BreadcrumbLevelType.INFO,
+          data: {
+            method: 'POST',
+            url: '',
+            status_code: 0,
+          },
+        }}
+      />,
+      {organization, router}
     );
 
     expect(screen.getByText('POST')).toBeInTheDocument();
@@ -84,32 +72,22 @@ describe('Breadcrumb Data Http', function () {
 
   it('display redacted data', async function () {
     render(
-      <OrganizationContext.Provider value={organization}>
-        <RouteContext.Provider
-          value={{
-            router,
-            location: router.location,
-            params: {},
-            routes: [],
-          }}
-        >
-          <Http
-            meta={{
-              data: {
-                '': {
-                  rem: [['project:0', 'x']],
-                },
-              },
-            }}
-            searchTerm=""
-            breadcrumb={{
-              type: BreadcrumbType.HTTP,
-              level: BreadcrumbLevelType.INFO,
-              data: null,
-            }}
-          />
-        </RouteContext.Provider>
-      </OrganizationContext.Provider>
+      <Http
+        meta={{
+          data: {
+            '': {
+              rem: [['project:0', 'x']],
+            },
+          },
+        }}
+        searchTerm=""
+        breadcrumb={{
+          type: BreadcrumbType.HTTP,
+          level: BreadcrumbLevelType.INFO,
+          data: null,
+        }}
+      />,
+      {organization, router}
     );
 
     expect(screen.queryByText('http://example.com/foo')).not.toBeInTheDocument();

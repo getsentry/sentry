@@ -4,8 +4,6 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {FrameVariables} from 'sentry/components/events/interfaces/frame/frameVariables';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {OrganizationContext} from 'sentry/views/organizationContext';
-import {RouteContext} from 'sentry/views/routeContext';
 
 describe('Frame Variables', function () {
   it('renders', async function () {
@@ -26,58 +24,48 @@ describe('Frame Variables', function () {
     ProjectsStore.loadInitialData([project]);
 
     render(
-      <OrganizationContext.Provider value={organization}>
-        <RouteContext.Provider
-          value={{
-            router,
-            location: router.location,
-            params: {},
-            routes: [],
-          }}
-        >
-          <FrameVariables
-            data={{
-              "'client'": '',
-              "'data'": null,
-              "'k'": '',
-              "'options'": {
-                "'data'": null,
-                "'tags'": null,
-              },
-            }}
-            meta={{
-              "'client'": {
-                '': {
-                  rem: [['project:0', 's', 0, 0]],
-                  len: 41,
-                  chunks: [
-                    {
-                      type: 'redaction',
-                      text: '',
-                      rule_id: 'project:0',
-                      remark: 's',
-                    },
-                  ],
+      <FrameVariables
+        data={{
+          "'client'": '',
+          "'data'": null,
+          "'k'": '',
+          "'options'": {
+            "'data'": null,
+            "'tags'": null,
+          },
+        }}
+        meta={{
+          "'client'": {
+            '': {
+              rem: [['project:0', 's', 0, 0]],
+              len: 41,
+              chunks: [
+                {
+                  type: 'redaction',
+                  text: '',
+                  rule_id: 'project:0',
+                  remark: 's',
                 },
-              },
-              "'k'": {
-                '': {
-                  rem: [['project:0', 's', 0, 0]],
-                  len: 12,
-                  chunks: [
-                    {
-                      type: 'redaction',
-                      text: '',
-                      rule_id: 'project:0',
-                      remark: 's',
-                    },
-                  ],
+              ],
+            },
+          },
+          "'k'": {
+            '': {
+              rem: [['project:0', 's', 0, 0]],
+              len: 12,
+              chunks: [
+                {
+                  type: 'redaction',
+                  text: '',
+                  rule_id: 'project:0',
+                  remark: 's',
                 },
-              },
-            }}
-          />
-        </RouteContext.Provider>
-      </OrganizationContext.Provider>
+              ],
+            },
+          },
+        }}
+      />,
+      {organization, router}
     );
 
     expect(screen.getAllByText(/redacted/)).toHaveLength(2);
