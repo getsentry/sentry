@@ -176,7 +176,9 @@ describe('Quick Context Container', function () {
         renderComponent(dataRowWithoutId as TableDataRow);
 
         await waitFor(() => {
-          expect(screen.queryByText(/Suspect Commits/i)).not.toBeInTheDocument();
+          expect(
+            screen.queryByTestId('quick-context-suspect-commits-container')
+          ).not.toBeInTheDocument();
         });
       });
 

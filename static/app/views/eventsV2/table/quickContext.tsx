@@ -162,7 +162,7 @@ function IssueContext(props: IssueContextProps) {
 
   const renderSuspectCommits = () =>
     props.eventID && (
-      <IssueContextContainer>
+      <IssueContextContainer data-test-id="quick-context-suspect-commits-container">
         <EventCause
           project={props.data.project}
           eventId={props.eventID}

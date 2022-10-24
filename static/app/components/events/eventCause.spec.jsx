@@ -60,14 +60,26 @@ describe('EventCause', function () {
     });
   });
 
-  it('renders', async function () {
+  it('renders commit row', async function () {
     render(<EventCause project={project} eventId={event.id} group={group} />, {
       organization,
     });
 
     expect(await screen.findByTestId('commit-row')).toBeInTheDocument();
-    expect(screen.queryByTestId('quick-context-commit-row')).toBeInTheDocument();
+    expect(screen.queryByTestId('quick-context-commit-row')).not.toBeInTheDocument();
     expect(screen.queryByTestId('email-warning')).not.toBeInTheDocument();
+  });
+
+  it('renders quick context commit row when fromQuickContext prop is true', async function () {
+    render(
+      <EventCause project={project} eventId={event.id} fromQuickContext group={group} />,
+      {
+        organization,
+      }
+    );
+
+    expect(await screen.findByTestId('quick-context-commit-row')).toBeInTheDocument();
+    expect(screen.queryByTestId('commit-row')).not.toBeInTheDocument();
   });
 
   it('expands', async function () {
