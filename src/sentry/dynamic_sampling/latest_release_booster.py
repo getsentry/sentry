@@ -65,8 +65,11 @@ def add_boosted_release(project_id, release_id):
     """
     Function that adds a release to the list of active boosted releases for a given project.
     """
-    get_redis_client_for_ds().hset(
-        generate_cache_key_for_boosted_release(project_id),
+    cache_key = generate_cache_key_for_boosted_release(project_id)
+    redis_client = get_redis_client_for_ds()
+    redis_client.hset(
+        cache_key,
         release_id,
         datetime.utcnow().replace(tzinfo=UTC).timestamp(),
     )
+    redis_client.pexpire(cache_key, ONE_DAY_TIMEOUT)
