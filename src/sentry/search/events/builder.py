@@ -2363,7 +2363,6 @@ class MetricsQueryBuilder(QueryBuilder):
                     include_meta=True,
                 )
             except Exception as err:
-                raise err
                 raise IncompatibleMetricsQuery(err)
             # series does some strange stuff to the clickhouse response, turn it back so we can handle it
             metric_layer_result: Any = {
