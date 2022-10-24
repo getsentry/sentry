@@ -44,19 +44,17 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
         Test that a Slack message is sent with the expected payload when a performance issue regresses
         """
         event = self.create_performance_issue()
-
-        with self.feature("organizations:performance-issues"):
-            notification = RegressionActivityNotification(
-                Activity(
-                    project=self.project,
-                    group=event.group,
-                    user=self.user,
-                    type=ActivityType.SET_REGRESSION,
-                    data={},
-                )
+        notification = RegressionActivityNotification(
+            Activity(
+                project=self.project,
+                group=event.group,
+                user=self.user,
+                type=ActivityType.SET_REGRESSION,
+                data={},
             )
-            with self.tasks():
-                notification.send()
+        )
+        with self.feature("organizations:performance-issues"), self.tasks():
+            notification.send()
 
         attachment, text = get_attachment()
         assert text == "Issue marked as regression"

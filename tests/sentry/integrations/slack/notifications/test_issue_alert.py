@@ -96,16 +96,13 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             },
         )
 
-        with self.feature("organizations:performance-issues"):
-            notification = AlertRuleNotification(
-                Notification(event=event, rule=rule), ActionTargetType.MEMBER, self.user.id
-            )
-
-            with self.tasks():
-                notification.send()
+        notification = AlertRuleNotification(
+            Notification(event=event, rule=rule), ActionTargetType.MEMBER, self.user.id
+        )
+        with self.feature("organizations:performance-issues"), self.tasks():
+            notification.send()
 
         attachment, text = get_attachment()
-
         assert attachment["title"] == "N+1 Query"
         assert (
             attachment["text"]

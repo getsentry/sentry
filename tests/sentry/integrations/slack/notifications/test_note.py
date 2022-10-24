@@ -49,22 +49,19 @@ class SlackNoteNotificationTest(SlackActivityNotificationTest, PerformanceIssueT
         Test that a Slack message is sent with the expected payload when a comment is made on a performance issue
         """
         event = self.create_performance_issue()
-
-        with self.feature("organizations:performance-issues"):
-            notification = NoteActivityNotification(
-                Activity(
-                    project=self.project,
-                    group=event.group,
-                    user=self.user,
-                    type=ActivityType.NOTE,
-                    data={"text": "text", "mentions": []},
-                )
+        notification = NoteActivityNotification(
+            Activity(
+                project=self.project,
+                group=event.group,
+                user=self.user,
+                type=ActivityType.NOTE,
+                data={"text": "text", "mentions": []},
             )
-            with self.tasks():
-                notification.send()
+        )
+        with self.feature("organizations:performance-issues"), self.tasks():
+            notification.send()
 
         attachment, text = get_attachment()
-
         assert text == f"New comment by {self.name}"
         assert attachment["title"] == "N+1 Query"
         assert (

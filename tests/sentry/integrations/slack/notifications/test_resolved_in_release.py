@@ -45,19 +45,17 @@ class SlackResolvedInReleaseNotificationTest(
         Test that a Slack message is sent with the expected payload when a performance issue is resolved in a release
         """
         event = self.create_performance_issue()
-
-        with self.feature("organizations:performance-issues"):
-            notification = ResolvedInReleaseActivityNotification(
-                Activity(
-                    project=self.project,
-                    group=event.group,
-                    user=self.user,
-                    type=ActivityType.SET_RESOLVED_IN_RELEASE,
-                    data={"version": "meow"},
-                )
+        notification = ResolvedInReleaseActivityNotification(
+            Activity(
+                project=self.project,
+                group=event.group,
+                user=self.user,
+                type=ActivityType.SET_RESOLVED_IN_RELEASE,
+                data={"version": "meow"},
             )
-            with self.tasks():
-                notification.send()
+        )
+        with self.feature("organizations:performance-issues"), self.tasks():
+            notification.send()
 
         attachment, text = get_attachment()
         release_name = notification.activity.data["version"]

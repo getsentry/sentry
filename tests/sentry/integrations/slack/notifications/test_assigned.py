@@ -153,19 +153,18 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
         Test that a Slack message is sent with the expected payload when a performance issue is assigned
         """
         event = self.create_performance_issue()
-
-        with self.feature("organizations:performance-issues"):
-            notification = AssignedActivityNotification(
-                Activity(
-                    project=self.project,
-                    group=event.group,
-                    user=self.user,
-                    type=ActivityType.ASSIGNED,
-                    data={"assignee": self.user.id},
-                )
+        notification = AssignedActivityNotification(
+            Activity(
+                project=self.project,
+                group=event.group,
+                user=self.user,
+                type=ActivityType.ASSIGNED,
+                data={"assignee": self.user.id},
             )
-            with self.tasks():
-                notification.send()
+        )
+        with self.feature("organizations:performance-issues"), self.tasks():
+            notification.send()
+
         attachment, text = get_attachment()
         assert text == f"Issue assigned to {self.name} by themselves"
         assert attachment["title"] == "N+1 Query"

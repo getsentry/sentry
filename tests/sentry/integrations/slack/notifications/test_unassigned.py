@@ -43,19 +43,17 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest, Performance
         Test that a Slack message is sent with the expected payload when a performance issue is unassigned
         """
         event = self.create_performance_issue()
-
-        with self.feature("organizations:performance-issues"):
-            notification = UnassignedActivityNotification(
-                Activity(
-                    project=self.project,
-                    group=event.group,
-                    user=self.user,
-                    type=ActivityType.ASSIGNED,
-                    data={"assignee": ""},
-                )
+        notification = UnassignedActivityNotification(
+            Activity(
+                project=self.project,
+                group=event.group,
+                user=self.user,
+                type=ActivityType.ASSIGNED,
+                data={"assignee": ""},
             )
-            with self.tasks():
-                notification.send()
+        )
+        with self.feature("organizations:performance-issues"), self.tasks():
+            notification.send()
 
         attachment, text = get_attachment()
         assert text == f"Issue unassigned by {self.name}"
