@@ -140,6 +140,7 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
             ("has_alert_filters", "This Project has filters"),
             ("has_sessions", "This Project has sessions"),
             ("has_profiles", "This Project has sent profiles"),
+            ("has_replays", "This Project has sent replays"),
         ),
         default=10,
         null=True,
