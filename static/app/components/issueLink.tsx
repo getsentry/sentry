@@ -55,7 +55,7 @@ const IssueLink = ({children, orgId, issue, to, card = true}: Props) => {
                   <Link
                     to={{
                       pathname: streamPath,
-                      query: {query: `logger:${issue.logger}`},
+                      query: {query: `logger:${issue.logger}`, referrer: 'issue-link'},
                     }}
                   >
                     {issue.logger}

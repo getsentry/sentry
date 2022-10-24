@@ -30,7 +30,7 @@ export function EventTags({event, organization, projectId, location}: Props) {
   }
 
   const orgSlug = organization.slug;
-  const streamPath = `/organizations/${orgSlug}/issues/`;
+  const streamPath = `/organizations/${orgSlug}/issues/?referrer=event-tags`;
 
   return (
     <StyledClippedBox clipHeight={150}>

@@ -153,7 +153,7 @@ class CreateSampleEventButton extends Component<CreateSampleEventButtonProps, St
     }
 
     browserHistory.push(
-      `/organizations/${organization.slug}/issues/${eventData.groupID}/?project=${project.id}`
+      `/organizations/${organization.slug}/issues/${eventData.groupID}/?project=${project.id}&referrer=sample-error`
     );
   };
 

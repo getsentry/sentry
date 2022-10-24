@@ -181,9 +181,11 @@ class EventsTable extends Component<Props, State> {
       let target: LocationDescriptor = {};
       if (isIssue && field === 'id') {
         target.pathname = `/organizations/${organization.slug}/issues/${issueId}/events/${dataRow.id}/`;
+        target.search = '?referrer=events-table';
       } else {
         const generateLink = field === 'id' ? generateTransactionLink : generateTraceLink;
         target = generateLink(transactionName)(organization, dataRow, location.query);
+        // TODO: add referrer
       }
 
       return (

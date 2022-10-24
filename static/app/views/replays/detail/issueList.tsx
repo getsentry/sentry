@@ -110,6 +110,7 @@ function TableRow({
           data={issue}
           organization={organization}
           size="normal"
+          source="replay"
         />
         <EventOrGroupExtraDetails data={issue} />
       </IssueDetailsWrapper>

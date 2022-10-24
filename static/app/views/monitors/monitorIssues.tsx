@@ -36,6 +36,7 @@ const MonitorIssues = ({orgId, monitor}: Props) => {
       withPagination={false}
       withChart={false}
       useTintRow={false}
+      source="monitors"
     />
   );
 };

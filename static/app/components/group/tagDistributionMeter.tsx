@@ -26,7 +26,7 @@ class GroupTagDistributionMeter extends Component<Props> {
 
   render() {
     const {organization, group, tag, totalValues, topValues} = this.props;
-    const url = `/organizations/${organization.slug}/issues/${group.id}/tags/${tag}/`;
+    const url = `/organizations/${organization.slug}/issues/${group.id}/tags/${tag}/?referrer=tag-distribution-meter`;
 
     const segments = topValues
       ? topValues.map(value => ({

@@ -43,7 +43,7 @@ class ReprocessedBox extends Component<Props, State> {
     const {data} = reprocessActivity;
     const {eventCount, oldGroupId, newGroupId} = data;
 
-    const reprocessedEventsRoute = `/organizations/${orgSlug}/issues/?query=reprocessing.original_issue_id:${oldGroupId}`;
+    const reprocessedEventsRoute = `/organizations/${orgSlug}/issues/?query=reprocessing.original_issue_id:${oldGroupId}&referrer=reprocessed-activity`;
 
     if (groupCount === 0) {
       return tct('All events in this issue were moved during reprocessing. [link]', {

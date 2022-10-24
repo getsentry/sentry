@@ -142,6 +142,7 @@ class MergedItem extends Component<Props, State> {
                   organization={organization}
                   hideIcons
                   hideLevel
+                  source="merged-item"
                 />
               </EventDetails>
             )}

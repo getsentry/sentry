@@ -144,7 +144,7 @@ function Sidebar({location, organization}: Props) {
       {...sidebarItemProps}
       icon={<IconIssues size="md" />}
       label={<GuideAnchor target="issues">{t('Issues')}</GuideAnchor>}
-      to={`/organizations/${organization.slug}/issues/`}
+      to={`/organizations/${organization.slug}/issues/?referrer=sidebar`}
       id="issues"
     />
   );

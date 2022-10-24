@@ -29,8 +29,8 @@ function CompactIssueHeader({data, organization, projectId, eventId}: HeaderProp
   const basePath = `/organizations/${organization.slug}/issues/`;
 
   const issueLink = eventId
-    ? `/organizations/${organization.slug}/projects/${projectId}/events/${eventId}/`
-    : `${basePath}${data.id}/`;
+    ? `/organizations/${organization.slug}/projects/${projectId}/events/${eventId}/?referrer=compact-issue`
+    : `${basePath}${data.id}/?referrer=compact-issue`;
 
   const commentColor: keyof Aliases =
     data.subscriptionDetails && data.subscriptionDetails.reason === 'mentioned'

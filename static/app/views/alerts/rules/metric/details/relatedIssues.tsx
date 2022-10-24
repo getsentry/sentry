@@ -100,6 +100,7 @@ function RelatedIssues({rule, organization, projects, query, timePeriod}: Props)
           useFilteredStats
           customStatsPeriod={timePeriod}
           useTintRow={false}
+          source="alerts-related-issues"
         />
       </TableWrapper>
     </Fragment>

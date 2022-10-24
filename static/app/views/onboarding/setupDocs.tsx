@@ -244,7 +244,9 @@ function SetupDocs({
       // If no projects remaining, then we can leave
       !project
     ) {
-      browserHistory.push('/');
+      browserHistory.push(
+        `/organizations/${organization.slug}/issues/?referrer=onboarding-setup-docs-on-complete`
+      );
     }
   });
 
@@ -357,7 +359,7 @@ function SetupDocs({
           isLast={!nextProject}
           hasFirstEvent={checkProjectHasFirstEvent(project)}
           onClickSetupLater={() => {
-            const orgIssuesURL = `/organizations/${organization.slug}/issues/?project=${project.id}`;
+            const orgIssuesURL = `/organizations/${organization.slug}/issues/?project=${project.id}&referrer=onboarding-setup-docs`;
             trackAdvancedAnalyticsEvent(
               'growth.onboarding_clicked_setup_platform_later',
               {

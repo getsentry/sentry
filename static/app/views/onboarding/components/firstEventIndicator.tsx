@@ -38,7 +38,7 @@ const FirstEventIndicator = ({children, ...props}: FirstEventIndicatorProps) => 
             }
             to={`/organizations/${props.organization.slug}/issues/${
               firstIssue !== true && firstIssue !== null ? `${firstIssue.id}/` : ''
-            }`}
+            }?referrer=onboarding-first-event-indicator`}
           >
             {t('Take me to my error')}
           </Button>

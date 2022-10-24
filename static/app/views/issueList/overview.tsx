@@ -585,7 +585,10 @@ class IssueListOverview extends Component<Props, State> {
 
           browserHistory.replace({
             pathname: redirect,
-            query: extractSelectionParameters(this.props.location.query),
+            query: {
+              referrer: 'issue-list',
+              ...extractSelectionParameters(this.props.location.query),
+            },
           });
           return;
         }
@@ -890,6 +893,7 @@ class IssueListOverview extends Component<Props, State> {
     savedSearch: (SavedSearch & {projectId?: number}) | null = this.props.savedSearch
   ) => {
     const query = {
+      referrer: 'issue-list',
       ...this.getEndpointParams(),
       ...newParams,
     };

@@ -84,7 +84,7 @@ function TraceNotFound({
                     <ErrorLevel>{data.level}</ErrorLevel>
                     <ErrorTitle>
                       <Link
-                        to={`/organizations/${organization.slug}/issues/${data['issue.id']}/events/${data.id}`}
+                        to={`/organizations/${organization.slug}/issues/${data['issue.id']}/events/${data.id}?referrer=performance-trace-not-found`}
                       >
                         {data.title}
                       </Link>

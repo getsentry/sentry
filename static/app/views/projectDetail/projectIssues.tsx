@@ -293,6 +293,7 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
         withChart={false}
         withPagination={false}
         onFetchSuccess={handleFetchSuccess}
+        source="project"
       />
     </Fragment>
   );

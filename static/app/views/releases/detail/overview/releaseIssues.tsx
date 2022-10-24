@@ -435,6 +435,7 @@ class ReleaseIssues extends Component<Props, State> {
             renderEmptyMessage={this.renderEmptyMessage}
             withPagination={false}
             onFetchSuccess={this.handleFetchSuccess}
+            source="release"
           />
         </div>
       </Fragment>
