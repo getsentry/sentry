@@ -388,6 +388,7 @@ def test_project_config_with_uniform_rules_based_on_plan_in_dynamic_sampling_rul
         }
     ):
 <<<<<<< HEAD
+<<<<<<< HEAD
         with mock.patch(
             "sentry.dynamic_sampling.rules_generator.quotas.get_blended_sample_rate",
             return_value=0.1,
@@ -399,6 +400,11 @@ def test_project_config_with_uniform_rules_based_on_plan_in_dynamic_sampling_rul
 =======
         with patch("sentry.dynamic_sampling.quotas.get_blended_sample_rate", return_value=0.1):
 >>>>>>> e04f4b0895 (fixup tests!)
+||||||| parent of 6d0e441256 (resolve conflicts)
+        with patch("sentry.dynamic_sampling.quotas.get_blended_sample_rate", return_value=0.1):
+=======
+        with mock.patch("sentry.dynamic_sampling.quotas.get_blended_sample_rate", return_value=0.1):
+>>>>>>> 6d0e441256 (resolve conflicts)
             cfg = get_project_config(default_project)
 
     cfg = cfg.to_dict()
