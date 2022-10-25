@@ -1,11 +1,16 @@
-import {Component} from 'react';
+import {Component, Fragment} from 'react';
 import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
+import {stringify} from 'query-string';
 
 import {fetchHomepageQuery} from 'sentry/actionCreators/discoverHomepageQueries';
 import {fetchSavedQuery} from 'sentry/actionCreators/discoverSavedQueries';
 import {Client} from 'sentry/api';
+import Feature from 'sentry/components/acl/feature';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {Label} from 'sentry/components/editableText';
+import {Title} from 'sentry/components/layouts/thirds';
 import * as Layout from 'sentry/components/layouts/thirds';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
@@ -14,7 +19,9 @@ import {Organization, SavedQuery} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import withApi from 'sentry/utils/withApi';
 
+import Banner from './banner';
 import DiscoverBreadcrumb from './breadcrumb';
+import {DEFAULT_EVENT_VIEW} from './data';
 import EventInputName from './eventInputName';
 import SavedQueryButtonGroup from './savedQuery';
 
@@ -105,6 +112,23 @@ class ResultsHeader extends Component<Props, State> {
     );
   }
 
+  renderBanner() {
+    const {location, organization} = this.props;
+    const eventView = EventView.fromNewQueryWithLocation(DEFAULT_EVENT_VIEW, location);
+    const to = eventView.getResultsViewUrlTarget(organization.slug);
+    const resultsUrl = `${to.pathname}?${stringify(to.query)}`;
+
+    return (
+      <BannerWrapper>
+        <Banner
+          organization={organization}
+          resultsUrl={resultsUrl}
+          showBuildNewQueryButton={false}
+        />
+      </BannerWrapper>
+    );
+  }
+
   render() {
     const {
       organization,
@@ -121,18 +145,28 @@ class ResultsHeader extends Component<Props, State> {
     return (
       <Layout.Header>
         <StyledHeaderContent>
-          <DiscoverBreadcrumb
-            eventView={eventView}
-            organization={organization}
-            location={location}
-            isHomepage={isHomepage}
-          />
-          <EventInputName
-            savedQuery={savedQuery}
-            organization={organization}
-            eventView={eventView}
-            isHomepage={isHomepage}
-          />
+          {isHomepage ? (
+            <StyledTitle>
+              <GuideAnchor target="discover_landing_header">
+                <Label isDisabled>{t('Discover')}</Label>
+              </GuideAnchor>
+            </StyledTitle>
+          ) : (
+            <Fragment>
+              <DiscoverBreadcrumb
+                eventView={eventView}
+                organization={organization}
+                location={location}
+                isHomepage={isHomepage}
+              />
+              <EventInputName
+                savedQuery={savedQuery}
+                organization={organization}
+                eventView={eventView}
+                isHomepage={isHomepage}
+              />
+            </Fragment>
+          )}
           {this.renderAuthor()}
         </StyledHeaderContent>
         <Layout.HeaderActions>
@@ -157,6 +191,14 @@ class ResultsHeader extends Component<Props, State> {
             homepageQuery={homepageQuery}
           />
         </Layout.HeaderActions>
+        {isHomepage && (
+          <Feature
+            organization={organization}
+            features={['discover-query-builder-as-landing-page']}
+          >
+            {({hasFeature}) => hasFeature && this.renderBanner()}
+          </Feature>
+        )}
       </Layout.Header>
     );
   }
@@ -171,6 +213,15 @@ const Subtitle = styled('h4')`
 
 const StyledHeaderContent = styled(Layout.HeaderContent)`
   overflow: unset;
+`;
+
+const BannerWrapper = styled('div')`
+  grid-column: 1 / -1;
+`;
+
+const StyledTitle = styled(Title)`
+  overflow: unset;
+  margin-top: 0;
 `;
 
 export default withApi(ResultsHeader);

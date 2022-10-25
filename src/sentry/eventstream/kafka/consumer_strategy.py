@@ -10,7 +10,8 @@ from arroyo.processing.strategies.abstract import MessageRejected
 from arroyo.types import Commit, Message, Partition, Position
 
 from sentry import options
-from sentry.eventstream.kafka.postprocessworker import _sampled_eventstream_timer
+from sentry.eventstream.base import GroupStates
+from sentry.eventstream.kafka.postprocessworker import _record_metrics, _sampled_eventstream_timer
 from sentry.eventstream.kafka.postprocessworker import (
     dispatch_post_process_group_task as _dispatch_post_process_group_task,
 )
@@ -31,10 +32,11 @@ def dispatch_post_process_group_task(
     project_id: int,
     group_id: Optional[int],
     is_new: bool,
-    is_regression: bool,
+    is_regression: Optional[bool],
     is_new_group_environment: bool,
     primary_hash: Optional[str],
     skip_consume: bool = False,
+    group_states: Optional[GroupStates] = None,
 ) -> None:
     _dispatch_post_process_group_task(
         event_id,
@@ -45,6 +47,7 @@ def dispatch_post_process_group_task(
         is_new_group_environment,
         primary_hash,
         skip_consume,
+        group_states,
     )
 
 
@@ -69,6 +72,7 @@ def _get_task_kwargs_and_dispatch(message: Message[KafkaPayload]) -> None:
     if not task_kwargs:
         return None
 
+    _record_metrics(message.partition.index, task_kwargs)
     dispatch_post_process_group_task(**task_kwargs)
 
 
@@ -76,11 +80,12 @@ class DispatchTask(ProcessingStrategy[KafkaPayload]):
     def __init__(
         self,
         concurrency: int,
+        max_pending_futures: int,
         commit: Commit,
     ) -> None:
         self.__executor = ThreadPoolExecutor(max_workers=concurrency)
         self.__futures: Deque[Tuple[Message[KafkaPayload], Future[None]]] = deque()
-        self.__max_pending_futures = concurrency * 2
+        self.__max_pending_futures = max_pending_futures
         self.__commit = commit
         self.__closed = False
 
@@ -135,12 +140,14 @@ class PostProcessForwarderStrategyFactory(ProcessingStrategyFactory[KafkaPayload
     def __init__(
         self,
         concurrency: int,
+        max_pending_futures: int,
     ):
         self.__concurrency = concurrency
+        self.__max_pending_futures = max_pending_futures
 
     def create_with_partitions(
         self,
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-        return DispatchTask(self.__concurrency, commit)
+        return DispatchTask(self.__concurrency, self.__max_pending_futures, commit)

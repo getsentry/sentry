@@ -180,9 +180,14 @@ class QueryList extends Component<Props> {
           ? [
               {
                 key: 'set-as-default',
-                label: t('Set As Default'),
+                label: t('Set as Default'),
                 onAction: () => {
                   handleUpdateHomepageQuery(api, organization, eventView.toNewQuery());
+                  trackAdvancedAnalyticsEvent('discover_v2.set_as_default', {
+                    organization,
+                    source: 'context-menu',
+                    type: 'prebuilt-query',
+                  });
                 },
               },
             ]
@@ -266,9 +271,14 @@ class QueryList extends Component<Props> {
           ? [
               {
                 key: 'set-as-default',
-                label: t('Set As Default'),
+                label: t('Set as Default'),
                 onAction: () => {
                   handleUpdateHomepageQuery(api, organization, eventView.toNewQuery());
+                  trackAdvancedAnalyticsEvent('discover_v2.set_as_default', {
+                    organization,
+                    source: 'context-menu',
+                    type: 'saved-query',
+                  });
                 },
               },
             ]

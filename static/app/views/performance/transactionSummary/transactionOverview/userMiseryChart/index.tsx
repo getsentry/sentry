@@ -68,7 +68,7 @@ function UserMiseryChart({
       <QuestionTooltip
         size="sm"
         position="top"
-        title={t(getTermHelp(organization as Organization, PERFORMANCE_TERM.USER_MISERY))}
+        title={getTermHelp(organization as Organization, PERFORMANCE_TERM.USER_MISERY)}
       />
     </HeaderTitleLegend>
   );

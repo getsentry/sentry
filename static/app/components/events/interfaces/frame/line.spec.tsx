@@ -1,29 +1,7 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import Line from 'sentry/components/events/interfaces/frame/line';
 import {Frame} from 'sentry/types';
-import {OrganizationContext} from 'sentry/views/organizationContext';
-import {RouteContext} from 'sentry/views/routeContext';
-
-function TestComponent({children}: {children: React.ReactNode}) {
-  const {organization, router} = initializeOrg();
-
-  return (
-    <OrganizationContext.Provider value={organization}>
-      <RouteContext.Provider
-        value={{
-          router,
-          location: router.location,
-          params: {},
-          routes: [],
-        }}
-      >
-        {children}
-      </RouteContext.Provider>
-    </OrganizationContext.Provider>
-  );
-}
 
 describe('Frame - Line', function () {
   const event = TestStubs.Event();
@@ -51,19 +29,17 @@ describe('Frame - Line', function () {
   describe('renderOriginalSourceInfo()', function () {
     it('should render the source map information as a HTML string', function () {
       const {container} = render(
-        <TestComponent>
-          <Line
-            data={{
-              origAbsPath: 'https://beta.getsentry.com/_static/sentry/dist/vendor.js',
-              mapUrl: 'https://beta.getsentry.com/_static/sentry/dist/vendor.js.map',
-              map: 'vendor.js.map',
-              ...data,
-            }}
-            registers={{}}
-            components={[]}
-            event={event}
-          />
-        </TestComponent>
+        <Line
+          data={{
+            origAbsPath: 'https://beta.getsentry.com/_static/sentry/dist/vendor.js',
+            mapUrl: 'https://beta.getsentry.com/_static/sentry/dist/vendor.js.map',
+            map: 'vendor.js.map',
+            ...data,
+          }}
+          registers={{}}
+          components={[]}
+          event={event}
+        />
       );
       expect(container).toSnapshot();
     });
@@ -72,67 +48,61 @@ describe('Frame - Line', function () {
   describe('renderContext()', () => {
     it('should render context lines', () => {
       render(
-        <TestComponent>
-          <Line
-            data={{
-              ...data,
-              context: [
-                [
-                  211,
-                  '    # Mark the crashed thread and add its stacktrace to the exception',
-                ],
-                [212, "    crashed_thread = data['threads'][state.requesting_thread]"],
-                [213, "    crashed_thread['crashed'] = True"],
+        <Line
+          data={{
+            ...data,
+            context: [
+              [
+                211,
+                '    # Mark the crashed thread and add its stacktrace to the exception',
               ],
-            }}
-            registers={{}}
-            components={[]}
-            event={event}
-            isExpanded
-          />
-        </TestComponent>
+              [212, "    crashed_thread = data['threads'][state.requesting_thread]"],
+              [213, "    crashed_thread['crashed'] = True"],
+            ],
+          }}
+          registers={{}}
+          components={[]}
+          event={event}
+          isExpanded
+        />
       );
       expect(screen.getByRole('list')).toSnapshot();
     });
 
     it('should render register values', () => {
       render(
-        <TestComponent>
-          <Line
-            data={data}
-            registers={{
-              r10: '0x00007fff9300bf70',
-              r11: '0xffffffffffffffff',
-              r12: '0x0000000000000000',
-              r13: '0x0000000000000000',
-              r14: '0x000000000000000a',
-              r15: '0x0000000000000000',
-              r8: '0x00007fff9300bf78',
-              r9: '0x0000000000000040',
-              rax: '0x00007fff9291e660',
-              rbp: '0x00007ffedfdff7e0',
-              rbx: '0x00007fff9291e660',
-              rcx: '0x0000000000000008',
-              rdi: '0x00007ffedfdff790',
-              rdx: '0x0000020000000303',
-              rip: '0x000000010fe00a59',
-              rsi: '0x0000000000000300',
-              rsp: '0x00007ffedfdff7c0',
-            }}
-            components={[]}
-            event={event}
-            isExpanded
-          />
-        </TestComponent>
+        <Line
+          data={data}
+          registers={{
+            r10: '0x00007fff9300bf70',
+            r11: '0xffffffffffffffff',
+            r12: '0x0000000000000000',
+            r13: '0x0000000000000000',
+            r14: '0x000000000000000a',
+            r15: '0x0000000000000000',
+            r8: '0x00007fff9300bf78',
+            r9: '0x0000000000000040',
+            rax: '0x00007fff9291e660',
+            rbp: '0x00007ffedfdff7e0',
+            rbx: '0x00007fff9291e660',
+            rcx: '0x0000000000000008',
+            rdi: '0x00007ffedfdff790',
+            rdx: '0x0000020000000303',
+            rip: '0x000000010fe00a59',
+            rsi: '0x0000000000000300',
+            rsp: '0x00007ffedfdff7c0',
+          }}
+          components={[]}
+          event={event}
+          isExpanded
+        />
       );
       expect(screen.getByText('Registers')).toBeInTheDocument();
     });
 
     it('should not render empty registers', () => {
       render(
-        <TestComponent>
-          <Line data={data} registers={{}} components={[]} event={event} isExpanded />
-        </TestComponent>
+        <Line data={data} registers={{}} components={[]} event={event} isExpanded />
       );
 
       expect(screen.queryByText('Registers')).not.toBeInTheDocument();
@@ -151,15 +121,13 @@ describe('Frame - Line', function () {
       };
 
       render(
-        <TestComponent>
-          <Line
-            data={{...data, vars}}
-            registers={{}}
-            components={[]}
-            event={event}
-            isExpanded
-          />
-        </TestComponent>
+        <Line
+          data={{...data, vars}}
+          registers={{}}
+          components={[]}
+          event={event}
+          isExpanded
+        />
       );
 
       for (const [key, value] of Object.entries(vars)) {

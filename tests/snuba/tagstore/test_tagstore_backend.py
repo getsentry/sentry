@@ -21,7 +21,7 @@ from sentry.tagstore.snuba.backend import SnubaTagStorage
 from sentry.tagstore.types import GroupTagValue, TagValue
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import iso_format
-from sentry.testutils.perfomance_issues.store_transaction import PerfIssueTransactionTestMixin
+from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.types.issues import GroupType
 
 exception = {

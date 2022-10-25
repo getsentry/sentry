@@ -2,15 +2,10 @@ import {browserHistory} from 'react-router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
-import {
-  act,
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  within,
-} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import * as pageFilterUtils from 'sentry/components/organizations/pageFilters/persistence';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
 
 import {DEFAULT_EVENT_VIEW} from './data';
@@ -83,6 +78,24 @@ describe('Discover > Homepage', () => {
     });
   });
 
+  it('renders the Discover banner', async () => {
+    render(
+      <Homepage
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+        setSavedQuery={jest.fn()}
+        loading={false}
+      />,
+      {context: initialData.routerContext, organization: initialData.organization}
+    );
+
+    await screen.findByText('Discover Trends');
+    screen.getByText('Get a Tour');
+
+    expect(screen.queryByText('Build a new query')).not.toBeInTheDocument();
+  });
+
   it('fetches from the homepage URL and renders fields, page filters, and chart information', async () => {
     render(
       <Homepage
@@ -101,7 +114,6 @@ describe('Discover > Homepage', () => {
     // Only the environment field
     expect(screen.getAllByTestId('grid-head-cell').length).toEqual(1);
     screen.getByText('Previous Period');
-    screen.getByText('alpha');
     screen.getByText('event.type:error');
   });
 
@@ -180,12 +192,8 @@ describe('Discover > Homepage', () => {
       {context: initialData.routerContext, organization: initialData.organization}
     );
 
-    userEvent.click(screen.getByTestId('editable-text-label'));
-
-    // Check that clicking the label didn't render a textbox for editing
-    expect(
-      within(screen.getByTestId('editable-text-label')).queryByRole('textbox')
-    ).not.toBeInTheDocument();
+    // 'Discover' is the header for the homepage
+    expect(screen.getByText('Discover')).toBeInTheDocument();
     expect(screen.queryByText(/Created by:/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Last edited:/)).not.toBeInTheDocument();
   });
@@ -229,10 +237,10 @@ describe('Discover > Homepage', () => {
     );
 
     expect(await screen.findByText('Remove Default')).toBeInTheDocument();
-    expect(screen.queryByText('Set As Default')).not.toBeInTheDocument();
+    expect(screen.queryByText('Set as Default')).not.toBeInTheDocument();
   });
 
-  it('Disables the Set As Default button when no saved homepage', () => {
+  it('Disables the Set as Default button when no saved homepage', () => {
     initialData = initializeOrg({
       ...initializeOrg(),
       organization,
@@ -303,7 +311,8 @@ describe('Discover > Homepage', () => {
     expect(screen.queryByText('14D')).not.toBeInTheDocument();
   });
 
-  it('renders changes to the discover query when no homepage', async () => {
+  // eslint-disable-next-line jest/no-disabled-tests
+  it.skip('flaky: DD-1151: renders changes to the discover query when no homepage', async () => {
     initialData = initializeOrg({
       ...initializeOrg(),
       organization,
@@ -437,5 +446,33 @@ describe('Discover > Homepage', () => {
       expect(screen.queryByText('Edit Columns')).not.toBeInTheDocument()
     );
     expect(screen.getByText('event.type')).toBeInTheDocument();
+  });
+
+  it('overrides homepage filters with pinned filters if they exist', () => {
+    ProjectsStore.loadInitialData([TestStubs.Project({id: 2})]);
+    jest.spyOn(pageFilterUtils, 'getPageFilterStorage').mockReturnValueOnce({
+      pinnedFilters: new Set(['projects']),
+      state: {
+        project: [2],
+        environment: [],
+        start: null,
+        end: null,
+        period: '14d',
+        utc: null,
+      },
+    });
+
+    render(
+      <Homepage
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+        setSavedQuery={jest.fn()}
+        loading={false}
+      />,
+      {context: initialData.routerContext, organization: initialData.organization}
+    );
+
+    expect(screen.getByText('project-slug')).toBeInTheDocument();
   });
 });

@@ -660,7 +660,7 @@ CELERY_QUEUES = [
     Queue("merge", routing_key="merge"),
     Queue("options", routing_key="options"),
     Queue("post_process_errors", routing_key="post_process_errors"),
-    Queue("post_process_performance", routing_key="post_process_performance"),
+    Queue("post_process_transactions", routing_key="post_process_transactions"),
     Queue("relay_config", routing_key="relay_config"),
     Queue("relay_config_bulk", routing_key="relay_config_bulk"),
     Queue("reports.deliver", routing_key="reports.deliver"),
@@ -681,9 +681,11 @@ CELERY_QUEUES = [
     Queue("release_health.duplex", routing_key="release_health.duplex"),
     Queue("get_suspect_resolutions", routing_key="get_suspect_resolutions"),
     Queue("get_suspect_resolutions_releases", routing_key="get_suspect_resolutions_releases"),
+    Queue("replays.ingest_replay", routing_key="replays.ingest_replay"),
     Queue("replays.delete_replay", routing_key="replays.delete_replay"),
     Queue("counters-0", routing_key="counters-0"),
     Queue("triggers-0", routing_key="triggers-0"),
+    Queue("derive_code_mappings", routing_key="derive_code_mappings"),
 ]
 
 for queue in CELERY_QUEUES:
@@ -1187,24 +1189,16 @@ SENTRY_FEATURES = {
     # Enable SAML2 based SSO functionality. getsentry/sentry-auth-saml2 plugin
     # must be installed to use this functionality.
     "organizations:sso-saml2": True,
-    # Enable the server-side sampling feature (backend + relay)
+    # Enable the server-side sampling (backend + relay)
     "organizations:server-side-sampling": False,
-    # Enable the server-side sampling feature (frontend)
-    "organizations:server-side-sampling-ui": False,
-    # Enable the updated dynamic sampling UI for the total transaction packaging experience
-    "organizations:dynamic-sampling-total-transaction-packaging": False,
+    # Enable the original behavior of sampling and UI that was used in LA (supported for selected orgs until end of November)
+    "organizations:dynamic-sampling-deprecated": False,
     # Enable creating DS rules on incompatible platforms (used by SDK teams for dev purposes)
     "organizations:server-side-sampling-allow-incompatible-platforms": False,
     # Enable the deletion of sampling uniform rules (used internally for demo purposes)
     "organizations:dynamic-sampling-demo": False,
-    # Enable the creation of a uniform sampling rule.
-    "organizations:dynamic-sampling-basic": False,
-    # Enable the creation of uniform and conditional sampling rules.
-    "organizations:dynamic-sampling-advanced": False,
-    # Enable dynamic sampling call to action in the performance product
-    "organizations:dynamic-sampling-performance-cta": False,
-    # Enable a more advanced dynamic sampling call to action in the performance product
-    "organizations:dynamic-sampling-performance-cta-advanced": False,
+    # Enable the new opinionated dynamic sampling
+    "organizations:dynamic-sampling": False,
     # Enable the mobile screenshots feature
     "organizations:mobile-screenshots": False,
     # Enable the mobile screenshot gallery in the attachments tab

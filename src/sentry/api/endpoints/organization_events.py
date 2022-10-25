@@ -220,6 +220,9 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
         performance_dry_run_mep = features.has(
             "organizations:performance-dry-run-mep", organization=organization, actor=request.user
         )
+        use_metrics_layer = features.has(
+            "organizations:use-metrics-layer", organization=organization, actor=request.user
+        )
 
         dataset = self.get_dataset(request) if use_metrics else discover
         metrics_enhanced = dataset != discover
@@ -249,6 +252,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 "transform_alias_to_input_format": True,
                 # Whether the flag is enabled or not, regardless of the referrer
                 "has_metrics": use_metrics,
+                "use_metrics_layer": use_metrics_layer,
             }
             if not metrics_enhanced and performance_dry_run_mep:
                 sentry_sdk.set_tag("query.mep_compatible", False)
