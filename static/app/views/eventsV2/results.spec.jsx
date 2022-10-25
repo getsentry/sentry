@@ -1949,39 +1949,6 @@ describe('Results', function () {
     );
   });
 
-  it('links back to the homepage through the Discover breadcrumb', () => {
-    const organization = TestStubs.Organization({
-      features: [
-        'discover-basic',
-        'discover-query',
-        'discover-query-builder-as-landing-page',
-      ],
-    });
-
-    const initialData = initializeOrg({
-      organization,
-      router: {
-        location: {query: {id: '1'}},
-      },
-    });
-
-    ProjectsStore.loadInitialData([TestStubs.Project()]);
-
-    render(
-      <Results
-        organization={organization}
-        location={initialData.router.location}
-        router={initialData.router}
-      />,
-      {context: initialData.routerContext, organization}
-    );
-
-    expect(screen.getByText('Discover')).toHaveAttribute(
-      'href',
-      expect.stringMatching(new RegExp('^/organizations/org-slug/discover/homepage/'))
-    );
-  });
-
   it('allows users to Set As Default on the All Events query', () => {
     const organization = TestStubs.Organization({
       features: [
