@@ -13,7 +13,6 @@ import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import ErrorLevel from 'sentry/components/events/errorLevel';
 import EventAnnotation from 'sentry/components/events/eventAnnotation';
 import EventMessage from 'sentry/components/events/eventMessage';
-import FeatureBadge from 'sentry/components/featureBadge';
 import InboxReason from 'sentry/components/group/inboxBadges/inboxReason';
 import UnhandledInboxTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -318,12 +317,6 @@ function GroupHeader({
         >
           <StyledShortId shortId={group.shortId} />
         </Tooltip>
-        {group.issueCategory === IssueCategory.PERFORMANCE && (
-          <FeatureBadge
-            type="beta"
-            title="Performance issues are available for early adopters and may change"
-          />
-        )}
       </ShortIdBreadrcumb>
     </GuideAnchor>
   );
