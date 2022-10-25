@@ -96,4 +96,25 @@ describe('SearchBar', () => {
       })
     );
   });
+
+  it('Shows the returned data in the dropdown', async () => {
+    eventsMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/eventsv2/`,
+      body: {
+        data: [{transaction: 'clients.call'}, {transaction: 'clients.fetch'}],
+      },
+    });
+
+    render(<SearchBar {...testProps} />);
+
+    userEvent.type(screen.getByRole('textbox'), 'proje');
+    act(() => {
+      jest.runAllTimers();
+    });
+
+    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+
+    expect(screen.getByText(textWithMarkupMatcher('clients.call'))).toBeInTheDocument();
+    expect(screen.getByText(textWithMarkupMatcher('clients.fetch'))).toBeInTheDocument();
+  });
 });
