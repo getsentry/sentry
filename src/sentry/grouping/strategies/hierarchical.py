@@ -85,7 +85,7 @@ def get_stacktrace_hierarchy(
             id="stacktrace", values=layer, tree_label=tree_label
         )
 
-    if not all_variants and components:
+    if components and not all_variants:
         # In case we haven't found any sentinel frames, start grouping by
         # application frames.
         all_variants = _build_fallback_tree(main_variant, components, frames, inverted_hierarchy)
