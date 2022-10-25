@@ -1,5 +1,6 @@
 import logging
 import signal
+import uuid
 from typing import Any, Literal, Mapping, MutableMapping, Optional, Sequence, Tuple, Union
 
 from arroyo import Topic
@@ -244,16 +245,26 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
         cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
 
-        configuration = build_kafka_consumer_configuration(
-            get_kafka_consumer_cluster_options(cluster_name),
-            group_id=consumer_group,
-            auto_offset_reset=initial_offset_reset,
-            strict_offset_reset=strict_offset_reset,
+        consumer = KafkaConsumer(
+            build_kafka_consumer_configuration(
+                get_kafka_consumer_cluster_options(cluster_name),
+                group_id=consumer_group,
+                auto_offset_reset=initial_offset_reset,
+                strict_offset_reset=strict_offset_reset,
+            )
+        )
+
+        commit_log_consumer = KafkaConsumer(
+            build_kafka_consumer_configuration(
+                get_kafka_consumer_cluster_options(cluster_name),
+                group_id=f"ppf-commit-log-{uuid.uuid1().hex}",
+                auto_offset_reset="earliest",
+            )
         )
 
         synchronized_consumer = ArroyoSynchronizedConsumer(
-            consumer=KafkaConsumer(configuration),
-            commit_log_consumer=KafkaConsumer(configuration),
+            consumer=consumer,
+            commit_log_consumer=commit_log_consumer,
             commit_log_topic=Topic(commit_log_topic),
             commit_log_groups={synchronize_commit_group},
         )
@@ -297,7 +308,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
                 commit_batch_timeout_ms,
                 concurrency,
                 initial_offset_reset,
-                bool(strict_offset_reset),
+                strict_offset_reset,
             )
         else:
             consumer = self._build_consumer(

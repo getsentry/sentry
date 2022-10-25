@@ -3,7 +3,6 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {Config, User} from 'sentry/types';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 import OrganizationAuditLog from 'sentry/views/settings/organizationAuditLog';
 
 describe('OrganizationAuditLog', function () {
@@ -54,7 +53,7 @@ describe('OrganizationAuditLog', function () {
       },
     });
 
-    const {routerContext, organization, router} = initializeOrg({
+    const {routerContext, router} = initializeOrg({
       ...initializeOrg(),
       projects: [],
       router: {
@@ -62,14 +61,9 @@ describe('OrganizationAuditLog', function () {
       },
     });
 
-    render(
-      <OrganizationContext.Provider value={organization}>
-        <OrganizationAuditLog location={router.location} />
-      </OrganizationContext.Provider>,
-      {
-        context: routerContext,
-      }
-    );
+    render(<OrganizationAuditLog location={router.location} />, {
+      context: routerContext,
+    });
 
     expect(await screen.findByText('project.remove')).toBeInTheDocument();
     expect(screen.getByText('org.create')).toBeInTheDocument();

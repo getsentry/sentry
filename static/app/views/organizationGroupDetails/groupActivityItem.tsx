@@ -279,7 +279,11 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
           fingerprints.length,
           author,
           destination ? (
-            <Link to={`${issuesLink}${destination.id}`}>{destination.shortId}</Link>
+            <Link
+              to={`${issuesLink}${destination.id}?referrer=group-activity-unmerged-source`}
+            >
+              {destination.shortId}
+            </Link>
           ) : (
             t('a group')
           )
@@ -294,7 +298,11 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
           fingerprints.length,
           author,
           source ? (
-            <Link to={`${issuesLink}${source.id}`}>{source.shortId}</Link>
+            <Link
+              to={`${issuesLink}${source.id}?referrer=group-activity-unmerged-destination`}
+            >
+              {source.shortId}
+            </Link>
           ) : (
             t('a group')
           )
@@ -323,7 +331,7 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
           author,
           ['new-events']: (
             <Link
-              to={`/organizations/${orgSlug}/issues/?query=reprocessing.original_issue_id:${oldGroupId}`}
+              to={`/organizations/${orgSlug}/issues/?query=reprocessing.original_issue_id:${oldGroupId}&referrer=group-activity-reprocesses`}
             >
               {tn('See %s new event', 'See %s new events', eventCount)}
             </Link>

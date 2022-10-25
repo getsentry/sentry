@@ -22,7 +22,7 @@ class EventUserFeedback extends Component<Props> {
   getUrl() {
     const {report, orgId, issueId} = this.props;
 
-    return `/organizations/${orgId}/issues/${issueId}/events/${report.eventID}/`;
+    return `/organizations/${orgId}/issues/${issueId}/events/${report.eventID}/?referrer=user-feedback`;
   }
 
   render() {
