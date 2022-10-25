@@ -305,10 +305,10 @@ class TableView extends Component<TableViewProps & WithRouterProps> {
     } else if (columnKey === 'replayId') {
       if (dataRow.replayId) {
         const replaySlug = `${dataRow['project.name']}:${dataRow.replayId}`;
-        const referrer = encodeURIComponent(getRouteStringFromRoutes(this.props.routes));
+        const referrer = getRouteStringFromRoutes(this.props.routes);
 
         const target = {
-          pathname: `/organizations/${organization.slug}/replays/${replaySlug}`,
+          pathname: `/organizations/${organization.slug}/replays/${replaySlug}/`,
           query: {
             referrer,
           },

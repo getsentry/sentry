@@ -62,7 +62,7 @@ function ReplayContent({orgSlug, replaySlug, event}: Props) {
   const fullReplayUrl = {
     pathname: `/organizations/${orgSlug}/replays/${replaySlug}/`,
     query: {
-      referrer: encodeURIComponent(getRouteStringFromRoutes(routes)),
+      referrer: getRouteStringFromRoutes(routes),
       t_main: 'console',
       t: initialTimeOffset,
     },

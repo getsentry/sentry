@@ -100,7 +100,7 @@ function ReplayTable({
   showSlowestTxColumn = false,
 }: Props) {
   const routes = useRoutes();
-  const referrer = encodeURIComponent(getRouteStringFromRoutes(routes));
+  const referrer = getRouteStringFromRoutes(routes);
 
   const organization = useOrganization();
   const theme = useTheme();
@@ -222,7 +222,12 @@ function ReplayTableRow({
         avatarSize={32}
         displayName={
           <Link
-            to={`/organizations/${organization.slug}/replays/${project?.slug}:${replay.id}/?referrer=${referrer}`}
+            to={{
+              pathname: `/organizations/${organization.slug}/replays/${project?.slug}:${replay.id}/`,
+              query: {
+                referrer,
+              },
+            }}
           >
             {replay.user.displayName || ''}
           </Link>
