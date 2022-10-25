@@ -44,7 +44,6 @@ def unsplit_key(
 def event_to_record(event: Event, rules: Sequence[Rule]) -> Record:
     if not rules:
         logger.warning(f"Creating record for {event} that does not contain any rules!")
-
     return Record(
         event.event_id,
         Notification(event, [rule.id for rule in rules]),
@@ -116,9 +115,17 @@ def rewrite_record(
         logger.debug(f"{record} could not be associated with a group.")
         return None
 
+    rule_list = []
+    for rule_id in record.value.rules:
+        if rule_id == -1:
+            # unsaved dummy rule created to test notifications in `project_rule_actions`
+            rule_list.append(Rule(id=-1, project=project))
+        else:
+            rule_list.append(rules.get(rule_id))
+
     return Record(
         record.key,
-        Notification(event, [_f for _f in [rules.get(id) for id in record.value.rules] if _f]),
+        Notification(event, [_f for _f in rule_list if _f]),
         record.timestamp,
     )
 
@@ -179,7 +186,6 @@ def build_digest(
 
     # XXX(hack): Allow generating a mock digest without actually doing any real IO!
     state = state or fetch_state(project, records)
-
     pipeline = (
         Pipeline()
         .map(functools.partial(rewrite_record, **attach_state(**state)))

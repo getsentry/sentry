@@ -44,7 +44,7 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
         data["actionMatch"] = "all"
         data["filterMatch"] = "all"
         data["frequency"] = 30
-        rule = Rule(project=project, data=data)
+        rule = Rule(id=-1, project=project, data=data)
 
         test_event = create_sample_event(
             project, platform=project.platform, default="javascript", tagged=True

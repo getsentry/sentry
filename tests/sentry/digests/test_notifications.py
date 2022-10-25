@@ -60,6 +60,22 @@ class RewriteRecordTestCase(TestCase):
             self.record.key, Notification(self.record.value.event, []), self.record.timestamp
         )
 
+    def test_dummy_rule(self):
+        record = Record(
+            self.record.key, Notification(self.record.value.event, [-1]), self.record.timestamp
+        )
+        dummy_rule = Rule(id=-1, project=self.project)
+        assert rewrite_record(
+            record,
+            project=self.event.project,
+            groups={self.event.group.id: self.event.group},
+            rules={},
+        ) == Record(
+            self.record.key,
+            Notification(self.record.value.event, [dummy_rule]),
+            self.record.timestamp,
+        )
+
 
 @region_silo_test
 class GroupRecordsTestCase(TestCase):
