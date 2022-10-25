@@ -39,6 +39,12 @@ from sentry.constants import (
     DataCategory,
 )
 from sentry.culprit import generate_culprit
+from sentry.dynamic_sampling import DynamicSamplingFeatureMultiplexer
+from sentry.dynamic_sampling.latest_release_booster import (
+    TooManyBoostedReleasesException,
+    add_boosted_release,
+    observe_release,
+)
 from sentry.eventstore.processing import event_processing_store
 from sentry.grouping.api import (
     BackgroundGroupingConfigLoader,
@@ -94,6 +100,7 @@ from sentry.signals import first_event_received, first_transaction_received, iss
 from sentry.tasks.commits import fetch_commits
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.process_buffer import buffer_incr
+from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.types.activity import ActivityType
 from sentry.types.issues import GroupCategory
 from sentry.utils import json, metrics
@@ -825,6 +832,45 @@ def _get_or_create_release_many(jobs, projects):
                     # don't allow a conflicting 'dist' tag
                     pop_tag(job["data"], "dist")
                     set_tag(job["data"], "sentry:dist", job["dist"].name)
+
+                # Dynamic Sampling - Boosting latest release functionality
+                if (
+                    options.get("dynamic-sampling:boost-latest-release")
+                    and DynamicSamplingFeatureMultiplexer(
+                        project=projects[project_id]
+                    ).is_on_dynamic_sampling
+                    and data.get("type") == "transaction"
+                ):
+                    with sentry_sdk.start_span(
+                        op="event_manager.dynamic_sampling_observe_latest_release"
+                    ) as span, metrics.timer(
+                        "event_manager.dynamic_sampling_observe_latest_release"
+                    ) as metrics_tags:
+                        try:
+                            release_observed_in_last_24h = observe_release(project_id, release.id)
+                            if not release_observed_in_last_24h:
+                                span.set_tag(
+                                    "dynamic_sampling.observe_release_status",
+                                    f"New release observed {release.id}",
+                                )
+                                metrics_tags[
+                                    "dynamic_sampling.observe_release_status"
+                                ] = f"New release observed {release.id}"
+                                add_boosted_release(project_id, release.id)
+                                schedule_invalidate_project_config(
+                                    project_id=project_id, trigger="dynamic_sampling:boost_release"
+                                )
+                        except TooManyBoostedReleasesException:
+                            span.set_tag(
+                                "dynamic_sampling.observe_release_status",
+                                "Too many boosted releases",
+                            )
+                            metrics_tags[
+                                "dynamic_sampling.observe_release_status"
+                            ] = "Too many boosted releases"
+                            pass
+                        except Exception:
+                            sentry_sdk.capture_exception()
 
 
 @metrics.wraps("save_event.get_event_user_many")

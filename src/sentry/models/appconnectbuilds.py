@@ -27,11 +27,8 @@ class AppConnectBuild(Model):
 
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
 
-    # The integer ID of the app inside App Store Connect.
-    app_id = models.IntegerField(null=True)
-
-    # The integer ID of the app inside App Store Connect, as a string.
-    app_id_str = models.CharField(default="0", max_length=256)
+    # The integer ID of the app inside App Store Connect (in string form).
+    app_id = models.CharField(default="0", max_length=256, db_column="app_id_str")
 
     # The unique Bundle ID, like a slug for app_id
     #
