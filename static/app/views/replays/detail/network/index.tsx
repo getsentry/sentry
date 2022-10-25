@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
   AutoSizer,
   CellMeasurer,
@@ -105,18 +105,20 @@ function NetworkList({replayRecord, networkSpans}: Props) {
   );
 
   useEffect(() => {
-    // Observe the network table for width changes
-    const observer = new ResizeObserver(() => {
-      // Recompute the column widths
-      multiGridRef.current?.recomputeGridSize({columnIndex: 1});
-    });
+    let observer: ResizeObserver | null;
 
     if (networkTableRef.current) {
+      // Observe the network table for width changes
+      observer = new ResizeObserver(() => {
+        // Recompute the column widths
+        multiGridRef.current?.recomputeGridSize({columnIndex: 1});
+      });
+
       observer.observe(networkTableRef.current);
     }
 
     return () => {
-      observer.disconnect();
+      observer?.disconnect();
     };
   }, [networkTableRef, searchTerm]);
 
@@ -144,7 +146,9 @@ function NetworkList({replayRecord, networkSpans}: Props) {
         size="xs"
         direction={sortConfig.by === sortedBy && !sortConfig.asc ? 'down' : 'up'}
       />
-    ) : null;
+    ) : (
+      <IconArrow size="xs" style={{visibility: 'hidden'}} />
+    );
   };
 
   const columns = [
@@ -206,7 +210,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
     };
 
     const columnValues = [
-      <Item key="statusCode" {...columnHandlers} {...columnProps} isStatusCode>
+      <Item key="statusCode" {...columnHandlers} {...columnProps}>
         {statusCode ? statusCode : <EmptyText>---</EmptyText>}
       </Item>,
       <Item key="description" {...columnHandlers} {...columnProps}>
@@ -271,15 +275,9 @@ function NetworkList({replayRecord, networkSpans}: Props) {
         rowIndex={rowIndex}
       >
         <div key={key} style={style}>
-          {rowIndex === 0 ? (
-            <Fragment>
-              <NetworkTableHeader columns={columns.length}>
-                {columns[columnIndex]}
-              </NetworkTableHeader>
-            </Fragment>
-          ) : (
-            getNetworkColumnValue(network, columnIndex)
-          )}
+          {rowIndex === 0
+            ? columns[columnIndex]
+            : getNetworkColumnValue(network, columnIndex)}
         </div>
       </CellMeasurer>
     );
@@ -321,28 +319,15 @@ function NetworkList({replayRecord, networkSpans}: Props) {
               ref={multiGridRef}
               columnCount={columns.length}
               columnWidth={({index}) => {
-                if (index === 0) {
-                  // For the status code column, we want to set a fixed width
-                  return Math.max(80, cache.columnWidth({index}));
-                }
-
-                // If the column is the path column, we want to take up the rest of the space
                 if (index === 1) {
-                  // We need to subtract the width of the other columns
-                  const otherColumnsWidth =
-                    columns.reduce((acc, _, i) => {
-                      if (i === 0) {
-                        return acc + Math.max(80, cache.columnWidth({index: i}));
-                      }
-
-                      if (i === 1) {
-                        return acc;
-                      }
-
-                      return acc + cache.columnWidth({index: i});
-                    }, 0) - scrollBarWidth;
-
-                  return Math.max(width - otherColumnsWidth, 200);
+                  return Math.max(
+                    columns.reduce(
+                      (remaining, _, i) =>
+                        i === 1 ? remaining : remaining - cache.columnWidth({index: i}),
+                      width - scrollBarWidth
+                    ),
+                    200
+                  );
                 }
 
                 return cache.columnWidth({index});
@@ -415,13 +400,10 @@ const Item = styled('div')<{
   isCurrent: boolean;
   isStatusError: boolean;
   timestampSortDir: SortDirection | undefined;
-  center?: boolean;
-  isStatusCode?: boolean;
   numeric?: boolean;
 }>`
   display: flex;
   align-items: center;
-  ${p => p.center && 'justify-content: center;'}
 
   font-size: ${p => p.theme.fontSizeSmall};
   max-height: 28px;
@@ -462,6 +444,7 @@ const UnstyledButton = styled('button')`
 `;
 
 const UnstyledHeaderButton = styled(UnstyledButton)`
+  padding: ${space(0.5)} ${space(1)} ${space(0.5)} ${space(1.5)};
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -478,7 +461,7 @@ const NetworkTable = styled('div')`
   margin-bottom: 0;
 `;
 
-const NetworkTableHeader = styled('div')<{columns: number}>`
+const SortItem = styled('span')`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 600;
@@ -486,22 +469,16 @@ const NetworkTableHeader = styled('div')<{columns: number}>`
   display: flex;
   flex-direction: column;
   justify-content: center;
-
-  max-height: ${headerRowHeight}px;
-  border-radius: 0;
-  line-height: 16px;
-  text-transform: none;
-
-  border-right: 1px solid ${p => p.theme.innerBorder};
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
-`;
-
-const SortItem = styled('span')`
-  padding: ${space(0.5)} ${space(1.5)};
+  align-items: center;
   width: 100%;
 
-  display: flex;
-  align-items: center;
+  max-height: ${headerRowHeight}px;
+  line-height: 16px;
+  text-transform: uppercase;
+
+  border-radius: 0;
+  border-right: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
 
   svg {
     margin-left: ${space(0.25)};
