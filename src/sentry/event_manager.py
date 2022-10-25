@@ -829,7 +829,10 @@ def _get_or_create_release_many(jobs, projects):
                     set_tag(job["data"], "sentry:dist", job["dist"].name)
 
                 # Dynamic Sampling - Boosting latest release functionality
-                if data.get("type") == "transaction":
+                if (
+                    options.get("dynamic-sampling:boost-latest-release")
+                    and data.get("type") == "transaction"
+                ):
                     try:
                         release_observed_in_last_24h = observe_release(project_id, release.id)
                         if not release_observed_in_last_24h:
