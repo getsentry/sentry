@@ -1,5 +1,6 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import ProjectLatestAlerts from 'sentry/views/projectDetail/projectLatestAlerts';
 
@@ -27,7 +28,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
   });
 
   it('renders a list', function () {
-    const wrapper = mountWithTheme(
+    render(
       <ProjectLatestAlerts
         organization={organization}
         projectSlug={project.slug}
@@ -45,33 +46,28 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
       })
     );
 
-    expect(wrapper.find('SectionHeading').text()).toBe('Latest Alerts');
+    expect(screen.getByText('Latest Alerts')).toBeInTheDocument();
+    expect(screen.getAllByText('Too many Chrome errors')).toHaveLength(3);
 
-    expect(wrapper.find('AlertRowLink').length).toBe(3);
+    expect(
+      screen.getAllByRole('link', {name: 'Too many Chrome errors'})[0]
+    ).toHaveAttribute(
+      'href',
 
-    expect(wrapper.find('AlertRowLink Link').at(0).prop('to')).toBe(
       '/organizations/org-slug/alerts/123/'
     );
-    expect(wrapper.find('AlertRowLink AlertTitle').at(0).text()).toBe(
-      'Too many Chrome errors'
-    );
-    expect(wrapper.find('AlertRowLink AlertDate').at(0).text()).toBe(
-      'Triggered 2 years ago'
-    );
-    expect(wrapper.find('AlertRowLink AlertDate').at(2).text()).toBe(
-      'Resolved a year ago'
-    );
 
-    expect(wrapper.find('AlertRowLink').at(0).find('IconFire').exists()).toBeTruthy();
     expect(
-      wrapper.find('AlertRowLink').at(0).find('IconExclamation').exists()
-    ).toBeFalsy();
+      screen.getAllByText(textWithMarkupMatcher('Triggered 2 years ago'))
+    ).toHaveLength(2);
+
     expect(
-      wrapper.find('AlertRowLink').at(1).find('IconExclamation').exists()
-    ).toBeTruthy();
-    expect(
-      wrapper.find('AlertRowLink').at(2).find('IconCheckmark').exists()
-    ).toBeTruthy();
+      screen.getByText(textWithMarkupMatcher('Resolved a year ago'))
+    ).toBeInTheDocument();
+
+    expect(screen.getByLabelText('Critical')).toBeInTheDocument();
+    expect(screen.getByLabelText('Warning')).toBeInTheDocument();
+    expect(screen.getByLabelText('Resolved')).toBeInTheDocument();
   });
 
   it('shows the empty state', async function () {
@@ -80,7 +76,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
       body: [],
     });
 
-    const wrapper = mountWithTheme(
+    render(
       <ProjectLatestAlerts
         organization={organization}
         projectSlug={project.slug}
@@ -89,17 +85,14 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
       />
     );
 
-    await tick();
-    wrapper.update();
-
     expect(rulesEndpointMock).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
         query: {per_page: 1},
       })
-    ); // if there are no alerts, we check if any rules are set
+    );
 
-    expect(wrapper.text()).toContain('No alerts found');
+    expect(await screen.findByText('No alerts found')).toBeInTheDocument();
   });
 
   it('shows configure alerts buttons', async function () {
@@ -112,7 +105,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
       body: [],
     });
 
-    const wrapper = mountWithTheme(
+    render(
       <ProjectLatestAlerts
         organization={organization}
         projectSlug={project.slug}
@@ -121,25 +114,19 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
       />
     );
 
-    await tick();
-    wrapper.update();
-
-    const createRuleButton = wrapper.find('Button').at(0);
-    const learnMoreButton = wrapper.find('Button').at(1);
-
-    expect(createRuleButton.text()).toBe('Create Alert');
-    expect(createRuleButton.prop('to')).toBe(
+    expect(await screen.findByRole('button', {name: 'Create Alert'})).toHaveAttribute(
+      'href',
       `/organizations/${organization.slug}/alerts/wizard/?referrer=project_detail&project=project-slug`
     );
 
-    expect(learnMoreButton.text()).toBe('Learn More');
-    expect(learnMoreButton.prop('href')).toBe(
+    expect(screen.getByRole('button', {name: 'Learn More'})).toHaveAttribute(
+      'href',
       'https://docs.sentry.io/product/alerts-notifications/metric-alerts/'
     );
   });
 
   it('calls API with the right params', function () {
-    mountWithTheme(
+    render(
       <ProjectLatestAlerts
         organization={organization}
         projectSlug={project.slug}
@@ -169,7 +156,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
       ],
     });
 
-    const wrapper = mountWithTheme(
+    render(
       <ProjectLatestAlerts
         organization={organization}
         projectSlug={project.slug}
@@ -178,11 +165,11 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
       />
     );
 
-    expect(wrapper.find('AlertRowLink AlertDate').at(2).text()).toBe('Resolved ');
+    expect(screen.getByText('Resolved')).toBeInTheDocument();
   });
 
   it('does not call API if project is not stabilized yet', function () {
-    mountWithTheme(
+    render(
       <ProjectLatestAlerts
         organization={organization}
         projectSlug={project.slug}
