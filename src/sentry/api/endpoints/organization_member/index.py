@@ -46,8 +46,12 @@ class MemberConflictValidationError(serializers.ValidationError):
 class OrganizationMemberSerializer(serializers.Serializer):
     email = AllowedEmailField(max_length=75, required=True)
 
-    role = serializers.ChoiceField(choices=roles.get_choices(), default=organization_roles.get_default().id)  # deprecated, use orgRole
-    orgRole = serializers.ChoiceField(choices=roles.get_choices(), default=organization_roles.get_default().id)
+    role = serializers.ChoiceField(
+        choices=roles.get_choices(), default=organization_roles.get_default().id
+    )  # deprecated, use orgRole
+    orgRole = serializers.ChoiceField(
+        choices=roles.get_choices(), default=organization_roles.get_default().id
+    )
     teams = ListField(required=False, allow_null=True, default=[])
     teamRoles = ListField(required=False, allow_null=True, default=[])
 
@@ -87,7 +91,7 @@ class OrganizationMemberSerializer(serializers.Serializer):
         return valid_teams
 
     def validate_teamRoles(self, teamRoles) -> List[Tuple[Team, str]]:
-        roles = set([item["role"] for item in teamRoles])
+        roles = {item["role"] for item in teamRoles}
         valid_roles = [r.id for r in team_roles.get_all()] + [None]
         if roles.difference(valid_roles):
             raise serializers.ValidationError("Invalid team-role")
@@ -95,7 +99,9 @@ class OrganizationMemberSerializer(serializers.Serializer):
         team_slugs = [item["teamSlug"] for item in teamRoles]
         valid_teams = list(
             Team.objects.filter(
-                organization=self.context["organization"], status=TeamStatus.VISIBLE, slug__in=team_slugs
+                organization=self.context["organization"],
+                status=TeamStatus.VISIBLE,
+                slug__in=team_slugs,
             )
         )
         if len(valid_teams) != len(team_slugs):
