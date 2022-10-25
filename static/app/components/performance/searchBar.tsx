@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
@@ -31,6 +31,11 @@ function SearchBar(props: SearchBarProps) {
 
   const api = useApi();
   const eventView = _eventView.clone();
+
+  useEffect(() => {
+    // Cancel in-flight requests when the component unmounts
+    api.clear();
+  });
 
   const prepareQuery = (query: string) => {
     const prependedChar = query[0] === '*' ? '' : '*';
