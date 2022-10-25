@@ -370,6 +370,7 @@ function AndroidInstallSteps({
   const requiresSdkUpdates =
     hasSdkUpdates &&
     sdkUpdates.data?.sdkVersion &&
+    // ensure we only prompt an upgrade when the sdk is one of the following
     ['sentry.java.android', 'sentry.java.android.timber'].includes(
       sdkUpdates.data.sdkName
     )
