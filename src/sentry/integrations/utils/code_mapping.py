@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, List, NamedTuple, Union
+from typing import Dict, List, NamedTuple, Union
 
 logger = logging.getLogger("sentry.integrations.utils.code_mapping")
 logger.setLevel(logging.INFO)
@@ -15,7 +15,7 @@ class CodeMapping(NamedTuple):
     source_path: str
 
 
-def derive_code_mappings(stacktraces: List[str], trees: Dict[str, Any]) -> List[CodeMapping]:
+def derive_code_mappings(stacktraces: List[str], trees: Dict[str, List[str]]) -> List[CodeMapping]:
     """Generate the code mappings from a list of stack trace frames for a project and the trees for an org.
 
     WARNING: Do not pass stacktraces from different projects or the wrong code mappings will be returned.
@@ -48,14 +48,12 @@ class FrameFilename:
 
 
 class CodeMappingTreesHelper:
-    def __init__(self, trees: Dict[str, Any]):
+    def __init__(self, trees: Dict[str, List[str]]):
         self.trees = trees
-        self.code_mappings: Dict[str, Any] = {}
-        # This simplifies excluding source files for existing code mappings
-        self.reverse_mapping: List[str] = []
+        self.code_mappings: Dict[str, CodeMapping] = {}
 
-    def stacktrace_buckets(self, stacktraces: List[str]) -> Dict[str, Any]:
-        buckets: Dict[str, Any] = {}
+    def stacktrace_buckets(self, stacktraces: List[str]) -> Dict[str, List[FrameFilename]]:
+        buckets: Dict[str, List[FrameFilename]] = {}
         for stacktrace_frame_file_path in stacktraces:
             try:
                 frame_filename = FrameFilename(stacktrace_frame_file_path)
@@ -73,23 +71,35 @@ class CodeMappingTreesHelper:
                 continue
         return buckets
 
-    def generate_code_mappings(self, stacktraces: List[str]) -> List[CodeMapping]:
-        """Generate code mappings based on the initial trees object and the list of stack traces"""
-        # We need to make sure that calling this method with a new list of stack traces
-        # should always start with a clean slate
-        self.code_mappings = {}
-        buckets: Dict[str, Any] = self.stacktrace_buckets(stacktraces)
-
+    def process_stackframes(self, buckets: Dict[str, List[FrameFilename]]) -> bool:
+        """This processes all stackframes and returns if a new code mapping has been generated"""
+        reprocess = False
         for stackframe_root, stackframes in buckets.items():
             if not self.code_mappings.get(stackframe_root):
                 for frame_filename in stackframes:
                     code_mapping = self._find_code_mapping(frame_filename)
                     if code_mapping:
-                        # XXX: Reprocess feature
-                        # XXX: Reverse mapping may need to be on a per-repo basis
-                        # This helps excluding some source files when we have a matching code mapping
-                        self.reverse_mapping.append(code_mapping.source_path)
+                        # This allows processing some stack frames that
+                        # were matching more than one file
+                        reprocess = True
                         self.code_mappings[stackframe_root] = code_mapping
+        return reprocess
+
+    def generate_code_mappings(self, stacktraces: List[str]) -> List[CodeMapping]:
+        """Generate code mappings based on the initial trees object and the list of stack traces"""
+        # We need to make sure that calling this method with a new list of stack traces
+        # should always start with a clean slate
+        self.code_mappings = {}
+        buckets: Dict[str, List[FrameFilename]] = self.stacktrace_buckets(stacktraces)
+
+        # We reprocess stackframes until we are told that no code mappings were produced
+        # This is order to reprocess past stackframes in light of newly discovered code mappings
+        # This allows for idempotency since the order of the stackframes will not matter
+        # This has no performance issue because stackframes that match an existing code mapping
+        # will be skipped
+        while True:
+            if not self.process_stackframes(buckets):
+                break
 
         return list(self.code_mappings.values())
 
@@ -139,24 +149,21 @@ class CodeMappingTreesHelper:
         )
 
     def _matches_current_code_mappings(self, src_file: str, frame_filename: FrameFilename) -> bool:
-        if not self.reverse_mapping:
-            return False
-        else:
-            # In some cases, once we have derived a code mapping we can exclude files that start with
-            # that source path.
-            #
-            # For instance sentry_plugins/slack/client.py matches these files
-            # - "src/sentry_plugins/slack/client.py",
-            # - "src/sentry/integrations/slack/client.py",
-            return any(
-                source_path
-                for source_path in self.reverse_mapping
-                if src_file.startswith(f"{source_path}/")
-            )
+        # In some cases, once we have derived a code mapping we can exclude files that start with
+        # that source path.
+        #
+        # For instance sentry_plugins/slack/client.py matches these files
+        # - "src/sentry_plugins/slack/client.py",
+        # - "src/sentry/integrations/slack/client.py",
+        return any(
+            code_mapping.source_path
+            for code_mapping in self.code_mappings.values()
+            if src_file.startswith(f"{code_mapping.source_path}/")
+        )
 
     def _potential_match(self, src_file: str, frame_filename: FrameFilename) -> bool:
         """Tries to see if the stacktrace without the root matches the file from the
-        source code. Use reverse code mappings to exclude some source files
+        source code. Use existing code mappings to exclude some source files
         """
         # Exit early because we should not be processing source files for existing code maps
         if self._matches_current_code_mappings(src_file, frame_filename):
