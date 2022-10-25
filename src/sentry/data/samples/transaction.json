@@ -39,7 +39,7 @@
       "values": [
          {
             "category": "query",
-            "timestamp":1562681591.0,
+            "timestamp": 1562681591.0,
             "message": "SELECT \"countries\".\"id\", \"countries\".\"name\", \"countries\".\"continent\", \"countries\".\"region\", \"countries\".\"surface_area\", \"coun...'CAN'",
             "type": "default",
             "level": "info"
@@ -130,27 +130,33 @@
    },
    "spans": [
       {
-         "same_process_as_parent":true,
+         "same_process_as_parent": true,
          "description": "django.contrib.messages.middleware.MessageMiddleware.process_request",
          "tags": {
-            "error":false
+            "error": false
          },
          "parent_span_id": "babaae0d4b7512d9",
          "trace_id": "a7d67cf796774551a95be6543cacd459",
          "op": "django.middleware",
-         "data": {"duration": 0.02, "offset": 0.02},
+         "data": {
+            "duration": 0.02,
+            "offset": 0.02
+         },
          "span_id": "c048b4fffdc4279d"
       },
       {
-         "same_process_as_parent":true,
+         "same_process_as_parent": true,
          "description": "Django: SELECT \"countries\".\"id\", \"countries\".\"name\", \"countries\".\"continent\", \"countries\".\"region\", \"countries\".\"surface_area\", \"coun...'CAN'",
          "tags": {
-            "error":false
+            "error": false
          },
          "parent_span_id": "c048b4fffdc4279d",
          "trace_id": "a7d67cf796774551a95be6543cacd459",
          "op": "db",
-         "data": {"duration": 0.100, "offset": 1.0},
+         "data": {
+            "duration": 0.100,
+            "offset": 1.0
+         },
          "span_id": "d047a3a8edc3276a"
       }
    ],
@@ -161,18 +167,23 @@
    },
    "measurements": {
       "fp": {
+         "unit": "millisecond",
          "value": 2258.060000000114
       },
       "fcp": {
+         "unit": "millisecond",
          "value": 2258.060000000114
       },
       "lcp": {
+         "unit": "millisecond",
          "value": 2807.335
       },
       "fid": {
+         "unit": "millisecond",
          "value": 3.4900000027846545
       },
       "cls": {
+         "unit": "none",
          "value": 0.0382
       }
    },
