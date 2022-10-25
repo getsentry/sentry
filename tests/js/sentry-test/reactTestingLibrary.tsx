@@ -13,7 +13,7 @@ import {
   DEFAULT_QUERY_CLIENT_CONFIG,
   QueryClient,
   QueryClientProvider,
-} from 'sentry/utils/reactQuery';
+} from 'sentry/utils/queryClient';
 import {lightTheme} from 'sentry/utils/theme';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {RouteContext} from 'sentry/views/routeContext';

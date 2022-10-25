@@ -9,7 +9,7 @@ import {
   DEFAULT_QUERY_CLIENT_CONFIG,
   QueryClient,
   QueryClientProvider,
-} from 'sentry/utils/reactQuery';
+} from 'sentry/utils/queryClient';
 import {RouteContext} from 'sentry/views/routeContext';
 
 /**

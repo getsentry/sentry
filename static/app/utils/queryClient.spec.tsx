@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {useQuery} from 'sentry/utils/reactQuery';
+import {useQuery} from 'sentry/utils/queryClient';
 import RequestError from 'sentry/utils/requestError/requestError';
 import * as useApi from 'sentry/utils/useApi';
 
@@ -12,7 +12,7 @@ beforeEach(() => {
   jest.restoreAllMocks();
 });
 
-describe('reactQuery', function () {
+describe('queryClient', function () {
   describe('useQuery', function () {
     it('can do a simple fetch', async function () {
       const mock = MockApiClient.addMockResponse({
