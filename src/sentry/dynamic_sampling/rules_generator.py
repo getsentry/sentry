@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Union, cast
 
 import sentry_sdk
 from pytz import UTC
@@ -15,6 +15,7 @@ from sentry.dynamic_sampling.utils import (
     RELEASE_BOOST_FACTOR,
     RESERVED_IDS,
     BaseRule,
+    ReleaseRule,
     RuleType,
 )
 from sentry.models import Project, Release
@@ -53,7 +54,7 @@ def generate_environment_rule() -> BaseRule:
     }
 
 
-def generate_boost_release_rules(project_id, sample_rate):
+def generate_boost_release_rules(project_id: int, sample_rate: float) -> List[ReleaseRule]:
     boosted_release_in_cache = get_boosted_releases(project_id)
     if not boosted_release_in_cache:
         return []
@@ -71,39 +72,43 @@ def generate_boost_release_rules(project_id, sample_rate):
         boosted_release_versions.append((boosted_releases_dict[release_id], timestamp))
 
     boosted_sample_rate = min(1.0, sample_rate * RELEASE_BOOST_FACTOR)
-    return [
-        {
-            "sampleRate": boosted_sample_rate,
-            "type": "trace",
-            "condition": {
-                "op": "and",
-                "inner": [
-                    {
-                        "op": "glob",
-                        "name": "trace.release",
-                        "value": [release_version],
-                    }
-                ],
-            },
-            "id": RESERVED_IDS[RuleType.BOOST_LATEST_RELEASES_RULE] + idx,
-            "timeRange": {
-                "start": str(datetime.utcfromtimestamp(timestamp).replace(tzinfo=UTC)),
-                "end": str(
-                    datetime.utcfromtimestamp(timestamp + BOOSTED_RELEASE_TIMEOUT).replace(
-                        tzinfo=UTC
-                    )
-                ),
-            },
-        }
-        for idx, (release_version, timestamp) in enumerate(boosted_release_versions)
-    ]
+    return cast(
+        List[ReleaseRule],
+        [
+            {
+                "sampleRate": boosted_sample_rate,
+                "type": "trace",
+                "active": True,
+                "condition": {
+                    "op": "and",
+                    "inner": [
+                        {
+                            "op": "glob",
+                            "name": "trace.release",
+                            "value": [release_version],
+                        }
+                    ],
+                },
+                "id": RESERVED_IDS[RuleType.BOOST_LATEST_RELEASES_RULE] + idx,
+                "timeRange": {
+                    "start": str(datetime.utcfromtimestamp(timestamp).replace(tzinfo=UTC)),
+                    "end": str(
+                        datetime.utcfromtimestamp(timestamp + BOOSTED_RELEASE_TIMEOUT).replace(
+                            tzinfo=UTC
+                        )
+                    ),
+                },
+            }
+            for idx, (release_version, timestamp) in enumerate(boosted_release_versions)
+        ],
+    )
 
 
-def generate_rules(project: Project) -> List[BaseRule]:
+def generate_rules(project: Project) -> List[Union[BaseRule, ReleaseRule]]:
     """
     This function handles generate rules logic or fallback empty list of rules
     """
-    rules = []
+    rules: List[Union[BaseRule, ReleaseRule]] = []
 
     sample_rate = quotas.get_blended_sample_rate(project)
 

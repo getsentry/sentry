@@ -54,7 +54,7 @@ DEFAULT_ENVIRONMENT_RULE = {
         ],
     },
     "active": True,
-    "id": 1,
+    "id": 1001,
 }
 
 
@@ -268,7 +268,7 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
                         "type": "trace",
                         "active": True,
                         "condition": {"op": "and", "inner": []},
-                        "id": 0,
+                        "id": 1000,
                     },
                 ]
             },
@@ -283,7 +283,7 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
                         "type": "trace",
                         "active": True,
                         "condition": {"op": "and", "inner": []},
-                        "id": 0,
+                        "id": 1000,
                     }
                 ]
             },
@@ -295,7 +295,7 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
                         "type": "trace",
                         "active": True,
                         "condition": {"op": "and", "inner": []},
-                        "id": 0,
+                        "id": 1000,
                     },
                 ]
             },
@@ -318,7 +318,7 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
                         "type": "trace",
                         "active": True,
                         "condition": {"op": "and", "inner": []},
-                        "id": 0,
+                        "id": 1000,
                     },
                 ]
             },
@@ -400,6 +400,7 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
             {
                 "sampleRate": 0.5,
                 "type": "trace",
+                "active": True,
                 "condition": {
                     "op": "and",
                     "inner": [{"op": "glob", "name": "trace.release", "value": ["3.0"]}],
@@ -413,6 +414,7 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
             {
                 "sampleRate": 0.5,
                 "type": "trace",
+                "active": True,
                 "condition": {
                     "op": "and",
                     "inner": [{"op": "glob", "name": "trace.release", "value": ["4.0"]}],
@@ -426,6 +428,7 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
             {
                 "sampleRate": 0.5,
                 "type": "trace",
+                "active": True,
                 "condition": {
                     "op": "and",
                     "inner": [{"op": "glob", "name": "trace.release", "value": ["5.0"]}],
@@ -439,6 +442,7 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
             {
                 "sampleRate": 0.5,
                 "type": "trace",
+                "active": True,
                 "condition": {
                     "op": "and",
                     "inner": [{"op": "glob", "name": "trace.release", "value": ["6.0"]}],
@@ -452,6 +456,7 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
             {
                 "sampleRate": 0.5,
                 "type": "trace",
+                "active": True,
                 "condition": {
                     "op": "and",
                     "inner": [{"op": "glob", "name": "trace.release", "value": ["7.0"]}],

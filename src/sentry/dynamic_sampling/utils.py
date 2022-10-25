@@ -53,3 +53,12 @@ class BaseRule(TypedDict):
     active: bool
     condition: Condition
     id: int
+
+
+class TimeRange(TypedDict):
+    start: str
+    end: str
+
+
+class ReleaseRule(BaseRule):
+    timeRange: Optional[TimeRange]
