@@ -48,5 +48,5 @@ class GroupEventsLatestEndpoint(GroupEndpoint):  # type: ignore
             return Response(serialize(event, request.user, EventSerializer()))
 
         event_data = serialize(event, request.user, DetailedEventSerializer())
-        data = wrap_event_response(request.user, event, event_data, event.project, environments)
+        data = wrap_event_response(event, event_data, event.project, environments)
         return Response(data)

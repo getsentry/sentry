@@ -35,5 +35,5 @@ class GroupEventsOldestEndpoint(GroupEndpoint):  # type: ignore
             return Response({"detail": "No events found for group"}, status=404)
 
         event_data = serialize(event, request.user, DetailedEventSerializer())
-        data = wrap_event_response(request.user, event, event_data, event.project, environments)
+        data = wrap_event_response(event, event_data, event.project, environments)
         return Response(data)
