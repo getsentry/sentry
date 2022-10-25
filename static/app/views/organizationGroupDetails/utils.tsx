@@ -9,7 +9,7 @@ import {Event} from 'sentry/types/event';
 /**
  * Fetches group data and mark as seen
  *
- * @param orgId organization slug
+ * @param orgSlug
  * @param groupId groupId
  * @param eventId eventId or "latest" or "oldest"
  * @param envNames
@@ -17,7 +17,7 @@ import {Event} from 'sentry/types/event';
  */
 export async function fetchGroupEvent(
   api: Client,
-  orgId: string,
+  orgSlug: string,
   groupId: string,
   eventId: string,
   envNames: string[],
@@ -26,7 +26,7 @@ export async function fetchGroupEvent(
   const url =
     eventId === 'latest' || eventId === 'oldest'
       ? `/issues/${groupId}/events/${eventId}/`
-      : `/projects/${orgId}/${projectSlug}/events/${eventId}/?group_id=${groupId}`;
+      : `/projects/${orgSlug}/${projectSlug}/events/${eventId}/?group_id=${groupId}`;
 
   const query: {environment?: string[]} = {};
   if (envNames.length !== 0) {
