@@ -3,7 +3,7 @@ import signal
 import uuid
 from typing import Any, Literal, Mapping, MutableMapping, Optional, Sequence, Tuple, Union
 
-from arroyo import Topic
+from arroyo import Topic, configure_metrics
 from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
 from arroyo.backends.kafka.consumer import KafkaConsumer, KafkaPayload
 from arroyo.commit import ONCE_PER_SECOND
@@ -22,7 +22,7 @@ from sentry.eventstream.kafka.postprocessworker import (
 from sentry.eventstream.kafka.synchronized import SynchronizedConsumer as ArroyoSynchronizedConsumer
 from sentry.eventstream.snuba import KW_SKIP_SEMANTIC_PARTITIONING, SnubaProtocolEventStream
 from sentry.killswitches import killswitch_matches_context
-from sentry.utils import json, kafka
+from sentry.utils import json, kafka, metrics
 from sentry.utils.batching_kafka_consumer import BatchingKafkaConsumer
 from sentry.utils.kafka_config import get_kafka_consumer_cluster_options
 
@@ -242,6 +242,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         initial_offset_reset: Union[Literal["latest"], Literal["earliest"]],
         strict_offset_reset: Optional[bool],
     ) -> StreamProcessor[KafkaPayload]:
+        configure_metrics(metrics.backend)
 
         cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
 
@@ -269,7 +270,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
             commit_log_groups={synchronize_commit_group},
         )
 
-        strategy_factory = PostProcessForwarderStrategyFactory(concurrency, 1000)
+        strategy_factory = PostProcessForwarderStrategyFactory(concurrency, commit_batch_size)
 
         return StreamProcessor(
             synchronized_consumer, Topic(topic), strategy_factory, ONCE_PER_SECOND
