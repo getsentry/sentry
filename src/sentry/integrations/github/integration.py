@@ -321,6 +321,8 @@ class GitHubInstallationRedirect(PipelineView):
             pipeline.bind_state("reinstall_id", request.GET["reinstall_id"])
 
         if "installation_id" in request.GET:
+            self.determine_active_organization(request)
+
             # We want to wait until the scheduled deletions finish or else the
             # post install to migrate repos do not work.
             integration_pending_deletion_exists = OrganizationIntegration.objects.filter(
