@@ -1,4 +1,4 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import SearchBar, {SearchBarProps} from 'sentry/components/performance/searchBar';
 import EventView from 'sentry/utils/discover/eventView';
@@ -21,7 +21,10 @@ describe('SearchBar', () => {
     jest.resetAllMocks();
   });
 
-  it('Renders without crashing', () => {
+  it('Accepts user input', () => {
     render(<SearchBar {...testProps} />);
+
+    userEvent.type(screen.getByRole('textbox'), 'proje');
+    expect(screen.getByRole('textbox')).toHaveValue('proje');
   });
 });
