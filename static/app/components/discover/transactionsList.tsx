@@ -15,8 +15,8 @@ import DiscoverQuery, {
   TableData,
   TableDataRow,
 } from 'sentry/utils/discover/discoverQuery';
-import EventView, {MetaType} from 'sentry/utils/discover/eventView';
-import {Field, Sort} from 'sentry/utils/discover/fields';
+import EventView from 'sentry/utils/discover/eventView';
+import {Sort} from 'sentry/utils/discover/fields';
 import {TrendsEventsDiscoverQuery} from 'sentry/utils/performance/trends/trendsDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
