@@ -357,7 +357,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
     this.setState({loadingPreview: true});
     if (resetCursor) {
-      this.setState({previewPage: 0});
+      this.setState({previewCursor: null, previewPage: 0});
     }
     // we currently don't have a way to parse objects from query params, so this method is POST for now
     this.api
