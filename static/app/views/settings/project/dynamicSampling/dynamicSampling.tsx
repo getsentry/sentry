@@ -15,7 +15,7 @@ import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
-import {DynamicSamplingBiasType} from 'sentry/types/sampling';
+import {DynamicSamplingBias, DynamicSamplingBiasType} from 'sentry/types/sampling';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
@@ -56,20 +56,20 @@ export function DynamicSampling({project}: Props) {
   const biases = project.dynamicSamplingBiases ?? [];
 
   useEffect(() => {
-    trackAdvancedAnalyticsEvent('sampling.settings.view', {
+    trackAdvancedAnalyticsEvent('dynamic_sampling_settings.viewed', {
       organization,
       project_id: project.id,
     });
   }, [project.id, organization]);
 
-  async function handleToggle(type: DynamicSamplingBiasType) {
+  async function handleToggle(bias: DynamicSamplingBias) {
     addLoadingMessage();
 
-    const newDynamicSamplingBiases = biases.map(bias => {
-      if (bias.id === type) {
-        return {...bias, active: !bias.active};
+    const newDynamicSamplingBiases = biases.map(b => {
+      if (b.id === bias.id) {
+        return {...b, active: !b.active};
       }
-      return bias;
+      return b;
     });
 
     try {
@@ -83,6 +83,17 @@ export function DynamicSampling({project}: Props) {
         }
       );
 
+      trackAdvancedAnalyticsEvent(
+        bias.active
+          ? 'dynamic_sampling_settings.priority_disabled'
+          : 'dynamic_sampling_settings.priority_enabled',
+        {
+          organization,
+          project_id: project.id,
+          id: bias.id,
+        }
+      );
+
       ProjectsStore.onUpdateSuccess(result);
       addSuccessMessage(t('Successfully updated dynamic sampling configuration'));
     } catch (error) {
@@ -93,7 +104,7 @@ export function DynamicSampling({project}: Props) {
   }
 
   const handleReadDocs = useCallback(() => {
-    trackAdvancedAnalyticsEvent('sampling.settings.view_read_docs', {
+    trackAdvancedAnalyticsEvent('dynamic_sampling_settings.read_docs_clicked', {
       organization,
       project_id: project.id,
     });
@@ -138,7 +149,7 @@ export function DynamicSampling({project}: Props) {
                   key={key}
                   name={key}
                   value={bias.active}
-                  onChange={() => handleToggle(bias.id)}
+                  onChange={() => handleToggle(bias)}
                   disabled={!hasAccess}
                   disabledReason={
                     !hasAccess
