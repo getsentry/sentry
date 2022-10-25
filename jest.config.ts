@@ -1,6 +1,5 @@
 /* eslint-env node */
 /* eslint import/no-nodejs-modules:0 */
-
 import path from 'path';
 import process from 'process';
 

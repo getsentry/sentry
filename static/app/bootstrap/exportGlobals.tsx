@@ -47,6 +47,8 @@ const SentryApp = {
   getModalPortal: require('sentry/utils/getModalPortal').default,
   Client: require('sentry/api').Client,
   IconArrow: require('sentry/icons/iconArrow').IconArrow,
+  IconClose: require('sentry/icons/iconClose').IconClose,
+  IconCheckmark: require('sentry/icons/iconCheckmark').IconCheckmark,
 };
 
 globals.SentryApp = SentryApp;

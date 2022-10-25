@@ -8,6 +8,7 @@ import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import AsyncComponent from 'sentry/components/asyncComponent';
+import Breadcrumbs from 'sentry/components/breadcrumbs';
 import Button from 'sentry/components/button';
 import CompactSelect from 'sentry/components/compactSelect';
 import {Title} from 'sentry/components/layouts/thirds';
@@ -21,6 +22,7 @@ import space from 'sentry/styles/space';
 import {Organization, SavedQuery, SelectValue} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
+import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withOrganization from 'sentry/utils/withOrganization';
 
@@ -261,6 +263,24 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     );
   }
 
+  renderBreadcrumbs() {
+    return (
+      <Breadcrumbs
+        crumbs={[
+          {
+            key: 'discover-homepage',
+            label: t('Discover'),
+            to: getDiscoverLandingUrl(this.props.organization),
+          },
+          {
+            key: 'discover-saved-queries',
+            label: t('Saved Queries'),
+          },
+        ]}
+      />
+    );
+  }
+
   render() {
     const {location, organization} = this.props;
     const eventView = EventView.fromNewQueryWithLocation(DEFAULT_EVENT_VIEW, location);
@@ -277,11 +297,17 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
             <NoProjectMessage organization={organization}>
               <PageContent>
                 <StyledPageHeader>
-                  <Title>
-                    <GuideAnchor target="discover_landing_header">
-                      {t('Discover')}
-                    </GuideAnchor>
-                  </Title>
+                  {organization.features.includes(
+                    'discover-query-builder-as-landing-page'
+                  ) ? (
+                    this.renderBreadcrumbs()
+                  ) : (
+                    <Title>
+                      <GuideAnchor target="discover_landing_header">
+                        {t('Discover')}
+                      </GuideAnchor>
+                    </Title>
+                  )}
                   <StyledButton
                     data-test-id="build-new-query"
                     to={to}
