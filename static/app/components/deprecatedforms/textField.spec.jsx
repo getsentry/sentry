@@ -1,6 +1,7 @@
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import {Form, TextField} from 'sentry/components/deprecatedforms';
+import Form from 'sentry/components/deprecatedforms/form';
+import TextField from 'sentry/components/deprecatedforms/textField';
 
 describe('TextField', function () {
   describe('render()', function () {

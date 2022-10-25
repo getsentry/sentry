@@ -178,12 +178,7 @@
 
       {% block performance %}{% endblock %}
 
-      {% for label, html, _ in interfaces %}
-      <div class="interface">
-          <h3 class="title">{{ label }}</h3>
-          {{ html }}
-      </div>
-      {% endfor %}
+      {% block stacktrace %}{% endblock %}
 
       {% if tags %}
         <h3>Tags</h3>

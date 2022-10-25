@@ -36,6 +36,7 @@ type Props = WithRouterProps<{orgId: string}> & {
   onClick?: () => void;
   query?: string;
   size?: Size;
+  source?: string;
 };
 
 /**
@@ -54,6 +55,7 @@ function EventOrGroupHeader({
   includeLink = true,
   size = 'normal',
   grouping = false,
+  source,
   ...props
 }: Props) {
   const hasGroupingTreeUI = !!organization.features?.includes('grouping-tree-ui');
@@ -116,6 +118,7 @@ function EventOrGroupHeader({
               eventID ? `events/${eventID}/` : ''
             }`,
             query: {
+              referrer: source || 'event-or-group-header',
               query,
               // This adds sort to the query if one was selected from the
               // issues list page

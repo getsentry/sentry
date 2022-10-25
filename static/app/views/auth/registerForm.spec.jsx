@@ -9,9 +9,9 @@ describe('Register', function () {
   const api = new MockApiClient();
 
   function doLogin(apiRequest) {
-    userEvent.type(screen.getByLabelText('Name'), 'joe');
-    userEvent.type(screen.getByLabelText('Email'), 'test@test.com');
-    userEvent.type(screen.getByLabelText('Password'), '12345pass');
+    userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'joe');
+    userEvent.type(screen.getByRole('textbox', {name: 'Email'}), 'test@test.com');
+    userEvent.type(screen.getByRole('textbox', {name: 'Password'}), '12345pass');
 
     userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 

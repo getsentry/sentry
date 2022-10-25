@@ -64,7 +64,7 @@ describe('CreateSampleEventButton', function () {
     expect(sampleButton).toBeEnabled();
 
     expect(browserHistory.push).toHaveBeenCalledWith(
-      `/organizations/${org.slug}/issues/${groupID}/?project=${project.id}`
+      `/organizations/${org.slug}/issues/${groupID}/?project=${project.id}&referrer=sample-error`
     );
   });
 
@@ -103,7 +103,7 @@ describe('CreateSampleEventButton', function () {
     await waitFor(() => expect(latestIssueRequest).toHaveBeenCalled());
 
     expect(browserHistory.push).toHaveBeenCalledWith(
-      `/organizations/${org.slug}/issues/${groupID}/?project=${project.id}`
+      `/organizations/${org.slug}/issues/${groupID}/?project=${project.id}&referrer=sample-error`
     );
 
     expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(

@@ -97,6 +97,7 @@ export function transactionSummaryRouteWithQuery({
       display,
       trendFunction,
       trendColumn,
+      referrer: 'performance-transaction-summary',
       ...additionalQuery,
     },
   };

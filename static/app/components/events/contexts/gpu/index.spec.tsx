@@ -1,11 +1,8 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {GPUEventContext} from 'sentry/components/events/contexts/gpu';
 import {GPUData} from 'sentry/components/events/contexts/gpu/types';
-import {OrganizationContext} from 'sentry/views/organizationContext';
-import {RouteContext} from 'sentry/views/routeContext';
 
 export const gpuMockData: GPUData = {
   name: '',
@@ -45,28 +42,11 @@ const event = {
 
 describe('gpu event context', function () {
   it('display redacted data', async function () {
-    const {organization, router} = initializeOrg({
-      ...initializeOrg(),
+    render(<GPUEventContext event={event} data={gpuMockData} />, {
       organization: {
-        ...initializeOrg().organization,
         relayPiiConfig: JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig()),
       },
     });
-
-    render(
-      <OrganizationContext.Provider value={organization}>
-        <RouteContext.Provider
-          value={{
-            router,
-            location: router.location,
-            params: {},
-            routes: [],
-          }}
-        >
-          <GPUEventContext event={event} data={gpuMockData} />
-        </RouteContext.Provider>
-      </OrganizationContext.Provider>
-    );
 
     expect(screen.getByText('API Type')).toBeInTheDocument(); // subject
     userEvent.hover(screen.getAllByText(/redacted/)[0]);
