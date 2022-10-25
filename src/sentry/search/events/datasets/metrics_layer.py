@@ -245,28 +245,7 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                         ],
                         alias,
                     ),
-                ),
-                fields.MetricsFunction(
-                    "sumIf",
-                    required_args=[
-                        fields.ColumnTagArg("if_col"),
-                        fields.FunctionArg("if_val"),
-                    ],
-                    calculated_args=[
-                        {
-                            "name": "resolved_val",
-                            "fn": lambda args: self.resolve_value(args["if_val"]),
-                        }
-                    ],
-                    snql_metric_layer=lambda args, alias: Function(
-                        "sumIf",
-                        [
-                            Column(self.resolve_metric(args["column"])),
-                            Function("equals", [args["if_col"], args["resolved_val"]]),
-                        ],
-                        alias,
-                    ),
-                    default_result_type="integer",
+                    result_type_fn=self.reflective_result_type(),
                 ),
                 fields.MetricsFunction(
                     "percentile",
@@ -364,8 +343,8 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                         "rate",
                         [
                             Column(TransactionMRI.DURATION.value),
-                            60,
                             args["interval"],
+                            60,
                         ],
                         alias,
                     ),
@@ -378,8 +357,8 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                         "rate",
                         [
                             Column(TransactionMRI.DURATION.value),
-                            1,
                             args["interval"],
+                            1,
                         ],
                         alias,
                     ),

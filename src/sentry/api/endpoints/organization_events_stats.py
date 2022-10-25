@@ -82,6 +82,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
             "organizations:dashboards-mep",
             "organizations:mep-rollout-flag",
             "organizations:performance-dry-run-mep",
+            "organizations:use-metrics-layer",
         ]
         batch_features = features.batch_has(
             feature_names,
@@ -157,6 +158,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
             performance_dry_run_mep = batch_features.get(
                 "organizations:performance-dry-run-mep", False
             )
+            use_metrics_layer = batch_features.get("organizations:use-metrics-layer", False)
 
             dataset = self.get_dataset(request) if use_metrics else discover
             metrics_enhanced = dataset != discover
@@ -198,6 +200,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                 "comparison_delta": comparison_delta,
                 "allow_metric_aggregates": allow_metric_aggregates,
                 "has_metrics": use_metrics,
+                "use_metrics_layer": use_metrics_layer,
             }
             if not metrics_enhanced and performance_dry_run_mep:
                 sentry_sdk.set_tag("query.mep_compatible", False)

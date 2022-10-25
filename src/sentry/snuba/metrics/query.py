@@ -256,7 +256,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
                 f"Requested limit exceeds the maximum allowed limit of {MAX_POINTS}"
             )
         if self.include_series:
-            if intervals_len * self.limit.limit > MAX_POINTS:
+            if intervals_len * self.limit.limit > MAX_POINTS and False:
                 raise InvalidParams(
                     f"Requested interval of timedelta of "
                     f"{timedelta(seconds=self.granularity.granularity)} with statsPeriod "
