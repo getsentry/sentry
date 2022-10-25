@@ -2852,6 +2852,42 @@ class DSLatestReleaseBoostTest(TestCase):
                 for o in mocked_invalidate.mock_calls
             )
 
+    @freeze_time()
+    @mock.patch("sentry.dynamic_sampling.latest_release_booster.BOOSTED_RELEASES_LIMIT", 2)
+    def test_too_many_boosted_releases_do_not_boost_anymore(self):
+        """
+        This test tests the case when we have already too many boosted releases, in this case we want to skip the
+        boosting of anymore releases
+        """
+        release_2 = Release.get_or_create(self.project, "2.0")
+        release_3 = Release.get_or_create(self.project, "3.0")
+
+        for release_id in (self.release.id, release_2.id):
+            self.redis_client.set(f"ds::p:{self.project.id}:r:{release_id}", 1, 60 * 60 * 24)
+            self.redis_client.hset(
+                f"ds::p:{self.project.id}:boosted_releases",
+                release_id,
+                time(),
+            )
+
+        with self.options(
+            {
+                "dynamic-sampling:boost-latest-release": True,
+            }
+        ):
+            self.make_release_transaction(
+                release_version=release_3.version,
+                environment_name=self.environment1.name,
+                project_id=self.project.id,
+                checksum="b" * 32,
+                timestamp=self.timestamp,
+            )
+            assert self.redis_client.hgetall(f"ds::p:{self.project.id}:boosted_releases") == {
+                str(self.release.id): str(time()),
+                str(release_2.id): str(time()),
+            }
+            assert self.redis_client.get(f"ds::p:{self.project.id}:r:{release_3.id}") is None
+
 
 class TestSaveGroupHashAndGroup(TransactionTestCase):
     def test(self):
