@@ -56,7 +56,7 @@ function EventsTableRow({
   const fullReplayUrl = {
     pathname: `/organizations/${organization.slug}/replays/${projectId}:${tagMap.replayId}/`,
     query: {
-      referrer: encodeURIComponent(getRouteStringFromRoutes(routes)),
+      referrer: getRouteStringFromRoutes(routes),
       event_t: event.dateCreated ? new Date(event.dateCreated).getTime() : undefined,
     },
   };
