@@ -132,11 +132,13 @@ class SpanTree extends Component<PropType> {
       return null;
     }
 
+    const isClickable = focusedSpanIds && showFilteredSpansMessage;
+
     return (
       <MessageRow
         key={`message-row-${firstHiddenSpanId}`}
         onClick={
-          focusedSpanIds
+          isClickable
             ? () => {
                 trackAdvancedAnalyticsEvent(
                   'issue_details.performance.hidden_spans_expanded',
@@ -146,7 +148,7 @@ class SpanTree extends Component<PropType> {
               }
             : undefined
         }
-        cursor={focusedSpanIds ? 'pointer' : 'default'}
+        cursor={isClickable ? 'pointer' : 'default'}
       >
         {messages}
       </MessageRow>
