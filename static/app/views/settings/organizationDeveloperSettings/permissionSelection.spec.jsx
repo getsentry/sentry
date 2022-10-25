@@ -1,17 +1,20 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {openMenu, selectByValue} from 'sentry-test/select-new';
+import selectEvent from 'react-select-event';
+
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import Form from 'sentry/components/forms/form';
+import FormModel from 'sentry/components/forms/model';
 import PermissionSelection from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
 
 describe('PermissionSelection', () => {
-  let wrapper;
   let onChange;
+  let model;
 
   beforeEach(() => {
+    model = new FormModel();
     onChange = jest.fn();
-    wrapper = mountWithTheme(
-      <Form>
+    render(
+      <Form model={model}>
         <PermissionSelection
           permissions={{
             Event: 'no-access',
@@ -27,74 +30,45 @@ describe('PermissionSelection', () => {
   });
 
   it('renders a row for each resource', () => {
-    expect(wrapper.find('SelectField[key="Project"]')).toBeDefined();
-    expect(wrapper.find('SelectField[key="Team"]')).toBeDefined();
-    expect(wrapper.find('SelectField[key="Release"]')).toBeDefined();
-    expect(wrapper.find('SelectField[key="Event"]')).toBeDefined();
-    expect(wrapper.find('SelectField[key="Organization"]')).toBeDefined();
-    expect(wrapper.find('SelectField[key="Member"]')).toBeDefined();
+    expect(screen.getByRole('textbox', {name: 'Project'})).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'Team'})).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'Release'})).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'Issue & Event'})).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'Organization'})).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'Member'})).toBeInTheDocument();
   });
 
-  it('lists human readable permissions', () => {
-    const findOptions = name => {
-      openMenu(wrapper, {name: `${name}--permission`});
-      return wrapper
-        .find(`SelectField[name="${name}--permission"] Option`)
-        .map(o => o.text());
+  it('lists human readable permissions', async () => {
+    const expectOptions = async (name, options) => {
+      for (const option of options) {
+        await selectEvent.select(screen.getByRole('textbox', {name}), option);
+      }
     };
 
-    expect(findOptions('Project')).toEqual([
-      'No Access',
-      'Read',
-      'Read & Write',
-      'Admin',
-    ]);
-    expect(findOptions('Team')).toEqual(['No Access', 'Read', 'Read & Write', 'Admin']);
-    expect(findOptions('Release')).toEqual(['No Access', 'Admin']);
-    expect(findOptions('Event')).toEqual(['No Access', 'Read', 'Read & Write', 'Admin']);
-    expect(findOptions('Organization')).toEqual([
-      'No Access',
-      'Read',
-      'Read & Write',
-      'Admin',
-    ]);
-    expect(findOptions('Member')).toEqual(['No Access', 'Read', 'Read & Write', 'Admin']);
+    await expectOptions('Project', ['No Access', 'Read', 'Read & Write', 'Admin']);
+    await expectOptions('Team', ['No Access', 'Read', 'Read & Write', 'Admin']);
+    await expectOptions('Release', ['No Access', 'Admin']);
+    await expectOptions('Issue & Event', ['No Access', 'Read', 'Read & Write', 'Admin']);
+    await expectOptions('Organization', ['No Access', 'Read', 'Read & Write', 'Admin']);
+    await expectOptions('Member', ['No Access', 'Read', 'Read & Write', 'Admin']);
   });
 
-  it('converts permission state to a list of raw scopes', () => {
-    const instance = wrapper.find('PermissionSelection').instance();
-    instance.setState({
-      permissions: {
-        Project: 'write',
-        Release: 'admin',
-        Organization: 'read',
-      },
-    });
+  it('stores the permissions the User has selected', async () => {
+    const selectByValue = (name, value) =>
+      selectEvent.select(screen.getByRole('textbox', {name}), value);
 
-    expect(instance.permissionStateToList()).toEqual([
-      'project:read',
-      'project:write',
-      'project:releases',
-      'org:read',
-    ]);
-  });
+    await selectByValue('Project', 'Read & Write');
+    await selectByValue('Team', 'Read');
+    await selectByValue('Release', 'Admin');
+    await selectByValue('Issue & Event', 'Admin');
+    await selectByValue('Organization', 'Read');
+    await selectByValue('Member', 'No Access');
 
-  it('stores the permissions the User has selected', () => {
-    const instance = wrapper.find('PermissionSelection').instance();
-    const getStateValue = resource => instance.state.permissions[resource];
-
-    selectByValue(wrapper, 'write', {name: 'Project--permission'});
-    selectByValue(wrapper, 'read', {name: 'Team--permission'});
-    selectByValue(wrapper, 'admin', {name: 'Release--permission'});
-    selectByValue(wrapper, 'admin', {name: 'Event--permission'});
-    selectByValue(wrapper, 'read', {name: 'Organization--permission'});
-    selectByValue(wrapper, 'no-access', {name: 'Member--permission'});
-
-    expect(getStateValue('Project')).toEqual('write');
-    expect(getStateValue('Team')).toEqual('read');
-    expect(getStateValue('Release')).toEqual('admin');
-    expect(getStateValue('Event')).toEqual('admin');
-    expect(getStateValue('Organization')).toEqual('read');
-    expect(getStateValue('Member')).toEqual('no-access');
+    expect(model.getValue('Project--permission')).toEqual('write');
+    expect(model.getValue('Team--permission')).toEqual('read');
+    expect(model.getValue('Release--permission')).toEqual('admin');
+    expect(model.getValue('Event--permission')).toEqual('admin');
+    expect(model.getValue('Organization--permission')).toEqual('read');
+    expect(model.getValue('Member--permission')).toEqual('no-access');
   });
 });
