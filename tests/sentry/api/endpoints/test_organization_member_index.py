@@ -20,7 +20,11 @@ from sentry.testutils.silo import region_silo_test
 class OrganizationMemberSerializerTest(TestCase):
     def test_valid(self):
         context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}
-        data = {"email": "eric@localhost", "orgRole": "member", "teamRoles": [{"teamSlug": self.team.slug, "role": None}]}
+        data = {
+            "email": "eric@localhost",
+            "orgRole": "member",
+            "teamRoles": [{"teamSlug": self.team.slug, "role": None}],
+        }
 
         serializer = OrganizationMemberSerializer(context=context, data=data)
         assert serializer.is_valid()
@@ -65,7 +69,9 @@ class OrganizationMemberSerializerTest(TestCase):
         serializer = OrganizationMemberSerializer(context=context, data=data)
 
         assert not serializer.is_valid()
-        assert serializer.errors == {"role": ["You do not have permission to assign the given role."]}
+        assert serializer.errors == {
+            "role": ["You do not have permission to assign the given role."]
+        }
 
 
 class OrganizationMemberListTestBase(APITestCase):
