@@ -116,6 +116,23 @@ class TestIdentfiyStacktracePaths(TestCase):
             "sentry/tasks.py",
         ]
 
+    def test_skips_nonpython_projects(self):
+        self.store_event(self.test_data_1, project_id=self.project.id)
+        nonpython_event = deepcopy(self.test_data_2)
+        nonpython_event["platform"] = "javascript"
+        self.store_event(data=nonpython_event, project_id=self.project.id)
+
+        with self.tasks():
+            mapping = identify_stacktrace_paths([self.organization])
+        assert self.organization.slug in mapping
+        stacktrace_paths = mapping[self.organization.slug]
+
+        assert self.project.slug in stacktrace_paths
+        assert sorted(stacktrace_paths[self.project.slug]) == [
+            "sentry/models/release.py",
+            "sentry/tasks.py",
+        ]
+
     def test_handle_duplicate_filenames_in_a_project(self):
         self.store_event(data=self.test_data_1, project_id=self.project.id)
         duplicate_event = deepcopy(self.test_data_2)

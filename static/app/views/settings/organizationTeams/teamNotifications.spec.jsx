@@ -1,6 +1,10 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountGlobalModal} from 'sentry-test/modal';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
 
 import TeamNotificationSettings from 'sentry/views/settings/organizationTeams/teamNotifications';
 
@@ -41,16 +45,13 @@ describe('TeamNotificationSettings', () => {
       body: [],
     });
 
-    const wrapper = mountWithTheme(
-      <TeamNotificationSettings team={team} organization={organization} />,
-      routerContext
-    );
+    render(<TeamNotificationSettings team={team} organization={organization} />, {
+      context: routerContext,
+    });
 
-    const emptyMessage = wrapper.find('Panel div[data-test-id="empty-message"]');
-    expect(emptyMessage).toHaveLength(1);
-    expect(emptyMessage.text()).toBe(
-      'No Notification Integrations have been installed yet.'
-    );
+    expect(
+      screen.getByText('No Notification Integrations have been installed yet.')
+    ).toBeInTheDocument();
   });
 
   it('should render empty message when there are no externalTeams', () => {
@@ -68,16 +69,11 @@ describe('TeamNotificationSettings', () => {
       body: [EXAMPLE_INTEGRATION],
     });
 
-    const wrapper = mountWithTheme(
-      <TeamNotificationSettings team={team} organization={organization} />,
-      routerContext
-    );
+    render(<TeamNotificationSettings team={team} organization={organization} />, {
+      context: routerContext,
+    });
 
-    const emptyMessage = wrapper.find('Panel div[data-test-id="empty-message"]');
-    expect(emptyMessage).toHaveLength(1);
-    expect(emptyMessage.find('div div div').first().text()).toBe(
-      'No teams have been linked yet.'
-    );
+    expect(screen.getByText('No teams have been linked yet.')).toBeInTheDocument();
   });
 
   it('should render each externalTeam', () => {
@@ -95,18 +91,20 @@ describe('TeamNotificationSettings', () => {
       body: [EXAMPLE_INTEGRATION],
     });
 
-    const wrapper = mountWithTheme(
-      <TeamNotificationSettings team={team} organization={organization} />,
-      routerContext
-    );
-    const input = wrapper.find('Panel').last().find('input');
+    render(<TeamNotificationSettings team={team} organization={organization} />, {
+      context: routerContext,
+    });
 
-    expect(input.prop('disabled')).toBe(true);
-    expect(input.prop('value')).toBe(EXTERNAL_NAME);
-    expect(wrapper.find('button[aria-label="delete"]').exists()).toBe(true);
+    const input = screen.getByRole('textbox', {
+      name: 'Unlink this channel in slack with `/slack unlink team`',
+    });
+
+    expect(input).toBeDisabled();
+    expect(input).toHaveValue(EXTERNAL_NAME);
+    expect(screen.getByRole('button', {name: 'delete'})).toBeInTheDocument();
   });
 
-  it('should delete be able to delete the externalTeam', async () => {
+  it('should delete be able to delete the externalTeam', () => {
     const {organization, routerContext} = initializeOrg();
 
     MockApiClient.addMockResponse({
@@ -127,23 +125,14 @@ describe('TeamNotificationSettings', () => {
       method: 'DELETE',
     });
 
-    const wrapper = mountWithTheme(
-      <TeamNotificationSettings team={team} organization={organization} />,
-      routerContext
-    );
+    render(<TeamNotificationSettings team={team} organization={organization} />, {
+      context: routerContext,
+    });
 
-    const deleteButton = wrapper.find('button[aria-label="delete"]');
-    expect(deleteButton.prop('disabled')).toBe(false);
+    userEvent.click(screen.getByRole('button', {name: 'delete'}));
 
-    deleteButton.simulate('click');
-
-    await tick();
-
-    const modal = await mountGlobalModal();
-    const confirmBtn = modal.find('Button').last().simulate('click');
-    expect(confirmBtn.exists()).toBe(true);
-
-    confirmBtn.simulate('click');
+    renderGlobalModal();
+    userEvent.click(screen.getByTestId('confirm-button'));
 
     expect(deleteMock).toHaveBeenCalled();
   });

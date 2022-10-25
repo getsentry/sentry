@@ -93,33 +93,38 @@ function computeOriginFromArrow(
  * `<AnimatePresence />`.
  */
 const Overlay = styled(
-  ({
-    children,
-    arrowProps,
-    animated,
-    placement,
-    originPoint,
-    style,
-    overlayStyle: _overlayStyle,
-    ...props
-  }: OverlayProps) => {
-    const animationProps = animated
-      ? {
-          ...overlayAnimation,
-          style: {
-            ...style,
-            ...computeOriginFromArrow(placement, originPoint),
-          },
-        }
-      : {style};
+  forwardRef<HTMLDivElement, OverlayProps>(
+    (
+      {
+        children,
+        arrowProps,
+        animated,
+        placement,
+        originPoint,
+        style,
+        overlayStyle: _overlayStyle,
+        ...props
+      },
+      ref
+    ) => {
+      const animationProps = animated
+        ? {
+            ...overlayAnimation,
+            style: {
+              ...style,
+              ...computeOriginFromArrow(placement, originPoint),
+            },
+          }
+        : {style};
 
-    return (
-      <motion.div {...props} {...animationProps}>
-        {defined(arrowProps) && <OverlayArrow {...arrowProps} />}
-        {children}
-      </motion.div>
-    );
-  }
+      return (
+        <motion.div {...props} {...animationProps} ref={ref}>
+          {defined(arrowProps) && <OverlayArrow {...arrowProps} />}
+          {children}
+        </motion.div>
+      );
+    }
+  )
 )`
   position: relative;
   border-radius: ${p => p.theme.borderRadius};
