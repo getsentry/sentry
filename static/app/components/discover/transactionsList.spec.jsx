@@ -596,6 +596,73 @@ describe('TransactionsList', function () {
         // 2 for the counts
         expect(wrapper.find('GridCellNumber')).toHaveLength(2);
       });
+
+      it('sorts transactions table items by replay, preserving the initial sort positions', async function () {
+        MockApiClient.addMockResponse({
+          url: `/organizations/${organization.slug}/events/`,
+          body: {
+            meta: {
+              fields: {
+                transaction: 'string',
+                'transaction.duration': 'duration',
+                replayId: 'string',
+              },
+            },
+            data: [
+              {transaction: '/a', 'transaction.duration': 5000, replayId: ''},
+              {transaction: '/b', 'transaction.duration': 4000, replayId: ''},
+              {transaction: '/c', 'transaction.duration': 4000, replayId: '123'},
+              {transaction: '/d', 'transaction.duration': 3000, replayId: ''},
+              {transaction: '/e', 'transaction.duration': 2500, replayId: ''},
+              {transaction: '/f', 'transaction.duration': 2000, replayId: '123'},
+              {transaction: '/g', 'transaction.duration': 1500, replayId: ''},
+              {transaction: '/h', 'transaction.duration': 1000, replayId: ''},
+              {transaction: '/i', 'transaction.duration': 1000, replayId: '123'},
+            ],
+          },
+        });
+
+        const eventViewWithReplay = EventView.fromSavedQuery({
+          id: '',
+          name: 'test query',
+          version: 2,
+          fields: ['transaction', 'transaction.duration', 'replayId'],
+          projects: [project.id],
+        });
+
+        wrapper = mountWithTheme(
+          <WrapperComponent
+            api={api}
+            location={location}
+            organization={{
+              ...organization,
+              features: [...organization.features, 'session-replay-ui'],
+            }}
+            eventView={eventViewWithReplay}
+            selected={options[0]}
+            options={options}
+            handleDropdownChange={handleDropdownChange}
+            generateLink={generateLink}
+          />
+        );
+
+        await tick();
+        wrapper.update();
+
+        // api data is sorted by transaction.duration
+        expect(wrapper.find('GridCell').first().text()).toEqual('/c');
+        expect(wrapper.find('GridCellNumber').first().text()).toEqual('4.00s');
+        expect(wrapper.find('GridCell').at(2).text()).toEqual('/f');
+        expect(wrapper.find('GridCellNumber').at(1).text()).toEqual('2.00s');
+        expect(wrapper.find('GridCell').at(4).text()).toEqual('/i');
+        expect(wrapper.find('GridCellNumber').at(2).text()).toEqual('1.00s');
+        expect(wrapper.find('GridCell').at(6).text()).toEqual('/a');
+        expect(wrapper.find('GridCellNumber').at(3).text()).toEqual('5.00s');
+        expect(wrapper.find('GridCell').at(8).text()).toEqual('/b');
+        expect(wrapper.find('GridCellNumber').at(4).text()).toEqual('4.00s');
+        expect(wrapper.find('GridCell').at(16).text()).toEqual('/h');
+        expect(wrapper.find('GridCellNumber').last().text()).toEqual('1.00s');
+      });
     });
   });
 });
