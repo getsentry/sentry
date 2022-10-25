@@ -49,6 +49,8 @@ import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import {projectProcessingIssuesMessages} from 'sentry/views/settings/project/projectProcessingIssues';
 
+import {CommitRow} from '../commitRow';
+
 import findBestThread from './interfaces/threads/threadSelector/findBestThread';
 import getThreadException from './interfaces/threads/threadSelector/getThreadException';
 import EventEntry from './eventEntry';
@@ -337,7 +339,12 @@ const EventEntries = ({
         />
       )}
       {!isShare && isNotSharedOrganization(organization) && (
-        <EventCause project={project} event={event} group={group} />
+        <EventCause
+          project={project}
+          eventId={event.id}
+          group={group}
+          commitRow={CommitRow}
+        />
       )}
       {event.userReport && group && (
         <StyledEventUserFeedback
