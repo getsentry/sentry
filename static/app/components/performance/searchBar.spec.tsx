@@ -1,4 +1,11 @@
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import SearchBar, {SearchBarProps} from 'sentry/components/performance/searchBar';
 import EventView from 'sentry/utils/discover/eventView';
@@ -66,7 +73,7 @@ describe('SearchBar', () => {
       jest.runAllTimers();
     });
 
-    await screen.findByTestId('loading-indicator');
+    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
   });
 
   it('Sends user input as transaction search', async () => {
@@ -76,7 +83,8 @@ describe('SearchBar', () => {
     act(() => {
       jest.runAllTimers();
     });
-    await screen.findByTestId('loading-indicator');
+
+    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
     expect(eventsMock).toHaveBeenCalledTimes(1);
     expect(eventsMock).toHaveBeenCalledWith(
