@@ -9,9 +9,6 @@ from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry.api.event_search import ParenExpression, SearchFilter
 
-# Interface.
-
-
 OPERATOR_MAP = {
     "=": Op.EQ,
     "!=": Op.NEQ,
@@ -87,13 +84,24 @@ class Field:
         field_alias: str,
         operator: Op,
         value: Union[List[str], str],
+        is_wildcard: bool = False,
     ) -> Condition:
+
         return Condition(Column(self.query_alias or self.attribute_name), operator, value)
 
 
 class String(Field):
     _operators = [Op.EQ, Op.NEQ, Op.IN, Op.NOT_IN]
     _python_type = str
+
+    def as_condition(
+        self, field_alias: str, operator: Op, value: Union[List[str], str], is_wildcard: bool
+    ) -> Condition:
+        if is_wildcard:
+            return _wildcard_search_condition(
+                value, self.query_alias or self.attribute_name, operator
+            )
+        return super().as_condition(field_alias, operator, value, is_wildcard)
 
 
 class Number(Field):
@@ -106,10 +114,7 @@ class ListField(Field):
     _python_type = None
 
     def as_condition(
-        self,
-        _: str,
-        operator: Op,
-        value: Union[List[str], str],
+        self, _: str, operator: Op, value: Union[List[str], str], is_wildcard: bool = False
     ) -> Condition:
         if operator in [Op.EQ, Op.NEQ]:
             return self._has_condition(operator, value)
@@ -170,6 +175,7 @@ class Tag(Field):
         field_alias: str,
         operator: Op,
         value: Union[List[str], str],
+        is_wildcard: bool = False,
     ) -> Condition:
         negated = operator not in (Op.EQ, Op.IN)
         return filter_tag_by_value(
@@ -261,7 +267,9 @@ def filter_to_condition(search_filter: SearchFilter, query_config: QueryConfig) 
     if errors:
         raise ParseError(f"Invalid value specified: {field_alias}.")
 
-    return field.as_condition(field_alias, operator, value)
+    is_wildcard = search_filter.value.is_wildcard()
+
+    return field.as_condition(field_alias, operator, value, is_wildcard)
 
 
 def attempt_compressed_condition(
@@ -353,3 +361,22 @@ def _bitmask_on_tag_key(key: str) -> Function:
             Column("tk"),
         ],
     )
+
+
+def _wildcard_search_condition(value, query_alias, operator):
+    # XXX: We don't want the '^$' values at the beginning and end of
+    # the regex since we want to find the pattern anywhere in the
+    # message. Strip off here
+    wildcard_value = value[1:-1]
+    condition = Condition(
+        Function(
+            "match",
+            parameters=[
+                Column(query_alias),
+                f"(?i){wildcard_value}",
+            ],
+        ),
+        operator,
+        1,
+    )
+    return condition

@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectFilters from 'sentry/views/settings/project/projectFilters';
 
@@ -6,7 +6,6 @@ describe('ProjectFilters', function () {
   const org = TestStubs.Organization();
   const project = TestStubs.Project({options: {}});
   const PROJECT_URL = `/projects/${org.slug}/${project.slug}/`;
-  let wrapper;
 
   const getFilterEndpoint = filter => `${PROJECT_URL}filters/${filter}/`;
 
@@ -16,21 +15,15 @@ describe('ProjectFilters', function () {
       method: 'PUT',
     });
 
-  const creator = custom => {
-    if (custom) {
-      wrapper = custom();
-    } else {
-      wrapper = mountWithTheme(
-        <ProjectFilters
-          params={{projectId: project.slug, orgId: org.slug}}
-          location={{}}
-          project={project}
-        />
-      );
-    }
-
-    return wrapper;
-  };
+  function renderComponent() {
+    return render(
+      <ProjectFilters
+        params={{projectId: project.slug, orgId: org.slug}}
+        location={{}}
+        project={project}
+      />
+    );
+  }
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
@@ -53,19 +46,21 @@ describe('ProjectFilters', function () {
       url: `${PROJECT_URL}tombstones/`,
       body: TestStubs.Tombstones(),
     });
-
-    creator();
   });
 
   it('has browser extensions enabled initially', function () {
+    renderComponent();
+
     const filter = 'browser-extensions';
     const mock = createFilterMock(filter);
-    const Switch = wrapper.find(`BooleanField[name="${filter}"] Switch`);
 
-    expect(Switch.prop('isActive')).toBe(true);
+    const control = screen.getByRole('checkbox', {
+      name: 'Filter out errors known to be caused by browser extensions',
+    });
 
-    // Toggle filter on
-    Switch.simulate('click');
+    expect(control).toBeChecked();
+    userEvent.click(control);
+
     expect(mock).toHaveBeenCalledWith(
       getFilterEndpoint(filter),
       expect.objectContaining({
@@ -78,12 +73,17 @@ describe('ProjectFilters', function () {
   });
 
   it('can toggle filters: localhost, web crawlers', function () {
-    ['localhost', 'web-crawlers'].forEach(filter => {
-      const mock = createFilterMock(filter);
-      const Switch = wrapper.find(`BooleanField[name="${filter}"] Switch`);
+    renderComponent();
 
-      // Toggle filter on
-      Switch.simulate('click');
+    const FILTERS = {
+      localhost: 'Filter out events coming from localhost',
+      'web-crawlers': 'Filter out known web crawlers',
+    };
+
+    Object.keys(FILTERS).forEach(filter => {
+      const mock = createFilterMock(filter);
+
+      userEvent.click(screen.getByRole('checkbox', {name: FILTERS[filter]}));
       expect(mock).toHaveBeenCalledWith(
         getFilterEndpoint(filter),
         expect.objectContaining({
@@ -97,26 +97,28 @@ describe('ProjectFilters', function () {
   });
 
   it('has correct legacy browsers selected', function () {
-    expect(wrapper.find('LegacyBrowserFilterRow Switch').at(0).prop('isActive')).toBe(
-      true
-    );
-    expect(wrapper.find('LegacyBrowserFilterRow Switch').at(1).prop('isActive')).toBe(
-      true
-    );
-    expect(wrapper.find('LegacyBrowserFilterRow Switch').at(2).prop('isActive')).toBe(
-      false
-    );
+    renderComponent();
+
+    expect(
+      screen.getByRole('checkbox', {name: 'Internet Explorer Version 8 and lower'})
+    ).toBeChecked();
+
+    expect(
+      screen.getByRole('checkbox', {name: 'Internet Explorer Version 9'})
+    ).toBeChecked();
+
+    expect(
+      screen.getByRole('checkbox', {name: 'Internet Explorer Version 10'})
+    ).not.toBeChecked();
   });
 
   it('can toggle legacy browser', function () {
+    renderComponent();
+
     const filter = 'legacy-browsers';
     const mock = createFilterMock(filter);
 
-    // default stubs ie_pre_9 and ie9 selected (first 2 switches)
-    const Switch = wrapper.find('LegacyBrowserFilterRow Switch').at(4);
-
-    // Toggle filter on
-    Switch.simulate('click');
+    userEvent.click(screen.getByRole('checkbox', {name: 'Safari Version 5 and lower'}));
     expect(mock.mock.calls[0][0]).toBe(getFilterEndpoint(filter));
     // Have to do this because no jest matcher for JS Set
     expect(Array.from(mock.mock.calls[0][1].data.subfilters)).toEqual([
@@ -126,7 +128,7 @@ describe('ProjectFilters', function () {
     ]);
 
     // Toggle filter off
-    wrapper.find('LegacyBrowserFilterRow Switch').at(3).simulate('click');
+    userEvent.click(screen.getByRole('checkbox', {name: 'Internet Explorer Version 11'}));
     expect(Array.from(mock.mock.calls[1][1].data.subfilters)).toEqual([
       'ie_pre_9',
       'ie9',
@@ -137,8 +139,10 @@ describe('ProjectFilters', function () {
     mock.mockReset();
 
     // Click ie9 and < ie9
-    wrapper.find('LegacyBrowserFilterRow Switch').at(0).simulate('click');
-    wrapper.find('LegacyBrowserFilterRow Switch').at(1).simulate('click');
+    userEvent.click(screen.getByRole('checkbox', {name: 'Internet Explorer Version 9'}));
+    userEvent.click(
+      screen.getByRole('checkbox', {name: 'Internet Explorer Version 8 and lower'})
+    );
 
     expect(Array.from(mock.mock.calls[1][1].data.subfilters)).toEqual([
       'safari_pre_6',
@@ -147,13 +151,12 @@ describe('ProjectFilters', function () {
   });
 
   it('can toggle all/none for legacy browser', function () {
+    renderComponent();
+
     const filter = 'legacy-browsers';
     const mock = createFilterMock(filter);
-    const All = wrapper.find('BulkFilterItem').at(0);
-    const None = wrapper.find('BulkFilterItem').at(1);
 
-    // Click "All" filter
-    All.simulate('click');
+    userEvent.click(screen.getByRole('button', {name: 'All'}));
     expect(mock.mock.calls[0][0]).toBe(getFilterEndpoint(filter));
     expect(Array.from(mock.mock.calls[0][1].data.subfilters)).toEqual([
       'ie_pre_9',
@@ -166,21 +169,21 @@ describe('ProjectFilters', function () {
       'android_pre_4',
     ]);
 
-    // Click "None" filter
-    None.simulate('click');
+    userEvent.click(screen.getByRole('button', {name: 'None'}));
     expect(Array.from(mock.mock.calls[1][1].data.subfilters)).toEqual([]);
   });
 
   it('can set ip address filter', function () {
+    renderComponent();
+
     const mock = MockApiClient.addMockResponse({
       url: PROJECT_URL,
       method: 'PUT',
     });
 
-    wrapper
-      .find('TextArea[name="filters:blacklisted_ips"]')
-      .simulate('change', {target: {value: 'test\ntest2'}})
-      .simulate('blur');
+    userEvent.type(screen.getByRole('textbox', {name: 'IP Addresses'}), 'test\ntest2');
+    userEvent.tab();
+
     expect(mock.mock.calls[0][0]).toBe(PROJECT_URL);
     expect(mock.mock.calls[0][1].data.options['filters:blacklisted_ips']).toBe(
       'test\ntest2'
@@ -188,103 +191,85 @@ describe('ProjectFilters', function () {
   });
 
   it('filter by release/error message are not enabled', function () {
-    expect(wrapper.find('TextArea[name="filters:releases"][disabled]')).toHaveLength(1);
-    expect(
-      wrapper.find('TextArea[name="filters:error_messages"][disabled]')
-    ).toHaveLength(1);
+    renderComponent();
+
+    expect(screen.getByRole('textbox', {name: 'Releases'})).toBeDisabled();
+    expect(screen.getByRole('textbox', {name: 'Error Message'})).toBeDisabled();
   });
 
   it('has custom inbound filters with flag + can change', function () {
-    wrapper = creator(() =>
-      mountWithTheme(
-        <ProjectFilters
-          params={{projectId: project.slug, orgId: org.slug}}
-          location={{}}
-          project={project}
-        />,
-        {
-          context: {
-            project: {
-              ...project,
-              features: ['custom-inbound-filters'],
-            },
-          },
-        }
-      )
+    render(
+      <ProjectFilters
+        params={{projectId: project.slug, orgId: org.slug}}
+        location={{}}
+        project={{
+          ...project,
+          features: ['custom-inbound-filters'],
+        }}
+      />
     );
 
-    expect(wrapper.find('TextArea[name="filters:releases"]')).toHaveLength(1);
-    expect(wrapper.find('TextArea[name="filters:error_messages"]')).toHaveLength(1);
-    expect(
-      wrapper.find('PanelAlert[data-test-id="error-message-disclaimer"]').exists()
-    ).toBeFalsy();
+    expect(screen.getByRole('textbox', {name: 'Releases'})).toBeEnabled();
+    expect(screen.getByRole('textbox', {name: 'Error Message'})).toBeEnabled();
 
     const mock = MockApiClient.addMockResponse({
       url: PROJECT_URL,
       method: 'PUT',
     });
 
-    wrapper
-      .find('TextArea[name="filters:releases"]')
-      .simulate('change', {target: {value: 'release\nrelease2'}})
-      .simulate('blur');
+    userEvent.type(screen.getByRole('textbox', {name: 'Releases'}), 'release\nrelease2');
+    userEvent.tab();
+
     expect(mock.mock.calls[0][0]).toBe(PROJECT_URL);
     expect(mock.mock.calls[0][1].data.options['filters:releases']).toBe(
       'release\nrelease2'
     );
 
-    wrapper
-      .find('TextArea[name="filters:error_messages"]')
-      .simulate('change', {target: {value: 'error\nerror2'}})
-      .simulate('blur');
+    userEvent.type(screen.getByRole('textbox', {name: 'Error Message'}), 'error\nerror2');
+    userEvent.tab();
+
     expect(mock.mock.calls[1][1].data.options['filters:error_messages']).toBe(
       'error\nerror2'
     );
   });
 
   it('disables configuration for non project:write users', function () {
-    wrapper = mountWithTheme(
+    const context = TestStubs.routerContext([
+      {organization: TestStubs.Organization({access: []})},
+    ]);
+
+    render(
       <ProjectFilters
         params={{projectId: project.slug, orgId: org.slug}}
         location={{}}
         project={project}
       />,
-      TestStubs.routerContext([{organization: TestStubs.Organization({access: []})}])
+      {context}
     );
 
-    expect(wrapper.find('FormField[disabled=false]')).toHaveLength(0);
-    expect(wrapper.find('LegacyBrowserFilterRow[disabled=false]')).toHaveLength(0);
+    screen.getAllByRole('checkbox').forEach(checkbox => {
+      expect(checkbox).toBeDisabled();
+    });
   });
 
   it('shows disclaimer if error message filter is populated', function () {
-    wrapper = mountWithTheme(
+    render(
       <ProjectFilters
         params={{projectId: project.slug, orgId: org.slug}}
         project={{
           ...project,
+          features: ['custom-inbound-filters'],
           options: {
             'filters:error_messages': 'test',
           },
         }}
-      />,
-      {
-        context: {
-          // removing TestStubs.routerContext causes our test to fail. Should be investigated because it does not
-          // seem clear the routerContext should impact the project that we are passing as props.
-          ...TestStubs.routerContext().context,
-          project: {
-            ...project,
-            features: ['custom-inbound-filters'],
-          },
-        },
-        childContextTypes: TestStubs.routerContext().childContextTypes,
-      }
+      />
     );
 
     expect(
-      wrapper.find('PanelAlert[data-test-id="error-message-disclaimer"]').text()
-    ).toBe(
-      "Minidumps, errors in the minified production build of React, and Internet Explorer's i18n errors cannot be filtered by message."
-    );
+      screen.getByText(
+        "Minidumps, errors in the minified production build of React, and Internet Explorer's i18n errors cannot be filtered by message."
+      )
+    ).toBeInTheDocument(0);
   });
 });

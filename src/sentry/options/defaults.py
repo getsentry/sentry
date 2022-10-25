@@ -533,3 +533,10 @@ register("performance.issues.n_plus_one_db_ext.problem-creation", default=0.0)
 # System-wide options for default performance detection settings for any org opted into the performance-issues-ingest feature. Meant for rollout.
 register("performance.issues.n_plus_one_db.count_threshold", default=5)
 register("performance.issues.n_plus_one_db.duration_threshold", default=100.0)
+
+# Dynamic Sampling system wide options
+# Killswitch to disable new dynamic sampling behavior specifically new dynamic sampling biases
+register("dynamic-sampling:enabled-biases", default=True)
+# System-wide options that observes latest releases on transactions and caches these values to be used later in
+# project config computation. This is temporary option to monitor the performance of this feature.
+register("dynamic-sampling:boost-latest-release", default=False)

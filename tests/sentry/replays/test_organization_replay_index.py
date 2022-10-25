@@ -373,6 +373,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "user.id:123",
                 "user.name:username123",
                 "user.email:username@example.com",
+                "user.email:*@example.com",
                 "user.ipAddress:127.0.0.1",
                 "sdk.name:sentry.javascript.react",
                 "os.name:macOS",
