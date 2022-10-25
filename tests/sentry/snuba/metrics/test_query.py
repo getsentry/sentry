@@ -210,6 +210,28 @@ def test_validate_order_by_field_in_select():
 
 
 @pytest.mark.django_db(True)
+def test_validate_order_by_field_in_select_with_different_alias():
+    ap_dex_with_alias_1 = MetricField(op=None, metric_mri=TransactionMRI.APDEX.value, alias="apdex")
+    ap_dex_with_alias_2 = MetricField(
+        op=None, metric_mri=TransactionMRI.APDEX.value, alias="transaction.apdex"
+    )
+
+    try:
+        metrics_query_dict = (
+            MetricsQueryBuilder()
+            .with_select([ap_dex_with_alias_1])
+            .with_orderby([OrderBy(field=ap_dex_with_alias_2, direction=Direction.ASC)])
+            .to_metrics_query_dict()
+        )
+        MetricsQuery(**metrics_query_dict)
+    except InvalidParams:
+        raise pytest.fail(
+            "the validation of orderby field in select with different alias is throwing an error but it "
+            "shouldn't."
+        )
+
+
+@pytest.mark.django_db(True)
 def test_validate_multiple_orderby_columns_not_specified_in_select():
     metric_field_1 = MetricField(op=None, metric_mri=SessionMRI.ABNORMAL.value)
     metric_field_2 = MetricField(op=None, metric_mri=SessionMRI.ALL.value)
