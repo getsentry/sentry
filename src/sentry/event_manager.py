@@ -39,7 +39,7 @@ from sentry.constants import (
     DataCategory,
 )
 from sentry.culprit import generate_culprit
-from sentry.dynamic_sampling import DynamicSamplingFeatureMultiplexer
+from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
 from sentry.dynamic_sampling.latest_release_booster import (
     TooManyBoostedReleasesException,
     add_boosted_release,
