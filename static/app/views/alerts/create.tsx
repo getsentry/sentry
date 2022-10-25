@@ -6,7 +6,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import {Member, Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import {uniqueId} from 'sentry/utils/guid';
@@ -32,6 +32,7 @@ type RouteParams = {
 
 type Props = RouteComponentProps<RouteParams, {}> & {
   hasMetricAlerts: boolean;
+  members: Member[] | undefined;
   organization: Organization;
   project: Project;
 };
@@ -91,7 +92,8 @@ class Create extends Component<Props, State> {
   }
 
   render() {
-    const {hasMetricAlerts, organization, project, location, routes} = this.props;
+    const {hasMetricAlerts, organization, project, location, routes, members} =
+      this.props;
     const {alertType} = this.state;
     const {aggregate, dataset, eventTypes, createFromWizard, createFromDiscover} =
       location?.query ?? {};
@@ -144,6 +146,7 @@ class Create extends Component<Props, State> {
                       {...this.props}
                       project={project}
                       userTeamIds={teams.map(({id}) => id)}
+                      members={members}
                     />
                   )}
 
