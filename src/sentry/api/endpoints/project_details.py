@@ -525,7 +525,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if "hasAlertIntegration" in expand:
             data["hasAlertIntegrationInstalled"] = has_alert_integration(project)
 
-        ds_feature_multiplexer = DynamicSamplingFeatureMultiplexer(project)
+        ds_feature_multiplexer = DynamicSamplingFeatureMultiplexer(project, request.user)
 
         # Dynamic Sampling Logic
         if ds_feature_multiplexer.is_on_dynamic_sampling:
@@ -585,7 +585,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         result = serializer.validated_data
 
-        ds_flags_multiplexer = DynamicSamplingFeatureMultiplexer(project)
+        ds_flags_multiplexer = DynamicSamplingFeatureMultiplexer(project, request.user)
         if result.get("dynamicSamplingBiases") and not ds_flags_multiplexer.is_on_dynamic_sampling:
             return Response(
                 {"detail": ["dynamicSamplingBiases is not a valid field"]},

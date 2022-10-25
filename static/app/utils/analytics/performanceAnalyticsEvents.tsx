@@ -62,6 +62,12 @@ export type PerformanceEventParameters = {
     project_platforms: string;
     show_onboarding: boolean;
   };
+  'performance_views.project_transaction_threshold.change': {
+    from: string;
+    key: string;
+    to: string;
+  };
+  'performance_views.project_transaction_threshold.clear': {};
   'performance_views.relative_breakdown.selection': {
     action: string;
   };
@@ -176,6 +182,10 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
   'performance_views.summary.tag_explorer.sort': 'Performance Views: Tag Explorer Sorted',
   'performance_views.overview.view': 'Performance Views: Transaction overview view',
   'performance_views.overview.search': 'Performance Views: Transaction overview search',
+  'performance_views.project_transaction_threshold.change':
+    'Project Transaction Threshold: Changed',
+  'performance_views.project_transaction_threshold.clear':
+    'Project Transaction Threshold: Cleared',
   'performance_views.vital_detail.view': 'Performance Views: Vital Detail viewed',
   'performance_views.vital_detail.switch_vital':
     'Performance Views: Vital Detail vital type switched',
