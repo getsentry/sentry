@@ -58,10 +58,13 @@ describe('projectContext component', function () {
     );
 
     render(projectContext);
+
     const loading = screen.getByTestId('loading-indicator');
-    expect(
-      await screen.findByText('The project you were looking for was not found.')
-    ).toBeInTheDocument();
+    const errorText = await screen.findByText(
+      'The project you were looking for was not found.'
+    );
+
+    expect(errorText).toBeInTheDocument();
     expect(loading).not.toBeInTheDocument();
   });
 
@@ -87,12 +90,12 @@ describe('projectContext component', function () {
       />
     );
 
-    const wrapper = mountWithTheme(projectContext);
+    const {rerender} = render(projectContext);
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
 
     // Nothing should happen if we update and projectId is the same
-    wrapper.update();
+    rerender(projectContext);
     expect(fetchMock).toHaveBeenCalledTimes(1);
 
     fetchMock = MockApiClient.addMockResponse({
@@ -102,10 +105,18 @@ describe('projectContext component', function () {
       body: TestStubs.Project({slug: 'new-slug'}),
     });
 
-    wrapper.setProps({
-      projectId: 'new-slug',
-    });
-    wrapper.update();
+    rerender(
+      <ProjectContext
+        api={new MockApiClient()}
+        params={{orgId: org.slug, projectId: project.slug}}
+        projects={[]}
+        routes={routes}
+        router={router}
+        location={location}
+        orgId={org.slug}
+        projectId="new-slug"
+      />
+    );
 
     expect(fetchMock).toHaveBeenCalled();
   });
