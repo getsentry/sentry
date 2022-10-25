@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from django.db import transaction
 from drf_spectacular.utils import OpenApiParameter, extend_schema
-from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -12,7 +11,6 @@ from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberWithRolesSerializer
-from sentry.api.serializers.rest_framework import ListField
 from sentry.apidocs.constants import (
     RESPONSE_FORBIDDEN,
     RESPONSE_NO_CONTENT,
@@ -37,6 +35,7 @@ from sentry.utils import metrics
 from sentry.utils.retries import TimedRetryPolicy
 
 from . import InvalidTeam, get_allowed_org_roles, save_team_assignments
+from .index import OrganizationMemberSerializer
 
 ERR_NO_AUTH = "You cannot remove this member with an unauthenticated API request."
 ERR_INSUFFICIENT_ROLE = "You cannot remove a member who has more access than you."
@@ -53,23 +52,6 @@ MEMBER_ID_PARAM = OpenApiParameter(
     type=str,
     location="path",
 )
-
-
-class TeamRolesSerializer(serializers.Serializer):
-    teamSlug = serializers.CharField(allow_null=True, allow_blank=True)
-    role = serializers.CharField(allow_null=True, allow_blank=True)
-
-
-# FIXME
-class OrganizationMemberSerializer(serializers.Serializer):
-    reinvite = serializers.BooleanField()
-    regenerate = serializers.BooleanField()
-    role = serializers.ChoiceField(
-        choices=roles.get_choices(), required=True
-    )  # deprecated, use orgRole
-    orgRole = serializers.ChoiceField(choices=roles.get_choices(), required=True)
-    teams = ListField(required=False, allow_null=False)  # deprecated, use teamRoles
-    teamRoles = ListField(required=False, child=TeamRolesSerializer())
 
 
 class RelaxedMemberPermission(OrganizationPermission):
@@ -161,7 +143,15 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         organization: Organization,
         member: OrganizationMember,
     ) -> Response:
-        serializer = OrganizationMemberSerializer(data=request.data, partial=True)
+        allowed_roles = get_allowed_org_roles(request, organization)
+        serializer = OrganizationMemberSerializer(
+            data=request.data,
+            partial=True,
+            context={
+                "organization": organization,
+                "allowed_roles": allowed_roles,
+            },
+        )
 
         if not serializer.is_valid():
             return Response(status=400)
@@ -172,7 +162,6 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         except AuthProvider.DoesNotExist:
             auth_provider = None
 
-        allowed_roles = get_allowed_org_roles(request, organization)
         result = serializer.validated_data
 
         # XXX(dcramer): if/when this expands beyond reinvite we need to check
@@ -210,18 +199,14 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
 
         # Set the team-role before org-role. If the org-role has elevated permissions
         # on the teams, the team-roles can be overwritten later
-        breakpoint()
         if "teamRoles" in result or "teams" in result:
             try:
                 lock = locks.get(f"org:member:{member.id}", duration=5, name="org_member_details")
                 with TimedRetryPolicy(10)(lock.acquire):
-                    # If orgs do not have the flag, we'll reset their team-roles
-                    if not features.has("organizations:team-roles", organization):
-                        for item in result.get("teamRoles", []):
-                            item["roles"] = None
-
                     if "teamRoles" in result:
-                        save_team_assignments(member, None, result.get("teamRoles"))
+                        # If orgs do not have the flag, we'll set their team-roles to None
+                        team_roles = result.get("teamRoles") if features.has("organizations:team-roles", organization) else [(team, None) for team, _ in result.get("teamRoles", [])]
+                        save_team_assignments(member, None, team_roles)
                     elif "teams" in result:
                         save_team_assignments(member, result.get("teams"))
             except InvalidTeam:
@@ -229,9 +214,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
 
         assigned_org_role = result.get("orgRole") or result.get("role")
         if assigned_org_role:
-            allowed_roles = get_allowed_org_roles(request, organization)
             allowed_role_ids = {r.id for r in allowed_roles}
-
             # A user cannot promote others above themselves
             if assigned_org_role not in allowed_role_ids:
                 return Response(

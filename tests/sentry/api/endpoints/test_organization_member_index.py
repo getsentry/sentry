@@ -20,6 +20,14 @@ from sentry.testutils.silo import region_silo_test
 class OrganizationMemberSerializerTest(TestCase):
     def test_valid(self):
         context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}
+        data = {"email": "eric@localhost", "orgRole": "member", "teamRoles": [{"teamSlug": self.team.slug, "role": None}]}
+
+        serializer = OrganizationMemberSerializer(context=context, data=data)
+        assert serializer.is_valid()
+        breakpoint()
+
+    def test_valid_deprecated_fields(self):
+        context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}
         data = {"email": "eric@localhost", "role": "member", "teams": [self.team.slug]}
 
         serializer = OrganizationMemberSerializer(context=context, data=data)
@@ -57,7 +65,7 @@ class OrganizationMemberSerializerTest(TestCase):
         serializer = OrganizationMemberSerializer(context=context, data=data)
 
         assert not serializer.is_valid()
-        assert serializer.errors == {"role": ["You do not have permission to invite that role."]}
+        assert serializer.errors == {"role": ["You do not have permission to assign the given role."]}
 
 
 class OrganizationMemberListTestBase(APITestCase):

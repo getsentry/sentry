@@ -1,7 +1,10 @@
+from typing import List, Tuple
+
 from django.conf import settings
 from django.db import transaction
 from django.db.models import F, Q
 from rest_framework import serializers
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -16,6 +19,7 @@ from sentry.api.validators import AllowedEmailField
 from sentry.locks import locks
 from sentry.models import ExternalActor, InviteStatus, OrganizationMember, Team, TeamStatus
 from sentry.models.authenticator import available_authenticators
+from sentry.roles import organization_roles, team_roles
 from sentry.search.utils import tokenize_query
 from sentry.signals import member_invited
 from sentry.utils import metrics
@@ -41,9 +45,15 @@ class MemberConflictValidationError(serializers.ValidationError):
 
 class OrganizationMemberSerializer(serializers.Serializer):
     email = AllowedEmailField(max_length=75, required=True)
-    role = serializers.ChoiceField(choices=roles.get_choices(), required=True)
-    teams = ListField(required=False, allow_null=False, default=[])
+
+    role = serializers.ChoiceField(choices=roles.get_choices(), default=organization_roles.get_default().id)  # deprecated, use orgRole
+    orgRole = serializers.ChoiceField(choices=roles.get_choices(), default=organization_roles.get_default().id)
+    teams = ListField(required=False, allow_null=True, default=[])
+    teamRoles = ListField(required=False, allow_null=True, default=[])
+
     sendInvite = serializers.BooleanField(required=False, default=True, write_only=True)
+    reinvite = serializers.BooleanField(required=False)
+    regenerate = serializers.BooleanField(required=False)
 
     def validate_email(self, email):
         queryset = OrganizationMember.objects.filter(
@@ -76,9 +86,34 @@ class OrganizationMemberSerializer(serializers.Serializer):
 
         return valid_teams
 
+    def validate_teamRoles(self, teamRoles) -> List[Tuple[Team, str]]:
+        roles = set([item["role"] for item in teamRoles])
+        valid_roles = [r.id for r in team_roles.get_all()] + [None]
+        if roles.difference(valid_roles):
+            raise serializers.ValidationError("Invalid team-role")
+
+        team_slugs = [item["teamSlug"] for item in teamRoles]
+        valid_teams = list(
+            Team.objects.filter(
+                organization=self.context["organization"], status=TeamStatus.VISIBLE, slug__in=team_slugs
+            )
+        )
+        if len(valid_teams) != len(team_slugs):
+            raise serializers.ValidationError("Invalid teams")
+
+        # Avoids O(n * n) search
+        team_role_map = {item["teamSlug"]: item["role"] for item in teamRoles}
+        # TODO(dlee): Check if they have permissions to assign team role
+        valid_team_roles = [(team, team_role_map[team.slug]) for team in valid_teams]
+
+        return valid_team_roles
+
     def validate_role(self, role):
+        return self.validate_orgRole(role)
+
+    def validate_orgRole(self, role):
         if role not in {r.id for r in self.context["allowed_roles"]}:
-            raise serializers.ValidationError("You do not have permission to invite that role.")
+            raise serializers.ValidationError("You do not have permission to assign that org-role.")
 
         return role
 
@@ -183,7 +218,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
 
         Invite a member to the organization.
 
-        :pparam string organization_slug: the slug of the organization the member will belong to
+        :param string organization_slug: the slug of the organization the member will belong to
         :param string email: the email address to invite
         :param string role: the org-role of the new member
         :param array teams: the slugs of the teams the member should belong to.
@@ -246,11 +281,12 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                 om.token = om.generate_token()
             om.save()
 
+        breakpoint()
         # Do not set team-roles when inviting members
         if "teamRoles" in result or "teams" in result:
             teams = (
-                [item["teamSlug"] for item in result.get("teamRoles")]
-                if "teamRoles" in result
+                [team for team, _ in result.get("teamRoles")]
+                if "teamRoles" in result and result["teamRoles"]
                 else result.get("teams")
             )
             lock = locks.get(f"org:member:{om.id}", duration=5, name="org_member")

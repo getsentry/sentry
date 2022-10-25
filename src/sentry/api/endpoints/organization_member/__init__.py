@@ -33,7 +33,7 @@ def save_team_assignments(
         target_teams = []
 
     # Avoids O(n * n) search later
-    team_role_map = {team["slug"]: role for team, role in teams_with_roles} if teams_with_roles else {}
+    team_role_map = {team.slug: role for team, role in teams_with_roles} if teams_with_roles else {}
     new_assignments = [(team, team_role_map.get(team.slug, None)) for team in target_teams]
 
     OrganizationMemberTeam.objects.filter(organizationmember=organization_member).delete()

@@ -306,6 +306,10 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
         assert foo.slug in teams
         assert bar.slug in teams
 
+    @with_feature("organizations:team-roles")
+    def test_can_update_teams_with_team_roles_feature_flag(self):
+        self.test_can_update_teams()
+
     def test_can_update_teams_using_team_roles(self):
         foo = self.create_team(organization=self.organization, name="Team Foo")
         bar = self.create_team(organization=self.organization, name="Team Bar")
@@ -314,34 +318,26 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
         member_om = self.create_member(
             organization=self.organization, user=member, role="member", teams=[]
         )
+
         self.get_success_response(
             self.organization.slug,
             member_om.id,
             teamRoles=[
                 {
                     "teamSlug": foo.slug,
-                    "role": "admin",
+                    "role": None,
                 },
                 {
                     "teamSlug": bar.slug,
-                    "role": "contributor",
+                    "role": None,
                 },
             ],
         )
 
-        member_teams = OrganizationMemberTeam.objects.filter(organizationmember=member_om).order_by(
-            "role"
-        )
+        member_teams = OrganizationMemberTeam.objects.filter(organizationmember=member_om)
         team_ids = list(map(lambda x: x.team_id, member_teams))
         assert foo.id in team_ids
         assert bar.id in team_ids
-
-        # member_om = OrganizationMember.objects.get(id=member_om.id)
-
-        # teams = list(map(lambda team: team.slug, member_om.teams.all()))
-        # assert foo.slug in teams
-        # assert bar.slug in teams
-        assert 1 == 2
 
     def test_cannot_update_with_invalid_team(self):
         member = self.create_user("baz@example.com")
@@ -368,46 +364,43 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
         member_om = OrganizationMember.objects.get(organization=self.organization, user=member)
         assert member_om.role == "manager"
 
+    @with_feature("organizations:team-roles")
     def test_can_update_team_role(self):
-        # member = self.create_user("baz@example.com")
-        # member_om = self.create_member(
-        #     organization=self.organization, user=member, role="member", teams=[]
-        # )
+        foo = self.create_team(organization=self.organization, name="Team Foo")
 
-        # self.get_success_response(self.organization.slug, member_om.id, role="manager")
+        member = self.create_user("baz@example.com")
+        member_om = self.create_member(
+            organization=self.organization, user=member, role="member", teams=[foo]
+        )
 
-        # member_omt = OrganizationMemberTeam.objects.get(organization=self.organization, user=member)
-        # member_om = OrganizationMember.objects.get(organization=self.organization, user=member)
-        # assert member_om.role == "manager"
+        member_omt = OrganizationMemberTeam.objects.get(organizationmember=member_om, team=foo)
+        assert member_omt.role is None
 
-        pass
+        self.get_success_response(
+            self.organization.slug,
+            member_om.id,
+            teamRoles=[
+                {
+                    "teamSlug": foo.slug,
+                    "role": "admin",
+                },
+            ])
 
-    def test_will_update_team_role_and_skip_teams(self):
-        # foo = self.create_team(organization=self.organization, name="Team Foo")
-        # bar = self.create_team(organization=self.organization, name="Team Bar")
+        member_omt = OrganizationMemberTeam.objects.get(organizationmember=member_om, team=foo)
+        assert member_omt.role == 'admin'
 
-        # member = self.create_user("baz@example.com")
-        # member_om = self.create_member(
-        #     organization=self.organization, user=member, role="member", teams=[]
-        # )
-        # self.get_success_response(
-        #     self.organization.slug,
-        #     member_om.id,
-        #     teams=[foo.slug],
-        #     team_roles=[(bar.slug, "admin")],
-        # )
+        self.get_success_response(
+            self.organization.slug,
+            member_om.id,
+            teamRoles=[
+                {
+                    "teamSlug": foo.slug,
+                    "role": None,
+                },
+            ])
 
-        # member = self.create_user("baz@example.com")
-        # member_om = self.create_member(
-        #     organization=self.organization, user=member, role="member", teams=[]
-        # )
-
-        # self.get_success_response(self.organization.slug, member_om.id, role="manager")
-
-        # member_omt = OrganizationMemberTeam.objects.get(organization=self.organization, user=member)
-        # member_om = OrganizationMember.objects.get(organization=self.organization, user=member)
-        # assert member_om.role == "manager"
-        pass
+        member_omt = OrganizationMemberTeam.objects.get(organizationmember=member_om, team=foo)
+        assert member_omt.role is None
 
     def test_cannot_update_with_invalid_role(self):
         member = self.create_user("baz@example.com")
@@ -482,7 +475,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
 
         response = self.client.put(
             reverse(self.endpoint, args=[self.organization.slug, member_om.id]),
-            {"role": "admin"},
+            {"role": "manager"},
             HTTP_AUTHORIZATION=f"Bearer {token.api_token.token}",
         )
 
@@ -490,7 +483,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
         # So we can't authorize it to promote to a role less than or equal to its
         # own. This may be supported in the future. For now, assert that it provides
         # a graceful authorization failure.
-        assert response.status_code == 403
+        assert response.status_code == 400
 
 
 @region_silo_test
