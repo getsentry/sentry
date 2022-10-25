@@ -1,6 +1,7 @@
 """
 Utilities related to proxying a request to a region silo
 """
+from wsgiref.util import is_hop_by_hop
 
 from django.conf import settings
 from django.http import StreamingHttpResponse
@@ -13,6 +14,9 @@ from sentry.api.exceptions import RequestTimeout
 
 # stream 0.5 MB at a time
 PROXY_CHUNK_SIZE = 512 * 1024
+
+# List of headers to strip from a proxied request
+HEADER_STRIKE_LIST = {"Content-Length"}
 
 
 def _parse_response(response: ExternalResponse, remote_url: str) -> StreamingHttpResponse:
@@ -30,9 +34,18 @@ def _parse_response(response: ExternalResponse, remote_url: str) -> StreamingHtt
     )
     # Add Headers to response
     for header, value in response.headers.items():
-        streamed_response[header] = value
+        if not is_hop_by_hop(header):
+            streamed_response[header] = value
+
     streamed_response["X-Sentry-Proxy-URL"] = remote_url
     return streamed_response
+
+
+def _strip_request_headers(headers) -> dict:
+    header_dict = {}
+    for header, value in headers.items():
+        if header not in HEADER_STRIKE_LIST:
+            header_dict[header] = value
 
 
 def proxy_request(request: Request, org_slug: str) -> StreamingHttpResponse:
@@ -40,11 +53,11 @@ def proxy_request(request: Request, org_slug: str) -> StreamingHttpResponse:
     from sentry.types.region import get_region_for_organization
 
     target_url = get_region_for_organization(None).to_url(request.path)
-
+    header_dict = _strip_request_headers(request.headers)
     # TODO: use requests session for connection pooling capabilities
     query_params = getattr(request, request.method, None)
     request_args = {
-        "headers": request.headers,
+        "headers": header_dict,
         "params": dict(query_params) if query_params is not None else None,
         "files": getattr(request, "FILES", None),
         "data": getattr(request, "body", None) if not getattr(request, "FILES", None) else None,
