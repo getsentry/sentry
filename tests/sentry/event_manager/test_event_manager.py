@@ -23,6 +23,11 @@ from fixtures.github import (
 from sentry import audit_log, nodestore, tsdb
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.constants import MAX_VERSION_LENGTH, DataCategory
+from sentry.dynamic_sampling.latest_release_booster import (
+    BOOSTED_RELEASE_TIMEOUT,
+    get_boosted_releases,
+    get_redis_client_for_ds,
+)
 from sentry.event_manager import (
     EventManager,
     EventUser,
@@ -2697,6 +2702,155 @@ class ReleaseIssueTest(TestCase):
             last_seen=self.timestamp + 100,
             first_seen=self.timestamp + 100,
         )
+
+
+@region_silo_test
+class DSLatestReleaseBoostTest(TestCase):
+    def setUp(self):
+        self.project = self.create_project()
+        self.release = Release.get_or_create(self.project, "1.0")
+        self.environment1 = Environment.get_or_create(self.project, "prod")
+        self.environment2 = Environment.get_or_create(self.project, "staging")
+        self.timestamp = float(int(time() - 300))
+        self.redis_client = get_redis_client_for_ds()
+
+    def make_transaction_event(self, **kwargs):
+        result = {
+            "transaction": "wait",
+            "contexts": {
+                "trace": {
+                    "parent_span_id": "bce14471e0e9654d",
+                    "op": "foobar",
+                    "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
+                    "span_id": "bf5be759039ede9a",
+                }
+            },
+            "spans": [],
+            "timestamp": self.timestamp + 0.23,
+            "start_timestamp": "2019-06-14T14:01:40Z",
+            "type": "transaction",
+        }
+        result.update(kwargs)
+        return result
+
+    def make_release_transaction(
+        self, release_version="1.0", environment_name="prod", project_id=1, **kwargs
+    ):
+        transaction = self.make_transaction_event(
+            release=release_version, environment=environment_name, event_id=uuid.uuid1().hex
+        )
+        transaction.update(kwargs)
+        manager = EventManager(transaction)
+        with self.tasks():
+            event = manager.save(project_id)
+        return event
+
+    @freeze_time()
+    def test_boost_release_when_first_observed(self):
+        with self.options(
+            {
+                "dynamic-sampling:boost-latest-release": True,
+            }
+        ):
+            self.make_release_transaction(
+                release_version=self.release.version,
+                environment_name=self.environment1.name,
+                project_id=self.project.id,
+                checksum="a" * 32,
+                timestamp=self.timestamp,
+            )
+
+            ts = time()
+
+            assert self.redis_client.get(f"ds::p:{self.project.id}:r:{self.release.id}") == "1"
+            assert self.redis_client.hgetall(f"ds::p:{self.project.id}:boosted_releases") == {
+                str(self.release.id): str(ts)
+            }
+
+            new_release = Release.get_or_create(self.project, "2.0")
+
+            self.make_release_transaction(
+                release_version=new_release.version,
+                environment_name=self.environment1.name,
+                project_id=self.project.id,
+                checksum="b" * 32,
+                timestamp=self.timestamp,
+            )
+
+            assert self.redis_client.get(f"ds::p:{self.project.id}:r:{new_release.id}") == "1"
+            assert self.redis_client.hgetall(f"ds::p:{self.project.id}:boosted_releases") == {
+                str(self.release.id): str(ts),
+                str(new_release.id): str(ts),
+            }
+
+    def test_ensure_release_not_boosted_when_it_is_not_first_observed(self):
+        with self.options(
+            {
+                "dynamic-sampling:boost-latest-release": True,
+            }
+        ):
+            self.redis_client.set(f"ds::p:{self.project.id}:r:{self.release.id}", 1, 60 * 60 * 24)
+            self.make_release_transaction(
+                release_version=self.release.version,
+                environment_name=self.environment1.name,
+                project_id=self.project.id,
+                checksum="b" * 32,
+                timestamp=self.timestamp,
+            )
+            assert self.redis_client.hgetall(f"ds::p:{self.project.id}:boosted_releases") == {}
+            assert get_boosted_releases(self.project.id) == []
+
+    @freeze_time()
+    def test_evict_expired_boosted_releases(self):
+        release_2 = Release.get_or_create(self.project, "2.0")
+        release_3 = Release.get_or_create(self.project, "3.0")
+
+        for release_id in (self.release.id, release_2.id):
+            self.redis_client.set(f"ds::p:{self.project.id}:r:{release_id}", 1, 60 * 60 * 24)
+            self.redis_client.hset(
+                f"ds::p:{self.project.id}:boosted_releases",
+                release_id,
+                time() - BOOSTED_RELEASE_TIMEOUT * 2,
+            )
+
+        with self.options(
+            {
+                "dynamic-sampling:boost-latest-release": True,
+            }
+        ):
+            self.make_release_transaction(
+                release_version=release_3.version,
+                environment_name=self.environment1.name,
+                project_id=self.project.id,
+                checksum="b" * 32,
+                timestamp=self.timestamp,
+            )
+            assert self.redis_client.hgetall(f"ds::p:{self.project.id}:boosted_releases") == {
+                str(release_3.id): str(time())
+            }
+            assert self.redis_client.get(f"ds::p:{self.project.id}:r:{release_3.id}") == "1"
+            assert get_boosted_releases(self.project.id) == [(release_3.id, time())]
+
+    @mock.patch("sentry.event_manager.schedule_invalidate_project_config")
+    def test_project_config_invalidation_is_triggered_when_new_release_is_observed(
+        self, mocked_invalidate
+    ):
+        with self.options(
+            {
+                "dynamic-sampling:boost-latest-release": True,
+            }
+        ):
+            self.make_release_transaction(
+                release_version=self.release.version,
+                environment_name=self.environment1.name,
+                project_id=self.project.id,
+                checksum="a" * 32,
+                timestamp=self.timestamp,
+            )
+            assert any(
+                o.kwargs["trigger"] == "dynamic_sampling:boost_release"
+                for o in mocked_invalidate.mock_calls
+            )
 
 
 class TestSaveGroupHashAndGroup(TransactionTestCase):
