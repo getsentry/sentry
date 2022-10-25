@@ -191,7 +191,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         blame_range = self.get_blame_for_file(repo, filepath, ref, lineno)
 
         try:
-            commit = sorted(
+            commit = max(
                 (
                     blame
                     for blame in blame_range
@@ -200,7 +200,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
                 key=lambda blame: datetime.strptime(
                     blame.get("commit", {}).get("committedDate"), "%Y-%m-%dT%H:%M:%SZ"
                 ),
-            )[-1]
+            )
         except IndexError:
             return None
 

@@ -156,12 +156,12 @@ class GitlabIntegration(
         blame_range = self.get_blame_for_file(repo, filepath, ref, lineno)
 
         try:
-            commit = sorted(
+            commit = max(
                 blame_range,
                 key=lambda blame: datetime.strptime(
                     blame.get("commit", {}).get("committed_date"), "%Y-%m-%dT%H:%M:%S.%fZ"
                 ),
-            )[-1]
+            )
         except IndexError:
             return None
 
