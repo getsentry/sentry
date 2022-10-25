@@ -1,5 +1,6 @@
 from copy import deepcopy
 from datetime import datetime
+from typing import Any, List
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -8,10 +9,14 @@ from sentry import eventstore, features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import DetailedEventSerializer, serialize
+from sentry.eventstore.models import Event
 from sentry.issues.query import apply_performance_conditions
+from sentry.models.project import Project
 
 
-def wrap_event_response(event, event_data, project, requested_environments):
+def wrap_event_response(
+    event: Event, event_data: Any, project: Project, requested_environments: List[str]
+):
     # Used for paginating through events of a single issue in group details
     # Skip next/prev for issueless events
     next_event_id = None
