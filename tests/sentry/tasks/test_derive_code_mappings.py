@@ -138,18 +138,15 @@ class TestCommitContext(TestCase):
         ]
 
     def test_skips_nonpython_projects(self):
-        new_project = self.create_project(
-            organization=self.organization,
-            platform="javascript",
-        )
         self.store_event(self.test_data_1, project_id=self.project.id)
-        self.store_event(data=self.test_data_2, project_id=new_project.id)
+        nonpython_event = deepcopy(self.test_data_2)
+        nonpython_event["platform"] = "javascript"
+        self.store_event(data=nonpython_event, project_id=self.project.id)
 
         with self.tasks():
             mapping = identify_stacktrace_paths([self.organization])
         assert self.organization.slug in mapping
         stacktrace_paths = mapping[self.organization.slug]
-        assert new_project.slug not in stacktrace_paths
 
         assert self.project.slug in stacktrace_paths
         assert sorted(stacktrace_paths[self.project.slug]) == [

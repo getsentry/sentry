@@ -40,7 +40,6 @@ def identify_stacktrace_paths(
         projects = Project.objects.filter(
             organization=org,
             first_event__isnull=False,
-            platform="python",
         )
         projects = [
             project
@@ -58,7 +57,9 @@ def identify_stacktrace_paths(
 
 def get_all_stacktrace_paths(project: Project) -> List[str]:
     groups = Group.objects.filter(
-        project=project, last_seen__gte=timezone.now() - GROUP_ANALYSIS_RANGE
+        project=project,
+        last_seen__gte=timezone.now() - GROUP_ANALYSIS_RANGE,
+        platform="python",
     )
 
     all_stacktrace_paths = set()
