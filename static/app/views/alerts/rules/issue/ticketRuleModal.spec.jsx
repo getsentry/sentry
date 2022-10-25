@@ -1,12 +1,14 @@
+import selectEvent from 'react-select-event';
 import fetchMock from 'jest-fetch-mock';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {selectByQuery, selectByValue} from 'sentry-test/select-new';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import TicketRuleModal from 'sentry/views/alerts/rules/issue/ticketRuleModal';
 
 jest.unmock('sentry/utils/recreateRoute');
+jest.mock('sentry/actionCreators/indicator');
 jest.mock('sentry/actionCreators/onboardingTasks');
 
 describe('ProjectAlerts -> TicketRuleModal', function () {
@@ -20,6 +22,7 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
   beforeEach(function () {
     fetchMock.enableMocks();
     fetch.resetMocks();
+    addSuccessMessage.mockReset();
   });
 
   afterEach(function () {
@@ -27,21 +30,18 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
     MockApiClient.clearMockResponses();
   });
 
-  const _submit = wrapper => {
-    wrapper.find('Button[data-test-id="form-submit"]').simulate('submit');
-    return wrapper.find('FieldErrorReason');
-  };
+  const doSubmit = () =>
+    userEvent.click(screen.getByRole('button', {name: 'Apply Changes'}));
 
-  const submitSuccess = wrapper => {
-    const errors = _submit(wrapper);
-    expect(errors).toHaveLength(0);
+  const submitSuccess = () => {
+    doSubmit();
+    expect(addSuccessMessage).toHaveBeenCalled();
     expect(closeModal).toHaveBeenCalled();
   };
 
-  const submitErrors = (wrapper, errorCount) => {
-    const errors = _submit(wrapper);
-    expect(errors).toHaveLength(errorCount);
-    expect(errors.first().text()).toEqual('Field is required');
+  const submitErrors = errorCount => {
+    doSubmit();
+    expect(screen.getAllByText('Field is required')).toHaveLength(errorCount);
     expect(closeModal).toHaveBeenCalledTimes(0);
   };
 
@@ -98,7 +98,7 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
     );
   };
 
-  const createWrapper = (props = {}) => {
+  const renderComponent = (props = {}) => {
     const {organization, routerContext} = initializeOrg(props);
     addMockConfigsAPICall({
       label: 'Reporter',
@@ -107,7 +107,7 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
       type: 'select',
       name: 'reporter',
     });
-    return mountWithTheme(
+    return render(
       <TicketRuleModal
         {...modalElements}
         closeModal={closeModal}
@@ -119,37 +119,34 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
         onSubmitAction={() => {}}
         organization={organization}
       />,
-      routerContext
+      {context: routerContext}
     );
   };
 
   describe('Create Rule', function () {
     it('should render the Ticket Rule modal', function () {
-      const wrapper = createWrapper();
-      expect(wrapper.find('Button[data-test-id="form-submit"]').text()).toEqual(
-        'Apply Changes'
-      );
+      renderComponent();
 
-      const formFields = wrapper.find('FormField');
-      expect(formFields.at(0).text()).toEqual('Title');
-      expect(formFields.at(1).text()).toEqual('Description');
+      expect(screen.getByRole('button', {name: 'Apply Changes'})).toBeInTheDocument();
+      expect(screen.getByRole('textbox', {name: 'Title'})).toBeInTheDocument();
+      expect(screen.getByRole('textbox', {name: 'Description'})).toBeInTheDocument();
     });
 
-    it('should save the modal data when "Apply Changes" is clicked with valid data', function () {
-      const wrapper = createWrapper();
-      selectByValue(wrapper, 'a', {name: 'reporter'});
-      submitSuccess(wrapper);
+    it('should save the modal data when "Apply Changes" is clicked with valid data', async function () {
+      renderComponent();
+      await selectEvent.select(screen.getByRole('textbox', {name: 'Reporter'}), 'a');
+      submitSuccess();
     });
 
     it('should raise validation errors when "Apply Changes" is clicked with invalid data', function () {
       // This doesn't test anything TicketRules specific but I'm leaving it here as an example.
-      const wrapper = createWrapper();
-      submitErrors(wrapper, 1);
+      renderComponent();
+      submitErrors(1);
     });
 
-    it('should reload fields when an "updatesForm" field changes', function () {
-      const wrapper = createWrapper();
-      selectByValue(wrapper, 'a', {name: 'reporter'});
+    it('should reload fields when an "updatesForm" field changes', async function () {
+      renderComponent();
+      await selectEvent.select(screen.getByRole('textbox', {name: 'Reporter'}), 'a');
 
       addMockConfigsAPICall({
         label: 'Assignee',
@@ -159,19 +156,19 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
         name: 'assignee',
       });
 
-      selectByValue(wrapper, '10000', {name: 'issuetype'});
-      selectByValue(wrapper, 'b', {name: 'assignee'});
+      await selectEvent.select(screen.getByRole('textbox', {name: 'Issue Type'}), 'Epic');
+      await selectEvent.select(screen.getByRole('textbox', {name: 'Assignee'}), 'b');
 
-      submitSuccess(wrapper);
+      submitSuccess();
     });
 
     it('should persist values when the modal is reopened', function () {
-      const wrapper = createWrapper({data: {reporter: 'a'}});
-      submitSuccess(wrapper);
+      renderComponent({data: {reporter: 'a'}});
+      submitSuccess();
     });
 
     it('should get async options from URL', async function () {
-      const wrapper = createWrapper();
+      renderComponent();
       addMockConfigsAPICall({
         label: 'Assignee',
         required: true,
@@ -179,12 +176,17 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
         type: 'select',
         name: 'assignee',
       });
-      selectByValue(wrapper, '10000', {name: 'issuetype'});
+
+      await selectEvent.select(screen.getByRole('textbox', {name: 'Issue Type'}), 'Epic');
 
       addMockUsersAPICall(['Marcos']);
-      await selectByQuery(wrapper, 'Marcos', {name: 'assignee'});
 
-      submitSuccess(wrapper);
+      const menu = screen.getByRole('textbox', {name: 'Assignee'});
+      selectEvent.openMenu(menu);
+      userEvent.type(menu, 'Marc{esc}');
+      await selectEvent.select(menu, 'Marcos');
+
+      submitSuccess();
     });
   });
 });
