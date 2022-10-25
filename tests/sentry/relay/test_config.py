@@ -1,18 +1,20 @@
 import time
+from unittest import mock
 from unittest.mock import patch
 
 import pytest
-from django.core.cache import cache
 from freezegun import freeze_time
 
-from sentry.dynamic_sampling.lastest_release_booster import BOOSTED_RELEASE_TIMEOUT
+from sentry.dynamic_sampling.latest_release_booster import (
+    BOOSTED_RELEASE_TIMEOUT,
+    get_redis_client_for_ds,
+)
 from sentry.models import ProjectKey
 from sentry.models.transaction_threshold import TransactionMetric
 from sentry.relay.config import get_project_config
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.options import override_options
-from sentry.utils import json
 from sentry.utils.safe import get_path
 
 PII_CONFIG = """
@@ -348,12 +350,14 @@ def test_project_config_with_uniform_rules_based_on_plan_in_dynamic_sampling_rul
 
 @pytest.mark.django_db
 @freeze_time("2022-10-21 18:50:25.000000+00:00")
+@mock.patch("sentry.dynamic_sampling.rules_generator.BOOSTED_RELEASES_LIMIT", 5)
 def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_rules(
     default_project,
 ):
     """
     Tests that dynamic sampling information return correct uniform rules
     """
+    redis_client = get_redis_client_for_ds()
     ts = time.time()
 
     release_ids = []
@@ -367,19 +371,22 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
     boosted_releases = [[release_ids[0], ts - BOOSTED_RELEASE_TIMEOUT * 2]]
     for release_id in release_ids[1:]:
         boosted_releases.append([release_id, ts])
-    cache.set(
-        f"ds::p:{default_project.id}:boosted_releases:1h",
-        json.dumps(boosted_releases),
-        60 * 60,
-    )
+
+    for release, timestamp in boosted_releases:
+        redis_client.hset(
+            f"ds::p:{default_project.id}:boosted_releases",
+            release,
+            timestamp,
+        )
     with Feature(
         {
             "organizations:server-side-sampling": True,
-            "organizations:dynamic-sampling-basic": True,
+            "organizations:dynamic-sampling": True,
         }
     ):
         with patch(
-            "sentry.dynamic_sampling.utils.quotas.get_blended_sample_rate", return_value=0.1
+            "sentry.dynamic_sampling.rules_generator.quotas.get_blended_sample_rate",
+            return_value=0.1,
         ):
             cfg = get_project_config(default_project)
 
@@ -387,80 +394,95 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
     dynamic_sampling = get_path(cfg, "config", "dynamicSampling")
     assert dynamic_sampling == {
         "rules": [
-            [
-                {
-                    "sampleRate": 0.15000000000000002,
-                    "type": "trace",
-                    "condition": {
-                        "op": "and",
-                        "inner": [{"op": "glob", "name": "trace.release", "value": ["3.0"]}],
-                    },
-                    "id": 500,
-                    "timeRange": {
-                        "start": "2022-10-21 18:50:25+00:00",
-                        "end": "2022-10-21 19:50:25+00:00",
-                    },
+            {
+                "sampleRate": 0.5,
+                "type": "trace",
+                "condition": {
+                    "op": "and",
+                    "inner": [{"op": "glob", "name": "trace.release", "value": ["3.0"]}],
                 },
-                {
-                    "sampleRate": 0.15000000000000002,
-                    "type": "trace",
-                    "condition": {
-                        "op": "and",
-                        "inner": [{"op": "glob", "name": "trace.release", "value": ["4.0"]}],
-                    },
-                    "id": 501,
-                    "timeRange": {
-                        "start": "2022-10-21 18:50:25+00:00",
-                        "end": "2022-10-21 19:50:25+00:00",
-                    },
+                "id": 1500,
+                "timeRange": {
+                    "start": "2022-10-21 18:50:25+00:00",
+                    "end": "2022-10-21 19:50:25+00:00",
                 },
-                {
-                    "sampleRate": 0.15000000000000002,
-                    "type": "trace",
-                    "condition": {
-                        "op": "and",
-                        "inner": [{"op": "glob", "name": "trace.release", "value": ["5.0"]}],
-                    },
-                    "id": 502,
-                    "timeRange": {
-                        "start": "2022-10-21 18:50:25+00:00",
-                        "end": "2022-10-21 19:50:25+00:00",
-                    },
+            },
+            {
+                "sampleRate": 0.5,
+                "type": "trace",
+                "condition": {
+                    "op": "and",
+                    "inner": [{"op": "glob", "name": "trace.release", "value": ["4.0"]}],
                 },
-                {
-                    "sampleRate": 0.15000000000000002,
-                    "type": "trace",
-                    "condition": {
-                        "op": "and",
-                        "inner": [{"op": "glob", "name": "trace.release", "value": ["6.0"]}],
-                    },
-                    "id": 503,
-                    "timeRange": {
-                        "start": "2022-10-21 18:50:25+00:00",
-                        "end": "2022-10-21 19:50:25+00:00",
-                    },
+                "id": 1501,
+                "timeRange": {
+                    "start": "2022-10-21 18:50:25+00:00",
+                    "end": "2022-10-21 19:50:25+00:00",
                 },
-                {
-                    "sampleRate": 0.15000000000000002,
-                    "type": "trace",
-                    "condition": {
-                        "op": "and",
-                        "inner": [{"op": "glob", "name": "trace.release", "value": ["7.0"]}],
-                    },
-                    "id": 504,
-                    "timeRange": {
-                        "start": "2022-10-21 18:50:25+00:00",
-                        "end": "2022-10-21 19:50:25+00:00",
-                    },
+            },
+            {
+                "sampleRate": 0.5,
+                "type": "trace",
+                "condition": {
+                    "op": "and",
+                    "inner": [{"op": "glob", "name": "trace.release", "value": ["5.0"]}],
                 },
-                {
-                    "sampleRate": 0.1,
-                    "type": "trace",
-                    "active": True,
-                    "condition": {"op": "and", "inner": []},
-                    "id": 0,
+                "id": 1502,
+                "timeRange": {
+                    "start": "2022-10-21 18:50:25+00:00",
+                    "end": "2022-10-21 19:50:25+00:00",
                 },
-            ]
+            },
+            {
+                "sampleRate": 0.5,
+                "type": "trace",
+                "condition": {
+                    "op": "and",
+                    "inner": [{"op": "glob", "name": "trace.release", "value": ["6.0"]}],
+                },
+                "id": 1503,
+                "timeRange": {
+                    "start": "2022-10-21 18:50:25+00:00",
+                    "end": "2022-10-21 19:50:25+00:00",
+                },
+            },
+            {
+                "sampleRate": 0.5,
+                "type": "trace",
+                "condition": {
+                    "op": "and",
+                    "inner": [{"op": "glob", "name": "trace.release", "value": ["7.0"]}],
+                },
+                "id": 1504,
+                "timeRange": {
+                    "start": "2022-10-21 18:50:25+00:00",
+                    "end": "2022-10-21 19:50:25+00:00",
+                },
+            },
+            {
+                "sampleRate": 1,
+                "type": "trace",
+                "condition": {
+                    "op": "or",
+                    "inner": [
+                        {
+                            "op": "glob",
+                            "name": "trace.environment",
+                            "value": ["*dev*", "*test*"],
+                            "options": {"ignoreCase": True},
+                        }
+                    ],
+                },
+                "active": True,
+                "id": 1001,
+            },
+            {
+                "sampleRate": 0.1,
+                "type": "trace",
+                "active": True,
+                "condition": {"op": "and", "inner": []},
+                "id": 1000,
+            },
         ]
     }
 
