@@ -51,7 +51,7 @@ const AllEventsTable = (props: Props) => {
   }
 
   const idQuery = isPerfIssue
-    ? `performance.issue_ids:${issueId}`
+    ? `performance.issue_ids:${issueId} event.type:transaction`
     : `issue.id:${issueId}`;
   eventView.query = `${idQuery} ${props.location.query.query || ''}`;
   eventView.statsPeriod = '90d';
