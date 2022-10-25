@@ -100,7 +100,7 @@ describe('EventsTableRow', function () {
       'href',
       `/organizations/org-slug/replays/projectId:test-replay-id/?event_t=${new Date(
         event.dateCreated
-      ).getTime()}&referrer=%252Forganizations%252F%253AorgId%252Fissues%252F%253AgroupId%252Fevents%252F`
+      ).getTime()}&referrer=%2Forganizations%2F%3AorgId%2Fissues%2F%3AgroupId%2Fevents%2F`
     );
   });
 });
