@@ -113,6 +113,26 @@ class StatusActionTest(BaseEventTest):
 
         assert resp.data["text"].endswith(expect_status), resp.data["text"]
 
+    def test_assign_issue_where_team_not_in_project(self):
+        user2 = self.create_user(is_superuser=False)
+
+        team2 = self.create_team(
+            organization=self.organization, members=[self.user], name="Ecosystem"
+        )
+        self.create_member(user=user2, organization=self.organization, teams=[team2])
+        self.create_project(name="hellboy", organization=self.organization, teams=[team2])
+        # Assign to team
+        status_action = {
+            "name": "assign",
+            "selected_options": [{"value": f"team:{team2.id}"}],
+        }
+
+        resp = self.post_webhook(action_data=[status_action])
+
+        assert resp.status_code == 200, resp.content
+        assert resp.data["text"] == "Cannot assign to a team without access to the project"
+        assert not GroupAssignee.objects.filter(group=self.group).exists()
+
     def test_assign_issue_user_has_identity(self):
         user2 = self.create_user(is_superuser=False)
         self.create_member(user=user2, organization=self.organization, teams=[self.team])

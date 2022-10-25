@@ -9,6 +9,7 @@ import rest_framework
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.utils import timezone
+from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -207,7 +208,7 @@ def update_groups(
             },
         )
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            raise serializers.ValidationError(serializer.errors, code=400)
 
     if serializer is None:
         return
