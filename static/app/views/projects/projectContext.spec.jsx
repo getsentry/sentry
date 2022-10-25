@@ -1,4 +1,3 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectContext} from 'sentry/views/projects/projectContext';
@@ -143,7 +142,7 @@ describe('projectContext component', function () {
       />
     );
 
-    const wrapper = mountWithTheme(projectContext);
+    const {rerender} = render(projectContext);
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
 
@@ -155,8 +154,18 @@ describe('projectContext component', function () {
       body: [],
     });
 
-    wrapper.setProps({projects: [project]});
-    wrapper.update();
+    rerender(
+      <ProjectContext
+        api={new MockApiClient()}
+        params={{orgId: org.slug, projectId: project.slug}}
+        projects={[project]}
+        routes={routes}
+        router={router}
+        location={location}
+        orgId={org.slug}
+        projectId={project.slug}
+      />
+    );
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
