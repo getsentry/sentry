@@ -156,7 +156,7 @@ def get_project_config(project, full_config=True, project_keys=None):
 
 
 def get_dynamic_sampling_config(project) -> Optional[Mapping[str, Any]]:
-    feature_multiplexer = DynamicSamplingFeatureMultiplexer(project, None)
+    feature_multiplexer = DynamicSamplingFeatureMultiplexer(project)
 
     # In this case we should override old conditionnal rules if they exists
     # or just return uniform rule
