@@ -63,6 +63,7 @@ class OrganizationMixin:
         )
 
         if active_organization is None and backup_organization:
+
             if not is_implicit:
                 self.active_organization = None
                 return
