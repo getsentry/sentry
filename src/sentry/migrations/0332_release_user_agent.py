@@ -29,7 +29,7 @@ class Migration(CheckedMigration):
 
     operations = [
         migrations.SeparateDatabaseAndState(
-            state_operations=[
+            database_operations=[
                 migrations.AddField(
                     model_name="release",
                     name="user_agent",
