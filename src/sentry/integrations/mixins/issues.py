@@ -53,7 +53,9 @@ class IssueBasicMixin:
         if group.issue_category == GroupCategory.PERFORMANCE:
             issue_type = GROUP_TYPE_TO_TEXT.get(group.issue_type, "Issue")
             transaction = get_performance_issue_alert_subtitle(event)
-            return f"{issue_type}: {transaction}"
+            description = f"{issue_type}: {transaction}"
+            # Jira API will not accept a description field over 255 chars
+            return (description[:253] + "..") if len(description) > 255 else description
         else:
             return event.title
 
