@@ -204,8 +204,23 @@ class GroupDetails extends Component<Props, State> {
     this.fetchData();
   };
 
-  canLoadEventEarly(props: Props) {
-    return !props.params.eventId || ['oldest', 'latest'].includes(props.params.eventId);
+  /**
+   * Fetching a event by ID requires a project slug.
+   * We can get the project slug from the group and wait for that request to finish
+   * or we could get the project slug via the projectId in the URL
+   *
+   * In the future, we could make a events endpoint that does not require the project slug.
+   */
+  canLoadEventEarly(props: Props): boolean {
+    const hasProject = this.props.projects.some(
+      project => project.id === this.props.location.query.project
+    );
+
+    return (
+      !props.params.eventId ||
+      ['oldest', 'latest'].includes(props.params.eventId) ||
+      (!!props.params.eventId && hasProject)
+    );
   }
 
   get groupDetailsEndpoint() {
@@ -217,15 +232,21 @@ class GroupDetails extends Component<Props, State> {
   }
 
   async getEvent(group?: Group) {
+    let projectSlug: string | undefined;
     if (group) {
+      projectSlug = group.project.slug;
       this.setState({loadingEvent: true, eventError: false});
+    } else {
+      // If the wrong projectId is passed in the query params it will return a 404
+      projectSlug = this.props.projects.find(
+        project => project.id === this.props.location.query.project
+      )?.slug;
     }
 
     const {params, environments, api} = this.props;
     const orgSlug = params.orgId;
     const groupId = params.groupId;
     const eventId = params.eventId ?? 'latest';
-    const projectId = group?.project?.slug;
     try {
       const event = await fetchGroupEvent(
         api,
@@ -233,7 +254,7 @@ class GroupDetails extends Component<Props, State> {
         groupId,
         eventId,
         environments,
-        projectId
+        projectSlug
       );
 
       this.setState({event, loading: false, eventError: false, loadingEvent: false});

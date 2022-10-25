@@ -13,7 +13,7 @@ import {Event} from 'sentry/types/event';
  * @param groupId groupId
  * @param eventId eventId or "latest" or "oldest"
  * @param envNames
- * @param projectId project slug required for eventId that is not latest or oldest
+ * @param projectSlug required for eventId that is not latest or oldest
  */
 export async function fetchGroupEvent(
   api: Client,
@@ -21,12 +21,12 @@ export async function fetchGroupEvent(
   groupId: string,
   eventId: string,
   envNames: string[],
-  projectId?: string
+  projectSlug?: string
 ): Promise<Event> {
   const url =
     eventId === 'latest' || eventId === 'oldest'
       ? `/issues/${groupId}/events/${eventId}/`
-      : `/projects/${orgId}/${projectId}/events/${eventId}/?group_id=${groupId}`;
+      : `/projects/${orgId}/${projectSlug}/events/${eventId}/?group_id=${groupId}`;
 
   const query: {environment?: string[]} = {};
   if (envNames.length !== 0) {
