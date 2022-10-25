@@ -5,6 +5,7 @@ import process from 'process';
 
 import type {Config} from '@jest/types';
 
+import {BALANCE_RESULTS_PATH} from './tests/js/test-balancer/index.js';
 import babelConfig from './babel.config';
 
 const {
@@ -27,14 +28,6 @@ const {
  * be running the tests.
  */
 let testMatch: string[] | undefined;
-
-const BALANCE_RESULTS_PATH = path.resolve(
-  __dirname,
-  'tests',
-  'js',
-  'test-balancer',
-  'jest-balance.json'
-);
 
 /**
  * Given a Map of <testName, testRunTime> and a number of total groups, split the
@@ -60,6 +53,7 @@ function balancer(
   function findSmallestGroup() {
     let index = 0;
     let smallestRunTime = null;
+
     for (let i = 0; i < totalRunTimes.length; i++) {
       const runTime = totalRunTimes[i];
 
@@ -192,6 +186,9 @@ const config: Config.InitialOptions = {
   moduleFileExtensions: ['js', 'ts', 'jsx', 'tsx'],
   globals: {},
 
+  testResultsProcessor: JEST_TEST_BALANCER
+    ? '<rootDir>/tests/js/test-balancer/index.js'
+    : undefined,
   reporters: [
     'default',
     [
@@ -199,13 +196,6 @@ const config: Config.InitialOptions = {
       {
         outputDirectory: '.artifacts',
         outputName: 'jest.junit.xml',
-      },
-    ],
-    [
-      '<rootDir>/tests/js/test-balancer',
-      {
-        enabled: !!JEST_TEST_BALANCER,
-        resultsPath: BALANCE_RESULTS_PATH,
       },
     ],
   ],

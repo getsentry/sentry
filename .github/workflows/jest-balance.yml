@@ -1,0 +1,31 @@
+name: jest balancer
+on: [pull_request, workflow_dispatch]
+jobs:
+  jest-balance:
+    # Buckle up, this may take a while
+    timeout-minutes: 60
+    # Make sure this matches the runner that runs frontend tests
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e # v2
+        name: Checkout sentry
+
+      - uses: getsentry/action-setup-volta@54775a59c41065f54ecc76d1dd5f2cdc7a1550cb # v1.1.0
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build CSS
+        run: NODE_ENV=production yarn build-css
+
+      - name: jest balancer
+        env:
+          GITHUB_PR_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          GITHUB_PR_REF: ${{ github.event.pull_request.head.ref || github.ref }}
+        run: JEST_TEST_BALANCER=1 yarn test-ci
+      - name: Archive artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ github.sha }}
+          path: |
+            ${{ github.workspace }}/**/jest-balance.json

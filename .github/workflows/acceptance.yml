@@ -46,6 +46,8 @@ jobs:
     if: needs.files-changed.outputs.acceptance == 'true'
     needs: files-changed
     name: frontend tests
+    # If you change the runs-on image, you must also change the runner in jest-balance.yml
+    # so that the balancer runs in the same environment as the tests.
     runs-on: ubuntu-20.04
     timeout-minutes: 20
     strategy:
