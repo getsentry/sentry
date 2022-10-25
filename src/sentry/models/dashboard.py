@@ -36,6 +36,8 @@ class Dashboard(Model):
     projects = models.ManyToManyField("sentry.Project", through=DashboardProject)
     filters = JSONField(null=True)
 
+    MAX_WIDGETS = 30
+
     class Meta:
         app_label = "sentry"
         db_table = "sentry_dashboard"
