@@ -1,9 +1,11 @@
-import {Fragment} from 'react';
-
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
 
-import GlobalModal from 'sentry/components/globalModal';
 import ProjectLatestReleases from 'sentry/views/projectDetail/projectLatestReleases';
 
 describe('ProjectDetail > ProjectLatestReleases', function () {
@@ -29,7 +31,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
   });
 
   it('renders a list', function () {
-    const wrapper = mountWithTheme(
+    render(
       <ProjectLatestReleases
         organization={organization}
         projectSlug={project.slug}
@@ -48,11 +50,11 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
     );
     expect(endpointOlderReleasesMock).toHaveBeenCalledTimes(0);
 
-    expect(wrapper.find('SectionHeading').text()).toBe('Latest Releases');
+    expect(screen.getByText('Latest Releases')).toBeInTheDocument();
 
-    expect(wrapper.find('Version').length).toBe(2);
-    expect(wrapper.find('DateTime').at(0).text()).toBe('Mar 23, 2020 1:02 AM');
-    expect(wrapper.find('Version').at(1).text()).toBe('1.0.1');
+    expect(screen.getByText('1.0.0')).toBeInTheDocument();
+    expect(screen.getByText('1.0.1')).toBeInTheDocument();
+    expect(screen.getAllByText('Mar 23, 2020 1:02 AM')).toHaveLength(2);
   });
 
   it('shows the empty state', async function () {
@@ -61,7 +63,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
       body: [],
     });
 
-    const wrapper = mountWithTheme(
+    render(
       <ProjectLatestReleases
         organization={organization}
         projectSlug={project.slug}
@@ -71,12 +73,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
       />
     );
 
-    await tick();
-    wrapper.update();
-
-    expect(endpointOlderReleasesMock).toHaveBeenCalledTimes(1);
-    expect(wrapper.find('Version').length).toBe(0);
-    expect(wrapper.text()).toContain('No releases found');
+    expect(await screen.findByText('No releases found')).toBeInTheDocument();
   });
 
   it('shows configure releases buttons', async function () {
@@ -89,40 +86,29 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
       body: [],
     });
 
-    const wrapper = mountWithTheme(
-      <Fragment>
-        <GlobalModal />
-        <ProjectLatestReleases
-          organization={organization}
-          projectSlug={project.slug}
-          location={router.location}
-          projectId={project.slug}
-          isProjectStabilized
-        />
-      </Fragment>
+    render(
+      <ProjectLatestReleases
+        organization={organization}
+        projectSlug={project.slug}
+        location={router.location}
+        projectId={project.slug}
+        isProjectStabilized
+      />
     );
 
-    await tick();
-    wrapper.update();
+    expect(await screen.findByRole('button', {name: 'Start Setup'})).toHaveAttribute(
+      'href',
+      'https://docs.sentry.io/product/releases/'
+    );
 
-    expect(wrapper.find('Version').length).toBe(0);
+    userEvent.click(screen.getByRole('button', {name: 'Get Tour'}));
 
-    const docsButton = wrapper.find('Button').at(0);
-    const tourButton = wrapper.find('Button').at(1);
-
-    expect(docsButton.text()).toBe('Start Setup');
-    expect(docsButton.prop('href')).toBe('https://docs.sentry.io/product/releases/');
-
-    expect(tourButton.text()).toBe('Get Tour');
-    expect(wrapper.find('GlobalModal').props().visible).toEqual(false);
-    tourButton.simulate('click');
-    await tick();
-    wrapper.update();
-    expect(wrapper.find('GlobalModal').props().visible).toEqual(true);
+    renderGlobalModal();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
   it('calls API with the right params', function () {
-    mountWithTheme(
+    render(
       <ProjectLatestReleases
         organization={organization}
         projectSlug={project.slug}
@@ -144,7 +130,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
   });
 
   it('does not call API if project is not stabilized yet', function () {
-    mountWithTheme(
+    render(
       <ProjectLatestReleases
         organization={organization}
         projectSlug={project.slug}
