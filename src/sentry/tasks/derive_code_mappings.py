@@ -1,6 +1,6 @@
 import logging
 from datetime import timedelta
-from typing import Any, List, Mapping, Optional, Set, Tuple
+from typing import Any, List, Mapping, Optional, Set
 
 from django.utils import timezone
 
@@ -29,15 +29,18 @@ def identify_stacktrace_paths(
     Generate a map of projects to stacktrace paths for specified organizations,
     or all active organizations if unspecified.
 
-    This filters out projects have not had an event in the last 7 days or have
-    non-python files in the stacktrace.
+    This filters out non-python projects, or projects without an event
+    in the last 7 days.
     """
     if organizations is None:
         organizations = Organization.objects.filter(status=OrganizationStatus.ACTIVE)
 
     filename_maps = {}
     for org in organizations:
-        projects = Project.objects.filter(organization=org, first_event__isnull=False)
+        projects = Project.objects.filter(
+            organization=org,
+            first_event__isnull=False,
+        )
         projects = [
             project
             for project in projects
@@ -54,21 +57,20 @@ def identify_stacktrace_paths(
 
 def get_all_stacktrace_paths(project: Project) -> List[str]:
     groups = Group.objects.filter(
-        project=project, last_seen__gte=timezone.now() - GROUP_ANALYSIS_RANGE
+        project=project,
+        last_seen__gte=timezone.now() - GROUP_ANALYSIS_RANGE,
+        platform="python",
     )
 
     all_stacktrace_paths = set()
     for group in groups:
         event = group.get_latest_event()
-        is_python_stacktrace, stacktrace_paths = get_stacktrace_paths(event.data)
-        if not is_python_stacktrace:
-            return []
-        all_stacktrace_paths.update(stacktrace_paths)
+        all_stacktrace_paths.update(get_stacktrace_paths(event.data))
 
     return list(all_stacktrace_paths)
 
 
-def get_stacktrace_paths(data: NodeData) -> Tuple[bool, Set[str]]:
+def get_stacktrace_paths(data: NodeData) -> Set[str]:
     """
     Get the stacktrace_paths from the stacktrace for the latest event for an issue.
     """
@@ -76,16 +78,11 @@ def get_stacktrace_paths(data: NodeData) -> Tuple[bool, Set[str]]:
     stacktrace_paths = set()
     for stacktrace in stacktraces:
         try:
-            paths = [frame["filename"] for frame in stacktrace["frames"]]
-            if len(paths) == 0:
-                continue
-            if paths[0].endswith(".py"):
-                stacktrace_paths.update(paths)
-            else:
-                return False, set()  # (is_python, stacktrace_paths)
+            paths = {frame["filename"] for frame in stacktrace["frames"]}
+            stacktrace_paths.update(paths)
         except Exception:
             logger.exception("Error getting filenames for project {project.slug}")
-    return True, stacktrace_paths  # (is_python, stacktrace_paths)
+    return stacktrace_paths
 
 
 def get_stacktrace(data: NodeData) -> List[Mapping[str, Any]]:
