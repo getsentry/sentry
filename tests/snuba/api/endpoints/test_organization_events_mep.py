@@ -1912,15 +1912,3 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     @pytest.mark.xfail(reason="Metrics layer failing to support ordering by apdex")
     def test_apdex_transaction_threshold(self):
         super().test_apdex_transaction_threshold()
-
-    @pytest.mark.xfail(reason="Metrics layer failing to support group by transaction")
-    def test_environment_param(self):
-        super().test_environment_param()
-
-    @pytest.mark.xfail(reason="Metrics layer failing to support group by transaction")
-    def test_has_transaction(self):
-        super().test_has_transaction()
-
-    @pytest.mark.xfail(reason="Metrics layer failing to support group by transaction")
-    def test_merge_null_unparam(self):
-        super().test_merge_null_unparam()
