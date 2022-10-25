@@ -8,8 +8,11 @@ from sentry.notifications.types import ActionTargetType
 from sentry.tasks.post_process import post_process_group
 from sentry.testutils import TestCase
 from sentry.testutils.cases import RuleTestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
+from sentry.types.issues import GroupType
+from sentry.utils.samples import load_data
 
 
 class NotifyEmailFormTest(TestCase):
@@ -141,6 +144,49 @@ class NotifyEmailTest(RuleTestCase):
         sent = mail.outbox[0]
         assert sent.to == [self.user.email]
         assert "uh oh" in sent.subject
+
+    @with_feature("organizations:performance-issues-post-process-group")
+    def test_full_integration_performance(self):
+        event_data = load_data(
+            "transaction",
+            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
+            timestamp=before_now(minutes=1),
+        )
+        event = self.store_event(data=event_data, project_id=self.project.id)
+        event = event.for_group(event.groups[0])
+
+        action_data = {
+            "id": "sentry.mail.actions.NotifyEmailAction",
+            "targetType": "Member",
+            "targetIdentifier": str(self.user.id),
+        }
+        condition_data = {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
+
+        Rule.objects.filter(project=event.project).delete()
+        Rule.objects.create(
+            project=event.project, data={"conditions": [condition_data], "actions": [action_data]}
+        )
+
+        with self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_states=[
+                    {
+                        "id": event.group_id,
+                        "is_new": True,
+                        "is_regression": False,
+                        "is_new_group_environment": False,
+                    }
+                ],
+            )
+
+        assert len(mail.outbox) == 1
+        sent = mail.outbox[0]
+        assert sent.to == [self.user.email]
+        assert "N+1 Query" in sent.subject
 
     # XXX(gilbert): remove this later one
     @mock.patch("sentry.mail.actions.determine_eligible_recipients")

@@ -2,13 +2,16 @@ import {browserHistory} from 'react-router';
 
 import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {triggerPress} from 'sentry-test/utils';
 
 import * as PageFilterPersistence from 'sentry/components/organizations/pageFilters/persistence';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import EventView from 'sentry/utils/discover/eventView';
 import Results from 'sentry/views/eventsV2/results';
 import {OrganizationContext} from 'sentry/views/organizationContext';
+
+import {TRANSACTION_VIEWS} from './data';
 
 const FIELDS = [
   {
@@ -33,12 +36,7 @@ describe('Results', function () {
   enforceActOnUseLegacyStoreHook();
 
   const eventTitle = 'Oh no something bad';
-  let eventsResultsMock,
-    eventsv2ResultsMock,
-    mockSaved,
-    eventsStatsMock,
-    mockVisit,
-    mockHomepage;
+  let eventsResultsMock, eventsv2ResultsMock, mockSaved, eventsStatsMock, mockVisit;
 
   const mountWithThemeAndOrg = (component, opts, organization) =>
     mountWithTheme(component, {
@@ -197,14 +195,13 @@ describe('Results', function () {
         orderby: '-user.display',
       },
     });
-
-    mockHomepage = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/discover/homepage/',
       method: 'GET',
       statusCode: 200,
       body: {
         id: '2',
-        name: 'homepage query',
+        name: '',
         projects: [],
         version: 2,
         expired: false,
@@ -214,10 +211,10 @@ describe('Results', function () {
           id: '2',
         },
         environment: [],
-        fields: ['environment'],
-        widths: ['-1'],
+        fields: ['title', 'event.type', 'project', 'user.display', 'timestamp'],
+        widths: ['-1', '-1', '-1', '-1', '-1'],
         range: '24h',
-        orderby: '-environment',
+        orderby: '-user.display',
       },
     });
   });
@@ -1679,7 +1676,7 @@ describe('Results', function () {
     const initialData = initializeOrg({
       organization,
       router: {
-        location: {query: {fromMetric: true}},
+        location: {query: {fromMetric: true, id: '1'}},
       },
     });
 
@@ -1710,7 +1707,7 @@ describe('Results', function () {
     const initialData = initializeOrg({
       organization,
       router: {
-        location: {query: {showUnparameterizedBanner: true}},
+        location: {query: {showUnparameterizedBanner: true, id: '1'}},
       },
     });
 
@@ -1733,7 +1730,12 @@ describe('Results', function () {
     );
   });
 
-  it('redirects with homepage query if no id in query', () => {
+  it('updates the homepage query with up to date eventView when Set as Default is clicked', async () => {
+    const mockHomepageUpdate = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/discover/homepage/',
+      method: 'PUT',
+      statusCode: 200,
+    });
     const organization = TestStubs.Organization({
       features: [
         'discover-basic',
@@ -1745,7 +1747,8 @@ describe('Results', function () {
     const initialData = initializeOrg({
       organization,
       router: {
-        location: TestStubs.location(),
+        // These fields take priority and should be sent in the request
+        location: {query: {field: ['title', 'user'], id: '1'}},
       },
     });
 
@@ -1756,23 +1759,164 @@ describe('Results', function () {
         organization={organization}
         location={initialData.router.location}
         router={initialData.router}
-        requiresHomepage
       />,
       {context: initialData.routerContext, organization}
     );
 
-    expect(browserHistory.replace).toHaveBeenCalledWith(
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: /set as default/i})).toBeEnabled()
+    );
+    userEvent.click(screen.getByText('Set as Default'));
+
+    expect(mockHomepageUpdate).toHaveBeenCalledWith(
+      '/organizations/org-slug/discover/homepage/',
       expect.objectContaining({
-        pathname: '/organizations/org-slug/discover/results/',
-        query: expect.objectContaining({
-          name: 'homepage query',
-          field: ['environment'],
+        data: expect.objectContaining({
+          fields: ['title', 'user'],
         }),
       })
     );
   });
 
-  it('does not fetch homepage if id is in query', () => {
+  it('Changes the Use as Discover button to a reset button for saved query', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/discover/homepage/',
+      method: 'PUT',
+      statusCode: 200,
+      body: {
+        id: '2',
+        name: '',
+        projects: [],
+        version: 2,
+        expired: false,
+        dateCreated: '2021-04-08T17:53:25.195782Z',
+        dateUpdated: '2021-04-09T12:13:18.567264Z',
+        createdBy: {
+          id: '2',
+        },
+        environment: [],
+        fields: ['title', 'event.type', 'project', 'user.display', 'timestamp'],
+        widths: ['-1', '-1', '-1', '-1', '-1'],
+        range: '14d',
+        orderby: '-user.display',
+      },
+    });
+    const organization = TestStubs.Organization({
+      features: [
+        'discover-basic',
+        'discover-query',
+        'discover-query-builder-as-landing-page',
+      ],
+    });
+
+    const initialData = initializeOrg({
+      organization,
+      router: {
+        location: {query: {id: '1'}},
+      },
+    });
+
+    ProjectsStore.loadInitialData([TestStubs.Project()]);
+
+    const {rerender} = render(
+      <Results
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+      />,
+      {context: initialData.routerContext, organization}
+    );
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: /set as default/i})).toBeEnabled()
+    );
+    userEvent.click(screen.getByText('Set as Default'));
+    expect(await screen.findByText('Remove Default')).toBeInTheDocument();
+
+    userEvent.click(screen.getByText('Total Period'));
+    userEvent.click(screen.getByText('Previous Period'));
+    const rerenderData = initializeOrg({
+      organization,
+      router: {
+        location: {query: {...initialData.router.location.query, display: 'previous'}},
+      },
+    });
+    rerender(
+      <Results
+        organization={organization}
+        location={rerenderData.router.location}
+        router={rerenderData.router}
+      />
+    );
+    screen.getByText('Previous Period');
+    expect(await screen.findByText('Set as Default')).toBeInTheDocument();
+  });
+
+  it('Changes the Use as Discover button to a reset button for prebuilt query', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/discover/homepage/',
+      method: 'PUT',
+      statusCode: 200,
+      body: {...TRANSACTION_VIEWS[0], name: ''},
+    });
+    const organization = TestStubs.Organization({
+      features: [
+        'discover-basic',
+        'discover-query',
+        'discover-query-builder-as-landing-page',
+      ],
+    });
+
+    const initialData = initializeOrg({
+      organization,
+      router: {
+        location: {
+          ...TestStubs.location(),
+          query: {
+            ...EventView.fromNewQueryWithLocation(
+              TRANSACTION_VIEWS[0],
+              TestStubs.location()
+            ).generateQueryStringObject(),
+          },
+        },
+      },
+    });
+
+    ProjectsStore.loadInitialData([TestStubs.Project()]);
+
+    const {rerender} = render(
+      <Results
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+      />,
+      {context: initialData.routerContext, organization}
+    );
+
+    await screen.findAllByText(TRANSACTION_VIEWS[0].name);
+    userEvent.click(screen.getByText('Set as Default'));
+    expect(await screen.findByText('Remove Default')).toBeInTheDocument();
+
+    userEvent.click(screen.getByText('Total Period'));
+    userEvent.click(screen.getByText('Previous Period'));
+    const rerenderData = initializeOrg({
+      organization,
+      router: {
+        location: {query: {...initialData.router.location.query, display: 'previous'}},
+      },
+    });
+    rerender(
+      <Results
+        organization={organization}
+        location={rerenderData.router.location}
+        router={rerenderData.router}
+      />
+    );
+    screen.getByText('Previous Period');
+    expect(await screen.findByText('Set as Default')).toBeInTheDocument();
+  });
+
+  it('links back to the homepage through the Discover breadcrumb', () => {
     const organization = TestStubs.Organization({
       features: [
         'discover-basic',
@@ -1799,52 +1943,9 @@ describe('Results', function () {
       {context: initialData.routerContext, organization}
     );
 
-    expect(mockSaved).toHaveBeenCalled();
-    expect(mockHomepage).not.toHaveBeenCalled();
-  });
-
-  it('updates the homepage query with up to date eventView when Use as Discover Home is clicked', () => {
-    const mockHomepageUpdate = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/discover/homepage/',
-      method: 'PUT',
-      statusCode: 204,
-    });
-    const organization = TestStubs.Organization({
-      features: [
-        'discover-basic',
-        'discover-query',
-        'discover-query-builder-as-landing-page',
-      ],
-    });
-
-    const initialData = initializeOrg({
-      organization,
-      router: {
-        // These fields take priority and should be sent in the request
-        location: {query: {field: ['title', 'user']}},
-      },
-    });
-
-    ProjectsStore.loadInitialData([TestStubs.Project()]);
-
-    render(
-      <Results
-        organization={organization}
-        location={initialData.router.location}
-        router={initialData.router}
-      />,
-      {context: initialData.routerContext, organization}
-    );
-
-    userEvent.click(screen.getByText('Use as Discover Home'));
-
-    expect(mockHomepageUpdate).toHaveBeenCalledWith(
-      '/organizations/org-slug/discover/homepage/',
-      expect.objectContaining({
-        data: expect.objectContaining({
-          fields: ['title', 'user'],
-        }),
-      })
+    expect(screen.getByText('Discover')).toHaveAttribute(
+      'href',
+      expect.stringMatching(new RegExp('^/organizations/org-slug/discover/homepage/'))
     );
   });
 });

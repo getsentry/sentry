@@ -1,8 +1,7 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import EventView from 'sentry/utils/discover/eventView';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 import TransactionHeader from 'sentry/views/performance/transactionSummary/header';
 import Tab from 'sentry/views/performance/transactionSummary/tabs';
 
@@ -47,17 +46,20 @@ function initializeData(opts?: InitialOpts) {
   };
 }
 
-const WrappedComponent = ({
-  hasWebVitals,
-  platform,
-  features,
-}: {
-  hasWebVitals: 'yes' | 'no' | 'maybe';
-} & InitialOpts) => {
-  const {project, organization, router, eventView} = initializeData({features, platform});
+describe('Performance > Transaction Summary Header', function () {
+  beforeEach(function () {
+    MockApiClient.clearMockResponses();
+  });
 
-  return (
-    <OrganizationContext.Provider value={organization}>
+  it('should render web vitals tab when yes', function () {
+    const {project, organization, router, eventView} = initializeData();
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-has-measurements/',
+      body: {measurements: true},
+    });
+
+    render(
       <TransactionHeader
         eventView={eventView}
         location={router.location}
@@ -66,88 +68,136 @@ const WrappedComponent = ({
         projectId={project.id}
         transactionName="transaction_name"
         currentTab={Tab.TransactionSummary}
-        hasWebVitals={hasWebVitals}
+        hasWebVitals="yes"
       />
-    </OrganizationContext.Provider>
-  );
-};
-
-describe('Performance > Transaction Summary Header', function () {
-  let wrapper;
-
-  afterEach(function () {
-    MockApiClient.clearMockResponses();
-    wrapper.unmount();
-  });
-
-  it('should render web vitals tab when yes', async function () {
-    wrapper = mountWithTheme(<WrappedComponent hasWebVitals="yes" />);
-
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('ListLink[data-test-id="web-vitals-tab"]').exists()).toBeTruthy();
-  });
-
-  it('should not render web vitals tab when no', async function () {
-    wrapper = mountWithTheme(<WrappedComponent hasWebVitals="no" />);
-
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('ListLink[data-test-id="web-vitals-tab"]').exists()).toBeFalsy();
-  });
-
-  it('should render web vitals tab when maybe and is frontend platform', async function () {
-    wrapper = mountWithTheme(
-      <WrappedComponent hasWebVitals="maybe" platform="javascript" />
     );
 
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('ListLink[data-test-id="web-vitals-tab"]').exists()).toBeTruthy();
+    expect(screen.getByRole('tab', {name: 'Web Vitals'})).toBeInTheDocument();
   });
 
-  it('should render web vitals tab when maybe and has measurements', async function () {
+  it('should not render web vitals tab when no', function () {
+    const {project, organization, router, eventView} = initializeData();
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-has-measurements/',
       body: {measurements: true},
     });
 
-    wrapper = mountWithTheme(<WrappedComponent hasWebVitals="maybe" />);
+    <TransactionHeader
+      eventView={eventView}
+      location={router.location}
+      organization={organization}
+      projects={[project]}
+      projectId={project.id}
+      transactionName="transaction_name"
+      currentTab={Tab.TransactionSummary}
+      hasWebVitals="no"
+    />;
 
-    await tick();
-    wrapper.update();
+    expect(screen.queryByRole('tab', {name: 'Web Vitals'})).not.toBeInTheDocument();
+  });
 
-    expect(wrapper.find('ListLink[data-test-id="web-vitals-tab"]').exists()).toBeTruthy();
+  it('should render web vitals tab when maybe and is frontend platform', function () {
+    const {project, organization, router, eventView} = initializeData({
+      platform: 'javascript',
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-has-measurements/',
+      body: {measurements: true},
+    });
+
+    render(
+      <TransactionHeader
+        eventView={eventView}
+        location={router.location}
+        organization={organization}
+        projects={[project]}
+        projectId={project.id}
+        transactionName="transaction_name"
+        currentTab={Tab.TransactionSummary}
+        hasWebVitals="maybe"
+      />
+    );
+
+    expect(screen.getByRole('tab', {name: 'Web Vitals'})).toBeInTheDocument();
+  });
+
+  it('should render web vitals tab when maybe and has measurements', async function () {
+    const {project, organization, router, eventView} = initializeData();
+
+    const eventHasMeasurementsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-has-measurements/',
+      body: {measurements: true},
+    });
+
+    render(
+      <TransactionHeader
+        eventView={eventView}
+        location={router.location}
+        organization={organization}
+        projects={[project]}
+        projectId={project.id}
+        transactionName="transaction_name"
+        currentTab={Tab.TransactionSummary}
+        hasWebVitals="maybe"
+      />
+    );
+
+    await waitFor(() => expect(eventHasMeasurementsMock).toHaveBeenCalled());
+
+    expect(screen.getByRole('tab', {name: 'Web Vitals'})).toBeInTheDocument();
   });
 
   it('should not render web vitals tab when maybe and has no measurements', async function () {
-    MockApiClient.addMockResponse({
+    const {project, organization, router, eventView} = initializeData();
+
+    const eventHasMeasurementsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-has-measurements/',
       body: {measurements: false},
     });
 
-    wrapper = mountWithTheme(<WrappedComponent hasWebVitals="maybe" />);
-
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('ListLink[data-test-id="web-vitals-tab"]').exists()).toBeFalsy();
-  });
-
-  it('should render spans tab with feature', async function () {
-    wrapper = mountWithTheme(
-      <WrappedComponent
-        hasWebVitals="yes"
-        features={['performance-suspect-spans-view']}
+    render(
+      <TransactionHeader
+        eventView={eventView}
+        location={router.location}
+        organization={organization}
+        projects={[project]}
+        projectId={project.id}
+        transactionName="transaction_name"
+        currentTab={Tab.TransactionSummary}
+        hasWebVitals="maybe"
       />
     );
 
-    await tick();
-    wrapper.update();
+    await waitFor(() => expect(eventHasMeasurementsMock).toHaveBeenCalled());
 
-    expect(wrapper.find('ListLink[data-test-id="spans-tab"]').exists()).toBeTruthy();
+    expect(screen.queryByRole('tab', {name: 'Web Vitals'})).not.toBeInTheDocument();
+  });
+
+  it('should render spans tab with feature', function () {
+    const {project, organization, router, eventView} = initializeData({
+      features: ['performance-suspect-spans-view'],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-has-measurements/',
+      body: {measurements: true},
+    });
+
+    render(
+      <TransactionHeader
+        eventView={eventView}
+        location={router.location}
+        organization={organization}
+        projects={[project]}
+        projectId={project.id}
+        transactionName="transaction_name"
+        currentTab={Tab.TransactionSummary}
+        hasWebVitals="yes"
+      />
+    );
+
+    expect(screen.getByRole('tab', {name: 'Spans'})).toBeInTheDocument();
   });
 });

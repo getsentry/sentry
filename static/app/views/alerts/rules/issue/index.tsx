@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 import {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
+import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
 import set from 'lodash/set';
 
@@ -15,30 +16,34 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import Access from 'sentry/components/acl/access';
+import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Field from 'sentry/components/forms/field';
 import FieldHelp from 'sentry/components/forms/field/fieldHelp';
-import Form from 'sentry/components/forms/form';
+import SelectField from 'sentry/components/forms/fields/selectField';
+import Form, {FormProps} from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
-import SelectControl from 'sentry/components/forms/selectControl';
-import SelectField from 'sentry/components/forms/selectField';
-import TeamSelector from 'sentry/components/forms/teamSelector';
 import IdBadge from 'sentry/components/idBadge';
 import Input from 'sentry/components/input';
 import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingMask from 'sentry/components/loadingMask';
+import {CursorHandler} from 'sentry/components/pagination';
 import {Panel, PanelBody} from 'sentry/components/panels';
+import TeamSelector from 'sentry/components/teamSelector';
 import {ALL_ENVIRONMENTS_KEY} from 'sentry/constants';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
 import {
   Environment,
   IssueOwnership,
+  Member,
   OnboardingTaskKey,
   Organization,
   Project,
@@ -59,6 +64,7 @@ import recreateRoute from 'sentry/utils/recreateRoute';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
+import PreviewTable from 'sentry/views/alerts/rules/issue/previewTable';
 import {
   CHANGE_ALERT_CONDITION_IDS,
   CHANGE_ALERT_PLACEHOLDERS_LABELS,
@@ -104,6 +110,9 @@ const defaultRule: UnsavedIssueAlertRule = {
 
 const POLLING_MAX_TIME_LIMIT = 3 * 60000;
 
+const SENTRY_ISSUE_ALERT_DOCS_URL =
+  'https://docs.sentry.io/product/alerts/alert-types/#issue-alerts';
+
 type ConditionOrActionProperty = 'conditions' | 'actions' | 'filters';
 
 type RuleTaskResponse = {
@@ -116,6 +125,7 @@ type RouteParams = {orgId: string; projectId?: string; ruleId?: string};
 
 type Props = {
   location: Location;
+  members: Member[] | undefined;
   organization: Organization;
   project: Project;
   projects: Project[];
@@ -134,6 +144,12 @@ type State = AsyncView['state'] & {
     [key: string]: string[];
   };
   environments: Environment[] | null;
+  issueCount: number;
+  loadingPreview: boolean;
+  previewCursor: string | null | undefined;
+  previewError: boolean;
+  previewGroups: string[] | null;
+  previewPage: number;
   project: Project;
   uuid: null | string;
   duplicateTargetRule?: UnsavedIssueAlertRule | IssueAlertRule | null;
@@ -154,16 +170,40 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     return createFromDuplicate && location?.query.duplicateRuleId;
   }
 
+  componentWillMount() {
+    this.fetchPreview();
+  }
+
   componentWillUnmount() {
+    GroupStore.reset();
     window.clearTimeout(this.pollingTimeout);
   }
 
   componentDidUpdate(_prevProps: Props, prevState: State) {
+    if (prevState.previewCursor !== this.state.previewCursor) {
+      this.fetchPreview();
+    } else if (this.isRuleStateChange(prevState)) {
+      this.setState({loadingPreview: true});
+      this.fetchPreviewDebounced();
+    }
     if (prevState.project.id === this.state.project.id) {
       return;
     }
 
     this.fetchEnvironments();
+  }
+
+  isRuleStateChange(prevState: State): boolean {
+    const prevRule = prevState.rule;
+    const curRule = this.state.rule;
+    return (
+      prevRule?.conditions !== curRule?.conditions ||
+      prevRule?.filters !== curRule?.filters ||
+      prevRule?.actionMatch !== curRule?.actionMatch ||
+      prevRule?.filterMatch !== curRule?.filterMatch ||
+      prevRule?.frequency !== curRule?.frequency ||
+      prevState.project !== this.state.project
+    );
   }
 
   getTitle() {
@@ -189,6 +229,12 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       environments: [],
       uuid: null,
       project,
+      previewGroups: null,
+      previewCursor: null,
+      previewError: false,
+      issueCount: 0,
+      previewPage: 0,
+      loadingPreview: false,
     };
 
     const projectTeamIds = new Set(project.teams.map(({id}) => id));
@@ -299,6 +345,69 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       this.handleRuleSaveFailure(t('An error occurred'));
       this.setState({loading: false});
     }
+  };
+
+  fetchPreview = (resetCursor = false) => {
+    const {organization} = this.props;
+    const {project, rule, previewCursor} = this.state;
+
+    if (!rule || !organization.features.includes('issue-alert-preview')) {
+      return;
+    }
+
+    this.setState({loadingPreview: true});
+    if (resetCursor) {
+      this.setState({previewPage: 0});
+    }
+    // we currently don't have a way to parse objects from query params, so this method is POST for now
+    this.api
+      .requestPromise(`/projects/${organization.slug}/${project.slug}/rules/preview`, {
+        method: 'POST',
+        includeAllArgs: true,
+        query: {
+          cursor: resetCursor ? null : previewCursor,
+          per_page: 5,
+        },
+        data: {
+          conditions: rule?.conditions || [],
+          filters: rule?.filters || [],
+          actionMatch: rule?.actionMatch || 'all',
+          filterMatch: rule?.filterMatch || 'all',
+          frequency: rule?.frequency || 60,
+        },
+      })
+      .then(([data, _, resp]) => {
+        GroupStore.add(data);
+
+        const pageLinks = resp?.getResponseHeader('Link');
+        const hits = resp?.getResponseHeader('X-Hits');
+        const issueCount =
+          typeof hits !== 'undefined' && hits ? parseInt(hits, 10) || 0 : 0;
+        this.setState({
+          previewGroups: data.map(g => g.id),
+          previewError: false,
+          pageLinks: pageLinks ?? '',
+          issueCount,
+          loadingPreview: false,
+        });
+      })
+      .catch(_ => {
+        this.setState({
+          previewError: true,
+          loadingPreview: false,
+        });
+      });
+  };
+
+  fetchPreviewDebounced = debounce(() => {
+    this.fetchPreview(true);
+  }, 1000);
+
+  onPreviewCursor: CursorHandler = (cursor, _1, _2, direction) => {
+    this.setState({
+      previewCursor: cursor,
+      previewPage: this.state.previewPage + direction,
+    });
   };
 
   fetchEnvironments() {
@@ -759,6 +868,46 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     );
   }
 
+  renderPreviewText() {
+    const {issueCount, previewError} = this.state;
+    if (previewError) {
+      return t(
+        "Select a condition above to see which issues would've triggered this alert"
+      );
+    }
+    return tct(
+      "[issueCount] issues would have triggered this rule in the past 14 days approximately. If you're looking to reduce noise then make sure to [link:read the docs].",
+      {
+        issueCount,
+        link: <a href={SENTRY_ISSUE_ALERT_DOCS_URL} />,
+      }
+    );
+  }
+
+  renderPreviewTable() {
+    const {members} = this.props;
+    const {
+      previewGroups,
+      previewError,
+      pageLinks,
+      issueCount,
+      previewPage,
+      loadingPreview,
+    } = this.state;
+    return (
+      <PreviewTable
+        previewGroups={previewGroups}
+        members={members}
+        pageLinks={pageLinks}
+        onCursor={this.onPreviewCursor}
+        issueCount={issueCount}
+        page={previewPage}
+        loading={loadingPreview}
+        error={previewError}
+      />
+    );
+  }
+
   renderProjectSelect(disabled: boolean) {
     const {project: _selectedProject, projects, organization} = this.props;
     const {rule} = this.state;
@@ -979,14 +1128,14 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                                         className={classNames({
                                           error: this.hasError('actionMatch'),
                                         })}
-                                        inline={false}
                                         styles={{
                                           control: provided => ({
                                             ...provided,
-                                            minHeight: '20px',
-                                            height: '20px',
+                                            minHeight: '21px',
+                                            height: '21px',
                                           }),
                                         }}
+                                        inline={false}
                                         isSearchable={false}
                                         isClearable={false}
                                         name="actionMatch"
@@ -996,6 +1145,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                                         onChange={val =>
                                           this.handleChange('actionMatch', val)
                                         }
+                                        size="xs"
                                         disabled={disabled}
                                       />
                                     </EmbeddedWrapper>
@@ -1042,7 +1192,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
                           <StepContent>
                             <StepLead>
-                              {tct('[if:If] [selector] of these filters match', {
+                              {tct('[if:If][selector] of these filters match', {
                                 if: <Badge />,
                                 selector: (
                                   <EmbeddedWrapper>
@@ -1050,14 +1200,14 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                                       className={classNames({
                                         error: this.hasError('filterMatch'),
                                       })}
-                                      inline={false}
                                       styles={{
                                         control: provided => ({
                                           ...provided,
-                                          minHeight: '20px',
-                                          height: '20px',
+                                          minHeight: '21px',
+                                          height: '21px',
                                         }),
                                       }}
+                                      inline={false}
                                       isSearchable={false}
                                       isClearable={false}
                                       name="filterMatch"
@@ -1067,6 +1217,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                                       onChange={val =>
                                         this.handleChange('filterMatch', val)
                                       }
+                                      size="xs"
                                       disabled={disabled}
                                     />
                                   </EmbeddedWrapper>
@@ -1146,6 +1297,17 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                     </StyledFieldHelp>
                   </StyledListItem>
                   {this.renderActionInterval(disabled)}
+                  <Feature organization={organization} features={['issue-alert-preview']}>
+                    <StyledListItem>
+                      <StyledListItemSpaced>
+                        <div>
+                          {t('Preview')}
+                          <StyledFieldHelp>{this.renderPreviewText()}</StyledFieldHelp>
+                        </div>
+                      </StyledListItemSpaced>
+                    </StyledListItem>
+                    {this.renderPreviewTable()}
+                  </Feature>
                   <StyledListItem>{t('Establish ownership')}</StyledListItem>
                   {this.renderRuleName(disabled)}
                   {this.renderTeamSelect(disabled)}
@@ -1162,7 +1324,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 export default withOrganization(withProjects(IssueRuleEditor));
 
 // TODO(ts): Understand why styled is not correctly inheriting props here
-const StyledForm = styled(Form)<Form['props']>`
+const StyledForm = styled(Form)<FormProps>`
   position: relative;
 `;
 
@@ -1178,6 +1340,11 @@ const StyledAlert = styled(Alert)`
 const StyledListItem = styled(ListItem)`
   margin: ${space(2)} 0 ${space(1)} 0;
   font-size: ${p => p.theme.fontSizeExtraLarge};
+`;
+
+const StyledListItemSpaced = styled('div')`
+  display: flex;
+  justify-content: space-between;
 `;
 
 const StyledFieldHelp = styled(FieldHelp)`
@@ -1217,6 +1384,11 @@ const StepConnector = styled('div')`
 
 const StepLead = styled('div')`
   margin-bottom: ${space(0.5)};
+  & > span {
+    display: flex;
+    align-items: center;
+    gap: ${space(0.5)};
+  }
 `;
 
 const ChevronContainer = styled('div')`
@@ -1226,7 +1398,6 @@ const ChevronContainer = styled('div')`
 `;
 
 const Badge = styled('span')`
-  display: inline-block;
   min-width: 56px;
   background-color: ${p => p.theme.purple300};
   padding: 0 ${space(0.75)};
@@ -1240,8 +1411,6 @@ const Badge = styled('span')`
 `;
 
 const EmbeddedWrapper = styled('div')`
-  display: inline-block;
-  margin: 0 ${space(0.5)};
   width: 80px;
 `;
 

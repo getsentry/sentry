@@ -1,13 +1,13 @@
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import ProjectActions from 'sentry/actions/projectActions';
 import {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
-import SelectField from 'sentry/components/forms/selectField';
+import SelectField from 'sentry/components/forms/fields/selectField';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {Organization, Project} from 'sentry/types';
 import {BuiltinSymbolSource} from 'sentry/types/debugFiles';
 
@@ -70,7 +70,7 @@ function BuiltInRepositories({
         }
       );
 
-      ProjectActions.updateSuccess(updatedProjectDetails);
+      ProjectsStore.onUpdateSuccess(updatedProjectDetails);
       addSuccessMessage(successMessage);
     } catch {
       addErrorMessage(errorMessage);

@@ -6,19 +6,7 @@ from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import EventAttachmentSerializer, serialize
-from sentry.models import EventAttachment
-
-
-class GroupEventAttachmentSerializer(EventAttachmentSerializer):
-    """
-    Serializes event attachments with event id for rendering in the group event
-    attachments UI.
-    """
-
-    def serialize(self, obj, attrs, user):
-        result = super().serialize(obj, attrs, user)
-        result["event_id"] = obj.event_id
-        return result
+from sentry.models import EventAttachment, event_attachment_screenshot_filter
 
 
 @region_silo_endpoint
@@ -43,14 +31,21 @@ class GroupAttachmentsEndpoint(GroupEndpoint, EnvironmentMixin):
         attachments = EventAttachment.objects.filter(group_id=group.id)
 
         types = request.GET.getlist("types") or ()
+        event_ids = request.GET.getlist("event_id") or ()
+        screenshot = "screenshot" in request.GET
+
+        if screenshot:
+            attachments = event_attachment_screenshot_filter(attachments)
         if types:
             attachments = attachments.filter(type__in=types)
+        if event_ids:
+            attachments = attachments.filter(event_id__in=event_ids)
 
         return self.paginate(
             default_per_page=20,
             request=request,
             queryset=attachments,
             order_by="-date_added",
-            on_results=lambda x: serialize(x, request.user, GroupEventAttachmentSerializer()),
+            on_results=lambda x: serialize(x, request.user, EventAttachmentSerializer()),
             paginator_cls=DateTimePaginator,
         )

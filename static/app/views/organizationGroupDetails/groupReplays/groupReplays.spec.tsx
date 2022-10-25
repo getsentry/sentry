@@ -16,6 +16,11 @@ type InitializeOrgProps = {
   };
 };
 
+jest.mock('sentry/utils/useMedia', () => ({
+  __esModule: true,
+  default: jest.fn(() => true),
+}));
+
 const mockUrl = '/organizations/org-slug/replays/';
 
 const mockProps = {
@@ -157,6 +162,25 @@ describe('GroupReplays', () => {
   });
 
   it('should display error message when api call fails', async () => {
+    const mockApi = MockApiClient.addMockResponse({
+      url: mockUrl,
+      statusCode: 500,
+      body: {
+        detail: 'Invalid number: asdf. Expected number.',
+      },
+    });
+
+    renderComponent();
+
+    await waitFor(() => {
+      expect(mockApi).toHaveBeenCalledTimes(1);
+      expect(
+        screen.getByText('Invalid number: asdf. Expected number.')
+      ).toBeInTheDocument();
+    });
+  });
+
+  it('should display default error message when api call fails without a body', async () => {
     const mockApi = MockApiClient.addMockResponse({
       url: mockUrl,
       statusCode: 500,
@@ -368,7 +392,7 @@ describe('GroupReplays', () => {
     expect(mockRouterContext.context.router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/replays/',
       query: {
-        sort: 'duration',
+        sort: '-duration',
       },
     });
 
@@ -377,7 +401,7 @@ describe('GroupReplays', () => {
       getComponent({
         location: {
           query: {
-            sort: 'duration',
+            sort: '-duration',
           },
         },
       })
@@ -389,7 +413,7 @@ describe('GroupReplays', () => {
         mockUrl,
         expect.objectContaining({
           query: expect.objectContaining({
-            sort: 'duration',
+            sort: '-duration',
           }),
         })
       );
@@ -424,7 +448,7 @@ describe('GroupReplays', () => {
     expect(mockRouterContext.context.router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/replays/',
       query: {
-        sort: 'countErrors',
+        sort: '-countErrors',
       },
     });
 
@@ -433,7 +457,7 @@ describe('GroupReplays', () => {
       getComponent({
         location: {
           query: {
-            sort: 'countErrors',
+            sort: '-countErrors',
           },
         },
       })
@@ -445,7 +469,7 @@ describe('GroupReplays', () => {
         mockUrl,
         expect.objectContaining({
           query: expect.objectContaining({
-            sort: 'countErrors',
+            sort: '-countErrors',
           }),
         })
       );

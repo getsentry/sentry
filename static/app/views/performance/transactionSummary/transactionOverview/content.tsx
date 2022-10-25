@@ -31,6 +31,7 @@ import {
 import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useRoutes} from 'sentry/utils/useRoutes';
 import withProjects from 'sentry/utils/withProjects';
 import {Actions, updateQuery} from 'sentry/views/eventsV2/table/cellAction';
 import {TableColumn} from 'sentry/views/eventsV2/table/types';
@@ -48,6 +49,7 @@ import Filter, {
   SpanOperationBreakdownFilter,
 } from '../filter';
 import {
+  generateReplayLink,
   generateTraceLink,
   generateTransactionLink,
   normalizeSearchConditions,
@@ -91,6 +93,8 @@ function SummaryContent({
   transactionName,
   onChangeFilter,
 }: Props) {
+  const routes = useRoutes();
+
   const useAggregateAlias = !organization.features.includes(
     'performance-frontend-use-events-endpoint'
   );
@@ -213,6 +217,10 @@ function SummaryContent({
     t('timestamp'),
   ];
 
+  if (organization.features.includes('session-replay-ui')) {
+    transactionsListTitles.push(t('replay id'));
+  }
+
   let transactionsListEventView = eventView.clone();
 
   if (organization.features.includes('performance-ops-breakdown')) {
@@ -325,6 +333,7 @@ function SummaryContent({
           generateLink={{
             id: generateTransactionLink(transactionName),
             trace: generateTraceLink(eventView.normalizeDateSelection(location)),
+            replayId: generateReplayLink(routes),
           }}
           handleCellAction={handleCellAction}
           {...getTransactionsListSort(location, {

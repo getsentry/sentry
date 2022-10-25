@@ -58,10 +58,10 @@ describe('CreateProject', function () {
     });
 
     userEvent.click(screen.getByTestId('platform-apple-ios'));
-    expect(screen.getByPlaceholderText('project-name')).toHaveValue('iOS');
+    expect(screen.getByPlaceholderText('project-name')).toHaveValue('apple-ios');
 
     userEvent.click(screen.getByTestId('platform-ruby-rails'));
-    expect(screen.getByPlaceholderText('project-name')).toHaveValue('Rails');
+    expect(screen.getByPlaceholderText('project-name')).toHaveValue('ruby-rails');
 
     // but not replace it when project name is something else:
     userEvent.clear(screen.getByPlaceholderText('project-name'));

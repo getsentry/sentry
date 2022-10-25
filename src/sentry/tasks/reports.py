@@ -3,7 +3,7 @@ import logging
 import math
 import operator
 import zlib
-from collections import OrderedDict, defaultdict, namedtuple
+from collections import defaultdict, namedtuple
 from datetime import date, datetime, timedelta
 from functools import partial, reduce
 from itertools import zip_longest
@@ -22,7 +22,7 @@ from snuba_sdk.function import Function
 from snuba_sdk.orderby import Direction, OrderBy
 from snuba_sdk.query import Limit, Query
 
-from sentry import tsdb
+from sentry import features, tsdb
 from sentry.api.serializers.snuba import zerofill
 from sentry.cache import default_cache
 from sentry.constants import DataCategory
@@ -265,7 +265,7 @@ def build_project_series(start__stop, project):
     )
     request = Request(dataset=Dataset.Outcomes.value, app_id="reports", query=outcomes_query)
     outcome_series = raw_snql_query(request, referrer="reports.outcome_series")
-    total_error_series = OrderedDict()
+    total_error_series = {}
     for v in outcome_series["data"]:
         if v["category"] in DataCategory.error_categories():
             timestamp = int(to_timestamp(parse_snuba_datetime(v["time"])))
@@ -698,16 +698,17 @@ def prepare_reports(dry_run=False, *args, **kwargs):
     logger.info("reports.begin_prepare_report")
 
     # Get org ids of all visible organizations
-    organizations = _get_organization_queryset().values_list("id", flat=True)
-    for i, organization_id in enumerate(
-        RangeQuerySetWrapper(organizations, step=10000, result_value_getter=lambda item: item)
+    organizations = _get_organization_queryset()
+    for i, organization in enumerate(
+        RangeQuerySetWrapper(organizations, step=10000, result_value_getter=lambda item: item.id)
     ):
-        # Create a celery task per organization
-        prepare_organization_report.delay(timestamp, duration, organization_id, dry_run=dry_run)
+        if not features.has("organizations:weekly-email-refresh", organization):
+            # Create a celery task per organization
+            prepare_organization_report.delay(timestamp, duration, organization.id, dry_run=dry_run)
         if i % 10000 == 0:
             logger.info(
                 "reports.scheduled_prepare_organization_report",
-                extra={"organization_id": organization_id, "total_scheduled": i},
+                extra={"organization_id": organization.id, "total_scheduled": i},
             )
 
     default_cache.set(prepare_reports_verify_key(), "1", int(timedelta(days=3).total_seconds()))
@@ -743,7 +744,9 @@ def verify_prepare_reports(*args, **kwargs):
     max_retries=5,
     acks_late=True,
 )
-def prepare_organization_report(timestamp, duration, organization_id, user_id=None, dry_run=False):
+def prepare_organization_report(
+    timestamp, duration, organization_id, dry_run=False, user_id=None, email_override=None
+):
     try:
         organization = _get_organization_queryset().get(id=organization_id)
         # This allows slicing the transactions by the org and we can determine if there are certain outliers
@@ -761,11 +764,19 @@ def prepare_organization_report(timestamp, duration, organization_id, user_id=No
 
     redis_report_backend.prepare(timestamp, duration, organization)
 
+    if email_override:
+        deliver_organization_user_report.delay(
+            timestamp,
+            duration,
+            organization_id,
+            user_id,
+            dry_run=dry_run,
+            email_override=email_override,
+        )
+        return
     # If an OrganizationMember row doesn't have an associated user, this is
     # actually a pending invitation, so no report should be delivered.
     kwargs = dict(user_id__isnull=False, user__is_active=True)
-    if user_id:
-        kwargs["user_id"] = user_id
 
     member_set = organization.member_set.filter(**kwargs).exclude(
         flags=F("flags").bitor(OrganizationMember.flags["member-limit:restricted"])
@@ -775,31 +786,6 @@ def prepare_organization_report(timestamp, duration, organization_id, user_id=No
         deliver_organization_user_report.delay(
             timestamp, duration, organization_id, user_id, dry_run=dry_run
         )
-
-
-def fetch_personal_statistics(start__stop, organization, user):
-    start, stop = start__stop
-    resolved_issue_ids = set(
-        Activity.objects.filter(
-            project__organization_id=organization.id,
-            user_id=user.id,
-            type__in=(ActivityType.SET_RESOLVED.value, ActivityType.SET_RESOLVED_IN_RELEASE.value),
-            datetime__gte=start,
-            datetime__lt=stop,
-            group__status=GroupStatus.RESOLVED,  # only count if the issue is still resolved
-        )
-        .distinct()
-        .values_list("group_id", flat=True)
-    )
-
-    if resolved_issue_ids:
-        users = tsdb.get_distinct_counts_union(
-            tsdb.models.users_affected_by_group, resolved_issue_ids, start, stop, ONE_DAY
-        )
-    else:
-        users = {}
-
-    return {"resolved": len(resolved_issue_ids), "users": users}
 
 
 class Duration(NamedTuple):
@@ -829,14 +815,11 @@ def build_message(timestamp, duration, organization, user, reports):
             "duration": duration_spec,
             "interval": {"start": date_format(start), "stop": date_format(stop)},
             "organization": organization,
-            "personal": fetch_personal_statistics(interval, organization, user),
             "report": to_context(organization, interval, reports),
             "user": user,
         },
         headers={"X-SMTPAPI": json.dumps({"category": "organization_report_email"})},
     )
-
-    message.add_users((user.id,))
 
     return message
 
@@ -868,7 +851,9 @@ def has_valid_aggregates(interval, project__report):
     max_retries=5,
     acks_late=True,
 )
-def deliver_organization_user_report(timestamp, duration, organization_id, user_id, dry_run=False):
+def deliver_organization_user_report(
+    timestamp, duration, organization_id, user_id, dry_run=False, email_override=None
+):
     try:
         organization = _get_organization_queryset().get(id=organization_id)
     except Organization.DoesNotExist:
@@ -882,19 +867,23 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
         )
         return
 
-    user = User.objects.get(id=user_id)
+    user = User.objects.get(id=user_id) if user_id else None
     # This helps slicing transactions based on user
-    set_user({"email": user.username})
+    if user:
+        set_user({"email": user.username})
 
-    if not user_subscribed_to_organization_reports(user, organization):
+    if user and not user_subscribed_to_organization_reports(user, organization):
         logger.debug(
             f"Skipping report for {organization} to {user}, user is not subscribed to reports."
         )
         return Skipped.NotSubscribed
 
     projects = set()
-    for team in Team.objects.get_for_user(organization, user):
-        projects.update(Project.objects.get_for_user(team, user, _skip_team_check=True))
+    if user:
+        for team in Team.objects.get_for_user(organization, user):
+            projects.update(Project.objects.get_for_user(team, user, _skip_team_check=True))
+    else:
+        projects.update(list(organization.project_set.all()))
 
     if not projects:
         logger.debug(
@@ -927,7 +916,11 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
     message = build_message(timestamp, duration, organization, user, reports)
 
     if not dry_run:
-        message.send()
+        if email_override:
+            message.send(to=(email_override,))
+        else:
+            message.add_users((user.id,))
+            message.send()
         set_tag("email_sent", True)
 
 
@@ -1175,7 +1168,7 @@ def get_percentile(values, percentile):
 def colorize(spectrum, values):
     calculate_percentile = partial(get_percentile, sorted(values))
 
-    legend = OrderedDict()
+    legend = {}
     width = 1.0 / len(spectrum)
     for i, color in enumerate(spectrum, 1):
         legend[color] = calculate_percentile(i * width)

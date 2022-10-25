@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Any, Dict, Iterable, List, MutableMapping, Optional, Sequence, cast
+from typing import Any, Dict, Iterable, List, Mapping, MutableMapping, Optional, Sequence, cast
 
 import sentry_sdk
 from django.db import connection
@@ -40,6 +40,7 @@ from sentry.models import (
     User,
     UserReport,
 )
+from sentry.models.options.project_option import OPTION_KEYS
 from sentry.notifications.helpers import (
     get_most_specific_notification_setting_value,
     transform_to_notification_settings_by_scope,
@@ -164,6 +165,29 @@ def get_features_for_projects(
     return features_by_project
 
 
+def format_options(attrs: defaultdict(dict)):
+    return {
+        "sentry:csp_ignored_sources_defaults": bool(
+            attrs["options"].get("sentry:csp_ignored_sources_defaults", True)
+        ),
+        "sentry:csp_ignored_sources": "\n".join(
+            attrs["options"].get("sentry:csp_ignored_sources", []) or []
+        ),
+        "sentry:reprocessing_active": bool(attrs.get("sentry:reprocessing_active", False)),
+        "sentry:performance_issue_creation_rate": attrs["options"].get(
+            "sentry:performance_issue_creation_rate"
+        ),
+        "filters:blacklisted_ips": "\n".join(attrs["options"].get("sentry:blacklisted_ips", [])),
+        f"filters:{FilterTypes.RELEASES}": "\n".join(
+            attrs["options"].get(f"sentry:{FilterTypes.RELEASES}", [])
+        ),
+        f"filters:{FilterTypes.ERROR_MESSAGES}": "\n".join(
+            attrs["options"].get(f"sentry:{FilterTypes.ERROR_MESSAGES}", [])
+        ),
+        "feedback:branding": attrs.get("feedback:branding", "1") == "1",
+    }
+
+
 class _ProjectSerializerOptionalBaseResponse(TypedDict, total=False):
     stats: Any
     transactionStats: Any
@@ -206,6 +230,7 @@ class ProjectSerializer(Serializer):  # type: ignore
         environment_id: str | None = None,
         stats_period: str | None = None,
         expand: Iterable[str] | None = None,
+        expand_context: Mapping[str, Any] | None = None,
         collapse: Iterable[str] | None = None,
     ) -> None:
         if stats_period is not None:
@@ -214,6 +239,7 @@ class ProjectSerializer(Serializer):  # type: ignore
         self.environment_id = environment_id
         self.stats_period = stats_period
         self.expand = expand
+        self.expand_context = expand_context
         self.collapse = collapse
 
     def _expand(self, key: str) -> bool:
@@ -268,6 +294,11 @@ class ProjectSerializer(Serializer):  # type: ignore
                 if self._expand("session_stats"):
                     session_stats = self.get_session_stats(project_ids)
 
+        with measure_span("options"):
+            options = None
+            if self._expand("options"):
+                options = self.get_options(item_list)
+
         avatars = {a.project_id: a for a in ProjectAvatar.objects.filter(project__in=item_list)}
         project_ids = [i.id for i in item_list]
         platforms = ProjectPlatform.objects.filter(project_id__in=project_ids).values_list(
@@ -308,6 +339,8 @@ class ProjectSerializer(Serializer):  # type: ignore
                     serialized["transactionStats"] = transaction_stats[project.id]
                 if session_stats:
                     serialized["sessionStats"] = session_stats[project.id]
+                if options:
+                    serialized["options"] = options[project.id]
         return result
 
     def get_stats(self, project_ids, query):
@@ -389,6 +422,23 @@ class ProjectSerializer(Serializer):  # type: ignore
                 project_health_data_dict[project_id]["hasHealthData"] = True
 
         return project_health_data_dict
+
+    def get_options(self, projects):
+        # no options specified
+        option_list = []
+
+        # must be a safe key
+        if self.expand_context.get("options"):
+            option_list = self.expand_context.get("options")
+            option_list = [option for option in option_list if option in OPTION_KEYS]
+
+        queryset = ProjectOption.objects.filter(project__in=projects, key__in=option_list)
+
+        options_by_project = defaultdict(dict)
+        for option in queryset:
+            options_by_project[option.project_id][option.key] = option.value
+
+        return options_by_project
 
     def serialize(self, obj, attrs, user) -> ProjectSerializerResponse:
         status_label = STATUS_LABELS.get(obj.status, "unknown")
@@ -650,6 +700,8 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             context.update(transactionStats=attrs["transactionStats"])
         if "sessionStats" in attrs:
             context.update(sessionStats=attrs["sessionStats"])
+        if "options" in attrs:
+            context.update(options=attrs["options"])
 
         return context
 
@@ -705,51 +757,6 @@ def bulk_fetch_project_latest_releases(projects):
 
 
 class DetailedProjectSerializer(ProjectWithTeamSerializer):
-    OPTION_KEYS = frozenset(
-        [
-            # we need the epoch to fill in the defaults correctly
-            "sentry:option-epoch",
-            "sentry:origins",
-            "sentry:resolve_age",
-            "sentry:scrub_data",
-            "sentry:scrub_defaults",
-            "sentry:safe_fields",
-            "sentry:store_crash_reports",
-            "sentry:builtin_symbol_sources",
-            "sentry:symbol_sources",
-            "sentry:sensitive_fields",
-            "sentry:csp_ignored_sources_defaults",
-            "sentry:csp_ignored_sources",
-            "sentry:default_environment",
-            "sentry:reprocessing_active",
-            "sentry:blacklisted_ips",
-            "sentry:releases",
-            "sentry:error_messages",
-            "sentry:scrape_javascript",
-            "sentry:token",
-            "sentry:token_header",
-            "sentry:verify_ssl",
-            "sentry:scrub_ip_address",
-            "sentry:grouping_config",
-            "sentry:grouping_enhancements",
-            "sentry:grouping_enhancements_base",
-            "sentry:secondary_grouping_config",
-            "sentry:secondary_grouping_expiry",
-            "sentry:grouping_auto_update",
-            "sentry:fingerprinting_rules",
-            "sentry:relay_pii_config",
-            "sentry:dynamic_sampling",
-            "sentry:breakdowns",
-            "sentry:span_attributes",
-            "sentry:performance_issue_creation_rate",
-            "feedback:branding",
-            "digests:mail:minimum_delay",
-            "digests:mail:maximum_delay",
-            "mail:subject_prefix",
-            "mail:subject_template",
-        ]
-    )
-
     def get_attrs(
         self, item_list: Sequence[Project], user: User, **kwargs: Any
     ) -> MutableMapping[Project, MutableMapping[str, Any]]:
@@ -767,7 +774,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
         for project_id, num_issues in num_issues_projects:
             processing_issues_by_project[project_id] = num_issues
 
-        queryset = ProjectOption.objects.filter(project__in=item_list, key__in=self.OPTION_KEYS)
+        queryset = ProjectOption.objects.filter(project__in=item_list, key__in=OPTION_KEYS)
         options_by_project = defaultdict(dict)
         for option in queryset.iterator():
             options_by_project[option.project_id][option.key] = option.value
@@ -803,33 +810,11 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             )
 
         data = super().serialize(obj, attrs, user)
+        attrs["options"].update(format_options(attrs))
         data.update(
             {
                 "latestRelease": attrs["latest_release"],
-                "options": {
-                    "sentry:csp_ignored_sources_defaults": bool(
-                        attrs["options"].get("sentry:csp_ignored_sources_defaults", True)
-                    ),
-                    "sentry:csp_ignored_sources": "\n".join(
-                        attrs["options"].get("sentry:csp_ignored_sources", []) or []
-                    ),
-                    "sentry:reprocessing_active": bool(
-                        attrs["options"].get("sentry:reprocessing_active", False)
-                    ),
-                    "sentry:performance_issue_creation_rate": attrs["options"].get(
-                        "sentry:performance_issue_creation_rate"
-                    ),
-                    "filters:blacklisted_ips": "\n".join(
-                        attrs["options"].get("sentry:blacklisted_ips", [])
-                    ),
-                    f"filters:{FilterTypes.RELEASES}": "\n".join(
-                        attrs["options"].get(f"sentry:{FilterTypes.RELEASES}", [])
-                    ),
-                    f"filters:{FilterTypes.ERROR_MESSAGES}": "\n".join(
-                        attrs["options"].get(f"sentry:{FilterTypes.ERROR_MESSAGES}", [])
-                    ),
-                    "feedback:branding": attrs["options"].get("feedback:branding", "1") == "1",
-                },
+                "options": attrs["options"],
                 "digestsMinDelay": attrs["options"].get(
                     "digests:mail:minimum_delay", digests.minimum_delay
                 ),
@@ -884,6 +869,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "relayPiiConfig": attrs["options"].get("sentry:relay_pii_config"),
                 "builtinSymbolSources": get_value_with_default("sentry:builtin_symbol_sources"),
                 "dynamicSampling": get_value_with_default("sentry:dynamic_sampling"),
+                "dynamicSamplingBiases": get_value_with_default("sentry:dynamic_sampling_biases"),
                 "performanceIssueCreationRate": get_value_with_default(
                     "sentry:performance_issue_creation_rate"
                 ),

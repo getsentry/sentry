@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {Component, Fragment} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
@@ -38,6 +38,8 @@ type State = {
   query: string;
   renderNewAllEventsTab: boolean;
 };
+
+const excludedTags = ['environment', 'issue', 'issue.id', 'performance.issues_ids'];
 
 class GroupEvents extends Component<Props, State> {
   constructor(props: Props) {
@@ -98,24 +100,26 @@ class GroupEvents extends Component<Props, State> {
       query: this.state.query,
     };
 
-    this.props.api.request(`/issues/${this.props.params.groupId}/events/`, {
-      query,
-      method: 'GET',
-      success: (data, _, resp) => {
-        this.setState({
-          eventList: data,
-          error: false,
-          loading: false,
-          pageLinks: resp?.getResponseHeader('Link') ?? '',
-        });
-      },
-      error: err => {
-        this.setState({
-          error: parseApiError(err),
-          loading: false,
-        });
-      },
-    });
+    if (!this.state.renderNewAllEventsTab) {
+      this.props.api.request(`/issues/${this.props.params.groupId}/events/`, {
+        query,
+        method: 'GET',
+        success: (data, _, resp) => {
+          this.setState({
+            eventList: data,
+            error: false,
+            loading: false,
+            pageLinks: resp?.getResponseHeader('Link') ?? '',
+          });
+        },
+        error: err => {
+          this.setState({
+            error: parseApiError(err),
+            loading: false,
+          });
+        },
+      });
+    }
   };
 
   renderNoQueryResults() {
@@ -141,6 +145,9 @@ class GroupEvents extends Component<Props, State> {
         isPerfIssue={this.props.group.issueCategory === IssueCategory.PERFORMANCE}
         location={this.props.location}
         organization={this.props.organization}
+        projectId={this.props.group.project.slug}
+        totalEventCount={this.props.group.count}
+        excludedTags={excludedTags}
       />
     );
   }
@@ -154,7 +161,7 @@ class GroupEvents extends Component<Props, State> {
           organization={this.props.organization}
           defaultQuery=""
           onSearch={this.handleSearch}
-          excludeEnvironment
+          excludedTags={excludedTags}
           query={this.state.query}
           hasRecentSearches={false}
         />
@@ -171,7 +178,7 @@ class GroupEvents extends Component<Props, State> {
   }
 
   renderResults() {
-    const {group, params} = this.props;
+    const {group, params, organization} = this.props;
     const tagList = group.tags.filter(tag => tag.key !== 'user') || [];
 
     return (
@@ -181,6 +188,7 @@ class GroupEvents extends Component<Props, State> {
         orgId={params.orgId}
         projectId={group.project.slug}
         groupId={params.groupId}
+        orgFeatures={organization.features}
       />
     );
   }
@@ -206,9 +214,12 @@ class GroupEvents extends Component<Props, State> {
     }
 
     return (
-      <Panel className="event-list">
-        <PanelBody>{body}</PanelBody>
-      </Panel>
+      <Fragment>
+        <Panel className="event-list">
+          <PanelBody>{body}</PanelBody>
+        </Panel>
+        <Pagination pageLinks={this.state.pageLinks} />
+      </Fragment>
     );
   }
 
@@ -222,7 +233,6 @@ class GroupEvents extends Component<Props, State> {
               {this.renderSearchBar()}
             </FilterSection>
             {this.renderBody()}
-            <Pagination pageLinks={this.state.pageLinks} />
           </Wrapper>
         </Layout.Main>
       </Layout.Body>

@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import * as Layout from 'sentry/components/layouts/thirds';
+import DeleteButton from 'sentry/components/replays/deleteButton';
 import DetailsPageBreadcrumbs from 'sentry/components/replays/header/detailsPageBreadcrumbs';
 import {CrumbWalker} from 'sentry/components/replays/walker/urlWalker';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -32,6 +33,7 @@ function Page({children, crumbs, orgSlug, replayRecord}: Props) {
         <DetailsPageBreadcrumbs orgSlug={orgSlug} replayRecord={replayRecord} />
       </HeaderContent>
       <ButtonActionsWrapper>
+        <DeleteButton />
         <ChooseLayout />
         <FeatureFeedback featureName="replay" buttonProps={{size: 'xs'}} />
       </ButtonActionsWrapper>
@@ -71,7 +73,7 @@ const HeaderContent = styled(Layout.HeaderContent)`
 // TODO(replay); This could make a lot of sense to put inside HeaderActions by default
 const ButtonActionsWrapper = styled(Layout.HeaderActions)`
   display: grid;
-  grid-template-columns: repeat(2, max-content);
+  grid-template-columns: repeat(3, max-content);
   justify-content: flex-end;
   gap: ${space(1)};
 `;

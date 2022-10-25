@@ -6,11 +6,11 @@ import EmptyMessage from 'sentry/components/emptyMessage';
 import IdBadge from 'sentry/components/idBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
-import {SettingsIconLink} from 'sentry/components/organizations/headerItem';
 import {Panel} from 'sentry/components/panels';
 import PanelTable from 'sentry/components/panels/panelTable';
 import {IconSettings, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {DataCategory, Project} from 'sentry/types';
 import theme from 'sentry/utils/theme';
 
@@ -146,4 +146,18 @@ const StyledIdBadge = styled(IdBadge)`
   overflow: hidden;
   white-space: nowrap;
   flex-shrink: 1;
+`;
+
+const SettingsIconLink = styled(Link)`
+  color: ${p => p.theme.gray300};
+  align-items: center;
+  display: inline-flex;
+  justify-content: space-between;
+  margin-right: ${space(1.5)};
+  margin-left: ${space(1.0)};
+  transition: 0.5s opacity ease-out;
+
+  &:hover {
+    color: ${p => p.theme.textColor};
+  }
 `;

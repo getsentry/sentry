@@ -27,7 +27,7 @@ type Props = {
 export function SamplingBreakdown({orgSlug}: Props) {
   const theme = useTheme();
   const {distribution, loading} = useDistribution();
-  const projectBreakdown = distribution?.project_breakdown;
+  const projectBreakdown = distribution?.projectBreakdown;
 
   const {projects} = useProjects({
     slugs: projectBreakdown?.map(project => project.project) ?? [],
@@ -50,7 +50,7 @@ export function SamplingBreakdown({orgSlug}: Props) {
   function projectWithPercentage(project: Project, percentage: number) {
     return (
       <ProjectWithPercentage key={project.slug}>
-        <ProjectBadge project={project} avatarSize={16} />
+        <StyledProjectBadge project={project} avatarSize={16} />
         {formatPercentage(percentage / 100)}
       </ProjectWithPercentage>
     );
@@ -63,7 +63,7 @@ export function SamplingBreakdown({orgSlug}: Props) {
           <HeaderTitle>{t('Transaction Breakdown')}</HeaderTitle>
           <QuestionTooltip
             title={tct(
-              'Sampling rules defined here can also affect other projects. [learnMore: Learn more]',
+              'Shows which projects are affected by the sampling decisions this project makes. [learnMore: Learn more]',
               {
                 learnMore: (
                   <ExternalLink
@@ -110,8 +110,28 @@ export function SamplingBreakdown({orgSlug}: Props) {
               </Projects>
             ) : (
               <EmptyMessage>
-                {t(
-                  'There were no traces initiated from this project in the last 30 days.'
+                {tct(
+                  'This project made no [samplingDecisions] within the last 30 days.',
+                  {
+                    samplingDecisions: (
+                      <Tooltip
+                        title={tct(
+                          'The first transaction in a trace makes the sampling decision for all following transactions. [learnMore: Learn more]',
+                          {
+                            learnMore: (
+                              <ExternalLink
+                                href={`${SERVER_SIDE_SAMPLING_DOC_LINK}#traces--propagation-of-sampling-decisions`}
+                              />
+                            ),
+                          }
+                        )}
+                        showUnderline
+                        isHoverable
+                      >
+                        {t('sampling decisions')}
+                      </Tooltip>
+                    ),
+                  }
                 )}
               </EmptyMessage>
             )}
@@ -139,7 +159,8 @@ const Projects = styled('div')`
 `;
 
 const ProjectWithPercentage = styled('div')`
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr max-content;
   align-items: center;
   gap: ${space(0.5)};
   color: ${p => p.theme.subText};
@@ -150,4 +171,9 @@ const EmptyMessage = styled('div')`
   align-items: center;
   min-height: 25px;
   color: ${p => p.theme.subText};
+`;
+
+const StyledProjectBadge = styled(ProjectBadge)`
+  max-width: 100%;
+  overflow: hidden;
 `;

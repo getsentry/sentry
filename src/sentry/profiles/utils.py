@@ -2,9 +2,10 @@ from datetime import datetime
 from typing import Any, Dict, Optional
 from urllib.parse import urlencode, urlparse
 
+import brotli
 import urllib3
 from django.conf import settings
-from django.http import StreamingHttpResponse
+from django.http import HttpResponse
 from parsimonious.exceptions import ParseError
 from urllib3.response import HTTPResponse
 
@@ -24,16 +25,30 @@ class RetrySkipTimeout(urllib3.Retry):
         self, method=None, url=None, response=None, error=None, _pool=None, _stacktrace=None
     ):
         """
-        Just rely on the parent class unless we have a read timeout. In that case
-        immediately give up
+        Just rely on the parent class unless we have a read timeout. In that case,
+        immediately give up. Except when we're inserting a profile to vroom which
+        can timeout due to GCS where we want to retry.
         """
-        if error and isinstance(error, urllib3.exceptions.ReadTimeoutError):
+        if url:
+            # The url is high cardinality because of the ids in it, so strip it
+            # from the path before using it in the metric tags.
+            path = urlparse(url).path
+            parts = path.split("/")
+            if len(parts) > 2:
+                parts[2] = ":orgId"
+            if len(parts) > 4:
+                parts[4] = ":projId"
+            if len(parts) > 6:
+                parts[6] = ":uuid"
+            path = "/".join(parts)
+        else:
+            path = None
+
+        if path != "/profile" and error and isinstance(error, urllib3.exceptions.ReadTimeoutError):
             raise error.with_traceback(_stacktrace)
 
-        metrics.incr(
-            "profiling.client.retry",
-            tags={"method": method, "path": urlparse(url).path if url else None},
-        )
+        metrics.incr("profiling.client.retry", tags={"method": method, "path": path})
+
         return super().increment(
             method=method,
             url=url,
@@ -51,8 +66,9 @@ _profiling_pool = connection_from_url(
         status_forcelist={502},
         allowed_methods={"GET", "POST"},
     ),
-    timeout=30,
+    timeout=10,
     maxsize=10,
+    headers={"Accept-Encoding": "br, gzip"},
 )
 
 
@@ -63,18 +79,28 @@ def get_from_profiling_service(
     headers: Optional[Dict[Any, Any]] = None,
     json_data: Any = None,
 ) -> HTTPResponse:
-    kwargs: Dict[str, Any] = {"headers": {}, "preload_content": False}
+    kwargs: Dict[str, Any] = {"headers": {}}
     if params:
         params = {
             key: value.isoformat() if isinstance(value, datetime) else value
             for key, value in params.items()
+            # do not want to proxy the project_objects to the profiling service
+            # this make the query param unnecessarily large
+            if key != "project_objects"
         }
         path = f"{path}?{urlencode(params, doseq=True)}"
     if headers:
         kwargs["headers"].update(headers)
     if json_data:
-        kwargs["headers"]["Content-Type"] = "application/json"
-        kwargs["body"] = json.dumps(json_data)
+        kwargs["headers"].update(
+            {
+                "Content-Encoding": "br",
+                "Content-Type": "application/json",
+            }
+        )
+        kwargs["body"] = brotli.compress(
+            json.dumps(json_data).encode("utf-8"), quality=6, mode=brotli.MODE_TEXT
+        )
     return _profiling_pool.urlopen(  # type: ignore
         method,
         path,
@@ -87,23 +113,13 @@ def proxy_profiling_service(
     path: str,
     params: Optional[Dict[str, Any]] = None,
     headers: Optional[Dict[str, str]] = None,
-) -> StreamingHttpResponse:
+) -> HttpResponse:
     profiling_response = get_from_profiling_service(method, path, params=params, headers=headers)
-
-    def stream():  # type: ignore
-        yield from profiling_response.stream(decode_content=False)
-
-    response = StreamingHttpResponse(
-        streaming_content=stream(),  # type: ignore
+    return HttpResponse(
+        content=profiling_response.data,
         status=profiling_response.status,
-        content_type=profiling_response.headers.get("Content_type", "application/json"),
+        content_type=profiling_response.headers.get("Content-Type", "application/json"),
     )
-
-    for h in ["Content-Encoding", "Vary"]:
-        if h in profiling_response.headers:
-            response[h] = profiling_response.headers[h]
-
-    return response
 
 
 PROFILE_FILTERS = {

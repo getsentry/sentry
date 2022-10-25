@@ -17,11 +17,12 @@ from typing import (
 
 from arroyo.backends.abstract import Consumer
 from arroyo.backends.kafka import KafkaPayload
-from arroyo.commit import CommitCodec
+from arroyo.backends.kafka.commit import CommitCodec
 from arroyo.errors import ConsumerError, EndOfPartition
 from arroyo.types import Message, Partition, Position, Topic, TPayload
 from arroyo.utils.concurrent import execute
-from arroyo.utils.metrics import get_metrics
+
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -126,8 +127,6 @@ class SynchronizedConsumer(Consumer[TPayload]):
         # due to offset synchronization.
         self.__paused: Set[Partition] = set()
 
-        self.__metrics = get_metrics()
-
     def __run_commit_log_worker(self) -> None:
         # TODO: This needs to roll back to the initial offset.
 
@@ -166,7 +165,7 @@ class SynchronizedConsumer(Consumer[TPayload]):
                 remote_offsets[commit.group][commit.partition] = commit.offset
 
             if commit.orig_message_ts is not None:
-                self.__metrics.timing(
+                metrics.timing(
                     "commit_log_msg_latency",
                     (now - datetime.timestamp(commit.orig_message_ts)) * 1000,
                     tags={
@@ -174,7 +173,7 @@ class SynchronizedConsumer(Consumer[TPayload]):
                         "group": commit.group,
                     },
                 )
-            self.__metrics.timing(
+            metrics.timing(
                 "commit_log_latency",
                 (now - datetime.timestamp(message.timestamp)) * 1000,
                 tags={

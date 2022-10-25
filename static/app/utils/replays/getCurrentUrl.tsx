@@ -4,6 +4,14 @@ import type {Crumb} from 'sentry/types/breadcrumbs';
 import {BreadcrumbType, BreadcrumbTypeNavigation} from 'sentry/types/breadcrumbs';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
+function parseUrl(url: string) {
+  try {
+    return new URL(url);
+  } catch {
+    return undefined;
+  }
+}
+
 function getCurrentUrl(
   replayRecord: ReplayRecord,
   crumbs: Crumb[],
@@ -17,7 +25,7 @@ function getCurrentUrl(
   ) as BreadcrumbTypeNavigation[];
 
   const initialUrl = replayRecord.urls[0];
-  const origin = initialUrl ? new URL(initialUrl).origin : '';
+  const origin = parseUrl(initialUrl)?.origin || initialUrl;
 
   const mostRecentNavigation = last(
     navigationCrumbs.filter(({timestamp}) => +new Date(timestamp || 0) <= currentTimeMs)
@@ -27,14 +35,13 @@ function getCurrentUrl(
     return origin;
   }
 
-  try {
-    // If `mostRecentNavigation` has the origin then we can parse it as a URL
-    const url = new URL(mostRecentNavigation);
-    return String(url);
-  } catch {
-    // Otherwise we need to add the origin manually and hope the suffix makes sense.
-    return origin + mostRecentNavigation;
+  const parsed = parseUrl(mostRecentNavigation);
+  if (parsed) {
+    // If `mostRecentNavigation` has the origin then we can parse it as a URL and return it
+    return String(parsed);
   }
+  // Otherwise we need to add the origin manually and hope the suffix makes sense.
+  return origin + mostRecentNavigation;
 }
 
 export default getCurrentUrl;

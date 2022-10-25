@@ -8,7 +8,7 @@ efficient, we only look at the past 24 hours.
 
 __all__ = ("get_metrics", "get_tags", "get_tag_values", "get_series", "get_single_metric_info")
 import logging
-from collections import OrderedDict, defaultdict, deque
+from collections import defaultdict, deque
 from copy import copy
 from dataclasses import dataclass, replace
 from datetime import datetime
@@ -146,15 +146,15 @@ def get_metrics(projects: Sequence[Project], use_case_id: UseCaseKey) -> Sequenc
             org_id=org_id,
         ):
             try:
+                mri_string = reverse_resolve(use_case_id, org_id, row["metric_id"])
                 metrics_meta.append(
                     MetricMeta(
-                        name=get_public_name_from_mri(
-                            reverse_resolve(use_case_id, org_id, row["metric_id"])
-                        ),
+                        name=get_public_name_from_mri(mri_string),
                         type=metric_type,
                         operations=AVAILABLE_OPERATIONS[METRIC_TYPE_TO_ENTITY[metric_type].value],
                         unit=None,  # snuba does not know the unit
                         metric_id=row["metric_id"],
+                        mri_string=mri_string,
                     )
                 )
             except InvalidParams:
@@ -185,6 +185,7 @@ def get_metrics(projects: Sequence[Project], use_case_id: UseCaseKey) -> Sequenc
                 unit=derived_metric_obj.unit,
                 # Derived metrics won't have an id
                 metric_id=None,
+                mri_string=derived_metric_mri,
             )
         )
     return sorted(metrics_meta, key=itemgetter("name"))
@@ -220,6 +221,7 @@ def get_custom_measurements(
                         ],
                         unit=parsed_mri.unit,
                         metric_id=row["metric_id"],
+                        mri_string=parsed_mri.mri_string,
                     )
                 )
 
@@ -542,7 +544,7 @@ def _get_group_limit_filters(
         return None
 
     # Creates a mapping of groupBy fields to their equivalent SnQL
-    key_to_condition_dict: Dict[Groupable, Any] = OrderedDict()
+    key_to_condition_dict: Dict[Groupable, Any] = {}
     for metric_groupby_obj in metrics_query.groupby:
         key_to_condition_dict[
             metric_groupby_obj.name
@@ -562,9 +564,7 @@ def _get_group_limit_filters(
     # Get an ordered list of tuples containing the values of the group keys.
     # This needs to be deduplicated since in timeseries queries the same
     # grouping key will reappear for every time bucket.
-    values = list(
-        OrderedDict((tuple(row[col] for col in aliased_group_keys), None) for row in results).keys()
-    )
+    values = list({tuple(row[col] for col in aliased_group_keys): None for row in results})
     conditions = [
         Condition(
             Function("tuple", list(key_to_condition_dict.values())),
@@ -673,7 +673,12 @@ def get_series(
 ) -> dict:
     """Get time series for the given query"""
     intervals = list(
-        get_intervals(metrics_query.start, metrics_query.end, metrics_query.granularity.granularity)
+        get_intervals(
+            metrics_query.start,
+            metrics_query.end,
+            metrics_query.granularity.granularity,
+            interval=metrics_query.interval,
+        )
     )
     results = {}
     meta = []
@@ -842,13 +847,13 @@ def get_series(
     if len(result_groups) > metrics_query.limit.limit:
         result_groups = result_groups[0 : metrics_query.limit.limit]
 
-    metrics_query_fields = {
-        str(metric_field) for metric_field in converter._alias_to_metric_field.keys()
-    }
     groupby_aliases = (
-        {metric_groupby_obj.alias for metric_groupby_obj in metrics_query.groupby}
+        {
+            metric_groupby_obj.alias: metric_groupby_obj
+            for metric_groupby_obj in metrics_query.groupby
+        }
         if metrics_query.groupby
-        else set()
+        else {}
     )
 
     return {
@@ -856,7 +861,11 @@ def get_series(
         "end": metrics_query.end,
         "intervals": intervals,
         "groups": result_groups,
-        "meta": translate_meta_results(meta, metrics_query_fields, groupby_aliases)
+        "meta": translate_meta_results(
+            meta=meta,
+            alias_to_metric_field=converter._alias_to_metric_field,
+            alias_to_metric_group_by_field=groupby_aliases,
+        )
         if include_meta
         else [],
     }

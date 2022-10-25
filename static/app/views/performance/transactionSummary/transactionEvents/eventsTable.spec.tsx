@@ -1,5 +1,5 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -82,39 +82,39 @@ function initializeData({features: additionalFeatures = []}: Data = {}) {
 }
 
 describe('Performance GridEditable Table', function () {
-  let transactionsListTitles;
-  let totalEventCount;
-  let fields;
-  let organization;
+  const transactionsListTitles = [
+    t('event id'),
+    t('user'),
+    t('operation duration'),
+    t('total duration'),
+    t('trace id'),
+    t('timestamp'),
+  ];
+  const totalEventCount = '100';
+  let fields = EVENTS_TABLE_RESPONSE_FIELDS;
+  const organization = TestStubs.Organization();
+  const transactionName = 'transactionName';
   let data;
-  let transactionName;
+
   const query =
     'transaction.duration:<15m event.type:transaction transaction:/api/0/organizations/{organization_slug}/events/';
+
   beforeEach(function () {
-    transactionName = 'transactionName';
-    totalEventCount = '100';
-    transactionsListTitles = [
-      t('event id'),
-      t('user'),
-      t('operation duration'),
-      t('total duration'),
-      t('trace id'),
-      t('timestamp'),
-    ];
-    fields = EVENTS_TABLE_RESPONSE_FIELDS;
-    organization = TestStubs.Organization();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
     });
+
     MockApiClient.addMockResponse({
       url: '/prompts-activity/',
       body: {},
     });
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',
       body: [],
     });
+
     data = MOCK_EVENTS_TABLE_DATA;
     // Transaction list response
     MockApiClient.addMockResponse({
@@ -152,6 +152,7 @@ describe('Performance GridEditable Table', function () {
 
   it('renders ops breakdown bar when querying for span_ops_breakdown.relative', async function () {
     const initialData = initializeData();
+
     const eventView = EventView.fromNewQueryWithLocation(
       {
         id: undefined,
@@ -164,29 +165,31 @@ describe('Performance GridEditable Table', function () {
       },
       initialData.router.location
     );
-    const wrapper = mountWithTheme(
+
+    render(
       <EventsTable
         totalEventCount={totalEventCount}
         eventView={eventView}
         organization={organization}
+        routes={initialData.router.routes}
         location={initialData.router.location}
         setError={() => {}}
         columnTitles={transactionsListTitles}
         transactionName={transactionName}
       />,
-      initialData.routerContext
+      {context: initialData.routerContext}
     );
-    await tick();
-    wrapper.update();
 
-    expect(wrapper.find('GridHeadCell')).toHaveLength(6);
-    expect(wrapper.find('GridHeadCellStatic')).toHaveLength(0);
-    expect(wrapper.find('OperationSort')).toHaveLength(1);
-    expect(wrapper.find('RelativeOpsBreakdown')).toHaveLength(2);
+    expect(await screen.findAllByTestId('relative-ops-breakdown')).toHaveLength(2);
+
+    expect(screen.getAllByRole('columnheader')).toHaveLength(6);
+    expect(screen.getByText('operation duration')).toBeInTheDocument();
+    expect(screen.queryByTestId('grid-head-cell-static')).not.toBeInTheDocument();
   });
 
-  it('renders basic columns without ops breakdown when not querying for span_ops_breakdown.relative', async function () {
+  it('renders basic columns without ops breakdown when not querying for span_ops_breakdown.relative', function () {
     const initialData = initializeData();
+
     fields = [
       'id',
       'user.display',
@@ -195,6 +198,7 @@ describe('Performance GridEditable Table', function () {
       'timestamp',
       'spans.http',
     ];
+
     data.forEach(result => {
       delete result['span_ops_breakdown.relative'];
       delete result['spans.resource'];
@@ -202,6 +206,7 @@ describe('Performance GridEditable Table', function () {
       delete result['spans.db'];
       delete result['spans.total.time'];
     });
+
     const eventView = EventView.fromNewQueryWithLocation(
       {
         id: undefined,
@@ -214,24 +219,64 @@ describe('Performance GridEditable Table', function () {
       },
       initialData.router.location
     );
-    const wrapper = mountWithTheme(
+
+    render(
       <EventsTable
         totalEventCount={totalEventCount}
         eventView={eventView}
         organization={organization}
+        routes={initialData.router.routes}
         location={initialData.router.location}
         setError={() => {}}
         columnTitles={transactionsListTitles}
         transactionName={transactionName}
       />,
-      initialData.routerContext
+      {context: initialData.routerContext}
     );
-    await tick();
-    wrapper.update();
 
-    expect(wrapper.find('GridHeadCell')).toHaveLength(6);
-    expect(wrapper.find('GridHeadCellStatic')).toHaveLength(0);
-    expect(wrapper.find('OperationSort')).toHaveLength(0);
-    expect(wrapper.find('RelativeOpsBreakdown')).toHaveLength(0);
+    expect(screen.getAllByRole('columnheader')).toHaveLength(6);
+    expect(screen.queryByText(SPAN_OP_RELATIVE_BREAKDOWN_FIELD)).not.toBeInTheDocument();
+    expect(screen.queryByTestId('relative-ops-breakdown')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('grid-head-cell-static')).not.toBeInTheDocument();
+  });
+
+  it('renders event id and trace id url', async function () {
+    const initialData = initializeData();
+    const eventView = EventView.fromNewQueryWithLocation(
+      {
+        id: undefined,
+        version: 2,
+        name: 'transactionName',
+        fields,
+        query,
+        projects: [],
+        orderby: '-timestamp',
+      },
+      initialData.router.location
+    );
+
+    render(
+      <EventsTable
+        totalEventCount={totalEventCount}
+        eventView={eventView}
+        organization={organization}
+        routes={initialData.router.routes}
+        location={initialData.router.location}
+        setError={() => {}}
+        columnTitles={transactionsListTitles}
+        transactionName={transactionName}
+      />,
+      {context: initialData.routerContext}
+    );
+
+    expect(await screen.findByRole('link', {name: 'deadbeef'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/performance/undefined:deadbeef/?project=1&transaction=transactionName&transactionCursor=1%3A0%3A0'
+    );
+
+    expect(screen.getByRole('link', {name: '1234'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/performance/trace/1234/?'
+    );
   });
 });

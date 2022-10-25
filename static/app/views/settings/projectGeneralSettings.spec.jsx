@@ -1,9 +1,15 @@
 import {browserHistory} from 'react-router';
+import selectEvent from 'react-select-event';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {mountGlobalModal} from 'sentry-test/modal';
-import {act} from 'sentry-test/reactTestingLibrary';
-import {selectByValue} from 'sentry-test/select-new';
+import {
+  act,
+  fireEvent,
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {removePageFiltersStorage} from 'sentry/components/organizations/pageFilters/persistence';
@@ -14,6 +20,10 @@ import ProjectGeneralSettings from 'sentry/views/settings/projectGeneralSettings
 jest.mock('sentry/actionCreators/indicator');
 jest.mock('sentry/components/organizations/pageFilters/persistence');
 
+function getField(role, name) {
+  return screen.getByRole(role, {name});
+}
+
 describe('projectGeneralSettings', function () {
   const org = TestStubs.Organization();
   const project = TestStubs.ProjectDetails();
@@ -21,8 +31,6 @@ describe('projectGeneralSettings', function () {
   const groupingEnhancements = TestStubs.GroupingEnhancements();
   let routerContext;
   let putMock;
-  let wrapper;
-  let modal;
 
   beforeEach(function () {
     jest.spyOn(window.location, 'assign');
@@ -70,74 +78,57 @@ describe('projectGeneralSettings', function () {
     MockApiClient.clearMockResponses();
     addSuccessMessage.mockReset();
     addErrorMessage.mockReset();
-
-    if (wrapper?.length) {
-      wrapper.unmount();
-      wrapper = undefined;
-    }
-    if (modal?.length) {
-      modal.unmount();
-      modal = undefined;
-    }
   });
 
   it('renders form fields', function () {
-    wrapper = mountWithTheme(
+    render(
       <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />
     );
 
-    expect(wrapper.find('Input[name="name"]').prop('value')).toBe('Project Name');
-    expect(wrapper.find('Input[name="subjectPrefix"]').prop('value')).toBe('[my-org]');
-    expect(wrapper.find('RangeSlider[name="resolveAge"]').prop('value')).toBe(48);
-    expect(wrapper.find('TextArea[name="allowedDomains"]').prop('value')).toBe(
+    expect(getField('textbox', 'Name')).toHaveValue('Project Name');
+    expect(getField('textbox', 'Subject Prefix')).toHaveValue('[my-org]');
+
+    // Step 19 of the auto resolve slider equates to 48 hours. This is
+    // different from thee actual field value (which will be 48)
+    expect(getField('slider', 'Auto Resolve')).toHaveValue('19');
+
+    expect(getField('textbox', 'Allowed Domains')).toHaveValue(
       'example.com\nhttps://example.com'
     );
-    expect(wrapper.find('Switch[name="scrapeJavaScript"]').prop('isDisabled')).toBe(
-      false
-    );
-    expect(wrapper.find('Switch[name="scrapeJavaScript"]').prop('isActive')).toBeTruthy();
-    expect(wrapper.find('Input[name="securityToken"]').prop('value')).toBe(
-      'security-token'
-    );
-    expect(wrapper.find('Input[name="securityTokenHeader"]').prop('value')).toBe(
-      'x-security-header'
-    );
-    expect(wrapper.find('Switch[name="verifySSL"]').prop('isActive')).toBeTruthy();
+    expect(getField('checkbox', 'Enable JavaScript source fetching')).toBeChecked();
+    expect(getField('textbox', 'Security Token')).toHaveValue('security-token');
+    expect(getField('textbox', 'Security Token Header')).toHaveValue('x-security-header');
+    expect(getField('checkbox', 'Verify TLS/SSL')).toBeChecked();
   });
 
   it('disables scrapeJavaScript when equivalent org setting is false', function () {
     routerContext.context.organization.scrapeJavaScript = false;
-    wrapper = mountWithTheme(
+    render(
       <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
-      routerContext
+      {context: routerContext}
     );
-    expect(wrapper.find('Switch[name="scrapeJavaScript"]').prop('isDisabled')).toBe(true);
-    expect(wrapper.find('Switch[name="scrapeJavaScript"]').prop('isActive')).toBeFalsy();
+
+    expect(getField('checkbox', 'Enable JavaScript source fetching')).toBeDisabled();
+    expect(getField('checkbox', 'Enable JavaScript source fetching')).not.toBeChecked();
   });
 
-  it('project admins can remove project', async function () {
+  it('project admins can remove project', function () {
     const deleteMock = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,
       method: 'DELETE',
     });
 
-    wrapper = mountWithTheme(
+    render(
       <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />
     );
 
-    const removeBtn = wrapper.find('.ref-remove-project').first();
+    userEvent.click(screen.getByRole('button', {name: 'Remove Project'}));
 
-    expect(removeBtn.prop('children')).toBe('Remove Project');
-
-    // Click button
-    removeBtn.simulate('click');
-
-    // Confirm Modal
-    modal = await mountGlobalModal();
-    modal.find('Button[priority="danger"]').simulate('click');
+    // Click confirmation button
+    renderGlobalModal();
+    userEvent.click(screen.getByTestId('confirm-button'));
 
     expect(deleteMock).toHaveBeenCalled();
-
     expect(removePageFiltersStorage).toHaveBeenCalledWith('org-slug');
   });
 
@@ -147,36 +138,30 @@ describe('projectGeneralSettings', function () {
       method: 'POST',
     });
 
-    wrapper = mountWithTheme(
+    render(
       <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />
     );
 
-    const removeBtn = wrapper.find('.ref-transfer-project').first();
+    userEvent.click(screen.getByRole('button', {name: 'Transfer Project'}));
 
-    expect(removeBtn.prop('children')).toBe('Transfer Project');
+    // Click confirmation button
+    renderGlobalModal();
+    userEvent.type(getField('textbox', 'Organization Owner'), 'billy@sentry.io');
+    userEvent.click(screen.getByTestId('confirm-button'));
 
-    // Click button
-    removeBtn.simulate('click');
-
-    // Confirm Modal
-    modal = await mountGlobalModal();
-    modal
-      .find('input[name="email"]')
-      .simulate('change', {target: {value: 'billy@sentry.io'}});
-    modal.find('Modal Button[priority="danger"]').simulate('click');
-    await tick();
-    await modal.update();
+    await waitFor(() =>
+      expect(deleteMock).toHaveBeenCalledWith(
+        `/projects/${org.slug}/${project.slug}/transfer/`,
+        expect.objectContaining({
+          method: 'POST',
+          data: {
+            email: 'billy@sentry.io',
+          },
+        })
+      )
+    );
 
     expect(addSuccessMessage).toHaveBeenCalled();
-    expect(deleteMock).toHaveBeenCalledWith(
-      `/projects/${org.slug}/${project.slug}/transfer/`,
-      expect.objectContaining({
-        method: 'POST',
-        data: {
-          email: 'billy@sentry.io',
-        },
-      })
-    );
   });
 
   it('handles errors on transfer project', async function () {
@@ -187,67 +172,64 @@ describe('projectGeneralSettings', function () {
       body: {detail: 'An organization owner could not be found'},
     });
 
-    wrapper = mountWithTheme(
+    render(
       <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />
     );
 
-    const removeBtn = wrapper.find('.ref-transfer-project').first();
+    userEvent.click(screen.getByRole('button', {name: 'Transfer Project'}));
 
-    expect(removeBtn.prop('children')).toBe('Transfer Project');
+    // Click confirmation button
+    renderGlobalModal();
+    userEvent.type(getField('textbox', 'Organization Owner'), 'billy@sentry.io');
+    userEvent.click(screen.getByTestId('confirm-button'));
 
-    // Click button
-    removeBtn.simulate('click');
+    await waitFor(() => expect(deleteMock).toHaveBeenCalled());
 
-    // Confirm Modal
-    modal = await mountGlobalModal();
-    modal
-      .find('input[name="email"]')
-      .simulate('change', {target: {value: 'billy@sentry.io'}});
-    modal.find('Modal Button[priority="danger"]').simulate('click');
-    await tick();
-    await modal.update();
-
-    expect(deleteMock).toHaveBeenCalled();
     expect(addSuccessMessage).not.toHaveBeenCalled();
-
     expect(addErrorMessage).toHaveBeenCalled();
-    const content = mountWithTheme(addErrorMessage.mock.calls[0][0]);
-    expect(content.text()).toEqual(
-      expect.stringContaining('An organization owner could not be found')
+
+    // Check the error message
+    const {container} = render(addErrorMessage.mock.calls[0][0]);
+    expect(container).toHaveTextContent(
+      'Error transferring project-slug. An organization owner could not be found'
     );
   });
 
   it('displays transfer/remove message for non-admins', function () {
     routerContext.context.organization.access = ['org:read'];
-    wrapper = mountWithTheme(
+
+    const {container} = render(
       <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
-      routerContext
+      {context: routerContext}
     );
 
-    expect(wrapper.html()).toContain(
+    expect(container).toHaveTextContent(
       'You do not have the required permission to remove this project.'
     );
-    expect(wrapper.html()).toContain(
+    expect(container).toHaveTextContent(
       'You do not have the required permission to transfer this project.'
     );
   });
 
   it('disables the form for users without write permissions', function () {
     routerContext.context.organization.access = ['org:read'];
-    wrapper = mountWithTheme(
+    render(
       <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
-      routerContext
+      {context: routerContext}
     );
 
-    expect(wrapper.find('FormField[disabled=false]')).toHaveLength(0);
-    expect(wrapper.find('Alert').first().text()).toBe(
+    // no textboxes are enabled
+    screen.queryAllByRole('textbox').forEach(textbox => expect(textbox).toBeDisabled());
+
+    expect(screen.getByTestId('project-permission-alert')).toHaveTextContent(
       'These settings can only be edited by users with the organization owner, manager, or admin role.'
     );
   });
 
   it('changing project platform updates ProjectsStore', async function () {
     const params = {orgId: org.slug, projectId: project.slug};
-    act(() => ProjectsStore.loadInitialData([project]));
+    ProjectsStore.loadInitialData([project]);
+
     putMock = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,
       method: 'PUT',
@@ -257,7 +239,7 @@ describe('projectGeneralSettings', function () {
       },
     });
 
-    wrapper = mountWithTheme(
+    render(
       <ProjectContext orgId={org.slug} projectId={project.slug}>
         <ProjectGeneralSettings
           routes={[]}
@@ -265,21 +247,13 @@ describe('projectGeneralSettings', function () {
           params={params}
         />
       </ProjectContext>,
-      routerContext
+      {context: routerContext}
     );
 
-    await act(tick);
-    wrapper.update();
+    const platformSelect = await screen.findByRole('textbox', {name: 'Platform'});
+    await selectEvent.select(platformSelect, ['React']);
 
-    // Change slug to new-slug
-    selectByValue(wrapper, 'javascript');
-
-    // Slug does not save on blur
     expect(putMock).toHaveBeenCalled();
-
-    await tick();
-    await act(tick);
-    wrapper.update();
 
     // updates ProjectsStore
     expect(ProjectsStore.itemsById['2'].platform).toBe('javascript');
@@ -287,7 +261,7 @@ describe('projectGeneralSettings', function () {
 
   it('changing name updates ProjectsStore', async function () {
     const params = {orgId: org.slug, projectId: project.slug};
-    act(() => ProjectsStore.loadInitialData([project]));
+    ProjectsStore.loadInitialData([project]);
 
     putMock = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,
@@ -298,7 +272,7 @@ describe('projectGeneralSettings', function () {
       },
     });
 
-    wrapper = mountWithTheme(
+    render(
       <ProjectContext orgId={org.slug} projectId={project.slug}>
         <ProjectGeneralSettings
           routes={[]}
@@ -306,55 +280,27 @@ describe('projectGeneralSettings', function () {
           params={params}
         />
       </ProjectContext>,
-      routerContext
+      {context: routerContext}
     );
 
-    await tick();
-    wrapper.update();
-
-    // Change slug to new-slug
-    wrapper
-      .find('input[name="name"]')
-      .simulate('change', {target: {value: 'New Project'}})
-      .simulate('blur');
+    userEvent.type(await screen.findByRole('textbox', {name: 'Name'}), 'New Project');
 
     // Slug does not save on blur
     expect(putMock).not.toHaveBeenCalled();
-    wrapper.find('Alert button[aria-label="Save"]').simulate('click');
 
-    // fetches new slug
-    const newProjectGet = MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/new-project/`,
-      method: 'GET',
-      body: {...project, slug: 'new-project'},
-    });
-    const newProjectMembers = MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/users/`,
-      method: 'GET',
-      body: [],
-    });
+    // Saves when clicking save
+    userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
-    await act(tick);
-    wrapper.update();
-
-    // updates ProjectsStore
+    // Redirects the user
+    await waitFor(() => expect(browserHistory.replace).toHaveBeenCalled());
     expect(ProjectsStore.itemsById['2'].slug).toBe('new-project');
-    expect(browserHistory.replace).toHaveBeenCalled();
-    expect(wrapper.find('Input[name="name"]').prop('value')).toBe('new-project');
-
-    wrapper.setProps({
-      projectId: 'new-project',
-    });
-    await tick();
-    wrapper.update();
-    expect(newProjectGet).toHaveBeenCalled();
-    expect(newProjectMembers).toHaveBeenCalled();
   });
 
   describe('Non-"save on blur" Field', function () {
     beforeEach(function () {
       const params = {orgId: org.slug, projectId: project.slug};
-      act(() => ProjectsStore.loadInitialData([project]));
+      ProjectsStore.loadInitialData([project]);
+
       putMock = MockApiClient.addMockResponse({
         url: `/projects/${org.slug}/${project.slug}/`,
         method: 'PUT',
@@ -363,7 +309,8 @@ describe('projectGeneralSettings', function () {
           slug: 'new-project',
         },
       });
-      wrapper = mountWithTheme(
+
+      render(
         <ProjectContext orgId={org.slug} projectId={project.slug}>
           <ProjectGeneralSettings
             routes={[]}
@@ -371,73 +318,50 @@ describe('projectGeneralSettings', function () {
             params={params}
           />
         </ProjectContext>,
-        routerContext
+        {context: routerContext}
       );
     });
 
-    afterEach(() => {
-      wrapper?.unmount();
-      modal?.unmount();
-    });
-
     it('can cancel unsaved changes for a field', async function () {
-      await tick();
-      wrapper.update();
+      expect(screen.queryByRole('button', {name: 'Cancel'})).not.toBeInTheDocument();
 
-      // Initially does not have "Cancel" button
-      expect(wrapper.find('Alert button[aria-label="Cancel"]')).toHaveLength(0);
-      // Has initial value
-      expect(wrapper.find('input[name="resolveAge"]').prop('value')).toBe(19);
+      const autoResolveSlider = getField('slider', 'Auto Resolve');
+      expect(autoResolveSlider).toHaveValue('19');
 
       // Change value
-      wrapper
-        .find('input[name="resolveAge"]')
-        .simulate('input', {target: {value: 12}})
-        .simulate('mouseUp');
-
-      // Has updated value
-      expect(wrapper.find('input[name="resolveAge"]').prop('value')).toBe(12);
-      // Has "Cancel" button visible
-      expect(wrapper.find('Alert button[aria-label="Cancel"]')).toHaveLength(1);
+      fireEvent.change(autoResolveSlider, {target: {value: '12'}});
+      expect(autoResolveSlider).toHaveValue('12');
 
       // Click cancel
-      wrapper.find('Alert button[aria-label="Cancel"]').simulate('click');
-      wrapper.update();
+      userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
+      await act(tick);
 
       // Cancel row should disappear
-      expect(wrapper.find('Alert button[aria-label="Cancel"]')).toHaveLength(0);
+      expect(screen.queryByRole('button', {name: 'Cancel'})).not.toBeInTheDocument();
+
       // Value should be reverted
-      expect(wrapper.find('input[name="resolveAge"]').prop('value')).toBe(19);
+      expect(autoResolveSlider).toHaveValue('19');
+
       // PUT should not be called
       expect(putMock).not.toHaveBeenCalled();
     });
 
     it('saves when value is changed and "Save" clicked', async function () {
-      // This test has been flaky and using act() isn't removing the flakyness.
-      await tick();
-      wrapper.update();
+      expect(screen.queryByRole('button', {name: 'Save'})).not.toBeInTheDocument();
 
-      // Initially does not have "Save" button
-      expect(wrapper.find('Alert button[aria-label="Save"]')).toHaveLength(0);
+      const autoResolveSlider = getField('slider', 'Auto Resolve');
+      expect(autoResolveSlider).toHaveValue('19');
 
       // Change value
-      wrapper
-        .find('input[name="resolveAge"]')
-        .simulate('input', {target: {value: 12}})
-        .simulate('mouseUp');
-      await tick();
-      wrapper.update();
-
-      // Has "Save" button visible
-      expect(wrapper.find('Alert button[aria-label="Save"]')).toHaveLength(1);
+      fireEvent.change(autoResolveSlider, {target: {value: '12'}});
+      expect(autoResolveSlider).toHaveValue('12');
 
       // Should not have put mock called yet
       expect(putMock).not.toHaveBeenCalled();
 
       // Click "Save"
-      wrapper.find('Alert button[aria-label="Save"]').simulate('click');
-      await tick();
-      wrapper.update();
+      userEvent.click(screen.queryByRole('button', {name: 'Save'}));
+      await act(tick);
 
       // API endpoint should have been called
       expect(putMock).toHaveBeenCalledWith(
@@ -449,11 +373,7 @@ describe('projectGeneralSettings', function () {
         })
       );
 
-      // Should hide "Save" button after saving
-      await act(tick);
-      wrapper.update();
-
-      expect(wrapper.find('Alert button[aria-label="Save"]')).toHaveLength(0);
+      expect(screen.queryByRole('button', {name: 'Save'})).not.toBeInTheDocument();
     });
   });
 });

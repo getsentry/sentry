@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Optional, Sequence, Set, Tuple
 
 from django.urls import reverse
@@ -79,8 +78,7 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
         except (ApiError, ApiUnauthorized, KeyError) as e:
             raise self.raise_error(e)
 
-        # we want to maintain ordering of the items
-        item_type_map = OrderedDict()
+        item_type_map = {}
         for item in item_categories:
             for item_type_object in item["workItemTypes"]:
                 # the type is the last part of the url

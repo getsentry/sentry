@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 
+import {useReplayContext} from 'sentry/components/replays/replayContext';
 import TextCopyInput, {
   StyledCopyButton,
   StyledInput,
-} from 'sentry/components/forms/textCopyInput';
-import {useReplayContext} from 'sentry/components/replays/replayContext';
+} from 'sentry/components/textCopyInput';
 import space from 'sentry/styles/space';
 import getCurrentUrl from 'sentry/utils/replays/getCurrentUrl';
 

@@ -298,7 +298,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                         <RightAlignedCell>
                           <Tooltip title={listItem.title}>
                             <Link
-                              to={`/organizations/${props.organization.slug}/issues/${listItem['issue.id']}/`}
+                              to={`/organizations/${props.organization.slug}/issues/${listItem['issue.id']}/?referrer=performance-line-chart-widget`}
                             >
                               {rightValue}
                             </Link>

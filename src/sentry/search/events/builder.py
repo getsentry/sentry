@@ -139,6 +139,7 @@ class QueryBuilder:
         skip_time_conditions: bool = False,
         parser_config_overrides: Optional[Mapping[str, Any]] = None,
         has_metrics: bool = False,
+        use_metrics_layer: bool = False,
     ):
         self.dataset = dataset
 
@@ -146,6 +147,7 @@ class QueryBuilder:
 
         self.organization_id = params.get("organization_id")
         self.has_metrics = has_metrics
+        self.use_metrics_layer = use_metrics_layer
         self.auto_fields = auto_fields
         self.functions_acl = set() if functions_acl is None else functions_acl
         self.equation_config = {} if equation_config is None else equation_config
@@ -166,6 +168,10 @@ class QueryBuilder:
         self.projects_to_filter: Set[int] = set()
         self.function_alias_map: Dict[str, FunctionDetails] = {}
         self.equation_alias_map: Dict[str, SelectType] = {}
+        # field: function map for post-processing values
+        self.value_resolver_map: Dict[str, Callable[[Any], Any]] = {}
+        # value_resolver_map may change type
+        self.meta_resolver_map: Dict[str, str] = {}
 
         self.auto_aggregations = auto_aggregations
         self.limit = self.resolve_limit(limit)
@@ -179,6 +185,7 @@ class QueryBuilder:
             self.field_alias_converter,
             self.function_converter,
             self.search_filter_converter,
+            self.orderby_converter,
         ) = self.load_config()
 
         self.limitby = self.resolve_limitby(limitby)
@@ -251,9 +258,11 @@ class QueryBuilder:
         Mapping[str, Callable[[str], SelectType]],
         Mapping[str, SnQLFunction],
         Mapping[str, Callable[[SearchFilter], Optional[WhereType]]],
+        Mapping[str, Callable[[Direction], OrderBy]],
     ]:
         from sentry.search.events.datasets.discover import DiscoverDatasetConfig
         from sentry.search.events.datasets.metrics import MetricsDatasetConfig
+        from sentry.search.events.datasets.metrics_layer import MetricsLayerDatasetConfig
         from sentry.search.events.datasets.sessions import SessionsDatasetConfig
 
         self.config: DatasetConfig
@@ -262,15 +271,19 @@ class QueryBuilder:
         elif self.dataset == Dataset.Sessions:
             self.config = SessionsDatasetConfig(self)
         elif self.dataset in [Dataset.Metrics, Dataset.PerformanceMetrics]:
-            self.config = MetricsDatasetConfig(self)
+            if self.use_metrics_layer:
+                self.config = MetricsLayerDatasetConfig(self)
+            else:
+                self.config = MetricsDatasetConfig(self)
         else:
             raise NotImplementedError(f"Data Set configuration not found for {self.dataset}.")
 
         field_alias_converter = self.config.field_alias_converter
         function_converter = self.config.function_converter
         search_filter_converter = self.config.search_filter_converter
+        orderby_converter = self.config.orderby_converter
 
-        return field_alias_converter, function_converter, search_filter_converter
+        return field_alias_converter, function_converter, search_filter_converter, orderby_converter
 
     def resolve_limit(self, limit: Optional[int]) -> Optional[Limit]:
         return None if limit is None else Limit(limit)
@@ -625,7 +638,11 @@ class QueryBuilder:
                         "arrayJoin", [self.resolve_column(arguments[arg.name])]
                     )
                 else:
-                    arguments[arg.name] = self.resolve_column(arguments[arg.name])
+                    column = self.resolve_column(arguments[arg.name])
+                    # Can't keep aliased expressions
+                    if isinstance(column, AliasedExpression):
+                        column = column.exp
+                    arguments[arg.name] = column
             if combinator is not None and combinator.is_applicable(arg.name):
                 arguments[arg.name] = combinator.apply(arguments[arg.name])
                 combinator_applied = True
@@ -751,6 +768,7 @@ class QueryBuilder:
             if is_function(bare_orderby) and (
                 isinstance(resolved_orderby, Function)
                 or isinstance(resolved_orderby, CurriedFunction)
+                or isinstance(resolved_orderby, AliasedExpression)
             ):
                 bare_orderby = resolved_orderby.alias
 
@@ -763,6 +781,9 @@ class QueryBuilder:
                     isinstance(selected_column, AliasedExpression)
                     and selected_column.alias == bare_orderby
                 ):
+                    if bare_orderby in self.orderby_converter:
+                        validated.append(self.orderby_converter[bare_orderby](direction))
+                        break
                     # We cannot directly order by an `AliasedExpression`.
                     # Instead, we order by the column inside.
                     validated.append(OrderBy(selected_column.exp, direction))
@@ -772,6 +793,8 @@ class QueryBuilder:
                     isinstance(selected_column, CurriedFunction)
                     and selected_column.alias == bare_orderby
                 ):
+                    if bare_orderby in self.orderby_converter:
+                        validated.append(self.orderby_converter[bare_orderby](direction))
                     validated.append(OrderBy(selected_column, direction))
                     break
 
@@ -883,6 +906,8 @@ class QueryBuilder:
         return None
 
     def get_field_type(self, field: str) -> Optional[str]:
+        if field in self.meta_resolver_map:
+            return self.meta_resolver_map[field]
         if (
             field == "transaction.duration"
             or is_duration_measurement(field)
@@ -911,14 +936,20 @@ class QueryBuilder:
 
     @cached_property  # type: ignore
     def project_slugs(self) -> Mapping[str, int]:
+        return {project.slug: project.id for project in self.projects}
+
+    @cached_property  # type: ignore
+    def projects(self) -> Sequence[Project]:
         project_ids = cast(List[int], self.params.get("project_id", []))
 
         if len(project_ids) > 0:
-            project_slugs = Project.objects.filter(id__in=project_ids)
+            return [project for project in Project.objects.filter(id__in=project_ids)]
         else:
-            project_slugs = []
+            return []
 
-        return {p.slug: p.id for p in project_slugs}
+    @cached_property  # type: ignore
+    def project_ids(self) -> Mapping[int, str]:
+        return {project_id: slug for slug, project_id in self.project_slugs.items()}
 
     def validate_having_clause(self) -> None:
         """Validate that the functions in having are selected columns
@@ -1800,6 +1831,10 @@ class MetricsQueryBuilder(QueryBuilder):
         else:
             raise InvalidSearchQuery("Organization id required to create a metrics query")
 
+    def validate_aggregate_arguments(self) -> None:
+        if not self.use_metrics_layer:
+            super().validate_aggregate_arguments()
+
     @property
     def is_performance(self) -> bool:
         return self.dataset is Dataset.PerformanceMetrics
@@ -1833,7 +1868,7 @@ class MetricsQueryBuilder(QueryBuilder):
         with sentry_sdk.start_span(op="QueryBuilder", description="resolve_groupby"):
             self.groupby = self.resolve_groupby(groupby_columns)
 
-        if len(self.metric_ids) > 0:
+        if len(self.metric_ids) > 0 and not self.use_metrics_layer:
             self.where.append(
                 # Metric id is intentionally sorted so we create consistent queries here both for testing & caching
                 Condition(Column("metric_id"), Op.IN, sorted(self.metric_ids))
@@ -1843,6 +1878,14 @@ class MetricsQueryBuilder(QueryBuilder):
         if col.startswith("tags["):
             tag_match = TAG_KEY_RE.search(col)
             col = tag_match.group("tag") if tag_match else col
+
+        if self.use_metrics_layer:
+            if col in ["project_id", "timestamp"]:
+                return col
+            # TODO: update resolve params so this isn't needed
+            if col == "organization_id":
+                return "org_id"
+            return f"tags[{col}]"
 
         if col in DATASETS[self.dataset]:
             return str(DATASETS[self.dataset][col])
@@ -1905,7 +1948,7 @@ class MetricsQueryBuilder(QueryBuilder):
         near_midnight: Callable[[datetime], bool] = lambda time: (
             time.minute <= 30 and time.hour == 0
         ) or (time.minute >= 30 and time.hour == 23)
-        near_hour: Callable[[datetime], bool] = lambda time: time.minute <= 15 or time.minute >= 15
+        near_hour: Callable[[datetime], bool] = lambda time: time.minute <= 15 or time.minute >= 45
 
         if (
             # precisely going hour to hour
@@ -2011,6 +2054,11 @@ class MetricsQueryBuilder(QueryBuilder):
             if not resolve_only:
                 self.counters.append(resolved_function)
                 # Still add to aggregates so groupby is correct
+                self.aggregates.append(resolved_function)
+            return resolved_function
+        if snql_function.snql_metric_layer is not None:
+            resolved_function = snql_function.snql_metric_layer(arguments, alias)
+            if not resolve_only:
                 self.aggregates.append(resolved_function)
             return resolved_function
         return None
@@ -2275,6 +2323,60 @@ class MetricsQueryBuilder(QueryBuilder):
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
         self.validate_having_clause()
         self.validate_orderby_clause()
+        if self.use_metrics_layer:
+            from sentry.snuba.metrics.datasource import get_series
+            from sentry.snuba.metrics.mqb_query_transformer import (
+                tranform_mqb_query_to_metrics_query,
+            )
+
+            if self.is_performance:
+                use_case_id = UseCaseKey.PERFORMANCE
+            else:
+                use_case_id = UseCaseKey.RELEASE_HEALTH
+            prefix = "generic_" if self.dataset is Dataset.PerformanceMetrics else ""
+
+            snuba_query = Query(
+                match=Entity(f"{prefix}metrics_distributions", sample=self.sample_rate),
+                # Metrics doesn't support columns in the select, and instead expects them in the groupby
+                select=self.aggregates
+                + [
+                    # Team key transaction is a special case sigh
+                    col
+                    for col in self.columns
+                    if isinstance(col, Function) and col.function == "team_key_transaction"
+                ],
+                array_join=self.array_join,
+                where=self.where,
+                having=self.having,
+                groupby=self.groupby,
+                orderby=self.orderby,
+                limit=self.limit,
+                offset=self.offset,
+                limitby=self.limitby,
+            )
+            try:
+                metric_query = tranform_mqb_query_to_metrics_query(snuba_query)
+                metrics_data = get_series(
+                    projects=self.projects,
+                    metrics_query=metric_query,
+                    use_case_id=use_case_id,
+                    include_meta=True,
+                )
+            except Exception as err:
+                raise IncompatibleMetricsQuery(err)
+            # series does some strange stuff to the clickhouse response, turn it back so we can handle it
+            metric_layer_result: Any = {
+                "data": [],
+                "meta": metrics_data["meta"],
+            }
+            for group in metrics_data["groups"]:
+                data = group["by"]
+                data.update(group["totals"])
+                metric_layer_result["data"].append(data)
+                for meta in metric_layer_result["meta"]:
+                    if data[meta["name"]] is None:
+                        data[meta["name"]] = self.get_default_value(meta["type"])
+            return metric_layer_result
         # Need to split orderby between the 3 possible tables
         primary, query_framework = self._create_query_framework()
 

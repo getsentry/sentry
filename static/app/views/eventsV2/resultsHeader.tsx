@@ -1,10 +1,16 @@
-import {Component} from 'react';
+import {Component, Fragment} from 'react';
 import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
+import {stringify} from 'query-string';
 
+import {fetchHomepageQuery} from 'sentry/actionCreators/discoverHomepageQueries';
 import {fetchSavedQuery} from 'sentry/actionCreators/discoverSavedQueries';
 import {Client} from 'sentry/api';
+import Feature from 'sentry/components/acl/feature';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {Label} from 'sentry/components/editableText';
+import {Title} from 'sentry/components/layouts/thirds';
 import * as Layout from 'sentry/components/layouts/thirds';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
@@ -13,7 +19,9 @@ import {Organization, SavedQuery} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import withApi from 'sentry/utils/withApi';
 
+import Banner from './banner';
 import DiscoverBreadcrumb from './breadcrumb';
+import {DEFAULT_EVENT_VIEW} from './data';
 import EventInputName from './eventInputName';
 import SavedQueryButtonGroup from './savedQuery';
 
@@ -24,24 +32,35 @@ type Props = {
   location: Location;
   organization: Organization;
   router: InjectedRouter;
-  setSavedQuery: (savedQuery: SavedQuery) => void;
+  setSavedQuery: (savedQuery?: SavedQuery) => void;
   yAxis: string[];
+  isHomepage?: boolean;
 };
 
 type State = {
+  homepageQuery: SavedQuery | undefined;
   loading: boolean;
   savedQuery: SavedQuery | undefined;
 };
 
 class ResultsHeader extends Component<Props, State> {
   state: State = {
+    homepageQuery: undefined,
     savedQuery: undefined,
     loading: true,
   };
 
   componentDidMount() {
-    if (this.props.eventView.id) {
+    const {eventView, isHomepage} = this.props;
+    const {loading} = this.state;
+    if (!isHomepage && eventView.id) {
       this.fetchData();
+    } else if (eventView.id === undefined && loading) {
+      // If this is a new query, there's nothing to load
+      this.setState({loading: false});
+    }
+    if (isHomepage) {
+      this.fetchHomepageQueryData();
     }
   }
 
@@ -56,8 +75,8 @@ class ResultsHeader extends Component<Props, State> {
   }
 
   fetchData() {
-    const {api, eventView, organization} = this.props;
-    if (typeof eventView.id === 'string') {
+    const {api, eventView, organization, isHomepage} = this.props;
+    if (!isHomepage && typeof eventView.id === 'string') {
       this.setState({loading: true});
       fetchSavedQuery(api, organization.slug, eventView.id).then(savedQuery => {
         this.setState({savedQuery, loading: false});
@@ -65,11 +84,19 @@ class ResultsHeader extends Component<Props, State> {
     }
   }
 
+  fetchHomepageQueryData() {
+    const {api, organization} = this.props;
+    this.setState({loading: true});
+    fetchHomepageQuery(api, organization.slug).then(homepageQuery => {
+      this.setState({homepageQuery, loading: false});
+    });
+  }
+
   renderAuthor() {
-    const {eventView} = this.props;
+    const {eventView, isHomepage} = this.props;
     const {savedQuery} = this.state;
     // No saved query in use.
-    if (!eventView.id) {
+    if (!eventView.id || isHomepage) {
       return null;
     }
     let createdBy = ' \u2014 ';
@@ -85,24 +112,61 @@ class ResultsHeader extends Component<Props, State> {
     );
   }
 
+  renderBanner() {
+    const {location, organization} = this.props;
+    const eventView = EventView.fromNewQueryWithLocation(DEFAULT_EVENT_VIEW, location);
+    const to = eventView.getResultsViewUrlTarget(organization.slug);
+    const resultsUrl = `${to.pathname}?${stringify(to.query)}`;
+
+    return (
+      <BannerWrapper>
+        <Banner
+          organization={organization}
+          resultsUrl={resultsUrl}
+          showBuildNewQueryButton={false}
+        />
+      </BannerWrapper>
+    );
+  }
+
   render() {
-    const {organization, location, errorCode, eventView, yAxis, router, setSavedQuery} =
-      this.props;
-    const {savedQuery, loading} = this.state;
+    const {
+      organization,
+      location,
+      errorCode,
+      eventView,
+      yAxis,
+      router,
+      setSavedQuery,
+      isHomepage,
+    } = this.props;
+    const {savedQuery, loading, homepageQuery} = this.state;
 
     return (
       <Layout.Header>
         <StyledHeaderContent>
-          <DiscoverBreadcrumb
-            eventView={eventView}
-            organization={organization}
-            location={location}
-          />
-          <EventInputName
-            savedQuery={savedQuery}
-            organization={organization}
-            eventView={eventView}
-          />
+          {isHomepage ? (
+            <StyledTitle>
+              <GuideAnchor target="discover_landing_header">
+                <Label isDisabled>{t('Discover')}</Label>
+              </GuideAnchor>
+            </StyledTitle>
+          ) : (
+            <Fragment>
+              <DiscoverBreadcrumb
+                eventView={eventView}
+                organization={organization}
+                location={location}
+                isHomepage={isHomepage}
+              />
+              <EventInputName
+                savedQuery={savedQuery}
+                organization={organization}
+                eventView={eventView}
+                isHomepage={isHomepage}
+              />
+            </Fragment>
+          )}
           {this.renderAuthor()}
         </StyledHeaderContent>
         <Layout.HeaderActions>
@@ -112,13 +176,29 @@ class ResultsHeader extends Component<Props, State> {
             organization={organization}
             eventView={eventView}
             savedQuery={savedQuery}
-            savedQueryLoading={loading}
+            queryDataLoading={loading}
             disabled={errorCode >= 400 && errorCode < 500}
             updateCallback={() => this.fetchData()}
             yAxis={yAxis}
             router={router}
+            isHomepage={isHomepage}
+            setHomepageQuery={updatedHomepageQuery => {
+              this.setState({homepageQuery: updatedHomepageQuery});
+              if (isHomepage) {
+                setSavedQuery(updatedHomepageQuery);
+              }
+            }}
+            homepageQuery={homepageQuery}
           />
         </Layout.HeaderActions>
+        {isHomepage && (
+          <Feature
+            organization={organization}
+            features={['discover-query-builder-as-landing-page']}
+          >
+            {({hasFeature}) => hasFeature && this.renderBanner()}
+          </Feature>
+        )}
       </Layout.Header>
     );
   }
@@ -133,6 +213,15 @@ const Subtitle = styled('h4')`
 
 const StyledHeaderContent = styled(Layout.HeaderContent)`
   overflow: unset;
+`;
+
+const BannerWrapper = styled('div')`
+  grid-column: 1 / -1;
+`;
+
+const StyledTitle = styled(Title)`
+  overflow: unset;
+  margin-top: 0;
 `;
 
 export default withApi(ResultsHeader);

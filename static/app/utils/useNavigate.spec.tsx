@@ -7,7 +7,8 @@ import {RouteContext} from 'sentry/views/routeContext';
 
 describe('useNavigate', () => {
   it('returns the navigate function', function () {
-    let navigate;
+    let navigate: ReturnType<typeof useNavigate> | undefined = undefined;
+
     function HomePage() {
       navigate = useNavigate();
       return null;

@@ -1,7 +1,17 @@
 import logging
 import uuid
 from datetime import datetime
-from typing import Any, Collection, Literal, Mapping, Optional, Sequence, TypedDict
+from typing import (
+    Any,
+    Callable,
+    Collection,
+    Literal,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    TypedDict,
+)
 
 import sentry_sdk
 from pytz import utc
@@ -10,6 +20,8 @@ from sentry_sdk import Hub, capture_exception
 from sentry import features, killswitches, quotas, utils
 from sentry.constants import ObjectStatus
 from sentry.datascrubbing import get_datascrubbing_settings, get_pii_config
+from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
+from sentry.dynamic_sampling.rules_generator import generate_rules
 from sentry.grouping.api import get_grouping_config_dict_for_project
 from sentry.ingest.inbound_filters import (
     FilterStatKeys,
@@ -125,7 +137,6 @@ def get_quotas(project, keys=None):
 
 def get_project_config(project, full_config=True, project_keys=None):
     """Constructs the ProjectConfig information.
-
     :param project: The project to load configuration for. Ensure that
         organization is bound on this object; otherwise it will be loaded from
         the database.
@@ -136,13 +147,66 @@ def get_project_config(project, full_config=True, project_keys=None):
         no project keys are provided it is assumed that the config does not
         need to contain auth information (this is the case when used in
         python's StoreView)
-
     :return: a ProjectConfig object for the given project
     """
     with sentry_sdk.push_scope() as scope:
         scope.set_tag("project", project.id)
         with metrics.timer("relay.config.get_project_config.duration"):
             return _get_project_config(project, full_config=full_config, project_keys=project_keys)
+
+
+def get_dynamic_sampling_config(project) -> Optional[Mapping[str, Any]]:
+    feature_multiplexer = DynamicSamplingFeatureMultiplexer(project)
+
+    # In this case we should override old conditionnal rules if they exists
+    # or just return uniform rule
+    if feature_multiplexer.is_on_dynamic_sampling:
+        return {"rules": generate_rules(project)}
+    elif feature_multiplexer.is_on_dynamic_sampling_deprecated:
+        dynamic_sampling = project.get_option("sentry:dynamic_sampling")
+        if dynamic_sampling is not None:
+            # filter out rules that do not have active set to True
+            active_rules = []
+            for rule in dynamic_sampling["rules"]:
+                if rule.get("active"):
+                    inner_rule = rule["condition"]["inner"]
+                    if (
+                        inner_rule
+                        and inner_rule[0]["name"] == "trace.release"
+                        and inner_rule[0]["value"] == ["latest"]
+                    ):
+                        # get latest overall (no environments filters)
+                        environment = None
+                        rule["condition"]["inner"][0]["value"] = get_latest_release(
+                            [project], environment
+                        )
+                    active_rules.append(rule)
+
+            return {"rules": active_rules}
+
+    return None
+
+
+def add_experimental_config(
+    config: MutableMapping[str, Any],
+    key: str,
+    function: Callable[..., Any],
+    *args: Any,
+    **kwargs: Any,
+) -> None:
+    """Try to set `config[key] = function(*args, **kwargs)`.
+    If the result of the function call is None, the key is not set.
+    If the function call raises an exception, we log it to sentry and the key remains unset.
+    NOTE: Only use this function if you expect Relay to behave reasonably
+    if ``key`` is missing from the config.
+    """
+    try:
+        subconfig = function(*args, **kwargs)
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+    else:
+        if subconfig is not None:
+            config[key] = subconfig
 
 
 def _get_project_config(project, full_config=True, project_keys=None):
@@ -174,71 +238,55 @@ def _get_project_config(project, full_config=True, project_keys=None):
             "organizationId": project.organization_id,
             "projectId": project.id,  # XXX: Unused by Relay, required by Python store
         }
-    allow_dynamic_sampling = features.has(
-        "organizations:server-side-sampling",
-        project.organization,
-    )
-    if allow_dynamic_sampling:
-        dynamic_sampling = project.get_option("sentry:dynamic_sampling")
-        if dynamic_sampling is not None:
-            # filter out rules that do not have active set to True
-            active_rules = []
-            for rule in dynamic_sampling["rules"]:
-                if rule.get("active"):
-                    inner_rule = rule["condition"]["inner"]
-                    if (
-                        inner_rule
-                        and inner_rule[0]["name"] == "trace.release"
-                        and inner_rule[0]["value"] == ["latest"]
-                    ):
-                        # get latest overall (no environments filters)
-                        environment = None
-                        rule["condition"]["inner"][0]["value"] = get_latest_release(
-                            [project], environment
-                        )
-                    active_rules.append(rule)
 
-            cfg["config"]["dynamicSampling"] = {"rules": active_rules}
+    config = cfg["config"]
+
+    # NOTE: Omitting dynamicSampling because of a failure increases the number
+    # of events forwarded by Relay, because dynamic sampling will stop filtering
+    # anything.
+    add_experimental_config(config, "dynamicSampling", get_dynamic_sampling_config, project)
 
     # Limit the number of custom measurements
-    cfg["config"]["measurements"] = get_measurements_config()
+    add_experimental_config(config, "measurements", get_measurements_config)
 
     if not full_config:
         # This is all we need for external Relay processors
         return ProjectConfig(project, **cfg)
 
     if features.has("organizations:performance-ops-breakdown", project.organization):
-        cfg["config"]["breakdownsV2"] = project.get_option("sentry:breakdowns")
+        config["breakdownsV2"] = project.get_option("sentry:breakdowns")
     if _should_extract_transaction_metrics(project):
-        cfg["config"]["transactionMetrics"] = get_transaction_metrics_settings(
-            project, cfg["config"].get("breakdownsV2")
+        add_experimental_config(
+            config,
+            "transactionMetrics",
+            get_transaction_metrics_settings,
+            project,
+            config.get("breakdownsV2"),
         )
 
         # This config key is technically not specific to _transaction_ metrics,
         # is however currently both only applied to transaction metrics in
         # Relay, and only used to tag transaction metrics in Sentry.
-        try:
-            cfg["config"]["metricConditionalTagging"] = get_metric_conditional_tagging_rules(
-                project
-            )
-        except Exception:
-            capture_exception()
+        add_experimental_config(
+            config, "metricConditionalTagging", get_metric_conditional_tagging_rules, project
+        )
+
     if features.has("organizations:metrics-extraction", project.organization):
-        cfg["config"]["sessionMetrics"] = {
+        config["sessionMetrics"] = {
             "version": 1,
             "drop": False,
         }
 
     if features.has("projects:performance-suspect-spans-ingestion", project=project):
-        cfg["config"]["spanAttributes"] = project.get_option("sentry:span_attributes")
+        config["spanAttributes"] = project.get_option("sentry:span_attributes")
     with Hub.current.start_span(op="get_filter_settings"):
-        cfg["config"]["filterSettings"] = get_filter_settings(project)
+        config["filterSettings"] = get_filter_settings(project)
     with Hub.current.start_span(op="get_grouping_config_dict_for_project"):
-        cfg["config"]["groupingConfig"] = get_grouping_config_dict_for_project(project)
+        config["groupingConfig"] = get_grouping_config_dict_for_project(project)
     with Hub.current.start_span(op="get_event_retention"):
-        cfg["config"]["eventRetention"] = quotas.get_event_retention(project.organization)
+        config["eventRetention"] = quotas.get_event_retention(project.organization)
     with Hub.current.start_span(op="get_all_quotas"):
-        cfg["config"]["quotas"] = get_quotas(project, keys=project_keys)
+        config["quotas"] = get_quotas(project, keys=project_keys)
 
     return ProjectConfig(project, **cfg)
 
@@ -246,9 +294,7 @@ def _get_project_config(project, full_config=True, project_keys=None):
 class _ConfigBase:
     """
     Base class for configuration objects
-
     Offers a readonly configuration class that can be serialized to json and viewed as a simple dictionary
-
     >>> x = _ConfigBase( a= 1, b="The b", c= _ConfigBase(x=33, y = _ConfigBase(m=3.14159 , w=[1,2,3], z={'t':1})))
     >>> x.a
     1
@@ -258,7 +304,6 @@ class _ConfigBase:
     True
     >>> x.c.y.w
     [1, 2, 3]
-
     """
 
     def __init__(self, **kwargs):
@@ -278,9 +323,7 @@ class _ConfigBase:
     def to_dict(self):
         """
         Converts the config object into a dictionary
-
         :return: A dictionary containing the object properties, with config properties also converted in dictionaries
-
         >>> x = _ConfigBase( a= 1, b="The b", c= _ConfigBase(x=33, y = _ConfigBase(m=3.14159 , w=[1,2,3], z={'t':1})))
         >>> x.to_dict() == {'a': 1, 'c': {'y': {'m': 3.14159, 'w': [1, 2, 3], 'z':{'t': 1}}, 'x': 33}, 'b': 'The b'}
         True
@@ -296,7 +339,6 @@ class _ConfigBase:
         >>> x = _ConfigBase( a = _ConfigBase(b = _ConfigBase( w=[1,2,3])))
         >>> x.to_json_string()
         '{"a": {"b": {"w": [1, 2, 3]}}}'
-
         :return:
         """
         data = self.to_dict()
@@ -305,10 +347,8 @@ class _ConfigBase:
     def get_at_path(self, *args):
         """
         Gets an element at the specified path returning None if the element or the path doesn't exists
-
         :param args: the path to follow ( a list of strings)
         :return: the element if present at specified path or None otherwise)
-
         >>> x = _ConfigBase( a= 1, b="The b", c= _ConfigBase(x=33, y = _ConfigBase(m=3.14159 , w=[1,2,3], z={'t':1})))
         >>> x.get_at_path('c','y','m')
         3.14159
@@ -320,7 +360,6 @@ class _ConfigBase:
         {'t': 1}
         >>> x.get_at_path('c','y','z','t') is None # only navigates in ConfigBase does not try to go into normal dicts.
         True
-
         """
         if len(args) == 0:
             return self
@@ -363,7 +402,6 @@ class ProjectConfig(_ConfigBase):
 def _load_filter_settings(flt, project):
     """
     Returns the filter settings for the specified project
-
     :param flt: the filter function
     :param project: the project for which we want to retrieve the options
     :return: a dictionary with the filter options.
@@ -380,7 +418,6 @@ def _load_filter_settings(flt, project):
 def _filter_option_to_config_setting(flt, setting):
     """
     Encapsulates the logic for associating a filter database option with the filter setting from project_config
-
     :param flt: the filter
     :param setting: the option deserialized from the database
     :return: the option as viewed from project_config

@@ -1,63 +1,68 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import RepositoryStore from 'sentry/stores/repositoryStore';
 import IntegrationRepos from 'sentry/views/organizationIntegrations/integrationRepos';
 
 describe('IntegrationRepos', function () {
   const org = TestStubs.Organization();
   const integration = TestStubs.GitHubIntegration();
+  let resetReposSpy;
 
   beforeEach(() => {
-    Client.clearMockResponses();
-    jest.spyOn(RepositoryStore, 'resetRepositories');
+    MockApiClient.clearMockResponses();
+    RepositoryStore.init();
+    resetReposSpy = jest.spyOn(RepositoryStore, 'resetRepositories');
   });
 
   afterEach(() => {
     jest.restoreAllMocks();
+    resetReposSpy();
   });
 
   describe('Getting repositories', function () {
-    it('handles broken integrations', function () {
-      Client.addMockResponse({
+    it('handles broken integrations', async function () {
+      MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/integrations/1/repos/`,
         statusCode: 400,
         body: {detail: 'Invalid grant'},
       });
-      Client.addMockResponse({
+      MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/repos/`,
         method: 'GET',
         body: [],
       });
 
-      const wrapper = mountWithTheme(<IntegrationRepos integration={integration} />);
-      expect(wrapper.find('PanelBody')).toHaveLength(0);
-      expect(wrapper.find('Alert')).toHaveLength(1);
+      render(<IntegrationRepos integration={integration} />);
+      expect(
+        await screen.findByText(
+          /We were unable to fetch repositories for this integration/
+        )
+      ).toBeInTheDocument();
     });
   });
 
   describe('Adding repositories', function () {
     it('can save successfully', async function () {
-      const addRepo = Client.addMockResponse({
+      const addRepo = MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/repos/`,
         method: 'POST',
         body: TestStubs.Repository({integrationId: '1'}),
       });
-      Client.addMockResponse({
+      MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/integrations/1/repos/`,
         body: {
           repos: [{identifier: 'example/repo-name', name: 'repo-name'}],
         },
       });
-      Client.addMockResponse({
+      MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/repos/`,
         method: 'GET',
         body: [],
       });
 
-      const wrapper = mountWithTheme(<IntegrationRepos integration={integration} />);
-      wrapper.find('DropdownButton').simulate('click');
-      wrapper.find('StyledListElement').simulate('click');
+      render(<IntegrationRepos integration={integration} />);
+      userEvent.click(screen.getByText('Add Repository'));
+      userEvent.click(screen.getByText('repo-name'));
 
       expect(addRepo).toHaveBeenCalledWith(
         `/organizations/${org.slug}/repos/`,
@@ -70,18 +75,12 @@ describe('IntegrationRepos', function () {
         })
       );
 
-      await tick();
-      wrapper.update();
-
-      const name = wrapper.find('RepositoryRow').find('strong').first();
-      expect(name).toHaveLength(1);
-      expect(name.text()).toEqual('example/repo-name');
-
-      expect(RepositoryStore.resetRepositories).toHaveBeenCalled();
+      expect(await screen.findByText('example/repo-name')).toBeInTheDocument();
+      expect(resetReposSpy).toHaveBeenCalled();
     });
 
     it('handles failure during save', function () {
-      const addRepo = Client.addMockResponse({
+      const addRepo = MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/repos/`,
         method: 'POST',
         statusCode: 400,
@@ -91,53 +90,52 @@ describe('IntegrationRepos', function () {
           },
         },
       });
-      Client.addMockResponse({
+      MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/integrations/1/repos/`,
         body: {
-          repos: [{identifier: 'getsentry/sentry', name: 'sentry'}],
+          repos: [{identifier: 'getsentry/sentry', name: 'sentry-repo'}],
         },
       });
-      Client.addMockResponse({
+      MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/repos/`,
         method: 'GET',
         body: [],
       });
 
-      const wrapper = mountWithTheme(<IntegrationRepos integration={integration} />);
-      wrapper.find('DropdownButton').simulate('click');
-      wrapper.find('StyledListElement').simulate('click');
-      wrapper.update();
+      render(<IntegrationRepos integration={integration} />);
+      userEvent.click(screen.getByText('Add Repository'));
+      userEvent.click(screen.getByText('sentry-repo'));
 
       expect(addRepo).toHaveBeenCalled();
-      expect(wrapper.find('RepoOption')).toHaveLength(0);
+      expect(screen.queryByText('getsentry/sentry')).not.toBeInTheDocument();
     });
 
     it('does not disable add repo for members', function () {
-      Client.addMockResponse({
+      MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/integrations/1/repos/`,
         body: {
           repos: [{identifier: 'example/repo-name', name: 'repo-name'}],
         },
       });
-      Client.addMockResponse({
+      MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/repos/`,
         method: 'GET',
         body: [],
       });
 
-      const wrapper = mountWithTheme(
+      render(
         <IntegrationRepos
           integration={integration}
           organization={TestStubs.Organization({access: []})}
         />
       );
-      expect(wrapper.find('DropdownButton').props().disabled).toBeFalsy();
+      expect(screen.getByText('Add Repository')).toBeEnabled();
     });
   });
 
   describe('migratable repo', function () {
     it('associates repository with integration', async () => {
-      Client.addMockResponse({
+      MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/repos/`,
         body: [
           TestStubs.Repository({
@@ -151,20 +149,19 @@ describe('IntegrationRepos', function () {
           }),
         ],
       });
-      Client.addMockResponse({
+      MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/integrations/${integration.id}/repos/`,
         body: {repos: [{identifier: 'example/repo-name', name: 'repo-name'}]},
       });
-      const updateRepo = Client.addMockResponse({
+      const updateRepo = MockApiClient.addMockResponse({
         method: 'PUT',
         url: `/organizations/${org.slug}/repos/4/`,
         body: {},
       });
-      const wrapper = mountWithTheme(<IntegrationRepos integration={integration} />);
+      render(<IntegrationRepos integration={integration} />);
 
-      wrapper.find('DropdownButton').simulate('click');
-      wrapper.find('StyledListElement').simulate('click');
-      await tick();
+      userEvent.click(screen.getByText('Add Repository'));
+      userEvent.click(screen.getByText('repo-name'));
 
       expect(updateRepo).toHaveBeenCalledWith(
         `/organizations/${org.slug}/repos/4/`,
@@ -172,30 +169,31 @@ describe('IntegrationRepos', function () {
           data: {integrationId: '1'},
         })
       );
-      expect(RepositoryStore.resetRepositories).toHaveBeenCalled();
+      await waitFor(() => expect(resetReposSpy).toHaveBeenCalled());
     });
 
     it('uses externalSlug not name for comparison', () => {
-      Client.addMockResponse({
+      MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/repos/`,
         method: 'GET',
         body: [TestStubs.Repository({name: 'repo-name', externalSlug: 9876})],
       });
-      const getItems = Client.addMockResponse({
+      const getItems = MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/integrations/${integration.id}/repos/`,
         method: 'GET',
         body: {
           repos: [{identifier: 9876, name: 'repo-name'}],
         },
       });
-      const updateRepo = Client.addMockResponse({
+      const updateRepo = MockApiClient.addMockResponse({
         method: 'PUT',
         url: `/organizations/${org.slug}/repos/4/`,
         body: {},
       });
-      const wrapper = mountWithTheme(<IntegrationRepos integration={integration} />);
-      wrapper.find('DropdownButton').simulate('click');
-      wrapper.find('StyledListElement').simulate('click');
+      render(<IntegrationRepos integration={integration} />);
+
+      userEvent.click(screen.getByText('Add Repository'));
+      userEvent.click(screen.getByText('repo-name'));
 
       expect(getItems).toHaveBeenCalled();
       expect(updateRepo).toHaveBeenCalledWith(

@@ -311,9 +311,9 @@ def session_duration_filters(org_id):
 
 def histogram_snql_factory(
     aggregate_filter,
-    histogram_buckets: int = 100,
     histogram_from: Optional[float] = None,
     histogram_to: Optional[float] = None,
+    histogram_buckets: int = 100,
     alias=None,
 ):
     zoom_conditions = zoom_histogram(
@@ -452,4 +452,21 @@ def team_key_transaction_snql(org_id, team_key_condition_rhs, alias=None):
             list(team_key_conditions),
         ],
         alias=alias,
+    )
+
+
+def transform_null_to_unparameterized_snql(org_id, tag_key, alias=None):
+    tags_values_are_strings = options.get("sentry-metrics.performance.tags-values-are-strings")
+
+    return Function(
+        "transform",
+        [
+            Column(resolve_tag_key(UseCaseKey.PERFORMANCE, org_id, tag_key)),
+            # Here we support the case in which the given tag value for "tag_key" is not set. In that
+            # case ClickHouse will return 0 or "" from the expression based on the array type, and we want to interpret
+            # that as "<< unparameterized >>".
+            ["" if tags_values_are_strings else 0],
+            [resolve_tag_value(UseCaseKey.PERFORMANCE, org_id, "<< unparameterized >>")],
+        ],
+        alias,
     )

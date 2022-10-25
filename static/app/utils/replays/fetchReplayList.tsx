@@ -1,5 +1,9 @@
 import * as Sentry from '@sentry/react';
+import type {Location} from 'history';
 
+import type {Client} from 'sentry/api';
+import type {Organization} from 'sentry/types';
+import type EventView from 'sentry/utils/discover/eventView';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
@@ -26,12 +30,19 @@ type State = {
 
 type Result = State;
 
+type Props = {
+  api: Client;
+  eventView: EventView;
+  location: Location;
+  organization: Organization;
+};
+
 async function fetchReplayList({
   api,
   organization,
   location,
   eventView,
-}): Promise<Result> {
+}: Props): Promise<Result> {
   try {
     const path = `/organizations/${organization.slug}/replays/`;
 
@@ -52,6 +63,14 @@ async function fetchReplayList({
       replays: records.map(mapResponseToReplayRecord),
     };
   } catch (error) {
+    if (error.responseJSON?.detail) {
+      return {
+        fetchError: error.responseJSON.detail,
+        isFetching: false,
+        pageLinks: null,
+        replays: [],
+      };
+    }
     Sentry.captureException(error);
     return {
       fetchError: error,

@@ -2,8 +2,8 @@ import {Component, Fragment} from 'react';
 import find from 'lodash/find';
 import flatMap from 'lodash/flatMap';
 
+import SelectField from 'sentry/components/forms/fields/selectField';
 import FormContext from 'sentry/components/forms/formContext';
-import SelectField from 'sentry/components/forms/selectField';
 import {SENTRY_APP_PERMISSIONS} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {PermissionResource, Permissions, PermissionValue} from 'sentry/types/index';
@@ -148,8 +148,8 @@ export default class PermissionSelection extends Component<Props, State> {
               name={`${config.resource}--permission`}
               key={config.resource}
               options={options}
-              help={t(config.help)}
-              label={t(config.label || config.resource)}
+              help={config.help}
+              label={config.label || config.resource}
               onChange={this.onChange.bind(this, config.resource)}
               value={value}
               defaultValue={value}

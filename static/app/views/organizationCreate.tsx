@@ -44,7 +44,6 @@ function OrganizationCreate() {
 
           {termsUrl && privacyUrl && (
             <CheckboxField
-              id="agreeTerms"
               name="agreeTerms"
               label={tct(
                 'I agree to the [termsLink:Terms of Service] and the [privacyLink:Privacy Policy]',

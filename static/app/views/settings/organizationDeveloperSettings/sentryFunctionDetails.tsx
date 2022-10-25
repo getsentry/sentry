@@ -12,7 +12,7 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import FormModel from 'sentry/components/forms/model';
-import {Field} from 'sentry/components/forms/type';
+import {Field} from 'sentry/components/forms/types';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import {SentryFunction} from 'sentry/types';

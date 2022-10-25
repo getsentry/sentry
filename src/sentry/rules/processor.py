@@ -9,7 +9,7 @@ from django.core.cache import cache
 from django.utils import timezone
 
 from sentry import analytics, features
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import GroupEvent
 from sentry.mail.actions import NotifyActiveReleaseEmailAction
 from sentry.models import GroupRuleStatus, Rule
 from sentry.notifications.types import ActionTargetType
@@ -31,7 +31,7 @@ class RuleProcessor:
 
     def __init__(
         self,
-        event: Event,
+        event: GroupEvent,
         is_new: bool,
         is_regression: bool,
         is_new_group_environment: bool,
@@ -47,7 +47,7 @@ class RuleProcessor:
         self.has_reappeared = has_reappeared
 
         self.grouped_futures: MutableMapping[
-            str, Tuple[Callable[[Event, Sequence[RuleFuture]], None], List[RuleFuture]]
+            str, Tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], List[RuleFuture]]
         ] = {}
 
     def get_rules(self) -> Sequence[Rule]:
@@ -271,7 +271,6 @@ class RuleProcessor:
         actions: Sequence[EventAction],
         action_frequency_minutes: int,
         predicate_eval_frequency_minutes: int,
-        release_dry_run: bool,
     ) -> None:
         now = timezone.now()
         freq_offset = now - timedelta(minutes=action_frequency_minutes)
@@ -316,14 +315,13 @@ class RuleProcessor:
                 event=self.event,
                 state=state,
                 _with_transaction=False,
-                release_dry_run=release_dry_run,
             )
             for future in results or ():
                 safe_execute(future.callback, self.event, None, _with_transaction=False)
 
     def apply(
         self,
-    ) -> Iterable[Tuple[Callable[[Event, Sequence[RuleFuture]], None], List[RuleFuture]]]:
+    ) -> Iterable[Tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], List[RuleFuture]]]:
         # we should only apply rules on unresolved issues
         if not self.event.group.is_unresolved():
             return {}.values()
@@ -334,15 +332,13 @@ class RuleProcessor:
         for rule in rules:
             self.apply_rule(rule, rule_statuses[rule.id])
 
-        self.apply_active_release_rule(
-            [ActiveReleaseEventCondition(project=self.project)],
-            [],
-            self._get_active_release_rule_actions(),
-            1,
-            1,
-            not features.has(
-                "organizations:active-release-notifications-enable", self.project.organization
-            ),
-        )
+        if features.has("organizations:active-release-notifications-enable", self.project):
+            self.apply_active_release_rule(
+                [ActiveReleaseEventCondition(project=self.project)],
+                [],
+                self._get_active_release_rule_actions(),
+                1,
+                1,
+            )
 
         return self.grouped_futures.values()

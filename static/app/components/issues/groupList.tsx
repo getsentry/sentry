@@ -54,6 +54,8 @@ type Props = WithRouterProps & {
   queryParams?: Record<string, number | string | string[] | undefined | null>;
   renderEmptyMessage?: () => React.ReactNode;
   renderErrorMessage?: (props: {detail: string}, retry: () => void) => React.ReactNode;
+  // where the group list is rendered
+  source?: string;
 } & Partial<typeof defaultProps>;
 
 type State = {
@@ -234,6 +236,7 @@ class GroupList extends Component<Props, State> {
       queryParams,
       queryFilterDescription,
       narrowGroups,
+      source,
     } = this.props;
     const {loading, error, errorData, groups, memberList, pageLinks} = this.state;
 
@@ -292,6 +295,7 @@ class GroupList extends Component<Props, State> {
                   statsPeriod={statsPeriod}
                   queryFilterDescription={queryFilterDescription}
                   narrowGroups={narrowGroups}
+                  source={source}
                 />
               );
             })}

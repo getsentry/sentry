@@ -70,6 +70,7 @@ type ReplayAttachment = {
 interface Result extends Pick<State, 'fetchError' | 'fetching'> {
   onRetry: () => void;
   replay: ReplayReader | null;
+  replayRecord: ReplayRecord | undefined;
 }
 
 export function mapRRWebAttachments(unsortedReplayAttachments): ReplayAttachment {
@@ -170,12 +171,19 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
         return [];
       }
 
+      // Clone the `finishedAt` time and bump it up one second because finishedAt
+      // has the `ms` portion truncated, while replays-events-meta operates on
+      // timestamps with `ms` attached. So finishedAt could be at time `12:00:00.000Z`
+      // while the event is saved with `12:00:00.450Z`.
+      const finishedAtClone = new Date(replayRecord.finishedAt);
+      finishedAtClone.setSeconds(finishedAtClone.getSeconds() + 1);
+
       const response = await api.requestPromise(
         `/organizations/${orgSlug}/replays-events-meta/`,
         {
           query: {
             start: replayRecord.startedAt.toISOString(),
-            end: replayRecord.finishedAt.toISOString(),
+            end: finishedAtClone.toISOString(),
             query: `id:[${String(replayRecord.errorIds)}]`,
           },
         }
@@ -188,6 +196,10 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
   const fetchReplayAndErrors = useCallback(async (): Promise<[ReplayRecord, any]> => {
     const fetchedRecord = await fetchReplay();
     const mappedRecord = mapResponseToReplayRecord(fetchedRecord);
+    setState(prev => ({
+      ...prev,
+      replayRecord: mappedRecord,
+    }));
     const fetchedErrors = await fetchErrors(mappedRecord);
     return [mappedRecord, fetchedErrors];
   }, [fetchReplay, fetchErrors]);
@@ -247,6 +259,7 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
     fetching: state.fetching,
     onRetry: loadEvents,
     replay,
+    replayRecord: state.replayRecord,
   };
 }
 

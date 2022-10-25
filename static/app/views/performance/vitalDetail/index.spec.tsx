@@ -69,40 +69,40 @@ describe('Performance > VitalDetail', function () {
     ProjectsStore.loadInitialData(org.projects);
     browserHistory.push = jest.fn();
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/projects/',
+      url: `/organizations/${organization.slug}/projects/`,
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/tags/',
+      url: `/organizations/${organization.slug}/tags/`,
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
+      url: `/organizations/${organization.slug}/events-stats/`,
       body: {data: [[123, []]]},
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/tags/user.email/values/',
+      url: `/organizations/${organization.slug}/tags/user.email/values/`,
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/releases/stats/',
+      url: `/organizations/${organization.slug}/releases/stats/`,
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/users/',
+      url: `/organizations/${organization.slug}/users/`,
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/recent-searches/',
+      url: `/organizations/${organization.slug}/recent-searches/`,
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/recent-searches/',
+      url: `/organizations/${organization.slug}/recent-searches/`,
       method: 'POST',
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-vitals/',
+      url: `/organizations/${organization.slug}/events-vitals/`,
       body: {
         'measurements.lcp': {
           poor: 1,
@@ -114,7 +114,7 @@ describe('Performance > VitalDetail', function () {
       },
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/',
+      url: `/organizations/${organization.slug}/events/`,
       body: {
         meta: {
           fields: {
@@ -149,7 +149,7 @@ describe('Performance > VitalDetail', function () {
       ],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/',
+      url: `/organizations/${organization.slug}/events/`,
       body: {
         meta: {
           fields: {
@@ -188,20 +188,20 @@ describe('Performance > VitalDetail', function () {
     });
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/key-transactions-list/`,
+      url: `/organizations/${organization.slug}/key-transactions-list/`,
       body: [],
     });
 
     // Metrics Requests
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/metrics/tags/`,
+      url: `/organizations/${organization.slug}/metrics/tags/`,
       body: [],
     });
 
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/metrics/data/`,
+      url: `/organizations/${organization.slug}/metrics/data/`,
       body: TestStubs.MetricsField({
         field: 'p75(sentry.transactions.measurements.lcp)',
       }),
@@ -214,7 +214,7 @@ describe('Performance > VitalDetail', function () {
 
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/metrics/data/`,
+      url: `/organizations/${organization.slug}/metrics/data/`,
       body: TestStubs.MetricsFieldByMeasurementRating({
         field: 'count(sentry.transactions.measurements.lcp)',
       }),
@@ -228,7 +228,7 @@ describe('Performance > VitalDetail', function () {
 
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/metrics/data/`,
+      url: `/organizations/${organization.slug}/metrics/data/`,
       body: TestStubs.MetricsField({
         field: 'p75(sentry.transactions.measurements.cls)',
       }),
@@ -241,7 +241,7 @@ describe('Performance > VitalDetail', function () {
 
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/metrics/data/`,
+      url: `/organizations/${organization.slug}/metrics/data/`,
       body: TestStubs.MetricsFieldByMeasurementRating({
         field: 'count(sentry.transactions.measurements.cls)',
       }),
@@ -341,7 +341,7 @@ describe('Performance > VitalDetail', function () {
     );
 
     expect(newRouter.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/performance/summary/',
+      pathname: `/organizations/${organization.slug}/performance/summary/`,
       query: {
         transaction: 'something',
         project: undefined,
@@ -350,6 +350,7 @@ describe('Performance > VitalDetail', function () {
         start: undefined,
         end: undefined,
         query: 'sometag:value has:measurements.lcp',
+        referrer: 'performance-transaction-summary',
         unselectedSeries: 'p100()',
         showTransactions: 'recent',
         display: 'vitals',
@@ -392,7 +393,7 @@ describe('Performance > VitalDetail', function () {
     );
 
     expect(newRouter.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/performance/summary/',
+      pathname: `/organizations/${organization.slug}/performance/summary/`,
       query: {
         transaction: 'something',
         project: undefined,
@@ -401,6 +402,7 @@ describe('Performance > VitalDetail', function () {
         start: undefined,
         end: undefined,
         query: 'anothertag:value has:measurements.cls',
+        referrer: 'performance-transaction-summary',
         unselectedSeries: 'p100()',
         showTransactions: 'recent',
         display: 'vitals',
@@ -512,7 +514,11 @@ describe('Performance > VitalDetail', function () {
       },
     };
 
-    MockApiClient.warnOnMissingMocks();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: [],
+    });
+
     render(<TestComponent router={newRouter} />, {
       context: routerContext,
       organization: org,
@@ -532,7 +538,11 @@ describe('Performance > VitalDetail', function () {
       },
     };
 
-    MockApiClient.warnOnMissingMocks();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: [],
+    });
+
     render(<TestComponent router={newRouter} />, {
       context: routerContext,
       organization: org,

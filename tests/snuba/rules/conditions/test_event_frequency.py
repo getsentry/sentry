@@ -4,6 +4,7 @@ from datetime import timedelta
 from unittest.mock import patch
 from uuid import uuid4
 
+import pytz
 from django.utils.timezone import now
 from freezegun import freeze_time
 
@@ -15,7 +16,9 @@ from sentry.rules.conditions.event_frequency import (
 )
 from sentry.testutils.cases import RuleTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.testutils.silo import region_silo_test
+from sentry.types.issues import GroupType
 
 
 class FrequencyConditionMixin:
@@ -29,13 +32,13 @@ class FrequencyConditionMixin:
         rule = self.get_rule(data=data, rule=Rule(environment_id=None))
         environment_rule = self.get_rule(data=data, rule=Rule(environment_id=self.environment.id))
 
-        event = self.store_event(
+        event = self.add_event(
             data={
                 "fingerprint": ["something_random"],
-                "timestamp": iso_format(before_now(minutes=minutes)),
                 "user": {"id": uuid4().hex},
             },
             project_id=self.project.id,
+            timestamp=before_now(minutes=minutes),
         )
         if add_events:
             self.increment(
@@ -56,6 +59,36 @@ class FrequencyConditionMixin:
         else:
             self.assertDoesNotPass(rule, event)
             self.assertDoesNotPass(environment_rule, event)
+
+
+class ErrorEventMixin:
+    def add_event(self, data, project_id, timestamp):
+        data["timestamp"] = iso_format(timestamp)
+        # Store an error event
+        event = self.store_event(
+            data=data,
+            project_id=project_id,
+        )
+        return event.for_group(event.group)
+
+
+class PerfEventMixin(PerfIssueTransactionTestMixin):
+    def add_event(self, data, project_id, timestamp):
+        fingerprint = data["fingerprint"][0]
+        fingerprint = (
+            fingerprint
+            if "-" in fingerprint
+            else f"{GroupType.PERFORMANCE_N_PLUS_ONE.value}-{data['fingerprint'][0]}"
+        )
+        # Store a performance event
+        event = self.store_transaction(
+            environment=data.get("environment"),
+            project_id=project_id,
+            user_id=data.get("user", uuid4().hex),
+            fingerprint=[fingerprint],
+            timestamp=timestamp.replace(tzinfo=pytz.utc),
+        )
+        return event.for_group(event.groups[0])
 
 
 class StandardIntervalMixin:
@@ -102,13 +135,13 @@ class StandardIntervalMixin:
     def test_comparison(self):
         # Test data is 4 events in the current period and 2 events in the comparison period, so
         # a 100% increase.
-        event = self.store_event(
+        event = self.add_event(
             data={
                 "fingerprint": ["something_random"],
-                "timestamp": iso_format(before_now(minutes=1)),
                 "user": {"id": uuid4().hex},
             },
             project_id=self.project.id,
+            timestamp=before_now(minutes=1),
         )
         self.increment(
             event,
@@ -141,13 +174,13 @@ class StandardIntervalMixin:
     def test_comparison_empty_comparison_period(self):
         # Test data is 1 event in the current period and 0 events in the comparison period. This
         # should always result in 0 and never fire.
-        event = self.store_event(
+        event = self.add_event(
             data={
                 "fingerprint": ["something_random"],
-                "timestamp": iso_format(before_now(minutes=1)),
                 "user": {"id": uuid4().hex},
             },
             project_id=self.project.id,
+            timestamp=before_now(minutes=1),
         )
         data = {
             "interval": "1h",
@@ -168,61 +201,49 @@ class StandardIntervalMixin:
         self.assertDoesNotPass(rule, event)
 
 
-@freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
-@region_silo_test
 class EventFrequencyConditionTestCase(
-    FrequencyConditionMixin, StandardIntervalMixin, RuleTestCase, SnubaTestCase
+    FrequencyConditionMixin, StandardIntervalMixin, SnubaTestCase
 ):
     rule_cls = EventFrequencyCondition
 
     def increment(self, event, count, environment=None, timestamp=None):
-        data = {
-            "fingerprint": event.data["fingerprint"],
-            "timestamp": iso_format(timestamp) if timestamp else iso_format(before_now(minutes=1)),
-        }
+        timestamp = timestamp if timestamp else before_now(minutes=1)
+        data = {"fingerprint": event.data["fingerprint"]}
         if environment:
             data["environment"] = environment
 
         for _ in range(count):
-            self.store_event(
+            self.add_event(
                 data=data,
                 project_id=self.project.id,
+                timestamp=timestamp,
             )
 
 
-@freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
-@region_silo_test
 class EventUniqueUserFrequencyConditionTestCase(
     FrequencyConditionMixin,
     StandardIntervalMixin,
-    RuleTestCase,
     SnubaTestCase,
 ):
     rule_cls = EventUniqueUserFrequencyCondition
 
     def increment(self, event, count, environment=None, timestamp=None):
-        data = {
-            "fingerprint": event.data["fingerprint"],
-            "timestamp": iso_format(timestamp) if timestamp else iso_format(before_now(minutes=1)),
-        }
+        timestamp = timestamp if timestamp else before_now(minutes=1)
+        data = {"fingerprint": event.data["fingerprint"]}
         if environment:
             data["environment"] = environment
 
         for _ in range(count):
             event_data = deepcopy(data)
             event_data["user"] = {"id": uuid4().hex}
-            self.store_event(
+            self.add_event(
                 data=event_data,
                 project_id=self.project.id,
+                timestamp=timestamp,
             )
 
 
-@freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
-@region_silo_test
-class EventFrequencyPercentConditionTestCase(
-    RuleTestCase,
-    SnubaTestCase,
-):
+class EventFrequencyPercentConditionTestCase(SnubaTestCase):
     rule_cls = EventFrequencyPercentCondition
 
     def _make_sessions(self, num):
@@ -252,14 +273,14 @@ class EventFrequencyPercentConditionTestCase(
         if not self.environment or self.environment.name != "prod":
             self.environment = self.create_environment(name="prod")
         if not hasattr(self, "test_event"):
-            self.test_event = self.store_event(
+            self.test_event = self.add_event(
                 data={
                     "fingerprint": ["something_random"],
-                    "timestamp": iso_format(before_now(minutes=minutes)),
                     "user": {"id": uuid4().hex},
                     "environment": self.environment.name,
                 },
                 project_id=self.project.id,
+                timestamp=before_now(minutes=minutes),
             )
         if add_events:
             self.increment(
@@ -280,17 +301,18 @@ class EventFrequencyPercentConditionTestCase(
     def increment(self, event, count, environment=None, timestamp=None):
         data = {
             "fingerprint": event.data["fingerprint"],
-            "timestamp": iso_format(timestamp) if timestamp else iso_format(before_now(minutes=1)),
         }
+        timestamp = timestamp if timestamp else before_now(minutes=1)
         if environment:
             data["environment"] = environment
 
         for _ in range(count):
             event_data = deepcopy(data)
             event_data["user"] = {"id": uuid4().hex}
-            self.store_event(
+            self.add_event(
                 data=event_data,
                 project_id=self.project.id,
+                timestamp=timestamp,
             )
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
@@ -358,12 +380,10 @@ class EventFrequencyPercentConditionTestCase(
         # Test data is 2 events in the current period and 1 events in the comparison period.
         # Number of sessions is 20 in each period, so current period is 20% of sessions, prev
         # is 10%. Overall a 100% increase comparitively.
-        event = self.store_event(
-            data={
-                "fingerprint": ["something_random"],
-                "timestamp": iso_format(before_now(minutes=1)),
-            },
+        event = self.add_event(
+            data={"fingerprint": ["something_random"]},
             project_id=self.project.id,
+            timestamp=before_now(minutes=1),
         )
         self.increment(
             event,
@@ -392,3 +412,51 @@ class EventFrequencyPercentConditionTestCase(
         }
         rule = self.get_rule(data=data, rule=Rule(environment_id=None))
         self.assertDoesNotPass(rule, event)
+
+
+@freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
+@region_silo_test
+class ErrorIssueFrequencyConditionTestCase(
+    EventFrequencyConditionTestCase, RuleTestCase, ErrorEventMixin
+):
+    pass
+
+
+@freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
+@region_silo_test
+class PerfIssueFrequencyConditionTestCase(
+    EventFrequencyConditionTestCase, RuleTestCase, PerfEventMixin
+):
+    pass
+
+
+@freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
+@region_silo_test
+class ErrorIssueUniqueUserFrequencyConditionTestCase(
+    EventUniqueUserFrequencyConditionTestCase, RuleTestCase, ErrorEventMixin
+):
+    pass
+
+
+@freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
+@region_silo_test
+class PerfIssueUniqueUserFrequencyConditionTestCase(
+    EventUniqueUserFrequencyConditionTestCase, RuleTestCase, PerfEventMixin
+):
+    pass
+
+
+@freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
+@region_silo_test
+class ErrorIssueEventFrequencyPercentConditionTestCase(
+    EventFrequencyPercentConditionTestCase, RuleTestCase, ErrorEventMixin
+):
+    pass
+
+
+@freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
+@region_silo_test
+class PerfIssueEventFrequencyPercentConditionTestCase(
+    EventFrequencyPercentConditionTestCase, RuleTestCase, PerfEventMixin
+):
+    pass

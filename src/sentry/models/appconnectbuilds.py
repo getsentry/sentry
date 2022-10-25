@@ -1,4 +1,4 @@
-from sentry.db.models import region_silo_model
+from sentry.db.models import region_silo_only_model
 
 """Database models to keep track of the App Store Connect builds for a project.
 
@@ -12,7 +12,7 @@ from django.utils import timezone
 from sentry.db.models import FlexibleForeignKey, Model
 
 
-@region_silo_model
+@region_silo_only_model
 class AppConnectBuild(Model):
     """A single build that exists or has existed on App Store Connect.
 
@@ -27,11 +27,8 @@ class AppConnectBuild(Model):
 
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
 
-    # The integer ID of the app inside App Store Connect.
-    #
-    # TODO: On the AppStoreConnect API this is a str field, it was a mistake to make this
-    #    int.
-    app_id = models.IntegerField()
+    # The integer ID of the app inside App Store Connect (in string form).
+    app_id = models.CharField(default="0", max_length=256, db_column="app_id_str")
 
     # The unique Bundle ID, like a slug for app_id
     #

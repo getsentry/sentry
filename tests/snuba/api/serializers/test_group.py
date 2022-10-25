@@ -20,7 +20,7 @@ from sentry.models import (
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.perfomance_issues.store_transaction import PerfIssueTransactionTestMixin
+from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import ExternalProviders
 from sentry.types.issues import GroupType
@@ -442,7 +442,7 @@ class PerformanceGroupSerializerSnubaTest(
                 proj.id,
                 "user1",
                 [first_group_fingerprint],
-                environment,
+                environment.name,
                 timestamp=timestamp + timedelta(minutes=1),
             )
 
@@ -450,7 +450,7 @@ class PerformanceGroupSerializerSnubaTest(
             proj.id,
             "user2",
             [first_group_fingerprint],
-            environment,
+            environment.name,
             timestamp=timestamp + timedelta(minutes=2),
         )
 

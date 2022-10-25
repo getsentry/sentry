@@ -1,14 +1,10 @@
-import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 import UserFeedback from 'sentry/views/userFeedback';
 
 describe('UserFeedback', function () {
-  enforceActOnUseLegacyStoreHook();
-
   const {organization, routerContext} = initializeOrg();
   const pageLinks =
     '<https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", ' +
@@ -17,7 +13,7 @@ describe('UserFeedback', function () {
   const project = TestStubs.Project({isMember: true});
 
   beforeEach(function () {
-    act(() => ProjectsStore.loadInitialData([project]));
+    ProjectsStore.loadInitialData([project]);
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/user-feedback/',
@@ -32,10 +28,10 @@ describe('UserFeedback', function () {
   });
 
   afterEach(function () {
-    act(() => ProjectsStore.reset());
+    ProjectsStore.reset();
   });
 
-  it('renders', async function () {
+  it('renders', function () {
     const params = {
       organization: TestStubs.Organization(),
       location: {query: {}, search: ''},
@@ -50,20 +46,13 @@ describe('UserFeedback', function () {
       headers: {Link: pageLinks},
     });
 
-    const wrapper = mountWithTheme(
-      <OrganizationContext.Provider value={organization}>
-        <UserFeedback {...params} />
-      </OrganizationContext.Provider>,
-      routerContext
-    );
-    await tick();
-    wrapper.update();
+    render(<UserFeedback {...params} />, {context: routerContext});
 
-    expect(wrapper.find('CompactIssue')).toHaveLength(1);
+    expect(screen.getByText('Something bad happened')).toBeInTheDocument();
   });
 
   it('renders no project message', function () {
-    act(() => ProjectsStore.loadInitialData([]));
+    ProjectsStore.loadInitialData([]);
 
     const params = {
       organization: TestStubs.Organization(),
@@ -72,15 +61,11 @@ describe('UserFeedback', function () {
         orgId: organization.slug,
       },
     };
-    const wrapper = mountWithTheme(
-      <OrganizationContext.Provider value={organization}>
-        <UserFeedback {...params} />
-      </OrganizationContext.Provider>,
-      routerContext
-    );
+    render(<UserFeedback {...params} />, {context: routerContext});
 
-    expect(wrapper.find('NoProjectMessage').exists()).toBe(true);
-    expect(wrapper.find('UserFeedbackEmpty').exists()).toBe(false);
+    expect(
+      screen.getByText('You need at least one project to use this view')
+    ).toBeInTheDocument();
   });
 
   it('renders empty state', function () {
@@ -98,14 +83,9 @@ describe('UserFeedback', function () {
         orgId: organization.slug,
       },
     };
-    const wrapper = mountWithTheme(
-      <OrganizationContext.Provider value={organization}>
-        <UserFeedback {...params} />
-      </OrganizationContext.Provider>,
-      routerContext
-    );
+    render(<UserFeedback {...params} />, {context: routerContext});
 
-    expect(wrapper.find('UserFeedbackEmpty').prop('projectIds')).toEqual([]);
+    expect(screen.getByTestId('user-feedback-empty')).toBeInTheDocument();
   });
 
   it('renders empty state with project query', function () {
@@ -118,19 +98,19 @@ describe('UserFeedback', function () {
       organization: TestStubs.Organization({
         projects: [TestStubs.Project({isMember: true})],
       }),
-      location: {query: {project: '112'}, search: ''},
+      location: {pathname: 'sentry', query: {project: '112'}, search: ''},
       params: {
         orgId: organization.slug,
       },
     };
-    const wrapper = mountWithTheme(
-      <OrganizationContext.Provider value={organization}>
-        <UserFeedback {...params} />
-      </OrganizationContext.Provider>,
-      routerContext
-    );
+    render(<UserFeedback {...params} />, {context: routerContext});
 
-    expect(wrapper.find('UserFeedbackEmpty').prop('projectIds')).toEqual(['112']);
+    expect(screen.getByTestId('user-feedback-empty')).toBeInTheDocument();
+
+    expect(screen.getByRole('button', {name: 'All Issues'})).toHaveAttribute(
+      'href',
+      'sentry?project=112&status='
+    );
   });
 
   it('renders empty state with multi project query', function () {
@@ -143,18 +123,18 @@ describe('UserFeedback', function () {
       organization: TestStubs.Organization({
         projects: [TestStubs.Project({isMember: true})],
       }),
-      location: {query: {project: ['112', '113']}, search: ''},
+      location: {pathname: 'sentry', query: {project: ['112', '113']}, search: ''},
       params: {
         orgId: organization.slug,
       },
     };
-    const wrapper = mountWithTheme(
-      <OrganizationContext.Provider value={organization}>
-        <UserFeedback {...params} />
-      </OrganizationContext.Provider>,
-      routerContext
-    );
+    render(<UserFeedback {...params} />, {context: routerContext});
 
-    expect(wrapper.find('UserFeedbackEmpty').prop('projectIds')).toEqual(['112', '113']);
+    expect(screen.getByTestId('user-feedback-empty')).toBeInTheDocument();
+
+    expect(screen.getByRole('button', {name: 'All Issues'})).toHaveAttribute(
+      'href',
+      'sentry?project=112&project=113&status='
+    );
   });
 });

@@ -1,33 +1,32 @@
-import {Fragment, useState} from 'react';
+import {Fragment, JSXElementConstructor, useState} from 'react';
 import styled from '@emotion/styled';
 import flatMap from 'lodash/flatMap';
 import uniqBy from 'lodash/uniqBy';
 
-import {CommitRow} from 'sentry/components/commitRow';
+import {CommitRowProps} from 'sentry/components/commitRow';
 import {CauseHeader, DataSection} from 'sentry/components/events/styles';
 import {Panel} from 'sentry/components/panels';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {AvatarProject, Group, IssueCategory} from 'sentry/types';
-import type {Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useCommitters from 'sentry/utils/useCommitters';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
-  event: Event;
+  commitRow: JSXElementConstructor<CommitRowProps>;
+  eventId: string;
   project: AvatarProject;
   group?: Group;
 }
 
-function EventCause({group, event, project}: Props) {
+function EventCause({group, eventId, project, commitRow: CommitRow}: Props) {
   const organization = useOrganization();
   const [isExpanded, setIsExpanded] = useState(false);
   const {committers, fetching} = useCommitters({
-    group,
-    eventId: event.id,
+    eventId,
     projectSlug: project.slug,
   });
 
@@ -69,8 +68,25 @@ function EventCause({group, event, project}: Props) {
     return null;
   }
 
-  const commits = getUniqueCommitsWithAuthors();
+  const handlePullRequestClick = () => {
+    trackAdvancedAnalyticsEvent('issue_details.suspect_commits.pull_request_clicked', {
+      organization,
+      project_id: parseInt(project.id as string, 10),
+      group_id: parseInt(group?.id as string, 10),
+      issue_category: group?.issueCategory ?? IssueCategory.ERROR,
+    });
+  };
 
+  const handleCommitClick = () => {
+    trackAdvancedAnalyticsEvent('issue_details.suspect_commits.commit_clicked', {
+      organization,
+      project_id: parseInt(project.id as string, 10),
+      group_id: parseInt(group?.id as string, 10),
+      issue_category: group?.issueCategory ?? IssueCategory.ERROR,
+    });
+  };
+
+  const commits = getUniqueCommitsWithAuthors();
   return (
     <DataSection>
       <CauseHeader>
@@ -93,7 +109,12 @@ function EventCause({group, event, project}: Props) {
       </CauseHeader>
       <Panel>
         {commits.slice(0, isExpanded ? 100 : 1).map(commit => (
-          <CommitRow key={commit.id} commit={commit} />
+          <CommitRow
+            key={commit.id}
+            commit={commit}
+            onCommitClick={handleCommitClick}
+            onPullRequestClick={handlePullRequestClick}
+          />
         ))}
       </Panel>
     </DataSection>
@@ -103,9 +124,7 @@ function EventCause({group, event, project}: Props) {
 const ExpandButton = styled('button')`
   display: flex;
   align-items: center;
-  & > svg {
-    margin-left: ${space(0.5)};
-  }
+  gap: ${space(0.5)};
 `;
 
 export default EventCause;

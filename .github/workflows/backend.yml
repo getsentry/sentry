@@ -14,7 +14,7 @@ concurrency:
 
 # hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
 env:
-  SEGMENT_DOWNLOAD_TIMEOUT_MIN: 3
+  SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
 
 jobs:
   files-changed:
@@ -47,7 +47,7 @@ jobs:
     steps:
       - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
 
-      - uses: ./.github/actions/setup-volta
+      - uses: getsentry/action-setup-volta@54775a59c41065f54ecc76d1dd5f2cdc7a1550cb  # v1.1.0
 
       - name: Setup sentry python env
         uses: ./.github/actions/setup-sentry
@@ -194,7 +194,7 @@ jobs:
           app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
       - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b  # v3
-      - uses: actions/setup-python@b4fe97ecda6b7a5fcd2448cdbf6a8fc76b3bedb0
+      - uses: actions/setup-python@13ae5bb136fac2878aff31522b9efb785519f984  # v4.3.0
         with:
           python-version: 3.8.13
       - name: check requirements
@@ -244,7 +244,7 @@ jobs:
               - added|modified: '**/*.py'
               - added|modified: 'requirements-*.txt'
 
-      - uses: actions/setup-python@b4fe97ecda6b7a5fcd2448cdbf6a8fc76b3bedb0
+      - uses: actions/setup-python@13ae5bb136fac2878aff31522b9efb785519f984  # v4.3.0
         with:
           python-version: 3.8.13
           cache: pip
@@ -469,7 +469,7 @@ jobs:
       - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
 
       - name: Setup Python
-        uses: actions/setup-python@b4fe97ecda6b7a5fcd2448cdbf6a8fc76b3bedb0
+        uses: actions/setup-python@13ae5bb136fac2878aff31522b9efb785519f984  # v4.3.0
         with:
           python-version: 3.8.13
           cache: pip
