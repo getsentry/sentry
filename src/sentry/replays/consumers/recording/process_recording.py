@@ -17,6 +17,7 @@ from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies.abstract import ProcessingStrategy
 from arroyo.types import Message, Position
 from django.conf import settings
+from django.db.utils import IntegrityError
 
 from sentry.constants import DataCategory
 from sentry.models import File
@@ -145,14 +146,29 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
                 BytesIO(recording_segment),
                 blob_size=settings.SENTRY_ATTACHMENT_BLOB_SIZE,
             )
-            # associate this file with an indexable replay_id via ReplayRecordingSegment
 
-            ReplayRecordingSegment.objects.create(
-                replay_id=message_dict["replay_id"],
-                project_id=message_dict["project_id"],
-                segment_id=headers["segment_id"],
-                file_id=file.id,
-            )
+            try:
+                # associate this file with an indexable replay_id via ReplayRecordingSegment
+                ReplayRecordingSegment.objects.create(
+                    replay_id=message_dict["replay_id"],
+                    project_id=message_dict["project_id"],
+                    segment_id=headers["segment_id"],
+                    file_id=file.id,
+                )
+            except IntegrityError:
+                # Same message was encountered more than once.
+                logger.warning(
+                    "Recording-segment has already been processed.",
+                    extra={
+                        "replay_id": message_dict["replay_id"],
+                        "project_id": message_dict["project_id"],
+                        "segment_id": headers["segment_id"],
+                    },
+                )
+
+                # Cleanup the blob.
+                file.delete()
+
             # delete the recording segment from cache after we've stored it
             parts.drop()
 
