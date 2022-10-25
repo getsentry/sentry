@@ -56,7 +56,7 @@ const storeConfig: OrganizationStoreDefinition = {
     HookStore.getCallback(
       'react-hook:route-activated',
       'setOrganization'
-    )(this.organization);
+    )?.(this.organization);
   },
 
   onFetchOrgError(err) {

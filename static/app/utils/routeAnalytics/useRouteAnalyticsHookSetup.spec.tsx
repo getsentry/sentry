@@ -1,18 +1,19 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render} from 'sentry-test/reactTestingLibrary';
 
+import HookStore from 'sentry/stores/hookStore';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 
-import useRouteAnalyticsOrgSetter from './useRouteAnalyticsOrgSetter';
+import useRouteAnalyticsHookSetup from './useRouteAnalyticsHookSetup';
 
 function TestComponent() {
-  useRouteAnalyticsOrgSetter();
+  useRouteAnalyticsHookSetup();
   return <div>hi</div>;
 }
 
-describe('useRouteAnalyticsOrgSetter', function () {
-  it('disables analytics', function () {
+describe('useRouteAnalyticsHookSetup', function () {
+  it('registers callback', function () {
     const {organization} = initializeOrg();
     const setOrganization = jest.fn();
     render(
@@ -28,6 +29,8 @@ describe('useRouteAnalyticsOrgSetter', function () {
         </OrganizationContext.Provider>
       </RouteAnalyticsContext.Provider>
     );
-    expect(setOrganization).toHaveBeenCalledWith(organization);
+    expect(
+      HookStore.getCallback('react-hook:route-activated', 'setOrganization')
+    ).toEqual(setOrganization);
   });
 });
