@@ -55,7 +55,7 @@ class MetricField:
         metric_name = get_public_name_from_mri(self.metric_mri)
         return f"{self.op}({metric_name})" if self.op else metric_name
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         # The equal method is called after the hash method to verify for equality of objects to insert
         # into the set. Because by default "__eq__()" does use the "is" operator we want to override it and
         # model MetricField's equivalence as having the same hash value, in order to reuse the comparison logic defined
