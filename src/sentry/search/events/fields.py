@@ -2109,6 +2109,7 @@ class MetricsFunction(SnQLFunction):
         self.snql_distribution = kwargs.pop("snql_distribution", None)
         self.snql_set = kwargs.pop("snql_set", None)
         self.snql_counter = kwargs.pop("snql_counter", None)
+        self.snql_metric_layer = kwargs.pop("snql_metric_layer", None)
         super().__init__(*args, **kwargs)
 
     def validate(self) -> None:
@@ -2125,6 +2126,7 @@ class MetricsFunction(SnQLFunction):
                     self.snql_set is not None,
                     self.snql_counter is not None,
                     self.snql_column is not None,
+                    self.snql_metric_layer is not None,
                 ]
             )
             == 1

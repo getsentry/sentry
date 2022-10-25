@@ -30,6 +30,7 @@ def query(
     dry_run=False,
     transform_alias_to_input_format=False,
     has_metrics: bool = True,
+    use_metrics_layer: bool = False,
 ):
     metrics_compatible = not equations or dry_run
 
@@ -52,6 +53,8 @@ def query(
                 functions_acl,
                 dry_run,
                 transform_alias_to_input_format,
+                has_metrics,
+                use_metrics_layer,
             )
         # raise Invalid Queries since the same thing will happen with discover
         except InvalidSearchQuery as error:
