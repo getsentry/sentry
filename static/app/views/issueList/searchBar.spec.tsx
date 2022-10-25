@@ -4,8 +4,6 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import TagStore from 'sentry/stores/tagStore';
 import IssueListSearchBar from 'sentry/views/issueList/searchBar';
 
-import {OrganizationContext} from '../organizationContext';
-
 describe('IssueListSearchBar', function () {
   let tagValuePromise;
   let supportedTags;
@@ -52,12 +50,9 @@ describe('IssueListSearchBar', function () {
     it('sets state with complete tag', function () {
       const loader = jest.fn();
 
-      render(
-        <OrganizationContext.Provider value={organization}>
-          <IssueListSearchBar {...defaultProps} tagValueLoader={loader} />
-        </OrganizationContext.Provider>,
-        {context: routerContext}
-      );
+      render(<IssueListSearchBar {...defaultProps} tagValueLoader={loader} />, {
+        context: routerContext,
+      });
 
       userEvent.type(screen.getByRole('textbox'), 'url:"fu"');
 
@@ -70,12 +65,9 @@ describe('IssueListSearchBar', function () {
     it('sets state when value has colon', function () {
       const loader = jest.fn();
 
-      render(
-        <OrganizationContext.Provider value={organization}>
-          <IssueListSearchBar {...defaultProps} tagValueLoader={loader} />
-        </OrganizationContext.Provider>,
-        {context: routerContext}
-      );
+      render(<IssueListSearchBar {...defaultProps} tagValueLoader={loader} />, {
+        context: routerContext,
+      });
 
       userEvent.type(screen.getByRole('textbox'), 'url:');
 
@@ -86,12 +78,9 @@ describe('IssueListSearchBar', function () {
       // This should never get called
       const loader = jest.fn(x => x);
 
-      render(
-        <OrganizationContext.Provider value={organization}>
-          <IssueListSearchBar {...defaultProps} tagValueLoader={loader} />
-        </OrganizationContext.Provider>,
-        {context: routerContext}
-      );
+      render(<IssueListSearchBar {...defaultProps} tagValueLoader={loader} />, {
+        context: routerContext,
+      });
 
       userEvent.type(screen.getByRole('textbox'), 'timesSeen:');
 
@@ -110,13 +99,11 @@ describe('IssueListSearchBar', function () {
       const onSearch = jest.fn();
 
       render(
-        <OrganizationContext.Provider value={organization}>
-          <IssueListSearchBar
-            {...defaultProps}
-            tagValueLoader={loader}
-            onSearch={onSearch}
-          />
-        </OrganizationContext.Provider>,
+        <IssueListSearchBar
+          {...defaultProps}
+          tagValueLoader={loader}
+          onSearch={onSearch}
+        />,
         {context: routerContext}
       );
 
@@ -142,12 +129,7 @@ describe('IssueListSearchBar', function () {
     });
 
     it('queries for recent searches', function () {
-      render(
-        <OrganizationContext.Provider value={organization}>
-          <IssueListSearchBar {...defaultProps} />
-        </OrganizationContext.Provider>,
-        {context: routerContext}
-      );
+      render(<IssueListSearchBar {...defaultProps} />, {context: routerContext});
 
       userEvent.type(screen.getByRole('textbox'), 'is:');
 
@@ -164,12 +146,7 @@ describe('IssueListSearchBar', function () {
     });
 
     it('cycles through keyboard navigation for selection', async function () {
-      render(
-        <OrganizationContext.Provider value={organization}>
-          <IssueListSearchBar {...defaultProps} />
-        </OrganizationContext.Provider>,
-        {context: routerContext}
-      );
+      render(<IssueListSearchBar {...defaultProps} />, {context: routerContext});
 
       const textarea = screen.getByRole('textbox');
 
@@ -224,23 +201,15 @@ describe('IssueListSearchBar', function () {
     });
 
     it('has pin icon', function () {
-      render(
-        <OrganizationContext.Provider value={organization}>
-          <IssueListSearchBar {...defaultProps} />
-        </OrganizationContext.Provider>,
-        {context: routerContext}
-      );
+      render(<IssueListSearchBar {...defaultProps} />, {context: routerContext});
 
       expect(screen.getByTestId('pin-icon')).toBeInTheDocument();
     });
 
     it('pins a search from the searchbar', function () {
-      render(
-        <OrganizationContext.Provider value={organization}>
-          <IssueListSearchBar {...defaultProps} query='url:"fu"' />
-        </OrganizationContext.Provider>,
-        {context: routerContext}
-      );
+      render(<IssueListSearchBar {...defaultProps} query='url:"fu"' />, {
+        context: routerContext,
+      });
 
       userEvent.click(screen.getByRole('button', {name: 'Pin this search'}));
 
@@ -259,23 +228,21 @@ describe('IssueListSearchBar', function () {
 
     it('unpins a search from the searchbar', function () {
       render(
-        <OrganizationContext.Provider value={organization}>
-          <IssueListSearchBar
-            {...defaultProps}
-            query='url:"fu"'
-            savedSearch={{
-              id: '1',
-              name: 'Saved Search',
-              isPinned: true,
-              query: 'url:"fu"',
-              sort: 'date',
-              dateCreated: '',
-              isOrgCustom: false,
-              isGlobal: false,
-              type: 0,
-            }}
-          />
-        </OrganizationContext.Provider>,
+        <IssueListSearchBar
+          {...defaultProps}
+          query='url:"fu"'
+          savedSearch={{
+            id: '1',
+            name: 'Saved Search',
+            isPinned: true,
+            query: 'url:"fu"',
+            sort: 'date',
+            dateCreated: '',
+            isOrgCustom: false,
+            isGlobal: false,
+            type: 0,
+          }}
+        />,
         {context: routerContext}
       );
 

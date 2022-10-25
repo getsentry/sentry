@@ -57,6 +57,7 @@ export function makePinSearchAction({
             ...location,
             pathname: `/organizations/${organization.slug}/issues/`,
             query: {
+              referrer: 'search-bar',
               ...currentQuery,
               query: pinnedSearch.query,
               sort: pinnedSearch.sort,
@@ -81,7 +82,7 @@ export function makePinSearchAction({
       browserHistory.push({
         ...location,
         pathname: `/organizations/${organization.slug}/issues/searches/${resp.id}/`,
-        query: currentQuery,
+        query: {referrer: 'search-bar', ...currentQuery},
       });
     };
 

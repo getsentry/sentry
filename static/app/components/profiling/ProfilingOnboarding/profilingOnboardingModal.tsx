@@ -400,7 +400,7 @@ function AndroidInstallSteps({
   <meta-data android:name="io.sentry.dsn" android:value="${dsn}" />
   <meta-data android:name="io.sentry.traces.sample-rate" android:value="1.0" />
   <meta-data android:name="io.sentry.traces.profiling.enable" android:value="true" />
-  </application>`}
+</application>`}
           </CodeSnippet>
         )}
       </li>
@@ -445,11 +445,13 @@ function IOSInstallSteps({
         {publicDSN.type === 'loading' ? (
           <LoadingIndicator />
         ) : (
-          <CodeSnippet language="swift">{`SentrySDK.start { options in
-              options.dsn = "${dsn}"
-              options.tracesSampleRate = 1.0 // Make sure transactions are enabled
-              options.profilesSampleRate = 1.0
-            }`}</CodeSnippet>
+          <CodeSnippet language="swift">
+            {`SentrySDK.start { options in
+  options.dsn = "${dsn}"
+  options.tracesSampleRate = 1.0 // Make sure transactions are enabled
+  options.profilesSampleRate = 1.0
+}`}
+          </CodeSnippet>
         )}
       </li>
     </Fragment>

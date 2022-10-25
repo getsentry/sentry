@@ -119,7 +119,7 @@ export function LinkedEvent({orgSlug, eventId, route, router}: Props) {
     <StyledShortId
       shortId={shortId}
       avatar={<ProjectBadge project={project} avatarSize={16} hideName />}
-      to={`/${orgSlug}/${project.slug}/issues/${groupId}/events/${eventId}/`}
+      to={`/${orgSlug}/${project.slug}/issues/${groupId}/events/${eventId}/?referrer=linked-event`}
     />
   );
 }

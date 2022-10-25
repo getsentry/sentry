@@ -32,6 +32,7 @@ function GroupTombstoneRow({data, onUndiscard}: RowProps) {
           className="truncate"
           size="normal"
           data={data}
+          source="group-tombstome"
         />
       </StyledBox>
       <AvatarContainer>

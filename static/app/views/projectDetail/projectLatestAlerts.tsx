@@ -148,6 +148,7 @@ class ProjectLatestAlerts extends AsyncComponent<Props, State> {
 
     return (
       <AlertRowLink
+        aria-label={title}
         to={`/organizations/${organization.slug}/alerts/${identifier}/`}
         key={id}
       >
