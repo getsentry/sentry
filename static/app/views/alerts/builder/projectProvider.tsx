@@ -1,4 +1,4 @@
-import {cloneElement, Fragment, isValidElement, useEffect} from 'react';
+import {cloneElement, Fragment, isValidElement, useEffect, useState} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
@@ -6,7 +6,7 @@ import {navigateTo} from 'sentry/actionCreators/navigation';
 import Alert from 'sentry/components/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import {Member, Organization} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import useProjects from 'sentry/utils/useProjects';
 import useScrollToTop from 'sentry/utils/useScrollToTop';
@@ -23,6 +23,7 @@ type RouteParams = {
 
 function AlertBuilderProjectProvider(props: Props) {
   const api = useApi();
+  const [members, setMembers] = useState<Member[] | undefined>(undefined);
   useScrollToTop({location: props.location});
 
   const {children, params, organization, ...other} = props;
@@ -47,7 +48,7 @@ function AlertBuilderProjectProvider(props: Props) {
     }
 
     // fetch members list for mail action fields
-    fetchOrgMembers(api, organization.slug, [project.id]);
+    fetchOrgMembers(api, organization.slug, [project.id]).then(mem => setMembers(mem));
   }, [api, organization, project]);
 
   if (!initiallyLoaded || fetching) {
@@ -78,6 +79,7 @@ function AlertBuilderProjectProvider(props: Props) {
             project,
             projectId: useFirstProject ? project.slug : projectId,
             organization,
+            members,
           })
         : children}
     </Fragment>

@@ -1,9 +1,8 @@
 from typing import List, Optional, Set
 
-from sentry import features
+from sentry import features, options
 from sentry.dynamic_sampling.utils import DEFAULT_BIASES, Bias
 from sentry.models import Project
-from sentry.models.user import User
 
 
 class DynamicSamplingFeatureMultiplexer:
@@ -17,18 +16,18 @@ class DynamicSamplingFeatureMultiplexer:
     - The `organizations:dynamic-sampling` feature flag is the flag that enables the new adaptive sampling
     """
 
-    def __init__(self, project: Project, user: User):
+    def __init__(self, project: Project):
         # Feature flag that informs us that relay is handling DS rules
         self.allow_dynamic_sampling = features.has(
-            "organizations:server-side-sampling", project.organization, actor=user
+            "organizations:server-side-sampling", project.organization
         )
         # Feature flag that informs us that the org is on the new AM2 plan and thereby have adaptive sampling enabled
         self.current_dynamic_sampling = features.has(
-            "organizations:dynamic-sampling", project.organization, actor=user
+            "organizations:dynamic-sampling", project.organization
         )
         # Flag responsible to inform us if the org was in the original LA/EA Dynamic Sampling
         self.deprecated_dynamic_sampling = features.has(
-            "organizations:dynamic-sampling-deprecated", project.organization, actor=user
+            "organizations:dynamic-sampling-deprecated", project.organization
         )
 
     @property
@@ -41,7 +40,11 @@ class DynamicSamplingFeatureMultiplexer:
 
     @property
     def is_on_dynamic_sampling(self) -> bool:
-        return self.allow_dynamic_sampling and self.current_dynamic_sampling
+        return (
+            self.allow_dynamic_sampling
+            and self.current_dynamic_sampling
+            and options.get("dynamic-sampling:enabled-biases")
+        )
 
     @staticmethod
     def get_user_biases(user_set_biases: Optional[List[Bias]]) -> List[Bias]:

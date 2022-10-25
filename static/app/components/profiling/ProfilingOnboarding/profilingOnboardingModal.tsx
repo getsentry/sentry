@@ -368,7 +368,12 @@ function AndroidInstallSteps({
 }: InstallStepsProps) {
   const hasSdkUpdates = sdkUpdates.type === 'resolved' && sdkUpdates.data !== null;
   const requiresSdkUpdates =
-    hasSdkUpdates && sdkUpdates.data?.sdkVersion
+    hasSdkUpdates &&
+    sdkUpdates.data?.sdkVersion &&
+    // ensure we only prompt an upgrade when the sdk is one of the following
+    ['sentry.java.android', 'sentry.java.android.timber'].includes(
+      sdkUpdates.data.sdkName
+    )
       ? semverCompare(sdkUpdates.data.sdkVersion, '6.0.0') < 0
       : false;
 
@@ -380,7 +385,7 @@ function AndroidInstallSteps({
         <li>
           <StepTitle>{t('Update your projects SDK version')}</StepTitle>
           <ProjectSdkUpdate
-            minSdkVersion="6.0.0 (sentry-android)"
+            minSdkVersion="6.0.0 (sentry.android)"
             project={project}
             sdkUpdates={sdkUpdates.data!}
             organization={organization}
@@ -399,7 +404,7 @@ function AndroidInstallSteps({
             {`<application>
   <meta-data android:name="io.sentry.dsn" android:value="${dsn}" />
   <meta-data android:name="io.sentry.traces.sample-rate" android:value="1.0" />
-  <meta-data android:name="io.sentry.traces.profiling.enable" android:value="true" />
+  <meta-data android:name="io.sentry.traces.profiling.sample-rate" android:value="1.0" />
 </application>`}
           </CodeSnippet>
         )}
@@ -416,7 +421,9 @@ function IOSInstallSteps({
 }: InstallStepsProps) {
   const hasSdkUpdates = sdkUpdates.type === 'resolved' && sdkUpdates.data !== null;
   const requiresSdkUpdates =
-    hasSdkUpdates && sdkUpdates.data?.sdkVersion
+    hasSdkUpdates &&
+    sdkUpdates.data?.sdkVersion &&
+    sdkUpdates.data?.sdkName === 'sentry.cocoa'
       ? semverCompare(sdkUpdates.data.sdkVersion, '7.23.0') < 0
       : false;
 
@@ -427,7 +434,7 @@ function IOSInstallSteps({
         <li>
           <StepTitle>{t('Update your projects SDK version')}</StepTitle>
           <ProjectSdkUpdate
-            minSdkVersion="7.23.0 (sentry-cocoa)"
+            minSdkVersion="7.23.0 (sentry.cocoa)"
             project={project}
             sdkUpdates={sdkUpdates.data!}
             organization={organization}
