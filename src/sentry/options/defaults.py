@@ -422,8 +422,6 @@ register("eventstream:kafka-headers", default=True)
 # Post process forwarder options
 # Gets data from Kafka headers
 register("post-process-forwarder:kafka-headers", default=True)
-# Number of threads to use for post processing
-register("post-process-forwarder:concurrency", default=1)
 
 # Subscription queries sampling rate
 register("subscriptions-query.sample-rate", default=0.01)
@@ -535,3 +533,7 @@ register("performance.issues.n_plus_one_db_ext.problem-creation", default=0.0)
 # System-wide options for default performance detection settings for any org opted into the performance-issues-ingest feature. Meant for rollout.
 register("performance.issues.n_plus_one_db.count_threshold", default=5)
 register("performance.issues.n_plus_one_db.duration_threshold", default=100.0)
+
+# System-wide options that observes latest releases on transactions and caches these values to be used later in
+# project config computation. This is temporary option to monitor the performance of this feature.
+register("dynamic-sampling:boost-latest-release", default=False)

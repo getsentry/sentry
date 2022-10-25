@@ -66,7 +66,7 @@ function EventsTableRow({
       <td>
         <h5>
           <GlobalSelectionLink
-            to={`/organizations/${orgId}/issues/${groupId}/events/${event.id}/`}
+            to={`/organizations/${orgId}/issues/${groupId}/events/${event.id}/?referrer=events-table`}
           >
             <DateTime date={event.dateCreated} year seconds timeZone />
           </GlobalSelectionLink>

@@ -32,6 +32,25 @@ PII_CONFIG = """
 """
 
 
+DEFAULT_ENVIRONMENT_RULE = {
+    "sampleRate": 1,
+    "type": "trace",
+    "condition": {
+        "op": "or",
+        "inner": [
+            {
+                "op": "glob",
+                "name": "trace.environment",
+                "value": ["*dev*", "*test*"],
+                "options": {"ignoreCase": True},
+            }
+        ],
+    },
+    "active": True,
+    "id": 1,
+}
+
+
 @pytest.mark.django_db
 @pytest.mark.parametrize("full", [False, True], ids=["slim_config", "full_config"])
 def test_get_project_config(default_project, insta_snapshot, django_cache, full):
@@ -60,11 +79,13 @@ SOME_EXCEPTION = RuntimeError("foo")
 
 
 @pytest.mark.django_db
-@mock.patch("sentry.relay.config.generate_uniform_rule", side_effect=SOME_EXCEPTION)
+@mock.patch("sentry.relay.config.generate_rules", side_effect=SOME_EXCEPTION)
 @mock.patch("sentry.relay.config.sentry_sdk")
 def test_get_experimental_config(mock_sentry_sdk, _, default_project):
     keys = ProjectKey.objects.filter(project=default_project)
-    with Feature("organizations:dynamic-sampling"):
+    with Feature(
+        {"organizations:dynamic-sampling": True, "organizations:server-side-sampling": True}
+    ):
         # Does not raise:
         cfg = get_project_config(default_project, full_config=True, project_keys=keys)
     # Key is missing from config:
@@ -107,7 +128,12 @@ def test_project_config_uses_filters_and_sampling_feature(
     """
     default_project.update_option("sentry:dynamic_sampling", dyn_sampling_data())
 
-    with Feature({"organizations:server-side-sampling": has_dyn_sampling}):
+    with Feature(
+        {
+            "organizations:server-side-sampling": has_dyn_sampling,
+            "organizations:dynamic-sampling-deprecated": True,
+        }
+    ):
         cfg = get_project_config(default_project, full_config=full_config)
 
     cfg = cfg.to_dict()
@@ -129,7 +155,12 @@ def test_project_config_filters_out_non_active_rules_in_dynamic_sampling(
     """
     default_project.update_option("sentry:dynamic_sampling", dyn_sampling_data(active))
 
-    with Feature({"organizations:server-side-sampling": True}):
+    with Feature(
+        {
+            "organizations:server-side-sampling": True,
+            "organizations:dynamic-sampling-deprecated": True,
+        }
+    ):
         cfg = get_project_config(default_project)
 
     cfg = cfg.to_dict()
@@ -149,7 +180,12 @@ def test_project_config_dynamic_sampling_is_none(default_project):
     """
     default_project.update_option("sentry:dynamic_sampling", None)
 
-    with Feature({"organizations:server-side-sampling": True}):
+    with Feature(
+        {
+            "organizations:server-side-sampling": True,
+            "organizations:dynamic-sampling-deprecated": True,
+        }
+    ):
         cfg = get_project_config(default_project)
 
     cfg = cfg.to_dict()
@@ -191,7 +227,12 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
         project=default_project,
         version="backend@22.9.0.dev0+8291ce47cf95d8c14d70af8fde7449b61319c1a4",
     )
-    with Feature({"organizations:server-side-sampling": True}):
+    with Feature(
+        {
+            "organizations:server-side-sampling": True,
+            "organizations:dynamic-sampling-deprecated": True,
+        }
+    ):
         cfg = get_project_config(default_project)
 
     cfg = cfg.to_dict()
@@ -214,13 +255,14 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
             {"rules": []},
             {
                 "rules": [
+                    DEFAULT_ENVIRONMENT_RULE,
                     {
                         "sampleRate": 0.1,
                         "type": "trace",
                         "active": True,
                         "condition": {"op": "and", "inner": []},
                         "id": 0,
-                    }
+                    },
                 ]
             },
         ),
@@ -230,7 +272,7 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
             {
                 "rules": [
                     {
-                        "sampleRate": 0.5,
+                        "sampleRate": 0.1,
                         "type": "trace",
                         "active": True,
                         "condition": {"op": "and", "inner": []},
@@ -240,13 +282,14 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
             },
             {
                 "rules": [
+                    DEFAULT_ENVIRONMENT_RULE,
                     {
                         "sampleRate": 0.1,
                         "type": "trace",
                         "active": True,
                         "condition": {"op": "and", "inner": []},
                         "id": 0,
-                    }
+                    },
                 ]
             },
         ),
@@ -257,18 +300,19 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
             {"rules": []},
         ),
         (
-            False,
+            True,
             True,
             {"rules": []},
             {
                 "rules": [
+                    DEFAULT_ENVIRONMENT_RULE,
                     {
                         "sampleRate": 0.1,
                         "type": "trace",
                         "active": True,
                         "condition": {"op": "and", "inner": []},
                         "id": 0,
-                    }
+                    },
                 ]
             },
         ),
@@ -286,11 +330,10 @@ def test_project_config_with_uniform_rules_based_on_plan_in_dynamic_sampling_rul
         {
             "organizations:server-side-sampling": ss_sampling,
             "organizations:dynamic-sampling": ds_basic,
+            "organizations:dynamic-sampling-deprecated": True,
         }
     ):
-        with mock.patch(
-            "sentry.dynamic_sampling.utils.quotas.get_blended_sample_rate", return_value=0.1
-        ):
+        with mock.patch("sentry.dynamic_sampling.quotas.get_blended_sample_rate", return_value=0.1):
             cfg = get_project_config(default_project)
 
     cfg = cfg.to_dict()
