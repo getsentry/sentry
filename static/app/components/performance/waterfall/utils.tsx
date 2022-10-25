@@ -87,8 +87,6 @@ export const getDurationPillColours = ({
   if (durationDisplay === 'inset') {
     const {alternate, insetTextColour} = getSpanBarColours(theme, spanBarType);
     return `background: ${alternate}; color: ${insetTextColour};`;
-    // const isGapSpan = spanBarType && spanBarType === SpanBarType.GAP;
-    // return `color: ${isGapSpan ? theme.gray300 : theme.white};`;
   }
 
   return `color: ${showDetail ? theme.gray200 : theme.gray300};`;
