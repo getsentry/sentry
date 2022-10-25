@@ -140,7 +140,7 @@ class OrganizationService(InterfaceWithLifecycle):
 
     @abstractmethod
     def get_organization_by_slug(
-        self, user_id: Optional[int], slug: str, only_visible: bool, allow_stale: bool
+        self, *, user_id: Optional[int], slug: str, only_visible: bool, allow_stale: bool
     ) -> Optional[ApiOrganization]:
         pass
 
@@ -172,7 +172,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         return self._serialize_member(member)
 
     def get_organization_by_slug(
-        self, user_id: Optional[int], slug: str, only_visible: bool, allow_stale: bool
+        self, *, user_id: Optional[int], slug: str, only_visible: bool, allow_stale: bool
     ) -> Optional[ApiOrganization]:
         membership: List[OrganizationMember]
         if user_id is not None:

@@ -222,7 +222,7 @@ class AuthLoginView(BaseView):
                 if organization:
                     # Refresh the organization we fetched prior to login in order to check its login state.
                     organization = organization_service.get_organization_by_slug(
-                        request.user.id,
+                        user_id=request.user.id,
                         slug=organization.slug,
                         only_visible=False,
                         allow_stale=False,
