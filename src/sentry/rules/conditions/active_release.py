@@ -4,7 +4,7 @@ from typing import Optional
 from django.db.models import DateTimeField
 from django.utils import timezone
 
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import GroupEvent
 from sentry.models import Deploy, Release, ReleaseEnvironment, ReleaseProjectEnvironment
 from sentry.rules import EventState
 from sentry.rules.conditions.base import EventCondition
@@ -14,7 +14,7 @@ class ActiveReleaseEventCondition(EventCondition):
     id = "sentry.rules.conditions.active_release.ActiveReleaseEventCondition"
     label = "A new issue is created within an active release (1 hour of deployment)"
 
-    def passes(self, event: Event, state: EventState) -> bool:
+    def passes(self, event: GroupEvent, state: EventState) -> bool:
         if self.rule and self.rule.environment_id is None:
             return (state.is_new or state.is_regression) and self.is_in_active_release(event)
         else:
@@ -23,7 +23,7 @@ class ActiveReleaseEventCondition(EventCondition):
             ) and self.is_in_active_release(event)
 
     @staticmethod
-    def latest_release(event: Event) -> Optional[Release]:
+    def latest_release(event: GroupEvent) -> Optional[Release]:
         return Release.objects.filter(
             organization_id=event.project.organization_id,
             projects__id=event.project_id,
@@ -31,7 +31,7 @@ class ActiveReleaseEventCondition(EventCondition):
         ).first()
 
     @staticmethod
-    def is_in_active_release(event: Event) -> bool:
+    def is_in_active_release(event: GroupEvent) -> bool:
         if not event.group:
             return False
 

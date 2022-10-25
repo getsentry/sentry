@@ -36,9 +36,7 @@ function OrganizationRepositories({itemList, onRepositoryChange, params}: Props)
         <div className="m-b-2">
           <TextBlock>
             {t(
-              'Connecting a repository allows Sentry to capture commit data via webhooks. ' +
-                'This enables features like suggested assignees and resolving issues via commit message. ' +
-                "Once you've connected a repository, you can associate commits with releases via the API."
+              "Connecting a repository allows Sentry to capture commit data via webhooks. This enables features like suggested assignees and resolving issues via commit message. Once you've connected a repository, you can associate commits with releases via the API."
             )}
             &nbsp;
             {tct('See our [link:documentation] for more details.', {

@@ -1,5 +1,5 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import {TeamProjects as OrganizationTeamProjects} from 'sentry/views/settings/organizationTeams/teamProjects';
@@ -57,14 +57,14 @@ describe('OrganizationTeamProjects', function () {
   });
 
   it('fetches linked and unlinked projects', function () {
-    mountWithTheme(
+    render(
       <OrganizationTeamProjects
         api={new MockApiClient()}
         organization={organization}
         params={{orgId: 'org-slug', teamId: team.slug}}
         location={{query: {}}}
       />,
-      routerContext
+      {context: routerContext}
     );
 
     expect(getMock).toHaveBeenCalledTimes(2);
@@ -74,100 +74,83 @@ describe('OrganizationTeamProjects', function () {
   });
 
   it('Should render', async function () {
-    const wrapper = mountWithTheme(
+    const {container} = render(
       <OrganizationTeamProjects
         api={new MockApiClient()}
         organization={organization}
         params={{orgId: 'org-slug', teamId: team.slug}}
         location={{query: {}}}
       />,
-      routerContext
+      {context: routerContext}
     );
 
-    await tick();
-    wrapper.update();
-
-    expect(wrapper).toSnapshot();
-    expect(wrapper.find('ProjectBadge').first().text()).toBe('project-slug');
+    expect(await screen.findByText('project-slug')).toBeInTheDocument();
+    expect(container).toSnapshot();
   });
 
   it('Should allow bookmarking', async function () {
-    const wrapper = mountWithTheme(
+    render(
       <OrganizationTeamProjects
         api={new MockApiClient()}
         organization={organization}
         params={{orgId: 'org-slug', teamId: team.slug}}
         location={{query: {}}}
       />,
-      routerContext
+      {context: routerContext}
     );
 
-    await tick();
-    wrapper.update();
-
-    const stars = wrapper.find('BookmarkStar');
+    const stars = await screen.findAllByRole('button', {name: 'Bookmark Project'});
     expect(stars).toHaveLength(2);
-    stars.first().simulate('click');
-    expect(wrapper.find('BookmarkStar').first().prop('isBookmarked')).toBeTruthy();
+
+    userEvent.click(stars[0]);
+    expect(
+      screen.getByRole('button', {name: 'Bookmark Project', pressed: true})
+    ).toBeInTheDocument();
 
     expect(putMock).toHaveBeenCalledTimes(1);
   });
 
   it('Should allow adding and removing projects', async function () {
-    const wrapper = mountWithTheme(
+    render(
       <OrganizationTeamProjects
         api={new MockApiClient()}
         organization={organization}
         params={{orgId: 'org-slug', teamId: team.slug}}
         location={{query: {}}}
       />,
-      routerContext
+      {context: routerContext}
     );
 
-    await tick();
-    wrapper.update();
+    expect(getMock).toHaveBeenCalledTimes(2);
 
-    const add = wrapper.find('DropdownButton').first();
-    add.simulate('click');
-
-    const el = wrapper.find('AutoCompleteItem').at(1);
-    el.simulate('click');
-
-    wrapper.update();
+    userEvent.click(await screen.findByText('Add Project'));
+    userEvent.click(screen.getByRole('option', {name: 'project-slug-2'}));
 
     expect(postMock).toHaveBeenCalledTimes(1);
 
-    await tick();
-    wrapper.update();
-
     // find second project's remove button
-    const remove = wrapper.find('PanelBody Button[aria-label="Remove"]').at(1);
-    remove.simulate('click');
+    const removeButtons = await screen.findAllByRole('button', {name: 'Remove'});
+    userEvent.click(removeButtons[1]);
 
     expect(deleteMock).toHaveBeenCalledTimes(1);
   });
 
   it('handles filtering unlinked projects', async function () {
-    const wrapper = mountWithTheme(
+    render(
       <OrganizationTeamProjects
         api={new MockApiClient()}
         organization={organization}
         params={{orgId: 'org-slug', teamId: team.slug}}
         location={{query: {}}}
       />,
-      routerContext
+      {context: routerContext}
     );
-
-    await tick();
-    wrapper.update();
 
     expect(getMock).toHaveBeenCalledTimes(2);
 
-    const add = wrapper.find('DropdownButton').first();
-    add.simulate('click');
+    userEvent.click(await screen.findByText('Add Project'));
 
-    const input = wrapper.find('StyledInput');
-    input.simulate('change', {target: {value: 'a'}});
+    userEvent.type(screen.getByRole('textbox'), 'a');
 
     expect(getMock).toHaveBeenCalledTimes(3);
     expect(getMock).toHaveBeenCalledWith(

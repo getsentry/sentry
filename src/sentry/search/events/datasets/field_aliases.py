@@ -1,11 +1,11 @@
-from typing import Any
+from typing import Any, List, Tuple
 
 import sentry_sdk
-from snuba_sdk import Function
+from snuba_sdk import AliasedExpression, Function
 
 from sentry.discover.models import TeamKeyTransaction
 from sentry.exceptions import IncompatibleMetricsQuery
-from sentry.models import Project, ProjectTeam
+from sentry.models import ProjectTeam
 from sentry.search.events import constants, fields
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.types import SelectType
@@ -23,6 +23,23 @@ def dry_run_default(builder: QueryBuilder, alias: str, *args: Any, **kwargs: Any
 def resolve_team_key_transaction_alias(
     builder: QueryBuilder, resolve_metric_index: bool = False
 ) -> SelectType:
+    team_key_transactions = get_team_transactions(builder, resolve_metric_index)
+    if len(team_key_transactions) == 0:
+        return Function("toInt8", [0], constants.TEAM_KEY_TRANSACTION_ALIAS)
+
+    return Function(
+        "in",
+        [
+            (builder.column("project_id"), builder.column("transaction")),
+            team_key_transactions,
+        ],
+        constants.TEAM_KEY_TRANSACTION_ALIAS,
+    )
+
+
+def get_team_transactions(
+    builder: QueryBuilder, resolve_metric_index: bool = False
+) -> List[Tuple[int, str]]:
     org_id = builder.params.get("organization_id")
     project_ids = builder.params.get("project_id")
     team_ids = builder.params.get("team_id")
@@ -64,42 +81,10 @@ def resolve_team_key_transaction_alias(
     sentry_sdk.set_tag(
         "team_key_txns.count.grouped", format_grouped_length(count, [10, 100, 250, 500])
     )
-
-    if count == 0:
-        return Function("toInt8", [0], constants.TEAM_KEY_TRANSACTION_ALIAS)
-
-    return Function(
-        "in",
-        [
-            (builder.column("project_id"), builder.column("transaction")),
-            team_key_transactions,
-        ],
-        constants.TEAM_KEY_TRANSACTION_ALIAS,
-    )
+    return team_key_transactions
 
 
 def resolve_project_slug_alias(builder: QueryBuilder, alias: str) -> SelectType:
-    project_ids = {
-        project_id
-        for project_id in builder.params.get("project_id", [])
-        if isinstance(project_id, int)
-    }
-
-    # Try to reduce the size of the transform by using any existing conditions on projects
-    # Do not optimize projects list if conditions contain OR operator
-    if not builder.has_or_condition and len(builder.projects_to_filter) > 0:
-        project_ids &= builder.projects_to_filter
-
-    # Order by id so queries are consistent
-    projects = Project.objects.filter(id__in=project_ids).values("slug", "id").order_by("id")
-
-    return Function(
-        "transform",
-        [
-            builder.column("project.id"),
-            [project["id"] for project in projects],
-            [project["slug"] for project in projects],
-            "",
-        ],
-        alias,
-    )
+    builder.value_resolver_map[alias] = lambda project_id: builder.project_ids.get(project_id, "")
+    builder.meta_resolver_map[alias] = "string"
+    return AliasedExpression(exp=builder.column("project_id"), alias=alias)

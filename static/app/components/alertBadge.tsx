@@ -38,7 +38,12 @@ function AlertBadge({status, hideText = false, isIssue}: Props) {
 
   return (
     <Wrapper data-test-id="alert-badge">
-      <AlertIconWrapper color={color} icon={Icon}>
+      <AlertIconWrapper
+        role="img"
+        aria-label={hideText ? statusText : undefined}
+        color={color}
+        icon={Icon}
+      >
         <AlertIconBackground color={color} />
         <Icon color="white" />
       </AlertIconWrapper>

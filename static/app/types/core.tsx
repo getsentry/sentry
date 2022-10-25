@@ -68,7 +68,7 @@ export enum DataCategory {
   ERRORS = 'errors',
   TRANSACTIONS = 'transactions',
   ATTACHMENTS = 'attachments',
-  TRANSACTIONS_PROCESSED = 'transactionsProcessed',
+  PROFILES = 'profiles',
 }
 
 export type EventType = 'error' | 'transaction' | 'attachment';

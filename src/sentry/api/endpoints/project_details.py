@@ -22,6 +22,7 @@ from sentry.api.serializers.rest_framework.list import EmptyListField, ListField
 from sentry.api.serializers.rest_framework.origin import OriginField
 from sentry.constants import RESERVED_PROJECT_SLUGS
 from sentry.datascrubbing import validate_pii_config_update
+from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
 from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig
 from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
 from sentry.ingest.inbound_filters import FilterTypes
@@ -103,6 +104,12 @@ class DynamicSamplingSerializer(serializers.Serializer):
     rules = serializers.ListSerializer(child=DynamicSamplingRuleSerializer())
     next_id = serializers.IntegerField(min_value=0, required=False)
 
+    # This negative integer represents the rule id that will be sent by the frontend on every rule creation/update.
+    #
+    # We decided to opt for -1 as UNASSIGNED_ID_VALUE because we decided to reserve 0 for the uniform rule id in order
+    # to avoid making changes in Relay's validation mechanism that supports only positive integers (unsigned integers).
+    UNASSIGNED_ID_VALUE = -1
+
     @staticmethod
     def fix_rule_ids(project, raw_dynamic_sampling):
         """
@@ -132,13 +139,15 @@ class DynamicSamplingSerializer(serializers.Serializer):
             rules = raw_dynamic_sampling.get("rules", [])
 
             for rule in rules:
-                # We are setting the unassigned id to -1. It used to be 0 but we are modifying the behavior as 0 is a
-                # valid id according to relay's rule validation which states the a rule id is an unsigned integer.
-                rid = rule.get("id", -1)
+                # For each rule we will try to get the id, in case we fall back to UNASSIGNED_ID_VALUE which is a
+                # special reserved id for rules that are created/updated as explained above. In this case we use
+                # UNASSIGNED_ID_VALUE because we treat a rule with no id as a rule that has been created.
+                rid = rule.get("id", DynamicSamplingSerializer.UNASSIGNED_ID_VALUE)
                 original_rule = original_rules_dict.get(rid)
-                # ToDo(ahmed): Temporarily allowing for 0 to be the unassigned rule id for backwards compatibility,
-                #  and will remove that once the UI changes are deployed.
-                if rid in {0, -1} or original_rule is None:
+
+                # If the incoming rule is created/updated/has no id, or we didn't find any matching rule in the saved
+                # configuration then we will assign it a new monotonically increasing id.
+                if rid == DynamicSamplingSerializer.UNASSIGNED_ID_VALUE or original_rule is None:
                     # a new or unknown rule give it a new id
                     rule["id"] = next_id
                     next_id += 1
@@ -211,6 +220,20 @@ class DynamicSamplingSerializer(serializers.Serializer):
         return data
 
 
+class DynamicSamplingBiasSerializer(serializers.Serializer):
+    id = serializers.ChoiceField(
+        required=True, choices=DynamicSamplingFeatureMultiplexer.get_supported_biases_ids()
+    )
+    active = serializers.BooleanField(default=False)
+
+    def validate(self, data):
+        if data.keys() != {"id", "active"}:
+            raise serializers.ValidationError(
+                "Error: Only 'id' and 'active' fields are allowed for bias."
+            )
+        return data
+
+
 class ProjectMemberSerializer(serializers.Serializer):
     isBookmarked = serializers.BooleanField()
     isSubscribed = serializers.BooleanField()
@@ -258,6 +281,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     platform = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     copy_from_project = serializers.IntegerField(required=False)
     dynamicSampling = DynamicSamplingSerializer(required=False)
+    dynamicSamplingBiases = DynamicSamplingBiasSerializer(required=False, many=True)
     performanceIssueCreationRate = serializers.FloatField(required=False, min_value=0, max_value=1)
 
     def validate(self, data):
@@ -501,6 +525,24 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if "hasAlertIntegration" in expand:
             data["hasAlertIntegrationInstalled"] = has_alert_integration(project)
 
+        ds_feature_multiplexer = DynamicSamplingFeatureMultiplexer(project, request.user)
+
+        # Dynamic Sampling Logic
+        if ds_feature_multiplexer.is_on_dynamic_sampling:
+            ds_bias_serializer = DynamicSamplingBiasSerializer(
+                data=ds_feature_multiplexer.get_user_biases(
+                    project.get_option("sentry:dynamic_sampling_biases", None)
+                ),
+                many=True,
+            )
+            if not ds_bias_serializer.is_valid():
+                return Response(ds_bias_serializer.errors, status=400)
+            data["dynamicSamplingBiases"] = ds_bias_serializer.data
+        else:
+            data["dynamicSamplingBiases"] = None
+        # TODO(ahmed): Deprecated dynamic sampling logic, and will be removed in the future
+        if not ds_feature_multiplexer.is_on_dynamic_sampling_deprecated:
+            data["dynamicSampling"] = None
         return Response(data)
 
     def put(self, request: Request, project) -> Response:
@@ -543,14 +585,18 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         result = serializer.validated_data
 
-        allow_dynamic_sampling = features.has(
-            "organizations:server-side-sampling", project.organization, actor=request.user
-        )
-
-        if not allow_dynamic_sampling and result.get("dynamicSampling"):
-            # trying to set sampling with feature disabled
+        ds_flags_multiplexer = DynamicSamplingFeatureMultiplexer(project, request.user)
+        if result.get("dynamicSamplingBiases") and not ds_flags_multiplexer.is_on_dynamic_sampling:
             return Response(
-                {"detail": ["You do not have permission to set sampling."]},
+                {"detail": ["dynamicSamplingBiases is not a valid field"]},
+                status=403,
+            )
+        if (
+            result.get("dynamicSampling")
+            and not ds_flags_multiplexer.is_on_dynamic_sampling_deprecated
+        ):
+            return Response(
+                {"detail": ["dynamicSampling is not a valid field"]},
                 status=403,
             )
 
@@ -719,7 +765,15 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 project=project,
             )
 
-        if "dynamicSampling" in result:
+        if "dynamicSamplingBiases" in result:
+            updated_biases = ds_flags_multiplexer.get_user_biases(
+                user_set_biases=result["dynamicSamplingBiases"]
+            )
+            if project.update_option("sentry:dynamic_sampling_biases", updated_biases):
+                changed_proj_settings["sentry:dynamic_sampling_biases"] = result[
+                    "dynamicSamplingBiases"
+                ]
+        elif "dynamicSampling" in result:
             fixed_rules = result["dynamicSampling"]
             if project.update_option("sentry:dynamic_sampling", fixed_rules):
                 changed_proj_settings["sentry:dynamic_sampling"] = result["dynamicSampling"]
@@ -857,6 +911,13 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         )
 
         data = serialize(project, request.user, DetailedProjectSerializer())
+        if not ds_flags_multiplexer.is_on_dynamic_sampling:
+            data["dynamicSamplingBiases"] = None
+        # If here because the case of when no dynamic sampling is enabled at all, you would want to kick out both
+        # keys actually
+        if not ds_flags_multiplexer.is_on_dynamic_sampling_deprecated:
+            data["dynamicSampling"] = None
+
         return Response(data)
 
     @sudo_required

@@ -331,9 +331,19 @@ tags.sku_class:enterprise #enterprise`;
                   fields: [
                     {
                       name: 'autoAssignment',
-                      type: 'boolean',
-                      label: t('Automatically assign issues'),
-                      help: t('Assign issues when a new event matches the rules above.'),
+                      type: 'choice',
+                      label: t('Prioritize Auto Assignment'),
+                      help: t(
+                        "When there's a conflict between suspect commit and ownership rules."
+                      ),
+                      choices: [
+                        [
+                          'Auto Assign to Suspect Commits',
+                          t('Auto-assign to suspect commits'),
+                        ],
+                        ['Auto Assign to Issue Owner', t('Auto-assign to issue owner')],
+                        ['Turn off Auto-Assignment', t('Turn off auto-assignment')],
+                      ],
                       disabled,
                     },
                     {
@@ -350,7 +360,7 @@ tags.sku_class:enterprise #enterprise`;
                     {
                       name: 'codeownersAutoSync',
                       type: 'boolean',
-                      label: t(`Sync changes from CODEOWNERS`),
+                      label: t('Sync changes from CODEOWNERS'),
                       help: t(
                         'We’ll update any changes you make to your CODEOWNERS files during a release.'
                       ),

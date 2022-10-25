@@ -1,6 +1,6 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {act} from 'sentry-test/reactTestingLibrary';
-import {triggerPress} from 'sentry-test/utils';
+import selectEvent from 'react-select-event';
+
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {DiscoverLanding} from 'sentry/views/eventsV2/landing';
@@ -10,7 +10,7 @@ describe('EventsV2 > Landing', function () {
   const features = ['discover-basic', 'discover-query'];
 
   beforeEach(function () {
-    act(() => ProjectsStore.loadInitialData([TestStubs.Project()]));
+    ProjectsStore.loadInitialData([TestStubs.Project()]);
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -70,9 +70,9 @@ describe('EventsV2 > Landing', function () {
   });
 
   it('handles no projects', function () {
-    act(() => ProjectsStore.loadInitialData([]));
+    ProjectsStore.loadInitialData([]);
 
-    const wrapper = mountWithTheme(
+    render(
       <DiscoverLanding
         organization={TestStubs.Organization({features})}
         location={{query: {}}}
@@ -80,12 +80,13 @@ describe('EventsV2 > Landing', function () {
       />
     );
 
-    const content = wrapper.find('SentryDocumentTitle');
-    expect(content.text()).toContain('You need at least one project to use this view');
+    expect(
+      screen.getByText('You need at least one project to use this view')
+    ).toBeInTheDocument();
   });
 
   it('denies access on missing feature', function () {
-    const wrapper = mountWithTheme(
+    render(
       <DiscoverLanding
         organization={TestStubs.Organization()}
         location={{query: {}}}
@@ -93,27 +94,13 @@ describe('EventsV2 > Landing', function () {
       />
     );
 
-    const content = wrapper.find('PageContent');
-    expect(content.text()).toContain("You don't have access to this feature");
+    expect(screen.getByText("You don't have access to this feature")).toBeInTheDocument();
   });
 
-  it('has the right sorts', async function () {
+  it('has the right sorts', function () {
     const org = TestStubs.Organization({features});
 
-    const wrapper = mountWithTheme(
-      <DiscoverLanding organization={org} location={{query: {}}} router={{}} />
-    );
-
-    // Open sort menu
-    await act(async () => {
-      triggerPress(wrapper.find('CompactSelect Button'));
-
-      await tick();
-      wrapper.update();
-    });
-
-    const dropdownItems = wrapper.find('MenuItemWrap');
-    expect(dropdownItems).toHaveLength(8);
+    render(<DiscoverLanding organization={org} location={{query: {}}} router={{}} />);
 
     const expectedSorts = [
       'My Queries',
@@ -126,8 +113,25 @@ describe('EventsV2 > Landing', function () {
       'Recently Viewed',
     ];
 
-    expect(dropdownItems.children().map(element => element.text())).toEqual(
-      expectedSorts
+    // Open menu
+    selectEvent.openMenu(screen.getByRole('button', {name: 'Sort By My Queries'}));
+
+    // Check that all sorts are there
+    expectedSorts.forEach(sort =>
+      expect(screen.getAllByText(sort)[0]).toBeInTheDocument()
+    );
+  });
+
+  it('links back to the homepage', () => {
+    const org = TestStubs.Organization({
+      features: [...features, 'discover-query-builder-as-landing-page'],
+    });
+
+    render(<DiscoverLanding organization={org} location={{query: {}}} router={{}} />);
+
+    expect(screen.getByText('Discover')).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/discover/homepage/'
     );
   });
 });

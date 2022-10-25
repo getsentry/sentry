@@ -351,10 +351,10 @@ const storeConfig: GroupStoreDefinition = {
     const ids = this.itemIdsOrAll(itemIds);
 
     if (ids.length > 1) {
-      showAlert(t(`Deleted ${ids.length} Issues`), 'success');
+      showAlert(t('Deleted %d Issues', ids.length), 'success');
     } else {
       const shortId = ids.map(item => GroupStore.get(item)?.shortId).join('');
-      showAlert(t(`Deleted ${shortId}`), 'success');
+      showAlert(t('Deleted %s', shortId), 'success');
     }
 
     const itemIdSet = new Set(ids);
@@ -419,7 +419,7 @@ const storeConfig: GroupStoreDefinition = {
     );
 
     if (ids.length > 0) {
-      showAlert(t(`Merged ${ids.length} Issues`), 'success');
+      showAlert(t('Merged %d Issues', ids.length), 'success');
     }
 
     this.updateItems(ids);

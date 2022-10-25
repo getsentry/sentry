@@ -60,6 +60,7 @@ from sentry.snuba.metrics.fields.snql import (
     subtraction,
     team_key_transaction_snql,
     tolerated_count_transaction,
+    transform_null_to_unparameterized_snql,
     uniq_aggregation_on_metric,
 )
 from sentry.snuba.metrics.naming_layer.mapping import get_public_name_from_mri
@@ -69,6 +70,7 @@ from sentry.snuba.metrics.utils import (
     GENERIC_OP_TO_SNUBA_FUNCTION,
     GRANULARITY,
     OP_TO_SNUBA_FUNCTION,
+    OPERATIONS_PERCENTILES,
     TS_COL_QUERY,
     UNIT_TO_TYPE,
     DerivedMetricParseException,
@@ -354,6 +356,12 @@ class RawOp(MetricOperation):
         return False
 
     def get_meta_type(self) -> Optional[str]:
+        # If we have a percentile operation then we want to convert its type from Array(float64) to Float64
+        # because once we receive a percentile result from ClickHouse we automatically pop from the array the
+        # first element thus the datatype itself must also be changed in the metadata.
+        if self.op in OPERATIONS_PERCENTILES:
+            return "Float64"
+
         return None
 
     def run_post_query_function(
@@ -1552,6 +1560,13 @@ DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
             snql_func=team_key_transaction_snql,
             default_null_value=0,
             meta_type="boolean",
+        ),
+        DerivedOp(
+            op="transform_null_to_unparameterized",
+            can_orderby=False,  # TODO: a better and more comprehensive
+            can_groupby=True,
+            snql_func=transform_null_to_unparameterized_snql,
+            default_null_value=0,
         ),
     ]
 }

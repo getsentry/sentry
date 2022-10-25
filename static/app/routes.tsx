@@ -28,8 +28,6 @@ import redirectDeprecatedProjectRoute from 'sentry/views/projects/redirectDeprec
 import RouteNotFound from 'sentry/views/routeNotFound';
 import SettingsWrapper from 'sentry/views/settings/components/settingsWrapper';
 
-import Feature from './components/acl/feature';
-
 type CustomProps = {
   name?: string;
 };
@@ -1146,16 +1144,11 @@ function buildRoutes() {
       path="/organizations/:orgId/discover/"
       component={make(() => import('sentry/views/eventsV2'))}
     >
-      <Feature features={['discover-query-builder-as-landing-page']}>
-        <IndexRedirect to="homepage/" />
-      </Feature>
       <IndexRedirect to="queries/" />
-      <Feature features={['discover-query-builder-as-landing-page']}>
-        <Route
-          path="homepage/"
-          component={make(() => import('sentry/views/eventsV2/homepage'))}
-        />
-      </Feature>
+      <Route
+        path="homepage/"
+        component={make(() => import('sentry/views/eventsV2/homepage'))}
+      />
       <Route
         path="queries/"
         component={make(() => import('sentry/views/eventsV2/landing'))}
@@ -1464,7 +1457,6 @@ function buildRoutes() {
         path="status/warnings/"
         component={make(() => import('sentry/views/admin/adminWarnings'))}
       />
-      {hook('routes:admin')}
     </Route>
   );
 
@@ -1820,7 +1812,6 @@ function buildRoutes() {
         {rootRoutes}
         {organizationRoutes}
         {legacyRedirectRoutes}
-        {hook('routes')}
         <Route path="*" component={errorHandler(RouteNotFound)} />
       </Route>
     </Route>

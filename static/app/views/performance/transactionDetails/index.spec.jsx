@@ -1,4 +1,4 @@
-import {cleanup, render, screen} from 'sentry-test/reactTestingLibrary';
+import {act, cleanup, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -10,7 +10,7 @@ const alertText =
 describe('EventDetails', () => {
   afterEach(cleanup);
 
-  it('renders alert for sample transaction', () => {
+  it('renders alert for sample transaction', async () => {
     const project = TestStubs.Project();
     ProjectsStore.loadInitialData([project]);
     const organization = TestStubs.Organization({
@@ -22,6 +22,21 @@ describe('EventDetails', () => {
     const routerContext = TestStubs.routerContext([]);
 
     MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/latest/events/1/grouping-info/`,
+      statusCode: 200,
+      body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      statusCode: 200,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/latest/events/1/committers/`,
+      statusCode: 200,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/latest/`,
       statusCode: 200,
       body: {
@@ -29,7 +44,6 @@ describe('EventDetails', () => {
       },
     });
 
-    MockApiClient.warnOnMissingMocks();
     render(
       <OrganizationContext.Provider value={organization}>
         <EventDetails
@@ -40,9 +54,12 @@ describe('EventDetails', () => {
       </OrganizationContext.Provider>
     );
     expect(screen.getByText(alertText)).toBeInTheDocument();
+
+    // Expect stores to be updated
+    await act(tick);
   });
 
-  it('does not reender alert if already received transaction', () => {
+  it('does not reender alert if already received transaction', async () => {
     const project = TestStubs.Project();
     ProjectsStore.loadInitialData([project]);
     const organization = TestStubs.Organization({
@@ -60,16 +77,16 @@ describe('EventDetails', () => {
       },
     });
 
-    MockApiClient.warnOnMissingMocks();
     render(
-      <OrganizationContext.Provider value={organization}>
-        <EventDetails
-          organization={organization}
-          params={{orgId: organization.slug, eventSlug: 'latest'}}
-          location={routerContext.context.location}
-        />
-      </OrganizationContext.Provider>
+      <EventDetails
+        organization={organization}
+        params={{orgId: organization.slug, eventSlug: 'latest'}}
+        location={routerContext.context.location}
+      />
     );
     expect(screen.queryByText(alertText)).not.toBeInTheDocument();
+
+    // Expect stores to be updated
+    await act(tick);
   });
 });

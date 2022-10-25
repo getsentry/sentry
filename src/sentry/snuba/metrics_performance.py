@@ -19,6 +19,8 @@ from sentry.utils.snuba import Dataset, SnubaTSResult
 
 def resolve_tags(results: Any, query_definition: MetricsQueryBuilder) -> Any:
     """Go through the results of a metrics query and reverse resolve its tags"""
+    if query_definition.use_metrics_layer:
+        return results
     tags: List[str] = []
     cached_resolves: Dict[int, str] = {}
     # no-op if they're already strings
@@ -69,6 +71,7 @@ def query(
     dry_run=False,
     transform_alias_to_input_format=False,
     has_metrics: bool = True,
+    use_metrics_layer: bool = False,
 ):
     with sentry_sdk.start_span(op="mep", description="MetricQueryBuilder"):
         metrics_query = MetricsQueryBuilder(
@@ -87,6 +90,7 @@ def query(
             offset=offset,
             dry_run=dry_run,
             dataset=Dataset.PerformanceMetrics,
+            use_metrics_layer=use_metrics_layer,
         )
         if dry_run:
             metrics_referrer = referrer + ".dry-run"
@@ -109,7 +113,7 @@ def query(
                 for column, function_details in metrics_query.function_alias_map.items()
             }
 
-        results = discover.transform_results(results, metrics_query, translated_columns, None)
+        results = discover.transform_results(results, metrics_query, translated_columns)
         results = resolve_tags(results, metrics_query)
         results["meta"]["isMetricsData"] = True
         sentry_sdk.set_tag("performance.dataset", "metrics")
@@ -160,7 +164,7 @@ def timeseries_query(
                 sentry_sdk.set_tag("query.mep_compatible", True)
                 return
         with sentry_sdk.start_span(op="mep", description="query.transform_results"):
-            result = discover.transform_results(result, metrics_query, {}, None)
+            result = discover.transform_results(result, metrics_query, {})
             result["data"] = (
                 discover.zerofill(
                     result["data"],

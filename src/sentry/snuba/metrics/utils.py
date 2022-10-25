@@ -83,6 +83,7 @@ MetricOperationType = Literal[
     "count_web_vitals",
     "count_transaction_name",
     "team_key_transaction",
+    "transform_null_to_unparameterized",
 ]
 MetricUnit = Literal[
     "nanosecond",
@@ -133,6 +134,7 @@ OP_TO_SNUBA_FUNCTION = {
         "p95": "quantilesIf(0.95)",
         "p99": "quantilesIf(0.99)",
         "histogram": "histogramIf(250)",
+        "sum": "sumIf",
     },
     "metrics_sets": {"count_unique": "uniqIf"},
 }
@@ -154,7 +156,6 @@ def generate_operation_regex():
 
 
 OP_REGEX = generate_operation_regex()
-
 
 AVAILABLE_OPERATIONS = {
     type_: sorted(mapping.keys()) for type_, mapping in OP_TO_SNUBA_FUNCTION.items()
@@ -199,6 +200,7 @@ class MetricMeta(TypedDict):
     operations: Collection[MetricOperationType]
     unit: Optional[MetricUnit]
     metric_id: Optional[int]
+    mri_string: str
 
 
 class MetricMetaWithTagKeys(MetricMeta):
@@ -218,6 +220,7 @@ DERIVED_OPERATIONS = (
     "count_web_vitals",
     "count_transaction_name",
     "team_key_transaction",
+    "transform_null_to_unparameterized",
 )
 OPERATIONS = (
     (

@@ -1,38 +1,37 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {Client} from 'sentry/api';
 import ProjectOwnership from 'sentry/views/settings/project/projectOwnership';
 
 jest.mock('sentry/actionCreators/modal');
 
-describe('Project Ownership', function () {
+describe('Project Ownership', () => {
   let org = TestStubs.Organization();
   const project = TestStubs.ProjectDetails();
 
-  beforeEach(function () {
-    Client.clearMockResponses();
-    Client.addMockResponse({
+  beforeEach(() => {
+    MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/ownership/`,
       method: 'GET',
       body: {
         fallthrough: false,
-        autoAssignment: false,
+        autoAssignment: 'Auto Assign to Suspect Commits',
+        codeownersAutoSync: false,
       },
     });
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/code-mappings/`,
       query: {project: project.id},
       method: 'GET',
       body: [],
     });
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/integrations/`,
       query: {features: 'codeowners'},
       method: 'GET',
-      body: [TestStubs.GithubIntegrationConfig()],
+      body: [TestStubs.GitHubIntegrationConfig()],
     });
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/codeowners/`,
       features: {expand: 'codeMapping'},
       method: 'GET',
@@ -40,71 +39,85 @@ describe('Project Ownership', function () {
     });
   });
 
-  describe('without codeowners', function () {
-    it('renders', function () {
-      const wrapper = mountWithTheme(
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
+  });
+
+  describe('without codeowners', () => {
+    it('renders', () => {
+      const wrapper = render(
         <ProjectOwnership
           params={{orgId: org.slug, projectId: project.slug}}
           organization={org}
           project={project}
         />
       );
-      expect(wrapper).toSnapshot();
-      // only rendered when `integrations-codeowners` feature flag enabled
-      expect(wrapper.find('CodeOwnerButton').exists()).toBe(false);
+      expect(wrapper.container).toSnapshot();
+      // Does not render codeowners for orgs without 'integrations-codeowners' feature
+      expect(
+        screen.queryByRole('button', {name: 'Add CODEOWNERS'})
+      ).not.toBeInTheDocument();
     });
   });
 
-  describe('codeowner action button', function () {
-    it('renders button', function () {
+  describe('with codeowners', () => {
+    it('codeowners button opens modal', () => {
       org = TestStubs.Organization({
         features: ['integrations-codeowners'],
         access: ['org:integrations'],
       });
-
-      const wrapper = mountWithTheme(
+      render(
         <ProjectOwnership
           params={{orgId: org.slug, projectId: project.slug}}
           organization={org}
           project={project}
         />,
-        TestStubs.routerContext([{organization: org}])
+        {context: TestStubs.routerContext([{organization: org}])}
       );
 
-      expect(wrapper.find('CodeOwnerButton').exists()).toBe(true);
-    });
+      // Renders button
+      expect(screen.getByRole('button', {name: 'Add CODEOWNERS'})).toBeInTheDocument();
 
-    it('clicking button opens modal', function () {
-      org = TestStubs.Organization({
-        features: ['integrations-codeowners'],
-        access: ['org:integrations'],
-      });
-      const wrapper = mountWithTheme(
-        <ProjectOwnership
-          params={{orgId: org.slug, projectId: project.slug}}
-          organization={org}
-          project={project}
-        />,
-        TestStubs.routerContext([{organization: org}])
-      );
-      wrapper.find('[data-test-id="add-codeowner-button"] button').simulate('click');
+      // Opens modal
+      userEvent.click(screen.getByRole('button', {name: 'Add CODEOWNERS'}));
       expect(openModal).toHaveBeenCalled();
     });
+  });
 
-    it('render nothing to add if no permissions', function () {
-      org = TestStubs.Organization({features: ['integrations-codeowners'], access: []});
+  describe('issue owners settings', () => {
+    it('should set autoAssignment with commit-context string', async () => {
+      const updateOwnership = MockApiClient.addMockResponse({
+        url: `/projects/${org.slug}/${project.slug}/ownership/`,
+        method: 'PUT',
+        body: {
+          fallthrough: false,
+          autoAssignment: 'Assign To Issue Owner',
+          codeownersAutoSync: false,
+        },
+      });
 
-      const wrapper = mountWithTheme(
+      render(
         <ProjectOwnership
           params={{orgId: org.slug, projectId: project.slug}}
           organization={org}
           project={project}
-        />,
-        TestStubs.routerContext([{organization: org}])
+        />
       );
-      expect(wrapper.find('[data-test-id="add-codeowner-button"] button').exists()).toBe(
-        false
-      );
+
+      // Switch to Assign To Issue Owner
+      userEvent.click(screen.getByText('Auto-assign to suspect commits'));
+      userEvent.click(screen.getByText('Auto-assign to issue owner'));
+
+      await waitFor(() => {
+        expect(updateOwnership).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            data: {
+              autoAssignment: 'Auto Assign to Issue Owner',
+            },
+          })
+        );
+      });
     });
   });
 });

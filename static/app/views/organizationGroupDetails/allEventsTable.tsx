@@ -5,6 +5,7 @@ import LoadingError from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import EventView, {decodeSorts} from 'sentry/utils/discover/eventView';
+import {useRoutes} from 'sentry/utils/useRoutes';
 import EventsTable from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
 
 export interface Props {
@@ -28,7 +29,7 @@ const AllEventsTable = (props: Props) => {
     totalEventCount,
   } = props;
   const [error, setError] = useState<string>('');
-
+  const routes = useRoutes();
   const fields: string[] = [
     'id',
     'transaction',
@@ -50,7 +51,7 @@ const AllEventsTable = (props: Props) => {
   }
 
   const idQuery = isPerfIssue
-    ? `performance.issue_ids:${issueId}`
+    ? `performance.issue_ids:${issueId} event.type:transaction`
     : `issue.id:${issueId}`;
   eventView.query = `${idQuery} ${props.location.query.query || ''}`;
   eventView.statsPeriod = '90d';
@@ -64,7 +65,6 @@ const AllEventsTable = (props: Props) => {
     t('user'),
     ...(isPerfIssue ? [t('total duration')] : []),
     t('timestamp'),
-    t('attachments'),
     t('minidump'),
   ];
 
@@ -78,10 +78,11 @@ const AllEventsTable = (props: Props) => {
       location={location}
       issueId={issueId}
       organization={organization}
+      routes={routes}
       excludedTags={excludedTags}
       projectId={projectId}
       totalEventCount={totalEventCount}
-      customColumns={['attachments', 'minidump']}
+      customColumns={['minidump']}
       setError={() => {
         (msg: string) => setError(msg);
       }}

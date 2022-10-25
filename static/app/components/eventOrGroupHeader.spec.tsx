@@ -4,7 +4,6 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import {EventOrGroupType} from 'sentry/types';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 const group = TestStubs.Group({
   level: 'error',
@@ -40,9 +39,7 @@ describe('EventOrGroupHeader', function () {
   describe('Group', function () {
     it('renders with `type = error`', function () {
       const {container} = render(
-        <OrganizationContext.Provider value={organization}>
-          <EventOrGroupHeader organization={organization} data={group} {...router} />
-        </OrganizationContext.Provider>
+        <EventOrGroupHeader organization={organization} data={group} {...router} />
       );
 
       expect(container).toSnapshot();
@@ -50,16 +47,14 @@ describe('EventOrGroupHeader', function () {
 
     it('renders with `type = csp`', function () {
       const {container} = render(
-        <OrganizationContext.Provider value={organization}>
-          <EventOrGroupHeader
-            organization={organization}
-            data={{
-              ...group,
-              type: EventOrGroupType.CSP,
-            }}
-            {...router}
-          />
-        </OrganizationContext.Provider>
+        <EventOrGroupHeader
+          organization={organization}
+          data={{
+            ...group,
+            type: EventOrGroupType.CSP,
+          }}
+          {...router}
+        />
       );
 
       expect(container).toSnapshot();
@@ -67,20 +62,18 @@ describe('EventOrGroupHeader', function () {
 
     it('renders with `type = default`', function () {
       const {container} = render(
-        <OrganizationContext.Provider value={organization}>
-          <EventOrGroupHeader
-            organization={organization}
-            data={{
-              ...group,
-              type: EventOrGroupType.DEFAULT,
-              metadata: {
-                ...group.metadata,
-                title: 'metadata title',
-              },
-            }}
-            {...router}
-          />
-        </OrganizationContext.Provider>
+        <EventOrGroupHeader
+          organization={organization}
+          data={{
+            ...group,
+            type: EventOrGroupType.DEFAULT,
+            metadata: {
+              ...group.metadata,
+              title: 'metadata title',
+            },
+          }}
+          {...router}
+        />
       );
 
       expect(container).toSnapshot();
@@ -88,16 +81,14 @@ describe('EventOrGroupHeader', function () {
 
     it('renders metadata values in message for error events', function () {
       render(
-        <OrganizationContext.Provider value={organization}>
-          <EventOrGroupHeader
-            organization={organization}
-            data={{
-              ...group,
-              type: EventOrGroupType.ERROR,
-            }}
-            {...router}
-          />
-        </OrganizationContext.Provider>
+        <EventOrGroupHeader
+          organization={organization}
+          data={{
+            ...group,
+            type: EventOrGroupType.ERROR,
+          }}
+          {...router}
+        />
       );
 
       expect(screen.getByText('metadata value')).toBeInTheDocument();
@@ -105,20 +96,18 @@ describe('EventOrGroupHeader', function () {
 
     it('renders location', function () {
       render(
-        <OrganizationContext.Provider value={organization}>
-          <EventOrGroupHeader
-            organization={organization}
-            data={{
-              ...group,
-              metadata: {
-                filename: 'path/to/file.swift',
-              },
-              platform: 'swift',
-              type: EventOrGroupType.ERROR,
-            }}
-            {...router}
-          />
-        </OrganizationContext.Provider>
+        <EventOrGroupHeader
+          organization={organization}
+          data={{
+            ...group,
+            metadata: {
+              filename: 'path/to/file.swift',
+            },
+            platform: 'swift',
+            type: EventOrGroupType.ERROR,
+          }}
+          {...router}
+        />
       );
 
       expect(
@@ -130,126 +119,114 @@ describe('EventOrGroupHeader', function () {
   describe('Event', function () {
     it('renders with `type = error`', function () {
       const {container} = render(
-        <OrganizationContext.Provider value={organization}>
-          <EventOrGroupHeader
-            organization={organization}
-            data={{
-              ...event,
-              type: EventOrGroupType.ERROR,
-            }}
-            {...router}
-          />
-        </OrganizationContext.Provider>
+        <EventOrGroupHeader
+          organization={organization}
+          data={{
+            ...event,
+            type: EventOrGroupType.ERROR,
+          }}
+          {...router}
+        />
       );
       expect(container).toSnapshot();
     });
 
     it('renders with `type = csp`', function () {
       const {container} = render(
-        <OrganizationContext.Provider value={organization}>
-          <EventOrGroupHeader
-            organization={organization}
-            data={{
-              ...event,
-              type: EventOrGroupType.CSP,
-            }}
-            {...router}
-          />
-        </OrganizationContext.Provider>
+        <EventOrGroupHeader
+          organization={organization}
+          data={{
+            ...event,
+            type: EventOrGroupType.CSP,
+          }}
+          {...router}
+        />
       );
       expect(container).toSnapshot();
     });
 
     it('renders with `type = default`', function () {
       const {container} = render(
-        <OrganizationContext.Provider value={organization}>
-          <EventOrGroupHeader
-            organization={organization}
-            data={{
-              ...event,
-              type: EventOrGroupType.DEFAULT,
-              metadata: {
-                ...event.metadata,
-                title: 'metadata title',
-              },
-            }}
-            {...router}
-          />
-        </OrganizationContext.Provider>
+        <EventOrGroupHeader
+          organization={organization}
+          data={{
+            ...event,
+            type: EventOrGroupType.DEFAULT,
+            metadata: {
+              ...event.metadata,
+              title: 'metadata title',
+            },
+          }}
+          {...router}
+        />
       );
       expect(container).toSnapshot();
     });
 
     it('hides level tag', function () {
       const {container} = render(
-        <OrganizationContext.Provider value={organization}>
-          <EventOrGroupHeader
-            projectId="projectId"
-            hideLevel
-            organization={organization}
-            data={{
-              ...event,
-              type: EventOrGroupType.DEFAULT,
-              metadata: {
-                ...event.metadata,
-                title: 'metadata title',
-              },
-            }}
-            {...router}
-          />
-        </OrganizationContext.Provider>
+        <EventOrGroupHeader
+          projectId="projectId"
+          hideLevel
+          organization={organization}
+          data={{
+            ...event,
+            type: EventOrGroupType.DEFAULT,
+            metadata: {
+              ...event.metadata,
+              title: 'metadata title',
+            },
+          }}
+          {...router}
+        />
       );
       expect(container).toSnapshot();
     });
 
     it('keeps sort in link when query has sort', function () {
       render(
-        <OrganizationContext.Provider value={organization}>
-          <EventOrGroupHeader
-            organization={organization}
-            data={{
-              ...event,
-              type: EventOrGroupType.DEFAULT,
-            }}
-            {...router}
-            location={{
-              ...router.location,
-              query: {
-                ...router.location.query,
-                sort: 'freq',
-              },
-            }}
-          />
-        </OrganizationContext.Provider>
+        <EventOrGroupHeader
+          organization={organization}
+          data={{
+            ...event,
+            type: EventOrGroupType.DEFAULT,
+          }}
+          {...router}
+          location={{
+            ...router.location,
+            query: {
+              ...router.location.query,
+              sort: 'freq',
+            },
+          }}
+        />
       );
 
       expect(screen.getByRole('link')).toHaveAttribute(
         'href',
-        '/organizations/org-slug/issues/groupID/events/eventID/?_allp=1&sort=freq'
+        '/organizations/org-slug/issues/groupID/events/eventID/?_allp=1&referrer=event-or-group-header&sort=freq'
       );
     });
 
     it('lack of project adds allp parameter', function () {
       render(
-        <OrganizationContext.Provider value={organization}>
-          <EventOrGroupHeader
-            organization={organization}
-            data={{
-              ...event,
-              type: EventOrGroupType.DEFAULT,
-            }}
-            {...router}
-            location={{
-              ...router.location,
-              query: {},
-            }}
-          />
-        </OrganizationContext.Provider>
+        <EventOrGroupHeader
+          organization={organization}
+          data={{
+            ...event,
+            type: EventOrGroupType.DEFAULT,
+          }}
+          {...router}
+          location={{
+            ...router.location,
+            query: {},
+          }}
+        />
       );
 
       expect(screen.getByRole('link')).toHaveAttribute(
         'href',
-        '/organizations/org-slug/issues/groupID/events/eventID/?_allp=1'
+        '/organizations/org-slug/issues/groupID/events/eventID/?_allp=1&referrer=event-or-group-header'
       );
     });
   });
