@@ -833,15 +833,18 @@ def _get_or_create_release_many(jobs, projects):
                     options.get("dynamic-sampling:boost-latest-release")
                     and data.get("type") == "transaction"
                 ):
-                    try:
-                        release_observed_in_last_24h = observe_release(project_id, release.id)
-                        if not release_observed_in_last_24h:
-                            add_boosted_release(project_id, release.id)
-                            schedule_invalidate_project_config(
-                                project_id=project_id, trigger="dynamic_sampling:boost_release"
-                            )
-                    except Exception:
-                        sentry_sdk.capture_exception()
+                    with sentry_sdk.start_span(
+                        op="event_manager.dynamic_sampling_observe_latest_release"
+                    ), metrics.timer("event_manager.dynamic_sampling_observe_latest_release"):
+                        try:
+                            release_observed_in_last_24h = observe_release(project_id, release.id)
+                            if not release_observed_in_last_24h:
+                                add_boosted_release(project_id, release.id)
+                                schedule_invalidate_project_config(
+                                    project_id=project_id, trigger="dynamic_sampling:boost_release"
+                                )
+                        except Exception:
+                            sentry_sdk.capture_exception()
 
 
 @metrics.wraps("save_event.get_event_user_many")
