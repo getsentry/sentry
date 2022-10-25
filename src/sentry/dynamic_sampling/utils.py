@@ -1,10 +1,15 @@
-from typing import Dict, List, Optional, TypedDict
-from pytz import UTC
 from datetime import datetime
+from typing import Dict, List, Optional, TypedDict
+
 import sentry_sdk
+from pytz import UTC
 
 from sentry import quotas
-from sentry.dynamic_sampling.latest_release_booster import BOOSTED_RELEASE_TIMEOUT, get_boosted_releases
+from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
+from sentry.dynamic_sampling.latest_release_booster import (
+    BOOSTED_RELEASE_TIMEOUT,
+    get_boosted_releases,
+)
 from sentry.models import Project, Release
 
 UNIFORM_RULE_RESERVED_ID = 0
@@ -129,20 +134,34 @@ def generate_boost_release_rules(project_id, sample_rate):
     ]
 
 
-def generate_rules(project: Project, boost_releases=False):
+def generate_rules(project: Project) -> List[BaseRule]:
     """
     This function handles generate rules logic or fallback empty list of rules
     """
     rules = []
+
     sample_rate = quotas.get_blended_sample_rate(project)
+
     if sample_rate is None:
         try:
             raise Exception("get_blended_sample_rate returns none")
         except Exception:
             sentry_sdk.capture_exception()
     else:
-        if boost_releases and sample_rate < 1.0:
-            rules += generate_boost_release_rules(project.id, sample_rate)
+        if sample_rate < 1.0:
+            # Latest releases
+            boost_latest_releases = DynamicSamplingFeatureMultiplexer.get_user_bias_by_id(
+                "boostLatestRelease", project.get_option("sentry:dynamic_sampling_biases", None)
+            )
+            if boost_latest_releases["active"]:
+                rules += generate_boost_release_rules(project.id, sample_rate)
+
+            # Environments boost
+            boost_environments = DynamicSamplingFeatureMultiplexer.get_user_bias_by_id(
+                "boostEnvironments", project.get_option("sentry:dynamic_sampling_biases", None)
+            )
+            if boost_environments["active"]:
+                rules.append(generate_environment_rule())
         rules.append(generate_uniform_rule(sample_rate))
 
     return rules
