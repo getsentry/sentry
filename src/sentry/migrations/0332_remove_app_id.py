@@ -28,8 +28,18 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.RemoveField(
-            model_name="appconnectbuild",
-            name="app_id",
-        ),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL(
+                    """
+                    ALTER TABLE "sentry_appconnectbuild" DROP COLUMN "app_id";
+                    """,
+                    reverse_sql="""
+                    ALTER TABLE "sentry_appconnectbuild" ADD COLUMN "app_id" int NULL;
+                    """,
+                    hints={"tables": ["sentry_appconnectbuild"]},
+                ),
+            ],
+            state_operations=[],
+        )
     ]
