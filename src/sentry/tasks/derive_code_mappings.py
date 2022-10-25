@@ -3,8 +3,8 @@ from datetime import timedelta
 from typing import Any, List, Mapping, Set
 
 from django.utils import timezone
-from pyexpat import features
 
+from sentry import features
 from sentry.db.models.fields.node import NodeData
 from sentry.integrations.utils.code_mapping import derive_code_mappings
 from sentry.models import Project
