@@ -28,6 +28,7 @@ def get_kafka_payload() -> KafkaPayload:
                     "is_new": False,
                     "is_regression": None,
                     "is_new_group_environment": False,
+                    "queue": "post_process_errors",
                     "skip_consume": False,
                 },
             ]
@@ -61,6 +62,7 @@ def test_dispatch_task(mock_dispatch: Mock) -> None:
         is_new=False,
         is_regression=None,
         is_new_group_environment=False,
+        queue="post_process_errors",
         group_states=None,
     )
 

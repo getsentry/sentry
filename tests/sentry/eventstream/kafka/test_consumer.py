@@ -630,6 +630,7 @@ def kafka_message_payload():
             "is_new": False,
             "is_regression": None,
             "is_new_group_environment": False,
+            "queue": "post_process_errors",
             "skip_consume": False,
             "group_states": None,
         },
@@ -720,6 +721,7 @@ class BatchedConsumerTest(TestCase):
             primary_hash="311ee66a5b8e697929804ceb1c456ffe",
             is_new=False,
             is_regression=None,
+            queue="post_process_errors",
             is_new_group_environment=False,
             group_states=None,
         )
@@ -775,6 +777,7 @@ class BatchedConsumerTest(TestCase):
             primary_hash="311ee66a5b8e697929804ceb1c456ffe",
             is_new=False,
             is_regression=None,
+            queue="post_process_errors",
             is_new_group_environment=False,
             group_states=None,
         )

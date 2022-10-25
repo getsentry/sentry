@@ -143,7 +143,7 @@ def stale_database_reads(monkeypatch):
 
     old_apply_async = Task.apply_async
 
-    def apply_async(self, args=(), kwargs=(), countdown=None):
+    def apply_async(self, args=(), kwargs=(), **options):
         in_commit_hook = getattr(_state, "in_on_commit", None) or getattr(
             _state, "in_run_and_clear_commit_hooks", None
         )
@@ -154,7 +154,7 @@ def stale_database_reads(monkeypatch):
         elif getattr(_state, "in_atomic", None) and not in_commit_hook:
             reports.transaction_blocks.append(self)
 
-        return old_apply_async(self, args, kwargs, countdown)
+        return old_apply_async(self, args, kwargs, **options)
 
     monkeypatch.setattr(Task, "apply_async", apply_async)
 

@@ -73,6 +73,21 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
             is_transaction_event=is_transaction_event,
         )
 
+    def __produce_payload(self, *insert_args, **insert_kwargs):
+
+        # pass arguments on to Kafka EventManager
+        self.kafka_eventstream.insert(*insert_args, **insert_kwargs)
+
+        producer = self.producer_mock
+
+        produce_args, produce_kwargs = list(producer.produce.call_args)
+        assert not produce_args
+
+        version, type_, payload1, payload2 = json.loads(produce_kwargs["value"])
+
+        # only return headers and body payload
+        return produce_kwargs["headers"], payload2
+
     @patch("sentry.eventstream.insert", autospec=True)
     def test(self, mock_eventstream_insert):
         now = datetime.utcnow()
@@ -190,3 +205,58 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
             "`GroupEvent` passed to `EventStream.insert`. Only `Event` is allowed here.",
             exc_info=True,
         )
+
+    @patch("sentry.eventstream.insert", autospec=True)
+    def test_error_queue(self, mock_eventstream_insert):
+        now = datetime.utcnow()
+
+        event = self.__build_event(now)
+
+        # verify eventstream was called by EventManager
+        insert_args, insert_kwargs = list(mock_eventstream_insert.call_args)
+        assert not insert_args
+
+        group_state = {
+            "is_new_group_environment": True,
+            "is_new": True,
+            "is_regression": False,
+        }
+
+        assert insert_kwargs == {
+            "event": event,
+            **group_state,
+            "primary_hash": "acbd18db4cc2f85cedef654fccc4a4d8",
+            "skip_consume": False,
+            "received_timestamp": event.data["received"],
+            "group_states": [{"id": event.groups[0].id, **group_state}],
+        }
+
+        headers, body = self.__produce_payload(*insert_args, **insert_kwargs)
+
+        assert ("queue", b"post_process_errors") in headers
+        assert body["queue"] == "post_process_errors"
+
+    @patch("sentry.eventstream.insert", autospec=True)
+    def test_transaction_queue(self, mock_eventstream_insert):
+        event = self.__build_transaction_event()
+        event.group_id = None
+        event.groups = [self.group]
+        insert_args = ()
+        group_state = {
+            "is_new_group_environment": True,
+            "is_new": True,
+            "is_regression": False,
+        }
+        insert_kwargs = {
+            "event": event,
+            **group_state,
+            "primary_hash": "acbd18db4cc2f85cedef654fccc4a4d8",
+            "skip_consume": False,
+            "received_timestamp": event.data["received"],
+            "group_states": [{"id": event.groups[0].id, **group_state}],
+        }
+
+        headers, body = self.__produce_payload(*insert_args, **insert_kwargs)
+
+        assert ("queue", b"post_process_transactions") in headers
+        assert body["queue"] == "post_process_transactions"

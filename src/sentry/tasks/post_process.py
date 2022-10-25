@@ -302,7 +302,6 @@ def fetch_buffered_group_stats(group):
     name="sentry.tasks.post_process.post_process_group",
     time_limit=120,
     soft_time_limit=110,
-    queue="post_process_errors",
 )
 def post_process_group(
     is_new,

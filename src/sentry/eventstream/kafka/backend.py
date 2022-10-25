@@ -90,6 +90,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
                     "is_regression": encode_bool(is_regression),
                     "skip_consume": encode_bool(skip_consume),
                     "group_states": encode_list(group_states) if group_states is not None else None,
+                    "queue": self._get_queue_for_post_process(event),
                 }
             )
         else:
