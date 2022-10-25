@@ -122,7 +122,9 @@ class AuthLoginView(BaseView):
 
     def _handle_login(self, request: Request, user, organization: Optional[Organization]):
         login(request, user, organization_id=organization.id if organization else None)
-        self.determine_active_organization(request)
+        self.determine_active_organization(
+            request,
+        )
 
     def handle_basic_auth(self, request: Request, **kwargs):
         can_register = self.can_register(request)
@@ -217,17 +219,20 @@ class AuthLoginView(BaseView):
 
                 if not user.is_active:
                     return self.redirect(reverse("sentry-reactivate-account"))
-                if self.active_organization:
-                    if (
-                        self.active_organization.member
-                        and request.user
-                        and not is_active_superuser(request)
-                    ):
-                        auth.set_active_org(request, self.active_organization.slug)
+                if organization:
+                    # Refresh the organization we fetched prior to login in order to check its login state.
+                    organization = organization_service.get_organization_by_slug(
+                        request.user.id,
+                        slug=organization.slug,
+                        only_visible=False,
+                        allow_stale=False,
+                    )
+                    if organization.member and request.user and not is_active_superuser(request):
+                        auth.set_active_org(request, organization.slug)
 
                     if settings.SENTRY_SINGLE_ORGANIZATION:
                         om = organization_service.check_membership_by_email(
-                            self.active_organization.id, user.email
+                            organization.id, user.email
                         )
                         if om is None:
                             request.session.pop("_next", None)
