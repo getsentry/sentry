@@ -73,7 +73,6 @@
     "@types/react-virtualized": "^9.21.20",
     "@types/reflux": "0.4.1",
     "@types/scroll-to-element": "^2.0.2",
-    "@types/webpack-dev-server": "^4.7.2",
     "@types/webpack-env": "^1.17.0",
     "@wojtekmaj/enzyme-adapter-react-17": "0.6.7",
     "ansi-to-react": "^6.1.6",

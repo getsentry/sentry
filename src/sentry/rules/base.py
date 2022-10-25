@@ -7,7 +7,7 @@ from typing import Any, Callable, MutableMapping, Sequence, Type
 
 from django import forms
 
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import GroupEvent
 from sentry.models import Project, Rule
 from sentry.types.rules import RuleFuture
 
@@ -97,7 +97,7 @@ class RuleBase(abc.ABC):
 
     def future(
         self,
-        callback: Callable[[Event, Sequence[RuleFuture]], None],
+        callback: Callable[[GroupEvent, Sequence[RuleFuture]], None],
         key: str | None = None,
         **kwargs: Any,
     ) -> CallbackFuture:
