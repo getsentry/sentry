@@ -1,3 +1,4 @@
+import itertools
 from collections import defaultdict
 from datetime import timedelta
 from enum import Enum
@@ -130,12 +131,17 @@ class GroupOwner(Model):
             project_id=project_id,
             last_seen__gte=timezone.now() - timedelta(seconds=READ_CACHE_DURATION),
         ).values_list("id", flat=True)
-
-        cache_keys = [
-            cls.get_autoassigned_owner_cache_key(group_id, project_id, autoassignment_types)
-            for group_id in queryset.iterator(chunk_size=1000)
-        ]
-        cache.delete_many(cache_keys)
+        group_id_iter = queryset.iterator(chunk_size=1000)
+        # Run cache invalidation in batches
+        while True:
+            group_ids = list(itertools.islice(group_id_iter, 1000))
+            if not group_ids:
+                break
+            cache_keys = [
+                cls.get_autoassigned_owner_cache_key(group_id, project_id, autoassignment_types)
+                for group_id in group_ids
+            ]
+            cache.delete_many(cache_keys)
 
 
 def get_owner_details(group_list: List[Group], user: Any) -> List[OwnersSerialized]:
