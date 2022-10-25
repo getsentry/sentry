@@ -29,7 +29,7 @@ import QueryCount from 'sentry/components/queryCount';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import ProcessingIssueList from 'sentry/components/stream/processingIssueList';
 import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {t, tct} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {PageContent} from 'sentry/styles/organization';
 import {
@@ -585,7 +585,10 @@ class IssueListOverview extends Component<Props, State> {
 
           browserHistory.replace({
             pathname: redirect,
-            query: extractSelectionParameters(this.props.location.query),
+            query: {
+              referrer: 'issue-list',
+              ...extractSelectionParameters(this.props.location.query),
+            },
           });
           return;
         }
@@ -890,6 +893,7 @@ class IssueListOverview extends Component<Props, State> {
     savedSearch: (SavedSearch & {projectId?: number}) | null = this.props.savedSearch
   ) => {
     const query = {
+      referrer: 'issue-list',
       ...this.getEndpointParams(),
       ...newParams,
     };
@@ -1043,10 +1047,14 @@ class IssueListOverview extends Component<Props, State> {
 
     if (!isForReviewQuery(query)) {
       if (itemIds.length > 1) {
-        addMessage(t(`Reviewed ${itemIds.length} Issues`), 'success', {duration: 4000});
+        addMessage(
+          tn('Reviewed %s Issue', 'Reviewed %s Issues', itemIds.length),
+          'success',
+          {duration: 4000}
+        );
       } else {
         const shortId = itemIds.map(item => GroupStore.get(item)?.shortId).toString();
-        addMessage(t(`Reviewed ${shortId}`), 'success', {duration: 4000});
+        addMessage(t('Reviewed %s', shortId), 'success', {duration: 4000});
       }
       return;
     }
@@ -1085,13 +1093,13 @@ class IssueListOverview extends Component<Props, State> {
     actionType: 'Reviewed' | 'Resolved' | 'Ignored'
   ) => {
     if (itemIds.length > 1) {
-      addMessage(t(`${actionType} ${itemIds.length} Issues`), 'success', {
+      addMessage(`${actionType} ${itemIds.length} ${t('Issues')}`, 'success', {
         duration: 4000,
         ...(actionType !== 'Reviewed' && {undo: this.onUndo}),
       });
     } else {
       const shortId = itemIds.map(item => GroupStore.get(item)?.shortId).toString();
-      addMessage(t(`${actionType} ${shortId}`), 'success', {
+      addMessage(`${actionType} ${shortId}`, 'success', {
         duration: 4000,
         ...(actionType !== 'Reviewed' && {undo: this.onUndo}),
       });

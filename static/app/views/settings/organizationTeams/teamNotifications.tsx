@@ -134,6 +134,7 @@ class TeamNotificationSettings extends AsyncView<Props, State> {
               </NotDisabledSubText>
             </div>
           }
+          labelText={t('Unlink this channel in slack with `/slack unlink team`')}
           name="externalName"
           value={externalTeam.externalName}
         />

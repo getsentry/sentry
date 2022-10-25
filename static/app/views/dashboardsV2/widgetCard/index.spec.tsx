@@ -10,7 +10,6 @@ import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhan
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
 import ReleaseWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/releaseWidgetQueries';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/components/charts/simpleTableChart');
 jest.mock('sentry/views/dashboardsV2/widgetCard/releaseWidgetQueries');
@@ -24,12 +23,10 @@ describe('Dashboards > WidgetCard', function () {
     router: {orgId: 'orgId'},
   } as Parameters<typeof initializeOrg>[0]);
 
-  const renderWithProviders = (component, context?) =>
+  const renderWithProviders = component =>
     render(
-      <OrganizationContext.Provider value={organization}>
-        <MEPSettingProvider forceTransactions={false}>{component}</MEPSettingProvider>
-      </OrganizationContext.Provider>,
-      context
+      <MEPSettingProvider forceTransactions={false}>{component}</MEPSettingProvider>,
+      {organization, router, context: routerContext}
     );
 
   const multipleQueryWidget: Widget = {
@@ -145,8 +142,7 @@ describe('Dashboards > WidgetCard', function () {
         currentWidgetDragging={false}
         showContextMenu
         widgetLimitReached={false}
-      />,
-      {context: routerContext}
+      />
     );
 
     userEvent.click(await screen.findByLabelText('Widget actions'));
@@ -184,8 +180,7 @@ describe('Dashboards > WidgetCard', function () {
         currentWidgetDragging={false}
         showContextMenu
         widgetLimitReached={false}
-      />,
-      {context: routerContext}
+      />
     );
 
     userEvent.click(await screen.findByLabelText('Widget actions'));
@@ -226,8 +221,7 @@ describe('Dashboards > WidgetCard', function () {
         currentWidgetDragging={false}
         showContextMenu
         widgetLimitReached={false}
-      />,
-      {context: routerContext}
+      />
     );
 
     userEvent.click(await screen.findByLabelText('Widget actions'));
@@ -265,8 +259,7 @@ describe('Dashboards > WidgetCard', function () {
         currentWidgetDragging={false}
         showContextMenu
         widgetLimitReached={false}
-      />,
-      {context: routerContext}
+      />
     );
 
     userEvent.click(await screen.findByLabelText('Widget actions'));
@@ -305,8 +298,7 @@ describe('Dashboards > WidgetCard', function () {
         currentWidgetDragging={false}
         showContextMenu
         widgetLimitReached={false}
-      />,
-      {context: routerContext}
+      />
     );
 
     userEvent.click(await screen.findByLabelText('Widget actions'));
@@ -618,8 +610,7 @@ describe('Dashboards > WidgetCard', function () {
         showWidgetViewerButton
         index="10"
         isPreview
-      />,
-      {context: routerContext}
+      />
     );
 
     userEvent.click(await screen.findByLabelText('Open Widget Viewer'));
@@ -660,8 +651,7 @@ describe('Dashboards > WidgetCard', function () {
         showContextMenu
         widgetLimitReached={false}
         showStoredAlert
-      />,
-      {context: routerContext}
+      />
     );
 
     await waitFor(() => {
@@ -832,8 +822,7 @@ describe('Dashboards > WidgetCard', function () {
           showContextMenu
           widgetLimitReached={false}
           showStoredAlert
-        />,
-        {context: routerContext}
+        />
       );
 
       await waitFor(() => {
@@ -909,8 +898,7 @@ describe('Dashboards > WidgetCard', function () {
           currentWidgetDragging={false}
           showContextMenu
           widgetLimitReached={false}
-        />,
-        {context: routerContext}
+        />
       );
       await waitFor(function () {
         expect(eventsStatsMock).toHaveBeenCalled();
@@ -944,8 +932,7 @@ describe('Dashboards > WidgetCard', function () {
           showContextMenu
           widgetLimitReached={false}
           isPreview
-        />,
-        {context: routerContext}
+        />
       );
 
       expect(await screen.findByText('Indexed')).toBeInTheDocument();

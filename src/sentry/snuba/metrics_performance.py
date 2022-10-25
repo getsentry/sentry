@@ -109,7 +109,7 @@ def query(
                 for column, function_details in metrics_query.function_alias_map.items()
             }
 
-        results = discover.transform_results(results, metrics_query, translated_columns, None)
+        results = discover.transform_results(results, metrics_query, translated_columns)
         results = resolve_tags(results, metrics_query)
         results["meta"]["isMetricsData"] = True
         sentry_sdk.set_tag("performance.dataset", "metrics")
@@ -160,7 +160,7 @@ def timeseries_query(
                 sentry_sdk.set_tag("query.mep_compatible", True)
                 return
         with sentry_sdk.start_span(op="mep", description="query.transform_results"):
-            result = discover.transform_results(result, metrics_query, {}, None)
+            result = discover.transform_results(result, metrics_query, {})
             result["data"] = (
                 discover.zerofill(
                     result["data"],

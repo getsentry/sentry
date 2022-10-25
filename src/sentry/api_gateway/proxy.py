@@ -15,7 +15,7 @@ from sentry.api.exceptions import RequestTimeout
 PROXY_CHUNK_SIZE = 512 * 1024
 
 
-def _parse_response(response: ExternalResponse) -> StreamingHttpResponse:
+def _parse_response(response: ExternalResponse, remote_url: str) -> StreamingHttpResponse:
     """
     Convert the Responses class from requests into the drf Response
     """
@@ -31,6 +31,7 @@ def _parse_response(response: ExternalResponse) -> StreamingHttpResponse:
     # Add Headers to response
     for header, value in response.headers.items():
         streamed_response[header] = value
+    streamed_response["X-Sentry-Proxy-URL"] = remote_url
     return streamed_response
 
 
@@ -56,4 +57,4 @@ def proxy_request(request: Request, org_slug: str) -> StreamingHttpResponse:
         # remote silo timeout. Use DRF timeout instead
         raise RequestTimeout()
 
-    return _parse_response(resp)
+    return _parse_response(resp, target_url)

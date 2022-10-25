@@ -8,19 +8,13 @@ import {DashboardsMEPContext} from 'sentry/views/dashboardsV2/widgetCard/dashboa
 import WidgetQueries, {
   flattenMultiSeriesDataWithGrouping,
 } from 'sentry/views/dashboardsV2/widgetCard/widgetQueries';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 describe('Dashboards > WidgetQueries', function () {
-  const initialData = initializeOrg({
-    organization: TestStubs.Organization(),
-  });
+  const initialData = initializeOrg();
 
-  const renderWithProviders = (component, context) =>
+  const renderWithProviders = component =>
     render(
-      <OrganizationContext.Provider value={initialData.organization}>
-        <MEPSettingProvider forceTransactions={false}>{component}</MEPSettingProvider>
-      </OrganizationContext.Provider>,
-      context
+      <MEPSettingProvider forceTransactions={false}>{component}</MEPSettingProvider>
     );
 
   const multipleQueryWidget = {
@@ -736,33 +730,31 @@ describe('Dashboards > WidgetQueries', function () {
 
     // Simulate a re-render with a new query alias
     rerender(
-      <OrganizationContext.Provider value={initialData.organization}>
-        <MEPSettingProvider forceTransactions={false}>
-          <WidgetQueries
-            api={api}
-            widget={{
-              ...lineWidget,
-              queries: [
-                {
-                  conditions: 'event.type:error',
-                  fields: ['count()'],
-                  aggregates: ['count()'],
-                  columns: [],
-                  name: 'this query alias changed',
-                  orderby: '',
-                },
-              ],
-            }}
-            organization={initialData.organization}
-            selection={selection}
-          >
-            {props => {
-              childProps = props;
-              return <div data-test-id="child" />;
-            }}
-          </WidgetQueries>
-        </MEPSettingProvider>
-      </OrganizationContext.Provider>
+      <MEPSettingProvider forceTransactions={false}>
+        <WidgetQueries
+          api={api}
+          widget={{
+            ...lineWidget,
+            queries: [
+              {
+                conditions: 'event.type:error',
+                fields: ['count()'],
+                aggregates: ['count()'],
+                columns: [],
+                name: 'this query alias changed',
+                orderby: '',
+              },
+            ],
+          }}
+          organization={initialData.organization}
+          selection={selection}
+        >
+          {props => {
+            childProps = props;
+            return <div data-test-id="child" />;
+          }}
+        </WidgetQueries>
+      </MEPSettingProvider>
     );
 
     // Did not re-query

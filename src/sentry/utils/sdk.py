@@ -114,6 +114,7 @@ SAMPLED_TASKS = {
     "sentry.replays.tasks.delete_recording_segments": settings.SAMPLED_DEFAULT_RATE,
     "sentry.tasks.weekly_reports.schedule_organizations": settings.SAMPLED_DEFAULT_RATE,
     "sentry.tasks.weekly_reports.prepare_organization_report": 0.1,
+    "sentry.profiles.task.process_profile": 0.01,
 }
 
 if settings.ADDITIONAL_SAMPLED_TASKS:
@@ -401,6 +402,9 @@ def configure_sdk():
         ],
         **sdk_options,
     )
+
+    if settings.SENTRY_PROFILING_ENABLED:
+        sentry_sdk.set_tag("sentry.profiler", settings.SENTRY_PROFILER_MODE)
 
 
 class RavenShim:

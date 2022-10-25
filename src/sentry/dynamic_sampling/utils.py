@@ -1,38 +1,46 @@
-from typing import Any, List, TypedDict
-
-import sentry_sdk
-
-from sentry import quotas
-from sentry.models import Project
+from typing import Dict, List, Optional, TypedDict
 
 UNIFORM_RULE_RESERVED_ID = 0
 
 
-class NoneSampleRateException(Exception):
-    ...
+class Bias(TypedDict):
+    id: str
+    active: bool
+
+
+# These represent the biases that are applied to user by default as part of the adaptive dynamic sampling experience.
+# These can be overridden by the project details endpoint
+DEFAULT_BIASES: List[Bias] = [
+    {"id": "boostEnvironments", "active": True},
+    {
+        "id": "boostLatestRelease",
+        "active": True,
+    },
+    {"id": "ignoreHealthChecks", "active": True},
+]
+
+
+class Inner(TypedDict):
+    op: str
+    name: str
+    value: List[str]
+    options: Dict[str, bool]
 
 
 class Condition(TypedDict):
     op: str
-    inner: List[Any]
+    inner: List[Optional[Inner]]
 
 
-class UniformRule(TypedDict):
-    sampleRate: float
+class BaseRule(TypedDict):
+    sampleRate: Optional[float]
     type: str
     active: bool
     condition: Condition
     id: int
 
 
-def generate_uniform_rule(project: Project) -> UniformRule:
-    sample_rate = quotas.get_blended_sample_rate(project)
-    if sample_rate is None:
-        try:
-            raise Exception("get_blended_sample_rate returns none")
-        except Exception:
-            sentry_sdk.capture_exception()
-        raise NoneSampleRateException
+def generate_uniform_rule(sample_rate: Optional[float]) -> BaseRule:
     return {
         "sampleRate": sample_rate,
         "type": "trace",
@@ -42,4 +50,24 @@ def generate_uniform_rule(project: Project) -> UniformRule:
             "inner": [],
         },
         "id": UNIFORM_RULE_RESERVED_ID,
+    }
+
+
+def generate_environment_rule() -> BaseRule:
+    return {
+        "sampleRate": 1,
+        "type": "trace",
+        "condition": {
+            "op": "or",
+            "inner": [
+                {
+                    "op": "glob",
+                    "name": "trace.environment",
+                    "value": ["*dev*", "*test*"],
+                    "options": {"ignoreCase": True},
+                }
+            ],
+        },
+        "active": True,
+        "id": 1,
     }

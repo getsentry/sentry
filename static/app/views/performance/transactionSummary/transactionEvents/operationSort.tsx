@@ -18,7 +18,7 @@ type Props = {
   eventView: EventView;
   location: Location;
   tableMeta: TableData['meta'];
-  title: React.ComponentClass<TitleProps>;
+  title: React.ComponentType<TitleProps>;
 };
 
 type State = {
