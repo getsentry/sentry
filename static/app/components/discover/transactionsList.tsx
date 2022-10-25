@@ -229,7 +229,7 @@ class _TransactionsList extends Component<Props> {
     }
     return {
       ...tableData,
-      data: tableData?.data?.sort((a, b) => +Boolean(b.replayId) - +Boolean(a.replayId)),
+      data: tableData.data?.sort((a, b) => +Boolean(b.replayId) - +Boolean(a.replayId)),
     };
   }
 
