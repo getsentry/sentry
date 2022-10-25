@@ -16,7 +16,7 @@ import * as qs from 'query-string';
 import type {Client} from 'sentry/__mocks__/api';
 import ConfigStore from 'sentry/stores/configStore';
 
-import TestStubFixtures from '../../fixtures/js-stubs/types';
+import {makeLazyFixtures} from './sentry-test/loadFixtures';
 
 // needed by cbor-web for webauthn
 window.TextEncoder = TextEncoder;
@@ -210,93 +210,10 @@ const routerFixtures = {
   }),
 };
 
-type TestStubTypes = TestStubFixtures & typeof routerFixtures;
 const jsFixturesDirectory = path.resolve(__dirname, '../../fixtures/js-stubs/');
+const fixtures = makeLazyFixtures(jsFixturesDirectory, routerFixtures);
 
-const extensions = ['.js', '.ts', '.tsx', '.json'];
-
-const specialMapping = {
-  AllAuthenticators: 'authenticators.js',
-  OrgRoleList: 'roleList.js',
-  MetricsField: 'metrics.js',
-  EventsStats: 'events.js',
-  DetailedEvents: 'events.js',
-  Events: 'events.js',
-  OutcomesWithReason: 'outcomes.js',
-  SentryAppComponentAsync: 'sentryAppComponent.js',
-  EventStacktraceMessage: 'eventStacktraceException.js',
-  MetricsTotalCountByReleaseIn24h: 'metrics.js',
-  MetricsSessionUserCountByStatusByRelease: 'metrics.js',
-  MOCK_RESP_VERBOSE: 'ruleConditions.js',
-  SessionStatusCountByProjectInPeriod: 'sessions.js',
-  SessionUserCountByStatusByRelease: 'sessions.js',
-  SessionUserCountByStatus: 'sessions.js',
-  SessionStatusCountByReleaseInPeriod: 'sessions.js',
-  SessionsField: 'sessions.js',
-  ProviderList: 'integrationListDirectory.js',
-  BitbucketIntegrationConfig: 'integrationListDirectory.js',
-  GitHubIntegration: 'githubIntegration.js',
-  GitHubRepositoryProvider: 'githubRepositoryProvider.js',
-  GitHubIntegrationProvider: 'githubIntegrationProvider.js',
-  GitHubIntegrationConfig: 'integrationListDirectory.js',
-  OrgOwnedApps: 'integrationListDirectory.js',
-  PublishedApps: 'integrationListDirectory.js',
-  SentryAppInstalls: 'integrationListDirectory.js',
-  PluginListConfig: 'integrationListDirectory.js',
-  DiscoverSavedQuery: 'discover.js',
-  VercelProvider: 'vercelIntegration.js',
-  TagValues: 'tagvalues.js',
-};
-
-function tryRequire(dir: string, name: string): any {
-  if (specialMapping[name]) {
-    return require(path.resolve(dir, specialMapping[name]));
-  }
-  for (const ext of extensions) {
-    try {
-      return require(path.resolve(dir, lowercaseFirst(name) + ext));
-    } catch {
-      // ignore
-    }
-  }
-  throw new Error('Failed to resolve file');
-}
-
-function lowercaseFirst(value: string): string {
-  return value.charAt(0).toLowerCase() + value.slice(1);
-}
-
-const lazyFixtures = new Proxy(
-  {},
-  {
-    get(target, prop: string) {
-      if (target[prop]) {
-        return target[prop];
-      }
-      if (routerFixtures[prop]) {
-        return routerFixtures[prop];
-      }
-
-      try {
-        const maybeModule = tryRequire(jsFixturesDirectory, prop);
-        for (const exportKey in maybeModule) {
-          target[exportKey] = maybeModule[exportKey];
-        }
-      } catch {
-        // ignore
-      }
-
-      if (target[prop] === undefined) {
-        return () => {
-          throw new Error(`Fixture ${prop} does not exist`);
-        };
-      }
-      return target[prop];
-    },
-  }
-) as TestStubTypes;
-
-ConfigStore.loadInitialData(lazyFixtures.Config());
+ConfigStore.loadInitialData(fixtures.Config());
 
 /**
  * Test Globals
@@ -307,7 +224,7 @@ declare global {
    * directory. Use these for setting up test data.
    */
   // eslint-disable-next-line no-var
-  var TestStubs: TestStubTypes;
+  var TestStubs: typeof fixtures;
   /**
    * Generates a promise that resolves on the next macro-task
    */
@@ -320,7 +237,7 @@ declare global {
   var MockApiClient: typeof Client;
 }
 
-window.TestStubs = lazyFixtures as TestStubTypes;
+window.TestStubs = fixtures;
 
 // This is so we can use async/await in tests instead of wrapping with `setTimeout`.
 window.tick = () => new Promise(resolve => setTimeout(resolve));
