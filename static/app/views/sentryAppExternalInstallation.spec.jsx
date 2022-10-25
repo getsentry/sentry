@@ -1,19 +1,18 @@
+import selectEvent from 'react-select-event';
 import pick from 'lodash/pick';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {selectByValue} from 'sentry-test/select-new';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import SentryAppExternalInstallation from 'sentry/views/sentryAppExternalInstallation';
 
 describe('SentryAppExternalInstallation', () => {
   let sentryApp,
-    wrapper,
     getOrgsMock,
     getOrgMock,
     getAppMock,
     getInstallationsMock,
     getFeaturesMock,
-    getMountedComponent,
     org1,
     org1Lite,
     org2,
@@ -56,11 +55,6 @@ describe('SentryAppExternalInstallation', () => {
       statusCode: 200,
       body: {},
     });
-
-    getMountedComponent = () =>
-      mountWithTheme(
-        <SentryAppExternalInstallation params={{sentryAppSlug: sentryApp.slug}} />
-      );
   });
 
   describe('single organization', () => {
@@ -81,17 +75,21 @@ describe('SentryAppExternalInstallation', () => {
       });
     });
 
-    it('sets the org automatically', async () => {
-      wrapper = getMountedComponent();
-      await tick();
+    it('sets the org automatically', () => {
+      render(<SentryAppExternalInstallation params={{sentryAppSlug: sentryApp.slug}} />);
 
       expect(getAppMock).toHaveBeenCalled();
       expect(getOrgsMock).toHaveBeenCalled();
       expect(getOrgMock).toHaveBeenCalled();
       expect(getInstallationsMock).toHaveBeenCalled();
-      expect(getFeaturesMock).toHaveBeenCalled();
-      expect(wrapper.state('organization')).toBe(org1);
-      expect(wrapper.find('.Select-multi-value-wrapper')).toHaveLength(0);
+      expect(
+        screen.getByText(
+          textWithMarkupMatcher(
+            'You are installing Sample App for organization Organization 1'
+          )
+        )
+      ).toBeInTheDocument();
+      expect(screen.queryByText('Select an organization')).not.toBeInTheDocument();
     });
 
     it('installs and redirects', async () => {
@@ -106,13 +104,9 @@ describe('SentryAppExternalInstallation', () => {
         body: install,
       });
 
-      wrapper = getMountedComponent();
-      await tick();
-      wrapper.update();
+      render(<SentryAppExternalInstallation params={{sentryAppSlug: sentryApp.slug}} />);
 
-      const button = wrapper.find('Button[data-test-id="install"]');
-      button.simulate('click');
-      await tick();
+      userEvent.click(await screen.findByTestId('install'));
 
       expect(installMock).toHaveBeenCalledWith(
         installUrl,
@@ -121,9 +115,12 @@ describe('SentryAppExternalInstallation', () => {
         })
       );
 
-      expect(window.location.assign).toHaveBeenCalledWith(
-        `https://google.com/?code=${install.code}&installationId=${install.uuid}&orgSlug=${org1.slug}`
-      );
+      await waitFor(() => {
+        expect(window.location.assign).toHaveBeenCalledWith(
+          `https://google.com/?code=${install.code}&installationId=${install.uuid}&orgSlug=${org1.slug}`
+        );
+      });
+
       window.location.assign.mockClear();
     });
   });
@@ -136,14 +133,12 @@ describe('SentryAppExternalInstallation', () => {
       });
     });
 
-    it('renders org dropdown', async () => {
-      wrapper = getMountedComponent();
-      await tick();
+    it('renders org dropdown', () => {
+      render(<SentryAppExternalInstallation params={{sentryAppSlug: sentryApp.slug}} />);
 
       expect(getAppMock).toHaveBeenCalled();
       expect(getOrgsMock).toHaveBeenCalled();
-      expect(wrapper.state('organization')).toBeNull();
-      expect(wrapper.find('SelectControl')).toHaveLength(1);
+      expect(screen.getByText('Select an organization')).toBeInTheDocument();
     });
 
     it('selecting org from dropdown loads the org through the API', async () => {
@@ -157,20 +152,19 @@ describe('SentryAppExternalInstallation', () => {
         body: [],
       });
 
-      wrapper = getMountedComponent();
-      await tick();
-      wrapper.update();
+      render(<SentryAppExternalInstallation params={{sentryAppSlug: sentryApp.slug}} />);
 
-      selectByValue(wrapper, 'org2', {control: true});
+      await selectEvent.select(screen.getByText('Select an organization'), 'org2');
 
-      await tick();
-      wrapper.update();
-
-      expect(wrapper.state('selectedOrgSlug')).toBe(org2.slug);
-      expect(wrapper.state('organization')).toBe(org2);
-      expect(getOrgMock).toHaveBeenCalled();
+      expect(getOrgMock).toHaveBeenCalledTimes(1);
+      expect(getOrgMock).toHaveBeenLastCalledWith(
+        '/organizations/org2/',
+        expect.anything()
+      );
       expect(getInstallationsMock).toHaveBeenCalled();
       expect(getFeaturesMock).toHaveBeenCalled();
+
+      await waitFor(() => expect(screen.getByTestId('install')).toBeEnabled());
     });
   });
 });
