@@ -6,10 +6,15 @@ from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
-class TestCommitContext(TestCase):
+class TestIdentfiyStacktracePaths(TestCase):
     def setUp(self):
-        self.organization = self.create_organization(status=OrganizationStatus.ACTIVE)
-        self.project = self.create_project(organization=self.organization)
+        self.organization = self.create_organization(
+            status=OrganizationStatus.ACTIVE,
+        )
+        self.project = self.create_project(
+            organization=self.organization,
+            platform="python",
+        )
         self.test_data_1 = {
             "message": "Kaboom!",
             "platform": "python",
@@ -46,10 +51,7 @@ class TestCommitContext(TestCase):
         self.store_event(data=self.test_data_1, project_id=self.project.id)
 
         with self.tasks():
-            mapping = identify_stacktrace_paths([self.organization])
-        assert self.organization.slug in mapping
-
-        stacktrace_paths = mapping[self.organization.slug]
+            stacktrace_paths = identify_stacktrace_paths(self.organization)
         assert self.project.slug in stacktrace_paths
         assert sorted(stacktrace_paths[self.project.slug]) == [
             "sentry/models/release.py",
@@ -57,14 +59,15 @@ class TestCommitContext(TestCase):
         ]
 
     def test_finds_stacktrace_paths_multiple_projects(self):
-        project_2 = self.create_project(organization=self.organization)
+        project_2 = self.create_project(
+            organization=self.organization,
+            platform="python",
+        )
         self.store_event(data=self.test_data_1, project_id=self.project.id)
         self.store_event(data=self.test_data_2, project_id=project_2.id)
 
         with self.tasks():
-            mapping = identify_stacktrace_paths([self.organization])
-        assert self.organization.slug in mapping
-        stacktrace_paths = mapping[self.organization.slug]
+            stacktrace_paths = identify_stacktrace_paths(self.organization)
         assert self.project.slug in stacktrace_paths
         assert sorted(stacktrace_paths[self.project.slug]) == [
             "sentry/models/release.py",
@@ -76,38 +79,13 @@ class TestCommitContext(TestCase):
             "sentry/test_file.py",
         ]
 
-    def test_finds_stacktrace_paths_multiple_orgs(self):
-        new_org = self.create_organization()
-        new_project = self.create_project(organization=new_org)
-        self.store_event(self.test_data_1, project_id=self.project.id)
-        self.store_event(data=self.test_data_2, project_id=new_project.id)
-
-        with self.tasks():
-            mapping = identify_stacktrace_paths([self.organization, new_org])
-        assert self.organization.slug in mapping
-        stacktrace_paths = mapping[self.organization.slug]
-        assert self.project.slug in stacktrace_paths
-        assert sorted(stacktrace_paths[self.project.slug]) == [
-            "sentry/models/release.py",
-            "sentry/tasks.py",
-        ]
-        assert new_org.slug in mapping
-        stacktrace_paths = mapping[new_org.slug]
-        assert new_project.slug in stacktrace_paths
-        assert sorted(stacktrace_paths[new_project.slug]) == [
-            "sentry/models/test_file.py",
-            "sentry/test_file.py",
-        ]
-
     def test_skips_stale_projects(self):
         stale_event = deepcopy(self.test_data_1)
         stale_event["timestamp"] = iso_format(before_now(days=8))
         self.store_event(data=stale_event, project_id=self.project.id)
 
         with self.tasks():
-            mapping = identify_stacktrace_paths()
-        assert self.organization.slug in mapping
-        stacktrace_paths = mapping[self.organization.slug]
+            stacktrace_paths = identify_stacktrace_paths(self.organization)
         assert self.project.slug not in stacktrace_paths
 
     def test_skips_outdated_events(self):
@@ -117,9 +95,21 @@ class TestCommitContext(TestCase):
         self.store_event(data=stale_event, project_id=self.project.id)
 
         with self.tasks():
-            mapping = identify_stacktrace_paths([self.organization])
-        assert self.organization.slug in mapping
-        stacktrace_paths = mapping[self.organization.slug]
+            stacktrace_paths = identify_stacktrace_paths(self.organization)
+        assert self.project.slug in stacktrace_paths
+        assert sorted(stacktrace_paths[self.project.slug]) == [
+            "sentry/models/release.py",
+            "sentry/tasks.py",
+        ]
+
+    def test_skips_nonpython_projects(self):
+        self.store_event(self.test_data_1, project_id=self.project.id)
+        nonpython_event = deepcopy(self.test_data_2)
+        nonpython_event["platform"] = "javascript"
+        self.store_event(data=nonpython_event, project_id=self.project.id)
+
+        with self.tasks():
+            stacktrace_paths = identify_stacktrace_paths(self.organization)
         assert self.project.slug in stacktrace_paths
         assert sorted(stacktrace_paths[self.project.slug]) == [
             "sentry/models/release.py",
@@ -133,9 +123,7 @@ class TestCommitContext(TestCase):
         self.store_event(data=duplicate_event, project_id=self.project.id)
 
         with self.tasks():
-            mapping = identify_stacktrace_paths([self.organization])
-        assert self.organization.slug in mapping
-        stacktrace_paths = mapping[self.organization.slug]
+            stacktrace_paths = identify_stacktrace_paths(self.organization)
         assert self.project.slug in stacktrace_paths
         assert sorted(stacktrace_paths[self.project.slug]) == [
             "sentry/models/release.py",
