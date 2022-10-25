@@ -55,6 +55,8 @@ export function makeLazyloadComponent<C extends React.ComponentType<any>>(
 ) {
   // XXX: Assign the component to a variable so it has a displayname
   const RouteLazyLoad: React.FC<React.ComponentProps<C>> = props => {
+    // we can use this hook to set the organization as it's
+    // a child of the organization context
     return <SafeLazyLoad {...props} component={resolve} />;
   };
 

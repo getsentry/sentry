@@ -8,15 +8,18 @@ import ConfigStore from 'sentry/stores/configStore';
 import {PersistedStoreProvider} from 'sentry/stores/persistedStore';
 import {RouteContext} from 'sentry/views/routeContext';
 
+import RouteAnalyticsContextProvider from './views/routeAnalyticsContextProvider';
 /**
  * Renders our compatability RouteContext.Provider. This will go away with
  * react-router v6.
  */
 function renderRouter(props: any) {
   return (
-    <RouteContext.Provider value={props}>
-      <RouterContext {...props} />
-    </RouteContext.Provider>
+    <RouteAnalyticsContextProvider {...props}>
+      <RouteContext.Provider value={props}>
+        <RouterContext {...props} />
+      </RouteContext.Provider>
+    </RouteAnalyticsContextProvider>
   );
 }
 

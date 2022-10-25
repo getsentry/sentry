@@ -3,6 +3,7 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {Project} from 'sentry/types';
+import useRouteAnalyticsHookSetup from 'sentry/utils/routeAnalytics/useRouteAnalyticsHookSetup';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
@@ -12,6 +13,7 @@ type Props = {
 
 function IssueListContainer({children}: Props) {
   const organization = useOrganization();
+  useRouteAnalyticsHookSetup();
 
   return (
     <SentryDocumentTitle title={t('Issues')} orgSlug={organization.slug}>

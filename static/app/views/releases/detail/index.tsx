@@ -28,6 +28,9 @@ import {
   SessionFieldWithOperation,
 } from 'sentry/types';
 import {formatVersion} from 'sentry/utils/formatters';
+import withRouteAnalytics, {
+  WithRouteAnalyticsProps,
+} from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import {getCount} from 'sentry/utils/sessions';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -54,11 +57,12 @@ type RouteParams = {
   release: string;
 };
 
-type Props = RouteComponentProps<RouteParams, {}> & {
-  organization: Organization;
-  releaseMeta: ReleaseMeta;
-  selection: PageFilters;
-};
+type Props = RouteComponentProps<RouteParams, {}> &
+  WithRouteAnalyticsProps & {
+    organization: Organization;
+    releaseMeta: ReleaseMeta;
+    selection: PageFilters;
+  };
 
 type State = {
   deploys: Deploy[];
@@ -253,6 +257,7 @@ class ReleasesDetailContainer extends AsyncComponent<
 
   componentDidMount() {
     this.removeGlobalDateTimeFromUrl();
+    this.props.setRouteAnalyticsParams({release: this.props.params.release});
   }
 
   componentDidUpdate(
@@ -375,4 +380,6 @@ const ProjectsFooterMessage = styled('div')`
 `;
 
 export {ReleaseContext, ReleasesDetailContainer};
-export default withPageFilters(withOrganization(ReleasesDetailContainer));
+export default withRouteAnalytics(
+  withPageFilters(withOrganization(ReleasesDetailContainer))
+);

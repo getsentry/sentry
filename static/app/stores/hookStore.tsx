@@ -8,21 +8,31 @@ interface Internals {
   // union that it complains is 'too complex'
   hooks: any;
 }
+// TODO: Make generic and match against a map of allowed callbacks if we expand this pattern.
+type HookCallback = (...args: any[]) => void;
 
 interface HookStoreDefinition extends StoreDefinition, Internals {
   add<H extends HookName>(hookName: H, callback: Hooks[H]): void;
   get<H extends HookName>(hookName: H): Array<Hooks[H]>;
+  getCallback<H extends HookName>(hookName: H, key: string): HookCallback | undefined;
+  persistCallback<H extends HookName>(
+    hookName: H,
+    key: string,
+    value: HookCallback
+  ): void;
   remove<H extends HookName>(hookName: H, callback: Hooks[H]): void;
 }
 
 const storeConfig: HookStoreDefinition = {
   hooks: {},
+  hookCallbacks: {},
 
   init() {
     // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
     // listeners due to their leaky nature in tests.
 
     this.hooks = {};
+    this.hookCallbacks = {}; // For persisting hook pure functions / useX react hooks remotely.
   },
 
   add(hookName, callback) {
@@ -44,6 +54,19 @@ const storeConfig: HookStoreDefinition = {
 
   get(hookName) {
     return this.hooks[hookName]! || [];
+  },
+
+  persistCallback(hookName, key, value) {
+    if (this.hookCallbacks[hookName] === undefined) {
+      this.hookCallbacks[hookName] = {};
+    }
+    if (this.hookCallbacks[hookName][key] !== value) {
+      this.hookCallbacks[hookName][key] = value;
+    }
+  },
+
+  getCallback(hookName, key) {
+    return this.hookCallbacks[hookName]?.[key];
   },
 };
 
