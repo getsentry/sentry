@@ -20,9 +20,15 @@ from sentry_sdk import Hub, capture_exception
 from sentry import features, killswitches, quotas, utils
 from sentry.constants import ObjectStatus
 from sentry.datascrubbing import get_datascrubbing_settings, get_pii_config
+<<<<<<< HEAD
 
 <<<<<<< HEAD
+||||||| parent of a4faf00b39 (feat(ds): Send boosted releases to relay as part of ProjectConfig [TET-497] (#40415))
+from sentry.dynamic_sampling import generate_rules
+=======
+>>>>>>> a4faf00b39 (feat(ds): Send boosted releases to relay as part of ProjectConfig [TET-497] (#40415))
 from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
+<<<<<<< HEAD
 from sentry.dynamic_sampling.rules_generator import generate_rules
 
 ||||||| parent of 1f195d7423 (fixup!)
@@ -38,6 +44,10 @@ from sentry.dynamic_sampling import generate_rules
 from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
 
 >>>>>>> 7c6741469a (feat(dyn-sampling): Switch to new feature  flag multiplexer in projectconfig (#40498))
+||||||| parent of a4faf00b39 (feat(ds): Send boosted releases to relay as part of ProjectConfig [TET-497] (#40415))
+=======
+from sentry.dynamic_sampling.rules_generator import generate_rules
+>>>>>>> a4faf00b39 (feat(ds): Send boosted releases to relay as part of ProjectConfig [TET-497] (#40415))
 from sentry.grouping.api import get_grouping_config_dict_for_project
 from sentry.ingest.inbound_filters import (
     FilterStatKeys,

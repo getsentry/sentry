@@ -1,5 +1,10 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 from enum import Enum
+||||||| parent of a4faf00b39 (feat(ds): Send boosted releases to relay as part of ProjectConfig [TET-497] (#40415))
+=======
+from enum import Enum
+>>>>>>> a4faf00b39 (feat(ds): Send boosted releases to relay as part of ProjectConfig [TET-497] (#40415))
 from typing import Dict, List, Optional, TypedDict
 ||||||| parent of 1f195d7423 (fixup!)
 from typing import Any, List, TypedDict
@@ -22,10 +27,17 @@ import sentry_sdk
 from sentry import quotas
 from sentry.models import Project
 
+<<<<<<< HEAD
 UNIFORM_RULE_RESERVED_ID = 0
 =======
 UNIFORM_RULE_RESERVED_ID = 0
 >>>>>>> e04f4b0895 (fixup tests!)
+||||||| parent of a4faf00b39 (feat(ds): Send boosted releases to relay as part of ProjectConfig [TET-497] (#40415))
+UNIFORM_RULE_RESERVED_ID = 0
+=======
+BOOSTED_RELEASES_LIMIT = 10
+RELEASE_BOOST_FACTOR = 5
+>>>>>>> a4faf00b39 (feat(ds): Send boosted releases to relay as part of ProjectConfig [TET-497] (#40415))
 
 
 class Bias(TypedDict):
@@ -35,6 +47,7 @@ class Bias(TypedDict):
 
 # These represent the biases that are applied to user by default as part of the adaptive dynamic sampling experience.
 # These can be overridden by the project details endpoint
+<<<<<<< HEAD
 <<<<<<< HEAD
 class RuleType(Enum):
     UNIFORM_RULE = "uniformRule"
@@ -49,9 +62,25 @@ DEFAULT_BIASES: List[Bias] = [
 DEFAULT_BIASES = [
     {"id": "boostEnvironments", "active": True},
 =======
+||||||| parent of a4faf00b39 (feat(ds): Send boosted releases to relay as part of ProjectConfig [TET-497] (#40415))
+=======
+class RuleType(Enum):
+    UNIFORM_RULE = "uniformRule"
+    BOOST_ENVIRONMENTS_RULE = "boostEnvironments"
+    BOOST_LATEST_RELEASES_RULE = "boostLatestRelease"
+    IGNORE_HEALTHCHECKS_RULE = "ignoreHealthChecks"
+
+
+>>>>>>> a4faf00b39 (feat(ds): Send boosted releases to relay as part of ProjectConfig [TET-497] (#40415))
 DEFAULT_BIASES: List[Bias] = [
+<<<<<<< HEAD
     {"id": "boostEnvironments", "active": True},
 >>>>>>> a2a252608a (Add missing type hints)
+||||||| parent of a4faf00b39 (feat(ds): Send boosted releases to relay as part of ProjectConfig [TET-497] (#40415))
+    {"id": "boostEnvironments", "active": True},
+=======
+    {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": True},
+>>>>>>> a4faf00b39 (feat(ds): Send boosted releases to relay as part of ProjectConfig [TET-497] (#40415))
     {
         "id": RuleType.BOOST_LATEST_RELEASES_RULE.value,
         "active": True,
@@ -116,6 +145,7 @@ class BaseRule(TypedDict):
 
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 class TimeRange(TypedDict):
     start: str
     end: str
@@ -154,8 +184,26 @@ def generate_uniform_rule(sample_rate: Optional[float]) -> BaseRule:
         },
         "id": UNIFORM_RULE_RESERVED_ID,
     }
+||||||| parent of a4faf00b39 (feat(ds): Send boosted releases to relay as part of ProjectConfig [TET-497] (#40415))
+def generate_uniform_rule(sample_rate: Optional[float]) -> BaseRule:
+    return {
+        "sampleRate": sample_rate,
+        "type": "trace",
+        "active": True,
+        "condition": {
+            "op": "and",
+            "inner": [],
+        },
+        "id": UNIFORM_RULE_RESERVED_ID,
+    }
+=======
+class TimeRange(TypedDict):
+    start: str
+    end: str
+>>>>>>> a4faf00b39 (feat(ds): Send boosted releases to relay as part of ProjectConfig [TET-497] (#40415))
 
 
+<<<<<<< HEAD
 def generate_environment_rule() -> BaseRule:
     return {
         "sampleRate": 1,
@@ -227,3 +275,26 @@ def generate_rules(project: Project, enable_environment_bias=False):
     return rules
 =======
 >>>>>>> e04f4b0895 (fixup tests!)
+||||||| parent of a4faf00b39 (feat(ds): Send boosted releases to relay as part of ProjectConfig [TET-497] (#40415))
+def generate_environment_rule() -> BaseRule:
+    return {
+        "sampleRate": 1,
+        "type": "trace",
+        "condition": {
+            "op": "or",
+            "inner": [
+                {
+                    "op": "glob",
+                    "name": "trace.environment",
+                    "value": ["*dev*", "*test*"],
+                    "options": {"ignoreCase": True},
+                }
+            ],
+        },
+        "active": True,
+        "id": 1,
+    }
+=======
+class ReleaseRule(BaseRule):
+    timeRange: Optional[TimeRange]
+>>>>>>> a4faf00b39 (feat(ds): Send boosted releases to relay as part of ProjectConfig [TET-497] (#40415))

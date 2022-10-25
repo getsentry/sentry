@@ -76,7 +76,7 @@ DEFAULT_ENVIRONMENT_RULE = {
         ],
     },
     "active": True,
-    "id": 1,
+    "id": 1001,
 }
 
 
@@ -292,6 +292,7 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
                         "active": True,
                         "condition": {"op": "and", "inner": []},
 <<<<<<< HEAD
+<<<<<<< HEAD
                         "id": 1000,
                     },
 ||||||| parent of e04f4b0895 (fixup tests!)
@@ -299,6 +300,11 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
                     }
 =======
                         "id": 0,
+||||||| parent of a4faf00b39 (feat(ds): Send boosted releases to relay as part of ProjectConfig [TET-497] (#40415))
+                        "id": 0,
+=======
+                        "id": 1000,
+>>>>>>> a4faf00b39 (feat(ds): Send boosted releases to relay as part of ProjectConfig [TET-497] (#40415))
                     },
 >>>>>>> e04f4b0895 (fixup tests!)
                 ]
@@ -327,6 +333,7 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
                         "active": True,
                         "condition": {"op": "and", "inner": []},
 <<<<<<< HEAD
+<<<<<<< HEAD
                         "id": 1000,
                     },
 ||||||| parent of e04f4b0895 (fixup tests!)
@@ -334,6 +341,11 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
                     }
 =======
                         "id": 0,
+||||||| parent of a4faf00b39 (feat(ds): Send boosted releases to relay as part of ProjectConfig [TET-497] (#40415))
+                        "id": 0,
+=======
+                        "id": 1000,
+>>>>>>> a4faf00b39 (feat(ds): Send boosted releases to relay as part of ProjectConfig [TET-497] (#40415))
                     },
 >>>>>>> e04f4b0895 (fixup tests!)
                 ]
@@ -358,6 +370,7 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
                         "active": True,
                         "condition": {"op": "and", "inner": []},
 <<<<<<< HEAD
+<<<<<<< HEAD
                         "id": 1000,
                     },
 ||||||| parent of e04f4b0895 (fixup tests!)
@@ -365,6 +378,11 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
                     }
 =======
                         "id": 0,
+||||||| parent of a4faf00b39 (feat(ds): Send boosted releases to relay as part of ProjectConfig [TET-497] (#40415))
+                        "id": 0,
+=======
+                        "id": 1000,
+>>>>>>> a4faf00b39 (feat(ds): Send boosted releases to relay as part of ProjectConfig [TET-497] (#40415))
                     },
 >>>>>>> e04f4b0895 (fixup tests!)
                 ]
@@ -389,6 +407,7 @@ def test_project_config_with_uniform_rules_based_on_plan_in_dynamic_sampling_rul
     ):
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
         with mock.patch(
             "sentry.dynamic_sampling.rules_generator.quotas.get_blended_sample_rate",
             return_value=0.1,
@@ -405,6 +424,14 @@ def test_project_config_with_uniform_rules_based_on_plan_in_dynamic_sampling_rul
 =======
         with mock.patch("sentry.dynamic_sampling.quotas.get_blended_sample_rate", return_value=0.1):
 >>>>>>> 6d0e441256 (resolve conflicts)
+||||||| parent of a4faf00b39 (feat(ds): Send boosted releases to relay as part of ProjectConfig [TET-497] (#40415))
+        with mock.patch("sentry.dynamic_sampling.quotas.get_blended_sample_rate", return_value=0.1):
+=======
+        with mock.patch(
+            "sentry.dynamic_sampling.rules_generator.quotas.get_blended_sample_rate",
+            return_value=0.1,
+        ):
+>>>>>>> a4faf00b39 (feat(ds): Send boosted releases to relay as part of ProjectConfig [TET-497] (#40415))
             cfg = get_project_config(default_project)
 
     cfg = cfg.to_dict()
