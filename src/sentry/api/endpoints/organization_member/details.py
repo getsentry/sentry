@@ -205,7 +205,11 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 with TimedRetryPolicy(10)(lock.acquire):
                     if "teamRoles" in result:
                         # If orgs do not have the flag, we'll set their team-roles to None
-                        team_roles = result.get("teamRoles") if features.has("organizations:team-roles", organization) else [(team, None) for team, _ in result.get("teamRoles", [])]
+                        team_roles = (
+                            result.get("teamRoles")
+                            if features.has("organizations:team-roles", organization)
+                            else [(team, None) for team, _ in result.get("teamRoles", [])]
+                        )
                         save_team_assignments(member, None, team_roles)
                     elif "teams" in result:
                         save_team_assignments(member, result.get("teams"))
