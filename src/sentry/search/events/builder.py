@@ -272,6 +272,7 @@ class QueryBuilder:
         from sentry.search.events.datasets.discover import DiscoverDatasetConfig
         from sentry.search.events.datasets.metrics import MetricsDatasetConfig
         from sentry.search.events.datasets.metrics_layer import MetricsLayerDatasetConfig
+        from sentry.search.events.datasets.profiles import ProfilesDatasetConfig
         from sentry.search.events.datasets.sessions import SessionsDatasetConfig
 
         self.config: DatasetConfig
@@ -284,6 +285,8 @@ class QueryBuilder:
                 self.config = MetricsLayerDatasetConfig(self)
             else:
                 self.config = MetricsDatasetConfig(self)
+        elif self.dataset == Dataset.Profiles:
+            self.config = ProfilesDatasetConfig(self)
         else:
             raise NotImplementedError(f"Data Set configuration not found for {self.dataset}.")
 
