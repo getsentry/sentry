@@ -21,7 +21,7 @@ from django.conf import settings
 from sentry.constants import DataCategory
 from sentry.models import File
 from sentry.models.project import Project
-from sentry.replays.cache import RecordingSegmentPart, RecordingSegmentParts
+from sentry.replays.cache import RecordingSegmentCache, RecordingSegmentParts
 from sentry.replays.consumers.recording.types import (
     RecordingSegmentChunkMessage,
     RecordingSegmentHeaders,
@@ -75,7 +75,7 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
             segment_id=message_dict["id"],
         )
 
-        part = RecordingSegmentPart(cache_prefix)
+        part = RecordingSegmentCache(cache_prefix)
         part[message_dict["chunk_index"]] = message_dict["payload"]
 
     def _process_headers(
