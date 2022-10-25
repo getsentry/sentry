@@ -1,7 +1,7 @@
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.rules.filters.issue_category import IssueCategoryFilter
 from sentry.testutils import RuleTestCase, SnubaTestCase
-from sentry.testutils.perfomance_issues.store_transaction import PerfIssueTransactionTestMixin
+from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.types.issues import GroupCategory, GroupType
 
 
