@@ -171,7 +171,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         group: Group,
         error: serializers.ValidationError,
         action_type: str,
-    ):
+    ) -> Response:
         logger.info(
             "slack.action.validation-error",
             extra={
@@ -181,7 +181,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
             },
         )
 
-        text = list(*error.detail.values())[0]
+        text: str = list(*error.detail.values())[0]
         return self.respond_ephemeral(text)
 
     def on_assign(
