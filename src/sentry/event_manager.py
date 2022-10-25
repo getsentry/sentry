@@ -40,8 +40,11 @@ from sentry.constants import (
 )
 from sentry.culprit import generate_culprit
 from sentry.dynamic_sampling import DynamicSamplingFeatureMultiplexer
-from sentry.dynamic_sampling.latest_release_booster import (add_boosted_release, observe_release,
-    TooManyBoostedReleasesException)
+from sentry.dynamic_sampling.latest_release_booster import (
+    TooManyBoostedReleasesException,
+    add_boosted_release,
+    observe_release,
+)
 from sentry.eventstore.processing import event_processing_store
 from sentry.grouping.api import (
     BackgroundGroupingConfigLoader,
