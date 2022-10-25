@@ -215,7 +215,9 @@ describe('groupEvents', function () {
       expect(discoverRequest).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
         expect.objectContaining({
-          query: expect.objectContaining({query: 'performance.issue_ids:1 '}),
+          query: expect.objectContaining({
+            query: 'performance.issue_ids:1 event.type:transaction ',
+          }),
         })
       );
       const perfEventsColumn = screen.getByText('transaction');
