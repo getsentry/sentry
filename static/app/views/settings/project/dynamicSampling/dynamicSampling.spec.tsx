@@ -3,7 +3,6 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Organization, Project} from 'sentry/types';
 import {DynamicSamplingBiasType} from 'sentry/types/sampling';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import DynamicSampling from '.';
 
@@ -49,11 +48,7 @@ describe('Dynamic Sampling', function () {
 
     renderMockRequests(organization.slug, project.slug);
 
-    render(
-      <OrganizationContext.Provider value={organization}>
-        <DynamicSampling project={project} />
-      </OrganizationContext.Provider>
-    );
+    render(<DynamicSampling project={project} />, {organization});
 
     expect(screen.getByRole('heading', {name: /Dynamic Sampling/})).toBeInTheDocument();
 
@@ -100,11 +95,7 @@ describe('Dynamic Sampling', function () {
 
     renderMockRequests(organization.slug, project.slug);
 
-    render(
-      <OrganizationContext.Provider value={organization}>
-        <DynamicSampling project={project} />
-      </OrganizationContext.Provider>
-    );
+    render(<DynamicSampling project={project} />, {organization});
 
     expect(
       screen.getByText(
@@ -152,11 +143,7 @@ describe('Dynamic Sampling', function () {
 
     const mockRequests = renderMockRequests(organization.slug, project.slug);
 
-    render(
-      <OrganizationContext.Provider value={organization}>
-        <DynamicSampling project={project} />
-      </OrganizationContext.Provider>
-    );
+    render(<DynamicSampling project={project} />, {organization});
 
     userEvent.click(screen.getByRole('checkbox', {name: 'Prioritize new releases'}));
 

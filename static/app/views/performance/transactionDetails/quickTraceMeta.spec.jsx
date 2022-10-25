@@ -1,15 +1,6 @@
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import {OrganizationContext} from 'sentry/views/organizationContext';
 import QuickTraceMeta from 'sentry/views/performance/transactionDetails/quickTraceMeta';
-
-const WrappedQuickTraceMeta = ({organization, ...rest}) => {
-  return (
-    <OrganizationContext.Provider value={organization}>
-      <QuickTraceMeta {...rest} />
-    </OrganizationContext.Provider>
-  );
-};
 
 describe('QuickTraceMeta', function () {
   const routerContext = TestStubs.routerContext();
@@ -32,7 +23,7 @@ describe('QuickTraceMeta', function () {
 
   it('renders basic UI', function () {
     render(
-      <WrappedQuickTraceMeta
+      <QuickTraceMeta
         event={event}
         project={project}
         organization={organization}
@@ -54,7 +45,7 @@ describe('QuickTraceMeta', function () {
 
   it('renders placeholder while loading', function () {
     render(
-      <WrappedQuickTraceMeta
+      <QuickTraceMeta
         event={event}
         project={project}
         organization={organization}
@@ -80,7 +71,7 @@ describe('QuickTraceMeta', function () {
 
   it('renders errors', function () {
     render(
-      <WrappedQuickTraceMeta
+      <QuickTraceMeta
         event={event}
         project={project}
         organization={organization}
@@ -106,7 +97,7 @@ describe('QuickTraceMeta', function () {
   it('renders missing trace when trace id is not present', function () {
     const newEvent = TestStubs.Event();
     render(
-      <WrappedQuickTraceMeta
+      <QuickTraceMeta
         event={newEvent}
         project={project}
         organization={organization}
@@ -128,7 +119,7 @@ describe('QuickTraceMeta', function () {
     const newEvent = TestStubs.Event();
     const newOrg = TestStubs.Organization();
     render(
-      <WrappedQuickTraceMeta
+      <QuickTraceMeta
         event={newEvent}
         project={project}
         organization={newOrg}
@@ -156,7 +147,7 @@ describe('QuickTraceMeta', function () {
     const newProject = TestStubs.Project();
     const newEvent = TestStubs.Event();
     const result = render(
-      <WrappedQuickTraceMeta
+      <QuickTraceMeta
         event={newEvent}
         project={newProject}
         organization={organization}
