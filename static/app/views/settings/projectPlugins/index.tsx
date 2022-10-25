@@ -73,4 +73,6 @@ class ProjectPluginsContainer extends Component<Props> {
   }
 }
 
+export {ProjectPluginsContainer};
+
 export default withPlugins(ProjectPluginsContainer);
