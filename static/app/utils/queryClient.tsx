@@ -8,7 +8,9 @@ type QueryKeyEndpointOptions = {
   query?: Record<string, any>;
 };
 
-type QueryKey = readonly [string] | readonly [string, QueryKeyEndpointOptions];
+type QueryKey =
+  | readonly [url: string]
+  | readonly [url: string, options: QueryKeyEndpointOptions];
 
 type UseQueryOptions<TQueryFnData, TError, TData, TQueryKey extends QueryKey> = Omit<
   reactQuery.UseQueryOptions<TQueryFnData, TError, TData, TQueryKey>,
