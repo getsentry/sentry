@@ -5,6 +5,7 @@ import {Client} from 'sentry/api';
 import {QuickContextCommitRow} from 'sentry/components/discover/quickContextCommitRow';
 import EventCause from 'sentry/components/events/eventCause';
 import {CauseHeader, DataSection} from 'sentry/components/events/styles';
+import FeatureBadge from 'sentry/components/featureBadge';
 import AssignedTo from 'sentry/components/group/assignedTo';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels';
@@ -137,7 +138,10 @@ function IssueContext(props: IssueContextProps) {
 
   const renderStatus = () => (
     <IssueContextContainer>
-      <ContextTitle>{statusTitle}</ContextTitle>
+      <ContextTitle>
+        {statusTitle}
+        <FeatureBadge type="alpha" />
+      </ContextTitle>
       <ContextBody>
         {status === 'ignored' ? (
           <IconMute data-test-id="quick-context-ignored-icon" color="gray500" size="sm" />
@@ -187,7 +191,7 @@ const ContextContainer = styled('div')`
 `;
 
 const IssueContextContainer = styled(ContextContainer)`
-  ${SidebarSection.Wrap}, ${Panel}, ${SidebarSection.Title} {
+  ${SidebarSection.Wrap}, ${Panel} {
     margin: 0;
   }
 
@@ -200,8 +204,7 @@ const IssueContextContainer = styled(ContextContainer)`
     padding: 0;
   }
 
-  &:not(:last-child):not(:first-child),
-  ${CauseHeader} {
+  ${CauseHeader}, ${SidebarSection.Title} {
     margin-top: ${space(2)};
   }
 `;
@@ -209,6 +212,8 @@ const IssueContextContainer = styled(ContextContainer)`
 const ContextTitle = styled('h6')`
   color: ${p => p.theme.subText};
   display: flex;
+  justify-content: space-between;
+  align-items: center;
   font-size: ${p => p.theme.fontSizeMedium};
   margin: 0;
 `;

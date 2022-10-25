@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import color from 'color';
 
 import Feature from 'sentry/components/acl/feature';
-import {IconEllipsis, IconShow} from 'sentry/icons';
+import {IconEllipsis, IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -520,7 +520,7 @@ class CellAction extends Component<Props, State> {
                 data-test-id="context-button"
                 onClick={this.handleContextToggle}
               >
-                <IconShow size="sm" color="subText" />
+                <IconInfo size="sm" color="subText" />
               </MenuButton>
             )}
           </Reference>
