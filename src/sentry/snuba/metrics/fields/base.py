@@ -1433,7 +1433,7 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
         ),
         SingularEntityDerivedMetric(
             metric_mri=TransactionMRI.ALL.value,
-            metrics=[TransactionMRI.DURATION.value],
+            metrics=[TransactionMRI.DURATION.value, TransactionMRI.MEASUREMENTS_LCP.value],
             unit="transactions",
             snql=lambda org_id, metric_ids, alias=None: all_transactions(
                 org_id, metric_ids=metric_ids, alias=alias
@@ -1462,7 +1462,8 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
         ),
         SingularEntityDerivedMetric(
             metric_mri=TransactionMRI.SATISFIED.value,
-            metrics=[TransactionMRI.DURATION.value],
+            # TODO: implement metrics id injection with dictionary {metric: metric_id}.
+            metrics=[TransactionMRI.MEASUREMENTS_LCP.value, TransactionMRI.DURATION.value],
             unit="transactions",
             snql=lambda org_id, metric_ids, alias=None: satisfaction_count_transaction(
                 org_id=org_id, metric_ids=metric_ids, alias=alias
@@ -1471,7 +1472,7 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
         ),
         SingularEntityDerivedMetric(
             metric_mri=TransactionMRI.TOLERATED.value,
-            metrics=[TransactionMRI.DURATION.value],
+            metrics=[TransactionMRI.MEASUREMENTS_LCP.value, TransactionMRI.DURATION.value],
             unit="transactions",
             snql=lambda org_id, metric_ids, alias=None: tolerated_count_transaction(
                 org_id=org_id, metric_ids=metric_ids, alias=alias

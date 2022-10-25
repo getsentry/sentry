@@ -71,6 +71,38 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             key=lambda elem: elem["name"],
         )
 
+    def test_apdex(self):
+        for v_transaction, count in (("/foo", 1), ("/bar", 3), ("/baz", 2)):
+            for value in [123.4] * count:
+                self.store_performance_metric(
+                    name=TransactionMRI.MEASUREMENTS_LCP.value,
+                    tags={"transaction": v_transaction, "measurement_rating": "poor"},
+                    value=value,
+                )
+
+        metrics_query = self.build_metrics_query(
+            before_now="1h",
+            granularity="1h",
+            select=[
+                MetricField(
+                    op=None,
+                    metric_mri=TransactionMRI.APDEX.value,
+                    alias="apdex",
+                ),
+            ],
+            groupby=[],
+            orderby=[],
+            limit=Limit(limit=2),
+            offset=Offset(offset=0),
+            include_series=False,
+        )
+        get_series(
+            [self.project],
+            metrics_query=metrics_query,
+            include_meta=True,
+            use_case_id=UseCaseKey.PERFORMANCE,
+        )
+
     def test_alias_on_different_metrics_expression(self):
         for v_transaction, count in (("/foo", 1), ("/bar", 3), ("/baz", 2)):
             for value in [123.4] * count:

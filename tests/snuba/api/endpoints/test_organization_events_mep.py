@@ -1566,6 +1566,8 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert response.status_code == 400, response.content
 
     def test_apdex_transaction_threshold(self):
+        # self.features["organizations:use-metrics-layer"] = True
+
         ProjectTransactionThresholdOverride.objects.create(
             transaction="foo_transaction",
             project=self.project,
@@ -1627,6 +1629,8 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert field_meta["apdex()"] == "number"
 
     def test_apdex_project_threshold(self):
+        self.features["organizations:use-metrics-layer"] = True
+
         ProjectTransactionThreshold.objects.create(
             project=self.project,
             organization=self.project.organization,
@@ -1905,13 +1909,13 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     def test_having_condition(self):
         super().test_having_condition()
 
-    @pytest.mark.xfail(reason="Metrics layer failing to support ordering by apdex")
-    def test_apdex_project_threshold(self):
-        super().test_apdex_project_threshold()
-
-    @pytest.mark.xfail(reason="Metrics layer failing to support ordering by apdex")
-    def test_apdex_transaction_threshold(self):
-        super().test_apdex_transaction_threshold()
+    # @pytest.mark.xfail(reason="Metrics layer failing to support ordering by apdex")
+    # def test_apdex_project_threshold(self):
+    #     super().test_apdex_project_threshold()
+    #
+    # @pytest.mark.xfail(reason="Metrics layer failing to support ordering by apdex")
+    # def test_apdex_transaction_threshold(self):
+    #     super().test_apdex_transaction_threshold()
 
     @pytest.mark.xfail(reason="Metrics layer failing to support group by transaction")
     def test_environment_param(self):
