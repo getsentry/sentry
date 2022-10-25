@@ -1,14 +1,17 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render} from 'sentry-test/reactTestingLibrary';
 
 import Form from 'sentry/components/forms/form';
+import FormModel from 'sentry/components/forms/model';
 import PermissionsObserver from 'sentry/views/settings/organizationDeveloperSettings/permissionsObserver';
 
 describe('PermissionsObserver', () => {
-  let wrapper;
+  let model;
 
   beforeEach(() => {
-    wrapper = mountWithTheme(
-      <Form>
+    model = new FormModel();
+
+    render(
+      <Form model={model}>
         <PermissionsObserver
           scopes={['project:read', 'project:write', 'project:releases', 'org:admin']}
           events={['issue']}
@@ -18,29 +21,18 @@ describe('PermissionsObserver', () => {
   });
 
   it('defaults to no-access for all resources not passed', () => {
-    const instance = wrapper.find('PermissionsObserver').instance();
-    expect(instance.state.permissions).toEqual(
-      expect.objectContaining({
-        Team: 'no-access',
-        Event: 'no-access',
-        Member: 'no-access',
-      })
-    );
+    expect(model.getValue('Team--permission')).toBe('no-access');
+    expect(model.getValue('Event--permission')).toBe('no-access');
+    expect(model.getValue('Member--permission')).toBe('no-access');
   });
 
   it('converts a raw list of scopes into permissions', () => {
-    const instance = wrapper.find('PermissionsObserver').instance();
-    expect(instance.state.permissions).toEqual(
-      expect.objectContaining({
-        Project: 'write',
-        Release: 'admin',
-        Organization: 'admin',
-      })
-    );
+    expect(model.getValue('Project--permission')).toBe('write');
+    expect(model.getValue('Release--permission')).toBe('admin');
+    expect(model.getValue('Organization--permission')).toBe('admin');
   });
 
   it('selects the highest ranking scope to convert to permission', () => {
-    const instance = wrapper.find('PermissionsObserver').instance();
-    expect(instance.state.permissions.Project).toEqual('write');
+    expect(model.getValue('Project--permission')).toBe('write');
   });
 });
