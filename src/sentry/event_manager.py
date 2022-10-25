@@ -39,7 +39,11 @@ from sentry.constants import (
     DataCategory,
 )
 from sentry.culprit import generate_culprit
-from sentry.dynamic_sampling.latest_release_booster import add_boosted_release, observe_release
+from sentry.dynamic_sampling.latest_release_booster import (
+    TooManyBoostedReleasesException,
+    add_boosted_release,
+    observe_release,
+)
 from sentry.eventstore.processing import event_processing_store
 from sentry.grouping.api import (
     BackgroundGroupingConfigLoader,
@@ -843,6 +847,8 @@ def _get_or_create_release_many(jobs, projects):
                                 schedule_invalidate_project_config(
                                     project_id=project_id, trigger="dynamic_sampling:boost_release"
                                 )
+                        except TooManyBoostedReleasesException:
+                            pass
                         except Exception:
                             sentry_sdk.capture_exception()
 
