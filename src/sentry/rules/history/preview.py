@@ -5,9 +5,9 @@ from typing import Any, Dict, Sequence
 
 from django.utils import timezone
 
-from sentry.models import Project
+from sentry.db.models import BaseQuerySet
+from sentry.models import Group, Project
 from sentry.rules import rules
-from sentry.rules.history.base import TimeSeriesValue
 
 PREVIEW_TIME_RANGE = timedelta(weeks=2)
 # limit on number of ConditionActivity's a condition will return
@@ -22,18 +22,16 @@ def preview(
     condition_match: str,
     filter_match: str,
     frequency_minutes: int,
-) -> Sequence[TimeSeriesValue] | None:
+) -> BaseQuerySet | None:
     end = timezone.now()
     start = end - PREVIEW_TIME_RANGE
-    hours = get_hourly_bucket(PREVIEW_TIME_RANGE)
-    hourly_buckets = [0] * hours
 
     # must have at least one condition to filter activity. Filters currently not supported
     if len(conditions) == 0 or len(filters):
         return None
     # all the currently supported conditions are mutually exclusive
     elif len(conditions) > 1 and condition_match == "all":
-        return [TimeSeriesValue(start + timedelta(hours=i), 0) for i in range(hours)]
+        return Group.objects.none()
 
     activity = []
     for condition in conditions:
@@ -52,18 +50,11 @@ def preview(
 
     frequency = timedelta(minutes=frequency_minutes)
     last_fire = start - frequency
+    group_ids = set()
     for event in activity:
         # TODO: check conditions and filters to see if event passes, not needed for just FirstSeenEventCondition
         if last_fire <= event.timestamp - frequency:
-            hourly_buckets[get_hourly_bucket(event.timestamp - start)] += 1
+            group_ids.add(event.group_id)
             last_fire = event.timestamp
 
-    times_series_buckets = [
-        TimeSeriesValue(start + timedelta(hours=i), count) for i, count in enumerate(hourly_buckets)
-    ]
-
-    return times_series_buckets
-
-
-def get_hourly_bucket(time: timedelta) -> int:
-    return time.days * 24 + time.seconds // (60 * 60)
+    return Group.objects.filter(id__in=group_ids)
