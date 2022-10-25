@@ -18,8 +18,10 @@ describe('SentryAppExternalInstallation', () => {
     org1Lite,
     org2,
     org2Lite;
+
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+
     org1 = TestStubs.Organization({
       slug: 'org1',
       name: 'Organization 1',
@@ -37,10 +39,12 @@ describe('SentryAppExternalInstallation', () => {
       status: 'published',
       redirectUrl: 'https://google.com',
     });
+
     getAppMock = MockApiClient.addMockResponse({
       url: `/sentry-apps/${sentryApp.slug}/`,
       body: sentryApp,
     });
+
     getFeaturesMock = MockApiClient.addMockResponse({
       url: `/sentry-apps/${sentryApp.slug}/features/`,
       body: [],
@@ -65,15 +69,18 @@ describe('SentryAppExternalInstallation', () => {
         url: '/organizations/',
         body: [org1Lite],
       });
+
       getOrgMock = MockApiClient.addMockResponse({
         url: `/organizations/${org1.slug}/`,
         body: org1,
       });
+
       getInstallationsMock = MockApiClient.addMockResponse({
         url: `/organizations/${org1.slug}/sentry-app-installations/`,
         body: [],
       });
     });
+
     it('sets the org automatically', async () => {
       wrapper = getMountedComponent();
       await tick();
@@ -120,6 +127,7 @@ describe('SentryAppExternalInstallation', () => {
       window.location.assign.mockClear();
     });
   });
+
   describe('multiple organizations', () => {
     beforeEach(() => {
       getOrgsMock = MockApiClient.addMockResponse({
@@ -127,6 +135,7 @@ describe('SentryAppExternalInstallation', () => {
         body: [org1Lite, org2Lite],
       });
     });
+
     it('renders org dropdown', async () => {
       wrapper = getMountedComponent();
       await tick();
