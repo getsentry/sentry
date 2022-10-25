@@ -384,10 +384,11 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
                     "teamSlug": foo.slug,
                     "role": "admin",
                 },
-            ])
+            ],
+        )
 
         member_omt = OrganizationMemberTeam.objects.get(organizationmember=member_om, team=foo)
-        assert member_omt.role == 'admin'
+        assert member_omt.role == "admin"
 
         self.get_success_response(
             self.organization.slug,
@@ -397,7 +398,8 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
                     "teamSlug": foo.slug,
                     "role": None,
                 },
-            ])
+            ],
+        )
 
         member_omt = OrganizationMemberTeam.objects.get(organizationmember=member_om, team=foo)
         assert member_omt.role is None
