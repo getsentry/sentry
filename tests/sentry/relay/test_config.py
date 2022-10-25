@@ -340,7 +340,10 @@ def test_project_config_with_uniform_rules_based_on_plan_in_dynamic_sampling_rul
             "organizations:dynamic-sampling-deprecated": True,
         }
     ):
-        with mock.patch("sentry.dynamic_sampling.quotas.get_blended_sample_rate", return_value=0.1):
+        with mock.patch(
+            "sentry.dynamic_sampling.rules_generator.quotas.get_blended_sample_rate",
+            return_value=0.1,
+        ):
             cfg = get_project_config(default_project)
 
     cfg = cfg.to_dict()
