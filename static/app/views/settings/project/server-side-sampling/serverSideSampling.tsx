@@ -524,7 +524,7 @@ export function ServerSideSampling({project}: Props) {
           )}
         />
 
-        <LimitedAvailabilityProgramEndingAlert organization={organization} />
+        <LimitedAvailabilityProgramEndingAlert />
 
         <SamplingProjectIncompatibleAlert
           organization={organization}
