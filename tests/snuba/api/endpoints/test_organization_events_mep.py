@@ -1663,6 +1663,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             }
         )
 
+        assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 2
         data = response.data["data"]
         meta = response.data["meta"]
@@ -1879,3 +1880,47 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
         meta = response.data["meta"]
         assert not meta["isMetricsData"]
+
+
+class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
+    OrganizationEventsMetricsEnhancedPerformanceEndpointTest
+):
+    def setUp(self):
+        super().setUp()
+        self.features["organizations:use-metrics-layer"] = True
+
+    @pytest.mark.xfail(reason="Having not supported")
+    def test_custom_measurement_duration_filtering(self):
+        super().test_custom_measurement_size_filtering()
+
+    @pytest.mark.xfail(reason="Having not supported")
+    def test_having_condition_not_selected(self):
+        super().test_having_condition_not_selected()
+
+    @pytest.mark.xfail(reason="Having not supported")
+    def test_custom_measurement_size_filtering(self):
+        super().test_custom_measurement_size_filtering()
+
+    @pytest.mark.xfail(reason="Having not supported")
+    def test_having_condition(self):
+        super().test_having_condition()
+
+    @pytest.mark.xfail(reason="Metrics layer failing to support ordering by apdex")
+    def test_apdex_project_threshold(self):
+        super().test_apdex_project_threshold()
+
+    @pytest.mark.xfail(reason="Metrics layer failing to support ordering by apdex")
+    def test_apdex_transaction_threshold(self):
+        super().test_apdex_transaction_threshold()
+
+    @pytest.mark.xfail(reason="Metrics layer failing to support group by transaction")
+    def test_environment_param(self):
+        super().test_environment_param()
+
+    @pytest.mark.xfail(reason="Metrics layer failing to support group by transaction")
+    def test_has_transaction(self):
+        super().test_has_transaction()
+
+    @pytest.mark.xfail(reason="Metrics layer failing to support group by transaction")
+    def test_merge_null_unparam(self):
+        super().test_merge_null_unparam()
