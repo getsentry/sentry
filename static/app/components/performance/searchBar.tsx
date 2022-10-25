@@ -16,7 +16,7 @@ import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transac
 import SearchDropdown from '../smartSearchBar/searchDropdown';
 import {ItemType, SearchGroup} from '../smartSearchBar/types';
 
-type SearchBarProps = {
+export type SearchBarProps = {
   eventView: EventView;
   onSearch: (query: string) => void;
   organization: Organization;
