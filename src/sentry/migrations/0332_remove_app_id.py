@@ -24,7 +24,7 @@ class Migration(CheckedMigration):
     atomic = False
 
     dependencies = [
-        ("sentry", "0326_backfill_app_id_str"),
+        ("sentry", "0331_redirect_app_id"),
     ]
 
     operations = [
