@@ -46,16 +46,6 @@ type SampleEvent = {
   source: string;
 };
 
-type VitalsAlert = {
-  can_see_all_projects: boolean;
-  industry_diff: number;
-  sentry_diff: number;
-  user_vital_count: number;
-  user_vital_value: number;
-  vital: string;
-  vitals_type: 'mobile' | 'web';
-};
-
 // define the event key to payload mappings
 export type GrowthEventParameters = {
   'assistant.guide_cued': {
@@ -155,10 +145,6 @@ export type GrowthEventParameters = {
   'sdk_updates.clicked': {};
   'sdk_updates.seen': {};
   'sdk_updates.snoozed': {};
-  'vitals_alert.clicked_docs': VitalsAlert;
-  'vitals_alert.clicked_see_vitals': VitalsAlert;
-  'vitals_alert.dismissed': VitalsAlert;
-  'vitals_alert.displayed': VitalsAlert;
 };
 
 type GrowthAnalyticsKey = keyof GrowthEventParameters;
@@ -222,10 +208,6 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string | null> = {
   'sample_event.button_viewed': null, // high-volume event
   'sample_event.created': 'Sample Event Created',
   'sample_event.failed': 'Sample Event Failed',
-  'vitals_alert.clicked_see_vitals': 'Vitals Alert: Clicked See Vitals',
-  'vitals_alert.dismissed': 'Vitals Alert: Dismissed',
-  'vitals_alert.clicked_docs': 'Vitals Alert: Clicked Docs',
-  'vitals_alert.displayed': 'Vitals Alert: Displayed',
   'growth.onboarding_wizard_clicked_more_details':
     'Onboarding Wizard: Clicked More Details',
   'growth.onboarding_wizard_interacted': 'Onboarding Wizard: Interacted',

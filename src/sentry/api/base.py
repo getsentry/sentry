@@ -339,6 +339,7 @@ class Endpoint(APIView):
         cursor_cls=Cursor,
         response_cls=Response,
         response_kwargs=None,
+        count_hits=False,
         **paginator_kwargs,
     ):
         assert (paginator and not paginator_kwargs) or (paginator_cls and paginator_kwargs)
@@ -364,7 +365,12 @@ class Endpoint(APIView):
                 sentry_sdk.set_tag(
                     "query.per_page.grouped", format_grouped_length(per_page, [1, 10, 50, 100])
                 )
-                cursor_result = paginator.get_result(limit=per_page, cursor=input_cursor)
+                if isinstance(paginator, Paginator):
+                    cursor_result = paginator.get_result(
+                        limit=per_page, cursor=input_cursor, count_hits=count_hits
+                    )
+                else:
+                    cursor_result = paginator.get_result(limit=per_page, cursor=input_cursor)
         except BadPaginationError as e:
             raise ParseError(detail=str(e))
 

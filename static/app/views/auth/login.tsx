@@ -170,17 +170,4 @@ const FormWrapper = styled('div')<{hasAuthProviders: boolean}>`
   width: ${p => (p.hasAuthProviders ? '600px' : '490px')};
 `;
 
-const formFooterClass = `
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: ${space(1)};
-  align-items: center;
-  justify-items: end;
-  border-top: none;
-  margin-bottom: 0;
-  padding: 0;
-`;
-
-export {formFooterClass};
-
 export default withApi(Login);

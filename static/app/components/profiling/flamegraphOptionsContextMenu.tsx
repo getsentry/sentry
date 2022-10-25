@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 
+import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
   FlamegraphAxisOptions,
@@ -16,6 +17,7 @@ import {
   ProfilingContextMenu,
   ProfilingContextMenuGroup,
   ProfilingContextMenuHeading,
+  ProfilingContextMenuItemButton,
   ProfilingContextMenuItemCheckbox,
   ProfilingContextMenuLayer,
 } from './ProfilingContextMenu/profilingContextMenu';
@@ -35,6 +37,7 @@ interface FlameGraphOptionsContextMenuProps {
   contextMenu: ReturnType<typeof useContextMenu>;
   hoveredNode: FlamegraphFrame | null;
   isHighlightingAllOccurences: boolean;
+  onCopyFunctionNameClick: () => void;
   onHighlightAllOccurencesClick: () => void;
 }
 
@@ -61,15 +64,22 @@ export function FlamegraphOptionsContextMenu(props: FlameGraphOptionsContextMenu
               {...props.contextMenu.getMenuItemProps({
                 onClick: props.onHighlightAllOccurencesClick,
               })}
-              onClick={e => {
-                // We need to prevent the click from propagating to the context menu layer.
-                e.preventDefault();
-                props.onHighlightAllOccurencesClick();
-              }}
               checked={props.isHighlightingAllOccurences}
             >
               {t('Highlight all occurrences')}
             </ProfilingContextMenuItemCheckbox>
+            <ProfilingContextMenuItemButton
+              {...props.contextMenu.getMenuItemProps({
+                onClick: () => {
+                  props.onCopyFunctionNameClick();
+                  // This is a button, so close the context menu.
+                  props.contextMenu.setOpen(false);
+                },
+              })}
+              icon={<IconCopy size="xs" />}
+            >
+              {t('Copy function name')}
+            </ProfilingContextMenuItemButton>
           </ProfilingContextMenuGroup>
         ) : null}
         <ProfilingContextMenuGroup>

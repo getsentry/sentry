@@ -10,7 +10,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.app_platform_event import AppPlatformEvent
 from sentry.api.serializers.models.incident import IncidentSerializer
 from sentry.constants import SentryAppInstallationStatus
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import GroupEvent
 from sentry.incidents.models import (
     INCIDENT_STATUS,
     AlertRuleTriggerAction,
@@ -171,7 +171,7 @@ class NotifyEventServiceAction(EventAction):
             return f"(Legacy) {title}"
         return title
 
-    def after(self, event: Event, state: EventState) -> Generator[CallbackFuture, None, None]:
+    def after(self, event: GroupEvent, state: EventState) -> Generator[CallbackFuture, None, None]:
         service = self.get_option("service")
 
         extra = {"event_id": event.event_id}

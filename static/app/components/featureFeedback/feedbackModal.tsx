@@ -107,8 +107,10 @@ export function FeedbackModal<T extends Data>({
 
   const handleSubmit = useCallback(
     (submitEventData?: Event) => {
+      const message = `${props.featureName} feedback by ${user.email}`;
+
       const commonEventProps: Event = {
-        message: `Feedback: ${props.featureName} feature`,
+        message,
         request: {
           url: location.pathname,
         },
@@ -128,9 +130,14 @@ export function FeedbackModal<T extends Data>({
         const feedbackTypes = props.feedbackTypes ?? defaultFeedbackTypes;
         feedbackClient.captureEvent({
           ...commonEventProps,
+          contexts: {
+            feedback: {
+              additionalInfo: state.additionalInfo?.trim() ? state.additionalInfo : null,
+            },
+          },
           message: state.additionalInfo?.trim()
-            ? `Feedback: ${feedbackTypes[state.subject]} - ${state.additionalInfo}`
-            : `Feedback: ${feedbackTypes[state.subject]}`,
+            ? `${message} - ${feedbackTypes[state.subject]} - ${state.additionalInfo}`
+            : `${message} - ${feedbackTypes[state.subject]}`,
         });
       } else {
         feedbackClient.captureEvent({

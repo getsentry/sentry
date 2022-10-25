@@ -63,22 +63,19 @@ export function getProjectID(
   return project.id;
 }
 
-class OperationTitle extends Component<TitleProps> {
-  render() {
-    const {onClick} = this.props;
-    return (
-      <div onClick={onClick}>
-        <span>{t('operation duration')}</span>
-        <StyledIconQuestion
-          size="xs"
-          position="top"
-          title={t(
-            `Span durations are summed over the course of an entire transaction. Any overlapping spans are only counted once.`
-          )}
-        />
-      </div>
-    );
-  }
+function OperationTitle({onClick}: TitleProps) {
+  return (
+    <div onClick={onClick}>
+      <span>{t('operation duration')}</span>
+      <StyledIconQuestion
+        size="xs"
+        position="top"
+        title={t(
+          `Span durations are summed over the course of an entire transaction. Any overlapping spans are only counted once.`
+        )}
+      />
+    </div>
+  );
 }
 
 type Props = {
@@ -184,9 +181,11 @@ class EventsTable extends Component<Props, State> {
       let target: LocationDescriptor = {};
       if (isIssue && field === 'id') {
         target.pathname = `/organizations/${organization.slug}/issues/${issueId}/events/${dataRow.id}/`;
+        target.search = '?referrer=events-table';
       } else {
         const generateLink = field === 'id' ? generateTransactionLink : generateTraceLink;
         target = generateLink(transactionName)(organization, dataRow, location.query);
+        // TODO: add referrer
       }
 
       return (

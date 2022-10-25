@@ -25,6 +25,7 @@ function NewIssue({sampleEvent, eventCount, organization}: Props) {
           grouping
           hideIcons
           hideLevel
+          source="new-issue"
         />
         <ExtraInfo>
           <TimeWrapper>
