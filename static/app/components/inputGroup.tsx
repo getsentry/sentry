@@ -7,14 +7,12 @@ import {
   useRef,
   useState,
 } from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import _TextArea from 'sentry/components/forms/controls/textarea';
 import _Input, {InputProps} from 'sentry/components/input';
 import space from 'sentry/styles/space';
 import {FormSize} from 'sentry/utils/theme';
-import useMedia from 'sentry/utils/useMedia';
 
 interface InputContext {
   /**
@@ -77,21 +75,6 @@ export const Input = forwardRef<HTMLInputElement, InputProps>((props, ref) => {
   );
 });
 
-/**
- * Returns an array of media query matches, one for each breakpoint. We'll
- * re-calculate the leading/trailing widths when any of these values changes.
- */
-function useBreakpointMatches() {
-  const theme = useTheme();
-  const isSmall = useMedia(`(max-width: ${theme.breakpoints.small})`);
-  const isMedium = useMedia(`(max-width: ${theme.breakpoints.medium})`);
-  const isLarge = useMedia(`(max-width: ${theme.breakpoints.large})`);
-  const isXLarge = useMedia(`(max-width: ${theme.breakpoints.xlarge})`);
-  const isXXLarge = useMedia(`(max-width: ${theme.breakpoints.xxlarge})`);
-
-  return [isSmall, isMedium, isLarge, isXLarge, isXXLarge];
-}
-
 interface InputItemsProps {
   children?: React.ReactNode;
   /**
@@ -117,14 +100,13 @@ export function InputLeadingItems({children, disablePointerEvents}: InputItemsPr
     inputProps: {size = 'md', disabled},
     setLeadingWidth,
   } = useContext(InputGroupContext);
-  const breakpointMatches = useBreakpointMatches();
 
   useLayoutEffect(() => {
     if (!ref.current) {
       return;
     }
     setLeadingWidth?.(ref.current.offsetWidth);
-  }, [children, setLeadingWidth, breakpointMatches, size]);
+  }, [children, setLeadingWidth, size]);
 
   return (
     <InputLeadingItemsWrap
@@ -152,14 +134,13 @@ export function InputTrailingItems({children, disablePointerEvents}: InputItemsP
     inputProps: {size = 'md', disabled},
     setTrailingWidth,
   } = useContext(InputGroupContext);
-  const breakpointMatches = useBreakpointMatches();
 
   useLayoutEffect(() => {
     if (!ref.current) {
       return;
     }
     setTrailingWidth?.(ref.current.offsetWidth);
-  }, [children, setTrailingWidth, breakpointMatches, size]);
+  }, [children, setTrailingWidth, size]);
 
   return (
     <InputTrailingItemsWrap
