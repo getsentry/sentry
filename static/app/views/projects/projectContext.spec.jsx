@@ -1,4 +1,5 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectContext} from 'sentry/views/projects/projectContext';
 
@@ -56,14 +57,12 @@ describe('projectContext component', function () {
       />
     );
 
-    const wrapper = mountWithTheme(projectContext);
-
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.state('error')).toBe(true);
-    expect(wrapper.state('loading')).toBe(false);
-    expect(wrapper.state('errorType')).toBe('PROJECT_NOT_FOUND');
+    render(projectContext);
+    const loading = screen.getByTestId('loading-indicator');
+    expect(
+      await screen.findByText('The project you were looking for was not found.')
+    ).toBeInTheDocument();
+    expect(loading).not.toBeInTheDocument();
   });
 
   it('fetches data again if projectId changes', function () {
