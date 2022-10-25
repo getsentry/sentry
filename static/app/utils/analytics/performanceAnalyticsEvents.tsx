@@ -125,11 +125,6 @@ export type PerformanceEventParameters = {
     direction: string;
     widget_type: string;
   };
-  'performance_views.vital_detail.comparison_viewed': {
-    count: number;
-    p75: number;
-    vital: string;
-  };
   'performance_views.vital_detail.switch_vital': {
     from_vital: string;
     to_vital: string;
@@ -217,8 +212,6 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
   'performance_views.transaction_summary.view':
     'Performance Views: Transaction Summary View',
   'performance_views.filter_dropdown.selection': 'Performance Views: Filter Dropdown',
-  'performance_views.vital_detail.comparison_viewed':
-    'Performance Views: Vital Detail Comparison Viewed',
   'performance_views.relative_breakdown.selection':
     'Performance Views: Select Relative Breakdown',
 };
