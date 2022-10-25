@@ -7,8 +7,10 @@ from typing import Any, Mapping, Sequence
 
 from sentry.integrations.utils import where_should_sync
 from sentry.models import ExternalIssue, GroupLink, User, UserOption
+from sentry.notifications.utils import get_performance_issue_alert_subtitle
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.tasks.integrations import sync_status_inbound as sync_status_inbound_task
+from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupCategory
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
 
@@ -48,7 +50,12 @@ class IssueBasicMixin:
         return False
 
     def get_group_title(self, group, event, **kwargs):
-        return event.title
+        if group.issue_category == GroupCategory.PERFORMANCE:
+            issue_type = GROUP_TYPE_TO_TEXT.get(group.issue_type, "Issue")
+            transaction = get_performance_issue_alert_subtitle(event)
+            return f"{issue_type}: {transaction}"
+        else:
+            return event.title
 
     def get_issue_url(self, key):
         """
