@@ -207,9 +207,9 @@ class GroupDetails extends Component<Props, State> {
   /**
    * Fetching a event by ID requires a project slug.
    * We can get the project slug from the group and wait for that request to finish
-   * or we could get the project slug via the projectId in the URL
+   * or we could get the project slug via the projectId in the URL.
    *
-   * In the future, we could make a events endpoint that does not require the project slug.
+   * In the future, we could make an events endpoint that does not require the project slug.
    */
   canLoadEventEarly(props: Props): boolean {
     const hasProject = this.props.projects.some(
