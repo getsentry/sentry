@@ -15,7 +15,7 @@ import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
-import {DynamicSamplingBiasType} from 'sentry/types/sampling';
+import {DynamicSamplingBias, DynamicSamplingBiasType} from 'sentry/types/sampling';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
@@ -62,18 +62,15 @@ export function DynamicSampling({project}: Props) {
     });
   }, [project.id, organization]);
 
-  async function handleToggle(type: DynamicSamplingBiasType) {
+  async function handleToggle(bias: DynamicSamplingBias) {
     addLoadingMessage();
 
-    const biasIndex = biases.findIndex(b => b.id === type);
-
-    if (biasIndex === -1) {
-      return;
-    }
-
-    const newDynamicSamplingBiases = [...biases];
-    newDynamicSamplingBiases[biasIndex].active =
-      !newDynamicSamplingBiases[biasIndex].active;
+    const newDynamicSamplingBiases = biases.map(b => {
+      if (b.id === bias.id) {
+        return {...b, active: !b.active};
+      }
+      return b;
+    });
 
     try {
       const result = await api.requestPromise(
@@ -87,13 +84,13 @@ export function DynamicSampling({project}: Props) {
       );
 
       trackAdvancedAnalyticsEvent(
-        biases[biasIndex].active
+        bias.active
           ? 'dynamic_sampling_settings.priority_disabled'
           : 'dynamic_sampling_settings.priority_enabled',
         {
           organization,
           project_id: project.id,
-          id: biases[biasIndex].id,
+          id: bias.id,
         }
       );
 
@@ -152,7 +149,7 @@ export function DynamicSampling({project}: Props) {
                   key={key}
                   name={key}
                   value={bias.active}
-                  onChange={() => handleToggle(bias.id)}
+                  onChange={() => handleToggle(bias)}
                   disabled={!hasAccess}
                   disabledReason={
                     !hasAccess
