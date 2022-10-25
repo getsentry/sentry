@@ -8,7 +8,7 @@ from collections import deque
 from concurrent.futures import Future
 from datetime import datetime, timezone
 from io import BytesIO
-from typing import Any, Callable, Deque, Mapping, MutableMapping, NamedTuple, Optional, cast
+from typing import Callable, Deque, Mapping, MutableMapping, NamedTuple, Optional, cast
 
 import msgpack
 import sentry_sdk
@@ -31,7 +31,6 @@ from sentry.replays.models import ReplayRecordingSegment
 from sentry.signals import first_replay_received
 from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome, track_outcome
-from sentry.utils.sdk import configure_scope
 
 logger = logging.getLogger("sentry.replays")
 
@@ -127,7 +126,10 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
                 with sentry_sdk.push_scope() as scope:
                     scope.level = "warning"
                     scope.add_attachment(bytes=recording_segment, filename="dup_replay_segment")
-                    sentry_sdk.capture_message("Recording segment was already processed.")
+                    scope.set_tag("replay_id", message_dict["replay_id"])
+                    scope.set_tag("project_id", message_dict["project_id"])
+
+                    logging.exception("Recording segment was already processed.")
 
                 parts.drop()
 
@@ -215,7 +217,6 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
                 < getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0),
             ):
                 message_dict = msgpack.unpackb(message.payload.value)
-                self._configure_sentry_scope(message_dict)
 
                 if message_dict["type"] == "replay_recording_chunk":
                     sentry_sdk.set_extra("replay_id", message_dict["replay_id"])
@@ -294,12 +295,6 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
                 self.__commit(self.__commit_data)
                 self.__last_committed = now
                 self.__commit_data = {}
-
-    def _configure_sentry_scope(self, message_dict: dict[str, Any]) -> None:
-        with configure_scope() as scope:
-            scope.set_tag("replay_id", message_dict["replay_id"])
-            scope.set_tag("project_id", message_dict["project_id"])
-            # TODO: add replay sdk version once added
 
 
 def replay_recording_segment_cache_id(project_id: int, replay_id: str, segment_id: str) -> str:

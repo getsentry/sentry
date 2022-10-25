@@ -11,7 +11,7 @@ from arroyo.types import Commit, Message, Partition, Position
 
 from sentry import options
 from sentry.eventstream.base import GroupStates
-from sentry.eventstream.kafka.postprocessworker import _sampled_eventstream_timer
+from sentry.eventstream.kafka.postprocessworker import _record_metrics, _sampled_eventstream_timer
 from sentry.eventstream.kafka.postprocessworker import (
     dispatch_post_process_group_task as _dispatch_post_process_group_task,
 )
@@ -72,6 +72,7 @@ def _get_task_kwargs_and_dispatch(message: Message[KafkaPayload]) -> None:
     if not task_kwargs:
         return None
 
+    _record_metrics(message.partition.index, task_kwargs)
     dispatch_post_process_group_task(**task_kwargs)
 
 
