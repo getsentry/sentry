@@ -20,14 +20,24 @@ from sentry_sdk import Hub, capture_exception
 from sentry import features, killswitches, quotas, utils
 from sentry.constants import ObjectStatus
 from sentry.datascrubbing import get_datascrubbing_settings, get_pii_config
+
 <<<<<<< HEAD
 from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
 from sentry.dynamic_sampling.rules_generator import generate_rules
+
 ||||||| parent of 1f195d7423 (fixup!)
 from sentry.dynamic_sampling.utils import NoneSampleRateException, generate_uniform_rule
+
 =======
 from sentry.dynamic_sampling import generate_rules
+
+<<<<<<< HEAD
 >>>>>>> 1f195d7423 (fixup!)
+||||||| parent of 7c6741469a (feat(dyn-sampling): Switch to new feature  flag multiplexer in projectconfig (#40498))
+=======
+from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
+
+>>>>>>> 7c6741469a (feat(dyn-sampling): Switch to new feature  flag multiplexer in projectconfig (#40498))
 from sentry.grouping.api import get_grouping_config_dict_for_project
 from sentry.ingest.inbound_filters import (
     FilterStatKeys,
@@ -162,10 +172,24 @@ def get_project_config(project, full_config=True, project_keys=None):
 
 
 def get_dynamic_sampling_config(project) -> Optional[Mapping[str, Any]]:
+<<<<<<< HEAD
     feature_multiplexer = DynamicSamplingFeatureMultiplexer(project)
+||||||| parent of 7c6741469a (feat(dyn-sampling): Switch to new feature  flag multiplexer in projectconfig (#40498))
+    allow_server_side_sampling = features.has(
+        "organizations:server-side-sampling",
+        project.organization,
+    )
+    allow_dynamic_sampling = features.has(
+        "organizations:dynamic-sampling",
+        project.organization,
+    )
+=======
+    feature_multiplexer = DynamicSamplingFeatureMultiplexer(project, None)
+>>>>>>> 7c6741469a (feat(dyn-sampling): Switch to new feature  flag multiplexer in projectconfig (#40498))
 
     # In this case we should override old conditionnal rules if they exists
     # or just return uniform rule
+<<<<<<< HEAD
 <<<<<<< HEAD
     if feature_multiplexer.is_on_dynamic_sampling:
         return {"rules": generate_rules(project)}
@@ -181,9 +205,20 @@ def get_dynamic_sampling_config(project) -> Optional[Mapping[str, Any]]:
     elif allow_server_side_sampling:
 =======
     if allow_dynamic_sampling:
+||||||| parent of 7c6741469a (feat(dyn-sampling): Switch to new feature  flag multiplexer in projectconfig (#40498))
+    if allow_dynamic_sampling:
+=======
+    if feature_multiplexer.is_on_dynamic_sampling:
+>>>>>>> 7c6741469a (feat(dyn-sampling): Switch to new feature  flag multiplexer in projectconfig (#40498))
         return {"rules": generate_rules(project)}
+<<<<<<< HEAD
     elif allow_server_side_sampling:
 >>>>>>> 1f195d7423 (fixup!)
+||||||| parent of 7c6741469a (feat(dyn-sampling): Switch to new feature  flag multiplexer in projectconfig (#40498))
+    elif allow_server_side_sampling:
+=======
+    elif feature_multiplexer.is_on_dynamic_sampling_deprecated:
+>>>>>>> 7c6741469a (feat(dyn-sampling): Switch to new feature  flag multiplexer in projectconfig (#40498))
         dynamic_sampling = project.get_option("sentry:dynamic_sampling")
         if dynamic_sampling is not None:
             # filter out rules that do not have active set to True
