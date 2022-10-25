@@ -5,13 +5,13 @@ import responses
 
 from sentry.models import Activity, Identity, IdentityProvider, IdentityStatus, Integration
 from sentry.notifications.notifications.activity import AssignedActivityNotification
-from sentry.testutils.cases import SlackActivityNotificationTest
+from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest
 from sentry.testutils.helpers.slack import get_attachment, send_notification
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
 
 
-class SlackAssignedNotificationTest(SlackActivityNotificationTest):
+class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIssueTestCase):
     @responses.activate
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     def test_multiple_identities(self, mock_func):
@@ -144,6 +144,37 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest):
         assert (
             attachment["footer"]
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=assigned_activity-slack-user|Notification Settings>"
+        )
+
+    @responses.activate
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
+    def test_assignment_performance_issue(self, mock_func):
+        """
+        Test that a Slack message is sent with the expected payload when a performance issue is assigned
+        """
+        event = self.create_performance_issue()
+        notification = AssignedActivityNotification(
+            Activity(
+                project=self.project,
+                group=event.group,
+                user=self.user,
+                type=ActivityType.ASSIGNED,
+                data={"assignee": self.user.id},
+            )
+        )
+        with self.feature("organizations:performance-issues"), self.tasks():
+            notification.send()
+
+        attachment, text = get_attachment()
+        assert text == f"Issue assigned to {self.name} by themselves"
+        assert attachment["title"] == "N+1 Query"
+        assert (
+            attachment["text"]
+            == "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
+        )
+        assert (
+            attachment["footer"]
+            == f"{self.project.slug} | production | <http://testserver/settings/account/notifications/workflow/?referrer=assigned_activity-slack-user|Notification Settings>"
         )
 
     def test_automatic_assignment(self):
