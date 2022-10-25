@@ -672,6 +672,18 @@ def _run_background_grouping(project, job):
         sentry_sdk.capture_exception()
 
 
+def _get_job_category(data):
+    event_type = data.get("type")
+    if event_type == "transaction":
+        # TODO: This logic should move into sentry-relay, but I'm not sure
+        # about the consequences of making `from_event_type` return
+        # `TRANSACTION_INDEXED` unconditionally.
+        # https://github.com/getsentry/relay/blob/d77c489292123e53831e10281bd310c6a85c63cc/relay-server/src/envelope.rs#L121
+        return DataCategory.TRANSACTION_INDEXED
+
+    return DataCategory.from_event_type(event_type)
+
+
 @metrics.wraps("save_event.pull_out_data")
 def _pull_out_data(jobs, projects):
     """
@@ -703,7 +715,8 @@ def _pull_out_data(jobs, projects):
         job["recorded_timestamp"] = data.get("timestamp")
         job["event"] = event = _get_event_instance(job["data"], project_id=job["project_id"])
         job["data"] = data = event.data.data
-        job["category"] = DataCategory.from_event_type(data.get("type"))
+
+        job["category"] = _get_job_category(data)
         job["platform"] = event.platform
         event._project_cache = projects[job["project_id"]]
 
