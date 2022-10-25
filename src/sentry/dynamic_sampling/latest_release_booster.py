@@ -7,6 +7,11 @@ from sentry.utils import redis
 
 BOOSTED_RELEASE_TIMEOUT = 60 * 60
 ONE_DAY_TIMEOUT_MS = 60 * 60 * 24 * 1000
+BOOSTED_RELEASES_LIMIT = 10
+
+
+class TooManyBoostedReleasesException(Exception):
+    pass
 
 
 def get_redis_client_for_ds():
@@ -34,6 +39,10 @@ def observe_release(project_id, release_id):
     returns True otherwise returns False.
     """
     redis_client = get_redis_client_for_ds()
+    boosted_releases_count = redis_client.hlen(generate_cache_key_for_boosted_release(project_id))
+    if boosted_releases_count >= BOOSTED_RELEASES_LIMIT:
+        raise TooManyBoostedReleasesException
+
     cache_key = generate_cache_key_for_observed_release(project_id, release_id)
 
     # TODO(ahmed): Modify these two statements into one once we upgrade to a higher redis-py version as in newer

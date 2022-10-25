@@ -39,7 +39,11 @@ from sentry.constants import (
     DataCategory,
 )
 from sentry.culprit import generate_culprit
-from sentry.dynamic_sampling.latest_release_booster import add_boosted_release, observe_release
+from sentry.dynamic_sampling.latest_release_booster import (
+    TooManyBoostedReleasesException,
+    add_boosted_release,
+    observe_release,
+)
 from sentry.eventstore.processing import event_processing_store
 from sentry.grouping.api import (
     BackgroundGroupingConfigLoader,
@@ -835,14 +839,32 @@ def _get_or_create_release_many(jobs, projects):
                 ):
                     with sentry_sdk.start_span(
                         op="event_manager.dynamic_sampling_observe_latest_release"
-                    ), metrics.timer("event_manager.dynamic_sampling_observe_latest_release"):
+                    ) as span, metrics.timer(
+                        "event_manager.dynamic_sampling_observe_latest_release"
+                    ) as metrics_tags:
                         try:
                             release_observed_in_last_24h = observe_release(project_id, release.id)
                             if not release_observed_in_last_24h:
+                                span.set_tag(
+                                    "dynamic_sampling.observe_release_status",
+                                    f"New release observed {release.id}",
+                                )
+                                metrics_tags[
+                                    "dynamic_sampling.observe_release_status"
+                                ] = f"New release observed {release.id}"
                                 add_boosted_release(project_id, release.id)
                                 schedule_invalidate_project_config(
                                     project_id=project_id, trigger="dynamic_sampling:boost_release"
                                 )
+                        except TooManyBoostedReleasesException:
+                            span.set_tag(
+                                "dynamic_sampling.observe_release_status",
+                                "Too many boosted releases",
+                            )
+                            metrics_tags[
+                                "dynamic_sampling.observe_release_status"
+                            ] = "Too many boosted releases"
+                            pass
                         except Exception:
                             sentry_sdk.capture_exception()
 
