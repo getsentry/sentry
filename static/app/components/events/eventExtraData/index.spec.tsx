@@ -1,10 +1,7 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import EventExtraData from 'sentry/components/events/eventExtraData';
-import {OrganizationContext} from 'sentry/views/organizationContext';
-import {RouteContext} from 'sentry/views/routeContext';
 
 describe('EventExtraData', function () {
   it('display redacted data', async function () {
@@ -173,28 +170,11 @@ describe('EventExtraData', function () {
       },
     };
 
-    const {organization, router} = initializeOrg({
-      ...initializeOrg(),
+    render(<EventExtraData event={event} />, {
       organization: {
-        ...initializeOrg().organization,
         relayPiiConfig: JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig()),
       },
     });
-
-    render(
-      <OrganizationContext.Provider value={organization}>
-        <RouteContext.Provider
-          value={{
-            router,
-            location: router.location,
-            params: {},
-            routes: [],
-          }}
-        >
-          <EventExtraData event={event} />
-        </RouteContext.Provider>
-      </OrganizationContext.Provider>
-    );
 
     expect(await screen.findAllByText(/redacted/)).toHaveLength(10);
 

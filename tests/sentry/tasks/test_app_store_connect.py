@@ -65,7 +65,6 @@ class TestUpdateDsyms:
         AppConnectBuild.objects.create(
             project=default_project,
             app_id=build.app_id,
-            app_id_str=build.app_id,
             bundle_id=config.bundleId,
             platform=build.platform,
             bundle_short_version=build.version,
@@ -105,7 +104,6 @@ class TestUpdateDsyms:
         AppConnectBuild.objects.create(
             project=default_project,
             app_id=build.app_id,
-            app_id_str=build.app_id,
             bundle_id=config.bundleId,
             platform=build.platform,
             bundle_short_version=build.version,
@@ -134,8 +132,7 @@ class TestUpdateDsyms:
 
         expected_build = AppConnectBuild(
             project=default_project,
-            app_id=int(build.app_id),
-            app_id_str=build.app_id,
+            app_id=build.app_id,
             bundle_id=config.bundleId,
             platform=build.platform,
             bundle_short_version=build.version,
@@ -148,7 +145,6 @@ class TestUpdateDsyms:
         assert returned_build.fetched == expected_build.fetched
         assert returned_build.project == expected_build.project
         assert returned_build.app_id == expected_build.app_id
-        assert returned_build.app_id_str == expected_build.app_id_str
         assert returned_build.bundle_id == expected_build.bundle_id
         assert returned_build.platform == expected_build.platform
         assert returned_build.bundle_short_version == expected_build.bundle_short_version
@@ -166,7 +162,6 @@ class TestUpdateDsyms:
         assert saved_build.fetched == expected_build.fetched
         assert saved_build.project == expected_build.project
         assert saved_build.app_id == expected_build.app_id
-        assert saved_build.app_id_str == expected_build.app_id_str
         assert saved_build.bundle_id == expected_build.bundle_id
         assert saved_build.platform == expected_build.platform
         assert saved_build.bundle_short_version == expected_build.bundle_short_version
@@ -180,7 +175,6 @@ class TestUpdateDsyms:
         AppConnectBuild.objects.create(
             project=default_project,
             app_id=build.app_id,
-            app_id_str=build.app_id,
             bundle_id=config.bundleId,
             platform=build.platform,
             bundle_short_version=build.version,
@@ -194,8 +188,7 @@ class TestUpdateDsyms:
 
         assert existing_build.fetched
         assert existing_build.project == default_project
-        assert str(existing_build.app_id) == build.app_id
-        assert existing_build.app_id_str == build.app_id
+        assert existing_build.app_id == build.app_id
         assert existing_build.bundle_id == config.bundleId
         assert existing_build.platform == build.platform
         assert existing_build.bundle_short_version == build.version
@@ -209,7 +202,6 @@ class TestUpdateDsyms:
         AppConnectBuild.objects.create(
             project=default_project,
             app_id=build.app_id,
-            app_id_str=build.app_id,
             bundle_id=config.bundleId,
             platform=build.platform,
             bundle_short_version=build.version,
@@ -223,8 +215,7 @@ class TestUpdateDsyms:
 
         assert not existing_build.fetched
         assert existing_build.project == default_project
-        assert str(existing_build.app_id) == build.app_id
-        assert existing_build.app_id_str == build.app_id
+        assert existing_build.app_id == build.app_id
         assert existing_build.bundle_id == config.bundleId
         assert existing_build.platform == build.platform
         assert existing_build.bundle_short_version == build.version

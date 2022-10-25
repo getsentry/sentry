@@ -555,6 +555,7 @@ describe('IssueList', function () {
           query: {
             environment: [],
             project: [],
+            referrer: 'issue-list',
             query: 'dogs',
             statsPeriod: '14d',
           },
@@ -626,7 +627,9 @@ describe('IssueList', function () {
       expect(browserHistory.push).toHaveBeenLastCalledWith(
         expect.objectContaining({
           pathname: '/organizations/org-slug/issues/searches/666/',
-          query: {},
+          query: {
+            referrer: 'search-bar',
+          },
           search: '',
         })
       );
@@ -656,6 +659,7 @@ describe('IssueList', function () {
           query: {
             query: 'assigned:me level:fatal',
             sort: 'date',
+            referrer: 'search-bar',
           },
         })
       );
@@ -710,6 +714,7 @@ describe('IssueList', function () {
             project: ['3559'],
             statsPeriod: '14d',
             sort: 'date',
+            referrer: 'issue-list',
           },
         })
       );
@@ -766,6 +771,7 @@ describe('IssueList', function () {
             environment: [],
             statsPeriod: '14d',
             sort: 'date',
+            referrer: 'issue-list',
           },
         })
       );
@@ -861,6 +867,7 @@ describe('IssueList', function () {
             project: [123],
             environment: ['prod'],
             query: 'assigned:me level:fatal',
+            referrer: 'issue-list',
           }),
         })
       );
@@ -896,6 +903,7 @@ describe('IssueList', function () {
             project: [123],
             environment: ['prod'],
             query: 'assigned:me level:fatal',
+            referrer: 'search-bar',
           }),
         })
       );
@@ -924,6 +932,7 @@ describe('IssueList', function () {
             project: [123],
             environment: ['prod'],
             query: 'assigned:me level:fatal',
+            referrer: 'search-bar',
           }),
         })
       );
@@ -964,6 +973,7 @@ describe('IssueList', function () {
           project: [],
           query: 'is:unresolved',
           statsPeriod: '14d',
+          referrer: 'issue-list',
         },
       };
       expect(browserHistory.push).toHaveBeenLastCalledWith(pushArgs);
@@ -985,6 +995,7 @@ describe('IssueList', function () {
           project: [],
           query: 'is:unresolved',
           statsPeriod: '14d',
+          referrer: 'issue-list',
         },
       };
       expect(browserHistory.push).toHaveBeenLastCalledWith(pushArgs);
@@ -1004,6 +1015,7 @@ describe('IssueList', function () {
           project: [],
           query: 'is:unresolved',
           statsPeriod: '14d',
+          referrer: 'issue-list',
         },
       };
       expect(browserHistory.push).toHaveBeenLastCalledWith(pushArgs);
@@ -1023,6 +1035,7 @@ describe('IssueList', function () {
           project: [],
           query: 'is:unresolved',
           statsPeriod: '14d',
+          referrer: 'issue-list',
         },
       });
     });
@@ -1045,6 +1058,7 @@ describe('IssueList', function () {
           project: [parseInt(project.id, 10)],
           query: 'is:ignored',
           statsPeriod: '14d',
+          referrer: 'issue-list',
         },
       });
     });
@@ -1065,6 +1079,7 @@ describe('IssueList', function () {
           project: [parseInt(project.id, 10)],
           cursor: '1554756114000:0:0',
           statsPeriod: '14d',
+          referrer: 'issue-list',
         },
       });
     });
@@ -1085,6 +1100,7 @@ describe('IssueList', function () {
           project: [parseInt(project.id, 10)],
           cursor: '1554756114000:0:0',
           statsPeriod: '14d',
+          referrer: 'issue-list',
         },
       });
     });
@@ -1103,6 +1119,7 @@ describe('IssueList', function () {
           environment: [],
           project: [savedSearch.projectId],
           statsPeriod: '14d',
+          referrer: 'issue-list',
         },
       });
     });
@@ -1123,6 +1140,7 @@ describe('IssueList', function () {
           project: [parseInt(project.id, 10)],
           statsPeriod: '14d',
           sort: savedSearch.sort,
+          referrer: 'issue-list',
         },
       });
     });
@@ -1142,6 +1160,7 @@ describe('IssueList', function () {
           project: [parseInt(project.id, 10)],
           environment: [],
           statsPeriod: '14d',
+          referrer: 'issue-list',
         },
       });
     });
@@ -1161,6 +1180,7 @@ describe('IssueList', function () {
           environment: [],
           project: props.selection.projects,
           statsPeriod: '14d',
+          referrer: 'issue-list',
         },
       });
     });
