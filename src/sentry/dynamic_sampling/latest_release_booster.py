@@ -6,7 +6,7 @@ from pytz import UTC
 from sentry.utils import redis
 
 BOOSTED_RELEASE_TIMEOUT = 60 * 60
-ONE_DAY_TIMEOUT = 60 * 60 * 24
+ONE_DAY_TIMEOUT_MS = 60 * 60 * 24 * 1000
 
 
 def get_redis_client_for_ds():
@@ -39,7 +39,7 @@ def observe_release(project_id, release_id):
     # TODO(ahmed): Modify these two statements into one once we upgrade to a higher redis-py version as in newer
     #  versions these two operations can be done in a single call.
     release_observed = redis_client.getset(name=cache_key, value=1)
-    redis_client.pexpire(cache_key, ONE_DAY_TIMEOUT)
+    redis_client.pexpire(cache_key, ONE_DAY_TIMEOUT_MS)
     return release_observed == "1"
 
 
@@ -82,4 +82,4 @@ def add_boosted_release(project_id, release_id):
         release_id,
         datetime.utcnow().replace(tzinfo=UTC).timestamp(),
     )
-    redis_client.pexpire(cache_key, ONE_DAY_TIMEOUT)
+    redis_client.pexpire(cache_key, BOOSTED_RELEASE_TIMEOUT * 1000)
