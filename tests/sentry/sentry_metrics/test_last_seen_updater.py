@@ -9,6 +9,7 @@ from django.utils import timezone
 from sentry.metrics.dummy import DummyMetricsBackend
 from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_ingest_config
 from sentry.sentry_metrics.consumers.last_seen_updater import (
+    KeepAliveMessageFilter,
     LastSeenUpdaterMessageFilter,
     _last_seen_updater_processing_factory,
     _update_stale_last_seen,
@@ -178,6 +179,22 @@ class TestFilterMethod:
     def test_message_filter_header_contains_no_d(self, message_filter):
         message = self.empty_message_with_headers([("mapping_sources", "fhc")])
         assert message_filter.should_drop(message)
+
+    @pytest.fixture
+    def keep_alive_message_filter(self, message_filter):
+        return KeepAliveMessageFilter(message_filter, 5)
+
+    def test_message_filter_accepts_every_fifth_message(
+        self, message_filter, keep_alive_message_filter
+    ):
+        message = self.empty_message_with_headers([("mapping_sources", "fhc")])
+        for _ in range(4):
+            assert keep_alive_message_filter.should_drop(message)
+
+        assert message_filter.should_drop(message)
+        assert not keep_alive_message_filter.should_drop(message)
+
+        assert keep_alive_message_filter.should_drop(message)
 
 
 class TestCollectMethod(TestCase):
