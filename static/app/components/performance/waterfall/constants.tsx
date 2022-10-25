@@ -17,8 +17,8 @@ type SpanBarColours = {
 
 // TODO: Need to eventually add dark mode colours as well
 export function getSpanBarColours(
-  theme: Theme,
-  spanBarType?: SpanBarType
+  spanBarType: SpanBarType | undefined,
+  theme: Theme
 ): SpanBarColours {
   switch (spanBarType) {
     case SpanBarType.GAP:

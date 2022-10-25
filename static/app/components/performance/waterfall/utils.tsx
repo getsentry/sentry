@@ -27,7 +27,7 @@ export const getBackgroundColor = ({
 
 export function getHatchPattern(spanBarType: SpanBarType | undefined, theme: Theme) {
   if (spanBarType) {
-    const {primary, alternate} = getSpanBarColours(theme, spanBarType);
+    const {primary, alternate} = getSpanBarColours(spanBarType, theme);
 
     return `
       background-image: linear-gradient(135deg,
@@ -85,7 +85,7 @@ export const getDurationPillColours = ({
   spanBarType?: SpanBarType;
 }) => {
   if (durationDisplay === 'inset') {
-    const {alternate, insetTextColour} = getSpanBarColours(theme, spanBarType);
+    const {alternate, insetTextColour} = getSpanBarColours(spanBarType, theme);
     return `background: ${alternate}; color: ${insetTextColour};`;
   }
 
