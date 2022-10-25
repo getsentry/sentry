@@ -14,9 +14,8 @@ from sentry.issues.query import apply_performance_conditions
 from sentry.models.project import Project
 
 
-def wrap_event_response(
-    event: Event, event_data: Any, project: Project, requested_environments: List[str]
-):
+def wrap_event_response(request_user: Any, event: Event, project: Project, environments: List[str]):
+    event_data = serialize(event, request_user, DetailedEventSerializer())
     # Used for paginating through events of a single issue in group details
     # Skip next/prev for issueless events
     next_event_id = None
@@ -40,8 +39,8 @@ def wrap_event_response(
                 group_ids=[event.group_id],
             )
 
-        if requested_environments:
-            conditions.append(["environment", "IN", requested_environments])
+        if environments:
+            conditions.append(["environment", "IN", environments])
 
         # Ignore any time params and search entire retention period
         next_event_filter = deepcopy(_filter)
@@ -87,10 +86,9 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
         if event is None:
             return Response({"detail": "Event not found"}, status=404)
 
-        event_data = serialize(event, request.user, DetailedEventSerializer())
         environments = set(request.GET.getlist("environment"))
 
-        data = wrap_event_response(event, event_data, project, environments)
+        data = wrap_event_response(request.user, event, project, environments)
         return Response(data)
 
 

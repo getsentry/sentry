@@ -9,7 +9,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.endpoints.project_event_details import wrap_event_response
 from sentry.api.helpers.environments import get_environments
-from sentry.api.serializers import DetailedEventSerializer, EventSerializer, serialize
+from sentry.api.serializers import EventSerializer, serialize
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 if TYPE_CHECKING:
@@ -47,6 +47,5 @@ class GroupEventsLatestEndpoint(GroupEndpoint):  # type: ignore
         if "stacktraceOnly" in collapse:
             return Response(serialize(event, request.user, EventSerializer()))
 
-        event_data = serialize(event, request.user, DetailedEventSerializer())
-        data = wrap_event_response(event, event_data, event.project, environments)
+        data = wrap_event_response(request.user, event, event.project, environments)
         return Response(data)
