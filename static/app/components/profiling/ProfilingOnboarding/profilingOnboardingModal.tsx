@@ -399,7 +399,7 @@ function AndroidInstallSteps({
             {`<application>
   <meta-data android:name="io.sentry.dsn" android:value="${dsn}" />
   <meta-data android:name="io.sentry.traces.sample-rate" android:value="1.0" />
-  <meta-data android:name="io.sentry.traces.profiling.enable" android:value="true" />
+  <meta-data android:name="io.sentry.traces.profiling.sample-rate" android:value="1.0" />
   </application>`}
           </CodeSnippet>
         )}
