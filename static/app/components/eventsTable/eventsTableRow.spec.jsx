@@ -1,31 +1,34 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import Button from 'sentry/components/button';
 import EventsTableRow from 'sentry/components/eventsTable/eventsTableRow';
 
-jest.mock('sentry/utils/useRoutes', () => ({
-  useRoutes: jest.fn(() => [
-    {
-      path: '/',
-    },
-    {
-      path: '/organizations/:orgId/issues/:groupId/',
-    },
-    {
-      path: 'events/',
-    },
-  ]),
-}));
-
-jest.mock('sentry/components/button', () => jest.fn(() => null));
-
 describe('EventsTableRow', function () {
+  const {organization, router, routerContext} = initializeOrg({
+    organization: TestStubs.Organization(),
+    project: TestStubs.Project(),
+    projects: [TestStubs.Project()],
+    router: {
+      routes: [
+        {
+          path: '/',
+        },
+        {
+          path: '/organizations/:orgId/issues/:groupId/',
+        },
+        {
+          path: 'events/',
+        },
+      ],
+    },
+  });
+
   it('renders', function () {
     const {container} = render(
       <table>
         <tbody>
           <EventsTableRow
-            organization={TestStubs.Organization()}
+            organization={organization}
             tagList={[]}
             {...{orgId: 'orgId', projectId: 'projectId', groupId: 'groupId'}}
             event={TestStubs.DetailedEvents()[0]}
@@ -41,7 +44,7 @@ describe('EventsTableRow', function () {
       <table>
         <tbody>
           <EventsTableRow
-            organization={TestStubs.Organization()}
+            organization={organization}
             tagList={[
               {
                 key: 'replayId',
@@ -53,11 +56,12 @@ describe('EventsTableRow', function () {
             event={TestStubs.DetailedEvents()[0]}
           />
         </tbody>
-      </table>
+      </table>,
+      {context: routerContext, router}
     );
 
     expect(screen.queryAllByRole('cell').length).toBe(2);
-    expect(Button).not.toHaveBeenCalled();
+    expect(screen.queryByLabelText('View Full Replay')).not.toBeInTheDocument();
   });
 
   it('renders the replay column with a correct link', () => {
@@ -67,7 +71,7 @@ describe('EventsTableRow', function () {
       <table>
         <tbody>
           <EventsTableRow
-            organization={TestStubs.Organization()}
+            organization={organization}
             tagList={[
               {
                 key: 'replayId',
@@ -87,22 +91,16 @@ describe('EventsTableRow', function () {
             }}
           />
         </tbody>
-      </table>
+      </table>,
+      {context: routerContext, router}
     );
 
     expect(screen.queryAllByRole('cell').length).toBe(2);
-    expect(Button).toHaveBeenCalledWith(
-      expect.objectContaining({
-        'aria-label': 'View Full Replay',
-        to: expect.objectContaining({
-          pathname: '/organizations/org-slug/replays/projectId:test-replay-id/',
-          query: {
-            event_t: new Date(event.dateCreated).getTime(),
-            referrer: '%2Forganizations%2F%3AorgId%2Fissues%2F%3AgroupId%2Fevents%2F',
-          },
-        }),
-      }),
-      {}
+    expect(screen.queryByLabelText('View Full Replay')).toHaveAttribute(
+      'href',
+      `/organizations/org-slug/replays/projectId:test-replay-id/?event_t=${new Date(
+        event.dateCreated
+      ).getTime()}&referrer=%252Forganizations%252F%253AorgId%252Fissues%252F%253AgroupId%252Fevents%252F`
     );
   });
 });
