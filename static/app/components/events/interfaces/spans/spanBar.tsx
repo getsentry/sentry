@@ -895,7 +895,7 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
     errors: TraceError[] | null;
     transactions: QuickTraceEvent[] | null;
   }) {
-    const {span, spanBarColor, spanBarType: spanBarType, spanNumber} = this.props;
+    const {span, spanBarColor, spanBarType, spanNumber} = this.props;
     const startTimestamp: number = span.start_timestamp;
     const endTimestamp: number = span.timestamp;
     const duration = Math.abs(endTimestamp - startTimestamp);
