@@ -1,4 +1,5 @@
 from collections import defaultdict
+from datetime import timedelta
 from enum import Enum
 from typing import Any, List, Optional, TypedDict
 
@@ -125,11 +126,14 @@ class GroupOwner(Model):
 
     @classmethod
     def invalidate_autoassigned_owner_cache(cls, project_id, autoassignment_types):
-        group_ids = Group.objects.filter(project_id=project_id).values_list("id", flat=True)
+        queryset = Group.objects.filter(
+            project_id=project_id,
+            last_seen__gte=timezone.now() - timedelta(seconds=READ_CACHE_DURATION),
+        ).values_list("id", flat=True)
 
         cache_keys = [
             cls.get_autoassigned_owner_cache_key(group_id, project_id, autoassignment_types)
-            for group_id in group_ids
+            for group_id in queryset.iterator(chunk_size=1000)
         ]
         cache.delete_many(cache_keys)
 
