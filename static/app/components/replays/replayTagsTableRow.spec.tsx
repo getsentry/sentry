@@ -1,8 +1,4 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
-
-import {OrganizationContext} from 'sentry/views/organizationContext';
-import {RouteContext} from 'sentry/views/routeContext';
 
 import ReplayTagsTableRow from './replayTagsTableRow';
 
@@ -16,32 +12,9 @@ const genericTag = {
   value: ['bar', 'baz'],
 };
 
-function TestComponent({children}) {
-  const {organization, router} = initializeOrg();
-
-  return (
-    <OrganizationContext.Provider value={organization}>
-      <RouteContext.Provider
-        value={{
-          router,
-          location: router.location,
-          params: {},
-          routes: [],
-        }}
-      >
-        {children}
-      </RouteContext.Provider>
-    </OrganizationContext.Provider>
-  );
-}
-
 describe('ReplayTagsTableRow', () => {
   it('Should render tag key and value correctly', () => {
-    render(
-      <TestComponent>
-        <ReplayTagsTableRow tag={genericTag} />
-      </TestComponent>
-    );
+    render(<ReplayTagsTableRow tag={genericTag} />);
 
     expect(screen.getByText('foo')).toBeInTheDocument();
     expect(screen.getByText('bar')).toBeInTheDocument();
@@ -49,11 +22,7 @@ describe('ReplayTagsTableRow', () => {
   });
 
   it('Should render release tags correctly', () => {
-    render(
-      <TestComponent>
-        <ReplayTagsTableRow tag={releaseTag} />
-      </TestComponent>
-    );
+    render(<ReplayTagsTableRow tag={releaseTag} />);
 
     expect(screen.getByText('release')).toBeInTheDocument();
     expect(screen.getByText('1.0.0')).toBeInTheDocument();
@@ -61,11 +30,7 @@ describe('ReplayTagsTableRow', () => {
   });
 
   it('Should render the tag value as a link if we get a link result from generateUrl', () => {
-    render(
-      <TestComponent>
-        <ReplayTagsTableRow tag={genericTag} generateUrl={() => 'https://foo.bar'} />
-      </TestComponent>
-    );
+    render(<ReplayTagsTableRow tag={genericTag} generateUrl={() => 'https://foo.bar'} />);
 
     expect(screen.getByText('foo')).toBeInTheDocument();
     expect(screen.getByText('bar')).toBeInTheDocument();
@@ -77,13 +42,11 @@ describe('ReplayTagsTableRow', () => {
 
   it('Should not render the tag value as a link if we get the value in the query prop', () => {
     render(
-      <TestComponent>
-        <ReplayTagsTableRow
-          tag={genericTag}
-          generateUrl={() => 'https://foo.bar'}
-          query="foo:bar"
-        />
-      </TestComponent>
+      <ReplayTagsTableRow
+        tag={genericTag}
+        generateUrl={() => 'https://foo.bar'}
+        query="foo:bar"
+      />
     );
 
     expect(screen.getByText('foo')).toBeInTheDocument();

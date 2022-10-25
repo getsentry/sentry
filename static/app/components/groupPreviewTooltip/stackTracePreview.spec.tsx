@@ -1,11 +1,8 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {EventError, Organization} from 'sentry/types';
+import {EventError} from 'sentry/types';
 import {EntryType, Event, ExceptionType, ExceptionValue, Frame} from 'sentry/types/event';
 import useApi from 'sentry/utils/useApi';
-import {OrganizationContext} from 'sentry/views/organizationContext';
-import {RouteContext} from 'sentry/views/routeContext';
 
 import {StackTracePreview} from './stackTracePreview';
 
@@ -17,25 +14,6 @@ const makeEvent = (event: Partial<Event> = {}): Event => {
 
   return evt;
 };
-
-function TestComponent({org, children}: {children: React.ReactNode; org?: Organization}) {
-  const {organization, router} = initializeOrg();
-
-  return (
-    <OrganizationContext.Provider value={org ?? organization}>
-      <RouteContext.Provider
-        value={{
-          router,
-          location: router.location,
-          params: {},
-          routes: [],
-        }}
-      >
-        {children}
-      </RouteContext.Provider>
-    </OrganizationContext.Provider>
-  );
-}
 
 jest.mock('sentry/utils/useApi');
 
@@ -51,11 +29,9 @@ describe('StackTracePreview', () => {
     useApi.mockReturnValue(api);
 
     render(
-      <TestComponent>
-        <StackTracePreview issueId="issue" eventId="event_id" projectSlug="project_slug">
-          Preview Trigger
-        </StackTracePreview>
-      </TestComponent>
+      <StackTracePreview issueId="issue" eventId="event_id" projectSlug="project_slug">
+        Preview Trigger
+      </StackTracePreview>
     );
 
     userEvent.hover(screen.getByText(/Preview Trigger/));
@@ -76,11 +52,7 @@ describe('StackTracePreview', () => {
     // @ts-ignore useApi is mocked
     useApi.mockReturnValue(api);
 
-    render(
-      <TestComponent>
-        <StackTracePreview issueId="issue">Preview Trigger</StackTracePreview>
-      </TestComponent>
-    );
+    render(<StackTracePreview issueId="issue">Preview Trigger</StackTracePreview>);
 
     userEvent.hover(screen.getByText(/Preview Trigger/));
 
@@ -100,11 +72,7 @@ describe('StackTracePreview', () => {
     // @ts-ignore useApi is mocked
     useApi.mockReturnValue(api);
 
-    render(
-      <TestComponent>
-        <StackTracePreview issueId="issue">Preview Trigger</StackTracePreview>
-      </TestComponent>
-    );
+    render(<StackTracePreview issueId="issue">Preview Trigger</StackTracePreview>);
 
     userEvent.hover(screen.getByText(/Preview Trigger/));
 
@@ -120,11 +88,7 @@ describe('StackTracePreview', () => {
     // @ts-ignore useApi is mocked
     useApi.mockReturnValue(api);
 
-    render(
-      <TestComponent>
-        <StackTracePreview issueId="issue">Preview Trigger</StackTracePreview>
-      </TestComponent>
-    );
+    render(<StackTracePreview issueId="issue">Preview Trigger</StackTracePreview>);
 
     userEvent.hover(screen.getByText(/Preview Trigger/));
 
@@ -194,11 +158,9 @@ describe('StackTracePreview', () => {
     // @ts-ignore useApi is mocked
     useApi.mockReturnValue(api);
 
-    render(
-      <TestComponent org={TestStubs.Organization({features})}>
-        <StackTracePreview issueId="issue">Preview Trigger</StackTracePreview>
-      </TestComponent>
-    );
+    render(<StackTracePreview issueId="issue">Preview Trigger</StackTracePreview>, {
+      organization: {features},
+    });
 
     userEvent.hover(screen.getByText(/Preview Trigger/));
 

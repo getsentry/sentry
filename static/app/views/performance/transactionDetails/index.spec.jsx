@@ -78,13 +78,11 @@ describe('EventDetails', () => {
     });
 
     render(
-      <OrganizationContext.Provider value={organization}>
-        <EventDetails
-          organization={organization}
-          params={{orgId: organization.slug, eventSlug: 'latest'}}
-          location={routerContext.context.location}
-        />
-      </OrganizationContext.Provider>
+      <EventDetails
+        organization={organization}
+        params={{orgId: organization.slug, eventSlug: 'latest'}}
+        location={routerContext.context.location}
+      />
     );
     expect(screen.queryByText(alertText)).not.toBeInTheDocument();
 

@@ -5,15 +5,6 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
 import {ALL_VIEWS, DEFAULT_EVENT_VIEW} from 'sentry/views/eventsV2/data';
 import EventDetails from 'sentry/views/eventsV2/eventDetails';
-import {OrganizationContext} from 'sentry/views/organizationContext';
-
-const WrappedEventDetails = ({organization, ...rest}) => {
-  return (
-    <OrganizationContext.Provider value={organization}>
-      <EventDetails organization={organization} {...rest} />
-    </OrganizationContext.Provider>
-  );
-};
 
 describe('EventsV2 > EventDetails', function () {
   const allEventsView = EventView.fromSavedQuery(DEFAULT_EVENT_VIEW);
@@ -112,7 +103,7 @@ describe('EventsV2 > EventDetails', function () {
 
   it('renders', async function () {
     render(
-      <WrappedEventDetails
+      <EventDetails
         organization={TestStubs.Organization()}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={{query: allEventsView.generateQueryStringObject()}}
@@ -123,7 +114,7 @@ describe('EventsV2 > EventDetails', function () {
 
   it('renders a 404', async function () {
     render(
-      <WrappedEventDetails
+      <EventDetails
         organization={TestStubs.Organization()}
         params={{eventSlug: 'project-slug:abad1'}}
         location={{query: allEventsView.generateQueryStringObject()}}
@@ -135,7 +126,7 @@ describe('EventsV2 > EventDetails', function () {
 
   it('renders a chart in grouped view', async function () {
     render(
-      <WrappedEventDetails
+      <EventDetails
         organization={TestStubs.Organization()}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={{query: errorsView.generateQueryStringObject()}}
@@ -152,7 +143,7 @@ describe('EventsV2 > EventDetails', function () {
       body: {},
     });
     render(
-      <WrappedEventDetails
+      <EventDetails
         organization={TestStubs.Organization()}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={{query: allEventsView.generateQueryStringObject()}}
@@ -176,7 +167,7 @@ describe('EventsV2 > EventDetails', function () {
       },
     });
     render(
-      <WrappedEventDetails
+      <EventDetails
         organization={organization}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={{query: allEventsView.generateQueryStringObject()}}
@@ -215,7 +206,7 @@ describe('EventsV2 > EventDetails', function () {
       },
     });
     render(
-      <WrappedEventDetails
+      <EventDetails
         organization={organization}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={{

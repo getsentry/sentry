@@ -5,8 +5,6 @@ import * as incidentActions from 'sentry/actionCreators/serviceIncidents';
 import SidebarContainer from 'sentry/components/sidebar';
 import ConfigStore from 'sentry/stores/configStore';
 import {PersistedStoreProvider} from 'sentry/stores/persistedStore';
-import {OrganizationContext} from 'sentry/views/organizationContext';
-import {RouteContext} from 'sentry/views/routeContext';
 
 jest.mock('sentry/actionCreators/serviceIncidents');
 
@@ -19,20 +17,9 @@ describe('Sidebar', function () {
   const location = {...router.location, ...{pathname: '/test/'}};
 
   const getElement = props => (
-    <RouteContext.Provider
-      value={{
-        location,
-        params: {},
-        router,
-        routes: [],
-      }}
-    >
-      <OrganizationContext.Provider value={organization}>
-        <PersistedStoreProvider>
-          <SidebarContainer organization={organization} location={location} {...props} />
-        </PersistedStoreProvider>
-      </OrganizationContext.Provider>
-    </RouteContext.Provider>
+    <PersistedStoreProvider>
+      <SidebarContainer organization={organization} location={location} {...props} />
+    </PersistedStoreProvider>
   );
 
   const renderSidebar = props => render(getElement(props));

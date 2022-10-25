@@ -1,9 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 import TransactionHeader from 'sentry/views/performance/transactionSummary/header';
 import Tab from 'sentry/views/performance/transactionSummary/tabs';
 
@@ -48,20 +46,6 @@ function initializeData(opts?: InitialOpts) {
   };
 }
 
-function ComponentProviders({
-  organization,
-  children,
-}: {
-  children: React.ReactNode;
-  organization: Organization;
-}) {
-  return (
-    <OrganizationContext.Provider value={organization}>
-      {children}
-    </OrganizationContext.Provider>
-  );
-}
-
 describe('Performance > Transaction Summary Header', function () {
   beforeEach(function () {
     MockApiClient.clearMockResponses();
@@ -76,18 +60,16 @@ describe('Performance > Transaction Summary Header', function () {
     });
 
     render(
-      <ComponentProviders organization={organization}>
-        <TransactionHeader
-          eventView={eventView}
-          location={router.location}
-          organization={organization}
-          projects={[project]}
-          projectId={project.id}
-          transactionName="transaction_name"
-          currentTab={Tab.TransactionSummary}
-          hasWebVitals="yes"
-        />
-      </ComponentProviders>
+      <TransactionHeader
+        eventView={eventView}
+        location={router.location}
+        organization={organization}
+        projects={[project]}
+        projectId={project.id}
+        transactionName="transaction_name"
+        currentTab={Tab.TransactionSummary}
+        hasWebVitals="yes"
+      />
     );
 
     expect(screen.getByRole('tab', {name: 'Web Vitals'})).toBeInTheDocument();
@@ -101,18 +83,16 @@ describe('Performance > Transaction Summary Header', function () {
       body: {measurements: true},
     });
 
-    <ComponentProviders organization={organization}>
-      <TransactionHeader
-        eventView={eventView}
-        location={router.location}
-        organization={organization}
-        projects={[project]}
-        projectId={project.id}
-        transactionName="transaction_name"
-        currentTab={Tab.TransactionSummary}
-        hasWebVitals="no"
-      />
-    </ComponentProviders>;
+    <TransactionHeader
+      eventView={eventView}
+      location={router.location}
+      organization={organization}
+      projects={[project]}
+      projectId={project.id}
+      transactionName="transaction_name"
+      currentTab={Tab.TransactionSummary}
+      hasWebVitals="no"
+    />;
 
     expect(screen.queryByRole('tab', {name: 'Web Vitals'})).not.toBeInTheDocument();
   });
@@ -128,18 +108,16 @@ describe('Performance > Transaction Summary Header', function () {
     });
 
     render(
-      <ComponentProviders organization={organization}>
-        <TransactionHeader
-          eventView={eventView}
-          location={router.location}
-          organization={organization}
-          projects={[project]}
-          projectId={project.id}
-          transactionName="transaction_name"
-          currentTab={Tab.TransactionSummary}
-          hasWebVitals="maybe"
-        />
-      </ComponentProviders>
+      <TransactionHeader
+        eventView={eventView}
+        location={router.location}
+        organization={organization}
+        projects={[project]}
+        projectId={project.id}
+        transactionName="transaction_name"
+        currentTab={Tab.TransactionSummary}
+        hasWebVitals="maybe"
+      />
     );
 
     expect(screen.getByRole('tab', {name: 'Web Vitals'})).toBeInTheDocument();
@@ -154,18 +132,16 @@ describe('Performance > Transaction Summary Header', function () {
     });
 
     render(
-      <ComponentProviders organization={organization}>
-        <TransactionHeader
-          eventView={eventView}
-          location={router.location}
-          organization={organization}
-          projects={[project]}
-          projectId={project.id}
-          transactionName="transaction_name"
-          currentTab={Tab.TransactionSummary}
-          hasWebVitals="maybe"
-        />
-      </ComponentProviders>
+      <TransactionHeader
+        eventView={eventView}
+        location={router.location}
+        organization={organization}
+        projects={[project]}
+        projectId={project.id}
+        transactionName="transaction_name"
+        currentTab={Tab.TransactionSummary}
+        hasWebVitals="maybe"
+      />
     );
 
     await waitFor(() => expect(eventHasMeasurementsMock).toHaveBeenCalled());
@@ -182,18 +158,16 @@ describe('Performance > Transaction Summary Header', function () {
     });
 
     render(
-      <ComponentProviders organization={organization}>
-        <TransactionHeader
-          eventView={eventView}
-          location={router.location}
-          organization={organization}
-          projects={[project]}
-          projectId={project.id}
-          transactionName="transaction_name"
-          currentTab={Tab.TransactionSummary}
-          hasWebVitals="maybe"
-        />
-      </ComponentProviders>
+      <TransactionHeader
+        eventView={eventView}
+        location={router.location}
+        organization={organization}
+        projects={[project]}
+        projectId={project.id}
+        transactionName="transaction_name"
+        currentTab={Tab.TransactionSummary}
+        hasWebVitals="maybe"
+      />
     );
 
     await waitFor(() => expect(eventHasMeasurementsMock).toHaveBeenCalled());
@@ -212,18 +186,16 @@ describe('Performance > Transaction Summary Header', function () {
     });
 
     render(
-      <ComponentProviders organization={organization}>
-        <TransactionHeader
-          eventView={eventView}
-          location={router.location}
-          organization={organization}
-          projects={[project]}
-          projectId={project.id}
-          transactionName="transaction_name"
-          currentTab={Tab.TransactionSummary}
-          hasWebVitals="yes"
-        />
-      </ComponentProviders>
+      <TransactionHeader
+        eventView={eventView}
+        location={router.location}
+        organization={organization}
+        projects={[project]}
+        projectId={project.id}
+        transactionName="transaction_name"
+        currentTab={Tab.TransactionSummary}
+        hasWebVitals="yes"
+      />
     );
 
     expect(screen.getByRole('tab', {name: 'Spans'})).toBeInTheDocument();

@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import {
   act,
   fireEvent,
@@ -12,7 +14,6 @@ import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {IssueCategory} from 'sentry/types';
 import {IssueListActions} from 'sentry/views/issueList/actions';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 const organization = TestStubs.Organization();
 
@@ -36,10 +37,10 @@ const defaultProps = {
 
 function WrappedComponent(props) {
   return (
-    <OrganizationContext.Provider value={organization}>
+    <Fragment>
       <GlobalModal />
       <IssueListActions {...defaultProps} {...props} />
-    </OrganizationContext.Provider>
+    </Fragment>
   );
 }
 
@@ -361,10 +362,11 @@ describe('IssueListActions', function () {
         });
 
         render(
-          <OrganizationContext.Provider value={orgWithPerformanceIssues}>
+          <Fragment>
             <GlobalModal />
             <IssueListActions {...defaultProps} query="is:unresolved" queryCount={100} />
-          </OrganizationContext.Provider>
+          </Fragment>,
+          {organization: orgWithPerformanceIssues}
         );
 
         userEvent.click(screen.getByRole('checkbox'));
@@ -406,10 +408,11 @@ describe('IssueListActions', function () {
           );
 
         render(
-          <OrganizationContext.Provider value={orgWithPerformanceIssues}>
+          <Fragment>
             <GlobalModal />
             <IssueListActions {...defaultProps} query="is:unresolved" queryCount={100} />
-          </OrganizationContext.Provider>
+          </Fragment>,
+          {organization: orgWithPerformanceIssues}
         );
 
         userEvent.click(screen.getByRole('checkbox'));

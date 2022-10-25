@@ -1,38 +1,19 @@
-import {ReactElement, useEffect, useMemo} from 'react';
+import {ReactElement, useEffect} from 'react';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ProfilesTable} from 'sentry/components/profiling/profilesTable';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {OrganizationContext} from 'sentry/views/organizationContext';
-import {RouteContext} from 'sentry/views/routeContext';
 
-const organization = TestStubs.Organization();
 const project = TestStubs.Project();
 
 function TestContext({children}: {children: ReactElement}) {
-  const {router} = useMemo(() => initializeOrg({organization, project} as any), []);
-
   useEffect(() => {
     ProjectsStore.loadInitialData([project]);
     return () => ProjectsStore.reset();
   }, []);
 
-  return (
-    <RouteContext.Provider
-      value={{
-        router,
-        location: router.location,
-        params: {},
-        routes: [],
-      }}
-    >
-      <OrganizationContext.Provider value={organization}>
-        {children}
-      </OrganizationContext.Provider>
-    </RouteContext.Provider>
-  );
+  return children;
 }
 
 describe('ProfilesTable', function () {

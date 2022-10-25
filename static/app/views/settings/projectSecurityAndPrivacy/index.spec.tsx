@@ -1,55 +1,14 @@
-import {InjectedRouter} from 'react-router';
-import {Location} from 'history';
-
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Organization} from 'sentry/types';
-import {OrganizationContext} from 'sentry/views/organizationContext';
-import {RouteContext} from 'sentry/views/routeContext';
 import ProjectSecurityAndPrivacy from 'sentry/views/settings/projectSecurityAndPrivacy';
-
-function ComponentProviders({
-  router,
-  location,
-  organization,
-  children,
-}: {
-  children: React.ReactNode;
-  location: Location;
-  organization: Organization;
-  router: InjectedRouter;
-}) {
-  return (
-    <OrganizationContext.Provider value={organization}>
-      <RouteContext.Provider
-        value={{
-          router,
-          location,
-          params: {},
-          routes: [],
-        }}
-      >
-        {children}
-      </RouteContext.Provider>
-    </OrganizationContext.Provider>
-  );
-}
 
 describe('projectSecurityAndPrivacy', function () {
   it('renders form fields', function () {
-    const {organization, router} = initializeOrg();
+    const {organization} = initializeOrg();
     const project = TestStubs.ProjectDetails();
 
-    render(
-      <ComponentProviders
-        organization={organization}
-        router={router}
-        location={router.location}
-      >
-        <ProjectSecurityAndPrivacy project={project} organization={organization} />
-      </ComponentProviders>
-    );
+    render(<ProjectSecurityAndPrivacy project={project} organization={organization} />);
 
     expect(
       screen.getByRole('checkbox', {
@@ -89,7 +48,7 @@ describe('projectSecurityAndPrivacy', function () {
   });
 
   it('disables field when equivalent org setting is true', function () {
-    const {organization, router} = initializeOrg();
+    const {organization} = initializeOrg();
     const project = TestStubs.ProjectDetails();
 
     organization.dataScrubber = true;
@@ -101,15 +60,7 @@ describe('projectSecurityAndPrivacy', function () {
       body: project,
     });
 
-    render(
-      <ComponentProviders
-        organization={organization}
-        router={router}
-        location={router.location}
-      >
-        <ProjectSecurityAndPrivacy project={project} organization={organization} />
-      </ComponentProviders>
-    );
+    render(<ProjectSecurityAndPrivacy project={project} organization={organization} />);
 
     expect(
       screen.getByRole('checkbox', {

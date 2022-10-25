@@ -5,14 +5,13 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import {PersistedStoreProvider} from 'sentry/stores/persistedStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import Onboarding from 'sentry/views/onboarding/onboarding';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 describe('Onboarding', function () {
   afterEach(function () {
     MockApiClient.clearMockResponses();
   });
   it('renders the welcome page', function () {
-    const {organization, router, routerContext} = initializeOrg({
+    const {router, routerContext} = initializeOrg({
       router: {
         params: {
           step: 'welcome',
@@ -20,11 +19,9 @@ describe('Onboarding', function () {
       },
     });
     render(
-      <OrganizationContext.Provider value={organization}>
-        <PersistedStoreProvider>
-          <Onboarding {...router} />
-        </PersistedStoreProvider>
-      </OrganizationContext.Provider>,
+      <PersistedStoreProvider>
+        <Onboarding {...router} />
+      </PersistedStoreProvider>,
       {
         context: routerContext,
       }
@@ -46,11 +43,9 @@ describe('Onboarding', function () {
     });
     OrganizationStore.onUpdate(organization);
     render(
-      <OrganizationContext.Provider value={organization}>
-        <PersistedStoreProvider>
-          <Onboarding {...router} />
-        </PersistedStoreProvider>
-      </OrganizationContext.Provider>,
+      <PersistedStoreProvider>
+        <Onboarding {...router} />
+      </PersistedStoreProvider>,
       {
         context: routerContext,
       }
@@ -115,11 +110,9 @@ describe('Onboarding', function () {
     ProjectsStore.loadInitialData(projects);
     OrganizationStore.onUpdate(organization);
     render(
-      <OrganizationContext.Provider value={organization}>
-        <PersistedStoreProvider>
-          <Onboarding {...router} />
-        </PersistedStoreProvider>
-      </OrganizationContext.Provider>,
+      <PersistedStoreProvider>
+        <Onboarding {...router} />
+      </PersistedStoreProvider>,
       {
         context: routerContext,
       }
