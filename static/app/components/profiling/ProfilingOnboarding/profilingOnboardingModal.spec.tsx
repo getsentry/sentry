@@ -117,7 +117,7 @@ describe('ProfilingOnboarding', function () {
       body: [
         {
           projectId: project.id,
-          sdkName: 'sentry ios',
+          sdkName: 'sentry.cocoa',
           sdkVersion: '6.0.0',
           suggestions: [],
         },
@@ -147,12 +147,12 @@ describe('ProfilingOnboarding', function () {
       body: [
         {
           projectId: project.id,
-          sdkName: 'sentry ios',
+          sdkName: 'sentry.cocoa',
           sdkVersion: '6.0.0',
           suggestions: [
             {
               type: 'updateSdk',
-              sdkName: 'sentry-ios',
+              sdkName: 'sentry.cocoa',
               newSdkVersion: '9.0.0',
               sdkUrl: 'http://test/fake-slug',
             },
@@ -167,9 +167,45 @@ describe('ProfilingOnboarding', function () {
 
     selectProject(project);
 
-    const link = (await screen.findByText(/sentry-ios@9.0.0/)) as HTMLAnchorElement;
+    const link = (await screen.findByText(/sentry.cocoa@9.0.0/)) as HTMLAnchorElement;
     expect(link).toBeInTheDocument();
     expect(link.href).toBe('http://test/fake-slug');
+  });
+
+  it('does not show sdk updates for irrelevant sdk updates', () => {
+    const project = TestStubs.Project({name: 'Android', platform: 'java-android'});
+    ProjectsStore.loadInitialData([project]);
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/project-slug/keys/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sdk-updates/`,
+      body: [
+        {
+          projectId: project.id,
+          sdkName: 'sentry.java',
+          sdkVersion: '6.0.0',
+          suggestions: [
+            {
+              type: 'updateSdk',
+              sdkName: 'sentry.java',
+              newSdkVersion: '9.0.0',
+              sdkUrl: 'http://test/fake-slug',
+            },
+          ],
+        },
+      ],
+    });
+
+    render(
+      <ProfilingOnboardingModal organization={organization} {...MockRenderModalProps} />
+    );
+
+    selectProject(project);
+
+    const link = screen.queryByText(/sentry.java@9.0.0/);
+    expect(link).not.toBeInTheDocument();
   });
 
   it('shows the public dsn within the codesnippet', async () => {
