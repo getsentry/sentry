@@ -172,7 +172,12 @@ def test_relays_dyamic_sampling(
     """
     default_project.update_option("sentry:dynamic_sampling", dyn_sampling_data())
 
-    with Feature({"organizations:server-side-sampling": True}):
+    with Feature(
+        {
+            "organizations:server-side-sampling": True,
+            "organizations:dynamic-sampling-deprecated": True,
+        }
+    ):
         result, status_code = call_endpoint(full_config=False)
         assert status_code < 400
         dynamic_sampling = safe.get_path(

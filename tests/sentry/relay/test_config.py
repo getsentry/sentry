@@ -83,7 +83,9 @@ SOME_EXCEPTION = RuntimeError("foo")
 @mock.patch("sentry.relay.config.sentry_sdk")
 def test_get_experimental_config(mock_sentry_sdk, _, default_project):
     keys = ProjectKey.objects.filter(project=default_project)
-    with Feature("organizations:dynamic-sampling"):
+    with Feature(
+        {"organizations:dynamic-sampling": True, "organizations:server-side-sampling": True}
+    ):
         # Does not raise:
         cfg = get_project_config(default_project, full_config=True, project_keys=keys)
     # Key is missing from config:
@@ -126,7 +128,12 @@ def test_project_config_uses_filters_and_sampling_feature(
     """
     default_project.update_option("sentry:dynamic_sampling", dyn_sampling_data())
 
-    with Feature({"organizations:server-side-sampling": has_dyn_sampling}):
+    with Feature(
+        {
+            "organizations:server-side-sampling": has_dyn_sampling,
+            "organizations:dynamic-sampling-deprecated": True,
+        }
+    ):
         cfg = get_project_config(default_project, full_config=full_config)
 
     cfg = cfg.to_dict()
@@ -148,7 +155,12 @@ def test_project_config_filters_out_non_active_rules_in_dynamic_sampling(
     """
     default_project.update_option("sentry:dynamic_sampling", dyn_sampling_data(active))
 
-    with Feature({"organizations:server-side-sampling": True}):
+    with Feature(
+        {
+            "organizations:server-side-sampling": True,
+            "organizations:dynamic-sampling-deprecated": True,
+        }
+    ):
         cfg = get_project_config(default_project)
 
     cfg = cfg.to_dict()
@@ -168,7 +180,12 @@ def test_project_config_dynamic_sampling_is_none(default_project):
     """
     default_project.update_option("sentry:dynamic_sampling", None)
 
-    with Feature({"organizations:server-side-sampling": True}):
+    with Feature(
+        {
+            "organizations:server-side-sampling": True,
+            "organizations:dynamic-sampling-deprecated": True,
+        }
+    ):
         cfg = get_project_config(default_project)
 
     cfg = cfg.to_dict()
@@ -210,7 +227,12 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
         project=default_project,
         version="backend@22.9.0.dev0+8291ce47cf95d8c14d70af8fde7449b61319c1a4",
     )
-    with Feature({"organizations:server-side-sampling": True}):
+    with Feature(
+        {
+            "organizations:server-side-sampling": True,
+            "organizations:dynamic-sampling-deprecated": True,
+        }
+    ):
         cfg = get_project_config(default_project)
 
     cfg = cfg.to_dict()
@@ -278,7 +300,7 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
             {"rules": []},
         ),
         (
-            False,
+            True,
             True,
             {"rules": []},
             {
@@ -308,6 +330,7 @@ def test_project_config_with_uniform_rules_based_on_plan_in_dynamic_sampling_rul
         {
             "organizations:server-side-sampling": ss_sampling,
             "organizations:dynamic-sampling": ds_basic,
+            "organizations:dynamic-sampling-deprecated": True,
         }
     ):
         with mock.patch("sentry.dynamic_sampling.quotas.get_blended_sample_rate", return_value=0.1):
