@@ -130,27 +130,24 @@ function Hovercard({
     return <Fragment>{wrapTrigger(children)}</Fragment>;
   }
 
+  const hovercardContent = isOpen && (
+    <HovercardContent
+      {...{
+        body,
+        bodyClassName,
+        className,
+        tipBorderColor,
+        tipColor,
+        header,
+        hoverOverlayState,
+      }}
+    />
+  );
+
   return (
     <Fragment>
       {wrapTrigger(children)}
-      {createPortal(
-        <AnimatePresence>
-          {isOpen && (
-            <HovercardContent
-              {...{
-                body,
-                bodyClassName,
-                className,
-                tipBorderColor,
-                tipColor,
-                header,
-                hoverOverlayState,
-              }}
-            />
-          )}
-        </AnimatePresence>,
-        document.body
-      )}
+      {createPortal(<AnimatePresence>{hovercardContent}</AnimatePresence>, document.body)}
     </Fragment>
   );
 }
