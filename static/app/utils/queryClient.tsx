@@ -44,14 +44,11 @@ function useQuery<TQueryFnData, TError = RequestError, TData = TQueryFnData>(
 
   const [path, endpointOptions] = queryKey;
 
-  const defaultQueryFn: reactQuery.QueryFunction<TQueryFnData, QueryKey> = async () => {
-    const data = await api.requestPromise(path, {
+  const defaultQueryFn: reactQuery.QueryFunction<TQueryFnData, QueryKey> = () =>
+    api.requestPromise(path, {
       method: 'GET',
       query: endpointOptions?.query,
     });
-
-    return data;
-  };
 
   const queryFn =
     typeof queryFnOrQueryOptions === 'function' ? queryFnOrQueryOptions : defaultQueryFn;
