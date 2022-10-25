@@ -127,12 +127,14 @@ class GroupOwner(Model):
 
     @classmethod
     def invalidate_autoassigned_owner_cache(cls, project_id, autoassignment_types):
+        # Get all the groups for a project that had an event within the READ_CACHE_DURATION window. Any groups without events in that window would have expired their TTL in the cache.
         queryset = Group.objects.filter(
             project_id=project_id,
             last_seen__gte=timezone.now() - timedelta(seconds=READ_CACHE_DURATION),
         ).values_list("id", flat=True)
-        group_id_iter = queryset.iterator(chunk_size=1000)
+
         # Run cache invalidation in batches
+        group_id_iter = queryset.iterator(chunk_size=1000)
         while True:
             group_ids = list(itertools.islice(group_id_iter, 1000))
             if not group_ids:
