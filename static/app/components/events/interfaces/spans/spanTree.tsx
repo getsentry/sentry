@@ -2,7 +2,7 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
-import {SpanBarHatch} from 'sentry/components/performance/waterfall/constants';
+import {SpanBarType} from 'sentry/components/performance/waterfall/constants';
 import {MessageRow} from 'sentry/components/performance/waterfall/messageRow';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {t, tct} from 'sentry/locale';
@@ -336,14 +336,14 @@ class SpanTree extends Component<PropType> {
           isEmbeddedSpanTree &&
           waterfallModel.affectedSpanIds?.includes(span.span_id);
 
-        let spanBarHatch: SpanBarHatch | undefined = undefined;
+        let spanBarType: SpanBarType | undefined = undefined;
 
         if (type === 'gap') {
-          spanBarHatch = SpanBarHatch.gap;
+          spanBarType = SpanBarType.GAP;
         }
 
         if (isAffectedSpan) {
-          spanBarHatch = SpanBarHatch.affected;
+          spanBarType = SpanBarType.AFFECTED;
         }
 
         acc.spanTree.push(
@@ -352,7 +352,7 @@ class SpanTree extends Component<PropType> {
             organization={organization}
             event={waterfallModel.event}
             spanBarColor={spanBarColor}
-            spanBarHatch={spanBarHatch}
+            spanBarType={spanBarType}
             span={span}
             showSpanTree={!waterfallModel.hiddenSpanSubTrees.has(getSpanID(span))}
             numOfSpanChildren={numOfSpanChildren}
