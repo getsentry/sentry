@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Collection, TypedDict
+from typing import Collection, List, Tuple
 
 from django.db import transaction
 from rest_framework.request import Request
@@ -9,7 +9,7 @@ from sentry import roles
 from sentry.api.exceptions import SentryAPIException, status
 from sentry.auth.access import Access
 from sentry.auth.superuser import is_active_superuser
-from sentry.models import Organization, OrganizationMember, OrganizationMemberTeam, Team, TeamStatus
+from sentry.models import Organization, OrganizationMember, OrganizationMemberTeam, Team
 from sentry.roles.manager import Role, TeamRole
 
 
@@ -19,39 +19,21 @@ class InvalidTeam(SentryAPIException):
     message = "The team slug does not match a team in the organization"
 
 
-class TeamRoleDict(TypedDict):
-    teamSlug: str
-    role: str
-
-
 @transaction.atomic
 def save_team_assignments(
     organization_member: OrganizationMember,
-    teams: list[str] | None,
-    teams_with_roles: list[TeamRoleDict] | None = None,
+    teams: List[Team] | None,
+    teams_with_roles: List[Tuple[Team, str]] | None = None,
 ):
-    if teams_with_roles is not None:
-        team_slugs = [item["teamSlug"] for item in teams_with_roles]
-    elif teams is not None:
-        team_slugs = teams
+    if teams_with_roles:
+        target_teams = [team for team, _ in teams_with_roles]
+    elif teams:
+        target_teams = teams
     else:
-        team_slugs = []
-
-    target_teams = list(
-        Team.objects.filter(
-            organization=organization_member.organization,
-            status=TeamStatus.VISIBLE,
-            slug__in=team_slugs,
-        )
-    )
-    if len(target_teams) != len(set(team_slugs)):
-        raise InvalidTeam
+        target_teams = []
 
     # Avoids O(n * n) search later
-    team_role_map = (
-        {item["teamSlug"]: item["role"] for item in teams_with_roles} if teams_with_roles else {}
-    )
-
+    team_role_map = {team["slug"]: role for team, role in teams_with_roles} if teams_with_roles else {}
     new_assignments = [(team, team_role_map.get(team.slug, None)) for team in target_teams]
 
     OrganizationMemberTeam.objects.filter(organizationmember=organization_member).delete()

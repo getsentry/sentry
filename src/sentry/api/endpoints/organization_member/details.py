@@ -60,6 +60,7 @@ class TeamRolesSerializer(serializers.Serializer):
     role = serializers.CharField(allow_null=True, allow_blank=True)
 
 
+# FIXME
 class OrganizationMemberSerializer(serializers.Serializer):
     reinvite = serializers.BooleanField()
     regenerate = serializers.BooleanField()
@@ -209,6 +210,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
 
         # Set the team-role before org-role. If the org-role has elevated permissions
         # on the teams, the team-roles can be overwritten later
+        breakpoint()
         if "teamRoles" in result or "teams" in result:
             try:
                 lock = locks.get(f"org:member:{member.id}", duration=5, name="org_member_details")

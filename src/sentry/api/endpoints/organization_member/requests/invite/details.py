@@ -11,8 +11,10 @@ from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberWithTeamsSerializer
 from sentry.exceptions import UnableToAcceptMemberInvitationException
+from sentry.locks import locks
 from sentry.models import InviteStatus, Organization, OrganizationMember
 from sentry.utils.audit import get_api_key_for_audit_log
+from sentry.utils.retries import TimedRetryPolicy
 
 from ... import get_allowed_org_roles, save_team_assignments
 from ...index import OrganizationMemberSerializer
@@ -106,8 +108,16 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationMemberEndpoint):
         if result.get("role"):
             member.update(role=result["role"])
 
-        if "teams" in result:
-            save_team_assignments(member, result["teams"])
+        # Do not set team-roles when inviting members
+        if "teamRoles" in result or "teams" in result:
+            teams = (
+                [team for team, _ in result.get("teamRoles")]
+                if "teamRoles" in result and result["teamRoles"]
+                else result.get("teams")
+            )
+            lock = locks.get(f"org:member:{member.id}", duration=5, name="org_member")
+            with TimedRetryPolicy(10)(lock.acquire):
+                save_team_assignments(member, teams)
 
         if "approve" in request.data:
             allowed_roles = get_allowed_org_roles(request, organization)
