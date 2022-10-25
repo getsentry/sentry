@@ -1,6 +1,6 @@
 from typing import List, Optional, Set
 
-from sentry import features
+from sentry import features, options
 from sentry.dynamic_sampling.utils import DEFAULT_BIASES, Bias
 from sentry.models import Project
 from sentry.models.user import User
@@ -41,7 +41,11 @@ class DynamicSamplingFeatureMultiplexer:
 
     @property
     def is_on_dynamic_sampling(self) -> bool:
-        return self.allow_dynamic_sampling and self.current_dynamic_sampling
+        return (
+            self.allow_dynamic_sampling
+            and self.current_dynamic_sampling
+            and options.get("dynamic-sampling:enabled-biases")
+        )
 
     @staticmethod
     def get_user_biases(user_set_biases: Optional[List[Bias]]) -> List[Bias]:
