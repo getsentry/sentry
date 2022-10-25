@@ -20,7 +20,7 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
     @transaction_start("ProjectRuleActionsEndpoint")
     def post(self, request: Request, project) -> Response:
         """
-        Activate a rule's downstream actions using the data from a previous event
+        Creates a dummy event/group and activates the actions given by request body
 
             {method} {path}
             {{
@@ -39,11 +39,15 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
         if len(data.get("actions", [])) == 0:
             raise ValidationError
 
-        data["conditions"] = []
-        data["filters"] = []
-        data["actionMatch"] = "all"
-        data["filterMatch"] = "all"
-        data["frequency"] = 30
+        data.update(
+            {
+                "conditions": [],
+                "filters": [],
+                "actionMatch": "all",
+                "filterMatch": "all",
+                "frequency": 30,
+            }
+        )
         rule = Rule(id=-1, project=project, data=data)
 
         test_event = create_sample_event(
