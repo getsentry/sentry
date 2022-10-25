@@ -4,11 +4,11 @@ from typing import Any, List, Tuple
 from django.conf import settings
 from pytz import UTC
 
+from sentry.dynamic_sampling.utils import BOOSTED_RELEASES_LIMIT
 from sentry.utils import redis
 
 BOOSTED_RELEASE_TIMEOUT = 60 * 60
 ONE_DAY_TIMEOUT_MS = 60 * 60 * 24 * 1000
-BOOSTED_RELEASES_LIMIT = 10
 
 
 class TooManyBoostedReleasesException(Exception):
