@@ -2705,7 +2705,7 @@ class ReleaseIssueTest(TestCase):
 
 
 @region_silo_test
-class ReleaseDSLatestReleaseBoost(TestCase):
+class DSLatestReleaseBoostTest(TestCase):
     def setUp(self):
         self.project = self.create_project()
         self.release = Release.get_or_create(self.project, "1.0")

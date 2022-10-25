@@ -838,7 +838,7 @@ def _get_or_create_release_many(jobs, projects):
                                 project_id=project_id, trigger="dynamic_sampling:boost_release"
                             )
                     except Exception:
-                        pass
+                        sentry_sdk.capture_exception()
 
 
 @metrics.wraps("save_event.get_event_user_many")
