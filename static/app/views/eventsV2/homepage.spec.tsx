@@ -311,9 +311,8 @@ describe('Discover > Homepage', () => {
     expect(screen.queryByText('14D')).not.toBeInTheDocument();
   });
 
-  // Disabling because it has been flaky, will fix in DD-1151
   // eslint-disable-next-line jest/no-disabled-tests
-  it.skip('renders changes to the discover query when no homepage', async () => {
+  it.skip('flaky: DD-1151: renders changes to the discover query when no homepage', async () => {
     initialData = initializeOrg({
       ...initializeOrg(),
       organization,
