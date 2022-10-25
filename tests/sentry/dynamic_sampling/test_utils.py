@@ -1,4 +1,4 @@
-from sentry.dynamic_sampling.utils import generate_environment_rule, generate_uniform_rule
+from sentry.dynamic_sampling.rules_generator import generate_environment_rule, generate_uniform_rule
 
 
 def test_generate_uniform_rule_return_rate():
