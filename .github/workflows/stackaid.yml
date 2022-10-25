@@ -1,0 +1,11 @@
+name: 'fund-on-stackaid'
+on:
+  push:
+    branches:
+      - master
+jobs:
+  stackaid-json:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: stackaid/generate-stackaid-json@v1.9
