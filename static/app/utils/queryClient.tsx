@@ -56,14 +56,8 @@ function useQuery<TQueryFnData, TError = RequestError, TData = TQueryFnData>(
   return reactQuery.useQuery(queryKey, queryFn, queryOptions);
 }
 
-const QueryClient = reactQuery.QueryClient;
-const QueryClientProvider = reactQuery.QueryClientProvider;
-const useQueryClient = reactQuery.useQueryClient;
+// eslint-disable-next-line import/export
+export * from '@tanstack/react-query';
 
-export {
-  DEFAULT_QUERY_CLIENT_CONFIG,
-  QueryClient,
-  QueryClientProvider,
-  useQuery,
-  useQueryClient,
-};
+// eslint-disable-next-line import/export
+export {DEFAULT_QUERY_CLIENT_CONFIG, useQuery};
