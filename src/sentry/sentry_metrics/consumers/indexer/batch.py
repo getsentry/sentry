@@ -347,6 +347,7 @@ class IndexerBatch:
                     *message.payload.headers,
                     ("mapping_sources", mapping_header_content),
                     ("metric_type", new_payload_value["type"]),
+                    ("org_id", str(org_id).encode()),
                 ],
             )
             new_message = Message(

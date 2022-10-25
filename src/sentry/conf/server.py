@@ -10,7 +10,7 @@ import socket
 import sys
 import tempfile
 from datetime import datetime, timedelta
-from typing import Iterable, Mapping, Tuple
+from typing import Any, Iterable, Mapping, Tuple
 from urllib.parse import urlparse
 
 import sentry
@@ -2878,3 +2878,11 @@ SENTRY_SLICING_LOGICAL_PARTITION_COUNT = 256
 # For each Sliceable, the range [0, SENTRY_SLICING_LOGICAL_PARTITION_COUNT) must be mapped
 # to a slice ID
 SENTRY_SLICING_CONFIG: Mapping[str, Mapping[Tuple[int, int], int]] = {}
+
+# Mapping of (logical topic names, slice id) pairs to custom physical topic names
+# This is only for sliced Kafka topics
+SLICED_KAFKA_TOPIC_MAP: Mapping[Tuple[str, int], str] = {}
+
+# Mapping of (logical topic names, slice id) pairs to broker config
+# This is only for sliced Kafka topics
+SLICED_KAFKA_BROKER_CONFIG: Mapping[Tuple[str, int], Mapping[str, Any]] = {}
