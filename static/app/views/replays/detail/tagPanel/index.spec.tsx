@@ -1,11 +1,8 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayReader from 'sentry/utils/replays/replayReader';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 import TagPanel from 'sentry/views/replays/detail/tagPanel';
-import {RouteContext} from 'sentry/views/routeContext';
 
 // Get replay data with the mocked replay reader params
 const replayReaderParams = TestStubs.ReplayReaderParams({
@@ -20,23 +17,10 @@ const replayReaderParams = TestStubs.ReplayReaderParams({
 const mockReplay = ReplayReader.factory(replayReaderParams);
 
 const renderComponent = (replay: ReplayReader | null) => {
-  const {router, organization} = initializeOrg();
-
   return render(
-    <OrganizationContext.Provider value={organization}>
-      <RouteContext.Provider
-        value={{
-          router,
-          location: router.location,
-          params: router.params,
-          routes: router.routes,
-        }}
-      >
-        <ReplayContextProvider replay={replay}>
-          <TagPanel />
-        </ReplayContextProvider>
-      </RouteContext.Provider>
-    </OrganizationContext.Provider>
+    <ReplayContextProvider replay={replay}>
+      <TagPanel />
+    </ReplayContextProvider>
   );
 };
 
