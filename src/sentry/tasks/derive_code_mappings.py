@@ -7,10 +7,9 @@ from django.utils import timezone
 from sentry import features
 from sentry.api.endpoints.organization_code_mappings import RepositoryProjectPathConfigSerializer
 from sentry.db.models.fields.node import NodeData
-from sentry.integrations.utils.code_mapping import derive_code_mappings
+from sentry.integrations.utils.code_mapping import CodeMapping, derive_code_mappings
 from sentry.models import Project
 from sentry.models.group import Group
-from sentry.models.integrations import organization_integration
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.organization import Organization, OrganizationStatus
@@ -46,42 +45,48 @@ def derive_missing_codemappings(dry_run=False) -> None:
         if not project_stacktrace_paths:
             continue
 
+        integration = None
         try:
-            integration = Integration.objects.get(
+            integration = Integration.objects.filter(
                 organizations=organization.id,
                 provider="github",
             )
         except Integration.DoesNotExist:
             logger.exception(f"Github integration not found for {organization.id}")
 
-        if not integration:
+        if integration is None or not integration.exists():
             continue
 
+        integration = integration.first()
         organization_integration = OrganizationIntegration.objects.filter(
             organization=organization, integration=integration
-        ).first()
+        )
+        if not organization_integration.exists():
+            continue
+
+        organization_integration = organization_integration.first()
         install = integration.get_installation(organization.id)
         trees: JSONData = install.get_trees_for_org()
         for project, stacktrace_paths in project_stacktrace_paths.items():
-            code_mappings = derive_code_mappings(project, stacktrace_paths, trees)
-            set_project_codemappings(code_mappings, organization, project, organization_integration)
+            code_mappings = derive_code_mappings(stacktrace_paths, trees)
+            set_project_codemappings(code_mappings, organization, organization_integration, project)
 
 
 # Given a list of code mappings, create a new repository project path
 # config for each mapping.
 def set_project_codemappings(
-    code_mappings: List[Mapping[str, Any]],
+    code_mappings: List[CodeMapping],
     organization: Organization,
+    organization_integration: OrganizationIntegration,
     project: Project,
 ) -> None:
     for code_mapping in code_mappings:
         serializer = RepositoryProjectPathConfigSerializer(
-            # XXX: Deal with the branch later
             data={
                 "project_id": project.id,
-                "stack_root": code_mapping["stack_root"],
-                "source_root": code_mapping["source_path"],
-                "repo_id": code_mapping["repo"],
+                "stack_root": code_mapping.stacktrace_root,
+                "source_root": code_mapping.source_path,
+                "repo_id": code_mapping.repo,
             },
             context={
                 "organization": organization,
@@ -103,7 +108,9 @@ def set_project_codemappings(
     queue="derive_code_mappings",
     max_retries=0,  # if we don't backfill it this time, we'll get it the next time
 )
-def identify_stacktrace_paths(organization: Organization, dry_run=False) -> Mapping[str, List[str]]:
+def identify_stacktrace_paths(
+    organization: Organization, dry_run=False
+) -> Mapping[Project, List[str]]:
     """
     Generate a map of projects to stacktrace paths for an organization.
 
@@ -123,7 +130,7 @@ def identify_stacktrace_paths(organization: Organization, dry_run=False) -> Mapp
         ).exists()
     ]
 
-    project_file_map = {project.slug: get_all_stacktrace_paths(project) for project in projects}
+    project_file_map = {project: get_all_stacktrace_paths(project) for project in projects}
     return project_file_map
 
 
