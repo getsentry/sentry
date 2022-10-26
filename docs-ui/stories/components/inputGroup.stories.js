@@ -30,11 +30,11 @@ export default {
 
 export const _Default = ({...args}) => {
   return (
-    <InputGroup {...args}>
+    <InputGroup>
       <InputLeadingItems disablePointerEvents>
         <IconSearch size="sm" color="subText" />
       </InputLeadingItems>
-      <Input />
+      <Input {...args} />
       <InputTrailingItems>
         <StyledButton borderless>
           <IconClose size="xs" color="subText" />

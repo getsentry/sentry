@@ -11,8 +11,8 @@ import {
 describe('InputGroup', function () {
   it('renders input', function () {
     const {container} = render(
-      <InputGroup value="Search" onChange={() => {}}>
-        <Input />
+      <InputGroup>
+        <Input value="Search" onChange={() => {}} />
       </InputGroup>
     );
 
@@ -24,8 +24,8 @@ describe('InputGroup', function () {
 
   it('renders disabled input', function () {
     const {container} = render(
-      <InputGroup disabled>
-        <Input />
+      <InputGroup>
+        <Input disabled />
       </InputGroup>
     );
 

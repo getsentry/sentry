@@ -9,23 +9,21 @@ import {
 } from 'react';
 import styled from '@emotion/styled';
 
-import _TextArea from 'sentry/components/forms/controls/textarea';
 import _Input, {InputProps} from 'sentry/components/input';
 import space from 'sentry/styles/space';
 import {FormSize} from 'sentry/utils/theme';
 
 interface InputContext {
   /**
-   * Props to be passed to `Input`. When `InputGroup` is used, it is
-   * recommended to add input props (`size`, `disabled`) to `InputGroup`
-   * rather than `Input`, so that other elements in the group
-   * (`InputLeadingItems`, `InputTrailingItems`) also know about them.
+   * Props passed to `Input` element (`size`, `disabled`), useful for styling
+   * `InputLeadingItems` and `InputTrailingItems`.
    */
-  inputProps: Partial<InputProps>;
+  inputProps: Pick<InputProps, 'size' | 'disabled'>;
   /**
    * Width of the leading items wrap, to be added to `Input`'s padding.
    */
   leadingWidth?: number;
+  setInputProps?: (props: Pick<InputProps, 'size' | 'disabled'>) => void;
   setLeadingWidth?: (width: number) => void;
   setTrailingWidth?: (width: number) => void;
   /**
@@ -36,7 +34,7 @@ interface InputContext {
 export const InputGroupContext = createContext<InputContext>({inputProps: {}});
 
 /**
- * Context provider for input group. To be used alongisde `Input`, `InputLeadingItems`,
+ * Wrapper for input group. To be used alongisde `Input`, `InputLeadingItems`,
  * and `InputTrailingItems`:
  *   <InputGroup>
  *     <InputLeadingItems> … </InputLeadingItems>
@@ -44,12 +42,20 @@ export const InputGroupContext = createContext<InputContext>({inputProps: {}});
  *     <InputTrailingItems> … </InputTrailingItems>
  *   </InputGroup>
  */
-export function InputGroup({children, ...inputProps}: InputProps) {
+export function InputGroup({children}: {children: React.ReactNode}) {
   const [leadingWidth, setLeadingWidth] = useState<number>();
   const [trailingWidth, setTrailingWidth] = useState<number>();
+  const [inputProps, setInputProps] = useState<Partial<InputProps>>({});
 
   const contextValue = useMemo(
-    () => ({inputProps, leadingWidth, setLeadingWidth, trailingWidth, setTrailingWidth}),
+    () => ({
+      inputProps,
+      setInputProps,
+      leadingWidth,
+      setLeadingWidth,
+      trailingWidth,
+      setTrailingWidth,
+    }),
     [inputProps, leadingWidth, trailingWidth]
   );
 
@@ -61,19 +67,26 @@ export function InputGroup({children, ...inputProps}: InputProps) {
 }
 
 export {InputProps};
-export const Input = forwardRef<HTMLInputElement, InputProps>((props, ref) => {
-  const {inputProps, leadingWidth, trailingWidth} = useContext(InputGroupContext);
+export const Input = forwardRef<HTMLInputElement, InputProps>(
+  ({size, disabled, ...props}, ref) => {
+    const {leadingWidth, trailingWidth, setInputProps} = useContext(InputGroupContext);
 
-  return (
-    <StyledInput
-      ref={ref}
-      leadingWidth={leadingWidth}
-      trailingWidth={trailingWidth}
-      {...inputProps}
-      {...props}
-    />
-  );
-});
+    useLayoutEffect(() => {
+      setInputProps?.({size, disabled});
+    }, [size, disabled, setInputProps]);
+
+    return (
+      <StyledInput
+        ref={ref}
+        leadingWidth={leadingWidth}
+        trailingWidth={trailingWidth}
+        size={size}
+        disabled={disabled}
+        {...props}
+      />
+    );
+  }
+);
 
 interface InputItemsProps {
   children?: React.ReactNode;
