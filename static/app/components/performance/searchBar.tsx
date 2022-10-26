@@ -140,9 +140,8 @@ function SearchBar(props: SearchBarProps) {
       <SearchDropdown
         css={{
           display: searchResults[0]?.children.length ? 'block' : 'none',
-          maxHeight: '300px',
-          overflowY: 'auto',
         }}
+        maxMenuHeight={300}
         searchSubstring={searchString}
         loading={loading}
         items={searchResults}
