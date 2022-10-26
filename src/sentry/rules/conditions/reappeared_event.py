@@ -22,6 +22,7 @@ class ReappearedEventCondition(EventCondition):
         # reappearances are recorded as SET_UNRESOLVED with no user
         activities = (
             Activity.objects.filter(
+                project=self.project,
                 datetime__gte=start,
                 datetime__lt=end,
                 type=ActivityType.SET_UNRESOLVED.value,

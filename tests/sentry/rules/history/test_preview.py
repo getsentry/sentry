@@ -3,7 +3,7 @@ from datetime import timedelta
 from django.utils import timezone
 from freezegun import freeze_time
 
-from sentry.models import Activity, Group
+from sentry.models import Activity, Group, Project
 from sentry.rules.history.preview import PREVIEW_TIME_RANGE, preview
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
@@ -103,3 +103,36 @@ class ProjectRulePreviewTest(TestCase):
 
         result = preview(self.project, mutually_exclusive, [], "all", "all", 60)
         assert len(result) == 0
+
+    def test_multiple_projects(self):
+        other_project = Project.objects.create(organization=self.organization)
+        prev_hour = timezone.now() - timedelta(hours=1)
+        groups = [[], []]
+        for i, project in enumerate((self.project, other_project)):
+            first_seen = Group.objects.create(project=project, first_seen=prev_hour)
+            regression = Group.objects.create(project=project)
+            reappearance = Group.objects.create(project=project)
+            groups[i] = [first_seen, regression, reappearance]
+            Activity.objects.create(
+                project=project,
+                group=regression,
+                type=ActivityType.SET_REGRESSION.value,
+                datetime=prev_hour,
+            )
+            Activity.objects.create(
+                project=project,
+                group=reappearance,
+                type=ActivityType.SET_UNRESOLVED.value,
+                user=None,
+                datetime=prev_hour,
+            )
+
+        conditions = [
+            {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"},
+            {"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"},
+            {"id": "sentry.rules.conditions.reappeared_event.ReappearedEventCondition"},
+        ]
+        result = preview(self.project, conditions, [], "any", "all", 0)
+        # result should only contain groups of `self.project`
+        assert all(g in result for g in groups[0])
+        assert all(g not in result for g in groups[1])

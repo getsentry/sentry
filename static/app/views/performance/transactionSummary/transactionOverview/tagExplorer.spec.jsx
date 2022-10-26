@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -64,17 +64,17 @@ describe('WrapperComponent', function () {
       body: {
         data: [
           {
-            tags_key: 'browser.name',
-            tags_value: 'Chrome',
-            sumdelta: 547.4285714285729,
-            count: 44,
-            frequency: 0.6285714285714286,
-            comparison: 1.0517781861420388,
-            aggregate: 252.72727272727272,
-          },
-          {
             tags_key: 'client_os',
             tags_value: 'Mac OS X 10.15.7',
+            sumdelta: 647.4285714285729,
+            count: 44,
+            frequency: 1.6285714285714286,
+            comparison: 1.0517781861420388,
+            aggregate: 352.72727272727272,
+          },
+          {
+            tags_key: 'browser.name',
+            tags_value: 'Chrome',
             sumdelta: 547.4285714285729,
             count: 44,
             frequency: 0.6285714285714286,
@@ -100,7 +100,7 @@ describe('WrapperComponent', function () {
     ProjectsStore.reset();
   });
 
-  it('renders basic UI elements', async function () {
+  it('renders basic UI elements', function () {
     const projects = [TestStubs.Project()];
     const {
       organization,
@@ -111,7 +111,7 @@ describe('WrapperComponent', function () {
       transactionName,
     } = initialize(projects, {});
 
-    const wrapper = mountWithTheme(
+    render(
       <WrapperComponent
         api={api}
         location={location}
@@ -123,14 +123,11 @@ describe('WrapperComponent', function () {
       />
     );
 
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('TagsHeader')).toHaveLength(1);
-    expect(wrapper.find('GridEditable')).toHaveLength(1);
+    expect(screen.getByRole('heading', {name: 'Suspect Tags'})).toBeInTheDocument();
+    expect(screen.getByTestId('grid-editable')).toBeInTheDocument();
   });
 
-  it('Tag explorer uses LCP if projects are frontend', async function () {
+  it('Tag explorer uses LCP if projects are frontend', function () {
     const projects = [TestStubs.Project({id: '123', platform: 'javascript-react'})];
     const {
       organization,
@@ -143,7 +140,7 @@ describe('WrapperComponent', function () {
       project: '123',
     });
 
-    const wrapper = mountWithTheme(
+    render(
       <WrapperComponent
         api={api}
         location={location}
@@ -155,11 +152,7 @@ describe('WrapperComponent', function () {
       />
     );
 
-    await tick();
-    wrapper.update();
-
-    const durationHeader = wrapper.find('GridHeadCell StyledLink').first();
-    expect(durationHeader.text().trim()).toEqual('Avg LCP');
+    expect(screen.getAllByTestId('grid-head-cell')[2]).toHaveTextContent('Avg LCP');
 
     expect(facetApiMock).toHaveBeenCalledWith(
       facetUrl,
@@ -171,7 +164,7 @@ describe('WrapperComponent', function () {
     );
   });
 
-  it('Tag explorer view all tags button links to tags page', async function () {
+  it('Tag explorer view all tags button links to tags page', function () {
     const projects = [TestStubs.Project({id: '123', platform: 'javascript-react'})];
     const {
       organization,
@@ -180,6 +173,7 @@ describe('WrapperComponent', function () {
       api,
       spanOperationBreakdownFilter,
       transactionName,
+      routerContext,
     } = initialize(
       projects,
       {
@@ -188,7 +182,7 @@ describe('WrapperComponent', function () {
       []
     );
 
-    const wrapper = mountWithTheme(
+    render(
       <WrapperComponent
         api={api}
         location={location}
@@ -197,37 +191,26 @@ describe('WrapperComponent', function () {
         projects={projects}
         transactionName={transactionName}
         currentFilter={spanOperationBreakdownFilter}
-      />
+      />,
+      {context: routerContext}
     );
 
-    await tick();
-    wrapper.update();
-
-    const button = wrapper.find('Button[data-test-id="tags-explorer-open-tags"]');
-    expect(button).toHaveLength(1);
-    expect(button.prop('to')).toEqual({
-      pathname: '/organizations/org-slug/performance/summary/tags/',
-      query: {
-        transaction: 'example-transaction',
-        project: '123',
-        tagKey: undefined,
-        start: undefined,
-        end: undefined,
-        environment: undefined,
-        query: undefined,
-        statsPeriod: undefined,
-      },
-    });
+    const button = screen.getByTestId('tags-explorer-open-tags');
+    expect(button).toBeInTheDocument();
+    expect(button).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/performance/summary/tags/?project=123&transaction=example-transaction'
+    );
   });
 
-  it('Tag explorer uses the operation breakdown as a column', async function () {
+  it('Tag explorer uses the operation breakdown as a column', function () {
     const projects = [TestStubs.Project({platform: 'javascript-react'})];
     const {organization, location, eventView, api, transactionName} = initialize(
       projects,
       {}
     );
 
-    const wrapper = mountWithTheme(
+    render(
       <WrapperComponent
         api={api}
         location={location}
@@ -239,11 +222,9 @@ describe('WrapperComponent', function () {
       />
     );
 
-    await tick();
-    wrapper.update();
-
-    const durationHeader = wrapper.find('GridHeadCell StyledLink').first();
-    expect(durationHeader.text().trim()).toEqual('Avg Span Duration');
+    expect(screen.getAllByTestId('grid-head-cell')[2]).toHaveTextContent(
+      'Avg Span Duration'
+    );
 
     expect(facetApiMock).toHaveBeenCalledWith(
       facetUrl,
@@ -255,7 +236,7 @@ describe('WrapperComponent', function () {
     );
   });
 
-  it('Check sort links of headers', async function () {
+  it('renders the table headers in the correct order', async function () {
     const projects = [TestStubs.Project()];
     const {
       organization,
@@ -264,9 +245,10 @@ describe('WrapperComponent', function () {
       api,
       spanOperationBreakdownFilter,
       transactionName,
+      routerContext,
     } = initialize(projects, {});
 
-    const wrapper = mountWithTheme(
+    render(
       <WrapperComponent
         api={api}
         location={location}
@@ -275,48 +257,17 @@ describe('WrapperComponent', function () {
         projects={projects}
         transactionName={transactionName}
         currentFilter={spanOperationBreakdownFilter}
-      />
+      />,
+      {context: routerContext}
     );
 
-    await tick();
-    wrapper.update();
-
-    const headerCells = wrapper.find('GridHeadCell StyledLink');
-
-    const expectedSortedHeaders = [
-      {
-        name: 'avg duration',
-        sort: '-aggregate',
-      },
-      {
-        name: 'Frequency',
-        sort: '-frequency',
-      },
-      {
-        name: 'Compared to avg',
-        sort: '-comparison',
-      },
-      {
-        name: 'Total time lost',
-        sort: 'sumdelta',
-      },
-    ];
-    expect(headerCells).toHaveLength(expectedSortedHeaders.length);
-
-    expectedSortedHeaders.forEach((expectedHeader, index) => {
-      const frequencyHeader = headerCells.at(index);
-
-      expect(frequencyHeader.text().trim().toLowerCase()).toEqual(
-        expectedHeader.name.toLowerCase()
-      );
-      expect(frequencyHeader.props().to).toEqual(
-        expect.objectContaining({
-          query: expect.objectContaining({
-            tagSort: [expectedHeader.sort],
-            tags_cursor: undefined,
-          }),
-        })
-      );
-    });
+    await waitFor(() => expect(facetApiMock).toHaveBeenCalled());
+    const headers = screen.getAllByTestId('grid-head-cell');
+    expect(headers).toHaveLength(6);
+    const [_, ___, avgDuration, frequency, comparedToAvg, totalTimeLost] = headers;
+    expect(avgDuration).toHaveTextContent('Avg Duration');
+    expect(frequency).toHaveTextContent('Frequency');
+    expect(comparedToAvg).toHaveTextContent('Compared To Avg');
+    expect(totalTimeLost).toHaveTextContent('Total Time Lost');
   });
 });
