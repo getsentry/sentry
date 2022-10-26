@@ -640,3 +640,6 @@ DS_DENYLIST = frozenset(
         "url",
     ]
 )
+
+# Dummy rules created by ProjectRuleActionsEndpoint aren't saved, so event actions need a way to specifically identify them. All dummy rules created will have id -1
+DUMMY_RULE_ID = -1

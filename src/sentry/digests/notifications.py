@@ -7,6 +7,7 @@ from collections import defaultdict, namedtuple
 from typing import Any, Mapping, MutableMapping, MutableSequence, Sequence
 
 from sentry import tsdb
+from sentry.constants import DUMMY_RULE_ID
 from sentry.digests import Digest, Record
 from sentry.eventstore.models import Event
 from sentry.models import Group, GroupStatus, Project, Rule
@@ -117,9 +118,9 @@ def rewrite_record(
 
     rule_list = []
     for rule_id in record.value.rules:
-        if rule_id == -1:
+        if rule_id == DUMMY_RULE_ID:
             # unsaved dummy rule created to test notifications in `project_rule_actions`
-            rule_list.append(Rule(id=-1, project=project))
+            rule_list.append(Rule(id=DUMMY_RULE_ID, project=project))
         else:
             rule_list.append(rules.get(rule_id))
 
