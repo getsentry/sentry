@@ -1,10 +1,12 @@
-import {act} from 'react-dom/test-utils';
-
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import * as eventRequest from 'sentry/components/charts/eventsRequest';
+import * as worldMaps from 'sentry/components/charts/worldMapChart';
 import EventView from 'sentry/utils/discover/eventView';
 import MiniGraph from 'sentry/views/eventsV2/miniGraph';
+
+jest.mock('sentry/components/charts/eventsRequest');
 
 jest.mock('sentry/components/charts/eventsGeoRequest', () =>
   jest.fn(({children}) =>
@@ -68,89 +70,75 @@ describe('EventsV2 > MiniGraph', function () {
 
   it('makes an EventsRequest with all selected multi y axis', function () {
     const yAxis = ['count()', 'failure_count()'];
-    const wrapper = mountWithTheme(
+    render(
       <MiniGraph
         location={location}
         eventView={eventView}
         organization={organization}
         yAxis={yAxis}
       />,
-      initialData.routerContext
+      {context: initialData.routerContext}
     );
-    const eventsRequestProps = wrapper.find('EventsRequest').props();
-    expect(eventsRequestProps.yAxis).toEqual(yAxis);
+
+    expect(eventRequest.default).toHaveBeenCalledWith(
+      expect.objectContaining({yAxis}),
+      expect.anything()
+    );
   });
 
   it('uses low fidelity interval for bar charts', function () {
     const yAxis = ['count()', 'failure_count()'];
     eventView.display = 'bar';
-    const wrapper = mountWithTheme(
+
+    render(
       <MiniGraph
         location={location}
         eventView={eventView}
         organization={organization}
         yAxis={yAxis}
       />,
-      initialData.routerContext
+      {context: initialData.routerContext}
     );
-    const eventsRequestProps = wrapper.find('EventsRequest').props();
-    expect(eventsRequestProps.interval).toEqual('12h');
+
+    expect(eventRequest.default).toHaveBeenCalledWith(
+      expect.objectContaining({interval: '12h'}),
+      expect.anything()
+    );
   });
 
   it('renders WorldMapChart', async function () {
     const yAxis = ['count()', 'failure_count()'];
     eventView.display = 'worldmap';
-    let wrapper;
 
-    await act(async () => {
-      wrapper = mountWithTheme(
-        <MiniGraph
-          location={location}
-          eventView={eventView}
-          organization={organization}
-          yAxis={yAxis}
-        />,
-        initialData.routerContext
-      );
-      await tick();
-    });
-    const worldMapChartProps = wrapper.find('WorldMapChart').props();
-    expect(worldMapChartProps.series).toEqual([
-      {
-        data: [
-          {name: 'PE', value: 9215},
-          {name: 'VI', value: 1},
-        ],
-        seriesName: 'Country',
-      },
-    ]);
-  });
+    jest.spyOn(worldMaps, 'WorldMapChart');
 
-  it('renders error message', async function () {
-    const errorMessage = 'something went wrong';
-    const api = new MockApiClient();
-    MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      body: {
-        detail: errorMessage,
-      },
-      statusCode: 400,
-    });
-
-    const wrapper = mountWithTheme(
+    render(
       <MiniGraph
         location={location}
         eventView={eventView}
         organization={organization}
-        api={api}
+        yAxis={yAxis}
       />,
-      initialData.routerContext
+      {context: initialData.routerContext}
     );
 
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('MiniGraph').text()).toBe(errorMessage);
+    await waitFor(() =>
+      expect(worldMaps.WorldMapChart).toHaveBeenCalledWith(
+        {
+          height: 100,
+          fromDiscoverQueryList: true,
+          series: [
+            {
+              data: [
+                {name: 'PE', value: 9215},
+                {name: 'VI', value: 1},
+              ],
+              seriesName: 'Country',
+            },
+          ],
+        },
+        expect.anything()
+      )
+    );
   });
 });

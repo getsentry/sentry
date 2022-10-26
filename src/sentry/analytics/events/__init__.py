@@ -35,6 +35,7 @@ from .join_request_link_viewed import *  # noqa: F401,F403
 from .manual_issue_assignment import *  # noqa: F401,F403
 from .member_invited import *  # noqa: F401,F403
 from .metric_alert_with_ui_component_created import *  # noqa: F401,F403
+from .monitor_mark_failed import *  # noqa: F401,F403
 from .notifications_settings_updated import *  # noqa: F401,F403
 from .onboarding_continuation_sent import *  # noqa: F401,F403
 from .organization_created import *  # noqa: F401,F403

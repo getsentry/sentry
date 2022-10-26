@@ -1,5 +1,10 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {mountGlobalModal} from 'sentry-test/modal';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import ModalStore from 'sentry/stores/modalStore';
@@ -30,21 +35,24 @@ describe('AccountSecurity', function () {
     window.location.assign.mockRestore();
   });
 
+  function renderComponent() {
+    return render(
+      <AccountSecurityWrapper>
+        <AccountSecurity />
+      </AccountSecurityWrapper>,
+      {context: TestStubs.routerContext()}
+    );
+  }
+
   it('renders empty', function () {
     Client.addMockResponse({
       url: ENDPOINT,
       body: [],
     });
 
-    const wrapper = mountWithTheme(
-      <AccountSecurityWrapper>
-        <AccountSecurity />
-      </AccountSecurityWrapper>,
-      TestStubs.routerContext()
-    );
+    renderComponent();
 
-    expect(wrapper.find('EmptyMessage')).toHaveLength(1);
-    expect(wrapper.find('TwoFactorRequired')).toHaveLength(0);
+    expect(screen.getByText('No available authenticators to add')).toBeInTheDocument();
   });
 
   it('renders a primary interface that is enrolled', function () {
@@ -53,25 +61,15 @@ describe('AccountSecurity', function () {
       body: [TestStubs.Authenticators().Totp({configureButton: 'Info'})],
     });
 
-    const wrapper = mountWithTheme(
-      <AccountSecurityWrapper>
-        <AccountSecurity />
-      </AccountSecurityWrapper>,
-      TestStubs.routerContext()
-    );
+    renderComponent();
 
-    expect(wrapper.find('AuthenticatorName').prop('children')).toBe('Authenticator App');
+    expect(screen.getByText('Authenticator App')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Info'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Delete'})).toBeInTheDocument();
 
-    // There should be an "Info" button
     expect(
-      wrapper.find('Button[className="details-button"]').first().prop('children')
-    ).toBe('Info');
-
-    // Remove button
-    expect(wrapper.find('button[aria-label="delete"]')).toHaveLength(1);
-    expect(wrapper.find('AuthenticatorStatus').prop('enabled')).toBe(true);
-
-    expect(wrapper.find('TwoFactorRequired')).toHaveLength(0);
+      screen.getByRole('status', {name: 'Authentication Method Active'})
+    ).toBeInTheDocument();
   });
 
   it('can delete enrolled authenticator', async function () {
@@ -90,15 +88,13 @@ describe('AccountSecurity', function () {
       method: 'DELETE',
     });
 
+    renderComponent();
+
     expect(deleteMock).not.toHaveBeenCalled();
 
-    const wrapper = mountWithTheme(
-      <AccountSecurityWrapper>
-        <AccountSecurity />
-      </AccountSecurityWrapper>,
-      TestStubs.routerContext()
-    );
-    expect(wrapper.find('AuthenticatorStatus').prop('enabled')).toBe(true);
+    expect(
+      screen.getByRole('status', {name: 'Authentication Method Active'})
+    ).toBeInTheDocument();
 
     // next authenticators request should have totp disabled
     const authenticatorsMock = Client.addMockResponse({
@@ -112,28 +108,21 @@ describe('AccountSecurity', function () {
       ],
     });
 
-    // This will open confirm modal
-    wrapper.find('button[aria-label="delete"]').simulate('click');
+    userEvent.click(screen.getByRole('button', {name: 'Delete'}));
 
-    // Confirm
-    const modal = await mountGlobalModal();
-    modal.find('Button').last().simulate('click');
-
-    await tick();
-    wrapper.update();
-
-    expect(deleteMock).toHaveBeenCalled();
+    renderGlobalModal();
+    userEvent.click(screen.getByTestId('confirm-button'));
 
     // Should only have been called once
-    expect(authenticatorsMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(authenticatorsMock).toHaveBeenCalledTimes(1));
+    expect(deleteMock).toHaveBeenCalled();
 
-    expect(wrapper.find('AuthenticatorStatus').prop('enabled')).toBe(false);
-
-    // No enrolled authenticators
-    expect(wrapper.find('TwoFactorRequired')).toHaveLength(1);
+    expect(
+      screen.getByRole('status', {name: 'Authentication Method Inactive'})
+    ).toBeInTheDocument();
   });
 
-  it('can remove one of multiple 2fa methods when org requires 2fa', async function () {
+  it('can remove one of multiple 2fa methods when org requires 2fa', function () {
     Client.addMockResponse({
       url: ENDPOINT,
       body: [
@@ -155,29 +144,21 @@ describe('AccountSecurity', function () {
 
     expect(deleteMock).not.toHaveBeenCalled();
 
-    const wrapper = mountWithTheme(
-      <AccountSecurityWrapper>
-        <AccountSecurity />
-      </AccountSecurityWrapper>,
-      TestStubs.routerContext()
-    );
+    renderComponent();
 
-    expect(wrapper.find('AuthenticatorStatus').first().prop('enabled')).toBe(true);
+    expect(
+      screen.getAllByRole('status', {name: 'Authentication Method Active'})
+    ).toHaveLength(2);
 
-    expect(wrapper.find('RemoveConfirm').first().prop('disabled')).toBe(false);
-    expect(wrapper.find('Tooltip').first().prop('disabled')).toBe(true);
+    userEvent.click(screen.getAllByRole('button', {name: 'Delete'})[0]);
 
-    // This will open confirm modal
-    wrapper.find('button[aria-label="delete"]').first().simulate('click');
-
-    // Confirm
-    const modal = await mountGlobalModal();
-    modal.find('Button').last().simulate('click');
+    renderGlobalModal();
+    userEvent.click(screen.getByTestId('confirm-button'));
 
     expect(deleteMock).toHaveBeenCalled();
   });
 
-  it('can not remove last 2fa method when org requires 2fa', function () {
+  it('can not remove last 2fa method when org requires 2fa', async function () {
     Client.addMockResponse({
       url: ENDPOINT,
       body: [
@@ -196,25 +177,22 @@ describe('AccountSecurity', function () {
       method: 'DELETE',
     });
 
+    renderComponent();
+
     expect(deleteMock).not.toHaveBeenCalled();
 
-    const wrapper = mountWithTheme(
-      <AccountSecurityWrapper>
-        <AccountSecurity />
-      </AccountSecurityWrapper>,
-      TestStubs.routerContext()
-    );
-    expect(wrapper.find('AuthenticatorStatus').prop('enabled')).toBe(true);
+    expect(
+      screen.getByRole('status', {name: 'Authentication Method Active'})
+    ).toBeInTheDocument();
 
-    expect(wrapper.find('RemoveConfirm').prop('disabled')).toBe(true);
-    expect(wrapper.find('Tooltip').prop('disabled')).toBe(false);
-    expect(wrapper.find('Tooltip').prop('title')).toContain('test 1 and test 2');
+    userEvent.hover(screen.getByRole('button', {name: 'Delete'}));
+    expect(screen.getByRole('button', {name: 'Delete'})).toBeDisabled();
 
-    // This will open confirm modal
-    wrapper.find('button[aria-label="delete"]').simulate('click');
-    // Confirm
-    expect(wrapper.find('Modal Button')).toHaveLength(0);
-    expect(deleteMock).not.toHaveBeenCalled();
+    expect(
+      await screen.findByText(
+        'Two-factor authentication is required for organization(s): test 1 and test 2.'
+      )
+    ).toBeInTheDocument();
   });
 
   it('cannot enroll without verified email', async function () {
@@ -233,29 +211,17 @@ describe('AccountSecurity', function () {
       ],
     });
 
-    const wrapper = mountWithTheme(
-      <AccountSecurityWrapper>
-        <AccountSecurity />
-      </AccountSecurityWrapper>,
-      TestStubs.routerContext()
-    );
+    renderComponent();
 
-    expect(wrapper.find('AuthenticatorName').prop('children')).toBe('Authenticator App');
-    // There should be an "Add" button
-    expect(
-      wrapper.find('Button[className="enroll-button"]').first().prop('children')
-    ).toBe('Add');
-    expect(wrapper.find('AuthenticatorStatus').prop('enabled')).toBe(false);
-    // user is not 2fa enrolled
-    expect(wrapper.find('TwoFactorRequired')).toHaveLength(1);
-
-    // expect modal to be called
     const openEmailModalFunc = jest.spyOn(ModalStore, 'openModal');
-    const Add2FAButton = wrapper.find('Button[className="enroll-button"]').first();
 
-    Add2FAButton.simulate('click');
-    await tick();
-    expect(openEmailModalFunc).toHaveBeenCalled();
+    expect(
+      screen.getByRole('status', {name: 'Authentication Method Inactive'})
+    ).toBeInTheDocument();
+
+    userEvent.click(screen.getByRole('button', {name: 'Add'}));
+
+    await waitFor(() => expect(openEmailModalFunc).toHaveBeenCalled());
   });
 
   it('renders a backup interface that is not enrolled', function () {
@@ -264,20 +230,13 @@ describe('AccountSecurity', function () {
       body: [TestStubs.Authenticators().Recovery({isEnrolled: false})],
     });
 
-    const wrapper = mountWithTheme(
-      <AccountSecurityWrapper>
-        <AccountSecurity />
-      </AccountSecurityWrapper>,
-      TestStubs.routerContext()
-    );
+    renderComponent();
 
-    expect(wrapper.find('AuthenticatorName').prop('children')).toBe('Recovery Codes');
+    expect(
+      screen.getByRole('status', {name: 'Authentication Method Inactive'})
+    ).toBeInTheDocument();
 
-    // There should be an View Codes button
-    expect(wrapper.find('Button[className="details-button"]')).toHaveLength(0);
-    expect(wrapper.find('AuthenticatorStatus').prop('enabled')).toBe(false);
-    // user is not 2fa enrolled
-    expect(wrapper.find('TwoFactorRequired')).toHaveLength(1);
+    expect(screen.getByText('Recovery Codes')).toBeInTheDocument();
   });
 
   it('renders a primary interface that is not enrolled', function () {
@@ -286,21 +245,13 @@ describe('AccountSecurity', function () {
       body: [TestStubs.Authenticators().Totp({isEnrolled: false})],
     });
 
-    const wrapper = mountWithTheme(
-      <AccountSecurityWrapper>
-        <AccountSecurity />
-      </AccountSecurityWrapper>,
-      TestStubs.routerContext()
-    );
+    renderComponent();
 
-    expect(wrapper.find('AuthenticatorName').prop('children')).toBe('Authenticator App');
-    // There should be an "Add" button
     expect(
-      wrapper.find('Button[className="enroll-button"]').first().prop('children')
-    ).toBe('Add');
-    expect(wrapper.find('AuthenticatorStatus').prop('enabled')).toBe(false);
-    // user is not 2fa enrolled
-    expect(wrapper.find('TwoFactorRequired')).toHaveLength(1);
+      screen.getByRole('status', {name: 'Authentication Method Inactive'})
+    ).toBeInTheDocument();
+
+    expect(screen.getByText('Authenticator App')).toBeInTheDocument();
   });
 
   it('does not render primary interface that disallows new enrollments', function () {
@@ -313,15 +264,11 @@ describe('AccountSecurity', function () {
       ],
     });
 
-    const wrapper = mountWithTheme(
-      <AccountSecurityWrapper>
-        <AccountSecurity />
-      </AccountSecurityWrapper>,
-      TestStubs.routerContext()
-    );
+    renderComponent();
 
-    // There should only be two authenticators rendered
-    expect(wrapper.find('AuthenticatorName')).toHaveLength(2);
+    expect(screen.getByText('Authenticator App')).toBeInTheDocument();
+    expect(screen.getByText('U2F (Universal 2nd Factor)')).toBeInTheDocument();
+    expect(screen.queryByText('Text Message')).not.toBeInTheDocument();
   });
 
   it('renders primary interface if new enrollments are disallowed, but we are enrolled', function () {
@@ -332,16 +279,10 @@ describe('AccountSecurity', function () {
       ],
     });
 
-    const wrapper = mountWithTheme(
-      <AccountSecurityWrapper>
-        <AccountSecurity />
-      </AccountSecurityWrapper>,
-      TestStubs.routerContext()
-    );
+    renderComponent();
 
     // Should still render the authenticator since we are already enrolled
-    expect(wrapper.find('AuthenticatorName')).toHaveLength(1);
-    expect(wrapper.find('AuthenticatorName').prop('children')).toBe('Text Message');
+    expect(screen.getByText('Text Message')).toBeInTheDocument();
   });
 
   it('renders a backup interface that is enrolled', function () {
@@ -350,19 +291,10 @@ describe('AccountSecurity', function () {
       body: [TestStubs.Authenticators().Recovery({isEnrolled: true})],
     });
 
-    const wrapper = mountWithTheme(
-      <AccountSecurityWrapper>
-        <AccountSecurity />
-      </AccountSecurityWrapper>,
-      TestStubs.routerContext()
-    );
+    renderComponent();
 
-    expect(wrapper.find('AuthenticatorName').prop('children')).toBe('Recovery Codes');
-    // There should be an View Codes button
-    expect(
-      wrapper.find('Button[className="details-button"]').first().prop('children')
-    ).toBe('View Codes');
-    expect(wrapper.find('AuthenticatorStatus').prop('enabled')).toBe(true);
+    expect(screen.getByText('Recovery Codes')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'View Codes'})).toBeEnabled();
   });
 
   it('can change password', function () {
@@ -377,23 +309,19 @@ describe('AccountSecurity', function () {
       method: 'PUT',
     });
 
-    const wrapper = mountWithTheme(
-      <AccountSecurityWrapper>
-        <AccountSecurity />
-      </AccountSecurityWrapper>,
-      TestStubs.routerContext()
+    renderComponent();
+
+    userEvent.type(
+      screen.getByRole('textbox', {name: 'Current Password'}),
+      'oldpassword'
+    );
+    userEvent.type(screen.getByRole('textbox', {name: 'New Password'}), 'newpassword');
+    userEvent.type(
+      screen.getByRole('textbox', {name: 'Verify New Password'}),
+      'newpassword'
     );
 
-    wrapper
-      .find('PasswordForm input[name="password"]')
-      .simulate('change', {target: {value: 'oldpassword'}});
-    wrapper
-      .find('PasswordForm input[name="passwordNew"]')
-      .simulate('change', {target: {value: 'newpassword'}});
-    wrapper
-      .find('PasswordForm input[name="passwordVerify"]')
-      .simulate('change', {target: {value: 'newpassword'}});
-    wrapper.find('PasswordForm form').simulate('submit');
+    userEvent.click(screen.getByRole('button', {name: 'Change password'}));
 
     expect(mock).toHaveBeenCalledWith(
       url,
@@ -406,8 +334,6 @@ describe('AccountSecurity', function () {
         },
       })
     );
-    // user is not 2fa enrolled
-    expect(wrapper.find('TwoFactorRequired')).toHaveLength(1);
   });
 
   it('requires current password to be entered', function () {
@@ -421,24 +347,17 @@ describe('AccountSecurity', function () {
       method: 'PUT',
     });
 
-    const wrapper = mountWithTheme(
-      <AccountSecurityWrapper>
-        <AccountSecurity />
-      </AccountSecurityWrapper>,
-      TestStubs.routerContext()
+    renderComponent();
+
+    userEvent.type(screen.getByRole('textbox', {name: 'New Password'}), 'newpassword');
+    userEvent.type(
+      screen.getByRole('textbox', {name: 'Verify New Password'}),
+      'newpassword'
     );
 
-    wrapper
-      .find('PasswordForm input[name="passwordNew"]')
-      .simulate('change', {target: {value: 'newpassword'}});
-    wrapper
-      .find('PasswordForm input[name="passwordVerify"]')
-      .simulate('change', {target: {value: 'newpassword'}});
-    wrapper.find('PasswordForm form').simulate('submit');
+    userEvent.click(screen.getByRole('button', {name: 'Change password'}));
 
     expect(mock).not.toHaveBeenCalled();
-    // user is not 2fa enrolled
-    expect(wrapper.find('TwoFactorRequired')).toHaveLength(1);
   });
 
   it('can expire all sessions', async function () {
@@ -453,17 +372,13 @@ describe('AccountSecurity', function () {
       status: 204,
     });
 
-    const wrapper = mountWithTheme(
-      <AccountSecurityWrapper>
-        <AccountSecurity />
-      </AccountSecurityWrapper>,
-      TestStubs.routerContext()
-    );
+    renderComponent();
 
-    wrapper.find('Button[data-test-id="signoutAll"]').simulate('click');
+    userEvent.click(screen.getByRole('button', {name: 'Sign out of all devices'}));
 
-    await tick();
-    expect(window.location.assign).toHaveBeenCalledWith('/auth/login/');
     expect(mock).toHaveBeenCalled();
+    await waitFor(() =>
+      expect(window.location.assign).toHaveBeenCalledWith('/auth/login/')
+    );
   });
 });
