@@ -68,5 +68,6 @@ describe('Project Ownership', () => {
     expect(screen.getByText(/Match against Issue Data/)).toBeInTheDocument();
     // First in-app frame is suggested
     expect(screen.getByText('raven/base.py')).toBeInTheDocument();
+    expect(screen.getByText('https://example.com/path')).toBeInTheDocument();
   });
 });
