@@ -216,9 +216,13 @@ class TableView extends Component<TableViewProps & WithRouterProps> {
     }
     const currentSort = eventView.sortForField(field, tableMeta);
     const canSort = isFieldSortable(field, tableMeta);
-    const titleText = isEquationAlias(column.name)
+    let titleText = isEquationAlias(column.name)
       ? eventView.getEquations()[getEquationAliasIndex(column.name)]
       : column.name;
+
+    if (column.name.toLowerCase() === 'replayid') {
+      titleText = 'Replay';
+    }
 
     const title = (
       <StyledTooltip title={titleText}>

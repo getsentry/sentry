@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import DateTime from 'sentry/components/dateTime';
 import Link from 'sentry/components/links/link';
 import ShortId from 'sentry/components/shortId';
-import {IconPlay} from 'sentry/icons';
 import {IconUser} from 'sentry/icons/iconUser';
 import space from 'sentry/styles/space';
 
@@ -61,10 +60,4 @@ export const ActorContainer = styled('div')`
   :hover {
     cursor: default;
   }
-`;
-
-export const StyledIconPlay = styled(IconPlay)`
-  position: relative;
-  top: -1px;
-  margin-right: ${space(0.5)};
 `;

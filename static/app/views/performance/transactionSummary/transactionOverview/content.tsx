@@ -218,7 +218,7 @@ function SummaryContent({
   ];
 
   if (organization.features.includes('session-replay-ui')) {
-    transactionsListTitles.push(t('replay id'));
+    transactionsListTitles.push(t('replay'));
   }
 
   let transactionsListEventView = eventView.clone();
