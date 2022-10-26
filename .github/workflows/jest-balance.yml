@@ -28,4 +28,4 @@ jobs:
         with:
           name: ${{ github.sha }}
           path: |
-            ${{ github.workspace }}/**/jest-balance.json
+            ${{ github.workspace }}/tests/js/test-balancer/jest-balance.json
