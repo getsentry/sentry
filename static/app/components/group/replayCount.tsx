@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import Placeholder from 'sentry/components/placeholder';
 import {IconPlay} from 'sentry/icons';
-import DiscoverQuery, {TableData} from 'sentry/utils/discover/discoverQuery';
+import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {useLocation} from 'sentry/utils/useLocation';
 
@@ -30,7 +30,7 @@ function ReplayCount({orgId, groupId}: Props) {
     <DiscoverQuery eventView={eventView} orgSlug={orgId} location={location} useEvents>
       {({isLoading, tableData}) => {
         if (isLoading) {
-          return <Placeholder width="36px" height="14px" />;
+          return <Placeholder width="24px" height="14px" />;
         }
 
         const replayCount = tableData?.data?.length ?? 0;
@@ -51,7 +51,7 @@ function ReplayCount({orgId, groupId}: Props) {
 
 const ReplayCountContainer = styled('div')`
   display: flex;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.gray400};
   font-size: ${p => p.theme.fontSizeSmall};
   gap: 0 2px;
 `;
