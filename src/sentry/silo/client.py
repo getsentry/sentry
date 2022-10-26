@@ -40,6 +40,13 @@ class BaseSiloClient(BaseApiClient):
                 f"Only available in: {access_mode_str}"
             )
 
+    def request(self, *args, **kwargs):
+        # TODO: Establish a scheme to authorize requests across silos
+        # (e.g. signing secrets, JWTs)
+        super().request(*args, kwargs)
+        # TODO: Establish a scheme to check/log the Sentry Version of the requestor and server
+        # optionally raising an error to alert developers of version drift
+
 
 class RegionSiloClient(BaseSiloClient):
     access_modes = [SiloMode.CONTROL]
