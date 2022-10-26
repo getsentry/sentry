@@ -36,7 +36,8 @@ export function ProfileDetailsTable() {
   const [groupByViewKey, setGroupByView] = useQuerystringState<
     keyof typeof GROUP_BY_OPTIONS
   >({key: 'detailView', defaultState: 'occurrence'});
-  const groupByView = GROUP_BY_OPTIONS[groupByViewKey];
+
+  const groupByView = GROUP_BY_OPTIONS[groupByViewKey] ?? GROUP_BY_OPTIONS.occurrence;
 
   const cursor = useMemo<number>(() => {
     const cursorQuery = decodeScalar(location.query.cursor, '');
