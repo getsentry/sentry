@@ -468,7 +468,7 @@ describe('Dashboards > Detail', function () {
 
       // Enter edit mode.
       userEvent.click(screen.getByRole('button', {name: 'Edit Dashboard'}));
-      expect(await screen.findByTestId('widget-add')).toBeInTheDocument();
+      expect(await screen.findByRole('button', {name: 'Add widget'})).toBeInTheDocument();
     });
 
     it('shows top level release filter', async function () {
@@ -522,7 +522,7 @@ describe('Dashboards > Detail', function () {
 
       // Enter edit mode.
       userEvent.click(await screen.findByRole('button', {name: 'Edit Dashboard'}));
-      expect(screen.queryByTestId('widget-add')).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Add widget'})).not.toBeInTheDocument();
     });
 
     it('renders successfully if more widgets than stored layouts', async function () {
