@@ -74,22 +74,28 @@ class ProfileColumnArg(ColumnArg):
         self, value: str, params: ParamsType, combinator: Optional[Combinator]
     ) -> NormalizedArg:
         column = COLUMN_MAP.get(value)
-        if column is not None:
-            return value
-        raise InvalidFunctionArgument(f"{value} is not a valid column")
+
+        if column is None:
+            raise InvalidFunctionArgument(f"{value} is not a valid column")
+
+        return value
 
 
 class ProfileNumericColumn(NumericColumn):
     def _normalize(self, value: str) -> str:
         column = COLUMN_MAP.get(value)
-        if column is not None:
-            if (
-                column.kind == Kind.INTEGER
-                or column.kind == Kind.DURATION
-                or column.kind == Kind.NUMBER
-            ):
-                return column.column
-        raise InvalidFunctionArgument(f"{value} is not a valid column")
+
+        if column is None:
+            raise InvalidFunctionArgument(f"{value} is not a valid column")
+
+        if (
+            column.kind == Kind.INTEGER
+            or column.kind == Kind.DURATION
+            or column.kind == Kind.NUMBER
+        ):
+            return column.column
+
+        raise InvalidFunctionArgument(f"{value} is not a numeric column")
 
     def get_type(self, value: str) -> str:
         try:
@@ -118,6 +124,8 @@ class ProfilesDatasetConfig(DatasetConfig):
         return {
             function.name: function
             for function in [
+                # TODO: A lot of this is duplicated from the discover dataset.
+                # Ideally, we refactor it to be shared across datasets.
                 SnQLFunction(
                     "last_seen",
                     snql_aggregate=lambda _, alias: Function(

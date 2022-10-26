@@ -5,6 +5,7 @@ from snuba_sdk.conditions import Condition, Op
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import InvalidSearchQuery
 from sentry.search.events.types import ParamsType, WhereType
+from sentry.snuba.discover import EventsResponse, transform_data, transform_meta
 from sentry.utils.snuba import Dataset
 
 
@@ -42,12 +43,26 @@ def query(
         limit=limit,
         offset=offset,
     )
-    builder.run_query(referrer)
+    results = builder.run_query(referrer)
 
-    return {
-        "data": [],
-        "meta": {},
-    }
+    # TODO: fix this block up
+    translated_columns = {}
+    if transform_alias_to_input_format:
+        translated_columns = {
+            column: function_details.field
+            for column, function_details in builder.function_alias_map.items()
+        }
+        builder.function_alias_map = {
+            translated_columns.get(column): function_details
+            for column, function_details in builder.function_alias_map.items()
+        }
+    final_results: EventsResponse = transform_data(results, translated_columns, builder)
+    final_results["meta"] = transform_meta(final_results, builder)
+    for key, value in final_results["meta"].items():
+        if value == "duration":
+            final_results["meta"][key] = "nanosecond"
+
+    return final_results
 
 
 class ProfilesQueryBuilder(QueryBuilder):  # type: ignore
