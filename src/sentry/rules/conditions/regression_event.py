@@ -21,7 +21,10 @@ class RegressionEventCondition(EventCondition):
     ) -> Sequence[ConditionActivity]:
         activities = (
             Activity.objects.filter(
-                datetime__gte=start, datetime__lt=end, type=ActivityType.SET_REGRESSION.value
+                project=self.project,
+                datetime__gte=start,
+                datetime__lt=end,
+                type=ActivityType.SET_REGRESSION.value,
             )
             .order_by("-datetime")[:limit]
             .values_list("group", "datetime")
