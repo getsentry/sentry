@@ -101,7 +101,17 @@ describe('SearchBar', () => {
   });
 
   it('Responds to keyboard navigation', async () => {
-    render(<SearchBar {...testProps} />);
+    const onSearch = jest.fn();
+    eventsMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/eventsv2/`,
+      body: {
+        data: [
+          {project_id: 1, transaction: 'clients.call'},
+          {project_id: 1, transaction: 'clients.fetch'},
+        ],
+      },
+    });
+    render(<SearchBar {...testProps} onSearch={onSearch} />);
 
     userEvent.type(screen.getByRole('textbox'), 'proje');
     expect(screen.getByTestId('smart-search-dropdown')).toBeInTheDocument();
@@ -114,5 +124,22 @@ describe('SearchBar', () => {
 
     userEvent.keyboard('{Escape}');
     expect(screen.queryByTestId('smart-search-dropdown')).not.toBeInTheDocument();
+
+    userEvent.type(screen.getByRole('textbox'), 'client');
+    expect(screen.getByTestId('smart-search-dropdown')).toBeInTheDocument();
+
+    act(() => {
+      jest.runAllTimers();
+    });
+
+    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+
+    userEvent.keyboard('{ArrowDown}');
+    userEvent.keyboard('{ArrowDown}');
+    userEvent.keyboard('{Enter}');
+
+    expect(screen.queryByTestId('smart-search-dropdown')).not.toBeInTheDocument();
+    expect(onSearch).toHaveBeenCalledTimes(1);
+    expect(onSearch).toHaveBeenCalledWith('transaction:clients.fetch');
   });
 });

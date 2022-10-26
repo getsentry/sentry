@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
 import BaseSearchBar from 'sentry/components/searchBar';
+import {getSearchGroupWithItemMarkedActive} from 'sentry/components/smartSearchBar/utils';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
@@ -27,6 +28,8 @@ function SearchBar(props: SearchBarProps) {
   const {organization, eventView: _eventView, onSearch, query: searchQuery} = props;
 
   const [searchResults, setSearchResults] = useState<SearchGroup[]>([]);
+  const transactionCount = searchResults[0]?.children?.length || 0;
+  const [highlightedItemIndex, setHighlightedItemIndex] = useState(-1);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const openDropdown = () => setIsDropdownOpen(true);
   const closeDropdown = () => setIsDropdownOpen(false);
@@ -72,8 +75,53 @@ function SearchBar(props: SearchBarProps) {
   const handleKeyDown = (event: React.KeyboardEvent) => {
     const {key} = event;
 
-    if (key === 'Escape') {
+    if (key === 'Escape' && isDropdownOpen) {
       closeDropdown();
+      return;
+    }
+
+    if (loading) {
+      return;
+    }
+
+    if (
+      (key === 'ArrowUp' || key === 'ArrowDown') &&
+      isDropdownOpen &&
+      transactionCount > 0
+    ) {
+      const currentItem = searchResults[0].children[highlightedItemIndex];
+      const nextItemIndex =
+        (highlightedItemIndex + transactionCount + (key === 'ArrowUp' ? -1 : 1)) %
+        transactionCount;
+      setHighlightedItemIndex(nextItemIndex);
+      const nextItem = searchResults[0].children[nextItemIndex];
+
+      let newSearchResults = searchResults;
+      if (currentItem) {
+        newSearchResults = getSearchGroupWithItemMarkedActive(
+          searchResults,
+          currentItem,
+          false
+        );
+      }
+
+      newSearchResults = getSearchGroupWithItemMarkedActive(
+        newSearchResults,
+        nextItem,
+        true
+      );
+
+      setSearchResults(newSearchResults);
+      return;
+    }
+
+    if (key === 'Enter') {
+      const currentItem = searchResults[0].children[highlightedItemIndex];
+      if (!currentItem?.value) {
+        return;
+      }
+
+      handleSearch(currentItem.value);
     }
   };
 
@@ -126,6 +174,9 @@ function SearchBar(props: SearchBarProps) {
               type: 'header',
             }
           );
+
+          setHighlightedItemIndex(-1);
+
           setSearchResults([parsedResults]);
         } catch (_) {
           throw new Error('Unable to fetch event field values');
@@ -145,6 +196,7 @@ function SearchBar(props: SearchBarProps) {
     setSearchResults([]);
     setSearchString(transactionName);
     onSearch(`transaction:${transactionName}`);
+    closeDropdown();
   };
 
   const navigateToTransactionSummary = (name: string) => {
