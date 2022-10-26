@@ -119,7 +119,7 @@ if (
     // eslint-disable-next-line no-console
     console.log('✅ Using test balancer');
     const results = balancer(envTestList, balance, nodeTotal);
-
+    console.log(results);
     testMatch = [
       // First, we only want the tests that we have test durations for and belong
       // to the current node's index
@@ -136,6 +136,8 @@ if (
 
     testMatch = tests.slice(offset, offset + chunk).map(test => '<rootDir>' + test);
   }
+
+  throw "I'm not sure what this is doing";
 }
 
 /**
@@ -175,10 +177,7 @@ const config: Config.InitialOptions = {
     '<rootDir>/tests/js/setupFramework.ts',
     '@testing-library/jest-dom/extend-expect',
   ],
-  testMatch: testMatch || [
-    '<rootDir>/static/**/?(*.)+(spec|test).[jt]s?(x)',
-    '<rootDir>/tests/js/**/*(*.)@(spec|test).(js|ts)?(x)',
-  ],
+  testMatch: testMatch || ['<rootDir>/static/**/?(*.)+(spec|test).[jt]s?(x)'],
   testPathIgnorePatterns: ['<rootDir>/tests/sentry/lang/javascript/'],
 
   unmockedModulePathPatterns: [
