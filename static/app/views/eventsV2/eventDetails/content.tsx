@@ -100,7 +100,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
   }
 
   generateTagUrl = (tag: EventTag) => {
-    const {eventView, organization} = this.props;
+    const {eventView, organization, isHomepage} = this.props;
     const {event} = this.state;
     if (!event) {
       return '';
@@ -111,7 +111,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     }
     const tagKey = formatTagKey(tag.key);
     const nextView = getExpandedResults(eventView, {[tagKey]: tag.value}, eventReference);
-    return nextView.getResultsViewUrlTarget(organization.slug);
+    return nextView.getResultsViewUrlTarget(organization.slug, isHomepage);
   };
 
   renderBody() {
@@ -271,6 +271,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                   event={event}
                   location={location}
                   organization={organization}
+                  isHomepage={isHomepage}
                 />
               )}
               {event.groupID && (
