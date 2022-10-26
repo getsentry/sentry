@@ -832,13 +832,29 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             },
             project_id=self.project.id,
         )
+        event_2 = self.store_event(
+            data={
+                "message": "Exception",
+                "platform": "python",
+                "stacktrace": {"frames": [{"filename": "src/app/integration.py"}]},
+            },
+            project_id=self.project.id,
+        )
         cache_key = write_event_to_cache(event)
+        cache_key_2 = write_event_to_cache(event_2)
         self.call_post_process_group(
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
             cache_key=cache_key,
             group_id=event.group_id,
+        )
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            cache_key=cache_key_2,
+            group_id=event_2.group_id,
         )
         assignee = event.group.assignee_set.first()
         assert assignee.user == self.user
@@ -858,6 +874,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         self.prj_ownership.save()
 
         cache_key = write_event_to_cache(event)
+        cache_key_2 = write_event_to_cache(event_2)
         self.call_post_process_group(
             is_new=False,
             is_regression=False,
@@ -865,10 +882,59 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             cache_key=cache_key,
             group_id=event.group_id,
         )
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            cache_key=cache_key_2,
+            group_id=event_2.group_id,
+        )
 
         # Group should be re-assigned to the new group owner
         assignee = event.group.assignee_set.first()
         assert assignee.user == user_3
+
+        # De-assign group assignees
+        GroupAssignee.objects.deassign(event.group, assignee.user)
+        assert event.group.assignee_set.first() is None
+
+        user_4 = self.create_user()
+        self.create_team_membership(self.team, user=user_4)
+        self.prj_ownership.schema = dump_schema([])
+        self.prj_ownership.save()
+
+        code_owners_rule = Rule(
+            Matcher("codeowners", "*.py"),
+            [Owner("user", user_4.email)],
+        )
+
+        self.code_mapping = self.create_code_mapping(project=self.project)
+        self.code_owners = self.create_codeowners(
+            self.project,
+            self.code_mapping,
+            schema=dump_schema([code_owners_rule]),
+        )
+
+        cache_key = write_event_to_cache(event)
+        cache_key_2 = write_event_to_cache(event_2)
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            cache_key=cache_key,
+            group_id=event.group_id,
+        )
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            cache_key=cache_key_2,
+            group_id=event_2.group_id,
+        )
+
+        # Group should be re-assigned to the new group owner
+        assignee = event.group.assignee_set.first()
+        assert assignee.user == user_4
 
     def test_ensure_when_assignees_and_owners_are_cached_does_not_cause_unbound_errors(self):
         self.make_ownership()
