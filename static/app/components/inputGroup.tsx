@@ -42,7 +42,7 @@ export const InputGroupContext = createContext<InputContext>({inputProps: {}});
  *     <InputTrailingItems> … </InputTrailingItems>
  *   </InputGroup>
  */
-export function InputGroup({children}: {children: React.ReactNode}) {
+export function InputGroup({children}: React.HTMLAttributes<HTMLDivElement>) {
   const [leadingWidth, setLeadingWidth] = useState<number>();
   const [trailingWidth, setTrailingWidth] = useState<number>();
   const [inputProps, setInputProps] = useState<Partial<InputProps>>({});
