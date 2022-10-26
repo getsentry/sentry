@@ -28,9 +28,24 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name="repositoryprojectpathconfig",
-            name="automatically_generated",
-            field=models.BooleanField(default=False),
-        ),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL(
+                    """
+                    ALTER TABLE "sentry_repositoryprojectpathconfig" ADD COLUMN "automatically_generated" BOOLEAN NOT NULL DEFAULT false;
+                    """,
+                    reverse_sql="""
+                    ALTER TABLE "sentry_repositoryprojectpathconfig" DROP COLUMN "automatically_generated";
+                    """,
+                    hints={"tables": ["sentry_repositoryprojectpathconfig"]},
+                ),
+            ],
+            state_operations=[
+                migrations.AddField(
+                    model_name="repositoryprojectpathconfig",
+                    name="automatically_generated",
+                    field=models.BooleanField(default=False),
+                ),
+            ],
+        )
     ]
