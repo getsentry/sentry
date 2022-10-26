@@ -24,6 +24,10 @@ class AuthConfigEndpoint(Endpoint, OrganizationMixin):
     # Disable authentication and permission requirements.
     permission_classes = []
 
+    def dispatch(self, request: Request, *args, **kwargs) -> Response:
+        self.determine_active_organization(request)
+        return super().dispatch(request, *args, **kwargs)
+
     def get(self, request: Request, *args, **kwargs) -> Response:
         """
         Get context required to show a login page. Registration is handled elsewhere.
@@ -57,8 +61,7 @@ class AuthConfigEndpoint(Endpoint, OrganizationMixin):
         next_uri = self.get_next_uri(request)
 
         if not is_valid_redirect(next_uri, allowed_hosts=(request.get_host(),)):
-            active_org = self.get_active_organization(request)
-            next_uri = get_org_redirect_url(request, active_org)
+            next_uri = get_org_redirect_url(request, self.active_organization)
 
         return Response({"nextUri": next_uri})
 

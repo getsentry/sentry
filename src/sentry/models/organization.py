@@ -511,11 +511,13 @@ class Organization(Model, SnowflakeIdMixin):
                 request, remove_email_verification_non_compliant_members
             )
 
-    def get_url_viewname(self):
+    @staticmethod
+    def get_url_viewname():
         return "sentry-organization-issue-list"
 
-    def get_url(self):
-        return reverse(self.get_url_viewname(), args=[self.slug])
+    @staticmethod
+    def get_url(slug: str):
+        return reverse(Organization.get_url_viewname(), args=[slug])
 
     def get_scopes(self, role: Role) -> FrozenSet[str]:
         if role.priority > 0:

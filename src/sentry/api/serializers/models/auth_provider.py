@@ -1,7 +1,7 @@
 from django.db.models import F
 
 from sentry.api.serializers import Serializer, register
-from sentry.models import AuthProvider, OrganizationMember
+from sentry.models import AuthProvider, Organization, OrganizationMember
 from sentry.utils.http import absolute_uri
 
 
@@ -14,7 +14,7 @@ class AuthProviderSerializer(Serializer):
             flags=F("flags").bitand(~OrganizationMember.flags["sso:linked"]),
         ).count()
 
-        login_url = organization.get_url()
+        login_url = Organization.get_url(organization.slug)
 
         return {
             "id": str(obj.id),

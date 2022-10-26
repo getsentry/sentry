@@ -1,3 +1,5 @@
+from typing import Optional
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -5,6 +7,7 @@ from sentry import ratelimits as ratelimiter
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.user import DetailedSelfUserSerializer
+from sentry.models import Organization
 from sentry.utils import auth, metrics
 from sentry.utils.hashlib import md5_text
 from sentry.web.forms.accounts import AuthenticationForm
@@ -16,7 +19,13 @@ class AuthLoginEndpoint(Endpoint, OrganizationMixin):
     # Disable authentication and permission requirements.
     permission_classes = []
 
-    def post(self, request: Request, organization=None, *args, **kwargs) -> Response:
+    def dispatch(self, request: Request, *args, **kwargs) -> Response:
+        self.determine_active_organization(request)
+        return super().dispatch(request, *args, **kwargs)
+
+    def post(
+        self, request: Request, organization: Optional[Organization] = None, *args, **kwargs
+    ) -> Response:
         """
         Process a login request via username/password. SSO login is handled
         elsewhere.
@@ -57,8 +66,7 @@ class AuthLoginEndpoint(Endpoint, OrganizationMixin):
                 }
             )
 
-        active_org = self.get_active_organization(request)
-        redirect_url = auth.get_org_redirect_url(request, active_org)
+        redirect_url = auth.get_org_redirect_url(request, self.active_organization)
 
         return Response(
             {

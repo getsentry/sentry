@@ -19,7 +19,7 @@ from sentry.db.models import (
     BaseModel,
     BoundedAutoField,
     FlexibleForeignKey,
-    region_silo_only_model,
+    control_silo_only_model,
     sane_repr,
 )
 from sentry.models import LostPasswordHash
@@ -115,7 +115,7 @@ class UserManager(BaseManager, DjangoUserManager):
         return self.filter(emails__is_verified=True, is_active=True, **kwargs)
 
 
-@region_silo_only_model
+@control_silo_only_model
 class User(BaseModel, AbstractBaseUser):
     __include_in_export__ = True
 
