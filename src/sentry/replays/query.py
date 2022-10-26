@@ -230,6 +230,7 @@ def make_select_statement() -> List[Union[Column, Function]]:
             parameters=[Function("tuple", parameters=[Column("segment_id"), Column("urls")])],
             alias="agg_urls",
         ),
+        _sorted_aggregated_urls(Column("agg_urls"), "urls_sorted"),
         Function("count", parameters=[Column("segment_id")], alias="countSegments"),
         Function(
             "uniqArray",
@@ -274,6 +275,44 @@ def _grouped_unique_scalar_value(
     )
 
 
+def _sorted_aggregated_urls(agg_urls_column, alias):
+    mapped_urls = Function(
+        "arrayMap",
+        parameters=[
+            Lambda(
+                ["url_tuple"], Function("tupleElement", parameters=[Identifier("url_tuple"), 2])
+            ),
+            agg_urls_column,
+        ],
+    )
+    mapped_sequence_ids = Function(
+        "arrayMap",
+        parameters=[
+            Lambda(
+                ["url_tuple"], Function("tupleElement", parameters=[Identifier("url_tuple"), 1])
+            ),
+            agg_urls_column,
+        ],
+    )
+    return Function(
+        "arrayFlatten",
+        parameters=[
+            Function(
+                "arraySort",
+                parameters=[
+                    Lambda(
+                        ["urls", "sequence_id"],
+                        Function("identity", parameters=[Identifier("sequence_id")]),
+                    ),
+                    mapped_urls,
+                    mapped_sequence_ids,
+                ],
+            )
+        ],
+        alias=alias,
+    )
+
+
 # Filter
 
 replay_url_parser_config = SearchConfig(
@@ -293,6 +332,7 @@ class ReplayQueryConfig(QueryConfig):
     agg_environment = String(field_alias="environment")
     releases = ListField()
     dist = String()
+    urls = ListField(query_alias="urls_sorted")
     user_id = String(field_alias="user.id")
     user_email = String(field_alias="user.email")
     user_name = String(field_alias="user.name")
