@@ -116,6 +116,10 @@ describe('groupDetails', () => {
         ],
       },
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/environments/`,
+      body: TestStubs.Environments(),
+    });
   });
 
   afterEach(() => {
