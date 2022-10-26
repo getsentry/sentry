@@ -51,6 +51,7 @@ describe('SearchBar', () => {
   });
 
   beforeEach(() => {
+    MockApiClient.clearMockResponses();
     jest.clearAllMocks();
 
     eventsMock = MockApiClient.addMockResponse({
