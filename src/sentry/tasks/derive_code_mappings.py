@@ -5,11 +5,14 @@ from typing import Any, List, Mapping, Set
 from django.utils import timezone
 
 from sentry import features
+from sentry.api.endpoints.organization_code_mappings import RepositoryProjectPathConfigSerializer
 from sentry.db.models.fields.node import NodeData
 from sentry.integrations.utils.code_mapping import derive_code_mappings
 from sentry.models import Project
 from sentry.models.group import Group
+from sentry.models.integrations import organization_integration
 from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.tasks.base import instrumented_task
 from sentry.utils.json import JSONData
@@ -54,11 +57,45 @@ def derive_missing_codemappings(dry_run=False) -> None:
         if not integration:
             continue
 
+        organization_integration = OrganizationIntegration.objects.filter(
+            organization=organization, integration=integration
+        ).first()
         install = integration.get_installation(organization.id)
         trees: JSONData = install.get_trees_for_org()
         for project, stacktrace_paths in project_stacktrace_paths.items():
-            # TODO(snigdha): set the derived code mapping
             code_mappings = derive_code_mappings(project, stacktrace_paths, trees)
+            set_project_codemappings(code_mappings, organization, project, organization_integration)
+
+
+# Given a list of code mappings, create a new repository project path
+# config for each mapping.
+def set_project_codemappings(
+    code_mappings: List[Mapping[str, Any]],
+    organization: Organization,
+    project: Project,
+) -> None:
+    for code_mapping in code_mappings:
+        serializer = RepositoryProjectPathConfigSerializer(
+            # XXX: Deal with the branch later
+            data={
+                "project_id": project.id,
+                "stack_root": code_mapping["stack_root"],
+                "source_root": code_mapping["source_path"],
+                "repo_id": code_mapping["repo"],
+            },
+            context={
+                "organization": organization,
+                "organization_integration": organization_integration,
+            },
+        )
+        if serializer.is_valid():
+            serializer.save()
+        else:
+            logger.error(
+                "Error saving code mapping for organization %s: %s",
+                organization.id,
+                serializer.errors,
+            )
 
 
 @instrumented_task(  # type: ignore
