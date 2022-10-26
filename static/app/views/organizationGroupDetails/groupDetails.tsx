@@ -5,6 +5,7 @@ import * as Sentry from '@sentry/react';
 import omit from 'lodash/omit';
 import * as PropTypes from 'prop-types';
 
+import {fetchOrganizationEnvironments} from 'sentry/actionCreators/environments';
 import {Client} from 'sentry/api';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -117,6 +118,9 @@ class GroupDetails extends Component<Props, State> {
       this.fetchReplayIds();
     }
     this.updateReprocessingProgress();
+
+    // Fetch environments early - used in GroupEventDetailsContainer
+    fetchOrganizationEnvironments(this.props.api, this.props.organization.slug);
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
