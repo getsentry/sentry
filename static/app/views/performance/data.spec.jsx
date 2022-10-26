@@ -121,6 +121,6 @@ describe('generatePerformanceEventView()', function () {
       [],
       {withStaticFilters: true}
     );
-    expect(result.query).toEqual('');
+    expect(result.query).toEqual('transaction:*auth*');
   });
 });
