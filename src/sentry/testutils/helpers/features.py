@@ -51,8 +51,7 @@ def Feature(names):
             try:
                 feature = features.get(name, None)
             except FeatureNotRegistered:
-                logger.info("Unregistered flag defaulting to False: %s", repr(name))
-                return False
+                raise ValueError("Unregistered feature flag: %s", repr(name))
 
             if isinstance(feature, OrganizationFeature):
                 org = args[0] if len(args) > 0 else kwargs.get("organization", None)
