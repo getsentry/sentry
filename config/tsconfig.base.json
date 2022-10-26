@@ -1,39 +1,100 @@
 {
+  "$schema": "http://json.schemastore.org/tsconfig",
+
   "compilerOptions": {
-    "allowJs": false,
-    "checkJs": false,
-    "alwaysStrict": false,
-    "declaration": false,
-    "declarationMap": false,
-    "downlevelIteration": true,
-    "inlineSources": false,
-    "importHelpers": true,
-    "lib": ["esnext", "dom"],
+    // NOTE: We DO NOT use typescript to compile the application. Babel is
+    // responsible for handing transformation of tsx files into plain JavaScript
+    // compiles for the browser (and uses preset-env to determine what ECMA
+    // features are supported based on our browser usage configuration in
+    // package.json). `target` DOES NOT affect the babel output! [0]
+    //
+    // We DO however, use ts-node to build jest, webpack, and a few other
+    // {build,dev}-time tools. Because these are run through node, we can
+    // target what our current version of node supports (see [1])
+    //
+    // [0]: https://babeljs.io/docs/en/babel-preset-typescript
+    // [1]: https://node.green
     "module": "commonjs",
+    "target": "ES2022",
     "moduleResolution": "node",
+
+    // We add esnext to lib to pull in types for all newer ECMAScript features
+    "lib": ["esnext", "dom"],
+
+    // Skip type checking of all declaration files
+    "skipLibCheck": true,
+
+    // We do not actually use tsc to output any JavaScript anywhere
     "noEmit": true,
-    "noEmitHelpers": true,
+
+    // Don't do anything to JSX. This doesn't really matter since we don't use
+    // typescript to compile files, but left here for documentation purposes.
+    "jsx": "preserve",
+
+    // Type checking specific options
+    "alwaysStrict": false,
     "noFallthroughCasesInSwitch": true,
     "noImplicitAny": false,
     "noImplicitReturns": true,
-    "noImplicitUseStrict": true,
     "noImplicitThis": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "pretty": false,
-    "resolveJsonModule": true,
-    "sourceMap": true,
     "strict": true,
-    "target": "es6",
     "strictBindCallApply": false,
-    "experimentalDecorators": true,
     "useUnknownInCatchVariables": false,
-    // Skip type checking of all declaration files
-    "skipLibCheck": true,
+
+    // We do not configure these, but are left here for documentation purposes
+    //
+    // allowUnreachableCode
+    // allowUnusedLabels
+    // exactOptionalPropertyTypes
+    // noImplicitOverride
+    // noPropertyAccessFromIndexSignature
+    // noUncheckedIndexedAccess
+    // strictFunctionTypes
+    // strictNullChecks
+    // strictPropertyInitialization
+    // anduseUnknownInCatchVariables
+
+    // Emit configuration
+    "declaration": false,
+    "declarationMap": false,
+    "downlevelIteration": true,
+    "importHelpers": true,
+    "inlineSources": false,
+    "noEmitHelpers": true,
+    "sourceMap": true,
+    "pretty": false,
+
+    // We do not configure these, but are left here for documentation purposes
+    //
+    // declarationDir
+    // emitBOM
+    // emitDeclarationOnly
+    // importsNotUsedAsValues
+    // inlineSourceMap
+    // mapRoot
+    // newLine
+    // noEmitHelpers
+    // noEmitOnError
+    // outDir
+    // outFile
+    // preserveConstEnums
+    // preserveValueImports
+    // removeComments
+    // sourceRoot
+    // andstripInternal
+
+    // These get overridden when necessary
+    "allowJs": false,
+    "checkJs": false,
+
     "esModuleInterop": true,
-    "jsx": "preserve",
+    "experimentalDecorators": true,
+    "noImplicitUseStrict": true,
+    "resolveJsonModule": true,
+
     "baseUrl": "../",
-    "outDir": "../src/sentry/static/sentry/dist",
     "paths": {
       "sentry/*": ["static/app/*"],
       "sentry-test/*": ["tests/js/sentry-test/*"],
@@ -42,14 +103,19 @@
       "sentry-logos/*": ["src/sentry/static/sentry/images/logos/*"],
       "sentry-fonts/*": ["static/fonts/*"],
       "docs-ui/*": ["docs-ui/*"],
-      // Use the stub file for typechecking. Webpack resolver will use the real files
+      // Use the stub file for type checking. Webpack resolver will use the real files
       // based on configuration.
       "integration-docs-platforms": [
         "fixtures/integration-docs/_platforms.json",
         "src/sentry/integration-docs/_platforms.json"
       ]
     },
-    "plugins": [{"name": "typescript-styled-plugin"}]
+
+    "plugins": [
+      // The styled plugin provides language server autocompletion for styled
+      // component template strings
+      {"name": "typescript-styled-plugin"}
+    ]
   },
   "include": ["../static/app", "../tests/js", "../fixtures/js-stubs"],
   "exclude": ["../node_modules", "../**/*.benchmark.ts"],
