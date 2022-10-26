@@ -1141,8 +1141,6 @@ SENTRY_FEATURES = {
     "organizations:performance-autogroup-sibling-spans": False,
     # Enable performance on-boarding checklist
     "organizations:performance-onboarding-checklist": False,
-    # Enable automatic horizontal scrolling on the span tree
-    "organizations:performance-span-tree-autoscroll": False,
     # Enable transaction name only search
     "organizations:performance-transaction-name-only-search": False,
     # Enable showing INP web vital in default views
