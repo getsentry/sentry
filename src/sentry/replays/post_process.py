@@ -27,7 +27,9 @@ def generate_normalized_output(
         item["id"] = item.pop("replay_id")
         item["longestTransaction"] = 0
         item["environment"] = item.pop("agg_environment")
-        item["tags"] = dict_unique_list(zip(item.pop("tk") or [], item.pop("tv") or []))
+        item["tags"] = dict_unique_list(
+            zip(item.pop("tk") or [], item.pop("tv") or [])  # type:ignore
+        )
         item["user"] = {
             "id": item.pop("user_id"),
             "name": item.pop("user_name"),
@@ -75,6 +77,6 @@ def dict_unique_list(items: Sequence[Tuple[str, str]]) -> DefaultDict[str, List[
     for key, value in items:
         result[key].add(value)
 
-    for key, value in result.items():
-        result[key] = list(value)
-    return result
+    for key, value in result.items():  # type:ignore
+        result[key] = list(value)  # type:ignore
+    return result  # type:ignore

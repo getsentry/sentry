@@ -83,7 +83,7 @@ class ProjectReplayRecordingSegmentIndexEndpoint(ProjectEndpoint):  # type:ignor
         with ThreadPoolExecutor(max_workers=4) as exe:
 
             file_objects = exe.map(
-                lambda file: get_chunked_blob_from_indexes(file.file_blob_indexes),
+                lambda file: get_chunked_blob_from_indexes(file.file_blob_indexes),  # type:ignore
                 recording_segment_files,
             )
 

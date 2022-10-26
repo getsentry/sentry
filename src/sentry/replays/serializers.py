@@ -48,7 +48,7 @@ VALID_FIELD_SET = {
 }
 
 
-class ReplaySerializer(serializers.Serializer):
+class ReplaySerializer(serializers.Serializer):  # type:ignore
     statsPeriod = serializers.CharField(
         help_text=(
             "This defines the range of the time series, relative to now. "

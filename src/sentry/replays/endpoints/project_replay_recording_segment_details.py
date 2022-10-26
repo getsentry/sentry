@@ -45,7 +45,7 @@ class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectEndpoint):  # type:ign
         blob = file.getfile()
 
         response = StreamingHttpResponse(
-            iter(lambda: blob.read(4096), b""),
+            iter(lambda: blob.read(4096), b""),  # type:ignore
             content_type=file.headers.get("content-type", "application/octet-stream"),
         )
         response["Content-Length"] = file.size

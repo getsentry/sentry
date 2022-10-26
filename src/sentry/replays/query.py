@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections import namedtuple
 from datetime import datetime
 from typing import Any, List, Optional, Union
@@ -47,7 +49,7 @@ def query_replays_collection(
     limit: Optional[str],
     offset: Optional[str],
     search_filters: List[SearchFilter],
-) -> dict:
+) -> Any:
     """Query aggregated replay collection."""
     conditions = []
     if environment:
@@ -77,7 +79,7 @@ def query_replay_instance(
     replay_id: str,
     start: datetime,
     end: datetime,
-):
+) -> Any:
     """Query aggregated replay instance."""
     response = query_replays_dataset(
         project_ids=[project_id],
@@ -94,14 +96,14 @@ def query_replay_instance(
 
 
 def query_replays_dataset(
-    project_ids: List[str],
+    project_ids: List[int],
     start: datetime,
     end: datetime,
     where: List[Condition],
     sorting: List[OrderBy],
     pagination: Optional[Paginators],
     search_filters: List[SearchFilter],
-):
+) -> Any:
     query_options = {}
 
     # Instance requests do not paginate.
@@ -347,7 +349,7 @@ def _strip_uuid_dashes(
     input_value: Expression,
     alias: Optional[str] = None,
     aliased: bool = True,
-):
+) -> Function:
     return Function(
         "replaceAll",
         parameters=[Function("toString", parameters=[input_value]), "-", ""],

@@ -49,7 +49,7 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):  # type:ignore
             if key not in filter_params:
                 filter_params[key] = value
 
-        def data_fn(offset: str | None, limit: str | None) -> dict[str, Any]:
+        def data_fn(offset: str | None, limit: str | None) -> Any:
             try:
                 search_filters = parse_search_query(
                     request.query_params.get("query", ""), config=replay_url_parser_config
