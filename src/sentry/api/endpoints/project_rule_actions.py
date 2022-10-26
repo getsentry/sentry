@@ -33,12 +33,14 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
         )
 
         if not serializer.is_valid():
-            raise ValidationError
+            raise Response(serializer.errors, status=400)
 
         data = serializer.validated_data
         if len(data.get("actions", [])) == 0:
-            raise ValidationError
+            raise ValidationError("No actions to perform.")
 
+        for action in data.get("actions"):
+            action["skipDigests"] = True
         data.update(
             {
                 "conditions": [],

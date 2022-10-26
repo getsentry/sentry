@@ -40,6 +40,7 @@ class MailAdapter:
         futures: Sequence[RuleFuture],
         target_type: ActionTargetType,
         target_identifier: Optional[int] = None,
+        skip_digests: bool = False,
     ) -> None:
         metrics.incr("mail_adapter.rule_notify")
         rules = []
@@ -59,11 +60,6 @@ class MailAdapter:
             raise NotImplementedError(
                 "The default behavior for notification de-duplication does not support args"
             )
-
-        skip_digests = False
-        # Check if this is notification test
-        if len(rules) == 1 and rules[0].id is None:
-            skip_digests = True
 
         project = event.group.project
         extra["project_id"] = project.id
