@@ -2,9 +2,11 @@
 
 ## Background on Silos
 
-HC Sentry requires running two seperate instances and having them communicate between one another. They are:
-- _Control Silo_ - contains global data that is universal to Sentry SaaS
-- _Region Silo_ - contains customer data that is relevant to that region of Sentry and that region only. Regions Silos cannot talk to one another.
+Historically, Sentry has operated with read/write access to all models/endpoints no matter where you are in the backend. This will be true going forward for self-hosted users and we will continue support for this simplified deployment model, denoting it as `Monoltih Mode`.
+
+For SaaS deployment, we want to introduce sensitive data residency as part of the Hybrid Cloud project. To do so, Sentry requires running two separate instance types and having them communicate between one another. They are:
+- _Control Silo_ - contains global data that is universal to Sentry SaaS (Single Instance)
+- _Region Silo_ - contains customer data that is relevant to that region of Sentry and that region only. Regions Silos cannot talk to one another. (Multiple Instances)
 
 ## Prerequisites
 

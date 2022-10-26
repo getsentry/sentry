@@ -26,12 +26,13 @@ class BaseSiloClient(BaseApiClient):
         raise NotImplementedError
 
     def create_base_url(self, address: str) -> str:
-        api_prefix = f"/api/{self.api_version}"
+        # We're intentionally not exposing API Versioning as an interface just yet
+        # This may be revisited once more of deployment drift in Hybrid Cloud is pinned down.
+        api_prefix = "/api/0"
         return f"{address}{api_prefix}"
 
-    def __init__(self, api_version: str = DEFAULT_API_VERSION, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.api_version = api_version
         if SiloMode.get_current_mode() not in self.access_modes:
             access_mode_str = ", ".join(str(m) for m in self.access_modes)
             raise SiloClientError(
@@ -47,8 +48,8 @@ class RegionSiloClient(BaseSiloClient):
     log_path = "sentry.silo.client.region"
     silo_client_name = "region"
 
-    def __init__(self, region_name, api_version: str = DEFAULT_API_VERSION, *args, **kwargs):
-        super().__init__(api_version, *args, **kwargs)
+    def __init__(self, region_name, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.region = get_region_by_name(region_name)
         self.base_url = self.create_base_url(self.region.address)
 
@@ -60,6 +61,6 @@ class ControlSiloClient(BaseSiloClient):
     log_path = "sentry.silo.client.control"
     silo_client_name = "control"
 
-    def __init__(self, api_version: str = DEFAULT_API_VERSION, *args, **kwargs):
-        super().__init__(api_version, *args, **kwargs)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.base_url = self.create_base_url(settings.SENTRY_CONTROL_ADDRESS)
