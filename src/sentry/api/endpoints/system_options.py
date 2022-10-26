@@ -65,7 +65,7 @@ class SystemOptionsEndpoint(Endpoint):
         if not request.access.has_permission("options.admin"):
             return False
 
-        for k, v in request.data.items():
+        for k in request.data.keys():
             if k not in SYSTEM_OPTIONS_ALLOWLIST:
                 return False
 
