@@ -28,13 +28,9 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.SeparateDatabaseAndState(
-            database_operations=[
-                migrations.AddField(
-                    model_name="release",
-                    name="user_agent",
-                    field=models.TextField(null=True),
-                ),
-            ]
-        )
+        migrations.AddField(
+            model_name="release",
+            name="user_agent",
+            field=models.TextField(null=True),
+        ),
     ]
