@@ -1128,7 +1128,6 @@ SENTRY_FEATURES = {
     # Enable project selection on the stats page
     "organizations:project-stats": False,
     # Enable views for ops breakdown
-    "organizations:performance-ops-breakdown": False,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
     "organizations:performance-chart-interpolation": False,
     # Enable views for suspect tags

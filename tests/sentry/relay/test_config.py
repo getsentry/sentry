@@ -500,7 +500,6 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
 def test_project_config_with_breakdown(default_project, insta_snapshot, transaction_metrics):
     with Feature(
         {
-            "organizations:performance-ops-breakdown": True,
             "organizations:transaction-metrics-extraction": transaction_metrics == "with_metrics",
         }
     ):
