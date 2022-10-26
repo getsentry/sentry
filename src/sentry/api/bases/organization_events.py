@@ -253,7 +253,10 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     "isMetricsData": isMetricsData,
                     "tips": meta.get("tips", {}),
                 }
-            elif "isMetricsData" not in meta:
+            else:
+                meta = fields_meta
+
+            if "isMetricsData" not in meta:
                 meta["isMetricsData"] = False
 
             if not data:
