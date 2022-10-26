@@ -168,7 +168,7 @@ function Search({
         debouncedSaveQueryMetrics(searchQuery);
 
         return (
-          <SearchWrapper>
+          <SearchWrapper role="search">
             {renderInput({getInputProps})}
 
             {isValidSearch && isOpen ? (
