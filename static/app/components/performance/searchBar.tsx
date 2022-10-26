@@ -1,7 +1,6 @@
 import {useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 import debounce from 'lodash/debounce';
 
 import BaseSearchBar from 'sentry/components/searchBar';
@@ -17,9 +16,8 @@ import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transac
 import SearchDropdown from '../smartSearchBar/searchDropdown';
 import {ItemType, SearchGroup} from '../smartSearchBar/types';
 
-type SearchBarProps = {
+export type SearchBarProps = {
   eventView: EventView;
-  location: Location;
   onSearch: (query: string) => void;
   organization: Organization;
   query: string;

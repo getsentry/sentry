@@ -5,6 +5,7 @@ import * as Sentry from '@sentry/react';
 import omit from 'lodash/omit';
 import * as PropTypes from 'prop-types';
 
+import {fetchOrganizationEnvironments} from 'sentry/actionCreators/environments';
 import {Client} from 'sentry/api';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -35,6 +36,9 @@ import {getAnalyicsDataForEvent, getMessage, getTitle} from 'sentry/utils/events
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import Projects from 'sentry/utils/projects';
 import recreateRoute from 'sentry/utils/recreateRoute';
+import withRouteAnalytics, {
+  WithRouteAnalyticsProps,
+} from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import withApi from 'sentry/utils/withApi';
 
 import {ERROR_TYPES} from './constants';
@@ -73,7 +77,8 @@ type Props = {
   isGlobalSelectionReady: boolean;
   organization: Organization;
   projects: Project[];
-} & RouteComponentProps<{groupId: string; orgId: string; eventId?: string}, {}>;
+} & WithRouteAnalyticsProps &
+  RouteComponentProps<{groupId: string; orgId: string; eventId?: string}, {}>;
 
 type State = {
   error: boolean;
@@ -105,12 +110,17 @@ class GroupDetails extends Component<Props, State> {
   }
 
   componentDidMount() {
+    // prevent duplicate analytics
+    this.props.setDisableRouteAnalytics();
     // only track the view if we are loading the event early
     this.fetchData(this.canLoadEventEarly(this.props));
     if (this.props.organization.features.includes('session-replay-ui')) {
       this.fetchReplayIds();
     }
     this.updateReprocessingProgress();
+
+    // Fetch environments early - used in GroupEventDetailsContainer
+    fetchOrganizationEnvironments(this.props.api, this.props.organization.slug);
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
@@ -737,7 +747,7 @@ class GroupDetails extends Component<Props, State> {
   }
 }
 
-export default withApi(Sentry.withProfiler(GroupDetails));
+export default withRouteAnalytics(withApi(Sentry.withProfiler(GroupDetails)));
 
 const StyledLoadingError = styled(LoadingError)`
   margin: ${space(2)};

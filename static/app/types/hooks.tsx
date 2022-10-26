@@ -1,10 +1,11 @@
-import type {Route, RouteComponentProps} from 'react-router';
+import type {Route, RouteComponentProps, RouteContextInterface} from 'react-router';
 
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
 import type {Guide} from 'sentry/components/assistant/types';
 import type DateRange from 'sentry/components/organizations/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/organizations/timeRangeSelector/selectorItems';
 import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
+import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 import type {NavigationItem, NavigationSection} from 'sentry/views/settings/types';
 
 import type {ExperimentKey} from './experiments';
@@ -35,6 +36,7 @@ export interface Hooks
     InterfaceChromeHooks,
     OnboardingHooks,
     SettingsHooks,
+    ReactHooks,
     CallbackHooks {
   _: any;
 }
@@ -203,6 +205,15 @@ export type SettingsHooks = {
   'settings:api-navigation-config': SettingsItemsHook;
   'settings:organization-navigation': OrganizationSettingsHook;
   'settings:organization-navigation-config': SettingsConfigHook;
+};
+
+/**
+ * Hooks that are actually React Hooks as well
+ */
+export type ReactHooks = {
+  'react-hook:route-activated': (
+    props: RouteContextInterface
+  ) => React.ContextType<typeof RouteAnalyticsContext>;
 };
 
 /**
