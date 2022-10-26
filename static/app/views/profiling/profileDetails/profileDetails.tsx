@@ -6,7 +6,7 @@ import {t} from 'sentry/locale';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {SlowestFunctions} from './components/slowestFunctions';
+import {ProfileDetailsTable} from './components/profileDetailsTable';
 
 function ProfileDetails() {
   const organization = useOrganization();
@@ -25,7 +25,7 @@ function ProfileDetails() {
       >
         <Layout.Body>
           <Layout.Main fullWidth>
-            <SlowestFunctions />
+            <ProfileDetailsTable />
           </Layout.Main>
         </Layout.Body>
       </SentryDocumentTitle>

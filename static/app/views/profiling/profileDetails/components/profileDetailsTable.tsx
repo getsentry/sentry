@@ -30,7 +30,7 @@ import {aggregate, AggregateColumnConfig, collectProfileFrames} from '../utils';
 
 const RESULTS_PER_PAGE = 50;
 
-export function SlowestFunctions() {
+export function ProfileDetailsTable() {
   const location = useLocation();
   const [state] = useProfileGroup();
   const [groupByViewKey, setGroupByView] = useQuerystringState<
