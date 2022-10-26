@@ -7,7 +7,10 @@ export function useFuseSearch<T extends Record<string, unknown>>(
 ) {
   const searchIndex = useMemo(() => {
     return new Fuse(data, options);
-  }, [data, options]);
+    // purposely ignoring options as it will cause the effect to infinitely run
+    // data is sufficient as the index should only change if data ever changed
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data]);
 
   const search = useCallback(
     (...args: Parameters<Fuse<T>['search']>) => {

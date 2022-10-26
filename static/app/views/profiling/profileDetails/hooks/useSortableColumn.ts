@@ -1,25 +1,27 @@
-import {useCallback, useEffect, useMemo} from 'react';
-import {browserHistory} from 'react-router';
+import {useCallback, useMemo} from 'react';
 
 import {GridColumnSortBy} from 'sentry/components/gridEditable';
-import {useLocation} from 'sentry/utils/useLocation';
+
+import {useQuerystringState} from './useQuerystringState';
 
 export function useSortableColumns<T extends string>(options: {
   defaultSort: GridColumnSortBy<T>;
   querystringKey: string;
-  sortableColumns: Set<string>;
+  sortableColumns: readonly string[];
 }) {
   const {sortableColumns, querystringKey, defaultSort} = options;
-  const location = useLocation();
+  const [queryStringState, _, createLocationDescriptor] = useQuerystringState({
+    key: querystringKey,
+  });
   const currentSort = useMemo<GridColumnSortBy<T>>(() => {
-    let key = location.query?.[querystringKey] ?? '';
+    let key = queryStringState ?? '';
 
     const isDesc = key[0] === '-';
     if (isDesc) {
       key = key.slice(1);
     }
 
-    if (!key || !sortableColumns.has(key as T)) {
+    if (!key || !sortableColumns.includes(key as T)) {
       return defaultSort;
     }
 
@@ -27,38 +29,15 @@ export function useSortableColumns<T extends string>(options: {
       key,
       order: isDesc ? 'desc' : 'asc',
     } as GridColumnSortBy<T>;
-  }, [location.query, sortableColumns, defaultSort, querystringKey]);
-
-  useEffect(() => {
-    const removeListener = browserHistory.listenBefore((nextLocation, next) => {
-      if (location.pathname === nextLocation.pathname) {
-        next(nextLocation);
-        return;
-      }
-
-      if (querystringKey in nextLocation.query) {
-        delete nextLocation.query[querystringKey];
-      }
-
-      next(nextLocation);
-    });
-
-    return removeListener;
-  });
+  }, [sortableColumns, defaultSort, queryStringState]);
 
   const generateSortLink = useCallback(
     (column: T) => {
-      if (!sortableColumns.has(column)) {
+      if (!sortableColumns.includes(column)) {
         return () => undefined;
       }
       if (!currentSort) {
-        return () => ({
-          ...location,
-          query: {
-            ...location.query,
-            functionsSort: column,
-          },
-        });
+        return () => createLocationDescriptor(column);
       }
 
       const direction =
@@ -68,24 +47,37 @@ export function useSortableColumns<T extends string>(options: {
           ? 'asc'
           : 'desc';
 
-      return () => ({
-        ...location,
-        query: {
-          ...location.query,
-          functionsSort: `${direction === 'desc' ? '-' : ''}${column}`,
-        },
-      });
+      return () =>
+        createLocationDescriptor(`${direction === 'desc' ? '-' : ''}${column}`);
     },
-    [location, currentSort, sortableColumns]
+    [currentSort, sortableColumns, createLocationDescriptor]
   );
 
-  // TODO: support strings
-  const sortCompareFn = (a: Record<T, number>, b: Record<T, number>) => {
-    if (currentSort.order === 'asc') {
-      return a[currentSort.key] - b[currentSort.key];
-    }
-    return b[currentSort.key] - a[currentSort.key];
-  };
+  const sortCompareFn = useCallback(
+    (a: Partial<Record<T, string | number>>, b: Partial<Record<T, string | number>>) => {
+      const aValue = a[currentSort.key];
+      const bValue = b[currentSort.key];
+      if (!aValue || !bValue) {
+        return 1;
+      }
+
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        if (currentSort.order === 'asc') {
+          return aValue - bValue;
+        }
+        return bValue - aValue;
+      }
+
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        if (currentSort.order === 'asc') {
+          return aValue.localeCompare(bValue);
+        }
+        return bValue.localeCompare(aValue);
+      }
+      return 1;
+    },
+    [currentSort]
+  );
 
   return {
     currentSort,

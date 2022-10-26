@@ -1,4 +1,4 @@
-import {useMemo, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 
 import {pluckUniqueValues} from '../utils';
 
@@ -10,7 +10,7 @@ type ColumnFilters<T extends string | number | symbol> = {
 };
 
 export function useColumnFilters<
-  T extends Record<string, string>,
+  T extends Record<string, string | number>,
   K extends string | number | symbol = keyof T
 >(data: T[], columns: K[]) {
   const [filters, setFilters] = useState<Partial<Record<K, string[]>>>({});
@@ -34,21 +34,24 @@ export function useColumnFilters<
     }, {} as ColumnFilters<K>);
   }, [data, columns]);
 
-  const filterPredicate = (row: T) => {
-    let include = true;
-    for (const key in filters) {
-      const filterValues = filters[key];
-      if (!filterValues) {
-        continue;
+  const filterPredicate = useCallback(
+    (row: T) => {
+      let include = true;
+      for (const key in filters) {
+        const filterValues = filters[key];
+        if (!filterValues) {
+          continue;
+        }
+        const rowValue = row[key];
+        include = filterValues.includes(rowValue as string);
+        if (!include) {
+          return false;
+        }
       }
-      const rowValue = row[key];
-      include = filterValues.includes(rowValue);
-      if (!include) {
-        return false;
-      }
-    }
-    return include;
-  };
+      return include;
+    },
+    [filters]
+  );
 
   return {
     filters,
