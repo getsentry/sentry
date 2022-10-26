@@ -25,7 +25,11 @@ export type SearchBarProps = {
 
 function SearchBar(props: SearchBarProps) {
   const {organization, eventView: _eventView, onSearch, query: searchQuery} = props;
+
   const [searchResults, setSearchResults] = useState<SearchGroup[]>([]);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const openDropdown = () => setIsDropdownOpen(true);
+  const closeDropdown = () => setIsDropdownOpen(false);
   const [loading, setLoading] = useState(false);
   const [searchString, setSearchString] = useState(searchQuery);
 
@@ -57,9 +61,11 @@ function SearchBar(props: SearchBarProps) {
 
     if (query.length < 3) {
       setSearchResults([]);
+      closeDropdown();
       return;
     }
 
+    openDropdown();
     getSuggestedTransactions(query);
   };
 
@@ -156,17 +162,16 @@ function SearchBar(props: SearchBarProps) {
         onChange={handleSearchChange}
         query={searchString}
       />
-      <SearchDropdown
-        css={{
-          display: searchResults[0]?.children.length ? 'block' : 'none',
-        }}
-        maxMenuHeight={300}
-        searchSubstring={searchString}
-        loading={loading}
-        items={searchResults}
-        onClick={handleSearch}
-        onIconClick={navigateToTransactionSummary}
-      />
+      {isDropdownOpen && (
+        <SearchDropdown
+          maxMenuHeight={300}
+          searchSubstring={searchString}
+          loading={loading}
+          items={searchResults}
+          onClick={handleSearch}
+          onIconClick={navigateToTransactionSummary}
+        />
+      )}
     </Container>
   );
 }
