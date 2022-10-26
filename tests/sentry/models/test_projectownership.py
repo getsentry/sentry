@@ -162,6 +162,36 @@ class ProjectOwnershipTestCase(TestCase):
             {"stacktrace": {"frames": [{"filename": "foo.py"}]}},
         ) == [(rule_a, [self.team], OwnerRuleType.OWNERSHIP_RULE.value)]
 
+    def test_get_issue_owners_where_owner_is_not_in_project(self):
+        self.team = self.create_team(
+            organization=self.organization, slug="tiger-team", members=[self.user]
+        )
+        self.user_2 = self.create_user("bar@localhost", username="bar")
+        self.organization.member_set.create(user=self.user_2)
+
+        self.team_2 = self.create_team(
+            organization=self.organization, slug="dolphin-team", members=[self.user_2]
+        )
+
+        self.project_2 = self.create_project(organization=self.organization, teams=[self.team_2])
+
+        rule_a = Rule(Matcher("path", "*.py"), [Owner("team", self.team.slug)])
+        rule_b = Rule(Matcher("path", "src/*"), [Owner("user", self.user_2.email)])
+
+        ProjectOwnership.objects.create(
+            project_id=self.project.id,
+            schema=dump_schema([rule_a, rule_b]),
+        )
+
+        # Match on stacktrace but owner is not in the Project
+        assert (
+            ProjectOwnership.get_issue_owners(
+                self.project.id,
+                {"stacktrace": {"frames": [{"filename": "src/foo.js"}]}},
+            )
+            == []
+        )
+
     def test_get_issue_owners_only_codeowners_exists_with_default_assignment_settings(self):
         # This case will never exist bc we create a ProjectOwnership record if none exists when creating a ProjectCodeOwner record.
         # We have this testcase for potential corrupt data.

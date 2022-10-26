@@ -344,6 +344,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 device_family="Macintosh",
                 device_model="10",
                 tags={"a": "m", "b": "q"},
+                urls=["example.com"],
             )
         )
         self.store_replays(
@@ -373,6 +374,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "user.id:123",
                 "user.name:username123",
                 "user.email:username@example.com",
+                "user.email:*@example.com",
                 "user.ipAddress:127.0.0.1",
                 "sdk.name:sentry.javascript.react",
                 "os.name:macOS",
@@ -380,6 +382,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "browser.name:Firefox",
                 "browser.version:99",
                 "dist:abc123",
+                "releases:*3",
+                "!releases:*4",
                 "countSegments:>=2",
                 "device.name:Macbook",
                 "device.brand:Apple",
@@ -399,6 +403,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 # Tag filters.
                 "a:m",
                 "a:[n,o]",
+                # # url filter
+                "urls:example.com",
             ]
 
             for query in queries:
@@ -423,6 +429,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "a:o",
                 "a:[o,p]",
                 "releases:a",
+                "releases:*4",
+                "!releases:*3",
                 "releases:[a,b]",
             ]
             for query in null_queries:

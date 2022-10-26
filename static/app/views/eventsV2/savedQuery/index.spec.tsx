@@ -10,10 +10,14 @@ import SavedQueryButtonGroup from 'sentry/views/eventsV2/savedQuery';
 import * as utils from 'sentry/views/eventsV2/savedQuery/utils';
 
 const SELECTOR_BUTTON_SAVE_AS = 'button[aria-label="Save as"]';
+const SELECTOR_BUTTON_SET_AS_DEFAULT = '[data-test-id="set-as-default"]';
 const SELECTOR_BUTTON_SAVED = '[data-test-id="discover2-savedquery-button-saved"]';
 const SELECTOR_BUTTON_UPDATE = '[data-test-id="discover2-savedquery-button-update"]';
 const SELECTOR_BUTTON_DELETE = '[data-test-id="discover2-savedquery-button-delete"]';
 const SELECTOR_BUTTON_CREATE_ALERT = '[data-test-id="discover2-create-from-discover"]';
+const SELECTOR_SAVED_QUERIES = '[data-test-id="discover2-savedquery-button-view-saved"]';
+const SELECTOR_CONTEXT_MENU = 'button[aria-label="Discover Context Menu"]';
+const SELECTOR_ADD_TO_DASHBAORD = 'button[aria-label="Add to Dashboard"]';
 
 jest.mock('sentry/actionCreators/modal');
 
@@ -73,9 +77,7 @@ function generateWrappedComponent(
 }
 
 describe('EventsV2 > SaveQueryButtonGroup', function () {
-  const organization = TestStubs.Organization({
-    features: ['discover-query', 'dashboards-edit'],
-  });
+  let organization;
   const location = {
     pathname: '/organization/eventsv2/',
     query: {},
@@ -106,6 +108,12 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
     dateUpdated: '',
     id: '1',
   };
+
+  beforeEach(() => {
+    organization = TestStubs.Organization({
+      features: ['discover-query', 'dashboards-edit'],
+    });
+  });
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
@@ -155,6 +163,43 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
       expect(buttonSaved.exists()).toBe(false);
       expect(buttonUpdate.exists()).toBe(false);
       expect(buttonDelete.exists()).toBe(false);
+    });
+
+    it('renders the correct set of buttons with the homepage query feature', () => {
+      organization = TestStubs.Organization({
+        features: [
+          'discover-query',
+          'dashboards-edit',
+          'discover-query-builder-as-landing-page',
+        ],
+      });
+      const {wrapper} = generateWrappedComponent(
+        location,
+        organization,
+        router,
+        errorsView,
+        undefined,
+        yAxis
+      );
+
+      const buttonSetAsDefault = wrapper.find(SELECTOR_BUTTON_SET_AS_DEFAULT);
+      const buttonSaveAs = wrapper.find(SELECTOR_BUTTON_SAVE_AS);
+      const buttonSaved = wrapper.find(SELECTOR_BUTTON_SAVED);
+      const buttonUpdate = wrapper.find(SELECTOR_BUTTON_UPDATE);
+      const buttonDelete = wrapper.find(SELECTOR_BUTTON_DELETE);
+      const buttonSavedQueries = wrapper.find(SELECTOR_SAVED_QUERIES);
+      const buttonContextMenu = wrapper.find(SELECTOR_CONTEXT_MENU);
+      const buttonAddToDashboard = wrapper.find(SELECTOR_ADD_TO_DASHBAORD);
+
+      expect(buttonSetAsDefault.exists()).toBe(true);
+      expect(buttonSaveAs.exists()).toBe(true);
+      expect(buttonSavedQueries.exists()).toBe(true);
+      expect(buttonContextMenu.exists()).toBe(true);
+
+      expect(buttonSaved.exists()).toBe(false);
+      expect(buttonUpdate.exists()).toBe(false);
+      expect(buttonDelete.exists()).toBe(false);
+      expect(buttonAddToDashboard.exists()).toBe(false);
     });
 
     it('hides the banner when save is complete.', () => {

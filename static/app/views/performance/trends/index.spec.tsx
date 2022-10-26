@@ -329,7 +329,7 @@ describe('Performance > Trends', function () {
 
     expect(summaryLink.closest('a')).toHaveAttribute(
       'href',
-      '/organizations/org-slug/performance/summary/?display=trend&project=1&query=tpm%28%29%3A%3E0.01%20transaction.duration%3A%3E0%20transaction.duration%3A%3C15min&statsPeriod=14d&transaction=%2Forganizations%2F%3AorgId%2Fperformance%2F&trendColumn=transaction.duration&trendFunction=p50&unselectedSeries=p100%28%29'
+      '/organizations/org-slug/performance/summary/?display=trend&project=1&query=tpm%28%29%3A%3E0.01%20transaction.duration%3A%3E0%20transaction.duration%3A%3C15min&referrer=performance-transaction-summary&statsPeriod=14d&transaction=%2Forganizations%2F%3AorgId%2Fperformance%2F&trendColumn=transaction.duration&trendFunction=p50&unselectedSeries=p100%28%29'
     );
   });
 

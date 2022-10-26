@@ -148,7 +148,7 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
     }
 
     if (!sentryApp.redirectUrl) {
-      addSuccessMessage(t(`${sentryApp.slug} successfully installed.`));
+      addSuccessMessage(t('%s successfully installed.', sentryApp.slug));
       this.setState({appInstalls: [install, ...this.state.appInstalls]});
 
       // hack for split so we can show the install ID to users for them to copy
@@ -177,7 +177,7 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
       );
       return this.setState({appInstalls});
     } catch (error) {
-      return addErrorMessage(t(`Unable to uninstall ${this.sentryApp.name}`));
+      return addErrorMessage(t('Unable to uninstall %s', this.sentryApp.name));
     }
   };
 
@@ -250,7 +250,11 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
           onConfirming={this.recordUninstallClicked} // called when the confirm modal opens
           priority="danger"
         >
-          <StyledUninstallButton size="sm" data-test-id="sentry-app-uninstall">
+          <StyledUninstallButton
+            size="sm"
+            data-test-id="sentry-app-uninstall"
+            type="button"
+          >
             <IconSubtract isCircled style={{marginRight: space(0.75)}} />
             {t('Uninstall')}
           </StyledUninstallButton>
@@ -267,6 +271,7 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
           priority="primary"
           size="sm"
           style={{marginLeft: space(1)}}
+          type="button"
         >
           {t('Accept & Install')}
         </InstallButton>

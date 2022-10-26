@@ -145,6 +145,10 @@ class EventPerformanceProblem:
 
         spans_by_id = {span["span_id"]: span for span in self.event.data.get("spans", [])}
 
+        trace = get_path(self.event.data, "contexts", "trace")
+        if trace:
+            spans_by_id[trace["span_id"]] = trace
+
         for key in ["parent", "cause", "offender"]:
             span_ids = evidence_ids.get(key + "_span_ids", []) or []
             spans = [spans_by_id.get(id) for id in span_ids]
@@ -193,13 +197,22 @@ def detect_performance_problems(data: Event) -> List[PerformanceProblem]:
 # Gets the thresholds to perform performance detection.
 # Duration thresholds are in milliseconds.
 # Allowed span ops are allowed span prefixes. (eg. 'http' would work for a span with 'http.client' as its op)
-def get_detection_settings(project_id: str):
-    default_project_settings = projectoptions.get_well_known_default(
-        "sentry:performance_issue_settings",
-        project=project_id,
+def get_detection_settings(project_id: Optional[str] = None):
+    default_project_settings = (
+        projectoptions.get_well_known_default(
+            "sentry:performance_issue_settings",
+            project=project_id,
+        )
+        if project_id
+        else {}
     )
-    project_settings = ProjectOption.objects.get_value(
-        project_id, "sentry:performance_issue_settings", default_project_settings
+
+    project_settings = (
+        ProjectOption.objects.get_value(
+            project_id, "sentry:performance_issue_settings", default_project_settings
+        )
+        if project_id
+        else {}
     )
 
     use_project_option_settings = default_project_settings != project_settings
@@ -284,7 +297,6 @@ def get_detection_settings(project_id: str):
 
 def _detect_performance_problems(data: Event, sdk_span: Any) -> List[PerformanceProblem]:
     event_id = data.get("event_id", None)
-    spans = data.get("spans", [])
     project_id = data.get("project")
 
     detection_settings = get_detection_settings(project_id)
@@ -304,11 +316,8 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
         ),
     }
 
-    for span in spans:
-        for _, detector in detectors.items():
-            detector.visit_span(span)
     for _, detector in detectors.items():
-        detector.on_complete()
+        run_detector_on_data(detector, data)
 
     # Metrics reporting only for detection, not created issues.
     report_metrics_for_detectors(data, event_id, detectors, sdk_span)
@@ -344,6 +353,14 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
 
     # TODO: Make sure upstream is all compatible with set before switching output type.
     return list(unique_performance_problems)
+
+
+def run_detector_on_data(detector, data):
+    spans = data.get("spans", [])
+    for span in spans:
+        detector.visit_span(span)
+
+    detector.on_complete()
 
 
 # Uses options and flags to determine which orgs and which detectors automatically create performance issues.

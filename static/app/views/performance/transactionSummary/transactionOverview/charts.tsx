@@ -163,7 +163,7 @@ function TransactionSummaryCharts({
 
   return (
     <Panel>
-      <ChartContainer>
+      <ChartContainer data-test-id="transaction-summary-charts">
         {display === DisplayModes.LATENCY && (
           <LatencyChart
             organization={organization}

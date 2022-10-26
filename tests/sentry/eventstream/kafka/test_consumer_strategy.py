@@ -28,6 +28,7 @@ def get_kafka_payload() -> KafkaPayload:
                     "is_new": False,
                     "is_regression": None,
                     "is_new_group_environment": False,
+                    "queue": "post_process_errors",
                     "skip_consume": False,
                 },
             ]
@@ -41,7 +42,7 @@ def get_kafka_payload() -> KafkaPayload:
 def test_dispatch_task(mock_dispatch: Mock) -> None:
     commit = Mock()
     partition = Partition(Topic("test"), 0)
-    factory = PostProcessForwarderStrategyFactory(concurrency=2)
+    factory = PostProcessForwarderStrategyFactory(concurrency=2, max_pending_futures=10)
     strategy = factory.create_with_partitions(commit, {partition: 0})
 
     strategy.submit(Message(partition, 1, get_kafka_payload(), datetime.now()))
@@ -61,6 +62,7 @@ def test_dispatch_task(mock_dispatch: Mock) -> None:
         is_new=False,
         is_regression=None,
         is_new_group_environment=False,
+        queue="post_process_errors",
         group_states=None,
     )
 

@@ -19,7 +19,7 @@ def get_projects(request, organization):
         return request.access.projects
 
 
-class NewestPerfomanceIssueView(ReactPageView):
+class NewestPerformanceIssueView(ReactPageView):
     def handle(self, request: Request, organization, **kwargs) -> Response:
         projects = get_projects(request, organization)
         project_ids = [project.id for project in projects]

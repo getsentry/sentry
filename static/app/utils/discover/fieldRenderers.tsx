@@ -20,6 +20,7 @@ import UserMisery from 'sentry/components/userMisery';
 import Version from 'sentry/components/version';
 import {IconDownload} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {AvatarProject, IssueAttachment, Organization, Project} from 'sentry/types';
 import {defined, isUrl} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -305,7 +306,7 @@ type SpecialFields = {
 };
 
 const DownloadCount = styled('span')`
-  padding-left: 6px;
+  padding-left: ${space(0.75)};
 `;
 
 const RightAlignedContainer = styled('span')`
@@ -345,7 +346,7 @@ const SPECIAL_FIELDS: SpecialFields = {
               showChevron: false,
               icon: (
                 <Fragment>
-                  <IconDownload color="gray500" size="14px" />
+                  <IconDownload color="gray500" size="sm" />
                   <DownloadCount>{items.length}</DownloadCount>
                 </Fragment>
               ),
@@ -380,7 +381,7 @@ const SPECIAL_FIELDS: SpecialFields = {
                 : undefined
             }
           >
-            <IconDownload color="gray500" size="14px" />
+            <IconDownload color="gray500" size="sm" />
             <DownloadCount>{minidump ? 1 : 0}</DownloadCount>
           </Button>
         </RightAlignedContainer>
@@ -773,8 +774,9 @@ export const spanOperationRelativeBreakdownRenderer = (
   } else {
     orderedSpanOpsBreakdownFields = SPAN_OP_BREAKDOWN_FIELDS;
   }
+
   return (
-    <RelativeOpsBreakdown>
+    <RelativeOpsBreakdown data-test-id="relative-ops-breakdown">
       {orderedSpanOpsBreakdownFields.map(field => {
         if (!isDurationValue(data, field)) {
           return null;

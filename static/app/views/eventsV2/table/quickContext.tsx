@@ -1,11 +1,20 @@
-import {useEffect, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Client} from 'sentry/api';
+import {QuickContextCommitRow} from 'sentry/components/discover/quickContextCommitRow';
+import EventCause from 'sentry/components/events/eventCause';
+import {CauseHeader, DataSection} from 'sentry/components/events/styles';
+import FeatureBadge from 'sentry/components/featureBadge';
+import AssignedTo from 'sentry/components/group/assignedTo';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels';
+import * as SidebarSection from 'sentry/components/sidebarSection';
 import {IconCheckmark, IconMute, IconNot} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
+import {Group} from 'sentry/types';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import useApi from 'sentry/utils/useApi';
 
@@ -17,10 +26,6 @@ const UNKNOWN_ISSUE = 'unknown';
 export enum ColumnType {
   ISSUE = 'issue',
 }
-
-type IssueData = {
-  status: string;
-};
 
 function isIssueContext(
   dataRow: TableDataRow,
@@ -49,8 +54,8 @@ function fetchData(
   api: Client,
   dataRow: TableDataRow,
   column: TableColumn<keyof TableDataRow>
-): Promise<IssueData> {
-  const promise: Promise<IssueData> = api.requestPromise(getUrl(dataRow, column), {
+): Promise<Group> {
+  const promise: Promise<Group> = api.requestPromise(getUrl(dataRow, column), {
     method: 'GET',
     query: {
       collapse: 'release',
@@ -71,7 +76,7 @@ export default function QuickContext(props: Props) {
   const api = useApi();
   const [error, setError] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
-  const [data, setData] = useState<IssueData | null>(null);
+  const [data, setData] = useState<Group | null>(null);
 
   // NOTE: Will extend when we add more type of contexts.
 
@@ -86,6 +91,7 @@ export default function QuickContext(props: Props) {
         }
 
         setData(response);
+        GroupStore.add([response]);
       })
       .catch(() => {
         setError(true);
@@ -104,12 +110,16 @@ export default function QuickContext(props: Props) {
     <Wrapper>
       {loading ? (
         <NoContextWrapper>
-          <LoadingIndicator hideMessage size={32} />
+          <LoadingIndicator
+            data-test-id="quick-context-loading-indicator"
+            hideMessage
+            size={32}
+          />
         </NoContextWrapper>
       ) : error ? (
         <NoContextWrapper>{t('Failed to load context for column.')}</NoContextWrapper>
       ) : isIssueContext(props.dataRow, props.column) && data ? (
-        <IssueContext data={data} />
+        <IssueContext data={data} eventID={props.dataRow.id} />
       ) : (
         <NoContextWrapper>{t('There is no context available.')}</NoContextWrapper>
       )}
@@ -117,14 +127,21 @@ export default function QuickContext(props: Props) {
   );
 }
 
-// Only includes issue status context for now.
-function IssueContext(props: {data: IssueData}) {
+type IssueContextProps = {
+  data: Group;
+  eventID?: string;
+};
+
+function IssueContext(props: IssueContextProps) {
   const statusTitle = t('Issue Status');
   const {status} = props.data;
 
-  return (
-    <ContextContainer>
-      <ContextTitle>{statusTitle}</ContextTitle>
+  const renderStatus = () => (
+    <IssueContextContainer>
+      <ContextTitle>
+        {statusTitle}
+        <FeatureBadge type="alpha" />
+      </ContextTitle>
       <ContextBody>
         {status === 'ignored' ? (
           <IconMute data-test-id="quick-context-ignored-icon" color="gray500" size="sm" />
@@ -139,25 +156,70 @@ function IssueContext(props: {data: IssueData}) {
         )}
         <StatusText>{status}</StatusText>
       </ContextBody>
-    </ContextContainer>
+    </IssueContextContainer>
+  );
+
+  const renderAssigneeSelector = () => (
+    <IssueContextContainer>
+      <AssignedTo group={props.data} projectId={props.data.project.id} />
+    </IssueContextContainer>
+  );
+
+  const renderSuspectCommits = () =>
+    props.eventID && (
+      <IssueContextContainer data-test-id="quick-context-suspect-commits-container">
+        <EventCause
+          project={props.data.project}
+          eventId={props.eventID}
+          commitRow={QuickContextCommitRow}
+        />
+      </IssueContextContainer>
+    );
+
+  return (
+    <Fragment>
+      {renderStatus()}
+      {renderAssigneeSelector()}
+      {renderSuspectCommits()}
+    </Fragment>
   );
 }
 
 const ContextContainer = styled('div')`
   display: flex;
   flex-direction: column;
-  margin: ${space(1.5)};
+`;
+
+const IssueContextContainer = styled(ContextContainer)`
+  ${SidebarSection.Wrap}, ${Panel} {
+    margin: 0;
+  }
+
+  ${Panel} {
+    border: none;
+    box-shadow: none;
+  }
+
+  ${DataSection} {
+    padding: 0;
+  }
+
+  ${CauseHeader}, ${SidebarSection.Title} {
+    margin-top: ${space(2)};
+  }
 `;
 
 const ContextTitle = styled('h6')`
   color: ${p => p.theme.subText};
   display: flex;
+  justify-content: space-between;
+  align-items: center;
   font-size: ${p => p.theme.fontSizeMedium};
   margin: 0;
 `;
 
 const ContextBody = styled('div')`
-  margin: ${space(1.5)} 0 0;
+  margin: ${space(1)} 0 0;
   width: 100%;
   text-align: left;
   font-size: ${p => p.theme.fontSizeLarge};
@@ -175,8 +237,8 @@ const Wrapper = styled('div')`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   box-shadow: ${p => p.theme.dropShadowHeavy};
-  overflow: hidden;
-  min-width: 200px;
+  width: 300px;
+  padding: ${space(1.5)};
 `;
 
 const NoContextWrapper = styled('div')`
