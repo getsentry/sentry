@@ -131,10 +131,6 @@ function getMetricsOutcome(
     return fallbackOutcome;
   }
 
-  if (checkForSamplingRules(dataCounts)) {
-    return fallbackOutcome;
-  }
-
   if (checkNoDataFallback(dataCounts)) {
     return fallbackOutcome;
   }
@@ -164,21 +160,6 @@ function getMetricsOutcome(
   }
 
   return successOutcome;
-}
-
-/**
- * Fallback if very similar amounts of metrics and transactions are found.
- * No projects with dynamic sampling means no rules have been enabled yet.
- */
-function checkForSamplingRules(dataCounts: MergedMetricsData) {
-  const counts = normalizeCounts(dataCounts);
-  if (!dataCounts.dynamic_sampling_projects?.length) {
-    return true;
-  }
-  if (counts.metricsCount === 0) {
-    return true;
-  }
-  return false;
 }
 
 /**
