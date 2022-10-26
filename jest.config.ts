@@ -5,7 +5,6 @@ import process from 'process';
 
 import type {Config} from '@jest/types';
 
-import {BALANCE_RESULTS_PATH} from './tests/js/test-balancer/index.js';
 import babelConfig from './babel.config';
 
 const {
@@ -19,6 +18,14 @@ const {
   GITHUB_RUN_ID,
   GITHUB_RUN_ATTEMPT,
 } = process.env;
+
+const BALANCE_RESULTS_PATH = path.resolve(
+  __dirname,
+  'tests',
+  'js',
+  'test-balancer',
+  'index.js'
+);
 
 /**
  * In CI we may need to shard our jest tests so that we can parellize the test runs
@@ -100,15 +107,17 @@ if (
   }
 
   // Taken from https://github.com/facebook/jest/issues/6270#issue-326653779
-  const envTestList = JSON.parse(JEST_TESTS).map(file =>
+  const envTestList: string[] = JSON.parse(JEST_TESTS).map(file =>
     file.replace(__dirname, '')
-  ) as string[];
+  );
   const tests = envTestList.sort((a, b) => b.localeCompare(a));
 
   const nodeTotal = Number(CI_NODE_TOTAL);
   const nodeIndex = Number(CI_NODE_INDEX);
 
   if (balance) {
+    // eslint-disable-next-line no-console
+    console.log('✅ Using test balancer');
     const results = balancer(envTestList, balance, nodeTotal);
 
     testMatch = [
@@ -125,7 +134,7 @@ if (
     const offset = Math.min(nodeIndex, remainder) + nodeIndex * size;
     const chunk = size + (nodeIndex < remainder ? 1 : 0);
 
-    testMatch = tests.slice(offset, offset + chunk);
+    testMatch = tests.slice(offset, offset + chunk).map(test => '<rootDir>' + test);
   }
 }
 

@@ -1,10 +1,6 @@
 /* eslint-env node */
 /* eslint import/no-nodejs-modules:0 */
 const fs = require('fs');
-const path = require('path');
-
-const BALANCE_RESULTS_PATH = path.resolve(__dirname, 'jest-balance.json');
-module.exports.BALANCE_RESULTS_PATH = BALANCE_RESULTS_PATH;
 
 module.exports = results => {
   if (!results.success) {
@@ -18,7 +14,10 @@ module.exports = results => {
     testValues[test.testFilePath.replace(cwd, '')] = test.perfStats.runtime;
   }
 
-  fs.writeFileSync(BALANCE_RESULTS_PATH, JSON.stringify(testValues));
+  fs.writeFileSync(
+    path.resolve(__dirname, 'jest-balance.json'),
+    JSON.stringify(testValues)
+  );
 
   return results;
 };

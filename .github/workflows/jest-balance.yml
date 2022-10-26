@@ -1,5 +1,5 @@
 name: jest balancer
-on: [pull_request, workflow_dispatch]
+on: [workflow_dispatch]
 jobs:
   jest-balance:
     # Buckle up, this may take a while
