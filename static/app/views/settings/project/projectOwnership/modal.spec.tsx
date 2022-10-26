@@ -5,7 +5,6 @@ import ProjectOwnershipModal from './modal';
 describe('Project Ownership', () => {
   const org = TestStubs.Organization();
   const project = TestStubs.ProjectDetails();
-  const onSave = jest.fn();
   const issueId = '1234';
 
   beforeEach(() => {
@@ -54,7 +53,6 @@ describe('Project Ownership', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    jest.clearAllMocks();
   });
 
   it('renders stacktrace suggestions', () => {
@@ -63,7 +61,7 @@ describe('Project Ownership', () => {
         issueId={issueId}
         organization={org}
         project={project}
-        onSave={onSave}
+        onSave={() => {}}
       />
     );
 
