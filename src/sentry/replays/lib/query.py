@@ -98,9 +98,12 @@ class String(Field):
         self, field_alias: str, operator: Op, value: Union[List[str], str], is_wildcard: bool
     ) -> Condition:
         if is_wildcard:
-            return _wildcard_search_condition(
-                value, self.query_alias or self.attribute_name, operator
+            return Condition(
+                _wildcard_search_function(value, Column(self.query_alias or self.attribute_name)),
+                operator,
+                1,
             )
+
         return super().as_condition(field_alias, operator, value, is_wildcard)
 
 
@@ -117,9 +120,26 @@ class ListField(Field):
         self, _: str, operator: Op, value: Union[List[str], str], is_wildcard: bool = False
     ) -> Condition:
         if operator in [Op.EQ, Op.NEQ]:
+            if is_wildcard:
+                # wildcard search isn't supported with the IN operator
+                return self._wildcard_condition(operator, value)
+
             return self._has_condition(operator, value)
         else:
             return self._has_any_condition(operator, value)
+
+    def _wildcard_condition(self, operator: Op, value: str):
+        return Condition(
+            Function(
+                "arrayExists",
+                parameters=[
+                    Lambda(["x"], _wildcard_search_function(value, Identifier("x"))),
+                    Column(self.query_alias or self.attribute_name),
+                ],
+            ),
+            Op.EQ,
+            1 if operator == Op.EQ else 0,
+        )
 
     def _has_condition(
         self,
@@ -363,20 +383,15 @@ def _bitmask_on_tag_key(key: str) -> Function:
     )
 
 
-def _wildcard_search_condition(value, query_alias, operator):
+def _wildcard_search_function(value, identifier):
     # XXX: We don't want the '^$' values at the beginning and end of
     # the regex since we want to find the pattern anywhere in the
     # message. Strip off here
     wildcard_value = value[1:-1]
-    condition = Condition(
-        Function(
-            "match",
-            parameters=[
-                Column(query_alias),
-                f"(?i){wildcard_value}",
-            ],
-        ),
-        operator,
-        1,
+    return Function(
+        "match",
+        parameters=[
+            identifier,
+            f"(?i){wildcard_value}",
+        ],
     )
-    return condition
