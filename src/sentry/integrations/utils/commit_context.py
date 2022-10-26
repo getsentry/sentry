@@ -21,6 +21,9 @@ def find_commit_context_for_event(
 
         stacktrace_path = get_stacktrace_path_from_event_frame(frame)
 
+        if not stacktrace_path:
+            continue
+
         src_path = get_source_code_path_from_stacktrace_path(stacktrace_path, code_mapping)
 
         # src_path can be none if the stacktrace_path is an invalid filepath
