@@ -29,6 +29,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.utils import slugify_instance
 from sentry.locks import locks
+from sentry.models.organizationmember import OrganizationMember
 from sentry.roles.manager import Role
 from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
@@ -251,13 +252,12 @@ class Organization(Model, SnowflakeIdMixin):
         }
 
     def get_owners(self) -> Sequence[User]:
-        from sentry.models import User
+        from sentry.services.hybrid_cloud.users import user_service
 
-        return User.objects.filter(
-            sentry_orgmember_set__role=roles.get_top_dog().id,
-            sentry_orgmember_set__organization=self,
-            is_active=True,
-        )
+        owner_memberships = OrganizationMember.objects.filter(
+            role=roles.get_top_dog().id, organization=self
+        ).values_list("id", flat=True)
+        return user_service.get_users(owner_memberships)
 
     def get_default_owner(self):
         if not hasattr(self, "_default_owner"):

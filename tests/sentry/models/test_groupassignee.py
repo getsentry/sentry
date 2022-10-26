@@ -17,7 +17,7 @@ from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class GroupAssigneeTestCase(TestCase):
     def test_constraints(self):
         # Can't both be assigned

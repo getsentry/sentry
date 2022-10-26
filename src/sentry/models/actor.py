@@ -23,6 +23,20 @@ def actor_type_to_class(type: int) -> Type[Union["Team", "User"]]:
     return ACTOR_TYPE_TO_CLASS[type]
 
 
+def fetch_actor_obj_by_class_and_id(klass, id: int) -> Type[Union["Team", "User"]]:
+    from sentry.models import Team, User
+
+    def team_fetcher():
+        return Team.objects.get(id)
+
+    def user_fetcher():
+        from sentry.services.hybrid_cloud.users import user_service
+
+        return user_service.get_user(id, is_active=None)
+
+    return {Team: team_fetcher, User: user_fetcher}[klass]()
+
+
 def actor_type_to_string(type: int) -> Optional[str]:
     # type will be 0 or 1 and we want to get "team" or "user"
     for k, v in ACTOR_TYPES.items():
@@ -109,7 +123,7 @@ class ActorTuple(namedtuple("Actor", "id type")):
             raise serializers.ValidationError("Unable to resolve actor identifier")
 
     def resolve(self):
-        return self.type.objects.select_related("actor").get(id=self.id)
+        return fetch_actor_obj_by_class_and_id(self.type, self.id)
 
     def resolve_to_actor(self):
         return self.resolve().actor

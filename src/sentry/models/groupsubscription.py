@@ -110,9 +110,10 @@ class GroupSubscriptionManager(BaseManager):  # type: ignore
         Identify all users who are participating with a given issue.
         :param group: Group object
         """
-        from sentry.models import NotificationSetting, User
+        from sentry.models import NotificationSetting
+        from sentry.services.hybrid_cloud.users import user_service
 
-        all_possible_users = User.objects.get_from_group(group)
+        all_possible_users = user_service.get_from_group(group)
         active_and_disabled_subscriptions = self.filter(group=group, user__in=all_possible_users)
         notification_settings = NotificationSetting.objects.get_for_recipient_by_parent(
             NotificationSettingTypes.WORKFLOW,
