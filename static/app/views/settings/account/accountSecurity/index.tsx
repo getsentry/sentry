@@ -82,6 +82,7 @@ class AccountSecurity extends AsyncView<Props> {
     const {authenticators, countEnrolled, deleteDisabled, onDisable, hasVerifiedEmail} =
       this.props;
     const isEmpty = !authenticators?.length;
+
     return (
       <div>
         <SettingsPageHeader
@@ -113,7 +114,7 @@ class AccountSecurity extends AsyncView<Props> {
                 'Signing out of all devices will sign you out of this device as well.'
               )}
             >
-              <Button data-test-id="signoutAll" onClick={this.handleSessionClose}>
+              <Button onClick={this.handleSessionClose}>
                 {t('Sign out of all devices')}
               </Button>
             </Field>
@@ -147,7 +148,15 @@ class AccountSecurity extends AsyncView<Props> {
                   <AuthenticatorPanelItem key={id}>
                     <AuthenticatorHeader>
                       <AuthenticatorTitle>
-                        <AuthenticatorStatus enabled={isEnrolled} />
+                        <AuthenticatorStatus
+                          role="status"
+                          aria-label={
+                            isEnrolled
+                              ? t('Authentication Method Active')
+                              : t('Authentication Method Inactive')
+                          }
+                          enabled={isEnrolled}
+                        />
                         <AuthenticatorName>{name}</AuthenticatorName>
                       </AuthenticatorTitle>
 
@@ -157,7 +166,6 @@ class AccountSecurity extends AsyncView<Props> {
                             to={`/settings/account/security/mfa/${id}/enroll/`}
                             size="sm"
                             priority="primary"
-                            className="enroll-button"
                           >
                             {t('Add')}
                           </Button>
@@ -167,7 +175,6 @@ class AccountSecurity extends AsyncView<Props> {
                             onClick={this.handleAdd2FAClicked}
                             size="sm"
                             priority="primary"
-                            className="enroll-button"
                           >
                             {t('Add')}
                           </Button>
@@ -177,7 +184,6 @@ class AccountSecurity extends AsyncView<Props> {
                           <Button
                             to={`/settings/account/security/mfa/${authId}/`}
                             size="sm"
-                            className="details-button"
                           >
                             {configureButton}
                           </Button>
@@ -197,7 +203,7 @@ class AccountSecurity extends AsyncView<Props> {
                             >
                               <Button
                                 size="sm"
-                                aria-label={t('delete')}
+                                aria-label={t('Delete')}
                                 icon={<IconDelete />}
                               />
                             </RemoveConfirm>
