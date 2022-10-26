@@ -44,5 +44,8 @@ filterwarnings = [
     # with django.utils.timezone.
     "ignore:DateTimeField.*naive datetime:RuntimeWarning",
     "ignore:.*sentry.digests.backends.dummy.DummyBackend.*:sentry.utils.warnings.UnsupportedBackend",
+
+    # pytest has not yet implemented the replacement for this yet
+    "ignore:The --looponfail command line argument.*",
 ]
 looponfailroots = ["src", "tests"]
