@@ -33,7 +33,7 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
         )
 
         if not serializer.is_valid():
-            raise Response(serializer.errors, status=400)
+            raise ValidationError(serializer.errors)
 
         data = serializer.validated_data
         if len(data.get("actions", [])) == 0:
