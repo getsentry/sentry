@@ -400,7 +400,6 @@ class ReleaseIssues extends Component<Props, State> {
                   barId={value}
                   size="xs"
                   onClick={() => this.handleIssuesTypeSelection(value)}
-                  data-test-id={`filter-${value}`}
                 >
                   {label}
                   <QueryCount
@@ -415,7 +414,7 @@ class ReleaseIssues extends Component<Props, State> {
           </GuideAnchor>
 
           <OpenInButtonBar gap={1}>
-            <Button to={this.getIssuesUrl()} size="xs" data-test-id="issues-button">
+            <Button to={this.getIssuesUrl()} size="xs">
               {t('Open in Issues')}
             </Button>
 
