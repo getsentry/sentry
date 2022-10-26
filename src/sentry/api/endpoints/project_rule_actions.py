@@ -5,7 +5,6 @@ from rest_framework.response import Response
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.serializers.rest_framework import RuleActionSerializer
-from sentry.constants import DUMMY_RULE_ID
 from sentry.models import Rule
 from sentry.rules.processor import RuleProcessor
 from sentry.utils.safe import safe_execute
@@ -49,7 +48,7 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
                 "frequency": 30,
             }
         )
-        rule = Rule(id=DUMMY_RULE_ID, project=project, data=data)
+        rule = Rule(project=project, data=data)
 
         test_event = create_sample_event(
             project, platform=project.platform, default="javascript", tagged=True
