@@ -279,14 +279,18 @@ def _sorted_aggregated_urls(agg_urls_column, alias):
     mapped_urls = Function(
         "arrayMap",
         parameters=[
-            Lambda(["x"], Function("tupleElement", parameters=[Identifier("x"), 2])),
+            Lambda(
+                ["url_tuple"], Function("tupleElement", parameters=[Identifier("url_tuple"), 2])
+            ),
             agg_urls_column,
         ],
     )
     mapped_sequence_ids = Function(
         "arrayMap",
         parameters=[
-            Lambda(["x"], Function("tupleElement", parameters=[Identifier("x"), 1])),
+            Lambda(
+                ["url_tuple"], Function("tupleElement", parameters=[Identifier("url_tuple"), 1])
+            ),
             agg_urls_column,
         ],
     )
@@ -296,7 +300,10 @@ def _sorted_aggregated_urls(agg_urls_column, alias):
             Function(
                 "arraySort",
                 parameters=[
-                    Lambda(["x", "y"], Function("identity", parameters=[Identifier("y")])),
+                    Lambda(
+                        ["urls", "sequence_id"],
+                        Function("identity", parameters=[Identifier("sequence_id")]),
+                    ),
                     mapped_urls,
                     mapped_sequence_ids,
                 ],
