@@ -10,7 +10,7 @@ from rest_framework.request import Request
 from sentry import audit_log, features, roles
 from sentry.auth import manager
 from sentry.auth.helper import AuthHelper
-from sentry.models import AuthProvider, OrganizationMember, User
+from sentry.models import AuthProvider, Organization, OrganizationMember, User
 from sentry.plugins.base import Response
 from sentry.tasks.auth import email_missing_links, email_unlink_notifications
 from sentry.utils.http import absolute_uri
@@ -171,7 +171,7 @@ class OrganizationAuthSettingsView(OrganizationView):
         context = {
             "form": form,
             "pending_links_count": pending_links_count,
-            "login_url": absolute_uri(organization.get_url()),
+            "login_url": absolute_uri(Organization.get_url(organization.slug)),
             "settings_url": absolute_uri(
                 reverse("sentry-organization-settings", args=[organization.slug])
             ),
@@ -224,4 +224,4 @@ class OrganizationAuthSettingsView(OrganizationView):
             return helper.current_step()
 
         # Otherwise user is in bad state since frontend/react should handle this case
-        return HttpResponseRedirect(organization.get_url())
+        return HttpResponseRedirect(Organization.get_url(organization.slug))

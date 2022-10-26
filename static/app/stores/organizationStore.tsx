@@ -4,6 +4,7 @@ import {ORGANIZATION_FETCH_ERROR_TYPES} from 'sentry/constants';
 import {Organization} from 'sentry/types';
 import RequestError from 'sentry/utils/requestError/requestError';
 
+import HookStore from './hookStore';
 import LatestContextStore from './latestContextStore';
 import ReleaseStore from './releaseStore';
 import {CommonStoreDefinition} from './types';
@@ -52,6 +53,10 @@ const storeConfig: OrganizationStoreDefinition = {
 
     ReleaseStore.updateOrganization(this.organization);
     LatestContextStore.onUpdateOrganization(this.organization);
+    HookStore.getCallback(
+      'react-hook:route-activated',
+      'setOrganization'
+    )?.(this.organization);
   },
 
   onFetchOrgError(err) {
