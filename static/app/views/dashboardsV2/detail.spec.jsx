@@ -391,14 +391,14 @@ describe('Dashboards > Detail', function () {
       await waitFor(() => expect(mockVisit).toHaveBeenCalledTimes(1));
 
       // Enter edit mode.
-      userEvent.click(screen.getByText('Edit Dashboard'));
+      userEvent.click(screen.getByRole('button', {name: 'Edit Dashboard'}));
 
       // Remove the second and third widgets
-      userEvent.click(screen.getAllByTestId('widget-delete')[1]);
-      userEvent.click(screen.getAllByTestId('widget-delete')[1]);
+      userEvent.click(screen.getAllByRole('button', {name: 'Delete Widget'})[1]);
+      userEvent.click(screen.getAllByRole('button', {name: 'Delete Widget'})[1]);
 
       // Save changes
-      userEvent.click(screen.getByText('Save and Finish'));
+      userEvent.click(screen.getByRole('button', {name: 'Save and Finish'}));
 
       expect(updateMock).toHaveBeenCalled();
       expect(updateMock).toHaveBeenCalledWith(
@@ -467,7 +467,7 @@ describe('Dashboards > Detail', function () {
       );
 
       // Enter edit mode.
-      userEvent.click(screen.getByText('Edit Dashboard'));
+      userEvent.click(screen.getByRole('button', {name: 'Edit Dashboard'}));
       expect(await screen.findByTestId('widget-add')).toBeInTheDocument();
     });
 
@@ -521,7 +521,7 @@ describe('Dashboards > Detail', function () {
       );
 
       // Enter edit mode.
-      userEvent.click(await screen.findByText('Edit Dashboard'));
+      userEvent.click(await screen.findByRole('button', {name: 'Edit Dashboard'}));
       expect(screen.queryByTestId('widget-add')).not.toBeInTheDocument();
     });
 
