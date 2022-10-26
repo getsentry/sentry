@@ -59,7 +59,7 @@ function CreateSavedSearchModal({
     sort: validateSortOption(sort),
   };
 
-  const handleSubmit: OnSubmitCallback = (
+  const handleSubmit: OnSubmitCallback = async (
     data,
     onSubmitSuccess,
     onSubmitError,
@@ -70,26 +70,26 @@ function CreateSavedSearchModal({
 
     addLoadingMessage(t('Saving Changes'));
 
-    createSavedSearch(
-      api,
-      organization.slug,
-      data.name,
-      data.query,
-      validateSortOption(data.sort)
-    )
-      .then(_data => {
-        closeModal();
-        clearIndicators();
-        onSubmitSuccess(data);
-      })
-      .catch(err => {
-        clearIndicators();
-        onSubmitError(
-          err.responseJSON && err.responseJSON.detail
-            ? err.responseJSON.detail
-            : t('Unable to save your changes.')
-        );
-      });
+    try {
+      await createSavedSearch(
+        api,
+        organization.slug,
+        data.name,
+        data.query,
+        validateSortOption(data.sort)
+      );
+
+      closeModal();
+      clearIndicators();
+      onSubmitSuccess(data);
+    } catch (err) {
+      clearIndicators();
+      onSubmitError(
+        err?.responseJSON?.detail
+          ? err.responseJSON.detail
+          : t('Unable to save your changes.')
+      );
+    }
   };
 
   return (
