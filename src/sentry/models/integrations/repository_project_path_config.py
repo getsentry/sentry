@@ -17,7 +17,7 @@ class RepositoryProjectPathConfig(DefaultFieldsModel):
     source_root = models.TextField()
     default_branch = models.TextField(null=True)
     # Indicates if Sentry created this mapping
-    automatically_generated = models.BooleanField(null=True, default=False)
+    automatically_generated = models.BooleanField(default=False)
 
     class Meta:
         app_label = "sentry"
