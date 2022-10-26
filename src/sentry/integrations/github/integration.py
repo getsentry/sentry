@@ -201,7 +201,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
                     blame.get("commit", {}).get("committedDate"), "%Y-%m-%dT%H:%M:%SZ"
                 ),
             )
-        except IndexError:
+        except (ValueError, IndexError):
             return None
 
         commitInfo = commit.get("commit")
