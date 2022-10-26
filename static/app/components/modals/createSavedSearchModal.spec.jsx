@@ -21,7 +21,7 @@ describe('CreateSavedSearchModal', function () {
   };
 
   beforeEach(function () {
-    jest.clearAllMocks();
+    MockApiClient.clearMockResponses();
     createMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/searches/',
       method: 'POST',
