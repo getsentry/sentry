@@ -238,7 +238,6 @@ export function PerformanceLanding(props: Props) {
                                         // transaction name search becomes the default search bar
                                         <TransactionNameSearchBar
                                           organization={organization}
-                                          location={location}
                                           eventView={eventView}
                                           onSearch={(query: string) =>
                                             handleSearch(query, metricSettingState)
