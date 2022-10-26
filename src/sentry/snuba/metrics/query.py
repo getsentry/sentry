@@ -146,6 +146,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
     include_totals: bool = True
     include_series: bool = True
     interval: Optional[int] = None
+    ignore_limit: bool = False
 
     @cached_property
     def projects(self) -> QuerySet:
@@ -256,7 +257,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
                 f"Requested limit exceeds the maximum allowed limit of {MAX_POINTS}"
             )
         if self.include_series:
-            if intervals_len * self.limit.limit > MAX_POINTS and False:
+            if intervals_len * self.limit.limit > MAX_POINTS and not self.ignore_limit:
                 raise InvalidParams(
                     f"Requested interval of timedelta of "
                     f"{timedelta(seconds=self.granularity.granularity)} with statsPeriod "

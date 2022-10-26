@@ -2678,6 +2678,12 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
                 use_case_id = UseCaseKey.RELEASE_HEALTH
             prefix = "generic_" if self.dataset is Dataset.PerformanceMetrics else ""
 
+            if self.start and self.end:
+                limit = int((self.end - self.start).total_seconds() / self.granularity.granularity)
+            else:
+                limit = 10_000
+            limit = min(10_000, limit)
+
             snuba_query = Query(
                 match=Entity(f"{prefix}metrics_distributions", sample=self.sample_rate),
                 # Metrics doesn't support columns in the select, and instead expects them in the groupby
@@ -2694,9 +2700,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
                 groupby=self.groupby,
                 orderby=[],
                 granularity=self.granularity,
-                limit=Limit(
-                    int((self.end - self.start).total_seconds() / self.granularity.granularity)
-                ),
+                limit=Limit(limit),
             )
             if True:
                 metric_query = tranform_mqb_query_to_metrics_query(snuba_query)
