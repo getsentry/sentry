@@ -427,6 +427,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "a:[o,p]",
                 "releases:a",
                 "releases:*4",
+                "!releases:*3",
                 "releases:[a,b]",
             ]
             for query in null_queries:

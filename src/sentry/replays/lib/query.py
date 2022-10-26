@@ -133,7 +133,10 @@ class ListField(Field):
             Function(
                 "arrayExists",
                 parameters=[
-                    Lambda(["x"], _wildcard_search_function(value, Identifier("x"))),
+                    Lambda(
+                        ["list_element"],
+                        _wildcard_search_function(value, Identifier("list_element")),
+                    ),
                     Column(self.query_alias or self.attribute_name),
                 ],
             ),
