@@ -1117,15 +1117,23 @@ class GetFunctionForTokenTest(unittest.TestCase):
         token = self.get_token("lookedup")
         assert get_function_for_token(frame, token) == "lookedup"
 
-    def test_useless_name(self):
-        frame = {"function": "original"}
-        token = self.get_token("__webpack_require__")
-        assert get_function_for_token(frame, token) == "original"
-
-    def test_useless_name_but_no_original(self):
+    def test_fallback_to_previous_frames_token_if_useless_name(self):
+        previous_frame = {"data": {"token": self.get_token("previous_fn")}}
         frame = {"function": None}
         token = self.get_token("__webpack_require__")
-        assert get_function_for_token(frame, token) == "__webpack_require__"
+        assert get_function_for_token(frame, token, previous_frame) == "previous_fn"
+
+    def test_fallback_to_useless_name(self):
+        previous_frame = {"data": {"token": None}}
+        frame = {"function": None}
+        token = self.get_token("__webpack_require__")
+        assert get_function_for_token(frame, token, previous_frame) == "__webpack_require__"
+
+    def test_fallback_to_original_name(self):
+        previous_frame = {"data": {"token": None}}
+        frame = {"function": "original"}
+        token = self.get_token("__webpack_require__")
+        assert get_function_for_token(frame, token, previous_frame) == "original"
 
 
 class FetchSourcemapTest(TestCase):
