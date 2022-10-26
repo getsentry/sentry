@@ -71,6 +71,7 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
       excludedTags={EXCLUDED_TAGS}
       maxMenuHeight={500}
       supportedTags={getSupportedTags(tags)}
+      organization={organization}
       {...props}
     />
   );
