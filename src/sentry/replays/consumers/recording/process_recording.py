@@ -235,13 +235,11 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
                 message_dict = msgpack.unpackb(message.payload.value)
 
                 if message_dict["type"] == "replay_recording_chunk":
-                    sentry_sdk.set_extra("replay_id", message_dict["replay_id"])
                     with sentry_sdk.start_span(op="replay_recording_chunk"):
                         self._process_chunk(
                             cast(RecordingSegmentChunkMessage, message_dict), message
                         )
                 if message_dict["type"] == "replay_recording":
-                    sentry_sdk.set_extra("replay_id", message_dict["replay_id"])
                     with sentry_sdk.start_span(op="replay_recording"):
                         self._process_recording(
                             cast(RecordingSegmentMessage, message_dict), message
