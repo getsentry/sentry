@@ -75,12 +75,12 @@ function SearchBar(props: SearchBarProps) {
   const handleKeyDown = (event: React.KeyboardEvent) => {
     const {key} = event;
 
-    if (key === 'Escape' && isDropdownOpen) {
-      closeDropdown();
+    if (loading) {
       return;
     }
 
-    if (loading) {
+    if (key === 'Escape' && isDropdownOpen) {
+      closeDropdown();
       return;
     }
 
@@ -89,39 +89,43 @@ function SearchBar(props: SearchBarProps) {
       isDropdownOpen &&
       transactionCount > 0
     ) {
-      const currentItem = searchResults[0].children[highlightedItemIndex];
-      const nextItemIndex =
+      const currentHighlightedItem = searchResults[0].children[highlightedItemIndex];
+      const nextHighlightedItemIndex =
         (highlightedItemIndex + transactionCount + (key === 'ArrowUp' ? -1 : 1)) %
         transactionCount;
-      setHighlightedItemIndex(nextItemIndex);
-      const nextItem = searchResults[0].children[nextItemIndex];
+      setHighlightedItemIndex(nextHighlightedItemIndex);
+      const nextHighlightedItem = searchResults[0].children[nextHighlightedItemIndex];
 
       let newSearchResults = searchResults;
-      if (currentItem) {
+      if (currentHighlightedItem) {
         newSearchResults = getSearchGroupWithItemMarkedActive(
           searchResults,
-          currentItem,
+          currentHighlightedItem,
           false
         );
       }
 
-      newSearchResults = getSearchGroupWithItemMarkedActive(
-        newSearchResults,
-        nextItem,
-        true
-      );
+      if (nextHighlightedItem) {
+        newSearchResults = getSearchGroupWithItemMarkedActive(
+          newSearchResults,
+          nextHighlightedItem,
+          true
+        );
+      }
 
       setSearchResults(newSearchResults);
       return;
     }
 
     if (key === 'Enter') {
+      event.preventDefault();
       const currentItem = searchResults[0].children[highlightedItemIndex];
       if (!currentItem?.value) {
         return;
       }
 
       handleSearch(currentItem.value);
+      return;
     }
   };
 
