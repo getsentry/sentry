@@ -344,6 +344,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 device_family="Macintosh",
                 device_model="10",
                 tags={"a": "m", "b": "q", "c": "test"},
+                urls=["example.com"],
             )
         )
         self.store_replays(
@@ -404,6 +405,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "a:[n,o]",
                 "c:*st",
                 "!c:*zz",
+                "urls:example.com",
             ]
 
             for query in queries:

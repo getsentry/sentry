@@ -201,7 +201,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
                     blame.get("commit", {}).get("committedDate"), "%Y-%m-%dT%H:%M:%SZ"
                 ),
             )
-        except IndexError:
+        except (ValueError, IndexError):
             return None
 
         commitInfo = commit.get("commit")
@@ -321,15 +321,17 @@ class GitHubInstallationRedirect(PipelineView):
             pipeline.bind_state("reinstall_id", request.GET["reinstall_id"])
 
         if "installation_id" in request.GET:
-            organization = self.get_active_organization(request)
+            self.determine_active_organization(request)
 
-            # We want to wait until the scheduled deletions finish or else the
-            # post install to migrate repos do not work.
-            integration_pending_deletion_exists = OrganizationIntegration.objects.filter(
-                integration__provider=GitHubIntegrationProvider.key,
-                organization=organization,
-                status=ObjectStatus.PENDING_DELETION,
-            ).exists()
+            integration_pending_deletion_exists = False
+            if self.active_organization:
+                # We want to wait until the scheduled deletions finish or else the
+                # post install to migrate repos do not work.
+                integration_pending_deletion_exists = OrganizationIntegration.objects.filter(
+                    integration__provider=GitHubIntegrationProvider.key,
+                    organization_id=self.active_organization.id,
+                    status=ObjectStatus.PENDING_DELETION,
+                ).exists()
 
             if integration_pending_deletion_exists:
                 return render_to_response(

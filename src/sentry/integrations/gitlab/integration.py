@@ -162,7 +162,7 @@ class GitlabIntegration(
                     blame.get("commit", {}).get("committed_date"), "%Y-%m-%dT%H:%M:%S.%fZ"
                 ),
             )
-        except IndexError:
+        except (ValueError, IndexError):
             return None
 
         commitInfo = commit.get("commit")
