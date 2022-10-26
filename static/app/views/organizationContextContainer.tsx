@@ -202,9 +202,12 @@ class OrganizationContextContainer extends Component<Props, State> {
   }
 
   fetchData(isInitialFetch = false) {
-    if (!OrganizationContextContainer.getOrganizationSlug(this.props)) {
+    const orgSlug = OrganizationContextContainer.getOrganizationSlug(this.props);
+
+    if (!orgSlug) {
       return;
     }
+
     // fetch from the store, then fetch from the API if necessary
     if (OrganizationContextContainer.isOrgStorePopulatedCorrectly(this.props)) {
       return;
@@ -213,7 +216,7 @@ class OrganizationContextContainer extends Component<Props, State> {
     metric.mark({name: 'organization-details-fetch-start'});
     fetchOrganizationDetails(
       this.props.api,
-      OrganizationContextContainer.getOrganizationSlug(this.props),
+      orgSlug,
       !OrganizationContextContainer.isOrgChanging(this.props), // if true, will preserve a lightweight org that was fetched,
       isInitialFetch
     );
@@ -291,7 +294,7 @@ class OrganizationContextContainer extends Component<Props, State> {
         return this.renderBody();
       case ORGANIZATION_FETCH_ERROR_TYPES.ORG_NOT_FOUND:
         errorComponent = (
-          <Alert type="error">
+          <Alert type="error" data-test-id="org-loading-error">
             {t('The organization you were looking for was not found.')}
           </Alert>
         );
