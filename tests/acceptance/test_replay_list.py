@@ -1,8 +1,8 @@
 from datetime import datetime, timedelta
 from uuid import uuid4
 
-from sentry.replays.testutils import mock_replay
 from sentry.testutils import ReplaysAcceptanceTestCase
+from sentry.testutils.helpers.testutils import mock_replay
 
 FEATURE_NAME = ["organizations:session-replay", "organizations:session-replay-ui"]
 

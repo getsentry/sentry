@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 """Dynamic query parsing library."""
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union, cast
 
 from rest_framework.exceptions import ParseError
 from snuba_sdk import Column, Condition, Function, Identifier, Lambda, Op
@@ -22,6 +24,9 @@ OPERATOR_MAP = {
 
 
 class Field:
+    _python_type: type | None
+    _operators: list[Op]
+
     def __init__(
         self,
         name: Optional[str] = None,
@@ -29,8 +34,8 @@ class Field:
         query_alias: Optional[str] = None,
         is_filterable: bool = True,
         is_sortable: bool = True,
-        operators: Optional[list] = None,
-        validators: Optional[list] = None,
+        operators: Optional[list[Op]] = None,
+        validators: Optional[list[Any]] = None,
     ) -> None:
         self.attribute_name = None
         self.field_alias = field_alias or name
@@ -49,7 +54,9 @@ class Field:
         else:
             return op, []
 
-    def deserialize_values(self, values: List[str]) -> Tuple[List[Any], List[str]]:
+    def deserialize_values(
+        self, values: List[str]
+    ) -> Tuple[List[Any], List[str]] | Tuple[None, List[str]]:
         parsed_values = []
         for value in values:
             parsed_value, errors = self.deserialize_value(value)
@@ -58,7 +65,7 @@ class Field:
 
             parsed_values.append(parsed_value)
 
-        return parsed_values, []
+        return parsed_values, []  # type:ignore
 
     def deserialize_value(self, value: Union[List[str], str]) -> Tuple[Any, List[str]]:
         if isinstance(value, list):
@@ -84,7 +91,7 @@ class Field:
         field_alias: str,
         operator: Op,
         value: Union[List[str], str],
-        is_wildcard: bool = False,
+        is_wildcard: bool,
     ) -> Condition:
 
         return Condition(Column(self.query_alias or self.attribute_name), operator, value)
@@ -99,7 +106,7 @@ class String(Field):
     ) -> Condition:
         if is_wildcard:
             return _wildcard_search_condition(
-                value, self.query_alias or self.attribute_name, operator
+                cast(str, value), cast(str, self.query_alias or self.attribute_name), operator
             )
         return super().as_condition(field_alias, operator, value, is_wildcard)
 
@@ -157,7 +164,7 @@ class Tag(Field):
     _negation_map = [False, True, False, True]
     _python_type = str
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         kwargs.pop("operators", None)
         return super().__init__(**kwargs)
 
@@ -187,15 +194,15 @@ class Tag(Field):
 
 class QueryConfig:
     def __init__(self, only: Optional[Tuple[str]] = None) -> None:
-        self.fields = {}
+        self.fields: dict[str, Field] = {}
         for field_name in only or self.__class__.__dict__:
             field = getattr(self, field_name)
             if isinstance(field, Field):
-                field.attribute_name = field_name
+                field.attribute_name = field_name  # type: ignore
                 self.insert(field_name, field)
                 self.insert(field.field_alias, field)
 
-    def get(self, field_name: str, default=None) -> Field:
+    def get(self, field_name: str, default: Field | None = None) -> Field | None:
         return self.fields.get(field_name, default)
 
     def insert(self, field_name: Optional[str], value: Field) -> None:
@@ -276,7 +283,7 @@ def attempt_compressed_condition(
     result: List[Expression],
     condition: Condition,
     condition_type: Union[And, Or],
-):
+) -> None:
     """Unnecessary query optimization.
 
     Improves legibility for query debugging. Clickhouse would flatten these nested OR statements
@@ -363,7 +370,7 @@ def _bitmask_on_tag_key(key: str) -> Function:
     )
 
 
-def _wildcard_search_condition(value, query_alias, operator):
+def _wildcard_search_condition(value: str, query_alias: str, operator: Op) -> Condition:
     # XXX: We don't want the '^$' values at the beginning and end of
     # the regex since we want to find the pattern anywhere in the
     # message. Strip off here

@@ -3,9 +3,13 @@ import uuid
 
 from django.urls import reverse
 
-from sentry.replays.testutils import assert_expected_response, mock_expected_response, mock_replay
 from sentry.testutils import APITestCase, ReplaysSnubaTestCase
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
+from sentry.testutils.helpers.testutils import (
+    assert_expected_response,
+    mock_expected_response,
+    mock_replay,
+)
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.cursors import Cursor
 

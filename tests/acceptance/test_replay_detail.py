@@ -1,7 +1,8 @@
 from datetime import datetime, timedelta
 from uuid import uuid4
 
-from sentry.replays.testutils import (
+from sentry.testutils import ReplaysAcceptanceTestCase
+from sentry.testutils.helpers.testutils import (
     mock_replay,
     mock_rrweb_div_helloworld,
     mock_segment_console,
@@ -9,7 +10,6 @@ from sentry.replays.testutils import (
     mock_segment_init,
     mock_segment_nagivation,
 )
-from sentry.testutils import ReplaysAcceptanceTestCase
 
 FEATURE_NAME = ["organizations:session-replay", "organizations:session-replay-ui"]
 

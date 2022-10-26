@@ -13,7 +13,7 @@ from sentry.replays.query import query_replay_instance
 from sentry.replays.tasks import delete_recording_segments
 
 
-class ReplayDetailsPermission(ProjectPermission):
+class ReplayDetailsPermission(ProjectPermission):  # type:ignore
     scope_map = {
         "GET": ["project:read", "project:write", "project:admin"],
         "POST": ["project:write", "project:admin"],
@@ -23,7 +23,7 @@ class ReplayDetailsPermission(ProjectPermission):
 
 
 @region_silo_endpoint
-class ProjectReplayDetailsEndpoint(ProjectEndpoint):
+class ProjectReplayDetailsEndpoint(ProjectEndpoint):  # type:ignore
     private = True
     permission_classes = (ReplayDetailsPermission,)
 

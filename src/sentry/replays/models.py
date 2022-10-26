@@ -1,4 +1,5 @@
 import mimetypes
+from typing import Any
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
@@ -10,7 +11,7 @@ from sentry.db.models.fields.bounded import BoundedIntegerField
 
 
 # Based heavily on EventAttachment
-class ReplayRecordingSegment(Model):
+class ReplayRecordingSegment(Model):  # type:ignore
     __include_in_export__ = False
 
     project_id = BoundedBigIntegerField()
@@ -30,8 +31,8 @@ class ReplayRecordingSegment(Model):
 
     __repr__ = sane_repr("replay_id", "segment_id", "file_id")
 
-    @cached_property
-    def mimetype(self):
+    @cached_property  # type:ignore
+    def mimetype(self) -> Any:
         from sentry.models import File
 
         file = File.objects.get(id=self.file_id)
@@ -40,7 +41,7 @@ class ReplayRecordingSegment(Model):
             return rv.split(";")[0].strip()
         return mimetypes.guess_type(self.name)[0] or "application/octet-stream"
 
-    def delete(self, *args, **kwargs):
+    def delete(self, *args: Any, **kwargs: Any) -> Any:
         from sentry.models import File
 
         try:

@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import time
 import uuid
-from typing import Optional
+from typing import Any, Optional
 
 from django.conf import settings
 
@@ -17,8 +19,8 @@ replay_publisher: Optional[KafkaPublisher] = None
     queue="replays.delete_replay",
     default_retry_delay=5,
     max_retries=5,
-)
-def delete_recording_segments(project_id: int, replay_id: str, **kwargs: dict) -> None:
+)  # type:ignore
+def delete_recording_segments(project_id: int, replay_id: str, **kwargs: dict[str, Any]) -> None:
     """Asynchronously delete a replay."""
     _archive_replay(project_id, replay_id)
     _delete_replay_recording(project_id, replay_id)
@@ -35,7 +37,7 @@ def _delete_replay_recording(project_id: int, replay_id: str) -> None:
 
 def _archive_replay(project_id: int, replay_id: str) -> None:
     """Archive a Replay instance. The Replay is not deleted."""
-    replay_payload = {
+    replay_payload: dict[str, Any] = {
         "type": "replay_event",
         "replay_id": replay_id,
         "event_id": uuid.uuid4().hex,

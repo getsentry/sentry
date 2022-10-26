@@ -1,5 +1,5 @@
 import collections
-from typing import Any, Dict, Generator, List, Optional, Sequence, Tuple
+from typing import Any, DefaultDict, Dict, Generator, Iterable, List, Optional, Sequence, Tuple
 
 
 def process_raw_response(response: List[Dict[str, Any]], fields: List[str]) -> List[Dict[str, Any]]:
@@ -9,8 +9,8 @@ def process_raw_response(response: List[Dict[str, Any]], fields: List[str]) -> L
 
 def generate_restricted_fieldset(
     fields: Optional[List[str]],
-    response: List[Dict[str, Any]],
-) -> Generator[None, None, Dict[str, Any]]:
+    response: Iterable[Dict[str, Any]],
+) -> Generator[Dict[str, Any], None, None]:
     """Return only the fields requested by the client."""
     if fields:
         for item in response:
@@ -21,7 +21,7 @@ def generate_restricted_fieldset(
 
 def generate_normalized_output(
     response: List[Dict[str, Any]]
-) -> Generator[None, None, Dict[str, Any]]:
+) -> Generator[Dict[str, Any], None, None]:
     """For each payload in the response strip "agg_" prefixes."""
     for item in response:
         item["id"] = item.pop("replay_id")
@@ -58,13 +58,13 @@ def generate_normalized_output(
         yield item
 
 
-def generate_sorted_urls(url_groups: List[Tuple[int, List[str]]]) -> Generator[None, None, str]:
+def generate_sorted_urls(url_groups: List[Tuple[int, List[str]]]) -> Generator[str, None, None]:
     """Return a flat list of ordered urls."""
     for _, url_group in sorted(url_groups, key=lambda item: item[0]):
         yield from url_group
 
 
-def dict_unique_list(items: Sequence[Tuple[str, str]]) -> Dict[str, List[str]]:
+def dict_unique_list(items: Sequence[Tuple[str, str]]) -> DefaultDict[str, List[str]]:
     """Populate a dictionary with the first key, value pair seen.
 
     There is a potential for duplicate keys to exist in the result set.  When we filter these keys

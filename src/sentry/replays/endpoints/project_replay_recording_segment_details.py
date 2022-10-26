@@ -7,15 +7,16 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import File
+from sentry.models.project import Project
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.replays.serializers import ReplayRecordingSegmentSerializer
 
 
 @region_silo_endpoint
-class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectEndpoint):
+class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectEndpoint):  # type:ignore
     private = True
 
-    def get(self, request: Request, project, replay_id, segment_id) -> Response:
+    def get(self, request: Request, project: Project, replay_id: str, segment_id: int) -> Response:
         if not features.has(
             "organizations:session-replay", project.organization, actor=request.user
         ):

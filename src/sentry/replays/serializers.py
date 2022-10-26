@@ -1,11 +1,18 @@
+from __future__ import annotations
+
+from typing import Any
+
 from rest_framework import serializers
 
 from sentry.api.serializers import Serializer
+from sentry.models.user import User
 from sentry.replays.models import ReplayRecordingSegment
 
 
-class ReplayRecordingSegmentSerializer(Serializer):
-    def serialize(self, obj: ReplayRecordingSegment, attrs, user):
+class ReplayRecordingSegmentSerializer(Serializer):  # type:ignore
+    def serialize(
+        self, obj: ReplayRecordingSegment, attrs: dict[str, Any], user: User
+    ) -> dict[str, Any]:
         return {
             "replayId": obj.replay_id,
             "segmentId": obj.segment_id,

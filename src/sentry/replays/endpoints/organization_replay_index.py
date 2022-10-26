@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Any
+
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -15,10 +19,10 @@ from sentry.replays.serializers import ReplaySerializer
 
 
 @region_silo_endpoint
-class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
+class OrganizationReplayIndexEndpoint(OrganizationEndpoint):  # type:ignore
     private = True
 
-    def get_replay_filter_params(self, request, organization):
+    def get_replay_filter_params(self, request: Request, organization: Organization) -> Any:
         filter_params = self.get_filter_params(request, organization)
 
         has_global_views = features.has(
@@ -45,7 +49,7 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
             if key not in filter_params:
                 filter_params[key] = value
 
-        def data_fn(offset, limit):
+        def data_fn(offset: str | None, limit: str | None) -> dict[str, Any]:
             try:
                 search_filters = parse_search_query(
                     request.query_params.get("query", ""), config=replay_url_parser_config

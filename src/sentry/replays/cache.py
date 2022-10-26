@@ -1,5 +1,5 @@
 """Recording segment part cache manager."""
-from typing import Generator
+from typing import Any, Generator, cast
 
 from sentry.cache import default_cache
 from sentry.utils import metrics
@@ -17,10 +17,10 @@ class RecordingSegmentPart:
         if result is None:
             raise ValueError(f"Missing data for chunk with id {self.__key(index)}.")
         else:
-            return result
+            return cast(bytes, result)
 
     @metrics.wraps("replays.cache.set_recording_segment")
-    def __setitem__(self, index: int, value: bytes) -> None:
+    def __setitem__(self, index: int, value: bytes) -> Any:
         return default_cache.set(self.__key(index), value, timeout=TIMEOUT, raw=True)
 
     @metrics.wraps("replays.cache.del_recording_segment")
@@ -43,7 +43,7 @@ class RecordingSegmentParts:
         for i in range(self.num_parts):
             yield part[i]
 
-    def drop(self):
+    def drop(self) -> None:
         """Delete all the parts associated with the recording segment."""
         part = RecordingSegmentPart(self.prefix)
         for i in range(self.num_parts):

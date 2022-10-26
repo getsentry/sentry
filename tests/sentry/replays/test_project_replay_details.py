@@ -6,9 +6,13 @@ from django.urls import reverse
 
 from sentry.models import File
 from sentry.replays.models import ReplayRecordingSegment
-from sentry.replays.testutils import assert_expected_response, mock_expected_response, mock_replay
 from sentry.testutils import APITestCase, ReplaysSnubaTestCase
 from sentry.testutils.helpers import TaskRunner
+from sentry.testutils.helpers.testutils import (
+    assert_expected_response,
+    mock_expected_response,
+    mock_replay,
+)
 from sentry.testutils.silo import region_silo_test
 
 REPLAYS_FEATURES = {"organizations:session-replay": True}
