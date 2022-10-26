@@ -1,5 +1,7 @@
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
+import {fetchOrganizationEnvironments} from 'sentry/actionCreators/environments';
+import {Client} from 'sentry/api';
 import OrganizationEnvironmentsStore from 'sentry/stores/organizationEnvironmentsStore';
 import GroupEventDetailsContainer, {
   GroupEventDetailsProps,
@@ -41,6 +43,7 @@ describe('groupEventDetailsContainer', () => {
       body: TestStubs.Environments(),
     });
 
+    fetchOrganizationEnvironments(new Client(), organization.slug);
     render(<GroupEventDetailsContainer {...makeProps({organization})} />);
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -53,6 +56,7 @@ describe('groupEventDetailsContainer', () => {
       statusCode: 400,
     });
 
+    fetchOrganizationEnvironments(new Client(), organization.slug);
     render(<GroupEventDetailsContainer {...makeProps({organization})} />);
 
     expect(
@@ -68,6 +72,7 @@ describe('groupEventDetailsContainer', () => {
       url: `/organizations/${organization.slug}/environments/`,
       body: null,
     });
+    fetchOrganizationEnvironments(new Client(), organization.slug);
     render(<GroupEventDetailsContainer {...makeProps({organization})} />);
 
     expect(
@@ -88,6 +93,7 @@ describe('groupEventDetailsContainer', () => {
       url: `/organizations/${organization.slug}/environments/`,
       body: TestStubs.Environments(),
     });
+    fetchOrganizationEnvironments(new Client(), organization.slug);
     const {unmount} = render(
       <GroupEventDetailsContainer {...makeProps({organization})} />
     );
