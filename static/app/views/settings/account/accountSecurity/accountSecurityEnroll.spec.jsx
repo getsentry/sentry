@@ -40,7 +40,9 @@ describe('AccountSecurityEnroll', function () {
     it('does not have enrolled circle indicator', function () {
       render(<AccountSecurityEnroll />, {context: routerContext});
 
-      expect(screen.getByRole('status')).toHaveAttribute('data-is-active', 'false');
+      expect(
+        screen.getByRole('status', {name: 'Authentication Method Inactive'})
+      ).toBeInTheDocument();
     });
 
     it('has qrcode component', function () {
