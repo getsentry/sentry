@@ -25,7 +25,7 @@ class BaseSiloClient(BaseApiClient):
 
     def create_base_url(self, address: str) -> str:
         # We're intentionally not exposing API Versioning as an interface just yet
-        # This may be revisited once more of deployment drift in Hybrid Cloud is pinned down.
+        # This may be revisited once deployment drift prevention in Hybrid Cloud is pinned down.
         api_prefix = "/api/0"
         return f"{address}{api_prefix}"
 
