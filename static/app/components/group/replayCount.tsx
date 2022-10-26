@@ -28,24 +28,24 @@ function ReplayCount({orgId, groupId}: Props) {
 
   return (
     <DiscoverQuery eventView={eventView} orgSlug={orgId} location={location} useEvents>
-      {({isLoading, tableData}) =>
-        isLoading ? (
-          <Placeholder width="36px" height="14px" />
-        ) : (
-          <ReplayCountContainer>
-            <IconPlay size="xs" />
-            {getReplayCount(tableData)}
-          </ReplayCountContainer>
-        )
-      }
-    </DiscoverQuery>
-  );
-}
+      {({isLoading, tableData}) => {
+        if (isLoading) {
+          return <Placeholder width="36px" height="14px" />;
+        }
 
-function getReplayCount(tableData: TableData | null) {
-  return tableData?.data.reduce(
-    (acc, item) => (typeof item['count()'] === 'number' ? item['count()'] + acc : acc),
-    0
+        const replayCount = tableData?.data?.length ?? 0;
+        if (replayCount > 0) {
+          return (
+            <ReplayCountContainer data-test-id="replay-count">
+              <IconPlay size="xs" />
+              {replayCount}
+            </ReplayCountContainer>
+          );
+        }
+
+        return null;
+      }}
+    </DiscoverQuery>
   );
 }
 
