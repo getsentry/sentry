@@ -48,6 +48,21 @@ function SearchBar(props: SearchBarProps) {
     return `${prependedChar}${query}${appendedChar}`;
   };
 
+  const handleSearchChange = query => {
+    setSearchString(query);
+
+    if (query.length === 0) {
+      onSearch('');
+    }
+
+    if (query.length < 3) {
+      setSearchResults([]);
+      return;
+    }
+
+    getSuggestedTransactions(query);
+  };
+
   // `debounce` in functional components has to be wrapped in `useCallback`
   // because otherwise the debounce is recreated on every render and becomes
   // pointless. The exhaustive deps check is mad because it's not getting an
@@ -58,17 +73,6 @@ function SearchBar(props: SearchBarProps) {
   const getSuggestedTransactions = useCallback(
     debounce(
       async query => {
-        if (query.length === 0) {
-          onSearch('');
-        }
-
-        if (query.length < 3) {
-          setSearchResults([]);
-          return;
-        }
-
-        setSearchString(query);
-
         try {
           setLoading(true);
           const conditions = new MutableSearch('');
@@ -118,7 +122,7 @@ function SearchBar(props: SearchBarProps) {
       DEFAULT_DEBOUNCE_DURATION,
       {leading: true}
     ),
-    [api, url, eventView.statsPeriod, onSearch, projectIdStrings.join(',')]
+    [api, url, eventView.statsPeriod, projectIdStrings.join(',')]
   );
 
   const handleSearch = (query: string) => {
@@ -149,7 +153,7 @@ function SearchBar(props: SearchBarProps) {
     <Container data-test-id="transaction-search-bar">
       <BaseSearchBar
         placeholder={t('Search Transactions')}
-        onChange={getSuggestedTransactions}
+        onChange={handleSearchChange}
         query={searchString}
       />
       <SearchDropdown
