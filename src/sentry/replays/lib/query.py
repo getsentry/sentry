@@ -211,7 +211,9 @@ class Tag(Field):
             Function(
                 "arrayExists",
                 parameters=[
-                    Lambda(["x"], _wildcard_search_function(value, Identifier("x"))),
+                    Lambda(
+                        ["tag_value"], _wildcard_search_function(value, Identifier("tag_value"))
+                    ),
                     _all_values_for_tag_key(field_alias),
                 ],
             ),
@@ -223,11 +225,8 @@ class Tag(Field):
         self, key: str, values: Union[List[str], str], operator: Op
     ) -> Condition:
         """Helper function that allows filtering a tag by multiple values."""
-
         expected = 0 if operator not in (Op.EQ, Op.IN) else 1
-
         function = "hasAny" if isinstance(values, list) else "has"
-
         return Condition(
             Function(function, parameters=[_all_values_for_tag_key(key), values]),
             Op.EQ,

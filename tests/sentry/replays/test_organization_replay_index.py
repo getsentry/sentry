@@ -432,6 +432,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "!releases:*3",
                 "releases:[a,b]",
                 "c:*zz",
+                "!c:*st",
             ]
             for query in null_queries:
                 response = self.client.get(self.url + f"?query={query}")
