@@ -41,9 +41,10 @@ class BaseSiloClient(BaseApiClient):
     def request(self, *args, **kwargs):
         # TODO: Establish a scheme to authorize requests across silos
         # (e.g. signing secrets, JWTs)
-        super().request(*args, kwargs)
+        response = super()._request(*args, kwargs)
         # TODO: Establish a scheme to check/log the Sentry Version of the requestor and server
         # optionally raising an error to alert developers of version drift
+        return response
 
 
 class RegionSiloClient(BaseSiloClient):
