@@ -247,7 +247,6 @@ class OrganizationEventsMetricsSums(MetricsEnhancedPerformanceTestCase):
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
-        # project 4 shouldn't show up in these sums
         assert response.data["sum"]["metrics"] == 4
         assert response.data["sum"]["metrics_unparam"] == 1
         assert response.data["sum"]["metrics_null"] == 1
