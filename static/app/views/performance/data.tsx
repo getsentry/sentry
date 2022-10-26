@@ -471,8 +471,8 @@ function generateGenericPerformanceEventView(
     conditions.freeText = [];
   }
   if (isLimitedSearch) {
-    conditions.tokens = conditions.tokens.filter(token =>
-      TOKEN_KEYS_SUPPORTED_IN_LIMITED_SEARCH.includes(token.key || '')
+    conditions.tokens = conditions.tokens.filter(
+      token => token.key && TOKEN_KEYS_SUPPORTED_IN_LIMITED_SEARCH.includes(token.key)
     );
   }
   savedQuery.query = conditions.formatString();
