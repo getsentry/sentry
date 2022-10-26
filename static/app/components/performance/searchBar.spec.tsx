@@ -99,4 +99,20 @@ describe('SearchBar', () => {
     expect(screen.getByText(textWithMarkupMatcher('clients.call'))).toBeInTheDocument();
     expect(screen.getByText(textWithMarkupMatcher('clients.fetch'))).toBeInTheDocument();
   });
+
+  it('Responds to keyboard navigation', async () => {
+    render(<SearchBar {...testProps} />);
+
+    userEvent.type(screen.getByRole('textbox'), 'proje');
+    expect(screen.getByTestId('smart-search-dropdown')).toBeInTheDocument();
+
+    act(() => {
+      jest.runAllTimers();
+    });
+
+    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+
+    userEvent.keyboard('{Escape}');
+    expect(screen.queryByTestId('smart-search-dropdown')).not.toBeInTheDocument();
+  });
 });

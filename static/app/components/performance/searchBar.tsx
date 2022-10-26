@@ -69,6 +69,14 @@ function SearchBar(props: SearchBarProps) {
     getSuggestedTransactions(query);
   };
 
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    const {key} = event;
+
+    if (key === 'Escape') {
+      closeDropdown();
+    }
+  };
+
   // `debounce` in functional components has to be wrapped in `useCallback`
   // because otherwise the debounce is recreated on every render and becomes
   // pointless. The exhaustive deps check is mad because it's not getting an
@@ -160,6 +168,7 @@ function SearchBar(props: SearchBarProps) {
       <BaseSearchBar
         placeholder={t('Search Transactions')}
         onChange={handleSearchChange}
+        onKeyDown={handleKeyDown}
         query={searchString}
       />
       {isDropdownOpen && (
