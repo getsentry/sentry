@@ -240,6 +240,7 @@ def get_commits(project: Project, event: Event) -> Sequence[Mapping[str, Any]]:
                     commit_data["subject"] = commit_data["message"].split("\n", 1)[0]
                     commits[commit["id"]] = commit_data
 
+    # TODO(nisanthan): Once Commit Context is GA, no need to sort by "score"
     return sorted(commits.values(), key=lambda x: float(x["score"]), reverse=True)
 
 
