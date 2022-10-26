@@ -112,20 +112,6 @@ class TestIdentfiyStacktracePaths(TestCase):
         self.store_event(data=nonpython_event, project_id=self.project.id)
 
         with self.tasks():
-            stacktrace_paths = identify_stacktrace_paths(self.organization)
-        assert self.project in stacktrace_paths
-        assert sorted(stacktrace_paths[self.project]) == [
-            "sentry/models/release.py",
-            "sentry/tasks.py",
-        ]
-
-    def test_skips_nonpython_projects(self):
-        self.store_event(self.test_data_1, project_id=self.project.id)
-        nonpython_event = deepcopy(self.test_data_2)
-        nonpython_event["platform"] = "javascript"
-        self.store_event(data=nonpython_event, project_id=self.project.id)
-
-        with self.tasks():
             mapping = identify_stacktrace_paths([self.organization])
         assert self.organization.slug in mapping
         stacktrace_paths = mapping[self.organization.slug]
