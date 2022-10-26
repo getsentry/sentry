@@ -8,8 +8,6 @@ from sentry.shared_integrations.client.base import BaseApiClient
 from sentry.silo.base import SiloMode
 from sentry.types.region import get_region_by_name
 
-DEFAULT_API_VERSION = "0"
-
 
 class SiloClientError(Exception):
     """Indicates an error in processing a cross-silo HTTP request"""
