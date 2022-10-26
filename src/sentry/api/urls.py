@@ -253,7 +253,6 @@ from .endpoints.organization_events_has_measurements import (
 from .endpoints.organization_events_histogram import OrganizationEventsHistogramEndpoint
 from .endpoints.organization_events_meta import (
     OrganizationEventsMetaEndpoint,
-    OrganizationEventsMetricsCompatiblity,
     OrganizationEventsRelatedIssuesEndpoint,
 )
 from .endpoints.organization_events_span_ops import OrganizationEventsSpanOpsEndpoint
@@ -1164,11 +1163,6 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/events-meta/$",
                     OrganizationEventsMetaEndpoint.as_view(),
                     name="sentry-api-0-organization-events-meta",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/events-metrics-compatibility/$",
-                    OrganizationEventsMetricsCompatiblity.as_view(),
-                    name="sentry-api-0-organization-events-metrics-compatibility",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/metrics-compatibility/$",

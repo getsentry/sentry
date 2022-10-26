@@ -241,14 +241,13 @@ class OrganizationEventsMetricsSums(MetricsEnhancedPerformanceTestCase):
             project_id=self.project.id,
         )
         url = reverse(
-            "sentry-api-0-organization-events-metrics-compatibility",
+            "sentry-api-0-organization-metrics-compatibility-sums",
             kwargs={"organization_slug": self.project.organization.slug},
         )
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
-        # project 4 shouldn't show up in these sums
-        assert response.data["sum"]["metrics"] == 3
+        assert response.data["sum"]["metrics"] == 4
         assert response.data["sum"]["metrics_unparam"] == 1
         assert response.data["sum"]["metrics_null"] == 1
 
@@ -266,14 +265,12 @@ class OrganizationEventsMetricsSums(MetricsEnhancedPerformanceTestCase):
             self.store_transaction_metric(1, tags={"transaction": "/foo"}, timestamp=self.min_ago)
 
         url = reverse(
-            "sentry-api-0-organization-events-metrics-compatibility",
+            "sentry-api-0-organization-metrics-compatibility-sums",
             kwargs={"organization_slug": self.project.organization.slug},
         )
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
-        assert response.data["compatible_projects"] == []
-        assert response.data["dynamic_sampling_projects"] == [self.project.id]
         assert response.data["sum"]["metrics"] == 6
         assert response.data["sum"]["metrics_unparam"] == 2
         assert response.data["sum"]["metrics_null"] == 3

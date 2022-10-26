@@ -65,19 +65,6 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
             referrer=referrer,
         )["data"]
 
-    def transform_discover_data(self, data, builder):
-        transformed_data = []
-        for row in data:
-            transformed_data.append(
-                {
-                    key: builder.value_resolver_map[key](value)
-                    if key in builder.value_resolver_map
-                    else value
-                    for key, value in row.items()
-                }
-            )
-        return transformed_data
-
     def __project_stats_query(self, query, projects_in_org, org_id, query_time_range, trace_ids):
         """
         Smart query to get:
@@ -127,8 +114,8 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
         data = raw_snql_query(
             SnubaRequest(dataset=Dataset.Discover.value, app_id="default", query=snuba_query),
             referrer=Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECT_STATS.value,
-        )["data"]
-        return self.transform_discover_data(data, builder)
+        )
+        return builder.process_results(data)["data"]
 
     def __get_transactions_count(self, project, query, sample_size, query_time_range):
         # Run query that gets total count of transactions with these conditions for the specified

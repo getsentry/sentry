@@ -1,3 +1,4 @@
+import math
 from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import (
@@ -78,12 +79,14 @@ from sentry.search.events.fields import (
     SnQLArrayCombinator,
     SnQLFunction,
     get_function_alias_with_columns,
+    get_json_meta_type,
     is_function,
     parse_arguments,
     parse_combinator,
 )
 from sentry.search.events.filter import ParsedTerm, ParsedTerms
 from sentry.search.events.types import (
+    EventsResponse,
     HistogramParams,
     ParamsType,
     QueryFramework,
@@ -139,14 +142,20 @@ class QueryBuilder:
         skip_time_conditions: bool = False,
         parser_config_overrides: Optional[Mapping[str, Any]] = None,
         has_metrics: bool = False,
+        transform_alias_to_input_format: bool = False,
         use_metrics_layer: bool = False,
     ):
         self.dataset = dataset
 
         self.params = params
 
-        self.organization_id = params.get("organization_id")
+        org_id = params.get("organization_id")
+        self.organization_id: Optional[int] = (
+            org_id if org_id is not None and isinstance(org_id, int) else None
+        )
         self.has_metrics = has_metrics
+        self.transform_alias_to_input_format = transform_alias_to_input_format
+        self.raw_equations = equations
         self.use_metrics_layer = use_metrics_layer
         self.auto_fields = auto_fields
         self.functions_acl = set() if functions_acl is None else functions_acl
@@ -1360,6 +1369,69 @@ class QueryBuilder:
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
         return raw_snql_query(self.get_snql_query(), referrer, use_cache)
 
+    def process_results(self, results: Any) -> EventsResponse:
+        with sentry_sdk.start_span(op="QueryBuilder", description="process_results") as span:
+            span.set_data("result_count", len(results.get("data", [])))
+            translated_columns = {}
+            if self.transform_alias_to_input_format:
+                translated_columns = {
+                    column: function_details.field
+                    for column, function_details in self.function_alias_map.items()
+                }
+
+                self.function_alias_map = {
+                    translated_columns.get(column, column): function_details
+                    for column, function_details in self.function_alias_map.items()
+                }
+                if self.raw_equations:
+                    for index, equation in enumerate(self.raw_equations):
+                        translated_columns[f"equation[{index}]"] = f"equation|{equation}"
+
+            # process the field meta
+            field_meta: Dict[str, str] = {}
+            if "meta" in results:
+                for value in results["meta"]:
+                    name = value["name"]
+                    key = translated_columns.get(name, name)
+                    field_type = get_json_meta_type(key, value.get("type"), self)
+                    field_meta[key] = field_type
+                # Ensure all columns in the result have types.
+                if results["data"]:
+                    for key in results["data"][0]:
+                        field_key = translated_columns.get(key, key)
+                        if field_key not in field_meta:
+                            field_meta[field_key] = "string"
+
+            # process the field results
+            def get_row(row: Dict[str, Any]) -> Dict[str, Any]:
+                transformed = {}
+                for key, value in row.items():
+                    new_key = translated_columns.get(key, key)
+
+                    if isinstance(value, float):
+                        # 0 for nan, and none for inf were chosen arbitrarily, nan and inf are invalid json
+                        # so needed to pick something valid to use instead
+                        if math.isnan(value):
+                            value = 0
+                        elif math.isinf(value):
+                            value = None
+                    if new_key in self.value_resolver_map:
+                        new_value = self.value_resolver_map[new_key](value)
+                    else:
+                        new_value = value
+
+                    transformed[new_key] = new_value
+
+                return transformed
+
+            return {
+                "data": [get_row(row) for row in results["data"]],
+                "meta": {
+                    "fields": field_meta,
+                    "tips": {},
+                },
+            }
+
 
 class UnresolvedQuery(QueryBuilder):
     def __init__(
@@ -1826,10 +1898,10 @@ class MetricsQueryBuilder(QueryBuilder):
             *args,
             **kwargs,
         )
-        if "organization_id" in self.params:
-            self.organization_id = self.params["organization_id"]
-        else:
+        org_id = self.params.get("organization_id")
+        if org_id is None or not isinstance(org_id, int):
             raise InvalidSearchQuery("Organization id required to create a metrics query")
+        self.organization_id: int = org_id
 
     def validate_aggregate_arguments(self) -> None:
         if not self.use_metrics_layer:
@@ -2072,7 +2144,7 @@ class MetricsQueryBuilder(QueryBuilder):
                 use_case_id = UseCaseKey.PERFORMANCE
             else:
                 use_case_id = UseCaseKey.RELEASE_HEALTH
-            result = indexer.resolve(use_case_id, self.organization_id, value)  # type: ignore
+            result = indexer.resolve(use_case_id, self.organization_id, value)
             self._indexer_cache[value] = result
 
         return self._indexer_cache[value]
@@ -2482,6 +2554,41 @@ class MetricsQueryBuilder(QueryBuilder):
                     row[meta["name"]] = self.get_default_value(meta["type"])
 
         return result
+
+    def process_results(self, results: Any) -> EventsResponse:
+        """Go through the results of a metrics query and reverse resolve its tags"""
+        processed_results: EventsResponse = super().process_results(results)
+        tags: List[str] = []
+        cached_resolves: Dict[int, Optional[str]] = {}
+        # no-op if they're already strings
+        if self.tag_values_are_strings:
+            return processed_results
+
+        with sentry_sdk.start_span(op="mep", description="resolve_tags"):
+            for column in self.columns:
+                if (
+                    isinstance(column, AliasedExpression)
+                    and column.exp.subscriptable == "tags"
+                    and column.alias
+                ):
+                    tags.append(column.alias)
+                # transaction is a special case since we use a transform null & unparam
+                if column.alias in ["transaction", "title"]:
+                    tags.append(column.alias)
+
+            for tag in tags:
+                for row in processed_results["data"]:
+                    if isinstance(row[tag], int):
+                        if row[tag] not in cached_resolves:
+                            resolved_tag = indexer.reverse_resolve(
+                                UseCaseKey.PERFORMANCE, self.organization_id, row[tag]
+                            )
+                            cached_resolves[row[tag]] = resolved_tag
+                        row[tag] = cached_resolves[row[tag]]
+                if tag in processed_results["meta"]["fields"]:
+                    processed_results["meta"]["fields"][tag] = "string"
+
+        return processed_results
 
     @staticmethod
     def get_default_value(meta_type: str) -> Any:

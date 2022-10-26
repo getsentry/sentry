@@ -490,7 +490,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
                 trend_query.get_snql_query(),
                 referrer="api.trends.get-percentage-change",
             )
-            result = discover.transform_results(result, trend_query, {})
+            result = trend_query.process_results(result)
             return result
 
         with self.handle_query_errors():
