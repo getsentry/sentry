@@ -105,10 +105,13 @@ const SidebarItem = ({
   ...props
 }: Props) => {
   // label might be wrapped in a guideAnchor
-  let labelString = label;
-  if (isValidElement(label)) {
-    labelString = label?.props?.children ?? label;
-  }
+  const labelString =
+    typeof label === 'string'
+      ? label
+      : isValidElement(label)
+      ? (label?.props?.children as string)
+      : '';
+
   // If there is no active panel open and if path is active according to react-router
   const isActiveRouter =
     (!hasPanel && router && to && location.pathname.startsWith(to)) ||
@@ -160,6 +163,7 @@ const SidebarItem = ({
         active={isActive ? 'true' : undefined}
         to={(to ? to : href) || '#'}
         className={className}
+        aria-label={labelString}
         onClick={(event: React.MouseEvent<HTMLAnchorElement>) => {
           !(to || href) && event.preventDefault();
           recordAnalytics();
