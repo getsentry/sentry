@@ -55,7 +55,7 @@ const SettingsNavigationGroup = (props: NavigationGroupProps) => {
 
   return (
     <NavSection data-test-id={name}>
-      <SettingsHeading>{name}</SettingsHeading>
+      <SettingsHeading role="heading">{name}</SettingsHeading>
       {navLinks}
     </NavSection>
   );
