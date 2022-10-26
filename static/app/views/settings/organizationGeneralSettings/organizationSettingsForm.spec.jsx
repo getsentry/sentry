@@ -1,6 +1,7 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {saveOnBlurUndoMessage} from 'sentry/actionCreators/indicator';
+import Indicators from 'sentry/components/indicators';
 import OrganizationSettingsForm from 'sentry/views/settings/organizationGeneralSettings/organizationSettingsForm';
 
 jest.mock('sentry/actionCreators/indicator');
@@ -23,26 +24,25 @@ describe('OrganizationSettingsForm', function () {
     putMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
       method: 'PUT',
-      data: {
-        name: 'New Name',
-      },
     });
 
-    const wrapper = mountWithTheme(
+    render(
       <OrganizationSettingsForm
         location={TestStubs.location()}
         orgId={organization.slug}
-        access={new Set('org:admin')}
+        access={new Set(['org:write'])}
         initialData={TestStubs.Organization()}
         onSave={onSave}
       />
     );
 
-    const input = wrapper.find('input[name="name"]');
-    expect(input).toHaveLength(1);
+    render(<Indicators />);
 
-    input.simulate('change', {target: {value: 'New Name'}});
-    input.simulate('blur');
+    const input = screen.getByRole('textbox', {name: 'Display Name'});
+
+    userEvent.clear(input);
+    userEvent.type(input, 'New Name');
+    userEvent.tab();
 
     expect(putMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/`,
@@ -76,8 +76,11 @@ describe('OrganizationSettingsForm', function () {
         expect(model.initialData.name).toBe('Organization Name');
 
         putMock.mockReset();
+
         // Blurring the name field again should NOT trigger a save
-        input.simulate('blur');
+        userEvent.click(input);
+        userEvent.tab();
+
         expect(putMock).not.toHaveBeenCalled();
         resolve();
       });
@@ -90,24 +93,25 @@ describe('OrganizationSettingsForm', function () {
       method: 'PUT',
     });
 
-    const wrapper = mountWithTheme(
+    render(
       <OrganizationSettingsForm
         location={TestStubs.location()}
         orgId={organization.slug}
-        access={new Set('org:admin')}
+        access={new Set(['org:write'])}
         initialData={TestStubs.Organization()}
         onSave={onSave}
       />
     );
 
-    wrapper
-      .find('input[name="slug"]')
-      .simulate('change', {target: {value: 'NEW SLUG'}})
-      .simulate('blur');
+    const input = screen.getByRole('textbox', {name: 'Organization Slug'});
+
+    userEvent.clear(input);
+    userEvent.type(input, 'NEW SLUG');
+    userEvent.tab();
 
     expect(putMock).not.toHaveBeenCalled();
 
-    wrapper.find('button[aria-label="Save"]').simulate('click');
+    userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
     expect(putMock).toHaveBeenCalledWith(
       '/organizations/org-slug/',

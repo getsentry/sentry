@@ -9,6 +9,8 @@ import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import AsyncComponent from 'sentry/components/asyncComponent';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
 import Form, {FormProps} from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
@@ -142,12 +144,24 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
         {!disabled && (
           <BulkFilter>
             <BulkFilterLabel>{t('Filter')}:</BulkFilterLabel>
-            <BulkFilterItem onClick={this.handleToggleSubfilters.bind(this, true)}>
-              {t('All')}
-            </BulkFilterItem>
-            <BulkFilterItem onClick={this.handleToggleSubfilters.bind(this, false)}>
-              {t('None')}
-            </BulkFilterItem>
+            <ButtonBar gap={1}>
+              <Button
+                type="button"
+                priority="link"
+                borderless
+                onClick={this.handleToggleSubfilters.bind(this, true)}
+              >
+                {t('All')}
+              </Button>
+              <Button
+                type="button"
+                priority="link"
+                borderless
+                onClick={this.handleToggleSubfilters.bind(this, false)}
+              >
+                {t('None')}
+              </Button>
+            </ButtonBar>
           </BulkFilter>
         )}
 
@@ -162,6 +176,7 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
                   <FilterDescription>{subfilter.helpText}</FilterDescription>
                 </div>
                 <Switch
+                  aria-label={`${subfilter.title} ${subfilter.helpText}`}
                   isActive={this.state.subfilters.has(key)}
                   isDisabled={disabled}
                   css={{flexShrink: 0, marginLeft: 6}}
@@ -242,6 +257,7 @@ class ProjectFiltersSettings extends AsyncComponent<Props, State> {
       <Feature
         features={['projects:custom-inbound-filters']}
         hookName="feature-disabled:custom-inbound-filters"
+        project={this.props.project}
         renderDisabled={({children, ...props}) => {
           if (typeof children === 'function') {
             return children({...props, renderDisabled: this.renderDisabledCustomFilters});
@@ -411,22 +427,11 @@ const FilterDescription = styled('div')`
 
 const BulkFilter = styled('div')`
   display: flex;
-  justify-content: flex-end;
-  padding: 0 ${space(1.5)};
+  align-items: center;
+  gap: ${space(0.5)};
 `;
 
 const BulkFilterLabel = styled('span')`
   font-weight: bold;
   margin-right: ${space(0.75)};
-`;
-
-const BulkFilterItem = styled('a')`
-  border-right: 1px solid #f1f2f3;
-  margin-right: ${space(0.75)};
-  padding-right: ${space(0.75)};
-
-  &:last-child {
-    border-right: none;
-    margin-right: 0;
-  }
 `;

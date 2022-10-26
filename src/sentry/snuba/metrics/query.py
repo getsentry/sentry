@@ -228,7 +228,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
                 metric_entities.update(entity.keys())
             else:
                 metric_entities.add(entity)
-        # If metric entities set contanis more than 1 metric, we can't orderBy these fields
+        # If metric entities set contains more than 1 metric, we can't orderBy these fields
         if len(metric_entities) > 1:
             raise InvalidParams("Selected 'orderBy' columns must belongs to the same entity")
 
