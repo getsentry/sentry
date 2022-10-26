@@ -10,6 +10,9 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import SearchBar, {SearchBarProps} from 'sentry/components/performance/searchBar';
 import EventView from 'sentry/utils/discover/eventView';
 
+// Jest's fake timers don't advance the debounce timer, so we need to mock it
+// with a different implementation. This could probably go in __mocks__ since
+// it's used in a few tests.
 jest.mock('lodash/debounce', () => {
   const debounceMap = new Map();
   const mockDebounce =
