@@ -30,7 +30,7 @@ const SharedGroupHeader = ({group}: Props) => (
             <FeatureBadge
               type="beta"
               title={t(
-                'Sharing Performance Issues is not yet full featured and may be missing context'
+                'Not all features have been implemented for shared Performance Issues and these issues may be missing context.'
               )}
             />
           )}
