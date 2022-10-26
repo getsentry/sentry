@@ -60,11 +60,20 @@ class MailAdapter:
                 "The default behavior for notification de-duplication does not support args"
             )
 
+        skip_digests = False
+        # Check if this is notification test
+        if len(rules) == 1 and rules[0].id is None:
+            skip_digests = True
+
         project = event.group.project
         extra["project_id"] = project.id
 
         # Only digest errors issues for the moment.
-        if digests.enabled(project) and event.group.issue_category == GroupCategory.ERROR:
+        if (
+            digests.enabled(project)
+            and event.group.issue_category == GroupCategory.ERROR
+            and not skip_digests
+        ):
 
             def get_digest_option(key):
                 return ProjectOption.objects.get_value(project, get_digest_option_key("mail", key))
