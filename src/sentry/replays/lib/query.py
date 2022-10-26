@@ -200,11 +200,37 @@ class Tag(Field):
         value: Union[List[str], str],
         is_wildcard: bool = False,
     ) -> Condition:
-        negated = operator not in (Op.EQ, Op.IN)
-        return filter_tag_by_value(
-            key=field_alias,
-            values=value,
-            negated=negated,
+
+        if is_wildcard:
+            return self._filter_tag_by_wildcard_search(field_alias, value, operator)
+
+        return self._filter_tag_by_value(field_alias, value, operator)
+
+    def _filter_tag_by_wildcard_search(self, field_alias: str, value: str, operator: Op):
+        return Condition(
+            Function(
+                "arrayExists",
+                parameters=[
+                    Lambda(
+                        ["tag_value"], _wildcard_search_function(value, Identifier("tag_value"))
+                    ),
+                    _all_values_for_tag_key(field_alias),
+                ],
+            ),
+            operator,
+            1,
+        )
+
+    def _filter_tag_by_value(
+        self, key: str, values: Union[List[str], str], operator: Op
+    ) -> Condition:
+        """Helper function that allows filtering a tag by multiple values."""
+        expected = 0 if operator not in (Op.EQ, Op.IN) else 1
+        function = "hasAny" if isinstance(values, list) else "has"
+        return Condition(
+            Function(function, parameters=[_all_values_for_tag_key(key), values]),
+            Op.EQ,
+            expected,
         )
 
 
@@ -336,21 +362,6 @@ def get_valid_sort_commands(
 
 
 # Tag filtering behavior.
-
-
-def filter_tag_by_value(
-    key: str,
-    values: Union[List[str], str],
-    negated: bool = False,
-) -> Condition:
-    """Helper function that allows filtering a tag by multiple values."""
-    function = "hasAny" if isinstance(values, list) else "has"
-    expected = 0 if negated else 1
-    return Condition(
-        Function(function, parameters=[_all_values_for_tag_key(key), values]),
-        Op.EQ,
-        expected,
-    )
 
 
 def _all_values_for_tag_key(key: str) -> Function:

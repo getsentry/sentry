@@ -343,7 +343,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 device_brand="Apple",
                 device_family="Macintosh",
                 device_model="10",
-                tags={"a": "m", "b": "q"},
+                tags={"a": "m", "b": "q", "c": "test"},
                 urls=["example.com"],
             )
         )
@@ -403,7 +403,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 # Tag filters.
                 "a:m",
                 "a:[n,o]",
-                # # url filter
+                "c:*st",
+                "!c:*zz",
                 "urls:example.com",
             ]
 
@@ -432,6 +433,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "releases:*4",
                 "!releases:*3",
                 "releases:[a,b]",
+                "c:*zz",
+                "!c:*st",
             ]
             for query in null_queries:
                 response = self.client.get(self.url + f"?query={query}")
