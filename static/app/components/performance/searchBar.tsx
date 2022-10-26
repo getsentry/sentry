@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useCallback, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
@@ -32,78 +32,93 @@ function SearchBar(props: SearchBarProps) {
   const api = useApi();
   const eventView = _eventView.clone();
 
+  const useEvents = organization.features.includes(
+    'performance-frontend-use-events-endpoint'
+  );
+
+  const url = useEvents
+    ? `/organizations/${organization.slug}/events/`
+    : `/organizations/${organization.slug}/eventsv2/`;
+
+  const projectIdStrings = (eventView.project as Readonly<number>[])?.map(String);
+
   const prepareQuery = (query: string) => {
     const prependedChar = query[0] === '*' ? '' : '*';
     const appendedChar = query[query.length - 1] === '*' ? '' : '*';
     return `${prependedChar}${query}${appendedChar}`;
   };
 
-  const getSuggestedTransactions = debounce(
-    async query => {
-      if (query.length === 0) {
-        onSearch('');
-      }
-      if (query.length < 3) {
-        setSearchResults([]);
-        return;
-      }
-      setSearchString(query);
-      const projectIdStrings = (eventView.project as Readonly<number>[])?.map(String);
-      try {
-        setLoading(true);
-        const conditions = new MutableSearch('');
-        conditions.addFilterValues('transaction', [prepareQuery(query)], false);
-        conditions.addFilterValues('event.type', ['transaction']);
-
-        // clear any active requests
-        if (Object.keys(api.activeRequests).length) {
-          api.clear();
+  // `debounce` in functional components has to be wrapped in `useCallback`
+  // because otherwise the debounce is recreated on every render and becomes
+  // pointless. The exhaustive deps check is mad because it's not getting an
+  // inline function so it can't determine the dependencies. `useMemo` is a
+  // tempting replacement, but apparently React might randomly clear that to
+  // save memory
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const getSuggestedTransactions = useCallback(
+    debounce(
+      async query => {
+        if (query.length === 0) {
+          onSearch('');
         }
 
-        const useEvents = organization.features.includes(
-          'performance-frontend-use-events-endpoint'
-        );
-        const url = useEvents
-          ? `/organizations/${organization.slug}/events/`
-          : `/organizations/${organization.slug}/eventsv2/`;
+        if (query.length < 3) {
+          setSearchResults([]);
+          return;
+        }
 
-        const [results] = await doDiscoverQuery<{
-          data: Array<{'count()': number; project_id: number; transaction: string}>;
-        }>(api, url, {
-          field: ['transaction', 'project_id', 'count()'],
-          project: projectIdStrings,
-          sort: '-count()',
-          query: conditions.formatString(),
-          statsPeriod: eventView.statsPeriod,
-          referrer: 'api.performance.transaction-name-search-bar',
-        });
+        setSearchString(query);
 
-        const parsedResults = results.data.reduce(
-          (searchGroup: SearchGroup, item) => {
-            searchGroup.children.push({
-              value: `${item.transaction}:${item.project_id}`,
-              title: item.transaction,
-              type: ItemType.LINK,
-              desc: '',
-            });
-            return searchGroup;
-          },
-          {
-            title: 'All Transactions',
-            children: [],
-            icon: null,
-            type: 'header',
+        try {
+          setLoading(true);
+          const conditions = new MutableSearch('');
+          conditions.addFilterValues('transaction', [prepareQuery(query)], false);
+          conditions.addFilterValues('event.type', ['transaction']);
+
+          // clear any active requests
+          if (Object.keys(api.activeRequests).length) {
+            api.clear();
           }
-        );
-        setSearchResults([parsedResults]);
-      } catch (_) {
-        throw new Error('Unable to fetch event field values');
-      } finally {
-        setLoading(false);
-      }
-    },
-    DEFAULT_DEBOUNCE_DURATION,
-    {leading: true}
+
+          const [results] = await doDiscoverQuery<{
+            data: Array<{'count()': number; project_id: number; transaction: string}>;
+          }>(api, url, {
+            field: ['transaction', 'project_id', 'count()'],
+            project: projectIdStrings,
+            sort: '-count()',
+            query: conditions.formatString(),
+            statsPeriod: eventView.statsPeriod,
+            referrer: 'api.performance.transaction-name-search-bar',
+          });
+
+          const parsedResults = results.data.reduce(
+            (searchGroup: SearchGroup, item) => {
+              searchGroup.children.push({
+                value: `${item.transaction}:${item.project_id}`,
+                title: item.transaction,
+                type: ItemType.LINK,
+                desc: '',
+              });
+              return searchGroup;
+            },
+            {
+              title: 'All Transactions',
+              children: [],
+              icon: null,
+              type: 'header',
+            }
+          );
+          setSearchResults([parsedResults]);
+        } catch (_) {
+          throw new Error('Unable to fetch event field values');
+        } finally {
+          setLoading(false);
+        }
+      },
+      DEFAULT_DEBOUNCE_DURATION,
+      {leading: true}
+    ),
+    [api, url, eventView.statsPeriod, onSearch, projectIdStrings.join(',')]
   );
 
   const handleSearch = (query: string) => {
