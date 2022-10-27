@@ -19,6 +19,8 @@ type Props = {
 //
 // In 2022 prefixes are almost ubiquitously unnecessary
 const cache = createCache({key: 'app', stylisPlugins: []});
+// Compat disables :nth-child warning
+cache.compat = true;
 
 /**
  * Wraps children with emotions ThemeProvider reactively set a theme.

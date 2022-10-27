@@ -28,6 +28,7 @@ type Props = {
   event: Event;
   location: Location;
   organization: Organization;
+  isHomepage?: boolean;
   source?: EventDetailPageSource;
 };
 
@@ -40,6 +41,7 @@ export default function EventCustomPerformanceMetrics({
   location,
   organization,
   source,
+  isHomepage,
 }: Props) {
   const measurementNames = Object.keys(event.measurements ?? {})
     .filter(name => isCustomMeasurement(`measurements.${name}`))
@@ -63,6 +65,7 @@ export default function EventCustomPerformanceMetrics({
               location={location}
               organization={organization}
               source={source}
+              isHomepage={isHomepage}
             />
           );
         })}
@@ -100,6 +103,7 @@ function EventCustomPerformanceMetric({
   location,
   organization,
   source,
+  isHomepage,
 }: EventCustomPerformanceMetricProps) {
   const {value, unit} = event.measurements?.[name] ?? {};
   if (value === null) {
@@ -129,7 +133,7 @@ function EventCustomPerformanceMetric({
         });
       case EventDetailPageSource.DISCOVER:
       default:
-        return eventView.getResultsViewUrlTarget(organization.slug);
+        return eventView.getResultsViewUrlTarget(organization.slug, isHomepage);
     }
   }
 

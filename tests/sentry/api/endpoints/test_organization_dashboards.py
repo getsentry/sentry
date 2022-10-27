@@ -720,6 +720,35 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             for expected_query, actual_query in zip(expected_widget["queries"], queries):
                 self.assert_serialized_widget_query(expected_query, actual_query)
 
+    def test_post_dashboard_with_greater_than_max_widgets_not_allowed(self):
+        data = {
+            "title": "Dashboard with way too many widgets",
+            "widgets": [
+                {
+                    "displayType": "line",
+                    "interval": "5m",
+                    "title": f"Widget {i}",
+                    "queries": [
+                        {
+                            "name": "Transactions",
+                            "fields": ["count()"],
+                            "columns": ["transaction"],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:transaction",
+                        }
+                    ],
+                    "layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2},
+                }
+                for i in range(Dashboard.MAX_WIDGETS + 1)
+            ],
+        }
+        response = self.do_request("post", self.url, data=data)
+        assert response.status_code == 400, response.data
+        assert (
+            f"Number of widgets must be less than {Dashboard.MAX_WIDGETS}"
+            in response.content.decode()
+        )
+
     def test_invalid_data(self):
         response = self.do_request("post", self.url, data={"malformed-data": "Dashboard from Post"})
         assert response.status_code == 400

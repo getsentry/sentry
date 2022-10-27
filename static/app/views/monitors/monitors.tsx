@@ -4,6 +4,7 @@ import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
+import Access from 'sentry/components/acl/access';
 import Button from 'sentry/components/button';
 import FeatureBadge from 'sentry/components/featureBadge';
 import Link from 'sentry/components/links/link';
@@ -81,13 +82,22 @@ class Monitors extends AsyncView<Props, State> {
             <div>
               {t('Monitors')} <FeatureBadge type="beta" />
             </div>
-            <Button
-              to={`/organizations/${organization.slug}/monitors/create/`}
-              priority="primary"
-              size="sm"
-            >
-              {t('New Monitor')}
-            </Button>
+            <Access organization={organization} access={['project:write']}>
+              {({hasAccess}) => (
+                <Button
+                  to={`/organizations/${organization.slug}/monitors/create/`}
+                  priority="primary"
+                  size="sm"
+                  disabled={!hasAccess}
+                  tooltipProps={{
+                    disabled: hasAccess,
+                  }}
+                  title={t('You must be an organization admin to create a new monitor')}
+                >
+                  {t('New Monitor')}
+                </Button>
+              )}
+            </Access>
           </HeaderTitle>
         </PageHeader>
         <Filters>

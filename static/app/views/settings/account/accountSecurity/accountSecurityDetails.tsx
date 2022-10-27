@@ -134,7 +134,12 @@ class AccountSecurityDetails extends AsyncView<Props, State> {
           title={
             <Fragment>
               <span>{authenticator.name}</span>
-              <AuthenticatorStatus enabled={authenticator.isEnrolled} />
+              <AuthenticatorStatus
+                data-test-id={`auth-status-${
+                  authenticator.isEnrolled ? 'enabled' : 'disabled'
+                }`}
+                enabled={authenticator.isEnrolled}
+              />
             </Fragment>
           }
           action={
