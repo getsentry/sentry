@@ -393,7 +393,7 @@ function getDemoModeGuides(): GuidesContent {
           title: t('Discover'),
           target: 'release_transactions_open_in_discover',
           description: t(
-            'Analyze these performance issues by URL, geography, device, browser, etc.'
+            `Analyze these performance issues by URL, geography, device, browser, etc.`
           ),
         },
       ],
