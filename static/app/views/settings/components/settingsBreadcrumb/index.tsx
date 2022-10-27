@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import Link from 'sentry/components/links/link';
+import {t} from 'sentry/locale';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import Crumb from 'sentry/views/settings/components/settingsBreadcrumb/crumb';
@@ -31,7 +32,7 @@ function SettingsBreadcrumb({className, routes, params}: Props) {
   const lastRouteIndex = routes.map(r => !!r.name).lastIndexOf(true);
 
   return (
-    <Breadcrumbs className={className}>
+    <Breadcrumbs aria-label={t('Settinsg Breadcrumbs')} className={className}>
       {routes.map((route, i) => {
         if (!route.name) {
           return null;
@@ -80,7 +81,7 @@ const CrumbLink = styled(Link)`
 
 export {CrumbLink};
 
-const Breadcrumbs = styled('div')`
+const Breadcrumbs = styled('nav')`
   display: flex;
   align-items: center;
 `;
