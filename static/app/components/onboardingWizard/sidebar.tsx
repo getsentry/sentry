@@ -8,7 +8,7 @@ import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import {CommonSidebarProps} from 'sentry/components/sidebar/types';
 import Tooltip from 'sentry/components/tooltip';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {OnboardingTask, OnboardingTaskKey, Project} from 'sentry/types';
 import testableTransition from 'sentry/utils/testableTransition';
@@ -52,8 +52,13 @@ Heading.defaultProps = {
   transition: testableTransition(),
 };
 
+const completeNowText =
+  localStorage.getItem('new-walkthrough') === '1' ? 'Sentry Basics' : 'Next Steps';
+
 const customizedTasksHeading = <Heading key="customized">{t('The Basics')}</Heading>;
-const completeNowHeading = <Heading key="now">{t('Next Steps')}</Heading>;
+const completeNowHeading = (
+  <Heading key="now">{tct('[text]', {text: completeNowText})}</Heading>
+);
 const upcomingTasksHeading = (
   <Heading key="upcoming">
     <Tooltip

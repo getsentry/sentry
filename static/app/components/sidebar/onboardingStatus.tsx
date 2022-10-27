@@ -76,7 +76,9 @@ function OnboardingStatus({
     return null;
   }
 
-  const label = t('Quick Start');
+  const walkthrough = localStorage.getItem('new-walkthrough') === '1';
+  const label = walkthrough ? t('Guided Tours') : t('Quick Start');
+  const task = walkthrough ? 'tours' : 'tasks';
 
   return (
     <Fragment>
@@ -100,7 +102,7 @@ function OnboardingStatus({
           <div>
             <Heading>{label}</Heading>
             <Remaining>
-              {tct('[numberRemaining] Remaining tasks', {numberRemaining})}
+              {tct('[numberRemaining] Remaining [task]', {numberRemaining, task})}
               {pendingCompletionSeen && <PendingSeenIndicator />}
             </Remaining>
           </div>

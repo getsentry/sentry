@@ -413,6 +413,13 @@ function BaseGroupRow({
     </DeprecatedDropdownMenu>
   );
 
+  const walkthrough = localStorage.getItem('new-walkthrough') === '1';
+  const issueStreamAnchor = walkthrough ? (
+    <GuideAnchor target="issue_stream" disabled={!localStorage.getItem('issueGuide')} />
+  ) : (
+    <GuideAnchor target="issue_stream" />
+  );
+
   return (
     <Wrapper
       data-test-id="group"
@@ -445,7 +452,8 @@ function BaseGroupRow({
         />
         <EventOrGroupExtraDetails data={group} showInboxTime={showInboxTime} />
       </GroupSummary>
-      {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
+      {hasGuideAnchor && issueStreamAnchor}
+
       {withChart && !displayReprocessingLayout && (
         <ChartWrapper
           className={`hidden-xs hidden-sm ${narrowGroups ? 'hidden-md' : ''}`}

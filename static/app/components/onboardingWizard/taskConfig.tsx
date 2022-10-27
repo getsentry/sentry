@@ -74,6 +74,57 @@ export function getOnboardingTasks({
   projects,
   onboardingState,
 }: Options): OnboardingTaskDescriptor[] {
+  const walkthrough = localStorage.getItem('new-walkthrough');
+  if (walkthrough === '1') {
+    return [
+      {
+        task: OnboardingTaskKey.SIDEBAR_GUIDE,
+        title: t('Check out the different tabs'),
+        description: t('Press the start button for a guided tour through each tab.'),
+        skippable: false,
+        requisites: [],
+        actionType: 'app',
+        location: `/organizations/${organization.slug}/projects/`,
+        display: true,
+      },
+      {
+        task: OnboardingTaskKey.ISSUE_GUIDE,
+        title: t('Issues'),
+        description: t(
+          'Here’s a list of errors and performance problems. And everything you need to know to fix it.'
+        ),
+        skippable: false,
+        requisites: [],
+        actionType: 'app',
+        location: `/organizations/${organization.slug}/issues/`,
+        display: true,
+      },
+      {
+        task: OnboardingTaskKey.PERFORMANCE_GUIDE,
+        title: t('Performance'),
+        description: t(
+          'See slow fast. Trace slow-loading pages back to their API calls as well as all related errors'
+        ),
+        skippable: false,
+        requisites: [],
+        actionType: 'app',
+        location: `/organizations/${organization.slug}/performance/`,
+        display: true,
+      },
+      {
+        task: OnboardingTaskKey.RELEASE_GUIDE,
+        title: t('Releases'),
+        description: t(
+          'Track the health of every release. See differences between releases from crash analytics to adoption rates.'
+        ),
+        skippable: false,
+        requisites: [],
+        actionType: 'app',
+        location: `/organizations/${organization.slug}/releases/`,
+        display: true,
+      },
+    ];
+  }
   return [
     {
       task: OnboardingTaskKey.FIRST_PROJECT,

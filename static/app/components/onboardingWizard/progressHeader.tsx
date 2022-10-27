@@ -2,7 +2,7 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ProgressRing from 'sentry/components/progressRing';
-import {t} from 'sentry/locale';
+import {tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {OnboardingTaskDescriptor, OnboardingTaskStatus} from 'sentry/types';
 
@@ -13,6 +13,16 @@ type Props = {
 
 function ProgressHeader({allTasks, completedTasks}: Props) {
   const theme = useTheme();
+
+  let title, description;
+  const walkthrough = localStorage.getItem('new-walkthrough');
+  if (walkthrough === '1') {
+    title = 'Guided Tours';
+    description = 'Take a guided tour to see what Sentry can do for you';
+  } else {
+    title = 'Quick Start';
+    description = 'Walk through this guide to get the most out of Sentry right away.';
+  }
 
   return (
     <Container>
@@ -29,10 +39,8 @@ function ProgressHeader({allTasks, completedTasks}: Props) {
           color: ${theme.textColor};
         `}
       />
-      <HeaderTitle>{t('Quick Start')}</HeaderTitle>
-      <Description>
-        {t('Walk through this guide to get the most out of Sentry right away.')}
-      </Description>
+      <HeaderTitle>{tct('[title]', {title})}</HeaderTitle>
+      <Description>{tct('[description]', {description})}</Description>
     </Container>
   );
 }

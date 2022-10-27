@@ -65,6 +65,13 @@ function Task(props: Props) {
     recordAnalytics(task, organization, 'clickthrough');
     e.stopPropagation();
 
+    if (task.task === OnboardingTaskKey.SIDEBAR_GUIDE) {
+      localStorage.setItem('sidebarGuide', '1');
+    }
+    if (task.task === OnboardingTaskKey.ISSUE_GUIDE) {
+      localStorage.setItem('issueGuide', '1');
+    }
+
     if (task.actionType === 'external') {
       window.open(task.location, '_blank');
     }
