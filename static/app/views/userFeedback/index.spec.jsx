@@ -2,7 +2,6 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 import UserFeedback from 'sentry/views/userFeedback';
 
 describe('UserFeedback', function () {
@@ -47,12 +46,7 @@ describe('UserFeedback', function () {
       headers: {Link: pageLinks},
     });
 
-    render(
-      <OrganizationContext.Provider value={organization}>
-        <UserFeedback {...params} />
-      </OrganizationContext.Provider>,
-      {context: routerContext}
-    );
+    render(<UserFeedback {...params} />, {context: routerContext});
 
     expect(screen.getByText('Something bad happened')).toBeInTheDocument();
   });
@@ -67,12 +61,7 @@ describe('UserFeedback', function () {
         orgId: organization.slug,
       },
     };
-    render(
-      <OrganizationContext.Provider value={organization}>
-        <UserFeedback {...params} />
-      </OrganizationContext.Provider>,
-      {context: routerContext}
-    );
+    render(<UserFeedback {...params} />, {context: routerContext});
 
     expect(
       screen.getByText('You need at least one project to use this view')
@@ -94,12 +83,7 @@ describe('UserFeedback', function () {
         orgId: organization.slug,
       },
     };
-    render(
-      <OrganizationContext.Provider value={organization}>
-        <UserFeedback {...params} />
-      </OrganizationContext.Provider>,
-      {context: routerContext}
-    );
+    render(<UserFeedback {...params} />, {context: routerContext});
 
     expect(screen.getByTestId('user-feedback-empty')).toBeInTheDocument();
   });
@@ -119,12 +103,7 @@ describe('UserFeedback', function () {
         orgId: organization.slug,
       },
     };
-    render(
-      <OrganizationContext.Provider value={organization}>
-        <UserFeedback {...params} />
-      </OrganizationContext.Provider>,
-      {context: routerContext}
-    );
+    render(<UserFeedback {...params} />, {context: routerContext});
 
     expect(screen.getByTestId('user-feedback-empty')).toBeInTheDocument();
 
@@ -149,12 +128,7 @@ describe('UserFeedback', function () {
         orgId: organization.slug,
       },
     };
-    render(
-      <OrganizationContext.Provider value={organization}>
-        <UserFeedback {...params} />
-      </OrganizationContext.Provider>,
-      {context: routerContext}
-    );
+    render(<UserFeedback {...params} />, {context: routerContext});
 
     expect(screen.getByTestId('user-feedback-empty')).toBeInTheDocument();
 

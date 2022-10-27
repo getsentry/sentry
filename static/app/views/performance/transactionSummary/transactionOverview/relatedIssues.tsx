@@ -92,7 +92,7 @@ class RelatedIssues extends Component<Props> {
     const {path, queryParams} = this.getIssuesEndpoint();
     const issueSearch = {
       pathname: `/organizations/${organization.slug}/issues/`,
-      query: queryParams,
+      query: {referrer: 'performance-related-issues', ...queryParams},
     };
 
     return (
@@ -119,6 +119,7 @@ class RelatedIssues extends Component<Props> {
             renderEmptyMessage={this.renderEmptyMessage}
             withChart={false}
             withPagination={false}
+            source="performance-related-issues"
           />
         </TableWrapper>
       </Fragment>

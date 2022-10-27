@@ -1,4 +1,5 @@
 import logging
+from typing import List, NoReturn, Optional, Tuple
 
 from django.http import (
     HttpResponse,
@@ -19,16 +20,9 @@ from sentry.api.serializers import serialize
 from sentry.api.utils import is_member_disabled_from_limit
 from sentry.auth import access
 from sentry.auth.superuser import is_active_superuser
-from sentry.models import (
-    Authenticator,
-    Organization,
-    OrganizationMember,
-    OrganizationStatus,
-    Project,
-    ProjectStatus,
-    Team,
-    TeamStatus,
-)
+from sentry.models import Authenticator, Organization, Project, ProjectStatus, Team, TeamStatus
+from sentry.services.hybrid_cloud import ApiOrganization, organization_service
+from sentry.silo import SiloMode
 from sentry.utils import auth
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.auth import is_valid_redirect, make_login_link_with_redirect
@@ -41,83 +35,101 @@ audit_logger = logging.getLogger("sentry.audit.ui")
 
 
 class OrganizationMixin:
+    # This attribute will only be set once determine_active_organization is called.  Subclasses should likely invoke
+    # that method, passing along the organization_slug context that might exist (or might not).
+    active_organization: Optional[ApiOrganization]
+
     # TODO(dcramer): move the implicit organization logic into its own class
     # as it's only used in a single location and over complicates the rest of
     # the code
-    def get_active_organization(self, request: Request, organization_slug=None):
+    def determine_active_organization(self, request: Request, organization_slug=None) -> NoReturn:
         """
-        Returns the currently active organization for the request or None
-        if no organization.
+        Using the current request and potentially optional organization_slug, 'determines'
+        the current session for this mixin object's scope, placing it into the active_organization attribute.
+
+        Generally this method only need be called once at the head of a request, as it can potentially have side
+        effects in the user's session.  That said, when login occurs during a request, this method should be called
+        be called again to refresh an active organization context.
         """
 
-        # TODO(dcramer): this is a huge hack, and we should refactor this
-        # it is currently needed to handle the is_auth_required check on
-        # OrganizationBase
-        _active_org = getattr(self, "_active_org", None)
-        if _active_org:
-            (active_organization, requesting_user) = _active_org
-            cached_active_org = (
-                active_organization
-                and active_organization.slug == organization_slug
-                and requesting_user == request.user
-            )
-            if cached_active_org:
-                return active_organization
+        if organization_slug is None:
+            is_implicit = True
+            organization_slug = self._find_implicit_slug(request)
+        else:
+            is_implicit = False
 
-        active_organization = None
+        active_organization, backup_organization = self._lookup_organizations(
+            is_implicit, organization_slug, request
+        )
 
-        is_implicit = organization_slug is None
+        if active_organization is None and backup_organization:
 
-        if is_implicit:
-            organization_slug = request.session.get("activeorg")
-            if request.subdomain is not None and request.subdomain != organization_slug:
-                # Customer domain is being used, set the subdomain as the requesting org slug.
-                organization_slug = request.subdomain
-
-        if organization_slug is not None:
-            if is_active_superuser(request):
-                try:
-                    active_organization = Organization.objects.get_from_cache(
-                        slug=organization_slug
-                    )
-                    if active_organization.status != OrganizationStatus.VISIBLE:
-                        raise Organization.DoesNotExist
-                except Organization.DoesNotExist:
-                    logger.info("Active organization [%s] not found", organization_slug)
-
-        organizations = None
-        if active_organization is None:
-            organizations = Organization.objects.get_for_user(user=request.user)
-
-        if active_organization is None and organization_slug and organizations:
-            try:
-                active_organization = next(o for o in organizations if o.slug == organization_slug)
-            except StopIteration:
-                logger.info("Active organization [%s] not found in scope", organization_slug)
-                if is_implicit:
-                    session = request.session
-                    if session and "activeorg" in session:
-                        del session["activeorg"]
-                active_organization = None
-
-        if active_organization is None and organizations:
             if not is_implicit:
-                return None
+                self.active_organization = None
+                return
+            active_organization = backup_organization
 
-            try:
-                active_organization = organizations[0]
-            except IndexError:
-                logger.info("User is not a member of any organizations")
-
-        if active_organization and self._is_org_member(request.user, active_organization):
+        if active_organization and active_organization.member:
             auth.set_active_org(request, active_organization.slug)
 
-        self._active_org = (active_organization, request.user)
+        self.active_organization = active_organization
 
+    def _lookup_organizations(
+        self, is_implicit: bool, organization_slug: Optional[str], request: Request
+    ) -> Tuple[Optional[ApiOrganization], Optional[ApiOrganization]]:
+        active_organization: Optional[ApiOrganization] = self._try_superuser_org_lookup(
+            organization_slug, request
+        )
+        backup_organization: Optional[ApiOrganization] = None
+        if active_organization is None:
+            organizations: List[ApiOrganization]
+            organizations = organization_service.get_organizations(
+                user_id=request.user.id, scope=None, only_visible=True
+            )
+
+            if organizations:
+                backup_organization = organizations[0]
+                if organization_slug:
+                    active_organization = self._try_finding_org_from_slug(
+                        is_implicit, organization_slug, organizations, request
+                    )
+        return active_organization, backup_organization
+
+    def _try_finding_org_from_slug(
+        self,
+        is_implicit: bool,
+        organization_slug: str,
+        organizations: List[ApiOrganization],
+        request: Request,
+    ) -> Optional[ApiOrganization]:
+        try:
+            active_organization = next(o for o in organizations if o.slug == organization_slug)
+        except StopIteration:
+            logger.info("Active organization [%s] not found in scope", organization_slug)
+            if is_implicit:
+                session = request.session
+                if session and "activeorg" in session:
+                    del session["activeorg"]
+            active_organization = None
         return active_organization
 
-    def _is_org_member(self, user, organization):
-        return OrganizationMember.objects.filter(user=user, organization=organization).exists()
+    def _try_superuser_org_lookup(
+        self, organization_slug: str, request: Request
+    ) -> Optional[ApiOrganization]:
+        active_organization: Optional[ApiOrganization] = None
+        if organization_slug is not None:
+            if is_active_superuser(request):
+                active_organization = organization_service.get_organization_by_slug(
+                    user_id=None, slug=organization_slug, only_visible=True, allow_stale=True
+                )
+        return active_organization
+
+    def _find_implicit_slug(self, request):
+        organization_slug = request.session.get("activeorg")
+        if request.subdomain is not None and request.subdomain != organization_slug:
+            # Customer domain is being used, set the subdomain as the requesting org slug.
+            organization_slug = request.subdomain
+        return organization_slug
 
     def is_not_2fa_compliant(self, request: Request, organization):
         return (
@@ -159,10 +171,8 @@ class OrganizationMixin:
         from sentry import features
 
         # TODO(dcramer): deal with case when the user cannot create orgs
-        organization = self.get_active_organization(request)
-
-        if organization:
-            url = organization.get_url()
+        if self.active_organization:
+            url = Organization.get_url(self.active_organization.slug)
         elif not features.has("organizations:create"):
             return self.respond("sentry/no-organization-access.html", status=403)
         else:
@@ -208,6 +218,9 @@ class BaseView(View, OrganizationMixin):
            check unconditionally again.
 
         """
+
+        self.determine_active_organization(request, kwargs.get("organization_slug", None))
+
         if self.csrf_protect:
             if hasattr(self.dispatch.__func__, "csrf_exempt"):
                 delattr(self.dispatch.__func__, "csrf_exempt")
@@ -368,16 +381,13 @@ class OrganizationView(BaseView):
         if not organization_slug:
             return False
 
-        active_organization = self.get_active_organization(
-            request=request, organization_slug=organization_slug
-        )
-        if not active_organization:
-            try:
-                Organization.objects.get_from_cache(slug=organization_slug)
-            except Organization.DoesNotExist:
-                pass
-            else:
-                return True
+        if not self.active_organization:
+            # Require auth if we there is an organization associated with the slug that we just cannot access
+            # for some reason.
+            return organization_service.get_organization_by_slug(
+                user_id=None, slug=organization_slug, only_visible=True, allow_stale=True
+            )
+
         return False
 
     def handle_permission_required(self, request: Request, organization, *args, **kwargs):
@@ -419,11 +429,17 @@ class OrganizationView(BaseView):
         return False
 
     def convert_args(self, request: Request, organization_slug=None, *args, **kwargs):
-        active_organization = self.get_active_organization(
-            request=request, organization_slug=organization_slug
-        )
+        # TODO:  Extract separate view base classes based on control vs region / monolith,
+        # with distinct convert_args implementation.
+        if SiloMode.get_current_mode() == SiloMode.CONTROL:
+            kwargs["organization"] = self.active_organization
+        else:
+            organization: Optional[Organization] = None
+            if self.active_organization:
+                for org in Organization.objects.filter(id=self.active_organization.id):
+                    organization = org
 
-        kwargs["organization"] = active_organization
+            kwargs["organization"] = organization
 
         return (args, kwargs)
 
@@ -469,19 +485,21 @@ class ProjectView(OrganizationView):
         return True
 
     def convert_args(self, request: Request, organization_slug, project_slug, *args, **kwargs):
-        active_organization = self.get_active_organization(
-            request=request, organization_slug=organization_slug
-        )
+        organization: Optional[Organization] = None
+        active_project: Optional[Project] = None
+        if self.active_organization:
+            for org in Organization.objects.filter(id=self.active_organization.id):
+                organization = org
 
-        if active_organization:
-            active_project = self.get_active_project(
-                request=request, organization=active_organization, project_slug=project_slug
-            )
+            if organization:
+                active_project = self.get_active_project(
+                    request=request, organization=organization, project_slug=project_slug
+                )
         else:
             active_project = None
 
         kwargs["project"] = active_project
-        kwargs["organization"] = active_organization
+        kwargs["organization"] = organization
 
         return (args, kwargs)
 

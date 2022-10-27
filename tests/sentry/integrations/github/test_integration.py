@@ -611,7 +611,6 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert code_mappings == []
 
         # Case 3 - We derive sentry_plugins because we derive sentry first
-        # XXX: Order matters of processing matters. Fix code
         stacktraces = [
             "sentry/identity/oauth2.py",
             # This file matches two files in the repo, however, because we first
@@ -629,5 +628,5 @@ class GitHubIntegrationTest(IntegrationTestCase):
             "sentry/identity/oauth2.py",
         ]
         code_mappings = derive_code_mappings(stacktraces, trees)
-        # Order matters, this is why we only derive one of the two code mappings
-        assert code_mappings == [expected_code_mappings[0]]
+        # The reprocess feature allows determinging the sentry_plugins code mappings
+        assert code_mappings == expected_code_mappings

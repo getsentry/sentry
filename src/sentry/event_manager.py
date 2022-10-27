@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import copy
 import ipaddress
 import logging
@@ -8,7 +10,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from hashlib import md5
 from io import BytesIO
-from typing import Optional, Sequence, TypedDict
+from typing import TYPE_CHECKING, Any, Mapping, Optional, Sequence, TypedDict
 
 import sentry_sdk
 from django.conf import settings
@@ -37,6 +39,12 @@ from sentry.constants import (
     DataCategory,
 )
 from sentry.culprit import generate_culprit
+from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
+from sentry.dynamic_sampling.latest_release_booster import (
+    TooManyBoostedReleasesException,
+    add_boosted_release,
+    observe_release,
+)
 from sentry.eventstore.processing import event_processing_store
 from sentry.grouping.api import (
     BackgroundGroupingConfigLoader,
@@ -92,6 +100,7 @@ from sentry.signals import first_event_received, first_transaction_received, iss
 from sentry.tasks.commits import fetch_commits
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.process_buffer import buffer_incr
+from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.types.activity import ActivityType
 from sentry.types.issues import GroupCategory
 from sentry.utils import json, metrics
@@ -105,6 +114,9 @@ from sentry.utils.performance_issues.performance_detection import (
     detect_performance_problems,
 )
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
+
+if TYPE_CHECKING:
+    from sentry.eventstore.models import Event
 
 logger = logging.getLogger("sentry.events")
 
@@ -667,6 +679,18 @@ def _run_background_grouping(project, job):
         sentry_sdk.capture_exception()
 
 
+def _get_job_category(data):
+    event_type = data.get("type")
+    if event_type == "transaction":
+        # TODO: This logic should move into sentry-relay, but I'm not sure
+        # about the consequences of making `from_event_type` return
+        # `TRANSACTION_INDEXED` unconditionally.
+        # https://github.com/getsentry/relay/blob/d77c489292123e53831e10281bd310c6a85c63cc/relay-server/src/envelope.rs#L121
+        return DataCategory.TRANSACTION_INDEXED
+
+    return DataCategory.from_event_type(event_type)
+
+
 @metrics.wraps("save_event.pull_out_data")
 def _pull_out_data(jobs, projects):
     """
@@ -698,7 +722,8 @@ def _pull_out_data(jobs, projects):
         job["recorded_timestamp"] = data.get("timestamp")
         job["event"] = event = _get_event_instance(job["data"], project_id=job["project_id"])
         job["data"] = data = event.data.data
-        job["category"] = DataCategory.from_event_type(data.get("type"))
+
+        job["category"] = _get_job_category(data)
         job["platform"] = event.platform
         event._project_cache = projects[job["project_id"]]
 
@@ -820,6 +845,45 @@ def _get_or_create_release_many(jobs, projects):
                     # don't allow a conflicting 'dist' tag
                     pop_tag(job["data"], "dist")
                     set_tag(job["data"], "sentry:dist", job["dist"].name)
+
+                # Dynamic Sampling - Boosting latest release functionality
+                if (
+                    options.get("dynamic-sampling:boost-latest-release")
+                    and DynamicSamplingFeatureMultiplexer(
+                        project=projects[project_id]
+                    ).is_on_dynamic_sampling
+                    and data.get("type") == "transaction"
+                ):
+                    with sentry_sdk.start_span(
+                        op="event_manager.dynamic_sampling_observe_latest_release"
+                    ) as span, metrics.timer(
+                        "event_manager.dynamic_sampling_observe_latest_release"
+                    ) as metrics_tags:
+                        try:
+                            release_observed_in_last_24h = observe_release(project_id, release.id)
+                            if not release_observed_in_last_24h:
+                                span.set_tag(
+                                    "dynamic_sampling.observe_release_status",
+                                    f"New release observed {release.id}",
+                                )
+                                metrics_tags[
+                                    "dynamic_sampling.observe_release_status"
+                                ] = f"New release observed {release.id}"
+                                add_boosted_release(project_id, release.id)
+                                schedule_invalidate_project_config(
+                                    project_id=project_id, trigger="dynamic_sampling:boost_release"
+                                )
+                        except TooManyBoostedReleasesException:
+                            span.set_tag(
+                                "dynamic_sampling.observe_release_status",
+                                "Too many boosted releases",
+                            )
+                            metrics_tags[
+                                "dynamic_sampling.observe_release_status"
+                            ] = "Too many boosted releases"
+                            pass
+                        except Exception:
+                            sentry_sdk.capture_exception()
 
 
 @metrics.wraps("save_event.get_event_user_many")
@@ -2035,12 +2099,39 @@ def _detect_performance_problems(jobs, projects):
         job["performance_problems"] = detect_performance_problems(job["data"])
 
 
-class Performance_Job(TypedDict, total=False):
+class PerformanceJob(TypedDict, total=False):
     performance_problems: Sequence[PerformanceProblem]
+    event: Event
+    culprit: str
+    received_timestamp: float
+    event_metadata: Mapping[str, Any]
+    platform: str
+    level: str
+    logger_name: str
+    release: Release
+
+
+def _save_grouphash_and_group(
+    project: Project, event: Event, new_grouphash: str, **group_kwargs
+) -> Group:
+    group = None
+    with transaction.atomic():
+        group_hash, created = GroupHash.objects.get_or_create(project=project, hash=new_grouphash)
+        if created:
+            group = _create_group(project, event, **group_kwargs)
+            group_hash.update(group=group)
+
+    if group is None:
+        # If we failed to create the group it means another worker beat us to
+        # it. Since a GroupHash can only be created in a transaction with the
+        # Group, we can guarantee that the Group will exist at this point and
+        # fetch it via GroupHash
+        group = Group.objects.get(grouphash__project=project, grouphash__hash=new_grouphash)
+    return group
 
 
 @metrics.wraps("save_event.save_aggregate_performance")
-def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
+def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects):
 
     MAX_GROUPS = (
         10  # safety check in case we are passed too many. constant will live somewhere else tbd
@@ -2120,8 +2211,9 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
                             group_kwargs["data"]["metadata"], problem
                         )
 
-                        group = _create_group(project, event, **group_kwargs)
-                        GroupHash.objects.create(project=project, hash=new_grouphash, group=group)
+                        group = _save_grouphash_and_group(
+                            project, event, new_grouphash, **group_kwargs
+                        )
 
                         is_new = True
                         is_regression = False

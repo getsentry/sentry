@@ -103,7 +103,10 @@ class SnubaProtocolEventStream(EventStream):
         skip_consume: bool,
         group_states: Optional[GroupStates] = None,
     ) -> Mapping[str, str]:
-        return {"Received-Timestamp": str(received_timestamp)}
+        return {
+            "Received-Timestamp": str(received_timestamp),
+            "queue": self._get_queue_for_post_process(event),
+        }
 
     @staticmethod
     def _is_transaction_event(event: Event) -> bool:
@@ -183,6 +186,7 @@ class SnubaProtocolEventStream(EventStream):
                     "is_new": is_new,
                     "is_regression": is_regression,
                     "is_new_group_environment": is_new_group_environment,
+                    "queue": headers["queue"],
                     "skip_consume": skip_consume,
                     "group_states": group_states,
                 },
@@ -446,6 +450,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
             is_regression,
             is_new_group_environment,
             primary_hash,
+            self._get_queue_for_post_process(event),
             skip_consume,
             group_states,
         )

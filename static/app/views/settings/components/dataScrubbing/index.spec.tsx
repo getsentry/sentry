@@ -1,66 +1,29 @@
-import {InjectedRouter} from 'react-router';
-import {Location} from 'history';
+import {Fragment} from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import GlobalModal from 'sentry/components/globalModal';
-import {Organization} from 'sentry/types';
-import {OrganizationContext} from 'sentry/views/organizationContext';
-import {RouteContext} from 'sentry/views/routeContext';
 import {DataScrubbing} from 'sentry/views/settings/components/dataScrubbing';
 
 const relayPiiConfig = JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig());
 
-function ComponentProviders({
-  router,
-  location,
-  organization,
-  children,
-}: {
-  children: React.ReactNode;
-  location: Location;
-  organization: Organization;
-  router: InjectedRouter;
-}) {
-  return (
-    <OrganizationContext.Provider value={organization}>
-      <RouteContext.Provider
-        value={{
-          router,
-          location,
-          params: {},
-          routes: [],
-        }}
-      >
-        {children}
-      </RouteContext.Provider>
-    </OrganizationContext.Provider>
-  );
-}
-
 describe('Data Scrubbing', function () {
   describe('Organization level', function () {
-    const {organization, router} = initializeOrg();
+    const {organization} = initializeOrg();
     const additionalContext = 'These rules can be configured for each project.';
     const endpoint = `organization/${organization.slug}/`;
 
     it('default render', function () {
       render(
-        <ComponentProviders
-          location={router.location}
-          router={router}
+        <DataScrubbing
+          additionalContext={additionalContext}
+          endpoint={endpoint}
+          relayPiiConfig={relayPiiConfig}
           organization={organization}
-        >
-          <DataScrubbing
-            additionalContext={additionalContext}
-            endpoint={endpoint}
-            relayPiiConfig={relayPiiConfig}
-            organization={organization}
-            onSubmitSuccess={jest.fn()}
-          />
-        </ComponentProviders>
+          onSubmitSuccess={jest.fn()}
+        />
       );
 
       // Header
@@ -95,18 +58,12 @@ describe('Data Scrubbing', function () {
 
     it('render empty state', function () {
       render(
-        <ComponentProviders
-          location={router.location}
-          router={router}
+        <DataScrubbing
+          endpoint={endpoint}
+          relayPiiConfig={undefined}
           organization={organization}
-        >
-          <DataScrubbing
-            endpoint={endpoint}
-            relayPiiConfig={undefined}
-            organization={organization}
-            onSubmitSuccess={jest.fn()}
-          />
-        </ComponentProviders>
+          onSubmitSuccess={jest.fn()}
+        />
       );
 
       expect(screen.getByText('You have no data scrubbing rules')).toBeInTheDocument();
@@ -114,20 +71,14 @@ describe('Data Scrubbing', function () {
 
     it('render disabled actions', function () {
       render(
-        <ComponentProviders
-          location={router.location}
-          router={router}
+        <DataScrubbing
+          additionalContext={additionalContext}
+          endpoint={endpoint}
+          relayPiiConfig={relayPiiConfig}
           organization={organization}
-        >
-          <DataScrubbing
-            additionalContext={additionalContext}
-            endpoint={endpoint}
-            relayPiiConfig={relayPiiConfig}
-            organization={organization}
-            onSubmitSuccess={jest.fn()}
-            disabled
-          />
-        </ComponentProviders>
+          onSubmitSuccess={jest.fn()}
+          disabled
+        />
       );
 
       // Read Docs is the only enabled action
@@ -146,22 +97,16 @@ describe('Data Scrubbing', function () {
 
   describe('Project level', function () {
     it('default render', function () {
-      const {organization, router, project} = initializeOrg();
+      const {organization, project} = initializeOrg();
 
       render(
-        <ComponentProviders
-          location={router.location}
-          router={router}
+        <DataScrubbing
+          endpoint={`/projects/${organization.slug}/foo/`}
+          relayPiiConfig={relayPiiConfig}
           organization={organization}
-        >
-          <DataScrubbing
-            endpoint={`/projects/${organization.slug}/foo/`}
-            relayPiiConfig={relayPiiConfig}
-            organization={organization}
-            onSubmitSuccess={jest.fn()}
-            project={project}
-          />
-        </ComponentProviders>
+          onSubmitSuccess={jest.fn()}
+          project={project}
+        />
       );
 
       // Header
@@ -171,7 +116,7 @@ describe('Data Scrubbing', function () {
     });
 
     it('OrganizationRules has content', function () {
-      const {organization, router, project} = initializeOrg({
+      const {organization, project} = initializeOrg({
         ...initializeOrg(),
         organization: {
           ...initializeOrg().organization,
@@ -180,19 +125,14 @@ describe('Data Scrubbing', function () {
       });
 
       render(
-        <ComponentProviders
-          location={router.location}
-          router={router}
+        <DataScrubbing
+          endpoint={`/projects/${organization.slug}/foo/`}
+          relayPiiConfig={relayPiiConfig}
           organization={organization}
-        >
-          <DataScrubbing
-            endpoint={`/projects/${organization.slug}/foo/`}
-            relayPiiConfig={relayPiiConfig}
-            organization={organization}
-            onSubmitSuccess={jest.fn()}
-            project={project}
-          />
-        </ComponentProviders>
+          onSubmitSuccess={jest.fn()}
+          project={project}
+        />,
+        {organization}
       );
 
       // Organization Rules
@@ -200,14 +140,10 @@ describe('Data Scrubbing', function () {
     });
 
     it('Delete rule successfully', async function () {
-      const {organization, router, project} = initializeOrg();
+      const {organization, project} = initializeOrg();
 
       render(
-        <ComponentProviders
-          location={router.location}
-          router={router}
-          organization={organization}
-        >
+        <Fragment>
           <GlobalModal />
           <DataScrubbing
             endpoint={`/projects/${organization.slug}/foo/`}
@@ -217,7 +153,7 @@ describe('Data Scrubbing', function () {
             organization={organization}
             onSubmitSuccess={jest.fn()}
           />
-        </ComponentProviders>
+        </Fragment>
       );
 
       userEvent.click(screen.getAllByLabelText('Delete Rule')[0]);
@@ -228,14 +164,10 @@ describe('Data Scrubbing', function () {
     });
 
     it('Open Add Rule Modal', async function () {
-      const {organization, router, project} = initializeOrg();
+      const {organization, project} = initializeOrg();
 
       render(
-        <ComponentProviders
-          location={router.location}
-          router={router}
-          organization={organization}
-        >
+        <Fragment>
           <GlobalModal />
           <DataScrubbing
             endpoint={`/projects/${organization.slug}/foo/`}
@@ -245,7 +177,7 @@ describe('Data Scrubbing', function () {
             organization={organization}
             onSubmitSuccess={jest.fn()}
           />
-        </ComponentProviders>
+        </Fragment>
       );
 
       userEvent.click(screen.getByRole('button', {name: 'Add Rule'}));
@@ -259,11 +191,7 @@ describe('Data Scrubbing', function () {
       const {organization, router, project} = initializeOrg();
 
       render(
-        <ComponentProviders
-          location={router.location}
-          router={router}
-          organization={organization}
-        >
+        <Fragment>
           <GlobalModal />
           <DataScrubbing
             endpoint={`/projects/${organization.slug}/foo/`}
@@ -273,7 +201,8 @@ describe('Data Scrubbing', function () {
             organization={organization}
             onSubmitSuccess={jest.fn()}
           />
-        </ComponentProviders>
+        </Fragment>,
+        {router}
       );
 
       userEvent.click(screen.getAllByRole('button', {name: 'Edit Rule'})[0]);

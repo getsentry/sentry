@@ -97,6 +97,7 @@ export function transactionSummaryRouteWithQuery({
       display,
       trendFunction,
       trendColumn,
+      referrer: 'performance-transaction-summary',
       ...additionalQuery,
     },
   };
@@ -147,11 +148,11 @@ export function generateReplayLink(routes: PlainRoute<any>[]) {
     }
 
     const replaySlug = `${tableRow['project.name']}:${replayId}`;
-    const referrer = encodeURIComponent(getRouteStringFromRoutes(routes));
+    const referrer = getRouteStringFromRoutes(routes);
 
     if (!tableRow.timestamp) {
       return {
-        pathname: `/organizations/${organization.slug}/replays/${replaySlug}`,
+        pathname: `/organizations/${organization.slug}/replays/${replaySlug}/`,
         query: {
           referrer,
         },
@@ -164,7 +165,7 @@ export function generateReplayLink(routes: PlainRoute<any>[]) {
       transactionTimestamp - (tableRow['transaction.duration'] as number);
 
     return {
-      pathname: `/organizations/${organization.slug}/replays/${replaySlug}`,
+      pathname: `/organizations/${organization.slug}/replays/${replaySlug}/`,
       query: {
         event_t: transactionStartTimestamp,
         referrer,

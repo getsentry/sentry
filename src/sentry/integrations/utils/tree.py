@@ -1,9 +1,7 @@
 from typing import List
 
-from sentry.utils.json import JSONData
 
-
-def trim_tree(tree: JSONData, languages: List[str]) -> List[str]:
+def trim_tree(tree: List[str], languages: List[str]) -> List[str]:
     """This takes the tree representation of a repo and returns the file paths for the languages"""
 
     def should_include_file(file_path: str) -> bool:

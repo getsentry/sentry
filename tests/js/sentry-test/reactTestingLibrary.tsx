@@ -76,7 +76,7 @@ function makeAllTheProviders({context, ...initializeOrgOptions}: ProviderOptions
   return function ({children}: {children?: React.ReactNode}) {
     return (
       <ContextProvider>
-        <CacheProvider value={cache}>
+        <CacheProvider value={{...cache, compat: true}}>
           <ThemeProvider theme={lightTheme}>
             <QueryClientProvider client={makeQueryClient()}>
               <RouteContext.Provider
