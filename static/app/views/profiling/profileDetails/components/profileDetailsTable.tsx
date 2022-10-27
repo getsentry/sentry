@@ -110,8 +110,8 @@ export function ProfileDetailsTable() {
     <Fragment>
       <ActionBar>
         <CompactSelect
-          options={Object.values(GROUP_BY_OPTIONS)}
-          value={groupByView.value}
+          options={Object.values(GROUP_BY_OPTIONS).map(view => view.option)}
+          value={groupByView.option.value}
           triggerProps={{
             prefix: t('View'),
           }}
@@ -339,32 +339,27 @@ const quantile = (arr: number[], q: number) => {
   return sorted[base];
 };
 
-const p75AggregateColumn: AggregateColumnConfig = {
+const p75AggregateColumn: AggregateColumnConfig<TableColumnKey> = {
   key: 'p75',
-  compute: rows =>
-    quantile(
-      rows.map(v => v['self weight']),
-      0.75
-    ),
+  compute: rows => quantile(rows.map(v => v['self weight']) as number[], 0.75),
 };
 
-const p95AggregateColumn: AggregateColumnConfig = {
+const p95AggregateColumn: AggregateColumnConfig<TableColumnKey> = {
   key: 'p95',
-  compute: rows =>
-    quantile(
-      rows.map(v => v['self weight']),
-      0.95
-    ),
+  compute: rows => quantile(rows.map(v => v['self weight']) as number[], 0.95),
 };
 
-const countAggregateColumn: AggregateColumnConfig = {
+const countAggregateColumn: AggregateColumnConfig<TableColumnKey> = {
   key: 'count',
   compute: rows => rows.length,
 };
 
 interface GroupByOptions<T> {
   columns: T[];
-  label: string;
+  option: {
+    label: string;
+    value: string;
+  };
   rightAlignedColumns: T[];
   search: {
     key: T[];
@@ -377,14 +372,17 @@ interface GroupByOptions<T> {
     };
     sortableColumns: T[];
   };
-  transform: (data: any[]) => any[];
-  value: string;
+  transform: (
+    data: Partial<Record<Extract<T, string>, string | number | undefined>>[]
+  ) => Record<Extract<T, string>, string | number | undefined>[];
 }
 
 const GROUP_BY_OPTIONS: Record<string, GroupByOptions<TableColumnKey>> = {
   occurrence: {
-    label: t('All Functions'),
-    value: 'occurrence',
+    option: {
+      label: t('All Functions'),
+      value: 'occurrence',
+    },
     columns: ['symbol', 'image', 'file', 'thread', 'type', 'self weight', 'total weight'],
     transform: (data: any[]) => data.slice(0, 500),
     search: {
@@ -401,14 +399,16 @@ const GROUP_BY_OPTIONS: Record<string, GroupByOptions<TableColumnKey>> = {
     rightAlignedColumns: ['self weight', 'total weight'],
   },
   symbol: {
-    label: t('Group by Symbol'),
-    value: 'symbol',
+    option: {
+      label: t('Group by Symbol'),
+      value: 'symbol',
+    },
     columns: ['symbol', 'type', 'image', 'p75', 'p95', 'count'],
     search: {
       key: ['symbol'],
       placeholder: t('Search for frames'),
     },
-    transform: (data: any[]) =>
+    transform: data =>
       aggregate(
         data,
         ['symbol', 'type', 'image'],
@@ -424,21 +424,21 @@ const GROUP_BY_OPTIONS: Record<string, GroupByOptions<TableColumnKey>> = {
     rightAlignedColumns: ['p75', 'p95', 'count'],
   },
   package: {
-    label: t('Group by Package'),
-    value: 'package',
+    option: {
+      label: t('Group by Package'),
+      value: 'package',
+    },
     columns: ['image', 'type', 'p75', 'p95', 'count'],
     search: {
       key: ['image'],
       placeholder: t('Search for packages'),
     },
-    transform: (data: any[]) => {
-      const _d = aggregate(
+    transform: data =>
+      aggregate(
         data,
         ['type', 'image'],
         [p75AggregateColumn, p95AggregateColumn, countAggregateColumn]
-      );
-      return _d;
-    },
+      ),
     sort: {
       sortableColumns: ['p75', 'p95', 'count'],
       defaultSort: {
@@ -449,14 +449,16 @@ const GROUP_BY_OPTIONS: Record<string, GroupByOptions<TableColumnKey>> = {
     rightAlignedColumns: ['p75', 'p95', 'count'],
   },
   file: {
-    label: t('Group by File'),
-    value: 'file',
+    option: {
+      label: t('Group by File'),
+      value: 'file',
+    },
     columns: ['file', 'type', 'image', 'p75', 'p95', 'count'],
     search: {
       key: ['file'],
       placeholder: t('Search for files'),
     },
-    transform: (data: any[]) =>
+    transform: data =>
       aggregate(
         data,
         ['type', 'image', 'file'],

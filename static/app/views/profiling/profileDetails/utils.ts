@@ -39,16 +39,19 @@ export function pluckUniqueValues<T extends Record<string, any>>(
   }, [] as string[]);
 }
 
-type Row = Record<string, string | number | undefined>;
-export interface AggregateColumnConfig<T = Record<string, number>> {
-  compute: (data: T[]) => number;
+export type Row<K extends string = string> = Record<
+  Extract<K, string>,
+  string | number | undefined
+>;
+export interface AggregateColumnConfig<K extends string> {
+  compute: (data: Row<K>[]) => number;
   key: string;
 }
-export function aggregate<T extends Row>(
-  data: T[],
-  groups: Extract<keyof T, string>[],
+export function aggregate<T extends string>(
+  data: Partial<Row<T>>[],
+  groups: Extract<T, string>[],
   aggregates: AggregateColumnConfig<T>[]
-) {
+): Row<T>[] {
   const groupedData = groupBy(data, groups);
 
   const rows: Row[] = [];
