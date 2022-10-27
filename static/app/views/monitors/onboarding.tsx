@@ -24,9 +24,14 @@ const MonitorOnboarding = ({monitor}: Props) => {
         <List symbol="bullet">
           <StyledListItem>
             <OnboardingText>
-              {tct('To report on the status of a job make POST requests using [linkDocs:DSN authentication]', {
-                    linkDocs:  <ExternalLink href="https://docs.sentry.io/api/auth/#dsn-authentication" />
-              })}
+              {tct(
+                'To report on the status of a job make POST requests using [linkDocs:DSN authentication]',
+                {
+                  linkDocs: (
+                    <ExternalLink href="https://docs.sentry.io/api/auth/#dsn-authentication" />
+                  ),
+                }
+              )}
             </OnboardingText>
             <CodeSnippet language="text" hideActionBar>
               {`POST ${checkInUrl}`}
