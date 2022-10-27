@@ -1,4 +1,4 @@
-import {useCallback, useRef, useState} from 'react';
+import {useCallback, useMemo, useRef, useState} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
@@ -17,7 +17,7 @@ interface SearchBarProps extends Omit<InputProps, 'onChange'> {
 }
 
 function SearchBar({
-  query: queryProp,
+  query: controlledQuery,
   defaultQuery = '',
   onChange,
   onSearch,
@@ -28,12 +28,16 @@ function SearchBar({
 }: SearchBarProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const [query, setQuery] = useState(queryProp ?? defaultQuery);
+  const [uncontrolledQuery, setUncontrolledQuery] = useState(defaultQuery);
+  const query = useMemo(
+    () => controlledQuery ?? uncontrolledQuery,
+    [controlledQuery, uncontrolledQuery]
+  );
 
   const onQueryChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const {value} = e.target;
-      setQuery(value);
+      setUncontrolledQuery(value);
       onChange?.(value);
     },
     [onChange]
@@ -49,7 +53,7 @@ function SearchBar({
   );
 
   const clearSearch = useCallback(() => {
-    setQuery('');
+    setUncontrolledQuery('');
     onChange?.('');
     onSearch?.('');
   }, [onChange, onSearch]);
