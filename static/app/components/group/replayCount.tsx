@@ -5,10 +5,10 @@ import Placeholder from 'sentry/components/placeholder';
 import Tooltip from 'sentry/components/tooltip';
 import {IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {useLocation} from 'sentry/utils/useLocation';
-import space from 'sentry/styles/space';
 
 type Props = {
   groupId: string;
