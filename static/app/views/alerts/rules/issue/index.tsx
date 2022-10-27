@@ -694,13 +694,8 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     this.setState(prevState => {
       const clonedState = cloneDeep(prevState);
 
-      const prevTypeList = prevState.rule ? prevState.rule[type] : [];
-      const newTypeList: IssueAlertRuleAction[] = [];
-      for (let i = 0; i < prevTypeList.length; i++) {
-        if (i !== idx) {
-          newTypeList.push(prevTypeList[i]);
-        }
-      }
+      const newTypeList = prevState.rule ? [...prevState.rule[type]] : [];
+      newTypeList.splice(idx, 1);
 
       set(clonedState, `rule[${type}]`, newTypeList);
       return clonedState;
