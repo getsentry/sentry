@@ -9,7 +9,7 @@ from django.urls import reverse
 import sentry
 from sentry.constants import ObjectStatus
 from sentry.integrations.github import API_ERRORS, GitHubIntegrationProvider
-from sentry.integrations.utils.code_mapping import CodeMapping, derive_code_mappings
+from sentry.integrations.utils.code_mapping import CodeMapping, CodeMappingTreesHelper, Repo
 from sentry.models import Integration, OrganizationIntegration, Project, Repository
 from sentry.plugins.base import plugins
 from sentry.plugins.bases import IssueTrackingPlugin2
@@ -585,9 +585,19 @@ class GitHubIntegrationTest(IntegrationTestCase):
             )
             assert self._caplog.records[0].levelname == "ERROR"
 
+        trees_helper = CodeMappingTreesHelper(trees)
+
         expected_code_mappings = [
-            CodeMapping("Test-Organization/foo", "sentry", "src/sentry"),
-            CodeMapping("Test-Organization/foo", "sentry_plugins", "src/sentry_plugins"),
+            CodeMapping(
+                Repo("Test-Organization/foo", "master"),
+                "sentry",
+                "src/sentry",
+            ),
+            CodeMapping(
+                Repo("Test-Organization/foo", "master"),
+                "sentry_plugins",
+                "src/sentry_plugins",
+            ),
         ]
 
         # Case 1 - No matches
@@ -597,7 +607,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             "urllib3/connectionpool.py",
             "ssl.py",
         ]
-        code_mappings = derive_code_mappings(stacktraces, trees)
+        code_mappings = trees_helper.generate_code_mappings(stacktraces)
         assert code_mappings == []
 
         # Case 2 - Failing to derive sentry_plugins since we match more than one file
@@ -607,7 +617,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             # - "src/sentry/integrations/slack/client.py",
             "sentry_plugins/slack/client.py",
         ]
-        code_mappings = derive_code_mappings(stacktraces, trees)
+        code_mappings = trees_helper.generate_code_mappings(stacktraces)
         assert code_mappings == []
 
         # Case 3 - We derive sentry_plugins because we derive sentry first
@@ -617,7 +627,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             # derive the sentry code mapping we can exclude one of the files
             "sentry_plugins/slack/client.py",
         ]
-        code_mappings = derive_code_mappings(stacktraces, trees)
+        code_mappings = trees_helper.generate_code_mappings(stacktraces)
         assert code_mappings == expected_code_mappings
 
         # Case 4 - We do *not* derive sentry_plugins because we don't derive sentry first
@@ -627,6 +637,6 @@ class GitHubIntegrationTest(IntegrationTestCase):
             "sentry_plugins/slack/client.py",
             "sentry/identity/oauth2.py",
         ]
-        code_mappings = derive_code_mappings(stacktraces, trees)
+        code_mappings = trees_helper.generate_code_mappings(stacktraces)
         # The reprocess feature allows determinging the sentry_plugins code mappings
         assert code_mappings == expected_code_mappings
