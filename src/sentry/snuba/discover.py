@@ -50,12 +50,10 @@ from sentry.utils.snuba import (
 __all__ = (
     "PaginationResult",
     "InvalidSearchQuery",
-    "transform_results",
     "query",
     "timeseries_query",
     "top_events_timeseries",
     "get_facets",
-    "transform_data",
     "zerofill",
     "histogram_query",
     "check_multihistogram_fields",
@@ -124,63 +122,6 @@ def zerofill(data, start, end, rollup, orderby):
         return list(reversed(rv))
 
     return rv
-
-
-def transform_results(results, query_builder, translated_columns) -> EventsResponse:
-    results = transform_data(results, translated_columns, query_builder)
-    results["meta"] = transform_meta(results, query_builder)
-    return results
-
-
-def transform_meta(results: EventsResponse, query_builder: QueryBuilder) -> Dict[str, str]:
-    meta: Dict[str, str] = {
-        value["name"]: get_json_meta_type(value["name"], value.get("type"), query_builder)
-        for value in results["meta"]
-    }
-    # Ensure all columns in the result have types.
-    if results["data"]:
-        for key in results["data"][0]:
-            if key not in meta:
-                meta[key] = "string"
-    return meta
-
-
-def transform_data(result, translated_columns, query_builder) -> EventsResponse:
-    """
-    Transform internal names back to the public schema ones.
-
-    When getting timeseries results via rollup, this function will
-    zerofill the output results.
-    """
-    final_result: EventsResponse = {"data": result["data"], "meta": result["meta"]}
-    for col in final_result["meta"]:
-        # Translate back column names that were converted to snuba format
-        col["name"] = translated_columns.get(col["name"], col["name"])
-
-    def get_row(row):
-        transformed = {}
-        for key, value in row.items():
-            new_key = translated_columns.get(key, key)
-
-            if isinstance(value, float):
-                # 0 for nan, and none for inf were chosen arbitrarily, nan and inf are invalid json
-                # so needed to pick something valid to use instead
-                if math.isnan(value):
-                    value = 0
-                elif math.isinf(value):
-                    value = None
-            if new_key in query_builder.value_resolver_map:
-                new_value = query_builder.value_resolver_map[new_key](value)
-            else:
-                new_value = value
-
-            transformed[new_key] = new_value
-
-        return transformed
-
-    final_result["data"] = [get_row(row) for row in final_result["data"]]
-
-    return final_result
 
 
 def transform_tips(tips):
@@ -261,32 +202,12 @@ def query(
         equation_config={"auto_add": include_equation_fields},
         sample_rate=sample,
         has_metrics=has_metrics,
+        transform_alias_to_input_format=transform_alias_to_input_format,
     )
     if conditions is not None:
         builder.add_conditions(conditions)
-    result = builder.run_query(referrer)
-    with sentry_sdk.start_span(
-        op="discover.discover", description="query.transform_results"
-    ) as span:
-        span.set_data("result_count", len(result.get("data", [])))
-        translated_columns = {}
-        if transform_alias_to_input_format:
-            translated_columns = {
-                column: function_details.field
-                for column, function_details in builder.function_alias_map.items()
-            }
-            builder.function_alias_map = {
-                translated_columns.get(column): function_details
-                for column, function_details in builder.function_alias_map.items()
-            }
-            for index, equation in enumerate(equations):
-                translated_columns[f"equation[{index}]"] = f"equation|{equation}"
-        result = transform_results(
-            result,
-            builder,
-            translated_columns,
-        )
-        result["tips"] = transform_tips(builder.tips)
+    result = builder.process_results(builder.run_query(referrer))
+    result["meta"]["tips"] = transform_tips(builder.tips)
     return result
 
 
@@ -388,8 +309,12 @@ def timeseries_query(
         {
             "data": result["data"],
             "meta": {
-                value["name"]: get_json_meta_type(value["name"], value.get("type"), base_builder)
-                for value in result["meta"]
+                "fields": {
+                    value["name"]: get_json_meta_type(
+                        value["name"], value.get("type"), base_builder
+                    )
+                    for value in result["meta"]
+                }
             },
         },
         params["start"],
@@ -528,7 +453,7 @@ def top_events_timeseries(
         op="discover.discover", description="top_events.transform_results"
     ) as span:
         span.set_data("result_count", len(result.get("data", [])))
-        result = transform_results(result, top_events_builder, {})
+        result = top_events_builder.process_results(result)
 
         issues = {}
         if "issue" in selected_columns:
@@ -987,8 +912,7 @@ def histogram_query(
     )
     if extra_conditions is not None:
         builder.add_conditions(extra_conditions)
-    results = builder.run_query(referrer)
-    results["meta"] = transform_meta(results, builder)
+    results = builder.process_results(builder.run_query(referrer))
 
     if not normalize_results:
         return results
