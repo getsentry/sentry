@@ -3,6 +3,7 @@ import {
   generateSampleSpan,
   initializeData as _initializeData,
 } from 'sentry-test/performance/initializePerformanceData';
+import {MockSpan, TransactionEventBuilder} from 'sentry-test/performance/utils';
 import {
   act,
   render,
@@ -38,44 +39,19 @@ describe('TraceView', () => {
 
   describe('Autogrouped spans tests', () => {
     it('should render siblings with the same op and description as a grouped span in the minimap and span tree', async () => {
-      const event = generateSampleEvent();
-      generateSampleSpan(
-        'group me',
-        'http',
-        'b000000000000000',
-        'a000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'c000000000000000',
-        'a000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'd000000000000000',
-        'a000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'e000000000000000',
-        'a000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'f000000000000000',
-        'a000000000000000',
-        event
-      );
+      const builder = new TransactionEventBuilder();
+      for (let i = 0; i < 5; i++) {
+        builder.addSpan(
+          new MockSpan({
+            startTimestamp: 0,
+            endTimestamp: 100,
+            op: 'http',
+            description: 'group me',
+          })
+        );
+      }
 
-      const waterfallModel = new WaterfallModel(event);
+      const waterfallModel = new WaterfallModel(builder.getEvent());
 
       render(
         <TraceView organization={data.organization} waterfallModel={waterfallModel} />
@@ -87,44 +63,19 @@ describe('TraceView', () => {
     });
 
     it('should expand grouped siblings when clicked, and then regroup when clicked again', async () => {
-      const event = generateSampleEvent();
-      generateSampleSpan(
-        'group me',
-        'http',
-        'b000000000000000',
-        'a000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'c000000000000000',
-        'a000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'd000000000000000',
-        'a000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'e000000000000000',
-        'a000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'f000000000000000',
-        'a000000000000000',
-        event
-      );
+      const builder = new TransactionEventBuilder();
+      for (let i = 0; i < 5; i++) {
+        builder.addSpan(
+          new MockSpan({
+            startTimestamp: 0,
+            endTimestamp: 100,
+            op: 'http',
+            description: 'group me',
+          })
+        );
+      }
 
-      const waterfallModel = new WaterfallModel(event);
+      const waterfallModel = new WaterfallModel(builder.getEvent());
 
       render(
         <TraceView organization={data.organization} waterfallModel={waterfallModel} />
@@ -153,46 +104,37 @@ describe('TraceView', () => {
     });
 
     it("should not group sibling spans that don't have the same op or description", async () => {
-      const event = generateSampleEvent();
-      generateSampleSpan('test', 'http', 'b000000000000000', 'a000000000000000', event);
-      generateSampleSpan(
-        'group me',
-        'http',
-        'c000000000000000',
-        'a000000000000000',
-        event
+      const builder = new TransactionEventBuilder();
+      builder.addSpan(
+        new MockSpan({
+          startTimestamp: 10,
+          endTimestamp: 100,
+          op: 'http',
+          description: 'test',
+        })
       );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'd000000000000000',
-        'a000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'e000000000000000',
-        'a000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'f000000000000000',
-        'a000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'ff00000000000000',
-        'a000000000000000',
-        event
-      );
-      generateSampleSpan('test', 'http', 'fff0000000000000', 'a000000000000000', event);
 
-      const waterfallModel = new WaterfallModel(event);
+      for (let i = 0; i < 5; i++) {
+        builder.addSpan(
+          new MockSpan({
+            startTimestamp: 100,
+            endTimestamp: 200,
+            op: 'http',
+            description: 'group me',
+          })
+        );
+      }
+
+      builder.addSpan(
+        new MockSpan({
+          startTimestamp: 200,
+          endTimestamp: 300,
+          op: 'http',
+          description: 'test',
+        })
+      );
+
+      const waterfallModel = new WaterfallModel(builder.getEvent());
 
       render(
         <TraceView organization={data.organization} waterfallModel={waterfallModel} />
@@ -202,456 +144,466 @@ describe('TraceView', () => {
       expect(await screen.findAllByText('test')).toHaveLength(2);
     });
 
-    it('should autogroup similar nested spans', async () => {
-      const event = generateSampleEvent();
-      generateSampleSpan(
-        'group me',
-        'http',
-        'b000000000000000',
-        'a000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'c000000000000000',
-        'b000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'd000000000000000',
-        'c000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'e000000000000000',
-        'd000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'f000000000000000',
-        'e000000000000000',
-        event
-      );
+    //   it('should autogroup similar nested spans', async () => {
+    //     const builder = new TransactionEventBuilder();
+    //     builder.addSpan(
+    //       new MockSpan({
+    //         startTimestamp: 0,
+    //         endTimestamp: 100,
+    //         op: 'http',
+    //         description: 'test',
+    //       })
+    //     );
 
-      const waterfallModel = new WaterfallModel(event);
+    //     const event = generateSampleEvent();
+    //     generateSampleSpan(
+    //       'group me',
+    //       'http',
+    //       'b000000000000000',
+    //       'a000000000000000',
+    //       event
+    //     );
+    //     generateSampleSpan(
+    //       'group me',
+    //       'http',
+    //       'c000000000000000',
+    //       'b000000000000000',
+    //       event
+    //     );
+    //     generateSampleSpan(
+    //       'group me',
+    //       'http',
+    //       'd000000000000000',
+    //       'c000000000000000',
+    //       event
+    //     );
+    //     generateSampleSpan(
+    //       'group me',
+    //       'http',
+    //       'e000000000000000',
+    //       'd000000000000000',
+    //       event
+    //     );
+    //     generateSampleSpan(
+    //       'group me',
+    //       'http',
+    //       'f000000000000000',
+    //       'e000000000000000',
+    //       event
+    //     );
 
-      render(
-        <TraceView organization={data.organization} waterfallModel={waterfallModel} />
-      );
+    //     const waterfallModel = new WaterfallModel(event);
 
-      const grouped = await screen.findByText('group me');
-      expect(grouped).toBeInTheDocument();
-    });
+    //     render(
+    //       <TraceView organization={data.organization} waterfallModel={waterfallModel} />
+    //     );
 
-    it('should expand/collapse only the sibling group that is clicked, even if multiple groups have the same op and description', async () => {
-      const event = generateSampleEvent();
-      generateSampleSpan(
-        'group me',
-        'http',
-        'b000000000000000',
-        'a000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'c000000000000000',
-        'a000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'd000000000000000',
-        'a000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'e000000000000000',
-        'a000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'f000000000000000',
-        'a000000000000000',
-        event
-      );
+    //     const grouped = await screen.findByText('group me');
+    //     expect(grouped).toBeInTheDocument();
+    //   });
 
-      generateSampleSpan('not me', 'http', 'aa00000000000000', 'a000000000000000', event);
+    //   it('should expand/collapse only the sibling group that is clicked, even if multiple groups have the same op and description', async () => {
+    //     const event = generateSampleEvent();
+    //     generateSampleSpan(
+    //       'group me',
+    //       'http',
+    //       'b000000000000000',
+    //       'a000000000000000',
+    //       event
+    //     );
+    //     generateSampleSpan(
+    //       'group me',
+    //       'http',
+    //       'c000000000000000',
+    //       'a000000000000000',
+    //       event
+    //     );
+    //     generateSampleSpan(
+    //       'group me',
+    //       'http',
+    //       'd000000000000000',
+    //       'a000000000000000',
+    //       event
+    //     );
+    //     generateSampleSpan(
+    //       'group me',
+    //       'http',
+    //       'e000000000000000',
+    //       'a000000000000000',
+    //       event
+    //     );
+    //     generateSampleSpan(
+    //       'group me',
+    //       'http',
+    //       'f000000000000000',
+    //       'a000000000000000',
+    //       event
+    //     );
 
-      generateSampleSpan(
-        'group me',
-        'http',
-        'bb00000000000000',
-        'a000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'cc00000000000000',
-        'a000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'dd00000000000000',
-        'a000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'ee00000000000000',
-        'a000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'ff00000000000000',
-        'a000000000000000',
-        event
-      );
+    //     generateSampleSpan('not me', 'http', 'aa00000000000000', 'a000000000000000', event);
 
-      const waterfallModel = new WaterfallModel(event);
+    //     generateSampleSpan(
+    //       'group me',
+    //       'http',
+    //       'bb00000000000000',
+    //       'a000000000000000',
+    //       event
+    //     );
+    //     generateSampleSpan(
+    //       'group me',
+    //       'http',
+    //       'cc00000000000000',
+    //       'a000000000000000',
+    //       event
+    //     );
+    //     generateSampleSpan(
+    //       'group me',
+    //       'http',
+    //       'dd00000000000000',
+    //       'a000000000000000',
+    //       event
+    //     );
+    //     generateSampleSpan(
+    //       'group me',
+    //       'http',
+    //       'ee00000000000000',
+    //       'a000000000000000',
+    //       event
+    //     );
+    //     generateSampleSpan(
+    //       'group me',
+    //       'http',
+    //       'ff00000000000000',
+    //       'a000000000000000',
+    //       event
+    //     );
 
-      render(
-        <TraceView organization={data.organization} waterfallModel={waterfallModel} />
-      );
+    //     const waterfallModel = new WaterfallModel(event);
 
-      expect(screen.queryAllByText('group me')).toHaveLength(2);
+    //     render(
+    //       <TraceView organization={data.organization} waterfallModel={waterfallModel} />
+    //     );
 
-      const firstGroup = screen.queryAllByText('Autogrouped — http —')[0];
-      userEvent.click(firstGroup);
-      expect(await screen.findAllByText('group me')).toHaveLength(6);
+    //     expect(screen.queryAllByText('group me')).toHaveLength(2);
 
-      const secondGroup = await screen.findByText('Autogrouped — http —');
-      userEvent.click(secondGroup);
-      expect(await screen.findAllByText('group me')).toHaveLength(10);
+    //     const firstGroup = screen.queryAllByText('Autogrouped — http —')[0];
+    //     userEvent.click(firstGroup);
+    //     expect(await screen.findAllByText('group me')).toHaveLength(6);
 
-      const firstRegroup = screen.queryAllByText('Regroup')[0];
-      userEvent.click(firstRegroup);
-      expect(await screen.findAllByText('group me')).toHaveLength(6);
+    //     const secondGroup = await screen.findByText('Autogrouped — http —');
+    //     userEvent.click(secondGroup);
+    //     expect(await screen.findAllByText('group me')).toHaveLength(10);
 
-      const secondRegroup = await screen.findByText('Regroup');
-      userEvent.click(secondRegroup);
-      expect(await screen.findAllByText('group me')).toHaveLength(2);
-    });
+    //     const firstRegroup = screen.queryAllByText('Regroup')[0];
+    //     userEvent.click(firstRegroup);
+    //     expect(await screen.findAllByText('group me')).toHaveLength(6);
 
-    it('should allow expanding of embedded transactions', async () => {
-      const {organization, project, location} = initializeData({
-        features: ['unified-span-view'],
-      });
+    //     const secondRegroup = await screen.findByText('Regroup');
+    //     userEvent.click(secondRegroup);
+    //     expect(await screen.findAllByText('group me')).toHaveLength(2);
+    //   });
 
-      const event = generateSampleEvent();
-      generateSampleSpan(
-        'parent span',
-        'db',
-        'b000000000000000',
-        'a000000000000000',
-        event
-      );
-      const waterfallModel = new WaterfallModel(event);
+    //   it('should allow expanding of embedded transactions', async () => {
+    //     const {organization, project, location} = initializeData({
+    //       features: ['unified-span-view'],
+    //     });
 
-      const eventsTraceMock = MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/events-trace/${event.contexts.trace?.trace_id}/`,
-        method: 'GET',
-        statusCode: 200,
-        body: [
-          event,
-          {
-            errors: [],
-            event_id: '998d7e2c304c45729545e4434e2967cb',
-            generation: 1,
-            parent_event_id: '2b658a829a21496b87fd1f14a61abf65',
-            parent_span_id: 'b000000000000000',
-            project_id: project.id,
-            project_slug: project.slug,
-            span_id: '8596e2795f88471d',
-            transaction:
-              '/api/0/organizations/{organization_slug}/events/{project_slug}:{event_id}/',
-            'transaction.duration': 159,
-            'transaction.op': 'http.server',
-          },
-        ],
-      });
+    //     const event = generateSampleEvent();
+    //     generateSampleSpan(
+    //       'parent span',
+    //       'db',
+    //       'b000000000000000',
+    //       'a000000000000000',
+    //       event
+    //     );
+    //     const waterfallModel = new WaterfallModel(event);
 
-      const eventsTraceLightMock = MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/events-trace-light/${event.contexts.trace?.trace_id}/`,
-        method: 'GET',
-        statusCode: 200,
-        body: [
-          event,
-          {
-            errors: [],
-            event_id: '998d7e2c304c45729545e4434e2967cb',
-            generation: 1,
-            parent_event_id: '2b658a829a21496b87fd1f14a61abf65',
-            parent_span_id: 'b000000000000000',
-            project_id: project.id,
-            project_slug: project.slug,
-            span_id: '8596e2795f88471d',
-            transaction:
-              '/api/0/organizations/{organization_slug}/events/{project_slug}:{event_id}/',
-            'transaction.duration': 159,
-            'transaction.op': 'http.server',
-          },
-        ],
-      });
+    //     const eventsTraceMock = MockApiClient.addMockResponse({
+    //       url: `/organizations/${organization.slug}/events-trace/${event.contexts.trace?.trace_id}/`,
+    //       method: 'GET',
+    //       statusCode: 200,
+    //       body: [
+    //         event,
+    //         {
+    //           errors: [],
+    //           event_id: '998d7e2c304c45729545e4434e2967cb',
+    //           generation: 1,
+    //           parent_event_id: '2b658a829a21496b87fd1f14a61abf65',
+    //           parent_span_id: 'b000000000000000',
+    //           project_id: project.id,
+    //           project_slug: project.slug,
+    //           span_id: '8596e2795f88471d',
+    //           transaction:
+    //             '/api/0/organizations/{organization_slug}/events/{project_slug}:{event_id}/',
+    //           'transaction.duration': 159,
+    //           'transaction.op': 'http.server',
+    //         },
+    //       ],
+    //     });
 
-      const embeddedEvent = {
-        ...generateSampleEvent(),
-        id: '998d7e2c304c45729545e4434e2967cb',
-        eventID: '998d7e2c304c45729545e4434e2967cb',
-      };
-      embeddedEvent.contexts.trace!.span_id = 'a111111111111111';
+    //     const eventsTraceLightMock = MockApiClient.addMockResponse({
+    //       url: `/organizations/${organization.slug}/events-trace-light/${event.contexts.trace?.trace_id}/`,
+    //       method: 'GET',
+    //       statusCode: 200,
+    //       body: [
+    //         event,
+    //         {
+    //           errors: [],
+    //           event_id: '998d7e2c304c45729545e4434e2967cb',
+    //           generation: 1,
+    //           parent_event_id: '2b658a829a21496b87fd1f14a61abf65',
+    //           parent_span_id: 'b000000000000000',
+    //           project_id: project.id,
+    //           project_slug: project.slug,
+    //           span_id: '8596e2795f88471d',
+    //           transaction:
+    //             '/api/0/organizations/{organization_slug}/events/{project_slug}:{event_id}/',
+    //           'transaction.duration': 159,
+    //           'transaction.op': 'http.server',
+    //         },
+    //       ],
+    //     });
 
-      const embeddedSpan = generateSampleSpan(
-        'i am embedded :)',
-        'test',
-        'b111111111111111',
-        'b000000000000000',
-        embeddedEvent
-      );
-      embeddedSpan.trace_id = '8cbbc19c0f54447ab702f00263262726';
+    //     const embeddedEvent = {
+    //       ...generateSampleEvent(),
+    //       id: '998d7e2c304c45729545e4434e2967cb',
+    //       eventID: '998d7e2c304c45729545e4434e2967cb',
+    //     };
+    //     embeddedEvent.contexts.trace!.span_id = 'a111111111111111';
 
-      const fetchEmbeddedTransactionMock = MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/events/${project.slug}:998d7e2c304c45729545e4434e2967cb/`,
-        method: 'GET',
-        statusCode: 200,
-        body: embeddedEvent,
-      });
+    //     const embeddedSpan = generateSampleSpan(
+    //       'i am embedded :)',
+    //       'test',
+    //       'b111111111111111',
+    //       'b000000000000000',
+    //       embeddedEvent
+    //     );
+    //     embeddedSpan.trace_id = '8cbbc19c0f54447ab702f00263262726';
 
-      render(
-        <QuickTraceQuery event={event} location={location} orgSlug={organization.slug}>
-          {results => (
-            <QuickTraceContext.Provider value={results}>
-              <TraceView organization={organization} waterfallModel={waterfallModel} />
-            </QuickTraceContext.Provider>
-          )}
-        </QuickTraceQuery>
-      );
+    //     const fetchEmbeddedTransactionMock = MockApiClient.addMockResponse({
+    //       url: `/organizations/${organization.slug}/events/${project.slug}:998d7e2c304c45729545e4434e2967cb/`,
+    //       method: 'GET',
+    //       statusCode: 200,
+    //       body: embeddedEvent,
+    //     });
 
-      expect(eventsTraceMock).toHaveBeenCalled();
-      expect(eventsTraceLightMock).toHaveBeenCalled();
+    //     render(
+    //       <QuickTraceQuery event={event} location={location} orgSlug={organization.slug}>
+    //         {results => (
+    //           <QuickTraceContext.Provider value={results}>
+    //             <TraceView organization={organization} waterfallModel={waterfallModel} />
+    //           </QuickTraceContext.Provider>
+    //         )}
+    //       </QuickTraceQuery>
+    //     );
 
-      const embeddedTransactionBadge = await screen.findByTestId(
-        'embedded-transaction-badge'
-      );
-      expect(embeddedTransactionBadge).toBeInTheDocument();
-      userEvent.click(embeddedTransactionBadge);
-      expect(fetchEmbeddedTransactionMock).toHaveBeenCalled();
-      expect(await screen.findByText(/i am embedded :\)/i)).toBeInTheDocument();
-    });
+    //     expect(eventsTraceMock).toHaveBeenCalled();
+    //     expect(eventsTraceLightMock).toHaveBeenCalled();
 
-    it('should correctly render sibling autogroup text when op and/or description is not provided', async () => {
-      const data = initializeData({});
+    //     const embeddedTransactionBadge = await screen.findByTestId(
+    //       'embedded-transaction-badge'
+    //     );
+    //     expect(embeddedTransactionBadge).toBeInTheDocument();
+    //     userEvent.click(embeddedTransactionBadge);
+    //     expect(fetchEmbeddedTransactionMock).toHaveBeenCalled();
+    //     expect(await screen.findByText(/i am embedded :\)/i)).toBeInTheDocument();
+    //   });
 
-      const event1 = generateSampleEvent();
-      generateSampleSpan(
-        'group me',
-        null,
-        'b000000000000000',
-        'a000000000000000',
-        event1
-      );
-      generateSampleSpan(
-        'group me',
-        null,
-        'c000000000000000',
-        'a000000000000000',
-        event1
-      );
-      generateSampleSpan(
-        'group me',
-        null,
-        'd000000000000000',
-        'a000000000000000',
-        event1
-      );
-      generateSampleSpan(
-        'group me',
-        null,
-        'e000000000000000',
-        'a000000000000000',
-        event1
-      );
-      generateSampleSpan(
-        'group me',
-        null,
-        'f000000000000000',
-        'a000000000000000',
-        event1
-      );
+    //   it('should correctly render sibling autogroup text when op and/or description is not provided', async () => {
+    //     const data = initializeData({});
 
-      const {rerender} = render(
-        <TraceView
-          organization={data.organization}
-          waterfallModel={new WaterfallModel(event1)}
-        />
-      );
-      expect(await screen.findByTestId('span-row-2')).toHaveTextContent(
-        /Autogrouped — group me/
-      );
+    //     const event1 = generateSampleEvent();
+    //     generateSampleSpan(
+    //       'group me',
+    //       null,
+    //       'b000000000000000',
+    //       'a000000000000000',
+    //       event1
+    //     );
+    //     generateSampleSpan(
+    //       'group me',
+    //       null,
+    //       'c000000000000000',
+    //       'a000000000000000',
+    //       event1
+    //     );
+    //     generateSampleSpan(
+    //       'group me',
+    //       null,
+    //       'd000000000000000',
+    //       'a000000000000000',
+    //       event1
+    //     );
+    //     generateSampleSpan(
+    //       'group me',
+    //       null,
+    //       'e000000000000000',
+    //       'a000000000000000',
+    //       event1
+    //     );
+    //     generateSampleSpan(
+    //       'group me',
+    //       null,
+    //       'f000000000000000',
+    //       'a000000000000000',
+    //       event1
+    //     );
 
-      const event2 = generateSampleEvent();
-      generateSampleSpan(null, 'http', 'b000000000000000', 'a000000000000000', event2);
-      generateSampleSpan(null, 'http', 'c000000000000000', 'a000000000000000', event2);
-      generateSampleSpan(null, 'http', 'd000000000000000', 'a000000000000000', event2);
-      generateSampleSpan(null, 'http', 'e000000000000000', 'a000000000000000', event2);
-      generateSampleSpan(null, 'http', 'f000000000000000', 'a000000000000000', event2);
+    //     const {rerender} = render(
+    //       <TraceView
+    //         organization={data.organization}
+    //         waterfallModel={new WaterfallModel(event1)}
+    //       />
+    //     );
+    //     expect(await screen.findByTestId('span-row-2')).toHaveTextContent(
+    //       /Autogrouped — group me/
+    //     );
 
-      rerender(
-        <TraceView
-          organization={data.organization}
-          waterfallModel={new WaterfallModel(event2)}
-        />
-      );
+    //     const event2 = generateSampleEvent();
+    //     generateSampleSpan(null, 'http', 'b000000000000000', 'a000000000000000', event2);
+    //     generateSampleSpan(null, 'http', 'c000000000000000', 'a000000000000000', event2);
+    //     generateSampleSpan(null, 'http', 'd000000000000000', 'a000000000000000', event2);
+    //     generateSampleSpan(null, 'http', 'e000000000000000', 'a000000000000000', event2);
+    //     generateSampleSpan(null, 'http', 'f000000000000000', 'a000000000000000', event2);
 
-      expect(await screen.findByTestId('span-row-2')).toHaveTextContent(
-        /Autogrouped — http/
-      );
+    //     rerender(
+    //       <TraceView
+    //         organization={data.organization}
+    //         waterfallModel={new WaterfallModel(event2)}
+    //       />
+    //     );
 
-      const event3 = generateSampleEvent();
-      generateSampleSpan(null, null, 'b000000000000000', 'a000000000000000', event3);
-      generateSampleSpan(null, null, 'c000000000000000', 'a000000000000000', event3);
-      generateSampleSpan(null, null, 'd000000000000000', 'a000000000000000', event3);
-      generateSampleSpan(null, null, 'e000000000000000', 'a000000000000000', event3);
-      generateSampleSpan(null, null, 'f000000000000000', 'a000000000000000', event3);
+    //     expect(await screen.findByTestId('span-row-2')).toHaveTextContent(
+    //       /Autogrouped — http/
+    //     );
 
-      rerender(
-        <TraceView
-          organization={data.organization}
-          waterfallModel={new WaterfallModel(event3)}
-        />
-      );
+    //     const event3 = generateSampleEvent();
+    //     generateSampleSpan(null, null, 'b000000000000000', 'a000000000000000', event3);
+    //     generateSampleSpan(null, null, 'c000000000000000', 'a000000000000000', event3);
+    //     generateSampleSpan(null, null, 'd000000000000000', 'a000000000000000', event3);
+    //     generateSampleSpan(null, null, 'e000000000000000', 'a000000000000000', event3);
+    //     generateSampleSpan(null, null, 'f000000000000000', 'a000000000000000', event3);
 
-      expect(await screen.findByTestId('span-row-2')).toHaveTextContent(
-        /Autogrouped — siblings/
-      );
-    });
+    //     rerender(
+    //       <TraceView
+    //         organization={data.organization}
+    //         waterfallModel={new WaterfallModel(event3)}
+    //       />
+    //     );
 
-    it('should automatically expand a sibling span group and select a span if it is anchored', async () => {
-      const data = initializeData({});
+    //     expect(await screen.findByTestId('span-row-2')).toHaveTextContent(
+    //       /Autogrouped — siblings/
+    //     );
+    //   });
 
-      const event = generateSampleEvent();
-      generateSampleSpan(
-        'group me',
-        'http',
-        'b000000000000000',
-        'a000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'c000000000000000',
-        'a000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'd000000000000000',
-        'a000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'e000000000000000',
-        'a000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'f000000000000000',
-        'a000000000000000',
-        event
-      );
+    //   it('should automatically expand a sibling span group and select a span if it is anchored', async () => {
+    //     const data = initializeData({});
 
-      // Manually set the hash here, the AnchorLinkManager is expected to automatically expand the group and scroll to the span with this id
-      location.hash = spanTargetHash('c000000000000000');
+    //     const event = generateSampleEvent();
+    //     generateSampleSpan(
+    //       'group me',
+    //       'http',
+    //       'b000000000000000',
+    //       'a000000000000000',
+    //       event
+    //     );
+    //     generateSampleSpan(
+    //       'group me',
+    //       'http',
+    //       'c000000000000000',
+    //       'a000000000000000',
+    //       event
+    //     );
+    //     generateSampleSpan(
+    //       'group me',
+    //       'http',
+    //       'd000000000000000',
+    //       'a000000000000000',
+    //       event
+    //     );
+    //     generateSampleSpan(
+    //       'group me',
+    //       'http',
+    //       'e000000000000000',
+    //       'a000000000000000',
+    //       event
+    //     );
+    //     generateSampleSpan(
+    //       'group me',
+    //       'http',
+    //       'f000000000000000',
+    //       'a000000000000000',
+    //       event
+    //     );
 
-      const waterfallModel = new WaterfallModel(event);
+    //     // Manually set the hash here, the AnchorLinkManager is expected to automatically expand the group and scroll to the span with this id
+    //     location.hash = spanTargetHash('c000000000000000');
 
-      render(
-        <AnchorLinkManager.Provider>
-          <TraceView organization={data.organization} waterfallModel={waterfallModel} />
-        </AnchorLinkManager.Provider>
-      );
+    //     const waterfallModel = new WaterfallModel(event);
 
-      expect(await screen.findByText(/c000000000000000/i)).toBeInTheDocument();
-      location.hash = '';
-    });
+    //     render(
+    //       <AnchorLinkManager.Provider>
+    //         <TraceView organization={data.organization} waterfallModel={waterfallModel} />
+    //       </AnchorLinkManager.Provider>
+    //     );
 
-    it('should automatically expand a descendant span group and select a span if it is anchored', async () => {
-      const data = initializeData({});
+    //     expect(await screen.findByText(/c000000000000000/i)).toBeInTheDocument();
+    //     location.hash = '';
+    //   });
 
-      const event = generateSampleEvent();
-      generateSampleSpan(
-        'group me',
-        'http',
-        'b000000000000000',
-        'a000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'c000000000000000',
-        'b000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'd000000000000000',
-        'c000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'e000000000000000',
-        'd000000000000000',
-        event
-      );
-      generateSampleSpan(
-        'group me',
-        'http',
-        'f000000000000000',
-        'e000000000000000',
-        event
-      );
+    //   it('should automatically expand a descendant span group and select a span if it is anchored', async () => {
+    //     const data = initializeData({});
 
-      location.hash = spanTargetHash('d000000000000000');
+    //     const event = generateSampleEvent();
+    //     generateSampleSpan(
+    //       'group me',
+    //       'http',
+    //       'b000000000000000',
+    //       'a000000000000000',
+    //       event
+    //     );
+    //     generateSampleSpan(
+    //       'group me',
+    //       'http',
+    //       'c000000000000000',
+    //       'b000000000000000',
+    //       event
+    //     );
+    //     generateSampleSpan(
+    //       'group me',
+    //       'http',
+    //       'd000000000000000',
+    //       'c000000000000000',
+    //       event
+    //     );
+    //     generateSampleSpan(
+    //       'group me',
+    //       'http',
+    //       'e000000000000000',
+    //       'd000000000000000',
+    //       event
+    //     );
+    //     generateSampleSpan(
+    //       'group me',
+    //       'http',
+    //       'f000000000000000',
+    //       'e000000000000000',
+    //       event
+    //     );
 
-      const waterfallModel = new WaterfallModel(event);
+    //     location.hash = spanTargetHash('d000000000000000');
 
-      render(
-        <AnchorLinkManager.Provider>
-          <TraceView organization={data.organization} waterfallModel={waterfallModel} />
-        </AnchorLinkManager.Provider>
-      );
+    //     const waterfallModel = new WaterfallModel(event);
 
-      expect(await screen.findByText(/d000000000000000/i)).toBeInTheDocument();
-      location.hash = '';
-    });
+    //     render(
+    //       <AnchorLinkManager.Provider>
+    //         <TraceView organization={data.organization} waterfallModel={waterfallModel} />
+    //       </AnchorLinkManager.Provider>
+    //     );
+
+    //     expect(await screen.findByText(/d000000000000000/i)).toBeInTheDocument();
+    //     location.hash = '';
+    //   });
   });
 
   it('should merge web vitals labels if they are too close together', () => {
