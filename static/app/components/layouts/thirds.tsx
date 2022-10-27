@@ -85,7 +85,7 @@ export const Title = styled('h1')`
  *
  * Use `noActionWrap` to disable wrapping if there are minimal actions.
  */
-export const Header = styled('div')<{noActionWrap?: boolean}>`
+export const Header = styled('header')<{noActionWrap?: boolean}>`
   display: grid;
   grid-template-columns: ${p =>
     !p.noActionWrap ? 'minmax(0, 1fr)' : 'minmax(0, 1fr) auto'};
