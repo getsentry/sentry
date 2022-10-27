@@ -79,8 +79,9 @@ function InviteRowControl({
   };
 
   return (
-    <div className={className}>
+    <li className={className}>
       <SelectControl
+        aria-label={t('Email Addresses')}
         data-test-id="select-emails"
         disabled={disabled}
         placeholder={t('Enter one or more emails')}
@@ -108,6 +109,7 @@ function InviteRowControl({
         menuIsOpen={false}
       />
       <RoleSelectControl
+        aria-label={t('Role')}
         data-test-id="select-role"
         disabled={disabled}
         value={role}
@@ -116,6 +118,7 @@ function InviteRowControl({
         onChange={onChangeRole}
       />
       <TeamSelector
+        aria-label={t('Add to Team')}
         data-test-id="select-teams"
         disabled={disabled}
         placeholder={t('Add to teams\u2026')}
@@ -132,7 +135,7 @@ function InviteRowControl({
         disabled={disableRemove}
         aria-label={t('Remove')}
       />
-    </div>
+    </li>
   );
 }
 

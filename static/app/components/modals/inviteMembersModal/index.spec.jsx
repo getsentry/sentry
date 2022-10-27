@@ -1,4 +1,7 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import selectEvent from 'react-select-event';
+
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import InviteMembersModal from 'sentry/components/modals/inviteMembersModal';
 import TeamStore from 'sentry/stores/teamStore';
@@ -40,88 +43,69 @@ describe('InviteMembersModal', function () {
   });
 
   it('renders', function () {
-    const wrapper = mountWithTheme(
-      <InviteMembersModal {...modalProps} organization={org} />
-    );
+    render(<InviteMembersModal {...modalProps} organization={org} />);
 
     // Starts with one invite row
-    expect(wrapper.find('StyledInviteRow')).toHaveLength(1);
+    expect(screen.getByRole('listitem')).toBeInTheDocument();
 
     // We have two roles loaded from the members/me endpoint, defaulting to the
     // 'member' role.
-    expect(wrapper.find('RoleSelectControl').props().roles).toHaveLength(roles.length);
-    expect(wrapper.find('RoleSelectControl SingleValue').first().text()).toBe('Member');
+    userEvent.click(screen.getByRole('textbox', {name: 'Role'}));
+    expect(screen.getAllByRole('menuitemradio')).toHaveLength(roles.length);
+    expect(screen.getByRole('menuitemradio', {name: 'Member'})).toBeChecked();
   });
 
   it('renders without organization.access', function () {
     const organization = TestStubs.Organization({access: undefined});
-    const wrapper = mountWithTheme(
-      <InviteMembersModal {...modalProps} organization={organization} />
-    );
+    render(<InviteMembersModal {...modalProps} organization={organization} />);
 
-    expect(wrapper.find('StyledInviteRow').exists()).toBe(true);
+    expect(screen.getByRole('listitem')).toBeInTheDocument();
   });
 
   it('can add a second row', function () {
-    const wrapper = mountWithTheme(
-      <InviteMembersModal {...modalProps} organization={org} />
-    );
+    render(<InviteMembersModal {...modalProps} organization={org} />);
 
-    expect(wrapper.find('StyledInviteRow')).toHaveLength(1);
-    wrapper.find('AddButton').simulate('click');
-    expect(wrapper.find('StyledInviteRow')).toHaveLength(2);
+    expect(screen.getByRole('listitem')).toBeInTheDocument();
+    userEvent.click(screen.getByRole('button', {name: 'Add another'}));
+    expect(screen.getAllByRole('listitem')).toHaveLength(2);
   });
 
   it('errors on duplicate emails', function () {
-    const wrapper = mountWithTheme(
-      <InviteMembersModal {...modalProps} organization={org} />
-    );
+    render(<InviteMembersModal {...modalProps} organization={org} />);
 
-    wrapper.find('AddButton').simulate('click');
-    expect(wrapper.find('StyledInviteRow')).toHaveLength(2);
+    userEvent.click(screen.getByRole('button', {name: 'Add another'}));
 
-    const rows = wrapper.find('StyledInviteRow');
+    const emailInputs = screen.getAllByRole('textbox', {name: 'Email Addresses'});
 
-    rows
-      .at(0)
-      .props()
-      .onChangeEmails([{value: 'test@test.com'}]);
-    rows
-      .at(1)
-      .props()
-      .onChangeEmails([{value: 'test@test.com'}]);
-    wrapper.update();
+    userEvent.type(emailInputs[0], 'test@test.com');
+    userEvent.tab();
 
-    expect(wrapper.find('StatusMessage[status="error"]').text()).toBe(
-      'Duplicate emails between invite rows.'
-    );
+    userEvent.type(emailInputs[1], 'test@test.com');
+    userEvent.tab();
+
+    expect(screen.getByText('Duplicate emails between invite rows.')).toBeInTheDocument();
   });
 
   it('indicates the total invites on the invite button', function () {
-    const wrapper = mountWithTheme(
-      <InviteMembersModal {...modalProps} organization={org} />
-    );
+    render(<InviteMembersModal {...modalProps} organization={org} />);
 
-    wrapper
-      .find('StyledInviteRow')
-      .first()
-      .props()
-      .onChangeEmails([{value: 'test1@test.com'}, {value: 'test2@test.com'}]);
-    wrapper.update();
+    const emailInput = screen.getByRole('textbox', {name: 'Email Addresses'});
 
-    expect(wrapper.find('Button[data-test-id="send-invites"]').text()).toBe(
-      'Send invites (2)'
-    );
+    userEvent.type(emailInput, 'test@test.com');
+    userEvent.tab();
+
+    userEvent.type(emailInput, 'test2@test.com');
+    userEvent.tab();
+
+    expect(screen.getByRole('button', {name: 'Send invites (2)'})).toBeInTheDocument();
   });
 
   it('can be closed', function () {
     const close = jest.fn();
 
-    const wrapper = mountWithTheme(
-      <InviteMembersModal {...modalProps} organization={org} closeModal={close} />
-    );
+    render(<InviteMembersModal {...modalProps} organization={org} closeModal={close} />);
 
-    wrapper.find('Button[data-test-id="cancel"]').simulate('click');
+    userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
     expect(close).toHaveBeenCalled();
   });
 
@@ -131,26 +115,24 @@ describe('InviteMembersModal', function () {
       method: 'POST',
     });
 
-    const wrapper = mountWithTheme(
-      <InviteMembersModal {...modalProps} organization={org} />
-    );
-
-    wrapper.find('AddButton').simulate('click');
+    render(<InviteMembersModal {...modalProps} organization={org} />);
 
     // Setup two rows, one email each, the first with a admin role.
-    const inviteRowProps = wrapper.find('StyledInviteRow').first().props();
+    userEvent.click(screen.getByRole('button', {name: 'Add another'}));
 
-    inviteRowProps.onChangeEmails([{value: 'test1@test.com'}]);
-    inviteRowProps.onChangeRole({value: 'admin'});
-    inviteRowProps.onChangeTeams([{value: 'team1'}]);
-    wrapper
-      .find('StyledInviteRow')
-      .at(1)
-      .props()
-      .onChangeEmails([{value: 'test2@test.com'}]);
+    const emailInputs = screen.getAllByRole('textbox', {name: 'Email Addresses'});
+    const roleInputs = screen.getAllByRole('textbox', {name: 'Role'});
+    const teamInputs = screen.getAllByRole('textbox', {name: 'Add to Team'});
 
-    wrapper.update();
-    wrapper.find('FooterContent Button[priority="primary"]').simulate('click');
+    userEvent.type(emailInputs[0], 'test1@test.com');
+    userEvent.tab();
+    await selectEvent.select(roleInputs[0], 'Admin');
+    await selectEvent.select(teamInputs[0], '#team-slug');
+
+    userEvent.type(emailInputs[1], 'test2@test.com');
+    userEvent.tab();
+
+    userEvent.click(screen.getByRole('button', {name: 'Send invites (2)'}));
 
     // Verify data sent to the backend
     expect(createMemberMock).toHaveBeenCalledTimes(2);
@@ -159,7 +141,7 @@ describe('InviteMembersModal', function () {
       1,
       `/organizations/${org.slug}/members/`,
       expect.objectContaining({
-        data: {email: 'test1@test.com', role: 'admin', teams: ['team1']},
+        data: {email: 'test1@test.com', role: 'admin', teams: ['team-slug']},
       })
     );
     expect(createMemberMock).toHaveBeenNthCalledWith(
@@ -170,31 +152,30 @@ describe('InviteMembersModal', function () {
       })
     );
 
-    // Pending invites being created..
+    // Pending invites being created...
+
+    // three loading indicators (one for each email + a global "sending")
+    expect(screen.getAllByTestId('loading-indicator')).toHaveLength(3);
+
     expect(
-      wrapper.find('InviteRowControl SelectControl EmailLabel LoadingIndicator')
-    ).toHaveLength(2);
+      screen.getByText('Sending organization invitations\u2026')
+    ).toBeInTheDocument();
 
-    expect(wrapper.find('Button[data-test-id="cancel"][disabled]').exists()).toBe(true);
-    expect(wrapper.find('Button[data-test-id="send-invites"][disabled]').exists()).toBe(
-      true
-    );
-    expect(wrapper.find('StatusMessage LoadingIndicator').exists()).toBe(true);
+    expect(screen.getByRole('button', {name: 'Send invites (2)'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Cancel'})).toBeDisabled();
 
-    // Await request completion
-    await tick();
-    wrapper.update();
+    // Wait for them to finish
+    expect(
+      await screen.findByText(textWithMarkupMatcher('Sent 2 invites'))
+    ).toBeInTheDocument();
 
-    expect(wrapper.find('StatusMessage').text()).toBe('Sent 2 invites');
-    expect(wrapper.find('Button[data-test-id="close"]').exists()).toBe(true);
-    expect(wrapper.find('Button[data-test-id="send-more"]').exists()).toBe(true);
-    expect(wrapper.find('SelectControl EmailLabel IconCheckmark').exists()).toBe(true);
+    expect(screen.getByRole('button', {name: 'Close'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Send more invites'})).toBeInTheDocument();
 
     // Send more reset the modal
-    wrapper.find('Button[data-test-id="send-more"]').simulate('click');
-    expect(wrapper.find('InviteRowControl SelectControl EmailLabel').exists()).toBe(
-      false
-    );
+    userEvent.click(screen.getByRole('button', {name: 'Send more invites'}));
+
+    expect(screen.getByRole('button', {name: 'Send invite'})).toBeDisabled();
   });
 
   it('marks failed invites', async function () {
@@ -204,27 +185,17 @@ describe('InviteMembersModal', function () {
       statusCode: 400,
     });
 
-    const wrapper = mountWithTheme(
-      <InviteMembersModal {...modalProps} organization={org} />
-    );
+    render(<InviteMembersModal {...modalProps} organization={org} />);
 
-    const inviteRowProps = wrapper.find('StyledInviteRow').first().props();
-
-    inviteRowProps.onChangeEmails([{value: 'bademail'}]);
-    wrapper.update();
-    wrapper.find('FooterContent Button[priority="primary"]').simulate('click');
+    userEvent.type(screen.getByRole('textbox', {name: 'Email Addresses'}), 'bademail');
+    userEvent.tab();
+    userEvent.click(screen.getByRole('button', {name: 'Send invite'}));
 
     expect(faildCreateMemberMock).toHaveBeenCalled();
 
-    // Await request completion
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('StatusMessage').text()).toBe(
-      'Sent 0 invites, 1 failed to send.'
-    );
-
-    expect(wrapper.find('SelectControl EmailLabel IconWarning').exists()).toBe(true);
+    expect(
+      await screen.findByText(textWithMarkupMatcher('Sent 0 invites, 1 failed to send.'))
+    ).toBeInTheDocument();
   });
 
   it('can send initial email', async function () {
@@ -236,15 +207,14 @@ describe('InviteMembersModal', function () {
     const initialEmail = 'test@gmail.com';
     const initialData = [{emails: new Set([initialEmail])}];
 
-    const wrapper = mountWithTheme(
+    render(
       <InviteMembersModal {...modalProps} organization={org} initialData={initialData} />
     );
 
-    expect(wrapper.find('MultiValue').first().text().includes(initialEmail)).toBe(true);
+    expect(screen.getByText(initialEmail)).toBeInTheDocument();
 
-    wrapper.find('FooterContent Button[priority="primary"]').simulate('click');
-    await tick();
-    wrapper.update();
+    // Just immediately click send
+    userEvent.click(screen.getByRole('button', {name: 'Send invite'}));
 
     expect(createMemberMock).toHaveBeenCalledWith(
       `/organizations/${org.slug}/members/`,
@@ -253,7 +223,9 @@ describe('InviteMembersModal', function () {
       })
     );
 
-    expect(wrapper.find('StatusMessage').text()).toBe('Sent 1 invite');
+    expect(
+      await screen.findByText(textWithMarkupMatcher('Sent 1 invite'))
+    ).toBeInTheDocument();
   });
 
   it('can send initial email with role and team', async function () {
@@ -268,31 +240,15 @@ describe('InviteMembersModal', function () {
       {emails: new Set([initialEmail]), role, teams: new Set([team.slug])},
     ];
 
-    const wrapper = mountWithTheme(
+    render(
       <InviteMembersModal {...modalProps} organization={org} initialData={initialData} />
     );
 
-    expect(
-      wrapper
-        .find('SelectControl[data-test-id="select-emails"]')
-        .text()
-        .includes(initialEmail)
-    ).toBe(true);
+    // Just immediately click send
+    userEvent.click(screen.getByRole('button', {name: 'Send invite'}));
 
-    expect(
-      wrapper.find('SelectControl[data-test-id="select-role"]').text().toLowerCase()
-    ).toBe(role);
-
-    expect(
-      wrapper
-        .find('SelectControl[data-test-id="select-teams"]')
-        .text()
-        .includes(team.slug)
-    ).toBe(true);
-
-    wrapper.find('FooterContent Button[priority="primary"]').simulate('click');
-    await tick();
-    wrapper.update();
+    expect(screen.getByText(initialEmail)).toBeInTheDocument();
+    expect(screen.getByText('Admin')).toBeInTheDocument();
 
     expect(createMemberMock).toHaveBeenCalledWith(
       `/organizations/${org.slug}/members/`,
@@ -301,20 +257,20 @@ describe('InviteMembersModal', function () {
       })
     );
 
-    expect(wrapper.find('StatusMessage').text()).toBe('Sent 1 invite');
+    expect(
+      await screen.findByText(textWithMarkupMatcher('Sent 1 invite'))
+    ).toBeInTheDocument();
   });
 
   describe('member invite request mode', function () {
     it('has adjusted wording', function () {
-      const wrapper = mountWithTheme(
-        <InviteMembersModal {...modalProps} organization={noWriteOrg} />
-      );
+      render(<InviteMembersModal {...modalProps} organization={noWriteOrg} />);
 
-      expect(wrapper.find('Button[data-test-id="send-invites"]').text()).toBe(
-        'Send invite request'
-      );
+      expect(
+        screen.getByRole('button', {name: 'Send invite request'})
+      ).toBeInTheDocument();
 
-      expect(wrapper.find('Heading Tooltip').exists()).toBe(true);
+      expect(screen.getByTestId('more-information')).toBeInTheDocument();
     });
 
     it('POSTS to the invite-request endpoint', function () {
@@ -323,23 +279,21 @@ describe('InviteMembersModal', function () {
         method: 'POST',
       });
 
-      const wrapper = mountWithTheme(
-        <InviteMembersModal {...modalProps} organization={noWriteOrg} />
+      // Use initial data so we don't have to setup as much stuff
+      const initialEmail = 'test@gmail.com';
+      const initialData = [{emails: new Set(['test@gmail.com'])}];
+
+      render(
+        <InviteMembersModal
+          {...modalProps}
+          organization={noWriteOrg}
+          initialData={initialData}
+        />
       );
 
-      const inviteRowProps = wrapper.find('StyledInviteRow').first().props();
+      expect(screen.getByText(initialEmail)).toBeInTheDocument();
 
-      inviteRowProps.onChangeEmails([{value: 'test1@test.com'}]);
-      inviteRowProps.onChangeRole({value: 'admin'});
-      inviteRowProps.onChangeTeams([{value: 'team1'}]);
-      wrapper
-        .find('StyledInviteRow')
-        .first()
-        .props()
-        .onChangeEmails([{value: 'test2@test.com'}]);
-
-      wrapper.update();
-      wrapper.find('FooterContent Button[priority="primary"]').simulate('click');
+      userEvent.click(screen.getByRole('button', {name: 'Send invite request'}));
 
       expect(createInviteRequestMock).toHaveBeenCalledTimes(1);
     });
