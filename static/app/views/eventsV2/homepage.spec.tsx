@@ -311,7 +311,8 @@ describe('Discover > Homepage', () => {
     expect(screen.queryByText('14D')).not.toBeInTheDocument();
   });
 
-  it('renders changes to the discover query when no homepage', async () => {
+  // eslint-disable-next-line jest/no-disabled-tests
+  it.skip('flaky: DD-1151: renders changes to the discover query when no homepage', async () => {
     initialData = initializeOrg({
       ...initializeOrg(),
       organization,

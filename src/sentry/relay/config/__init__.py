@@ -20,8 +20,8 @@ from sentry_sdk import Hub, capture_exception
 from sentry import features, killswitches, quotas, utils
 from sentry.constants import ObjectStatus
 from sentry.datascrubbing import get_datascrubbing_settings, get_pii_config
-from sentry.dynamic_sampling import generate_rules
 from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
+from sentry.dynamic_sampling.rules_generator import generate_rules
 from sentry.grouping.api import get_grouping_config_dict_for_project
 from sentry.ingest.inbound_filters import (
     FilterStatKeys,
@@ -156,7 +156,7 @@ def get_project_config(project, full_config=True, project_keys=None):
 
 
 def get_dynamic_sampling_config(project) -> Optional[Mapping[str, Any]]:
-    feature_multiplexer = DynamicSamplingFeatureMultiplexer(project, None)
+    feature_multiplexer = DynamicSamplingFeatureMultiplexer(project)
 
     # In this case we should override old conditionnal rules if they exists
     # or just return uniform rule

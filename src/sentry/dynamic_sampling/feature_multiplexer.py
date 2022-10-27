@@ -1,6 +1,6 @@
 from typing import List, Optional, Set
 
-from sentry import features
+from sentry import features, options
 from sentry.dynamic_sampling.utils import DEFAULT_BIASES, Bias
 from sentry.models import Project
 
@@ -40,7 +40,11 @@ class DynamicSamplingFeatureMultiplexer:
 
     @property
     def is_on_dynamic_sampling(self) -> bool:
-        return self.allow_dynamic_sampling and self.current_dynamic_sampling
+        return (
+            self.allow_dynamic_sampling
+            and self.current_dynamic_sampling
+            and options.get("dynamic-sampling:enabled-biases")
+        )
 
     @staticmethod
     def get_user_biases(user_set_biases: Optional[List[Bias]]) -> List[Bias]:
@@ -56,13 +60,11 @@ class DynamicSamplingFeatureMultiplexer:
                 returned_biases.append(bias)
         return returned_biases
 
+    @classmethod
+    def get_enabled_user_biases(cls, user_set_biases: Optional[List[Bias]]) -> Set[str]:
+        users_biases = cls.get_user_biases(user_set_biases)
+        return {bias["id"] for bias in users_biases if bias["active"]}
+
     @staticmethod
     def get_supported_biases_ids() -> Set[str]:
         return {bias["id"] for bias in DEFAULT_BIASES}
-
-    @classmethod
-    def get_user_bias_by_id(cls, bias_id: str, user_set_biases: Optional[List[Bias]]) -> Bias:
-        for bias in cls.get_user_biases(user_set_biases):
-            if bias["id"] == bias_id:
-                return bias
-        raise ValueError(f"{bias_id} is not in supported biases")
