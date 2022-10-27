@@ -583,6 +583,10 @@ def transform_null_to_unparameterized_snql(org_id, tag_key, alias=None):
     )
 
 
+# TODO: this function is currently here because of simplicity, we would like to try and sync with DND team to let
+#  them own it and we will base our APDEX implementation on top of it. Currently the issue is that there is another
+#  implementation of this function in [src/sentry/search/events/datasets/discover.py#L1039-L1039] and we want to
+#  avoid having one missed in case of a logic update in the other.
 def _resolve_project_threshold_config(project_ids, org_id):
     project_threshold_configs = (
         ProjectTransactionThreshold.objects.filter(
