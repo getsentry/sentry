@@ -12,7 +12,7 @@ import BreadcrumbDropdown, {
   BreadcrumbDropdownProps,
 } from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
 
-const BreadcrumbList = styled('div')`
+const BreadcrumbList = styled('nav')`
   display: flex;
   align-items: center;
   padding: ${space(1)} 0;

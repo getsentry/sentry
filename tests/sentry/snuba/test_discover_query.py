@@ -2196,8 +2196,8 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         event_hour = self.event_time.replace(minute=0, second=0)
         assert data[0]["timestamp.to_hour"] == iso_format(event_hour) + "+00:00"
 
-        assert len(result["meta"]) == 4
-        assert result["meta"] == {
+        assert len(result["meta"]["fields"]) == 4
+        assert result["meta"]["fields"] == {
             "project.id": "integer",
             "user": "string",
             "release": "string",
@@ -2216,8 +2216,8 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[0]["user"] == "id:99"
         assert data[0]["user.email"] == "bruce@example.com"
 
-        assert len(result["meta"]) == 3
-        assert result["meta"] == {
+        assert len(result["meta"]["fields"]) == 3
+        assert result["meta"]["fields"] == {
             "project.id": "integer",
             "user": "string",
             "user.email": "string",
@@ -2261,8 +2261,8 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[0]["release"] == "first-release"
         assert data[0]["project.name"] == self.project.slug
 
-        assert len(result["meta"]) == 4
-        assert result["meta"] == {
+        assert len(result["meta"]["fields"]) == 4
+        assert result["meta"]["fields"] == {
             "user.email": "string",
             "release": "string",
             "id": "string",
@@ -2792,8 +2792,8 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[0]["user"] == "id:99"
         assert data[0]["release"] == "first-release"
 
-        assert len(result["meta"]) == 3
-        assert result["meta"] == {
+        assert len(result["meta"]["fields"]) == 3
+        assert result["meta"]["fields"] == {
             "project.id": "integer",
             "user": "string",
             "release": "string",
@@ -2956,7 +2956,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             use_aggregate_conditions=True,
         )
 
-        assert results["meta"] == {
+        assert results["meta"]["fields"] == {
             "p50_measurements_lcp": "duration",
             "p50_measurements_foo": "number",
             "p50_spans_foo": "duration",

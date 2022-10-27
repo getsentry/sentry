@@ -151,6 +151,7 @@ type State = AsyncView['state'] & {
   previewGroups: string[] | null;
   previewPage: number;
   project: Project;
+  sendingNotification: boolean;
   uuid: null | string;
   duplicateTargetRule?: UnsavedIssueAlertRule | IssueAlertRule | null;
   ownership?: null | IssueOwnership;
@@ -197,12 +198,12 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     const prevRule = prevState.rule;
     const curRule = this.state.rule;
     return (
-      prevRule?.conditions !== curRule?.conditions ||
-      prevRule?.filters !== curRule?.filters ||
+      JSON.stringify(prevRule?.conditions) !== JSON.stringify(curRule?.conditions) ||
+      JSON.stringify(prevRule?.filters) !== JSON.stringify(curRule?.filters) ||
       prevRule?.actionMatch !== curRule?.actionMatch ||
       prevRule?.filterMatch !== curRule?.filterMatch ||
       prevRule?.frequency !== curRule?.frequency ||
-      prevState.project !== this.state.project
+      JSON.stringify(prevState.project) !== JSON.stringify(this.state.project)
     );
   }
 
@@ -235,6 +236,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       issueCount: 0,
       previewPage: 0,
       loadingPreview: false,
+      sendingNotification: false,
     };
 
     const projectTeamIds = new Set(project.teams.map(({id}) => id));
@@ -437,6 +439,29 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       this.pollHandler(quitTime);
     }, 1000);
   }
+
+  testNotifications = () => {
+    const {organization} = this.props;
+    const {project, rule} = this.state;
+    this.setState({sendingNotification: true});
+    addLoadingMessage(t('Sending a test notification...'));
+    this.api
+      .requestPromise(`/projects/${organization.slug}/${project.slug}/rule-actions/`, {
+        method: 'POST',
+        data: {
+          actions: rule?.actions ?? [],
+        },
+      })
+      .then(() => {
+        addSuccessMessage(t('Notification sent!'));
+      })
+      .catch(() => {
+        addErrorMessage(t('Notification failed'));
+      })
+      .finally(() => {
+        this.setState({sendingNotification: false});
+      });
+  };
 
   handleRuleSuccess = (isNew: boolean, rule: IssueAlertRule) => {
     const {organization, router} = this.props;
@@ -1041,7 +1066,8 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
   renderBody() {
     const {organization} = this.props;
-    const {project, rule, detailedError, loading, ownership} = this.state;
+    const {project, rule, detailedError, loading, ownership, sendingNotification} =
+      this.state;
     const {actions, filters, conditions, frequency} = rule || {};
 
     const environment =
@@ -1285,6 +1311,24 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                                 )
                               }
                             />
+                            <Feature
+                              organization={organization}
+                              features={['issue-alert-test-notifications']}
+                            >
+                              <TestButtonWrapper>
+                                <Button
+                                  type="button"
+                                  onClick={this.testNotifications}
+                                  disabled={
+                                    sendingNotification ||
+                                    rule?.actions === undefined ||
+                                    rule?.actions.length === 0
+                                  }
+                                >
+                                  {t('Test Notifications')}
+                                </Button>
+                              </TestButtonWrapper>
+                            </Feature>
                           </StepContent>
                         </StepContainer>
                       </Step>
@@ -1389,6 +1433,10 @@ const StepLead = styled('div')`
     align-items: center;
     gap: ${space(0.5)};
   }
+`;
+
+const TestButtonWrapper = styled('div')`
+  margin-top: ${space(1.5)};
 `;
 
 const ChevronContainer = styled('div')`
