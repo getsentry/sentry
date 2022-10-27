@@ -1,4 +1,4 @@
-import {useCallback, useRef, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import {Mention, MentionsInput, MentionsInputProps} from 'react-mentions';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -148,7 +148,7 @@ function NoteInput({
     [canSubmit, submitForm]
   );
 
-  const errorId = useRef(domId('note-error-'));
+  const errorId = useMemo(() => domId('note-error-'), []);
   const errorMessage =
     (errorJSON &&
       (typeof errorJSON.detail === 'string'
@@ -167,7 +167,7 @@ function NoteInput({
         <NoteInputPanel>
           <Item key="edit">
             <MentionsInput
-              aria-errormessage={errorMessage ? errorId.current : undefined}
+              aria-errormessage={errorMessage ? errorId : undefined}
               style={mentionStyle({theme, minHeight})}
               placeholder={placeholder}
               onChange={handleChange}
@@ -203,7 +203,7 @@ function NoteInput({
       </Tabs>
       <Footer>
         {errorMessage ? (
-          <div id={errorId.current}>
+          <div id={errorId}>
             {errorMessage && <ErrorMessage>{errorMessage}</ErrorMessage>}
           </div>
         ) : (
