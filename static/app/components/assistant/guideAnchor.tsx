@@ -44,7 +44,6 @@ type Props = {
 type State = {
   active: boolean;
   orgId: string | null;
-  orgSlug: string | null;
   step: number;
   currentGuide?: Guide;
 };
@@ -54,7 +53,6 @@ class BaseGuideAnchor extends Component<Props, State> {
     active: false,
     step: 0,
     orgId: null,
-    orgSlug: null,
   };
 
   componentDidMount() {
@@ -98,7 +96,6 @@ class BaseGuideAnchor extends Component<Props, State> {
       currentGuide: data.currentGuide ?? undefined,
       step: data.currentStep,
       orgId: data.orgId,
-      orgSlug: data.orgSlug,
     });
   }
 
@@ -114,9 +111,9 @@ class BaseGuideAnchor extends Component<Props, State> {
     this.props.onStepComplete?.(e);
     this.props.onFinish?.(e);
 
-    const {currentGuide, orgId, orgSlug} = this.state;
+    const {currentGuide, orgId} = this.state;
     if (currentGuide) {
-      recordFinish(currentGuide.guide, orgId, orgSlug);
+      recordFinish(currentGuide.guide, orgId);
     }
     closeGuide();
   };
