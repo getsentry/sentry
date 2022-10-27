@@ -1032,6 +1032,8 @@ SENTRY_FEATURES = {
     "organizations:incidents": False,
     # Enable issue alert previews
     "organizations:issue-alert-preview": False,
+    # Enable issue alert test notifications
+    "organizations:issue-alert-test-notifications": False,
     # Whether to allow issue only search on the issue list
     "organizations:issue-search-allow-postgres-only-search": False,
     # Flags for enabling CdcEventsDatasetSnubaSearchBackend in sentry.io. No effect in open-source
@@ -1122,6 +1124,8 @@ SENTRY_FEATURES = {
     "organizations:issue-details-owners": False,
     # Enable removing issue from issue list if action taken.
     "organizations:issue-list-removal-action": False,
+    # Enable new saved searches sidebar and visibility features
+    "organizations:issue-list-saved-searches-v2": False,
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
@@ -1145,10 +1149,14 @@ SENTRY_FEATURES = {
     "organizations:performance-span-tree-autoscroll": False,
     # Enable transaction name only search
     "organizations:performance-transaction-name-only-search": False,
+    # Re-enable histograms for Metrics Enhanced Performance Views
+    "organizations:performance-mep-reintroduce-histograms": False,
     # Enable showing INP web vital in default views
     "organizations:performance-vitals-inp": False,
     # Enable processing transactions in post_process_group
     "organizations:performance-issues-post-process-group": False,
+    # Enable internal view for bannerless MEP view
+    "organizations:performance-mep-bannerless-ui": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable populating suggested assignees with release committers

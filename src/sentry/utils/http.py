@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, NamedTuple
+from typing import TYPE_CHECKING, NamedTuple, overload
 from urllib.parse import quote, urljoin, urlparse
 
 from django.conf import settings
@@ -37,7 +37,17 @@ def create_redirect_url(request: Request, redirect_url: str) -> str:
     return f"{redirect_url}{qs}"
 
 
+@overload
 def origin_from_url(url: str) -> str:
+    ...
+
+
+@overload
+def origin_from_url(url: None) -> None:
+    ...
+
+
+def origin_from_url(url: str | None) -> str | None:
     if not url:
         return url
     parsed = urlparse(url)
@@ -182,12 +192,12 @@ def is_valid_origin(
     return False
 
 
-def origin_from_request(request: HttpRequest) -> str:
+def origin_from_request(request: HttpRequest) -> str | None:
     """
     Returns either the Origin or Referer value from the request headers,
     ignoring "null" Origins.
     """
-    rv: str = request.META.get("HTTP_ORIGIN", "null")
+    rv: str | None = request.META.get("HTTP_ORIGIN", "null")
     # In some situation, an Origin header may be the literal value
     # "null". This means that the Origin header was stripped for
     # privacy reasons, but we should ignore this value entirely.
