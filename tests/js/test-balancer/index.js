@@ -1,6 +1,7 @@
 /* eslint-env node */
 /* eslint import/no-nodejs-modules:0 */
 const fs = require('fs');
+const path = require('path');
 
 module.exports = results => {
   if (!results.success) {

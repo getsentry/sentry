@@ -1,5 +1,5 @@
 name: jest balancer
-on: [workflow_dispatch]
+on: [pull_request, workflow_dispatch]
 jobs:
   jest-balance:
     # Buckle up, this may take a while
@@ -22,10 +22,16 @@ jobs:
         env:
           GITHUB_PR_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           GITHUB_PR_REF: ${{ github.event.pull_request.head.ref || github.ref }}
-        run: JEST_TEST_BALANCER=1 yarn test-ci
-      - name: Archive artifacts
-        uses: actions/upload-artifact@v3
+        run: JEST_TEST_BALANCER=1 yarn test-ci static/app/utils/profiling/profile
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@b4d51739f96fca8047ad065eccef63442d8e99f7 # v4.2.0
         with:
-          name: ${{ github.sha }}
-          path: |
-            ${{ github.workspace }}/tests/js/test-balancer/jest-balance.json
+          add-paths: |
+            tests/js/test-balancer/jest-balance.json
+          commit-message: 'ci(jest): regenerate jest-balance.json'
+          branch: 'ci/jest/rebalance-tests'
+          delete-branch: true
+          title: 'ci(jest): regenerate jest-balance.json'
+          body: |
+            This PR was auto-generated - it updates the \`jest-balance.json\` file with new test run data from CI.,
