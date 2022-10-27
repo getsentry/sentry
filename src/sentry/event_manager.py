@@ -18,6 +18,7 @@ from typing import (
     MutableMapping,
     Optional,
     Sequence,
+    Tuple,
     Type,
     TypedDict,
     Union,
@@ -2215,7 +2216,7 @@ class PerformanceJob(TypedDict, total=False):
 
 def _save_grouphash_and_group(
     project: Project, event: Event, new_grouphash: str, **group_kwargs: dict[str, Any]
-) -> Group:
+) -> Tuple[Group, bool]:
     group = None
     with transaction.atomic():
         group_hash, created = GroupHash.objects.get_or_create(project=project, hash=new_grouphash)
@@ -2229,7 +2230,7 @@ def _save_grouphash_and_group(
         # Group, we can guarantee that the Group will exist at this point and
         # fetch it via GroupHash
         group = Group.objects.get(grouphash__project=project, grouphash__hash=new_grouphash)
-    return group
+    return group, created
 
 
 @metrics.wraps("save_event.save_aggregate_performance")
@@ -2313,11 +2314,10 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
                             group_kwargs["data"]["metadata"], problem
                         )
 
-                        group = _save_grouphash_and_group(
+                        group, is_new = _save_grouphash_and_group(
                             project, event, new_grouphash, **group_kwargs
                         )
 
-                        is_new = True
                         is_regression = False
 
                         span.set_tag("create_group_transaction.outcome", "new_group")
