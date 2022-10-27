@@ -22,7 +22,7 @@ jobs:
         env:
           GITHUB_PR_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           GITHUB_PR_REF: ${{ github.event.pull_request.head.ref || github.ref }}
-        run: JEST_TEST_BALANCER=1 yarn test-ci static/app/utils/profiling/profile
+        run: JEST_TEST_BALANCER=1 yarn test-ci
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@b4d51739f96fca8047ad065eccef63442d8e99f7 # v4.2.0
