@@ -132,7 +132,7 @@ python-u2flib-server==5.0.0
 python-utils==3.3.3
 python3-saml==1.14.0
 pytz==2018.9
-pyupgrade==2.37.2
+pyupgrade==3.1.0
 pyuwsgi==2.0.20.0
 pyyaml==5.4
 rb==1.9.0
@@ -159,7 +159,7 @@ sqlparse==0.3.0
 statsd==3.3
 structlog==21.1.0
 symbolic==10.0.0
-tokenize-rt==4.2.1
+tokenize-rt==5.0.0
 toml==0.10.2
 tomli==2.0.1
 toronado==0.1.0
