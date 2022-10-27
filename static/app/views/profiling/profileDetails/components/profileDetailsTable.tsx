@@ -313,12 +313,12 @@ const COLUMNS: Record<TableColumnKey, TableColumn> = {
   },
   p75: {
     key: 'p75',
-    name: t('P75'),
+    name: t('P75(Self)'),
     width: COL_WIDTH_UNDEFINED,
   },
   p95: {
     key: 'p95',
-    name: t('P95'),
+    name: t('P95(Self)'),
     width: COL_WIDTH_UNDEFINED,
   },
   count: {
@@ -328,15 +328,16 @@ const COLUMNS: Record<TableColumnKey, TableColumn> = {
   },
 };
 
-const quantile = (arr: number[], q: number) => {
-  const sorted = arr.sort();
-  const pos = (sorted.length - 1) * q;
-  const base = Math.floor(pos);
-  const rest = pos - base;
-  if (sorted[base + 1] !== undefined) {
-    return sorted[base] + rest * (sorted[base + 1] - sorted[base]);
+const quantile = (arr: readonly number[], q: number) => {
+  const sorted = Array.from(arr).sort((a, b) => a - b);
+  const position = q * (sorted.length - 1);
+  const int = Math.floor(position);
+  const frac = position % 1;
+  if (position === int) {
+    return sorted[position];
   }
-  return sorted[base];
+
+  return sorted[int] * (1 - frac) + sorted[int + 1] * frac;
 };
 
 const p75AggregateColumn: AggregateColumnConfig<TableColumnKey> = {
@@ -380,7 +381,7 @@ interface GroupByOptions<T> {
 const GROUP_BY_OPTIONS: Record<string, GroupByOptions<TableColumnKey>> = {
   occurrence: {
     option: {
-      label: t('All Functions'),
+      label: t('Slowest Functions'),
       value: 'occurrence',
     },
     columns: ['symbol', 'image', 'file', 'thread', 'type', 'self weight', 'total weight'],
