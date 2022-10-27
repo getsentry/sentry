@@ -18,6 +18,7 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeatureBadge from 'sentry/components/featureBadge';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel, PanelFooter, PanelHeader} from 'sentry/components/panels';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -69,6 +70,10 @@ import {SamplingPromo} from './samplingPromo';
 import {SamplingSDKClientRateChangeAlert} from './samplingSDKClientRateChangeAlert';
 import {SamplingSDKUpgradesAlert} from './samplingSDKUpgradesAlert';
 import {isUniformRule, SERVER_SIDE_SAMPLING_DOC_LINK} from './utils';
+
+const LimitedAvailabilityProgramEndingAlert = HookOrDefault({
+  hookName: 'component:dynamic-sampling-limited-availability-program-ending',
+});
 
 type Props = {
   project: Project;
@@ -498,17 +503,12 @@ export function ServerSideSampling({project}: Props) {
         />
         <TextBlock>
           {tct(
-            'Improve the accuracy of your [performanceMetrics: performance metrics] and [targetTransactions: target those transactions] which are most valuable for your organization. Server-side rules are applied immediately, with no need to re-deploy your app. To learn more about our beta program, [faqLink: visit our FAQ].',
+            'Improve the accuracy of your [performanceMetrics: performance metrics] and [targetTransactions: target those transactions] which are most valuable for your organization. Server-side rules are applied immediately, without having to re-deploy your app.',
             {
               performanceMetrics: (
                 <ExternalLink href="https://docs.sentry.io/product/performance/metrics/#metrics-and-sampling" />
               ),
               targetTransactions: <ExternalLink href={SERVER_SIDE_SAMPLING_DOC_LINK} />,
-
-              faqLink: (
-                <ExternalLink href="https://help.sentry.io/account/account-settings/dynamic-sampling/" />
-              ),
-              docsLink: <ExternalLink href={SERVER_SIDE_SAMPLING_DOC_LINK} />,
             }
           )}
         </TextBlock>
@@ -518,6 +518,8 @@ export function ServerSideSampling({project}: Props) {
             'These settings can only be edited by users with the organization owner, manager, or admin role.'
           )}
         />
+
+        <LimitedAvailabilityProgramEndingAlert />
 
         <SamplingProjectIncompatibleAlert
           organization={organization}
