@@ -12,7 +12,7 @@ from sentry.api.base import Endpoint, pending_silo_endpoint
 from sentry.assistant import manager
 from sentry.models import AssistantActivity
 
-VALID_STATUSES = frozenset(("viewed", "dismissed"))
+VALID_STATUSES = frozenset(("viewed", "dismissed", "restart"))
 
 
 class AssistantSerializer(serializers.Serializer):
@@ -51,7 +51,7 @@ class AssistantEndpoint(Endpoint):
     permission_classes = (IsAuthenticated,)
 
     def get(self, request: Request) -> Response:
-        """Return all the guides with a 'seen' attribute if it has been 'viewed' or 'dismissed'."""
+        """Return all the guides with a 'seen' attribute if it has been 'viewed' o 'dismissed'."""
         guide_map = deepcopy(manager.all())
         seen_ids = set(
             AssistantActivity.objects.filter(user=request.user).values_list("guide_id", flat=True)
@@ -65,7 +65,7 @@ class AssistantEndpoint(Endpoint):
         Request is of the form {
             'guide_id': <guide_id> - OR -
             'guide': guide key (e.g. 'issue'),
-            'status': 'viewed' / 'dismissed',
+            'status': 'viewed' / 'dismissed' / 'restart',
             'useful' (optional): true / false,
         }
         """
@@ -81,16 +81,19 @@ class AssistantEndpoint(Endpoint):
         useful = data.get("useful")
 
         fields = {}
-        if useful is not None:
-            fields["useful"] = useful
-        if status == "viewed":
-            fields["viewed_ts"] = timezone.now()
-        elif status == "dismissed":
-            fields["dismissed_ts"] = timezone.now()
+        if status == "restart":
+            AssistantActivity.objects.filter(user=request.user, guide_id=guide_id).delete()
+        else:
+            if useful is not None:
+                fields["useful"] = useful
+            if status == "viewed":
+                fields["viewed_ts"] = timezone.now()
+            elif status == "dismissed":
+                fields["dismissed_ts"] = timezone.now()
 
-        try:
-            AssistantActivity.objects.create(user=request.user, guide_id=guide_id, **fields)
-        except IntegrityError:
-            pass
+            try:
+                AssistantActivity.objects.create(user=request.user, guide_id=guide_id, **fields)
+            except IntegrityError:
+                pass
 
         return HttpResponse(status=201)
