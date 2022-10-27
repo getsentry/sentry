@@ -40,7 +40,9 @@ function ReplayCount({orgId, groupId}: Props) {
         const replayCount = tableData?.data?.length ?? 0;
         if (replayCount > 0) {
           return (
-            <Tooltip title={t(`This issue has ${replayCount} replays available to view`)}>
+            <Tooltip
+              title={t('This issue has %s replays available to view', replayCount)}
+            >
               <ReplayCountLink
                 to={`/organizations/${orgId}/issues/${groupId}/replays/`}
                 data-test-id="replay-count"
