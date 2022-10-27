@@ -199,6 +199,7 @@ const BaseDropdownMenuItem: React.ForwardRefRenderFunction<HTMLLIElement, Props>
 
   return (
     <MenuListItem
+      aria-haspopup={isSubmenuTrigger}
       ref={mergeRefs([ref, forwardedRef])}
       as={renderAs}
       data-test-id={key}
@@ -213,7 +214,6 @@ const BaseDropdownMenuItem: React.ForwardRefRenderFunction<HTMLLIElement, Props>
       {...props}
       {...itemProps}
       {...(isSubmenuTrigger && {
-        role: 'menuitemradio',
         trailingItems: (
           <Fragment>
             {itemProps.trailingItems}

@@ -61,7 +61,7 @@ describe('CompactSelect', function () {
     userEvent.click(screen.getByRole('button'));
 
     // select Option One
-    userEvent.click(screen.getByText('Option One'));
+    userEvent.click(screen.getByRole('menuitemradio', {name: 'Option One'}));
 
     expect(mock).toHaveBeenCalledWith({value: 'opt_one', label: 'Option One'});
     expect(screen.getByRole('button', {name: 'Option One'})).toBeInTheDocument();
@@ -84,8 +84,8 @@ describe('CompactSelect', function () {
     userEvent.click(screen.getByRole('button'));
 
     // select Option One & Option Two
-    userEvent.click(screen.getByText('Option One'));
-    userEvent.click(screen.getByText('Option Two'));
+    userEvent.click(screen.getByRole('menuitemcheckbox', {name: 'Option One'}));
+    userEvent.click(screen.getByRole('menuitemcheckbox', {name: 'Option Two'}));
 
     expect(mock).toHaveBeenCalledWith([
       {value: 'opt_one', label: 'Option One'},
@@ -128,8 +128,10 @@ describe('CompactSelect', function () {
     userEvent.keyboard('Two');
 
     // only Option Two should be available, Option One should be filtered out
-    expect(screen.getByText('Option Two')).toBeInTheDocument();
-    expect(screen.queryByText('Option One')).not.toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', {name: 'Option Two'})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Option One'})
+    ).not.toBeInTheDocument();
   });
 
   it('triggers onClose when the menu is closed if provided', function () {
