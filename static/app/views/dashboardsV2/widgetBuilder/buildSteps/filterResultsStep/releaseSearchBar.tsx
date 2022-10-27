@@ -21,6 +21,7 @@ const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   `^${NEGATION_OPERATOR}|\\${SEARCH_WILDCARD}`,
   'g'
 );
+
 interface Props {
   onClose: SearchBarProps['onClose'];
   organization: Organization;
@@ -58,7 +59,7 @@ export function ReleaseSearchBar({
       searchQuery,
       projectIdStrings,
       undefined,
-      true
+      {includeTransactions: true}
     ).then(
       tagValues => (tagValues as TagValue[]).map(({value}) => value),
       () => {

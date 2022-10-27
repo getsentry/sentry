@@ -85,8 +85,11 @@ export function fetchTagValues(
   search: string | null = null,
   projectIds: string[] | null = null,
   endpointParams: Query | null = null,
-  includeTransactions = false,
-  includeSessions = false,
+  include: {
+    includeReplays?: boolean;
+    includeSessions?: boolean;
+    includeTransactions?: boolean;
+  } = {},
   sort: string | null = null
 ) {
   const url = `/organizations/${orgId}/tags/${tagKey}/values/`;
@@ -109,12 +112,18 @@ export function fetchTagValues(
       query.statsPeriod = endpointParams.statsPeriod;
     }
   }
+
+  const {includeTransactions, includeSessions, includeReplays} = include;
   if (includeTransactions) {
     query.includeTransactions = '1';
   }
 
   if (includeSessions) {
     query.includeSessions = '1';
+  }
+
+  if (includeReplays) {
+    query.includeReplays = '1';
   }
 
   if (sort) {
