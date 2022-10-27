@@ -8,20 +8,15 @@ logger.setLevel(logging.INFO)
 NO_TOP_DIR = "NO_TOP_DIR"
 
 
-# XXX: Deal with the branch later
-class CodeMapping(NamedTuple):
+class Repo(NamedTuple):
     repo: str
+    branch: str
+
+
+class CodeMapping(NamedTuple):
+    repo: Repo
     stacktrace_root: str
     source_path: str
-
-
-def derive_code_mappings(stacktraces: List[str], trees: Dict[str, List[str]]) -> List[CodeMapping]:
-    """Generate the code mappings from a list of stack trace frames for a project and the trees for an org.
-
-    WARNING: Do not pass stacktraces from different projects or the wrong code mappings will be returned.
-    """
-    trees_helper = CodeMappingTreesHelper(trees)
-    return trees_helper.generate_code_mappings(stacktraces)
 
 
 # XXX: Look at sentry.interfaces.stacktrace and maybe use that
@@ -130,7 +125,7 @@ class CodeMappingTreesHelper:
         matched_files = list(
             filter(
                 lambda src_path: self._potential_match(src_path, frame_filename),
-                self.trees[repo_full_name],
+                self.trees[repo_full_name]["files"],
             )
         )
         # It is too risky generating code mappings when there's more
@@ -138,7 +133,7 @@ class CodeMappingTreesHelper:
         return (
             [
                 CodeMapping(
-                    repo=repo_full_name,
+                    repo=Repo(repo_full_name, self.trees[repo_full_name]["default_branch"]),
                     stacktrace_root=frame_filename.root,  # sentry
                     # e.g. src/sentry/identity/oauth2.py -> src/sentry
                     source_path=matched_files[0].rsplit(frame_filename.dir_path)[0].rstrip("/"),
