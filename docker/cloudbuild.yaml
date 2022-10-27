@@ -34,8 +34,6 @@ steps:
     timeout: 300s
   - name: 'gcr.io/$PROJECT_ID/docker-compose'
     id: get-self-hosted-repo
-    env:
-      - 'REPORT_SELF_HOSTED_ISSUES=0'
     waitFor: ['-']
     entrypoint: 'bash'
     args:
@@ -52,6 +50,8 @@ steps:
       - get-self-hosted-repo
     entrypoint: 'bash'
     dir: self-hosted
+    env:
+      - 'REPORT_SELF_HOSTED_ISSUES=0'
     args:
       - '-e'
       - '-c'
