@@ -73,6 +73,7 @@ function generateDiscoverEventTarget(
     orgSlug: organization.slug,
     eventSlug,
     eventView: EventView.fromLocation(newLocation),
+    isHomepage: location.query.homepage === 'true' || undefined,
   });
 }
 

@@ -18,7 +18,7 @@ import {pickBarColor, toPercent} from 'sentry/components/performance/waterfall/u
 import Tooltip from 'sentry/components/tooltip';
 import UserMisery from 'sentry/components/userMisery';
 import Version from 'sentry/components/version';
-import {IconDownload} from 'sentry/icons';
+import {IconDownload, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {AvatarProject, IssueAttachment, Organization, Project} from 'sentry/types';
@@ -53,7 +53,6 @@ import {
   FlexContainer,
   NumberContainer,
   OverflowLink,
-  StyledIconPlay,
   UserIcon,
   VersionContainer,
 } from './styles';
@@ -431,14 +430,15 @@ const SPECIAL_FIELDS: SpecialFields = {
     renderFunc: data => {
       const replayId = data?.replayId;
       if (typeof replayId !== 'string' || !replayId) {
-        return emptyValue;
+        return null;
       }
 
       return (
-        <FlexContainer>
-          <StyledIconPlay size="xs" />
-          <Container>{getShortEventId(replayId)}</Container>
-        </FlexContainer>
+        <Container>
+          <Button size="xs">
+            <IconPlay size="xs" />
+          </Button>
+        </Container>
       );
     },
   },
