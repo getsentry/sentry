@@ -1130,7 +1130,7 @@ class OrganizationReleaseCreateTest(APITestCase):
             HTTP_USER_AGENT="sentry-cli/2.77.4",
         )
 
-        assert response.status_code == 201, response.contentpy
+        assert response.status_code == 201, response.content
         assert response.data["version"]
 
         release = Release.objects.get(
