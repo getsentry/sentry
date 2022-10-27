@@ -1,39 +1,40 @@
 from datetime import datetime
+from typing import Any, List, Tuple
 
 from django.conf import settings
 from pytz import UTC
 
+from sentry.dynamic_sampling.utils import BOOSTED_RELEASES_LIMIT
 from sentry.utils import redis
 
 BOOSTED_RELEASE_TIMEOUT = 60 * 60
 ONE_DAY_TIMEOUT_MS = 60 * 60 * 24 * 1000
-BOOSTED_RELEASES_LIMIT = 10
 
 
 class TooManyBoostedReleasesException(Exception):
     pass
 
 
-def get_redis_client_for_ds():
+def get_redis_client_for_ds() -> Any:
     cluster_key = getattr(settings, "SENTRY_DYNAMIC_SAMPLING_RULES_REDIS_CLUSTER", "default")
     return redis.redis_clusters.get(cluster_key)
 
 
-def generate_cache_key_for_observed_release(project_id, release_id):
+def generate_cache_key_for_observed_release(project_id: int, release_id: int) -> str:
     """
     Generates a cache key for releases that had a transaction observed in the last 24 hours
     """
     return f"ds::p:{project_id}:r:{release_id}"
 
 
-def generate_cache_key_for_boosted_release(project_id):
+def generate_cache_key_for_boosted_release(project_id: int) -> str:
     """
     Generates a cache key for the boosted releases for a given project.
     """
     return f"ds::p:{project_id}:boosted_releases"
 
 
-def observe_release(project_id, release_id):
+def observe_release(project_id: int, release_id: int) -> bool:
     """
     Checks if release was observed in the last 24 hours, and resets the cache timeout. If the release was observed,
     returns True otherwise returns False.
@@ -49,10 +50,10 @@ def observe_release(project_id, release_id):
     #  versions these two operations can be done in a single call.
     release_observed = redis_client.getset(name=cache_key, value=1)
     redis_client.pexpire(cache_key, ONE_DAY_TIMEOUT_MS)
-    return release_observed == "1"
+    return release_observed == "1"  # type: ignore
 
 
-def get_boosted_releases(project_id):
+def get_boosted_releases(project_id: int) -> List[Tuple[int, float]]:
     """
     Function that returns the releases that should be boosted for a given project, and excludes expired releases.
     """
@@ -75,7 +76,7 @@ def get_boosted_releases(project_id):
     return boosted_releases
 
 
-def add_boosted_release(project_id, release_id):
+def add_boosted_release(project_id: int, release_id: int) -> None:
     """
     Function that adds a release to the list of active boosted releases for a given project.
     """

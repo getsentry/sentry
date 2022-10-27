@@ -13,7 +13,7 @@ import {lightTheme} from 'sentry/utils/theme';
  */
 export function mountWithTheme(tree, opts = {}) {
   const WrappingThemeProvider = props => (
-    <CacheProvider value={cache}>
+    <CacheProvider value={{...cache, compat: true}}>
       <ThemeProvider theme={lightTheme}>
         {opts.wrappingComponent ? (
           <opts.wrappingComponent>{props.children}</opts.wrappingComponent>

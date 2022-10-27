@@ -1,6 +1,8 @@
+from enum import Enum
 from typing import Dict, List, Optional, TypedDict
 
-UNIFORM_RULE_RESERVED_ID = 0
+BOOSTED_RELEASES_LIMIT = 10
+RELEASE_BOOST_FACTOR = 5
 
 
 class Bias(TypedDict):
@@ -10,14 +12,27 @@ class Bias(TypedDict):
 
 # These represent the biases that are applied to user by default as part of the adaptive dynamic sampling experience.
 # These can be overridden by the project details endpoint
+class RuleType(Enum):
+    UNIFORM_RULE = "uniformRule"
+    BOOST_ENVIRONMENTS_RULE = "boostEnvironments"
+    BOOST_LATEST_RELEASES_RULE = "boostLatestRelease"
+    IGNORE_HEALTHCHECKS_RULE = "ignoreHealthChecks"
+
+
 DEFAULT_BIASES: List[Bias] = [
-    {"id": "boostEnvironments", "active": True},
+    {"id": RuleType.BOOST_ENVIRONMENTS_RULE.value, "active": True},
     {
-        "id": "boostLatestRelease",
+        "id": RuleType.BOOST_LATEST_RELEASES_RULE.value,
         "active": True,
     },
-    {"id": "ignoreHealthChecks", "active": True},
+    {"id": RuleType.IGNORE_HEALTHCHECKS_RULE.value, "active": True},
 ]
+RESERVED_IDS = {
+    RuleType.UNIFORM_RULE: 1000,
+    RuleType.BOOST_ENVIRONMENTS_RULE: 1001,
+    RuleType.IGNORE_HEALTHCHECKS_RULE: 1002,
+    RuleType.BOOST_LATEST_RELEASES_RULE: 1500,
+}
 
 
 class Inner(TypedDict):
@@ -40,34 +55,10 @@ class BaseRule(TypedDict):
     id: int
 
 
-def generate_uniform_rule(sample_rate: Optional[float]) -> BaseRule:
-    return {
-        "sampleRate": sample_rate,
-        "type": "trace",
-        "active": True,
-        "condition": {
-            "op": "and",
-            "inner": [],
-        },
-        "id": UNIFORM_RULE_RESERVED_ID,
-    }
+class TimeRange(TypedDict):
+    start: str
+    end: str
 
 
-def generate_environment_rule() -> BaseRule:
-    return {
-        "sampleRate": 1,
-        "type": "trace",
-        "condition": {
-            "op": "or",
-            "inner": [
-                {
-                    "op": "glob",
-                    "name": "trace.environment",
-                    "value": ["*dev*", "*test*"],
-                    "options": {"ignoreCase": True},
-                }
-            ],
-        },
-        "active": True,
-        "id": 1,
-    }
+class ReleaseRule(BaseRule):
+    timeRange: Optional[TimeRange]
