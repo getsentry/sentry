@@ -1213,10 +1213,7 @@ class IssueListOverview extends Component<Props, State> {
               savedSearch={savedSearch}
               sort={this.getSort()}
               onSearch={this.onSearch}
-              onSidebarToggle={this.onSidebarToggle}
               isSearchDisabled={isSidebarVisible}
-              tagValueLoader={this.tagValueLoader}
-              tags={tags}
             />
 
             <Panel>
