@@ -135,6 +135,32 @@ def loose_normalized_db_span_in_condition_strategy(span: Span) -> Optional[Seque
     return [cleaned]
 
 
+def join_regexes(regexes: Sequence[str]) -> str:
+    return r"(?:" + r")|(?:".join(regexes) + r")"
+
+
+DB_PARAMETRIZATION_PATTERN = re.compile(
+    join_regexes(
+        [
+            r"'(?:[^']|'')*?(?:\\'.*|'(?!'))",  # single-quoted strings
+            r"-?\b(?:[0-9]+\.)?[0-9]+(?:[eE][+-]?[0-9]+)?\b",  # numbers
+            r"\b(?:true|false)\b",  # booleans
+        ]
+    )
+)
+
+
+@span_op(["db", "db.query", "db.sql.query", "db.sql.active_record"])
+def parametrize_db_span_strategy(span: Span) -> Optional[Sequence[str]]:
+    """Something"""
+    query = span.get("description") or ""
+    query, param_count = DB_PARAMETRIZATION_PATTERN.subn("%s", query)
+    query, in_count = LOOSE_IN_CONDITION_PATTERN.subn(" IN (%s)", query)
+    if param_count + in_count == 0:
+        return None
+    return [query.strip()]
+
+
 HTTP_METHODS = {
     "GET",
     "HEAD",
