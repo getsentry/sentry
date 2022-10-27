@@ -256,7 +256,7 @@ class Organization(Model, SnowflakeIdMixin):
 
         owner_memberships = OrganizationMember.objects.filter(
             role=roles.get_top_dog().id, organization=self
-        ).values_list("id", flat=True)
+        ).values_list("user_id", flat=True)
         return user_service.get_users(owner_memberships)
 
     def get_default_owner(self):

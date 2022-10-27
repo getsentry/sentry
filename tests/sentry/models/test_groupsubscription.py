@@ -7,9 +7,11 @@ from sentry.notifications.types import (
     NotificationSettingTypes,
 )
 from sentry.testutils import TestCase
+from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import ExternalProviders
 
 
+@region_silo_test(stable=True)
 class SubscribeTest(TestCase):
     def test_simple(self):
         group = self.create_group()
