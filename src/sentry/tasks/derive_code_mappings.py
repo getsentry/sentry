@@ -53,6 +53,7 @@ def derive_missing_codemappings(dry_run=False) -> None:
             )
         except Integration.DoesNotExist:
             logger.exception(f"Github integration not found for {organization.id}")
+            continue
 
         if integration is None or not integration.exists():
             continue
@@ -67,8 +68,9 @@ def derive_missing_codemappings(dry_run=False) -> None:
         organization_integration = organization_integration.first()
         install = integration.get_installation(organization.id)
         trees: JSONData = install.get_trees_for_org()
+        trees_helper = CodeMappingTreesHelper(trees)
         for project, stacktrace_paths in project_stacktrace_paths.items():
-            code_mappings = derive_code_mappings(stacktrace_paths, trees)
+            code_mappings = trees_helper.generate_code_mappings(stacktrace_paths)
             set_project_codemappings(code_mappings, organization, organization_integration, project)
 
 
