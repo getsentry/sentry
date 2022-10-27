@@ -5287,7 +5287,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
 
     @mock.patch("sentry.search.events.builder.raw_snql_query")
-    def test_profiles_dataset_columns(self, mock_snql_query):
+    def test_profiles_dataset_simple(self, mock_snql_query):
         mock_snql_query.side_effect = [{"meta": {}, "data": []}]
 
         query = {

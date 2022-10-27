@@ -96,7 +96,8 @@ class ProfileColumnArg(ColumnArg):
     ) -> NormalizedArg:
         column = COLUMN_MAP.get(value)
 
-        if column is None:
+        # must be a known column or field alias
+        if column is None and value not in {PROJECT_ALIAS, PROJECT_NAME_ALIAS}:
             raise InvalidFunctionArgument(f"{value} is not a valid column")
 
         return value
@@ -239,7 +240,7 @@ class ProfilesDatasetConfig(DatasetConfig):
                     optional_args=[
                         with_default("profile.duration", ProfileNumericColumn("column")),
                     ],
-                    snql_aggregate=lambda args, alias: self._resolve_percentile(args, alias, 0.95),
+                    snql_aggregate=lambda args, alias: self._resolve_percentile(args, alias, 0.99),
                     result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                     redundant_grouping=True,
@@ -302,7 +303,8 @@ class ProfilesDatasetConfig(DatasetConfig):
         try:
             col = COLUMN_MAP[column]
             if col.unit:
-                # if the column has an associated unit, prioritize that
+                # if the column has an associated unit,
+                # prioritize that over the kind
                 return col.unit.value
             return col.kind.value
         except KeyError:
