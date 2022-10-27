@@ -13,7 +13,11 @@ from freezegun.api import FakeDatetime
 from snuba_sdk import Column, Condition, Direction, Function, Granularity, Limit, Offset, Op
 
 from sentry.api.utils import InvalidParams
-from sentry.models import ProjectTransactionThresholdOverride, TransactionMetric
+from sentry.models import (
+    ProjectTransactionThreshold,
+    ProjectTransactionThresholdOverride,
+    TransactionMetric,
+)
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.snuba.metrics import (
@@ -82,6 +86,64 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         )
         ProjectTransactionThresholdOverride.objects.create(
             transaction="bar_transaction",
+            project=self.project,
+            organization=self.project.organization,
+            threshold=600,
+            metric=TransactionMetric.LCP.value,
+        )
+
+        self.store_performance_metric(
+            name=TransactionMRI.DURATION.value,
+            tags={"transaction": "foo_transaction", "satisfaction": "satisfied"},
+            value=1,
+        )
+        self.store_performance_metric(
+            name=TransactionMRI.MEASUREMENTS_LCP.value,
+            tags={"transaction": "bar_transaction", "satisfaction": "satisfied"},
+            value=1,
+        )
+
+        metrics_query = self.build_metrics_query(
+            before_now="1m",
+            granularity="1m",
+            select=[
+                MetricField(
+                    op=None,
+                    metric_mri=TransactionMRI.APDEX.value,
+                    alias="apdex",
+                ),
+            ],
+            groupby=[MetricGroupByField("transaction", alias="transaction_group")],
+            include_series=False,
+        )
+        data = get_series(
+            [self.project],
+            metrics_query=metrics_query,
+            include_meta=True,
+            use_case_id=UseCaseKey.PERFORMANCE,
+        )
+        groups = data["groups"]
+        assert len(groups) == 2
+
+        expected = [
+            ("bar_transaction", 1.0),
+            ("foo_transaction", None),
+        ]
+        for (expected_transaction, expected_apdex), group in zip(expected, groups):
+            # With orderBy, you only get totals:
+            assert group["by"] == {"transaction_group": expected_transaction}
+            assert group["totals"] == {"apdex": expected_apdex}
+
+        assert data["meta"] == sorted(
+            [
+                {"name": "apdex", "type": "Float64"},
+                {"name": "transaction_group", "type": "string"},
+            ],
+            key=lambda elem: elem["name"],
+        )
+
+    def test_apdex_project_threshold(self):
+        ProjectTransactionThreshold.objects.create(
             project=self.project,
             organization=self.project.organization,
             threshold=600,
