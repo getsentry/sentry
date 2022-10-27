@@ -503,7 +503,7 @@ export function ServerSideSampling({project}: Props) {
         />
         <TextBlock>
           {tct(
-            'Improve the accuracy of your [performanceMetrics: performance metrics] and [targetTransactions: target those transactions] which are most valuable for your organization. Server-side rules are applied immediately, with no need to re-deploy your app.',
+            'Improve the accuracy of your [performanceMetrics: performance metrics] and [targetTransactions: target those transactions] which are most valuable for your organization. Server-side rules are applied immediately, without having to re-deploy your app.',
             {
               performanceMetrics: (
                 <ExternalLink href="https://docs.sentry.io/product/performance/metrics/#metrics-and-sampling" />
