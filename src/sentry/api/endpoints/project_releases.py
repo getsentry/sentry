@@ -131,6 +131,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
                                 owner=result.get("owner"),
                                 date_released=result.get("dateReleased"),
                                 status=new_status or ReleaseStatus.OPEN,
+                                user_agent=request.META.get("HTTP_USER_AGENT", ""),
                             ),
                             True,
                         )
