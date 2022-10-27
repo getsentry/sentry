@@ -103,7 +103,7 @@ from sentry.tasks.process_buffer import buffer_incr
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.types.activity import ActivityType
 from sentry.types.issues import GroupCategory
-from sentry.utils import json, metrics
+from sentry.utils import json, metrics, redis
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.dates import to_datetime, to_timestamp
@@ -2160,9 +2160,17 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects):
             ).select_related("group")
 
             new_grouphashes = set(group_hashes) - {hash.hash for hash in existing_grouphashes}
-            new_grouphashes_count = len(new_grouphashes)
 
             if new_grouphashes:
+                # temporary fix to limit group creation to grouphashes seen 3+ times in a 24-48 hour period
+                groups_to_create = new_grouphashes
+                for new_grouphash in new_grouphashes:
+                    if should_create_group(new_grouphash) is not True:
+                        groups_to_create.remove(new_grouphash)
+
+                new_grouphashes = groups_to_create
+                new_grouphashes_count = len(new_grouphashes)
+
                 with metrics.timer("performance.performance_issue.check_write_limits"):
                     granted_quota = issue_rate_limiter.check_and_use_quotas(
                         [
@@ -2255,6 +2263,18 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects):
             job["event"].data["hashes"] = hashes
             for problem_hash in hashes:
                 EventPerformanceProblem(event, performance_problems_by_hash[problem_hash]).save()
+
+
+def should_create_group(grouphash: str) -> bool:
+    cluster_key = options.get("cluster", "default")
+    client = redis.redis_clusters.get(cluster_key)
+    times_seen = client.incr(grouphash)
+    if times_seen >= 3:
+        client.delete(grouphash)
+        return True
+    else:
+        client.ttl(60 * 60 * 24)
+        return False
 
 
 @metrics.wraps("event_manager.save_transaction_events")
