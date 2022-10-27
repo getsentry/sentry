@@ -11,7 +11,15 @@ type Props = ModalRenderProps &
     onClose?: () => void;
   };
 
-const CreateOwnershipRuleModal = ({Body, Header, closeModal, ...props}: Props) => {
+const CreateOwnershipRuleModal = ({
+  Body,
+  Header,
+  closeModal,
+  onClose,
+  Footer: _Footer,
+  CloseButton: _CloseButton,
+  ...props
+}: Props) => {
   const closeModalTimeoutRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
@@ -21,10 +29,10 @@ const CreateOwnershipRuleModal = ({Body, Header, closeModal, ...props}: Props) =
   }, []);
 
   const handleSuccess = useCallback(() => {
-    props.onClose?.();
+    onClose?.();
     window.clearTimeout(closeModalTimeoutRef.current);
     closeModalTimeoutRef.current = window.setTimeout(closeModal, 2000);
-  }, [props.onClose]);
+  }, [onClose, closeModal]);
 
   return (
     <Fragment>

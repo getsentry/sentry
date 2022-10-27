@@ -246,7 +246,6 @@ describe('WidgetBuilder', function () {
       body: {
         incompatible_projects: [],
         compatible_projects: [1],
-        dynamic_sampling_projects: [1],
       },
     });
 

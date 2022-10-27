@@ -18,7 +18,7 @@ from sentry.utils.client_state import get_client_state_key, get_redis_client
 
 
 # TODO(dcramer): need tests for SSO behavior and single org behavior
-@control_silo_test
+# @control_silo_test(stable=True)
 class AuthLoginTest(TestCase):
     @fixture
     def path(self):

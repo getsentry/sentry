@@ -398,7 +398,11 @@ class AccountSecurityEnroll extends AsyncView<Props, State> {
               <span>{authenticator.name}</span>
               <CircleIndicator
                 role="status"
-                data-is-active={isActive}
+                aria-label={
+                  isActive
+                    ? t('Authentication Method Active')
+                    : t('Authentication Method Inactive')
+                }
                 enabled={isActive}
                 css={{marginLeft: 6}}
               />

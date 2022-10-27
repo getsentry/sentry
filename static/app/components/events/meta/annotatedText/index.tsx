@@ -19,7 +19,7 @@ export function AnnotatedText({value, meta, className, ...props}: Props) {
   const currentProject = projects.find(project => project.id === projectId);
 
   return (
-    <span role="text" className={className} {...props}>
+    <span className={className} {...props}>
       <AnnotatedTextValue
         value={value}
         meta={meta}
