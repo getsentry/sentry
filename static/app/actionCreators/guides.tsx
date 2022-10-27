@@ -5,6 +5,8 @@ import ConfigStore from 'sentry/stores/configStore';
 import GuideStore from 'sentry/stores/guideStore';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
+import {demoEndModal} from './modal';
+
 const api = new Client();
 
 export async function fetchGuides() {
@@ -47,7 +49,11 @@ export function dismissGuide(guide: string, step: number, orgId: string | null) 
   closeGuide(true);
 }
 
-export function recordFinish(guide: string, orgId: string | null) {
+export function recordFinish(
+  guide: string,
+  orgId: string | null,
+  orgSlug: string | null
+) {
   api.request('/assistant/', {
     method: 'PUT',
     data: {
@@ -55,6 +61,29 @@ export function recordFinish(guide: string, orgId: string | null) {
       status: 'viewed',
     },
   });
+
+  let tour;
+  switch (guide) {
+    case 'sidebar_v2':
+      tour = 'tabs';
+      localStorage.removeItem('sidebarGuide');
+      break;
+    case 'issues_v3':
+      tour = 'issues';
+      localStorage.removeItem('issueGuide');
+      break;
+    case 'release-details_v2':
+      tour = 'releases';
+      break;
+    case 'transaction_details_v2':
+      tour = 'performance';
+      break;
+    default:
+  }
+
+  if (tour) {
+    demoEndModal({tour, orgSlug});
+  }
 
   const user = ConfigStore.get('user');
   if (!user) {
