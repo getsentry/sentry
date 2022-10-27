@@ -35,7 +35,7 @@ function DeleteButton() {
       message={t('Are you sure you want to delete this replay?')}
       onConfirm={handleDelete}
     >
-      <Button size="xs" icon={<IconDelete size="xs" />} onClick={handleDelete}>
+      <Button size="xs" icon={<IconDelete size="xs" />}>
         {t('Delete')}
       </Button>
     </Confirm>
