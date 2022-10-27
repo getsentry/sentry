@@ -13,6 +13,7 @@ from sentry.models.group import Group
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.repository import Repository
 from sentry.tasks.base import instrumented_task
 from sentry.utils.json import JSONData
 from sentry.utils.query import RangeQuerySetWrapper
@@ -41,7 +42,7 @@ def derive_missing_codemappings(dry_run=False) -> None:
             continue
 
         # Create a celery task per organization
-        derive_code_mappings.delay(organization.id, dry_run=dry_run)
+        derive_code_mappings.delay(organization.id)
 
 
 @instrumented_task(  # type: ignore
@@ -49,7 +50,7 @@ def derive_missing_codemappings(dry_run=False) -> None:
     queue="derive_code_mappings",
     max_retries=0,  # if we don't backfill it this time, we'll get it the next time
 )
-def derive_code_mappings(organization: Organization, dry_run=False) -> Mapping[Project, List[str]]:
+def derive_code_mappings(organization: Organization, dry_run=False) -> None:
     """
     Derive code mappings for an organization and save the derived code mappings.
     """
@@ -68,9 +69,7 @@ def derive_code_mappings(organization: Organization, dry_run=False) -> Mapping[P
         set_project_codemappings(code_mappings, organization, organization_integration, project)
 
 
-def identify_stacktrace_paths(
-    organization: Organization, dry_run=False
-) -> Mapping[Project, List[str]]:
+def identify_stacktrace_paths(organization: Organization) -> Mapping[Project, List[str]]:
     """
     Generate a map of projects to stacktrace paths for an organization.
 
@@ -171,12 +170,23 @@ def set_project_codemappings(
     config for each mapping.
     """
     for code_mapping in code_mappings:
+        repo = Repository.objects.filter(name=code_mapping.repo, organization_id=organization.id)
+        if repo.exists():
+            repo = repo.first()
+        else:
+            repo = Repository.objects.create(
+                name=code_mapping.repo,
+                organization_id=organization.id,
+                integration_id=organization_integration.integration_id,
+            )
+
         serializer = RepositoryProjectPathConfigSerializer(
             data={
                 "project_id": project.id,
                 "stack_root": code_mapping.stacktrace_root,
                 "source_root": code_mapping.source_path,
-                "repo_id": code_mapping.repo,
+                "repository_id": repo.id,
+                "default_branch": code_mapping.branch,
             },
             context={
                 "organization": organization,

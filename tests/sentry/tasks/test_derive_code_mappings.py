@@ -2,7 +2,9 @@ from copy import deepcopy
 from unittest.mock import patch
 
 from sentry.integrations.utils.code_mapping import CodeMapping
+from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.organization import OrganizationStatus
+from sentry.models.repository import Repository
 from sentry.tasks.derive_code_mappings import (
     derive_code_mappings,
     derive_missing_codemappings,
@@ -145,13 +147,13 @@ class TestIdentfiyStacktracePaths(TestCase):
         "sentry.integrations.utils.code_mapping.CodeMappingTreesHelper.generate_code_mappings",
         return_value=[
             CodeMapping(
-                repo=1,
+                repo="repo",
                 stacktrace_root="sentry/models",
                 source_path="src/sentry/models",
+                branch="master",
             )
         ],
     )
-    @with_feature("organizations:derive-code-mappings")
     def test_derive_code_mappings_single_project(
         self, mock_generate_code_mappings, mock_get_trees_for_org
     ):
@@ -161,6 +163,8 @@ class TestIdentfiyStacktracePaths(TestCase):
             external_id=self.organization.id,
         )
         self.store_event(data=self.test_data_2, project_id=self.project.id)
+
+        assert not RepositoryProjectPathConfig.objects.filter(project_id=self.project.id).exists()
 
         with patch(
             "sentry.tasks.derive_code_mappings.identify_stacktrace_paths",
@@ -173,6 +177,15 @@ class TestIdentfiyStacktracePaths(TestCase):
         assert mock_identify_stacktraces.call_count == 1
         assert mock_get_trees_for_org.call_count == 1
         assert mock_generate_code_mappings.call_count == 1
+        code_mapping = RepositoryProjectPathConfig.objects.filter(
+            project_id=self.project.id
+        ).first()
+
+        repository = Repository.objects.get(name="repo", organization_id=self.organization.id)
+        assert code_mapping.repository_id == repository.id
+        assert code_mapping.stack_root == "sentry/models"
+        assert code_mapping.source_root == "src/sentry/models"
+        assert code_mapping.default_branch == "master"
 
     @patch("sentry.tasks.derive_code_mappings.derive_code_mappings.delay")
     @with_feature("organizations:derive-code-mappings")
