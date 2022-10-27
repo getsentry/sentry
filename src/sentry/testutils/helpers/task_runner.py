@@ -26,25 +26,25 @@ def BurstTaskRunner():
     worker.
     """
 
-    queue = []
+    job_queue = []
 
-    def apply_async(self, args=(), kwargs=(), countdown=None):
-        queue.append((self, args, kwargs))
+    def apply_async(self, args=(), kwargs=(), countdown=None, queue=None):
+        job_queue.append((self, args, kwargs))
 
     def work(max_jobs=None):
         jobs = 0
-        while queue and (max_jobs is None or max_jobs > jobs):
-            self, args, kwargs = queue.pop(0)
+        while job_queue and (max_jobs is None or max_jobs > jobs):
+            self, args, kwargs = job_queue.pop(0)
 
             with patch("celery.app.task.Task.apply_async", apply_async):
                 self(*args, **kwargs)
 
             jobs += 1
 
-        if queue:
-            raise RuntimeError("Could not empty queue, last task items: %s" % repr(queue))
+        if job_queue:
+            raise RuntimeError("Could not empty queue, last task items: %s" % repr(job_queue))
 
-    work.queue = queue
+    work.queue = job_queue
 
     with patch("celery.app.task.Task.apply_async", apply_async):
         yield work
