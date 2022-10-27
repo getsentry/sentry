@@ -169,13 +169,22 @@ class GroupEventToolbar extends Component<Props> {
             hasPrevious={!!evt.previousEventID}
             hasNext={!!evt.nextEventID}
             links={[
-              {pathname: `${baseEventsPath}oldest/`, query: location.query},
+              {
+                pathname: `${baseEventsPath}oldest/`,
+                query: {...location.query, referrer: 'oldest-event'},
+              },
               {
                 pathname: `${baseEventsPath}${evt.previousEventID}/`,
-                query: location.query,
+                query: {...location.query, referrer: 'previous-event'},
               },
-              {pathname: `${baseEventsPath}${evt.nextEventID}/`, query: location.query},
-              {pathname: `${baseEventsPath}latest/`, query: location.query},
+              {
+                pathname: `${baseEventsPath}${evt.nextEventID}/`,
+                query: {...location.query, referrer: 'next-event'},
+              },
+              {
+                pathname: `${baseEventsPath}latest/`,
+                query: {...location.query, referrer: 'latest-event'},
+              },
             ]}
             onOldestClick={() => this.handleNavigationClick('oldest')}
             onOlderClick={() => this.handleNavigationClick('older')}
