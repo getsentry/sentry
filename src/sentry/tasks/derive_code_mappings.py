@@ -1,13 +1,13 @@
 import logging
 from datetime import timedelta
-from typing import Any, List, Mapping, Set
+from typing import Any, List, Mapping, Set, Tuple
 
 from django.utils import timezone
 
 from sentry import features
 from sentry.api.endpoints.organization_code_mappings import RepositoryProjectPathConfigSerializer
 from sentry.db.models.fields.node import NodeData
-from sentry.integrations.utils.code_mapping import CodeMapping, derive_code_mappings
+from sentry.integrations.utils.code_mapping import CodeMapping, CodeMappingTreesHelper
 from sentry.models import Project
 from sentry.models.group import Group
 from sentry.models.integrations.integration import Integration
@@ -41,75 +41,33 @@ def derive_missing_codemappings(dry_run=False) -> None:
             continue
 
         # Create a celery task per organization
-        project_stacktrace_paths = identify_stacktrace_paths.delay(organization.id, dry_run=dry_run)
-        if not project_stacktrace_paths:
-            continue
-
-        integration = None
-        try:
-            integration = Integration.objects.filter(
-                organizations=organization.id,
-                provider="github",
-            )
-        except Integration.DoesNotExist:
-            logger.exception(f"Github integration not found for {organization.id}")
-            continue
-
-        if integration is None or not integration.exists():
-            continue
-
-        integration = integration.first()
-        organization_integration = OrganizationIntegration.objects.filter(
-            organization=organization, integration=integration
-        )
-        if not organization_integration.exists():
-            continue
-
-        organization_integration = organization_integration.first()
-        install = integration.get_installation(organization.id)
-        trees: JSONData = install.get_trees_for_org()
-        trees_helper = CodeMappingTreesHelper(trees)
-        for project, stacktrace_paths in project_stacktrace_paths.items():
-            code_mappings = trees_helper.generate_code_mappings(stacktrace_paths)
-            set_project_codemappings(code_mappings, organization, organization_integration, project)
-
-
-# Given a list of code mappings, create a new repository project path
-# config for each mapping.
-def set_project_codemappings(
-    code_mappings: List[CodeMapping],
-    organization: Organization,
-    organization_integration: OrganizationIntegration,
-    project: Project,
-) -> None:
-    for code_mapping in code_mappings:
-        serializer = RepositoryProjectPathConfigSerializer(
-            data={
-                "project_id": project.id,
-                "stack_root": code_mapping.stacktrace_root,
-                "source_root": code_mapping.source_path,
-                "repo_id": code_mapping.repo,
-            },
-            context={
-                "organization": organization,
-                "organization_integration": organization_integration,
-            },
-        )
-        if serializer.is_valid():
-            serializer.save()
-        else:
-            logger.error(
-                "Error saving code mapping for organization %s: %s",
-                organization.id,
-                serializer.errors,
-            )
+        derive_code_mappings.delay(organization.id, dry_run=dry_run)
 
 
 @instrumented_task(  # type: ignore
-    name="sentry.tasks.derive_code_mappings.identify_stacktrace_paths",
+    name="sentry.tasks.derive_code_mappings.derive_code_mappings",
     queue="derive_code_mappings",
     max_retries=0,  # if we don't backfill it this time, we'll get it the next time
 )
+def derive_code_mappings(organization: Organization, dry_run=False) -> Mapping[Project, List[str]]:
+    """
+    Derive code mappings for an organization and save the derived code mappings.
+    """
+    project_stacktrace_paths = identify_stacktrace_paths(organization)
+    if not project_stacktrace_paths:
+        return
+
+    installation, organization_integration = get_installation(organization)
+    if not installation:
+        return
+
+    trees: JSONData = installation.get_trees_for_org()
+    trees_helper = CodeMappingTreesHelper(trees)
+    for project, stacktrace_paths in project_stacktrace_paths.items():
+        code_mappings = trees_helper.generate_code_mappings(stacktrace_paths)
+        set_project_codemappings(code_mappings, organization, organization_integration, project)
+
+
 def identify_stacktrace_paths(
     organization: Organization, dry_run=False
 ) -> Mapping[Project, List[str]]:
@@ -132,8 +90,7 @@ def identify_stacktrace_paths(
         ).exists()
     ]
 
-    project_file_map = {project: get_all_stacktrace_paths(project) for project in projects}
-    return project_file_map
+    return {project: get_all_stacktrace_paths(project) for project in projects}
 
 
 def get_all_stacktrace_paths(project: Project) -> List[str]:
@@ -176,3 +133,61 @@ def get_stacktrace(data: NodeData) -> List[Mapping[str, Any]]:
         return [stacktrace]
 
     return []
+
+
+def get_installation(organization: Organization) -> Tuple[Integration, OrganizationIntegration]:
+    integration = None
+    try:
+        integration = Integration.objects.filter(
+            organizations=organization.id,
+            provider="github",
+        )
+    except Integration.DoesNotExist:
+        logger.exception(f"Github integration not found for {organization.id}")
+        return None, None
+
+    if not integration.exists():
+        return None, None
+
+    integration = integration.first()
+    organization_integration = OrganizationIntegration.objects.filter(
+        organization=organization, integration=integration
+    )
+    if not organization_integration.exists():
+        return None, None
+
+    organization_integration = organization_integration.first()
+    return integration.get_installation(organization.id), organization_integration
+
+
+def set_project_codemappings(
+    code_mappings: List[CodeMapping],
+    organization: Organization,
+    organization_integration: OrganizationIntegration,
+    project: Project,
+) -> None:
+    """
+    Given a list of code mappings, create a new repository project path
+    config for each mapping.
+    """
+    for code_mapping in code_mappings:
+        serializer = RepositoryProjectPathConfigSerializer(
+            data={
+                "project_id": project.id,
+                "stack_root": code_mapping.stacktrace_root,
+                "source_root": code_mapping.source_path,
+                "repo_id": code_mapping.repo,
+            },
+            context={
+                "organization": organization,
+                "organization_integration": organization_integration,
+            },
+        )
+        if serializer.is_valid():
+            serializer.save()
+        else:
+            logger.error(
+                "Error saving code mapping for organization %s: %s",
+                organization.id,
+                serializer.errors,
+            )

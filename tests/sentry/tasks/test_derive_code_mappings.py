@@ -3,7 +3,11 @@ from unittest.mock import patch
 
 from sentry.integrations.utils.code_mapping import CodeMapping
 from sentry.models.organization import OrganizationStatus
-from sentry.tasks.derive_code_mappings import derive_missing_codemappings, identify_stacktrace_paths
+from sentry.tasks.derive_code_mappings import (
+    derive_code_mappings,
+    derive_missing_codemappings,
+    identify_stacktrace_paths,
+)
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
@@ -112,12 +116,10 @@ class TestIdentfiyStacktracePaths(TestCase):
         self.store_event(data=nonpython_event, project_id=self.project.id)
 
         with self.tasks():
-            mapping = identify_stacktrace_paths([self.organization])
-        assert self.organization.slug in mapping
-        stacktrace_paths = mapping[self.organization.slug]
+            stacktrace_paths = identify_stacktrace_paths(self.organization)
 
-        assert self.project.slug in stacktrace_paths
-        assert sorted(stacktrace_paths[self.project.slug]) == [
+        assert self.project in stacktrace_paths
+        assert sorted(stacktrace_paths[self.project]) == [
             "sentry/models/release.py",
             "sentry/tasks.py",
         ]
@@ -150,7 +152,7 @@ class TestIdentfiyStacktracePaths(TestCase):
         ],
     )
     @with_feature("organizations:derive-code-mappings")
-    def test_derive_missing_codemappings_single_project(
+    def test_derive_code_mappings_single_project(
         self, mock_generate_code_mappings, mock_get_trees_for_org
     ):
         self.create_integration(
@@ -161,61 +163,22 @@ class TestIdentfiyStacktracePaths(TestCase):
         self.store_event(data=self.test_data_2, project_id=self.project.id)
 
         with patch(
-            "sentry.tasks.derive_code_mappings.identify_stacktrace_paths.delay",
+            "sentry.tasks.derive_code_mappings.identify_stacktrace_paths",
             return_value={
                 self.project: ["sentry/models/release.py", "sentry/tasks.py"],
             },
         ) as mock_identify_stacktraces, self.tasks():
-            derive_missing_codemappings(self)
+            derive_code_mappings(self.organization)
 
-        assert mock_identify_stacktraces.call_count == 2
+        assert mock_identify_stacktraces.call_count == 1
         assert mock_get_trees_for_org.call_count == 1
         assert mock_generate_code_mappings.call_count == 1
 
-    @patch("sentry.integrations.github.GitHubIntegration.get_trees_for_org")
-    @patch(
-        "sentry.integrations.utils.code_mapping.CodeMappingTreesHelper.generate_code_mappings",
-        return_value=[
-            CodeMapping(
-                repo=1,
-                stacktrace_root="sentry/models",
-                source_path="src/sentry/models",
-            )
-        ],
-    )
+    @patch("sentry.tasks.derive_code_mappings.derive_code_mappings.delay")
     @with_feature("organizations:derive-code-mappings")
-    def test_derive_missing_codemappings_multiple_projects(
-        self, mock_generate_code_mappings, mock_get_trees_for_org
-    ):
-        new_organization = self.create_organization()
-        new_project = self.create_project(
-            organization=new_organization,
-            platform="python",
-        )
-        self.store_event(data=self.test_data_1, project_id=self.project.id)
-        self.store_event(data=self.test_data_2, project_id=new_project.id)
-
-        self.create_integration(
-            organization=self.organization,
-            provider="github",
-            external_id=self.organization.id,
-        )
-
-        self.create_integration(
-            organization=new_organization,
-            provider="github",
-            external_id=new_organization.id,
-        )
-
-        with patch(
-            "sentry.tasks.derive_code_mappings.identify_stacktrace_paths.delay",
-            return_value={
-                self.project: ["sentry/models/release.py", "sentry/tasks.py"],
-                new_project: ["sentry/models/test_file.py", "sentry/test_file.py"],
-            },
-        ) as mock_identify_stacktraces, self.tasks():
+    def test_derive_missing_code_mappings(self, mock_derive_code_mappings):
+        self.create_organization()
+        with self.tasks():
             derive_missing_codemappings(self)
 
-        assert mock_identify_stacktraces.call_count == 3
-        assert mock_get_trees_for_org.call_count == 2
-        assert mock_generate_code_mappings.call_count == 4
+        assert mock_derive_code_mappings.call_count == 3
