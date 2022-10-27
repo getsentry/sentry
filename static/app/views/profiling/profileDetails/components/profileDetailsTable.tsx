@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
-import {browserHistory, Link} from 'react-router';
+import {Link} from 'react-router';
 import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
 
 import CompactSelect from 'sentry/components/compactSelect';
 import GridEditable, {
@@ -15,7 +16,6 @@ import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {renderTableHead} from 'sentry/utils/profiling/tableRenderer';
 import {makeFormatter} from 'sentry/utils/profiling/units/units';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
@@ -33,18 +33,24 @@ const RESULTS_PER_PAGE = 50;
 export function ProfileDetailsTable() {
   const location = useLocation();
   const [state] = useProfileGroup();
-  const [groupByViewKey, setGroupByView] = useQuerystringState<
-    keyof typeof GROUP_BY_OPTIONS
-  >({key: 'detailView', defaultState: 'occurrence'});
+  const [groupByViewKey, setGroupByView] = useQuerystringState({
+    key: 'detailView',
+    defaultState: 'occurrence',
+  });
+
+  const [searchQuery, setSearchQuery] = useQuerystringState({
+    key: 'query',
+    defaultState: '',
+  });
+
+  const [paginationCursor, setPaginationCursor] = useQuerystringState({
+    key: 'cursor',
+    defaultState: '',
+  });
 
   const groupByView = GROUP_BY_OPTIONS[groupByViewKey] ?? GROUP_BY_OPTIONS.occurrence;
 
-  const cursor = useMemo<number>(() => {
-    const cursorQuery = decodeScalar(location.query.cursor, '');
-    return parseInt(cursorQuery, 10) || 0;
-  }, [location.query.cursor]);
-
-  const query = useMemo<string>(() => decodeScalar(location.query.query, ''), [location]);
+  const cursor = parseInt(paginationCursor, 10) || 0;
 
   const allData: TableDataRow[] = useMemo(() => {
     const data =
@@ -58,11 +64,16 @@ export function ProfileDetailsTable() {
     threshold: 0.3,
   });
 
-  const [slowestFunctions, setSlowestFunctions] = useState<TableDataRow[]>(() => {
-    return search(query);
+  const debouncedSearch = useMemo(
+    () => debounce(searchString => setFilteredDataBySearch(search(searchString)), 500),
+    [search]
+  );
+
+  const [filteredDataBySearch, setFilteredDataBySearch] = useState<TableDataRow[]>(() => {
+    return search(searchQuery);
   });
 
-  const pageLinks = usePageLinks(slowestFunctions, cursor);
+  const pageLinks = usePageLinks(filteredDataBySearch, cursor);
 
   const {filters, columnFilters, filterPredicate} = useColumnFilters(allData, [
     'type',
@@ -76,25 +87,21 @@ export function ProfileDetailsTable() {
 
   const handleSearch = useCallback(
     searchString => {
-      browserHistory.replace({
-        ...location,
-        query: {
-          ...location.query,
-          query: searchString,
-          cursor: undefined,
-        },
-      });
-
-      setSlowestFunctions(search(searchString));
+      setSearchQuery(searchString);
+      setPaginationCursor(undefined);
+      debouncedSearch(searchString);
     },
-    [location, search]
+    [setPaginationCursor, setSearchQuery, debouncedSearch]
   );
 
   useEffectAfterFirstRender(() => {
-    setSlowestFunctions(search(query));
-  }, [allData, query, search]);
+    setFilteredDataBySearch(search(searchQuery));
+    // purposely omitted `searchQuery` as we only want this to run once.
+    // future search filters are called by handleSearch
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allData, search]);
 
-  const data = slowestFunctions
+  const data = filteredDataBySearch
     .filter(filterPredicate)
     .sort(sortCompareFn)
     .slice(cursor, cursor + RESULTS_PER_PAGE);
@@ -110,12 +117,14 @@ export function ProfileDetailsTable() {
           }}
           placement="bottom right"
           onChange={option => {
+            setSearchQuery('');
+            setPaginationCursor(undefined);
             setGroupByView(option.value);
           }}
         />
         <SearchBar
           defaultQuery=""
-          query={query}
+          query={searchQuery}
           placeholder={groupByView.search.placeholder}
           onChange={handleSearch}
         />

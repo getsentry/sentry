@@ -3,59 +3,63 @@ import {browserHistory} from 'react-router';
 
 import {useLocation} from 'sentry/utils/useLocation';
 
-type QueryState = string | string[] | null | undefined;
-
-interface UseQuerystringStateOptions<T> {
+interface UseQuerystringStateOptions {
   key: string;
-  defaultState?: T;
+  defaultState?: string;
 }
 
-export function useQuerystringState<T extends QueryState>({
-  key,
-  defaultState,
-}: UseQuerystringStateOptions<T>) {
+export function useQuerystringState({key, defaultState}: UseQuerystringStateOptions) {
   const location = useLocation();
-  const [state, setState] = useState<T>((location.query[key] ?? defaultState) as T);
+  const [state, setState] = useState<string | string[] | null | undefined>(
+    location.query[key] ?? defaultState
+  );
 
   const createLocationDescriptor = useCallback(
-    (nextState: T) => {
+    (nextState: string | undefined) => {
+      // we can't use the result of `useLocation` here
+      // if there are multiple instances of `useQuerystringState` firing at once
+      // the value of location will be stale in the callback
+      const currentLocation = browserHistory.getCurrentLocation();
       return {
-        ...location,
+        ...currentLocation,
         query: {
-          ...location.query,
+          ...currentLocation.query,
           [key]: nextState,
         },
       };
     },
-    [location, key]
+    [key]
   );
 
   const setQueryStringState = useCallback(
-    (nextState: T) => {
+    (nextState: string | undefined) => {
       browserHistory.replace(createLocationDescriptor(nextState));
     },
     [createLocationDescriptor]
   );
+
   useEffect(() => {
-    const removeListener = browserHistory.listenBefore((nextLocation, next) => {
-      if (location.pathname === nextLocation.pathname) {
-        setState(nextLocation.query[key] as T);
-        next(nextLocation);
+    const removeListener = browserHistory.listenBefore(nextLocation => {
+      const currentLocation = browserHistory.getCurrentLocation();
+
+      // if the next location is a different page altogether
+      // cleanup the querystring key to ensures querystring's aren't unintentionally passed around pages
+      if (
+        currentLocation.pathname !== nextLocation.pathname &&
+        key in nextLocation.query
+      ) {
+        delete nextLocation.query[key];
         return;
       }
 
-      if (key in nextLocation.query) {
-        delete nextLocation.query[key];
-      }
-
-      next(nextLocation);
+      setState(nextLocation.query[key]);
     });
 
     return removeListener;
-  }, [key, location.pathname]);
+  }, [key]);
 
   return [state, setQueryStringState, createLocationDescriptor] as [
-    T,
+    string,
     typeof setQueryStringState,
     typeof createLocationDescriptor
   ];
