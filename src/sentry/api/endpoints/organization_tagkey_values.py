@@ -45,6 +45,7 @@ class OrganizationTagKeyValuesEndpoint(OrganizationEventsEndpointBase):
                     order_by=validate_sort_field(request.GET.get("sort", "-last_seen")),
                     include_transactions=request.GET.get("includeTransactions") == "1",
                     include_sessions=request.GET.get("includeSessions") == "1",
+                    include_replays=request.GET.get("includeReplays") == "1",
                 )
 
         return self.paginate(
