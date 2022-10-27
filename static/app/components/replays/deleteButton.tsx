@@ -2,6 +2,7 @@ import * as Sentry from '@sentry/react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Button from 'sentry/components/button';
+import Confirm from 'sentry/components/confirm';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import useApi from 'sentry/utils/useApi';
@@ -30,9 +31,14 @@ function DeleteButton() {
   };
 
   return (
-    <Button size="xs" icon={<IconDelete size="xs" />} onClick={handleDelete}>
-      {t('Delete')}
-    </Button>
+    <Confirm
+      message={t('Are you sure you want to delete this replay?')}
+      onConfirm={handleDelete}
+    >
+      <Button size="xs" icon={<IconDelete size="xs" />}>
+        {t('Delete')}
+      </Button>
+    </Confirm>
   );
 }
 
