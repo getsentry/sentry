@@ -475,4 +475,37 @@ describe('Discover > Homepage', () => {
 
     expect(screen.getByText('project-slug')).toBeInTheDocument();
   });
+
+  it('allows users to set the All Events query as default', async () => {
+    initialData = initializeOrg({
+      ...initializeOrg(),
+      organization,
+      router: {
+        location: {
+          ...TestStubs.location(),
+          query: {
+            ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
+          },
+        },
+      },
+    });
+    mockHomepage = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/discover/homepage/',
+      method: 'GET',
+      statusCode: 200,
+    });
+
+    render(
+      <Homepage
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+        setSavedQuery={jest.fn()}
+        loading={false}
+      />,
+      {context: initialData.routerContext, organization: initialData.organization}
+    );
+
+    await waitFor(() => expect(screen.getByTestId('set-as-default')).toBeEnabled());
+  });
 });
