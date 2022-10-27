@@ -122,11 +122,21 @@ class ClientConfigViewTest(TestCase):
             assert data["features"] == []
 
     def test_customer_domain_feature(self):
+        self.login_as(self.user)
+
+        # Induce last active organization
+        resp = self.client.get(
+            reverse("sentry-api-0-organization-projects", args=[self.organization.slug])
+        )
+        assert resp.status_code == 200
+        assert resp["Content-Type"] == "application/json"
+
         with self.feature({"organizations:customer-domains": True}):
             resp = self.client.get(self.path)
             assert resp.status_code == 200
             assert resp["Content-Type"] == "application/json"
             data = json.loads(resp.content)
+            assert data["lastOrganization"] == self.organization.slug
             assert data["features"] == ["organizations:create", "organizations:customer-domains"]
 
         with self.feature({"organizations:customer-domains": False}):

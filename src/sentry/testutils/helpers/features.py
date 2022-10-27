@@ -7,7 +7,11 @@ from contextlib import contextmanager
 from unittest.mock import patch
 
 import sentry.features
+from sentry import features
+from sentry.features.base import OrganizationFeature, ProjectFeature
 from sentry.features.exceptions import FeatureNotRegistered
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +48,21 @@ def Feature(names):
 
     def features_override(name, *args, **kwargs):
         if name in names:
+            try:
+                feature = features.get(name, None)
+            except FeatureNotRegistered:
+                raise ValueError("Unregistered feature flag: %s", repr(name))
+
+            if isinstance(feature, OrganizationFeature):
+                org = args[0] if len(args) > 0 else kwargs.get("organization", None)
+                if not isinstance(org, Organization):
+                    raise ValueError("Must provide organization to check feature")
+
+            if isinstance(feature, ProjectFeature):
+                project = args[0] if len(args) > 0 else kwargs.get("project", None)
+                if not isinstance(project, Project):
+                    raise ValueError("Must provide project to check feature")
+
             return names[name]
         else:
             try:

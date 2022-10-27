@@ -5,6 +5,7 @@ import pytest
 from django.utils.datastructures import MultiValueDict
 from freezegun import freeze_time
 
+from sentry.models.organization import Organization
 from sentry.release_health import duplex
 from sentry.release_health.base import AllowedResolution, SessionsQueryConfig
 from sentry.release_health.duplex import ComparatorType as Ct
@@ -539,7 +540,7 @@ def test_get_sessionsv2_schema():
 def test_sessionsv2_config():
     with Feature("organizations:release-health-return-metrics"):
         backend = DuplexReleaseHealthBackend(datetime(2022, 4, 28, 16, 0, tzinfo=timezone.utc))
-        organization = None
+        organization = Organization(id=1, slug="test")
 
         # sessions backend:
         assert backend.sessions_query_config(

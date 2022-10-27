@@ -163,7 +163,7 @@ def get_client_config(request=None):
         last_org_slug = last_org.slug
     if last_org is None:
         _delete_activeorg(session)
-    if features.has("organizations:customer-domains", last_org):
+    if last_org is not None and features.has("organizations:customer-domains", last_org):
         enabled_features.append("organizations:customer-domains")
 
     context = {
