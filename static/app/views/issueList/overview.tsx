@@ -194,8 +194,8 @@ class IssueListOverview extends Component<Props, State> {
     this.fetchSavedSearches();
     this.fetchTags();
     this.fetchMemberList();
-    // let custom anaylytics take control
-    this.props.setDisableRouteAnalytics();
+    // let custom analytics take control
+    this.props.setDisableRouteAnalytics?.();
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
