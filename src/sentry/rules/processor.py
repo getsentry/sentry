@@ -335,7 +335,9 @@ class RuleProcessor:
         for rule in rules:
             self.apply_rule(rule, rule_statuses[rule.id])
 
-        if features.has("organizations:active-release-notifications-enable", self.project):
+        if features.has(
+            "organizations:active-release-notifications-enable", self.project.organization
+        ):
             self.apply_active_release_rule(
                 [ActiveReleaseEventCondition(project=self.project)],
                 [],
