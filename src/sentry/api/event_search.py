@@ -511,6 +511,7 @@ class SearchVisitor(NodeVisitor):
             or is_measurement(key)
             or is_span_op_breakdown(key)
             or self.builder.get_field_type(key) == "number"
+            or self.is_duration_key(key)
         )
 
     def is_duration_key(self, key):
