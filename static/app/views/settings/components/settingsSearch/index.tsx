@@ -23,6 +23,7 @@ function SettingsSearch() {
         <SearchInputWrapper>
           <SearchInputIcon size="14px" />
           <SearchInput
+            aria-label={t('Search Settings')}
             {...getInputProps({type: 'text', placeholder: t('Search')})}
             ref={searchInput}
           />
