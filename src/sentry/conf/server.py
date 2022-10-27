@@ -1032,6 +1032,8 @@ SENTRY_FEATURES = {
     "organizations:incidents": False,
     # Enable issue alert previews
     "organizations:issue-alert-preview": False,
+    # Enable issue alert test notifications
+    "organizations:issue-alert-test-notifications": False,
     # Whether to allow issue only search on the issue list
     "organizations:issue-search-allow-postgres-only-search": False,
     # Flags for enabling CdcEventsDatasetSnubaSearchBackend in sentry.io. No effect in open-source

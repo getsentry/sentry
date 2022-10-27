@@ -232,7 +232,10 @@ class RuleProcessor:
             )
 
         history.record(rule, self.group, self.event.event_id)
+        self.activate_downstream_actions(rule)
 
+    def activate_downstream_actions(self, rule: Rule) -> None:
+        state = self.get_state()
         for action in rule.data.get("actions", ()):
             action_cls = rules.get(action["id"])
             if action_cls is None:
