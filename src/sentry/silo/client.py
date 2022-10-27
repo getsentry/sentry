@@ -54,6 +54,7 @@ class RegionSiloClient(BaseSiloClient):
     silo_client_name = "region"
 
     def __init__(self, region_name: str) -> None:
+        super().__init__()
         self.region = get_region_by_name(region_name)
         self.base_url = self.create_base_url(self.region.address)
 
@@ -66,4 +67,5 @@ class ControlSiloClient(BaseSiloClient):
     silo_client_name = "control"
 
     def __init__(self) -> None:
+        super().__init__()
         self.base_url = self.create_base_url(settings.SENTRY_CONTROL_ADDRESS)
