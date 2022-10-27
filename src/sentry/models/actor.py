@@ -32,7 +32,10 @@ def fetch_actor_obj_by_class_and_id(cls, id: int) -> Type[Union["Team", "User"]]
     def user_fetcher(id: int):
         from sentry.services.hybrid_cloud.user import user_service
 
-        return user_service.get_user(id, is_active=None)
+        user = user_service.get_user(id, is_active=None)
+        if user is None:
+            raise User.DoesNotExist
+        return user
 
     return {Team: team_fetcher, User: user_fetcher}[cls](id)
 
@@ -62,7 +65,7 @@ class Actor(Model):
 
     def resolve(self):
         # Returns User/Team model object
-        return actor_type_to_class(self.type).objects.get(actor_id=self.id)
+        return fetch_actor_obj_by_class_and_id(self.type, self.id)
 
     def get_actor_tuple(self):
         # Returns ActorTuple version of the Actor model.
