@@ -70,6 +70,7 @@ def dispatch_post_process_group_task(
     is_regression: Optional[bool],
     is_new_group_environment: bool,
     primary_hash: Optional[str],
+    queue: str,
     skip_consume: bool = False,
     group_states: Optional[GroupStates] = None,
 ) -> None:
@@ -78,14 +79,17 @@ def dispatch_post_process_group_task(
     else:
         cache_key = cache_key_for_event({"project": project_id, "event_id": event_id})
 
-        post_process_group.delay(
-            is_new=is_new,
-            is_regression=is_regression,
-            is_new_group_environment=is_new_group_environment,
-            primary_hash=primary_hash,
-            cache_key=cache_key,
-            group_id=group_id,
-            group_states=group_states,
+        post_process_group.apply_async(
+            kwargs={
+                "is_new": is_new,
+                "is_regression": is_regression,
+                "is_new_group_environment": is_new_group_environment,
+                "primary_hash": primary_hash,
+                "cache_key": cache_key,
+                "group_id": group_id,
+                "group_states": group_states,
+            },
+            queue=queue,
         )
 
 

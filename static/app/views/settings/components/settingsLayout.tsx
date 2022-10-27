@@ -77,7 +77,11 @@ function SettingsLayout(props: Props) {
 
       <MaxWidthContainer>
         {shouldRenderNavigation && (
-          <SidebarWrapper isVisible={isMobileNavVisible} offsetTop={navOffsetTop}>
+          <SidebarWrapper
+            aria-label={t('Settings Navigation')}
+            isVisible={isMobileNavVisible}
+            offsetTop={navOffsetTop}
+          >
             {renderNavigation({isMobileNavVisible})}
           </SidebarWrapper>
         )}
@@ -129,7 +133,7 @@ const MaxWidthContainer = styled('div')`
   flex: 1;
 `;
 
-const SidebarWrapper = styled('div')<{isVisible: boolean; offsetTop: number}>`
+const SidebarWrapper = styled('nav')<{isVisible: boolean; offsetTop: number}>`
   flex-shrink: 0;
   width: ${p => p.theme.settings.sidebarWidth};
   background: ${p => p.theme.background};

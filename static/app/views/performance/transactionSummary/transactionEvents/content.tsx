@@ -80,7 +80,7 @@ function EventsContent(props: Props) {
   }
 
   if (organization.features.includes('session-replay-ui')) {
-    transactionsListTitles.push(t('replay id'));
+    transactionsListTitles.push(t('replay'));
   }
 
   return (

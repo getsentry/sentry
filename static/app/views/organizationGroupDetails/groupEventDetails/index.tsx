@@ -1,7 +1,5 @@
-import {useEffect} from 'react';
 import {RouteComponentProps} from 'react-router';
 
-import {fetchOrganizationEnvironments} from 'sentry/actionCreators/environments';
 import {Client} from 'sentry/api';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -32,15 +30,10 @@ export interface GroupEventDetailsProps
   selection: PageFilters;
 }
 
+// Blocks rendering of the event until the environment is loaded
 export function GroupEventDetailsContainer(props: GroupEventDetailsProps) {
+  // fetchOrganizationEnvironments is called in groupDetails.tsx
   const state = useLegacyStore(OrganizationEnvironmentsStore);
-
-  useEffect(() => {
-    if (!state.environments && !state.error) {
-      fetchOrganizationEnvironments(props.api, props.organization.slug);
-    }
-    // XXX: Missing dependencies, but it reflects the old of componentDidMount
-  }, [props.api]);
 
   if (state.error) {
     return (

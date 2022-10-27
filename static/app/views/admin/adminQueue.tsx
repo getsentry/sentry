@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import SelectField from 'sentry/components/deprecatedforms/selectField';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 import InternalStatChart from 'sentry/components/internalStatChart';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import AsyncView from 'sentry/views/asyncView';
@@ -90,15 +90,12 @@ export default class AdminQueue extends AsyncView<{}, State> {
         <div>
           <div className="m-b-1">
             <label>Show details for task:</label>
-            <SelectField
+            <SelectControl
               name="task"
-              onChange={value => this.changeTask(value as string)}
+              onChange={({value}) => this.changeTask(value)}
               value={activeTask}
               clearable
-              options={taskList.map(t => ({
-                value: t,
-                label: t,
-              }))}
+              options={taskList.map(value => ({value, label: value}))}
             />
           </div>
           {activeTask ? (
