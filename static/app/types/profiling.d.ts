@@ -1,4 +1,76 @@
 declare namespace Profiling {
+  type SentrySampledProfileSample = {
+    stack_id: number;
+    thread_id: string;
+    elapsed_since_start_ns: string;
+    queue_address?: string;
+  };
+
+  type SentrySampledProfileStack = number[];
+
+  type SentrySampledProfileFrame = {
+    function?: string;
+    instruction_addr?: string;
+    lineno?: number;
+    colno?: number;
+    filename?: string;
+  };
+
+  type SentrySampledProfileDebugMetaImage = {
+    debug_id: string;
+    image_addr: string;
+    code_file: string;
+    type: string;
+    image_size: number;
+    image_vmaddr: string;
+  };
+
+  type SentrySampledProfileTransaction = {
+    name: string;
+    trace_id: string;
+    id: string;
+    active_thread_id: string;
+    relative_start_ns: string;
+    relative_end_ns: string;
+  };
+
+  type SentrySampledProfile = {
+    event_id: string;
+    version: string;
+    os: {
+      name: string;
+      version: string;
+      build_number: string;
+    };
+    device: {
+      architecture: string;
+      is_emulator?: boolean;
+      locale?: string;
+      manufacturer?: string;
+      model?: string;
+    };
+    runtime?: {
+      name: string;
+      version: string;
+    };
+    timestamp: string;
+    release: string;
+    platform: string;
+    environment?: string;
+    debug_meta?: {
+      images: SentryProfileDebugMetaImage[];
+    };
+    profile: {
+      samples: SentrySampledProfileSample[];
+      stacks: SentrySampledProfileStack[];
+      frames: SentrySampledProfileFrame[];
+      thread_metadata?: Record<string, {name?: string; priority?: number}>;
+      queue_metadata?: Record<string, {label: string}>;
+    };
+    transactions?: SentrySampledProfileTransaction[];
+  };
+
+  ////////////////
   interface RawProfileBase {
     endValue: number;
     startValue: number;
