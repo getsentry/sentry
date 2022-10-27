@@ -27,16 +27,17 @@ function initializeData(settings) {
 }
 
 describe('TraceView', () => {
+  let data;
+
+  beforeEach(() => {
+    data = initializeData({});
+  });
   afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
   describe('Autogrouped spans tests', () => {
     it('should render siblings with the same op and description as a grouped span in the minimap and span tree', async () => {
-      const data = initializeData({
-        features: ['performance-autogroup-sibling-spans'],
-      });
-
       const event = generateSampleEvent();
       generateSampleSpan(
         'group me',
@@ -86,13 +87,6 @@ describe('TraceView', () => {
     });
 
     it('should expand grouped siblings when clicked, and then regroup when clicked again', async () => {
-      // eslint-disable-next-line no-console
-      jest.spyOn(console, 'error').mockImplementation(jest.fn());
-
-      const data = initializeData({
-        features: ['performance-autogroup-sibling-spans'],
-      });
-
       const event = generateSampleEvent();
       generateSampleSpan(
         'group me',
@@ -159,10 +153,6 @@ describe('TraceView', () => {
     });
 
     it("should not group sibling spans that don't have the same op or description", async () => {
-      const data = initializeData({
-        features: ['performance-autogroup-sibling-spans'],
-      });
-
       const event = generateSampleEvent();
       generateSampleSpan('test', 'http', 'b000000000000000', 'a000000000000000', event);
       generateSampleSpan(
@@ -213,8 +203,6 @@ describe('TraceView', () => {
     });
 
     it('should autogroup similar nested spans', async () => {
-      const data = initializeData({});
-
       const event = generateSampleEvent();
       generateSampleSpan(
         'group me',
@@ -263,8 +251,6 @@ describe('TraceView', () => {
     });
 
     it('should expand/collapse only the sibling group that is clicked, even if multiple groups have the same op and description', async () => {
-      const data = initializeData({features: ['performance-autogroup-sibling-spans']});
-
       const event = generateSampleEvent();
       generateSampleSpan(
         'group me',
@@ -472,9 +458,7 @@ describe('TraceView', () => {
     });
 
     it('should correctly render sibling autogroup text when op and/or description is not provided', async () => {
-      const data = initializeData({
-        features: ['performance-autogroup-sibling-spans'],
-      });
+      const data = initializeData({});
 
       const event1 = generateSampleEvent();
       generateSampleSpan(
@@ -561,9 +545,7 @@ describe('TraceView', () => {
     });
 
     it('should automatically expand a sibling span group and select a span if it is anchored', async () => {
-      const data = initializeData({
-        features: ['performance-autogroup-sibling-spans'],
-      });
+      const data = initializeData({});
 
       const event = generateSampleEvent();
       generateSampleSpan(
