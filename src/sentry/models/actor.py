@@ -30,7 +30,7 @@ def fetch_actor_obj_by_class_and_id(klass, id: int) -> Type[Union["Team", "User"
         return Team.objects.get(id)
 
     def user_fetcher():
-        from sentry.services.hybrid_cloud.users import user_service
+        from sentry.services.hybrid_cloud.user import user_service
 
         return user_service.get_user(id, is_active=None)
 

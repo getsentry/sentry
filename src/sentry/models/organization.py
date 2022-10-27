@@ -252,7 +252,7 @@ class Organization(Model, SnowflakeIdMixin):
         }
 
     def get_owners(self) -> Sequence[User]:
-        from sentry.services.hybrid_cloud.users import user_service
+        from sentry.services.hybrid_cloud.user import user_service
 
         owner_memberships = OrganizationMember.objects.filter(
             role=roles.get_top_dog().id, organization=self
@@ -271,7 +271,7 @@ class Organization(Model, SnowflakeIdMixin):
         if there is no owner. Used for analytics primarily.
         """
         if not hasattr(self, "_default_owner_id"):
-            self._default_owner_id = self.get_owners().values_list("id", flat=True).first()
+            self._default_owner_id = self.get_owners().first()
         return self._default_owner_id
 
     def has_single_owner(self):

@@ -111,7 +111,7 @@ class GroupSubscriptionManager(BaseManager):  # type: ignore
         :param group: Group object
         """
         from sentry.models import NotificationSetting
-        from sentry.services.hybrid_cloud.users import user_service
+        from sentry.services.hybrid_cloud.user import user_service
 
         all_possible_users = user_service.get_from_group(group)
         active_and_disabled_subscriptions = self.filter(group=group, user__in=all_possible_users)
