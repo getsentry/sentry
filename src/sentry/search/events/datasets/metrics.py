@@ -901,9 +901,7 @@ class MetricsDatasetConfig(DatasetConfig):
                 raise IncompatibleMetricsQuery(f"Transaction value {value} in filter not found")
         value = resolved_value
 
-        return Condition(
-            Column(self.builder.resolve_column_name("transaction")), Op(operator), value
-        )
+        return Condition(self.builder.resolve_column("transaction"), Op(operator), value)
 
     # Query Functions
     def _resolve_count_if(

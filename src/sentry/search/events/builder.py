@@ -2150,7 +2150,7 @@ class MetricsQueryBuilder(QueryBuilder):
         return self._indexer_cache[value]
 
     def resolve_tag_value(self, value: str) -> Optional[Union[int, str]]:
-        if self.is_performance and self.tag_values_are_strings:
+        if self.is_performance and self.tag_values_are_strings or self.use_metrics_layer:
             return value
         if self.dry_run:
             return -1

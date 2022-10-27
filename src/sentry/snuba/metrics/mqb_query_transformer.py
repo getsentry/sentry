@@ -23,7 +23,7 @@ class MQBQueryTransformationException(Exception):
 def _get_derived_op_metric_field_from_snuba_function(function: Function):
     if len(function.parameters) == 0 or not isinstance(function.parameters[0], Column):
         raise MQBQueryTransformationException(
-            "The first parameter of a function should be a column of the metric MRI"
+            f"The first parameter of {function} should be a column of the metric MRI"
         )
     default_args_for_snql_func = {"aggregate_filter", "org_id", "alias"}
 
@@ -79,7 +79,7 @@ def _transform_select(query_select):
                     select_field.parameters[0], Column
                 ):
                     raise MQBQueryTransformationException(
-                        "The first parameter of a function should be a column of the metric MRI"
+                        f"The first parameter of {select_field} should be a column of the metric MRI"
                     )
                 select.append(
                     MetricField(
@@ -186,7 +186,7 @@ def _get_mq_dict_params_from_where(query_where):
                     mq_dict["start"] = condition.rhs
                 elif condition.op == Op.LT:
                     mq_dict["end"] = condition.rhs
-            elif condition.lhs.name == "tags[environment]":
+            elif condition.lhs.name in ["tags[environment]", "tags[transaction]"]:
                 where.append(condition)
             else:
                 raise MQBQueryTransformationException(f"Unsupported column for where {condition}")

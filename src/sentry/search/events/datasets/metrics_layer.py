@@ -332,7 +332,9 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                     "count",
                     snql_metric_layer=lambda args, alias: Function(
                         "count",
-                        [],
+                        [
+                            Column(TransactionMRI.DURATION.value),
+                        ],
                         alias,
                     ),
                     default_result_type="integer",
@@ -495,9 +497,7 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                 raise IncompatibleMetricsQuery(f"Transaction value {value} in filter not found")
         value = resolved_value
 
-        return Condition(
-            Column(self.builder.resolve_column_name("transaction")), Op(operator), value
-        )
+        return Condition(self.builder.resolve_column("transaction"), Op(operator), value)
 
     # Query Functions
     def _resolve_percentile(
