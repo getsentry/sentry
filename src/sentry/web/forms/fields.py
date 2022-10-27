@@ -37,7 +37,7 @@ class UserField(CharField):
                 attrs["placeholder"] = "username"
             if isinstance(value, int):
                 value = User.objects.get(id=value).username
-            return super(UserField.widget, self).render(name, value, attrs)
+            return super().render(name, value, attrs)
 
     def clean(self, value):
         value = super().clean(value)
