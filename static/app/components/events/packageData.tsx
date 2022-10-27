@@ -24,6 +24,10 @@ export function EventPackageData({event}: Props) {
       longKeys = true;
       title = t('Assemblies');
       break;
+    case 'java':
+      longKeys = true;
+      title = t('Dependencies');
+      break;
     default:
       longKeys = false;
       title = t('Packages');
