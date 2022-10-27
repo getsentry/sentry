@@ -332,7 +332,7 @@ class ReplayQueryConfig(QueryConfig):
     agg_environment = String(field_alias="environment")
     releases = ListField()
     dist = String()
-    urls = ListField(query_alias="urls_sorted")
+    urls = ListField(query_alias="urls_sorted", field_alias="url")
     user_id = String(field_alias="user.id")
     user_email = String(field_alias="user.email")
     user_name = String(field_alias="user.name")
