@@ -2274,7 +2274,7 @@ def should_create_group(client: RedisCluster, grouphash: str) -> bool:
         client.delete(grouphash)
         return True
     else:
-        client.ttl(60 * 60 * 24)
+        client.expire(grouphash, 60 * 60 * 24)
         return False
 
 
