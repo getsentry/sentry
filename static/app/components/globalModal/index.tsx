@@ -192,7 +192,7 @@ function GlobalModal({visible = false, options = {}, children, onClose}: Props) 
       >
         <AnimatePresence>
           {visible && (
-            <Modal role="dialog" css={options.modalCss}>
+            <Modal role="dialog" aria-modal css={options.modalCss}>
               <Content role="document">{renderedChild}</Content>
             </Modal>
           )}

@@ -172,6 +172,9 @@ class OrganizationAuthSettingsView(OrganizationView):
             "form": form,
             "pending_links_count": pending_links_count,
             "login_url": absolute_uri(Organization.get_url(organization.slug)),
+            "settings_url": absolute_uri(
+                reverse("sentry-organization-settings", args=[organization.slug])
+            ),
             "auth_provider": auth_provider,
             "provider_name": provider.name,
             "scim_api_token": auth_provider.get_scim_token(),
