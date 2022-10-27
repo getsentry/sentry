@@ -1145,12 +1145,12 @@ class QueryBuilder:
     ) -> Optional[WhereType]:
         name = search_filter.key.name
         value = search_filter.value.value
-        if value and (measurement_meta := self.get_measument_by_name(name)):
-            unit = measurement_meta.get("unit")
-            value = self.resolve_measurement_value(unit, value)
-            search_filter = SearchFilter(
-                search_filter.key, search_filter.operator, SearchValue(value)
-            )
+        if value and (unit := self.get_field_type(name)):
+            if unit in SIZE_UNITS or unit in DURATION_UNITS:
+                value = self.resolve_measurement_value(unit, value)
+                search_filter = SearchFilter(
+                    search_filter.key, search_filter.operator, SearchValue(value)
+                )
 
         if name in NO_CONVERSION_FIELDS:
             return None

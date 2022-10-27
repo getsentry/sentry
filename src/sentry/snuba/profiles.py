@@ -54,11 +54,18 @@ class ProfilesQueryBuilder(QueryBuilder):  # type: ignore
 
     def resolve_params(self) -> List[WhereType]:
         conditions = super().resolve_params()
+
+        # the profiles dataset requires a condition
+        # on the organization_id in the query
         conditions.append(
             Condition(
                 self.column("organization.id"),
-                Op.IN,
-                [self.params["organization_id"]],
+                Op.EQ,
+                self.params["organization_id"],
             )
         )
+
         return conditions
+
+    def get_field_type(self, field: str) -> Optional[str]:
+        return self.config.resolve_column_type(field)

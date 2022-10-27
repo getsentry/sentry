@@ -31,6 +31,21 @@ class Kind(Enum):
     STRING = "string"
 
 
+class Duration(Enum):
+    NANOSECOND = "nanosecond"
+    MICROSECOND = "microsecond"
+    MILLISECOND = "millisecond"
+    SECOND = "second"
+    MINUTE = "minute"
+    HOUR = "hour"
+    DAY = "day"
+    WEEK = "week"
+
+
+# The only units available right now are duration based
+Unit = Duration
+
+
 @dataclass(frozen=True)
 class Column:
     # the external name to expose
@@ -39,6 +54,8 @@ class Column:
     column: str
     # type kind/type associated with this column
     kind: Kind
+    # some kinds will have an unit associated with it
+    unit: Optional[Unit] = None
 
 
 COLUMNS = [
@@ -55,7 +72,9 @@ COLUMNS = [
     Column(alias="os.build", column="device_os_build_number", kind=Kind.STRING),
     Column(alias="os.name", column="device_os_name", kind=Kind.STRING),
     Column(alias="os.version", column="device_os_version", kind=Kind.STRING),
-    Column(alias="profile.duration", column="duration_ns", kind=Kind.DURATION),
+    Column(
+        alias="profile.duration", column="duration_ns", kind=Kind.DURATION, unit=Duration.NANOSECOND
+    ),
     Column(alias="environment", column="environment", kind=Kind.STRING),
     Column(alias="platform.name", column="platform", kind=Kind.STRING),
     Column(alias="trace", column="trace_id", kind=Kind.STRING),
@@ -101,10 +120,9 @@ class ProfileNumericColumn(NumericColumn):
 
     def get_type(self, value: str) -> str:
         try:
-            kind = COLUMN_MAP[value].kind
+            return COLUMN_MAP[value].kind.value
         except KeyError:
-            kind = Kind.NUMBER
-        return kind.value
+            return Kind.NUMBER.value
 
 
 class ProfilesDatasetConfig(DatasetConfig):
@@ -279,6 +297,16 @@ class ProfilesDatasetConfig(DatasetConfig):
             return COLUMN_MAP[column].column
         except KeyError:
             raise InvalidSearchQuery(f"Unknown field: {column}")
+
+    def resolve_column_type(self, column: str) -> Optional[str]:
+        try:
+            col = COLUMN_MAP[column]
+            if col.unit:
+                # if the column has an associated unit, prioritize that
+                return col.unit.value
+            return col.kind.value
+        except KeyError:
+            return None
 
     def _resolve_percentile(
         self,
