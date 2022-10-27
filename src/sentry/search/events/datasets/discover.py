@@ -5,8 +5,9 @@ from typing import Callable, Mapping, Optional, Union
 import sentry_sdk
 from django.utils.functional import cached_property
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
-from snuba_sdk import Column, Condition, Direction, Function, Identifier, Lambda, Op, OrderBy
+from snuba_sdk import And, Column, Condition, Direction, Function, Identifier, Lambda, Op, OrderBy
 
+from sentry import tagstore
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Group, Project
@@ -74,6 +75,7 @@ from sentry.search.events.fields import (
 )
 from sentry.search.events.filter import to_list, translate_transaction_status
 from sentry.search.events.types import SelectType, WhereType
+from sentry.tagstore.types import GroupTagValue
 from sentry.types.issues import GroupCategory
 from sentry.utils.numbers import format_grouped_length
 
@@ -1484,6 +1486,7 @@ class DiscoverDatasetConfig(DatasetConfig):
 
         if group_short_ids and self.builder.params and "organization_id" in self.builder.params:
             try:
+                # TODO - cache groups, store as an instance variable with underscore, use it perf issue id converter
                 groups = Group.objects.by_qualified_short_id_bulk(
                     self.builder.params["organization_id"],
                     group_short_ids,
@@ -1610,12 +1613,29 @@ class DiscoverDatasetConfig(DatasetConfig):
             else:
                 raise InvalidSearchQuery("performance.issue_ids should be a number")
 
+        transaction_limit = 4
+
+        groups: list[Group] = Group.objects.filter(id__in=value_list_as_ints)
+        transaction_tags: list[GroupTagValue] = tagstore.get_perf_group_list_tag_and_values(
+            groups, [], "transaction", transaction_limit
+        )
+        transaction_names: list[str] = list(map(lambda tag: tag.value, transaction_tags))
+
+        perform_optimization = True if len(transaction_names) < transaction_limit - 1 else False
+        transaction_name_conditon = Condition(
+            self.builder.column("transaction"), Op.IN, transaction_names
+        )
+
         if search_filter.is_in_filter:
-            return Condition(
+            group_id_condition = Condition(
                 Function("hasAny", [self.builder.column(name), value_list_as_ints]),
                 Op.EQ if operator == "IN" else Op.NEQ,
                 1,
             )
+            if perform_optimization:
+                return And([group_id_condition, transaction_name_conditon])
+            return group_id_condition
+
         elif search_filter.value.raw_value == "":
             return Condition(
                 Function("notEmpty", [self.builder.column(name)]),
@@ -1624,7 +1644,11 @@ class DiscoverDatasetConfig(DatasetConfig):
             )
         else:
             lhs = self.builder.column(name)
-            return Condition(lhs, Op(search_filter.operator), value_list_as_ints[0])
+            group_id_condition = Condition(lhs, Op(search_filter.operator), value_list_as_ints[0])
+
+            if perform_optimization:
+                return And([group_id_condition, transaction_name_conditon])
+            return group_id_condition
 
     def _issue_id_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         name = search_filter.key.name

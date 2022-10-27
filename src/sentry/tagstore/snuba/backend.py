@@ -460,6 +460,66 @@ class SnubaTagStorage(TagStorage):
             for group_id, data in result.items()
         }
 
+    def get_perf_group_list_tag_and_values(
+        self,
+        groups: list,
+        environment_ids: list,
+        key: str,
+        limit=TOP_VALUES_DEFAULT_LIMIT,
+        raise_on_empty=True,
+    ):
+        tag = f"tags[{key}]"
+        project_ids = list(map(lambda group: group.project_id, groups))
+        group_ids = list(map(lambda group: str(group.id), groups))
+
+        filters = {"project_id": project_ids}
+
+        conditions = [[tag, "!=", ""]]
+        aggregations = [
+            ["uniq", tag, "values_seen"],
+            ["count()", "", "count"],
+            ["min", SEEN_COLUMN, "first_seen"],
+            ["max", SEEN_COLUMN, "last_seen"],
+        ]
+
+        if len(groups) > 1:
+            conditions.append([["hasAny", ["group_ids", group_ids]], "=", 1])
+        else:
+            conditions.append([["has", ["group_ids", groups[0].id]], "=", 1])
+
+        if environment_ids:
+            filters["environment"] = environment_ids
+
+        result, totals = snuba.query(
+            dataset=Dataset.Transactions,
+            start=None,
+            end=None,
+            filter_keys=filters,
+            conditions=conditions,
+            aggregations=aggregations,
+            groupby=[tag],
+            orderby="-count",
+            limit=limit,
+            totals=True,
+            referrer="tagstore.get_perf_group_list_tag_and_top_values",
+        )
+
+        if raise_on_empty and (not result or totals.get("count", 0) == 0):
+            raise TagKeyNotFound if groups is None else GroupTagKeyNotFound
+
+        values = [
+            TagValue(
+                key=key,
+                value=value,
+                times_seen=data["count"],
+                first_seen=parse_datetime(data["first_seen"]),
+                last_seen=parse_datetime(data["last_seen"]),
+            )
+            for value, data in result.items()
+        ]
+
+        return values
+
     def get_perf_group_list_tag_value(
         self, project_ids, group_id_list, environment_ids, key, value
     ):
