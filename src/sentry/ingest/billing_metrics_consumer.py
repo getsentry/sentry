@@ -167,7 +167,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
             reason=None,
             timestamp=datetime.fromtimestamp(payload["timestamp"]),
             event_id=None,
-            category=DataCategory.TRANSACTION_PROCESSED,
+            category=DataCategory.TRANSACTION,
             quantity=quantity,
         )
 
