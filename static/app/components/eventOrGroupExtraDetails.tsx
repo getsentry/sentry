@@ -8,22 +8,31 @@ import InboxReason from 'sentry/components/group/inboxBadges/inboxReason';
 import InboxShortId from 'sentry/components/group/inboxBadges/shortId';
 import TimesTag from 'sentry/components/group/inboxBadges/timesTag';
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
+import ReplayCount from 'sentry/components/group/replayCount';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
 import {IconChat} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Group} from 'sentry/types';
+import {Group, Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
+import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = WithRouterProps<{orgId: string}> & {
   data: Event | Group;
+  organization: Organization;
   showAssignee?: boolean;
   showInboxTime?: boolean;
 };
 
-function EventOrGroupExtraDetails({data, showAssignee, params, showInboxTime}: Props) {
+function EventOrGroupExtraDetails({
+  data,
+  showAssignee,
+  params,
+  showInboxTime,
+  organization,
+}: Props) {
   const {
     id,
     lastSeen,
@@ -41,6 +50,7 @@ function EventOrGroupExtraDetails({data, showAssignee, params, showInboxTime}: P
   } = data as Group;
 
   const issuesPath = `/organizations/${params.orgId}/issues/`;
+  const isReplayEnabled = organization.features.includes('session-replay-ui');
 
   return (
     <GroupExtra>
@@ -74,6 +84,7 @@ function EventOrGroupExtraDetails({data, showAssignee, params, showInboxTime}: P
           <span>{numComments}</span>
         </CommentsLink>
       )}
+      {isReplayEnabled && <ReplayCount groupId={id} orgId={params.orgId} />}
       {logger && (
         <LoggerAnnotation>
           <GlobalSelectionLink
@@ -153,4 +164,4 @@ const LoggerAnnotation = styled(AnnotationNoMargin)`
   color: ${p => p.theme.textColor};
 `;
 
-export default withRouter(EventOrGroupExtraDetails);
+export default withRouter(withOrganization(EventOrGroupExtraDetails));
