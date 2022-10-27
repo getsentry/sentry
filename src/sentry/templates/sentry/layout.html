@@ -16,6 +16,10 @@
   <meta name="robots" content="none, noarchive">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
+  {% autoescape off %}
+  {% generate_pageload_span_meta %}
+  {% endautoescape %}
+
   <link rel="icon" type="image/png" href="{% absolute_asset_url "sentry" "images/favicon.png" %}">
 
   <link rel="apple-touch-icon" href="{% absolute_asset_url "sentry" "images/logos/apple-touch-icon.png" %}">
