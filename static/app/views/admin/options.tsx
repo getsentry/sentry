@@ -17,7 +17,6 @@ type Section = {
 
 // TODO(epurkhiser): This should really use the types from the form system, but
 // they're still pretty bad so that's difficult I guess?
-
 type Field = {
   key: string;
   label: React.ReactNode;
