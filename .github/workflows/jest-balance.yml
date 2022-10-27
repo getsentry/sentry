@@ -1,0 +1,42 @@
+name: jest balancer
+on: [workflow_dispatch]
+jobs:
+  jest-balance:
+    # Buckle up, this may take a while
+    timeout-minutes: 60
+    # Make sure this matches the runner that runs frontend tests
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e # v2
+        name: Checkout sentry
+
+      - uses: getsentry/action-setup-volta@54775a59c41065f54ecc76d1dd5f2cdc7a1550cb # v1.1.0
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build CSS
+        run: NODE_ENV=production yarn build-css
+
+      - name: jest balancer
+        env:
+          GITHUB_PR_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          GITHUB_PR_REF: ${{ github.event.pull_request.head.ref || github.ref }}
+        run: JEST_TEST_BALANCER=1 yarn test-ci
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@b4d51739f96fca8047ad065eccef63442d8e99f7 # v4.2.0
+        with:
+          token: ${{ secrets.BUMP_SENTRY_TOKEN }}
+          add-paths: |
+            tests/js/test-balancer/jest-balance.json
+          commit-message: 'ci(jest): regenerate jest-balance.json'
+          branch: 'ci/jest/rebalance-tests'
+          reviewers: ${{ github.triggering_actor }}
+          team-reviewers: |
+            getsentry/app-frontend
+          delete-branch: true
+          base: master
+          title: 'ci(jest): regenerate jest-balance.json'
+          body: |
+            This PR was auto-generated - it updates the \`jest-balance.json\` file with new test run data from CI.
