@@ -18,7 +18,6 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase):
             organization=self.org, name="Mariachi Band", members=[self.user]
         )
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
-        # self.group = self.create_group(project=self.project)
         self.login_as(self.user)
 
         options.set("performance.issues.all.problem-detection", 1.0)
@@ -30,7 +29,6 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_with_one_performance_issue(self, mock_now):
-        # Create a transaction with a performance problem
         event = load_data("transaction")
 
         data = json.loads(
@@ -49,10 +47,6 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase):
                 "organizations:performance-issues-ingest",
             ]
         ):
-            # Process the event
             event = self.store_event(data=event, project_id=self.project.id)
-
-            # self.wait_for_event_count(self.project.id, 1)
-            # Navigate to the issue details page
             self.page.visit_issue(self.org.slug, event.groups[0].id)
             self.browser.snapshot("performance issue details", desktop_only=True)
