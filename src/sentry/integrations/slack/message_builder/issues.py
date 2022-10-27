@@ -6,7 +6,7 @@ from django.core.cache import cache
 from sentry_relay import parse_release
 
 from sentry import tagstore
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import GroupEvent
 from sentry.integrations.message_builder import (
     build_attachment_text,
     build_attachment_title,
@@ -208,12 +208,12 @@ def build_actions(
     return [resolve_button, ignore_button, assign_button], text, color
 
 
-def get_timestamp(group: Group, event: Event | None) -> float:
+def get_timestamp(group: Group, event: GroupEvent | None) -> float:
     ts = group.last_seen
     return to_timestamp(max(ts, event.datetime) if event else ts)
 
 
-def get_color(event_for_tags: Event | None, notification: BaseNotification | None) -> str:
+def get_color(event_for_tags: GroupEvent | None, notification: BaseNotification | None) -> str:
     if notification:
         if not isinstance(notification, AlertRuleNotification):
             return "info"
@@ -230,7 +230,7 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
     def __init__(
         self,
         group: Group,
-        event: Event | None = None,
+        event: GroupEvent | None = None,
         tags: set[str] | None = None,
         identity: Identity | None = None,
         actions: Sequence[MessageAction] | None = None,
@@ -277,7 +277,7 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
             actions=payload_actions,
             callback_id=json.dumps({"issue": self.group.id}),
             color=color,
-            fallback=f"[{project.slug}] {obj.title}",
+            fallback=self.build_fallback_text(obj, project.slug),
             fields=fields,
             footer=footer,
             text=text,
@@ -300,7 +300,7 @@ class SlackReleaseIssuesMessageBuilder(SlackMessageBuilder):
     def __init__(
         self,
         group: Group,
-        event: Event | None = None,
+        event: GroupEvent | None = None,
         tags: set[str] | None = None,
         identity: Identity | None = None,
         actions: Sequence[MessageAction] | None = None,
@@ -397,7 +397,7 @@ class SlackReleaseIssuesMessageBuilder(SlackMessageBuilder):
 
 def build_group_attachment(
     group: Group,
-    event: Event | None = None,
+    event: GroupEvent | None = None,
     tags: set[str] | None = None,
     identity: Identity | None = None,
     actions: Sequence[MessageAction] | None = None,

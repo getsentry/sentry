@@ -319,6 +319,11 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
         if start and end and start >= end:
             raise serializers.ValidationError("start must be before end")
 
+        if len(data.get("widgets", [])) > Dashboard.MAX_WIDGETS:
+            raise serializers.ValidationError(
+                f"Number of widgets must be less than {Dashboard.MAX_WIDGETS}"
+            )
+
         return data
 
     def update_dashboard_filters(self, instance, validated_data):

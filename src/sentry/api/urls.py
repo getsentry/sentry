@@ -116,7 +116,6 @@ from .endpoints.codeowners import (
     ExternalUserEndpoint,
     ProjectCodeOwnersDetailsEndpoint,
     ProjectCodeOwnersEndpoint,
-    ProjectCodeOwnersRequestEndpoint,
 )
 from .endpoints.data_scrubbing_selector_suggestions import DataScrubbingSelectorSuggestionsEndpoint
 from .endpoints.debug_files import (
@@ -254,7 +253,6 @@ from .endpoints.organization_events_has_measurements import (
 from .endpoints.organization_events_histogram import OrganizationEventsHistogramEndpoint
 from .endpoints.organization_events_meta import (
     OrganizationEventsMetaEndpoint,
-    OrganizationEventsMetricsCompatiblity,
     OrganizationEventsRelatedIssuesEndpoint,
 )
 from .endpoints.organization_events_span_ops import OrganizationEventsSpanOpsEndpoint
@@ -365,7 +363,6 @@ from .endpoints.organization_user_issues_search import OrganizationUserIssuesSea
 from .endpoints.organization_user_reports import OrganizationUserReportsEndpoint
 from .endpoints.organization_user_teams import OrganizationUserTeamsEndpoint
 from .endpoints.organization_users import OrganizationUsersEndpoint
-from .endpoints.organization_vitals_overview import OrganizationVitalsOverviewEndpoint
 from .endpoints.project_agnostic_rule_conditions import ProjectAgnosticRuleConditionsEndpoint
 from .endpoints.project_app_store_connect_credentials import (
     AppStoreConnectAppsEndpoint,
@@ -1168,11 +1165,6 @@ urlpatterns = [
                     name="sentry-api-0-organization-events-meta",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/events-metrics-compatibility/$",
-                    OrganizationEventsMetricsCompatiblity.as_view(),
-                    name="sentry-api-0-organization-events-metrics-compatibility",
-                ),
-                url(
                     r"^(?P<organization_slug>[^\/]+)/metrics-compatibility/$",
                     OrganizationMetricsCompatibility.as_view(),
                     name="sentry-api-0-organization-metrics-compatibility",
@@ -1680,11 +1672,6 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^/]+)/client-state/(?P<category>[^\/]+)/$",
                     ClientStateEndpoint.as_view(),
                     name="sentry-api-0-organization-client-state",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^/]+)/vitals-overview/$",
-                    OrganizationVitalsOverviewEndpoint.as_view(),
-                    name="sentry-api-0-organization-vitals-overview",
                 ),
             ]
         ),
@@ -2211,11 +2198,6 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/codeowners/(?P<codeowners_id>[^\/]+)/$",
                     ProjectCodeOwnersDetailsEndpoint.as_view(),
                     name="sentry-api-0-project-codeowners-details",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/codeowners-request/$",
-                    ProjectCodeOwnersRequestEndpoint.as_view(),
-                    name="getsentry-api-0-project-codeowners-request",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/transaction-threshold/configure/$",
