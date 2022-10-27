@@ -5,13 +5,13 @@ from typing import Any, List, Mapping, Set, Tuple
 from django.utils import timezone
 
 from sentry import features
-from sentry.api.endpoints.organization_code_mappings import RepositoryProjectPathConfigSerializer
 from sentry.db.models.fields.node import NodeData
 from sentry.integrations.utils.code_mapping import CodeMapping, CodeMappingTreesHelper
 from sentry.models import Project
 from sentry.models.group import Group
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.repository import Repository
 from sentry.tasks.base import instrumented_task
@@ -170,34 +170,22 @@ def set_project_codemappings(
     config for each mapping.
     """
     for code_mapping in code_mappings:
-        repo = Repository.objects.filter(name=code_mapping.repo, organization_id=organization.id)
-        if repo.exists():
-            repo = repo.first()
-        else:
-            repo = Repository.objects.create(
-                name=code_mapping.repo,
-                organization_id=organization.id,
-                integration_id=organization_integration.integration_id,
-            )
-
-        serializer = RepositoryProjectPathConfigSerializer(
-            data={
-                "project_id": project.id,
-                "stack_root": code_mapping.stacktrace_root,
-                "source_root": code_mapping.source_path,
-                "repository_id": repo.id,
-                "default_branch": code_mapping.branch,
-            },
-            context={
-                "organization": organization,
-                "organization_integration": organization_integration,
+        repository, _ = Repository.objects.get_or_create(
+            name=code_mapping.repo.name,
+            organization_id=organization.id,
+            defaults={
+                "name": code_mapping.repo.name,
+                "organization_id": organization.id,
+                "integration_id": organization_integration.integration_id,
             },
         )
-        if serializer.is_valid():
-            serializer.save()
-        else:
-            logger.error(
-                "Error saving code mapping for organization %s: %s",
-                organization.id,
-                serializer.errors,
-            )
+
+        RepositoryProjectPathConfig.objects.create(
+            project=project,
+            repository=repository,
+            organization_integration=organization_integration,
+            stack_root=code_mapping.stacktrace_root,
+            source_root=code_mapping.source_path,
+            default_branch=code_mapping.repo.branch,
+            automatically_generated=True,
+        )
