@@ -2165,7 +2165,7 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects):
 
             if new_grouphashes:
                 # temporary fix to limit group creation to grouphashes seen 3+ times in a 24-48 hour period
-                groups_to_create = new_grouphashes
+                groups_to_create = new_grouphashes.copy()
                 client = redis.redis_clusters.get("default")
                 for new_grouphash in new_grouphashes:
                     if should_create_group(client, new_grouphash) is not True:
