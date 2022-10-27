@@ -85,6 +85,7 @@ class SubscribeTest(TestCase):
         GroupSubscription.objects.subscribe_actor(group=group, actor=team)
 
 
+@region_silo_test
 class GetParticipantsTest(TestCase):
     def setUp(self):
         self.org = self.create_organization()

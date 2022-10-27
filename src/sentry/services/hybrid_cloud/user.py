@@ -56,8 +56,7 @@ class DatabaseBackedUserService(UserService):
         group_memberships = OrganizationMember.objects.filter(
             organization=group.organization,
             teams__in=group.project.teams.all(),
-        ).values_list("id", flat=True)
-
+        ).values_list("user_id", flat=True)
         return user_service.get_users(set(group_memberships))
 
     def get_users(self, user_ids: Iterable[int], is_active=True) -> List[User]:
