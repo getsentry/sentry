@@ -48,7 +48,6 @@ function mockRequests(orgSlug: Organization['slug']) {
     body: {
       incompatible_projects: [],
       compatible_projects: [1],
-      dynamic_sampling_projects: [1],
     },
   });
 

@@ -8,7 +8,6 @@ import GenericDiscoverQuery, {
 
 export interface MetricsCompatibilityData {
   compatible_projects?: number[];
-  dynamic_sampling_projects?: number[];
 }
 
 type QueryProps = Omit<DiscoverQueryProps, 'eventView' | 'api'> & {
