@@ -16,6 +16,8 @@ const CreateOwnershipRuleModal = ({
   Header,
   closeModal,
   onClose,
+  Footer: _Footer,
+  CloseButton: _CloseButton,
   ...props
 }: Props) => {
   const closeModalTimeoutRef = useRef<number | undefined>(undefined);
