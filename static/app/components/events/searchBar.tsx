@@ -147,12 +147,12 @@ function SearchBar(props: SearchBarProps) {
         query,
         projectIdStrings,
         endpointParams,
-
-        // allows searching for tags on transactions as well
-        true,
-
-        // allows searching for tags on sessions as well
-        includeSessionTagsValues
+        {
+          // allows searching for tags on transactions as well
+          includeTransactions: true,
+          // allows searching for tags on sessions as well
+          includeSessions: includeSessionTagsValues,
+        }
       ).then(
         results =>
           flatten(results.filter(({name}) => defined(name)).map(({name}) => name)),

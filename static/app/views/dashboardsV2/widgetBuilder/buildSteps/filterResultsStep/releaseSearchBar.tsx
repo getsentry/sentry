@@ -58,7 +58,7 @@ export function ReleaseSearchBar({
       searchQuery,
       projectIdStrings,
       undefined,
-      true
+      {includeTransactions: true}
     ).then(
       tagValues => (tagValues as TagValue[]).map(({value}) => value),
       () => {

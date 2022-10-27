@@ -57,8 +57,7 @@ function TagValueAutocomplete({
         inputValue,
         [projectId],
         null,
-        true,
-        undefined,
+        {includeTransactions: true},
         '-count'
       )
     );
