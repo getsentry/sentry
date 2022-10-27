@@ -450,3 +450,52 @@ def test_default_2022_10_04_strategy(spans: List[Span], expected: Mapping[str, L
         key: hash_values(values)
         for key, values in {**expected, "a" * 16: ["transaction name"]}.items()
     }
+
+
+# Currently just a duplicate of the 2022_10_04 strategy tests until actual
+# strategy changes are made.
+@pytest.mark.parametrize(
+    "spans,expected",
+    [
+        ([], {}),
+        (
+            [
+                SpanBuilder()
+                .with_span_id("b" * 16)
+                .with_op("db.sql.query")
+                .with_description("SELECT * FROM table WHERE id IN (1, 2, 3)")
+                .build(),
+                SpanBuilder()
+                .with_span_id("c" * 16)
+                .with_op("db.sql.query")
+                .with_description("SELECT * FROM table WHERE id IN (4, 5, 6)")
+                .build(),
+                SpanBuilder()
+                .with_span_id("d" * 16)
+                .with_op("db.sql.query")
+                .with_description("SELECT * FROM table WHERE id IN (7, 8, 9)")
+                .build(),
+            ],
+            {
+                "b" * 16: ["SELECT * FROM table WHERE id IN (%s)"],
+                "c" * 16: ["SELECT * FROM table WHERE id IN (%s)"],
+                "d" * 16: ["SELECT * FROM table WHERE id IN (%s)"],
+            },
+        ),
+    ],
+)
+def test_default_2022_10_27_strategy(spans: List[Span], expected: Mapping[str, List[str]]) -> None:
+    event = {
+        "transaction": "transaction name",
+        "contexts": {
+            "trace": {
+                "span_id": "a" * 16,
+            },
+        },
+        "spans": spans,
+    }
+    configuration = CONFIGURATIONS["default:2022-10-27"]
+    assert configuration.execute_strategy(event).results == {
+        key: hash_values(values)
+        for key, values in {**expected, "a" * 16: ["transaction name"]}.items()
+    }
