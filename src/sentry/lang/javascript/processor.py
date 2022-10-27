@@ -863,11 +863,12 @@ def is_valid_frame(frame):
 
 def get_function_for_token(frame, token, previous_frame=None):
     """
-    Get function name for a given frame, based on the looked up token.
-    Return tokens name if we have a usable value from symbolic,
-    if possible, ask the callsite whether it's token has a valid name if we
-    did not resolve to anything useful, otherwise, fallback to useless name
-    if we had no function name at all, or to frames current, minified function name.
+    Get function name for a given frame based on the token resolved by symbolic.
+    It tries following paths in order:
+    - return token function name if we have a usable value (filtered through `USELESS_FN_NAMES` list),
+    - return caller (previous frame) token function name if it had one mapped,
+    - return token function name, including filtered values if it mapped to anything in the first place,
+    - return current frames function name as a fallback
     """
 
     frame_function_name = frame.get("function")
