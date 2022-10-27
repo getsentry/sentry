@@ -21,7 +21,9 @@ def spans() -> None:
 @configuration
 def write_hashes(filename):
     """
-    Given a JSON file, runs span groupings on it, and writes to the file.
+    Runs span hash grouping on event data in the supplied filename using the
+    default grouping strategy. Write the results to a copy of the file.
+    Filename should be a path to a JSON event data file.
     """
 
     [head, tail] = os.path.split(filename)
