@@ -5,8 +5,6 @@ import TagStore from 'sentry/stores/tagStore';
 import IssueListSearchBar from 'sentry/views/issueList/searchBar';
 
 describe('IssueListSearchBar', function () {
-  let tagValuePromise;
-  let supportedTags;
   let recentSearchMock;
   let defaultProps;
 
@@ -15,24 +13,11 @@ describe('IssueListSearchBar', function () {
   beforeEach(function () {
     TagStore.reset();
     TagStore.loadTagsSuccess(TestStubs.Tags());
-    supportedTags = TagStore.getState();
-    // Add a tag that is preseeded with values.
-    supportedTags.is = {
-      key: 'is',
-      name: 'is',
-      values: ['assigned', 'unresolved', 'ignored'],
-      predefined: true,
-    };
 
-    tagValuePromise = Promise.resolve([]);
     defaultProps = {
       organization,
       query: '',
-      tagValueLoader: () => tagValuePromise,
-      supportedTags,
       onSearch: jest.fn(),
-      onSidebarToggle: () => {},
-      sort: 'date',
     };
 
     recentSearchMock = MockApiClient.addMockResponse({
@@ -48,68 +33,92 @@ describe('IssueListSearchBar', function () {
 
   describe('updateAutoCompleteItems()', function () {
     it('sets state with complete tag', function () {
-      const loader = jest.fn();
+      const tagValuesMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/tags/url/values/',
+        method: 'GET',
+        body: [],
+      });
 
-      render(<IssueListSearchBar {...defaultProps} tagValueLoader={loader} />, {
+      render(<IssueListSearchBar {...defaultProps} />, {
         context: routerContext,
       });
 
       userEvent.type(screen.getByRole('textbox'), 'url:"fu"');
 
-      expect(loader).toHaveBeenCalledWith('url', 'fu');
+      expect(tagValuesMock).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: 'fu',
+          }),
+        })
+      );
 
       expect(screen.getByTestId('smart-search-dropdown')).toBeInTheDocument();
       expect(screen.queryByRole('listitem')).not.toBeInTheDocument();
     });
 
     it('sets state when value has colon', function () {
-      const loader = jest.fn();
+      const tagValuesMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/tags/url/values/',
+        method: 'GET',
+        body: [],
+      });
 
-      render(<IssueListSearchBar {...defaultProps} tagValueLoader={loader} />, {
+      render(<IssueListSearchBar {...defaultProps} />, {
         context: routerContext,
       });
 
       userEvent.type(screen.getByRole('textbox'), 'url:');
 
-      expect(loader).toHaveBeenCalledWith('url', '');
+      expect(tagValuesMock).toHaveBeenCalled();
     });
 
     it('does not request values when tag is `timesSeen`', function () {
-      // This should never get called
-      const loader = jest.fn(x => x);
+      const tagValuesMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/tags/url/values/',
+        method: 'GET',
+        body: [],
+      });
 
-      render(<IssueListSearchBar {...defaultProps} tagValueLoader={loader} />, {
+      render(<IssueListSearchBar {...defaultProps} />, {
         context: routerContext,
       });
 
       userEvent.type(screen.getByRole('textbox'), 'timesSeen:');
 
-      expect(loader).not.toHaveBeenCalled();
+      expect(tagValuesMock).not.toHaveBeenCalled();
     });
   });
 
   describe('Recent Searches', function () {
     it('saves search query as a recent search', function () {
+      const tagValuesMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/tags/url/values/',
+        method: 'GET',
+        body: [],
+      });
       const saveRecentSearch = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/recent-searches/',
         method: 'POST',
         body: {},
       });
-      const loader = jest.fn();
       const onSearch = jest.fn();
 
-      render(
-        <IssueListSearchBar
-          {...defaultProps}
-          tagValueLoader={loader}
-          onSearch={onSearch}
-        />,
-        {context: routerContext}
-      );
+      render(<IssueListSearchBar {...defaultProps} onSearch={onSearch} />, {
+        context: routerContext,
+      });
 
       userEvent.type(screen.getByRole('textbox'), 'url:"fu"');
 
-      expect(loader).toHaveBeenCalledWith('url', 'fu');
+      expect(tagValuesMock).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: 'fu',
+          }),
+        })
+      );
 
       expect(screen.getByTestId('smart-search-dropdown')).toBeInTheDocument();
       expect(screen.queryByRole('listitem')).not.toBeInTheDocument();
@@ -129,6 +138,12 @@ describe('IssueListSearchBar', function () {
     });
 
     it('queries for recent searches', function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/tags/url/values/',
+        method: 'GET',
+        body: [],
+      });
+
       render(<IssueListSearchBar {...defaultProps} />, {context: routerContext});
 
       userEvent.type(screen.getByRole('textbox'), 'is:');
@@ -146,6 +161,12 @@ describe('IssueListSearchBar', function () {
     });
 
     it('cycles through keyboard navigation for selection', async function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/tags/device.orientation/values/',
+        method: 'GET',
+        body: [],
+      });
+
       render(<IssueListSearchBar {...defaultProps} />, {context: routerContext});
 
       const textarea = screen.getByRole('textbox');
@@ -174,89 +195,6 @@ describe('IssueListSearchBar', function () {
       );
       userEvent.keyboard('{ArrowDown}{ArrowDown}{ArrowUp}{Tab}');
       expect(textarea).toHaveValue(firstItemValue);
-    });
-  });
-
-  describe('Pinned Searches', function () {
-    let pinSearch;
-    let unpinSearch;
-
-    beforeEach(function () {
-      MockApiClient.clearMockResponses();
-      pinSearch = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/pinned-searches/',
-        method: 'PUT',
-        body: {},
-      });
-      unpinSearch = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/pinned-searches/',
-        method: 'DELETE',
-        body: {},
-      });
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/recent-searches/',
-        method: 'GET',
-        body: [],
-      });
-    });
-
-    it('has pin icon', function () {
-      render(<IssueListSearchBar {...defaultProps} />, {context: routerContext});
-
-      expect(screen.getByTestId('pin-icon')).toBeInTheDocument();
-    });
-
-    it('pins a search from the searchbar', function () {
-      render(<IssueListSearchBar {...defaultProps} query='url:"fu"' />, {
-        context: routerContext,
-      });
-
-      userEvent.click(screen.getByRole('button', {name: 'Pin this search'}));
-
-      expect(pinSearch).toHaveBeenLastCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          method: 'PUT',
-          data: {
-            query: 'url:"fu"',
-            sort: 'date',
-            type: 0,
-          },
-        })
-      );
-    });
-
-    it('unpins a search from the searchbar', function () {
-      render(
-        <IssueListSearchBar
-          {...defaultProps}
-          query='url:"fu"'
-          savedSearch={{
-            id: '1',
-            name: 'Saved Search',
-            isPinned: true,
-            query: 'url:"fu"',
-            sort: 'date',
-            dateCreated: '',
-            isOrgCustom: false,
-            isGlobal: false,
-            type: 0,
-          }}
-        />,
-        {context: routerContext}
-      );
-
-      userEvent.click(screen.getByRole('button', {name: 'Unpin this search'}));
-
-      expect(unpinSearch).toHaveBeenLastCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          method: 'DELETE',
-          data: {
-            type: 0,
-          },
-        })
-      );
     });
   });
 });
