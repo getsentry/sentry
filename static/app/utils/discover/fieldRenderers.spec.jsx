@@ -220,7 +220,7 @@ describe('getFieldRenderer', function () {
 
     const star = screen.getByRole('button', {name: 'Toggle star for team'});
 
-    // Enabled, can't open the menu in the test witohut setting up the
+    // Enabled, can't open the menu in the test without setting up the
     // TeamKeyTransactionManager
     expect(star).toBeEnabled();
   });
