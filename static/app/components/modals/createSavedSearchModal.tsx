@@ -1,27 +1,20 @@
-import {Component} from 'react';
+import {useState} from 'react';
 
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {createSavedSearch} from 'sentry/actionCreators/savedSearches';
-import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import {Form, SelectField, TextField} from 'sentry/components/forms';
 import {OnSubmitCallback} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
-import withApi from 'sentry/utils/withApi';
+import useApi from 'sentry/utils/useApi';
 import {getSortLabel, IssueSortOptions} from 'sentry/views/issueList/utils';
 
 type Props = ModalRenderProps & {
-  api: Client;
   organization: Organization;
   query: string;
   sort?: string;
-};
-
-type State = {
-  error: string | null;
-  isSaving: boolean;
 };
 
 const DEFAULT_SORT_OPTIONS = [
@@ -32,129 +25,123 @@ const DEFAULT_SORT_OPTIONS = [
   IssueSortOptions.USER,
 ];
 
-class CreateSavedSearchModal extends Component<Props, State> {
-  state: State = {
-    isSaving: false,
-    error: null,
-  };
+function CreateSavedSearchModal({
+  Header,
+  Body,
+  closeModal,
+  organization,
+  query,
+  sort,
+}: Props) {
+  const api = useApi();
+  const [error, setError] = useState(null);
 
-  /** Handle "date added" sort not being available for saved searches */
-  validateSortOption(sort?: string | null): string {
-    if (this.sortOptions().find(option => option === sort)) {
-      return sort as string;
+  const sortOptions = organization?.features?.includes('issue-list-trend-sort')
+    ? [...DEFAULT_SORT_OPTIONS, IssueSortOptions.TREND]
+    : DEFAULT_SORT_OPTIONS;
+
+  const validateSortOption = (unvalidatedSort?: string | null): string => {
+    if (sortOptions.find(option => option === unvalidatedSort)) {
+      return unvalidatedSort as string;
     }
 
     return IssueSortOptions.DATE;
-  }
+  };
 
-  handleSubmit: OnSubmitCallback = (data, onSubmitSuccess, onSubmitError, event) => {
-    const {api, organization} = this.props;
-    const sort = this.validateSortOption(data.sort);
+  const selectFieldSortOptions = sortOptions.map(sortOption => ({
+    value: sortOption,
+    label: getSortLabel(sortOption),
+  }));
 
+  const initialData = {
+    name: '',
+    query,
+    sort: validateSortOption(sort),
+  };
+
+  const handleSubmit: OnSubmitCallback = async (
+    data,
+    onSubmitSuccess,
+    onSubmitError,
+    event
+  ) => {
     event.preventDefault();
-
-    this.setState({isSaving: true});
+    setError(null);
 
     addLoadingMessage(t('Saving Changes'));
 
-    createSavedSearch(api, organization.slug, data.name, data.query, sort)
-      .then(_data => {
-        this.props.closeModal();
-        this.setState({
-          error: null,
-          isSaving: false,
-        });
-        clearIndicators();
-        onSubmitSuccess(data);
-      })
-      .catch(err => {
-        let error = t('Unable to save your changes.');
-        if (err.responseJSON && err.responseJSON.detail) {
-          error = err.responseJSON.detail;
-        }
-        this.setState({
-          error,
-          isSaving: false,
-        });
-        clearIndicators();
-        onSubmitError(error);
-      });
+    try {
+      await createSavedSearch(
+        api,
+        organization.slug,
+        data.name,
+        data.query,
+        validateSortOption(data.sort)
+      );
+
+      closeModal();
+      clearIndicators();
+      onSubmitSuccess(data);
+    } catch (err) {
+      clearIndicators();
+      onSubmitError(
+        err?.responseJSON?.detail
+          ? err.responseJSON.detail
+          : t('Unable to save your changes.')
+      );
+    }
   };
 
-  sortOptions() {
-    const {organization} = this.props;
-    const options = [...DEFAULT_SORT_OPTIONS];
-    if (organization?.features?.includes('issue-list-trend-sort')) {
-      options.push(IssueSortOptions.TREND);
-    }
+  return (
+    <Form
+      onSubmit={handleSubmit}
+      onCancel={closeModal}
+      saveOnBlur={false}
+      initialData={initialData}
+      submitLabel={t('Save')}
+      onSubmitError={submitError => setError(submitError)}
+    >
+      <Header>
+        <h4>{t('Save Current Search')}</h4>
+      </Header>
 
-    return options;
-  }
+      <Body>
+        {error && <Alert type="error">{error}</Alert>}
 
-  render() {
-    const {error} = this.state;
-    const {Header, Body, closeModal, query, sort} = this.props;
-
-    const sortOptions = this.sortOptions().map(sortOption => ({
-      value: sortOption,
-      label: getSortLabel(sortOption),
-    }));
-    const initialData = {
-      name: '',
-      query,
-      sort: this.validateSortOption(sort),
-    };
-
-    return (
-      <Form
-        onSubmit={this.handleSubmit}
-        onCancel={closeModal}
-        saveOnBlur={false}
-        initialData={initialData}
-        submitLabel={t('Save')}
-      >
-        <Header>
-          <h4>{t('Save Current Search')}</h4>
-        </Header>
-
-        <Body>
-          {this.state.error && <Alert type="error">{error}</Alert>}
-
-          <p>{t('All team members will now have access to this search.')}</p>
-          <TextField
-            key="name"
-            name="name"
-            label={t('Name')}
-            placeholder="e.g. My Search Results"
-            inline={false}
-            stacked
-            flexibleControlStateSize
-            required
-          />
-          <TextField
-            key="query"
-            name="query"
-            label={t('Query')}
-            inline={false}
-            stacked
-            flexibleControlStateSize
-            required
-          />
-          <SelectField
-            key="sort"
-            name="sort"
-            label={t('Sort By')}
-            options={sortOptions}
-            required
-            clearable={false}
-            inline={false}
-            stacked
-            flexibleControlStateSize
-          />
-        </Body>
-      </Form>
-    );
-  }
+        <p>{t('All team members will now have access to this search.')}</p>
+        <TextField
+          key="name"
+          name="name"
+          label={t('Name')}
+          placeholder="e.g. My Search Results"
+          inline={false}
+          stacked
+          flexibleControlStateSize
+          required
+        />
+        <TextField
+          key="query"
+          name="query"
+          label={t('Query')}
+          inline={false}
+          stacked
+          flexibleControlStateSize
+          required
+        />
+        <SelectField
+          key="sort"
+          name="sort"
+          label={t('Sort By')}
+          options={selectFieldSortOptions}
+          required
+          clearable={false}
+          inline={false}
+          stacked
+          flexibleControlStateSize
+        />
+      </Body>
+    </Form>
+  );
 }
 
-export default withApi(CreateSavedSearchModal);
+export default CreateSavedSearchModal;
