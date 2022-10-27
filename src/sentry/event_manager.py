@@ -116,6 +116,8 @@ from sentry.utils.performance_issues.performance_detection import (
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
 
 if TYPE_CHECKING:
+    from rediscluster import RedisCluster
+
     from sentry.eventstore.models import Event
 
 logger = logging.getLogger("sentry.events")
@@ -2266,7 +2268,7 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects):
                 EventPerformanceProblem(event, performance_problems_by_hash[problem_hash]).save()
 
 
-def should_create_group(client: redis, grouphash: str) -> bool:
+def should_create_group(client: RedisCluster, grouphash: str) -> bool:
     times_seen = client.incr(grouphash)
     if times_seen >= 3:
         client.delete(grouphash)
