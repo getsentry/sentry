@@ -5,6 +5,8 @@ from typing import Any, Callable, Mapping, Optional, Union
 from snuba_sdk import OrderBy
 
 from sentry.api.event_search import SearchFilter
+from sentry.search.events.constants import PROJECT_ALIAS, PROJECT_NAME_ALIAS
+from sentry.search.events.datasets import field_aliases, filter_aliases
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.fields import (
     ColumnArg,
@@ -113,11 +115,23 @@ class ProfilesDatasetConfig(DatasetConfig):
     def search_filter_converter(
         self,
     ) -> Mapping[str, Callable[[SearchFilter], Optional[WhereType]]]:
-        return {}
+        return {
+            PROJECT_ALIAS: self._project_slug_filter_converter,
+            PROJECT_NAME_ALIAS: self._project_slug_filter_converter,
+        }
+
+    def _project_slug_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        return filter_aliases.project_slug_converter(self.builder, search_filter)
 
     @property
     def field_alias_converter(self) -> Mapping[str, Callable[[str], SelectType]]:
-        return {}
+        return {
+            PROJECT_ALIAS: self._resolve_project_slug_alias,
+            PROJECT_NAME_ALIAS: self._resolve_project_slug_alias,
+        }
+
+    def _resolve_project_slug_alias(self, alias: str) -> SelectType:
+        return field_aliases.resolve_project_slug_alias(self.builder, alias)
 
     @property
     def function_converter(self) -> Mapping[str, SnQLFunction]:
