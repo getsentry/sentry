@@ -1,6 +1,8 @@
 import logging
 from typing import Dict, List, NamedTuple, Union
 
+from sentry.utils.json import JSONData
+
 logger = logging.getLogger("sentry.integrations.utils.code_mapping")
 logger.setLevel(logging.INFO)
 
@@ -43,7 +45,7 @@ class FrameFilename:
 
 
 class CodeMappingTreesHelper:
-    def __init__(self, trees: Dict[str, List[str]]):
+    def __init__(self, trees: JSONData):
         self.trees = trees
         self.code_mappings: Dict[str, CodeMapping] = {}
 
@@ -102,7 +104,7 @@ class CodeMappingTreesHelper:
         """Look for the file path through all the trees and generate code mappings for it"""
         _code_mappings: List[CodeMapping] = []
         # XXX: This will need optimization by changing the data structure of the trees
-        for repo_full_name, tree in self.trees.items():
+        for repo_full_name in self.trees.keys():
             _code_mappings.extend(
                 self._generate_code_mapping_from_tree(repo_full_name, frame_filename)
             )
@@ -122,12 +124,11 @@ class CodeMappingTreesHelper:
         repo_full_name: str,
         frame_filename: FrameFilename,
     ) -> List[CodeMapping]:
-        matched_files = list(
-            filter(
-                lambda src_path: self._potential_match(src_path, frame_filename),
-                self.trees[repo_full_name]["files"],
-            )
-        )
+        matched_files = [
+            src_path
+            for src_path in self.trees[repo_full_name]["files"]
+            if self._potential_match(src_path, frame_filename)
+        ]
         # It is too risky generating code mappings when there's more
         # than one file potentially matching
         return (
