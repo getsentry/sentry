@@ -61,7 +61,7 @@ class ProjectOwnershipModal extends AsyncComponent<Props, State> {
       : [];
 
     // pull frame data out of exception or the stacktrace
-    const entry = (eventData?.entries as Entry[]).find(({type}) =>
+    const entry = (eventData?.entries as Entry[])?.find(({type}) =>
       ['exception', 'stacktrace'].includes(type)
     );
 
@@ -73,11 +73,8 @@ class ProjectOwnershipModal extends AsyncComponent<Props, State> {
       frames = entry?.data?.frames ?? [];
     }
 
-    // filter frames by inApp unless there would be 0
-    const inAppFrames = frames.filter(frame => frame.inApp);
-    if (inAppFrames.length > 0) {
-      frames = inAppFrames;
-    }
+    // Only display in-app frames
+    frames = frames.filter(frame => frame.inApp);
 
     const paths = uniq(frames.map(frame => frame.filename || frame.absPath || ''))
       .filter(i => i)
