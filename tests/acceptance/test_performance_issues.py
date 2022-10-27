@@ -49,4 +49,6 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase):
         ):
             event = self.store_event(data=event, project_id=self.project.id)
             self.page.visit_issue(self.org.slug, event.groups[0].id)
+            self.browser.click('[aria-label="Show Details"]')
+
             self.browser.snapshot("performance issue details", desktop_only=True)
