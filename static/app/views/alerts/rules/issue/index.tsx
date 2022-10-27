@@ -1315,7 +1315,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                               organization={organization}
                               features={['issue-alert-test-notifications']}
                             >
-                              <StepGap>
+                              <TestButtonWrapper>
                                 <Button
                                   type="button"
                                   onClick={this.testNotifications}
@@ -1325,9 +1325,9 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                                     rule?.actions.length === 0
                                   }
                                 >
-                                  Test Notifications
+                                  {t('Test Notifications')}
                                 </Button>
-                              </StepGap>
+                              </TestButtonWrapper>
                             </Feature>
                           </StepContent>
                         </StepContainer>
@@ -1435,7 +1435,7 @@ const StepLead = styled('div')`
   }
 `;
 
-const StepGap = styled('div')`
+const TestButtonWrapper = styled('div')`
   margin-top: ${space(1.5)};
 `;
 
