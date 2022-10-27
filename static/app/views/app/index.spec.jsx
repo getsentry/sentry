@@ -49,7 +49,9 @@ describe('App', function () {
     );
 
     const updatesViaEmail = await screen.findByText(
-      'Yes, I would like to receive updates via email'
+      'Yes, I would like to receive updates via email',
+      undefined,
+      {timeout: 2000, interval: 100}
     );
     expect(updatesViaEmail).toBeInTheDocument();
 

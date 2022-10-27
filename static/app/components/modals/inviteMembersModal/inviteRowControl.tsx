@@ -1,6 +1,6 @@
-import {Component} from 'react';
+import {useState} from 'react';
 import {MultiValueProps} from 'react-select';
-import {withTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 
 import Button from 'sentry/components/button';
 import SelectControl, {
@@ -30,14 +30,8 @@ type Props = {
   role: string;
   roleDisabledUnallowed: boolean;
   roleOptions: OrgRole[];
-
   teams: string[];
-  theme: Theme;
   className?: string;
-};
-
-type State = {
-  inputValue: string;
 };
 
 function ValueComponent(
@@ -51,22 +45,32 @@ function mapToOptions(values: string[]): SelectOption[] {
   return values.map(value => ({value, label: value}));
 }
 
-class InviteRowControl extends Component<Props, State> {
-  state: State = {inputValue: ''};
+function InviteRowControl({
+  className,
+  disabled,
+  emails,
+  role,
+  teams,
+  roleOptions,
+  roleDisabledUnallowed,
+  inviteStatus,
+  onRemove,
+  onChangeEmails,
+  onChangeRole,
+  onChangeTeams,
+  disableRemove,
+}: Props) {
+  const [inputValue, setInputValue] = useState('');
 
-  handleInputChange = (inputValue: string) => {
-    this.setState({inputValue});
-  };
+  const theme = useTheme();
 
-  handleKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
-    const {onChangeEmails, emails} = this.props;
-    const {inputValue} = this.state;
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
     switch (event.key) {
       case 'Enter':
       case ',':
       case ' ':
         onChangeEmails([...mapToOptions(emails), {label: inputValue, value: inputValue}]);
-        this.setState({inputValue: ''});
+        setInputValue('');
         event.preventDefault();
         break;
       default:
@@ -74,81 +78,65 @@ class InviteRowControl extends Component<Props, State> {
     }
   };
 
-  render() {
-    const {
-      className,
-      disabled,
-      emails,
-      role,
-      teams,
-      roleOptions,
-      roleDisabledUnallowed,
-      inviteStatus,
-      onRemove,
-      onChangeEmails,
-      onChangeRole,
-      onChangeTeams,
-      disableRemove,
-      theme,
-    } = this.props;
-
-    return (
-      <div className={className}>
-        <SelectControl
-          data-test-id="select-emails"
-          disabled={disabled}
-          placeholder={t('Enter one or more emails')}
-          inputValue={this.state.inputValue}
-          value={emails}
-          components={{
-            MultiValue: props => ValueComponent(props, inviteStatus),
-            DropdownIndicator: () => null,
-          }}
-          options={mapToOptions(emails)}
-          onBlur={(e: React.ChangeEvent<HTMLInputElement>) =>
-            e.target.value &&
-            onChangeEmails([
-              ...mapToOptions(emails),
-              {label: e.target.value, value: e.target.value},
-            ])
-          }
-          styles={getStyles(theme, inviteStatus)}
-          onInputChange={this.handleInputChange}
-          onKeyDown={this.handleKeyDown}
-          onChange={onChangeEmails}
-          multiple
-          creatable
-          clearable
-          menuIsOpen={false}
-        />
-        <RoleSelectControl
-          data-test-id="select-role"
-          disabled={disabled}
-          value={role}
-          roles={roleOptions}
-          disableUnallowed={roleDisabledUnallowed}
-          onChange={onChangeRole}
-        />
-        <TeamSelector
-          data-test-id="select-teams"
-          disabled={disabled}
-          placeholder={t('Add to teams\u2026')}
-          value={teams}
-          onChange={onChangeTeams}
-          multiple
-          clearable
-        />
-        <Button
-          borderless
-          icon={<IconClose />}
-          size="zero"
-          onClick={onRemove}
-          disabled={disableRemove}
-          aria-label={t('Remove')}
-        />
-      </div>
-    );
-  }
+  return (
+    <li className={className}>
+      <SelectControl
+        aria-label={t('Email Addresses')}
+        data-test-id="select-emails"
+        disabled={disabled}
+        placeholder={t('Enter one or more emails')}
+        inputValue={inputValue}
+        value={emails}
+        components={{
+          MultiValue: props => ValueComponent(props, inviteStatus),
+          DropdownIndicator: () => null,
+        }}
+        options={mapToOptions(emails)}
+        onBlur={(e: React.ChangeEvent<HTMLInputElement>) =>
+          e.target.value &&
+          onChangeEmails([
+            ...mapToOptions(emails),
+            {label: e.target.value, value: e.target.value},
+          ])
+        }
+        styles={getStyles(theme, inviteStatus)}
+        onInputChange={setInputValue}
+        onKeyDown={handleKeyDown}
+        onChange={onChangeEmails}
+        multiple
+        creatable
+        clearable
+        menuIsOpen={false}
+      />
+      <RoleSelectControl
+        aria-label={t('Role')}
+        data-test-id="select-role"
+        disabled={disabled}
+        value={role}
+        roles={roleOptions}
+        disableUnallowed={roleDisabledUnallowed}
+        onChange={onChangeRole}
+      />
+      <TeamSelector
+        aria-label={t('Add to Team')}
+        data-test-id="select-teams"
+        disabled={disabled}
+        placeholder={t('Add to teams\u2026')}
+        value={teams}
+        onChange={onChangeTeams}
+        multiple
+        clearable
+      />
+      <Button
+        borderless
+        icon={<IconClose />}
+        size="zero"
+        onClick={onRemove}
+        disabled={disableRemove}
+        aria-label={t('Remove')}
+      />
+    </li>
+  );
 }
 
 /**
@@ -193,4 +181,4 @@ function getStyles(theme: Theme, inviteStatus: Props['inviteStatus']): StylesCon
   };
 }
 
-export default withTheme(InviteRowControl);
+export default InviteRowControl;
