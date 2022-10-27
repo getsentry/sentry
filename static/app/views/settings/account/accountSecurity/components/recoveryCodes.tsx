@@ -87,7 +87,7 @@ const RecoveryCodes = ({
           <EmptyMessage>{t('You have no more recovery codes to use')}</EmptyMessage>
         )}
       </PanelBody>
-      <iframe name="printable" style={{display: 'none'}} />
+      <iframe data-test-id="frame" name="printable" style={{display: 'none'}} />
     </CodeContainer>
   );
 };
