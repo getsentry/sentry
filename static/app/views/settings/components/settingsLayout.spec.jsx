@@ -31,6 +31,10 @@ describe('SettingsLayout', function () {
     });
   });
 
+  function getTestnav() {
+    return screen.queryByRole('navigation', {name: 'Test Nav'});
+  }
+
   it('renders', function () {
     const {container} = render(
       <BreadcrumbContextProvider>
@@ -48,12 +52,12 @@ describe('SettingsLayout', function () {
           router={TestStubs.router()}
           route={{}}
           routes={[]}
-          renderNavigation={() => <nav />}
+          renderNavigation={() => <nav aria-label="Test Nav" />}
         />
       </BreadcrumbContextProvider>
     );
 
-    expect(screen.getByRole('navigation')).toBeInTheDocument();
+    expect(getTestnav()).toBeInTheDocument();
   });
 
   it('can toggle mobile navigation', function () {
@@ -63,14 +67,16 @@ describe('SettingsLayout', function () {
           router={TestStubs.router()}
           route={{}}
           routes={[]}
-          renderNavigation={opts => (opts.isMobileNavVisible ? <nav /> : null)}
+          renderNavigation={opts =>
+            opts.isMobileNavVisible ? <nav aria-label="Test Nav" /> : null
+          }
         />
       </BreadcrumbContextProvider>
     );
 
-    expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
+    expect(getTestnav()).not.toBeInTheDocument();
 
     userEvent.click(screen.getByRole('button', {name: 'Open the menu'}));
-    expect(screen.queryByRole('navigation')).toBeInTheDocument();
+    expect(getTestnav()).toBeInTheDocument();
   });
 });
