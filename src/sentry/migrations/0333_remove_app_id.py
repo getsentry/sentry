@@ -24,7 +24,7 @@ class Migration(CheckedMigration):
     atomic = False
 
     dependencies = [
-        ("sentry", "0331_redirect_app_id"),
+        ("sentry", "0332_release_user_agent"),
     ]
 
     operations = [
