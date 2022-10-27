@@ -561,6 +561,8 @@ class Release(Model):
     # later split up releases by project again.  This is for instance used
     # by the org release listing.
     _for_project_id = None
+    # the user agent that set the release
+    user_agent = models.TextField(null=True)
 
     # Custom Model Manager required to override create method
     objects = ReleaseModelManager()

@@ -261,7 +261,7 @@ const definitions: Field[] = [
       ['true', 'Please keep my usage information anonymous'],
     ],
     help: tct(
-      'If enabled, any stats reported to sentry.io will exclude identifying information (such as your administrative email address). By anonymizing your installation the Sentry team will be unable to contact you about security updates. For more information on what data is sent to Sentry, see the [link:documentation].',
+      'If enabled, any stats reported to sentry.io will exclude identifying information (such as your administrative email address). By anonymizing your installation the Sentry team will be unable to contact you about security updates. For more information on what data is sent to Sentry, see the [link:documentation]. Note: This is separate from error-reporting for the self-hosted installer. The data reported to the beacon only includes usage stats from your running self-hosted instance.',
       {
         link: <a href="https://develop.sentry.dev/self-hosted/" />,
       }
