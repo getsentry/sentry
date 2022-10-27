@@ -135,6 +135,7 @@ default_manager.add("organizations:performance-suspect-spans-view", Organization
 default_manager.add("organizations:performance-transaction-name-only-search", OrganizationFeature, True)
 default_manager.add("organizations:performance-use-metrics", OrganizationFeature, True)
 default_manager.add("organizations:performance-vitals-inp", OrganizationFeature, True)
+default_manager.add("organizations:performance-mep-bannerless-ui", OrganizationFeature, True)
 default_manager.add("organizations:profiling", OrganizationFeature)
 default_manager.add("organizations:project-event-date-limit", OrganizationFeature, True)
 default_manager.add("organizations:project-stats", OrganizationFeature, True)

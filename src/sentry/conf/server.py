@@ -1151,6 +1151,8 @@ SENTRY_FEATURES = {
     "organizations:performance-vitals-inp": False,
     # Enable processing transactions in post_process_group
     "organizations:performance-issues-post-process-group": False,
+    # Enable internal view for bannerless MEP view
+    "organizations:performance-mep-bannerless-ui": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable populating suggested assignees with release committers
