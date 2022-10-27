@@ -1029,39 +1029,6 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     );
   }
 
-  renderActionInterval(disabled: boolean) {
-    const {rule} = this.state;
-    const {frequency} = rule || {};
-
-    return (
-      <FormField
-        name="frequency"
-        inline={false}
-        style={{padding: 0, border: 'none'}}
-        label={null}
-        help={null}
-        className={this.hasError('frequency') ? ' error' : ''}
-        required
-        disabled={disabled}
-        flexibleControlStateSize
-      >
-        {({onChange, onBlur}) => (
-          <SelectControl
-            clearable={false}
-            disabled={disabled}
-            value={`${frequency}`}
-            options={FREQUENCY_OPTIONS}
-            onChange={({value}) => {
-              this.handleChange('frequency', value);
-              onChange(value, {});
-              onBlur(value, {});
-            }}
-          />
-        )}
-      </FormField>
-    );
-  }
-
   renderBody() {
     const {organization} = this.props;
     const {project, rule, detailedError, loading, ownership, sendingNotification} =
@@ -1283,9 +1250,41 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                           </ChevronContainer>
                           <StepContent>
                             <StepLead>
-                              {tct('[then:Then] perform these actions', {
-                                then: <Badge />,
-                              })}
+                              {tct(
+                                '[then:Then] perform these actions once every [selector]',
+                                {
+                                  then: <Badge />,
+                                  selector: (
+                                    <EmbeddedWrapper>
+                                      <EmbeddedSelectField
+                                        className={classNames({
+                                          error: this.hasError('frequency'),
+                                        })}
+                                        styles={{
+                                          control: provided => ({
+                                            ...provided,
+                                            minWidth: '106px',
+                                            minHeight: '21px',
+                                            height: '21px',
+                                          }),
+                                        }}
+                                        inline={false}
+                                        isSearchable={false}
+                                        isClearable={false}
+                                        name="frequency"
+                                        required
+                                        flexibleControlStateSize
+                                        options={FREQUENCY_OPTIONS}
+                                        onChange={val =>
+                                          this.handleChange('frequency', val)
+                                        }
+                                        size="xs"
+                                        disabled={disabled}
+                                      />
+                                    </EmbeddedWrapper>
+                                  ),
+                                }
+                              )}
                             </StepLead>
 
                             <RuleNodeList
@@ -1332,13 +1331,6 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                       </Step>
                     </PanelBody>
                   </ConditionsPanel>
-                  <StyledListItem>
-                    {t('Set action interval')}
-                    <StyledFieldHelp>
-                      {t('Perform the actions above once this often for an issue')}
-                    </StyledFieldHelp>
-                  </StyledListItem>
-                  {this.renderActionInterval(disabled)}
                   <Feature organization={organization} features={['issue-alert-preview']}>
                     <StyledListItem>
                       <StyledListItemSpaced>
