@@ -105,36 +105,36 @@ describe('MessageFormatter', () => {
   it('Should print console message with placeholders correctly', () => {
     render(<MessageFormatter breadcrumb={breadcrumbs[0]} />);
 
-    expect(screen.getByRole('text')).toHaveTextContent('This is a test');
+    expect(screen.getByText('This is a test')).toBeInTheDocument();
   });
 
   it('Should print console message with objects correctly', () => {
     render(<MessageFormatter breadcrumb={breadcrumbs[1]} />);
 
-    expect(screen.getByRole('text')).toHaveTextContent('test 1 false {}');
+    expect(screen.getByText('test 1 false {}')).toBeInTheDocument();
   });
 
   it('Should print console message correctly when it is an Error object', () => {
     render(<MessageFormatter breadcrumb={breadcrumbs[2]} />);
 
-    expect(screen.getByRole('text')).toHaveTextContent('Error: this is my error message');
+    expect(screen.getByText('Error: this is my error message')).toBeInTheDocument();
   });
 
   it('Should print empty object in case there is no message prop', () => {
     render(<MessageFormatter breadcrumb={breadcrumbs[3]} />);
 
-    expect(screen.getByRole('text')).toHaveTextContent('{}');
+    expect(screen.getByText('{}')).toBeInTheDocument();
   });
 
   it('Should ignore the "%c" placheholder and print the console message correctly', () => {
     render(<MessageFormatter breadcrumb={breadcrumbs[4]} />);
 
-    expect(screen.getByRole('text')).toHaveTextContent('prev state {"cart":[]}');
+    expect(screen.getByText('prev state {"cart":[]}')).toBeInTheDocument();
   });
 
   it('Should print arrays correctly', () => {
     render(<MessageFormatter breadcrumb={breadcrumbs[5]} />);
 
-    expect(screen.getByRole('text')).toHaveTextContent('test ["foo","bar"]');
+    expect(screen.getByText('test ["foo","bar"]')).toBeInTheDocument();
   });
 });
