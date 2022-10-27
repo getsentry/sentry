@@ -7,6 +7,9 @@ import {
 import {JSSelfProfile} from 'sentry/utils/profiling/profile/jsSelfProfile';
 import {SampledProfile} from 'sentry/utils/profiling/profile/sampledProfile';
 
+import {SentrySampledProfile} from './sentrySampledProfile';
+import {makeSentrySampledProfile} from './sentrySampledProfile.spec';
+
 describe('importProfile', () => {
   it('imports evented profile', () => {
     const eventedProfile: Profiling.EventedProfile = {
@@ -165,6 +168,14 @@ describe('importProfile', () => {
     const imported = importProfile(jsSelfProfile, 'profile');
 
     expect(imported.profiles[0]).toBeInstanceOf(JSSelfProfile);
+  });
+
+  it('imports sentry sampled profile', () => {
+    const sentrySampledProfile = makeSentrySampledProfile();
+
+    const imported = importProfile(sentrySampledProfile, 'profile');
+
+    expect(imported.profiles[0]).toBeInstanceOf(SentrySampledProfile);
   });
 
   it('throws on unrecognized profile type', () => {

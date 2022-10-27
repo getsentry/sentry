@@ -24,6 +24,17 @@ export function isJSProfile(profile: any): profile is JSSelfProfiling.Trace {
   return !('type' in profile) && Array.isArray(profile.resources);
 }
 
+export function isSentrySampledProfile(
+  profile: any
+): profile is Profiling.SentrySampledProfile {
+  return (
+    'profile' in profile &&
+    'samples' in profile.profile &&
+    'stacks' in profile.profile &&
+    'frames' in profile.profile
+  );
+}
+
 export function isChromeTraceObjectFormat(
   profile: any
 ): profile is ChromeTrace.ObjectFormat {
