@@ -97,6 +97,7 @@ from sentry.ratelimits.sliding_windows import Quota, RedisSlidingWindowRateLimit
 from sentry.reprocessing2 import is_reprocessed_event, save_unprocessed_event
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.signals import first_event_received, first_transaction_received, issue_unresolved
+from sentry.spans.grouping.strategy.config import INCOMING_DEFAULT_CONFIG_ID
 from sentry.tasks.commits import fetch_commits
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.process_buffer import buffer_incr
@@ -679,6 +680,18 @@ def _run_background_grouping(project, job):
         sentry_sdk.capture_exception()
 
 
+def _get_job_category(data):
+    event_type = data.get("type")
+    if event_type == "transaction":
+        # TODO: This logic should move into sentry-relay, but I'm not sure
+        # about the consequences of making `from_event_type` return
+        # `TRANSACTION_INDEXED` unconditionally.
+        # https://github.com/getsentry/relay/blob/d77c489292123e53831e10281bd310c6a85c63cc/relay-server/src/envelope.rs#L121
+        return DataCategory.TRANSACTION_INDEXED
+
+    return DataCategory.from_event_type(event_type)
+
+
 @metrics.wraps("save_event.pull_out_data")
 def _pull_out_data(jobs, projects):
     """
@@ -710,7 +723,8 @@ def _pull_out_data(jobs, projects):
         job["recorded_timestamp"] = data.get("timestamp")
         job["event"] = event = _get_event_instance(job["data"], project_id=job["project_id"])
         job["data"] = data = event.data.data
-        job["category"] = DataCategory.from_event_type(data.get("type"))
+
+        job["category"] = _get_job_category(data)
         job["platform"] = event.platform
         event._project_cache = projects[job["project_id"]]
 
@@ -2075,6 +2089,23 @@ def _calculate_span_grouping(jobs, projects):
                 "save_event.transaction.span_group_count.default",
                 amount=len(unique_default_hashes),
                 tags={"platform": job["platform"] or "unknown"},
+            )
+
+            # Try the new hashing config that more aggresively parametrizes DB
+            # spans, and record the difference with the default hashing config.
+            with metrics.timer("event_manager.save.get_span_groupings.incoming"):
+                experimental_groupings = event.get_span_groupings(
+                    {"id": INCOMING_DEFAULT_CONFIG_ID}
+                )
+
+            unique_incoming_hashes = set(experimental_groupings.results.values())
+            metrics.incr(
+                "save_event.transaction.span_group_count.incoming",
+                amount=len(unique_incoming_hashes),
+            )
+            metrics.incr(
+                "save_event.transaction.span_group_count.difference",
+                amount=len(unique_default_hashes ^ unique_incoming_hashes),
             )
         except Exception:
             sentry_sdk.capture_exception()

@@ -503,7 +503,11 @@ class CellAction extends Component<Props, State> {
                   data-placement={placement}
                   style={arrowProps.style}
                 />
-                <QuickContext dataRow={this.props.dataRow} column={this.props.column} />
+                <QuickContext
+                  dataRow={this.props.dataRow}
+                  column={this.props.column}
+                  organization={this.props.organization}
+                />
               </Menu>
             )}
           </Popper>,
