@@ -1,3 +1,5 @@
+from typing import Optional
+
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import REDIRECT_FIELD_NAME
@@ -14,6 +16,7 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.http import get_server_hostname
 from sentry.models import AuthProvider, Organization, OrganizationMember, OrganizationStatus
+from sentry.services.hybrid_cloud import organization_service
 from sentry.signals import join_request_link_viewed, user_signup
 from sentry.utils import auth, json, metrics
 from sentry.utils.auth import (
@@ -117,6 +120,12 @@ class AuthLoginView(BaseView):
     def respond_login(self, request: Request, context, **kwargs):
         return self.respond("sentry/login.html", context)
 
+    def _handle_login(self, request: Request, user, organization: Optional[Organization]):
+        login(request, user, organization_id=organization.id if organization else None)
+        self.determine_active_organization(
+            request,
+        )
+
     def handle_basic_auth(self, request: Request, **kwargs):
         can_register = self.can_register(request)
 
@@ -150,7 +159,7 @@ class AuthLoginView(BaseView):
             # HACK: grab whatever the first backend is and assume it works
             user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
-            login(request, user, organization_id=organization.id if organization else None)
+            self._handle_login(request, user, organization)
 
             # can_register should only allow a single registration
             request.session.pop("can_register", None)
@@ -203,7 +212,7 @@ class AuthLoginView(BaseView):
             elif login_form.is_valid():
                 user = login_form.get_user()
 
-                login(request, user, organization_id=organization.id if organization else None)
+                self._handle_login(request, user, organization)
                 metrics.incr(
                     "login.attempt", instance="success", skip_internal=True, sample_rate=1.0
                 )
@@ -211,30 +220,31 @@ class AuthLoginView(BaseView):
                 if not user.is_active:
                     return self.redirect(reverse("sentry-reactivate-account"))
                 if organization:
-                    if (
-                        self._is_org_member(user, organization)
-                        and request.user
-                        and not is_active_superuser(request)
-                    ):
+                    # Refresh the organization we fetched prior to login in order to check its login state.
+                    organization = organization_service.get_organization_by_slug(
+                        user_id=request.user.id,
+                        slug=organization.slug,
+                        only_visible=False,
+                        allow_stale=False,
+                    )
+                    if organization.member and request.user and not is_active_superuser(request):
                         auth.set_active_org(request, organization.slug)
 
                     if settings.SENTRY_SINGLE_ORGANIZATION:
-                        try:
-                            om = OrganizationMember.objects.get(
-                                organization=organization, email=user.email
-                            )
-                            # XXX(jferge): if user is removed / invited but has an acct,
-                            # pop _next so they aren't in infinite redirect on Single Org Mode
-                        except OrganizationMember.DoesNotExist:
+                        om = organization_service.check_membership_by_email(
+                            organization.id, user.email
+                        )
+                        if om is None:
                             request.session.pop("_next", None)
                         else:
-                            if om.user is None:
+                            if om.user_id is None:
                                 request.session.pop("_next", None)
 
                 # On login, redirect to onboarding
-                active_org = self.get_active_organization(request)
-                if active_org:
-                    onboarding_redirect = get_client_state_redirect_uri(active_org.slug, None)
+                if self.active_organization:
+                    onboarding_redirect = get_client_state_redirect_uri(
+                        self.active_organization.slug, None
+                    )
                     if onboarding_redirect:
                         request.session["_next"] = onboarding_redirect
 
