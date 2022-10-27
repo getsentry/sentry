@@ -1,7 +1,7 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Client} from 'sentry/api';
+import {RequestOptions} from 'sentry/api';
 import {QuickContextCommitRow} from 'sentry/components/discover/quickContextCommitRow';
 import EventCause from 'sentry/components/events/eventCause';
 import {CauseHeader, DataSection} from 'sentry/components/events/styles';
@@ -14,7 +14,7 @@ import {IconCheckmark, IconMute, IconNot} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
-import {Group} from 'sentry/types';
+import {Group, Organization} from 'sentry/types';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import useApi from 'sentry/utils/useApi';
 
@@ -25,6 +25,7 @@ const UNKNOWN_ISSUE = 'unknown';
 // Will extend this enum as we add contexts for more columns
 export enum ColumnType {
   ISSUE = 'issue',
+  RELEASE = 'release',
 }
 
 function isIssueContext(
@@ -38,6 +39,7 @@ function isIssueContext(
   );
 }
 
+// NOTE: Will add release column as an eligible column.
 export function hasContext(
   dataRow: TableDataRow,
   column: TableColumn<keyof TableDataRow>
@@ -45,33 +47,40 @@ export function hasContext(
   return isIssueContext(dataRow, column);
 }
 
-// NOTE: Will extend when we add more type of contexts.
-function getUrl(dataRow: TableDataRow, column: TableColumn<keyof TableDataRow>): string {
-  return isIssueContext(dataRow, column) ? `/issues/${dataRow['issue.id']}/` : '';
-}
+type RequestParams = {
+  path: string;
+  options?: RequestOptions;
+};
 
-function fetchData(
-  api: Client,
+// NOTE: Will extend when we add more type of contexts. Context is only relevant to issue and release columns for now.
+function getRequestParams(
   dataRow: TableDataRow,
-  column: TableColumn<keyof TableDataRow>
-): Promise<Group> {
-  const promise: Promise<Group> = api.requestPromise(getUrl(dataRow, column), {
-    method: 'GET',
-    query: {
-      collapse: 'release',
-      expand: 'inbox',
-    },
-  });
-
-  return promise;
+  column: TableColumn<keyof TableDataRow>,
+  organization?: Organization
+): RequestParams {
+  return isIssueContext(dataRow, column)
+    ? {
+        path: `/issues/${dataRow['issue.id']}/`,
+        options: {
+          method: 'GET',
+          query: {
+            collapse: 'release',
+            expand: 'inbox',
+          },
+        },
+      }
+    : {
+        path: `/organizations/${organization?.slug}/releases/${dataRow.release}/`,
+      };
 }
 
 type Props = {
   column: TableColumn<keyof TableDataRow>;
   dataRow: TableDataRow;
+  organization?: Organization;
 };
 
-export default function QuickContext(props: Props) {
+export default function QuickContext({column, dataRow, organization}: Props) {
   // Will add setter for error.
   const api = useApi();
   const [error, setError] = useState<boolean>(false);
@@ -84,7 +93,9 @@ export default function QuickContext(props: Props) {
     // Track mounted state so we dont call setState on unmounted components
     let unmounted = false;
 
-    fetchData(api, props.dataRow, props.column)
+    const params = getRequestParams(dataRow, column, organization);
+    api
+      .requestPromise(params.path, params.options)
       .then(response => {
         if (unmounted) {
           return;
@@ -104,7 +115,7 @@ export default function QuickContext(props: Props) {
       // If component has unmounted, dont set state
       unmounted = true;
     };
-  }, [api, props.dataRow, props.column]);
+  }, [api, dataRow, column, organization]);
 
   return (
     <Wrapper>
@@ -118,8 +129,8 @@ export default function QuickContext(props: Props) {
         </NoContextWrapper>
       ) : error ? (
         <NoContextWrapper>{t('Failed to load context for column.')}</NoContextWrapper>
-      ) : isIssueContext(props.dataRow, props.column) && data ? (
-        <IssueContext data={data} eventID={props.dataRow.id} />
+      ) : isIssueContext(dataRow, column) && data ? (
+        <IssueContext data={data} eventID={dataRow.id} />
       ) : (
         <NoContextWrapper>{t('There is no context available.')}</NoContextWrapper>
       )}
