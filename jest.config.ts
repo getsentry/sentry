@@ -118,13 +118,14 @@ function getTestsForGroup(
   }
 
   // Whatever may be left over will get round robin'd into the groups.
-  const i = 0;
+  let i = 0;
   while (testsSortedByPath.length) {
     const nextTest = testsSortedByPath.pop();
     if (!nextTest) {
       throw new TypeError('Received falsy test' + JSON.stringify(nextTest));
     }
     groups[i % 4].push(nextTest[0]);
+    i++;
   }
 
   // Make sure we exhausted all tests before proceeding.
