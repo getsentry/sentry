@@ -129,12 +129,6 @@ function SearchBar(props: SearchBarProps) {
     }
   };
 
-  // `debounce` in functional components has to be wrapped in `useCallback`
-  // because otherwise the debounce is recreated on every render and becomes
-  // pointless. The exhaustive deps check is mad because it's not getting an
-  // inline function so it can't determine the dependencies. `useMemo` is a
-  // tempting replacement, but apparently React might randomly clear that to
-  // save memory
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const getSuggestedTransactions = useCallback(
     debounce(
