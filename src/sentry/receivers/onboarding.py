@@ -142,7 +142,7 @@ def record_first_event(project, event, **kwargs):
         )
         return
 
-    # thise event fires once per project
+    # this event fires once per project
     analytics.record(
         "first_event_for_project.sent",
         user_id=user.id,
