@@ -197,12 +197,12 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     const prevRule = prevState.rule;
     const curRule = this.state.rule;
     return (
-      prevRule?.conditions !== curRule?.conditions ||
-      prevRule?.filters !== curRule?.filters ||
+      JSON.stringify(prevRule?.conditions) !== JSON.stringify(curRule?.conditions) ||
+      JSON.stringify(prevRule?.filters) !== JSON.stringify(curRule?.filters) ||
       prevRule?.actionMatch !== curRule?.actionMatch ||
       prevRule?.filterMatch !== curRule?.filterMatch ||
       prevRule?.frequency !== curRule?.frequency ||
-      prevState.project !== this.state.project
+      JSON.stringify(prevState.project) !== JSON.stringify(this.state.project)
     );
   }
 
