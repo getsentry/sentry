@@ -14,12 +14,12 @@ SELECT
                       (
                         indexOf(
                           [(
-                            toUInt64(4550802412666881),
-                            toUInt64(10022)
+                            toUInt64(4550802406506498),
+                            'bar_transaction'
                           ),
                           (
-                            toUInt64(4550802412666881),
-                            toUInt64(10011)
+                            toUInt64(4550802406506498),
+                            'foo_transaction'
                           ) ],
                           (
                             (project_id AS _snuba_project_id),
@@ -29,9 +29,11 @@ SELECT
                       ),
                       0
                     ),
-                    toString('duration'),
+                    ('duration', 300),
                     arrayElement(
-                      [ 'lcp', 'lcp' ], _snuba_project_threshold_override_config_index
+                      [('lcp', 600),
+                      ('lcp', 600) ],
+                      _snuba_project_threshold_override_config_index
                     )
                   ) AS _snuba_project_threshold_config
                 ),
@@ -89,6 +91,8 @@ SELECT
       )
     ) AS _snuba_apdex
   ),
-  _snuba_transaction
+  _snuba_apdex
 FROM
   generic_metric_distributions_aggregated_local
+
+<BaseQuerySet [('bar_transaction', 4550802429116417, 600, 2), ('foo_transaction', 4550802429116417, 600, 2)]>

@@ -1566,7 +1566,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert response.status_code == 400, response.content
 
     def test_apdex_transaction_threshold(self):
-        # self.features["organizations:use-metrics-layer"] = True
+        self.features["organizations:use-metrics-layer"] = True
 
         ProjectTransactionThresholdOverride.objects.create(
             transaction="foo_transaction",
