@@ -78,6 +78,8 @@ function getTestsForGroup(
     tests.set(test, SUITE_P50_DURATION_MS);
   }
 
+  // Sanity check to ensure that we have all of our tests accounted for, we need to fail
+  // if this is not the case as we risk not executing some tests and passing the build.
   if (tests.size < allTests.length) {
     throw new Error(
       `All tests should be accounted for, missing ${allTests.length - tests.size}`
@@ -85,6 +87,9 @@ function getTestsForGroup(
   }
 
   const groups: string[][] = [];
+
+  // We sort files by path so that we try and improve the transformer cache hit rate.
+  // Colocated domain specific files are likely to require other domain specific files.
   const testsSortedByPath = Array.from(tests.entries()).sort((a, b) =>
     a[0].localeCompare(b[0])
   );
@@ -93,7 +98,12 @@ function getTestsForGroup(
     groups[group] = [];
     let duration = 0;
 
+    // While we are under our target duration and there are tests in the group
     while (duration < targetDuration && testsSortedByPath.length > 0) {
+      // We peek the next item to check that it is not some super long running
+      // test that may exceed our target duration. For example, if target runtime for each group is
+      // 10 seconds, we have currently accounted for 9 seconds, and the next test is 5 seconds, we
+      // want to move that test to the next group so as to avoid a 40% imbalance.
       const peek = testsSortedByPath[testsSortedByPath.length - 1];
       if (duration + peek[1] > targetDuration && peek[1] > 30_000) {
         break;
@@ -107,6 +117,7 @@ function getTestsForGroup(
     }
   }
 
+  // Whatever may be left over will get round robin'd into the groups.
   const i = 0;
   while (testsSortedByPath.length) {
     const nextTest = testsSortedByPath.pop();
@@ -116,6 +127,7 @@ function getTestsForGroup(
     groups[i % 4].push(nextTest[0]);
   }
 
+  // Make sure we exhausted all tests before proceeding.
   if (testsSortedByPath.length > 0) {
     throw new Error('All tests should be accounted for');
   }
