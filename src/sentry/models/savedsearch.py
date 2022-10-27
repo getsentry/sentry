@@ -30,6 +30,22 @@ class SortOptions:
         )
 
 
+class Visibility:
+    """
+    Defines visibility of who can see the saved search
+    """
+
+    OWNER = "owner"
+    ORG = "org"
+
+    @classmethod
+    def as_choices(cls):
+        return (
+            (cls.OWNER, _("Only Me")),
+            (cls.ORG, _("Organization Wide")),
+        )
+
+
 @region_silo_only_model
 class SavedSearch(Model):
     """
@@ -52,6 +68,7 @@ class SavedSearch(Model):
     is_default = models.BooleanField(default=False)
     is_global = models.NullBooleanField(null=True, default=False, db_index=True)
     owner = FlexibleForeignKey("sentry.User", null=True)
+    visibility = CharField(max_length=16, default=None, choices=Visibility.as_choices(), null=True)
 
     class Meta:
         app_label = "sentry"
