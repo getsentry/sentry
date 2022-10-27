@@ -413,7 +413,7 @@ const SPECIAL_FIELDS: SpecialFields = {
     renderFunc: data => {
       const id: string | unknown = data?.trace;
       if (typeof id !== 'string') {
-        return null;
+        return emptyValue;
       }
 
       return <Container>{getShortEventId(id)}</Container>;
@@ -440,7 +440,7 @@ const SPECIAL_FIELDS: SpecialFields = {
     renderFunc: data => {
       const replayId = data?.replayId;
       if (typeof replayId !== 'string' || !replayId) {
-        return null;
+        return emptyValue;
       }
 
       return (
