@@ -1124,6 +1124,8 @@ SENTRY_FEATURES = {
     "organizations:issue-details-owners": False,
     # Enable removing issue from issue list if action taken.
     "organizations:issue-list-removal-action": False,
+    # Enable new saved searches sidebar and visibility features
+    "organizations:issue-list-saved-searches-v2": False,
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
@@ -1147,6 +1149,8 @@ SENTRY_FEATURES = {
     "organizations:performance-span-tree-autoscroll": False,
     # Enable transaction name only search
     "organizations:performance-transaction-name-only-search": False,
+    # Re-enable histograms for Metrics Enhanced Performance Views
+    "organizations:performance-mep-reintroduce-histograms": False,
     # Enable showing INP web vital in default views
     "organizations:performance-vitals-inp": False,
     # Enable processing transactions in post_process_group
