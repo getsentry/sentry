@@ -1,5 +1,6 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
 import Button from 'sentry/components/button';
@@ -190,5 +191,29 @@ class Form<
 // Note: this is so we can use this as a selector for SelectField
 // We need to keep `Form` as a React Component because ApiForm extends it :/
 export const StyledForm = styled('form')``;
+
+/**
+ * @deprecated
+ *
+ * We are trying to remove the deprecatedforms. We currently export it onto the
+ * Window object. Let's try and track if we're actually using it anywhere.
+ */
+class TrackedDeprecatedForm<
+  Props extends FormProps = FormProps,
+  State extends FormClassState = FormClassState
+> extends Form<Props, State> {
+  constructor(props, context) {
+    super(props, context);
+
+    // Record usage of this form so we can figure out if we're actually using
+    // it anywhere or not
+    Sentry.captureMessage('Deprecated Form in use!', 'info');
+
+    // eslint-disable-next-line no-console
+    console.warn('[!!] window.SentryApp.Form is deprecated!');
+  }
+}
+
+export {TrackedDeprecatedForm};
 
 export default Form;
