@@ -811,6 +811,9 @@ class Release(Model):
 
         if date_added is None:
             date_added = timezone.now()
+
+        name = truncatechars(name, 64)
+
         return Distribution.objects.get_or_create(
             release=self,
             name=name,

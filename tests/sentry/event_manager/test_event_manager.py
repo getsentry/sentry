@@ -1553,6 +1553,20 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             "packages": None,
         }
 
+    def test_too_long_dist_and_release(self):
+        manager = EventManager(
+            make_event(
+                **{
+                    "dist": "1.1.111-SNAPSHOT-F-NEXT-11111-release-foo---qwerty-paging-qw-er-tyuiopa-contento.XXXX",
+                    "release": "ITsMYRelease@1.1.111-SNAPSHOT-F-NEXT-11111-release-foo---qwerty-paging-qw-er-tyuiopa-contento.XXXX",
+                }
+            )
+        )
+        event = manager.save(self.project.id)
+        assert "1.1.111-SNAPSHOT-F-NEXT-11111-release-foo---qwerty-paging-qw-..." in [
+            tag[1] for tag in event.data["tags"] if tag[0] == "sentry:dist"
+        ]
+
     def test_no_message(self):
         # test that the message is handled gracefully
         manager = EventManager(
