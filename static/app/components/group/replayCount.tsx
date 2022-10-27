@@ -1,10 +1,14 @@
 import styled from '@emotion/styled';
 
+import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
+import Tooltip from 'sentry/components/tooltip';
 import {IconPlay} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {useLocation} from 'sentry/utils/useLocation';
+import space from 'sentry/styles/space';
 
 type Props = {
   groupId: string;
@@ -36,10 +40,15 @@ function ReplayCount({orgId, groupId}: Props) {
         const replayCount = tableData?.data?.length ?? 0;
         if (replayCount > 0) {
           return (
-            <ReplayCountContainer data-test-id="replay-count">
-              <IconPlay size="xs" />
-              {replayCount}
-            </ReplayCountContainer>
+            <Tooltip title={t(`This issue has ${replayCount} replays available to view`)}>
+              <ReplayCountLink
+                to={`/organizations/${orgId}/issues/${groupId}/replays/`}
+                data-test-id="replay-count"
+              >
+                <IconPlay size="xs" />
+                {replayCount}
+              </ReplayCountLink>
+            </Tooltip>
           );
         }
 
@@ -49,11 +58,11 @@ function ReplayCount({orgId, groupId}: Props) {
   );
 }
 
-const ReplayCountContainer = styled('div')`
-  display: flex;
+const ReplayCountLink = styled(Link)`
+  display: inline-flex;
   color: ${p => p.theme.gray400};
   font-size: ${p => p.theme.fontSizeSmall};
-  gap: 0 2px;
+  gap: 0 ${space(0.5)};
 `;
 
 export default ReplayCount;

@@ -3,6 +3,7 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import GroupReplayCount from 'sentry/components/group/replayCount';
 
 describe('GroupReplayCount', function () {
+  const groupId = '3363325111';
   const organization = TestStubs.Organization();
 
   it('does not render when a group has no replays', async function () {
@@ -15,7 +16,7 @@ describe('GroupReplayCount', function () {
     });
 
     const {container} = render(
-      <GroupReplayCount groupId="123" orgId={organization.slug} />
+      <GroupReplayCount groupId={groupId} orgId={organization.slug} />
     );
 
     expect(screen.getByTestId('loading-placeholder')).toBeInTheDocument();
@@ -44,14 +45,19 @@ describe('GroupReplayCount', function () {
     });
 
     const {container} = render(
-      <GroupReplayCount groupId="123" orgId={organization.slug} />
+      <GroupReplayCount groupId={groupId} orgId={organization.slug} />
     );
 
     expect(screen.getByTestId('loading-placeholder')).toBeInTheDocument();
 
     await waitFor(() => {
       expect(container).not.toBeEmptyDOMElement();
-      expect(screen.getByTestId('replay-count')).toHaveTextContent('2');
+      const replayCount = screen.getByTestId('replay-count');
+      expect(replayCount).toHaveTextContent('2');
+      expect(replayCount).toHaveAttribute(
+        'href',
+        `/organizations/${organization.slug}/issues/${groupId}/replays/`
+      );
     });
   });
 });
