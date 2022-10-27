@@ -33,7 +33,7 @@ def get_email_addresses(
                 option.delete()
 
     if pending:
-        queryset = user_service.get_users(pending, is_active=True)
+        queryset = user_service.get_many(pending, is_active=True)
         for (user_id, email) in queryset.values_list("id", "email"):
             if email and not is_fake_email(email):
                 results[user_id] = email

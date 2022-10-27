@@ -23,7 +23,7 @@ def actor_type_to_class(type: int) -> Type[Union["Team", "User"]]:
     return ACTOR_TYPE_TO_CLASS[type]
 
 
-def fetch_actor_obj_by_class_and_id(klass, id: int) -> Type[Union["Team", "User"]]:
+def fetch_actor_obj_by_class_and_id(cls, id: int) -> Type[Union["Team", "User"]]:
     from sentry.models import Team, User
 
     def team_fetcher(id: int):
@@ -34,7 +34,7 @@ def fetch_actor_obj_by_class_and_id(klass, id: int) -> Type[Union["Team", "User"
 
         return user_service.get_user(id, is_active=None)
 
-    return {Team: team_fetcher, User: user_fetcher}[klass](id)
+    return {Team: team_fetcher, User: user_fetcher}[cls](id)
 
 
 def actor_type_to_string(type: int) -> Optional[str]:

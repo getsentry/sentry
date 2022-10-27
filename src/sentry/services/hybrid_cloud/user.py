@@ -14,7 +14,7 @@ from sentry.silo import SiloMode
 
 class UserService(InterfaceWithLifecycle):
     @abstractmethod
-    def get_users_by_email(self, email: str, is_active=True) -> List[User]:
+    def get_many_by_email(self, email: str, is_active=True) -> List[User]:
         """
         Return a list of active users with verified emails matching the parameter
         :param email:
@@ -29,7 +29,7 @@ class UserService(InterfaceWithLifecycle):
         pass
 
     @abstractmethod
-    def get_users(self, user_ids: Iterable[int], is_active=True) -> List[User]:
+    def get_many(self, user_ids: Iterable[int], is_active=True) -> List[User]:
         """
         This method returns User objects given an iterable of IDs
         :param user_ids:
@@ -39,7 +39,7 @@ class UserService(InterfaceWithLifecycle):
         pass
 
     def get_user(self, user_id: int, is_active=True) -> Optional[User]:
-        users = self.get_users([user_id], is_active=is_active)
+        users = self.get_many([user_id], is_active=is_active)
         if len(users) > 0:
             return users[0]
         else:
@@ -47,7 +47,7 @@ class UserService(InterfaceWithLifecycle):
 
 
 class DatabaseBackedUserService(UserService):
-    def get_users_by_email(self, email: str) -> Sequence[User]:
+    def get_many_by_email(self, email: str) -> Sequence[User]:
         return User.objects.filter(
             emails__is_verified=True, is_active=True, emails__email__iexact=email
         )
@@ -57,14 +57,14 @@ class DatabaseBackedUserService(UserService):
             organization=group.organization,
             teams__in=group.project.teams.all(),
         ).values_list("user_id", flat=True)
-        return user_service.get_users(set(group_memberships))
+        return self.get_many(set(group_memberships))
 
-    def get_users(self, user_ids: Iterable[int], is_active=True) -> List[User]:
+    def get_many(self, user_ids: Iterable[int], is_active=True) -> List[User]:
 
         query = User.objects.filter(id__in=user_ids)
         if is_active is not None:
             query = query.filter(is_active=is_active)
-        return query
+        return list(query)
 
     def close(self):
         pass
