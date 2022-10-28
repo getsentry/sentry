@@ -131,6 +131,7 @@ issue_rate_limiter = RedisSlidingWindowRateLimiter(
     **settings.SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS
 )
 PERFORMANCE_ISSUE_QUOTA = Quota(3600, 60, 5)
+GROUPHASH_IGNORE_LIMIT = 3
 
 
 @dataclass
@@ -2167,7 +2168,11 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects):
                 # temporary fix to limit group creation to grouphashes seen 3+ times in a 24-48 hour period
                 if settings.SENTRY_PERFORMANCE_ISSUES_REDUCE_NOISE:
                     groups_to_create = new_grouphashes.copy()
-                    client = redis.redis_clusters.get("default")
+                    cluster_key = settings.SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS.get(
+                        "cluster", "default"
+                    )
+                    client = redis.redis_clusters.get(cluster_key)
+
                     for new_grouphash in new_grouphashes:
                         if should_create_group(client, new_grouphash) is not True:
                             groups_to_create.remove(new_grouphash)
@@ -2273,12 +2278,12 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects):
 @metrics.wraps("performance.performance_issue.should_create_group")
 def should_create_group(client: RedisCluster, grouphash: str) -> bool:
     times_seen = client.incr(grouphash)
-    if times_seen >= 3:
+    if times_seen >= GROUPHASH_IGNORE_LIMIT:
         client.delete(grouphash)
         return True
     else:
-        metrics.incr("performance.performance_issue.ignored", 1)
-        client.expire(grouphash, 60 * 60 * 24)
+        metrics.incr("performance.performance_issue.ignored")
+        client.expire(grouphash, 60 * 60 * 24)  # 24 hour expiration from last seen
         return False
 
 
