@@ -335,11 +335,7 @@ def is_null(column: str) -> Function:
                 # os.build is a nullable column
                 Or(
                     conditions=[
-                        Condition(
-                            is_null("device_os_build_number"),
-                            Op.EQ,
-                            1,
-                        ),
+                        Condition(is_null("device_os_build_number"), Op.EQ, 1),
                         Condition(Column("device_os_build_number"), Op.NEQ, "20G817"),
                     ]
                 )
