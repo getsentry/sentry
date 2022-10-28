@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import Spinner from 'sentry/components/forms/spinner';
 import Tooltip from 'sentry/components/tooltip';
 import {IconCheckmark, IconWarning} from 'sentry/icons';
+import {fadeOut, pulse} from 'sentry/styles/animations';
 import space from 'sentry/styles/space';
 
 export interface ControlStateProps {
@@ -75,6 +76,7 @@ const FieldIsSaved = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
+  animation: ${fadeOut} 0.3s ease 2s 1 forwards;
 `;
 
 const FormSpinner = styled(Spinner)`
@@ -85,5 +87,6 @@ const FieldError = styled('div')`
   display: flex;
   align-items: center;
   color: ${p => p.theme.error};
+  animation: ${() => pulse(1.15)} 1s ease infinite;
 `;
 export default ControlState;
