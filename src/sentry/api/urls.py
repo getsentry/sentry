@@ -1,6 +1,7 @@
 from django.conf.urls import include, url
 
 from sentry.api.endpoints.integration_features import IntegrationFeaturesEndpoint
+from sentry.api.endpoints.internal.silo_debug import InternalSiloDebugEndpoint
 from sentry.api.endpoints.organization_codeowners_associations import (
     OrganizationCodeOwnersAssociationsEndpoint,
 )
@@ -2448,6 +2449,7 @@ urlpatterns = [
                 url(r"^packages/$", InternalPackagesEndpoint.as_view()),
                 url(r"^environment/$", InternalEnvironmentEndpoint.as_view()),
                 url(r"^mail/$", InternalMailEndpoint.as_view()),
+                url(r"^silo-debug/", InternalSiloDebugEndpoint.as_view()),
             ]
         ),
     ),

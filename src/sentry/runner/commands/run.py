@@ -737,10 +737,6 @@ def last_seen_updater(**options):
 
 @run.command("silo-rpc")
 def silo_rpc():
-    import os
+    from sentry.services.rpc.runner import start_server
 
-    from sentry.services.rpc.runner import create_server
-
-    is_control = os.environ.get("SENTRY_SILO_MODE", None) == "CONTROL"
-
-    create_server("50051" if is_control else "50052")
+    start_server()

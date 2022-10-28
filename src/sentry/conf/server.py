@@ -2873,6 +2873,8 @@ SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS = {}
 
 SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
 SENTRY_REGION_CONFIG: Iterable[Region] = ()
+SENTRY_RPC_CONTROL_PORT = 50051
+SENTRY_RPC_REGION_PORT = 50052
 
 # How long we should wait for a gateway proxy request to return before giving up
 GATEWAY_PROXY_TIMEOUT = None

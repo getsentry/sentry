@@ -296,6 +296,9 @@ and run `sentry devservices up kafka zookeeper`.
         if settings.SENTRY_USE_PROFILING:
             daemons += [_get_daemon("profiles")]
 
+    if settings.SILO_MODE in ["CONTROL", "REGION"]:
+        daemons += [_get_daemon("silo-rpc")]
+
     if needs_https and has_https:
         https_port = str(parsed_url.port)
         https_host = parsed_url.hostname
