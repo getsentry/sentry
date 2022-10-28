@@ -48,6 +48,7 @@ from sentry.dynamic_sampling.latest_release_booster import (
 from sentry.eventstore.processing import event_processing_store
 from sentry.grouping.api import (
     BackgroundGroupingConfigLoader,
+    GroupingConfig,
     GroupingConfigNotFound,
     SecondaryGroupingConfigLoader,
     apply_server_fingerprinting,
@@ -141,37 +142,38 @@ class GroupInfo:
     is_new_group_environment: bool = False
 
 
-def pop_tag(data, key):
+def pop_tag(data: dict[str, Any], key: str) -> None:
     if "tags" not in data:
         return
 
     data["tags"] = [kv for kv in data["tags"] if kv is None or kv[0] != key]
 
 
-def set_tag(data, key, value):
+def set_tag(data: dict[str, Any], key: str, value: Any) -> None:
     pop_tag(data, key)
     if value is not None:
         data.setdefault("tags", []).append((key, trim(value, MAX_TAG_VALUE_LENGTH)))
 
 
-def get_tag(data, key):
+def get_tag(data: dict[str, Any], key: str) -> Optional[Any]:
     for k, v in get_path(data, "tags", filter=True) or ():
         if k == key:
             return v
+    return None
 
 
-def plugin_is_regression(group, event):
+def plugin_is_regression(group: Group, event: Event) -> bool:
     project = event.project
     for plugin in plugins.for_project(project):
         result = safe_execute(
             plugin.is_regression, group, event, version=1, _with_transaction=False
         )
         if result is not None:
-            return result
+            return bool(result)
     return True
 
 
-def has_pending_commit_resolution(group):
+def has_pending_commit_resolution(group: Group) -> bool:
     """
     Checks that the most recent commit that fixes a group has had a chance to release
     """
@@ -269,6 +271,9 @@ class ScoreClause(Func):
         return (sql, [])
 
 
+ProjectsMapping = Mapping[int, Project]
+
+
 class EventManager:
     """
     Handles normalization in both the store endpoint and the save task. The
@@ -312,11 +317,11 @@ class EventManager:
         self.project_config = project_config
         self.sent_at = sent_at
 
-    def normalize(self, project_id=None):
+    def normalize(self, project_id=None) -> None:
         with metrics.timer("events.store.normalize.duration"):
             self._normalize_impl(project_id=project_id)
 
-    def _normalize_impl(self, project_id=None):
+    def _normalize_impl(self, project_id=None) -> None:
         if self._project and project_id and project_id != self._project.id:
             raise RuntimeError(
                 "Initialized EventManager with one project ID and called save() with another one"
@@ -345,20 +350,20 @@ class EventManager:
 
         self._data = CanonicalKeyDict(rust_normalizer.normalize_event(dict(self._data)))
 
-    def get_data(self):
+    def get_data(self) -> CanonicalKeyDict:
         return self._data
 
     @metrics.wraps("event_manager.save")
     def save(
         self,
-        project_id,
-        raw=False,
-        assume_normalized=False,
-        start_time=None,
-        cache_key=None,
-        skip_send_first_transaction=False,
-        auto_upgrade_grouping=False,
-    ):
+        project_id: Optional[int],
+        raw: bool = False,
+        assume_normalized: bool = False,
+        start_time: Optional[int] = None,
+        cache_key: Optional[str] = None,
+        skip_send_first_transaction: bool = False,
+        auto_upgrade_grouping: bool = False,
+    ) -> Event:
         """
         After normalizing and processing an event, save adjacent models such as
         releases and environments to postgres and write the event into
@@ -609,14 +614,14 @@ class EventManager:
         return job["event"]
 
 
-def _project_should_update_grouping(project):
+def _project_should_update_grouping(project: Project) -> bool:
     should_update_org = (
         project.organization_id % 1000 < float(settings.SENTRY_GROUPING_AUTO_UPDATE_ENABLED) * 1000
     )
     return project.get_option("sentry:grouping_auto_update") and should_update_org
 
 
-def _auto_update_grouping(project):
+def _auto_update_grouping(project: Project) -> None:
     old_grouping = project.get_option("sentry:grouping_config")
     new_grouping = DEFAULT_GROUPING_CONFIG
 
@@ -660,11 +665,11 @@ def _auto_update_grouping(project):
 
 
 @metrics.wraps("event_manager.background_grouping")
-def _calculate_background_grouping(project, event, config):
+def _calculate_background_grouping(project: Project, event: Event, config: GroupingConfig):
     return _calculate_event_grouping(project, event, config)
 
 
-def _run_background_grouping(project, job):
+def _run_background_grouping(project: Project, job) -> None:
     """Optionally run a fraction of events with a third grouping config
     This can be helpful to measure its performance impact.
     This does not affect actual grouping.
@@ -693,7 +698,7 @@ def _get_job_category(data):
 
 
 @metrics.wraps("save_event.pull_out_data")
-def _pull_out_data(jobs, projects):
+def _pull_out_data(jobs, projects: ProjectsMapping):
     """
     A bunch of (probably) CPU bound stuff.
     """
@@ -746,11 +751,11 @@ def _pull_out_data(jobs, projects):
         )
 
 
-def _is_commit_sha(version: str):
+def _is_commit_sha(version: str) -> bool:
     return re.match(r"[0-9a-f]{40}", version) is not None
 
 
-def _associate_commits_with_release(release: Release, project: Project):
+def _associate_commits_with_release(release: Release, project: Project) -> None:
     previous_release = release.get_previous_release(project)
     possible_repos = (
         RepositoryProjectPathConfig.objects.select_related(
@@ -794,7 +799,7 @@ def _associate_commits_with_release(release: Release, project: Project):
 
 
 @metrics.wraps("save_event.get_or_create_release_many")
-def _get_or_create_release_many(jobs, projects):
+def _get_or_create_release_many(jobs, projects: ProjectsMapping):
     jobs_with_releases = {}
     release_date_added = {}
 
@@ -888,7 +893,7 @@ def _get_or_create_release_many(jobs, projects):
 
 
 @metrics.wraps("save_event.get_event_user_many")
-def _get_event_user_many(jobs, projects):
+def _get_event_user_many(jobs, projects: ProjectsMapping) -> None:
     for job in jobs:
         data = job["data"]
         user = _get_event_user(projects[job["project_id"]], data)
@@ -901,7 +906,7 @@ def _get_event_user_many(jobs, projects):
 
 
 @metrics.wraps("save_event.derive_plugin_tags_many")
-def _derive_plugin_tags_many(jobs, projects):
+def _derive_plugin_tags_many(jobs, projects: ProjectsMapping) -> None:
     # XXX: We ought to inline or remove this one for sure
     plugins_for_projects = {p.id: plugins.for_project(p, version=None) for p in projects.values()}
 
@@ -917,7 +922,7 @@ def _derive_plugin_tags_many(jobs, projects):
 
 
 @metrics.wraps("save_event.derive_interface_tags_many")
-def _derive_interface_tags_many(jobs):
+def _derive_interface_tags_many(jobs) -> None:
     # XXX: We ought to inline or remove this one for sure
     for job in jobs:
         data = job["data"]
@@ -931,7 +936,7 @@ def _derive_interface_tags_many(jobs):
 
 
 @metrics.wraps("save_event.materialize_metadata_many")
-def _materialize_metadata_many(jobs):
+def _materialize_metadata_many(jobs) -> None:
     for job in jobs:
         # we want to freeze not just the metadata and type in but also the
         # derived attributes.  The reason for this is that we push this
@@ -958,7 +963,7 @@ def _materialize_metadata_many(jobs):
         job["culprit"] = data["culprit"]
 
 
-def _create_kwargs(job):
+def _create_kwargs(job) -> dict[str, Any]:
     kwargs = {
         "platform": job["platform"],
         "message": job["event"].search_message,
@@ -976,7 +981,7 @@ def _create_kwargs(job):
 
 
 @metrics.wraps("save_event.get_or_create_environment_many")
-def _get_or_create_environment_many(jobs, projects):
+def _get_or_create_environment_many(jobs, projects: ProjectsMapping):
     for job in jobs:
         job["environment"] = Environment.get_or_create(
             project=projects[job["project_id"]], name=job["environment"]
@@ -984,7 +989,7 @@ def _get_or_create_environment_many(jobs, projects):
 
 
 @metrics.wraps("save_event.get_or_create_group_environment_many")
-def _get_or_create_group_environment_many(jobs, projects):
+def _get_or_create_group_environment_many(jobs, projects: ProjectsMapping):
     for job in jobs:
         for group_info in job["groups"]:
             group_info.is_new_group_environment = GroupEnvironment.get_or_create(
@@ -995,7 +1000,7 @@ def _get_or_create_group_environment_many(jobs, projects):
 
 
 @metrics.wraps("save_event.get_or_create_release_associated_models")
-def _get_or_create_release_associated_models(jobs, projects):
+def _get_or_create_release_associated_models(jobs, projects: ProjectsMapping):
     # XXX: This is possibly unnecessarily detached from
     # _get_or_create_release_many, but we do not want to destroy order of
     # execution right now
@@ -1041,7 +1046,7 @@ def _get_or_create_release_associated_models(jobs, projects):
 
 
 @metrics.wraps("save_event.get_or_create_group_release_many")
-def _get_or_create_group_release_many(jobs, projects):
+def _get_or_create_group_release_many(jobs, projects: ProjectsMapping):
     for job in jobs:
         if job["release"]:
             for group_info in job["groups"]:
@@ -1201,7 +1206,7 @@ def _track_outcome_accepted_many(jobs):
 
 
 @metrics.wraps("event_manager.get_event_instance")
-def _get_event_instance(data, project_id):
+def _get_event_instance(data, project_id: int) -> Event:
     event_id = data.get("event_id")
 
     return eventstore.create_event(
@@ -1212,12 +1217,12 @@ def _get_event_instance(data, project_id):
     )
 
 
-def _get_event_user(project, data):
+def _get_event_user(project: Project, data):
     with metrics.timer("event_manager.get_event_user") as metrics_tags:
         return _get_event_user_impl(project, data, metrics_tags)
 
 
-def _get_event_user_impl(project, data, metrics_tags):
+def _get_event_user_impl(project: Project, data, metrics_tags):
     user_data = data.get("user")
     if not user_data:
         metrics_tags["event_has_user"] = "false"
@@ -1279,7 +1284,7 @@ def _get_event_user_impl(project, data, metrics_tags):
     return euser
 
 
-def get_event_type(data):
+def get_event_type(data: Mapping[str, Any]):
     return eventtypes.get(data.get("type", "default"))()
 
 
@@ -1315,7 +1320,14 @@ def get_culprit(data):
     )
 
 
-def _save_aggregate(event, hashes, release, metadata, received_timestamp, **kwargs) -> GroupInfo:
+def _save_aggregate(
+    event: Event,
+    hashes: CalculatedHashes,
+    release: Release,
+    metadata: dict[str, Any],
+    received_timestamp,
+    **kwargs,
+) -> Optional[GroupInfo]:
     project = event.project
 
     flat_grouphashes = [
@@ -1486,7 +1498,7 @@ def _save_aggregate(event, hashes, release, metadata, received_timestamp, **kwar
 
 
 def _find_existing_grouphash(
-    project,
+    project: Project,
     flat_grouphashes,
     hierarchical_hashes,
 ):
@@ -1565,7 +1577,7 @@ def _find_existing_grouphash(
     return None, root_hierarchical_hash
 
 
-def _create_group(project, event, **kwargs):
+def _create_group(project: Project, event: Event, **kwargs):
     try:
         short_id = project.next_short_id()
     except OperationalError:
@@ -1593,7 +1605,7 @@ def _create_group(project, event, **kwargs):
     )
 
 
-def _handle_regression(group, event, release):
+def _handle_regression(group: Group, event: Event, release: Release) -> Optional[bool]:
     if not group.is_resolved():
         return
 
@@ -1696,7 +1708,7 @@ def _handle_regression(group, event, release):
     return is_regression
 
 
-def _process_existing_aggregate(group, event, data, release):
+def _process_existing_aggregate(group: Group, event: Event, data, release: Release):
     date = max(event.datetime, group.last_seen)
     extra = {"last_seen": date, "data": data["data"]}
     if event.search_message and event.search_message != group.message:
@@ -1719,7 +1731,7 @@ def _process_existing_aggregate(group, event, data, release):
     return is_regression
 
 
-def discard_event(job, attachments):
+def discard_event(job, attachments) -> None:
     """
     Refunds consumed quotas for an event and its attachments.
 
@@ -1784,7 +1796,7 @@ def discard_event(job, attachments):
     )
 
 
-def get_attachments(cache_key, job):
+def get_attachments(cache_key: Optional[str], job):
     """
     Retrieves the list of attachments for this event.
 
@@ -1902,7 +1914,7 @@ def filter_attachments_for_group(attachments, job):
 
 def save_attachment(
     cache_key, attachment, project, event_id, key_id=None, group_id=None, start_time=None
-):
+) -> None:
     """
     Persists a cached event attachments into the file store.
 
@@ -1974,7 +1986,7 @@ def save_attachment(
     )
 
 
-def save_attachments(cache_key, attachments, job):
+def save_attachments(cache_key, attachments, job) -> None:
     """
     Persists cached event attachments into the file store.
 
@@ -2000,7 +2012,7 @@ def save_attachments(cache_key, attachments, job):
 
 
 @metrics.wraps("event_manager.save_transactions.materialize_event_metrics")
-def _materialize_event_metrics(jobs):
+def _materialize_event_metrics(jobs) -> None:
     for job in jobs:
         # Ensure the _metrics key exists. This is usually created during
         # and prefilled with ingestion sizes.
@@ -2018,7 +2030,9 @@ def _materialize_event_metrics(jobs):
 
 
 @metrics.wraps("save_event.calculate_event_grouping")
-def _calculate_event_grouping(project, event, grouping_config) -> CalculatedHashes:
+def _calculate_event_grouping(
+    project: Project, event: Event, grouping_config: GroupingConfig
+) -> CalculatedHashes:
     """
     Main entrypoint for modifying/enhancing and grouping an event, writes
     hashes back into event payload.
@@ -2065,7 +2079,7 @@ def _calculate_event_grouping(project, event, grouping_config) -> CalculatedHash
 
 
 @metrics.wraps("save_event.calculate_span_grouping")
-def _calculate_span_grouping(jobs, projects):
+def _calculate_span_grouping(jobs, projects: ProjectsMapping) -> None:
     for job in jobs:
         # Make sure this snippet doesn't crash ingestion
         # as the feature is under development.
@@ -2112,7 +2126,7 @@ def _calculate_span_grouping(jobs, projects):
 
 
 @metrics.wraps("save_event.detect_performance_problems")
-def _detect_performance_problems(jobs, projects):
+def _detect_performance_problems(jobs, projects: ProjectsMapping) -> None:
     for job in jobs:
         job["performance_problems"] = detect_performance_problems(job["data"])
 
@@ -2120,6 +2134,7 @@ def _detect_performance_problems(jobs, projects):
 class PerformanceJob(TypedDict, total=False):
     performance_problems: Sequence[PerformanceProblem]
     event: Event
+    groups: list[GroupInfo]
     culprit: str
     received_timestamp: float
     event_metadata: Mapping[str, Any]
@@ -2149,7 +2164,7 @@ def _save_grouphash_and_group(
 
 
 @metrics.wraps("save_event.save_aggregate_performance")
-def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects):
+def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: ProjectsMapping) -> None:
 
     MAX_GROUPS = (
         10  # safety check in case we are passed too many. constant will live somewhere else tbd
@@ -2289,7 +2304,7 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects):
 
 
 @metrics.wraps("event_manager.save_transaction_events")
-def save_transaction_events(jobs, projects):
+def save_transaction_events(jobs, projects: ProjectsMapping):
     with metrics.timer("event_manager.save_transactions.collect_organization_ids"):
         organization_ids = {project.organization_id for project in projects.values()}
 
