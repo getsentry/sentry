@@ -459,7 +459,7 @@ class Group(Model):
     __repr__ = sane_repr("project_id")
 
     def __str__(self):
-        return f"({self.times_seen}) {self.error()}"
+        return f"({self.times_seen}) {self.title}"
 
     def save(self, *args, **kwargs):
         if not self.last_seen:

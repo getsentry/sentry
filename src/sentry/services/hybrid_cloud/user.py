@@ -1,5 +1,7 @@
 from abc import abstractmethod
-from typing import Iterable, List, Optional, Sequence
+from dataclasses import dataclass
+from inspect import signature
+from typing import Any, Iterable, List, Optional, Sequence, Union
 
 from sentry.models.group import Group
 from sentry.models.organizationmember import OrganizationMember
@@ -12,9 +14,33 @@ from sentry.services.hybrid_cloud import (
 from sentry.silo import SiloMode
 
 
+@dataclass(frozen=True)
+class APIUser:
+    id: int = -1
+    name: str = ""
+    email: str = ""
+    username: str = ""
+    actor_id: int = -1
+
+    # TODO: Extract to base dataclass?
+    @classmethod
+    def from_orm(cls, orm: Any):
+        # fetch the constructor's signature
+        cls_fields = {field for field in signature(cls).parameters}
+
+        # isolate params we care about
+        args = {}
+        for name, val in orm.__dict__.items():
+            if name in cls_fields:
+                args[name] = val
+
+        ret = cls(**args)
+        return ret
+
+
 class UserService(InterfaceWithLifecycle):
     @abstractmethod
-    def get_many_by_email(self, email: str, is_active=True) -> List[User]:
+    def get_many_by_email(self, email: str, is_active=True) -> List[APIUser]:
         """
         Return a list of active users with verified emails matching the parameter
         :param email:
@@ -24,12 +50,12 @@ class UserService(InterfaceWithLifecycle):
         pass
 
     @abstractmethod
-    def get_from_group(self, group: Group) -> List[User]:
+    def get_from_group(self, group: Group) -> List[APIUser]:
         """Get all users in all teams in a given Group's project."""
         pass
 
     @abstractmethod
-    def get_many(self, user_ids: Iterable[int], is_active=True) -> List[User]:
+    def get_many(self, user_ids: Iterable[int], is_active=True) -> List[APIUser]:
         """
         This method returns User objects given an iterable of IDs
         :param user_ids:
@@ -38,7 +64,7 @@ class UserService(InterfaceWithLifecycle):
         """
         pass
 
-    def get_by_actor_id(self, actor_id: int) -> Optional[User]:
+    def get_by_actor_id(self, actor_id: int) -> Optional[APIUser]:
         """
         This method returns a User object given an actor ID
         :param actor_id:
@@ -47,7 +73,7 @@ class UserService(InterfaceWithLifecycle):
         """
         pass
 
-    def get_user(self, user_id: int, is_active=True) -> Optional[User]:
+    def get_user(self, user_id: int, is_active=True) -> Optional[APIUser]:
         """
         This method returns a User object given an ID
         :param user_id:
@@ -60,29 +86,39 @@ class UserService(InterfaceWithLifecycle):
         else:
             return None
 
+    # TODO: Extract to base service?
+    def to_api(self, resp: Union[Sequence[User], Optional[User]]) -> APIUser:
+        if resp is None:
+            return None
+        if type(resp) is APIUser:
+            return resp
+        if type(resp) is User:
+            return APIUser.from_orm(resp)
+        return list(map(lambda x: self.to_api(x), resp))
+
 
 class DatabaseBackedUserService(UserService):
-    def get_many_by_email(self, email: str) -> Sequence[User]:
+    def get_many_by_email(self, email: str) -> Sequence[APIUser]:
         return User.objects.filter(
             emails__is_verified=True, is_active=True, emails__email__iexact=email
         )
 
-    def get_from_group(self, group: Group) -> List[User]:
+    def get_from_group(self, group: Group) -> List[APIUser]:
         group_memberships = OrganizationMember.objects.filter(
             organization=group.organization,
             teams__in=group.project.teams.all(),
         ).values_list("user_id", flat=True)
-        return self.get_many(set(group_memberships))
+        return self.to_api(self.get_many(set(group_memberships)))
 
-    def get_many(self, user_ids: Iterable[int], is_active=True) -> List[User]:
+    def get_many(self, user_ids: Iterable[int], is_active=True) -> List[APIUser]:
 
         query = User.objects.filter(id__in=user_ids)
         if is_active is not None:
             query = query.filter(is_active=is_active)
-        return list(query)
+        return self.to_api(query)
 
-    def get_by_actor_id(self, actor_id: int) -> Optional[User]:
-        return User.objects.get(actor_id=actor_id)
+    def get_by_actor_id(self, actor_id: int) -> Optional[APIUser]:
+        return self.to_api(User.objects.get(actor_id=actor_id))
 
     def close(self):
         pass

@@ -21,13 +21,14 @@ from sentry.utils import metrics
 
 if TYPE_CHECKING:
     from sentry.models import ActorTuple, Group, Team, User
+    from sentry.services.hybrid_cloud.user import APIUser
 
 
 class GroupAssigneeManager(BaseManager):
     def assign(
         self,
         group: Group,
-        assigned_to: Team | User,
+        assigned_to: Team | User | APIUser,
         acting_user: User | None = None,
         create_only: bool = False,
         extra: Dict[str, str] | None = None,
@@ -35,12 +36,13 @@ class GroupAssigneeManager(BaseManager):
         from sentry import features
         from sentry.integrations.utils import sync_group_assignee_outbound
         from sentry.models import Activity, GroupSubscription, Team, User
+        from sentry.services.hybrid_cloud.user import APIUser
 
         GroupSubscription.objects.subscribe_actor(
             group=group, actor=assigned_to, reason=GroupSubscriptionReason.assigned
         )
 
-        if isinstance(assigned_to, User):
+        if isinstance(assigned_to, APIUser) or isinstance(assigned_to, User):
             assignee_type = "user"
             other_type = "team"
         elif isinstance(assigned_to, Team):

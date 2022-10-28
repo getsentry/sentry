@@ -264,7 +264,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
                 team_ids.add(recipient.id)
             if type(recipient) == User:
                 user_ids.add(recipient.id)
-            actor_ids.add(recipient.actor.id)
+            actor_ids.add(recipient.actor_id)
 
         # If the list would be empty, don't bother querying.
         if not actor_ids:

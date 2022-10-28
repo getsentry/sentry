@@ -114,7 +114,9 @@ class GroupSubscriptionManager(BaseManager):  # type: ignore
         from sentry.services.hybrid_cloud.user import user_service
 
         all_possible_users = user_service.get_from_group(group)
-        active_and_disabled_subscriptions = self.filter(group=group, user__in=all_possible_users)
+        active_and_disabled_subscriptions = self.filter(
+            group=group, user__in=[u.id for u in all_possible_users]
+        )
         notification_settings = NotificationSetting.objects.get_for_recipient_by_parent(
             NotificationSettingTypes.WORKFLOW,
             recipients=all_possible_users,
