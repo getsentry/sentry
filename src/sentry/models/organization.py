@@ -271,7 +271,10 @@ class Organization(Model, SnowflakeIdMixin):
         if there is no owner. Used for analytics primarily.
         """
         if not hasattr(self, "_default_owner_id"):
-            self._default_owner_id = self.get_owners().first()
+            owners = self.get_owners()
+            if len(owners) == 0:
+                return None
+            self._default_owner_id = owners[0].id
         return self._default_owner_id
 
     def has_single_owner(self):
