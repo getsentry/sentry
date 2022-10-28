@@ -63,6 +63,7 @@ _DEFAULT_DAEMONS = {
     ],
     "metrics-billing": ["sentry", "run", "billing-metrics-consumer"],
     "profiles": ["sentry", "run", "ingest-profiles"],
+    "silo-rpc": ["sentry", "run", "silo-rpc"],
 }
 
 

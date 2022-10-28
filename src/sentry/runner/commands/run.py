@@ -733,3 +733,14 @@ def last_seen_updater(**options):
 
     with global_tags(_all_threads=True, pipeline=ingest_config.internal_metrics_tag):
         consumer.run()
+
+
+@run.command("silo-rpc")
+def silo_rpc():
+    import os
+
+    from sentry.services.rpc.runner import create_server
+
+    is_control = os.environ.get("SENTRY_SILO_MODE", None) == "CONTROL"
+
+    create_server("50051" if is_control else "50052")

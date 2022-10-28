@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+import "sentry/services/rpc/protobufs/User.proto";
+
+service OrganizationService {
+    rpc ChangeName(ChangeNameRequest) returns (Organization) {}
+}
+
+message Organization {
+    int32 id = 1;
+    string name = 2;
+}

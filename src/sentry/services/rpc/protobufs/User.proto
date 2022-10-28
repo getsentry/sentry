@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+service UserService {
+    rpc ChangeName(ChangeNameRequest) returns (User) {}
+}
+
+message User {
+    int32 id = 1;
+    string name = 2;
+}
+
+message ChangeNameRequest {
+    int32 item_id = 1;
+    string name = 2;
+}
