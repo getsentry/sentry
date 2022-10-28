@@ -605,6 +605,7 @@ CELERY_IMPORTS = (
     "sentry.release_health.tasks",
     "sentry.utils.suspect_resolutions.get_suspect_resolutions",
     "sentry.utils.suspect_resolutions_releases.get_suspect_resolutions_releases",
+    "sentry.tasks.derive_code_mappings",
 )
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
@@ -827,6 +828,11 @@ CELERYBEAT_SCHEDULE = {
         "task": "sentry.snuba.tasks.subscription_checker",
         "schedule": timedelta(minutes=20),
         "options": {"expires": 20 * 60},
+    },
+    "derive-code-mappings": {
+        "task": "sentry.tasks.derive_code_mappings.process_organizations",
+        "schedule": timedelta(minutes=1),
+        "options": {"expires": 3600},
     },
 }
 
