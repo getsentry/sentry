@@ -5,50 +5,59 @@ import styled from '@emotion/styled';
 import {fetchGuides} from 'sentry/actionCreators/guides';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import {Client} from 'sentry/api';
 import Button from 'sentry/components/button';
 import ModalTask from 'sentry/components/onboardingWizard/modalTask';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {IconClose} from 'sentry/icons/iconClose';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
+import {Organization} from 'sentry/types';
+import useApi from 'sentry/utils/useApi';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 
-type Props = ModalRenderProps & {orgSlug: string | null; tour: string};
+// tour is a string that tells which tour the user is completing in the walkthrough
+type Props = ModalRenderProps & {orgSlug: Organization['slug'] | null; tour: string};
 
-function DemoEndingModal({tour, closeModal, orgSlug}: Props) {
-  const api = new Client();
+export default function DemoEndingModal({tour, closeModal, CloseButton, orgSlug}: Props) {
+  const api = useApi();
 
-  const routeContext = useRouteContext();
-  const {router} = routeContext;
+  const {router} = useRouteContext();
 
-  function togglePanel(panel: SidebarPanelKey) {
-    SidebarPanelStore.togglePanel(panel);
-  }
+  let cardTitle = '',
+    body = '',
+    guides = [''],
+    location = '';
 
-  let cardTitle, body, guides, location;
   switch (tour) {
     case 'issues':
-      cardTitle = 'Issues Tour';
-      body = 'completing the Issues tour';
+      cardTitle = t('Issues Tour');
+      body = t(
+        'Thank you for completing the Issues tour. Learn about other Sentry features by starting another tour.'
+      );
       guides = ['issues_v3', 'issue_stream_v3'];
       location = `/organizations/${orgSlug}/issues/`;
       break;
     case 'performance':
-      cardTitle = 'Performance Tour';
-      body = 'completing the Performance tour';
+      cardTitle = t('Performance Tour');
+      body = t(
+        'Thank you for completing the Performance tour. Learn about other Sentry features by starting another tour.'
+      );
       guides = ['performance', 'transaction_summary', 'transaction_details_v2'];
       location = `/organizations/${orgSlug}/performance/`;
       break;
     case 'releases':
-      cardTitle = 'Releases Tour';
-      body = 'completing the Releases tour';
+      cardTitle = t('Releases Tour');
+      body = t(
+        'Thank you for completing the Releases tour. Learn about other Sentry features by starting another tour.'
+      );
       guides = ['releases_v2', 'react-native-release', 'release-details_v2'];
       location = `/organizations/${orgSlug}/releases/`;
       break;
     case 'tabs':
-      cardTitle = 'Check out the different tabs';
-      body = 'checking out the different tabs';
+      cardTitle = t('Check out the different tabs');
+      body = t(
+        'Thank you for checking out the different tabs. Learn about other Sentry features by starting another tour.'
+      );
       guides = ['sidebar_v2'];
       location = `/organizations/${orgSlug}/projects/`;
       break;
@@ -66,31 +75,27 @@ function DemoEndingModal({tour, closeModal, orgSlug}: Props) {
           data: {guide, status: 'restart'},
         })
       )
-    ).then(() => {
-      if (tour === 'issues') {
-        localStorage.setItem('issueGuide', '1');
-      }
-      if (tour === 'tabs') {
-        localStorage.setItem('sidebarGuide', '1');
-      }
+    );
 
-      if (closeModal) {
-        closeModal();
-      }
+    if (tour === 'issues') {
+      localStorage.setItem('issueGuide', '1');
+    }
+    if (tour === 'tabs') {
+      localStorage.setItem('sidebarGuide', '1');
+    }
 
-      fetchGuides();
+    closeModal?.();
 
-      const redirectUrl = new URL(location, window.location.origin);
-      redirectUrl.searchParams.append('referrer', 'demo_task');
-      navigateTo(redirectUrl.toString(), router);
-    });
+    fetchGuides();
+
+    const redirectUrl = new URL(location, window.location.origin);
+    redirectUrl.searchParams.append('referrer', 'demo_task');
+    navigateTo(redirectUrl.toString(), router);
   }
 
   const handleMoreTours = () => {
-    if (closeModal) {
-      closeModal();
-    }
-    togglePanel(SidebarPanelKey.OnboardingWizard);
+    closeModal?.();
+    SidebarPanelStore.togglePanel(SidebarPanelKey.OnboardingWizard);
   };
 
   return (
@@ -105,25 +110,18 @@ function DemoEndingModal({tour, closeModal, orgSlug}: Props) {
         aria-label={t('Close')}
         icon={<IconClose size="xs" />}
       />
-      <Body>
+      <ModalHeader>
         <h2> {t('Tour Complete')} </h2>
-      </Body>
-      <ModalTask title={tct('[title]', {title: cardTitle})} />
-      <Body>
-        {tct(
-          'Thank you for [body]. Learn about other Sentry features by starting another tour.',
-          {body}
-        )}
-      </Body>
+      </ModalHeader>
+      <ModalTask title={cardTitle} />
+      <ModalHeader>{body}</ModalHeader>
       <ButtonContainer>
-        <a href={url} target="_blank" rel="noopener noreferrer">
-          <SignUpButton>
-            {tct('[prompt]', {prompt: sandboxData?.cta?.title || 'Sign up for Sentry'})}
-          </SignUpButton>
-        </a>
+        <SignUpButton external href={url}>
+          {sandboxData?.cta?.title || t('Sign up for Sentry')}
+        </SignUpButton>
         <ButtonBar>
-          <ModalButton onClick={handleMoreTours}> {t('More Tours')} </ModalButton>
-          <ModalButton onClick={handleRestart}>{t('Restart Tour')}</ModalButton>
+          <Button onClick={handleMoreTours}>{t('More Tours')} </Button>
+          <Button onClick={handleRestart}>{t('Restart Tour')}</Button>
         </ButtonBar>
       </ButtonContainer>
     </EndModal>
@@ -146,7 +144,7 @@ const EndModal = styled('div')`
   align-items: center;
 `;
 
-const Body = styled('div')`
+const ModalHeader = styled('div')`
   p {
     font-size: 16px;
     text-align: center;
@@ -156,21 +154,6 @@ const Body = styled('div')`
     font-size: 2em;
     margin: 0;
   }
-`;
-
-const CloseButton = styled(Button)`
-  position: absolute;
-  right: -15px;
-  top: -15px;
-  height: 30px;
-  width: 30px;
-  border-radius: 50%;
-  background-color: ${p => p.theme.background};
-  border: 1px solid ${p => p.theme.border};
-`;
-
-const ModalButton = styled(Button)`
-  background-color: ${p => p.theme.white};
 `;
 
 const SignUpButton = styled(Button)`
@@ -191,5 +174,3 @@ const ButtonContainer = styled('div')`
   flex-direction: column;
   gap: 10px;
 `;
-
-export default DemoEndingModal;
