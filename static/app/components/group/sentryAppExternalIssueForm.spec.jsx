@@ -59,7 +59,7 @@ describe('SentryAppExternalIssueForm', () => {
     });
 
     it('submits to the New External Issue endpoint', () => {
-      selectByValue(wrapper, 'number_1', {name: 'numbers', control: true});
+      selectByValue(wrapper, 'number_1', {name: 'numbers'});
 
       wrapper.find('form').simulate('submit');
 

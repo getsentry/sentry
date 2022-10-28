@@ -1,11 +1,17 @@
 import {Component} from 'react';
-import {OptionsType, OptionTypeBase, ValueType} from 'react-select';
+import {
+  components as SelectComponents,
+  OptionsType,
+  OptionTypeBase,
+  ValueType,
+} from 'react-select';
 
 import {openConfirmModal} from 'sentry/components/confirm';
 import SelectControl, {
   ControlProps,
 } from 'sentry/components/forms/controls/selectControl';
 import FormField from 'sentry/components/forms/formField';
+import FormFieldControlState from 'sentry/components/forms/formField/controlState';
 import {t} from 'sentry/locale';
 import {Choices, SelectValue} from 'sentry/types';
 
@@ -99,13 +105,36 @@ export default class SelectField<OptionType extends SelectValue<any>> extends Co
   render() {
     const {allowClear, confirm, multiple, ...otherProps} = this.props;
     return (
-      <FormField {...otherProps}>
-        {({id, onChange, onBlur, required: _required, children: _children, ...props}) => (
+      <FormField {...otherProps} hideControlState flexibleControlStateSize>
+        {({
+          id,
+          onChange,
+          onBlur,
+          model,
+          name,
+          hideControlState,
+          required: _required,
+          children: _children,
+          ...props
+        }) => (
           <SelectControl
             {...props}
             inputId={id}
             clearable={allowClear}
             multiple={multiple}
+            components={{
+              IndicatorsContainer: ({
+                children,
+                ...indicatorsProps
+              }: React.ComponentProps<typeof SelectComponents.IndicatorsContainer>) => (
+                <SelectComponents.IndicatorsContainer {...indicatorsProps}>
+                  {!hideControlState && (
+                    <FormFieldControlState model={model} name={name} />
+                  )}
+                  {children}
+                </SelectComponents.IndicatorsContainer>
+              ),
+            }}
             styles={{
               control: provided => ({
                 ...provided,
