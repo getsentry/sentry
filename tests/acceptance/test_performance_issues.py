@@ -1,6 +1,7 @@
 import datetime
 from unittest.mock import patch
 
+import pytest
 import pytz
 
 from fixtures.page_objects.issue_details import IssueDetailsPage
@@ -10,6 +11,7 @@ from sentry.utils import json
 from sentry.utils.samples import load_data
 
 
+@pytest.mark.skip(reason="PERF-1785: flaky: inconsistent snapshot")
 class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
