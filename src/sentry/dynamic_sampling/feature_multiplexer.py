@@ -1,9 +1,8 @@
 from typing import List, Optional, Set
 
-from sentry import features
+from sentry import features, options
 from sentry.dynamic_sampling.utils import DEFAULT_BIASES, Bias
 from sentry.models import Project
-from sentry.models.user import User
 
 
 class DynamicSamplingFeatureMultiplexer:
@@ -17,18 +16,18 @@ class DynamicSamplingFeatureMultiplexer:
     - The `organizations:dynamic-sampling` feature flag is the flag that enables the new adaptive sampling
     """
 
-    def __init__(self, project: Project, user: User):
+    def __init__(self, project: Project):
         # Feature flag that informs us that relay is handling DS rules
         self.allow_dynamic_sampling = features.has(
-            "organizations:server-side-sampling", project.organization, actor=user
+            "organizations:server-side-sampling", project.organization
         )
         # Feature flag that informs us that the org is on the new AM2 plan and thereby have adaptive sampling enabled
         self.current_dynamic_sampling = features.has(
-            "organizations:dynamic-sampling", project.organization, actor=user
+            "organizations:dynamic-sampling", project.organization
         )
         # Flag responsible to inform us if the org was in the original LA/EA Dynamic Sampling
         self.deprecated_dynamic_sampling = features.has(
-            "organizations:dynamic-sampling-deprecated", project.organization, actor=user
+            "organizations:dynamic-sampling-deprecated", project.organization
         )
 
     @property
@@ -41,7 +40,11 @@ class DynamicSamplingFeatureMultiplexer:
 
     @property
     def is_on_dynamic_sampling(self) -> bool:
-        return self.allow_dynamic_sampling and self.current_dynamic_sampling
+        return (
+            self.allow_dynamic_sampling
+            and self.current_dynamic_sampling
+            and options.get("dynamic-sampling:enabled-biases")
+        )
 
     @staticmethod
     def get_user_biases(user_set_biases: Optional[List[Bias]]) -> List[Bias]:
@@ -57,13 +60,11 @@ class DynamicSamplingFeatureMultiplexer:
                 returned_biases.append(bias)
         return returned_biases
 
+    @classmethod
+    def get_enabled_user_biases(cls, user_set_biases: Optional[List[Bias]]) -> Set[str]:
+        users_biases = cls.get_user_biases(user_set_biases)
+        return {bias["id"] for bias in users_biases if bias["active"]}
+
     @staticmethod
     def get_supported_biases_ids() -> Set[str]:
         return {bias["id"] for bias in DEFAULT_BIASES}
-
-    @classmethod
-    def get_user_bias_by_id(cls, bias_id: str, user_set_biases: Optional[List[Bias]]) -> Bias:
-        for bias in cls.get_user_biases(user_set_biases):
-            if bias["id"] == bias_id:
-                return bias
-        raise ValueError(f"{bias_id} is not in supported biases")

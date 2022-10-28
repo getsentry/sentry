@@ -582,16 +582,18 @@ class GitHubIntegrationTest(IntegrationTestCase):
         installation = integration.get_installation(self.organization)
         with patch.object(sentry.integrations.github.client.GitHubClientMixin, "page_size", 1):
             trees = installation.get_client().get_trees_for_org(self.organization.slug)
-
-        # This check is specially useful since it will be available in the GCP logs
-        assert (
-            self._caplog.records[0].message
-            == "The Github App does not have access to Test-Organization/baz."
-        )
-        assert self._caplog.records[0].levelname == "ERROR"
+            # This check is useful since it will be available in the GCP logs
+            assert (
+                self._caplog.records[0].message
+                == "The Github App does not have access to Test-Organization/baz."
+            )
+            assert self._caplog.records[0].levelname == "ERROR"
 
         assert trees == {
-            "Test-Organization/bar": [],
-            "Test-Organization/baz": [],
-            "Test-Organization/foo": ["src/sentry/api/endpoints/auth_login.py"],
+            "Test-Organization/bar": {"default_branch": "main", "files": []},
+            "Test-Organization/baz": {"default_branch": "master", "files": []},
+            "Test-Organization/foo": {
+                "default_branch": "master",
+                "files": ["src/sentry/api/endpoints/auth_login.py"],
+            },
         }

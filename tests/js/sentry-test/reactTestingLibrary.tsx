@@ -5,9 +5,15 @@ import {CacheProvider, ThemeProvider} from '@emotion/react';
 import * as rtl from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import * as reactHooks from '@testing-library/react-hooks'; // eslint-disable-line no-restricted-imports
 import userEvent from '@testing-library/user-event'; // eslint-disable-line no-restricted-imports
+import merge from 'lodash/merge';
 
 import GlobalModal from 'sentry/components/globalModal';
 import {Organization} from 'sentry/types';
+import {
+  DEFAULT_QUERY_CLIENT_CONFIG,
+  QueryClient,
+  QueryClientProvider,
+} from 'sentry/utils/queryClient';
 import {lightTheme} from 'sentry/utils/theme';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {RouteContext} from 'sentry/views/routeContext';
@@ -25,6 +31,28 @@ type ProviderOptions = {
 };
 
 type Options = ProviderOptions & rtl.RenderOptions;
+
+const makeQueryClient = () =>
+  new QueryClient(
+    merge({}, DEFAULT_QUERY_CLIENT_CONFIG, {
+      defaultOptions: {
+        queries: {
+          // Disable retries for tests to allow them to fail fast
+          retry: false,
+        },
+        mutations: {
+          // Disable retries for tests to allow them to fail fast
+          retry: false,
+        },
+      },
+      // Don't want console output in tests
+      logger: {
+        log: () => {},
+        warn: () => {},
+        error: () => {},
+      },
+    })
+  );
 
 function createProvider(contextDefs: Record<string, any>) {
   return class ContextProvider extends Component {
@@ -48,20 +76,22 @@ function makeAllTheProviders({context, ...initializeOrgOptions}: ProviderOptions
   return function ({children}: {children?: React.ReactNode}) {
     return (
       <ContextProvider>
-        <CacheProvider value={cache}>
+        <CacheProvider value={{...cache, compat: true}}>
           <ThemeProvider theme={lightTheme}>
-            <RouteContext.Provider
-              value={{
-                router,
-                location: router.location,
-                params: router.params,
-                routes: router.routes,
-              }}
-            >
-              <OrganizationContext.Provider value={organization}>
-                {children}
-              </OrganizationContext.Provider>
-            </RouteContext.Provider>
+            <QueryClientProvider client={makeQueryClient()}>
+              <RouteContext.Provider
+                value={{
+                  router,
+                  location: router.location,
+                  params: router.params,
+                  routes: router.routes,
+                }}
+              >
+                <OrganizationContext.Provider value={organization}>
+                  {children}
+                </OrganizationContext.Provider>
+              </RouteContext.Provider>
+            </QueryClientProvider>
           </ThemeProvider>
         </CacheProvider>
       </ContextProvider>

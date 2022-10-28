@@ -73,7 +73,7 @@ from sentry.testutils import (
     TransactionTestCase,
     assert_mock_called_once_with_partial,
 )
-from sentry.testutils.helpers import override_options
+from sentry.testutils.helpers import apply_feature_flag_on_cls, override_options
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
@@ -2705,6 +2705,8 @@ class ReleaseIssueTest(TestCase):
 
 
 @region_silo_test
+@apply_feature_flag_on_cls("organizations:server-side-sampling")
+@apply_feature_flag_on_cls("organizations:dynamic-sampling")
 class DSLatestReleaseBoostTest(TestCase):
     def setUp(self):
         self.project = self.create_project()
