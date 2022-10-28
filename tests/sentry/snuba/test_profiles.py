@@ -232,7 +232,6 @@ def is_null(column: str) -> Function:
             "!project.id:1",
             [Condition(Column("project_id"), Op.NEQ, 1.0)],
             id="!project.id:1",
-            marks=pytest.mark.xfail(reason="this does the exact opposite"),
         ),
         pytest.param(
             f"trace.transaction:{'a' * 32}",
@@ -459,7 +458,6 @@ def is_null(column: str) -> Function:
             "!project_id:1",
             [Condition(Column("project_id"), Op.NEQ, 1)],
             id="!project_id:1",
-            marks=pytest.mark.xfail(reason="this does the exact opposite"),
         ),
     ],
 )
