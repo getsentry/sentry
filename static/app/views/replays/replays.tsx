@@ -56,9 +56,7 @@ function Replays({location}: Props) {
     <Fragment>
       <StyledPageHeader>
         <HeaderTitle>
-          <div>
-            {t('Replays')} <ReplaysFeatureBadge />
-          </div>
+          {t('Replays')} <ReplaysFeatureBadge space={1} />
         </HeaderTitle>
       </StyledPageHeader>
       <PageFiltersContainer>
@@ -112,8 +110,6 @@ const StyledPageContent = styled(PageContent)`
 
 const HeaderTitle = styled(PageHeading)`
   display: flex;
-  align-items: center;
-  justify-content: space-between;
   flex: 1;
 `;
 
