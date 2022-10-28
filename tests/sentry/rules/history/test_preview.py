@@ -20,10 +20,9 @@ class ProjectRulePreviewTest(TestCase):
     def _set_up_first_seen(self):
         hours = get_hours(PREVIEW_TIME_RANGE)
         for i in range(hours):
-            for j in range(i % 5):
-                Group.objects.create(
-                    project=self.project, first_seen=timezone.now() - timedelta(hours=i + 1)
-                )
+            Group.objects.create(
+                project=self.project, first_seen=timezone.now() - timedelta(hours=i + 1)
+            )
         return hours
 
     def _set_up_activity(self, condition_type):
@@ -38,20 +37,16 @@ class ProjectRulePreviewTest(TestCase):
             )
         return hours
 
-    def _test_preview(self, condition, result1, result2):
+    def _test_preview(self, condition, expected):
         conditions = [{"id": condition}]
-        result = preview(self.project, conditions, [], "all", "all", 0)
-        assert result.count() == result1
-
-        result = preview(self.project, conditions, [], "all", "all", 120)
-        assert result.count() == result2
+        result = preview(self.project, conditions, [], "all", "all", 60)
+        assert result.count() == expected
 
     def test_first_seen(self):
         hours = self._set_up_first_seen()
         self._test_preview(
             "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
-            (hours - 1) * 2,
-            (hours - 1) * 2 / 5,
+            hours,
         )
 
     def test_regression(self):
@@ -59,13 +54,13 @@ class ProjectRulePreviewTest(TestCase):
         self._test_preview(
             "sentry.rules.conditions.regression_event.RegressionEventCondition",
             hours,
-            hours / 2,
         )
 
     def test_reappeared(self):
         hours = self._set_up_activity(ActivityType.SET_UNRESOLVED)
         self._test_preview(
-            "sentry.rules.conditions.reappeared_event.ReappearedEventCondition", hours, hours / 2
+            "sentry.rules.conditions.reappeared_event.ReappearedEventCondition",
+            hours,
         )
 
     def test_unsupported_conditions(self):

@@ -49,12 +49,13 @@ def preview(
     activity.sort(key=k)
 
     frequency = timedelta(minutes=frequency_minutes)
-    last_fire = start - frequency
+    group_last_fire = {}
     group_ids = set()
     for event in activity:
-        # TODO: check conditions and filters to see if event passes, not needed for just FirstSeenEventCondition
+        # TODO: check conditions and filters to see if event passes
+        last_fire = group_last_fire.get(event.group_id, event.timestamp - frequency)
         if last_fire <= event.timestamp - frequency:
             group_ids.add(event.group_id)
-            last_fire = event.timestamp
+            group_last_fire[event.group_id] = event.timestamp
 
     return Group.objects.filter(id__in=group_ids)
