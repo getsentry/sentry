@@ -139,7 +139,7 @@ def get_installation(organization: Organization) -> Tuple[Integration, Organizat
     integration = None
     try:
         integration = Integration.objects.filter(
-            organizations=organization.id,
+            organizations=organization,
             provider="github",
         )
     except Integration.DoesNotExist:
