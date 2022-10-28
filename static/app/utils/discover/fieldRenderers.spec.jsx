@@ -1,6 +1,5 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -72,53 +71,66 @@ describe('getFieldRenderer', function () {
 
   it('can render string fields', function () {
     const renderer = getFieldRenderer('url', {url: 'string'});
-    const wrapper = mountWithTheme(renderer(data, {location, organization}));
-    const text = wrapper.find('Container');
-    expect(text.text()).toEqual(data.url);
+    render(renderer(data, {location, organization}));
+
+    expect(screen.getByText(data.url)).toBeInTheDocument();
   });
 
   it('can render empty string fields', function () {
     const renderer = getFieldRenderer('url', {url: 'string'});
     data.url = '';
-    const wrapper = mountWithTheme(renderer(data, {location, organization}));
-    const value = wrapper.find('EmptyValueContainer');
-    expect(value).toHaveLength(1);
-    expect(value.text()).toEqual('(empty string)');
+    render(renderer(data, {location, organization}));
+
+    expect(screen.getByText('(empty string)')).toBeInTheDocument();
   });
 
   it('can render boolean fields', function () {
     const renderer = getFieldRenderer('boolValue', {boolValue: 'boolean'});
-    const wrapper = mountWithTheme(renderer(data, {location, organization}));
-    const text = wrapper.find('Container');
-    expect(text.text()).toEqual('true');
+    render(renderer(data, {location, organization}));
+
+    expect(screen.getByText('true')).toBeInTheDocument();
   });
 
   it('can render integer fields', function () {
     const renderer = getFieldRenderer('numeric', {numeric: 'integer'});
-    const wrapper = mountWithTheme(renderer(data, {location, organization}));
+    render(renderer(data, {location, organization}));
 
-    const value = wrapper.find('Count');
-    expect(value).toHaveLength(1);
-    expect(value.props().value).toEqual(data.numeric);
+    expect(screen.getByText(data.numeric)).toBeInTheDocument();
   });
 
-  it('can render date fields', function () {
-    const renderer = getFieldRenderer('createdAt', {createdAt: 'date'});
-    expect(renderer).toBeInstanceOf(Function);
-    const wrapper = mountWithTheme(renderer(data, {location, organization}));
+  describe('date', function () {
+    beforeEach(function () {
+      ConfigStore.loadInitialData({
+        user: {
+          options: {
+            timezone: 'America/Los_Angeles',
+          },
+        },
+      });
+    });
 
-    const value = wrapper.find('FieldDateTime');
-    expect(value).toHaveLength(1);
-    expect(value.props().date).toEqual(data.createdAt);
+    it('can render date fields', function () {
+      const renderer = getFieldRenderer('createdAt', {createdAt: 'date'});
+      render(renderer(data, {location, organization}));
+
+      expect(screen.getByText('Oct 3, 2019 9:13:14 AM PDT')).toBeInTheDocument();
+    });
+
+    it('can render date fields using utc when query string has utc set to true', function () {
+      const renderer = getFieldRenderer('createdAt', {createdAt: 'date'});
+      render(
+        renderer(data, {location: {...location, query: {utc: 'true'}}, organization})
+      );
+
+      expect(screen.getByText('Oct 3, 2019 4:13:14 PM UTC')).toBeInTheDocument();
+    });
   });
 
   it('can render null date fields', function () {
     const renderer = getFieldRenderer('nope', {nope: 'date'});
-    const wrapper = mountWithTheme(renderer(data, {location, organization}));
+    render(renderer(data, {location, organization}));
 
-    const value = wrapper.find('FieldDateTime');
-    expect(value).toHaveLength(0);
-    expect(wrapper.text()).toEqual('(no value)');
+    expect(screen.getByText('(no value)')).toBeInTheDocument();
   });
 
   it('can render timestamp.to_day', function () {
@@ -131,127 +143,91 @@ describe('getFieldRenderer', function () {
       },
     });
     const renderer = getFieldRenderer('timestamp.to_day', {'timestamp.to_day': 'date'});
-    const wrapper = mountWithTheme(renderer(data, {location, organization}));
-    const text = wrapper.find('Container');
-    expect(text.text()).toEqual('Sep 5, 2021');
+    render(renderer(data, {location, organization}));
+
+    expect(screen.getByText('Sep 5, 2021')).toBeInTheDocument();
   });
 
   it('can render error.handled values', function () {
     const renderer = getFieldRenderer('error.handled', {'error.handled': 'boolean'});
 
+    function validate(value, expectText) {
+      const {unmount} = render(
+        renderer({'error.handled': value}, {location, organization})
+      );
+      expect(screen.getByText(expectText)).toBeInTheDocument();
+      unmount();
+    }
+
     // Should render the same as the filter.
     // ie. all 1 or null
-    let wrapper = mountWithTheme(
-      renderer({'error.handled': [0, 1]}, {location, organization})
-    );
-    expect(wrapper.text()).toEqual('false');
-
-    wrapper = mountWithTheme(
-      renderer({'error.handled': [1, 0]}, {location, organization})
-    );
-    expect(wrapper.text()).toEqual('false');
-
-    wrapper = mountWithTheme(
-      renderer({'error.handled': [null, 0]}, {location, organization})
-    );
-    expect(wrapper.text()).toEqual('false');
-
-    wrapper = mountWithTheme(
-      renderer({'error.handled': [0, null]}, {location, organization})
-    );
-    expect(wrapper.text()).toEqual('false');
-
-    wrapper = mountWithTheme(
-      renderer({'error.handled': [null, 1]}, {location, organization})
-    );
-    expect(wrapper.text()).toEqual('true');
-
-    wrapper = mountWithTheme(
-      renderer({'error.handled': [1, null]}, {location, organization})
-    );
-    expect(wrapper.text()).toEqual('true');
+    validate([0, 1], 'false');
+    validate([1, 0], 'false');
+    validate([null, 0], 'false');
+    validate([0, null], 'false');
+    validate([null, 1], 'true');
+    validate([1, null], 'true');
 
     // null = true for error.handled data.
-    wrapper = mountWithTheme(
-      renderer({'error.handled': [null]}, {location, organization})
-    );
-    expect(wrapper.text()).toEqual('true');
+    validate([null], 'true');
 
     // Default events won't have error.handled and will return an empty list.
-    wrapper = mountWithTheme(renderer({'error.handled': []}, {location, organization}));
-    expect(wrapper.text()).toEqual('(no value)');
+    validate([], '(no value)');
 
     // Transactions will have null for error.handled as the 'tag' won't be set.
-    wrapper = mountWithTheme(renderer({'error.handled': null}, {location, organization}));
-    expect(wrapper.text()).toEqual('(no value)');
+    validate(null, '(no value)');
   });
 
   it('can render user fields with aliased user', function () {
     const renderer = getFieldRenderer('user', {user: 'string'});
 
-    const wrapper = mountWithTheme(renderer(data, {location, organization}));
+    render(renderer(data, {location, organization}));
 
-    const badge = wrapper.find('UserBadge');
-    expect(badge).toHaveLength(1);
-
-    const value = wrapper.find('StyledNameAndEmail');
-    expect(value).toHaveLength(1);
-    expect(value.text()).toEqual('text@example.com');
+    expect(screen.getByTestId('letter_avatar-avatar')).toBeInTheDocument();
+    expect(screen.getByText('text@example.com')).toBeInTheDocument();
   });
 
   it('can render null user fields', function () {
     const renderer = getFieldRenderer('user', {user: 'string'});
 
     delete data.user;
-    const wrapper = mountWithTheme(renderer(data, {location, organization}));
+    render(renderer(data, {location, organization}));
 
-    const badge = wrapper.find('UserBadge');
-    expect(badge).toHaveLength(0);
-
-    const value = wrapper.find('EmptyValueContainer');
-    expect(value).toHaveLength(1);
-    expect(value.text()).toEqual('(no value)');
+    expect(screen.queryByTestId('letter_avatar-avatar')).not.toBeInTheDocument();
+    expect(screen.getByText('(no value)')).toBeInTheDocument();
   });
 
   it('can render null release fields', function () {
     const renderer = getFieldRenderer('release', {release: 'string'});
 
     delete data.release;
-    const wrapper = mountWithTheme(renderer(data, {location, organization}));
+    render(renderer(data, {location, organization}));
 
-    const value = wrapper.find('EmptyValueContainer');
-    expect(value).toHaveLength(1);
-    expect(value.text()).toEqual('(no value)');
+    expect(screen.getByText('(no value)')).toBeInTheDocument();
   });
 
   it('can render project as an avatar', function () {
     const renderer = getFieldRenderer('project', {project: 'string'});
 
-    const wrapper = mountWithTheme(
-      renderer(data, {location, organization}),
-      context.routerContext
-    );
+    render(renderer(data, {location, organization}), {
+      context: context.routerContext,
+    });
 
-    const value = wrapper.find('ProjectBadge');
-    expect(value).toHaveLength(1);
-    expect(value.text()).toEqual(project.slug);
+    expect(screen.queryByTestId('letter_avatar-avatar')).not.toBeInTheDocument();
+    expect(screen.getByText(project.slug)).toBeInTheDocument();
   });
 
-  it('can render project id as an avatar', async function () {
+  it('can render project id as an avatar', function () {
     const renderer = getFieldRenderer('project', {project: 'number'});
 
     data = {...data, project: parseInt(project.id, 10)};
 
-    const wrapper = mountWithTheme(
-      renderer(data, {location, organization}),
-      context.routerContext
-    );
+    render(renderer(data, {location, organization}), {
+      context: context.routerContext,
+    });
 
-    await tick();
-
-    const value = wrapper.find('ProjectBadge');
-    expect(value).toHaveLength(1);
-    expect(value.text()).toEqual(project.slug);
+    expect(screen.queryByTestId('letter_avatar-avatar')).not.toBeInTheDocument();
+    expect(screen.getByText(project.slug)).toBeInTheDocument();
   });
 
   it('can render team key transaction as a star with the dropdown', function () {
@@ -259,16 +235,15 @@ describe('getFieldRenderer', function () {
       team_key_transaction: 'boolean',
     });
 
-    const wrapper = mountWithTheme(
-      renderer(data, {location, organization}),
-      context.routerContext
-    );
+    render(renderer(data, {location, organization}), {
+      context: context.routerContext,
+    });
 
-    const value = wrapper.find('IconStar');
-    expect(value).toHaveLength(1);
-    expect(value.props().isSolid).toBeTruthy();
+    const star = screen.getByRole('button', {name: 'Toggle star for team'});
 
-    expect(wrapper.find('TeamKeyTransaction')).toHaveLength(1);
+    // Enabled, can't open the menu in the test without setting up the
+    // TeamKeyTransactionManager
+    expect(star).toBeEnabled();
   });
 
   it('can render team key transaction as a star without the dropdown', function () {
@@ -277,39 +252,32 @@ describe('getFieldRenderer', function () {
     });
     delete data.project;
 
-    const wrapper = mountWithTheme(
-      renderer(data, {location, organization}),
-      context.routerContext
-    );
+    render(renderer(data, {location, organization}), {
+      context: context.routerContext,
+    });
 
-    const value = wrapper.find('IconStar');
-    expect(value).toHaveLength(1);
-    expect(value.props().isSolid).toBeTruthy();
+    const star = screen.getByRole('button', {name: 'Toggle star for team'});
 
-    // Since there is no project column, it is not wrapped with the dropdown
-    expect(wrapper.find('TeamKeyTransaction')).toHaveLength(0);
+    // Not enabled without a project
+    expect(star).toBeDisabled();
   });
 
   describe('ops breakdown', () => {
-    const getWidth = (wrapper, index) =>
-      wrapper.children().children().at(index).getDOMNode().style.width;
+    const getWidths = () =>
+      [...screen.getByTestId('relative-ops-breakdown').children].map(
+        node => node.style.width
+      );
 
     it('can render operation breakdowns', function () {
       const renderer = getFieldRenderer(SPAN_OP_RELATIVE_BREAKDOWN_FIELD, {
         [SPAN_OP_RELATIVE_BREAKDOWN_FIELD]: 'string',
       });
 
-      const wrapper = mountWithTheme(
-        renderer(data, {location, organization}),
-        context.routerContext
-      );
+      render(renderer(data, {location, organization}), {
+        context: context.routerContext,
+      });
 
-      const value = wrapper.find('RelativeOpsBreakdown');
-      expect(value).toHaveLength(1);
-      expect(getWidth(value, 0)).toEqual('13.333%');
-      expect(getWidth(value, 1)).toEqual('40.000%');
-      expect(getWidth(value, 2)).toEqual('20.000%');
-      expect(getWidth(value, 3)).toEqual('26.667%');
+      expect(getWidths()).toEqual(['13.333%', '40.000%', '20.000%', '26.667%', '0.000%']);
     });
 
     it('renders operation breakdowns in sorted order when a sort field is provided', function () {
@@ -317,21 +285,16 @@ describe('getFieldRenderer', function () {
         [SPAN_OP_RELATIVE_BREAKDOWN_FIELD]: 'string',
       });
 
-      const wrapper = mountWithTheme(
+      render(
         renderer(data, {
           location,
           organization,
           eventView: {sorts: [{field: 'spans.db'}]},
         }),
-        context.routerContext
+        {context: context.routerContext}
       );
 
-      const value = wrapper.find('RelativeOpsBreakdown');
-      expect(value).toHaveLength(1);
-      expect(getWidth(value, 0)).toEqual('40.000%');
-      expect(getWidth(value, 1)).toEqual('13.333%');
-      expect(getWidth(value, 2)).toEqual('20.000%');
-      expect(getWidth(value, 3)).toEqual('26.667%');
+      expect(getWidths()).toEqual(['40.000%', '13.333%', '20.000%', '26.667%', '0.000%']);
     });
   });
 });

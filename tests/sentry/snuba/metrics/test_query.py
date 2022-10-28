@@ -104,6 +104,31 @@ class MetricsQueryBuilder:
         }
 
 
+def test_metric_field_equality_with_equal_fields():
+    ap_dex_with_alias_1 = MetricField(op=None, metric_mri=TransactionMRI.APDEX.value, alias="apdex")
+    ap_dex_with_alias_2 = MetricField(op=None, metric_mri=TransactionMRI.APDEX.value, alias="apdex")
+
+    assert ap_dex_with_alias_1 == ap_dex_with_alias_2
+
+
+def test_metric_field_equality_with_different_aliases():
+    ap_dex_with_alias_1 = MetricField(op=None, metric_mri=TransactionMRI.APDEX.value, alias="apdex")
+    ap_dex_with_alias_2 = MetricField(
+        op=None, metric_mri=TransactionMRI.APDEX.value, alias="transaction.apdex"
+    )
+
+    assert ap_dex_with_alias_1 == ap_dex_with_alias_2
+
+
+def test_metric_field_equality_with_different_mris():
+    ap_dex_with_alias_1 = MetricField(op=None, metric_mri=TransactionMRI.APDEX.value, alias="apdex")
+    ap_dex_with_alias_2 = MetricField(
+        op=None, metric_mri=TransactionMRI.DURATION.value, alias="duration"
+    )
+
+    assert not ap_dex_with_alias_1 == ap_dex_with_alias_2
+
+
 def test_validate_select():
     with pytest.raises(InvalidParams, match='Request is missing a "field"'):
         MetricsQuery(**MetricsQueryBuilder().with_select([]).to_metrics_query_dict())
@@ -207,6 +232,28 @@ def test_validate_order_by_field_in_select():
         .to_metrics_query_dict()
     )
     MetricsQuery(**metrics_query_dict)
+
+
+@pytest.mark.django_db(True)
+def test_validate_order_by_field_in_select_with_different_alias():
+    ap_dex_with_alias_1 = MetricField(op=None, metric_mri=TransactionMRI.APDEX.value, alias="apdex")
+    ap_dex_with_alias_2 = MetricField(
+        op=None, metric_mri=TransactionMRI.APDEX.value, alias="transaction.apdex"
+    )
+
+    try:
+        metrics_query_dict = (
+            MetricsQueryBuilder()
+            .with_select([ap_dex_with_alias_1])
+            .with_orderby([OrderBy(field=ap_dex_with_alias_2, direction=Direction.ASC)])
+            .to_metrics_query_dict()
+        )
+        MetricsQuery(**metrics_query_dict)
+    except InvalidParams:
+        raise pytest.fail(
+            "the validation of orderby field in select with different alias is throwing an error but it "
+            "shouldn't."
+        )
 
 
 @pytest.mark.django_db(True)

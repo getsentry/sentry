@@ -84,7 +84,8 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
         assert response.status_code == 400, response.content
         assert (
-            response.data["detail"] == "dataset must be one of: discover, metricsEnhanced, metrics"
+            response.data["detail"]
+            == "dataset must be one of: discover, metricsEnhanced, metrics, profiles"
         )
 
     def test_out_of_retention(self):
