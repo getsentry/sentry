@@ -10,7 +10,6 @@ from sentry import options
 from sentry.models import Group
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.utils import json
-from sentry.utils.samples import load_data
 
 
 class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase):
@@ -79,16 +78,8 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase):
 
     @patch("django.utils.timezone.now")
     def test_multiple_events_from_one_performance_issue(self, mock_now):
-        data = json.loads(
-            self.load_fixture("events/performance_problems/n-plus-one-in-django-new-view.json")
-        )
-
-        mock_now.return_value = datetime.datetime.fromtimestamp(data["start_timestamp"]).replace(
-            tzinfo=pytz.utc
-        )
-
-        event = load_data("transaction")
-        event.update({"spans": data["spans"]})
+        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc) - timedelta(minutes=5)
+        event_data = self.create_sample_event(mock_now.return_value.timestamp())
 
         with self.feature(
             [
@@ -98,29 +89,21 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase):
             ]
         ):
 
-            [self.store_event(data=event, project_id=self.project.id) for _ in range(3)]
+            [self.store_event(data=event_data, project_id=self.project.id) for _ in range(3)]
 
             assert Group.objects.count() == 1
 
     @patch("django.utils.timezone.now")
     def test_multiple_events_to_multiple_issues(self, mock_now):
-        data = json.loads(
-            self.load_fixture("events/performance_problems/n-plus-one-in-django-new-view.json")
-        )
-
-        mock_now.return_value = datetime.datetime.fromtimestamp(data["start_timestamp"]).replace(
-            tzinfo=pytz.utc
-        )
+        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc) - timedelta(minutes=5)
 
         # Create identical events with different parent spans
         for _ in range(3):
-            event = load_data("transaction")
-            spans = [
+            event_data = self.create_sample_event(mock_now.return_value.timestamp())
+            event_data["spans"] = [
                 self.randomize_span_description(span) if span["op"] == "django.view" else span
-                for span in data["spans"]
+                for span in event_data["spans"]
             ]
-
-            event.update({"spans": spans})
 
             with self.feature(
                 [
@@ -130,6 +113,6 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase):
                 ]
             ):
 
-                self.store_event(data=event, project_id=self.project.id)
+                self.store_event(data=event_data, project_id=self.project.id)
 
         assert Group.objects.count() == 3
