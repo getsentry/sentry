@@ -9,9 +9,10 @@ import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 
-import Field, {FieldProps} from '../field';
+import Field from '../field';
 import FieldControl from '../field/fieldControl';
 import FieldErrorReason from '../field/fieldErrorReason';
+import {FieldGroupProps} from '../field/types';
 import FormContext from '../formContext';
 import FormModel, {MockModel} from '../model';
 import ReturnButton from '../returnButton';
@@ -59,22 +60,22 @@ type ObservedPropResolver = [
  * Construct the type for properties that may be given observed functions
  */
 interface ObservableProps {
-  disabled?: ObservedFnOrValue<{}, FieldProps['disabled']>;
-  help?: ObservedFnOrValue<{}, FieldProps['help']>;
-  highlighted?: ObservedFnOrValue<{}, FieldProps['highlighted']>;
-  inline?: ObservedFnOrValue<{}, FieldProps['inline']>;
-  visible?: ObservedFnOrValue<{}, FieldProps['visible']>;
+  disabled?: ObservedFnOrValue<{}, FieldGroupProps['disabled']>;
+  help?: ObservedFnOrValue<{}, FieldGroupProps['help']>;
+  highlighted?: ObservedFnOrValue<{}, FieldGroupProps['highlighted']>;
+  inline?: ObservedFnOrValue<{}, FieldGroupProps['inline']>;
+  visible?: ObservedFnOrValue<{}, FieldGroupProps['visible']>;
 }
 
 /**
  * The same ObservableProps, once they have been resolved
  */
 interface ResolvedObservableProps {
-  disabled?: FieldProps['disabled'];
-  help?: FieldProps['help'];
-  highlighted?: FieldProps['highlighted'];
-  inline?: FieldProps['inline'];
-  visible?: FieldProps['visible'];
+  disabled?: FieldGroupProps['disabled'];
+  help?: FieldGroupProps['help'];
+  highlighted?: FieldGroupProps['highlighted'];
+  inline?: FieldGroupProps['inline'];
+  visible?: FieldGroupProps['visible'];
 }
 
 // XXX(epurkhiser): Many of these props are duplicated in form types. The forms
@@ -140,19 +141,21 @@ interface BaseProps {
   /**
    * Transform input when a value is set to the model.
    */
-  transformInput?: (value: any) => any; // used in prettyFormString
+  transformInput?: (value: any) => any;
+  // used in prettyFormString
+  validate?: Function;
 }
 
 export interface FormFieldProps
   extends BaseProps,
     ObservableProps,
-    Omit<FieldProps, keyof ResolvedObservableProps | 'children'> {}
+    Omit<FieldGroupProps, keyof ResolvedObservableProps | 'children'> {}
 
 /**
  * ResolvedProps do NOT include props which may be given functions that are
  * reacted on. Resolved props are used inside of makeField.
  */
-type ResolvedProps = BaseProps & FieldProps;
+type ResolvedProps = BaseProps & FieldGroupProps;
 
 type PassthroughProps = Omit<
   ResolvedProps,

@@ -5,11 +5,11 @@ import Spinner from 'sentry/components/forms/spinner';
 import {IconCheckmark, IconWarning} from 'sentry/icons';
 import {fadeOut, pulse} from 'sentry/styles/animations';
 
-export interface ControlStateProps {
+interface ControlStateProps {
   /**
    * Display the  error indicator
    */
-  error?: string | boolean;
+  error?: boolean;
   /**
    * Display the "was just saved" state
    */
@@ -73,4 +73,5 @@ const FieldError = styled('div')`
   color: ${p => p.theme.red300};
   animation: ${() => pulse(1.15)} 1s ease infinite;
 `;
+
 export default ControlState;
