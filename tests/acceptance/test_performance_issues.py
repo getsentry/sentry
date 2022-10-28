@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime, timedelta
 from unittest.mock import patch
 
 import pytz
@@ -7,7 +7,6 @@ from fixtures.page_objects.issue_details import IssueDetailsPage
 from sentry import options
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.utils import json
-from sentry.utils.samples import load_data
 
 
 class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase):
@@ -27,21 +26,32 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase):
         self.page = IssueDetailsPage(self.browser, self.client)
         self.dismiss_assistant()
 
+    def create_sample_event(self, start_timestamp):
+        event = json.loads(
+            self.load_fixture(
+                "events/performance_problems/n-plus-one-in-django-new-view.json"
+            ).decode("utf-8")
+        )
+
+        for key in ["datetime", "location", "title"]:
+            del event[key]
+
+        event["contexts"] = {
+            "trace": {"trace_id": "530c14e044aa464db6ddb43660e6474f", "span_id": "139fcdb7c5534eb4"}
+        }
+
+        ms_delta = start_timestamp - event["start_timestamp"]
+
+        for item in [event, *event["spans"]]:
+            item["start_timestamp"] += ms_delta
+            item["timestamp"] += ms_delta
+
+        return event
+
     @patch("django.utils.timezone.now")
     def test_with_one_performance_issue(self, mock_now):
-        event = load_data("transaction")
-        event["event_id"] = "d964fdbd649a4cf8bfc35d18082b6b0e"
-        event["contexts"]["trace"]["trace_id"] = "530c14e044aa464db6ddb43660e6474f"
-        event["contexts"]["trace"]["span_id"] = "139fcdb7c5534eb4"
-
-        data = json.loads(
-            self.load_fixture("events/performance_problems/n-plus-one-in-django-new-view.json")
-        )
-        event.update({"spans": data["spans"]})
-
-        mock_now.return_value = datetime.datetime.fromtimestamp(event["start_timestamp"]).replace(
-            tzinfo=pytz.utc
-        )
+        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc) - timedelta(minutes=5)
+        event_data = self.create_sample_event(mock_now.return_value.timestamp())
 
         with self.feature(
             [
@@ -50,7 +60,8 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase):
                 "organizations:performance-issues-ingest",
             ]
         ):
-            event = self.store_event(data=event, project_id=self.project.id)
+            event = self.store_event(data=event_data, project_id=self.project.id)
+
             self.page.visit_issue(self.org.slug, event.groups[0].id)
             self.browser.click('[aria-label="Show Details"]')
 
