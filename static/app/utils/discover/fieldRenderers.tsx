@@ -39,6 +39,10 @@ import {formatFloat, formatPercentage} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import Projects from 'sentry/utils/projects';
 import {
+  ContextType,
+  QuickContextHoverWrapper,
+} from 'sentry/views/eventsV2/table/quickContext';
+import {
   filterToLocationQuery,
   SpanOperationBreakdownFilter,
   stringToFilter,
@@ -472,7 +476,9 @@ const SPECIAL_FIELDS: SpecialFields = {
       return (
         <Container>
           <OverflowLink to={target} aria-label={issueID}>
-            <FieldShortId shortId={`${data.issue}`} />
+            <QuickContextHoverWrapper dataRow={data} contextType={ContextType.ISSUE}>
+              <FieldShortId shortId={`${data.issue}`} />
+            </QuickContextHoverWrapper>
           </OverflowLink>
         </Container>
       );

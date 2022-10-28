@@ -18,7 +18,6 @@ import {
 import {getDuration} from 'sentry/utils/formatters';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
-import QuickContext, {hasContext} from './quickContext';
 import {TableColumn} from './types';
 
 export enum Actions {
@@ -481,9 +480,9 @@ class CellAction extends Component<Props, State> {
   renderContext() {
     const {isContextPopperOpen: isOpen} = this.state;
 
-    if (!hasContext(this.props.dataRow, this.props.column)) {
-      return null;
-    }
+    // if (!hasContext(this.props.dataRow, this.props.column)) {
+    //   return null;
+    // }
 
     const context = !isOpen
       ? null
@@ -503,11 +502,11 @@ class CellAction extends Component<Props, State> {
                   data-placement={placement}
                   style={arrowProps.style}
                 />
-                <QuickContext
-                  dataRow={this.props.dataRow}
-                  column={this.props.column}
-                  organization={this.props.organization}
-                />
+                {/* <QuickContext
+                dataRow={this.props.dataRow}
+                column={this.props.column}
+                organization={this.props.organization}
+              /> */}
               </Menu>
             )}
           </Popper>,
@@ -535,8 +534,8 @@ class CellAction extends Component<Props, State> {
   }
 
   render() {
-    const {children, organization, showQuickContextMenu} = this.props;
-    const {isHovering, isContextPopperOpen, isMenuPopperOpen} = this.state;
+    const {children, organization} = this.props;
+    const {isHovering, isContextPopperOpen} = this.state;
 
     return (
       <Container
@@ -544,12 +543,7 @@ class CellAction extends Component<Props, State> {
         onMouseLeave={this.handleMouseLeave}
       >
         {children}
-        <Feature organization={organization} features={['discover-quick-context']}>
-          {showQuickContextMenu &&
-            isHovering &&
-            !isMenuPopperOpen &&
-            this.renderContext()}
-        </Feature>
+        <Feature organization={organization} features={['discover-quick-context']} />
         {isHovering && !isContextPopperOpen && this.renderMenu()}
       </Container>
     );
