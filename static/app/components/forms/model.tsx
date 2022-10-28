@@ -394,7 +394,7 @@ class FormModel {
 
     if (typeof validate === 'function') {
       // Returns "tuples" of [id, error string]
-      errors = validate({model: this, id, form: this.getData()}) || [];
+      errors = validate({model: this, id, data: this.getData()}) || [];
     }
 
     const fieldIsRequiredMessage = t('Field is required');

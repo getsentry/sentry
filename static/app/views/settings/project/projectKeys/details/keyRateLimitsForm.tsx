@@ -136,13 +136,12 @@ function KeyRateLimitsForm({data, disabled, params}: Props) {
                 name="rateLimit"
                 label={t('Rate Limit')}
                 disabled={disabled || !hasFeature}
-                validate={({form}) => {
+                validate={({data: fieldData}) => {
                   // TODO(TS): is validate actually doing anything because it's an unexpected prop
                   const isValid =
-                    form &&
-                    form.rateLimit &&
-                    typeof form.rateLimit.count !== 'undefined' &&
-                    typeof form.rateLimit.window !== 'undefined';
+                    fieldData.rateLimit &&
+                    typeof fieldData.rateLimit.count !== 'undefined' &&
+                    typeof fieldData.rateLimit.window !== 'undefined';
 
                   if (isValid) {
                     return [];
