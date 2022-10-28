@@ -1,5 +1,4 @@
 import {Component, Fragment} from 'react';
-import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
 import Alert from 'sentry/components/alert';
@@ -14,7 +13,6 @@ import FieldControl from '../field/fieldControl';
 import FieldErrorReason from '../field/fieldErrorReason';
 import FormContext from '../formContext';
 import FormModel, {MockModel} from '../model';
-import ReturnButton from '../returnButton';
 import {FieldValue} from '../types';
 
 import FormFieldControlState from './controlState';
@@ -351,10 +349,6 @@ class FormField extends Component<FormFieldProps> {
                   {() => {
                     const error = this.getError();
                     const value = model.getValue(name);
-                    const showReturnButton = model.getFieldState(
-                      name,
-                      'showReturnButton'
-                    );
 
                     return (
                       <Fragment>
@@ -375,7 +369,6 @@ class FormField extends Component<FormFieldProps> {
                           initialData: model.initialData,
                           'aria-describedby': `${id}_help`,
                         })}
-                        {showReturnButton && <StyledReturnButton />}
                       </Fragment>
                     );
                   }}
@@ -473,9 +466,3 @@ class FormField extends Component<FormFieldProps> {
 }
 
 export default FormField;
-
-const StyledReturnButton = styled(ReturnButton)`
-  position: absolute;
-  right: 0;
-  top: 0;
-`;
