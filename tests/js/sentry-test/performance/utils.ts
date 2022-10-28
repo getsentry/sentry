@@ -94,11 +94,13 @@ export class TransactionEventBuilder {
     for (let i = 0; i < numSpans; i++) {
       const spanId = this.generateSpanId();
       const {span} = mSpan;
-      span.span_id = spanId;
-      span.trace_id = this.TRACE_ID;
-      span.parent_span_id = parentSpanId ?? this.ROOT_SPAN_ID;
+      const clonedSpan = {...span};
 
-      this.#event.entries[0].data.push(span);
+      clonedSpan.span_id = spanId;
+      clonedSpan.trace_id = this.TRACE_ID;
+      clonedSpan.parent_span_id = parentSpanId ?? this.ROOT_SPAN_ID;
+
+      this.#spans.push(clonedSpan);
 
       switch (mSpan.problemSpan) {
         case ProblemSpan.PARENT:
@@ -111,8 +113,8 @@ export class TransactionEventBuilder {
           break;
       }
 
-      if (span.timestamp > this.#event.endTimestamp) {
-        this.#event.endTimestamp = span.timestamp;
+      if (clonedSpan.timestamp > this.#event.endTimestamp) {
+        this.#event.endTimestamp = clonedSpan.timestamp;
       }
 
       mSpan.children.forEach(child => this.addSpan(child, 1, spanId));

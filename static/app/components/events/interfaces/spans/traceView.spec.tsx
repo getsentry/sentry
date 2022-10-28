@@ -114,16 +114,15 @@ describe('TraceView', () => {
         })
       );
 
-      for (let i = 0; i < 5; i++) {
-        builder.addSpan(
-          new MockSpan({
-            startTimestamp: 100,
-            endTimestamp: 200,
-            op: 'http',
-            description: 'group me',
-          })
-        );
-      }
+      builder.addSpan(
+        new MockSpan({
+          startTimestamp: 100,
+          endTimestamp: 200,
+          op: 'http',
+          description: 'group me',
+        }),
+        5
+      );
 
       builder.addSpan(
         new MockSpan({
@@ -165,106 +164,62 @@ describe('TraceView', () => {
       expect(grouped).toBeInTheDocument();
     });
 
-    //   it('should expand/collapse only the sibling group that is clicked, even if multiple groups have the same op and description', async () => {
-    //     const event = generateSampleEvent();
-    //     generateSampleSpan(
-    //       'group me',
-    //       'http',
-    //       'b000000000000000',
-    //       'a000000000000000',
-    //       event
-    //     );
-    //     generateSampleSpan(
-    //       'group me',
-    //       'http',
-    //       'c000000000000000',
-    //       'a000000000000000',
-    //       event
-    //     );
-    //     generateSampleSpan(
-    //       'group me',
-    //       'http',
-    //       'd000000000000000',
-    //       'a000000000000000',
-    //       event
-    //     );
-    //     generateSampleSpan(
-    //       'group me',
-    //       'http',
-    //       'e000000000000000',
-    //       'a000000000000000',
-    //       event
-    //     );
-    //     generateSampleSpan(
-    //       'group me',
-    //       'http',
-    //       'f000000000000000',
-    //       'a000000000000000',
-    //       event
-    //     );
+    it('should expand/collapse only the sibling group that is clicked, even if multiple groups have the same op and description', async () => {
+      const builder = new TransactionEventBuilder();
 
-    //     generateSampleSpan('not me', 'http', 'aa00000000000000', 'a000000000000000', event);
+      builder.addSpan(
+        new MockSpan({
+          startTimestamp: 100,
+          endTimestamp: 200,
+          op: 'http',
+          description: 'group me',
+        }),
+        5
+      );
 
-    //     generateSampleSpan(
-    //       'group me',
-    //       'http',
-    //       'bb00000000000000',
-    //       'a000000000000000',
-    //       event
-    //     );
-    //     generateSampleSpan(
-    //       'group me',
-    //       'http',
-    //       'cc00000000000000',
-    //       'a000000000000000',
-    //       event
-    //     );
-    //     generateSampleSpan(
-    //       'group me',
-    //       'http',
-    //       'dd00000000000000',
-    //       'a000000000000000',
-    //       event
-    //     );
-    //     generateSampleSpan(
-    //       'group me',
-    //       'http',
-    //       'ee00000000000000',
-    //       'a000000000000000',
-    //       event
-    //     );
-    //     generateSampleSpan(
-    //       'group me',
-    //       'http',
-    //       'ff00000000000000',
-    //       'a000000000000000',
-    //       event
-    //     );
+      builder.addSpan(
+        new MockSpan({
+          startTimestamp: 200,
+          endTimestamp: 300,
+          op: 'http',
+          description: 'not me',
+        })
+      );
 
-    //     const waterfallModel = new WaterfallModel(event);
+      builder.addSpan(
+        new MockSpan({
+          startTimestamp: 300,
+          endTimestamp: 400,
+          op: 'http',
+          description: 'group me',
+        }),
+        5
+      );
 
-    //     render(
-    //       <TraceView organization={data.organization} waterfallModel={waterfallModel} />
-    //     );
+      const waterfallModel = new WaterfallModel(builder.getEvent());
 
-    //     expect(screen.queryAllByText('group me')).toHaveLength(2);
+      render(
+        <TraceView organization={data.organization} waterfallModel={waterfallModel} />
+      );
 
-    //     const firstGroup = screen.queryAllByText('Autogrouped — http —')[0];
-    //     userEvent.click(firstGroup);
-    //     expect(await screen.findAllByText('group me')).toHaveLength(6);
+      expect(screen.queryAllByText('group me')).toHaveLength(2);
 
-    //     const secondGroup = await screen.findByText('Autogrouped — http —');
-    //     userEvent.click(secondGroup);
-    //     expect(await screen.findAllByText('group me')).toHaveLength(10);
+      const firstGroup = screen.queryAllByText('Autogrouped — http —')[0];
+      userEvent.click(firstGroup);
+      expect(await screen.findAllByText('group me')).toHaveLength(6);
 
-    //     const firstRegroup = screen.queryAllByText('Regroup')[0];
-    //     userEvent.click(firstRegroup);
-    //     expect(await screen.findAllByText('group me')).toHaveLength(6);
+      const secondGroup = await screen.findByText('Autogrouped — http —');
+      userEvent.click(secondGroup);
+      expect(await screen.findAllByText('group me')).toHaveLength(10);
 
-    //     const secondRegroup = await screen.findByText('Regroup');
-    //     userEvent.click(secondRegroup);
-    //     expect(await screen.findAllByText('group me')).toHaveLength(2);
-    //   });
+      const firstRegroup = screen.queryAllByText('Regroup')[0];
+      userEvent.click(firstRegroup);
+      expect(await screen.findAllByText('group me')).toHaveLength(6);
+
+      const secondRegroup = await screen.findByText('Regroup');
+      userEvent.click(secondRegroup);
+      expect(await screen.findAllByText('group me')).toHaveLength(2);
+    });
 
     //   it('should allow expanding of embedded transactions', async () => {
     //     const {organization, project, location} = initializeData({
