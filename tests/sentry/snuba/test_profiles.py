@@ -8,6 +8,7 @@ from snuba_sdk.conditions import Condition, Op, Or
 from snuba_sdk.function import Function
 
 from sentry.search.events.datasets.profiles import COLUMNS as PROFILE_COLUMNS
+from sentry.search.events.datasets.profiles import ProfilesDatasetConfig
 from sentry.search.events.fields import InvalidSearchQuery
 from sentry.snuba.profiles import ProfilesQueryBuilder
 from sentry.testutils.factories import Factories
@@ -49,9 +50,10 @@ def test_field_resolution(params, field, resolved):
         params=params,
         selected_columns=[field],
     )
-    assert builder.columns == [Column(field)] or builder.columns == [
-        AliasedExpression(Column(resolved), alias=field)
-    ]
+    if field == resolved:
+        assert builder.columns == [Column(field)]
+    else:
+        assert builder.columns == [AliasedExpression(Column(resolved), alias=field)]
 
 
 @pytest.mark.parametrize(
@@ -266,7 +268,7 @@ def is_null(column: str) -> Function:
             f"!timestamp:{today.isoformat()}",
             [],  # not sure what this should be yet
             id=f"!timestamp:{today.isoformat()}",
-            marks=pytest.mark.xfail(reason="not sure why this fails parsing when negated"),
+            marks=pytest.mark.xfail(reason="date filters cannot negated"),
         ),
         pytest.param(
             "device.arch:x86_64",
@@ -511,7 +513,10 @@ def test_has_resolution(params, field, column):
         selected_columns=["count()"],
         query=f"has:{field}",
     )
-    assert Condition(is_null(column), Op.NEQ, 1) in builder.where
+    if field in ProfilesDatasetConfig.non_nullable_keys:
+        assert Condition(Column(column), Op.NEQ, "") in builder.where
+    else:
+        assert Condition(is_null(column), Op.NEQ, 1) in builder.where
 
 
 @pytest.mark.parametrize(
@@ -529,4 +534,7 @@ def test_not_has_resolution(params, field, column):
         selected_columns=["count()"],
         query=f"!has:{field}",
     )
-    assert Condition(is_null(column), Op.EQ, 1) in builder.where
+    if field in ProfilesDatasetConfig.non_nullable_keys:
+        assert Condition(Column(column), Op.EQ, "") in builder.where
+    else:
+        assert Condition(is_null(column), Op.EQ, 1) in builder.where
