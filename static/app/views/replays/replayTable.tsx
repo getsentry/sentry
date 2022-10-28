@@ -250,10 +250,16 @@ function ReplayTableRow({
           {hasTxEvent ? (
             <SpanOperationBreakdown>
               {txDuration ? <TxDuration>{txDuration}ms</TxDuration> : null}
-              {spanOperationRelativeBreakdownRenderer(replay.txEvent, {
-                organization,
-                location,
-              })}
+              {spanOperationRelativeBreakdownRenderer(
+                replay.txEvent,
+                {
+                  organization,
+                  location,
+                },
+                {
+                  enableOnClick: false,
+                }
+              )}
             </SpanOperationBreakdown>
           ) : null}
         </Item>
