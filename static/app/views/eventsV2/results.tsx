@@ -41,8 +41,6 @@ import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customM
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
 import EventView, {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 import {formatTagKey, generateAggregateFields} from 'sentry/utils/discover/fields';
-import {TipsContext} from 'sentry/utils/discover/tipsContext';
-import {TipsProvider} from 'sentry/utils/discover/tipsProvider';
 import {
   DisplayModes,
   MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES,
@@ -83,6 +81,7 @@ type State = {
   eventView: EventView;
   needConfirmation: boolean;
   showTags: boolean;
+  tips: string[];
   totalValues: null | number;
   savedQuery?: SavedQuery;
   showMetricsAlert?: boolean;
@@ -128,6 +127,7 @@ export class Results extends Component<Props, State> {
     showTags: readShowTagsState(),
     needConfirmation: false,
     confirmedQuery: false,
+    tips: [],
   };
 
   componentDidMount() {
@@ -541,7 +541,8 @@ export class Results extends Component<Props, State> {
     return null;
   }
 
-  renderTips(tips?: string[]) {
+  renderTips() {
+    const {tips} = this.state;
     if (tips) {
       return tips.map((tip, index) => (
         <Alert type="info" showIcon key={`tip-${index}`}>
@@ -594,99 +595,89 @@ export class Results extends Component<Props, State> {
                 organization={organization}
                 selection={selection}
               >
-                <TipsProvider>
-                  <Top fullWidth>
-                    {this.renderMetricsFallbackBanner()}
-                    {this.renderError(error)}
-                    <TipsContext.Consumer>
-                      {contextValue => this.renderTips(contextValue?.[0]?.tips)}
-                    </TipsContext.Consumer>
-                    <StyledPageFilterBar condensed>
-                      <ProjectPageFilter />
-                      <EnvironmentPageFilter />
-                      <DatePageFilter alignDropdown="left" />
-                    </StyledPageFilterBar>
-                    <CustomMeasurementsContext.Consumer>
-                      {contextValue => (
-                        <StyledSearchBar
-                          searchSource="eventsv2"
-                          organization={organization}
-                          projectIds={eventView.project}
-                          query={query}
-                          fields={fields}
-                          onSearch={this.handleSearch}
-                          maxQueryLength={MAX_QUERY_LENGTH}
-                          customMeasurements={
-                            contextValue?.customMeasurements ?? undefined
-                          }
-                        />
-                      )}
-                    </CustomMeasurementsContext.Consumer>
-                    <MetricsCardinalityProvider
-                      organization={organization}
-                      location={location}
-                    >
-                      <MetricsBaselineContainer
-                        api={api}
-                        router={router}
+                <Top fullWidth>
+                  {this.renderMetricsFallbackBanner()}
+                  {this.renderError(error)}
+                  {this.renderTips()}
+                  <StyledPageFilterBar condensed>
+                    <ProjectPageFilter />
+                    <EnvironmentPageFilter />
+                    <DatePageFilter alignDropdown="left" />
+                  </StyledPageFilterBar>
+                  <CustomMeasurementsContext.Consumer>
+                    {contextValue => (
+                      <StyledSearchBar
+                        searchSource="eventsv2"
                         organization={organization}
-                        eventView={eventView}
-                        location={location}
-                        onAxisChange={this.handleYAxisChange}
-                        onDisplayChange={this.handleDisplayChange}
-                        onTopEventsChange={this.handleTopEventsChange}
-                        onIntervalChange={this.handleIntervalChange}
-                        total={totalValues}
-                        confirmedQuery={confirmedQuery}
-                        yAxis={yAxisArray}
+                        projectIds={eventView.project}
+                        query={query}
+                        fields={fields}
+                        onSearch={this.handleSearch}
+                        maxQueryLength={MAX_QUERY_LENGTH}
+                        customMeasurements={contextValue?.customMeasurements ?? undefined}
                       />
-                    </MetricsCardinalityProvider>
-                  </Top>
-                  <Layout.Main fullWidth={!showTags}>
-                    <TipsContext.Consumer>
-                      {tipsContextValue => (
-                        <Table
-                          organization={organization}
-                          eventView={eventView}
-                          location={location}
-                          title={title}
-                          setError={this.setError}
-                          onChangeShowTags={this.handleChangeShowTags}
-                          showTags={showTags}
-                          confirmedQuery={confirmedQuery}
-                          onCursor={this.handleCursor}
-                          isHomepage={isHomepage}
-                          setTips={(tips: string[]) => tipsContextValue?.[1]({tips})}
-                        />
-                      )}
-                    </TipsContext.Consumer>
-                  </Layout.Main>
-                  {showTags ? this.renderTagsTable() : null}
-                  <Confirm
-                    priority="primary"
-                    header={<strong>{t('May lead to thumb twiddling')}</strong>}
-                    confirmText={t('Do it')}
-                    cancelText={t('Nevermind')}
-                    onConfirm={this.handleConfirmed}
-                    onCancel={this.handleCancelled}
-                    message={
-                      <p>
-                        {tct(
-                          `You've created a query that will search for events made
+                    )}
+                  </CustomMeasurementsContext.Consumer>
+                  <MetricsCardinalityProvider
+                    organization={organization}
+                    location={location}
+                  >
+                    <MetricsBaselineContainer
+                      api={api}
+                      router={router}
+                      organization={organization}
+                      eventView={eventView}
+                      location={location}
+                      onAxisChange={this.handleYAxisChange}
+                      onDisplayChange={this.handleDisplayChange}
+                      onTopEventsChange={this.handleTopEventsChange}
+                      onIntervalChange={this.handleIntervalChange}
+                      total={totalValues}
+                      confirmedQuery={confirmedQuery}
+                      yAxis={yAxisArray}
+                    />
+                  </MetricsCardinalityProvider>
+                </Top>
+                <Layout.Main fullWidth={!showTags}>
+                  <Table
+                    organization={organization}
+                    eventView={eventView}
+                    location={location}
+                    title={title}
+                    setError={this.setError}
+                    onChangeShowTags={this.handleChangeShowTags}
+                    showTags={showTags}
+                    confirmedQuery={confirmedQuery}
+                    onCursor={this.handleCursor}
+                    isHomepage={isHomepage}
+                    setTips={(tips: string[]) => this.setState({tips})}
+                  />
+                </Layout.Main>
+                {showTags ? this.renderTagsTable() : null}
+                <Confirm
+                  priority="primary"
+                  header={<strong>{t('May lead to thumb twiddling')}</strong>}
+                  confirmText={t('Do it')}
+                  cancelText={t('Nevermind')}
+                  onConfirm={this.handleConfirmed}
+                  onCancel={this.handleCancelled}
+                  message={
+                    <p>
+                      {tct(
+                        `You've created a query that will search for events made
                       [dayLimit:over more than 30 days] for [projectLimit:more than 10 projects].
                       A lot has happened during that time, so this might take awhile.
                       Are you sure you want to do this?`,
-                          {
-                            dayLimit: <strong />,
-                            projectLimit: <strong />,
-                          }
-                        )}
-                      </p>
-                    }
-                  >
-                    {this.setOpenFunction}
-                  </Confirm>
-                </TipsProvider>
+                        {
+                          dayLimit: <strong />,
+                          projectLimit: <strong />,
+                        }
+                      )}
+                    </p>
+                  }
+                >
+                  {this.setOpenFunction}
+                </Confirm>
               </CustomMeasurementsProvider>
             </Layout.Body>
           </NoProjectMessage>
