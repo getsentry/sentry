@@ -14,9 +14,7 @@ import GroupStore from 'sentry/stores/groupStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {GroupActivityType} from 'sentry/types';
 import {GroupActivity} from 'sentry/views/organizationGroupDetails/groupActivity';
-import GroupActivityItem from 'sentry/views/organizationGroupDetails/groupActivityItem';
 
 describe('GroupActivity', function () {
   let project;
@@ -72,6 +70,37 @@ describe('GroupActivity', function () {
     });
     expect(screen.getByText('marked this issue as reviewed')).toBeInTheDocument();
     expect(screen.getByText(user.name)).toBeInTheDocument();
+  });
+
+  it('renders a pr activity', function () {
+    const user = TestStubs.User({name: 'Test User'});
+    const repository = TestStubs.Repository();
+    const pullRequest = TestStubs.PullRequest({message: 'Fixes ISSUE-1'});
+    createWrapper({
+      activity: [
+        {
+          type: 'set_resolved_in_pull_request',
+          id: 'pr-1',
+          data: {
+            pullRequest: {
+              author: 'Test User',
+              version: (
+                <PullRequestLink
+                  inline
+                  pullRequest={pullRequest}
+                  repository={pullRequest.repository}
+                />
+              ),
+              repository: {repository},
+            },
+          },
+          user,
+        },
+      ],
+    });
+    expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+      'Test User has created a PR for this issue:'
+    );
   });
 
   it('renders a assigned to self activity', function () {
@@ -306,46 +335,5 @@ describe('GroupActivity', function () {
 
       expect(deleteMock).toHaveBeenCalledTimes(1);
     });
-  });
-});
-
-describe('GroupActivityItem', () => {
-  it('shows correct message for pull request', async function () {
-    const repository = TestStubs.Repository();
-
-    const pullRequest = TestStubs.PullRequest({message: 'Fixes ISSUE-1'});
-
-    const component = render(
-      <GroupActivityItem
-        activity={{
-          type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST,
-          id: 'pr-1',
-          data: {
-            pullRequest: {
-              author: 'Test User',
-              version: (
-                <PullRequestLink
-                  inline
-                  pullRequest={pullRequest}
-                  repository={pullRequest.repository}
-                />
-              ),
-              repository: {repository},
-            },
-          },
-          user: TestStubs.User(),
-        }}
-        orgSlug="test-org"
-        projectId="1"
-        author="Test User"
-      />
-    );
-
-    expect(
-      await component.findByText('has created a PR for this issue:')
-    ).toBeInTheDocument();
-    expect(
-      component.queryByText('marked this issue as resolved in')
-    ).not.toBeInTheDocument();
   });
 });
