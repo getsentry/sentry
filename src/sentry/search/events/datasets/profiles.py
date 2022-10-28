@@ -14,7 +14,6 @@ from sentry.search.events.fields import (
     Function,
     InvalidFunctionArgument,
     InvalidSearchQuery,
-    NullColumn,
     NumberRange,
     NumericColumn,
     SnQLFunction,
@@ -127,6 +126,25 @@ class ProfileNumericColumn(NumericColumn):
 
 
 class ProfilesDatasetConfig(DatasetConfig):
+    non_nullable_keys = {
+        "organization.id",
+        "project.id",
+        "trace.transaction",
+        "id",
+        "device.arch",
+        "device.classification",
+        "device.locale",
+        "device.manufacturer",
+        "device.model",
+        "os.name",
+        "os.version",
+        "platform.name",
+        "trace",
+        "transaction",
+        "release",
+        "project_id",
+    }
+
     def __init__(self, builder: Any):
         self.builder = builder
 
@@ -180,7 +198,6 @@ class ProfilesDatasetConfig(DatasetConfig):
                 ),
                 SnQLFunction(
                     "count",
-                    optional_args=[NullColumn("column")],
                     snql_aggregate=lambda _, alias: Function(
                         "count",
                         [],

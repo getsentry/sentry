@@ -1,13 +1,21 @@
 from datetime import datetime, timedelta
 
 import pytest
+from django.utils import timezone
 from snuba_sdk.aliased_expression import AliasedExpression
 from snuba_sdk.column import Column
+from snuba_sdk.conditions import Condition, Op, Or
 from snuba_sdk.function import Function
 
+from sentry.search.events.datasets.profiles import COLUMNS as PROFILE_COLUMNS
+from sentry.search.events.fields import InvalidSearchQuery
 from sentry.snuba.profiles import ProfilesQueryBuilder
 from sentry.testutils.factories import Factories
 from sentry.utils.snuba import Dataset
+
+# pin a timestamp for now so tests results dont change
+now = datetime(2022, 10, 31, 0, 0, tzinfo=timezone.utc)
+today = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
 
 @pytest.fixture
@@ -19,10 +27,8 @@ def params():
     user = Factories.create_user()
     Factories.create_team_membership(team=team, user=user)
 
-    now = datetime.utcnow()
-
     return {
-        "start": now - timedelta(seconds=2),
+        "start": now - timedelta(days=7),
         "end": now - timedelta(seconds=1),
         "project_id": [project.id],
         "project_objects": [project],
@@ -33,110 +39,24 @@ def params():
 
 
 @pytest.mark.parametrize(
-    "column,resolved",
+    "field,resolved",
+    [pytest.param(column.alias, column.column, id=column.alias) for column in PROFILE_COLUMNS],
+)
+@pytest.mark.django_db
+def test_field_resolution(params, field, resolved):
+    builder = ProfilesQueryBuilder(
+        dataset=Dataset.Profiles,
+        params=params,
+        selected_columns=[field],
+    )
+    assert builder.columns == [Column(field)] or builder.columns == [
+        AliasedExpression(Column(resolved), alias=field)
+    ]
+
+
+@pytest.mark.parametrize(
+    "field,resolved",
     [
-        pytest.param(
-            "organization.id",
-            AliasedExpression(Column("organization_id"), alias="organization.id"),
-            id="organization.id",
-        ),
-        pytest.param(
-            "project.id",
-            AliasedExpression(Column("project_id"), alias="project.id"),
-            id="project_id",
-        ),
-        pytest.param(
-            "trace.transaction",
-            AliasedExpression(Column("transaction_id"), alias="trace.transaction"),
-            id="trace.transaction",
-        ),
-        pytest.param(
-            "id",
-            AliasedExpression(Column("profile_id"), alias="id"),
-            id="id",
-        ),
-        pytest.param(
-            "timestamp",
-            AliasedExpression(Column("received"), alias="timestamp"),
-            id="timestamp",
-        ),
-        pytest.param(
-            "device.arch",
-            AliasedExpression(Column("architecture"), alias="device.arch"),
-            id="device.arch",
-        ),
-        pytest.param(
-            "device.classification",
-            AliasedExpression(Column("device_classification"), alias="device.classification"),
-            id="device.classification",
-        ),
-        pytest.param(
-            "device.locale",
-            AliasedExpression(Column("device_locale"), alias="device.locale"),
-            id="device.locale",
-        ),
-        pytest.param(
-            "device.manufacturer",
-            AliasedExpression(Column("device_manufacturer"), alias="device.manufacturer"),
-            id="device.manufacturer",
-        ),
-        pytest.param(
-            "device.model",
-            AliasedExpression(Column("device_model"), alias="device.model"),
-            id="device.model",
-        ),
-        pytest.param(
-            "os.build",
-            AliasedExpression(Column("device_os_build_number"), alias="os.build"),
-            id="os.build",
-        ),
-        pytest.param(
-            "os.name",
-            AliasedExpression(Column("device_os_name"), alias="os.name"),
-            id="os.name",
-        ),
-        pytest.param(
-            "os.version",
-            AliasedExpression(Column("device_os_version"), alias="os.version"),
-            id="os.version",
-        ),
-        pytest.param(
-            "profile.duration",
-            AliasedExpression(Column("duration_ns"), alias="profile.duration"),
-            id="profile.duration",
-        ),
-        pytest.param("environment", Column("environment"), id="environment"),
-        pytest.param(
-            "platform.name",
-            AliasedExpression(Column("platform"), alias="platform.name"),
-            id="platform.name",
-        ),
-        pytest.param(
-            "trace",
-            AliasedExpression(Column("trace_id"), alias="trace"),
-            id="trace",
-        ),
-        pytest.param(
-            "transaction",
-            AliasedExpression(Column("transaction_name"), alias="transaction"),
-            id="transaction",
-        ),
-        pytest.param(
-            "release",
-            AliasedExpression(Column("version_name"), alias="release"),
-            id="release",
-        ),
-        pytest.param("project_id", Column("project_id"), id="project_id"),
-        pytest.param(
-            "project",
-            AliasedExpression(Column("project_id"), alias="project"),
-            id="project",
-        ),
-        pytest.param(
-            "project.name",
-            AliasedExpression(Column("project_id"), alias="project.name"),
-            id="project.name",
-        ),
         pytest.param(
             "last_seen()",
             Function("max", parameters=[Column("received")], alias="last_seen"),
@@ -160,11 +80,6 @@ def params():
             id="count_unique(transaction)",
         ),
         pytest.param(
-            "count_unique(project)",
-            Function("uniq", parameters=[Column("project_id")], alias="count_unique_project"),
-            id="count_unique(project)",
-        ),
-        pytest.param(
             "percentile(profile.duration,0.25)",
             Function(
                 "quantile(0.25)",
@@ -173,42 +88,18 @@ def params():
             ),
             id="percentile(profile.duration,0.25)",
         ),
-        pytest.param(
-            "p50()",
-            Function(
-                "quantile(0.5)",
-                parameters=[Column("duration_ns")],
-                alias="p50",
-            ),
-            id="p50()",
-        ),
-        pytest.param(
-            "p75()",
-            Function(
-                "quantile(0.75)",
-                parameters=[Column("duration_ns")],
-                alias="p75",
-            ),
-            id="p75()",
-        ),
-        pytest.param(
-            "p95()",
-            Function(
-                "quantile(0.95)",
-                parameters=[Column("duration_ns")],
-                alias="p95",
-            ),
-            id="p95()",
-        ),
-        pytest.param(
-            "p99()",
-            Function(
-                "quantile(0.99)",
-                parameters=[Column("duration_ns")],
-                alias="p99",
-            ),
-            id="p99()",
-        ),
+        *[
+            pytest.param(
+                f"p{qt}()",
+                Function(
+                    f"quantile(0.{qt.rstrip('0')})",
+                    parameters=[Column("duration_ns")],
+                    alias=f"p{qt}",
+                ),
+                id=f"p{qt}()",
+            )
+            for qt in ["50", "75", "95", "99"]
+        ],
         pytest.param(
             "p100()",
             Function(
@@ -218,42 +109,18 @@ def params():
             ),
             id="p100()",
         ),
-        pytest.param(
-            "p50(profile.duration)",
-            Function(
-                "quantile(0.5)",
-                parameters=[Column("duration_ns")],
-                alias="p50_profile_duration",
-            ),
-            id="p50(profile.duration)",
-        ),
-        pytest.param(
-            "p75(profile.duration)",
-            Function(
-                "quantile(0.75)",
-                parameters=[Column("duration_ns")],
-                alias="p75_profile_duration",
-            ),
-            id="p75(profile.duration)",
-        ),
-        pytest.param(
-            "p95(profile.duration)",
-            Function(
-                "quantile(0.95)",
-                parameters=[Column("duration_ns")],
-                alias="p95_profile_duration",
-            ),
-            id="p95(profile.duration)",
-        ),
-        pytest.param(
-            "p99(profile.duration)",
-            Function(
-                "quantile(0.99)",
-                parameters=[Column("duration_ns")],
-                alias="p99_profile_duration",
-            ),
-            id="p99(profile.duration)",
-        ),
+        *[
+            pytest.param(
+                f"p{qt}(profile.duration)",
+                Function(
+                    f"quantile(0.{qt.rstrip('0')})",
+                    parameters=[Column("duration_ns")],
+                    alias=f"p{qt}_profile_duration",
+                ),
+                id=f"p{qt}(profile.duration)",
+            )
+            for qt in ["50", "75", "95", "99"]
+        ],
         pytest.param(
             "p100(profile.duration)",
             Function(
@@ -263,49 +130,410 @@ def params():
             ),
             id="p100(profile.duration)",
         ),
+        *[
+            pytest.param(
+                f"{fn}(profile.duration)",
+                Function(
+                    fn,
+                    parameters=[Column("duration_ns")],
+                    alias=f"{fn}_profile_duration",
+                ),
+                id=f"{fn}(profile.duration)",
+            )
+            for fn in ["min", "max", "avg", "sum"]
+        ],
+    ],
+)
+@pytest.mark.django_db
+def test_aggregate_resolution(params, field, resolved):
+    builder = ProfilesQueryBuilder(
+        dataset=Dataset.Profiles,
+        params=params,
+        selected_columns=[field],
+    )
+    assert builder.columns == [resolved]
+
+
+@pytest.mark.parametrize(
+    "field,message",
+    [
+        pytest.param("foo", "Unknown field: foo", id="foo"),
+        pytest.param("count(id)", "count: expected 0 argument\\(s\\)", id="count(id)"),
         pytest.param(
-            "min(profile.duration)",
-            Function(
-                "min",
-                parameters=[Column("duration_ns")],
-                alias="min_profile_duration",
-            ),
-            id="min(profile.duration)",
+            "count_unique(foo)",
+            "count_unique: column argument invalid: foo is not a valid column",
+            id="count_unique(foo)",
+        ),
+        *[
+            pytest.param(
+                f"p{qt}(foo)",
+                f"p{qt}: column argument invalid: foo is not a valid column",
+                id=f"p{qt}(foo)",
+            )
+            for qt in ["50", "75", "95", "99"]
+        ],
+        *[
+            pytest.param(
+                f"p{qt}(id)",
+                f"p{qt}: column argument invalid: id is not a numeric column",
+                id=f"p{qt}(id)",
+            )
+            for qt in ["50", "75", "95", "99"]
+        ],
+        pytest.param(
+            "percentile(foo,0.25)",
+            "percentile: column argument invalid: foo is not a valid column",
+            id="percentile(foo,0.25)",
         ),
         pytest.param(
-            "max(profile.duration)",
-            Function(
-                "max",
-                parameters=[Column("duration_ns")],
-                alias="max_profile_duration",
-            ),
-            id="max(profile.duration)",
+            "percentile(id,0.25)",
+            "percentile: column argument invalid: id is not a numeric column",
+            id="percentile(id,0.25)",
+        ),
+        *[
+            pytest.param(
+                f"{fn}(foo)",
+                f"{fn}: column argument invalid: foo is not a valid column",
+                id=f"{fn}(foo)",
+            )
+            for fn in ["min", "max", "avg", "sum"]
+        ],
+        *[
+            pytest.param(
+                f"{fn}(id)",
+                f"{fn}: column argument invalid: id is not a numeric column",
+                id=f"{fn}(id)",
+            )
+            for fn in ["min", "max", "avg", "sum"]
+        ],
+    ],
+)
+@pytest.mark.django_db
+def test_invalid_field_resolution(params, field, message):
+    with pytest.raises(InvalidSearchQuery, match=message):
+        ProfilesQueryBuilder(
+            dataset=Dataset.Profiles,
+            params=params,
+            selected_columns=[field],
+        )
+
+
+def is_null(column: str) -> Function:
+    return Function("isNull", parameters=[Column(column)])
+
+
+@pytest.mark.parametrize(
+    "query,conditions",
+    [
+        pytest.param(
+            "project.id:1", [Condition(Column("project_id"), Op.EQ, 1.0)], id="project.id:1"
         ),
         pytest.param(
-            "avg(profile.duration)",
-            Function(
-                "avg",
-                parameters=[Column("duration_ns")],
-                alias="avg_profile_duration",
-            ),
-            id="avg(profile.duration)",
+            "!project.id:1",
+            [Condition(Column("project_id"), Op.NEQ, 1.0)],
+            id="!project.id:1",
+            marks=pytest.mark.xfail(reason="this does the exact opposite"),
         ),
         pytest.param(
-            "sum(profile.duration)",
-            Function(
-                "sum",
-                parameters=[Column("duration_ns")],
-                alias="sum_profile_duration",
-            ),
-            id="sum(profile.duration)",
+            f"trace.transaction:{'a' * 32}",
+            [Condition(Column("transaction_id"), Op.EQ, "a" * 32)],
+            id=f"trace.transaction:{'a' * 32}",
+        ),
+        pytest.param(
+            f"!trace.transaction:{'a' * 32}",
+            [Condition(Column("transaction_id"), Op.NEQ, "a" * 32)],
+            id=f"!trace.transaction:{'a' * 32}",
+        ),
+        pytest.param(
+            f"id:{'a' * 32}",
+            [Condition(Column("profile_id"), Op.EQ, "a" * 32)],
+            id=f"id:{'a' * 32}",
+        ),
+        pytest.param(
+            f"!id:{'a' * 32}",
+            [Condition(Column("profile_id"), Op.NEQ, "a" * 32)],
+            id=f"!id:{'a' * 32}",
+        ),
+        pytest.param(
+            f"timestamp:{today.isoformat()}",
+            [
+                # filtering for a timestamp means we search for a window around it
+                Condition(Column("received"), Op.GTE, today - timedelta(minutes=5)),
+                Condition(Column("received"), Op.LT, today + timedelta(minutes=6)),
+            ],
+            id=f"timestamp:{today.isoformat()}",
+        ),
+        pytest.param(
+            f"!timestamp:{today.isoformat()}",
+            [],  # not sure what this should be yet
+            id=f"!timestamp:{today.isoformat()}",
+            marks=pytest.mark.xfail(reason="not sure why this fails parsing when negated"),
+        ),
+        pytest.param(
+            "device.arch:x86_64",
+            [Condition(Column("architecture"), Op.EQ, "x86_64")],
+            id="device.arch:x86_64",
+        ),
+        pytest.param(
+            "!device.arch:x86_64",
+            [Condition(Column("architecture"), Op.NEQ, "x86_64")],
+            id="!device.arch:x86_64",
+        ),
+        pytest.param(
+            "device.classification:high",
+            [Condition(Column("device_classification"), Op.EQ, "high")],
+            id="device.classification:high",
+        ),
+        pytest.param(
+            "!device.classification:high",
+            [Condition(Column("device_classification"), Op.NEQ, "high")],
+            id="!device.classification:high",
+        ),
+        pytest.param(
+            "device.locale:en_US",
+            [Condition(Column("device_locale"), Op.EQ, "en_US")],
+            id="device.locale:en_US",
+        ),
+        pytest.param(
+            "!device.locale:en_US",
+            [Condition(Column("device_locale"), Op.NEQ, "en_US")],
+            id="!device.locale:en_US",
+        ),
+        pytest.param(
+            "device.manufacturer:Apple",
+            [Condition(Column("device_manufacturer"), Op.EQ, "Apple")],
+            id="device.manufacturer:Apple",
+        ),
+        pytest.param(
+            "!device.manufacturer:Apple",
+            [Condition(Column("device_manufacturer"), Op.NEQ, "Apple")],
+            id="!device.manufacturer:Apple",
+        ),
+        pytest.param(
+            "device.model:iPhone14,2",
+            [Condition(Column("device_model"), Op.EQ, "iPhone14,2")],
+            id="device.model:iPhone14,2",
+        ),
+        pytest.param(
+            "!device.model:iPhone14,2",
+            [Condition(Column("device_model"), Op.NEQ, "iPhone14,2")],
+            id="!device.model:iPhone14,2",
+        ),
+        pytest.param(
+            "device.model:iPhone14,2",
+            [Condition(Column("device_model"), Op.EQ, "iPhone14,2")],
+            id="device.model:iPhone14,2",
+        ),
+        pytest.param(
+            "os.build:20G817",
+            [Condition(Column("device_os_build_number"), Op.EQ, "20G817")],
+            id="os.build:20G817",
+        ),
+        pytest.param(
+            "!os.build:20G817",
+            [
+                # os.build is a nullable column
+                Or(
+                    conditions=[
+                        Condition(
+                            is_null("device_os_build_number"),
+                            Op.EQ,
+                            1,
+                        ),
+                        Condition(Column("device_os_build_number"), Op.NEQ, "20G817"),
+                    ]
+                )
+            ],
+            id="!os.build:20G817",
+        ),
+        pytest.param(
+            "os.name:iOS",
+            [Condition(Column("device_os_name"), Op.EQ, "iOS")],
+            id="os.name:iOS",
+        ),
+        pytest.param(
+            "!os.name:iOS",
+            [Condition(Column("device_os_name"), Op.NEQ, "iOS")],
+            id="!os.name:iOS",
+        ),
+        pytest.param(
+            "os.version:15.2",
+            [Condition(Column("device_os_version"), Op.EQ, "15.2")],
+            id="os.version:15.2",
+        ),
+        pytest.param(
+            "!os.version:15.2",
+            [Condition(Column("device_os_version"), Op.NEQ, "15.2")],
+            id="!os.version:15.2",
+        ),
+        pytest.param(
+            "profile.duration:1",
+            # since 1 mean 1 millisecond, and converted to nanoseconds its 1e6
+            [Condition(Column("duration_ns"), Op.EQ, 1e6)],
+            id="profile.duration:1",
+        ),
+        pytest.param(
+            "!profile.duration:1",
+            # since 1 mean 1 millisecond, and converted to nanoseconds its 1e6
+            [Condition(Column("duration_ns"), Op.NEQ, 1e6)],
+            id="!profile.duration:1",
+            marks=pytest.mark.xfail(reason="this does the exact opposite"),
+        ),
+        pytest.param(
+            "profile.duration:>1",
+            # since 1 mean 1 millisecond, and converted to nanoseconds its 1e6
+            [Condition(Column("duration_ns"), Op.GT, 1e6)],
+            id="profile.duration:>1",
+        ),
+        pytest.param(
+            "profile.duration:<1",
+            # since 1 mean 1 millisecond, and converted to nanoseconds its 1e6
+            [Condition(Column("duration_ns"), Op.LT, 1e6)],
+            id="profile.duration:<1",
+        ),
+        pytest.param(
+            "profile.duration:1s",
+            # since 1s mean 1 second, and converted to nanoseconds its 1e9
+            [Condition(Column("duration_ns"), Op.EQ, 1e9)],
+            id="profile.duration:1s",
+        ),
+        pytest.param(
+            "environment:dev",
+            [Condition(Column("environment"), Op.EQ, "dev")],
+            id="environment:dev",
+        ),
+        pytest.param(
+            "!environment:dev",
+            [
+                # environment is a nullable column
+                Or(
+                    conditions=[
+                        Condition(is_null("environment"), Op.EQ, 1),
+                        Condition(Column("environment"), Op.NEQ, "dev"),
+                    ]
+                )
+            ],
+            id="!environment:dev",
+        ),
+        pytest.param(
+            "platform.name:cocoa",
+            [Condition(Column("platform"), Op.EQ, "cocoa")],
+            id="platform.name:cocoa",
+        ),
+        pytest.param(
+            "!platform.name:cocoa",
+            [Condition(Column("platform"), Op.NEQ, "cocoa")],
+            id="!platform.name:cocoa",
+        ),
+        pytest.param(
+            f"trace:{'a' * 32}",
+            [Condition(Column("trace_id"), Op.EQ, "a" * 32)],
+            id=f"trace:{'a' * 32}",
+        ),
+        pytest.param(
+            f"!trace:{'a' * 32}",
+            [Condition(Column("trace_id"), Op.NEQ, "a" * 32)],
+            id=f"!trace:{'a' * 32}",
+        ),
+        pytest.param(
+            "transaction:foo",
+            [Condition(Column("transaction_name"), Op.EQ, "foo")],
+            id="transaction:foo",
+        ),
+        pytest.param(
+            "!transaction:foo",
+            [Condition(Column("transaction_name"), Op.NEQ, "foo")],
+            id="!transaction:foo",
+        ),
+        pytest.param(
+            "release:foo",
+            [Condition(Column("version_name"), Op.EQ, "foo")],
+            id="release:foo",
+        ),
+        pytest.param(
+            "!release:foo",
+            [Condition(Column("version_name"), Op.NEQ, "foo")],
+            id="!release:foo",
+        ),
+        pytest.param(
+            "project_id:1",
+            [Condition(Column("project_id"), Op.EQ, 1)],
+            id="project_id:1",
+        ),
+        pytest.param(
+            "!project_id:1",
+            [Condition(Column("project_id"), Op.NEQ, 1)],
+            id="!project_id:1",
+            marks=pytest.mark.xfail(reason="this does the exact opposite"),
         ),
     ],
 )
 @pytest.mark.django_db
-def test_field_resolution(params, column, resolved):
+def test_where_resolution(params, query, conditions):
     builder = ProfilesQueryBuilder(
         dataset=Dataset.Profiles,
         params=params,
-        selected_columns=[column],
+        selected_columns=["count()"],
+        query=query,
     )
-    assert builder.columns == [resolved]
+
+    for condition in conditions:
+        assert condition in builder.where, condition
+
+
+@pytest.mark.parametrize("field", [pytest.param("project"), pytest.param("project.name")])
+@pytest.mark.django_db
+def test_where_resolution_project_slug(params, field):
+    project = params["project_objects"][0]
+
+    builder = ProfilesQueryBuilder(
+        dataset=Dataset.Profiles,
+        params=params,
+        selected_columns=["count()"],
+        query=f"{field}:{project.slug}",
+    )
+    assert Condition(Column("project_id"), Op.EQ, project.id), builder.condition
+
+    builder = ProfilesQueryBuilder(
+        dataset=Dataset.Profiles,
+        params=params,
+        selected_columns=["count()"],
+        query=f"!{field}:{project.slug}",
+    )
+    assert Condition(Column("project_id"), Op.NEQ, project.id), builder.condition
+
+
+@pytest.mark.parametrize(
+    "field,column",
+    [
+        pytest.param(column.alias, column.column, id=f"has:{column.alias}")
+        for column in PROFILE_COLUMNS
+    ],
+)
+@pytest.mark.django_db
+def test_has_resolution(params, field, column):
+    builder = ProfilesQueryBuilder(
+        dataset=Dataset.Profiles,
+        params=params,
+        selected_columns=["count()"],
+        query=f"has:{field}",
+    )
+    assert Condition(is_null(column), Op.NEQ, 1) in builder.where
+
+
+@pytest.mark.parametrize(
+    "field,column",
+    [
+        pytest.param(column.alias, column.column, id=f"!has:{column.alias}")
+        for column in PROFILE_COLUMNS
+    ],
+)
+@pytest.mark.django_db
+def test_not_has_resolution(params, field, column):
+    builder = ProfilesQueryBuilder(
+        dataset=Dataset.Profiles,
+        params=params,
+        selected_columns=["count()"],
+        query=f"!has:{field}",
+    )
+    assert Condition(is_null(column), Op.EQ, 1) in builder.where
