@@ -40,7 +40,6 @@ PII_CONFIG = """
 """
 
 
-<<<<<<< HEAD
 DEFAULT_ENVIRONMENT_RULE = {
     "sampleRate": 1,
     "type": "trace",
@@ -78,28 +77,6 @@ DEFAULT_IGNORE_HEALTHCHECKS_RULE = {
 }
 
 
-||||||| parent of e04f4b0895 (fixup tests!)
-=======
-DEFAULT_ENVIRONMENT_RULE = {
-    "sampleRate": 1,
-    "type": "trace",
-    "condition": {
-        "op": "or",
-        "inner": [
-            {
-                "op": "glob",
-                "name": "trace.environment",
-                "value": ["*dev*", "*test*"],
-                "options": {"ignoreCase": True},
-            }
-        ],
-    },
-    "active": True,
-    "id": 1001,
-}
-
-
->>>>>>> e04f4b0895 (fixup tests!)
 @pytest.mark.django_db
 @pytest.mark.parametrize("full", [False, True], ids=["slim_config", "full_config"])
 def test_get_project_config(default_project, insta_snapshot, django_cache, full):
@@ -311,22 +288,8 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
                         "type": "trace",
                         "active": True,
                         "condition": {"op": "and", "inner": []},
-<<<<<<< HEAD
-<<<<<<< HEAD
                         "id": 1000,
                     },
-||||||| parent of e04f4b0895 (fixup tests!)
-                        "id": 0,
-                    }
-=======
-                        "id": 0,
-||||||| parent of a4faf00b39 (feat(ds): Send boosted releases to relay as part of ProjectConfig [TET-497] (#40415))
-                        "id": 0,
-=======
-                        "id": 1000,
->>>>>>> a4faf00b39 (feat(ds): Send boosted releases to relay as part of ProjectConfig [TET-497] (#40415))
-                    },
->>>>>>> e04f4b0895 (fixup tests!)
                 ]
             },
         ),
@@ -353,22 +316,8 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
                         "type": "trace",
                         "active": True,
                         "condition": {"op": "and", "inner": []},
-<<<<<<< HEAD
-<<<<<<< HEAD
                         "id": 1000,
                     },
-||||||| parent of e04f4b0895 (fixup tests!)
-                        "id": 0,
-                    }
-=======
-                        "id": 0,
-||||||| parent of a4faf00b39 (feat(ds): Send boosted releases to relay as part of ProjectConfig [TET-497] (#40415))
-                        "id": 0,
-=======
-                        "id": 1000,
->>>>>>> a4faf00b39 (feat(ds): Send boosted releases to relay as part of ProjectConfig [TET-497] (#40415))
-                    },
->>>>>>> e04f4b0895 (fixup tests!)
                 ]
             },
         ),
@@ -391,22 +340,8 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
                         "type": "trace",
                         "active": True,
                         "condition": {"op": "and", "inner": []},
-<<<<<<< HEAD
-<<<<<<< HEAD
                         "id": 1000,
                     },
-||||||| parent of e04f4b0895 (fixup tests!)
-                        "id": 0,
-                    }
-=======
-                        "id": 0,
-||||||| parent of a4faf00b39 (feat(ds): Send boosted releases to relay as part of ProjectConfig [TET-497] (#40415))
-                        "id": 0,
-=======
-                        "id": 1000,
->>>>>>> a4faf00b39 (feat(ds): Send boosted releases to relay as part of ProjectConfig [TET-497] (#40415))
-                    },
->>>>>>> e04f4b0895 (fixup tests!)
                 ]
             },
         ),
@@ -427,33 +362,10 @@ def test_project_config_with_uniform_rules_based_on_plan_in_dynamic_sampling_rul
             "organizations:dynamic-sampling-deprecated": True,
         }
     ):
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
         with mock.patch(
             "sentry.dynamic_sampling.rules_generator.quotas.get_blended_sample_rate",
             return_value=0.1,
         ):
-||||||| parent of e04f4b0895 (fixup tests!)
-        with mock.patch(
-            "sentry.dynamic_sampling.utils.quotas.get_blended_sample_rate", return_value=0.1
-        ):
-=======
-        with patch("sentry.dynamic_sampling.quotas.get_blended_sample_rate", return_value=0.1):
->>>>>>> e04f4b0895 (fixup tests!)
-||||||| parent of 6d0e441256 (resolve conflicts)
-        with patch("sentry.dynamic_sampling.quotas.get_blended_sample_rate", return_value=0.1):
-=======
-        with mock.patch("sentry.dynamic_sampling.quotas.get_blended_sample_rate", return_value=0.1):
->>>>>>> 6d0e441256 (resolve conflicts)
-||||||| parent of a4faf00b39 (feat(ds): Send boosted releases to relay as part of ProjectConfig [TET-497] (#40415))
-        with mock.patch("sentry.dynamic_sampling.quotas.get_blended_sample_rate", return_value=0.1):
-=======
-        with mock.patch(
-            "sentry.dynamic_sampling.rules_generator.quotas.get_blended_sample_rate",
-            return_value=0.1,
-        ):
->>>>>>> a4faf00b39 (feat(ds): Send boosted releases to relay as part of ProjectConfig [TET-497] (#40415))
             cfg = get_project_config(default_project)
 
     cfg = cfg.to_dict()
@@ -593,6 +505,23 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                 },
                 "active": True,
                 "id": 1001,
+            },
+            {
+                "sampleRate": 0.02,
+                "type": "trace",
+                "condition": {
+                    "op": "or",
+                    "inner": [
+                        {
+                            "op": "glob",
+                            "name": "transaction.transaction",
+                            "value": ["*healthcheck*", "*healthy*"],
+                            "options": {"ignoreCase": True},
+                        }
+                    ],
+                },
+                "active": True,
+                "id": 1002,
             },
             {
                 "sampleRate": 0.1,

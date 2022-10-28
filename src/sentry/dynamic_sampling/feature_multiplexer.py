@@ -1,5 +1,4 @@
 from typing import TYPE_CHECKING, List, Optional, Set
-
 from sentry import features, options
 from sentry.dynamic_sampling.utils import DEFAULT_BIASES, Bias
 
