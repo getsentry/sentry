@@ -1121,10 +1121,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       <Access access={['alerts:write']}>
         {({hasAccess}) => {
           // check if superuser or if user is on the alert's team
-          const disabled =
-            loading ||
-            !(isActiveSuperuser() || hasAccess) ||
-            incompatibleCondition !== null;
+          const disabled = loading || !(isActiveSuperuser() || hasAccess);
 
           return (
             <Main fullWidth>
@@ -1143,7 +1140,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                 extraButton={
                   isSavedAlertRule(rule) ? (
                     <Confirm
-                      disabled={disabled}
+                      disabled={disabled || incompatibleCondition !== null}
                       priority="danger"
                       confirmText={t('Delete Rule')}
                       onConfirm={this.handleDeleteRule}
