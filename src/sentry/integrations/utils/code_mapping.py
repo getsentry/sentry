@@ -11,7 +11,7 @@ NO_TOP_DIR = "NO_TOP_DIR"
 
 
 class Repo(NamedTuple):
-    repo: str
+    name: str
     branch: str
 
 
@@ -134,7 +134,10 @@ class CodeMappingTreesHelper:
         return (
             [
                 CodeMapping(
-                    repo=Repo(repo_full_name, self.trees[repo_full_name]["default_branch"]),
+                    repo=Repo(
+                        name=repo_full_name,
+                        branch=self.trees[repo_full_name]["default_branch"],
+                    ),
                     stacktrace_root=frame_filename.root,  # sentry
                     # e.g. src/sentry/identity/oauth2.py -> src/sentry
                     source_path=matched_files[0].rsplit(frame_filename.dir_path)[0].rstrip("/"),
