@@ -416,6 +416,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     const {rule} = this.state;
     if (
       !rule ||
+      rule.actionMatch !== 'all' ||
       !this.props.organization.features.includes('issue-alert-incompatible-rules')
     ) {
       return;
