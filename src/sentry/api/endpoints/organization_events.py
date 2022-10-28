@@ -17,7 +17,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.search.events.fields import is_function
-from sentry.snuba import discover, metrics_enhanced_performance
+from sentry.snuba import discover, metrics_enhanced_performance, metrics_performance
 from sentry.snuba.referrer import Referrer
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -217,6 +217,12 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             )
         )
 
+        use_profiles = features.has(
+            "organizations:profiling",
+            organization=organization,
+            actor=request.user,
+        )
+
         performance_dry_run_mep = features.has(
             "organizations:performance-dry-run-mep", organization=organization, actor=request.user
         )
@@ -224,8 +230,9 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             "organizations:use-metrics-layer", organization=organization, actor=request.user
         )
 
-        dataset = self.get_dataset(request) if use_metrics else discover
-        metrics_enhanced = dataset != discover
+        use_custom_dataset = use_metrics or use_profiles
+        dataset = self.get_dataset(request) if use_custom_dataset else discover
+        metrics_enhanced = dataset in {metrics_performance, metrics_enhanced_performance}
 
         sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
         allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
