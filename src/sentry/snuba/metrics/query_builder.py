@@ -73,7 +73,7 @@ from sentry.snuba.metrics.utils import (
     DerivedMetricParseException,
     MetricDoesNotExistException,
     get_intervals,
-    requires_rhs_condition_resolution,
+    require_rhs_condition_resolution,
 )
 from sentry.snuba.sessions_v2 import finite_or_none
 from sentry.utils.dates import parse_stats_period, to_datetime
@@ -540,7 +540,7 @@ class SnubaQueryBuilder:
                             )[0],
                             op=condition.op,
                             rhs=resolve_tag_value(self._use_case_id, self._org_id, condition.rhs)
-                            if requires_rhs_condition_resolution(condition.lhs.op)
+                            if require_rhs_condition_resolution(condition.lhs.op)
                             else condition.rhs,
                         )
                     )
