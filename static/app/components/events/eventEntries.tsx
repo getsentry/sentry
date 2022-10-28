@@ -55,6 +55,9 @@ import findBestThread from './interfaces/threads/threadSelector/findBestThread';
 import getThreadException from './interfaces/threads/threadSelector/getThreadException';
 import EventEntry from './eventEntry';
 import EventTagsAndScreenshot from './eventTagsAndScreenshot';
+import HierarchyViewer from './hierarchyViewer';
+import {mockViewHierarchyData} from './mockViewHierarchyData';
+import {parseViewHierarchy} from './viewHierarchyParser';
 
 const MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH =
   /^(([\w\$]\.[\w\$]{1,2})|([\w\$]{2}\.[\w\$]\.[\w\$]))(\.|$)/g;
@@ -328,6 +331,7 @@ const EventEntries = ({
   const hasContext = !objectIsEmpty(event.user ?? {}) || !objectIsEmpty(event.contexts);
   const hasErrors = !objectIsEmpty(event.errors) || !!proGuardErrors.length;
 
+  console.log(parseViewHierarchy(mockViewHierarchyData));
   return (
     <div className={className} data-test-id={`event-entries-loading-${isLoading}`}>
       {hasErrors && !isLoading && (
@@ -405,6 +409,9 @@ const EventEntries = ({
           onDeleteAttachment={handleDeleteAttachment}
         />
       )}
+      {/* TODO: Messing with attachment stuff */}
+      <pre>{JSON.stringify(parseViewHierarchy(mockViewHierarchyData), null, 2)}</pre>
+      <HierarchyViewer tree={parseViewHierarchy(mockViewHierarchyData)} />
       {event.sdk && !objectIsEmpty(event.sdk) && (
         <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
       )}
