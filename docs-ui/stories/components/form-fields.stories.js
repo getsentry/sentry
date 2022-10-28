@@ -38,6 +38,12 @@ export const _TextField = () => (
         placeholder="This is placeholder text"
       />
       <TextField
+        name="textfieldrequired"
+        label="Required Text Field"
+        placeholder="Type text and then delete it"
+        required
+      />
+      <TextField
         name="simpletextfieldvaluedisabled"
         label="Disabled - Simple Text Field with Value"
         placeholder="Simple Text Field"
