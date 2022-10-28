@@ -1056,15 +1056,12 @@ enum ReplayFieldKey {
   DEVICE_MODEL = 'device.model',
   DURATION = 'duration',
   // ERROR_IDS = 'errorIds',
-  // FINISHED_AT = 'finishedAt',
   // LONGEST_TRANSACTION = 'longestTransaction',
   OS_NAME = 'os.name',
   OS_VERSION = 'os.version',
-  PROJECT_ID = 'projectId',
   RELEASES = 'releases',
-  // STARTED_AT = 'startedAt',
   // TRACE_IDS = 'traceIds',
-  // URLS = 'urls',
+  URLS = 'urls',
   USER_IP_ADDRESS = 'user.ipAddress',
   USER_NAME = 'user.name',
 }
@@ -1074,28 +1071,20 @@ export const REPLAY_FIELDS = [
   ReplayFieldKey.BROWSER_VERSION,
   ReplayFieldKey.COUNT_ERRORS,
   ReplayFieldKey.COUNT_SEGMENTS,
-  // ReplayFieldKey.countUrls,
   FieldKey.DEVICE_BRAND,
   FieldKey.DEVICE_FAMILY,
   ReplayFieldKey.DEVICE_MODEL,
   FieldKey.DEVICE_NAME,
   FieldKey.DIST,
   ReplayFieldKey.DURATION,
-  // ReplayFieldKey.ERROR_IDS,
-  // ReplayFieldKey.FINISHED_AT,
   FieldKey.ID,
-  // ReplayFieldKey.LONGEST_TRANSACTION,
   ReplayFieldKey.OS_NAME,
   ReplayFieldKey.OS_VERSION,
   FieldKey.PLATFORM,
-  ReplayFieldKey.PROJECT_ID,
   ReplayFieldKey.RELEASES,
   FieldKey.SDK_NAME,
   FieldKey.SDK_VERSION,
-  // ReplayFieldKey.STARTED_AT,
-  // ReplayFieldKey.TRACE_IDS,
-  // ReplayFieldKey.URLS,
-  FieldKey.USER_DISPLAY,
+  ReplayFieldKey.URLS,
   FieldKey.USER_EMAIL,
   FieldKey.USER_ID,
   ReplayFieldKey.USER_IP_ADDRESS,
@@ -1123,11 +1112,6 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.INTEGER,
   },
-  // [ReplayFieldKey.COUNT_URLS]: {
-  //   desc: t('Number of urls visited in the replay'),
-  //   kind: FieldKind.FIELD,
-  //   valueType: FieldValueType.INTEGER,
-  // },
   [ReplayFieldKey.DEVICE_MODEL]: {
     desc: t('Model of device'),
     kind: FieldKind.FIELD,
@@ -1138,21 +1122,6 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.DURATION,
   },
-  // [ReplayFieldKey.ERROR_IDS]: {
-  //   desc: t(''),
-  //   kind: FieldKind.FIELD,
-  //   valueType: FieldValueType.STRING, // Array?
-  // },
-  // [ReplayFieldKey.FINISHED_AT]: {
-  //   desc: t(''),
-  //   kind: FieldKind.FIELD,
-  //   valueType: FieldValueType.DATE,
-  // },
-  // [ReplayFieldKey.LONGEST_TRANSACTION]: {
-  //   desc: t(''),
-  //   kind: FieldKind.FIELD,
-  //   valueType: FieldValueType.INTEGER,
-  // },
   [ReplayFieldKey.OS_NAME]: {
     desc: t('Name of the Operating System'),
     kind: FieldKind.FIELD,
@@ -1163,31 +1132,16 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [ReplayFieldKey.PROJECT_ID]: {
-    desc: t('Project ID'),
+  [ReplayFieldKey.RELEASES]: {
+    desc: t('Releases this Replay spans across'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [ReplayFieldKey.RELEASES]: {
-    desc: t('Releases'), // TODO
+  [ReplayFieldKey.URLS]: {
+    desc: t('List of urls that were visited within the Replay'),
     kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING, // TODO: Array?
+    valueType: FieldValueType.STRING,
   },
-  // [ReplayFieldKey.STARTED_AT]: {
-  //   desc: t(''),
-  //   kind: FieldKind.FIELD,
-  //   valueType: FieldValueType.DATE,
-  // },
-  // [ReplayFieldKey.TRACE_IDS]: {
-  //   desc: t(''),
-  //   kind: FieldKind.FIELD,
-  //   valueType: FieldValueType.STRING, // Array?
-  // },
-  // [ReplayFieldKey.URLS]: {
-  //   desc: t(''),
-  //   kind: FieldKind.FIELD,
-  //   valueType: FieldValueType.STRING, // Array?
-  // },
   [ReplayFieldKey.USER_IP_ADDRESS]: {
     desc: t('IP Address of the user'),
     kind: FieldKind.FIELD,
