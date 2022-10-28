@@ -84,7 +84,7 @@ function OnboardingStatus({
     <Fragment>
       <Container
         role="button"
-        aria-label={tct('[label]', {label})}
+        aria-label={label}
         onClick={handleShowPanel}
         isActive={isActive}
       >
@@ -100,7 +100,7 @@ function OnboardingStatus({
         />
         {!collapsed && (
           <div>
-            <Heading>{tct('[label]', {label})}</Heading>
+            <Heading>{label}</Heading>
             <Remaining>
               {tct('[numberRemaining] Remaining [task]', {numberRemaining, task})}
               {pendingCompletionSeen && <PendingSeenIndicator />}
