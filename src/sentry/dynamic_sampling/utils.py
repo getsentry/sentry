@@ -15,6 +15,7 @@ from typing import Dict, List, Optional, TypedDict
 <<<<<<< HEAD
 BOOSTED_RELEASES_LIMIT = 10
 RELEASE_BOOST_FACTOR = 5
+HEALTH_CHECK_BOOST_FACTOR = 5
 
 
 class Bias(TypedDict):

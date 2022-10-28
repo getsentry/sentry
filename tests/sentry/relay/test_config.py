@@ -9,6 +9,7 @@ from sentry.dynamic_sampling.latest_release_booster import (
     BOOSTED_RELEASE_TIMEOUT,
     get_redis_client_for_ds,
 )
+from sentry.dynamic_sampling.utils import RESERVED_IDS, RuleType
 from sentry.models import ProjectKey
 from sentry.models.transaction_threshold import TransactionMetric
 from sentry.relay.config import get_project_config
@@ -56,6 +57,25 @@ DEFAULT_ENVIRONMENT_RULE = {
     },
     "active": True,
     "id": 1001,
+}
+
+DEFAULT_ENVIRONMENT_RULE = {
+    "sampleRate": 0.02,
+    "type": "trace",
+    "condition": {
+        "op": "or",
+        "inner": [
+            {
+                "op": "glob",
+                "name": "transaction.transaction",
+                # TODO (andrii): find final list
+                "value": ["*healthcheck*", "*healthy*"],
+                "options": {"ignoreCase": True},
+            }
+        ],
+    },
+    "active": True,
+    "id": RESERVED_IDS[RuleType.IGNORE_HEALTHCHECKS_RULE],
 }
 
 

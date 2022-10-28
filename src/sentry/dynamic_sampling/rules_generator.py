@@ -12,6 +12,7 @@ from sentry.dynamic_sampling.latest_release_booster import (
 )
 from sentry.dynamic_sampling.utils import (
     BOOSTED_RELEASES_LIMIT,
+    HEALTH_CHECK_BOOST_FACTOR,
     RELEASE_BOOST_FACTOR,
     RESERVED_IDS,
     BaseRule,
@@ -51,6 +52,27 @@ def generate_environment_rule() -> BaseRule:
         },
         "active": True,
         "id": RESERVED_IDS[RuleType.BOOST_ENVIRONMENTS_RULE],
+    }
+
+
+def generate_healthcheck_rule(sample_rate) -> BaseRule:
+    return {
+        "sampleRate": sample_rate / HEALTH_CHECK_BOOST_FACTOR,
+        "type": "trace",
+        "condition": {
+            "op": "or",
+            "inner": [
+                {
+                    "op": "glob",
+                    "name": "transaction.transaction",
+                    # TODO (andrii): find final list
+                    "value": ["*healthcheck*", "*healthy*"],
+                    "options": {"ignoreCase": True},
+                }
+            ],
+        },
+        "active": True,
+        "id": RESERVED_IDS[RuleType.IGNORE_HEALTHCHECKS_RULE],
     }
 
 
@@ -130,6 +152,10 @@ def generate_rules(project: Project) -> List[Union[BaseRule, ReleaseRule]]:
             # Environments boost
             if RuleType.BOOST_ENVIRONMENTS_RULE.value in enabled_biases:
                 rules.append(generate_environment_rule())
+
+            # Add Ignore health check rule
+            if RuleType.IGNORE_HEALTHCHECKS_RULE.value in enabled_biases:
+                rules.append(generate_healthcheck_rule(sample_rate))
         rules.append(generate_uniform_rule(sample_rate))
 
     return rules
