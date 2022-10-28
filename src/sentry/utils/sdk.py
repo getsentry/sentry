@@ -115,6 +115,8 @@ SAMPLED_TASKS = {
     "sentry.tasks.weekly_reports.schedule_organizations": settings.SAMPLED_DEFAULT_RATE,
     "sentry.tasks.weekly_reports.prepare_organization_report": 0.1,
     "sentry.profiles.task.process_profile": 0.01,
+    "sentry.tasks.derive_code_mappings.process_organizations": settings.SAMPLED_DEFAULT_RATE,
+    "sentry.tasks.derive_code_mappings.derive_code_mappings": settings.SAMPLED_DEFAULT_RATE,
 }
 
 if settings.ADDITIONAL_SAMPLED_TASKS:
