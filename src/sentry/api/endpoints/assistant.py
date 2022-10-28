@@ -88,14 +88,14 @@ class AssistantEndpoint(Endpoint):
         useful = data.get("useful")
 
         fields = {}
-        if status == Status.RESTART:
+        if status == Status.RESTART.value:
             AssistantActivity.objects.filter(user=request.user, guide_id=guide_id).delete()
         else:
             if useful is not None:
                 fields["useful"] = useful
-            if status == Status.VIEWED:
+            if status == Status.VIEWED.value:
                 fields["viewed_ts"] = timezone.now()
-            elif status == Status.DISMISSED:
+            elif status == Status.DISMISSED.value:
                 fields["dismissed_ts"] = timezone.now()
 
             try:
