@@ -324,6 +324,7 @@ class FormModel {
   }
 
   getError(id: string) {
+    return 'Error message';
     return this.errors.has(id) && this.errors.get(id);
   }
 
