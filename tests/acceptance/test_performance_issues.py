@@ -11,6 +11,12 @@ from sentry.models import Group
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.utils import json
 
+FEATURES = {
+    "projects:performance-suspect-spans-ingestion": True,
+    "organizations:performance-issues": True,
+    "organizations:performance-issues-ingest": True,
+}
+
 
 class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
@@ -62,13 +68,7 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase):
         mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc) - timedelta(minutes=5)
         event_data = self.create_sample_event(mock_now.return_value.timestamp())
 
-        with self.feature(
-            [
-                "projects:performance-suspect-spans-ingestion",
-                "organizations:performance-issues",
-                "organizations:performance-issues-ingest",
-            ]
-        ):
+        with self.feature(FEATURES):
             event = self.store_event(data=event_data, project_id=self.project.id)
 
             self.page.visit_issue(self.org.slug, event.groups[0].id)
@@ -81,14 +81,7 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase):
         mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc) - timedelta(minutes=5)
         event_data = self.create_sample_event(mock_now.return_value.timestamp())
 
-        with self.feature(
-            [
-                "projects:performance-suspect-spans-ingestion",
-                "organizations:performance-issues",
-                "organizations:performance-issues-ingest",
-            ]
-        ):
-
+        with self.feature(FEATURES):
             [self.store_event(data=event_data, project_id=self.project.id) for _ in range(3)]
 
             assert Group.objects.count() == 1
@@ -105,14 +98,7 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase):
                 for span in event_data["spans"]
             ]
 
-            with self.feature(
-                [
-                    "projects:performance-suspect-spans-ingestion",
-                    "organizations:performance-issues",
-                    "organizations:performance-issues-ingest",
-                ]
-            ):
-
+            with self.feature(FEATURES):
                 self.store_event(data=event_data, project_id=self.project.id)
 
         assert Group.objects.count() == 3
