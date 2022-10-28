@@ -373,7 +373,6 @@ def is_null(column: str) -> Function:
             # since 1 mean 1 millisecond, and converted to nanoseconds its 1e6
             [Condition(Column("duration_ns"), Op.NEQ, 1e6)],
             id="!profile.duration:1",
-            marks=pytest.mark.xfail(reason="this does the exact opposite"),
         ),
         pytest.param(
             "profile.duration:>1",
