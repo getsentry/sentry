@@ -12,7 +12,7 @@ from sentry import ratelimits as ratelimiter
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.decorators import email_verification_required, sudo_required
-from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
+from sentry.api.invite_helper import ApiInviteHelper, remove_invite_details_from_session
 from sentry.api.serializers import serialize
 from sentry.auth.authenticators.base import EnrollmentStatus, NewEnrollmentDisallowed
 from sentry.auth.authenticators.sms import SMSRateLimitExceeded
@@ -285,6 +285,6 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
 
         if invite_helper and invite_helper.valid_request:
             invite_helper.accept_invite()
-            remove_invite_cookie(request, response)
+            remove_invite_details_from_session(request)
 
         return response

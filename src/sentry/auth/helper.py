@@ -19,7 +19,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.views import View
 
 from sentry import audit_log, features
-from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
+from sentry.api.invite_helper import ApiInviteHelper, remove_invite_details_from_session
 from sentry.api.utils import generate_organization_url
 from sentry.auth.email import AmbiguousUserFromEmail, resolve_email_to_user
 from sentry.auth.exceptions import IdentityNotValid
@@ -406,7 +406,7 @@ class AuthIdentityHandler:
 
         # Always remove any pending invite cookies, pending invites will have been
         # accepted during the SSO flow.
-        remove_invite_cookie(self.request, response)
+        remove_invite_details_from_session(self.request)
 
         return response
 

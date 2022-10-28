@@ -11,7 +11,7 @@ from django.views.decorators.cache import never_cache
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
+from sentry.api.invite_helper import ApiInviteHelper, remove_invite_details_from_session
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.http import get_server_hostname
@@ -182,7 +182,7 @@ class AuthLoginView(BaseView):
             if invite_helper and invite_helper.valid_request:
                 invite_helper.accept_invite()
                 response = self.redirect_to_org(request)
-                remove_invite_cookie(request, response)
+                remove_invite_details_from_session(request)
 
                 return response
 

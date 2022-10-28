@@ -62,4 +62,11 @@ class ApiTokensEndpoint(Endpoint):
 
         ApiToken.objects.filter(user=request.user, token=token, application__isnull=True).delete()
 
+        capture_security_activity(
+            account=request.user,
+            type="api-token-deleted",
+            actor=request.user,
+            ip_address=request.META["REMOTE_ADDR"],
+        )
+
         return Response(status=204)
