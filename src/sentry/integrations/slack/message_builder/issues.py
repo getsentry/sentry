@@ -106,7 +106,7 @@ def build_tag_fields(
 
 
 def get_option_groups(group: Group) -> Sequence[Mapping[str, Any]]:
-    members = user_service.get_from_group(group).distinct()
+    members = user_service.get_from_group(group)
     teams = group.project.teams.all()
 
     option_groups = []

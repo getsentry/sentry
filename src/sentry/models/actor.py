@@ -23,7 +23,24 @@ def actor_type_to_class(type: int) -> Type[Union["Team", "User"]]:
     return ACTOR_TYPE_TO_CLASS[type]
 
 
-def fetch_actor_obj_by_class_and_id(cls, id: int) -> Type[Union["Team", "User"]]:
+def fetch_actor_by_actor_id(cls, actor_id: int) -> Type[Union["Team", "User"]]:
+    from sentry.models import Team, User
+
+    def team_fetcher(actor_id: int):
+        return Team.objects.get(actor_id=actor_id)
+
+    def user_fetcher(actor_id: int):
+        from sentry.services.hybrid_cloud.user import user_service
+
+        user = user_service.get_by_actor_id(actor_id)
+        if user is None:
+            raise User.DoesNotExist
+        return user
+
+    return {Team: team_fetcher, User: user_fetcher}[cls](actor_id)
+
+
+def fetch_actor_by_id(cls, id: int) -> Type[Union["Team", "User"]]:
     from sentry.models import Team, User
 
     def team_fetcher(id: int):
@@ -32,7 +49,7 @@ def fetch_actor_obj_by_class_and_id(cls, id: int) -> Type[Union["Team", "User"]]
     def user_fetcher(id: int):
         from sentry.services.hybrid_cloud.user import user_service
 
-        user = user_service.get_user(id, is_active=None)
+        user = user_service.get_user(id)
         if user is None:
             raise User.DoesNotExist
         return user
@@ -65,7 +82,7 @@ class Actor(Model):
 
     def resolve(self):
         # Returns User/Team model object
-        return fetch_actor_obj_by_class_and_id(self.type, self.id)
+        return fetch_actor_by_actor_id(actor_type_to_class(self.type), self.id)
 
     def get_actor_tuple(self):
         # Returns ActorTuple version of the Actor model.
@@ -126,7 +143,7 @@ class ActorTuple(namedtuple("Actor", "id type")):
             raise serializers.ValidationError("Unable to resolve actor identifier")
 
     def resolve(self):
-        return fetch_actor_obj_by_class_and_id(self.type, self.id)
+        return fetch_actor_by_id(self.type, self.id)
 
     def resolve_to_actor(self):
         return self.resolve().actor

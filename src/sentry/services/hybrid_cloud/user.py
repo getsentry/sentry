@@ -38,7 +38,22 @@ class UserService(InterfaceWithLifecycle):
         """
         pass
 
+    def get_by_actor_id(self, actor_id: int) -> Optional[User]:
+        """
+        This method returns a User object given an actor ID
+        :param actor_id:
+        An actor ID to fetch
+        :return:
+        """
+        pass
+
     def get_user(self, user_id: int, is_active=True) -> Optional[User]:
+        """
+        This method returns a User object given an ID
+        :param user_id:
+        A user ID to fetch
+        :return:
+        """
         users = self.get_many([user_id], is_active=is_active)
         if len(users) > 0:
             return users[0]
@@ -65,6 +80,9 @@ class DatabaseBackedUserService(UserService):
         if is_active is not None:
             query = query.filter(is_active=is_active)
         return list(query)
+
+    def get_by_actor_id(self, actor_id: int) -> Optional[User]:
+        return User.objects.get(actor_id=actor_id)
 
     def close(self):
         pass
