@@ -470,7 +470,7 @@ class SnubaTagStorage(TagStorage):
     ):
         tag = f"tags[{key}]"
         project_ids = list(map(lambda group: group.project_id, groups))
-        group_ids = list(map(lambda group: str(group.id), groups))
+        group_ids = list(map(lambda group: group.id, groups))
 
         filters = {"project_id": project_ids}
 
@@ -483,7 +483,7 @@ class SnubaTagStorage(TagStorage):
         ]
 
         if len(groups) > 1:
-            conditions.append([["hasAny", ["group_ids", group_ids]], "=", 1])
+            conditions.append([["hasAny", ["group_ids", ["array", group_ids]]], "=", 1])
         else:
             conditions.append([["has", ["group_ids", groups[0].id]], "=", 1])
 

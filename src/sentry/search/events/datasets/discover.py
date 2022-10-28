@@ -1613,37 +1613,43 @@ class DiscoverDatasetConfig(DatasetConfig):
             else:
                 raise InvalidSearchQuery("performance.issue_ids should be a number")
 
+        lhs = self.builder.column(name)
+
+        if search_filter.value.raw_value == "":
+            return Condition(
+                Function("notEmpty", [lhs]),
+                Op.EQ if operator == "!=" else Op.NEQ,
+                1,
+            )
+
         transaction_limit = 4
 
         groups: list[Group] = Group.objects.filter(id__in=value_list_as_ints)
         transaction_tags: list[GroupTagValue] = tagstore.get_perf_group_list_tag_and_values(
-            groups, [], "transaction", transaction_limit
+            groups, [], "transaction", transaction_limit, False
         )
         transaction_names: list[str] = list(map(lambda tag: tag.value, transaction_tags))
 
-        perform_optimization = True if len(transaction_names) < transaction_limit - 1 else False
+        # perform_optimization = False
+        perform_optimization = (
+            True
+            if len(transaction_names) < transaction_limit - 1 or len(transaction_names) == 0
+            else False
+        )
         transaction_name_conditon = Condition(
             self.builder.column("transaction"), Op.IN, transaction_names
         )
 
         if search_filter.is_in_filter:
             group_id_condition = Condition(
-                Function("hasAny", [self.builder.column(name), value_list_as_ints]),
+                Function("hasAny", [lhs, value_list_as_ints]),
                 Op.EQ if operator == "IN" else Op.NEQ,
                 1,
             )
             if perform_optimization:
                 return And([group_id_condition, transaction_name_conditon])
             return group_id_condition
-
-        elif search_filter.value.raw_value == "":
-            return Condition(
-                Function("notEmpty", [self.builder.column(name)]),
-                Op.EQ if operator == "!=" else Op.NEQ,
-                1,
-            )
         else:
-            lhs = self.builder.column(name)
             group_id_condition = Condition(lhs, Op(search_filter.operator), value_list_as_ints[0])
 
             if perform_optimization:
