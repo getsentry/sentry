@@ -157,7 +157,7 @@ def get_installation(organization: Organization) -> Tuple[Integration, Organizat
         return None, None
 
     organization_integration = organization_integration.first()
-    return integration.get_installation(organization), organization_integration
+    return integration.get_installation(organization.id), organization_integration
 
 
 def set_project_codemappings(
