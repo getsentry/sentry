@@ -9,6 +9,7 @@ import MonitorCheckIns from './monitorCheckIns';
 import MonitorHeader from './monitorHeader';
 import MonitorIssues from './monitorIssues';
 import MonitorStats from './monitorStats';
+import MonitorOnboarding from './onboarding';
 import {Monitor} from './types';
 
 type Props = AsyncView['props'] &
@@ -48,6 +49,8 @@ class MonitorDetails extends AsyncView<Props, State> {
           orgId={this.props.params.orgId}
           onUpdate={this.onUpdate}
         />
+
+        {!monitor.lastCheckIn && <MonitorOnboarding monitor={monitor} />}
 
         <MonitorStats monitor={monitor} />
 
