@@ -87,7 +87,8 @@ export const MetricsCardinalityProvider = (props: {
                                 ...sumsResult.tableData,
                               }
                             : null,
-                          !!compatabilityResult.error && !!sumsResult.error
+                          !!compatabilityResult.error && !!sumsResult.error,
+                          props.organization
                         ),
                 }}
               >
@@ -110,7 +111,8 @@ export const useMetricsCardinalityContext = _useContext;
  */
 function getMetricsOutcome(
   dataCounts: MergedMetricsData | null,
-  hasOtherFallbackCondition: boolean
+  hasOtherFallbackCondition: boolean,
+  organization: Organization
 ) {
   const fallbackOutcome: MetricDataSwitcherOutcome = {
     forceTransactionsOnly: true,
@@ -118,6 +120,11 @@ function getMetricsOutcome(
   const successOutcome: MetricDataSwitcherOutcome = {
     forceTransactionsOnly: false,
   };
+
+  if (organization.features.includes('organizations:performance-mep-bannerless-ui')) {
+    return successOutcome;
+  }
+
   if (!dataCounts) {
     return fallbackOutcome;
   }
