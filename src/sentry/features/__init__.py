@@ -208,6 +208,7 @@ default_manager.add("organizations:relay", OrganizationFeature)
 default_manager.add("organizations:sso-basic", OrganizationFeature)
 default_manager.add("organizations:sso-saml2", OrganizationFeature)
 default_manager.add("organizations:team-insights", OrganizationFeature)
+default_manager.add("organizations:derive-code-mappings", OrganizationFeature)
 
 # Project scoped features
 default_manager.add("projects:alert-filters", ProjectFeature)
