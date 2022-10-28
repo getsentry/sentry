@@ -14,11 +14,9 @@ const Spinner = styled('div')`
   animation: ${spin} 0.4s linear infinite;
   width: 18px;
   height: 18px;
-  border-radius: 18px;
-  border-top: 2px solid ${p => p.theme.border};
-  border-right: 2px solid ${p => p.theme.border};
-  border-bottom: 2px solid ${p => p.theme.border};
-  border-left: 2px solid ${p => p.theme.purple300};
+  border-radius: 50%;
+  border: 2px solid ${p => p.theme.border};
+  border-left-color: ${p => p.theme.purple300};
   margin-left: auto;
 `;
 
