@@ -1,4 +1,5 @@
 from copy import deepcopy
+from enum import Enum
 
 from django.db import IntegrityError
 from django.http import HttpResponse
@@ -13,6 +14,12 @@ from sentry.assistant import manager
 from sentry.models import AssistantActivity
 
 VALID_STATUSES = frozenset(("viewed", "dismissed", "restart"))
+
+
+class Status(Enum):
+    VIEWED = "viewed"
+    DISMISSED = "dismissed"
+    RESTART = "restart"
 
 
 class AssistantSerializer(serializers.Serializer):
@@ -51,7 +58,7 @@ class AssistantEndpoint(Endpoint):
     permission_classes = (IsAuthenticated,)
 
     def get(self, request: Request) -> Response:
-        """Return all the guides with a 'seen' attribute if it has been 'viewed' o 'dismissed'."""
+        """Return all the guides with a 'seen' attribute if it has been 'viewed' or 'dismissed'."""
         guide_map = deepcopy(manager.all())
         seen_ids = set(
             AssistantActivity.objects.filter(user=request.user).values_list("guide_id", flat=True)
@@ -81,14 +88,14 @@ class AssistantEndpoint(Endpoint):
         useful = data.get("useful")
 
         fields = {}
-        if status == "restart":
+        if status == Status.RESTART:
             AssistantActivity.objects.filter(user=request.user, guide_id=guide_id).delete()
         else:
             if useful is not None:
                 fields["useful"] = useful
-            if status == "viewed":
+            if status == Status.VIEWED:
                 fields["viewed_ts"] = timezone.now()
-            elif status == "dismissed":
+            elif status == Status.DISMISSED:
                 fields["dismissed_ts"] = timezone.now()
 
             try:
