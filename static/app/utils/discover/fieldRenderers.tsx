@@ -72,7 +72,7 @@ export type RenderFunctionBaggage = {
 };
 
 type RenderFunctionOptions = {
-  disableOnClick?: boolean;
+  enableOnClick?: boolean;
 };
 
 type FieldFormatterRenderFunction = (
@@ -765,6 +765,8 @@ export const spanOperationRelativeBreakdownRenderer = (
   {location, organization, eventView}: RenderFunctionBaggage,
   options?: RenderFunctionOptions
 ): React.ReactNode => {
+  const {enableOnClick = true} = options ?? {};
+
   const sumOfSpanTime = SPAN_OP_BREAKDOWN_FIELDS.reduce(
     (prev, curr) => (isDurationValue(data, curr) ? prev + data[curr] : prev),
     0
@@ -824,10 +826,10 @@ export const spanOperationRelativeBreakdownRenderer = (
               <RectangleRelativeOpsBreakdown
                 style={{
                   backgroundColor: pickBarColor(operationName),
-                  cursor: options?.disableOnClick ? 'default' : 'pointer',
+                  cursor: enableOnClick ? 'pointer' : 'default',
                 }}
                 onClick={event => {
-                  if (options?.disableOnClick) {
+                  if (!enableOnClick) {
                     return;
                   }
                   event.stopPropagation();

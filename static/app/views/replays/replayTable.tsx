@@ -257,7 +257,7 @@ function ReplayTableRow({
                   location,
                 },
                 {
-                  disableOnClick: true,
+                  enableOnClick: false,
                 }
               )}
             </SpanOperationBreakdown>
