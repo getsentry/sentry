@@ -140,20 +140,18 @@ function SearchBar(props: SearchBarProps) {
         return Promise.resolve([]);
       }
 
-      return fetchTagValues(
+      return fetchTagValues({
         api,
-        organization.slug,
-        tag.key,
-        query,
-        projectIdStrings,
+        orgSlug: organization.slug,
+        tagKey: tag.key,
+        search: query,
+        projectIds: projectIdStrings,
         endpointParams,
-        {
-          // allows searching for tags on transactions as well
-          includeTransactions: true,
-          // allows searching for tags on sessions as well
-          includeSessions: includeSessionTagsValues,
-        }
-      ).then(
+        // allows searching for tags on transactions as well
+        includeTransactions: true,
+        // allows searching for tags on sessions as well
+        includeSessions: includeSessionTagsValues,
+      }).then(
         results =>
           flatten(results.filter(({name}) => defined(name)).map(({name}) => name)),
         () => {

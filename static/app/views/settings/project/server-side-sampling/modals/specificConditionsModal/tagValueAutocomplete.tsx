@@ -50,16 +50,15 @@ function TagValueAutocomplete({
     }
 
     return resolve(
-      await fetchTagValues(
+      await fetchTagValues({
         api,
         orgSlug,
         tagKey,
-        inputValue,
-        [projectId],
-        null,
-        {includeTransactions: true},
-        '-count'
-      )
+        search: inputValue,
+        projectIds: [projectId],
+        includeTransactions: true,
+        sort: '-count',
+      })
     );
   }, 250);
 
