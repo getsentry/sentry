@@ -94,3 +94,17 @@ export const mockViewHierarchyData = `<UIWindow: 0x7f893fc0ebd0; frame = (0 0; 3
    |    |    |    |    | <_UIVisualEffectSubview: 0x7f893fe4f910; frame = (0 0; 375 44); autoresize = W+H; userInteractionEnabled = NO; layer = <CALayer: 0x600003a62dc0>>
    |    |    | <_UIToolbarContentView: 0x7f893fe25590; frame = (0 0; 375 44); autoresize = W+H; layer = <CALayer: 0x600003a62da0>>
    |    |    |    | <_UIButtonBarStackView: 0x7f893fe0e8b0; frame = (0 0; 375 44); layer = <CALayer: 0x600003a63020>>`;
+
+export const mockViewHierarchyData2 = `<UIWindow: 0x7f893fc0ebd0; frame = (0 0; 375 667); gestureRecognizers = <NSArray: 0x600003478330>; layer = <UIWindowLayer: 0x600003a5a420>>
+   | <UILayoutContainerView: 0x7f893fe280a0; frame = (0 0; 375 667); autoresize = W+H; gestureRecognizers = <NSArray: 0x600003440060>; layer = <CALayer: 0x600003a47760>>
+   |    | <UINavigationTransitionView: 0x7f893fe2a720; frame = (0 0; 375 667); clipsToBounds = YES; autoresize = W+H; layer = <CALayer: 0x600003a47ec0>>
+   |    |    | <UIViewControllerWrapperView: 0x7f893fe32830; frame = (0 0; 375 667); autoresize = W+H; layer = <CALayer: 0x600003a4ffa0>>
+   |    |    |    | <UIView: 0x7f893fe59060; frame = (-112 0; 375 667); userInteractionEnabled = NO; animations = { position=<CASpringAnimation: 0x600003a94b60>; }; layer = <CALayer: 0x600003a69500>>
+   |    |    |    |    | <UIView: 0x7f893fe2f3c0; frame = (0 0; 375 667); autoresize = W+H; layer = <CALayer: 0x600003a0de00>>
+   |    |    |    |    |    | <UIStackView: 0x7f893fd132a0; frame = (8 73; 359 585.5); opaque = NO; autoresize = RM+BM; layer = <CATransformLayer: 0x600003a4a7e0>>
+   |    |    |    |    |    |    | <UIStackView: 0x7f893fe0e400; frame = (0 0; 359 363); opaque = NO; autoresize = RM+BM; layer = <CATransformLayer: 0x600003a0dde0>>
+   |    |    |    |    |    |    |    | <UIStackView: 0x7f893fe24320; frame = (0 0; 163.5 330); opaque = NO; autoresize = RM+BM; layer = <CATransformLayer: 0x600003a0ddc0>>
+   |    |    |    |    |    |    |    |    | <UIButton: 0x7f893fe269a0; frame = (0 0; 163.5 30); opaque = NO; autoresize = RM+BM; layer = <CALayer: 0x600003a0dd80>>
+   |    |    |    |    |    |    |    |    |    | <UIButtonLabel: 0x7f893fc451f0; frame = (24.5 6; 114.5 18); text = 'add Breadcrumb'; opaque = NO; userInteractionEnabled = NO; layer = <_UILabelLayer: 0x600001926cb0>>
+   |    |    |    |    |    |    |    |    | <UIButton: 0x7f893fe31170; frame = (0 30; 163.5 30); opaque = NO; autoresize = RM+BM; layer = <CALayer: 0x600003a0dcc0>>
+   |    |    |    |    |    |    |    |    |    | <UIButtonLabel: 0x7f893fc44ef0; frame = (51 6; 62 18); text = 'Message'; opaque = NO; userInteractionEnabled = NO; layer = <_UILabelLayer: 0x60000192fe80>>`;

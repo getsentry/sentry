@@ -56,7 +56,7 @@ import getThreadException from './interfaces/threads/threadSelector/getThreadExc
 import EventEntry from './eventEntry';
 import EventTagsAndScreenshot from './eventTagsAndScreenshot';
 import HierarchyViewer from './hierarchyViewer';
-import {mockViewHierarchyData} from './mockViewHierarchyData';
+import {mockViewHierarchyData, mockViewHierarchyData2} from './mockViewHierarchyData';
 import {parseViewHierarchy} from './viewHierarchyParser';
 
 const MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH =
@@ -331,7 +331,7 @@ const EventEntries = ({
   const hasContext = !objectIsEmpty(event.user ?? {}) || !objectIsEmpty(event.contexts);
   const hasErrors = !objectIsEmpty(event.errors) || !!proGuardErrors.length;
 
-  console.log(parseViewHierarchy(mockViewHierarchyData));
+  console.log(parseViewHierarchy(mockViewHierarchyData2));
   return (
     <div className={className} data-test-id={`event-entries-loading-${isLoading}`}>
       {hasErrors && !isLoading && (

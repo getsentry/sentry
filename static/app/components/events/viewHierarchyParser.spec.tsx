@@ -16,6 +16,33 @@ describe('parser', () => {
     });
   });
 
+  it('multiple layer nesting', () => {
+    const testString = `<A: A;>
+   | <B: first;>
+   |    | <C: first;>
+   |    |    | <D: first;>`;
+    const output = parseViewHierarchy(testString);
+    expect(output).toEqual({
+      title: 'A: A',
+      children: [
+        {
+          title: 'B: first',
+          children: [
+            {
+              title: 'C: first',
+              children: [
+                {
+                  title: 'D: first',
+                  children: [],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+  });
+
   it('properly does siblings', () => {
     const testString = `<A: A;>
    | <B: first;>
@@ -36,15 +63,33 @@ describe('parser', () => {
     });
   });
 
-  it('does the one nested thing', () => {
-    const testString = `<UIWindow: 0x7f893fc0ebd0; frame = (0 0; 375 667); gestureRecognizers = <NSArray: 0x600003478330>; layer = <UIWindowLayer: 0x600003a5a420>>
-   | <UILayoutContainerView: 0x7f893fe280a0; frame = (0 0; 375 667); autoresize = W+H; gestureRecognizers = <NSArray: 0x600003440060>; layer = <CALayer: 0x600003a47760>>
-   |    | <UILayoutContainerView: 0x7f893fe29999; frame = (0 0; 375 667); autoresize = W+H; gestureRecognizers = <NSArray: 0x600003440060>; layer = <CALayer: 0x600003a47760>>
-   | <UILayoutB: 0x7f893fe280a0; frame = (0 0; 375 667); autoresize = W+H; gestureRecognizers = <NSArray: 0x600003440060>; layer = <CALayer: 0x600003a47760>>`;
+  it.only('does the other sibling nested thing', () => {
+    const testString = `<A: first;>
+   | <B: first;>
+   |    | <C: first;>
+   | <B: second;>`;
     const output = parseViewHierarchy(testString);
+    expect(output).toEqual({
+      title: 'A: A',
+      children: [
+        {
+          title: 'B: first',
+          children: [
+            {
+              title: 'C: first',
+              children: [],
+            },
+          ],
+        },
+        {
+          title: 'B: second',
+          children: [],
+        },
+      ],
+    });
   });
 
-  it('does the thing', () => {
+  it.skip('does the thing', () => {
     const testString = `<UIWindow: 0x7f893fc0ebd0; frame = (0 0; 375 667); gestureRecognizers = <NSArray: 0x600003478330>; layer = <UIWindowLayer: 0x600003a5a420>>
    | <UILayoutContainerView: 0x7f893fe280a0; frame = (0 0; 375 667); autoresize = W+H; gestureRecognizers = <NSArray: 0x600003440060>; layer = <CALayer: 0x600003a47760>>
    | <UIViewControllerWrapperView: 0x7f893fe32830; frame = (0 0; 375 667); autoresize = W+H; layer = <CALayer: 0x600003a4ffa0>>

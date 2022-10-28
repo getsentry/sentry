@@ -1,6 +1,3 @@
-import get from 'lodash/get';
-import set from 'lodash/set';
-
 type Node = {
   children: Node[];
   title: string;
@@ -13,7 +10,6 @@ export const parseViewHierarchy = (rawViewHierarchy: string): Node => {
   const DEPTH_CHARACTER = /\|/g;
   const NODE_REGEX = /<(\w*:[^;]*).*>/;
 
-  const nodeIndices: string[] = [];
   let currDepth = 0;
 
   const prevNodes: Node[] = [];
@@ -25,47 +21,48 @@ export const parseViewHierarchy = (rawViewHierarchy: string): Node => {
       const nodeTitle = line.match(NODE_REGEX)![1];
       const nodeDepth = line.match(DEPTH_CHARACTER)?.length ?? 0;
 
-      // if (nodeDepth === currDepth) {
-      //   nodeIndices.pop();
-      //   nodeIndices.push(nodeTitle);
-      // } else if (nodeDepth > currDepth) {
-      //   nodeIndices.push(nodeTitle);
-      //   currDepth = currDepth + 1;
-      // } else if (nodeDepth < currDepth) {
-      //   nodeIndices.pop();
-      //   nodeIndices.pop();
-      //   nodeIndices.push(nodeTitle);
-      //   currDepth = currDepth - 1;
-      // }
-
-      // console.log(JSON.stringify(viewHierarchyNodes, null, 2) + '\n');
-      // set(viewHierarchyNodes, nodeIndices, {
-      //   ...get(viewHierarchyNodes, nodeIndices),
-      //   title: nodeTitle,
-      //   children: [],
-      //   meta: {},
-      // });
       const nextNode = {
         title: nodeTitle,
         children: [],
         // meta: {},
       };
-      console.log(nodeTitle, currDepth, nodeDepth);
+      console.log(
+        `title[${nodeTitle}]`,
+        `current line depth[${nodeDepth}]`,
+        `overall depth[${currDepth}]`
+      );
+      console.log(prevNodes.map(node => node.title));
       if (!currNode) {
+        // Set the first node
         viewHierarchyNodes = nextNode;
         currNode = viewHierarchyNodes;
-        currDepth = currDepth + 1;
       } else if (nodeDepth > currDepth) {
+        // If we go down a level, add this node
         currNode.children.push(nextNode);
+
+        // The current node goes into the stack
+        console.log('push A');
         prevNodes.push(currNode);
+
+        // We follow the node and update our depth
         currNode = nextNode;
         currDepth = currDepth + 1;
       } else if (nodeDepth < currDepth) {
+        // We need to go up one level, pop the last node to add to
         currNode = prevNodes.pop();
-        currNode?.children.push(nextNode);
         currDepth = currDepth - 1;
+
+        // Add the new node
+        currNode?.children.push(nextNode);
+        currNode = nextNode;
       } else if (nodeDepth === currDepth) {
+        // Not advancing any levels
+        console.log('equal');
+        const prevNode = prevNodes.pop();
+        currNode = prevNode;
         currNode.children.push(nextNode);
+        currNode = nextNode;
+        prevNodes.push(prevNode);
       }
       console.log(JSON.stringify(viewHierarchyNodes, null, 2) + '\n');
       console.log('**********');
