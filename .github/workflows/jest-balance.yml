@@ -1,5 +1,8 @@
 name: jest balancer
-on: [workflow_dispatch]
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * SUN'
 jobs:
   jest-balance:
     # Buckle up, this may take a while
@@ -7,6 +10,9 @@ jobs:
     # Make sure this matches the runner that runs frontend tests
     runs-on: ubuntu-20.04
     steps:
+      - shell: bash
+        run: |
+          [[ $(("( $(date +%s) - $(date +%s --date=20223010) ) / 86400 % 14")) -ne 0 ]] && exit 1
       - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e # v2
         name: Checkout sentry
 
