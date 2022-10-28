@@ -221,198 +221,180 @@ describe('TraceView', () => {
       expect(await screen.findAllByText('group me')).toHaveLength(2);
     });
 
-    //   it('should allow expanding of embedded transactions', async () => {
-    //     const {organization, project, location} = initializeData({
-    //       features: ['unified-span-view'],
-    //     });
+    // TODO: This test can be converted later to use the TransactionEventBuilder instead
+    it('should allow expanding of embedded transactions', async () => {
+      const {organization, project, location} = initializeData({
+        features: ['unified-span-view'],
+      });
 
-    //     const event = generateSampleEvent();
-    //     generateSampleSpan(
-    //       'parent span',
-    //       'db',
-    //       'b000000000000000',
-    //       'a000000000000000',
-    //       event
-    //     );
-    //     const waterfallModel = new WaterfallModel(event);
+      const event = generateSampleEvent();
+      generateSampleSpan(
+        'parent span',
+        'db',
+        'b000000000000000',
+        'a000000000000000',
+        event
+      );
+      const waterfallModel = new WaterfallModel(event);
 
-    //     const eventsTraceMock = MockApiClient.addMockResponse({
-    //       url: `/organizations/${organization.slug}/events-trace/${event.contexts.trace?.trace_id}/`,
-    //       method: 'GET',
-    //       statusCode: 200,
-    //       body: [
-    //         event,
-    //         {
-    //           errors: [],
-    //           event_id: '998d7e2c304c45729545e4434e2967cb',
-    //           generation: 1,
-    //           parent_event_id: '2b658a829a21496b87fd1f14a61abf65',
-    //           parent_span_id: 'b000000000000000',
-    //           project_id: project.id,
-    //           project_slug: project.slug,
-    //           span_id: '8596e2795f88471d',
-    //           transaction:
-    //             '/api/0/organizations/{organization_slug}/events/{project_slug}:{event_id}/',
-    //           'transaction.duration': 159,
-    //           'transaction.op': 'http.server',
-    //         },
-    //       ],
-    //     });
+      const eventsTraceMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-trace/${event.contexts.trace?.trace_id}/`,
+        method: 'GET',
+        statusCode: 200,
+        body: [
+          event,
+          {
+            errors: [],
+            event_id: '998d7e2c304c45729545e4434e2967cb',
+            generation: 1,
+            parent_event_id: '2b658a829a21496b87fd1f14a61abf65',
+            parent_span_id: 'b000000000000000',
+            project_id: project.id,
+            project_slug: project.slug,
+            span_id: '8596e2795f88471d',
+            transaction:
+              '/api/0/organizations/{organization_slug}/events/{project_slug}:{event_id}/',
+            'transaction.duration': 159,
+            'transaction.op': 'http.server',
+          },
+        ],
+      });
 
-    //     const eventsTraceLightMock = MockApiClient.addMockResponse({
-    //       url: `/organizations/${organization.slug}/events-trace-light/${event.contexts.trace?.trace_id}/`,
-    //       method: 'GET',
-    //       statusCode: 200,
-    //       body: [
-    //         event,
-    //         {
-    //           errors: [],
-    //           event_id: '998d7e2c304c45729545e4434e2967cb',
-    //           generation: 1,
-    //           parent_event_id: '2b658a829a21496b87fd1f14a61abf65',
-    //           parent_span_id: 'b000000000000000',
-    //           project_id: project.id,
-    //           project_slug: project.slug,
-    //           span_id: '8596e2795f88471d',
-    //           transaction:
-    //             '/api/0/organizations/{organization_slug}/events/{project_slug}:{event_id}/',
-    //           'transaction.duration': 159,
-    //           'transaction.op': 'http.server',
-    //         },
-    //       ],
-    //     });
+      const eventsTraceLightMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-trace-light/${event.contexts.trace?.trace_id}/`,
+        method: 'GET',
+        statusCode: 200,
+        body: [
+          event,
+          {
+            errors: [],
+            event_id: '998d7e2c304c45729545e4434e2967cb',
+            generation: 1,
+            parent_event_id: '2b658a829a21496b87fd1f14a61abf65',
+            parent_span_id: 'b000000000000000',
+            project_id: project.id,
+            project_slug: project.slug,
+            span_id: '8596e2795f88471d',
+            transaction:
+              '/api/0/organizations/{organization_slug}/events/{project_slug}:{event_id}/',
+            'transaction.duration': 159,
+            'transaction.op': 'http.server',
+          },
+        ],
+      });
 
-    //     const embeddedEvent = {
-    //       ...generateSampleEvent(),
-    //       id: '998d7e2c304c45729545e4434e2967cb',
-    //       eventID: '998d7e2c304c45729545e4434e2967cb',
-    //     };
-    //     embeddedEvent.contexts.trace!.span_id = 'a111111111111111';
+      const embeddedEvent = {
+        ...generateSampleEvent(),
+        id: '998d7e2c304c45729545e4434e2967cb',
+        eventID: '998d7e2c304c45729545e4434e2967cb',
+      };
+      embeddedEvent.contexts.trace!.span_id = 'a111111111111111';
 
-    //     const embeddedSpan = generateSampleSpan(
-    //       'i am embedded :)',
-    //       'test',
-    //       'b111111111111111',
-    //       'b000000000000000',
-    //       embeddedEvent
-    //     );
-    //     embeddedSpan.trace_id = '8cbbc19c0f54447ab702f00263262726';
+      const embeddedSpan = generateSampleSpan(
+        'i am embedded :)',
+        'test',
+        'b111111111111111',
+        'b000000000000000',
+        embeddedEvent
+      );
+      embeddedSpan.trace_id = '8cbbc19c0f54447ab702f00263262726';
 
-    //     const fetchEmbeddedTransactionMock = MockApiClient.addMockResponse({
-    //       url: `/organizations/${organization.slug}/events/${project.slug}:998d7e2c304c45729545e4434e2967cb/`,
-    //       method: 'GET',
-    //       statusCode: 200,
-    //       body: embeddedEvent,
-    //     });
+      const fetchEmbeddedTransactionMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/${project.slug}:998d7e2c304c45729545e4434e2967cb/`,
+        method: 'GET',
+        statusCode: 200,
+        body: embeddedEvent,
+      });
 
-    //     render(
-    //       <QuickTraceQuery event={event} location={location} orgSlug={organization.slug}>
-    //         {results => (
-    //           <QuickTraceContext.Provider value={results}>
-    //             <TraceView organization={organization} waterfallModel={waterfallModel} />
-    //           </QuickTraceContext.Provider>
-    //         )}
-    //       </QuickTraceQuery>
-    //     );
+      render(
+        <QuickTraceQuery event={event} location={location} orgSlug={organization.slug}>
+          {results => (
+            <QuickTraceContext.Provider value={results}>
+              <TraceView organization={organization} waterfallModel={waterfallModel} />
+            </QuickTraceContext.Provider>
+          )}
+        </QuickTraceQuery>
+      );
 
-    //     expect(eventsTraceMock).toHaveBeenCalled();
-    //     expect(eventsTraceLightMock).toHaveBeenCalled();
+      expect(eventsTraceMock).toHaveBeenCalled();
+      expect(eventsTraceLightMock).toHaveBeenCalled();
 
-    //     const embeddedTransactionBadge = await screen.findByTestId(
-    //       'embedded-transaction-badge'
-    //     );
-    //     expect(embeddedTransactionBadge).toBeInTheDocument();
-    //     userEvent.click(embeddedTransactionBadge);
-    //     expect(fetchEmbeddedTransactionMock).toHaveBeenCalled();
-    //     expect(await screen.findByText(/i am embedded :\)/i)).toBeInTheDocument();
-    //   });
+      const embeddedTransactionBadge = await screen.findByTestId(
+        'embedded-transaction-badge'
+      );
+      expect(embeddedTransactionBadge).toBeInTheDocument();
+      userEvent.click(embeddedTransactionBadge);
+      expect(fetchEmbeddedTransactionMock).toHaveBeenCalled();
+      expect(await screen.findByText(/i am embedded :\)/i)).toBeInTheDocument();
+    });
 
-    //   it('should correctly render sibling autogroup text when op and/or description is not provided', async () => {
-    //     const data = initializeData({});
+    it('should correctly render sibling autogroup text when op and/or description is not provided', async () => {
+      const data = initializeData({});
+      const builder1 = new TransactionEventBuilder();
 
-    //     const event1 = generateSampleEvent();
-    //     generateSampleSpan(
-    //       'group me',
-    //       null,
-    //       'b000000000000000',
-    //       'a000000000000000',
-    //       event1
-    //     );
-    //     generateSampleSpan(
-    //       'group me',
-    //       null,
-    //       'c000000000000000',
-    //       'a000000000000000',
-    //       event1
-    //     );
-    //     generateSampleSpan(
-    //       'group me',
-    //       null,
-    //       'd000000000000000',
-    //       'a000000000000000',
-    //       event1
-    //     );
-    //     generateSampleSpan(
-    //       'group me',
-    //       null,
-    //       'e000000000000000',
-    //       'a000000000000000',
-    //       event1
-    //     );
-    //     generateSampleSpan(
-    //       'group me',
-    //       null,
-    //       'f000000000000000',
-    //       'a000000000000000',
-    //       event1
-    //     );
+      // Autogroup without span ops
+      builder1.addSpan(
+        new MockSpan({
+          startTimestamp: 50,
+          endTimestamp: 100,
+          description: 'group me',
+        }),
+        5
+      );
 
-    //     const {rerender} = render(
-    //       <TraceView
-    //         organization={data.organization}
-    //         waterfallModel={new WaterfallModel(event1)}
-    //       />
-    //     );
-    //     expect(await screen.findByTestId('span-row-2')).toHaveTextContent(
-    //       /Autogrouped — group me/
-    //     );
+      const {rerender} = render(
+        <TraceView
+          organization={data.organization}
+          waterfallModel={new WaterfallModel(builder1.getEvent())}
+        />
+      );
+      expect(await screen.findByTestId('span-row-2')).toHaveTextContent(
+        /Autogrouped — group me/
+      );
 
-    //     const event2 = generateSampleEvent();
-    //     generateSampleSpan(null, 'http', 'b000000000000000', 'a000000000000000', event2);
-    //     generateSampleSpan(null, 'http', 'c000000000000000', 'a000000000000000', event2);
-    //     generateSampleSpan(null, 'http', 'd000000000000000', 'a000000000000000', event2);
-    //     generateSampleSpan(null, 'http', 'e000000000000000', 'a000000000000000', event2);
-    //     generateSampleSpan(null, 'http', 'f000000000000000', 'a000000000000000', event2);
+      // Autogroup without span descriptions
+      const builder2 = new TransactionEventBuilder();
+      builder2.addSpan(
+        new MockSpan({
+          startTimestamp: 100,
+          endTimestamp: 200,
+          op: 'http',
+        }),
+        5
+      );
 
-    //     rerender(
-    //       <TraceView
-    //         organization={data.organization}
-    //         waterfallModel={new WaterfallModel(event2)}
-    //       />
-    //     );
+      rerender(
+        <TraceView
+          organization={data.organization}
+          waterfallModel={new WaterfallModel(builder2.getEvent())}
+        />
+      );
 
-    //     expect(await screen.findByTestId('span-row-2')).toHaveTextContent(
-    //       /Autogrouped — http/
-    //     );
+      expect(await screen.findByTestId('span-row-2')).toHaveTextContent(
+        /Autogrouped — http/
+      );
 
-    //     const event3 = generateSampleEvent();
-    //     generateSampleSpan(null, null, 'b000000000000000', 'a000000000000000', event3);
-    //     generateSampleSpan(null, null, 'c000000000000000', 'a000000000000000', event3);
-    //     generateSampleSpan(null, null, 'd000000000000000', 'a000000000000000', event3);
-    //     generateSampleSpan(null, null, 'e000000000000000', 'a000000000000000', event3);
-    //     generateSampleSpan(null, null, 'f000000000000000', 'a000000000000000', event3);
+      // Autogroup without span ops or descriptions
+      const builder3 = new TransactionEventBuilder();
+      builder2.addSpan(
+        new MockSpan({
+          startTimestamp: 200,
+          endTimestamp: 300,
+        }),
+        5
+      );
 
-    //     rerender(
-    //       <TraceView
-    //         organization={data.organization}
-    //         waterfallModel={new WaterfallModel(event3)}
-    //       />
-    //     );
+      rerender(
+        <TraceView
+          organization={data.organization}
+          waterfallModel={new WaterfallModel(builder3.getEvent())}
+        />
+      );
 
-    //     expect(await screen.findByTestId('span-row-2')).toHaveTextContent(
-    //       /Autogrouped — siblings/
-    //     );
-    //   });
+      expect(await screen.findByTestId('span-row-2')).toHaveTextContent(
+        /Autogrouped — siblings/
+      );
+    });
 
     //   it('should automatically expand a sibling span group and select a span if it is anchored', async () => {
     //     const data = initializeData({});
