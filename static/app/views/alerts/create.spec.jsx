@@ -509,5 +509,23 @@ describe('ProjectAlertsCreate', function () {
       });
       expect(screen.getByText('No preview available')).toBeInTheDocument();
     });
+
+    it('empty preview table', async () => {
+      const mock = MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/rules/preview',
+        method: 'POST',
+        body: [],
+        headers: {
+          'X-Hits': 0,
+        },
+      });
+      createWrapper({organization});
+      await waitFor(() => {
+        expect(mock).toHaveBeenCalled();
+      });
+      expect(
+        screen.getByText("We couldn't find any issues that would've triggered your rule")
+      ).toBeInTheDocument();
+    });
   });
 });
