@@ -1,6 +1,8 @@
 import RadioGroup, {RadioGroupProps} from 'sentry/components/forms/controls/radioGroup';
+import FormField from 'sentry/components/forms/formField';
 
-import InputField, {InputFieldProps, OnEvent} from './inputField';
+// XXX(epurkhiser): This is wrong, it should not be inheriting these props
+import {InputFieldProps, OnEvent} from './inputField';
 
 export interface RadioFieldProps extends Omit<InputFieldProps, 'type'> {
   choices?: RadioGroupProps<any>['choices'];
@@ -19,9 +21,8 @@ function handleChange(
 
 function RadioField(props: RadioFieldProps) {
   return (
-    <InputField
-      {...props}
-      field={({id, onChange, onBlur, value, disabled, orientInline, ...fieldProps}) => (
+    <FormField {...props}>
+      {({id, onChange, onBlur, value, disabled, orientInline, ...fieldProps}) => (
         // XXX: The label must be present on the role="radiogroup" element. The
         // `htmlFor` attribute on the Field label does NOT link to the group.
         <RadioGroup
@@ -34,7 +35,7 @@ function RadioField(props: RadioFieldProps) {
           onChange={(v, e) => handleChange(v, onChange, onBlur, e)}
         />
       )}
-    />
+    </FormField>
   );
 }
 
