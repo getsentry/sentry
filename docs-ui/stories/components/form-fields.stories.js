@@ -51,13 +51,6 @@ export const _TextField = () => (
         disabled
       />
       <TextField
-        name="textfieldflexiblecontrol"
-        label="Text Field With Flexible Control State Size"
-        placeholder="Type text and then delete it"
-        required
-        flexibleControlStateSize
-      />
-      <TextField
         name="textfielddisabled"
         label="Text field with disabled reason"
         placeholder="I am disabled"
