@@ -11,7 +11,7 @@ import Button from 'sentry/components/button';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/field';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t} from 'sentry/locale';
@@ -153,7 +153,7 @@ export default class ProjectServiceHookDetails extends AsyncView<Props, State> {
               <code>HMAC(SHA256, [secret], [payload])</code>. You should always verify
               this signature before trusting the information provided in the webhook.
             </PanelAlert>
-            <Field
+            <FieldGroup
               label={t('Secret')}
               flexibleControlStateSize
               inline={false}
@@ -165,13 +165,13 @@ export default class ProjectServiceHookDetails extends AsyncView<Props, State> {
                   fixed: 'a dynamic secret value',
                 })}
               </TextCopyInput>
-            </Field>
+            </FieldGroup>
           </PanelBody>
         </Panel>
         <Panel>
           <PanelHeader>{t('Delete Hook')}</PanelHeader>
           <PanelBody>
-            <Field
+            <FieldGroup
               label={t('Delete Hook')}
               help={t('Removing this hook is immediate and permanent.')}
             >
@@ -180,7 +180,7 @@ export default class ProjectServiceHookDetails extends AsyncView<Props, State> {
                   {t('Delete Hook')}
                 </Button>
               </div>
-            </Field>
+            </FieldGroup>
           </PanelBody>
         </Panel>
       </Fragment>

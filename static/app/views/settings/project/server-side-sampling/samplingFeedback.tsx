@@ -5,7 +5,7 @@ import CheckboxFancy from 'sentry/components/checkboxFancy/checkboxFancy';
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import {TextField} from 'sentry/components/forms';
 import Textarea from 'sentry/components/forms/controls/textarea';
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/field';
 import {RadioGroupRating} from 'sentry/components/radioGroupRating';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -162,7 +162,7 @@ export function SamplingFeedback() {
             <Fragment>
               <Header>{t('A few questions (1/2)')}</Header>
               <Body showSelfHostedMessage={false}>
-                <Field
+                <FieldGroup
                   label={<Label>{t('Why do you want to use Dynamic Sampling?')}</Label>}
                   stacked
                   inline={false}
@@ -203,8 +203,8 @@ export function SamplingFeedback() {
                       />
                     }
                   />
-                </Field>
-                <Field
+                </FieldGroup>
+                <FieldGroup
                   label={<Label>{t('What else you would like to sample by?')}</Label>}
                   stacked
                   inline={false}
@@ -242,7 +242,7 @@ export function SamplingFeedback() {
                       />
                     }
                   />
-                </Field>
+                </FieldGroup>
               </Body>
               <Footer onNext={() => onFieldChange('step', 1)} />
             </Fragment>
@@ -313,7 +313,7 @@ export function SamplingFeedback() {
                   onFieldChange('feelingIfFeatureNotAvailable', Number(value))
                 }
               />
-              <Field
+              <FieldGroup
                 label={<Label>{t('Anything else you would like to share?')}</Label>}
                 inline={false}
                 required={false}
@@ -330,7 +330,7 @@ export function SamplingFeedback() {
                   }
                   placeholder={t('Additional feedback')}
                 />
-              </Field>
+              </FieldGroup>
             </Body>
             <Footer
               onBack={() => onFieldChange('step', 0)}

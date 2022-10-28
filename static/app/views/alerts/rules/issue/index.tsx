@@ -21,7 +21,7 @@ import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/field';
 import FieldHelp from 'sentry/components/forms/field/fieldHelp';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import Form, {FormProps} from 'sentry/components/forms/form';
@@ -1477,7 +1477,7 @@ const SettingsContainer = styled('div')`
   gap: ${space(1)};
 `;
 
-const StyledField = styled(Field)<{extraMargin?: boolean}>`
+const StyledField = styled(FieldGroup)<{extraMargin?: boolean}>`
   :last-child {
     padding-bottom: ${space(2)};
   }

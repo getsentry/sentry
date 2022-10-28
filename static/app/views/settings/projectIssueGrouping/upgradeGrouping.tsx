@@ -6,7 +6,7 @@ import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/field';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -140,7 +140,7 @@ function UpgradeGrouping({
     <Panel id={upgradeGroupingId}>
       <PanelHeader>{t('Upgrade Grouping')}</PanelHeader>
       <PanelBody>
-        <Field
+        <FieldGroup
           label={t('Upgrade Grouping Strategy')}
           help={tct(
             'If the project uses an old grouping strategy an update is possible.[linebreak]Doing so will cause new events to group differently.',
@@ -161,7 +161,7 @@ function UpgradeGrouping({
               {t('Upgrade Grouping Strategy')}
             </Button>
           </div>
-        </Field>
+        </FieldGroup>
       </PanelBody>
     </Panel>
   );

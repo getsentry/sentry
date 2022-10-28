@@ -22,7 +22,7 @@ export type FieldProps = FieldGroupProps;
  *
  * This is unconnected to any Form state
  */
-function Field({
+function FieldGroup({
   className,
   disabled = false,
   inline = true,
@@ -131,4 +131,4 @@ function Field({
   );
 }
 
-export default Field;
+export default FieldGroup;

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
 import Button from 'sentry/components/button';
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/field';
 import Input from 'sentry/components/input';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -67,8 +67,8 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
 
     return (
       <Fragment>
-        <FieldGroup hasTwoColumns={values.method === MethodType.REPLACE}>
-          <Field
+        <FieldContainer hasTwoColumns={values.method === MethodType.REPLACE}>
+          <FieldGroup
             data-test-id="method-field"
             label={t('Method')}
             help={t('What to do')}
@@ -87,9 +87,9 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
               value={method}
               onChange={value => onChange('method', value?.value)}
             />
-          </Field>
+          </FieldGroup>
           {values.method === MethodType.REPLACE && (
-            <Field
+            <FieldGroup
               data-test-id="placeholder-field"
               label={t('Custom Placeholder (Optional)')}
               help={t('It will replace the default placeholder [Filtered]')}
@@ -105,11 +105,11 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
                 onChange={this.handleChange('placeholder')}
                 value={values.placeholder}
               />
-            </Field>
+            </FieldGroup>
           )}
-        </FieldGroup>
-        <FieldGroup hasTwoColumns={values.type === RuleType.PATTERN}>
-          <Field
+        </FieldContainer>
+        <FieldContainer hasTwoColumns={values.type === RuleType.PATTERN}>
+          <FieldGroup
             data-test-id="type-field"
             label={t('Data Type')}
             help={t(
@@ -130,9 +130,9 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
               value={type}
               onChange={value => onChange('type', value?.value)}
             />
-          </Field>
+          </FieldGroup>
           {values.type === RuleType.PATTERN && (
-            <Field
+            <FieldGroup
               data-test-id="regex-field"
               label={t('Regex matches')}
               help={t('Custom regular expression (see documentation)')}
@@ -151,9 +151,9 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
                 value={values.pattern}
                 onBlur={onValidate('pattern')}
               />
-            </Field>
+            </FieldGroup>
           )}
-        </FieldGroup>
+        </FieldContainer>
         <ToggleWrapper>
           {displayEventId ? (
             <Toggle priority="link" onClick={this.handleToggleEventId}>
@@ -187,7 +187,7 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
 
 export default Form;
 
-const FieldGroup = styled('div')<{hasTwoColumns: boolean}>`
+const FieldContainer = styled('div')<{hasTwoColumns: boolean}>`
   display: grid;
   margin-bottom: ${space(2)};
   @media (min-width: ${p => p.theme.breakpoints.small}) {

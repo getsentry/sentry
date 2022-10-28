@@ -9,7 +9,7 @@ import {
 } from 'sentry/actionCreators/organizations';
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/field';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {Panel, PanelHeader} from 'sentry/components/panels';
@@ -110,7 +110,7 @@ function OrganizationGeneralSettings(props: Props) {
         {access.has('org:admin') && !organization.isDefault && (
           <Panel>
             <PanelHeader>{t('Remove Organization')}</PanelHeader>
-            <Field
+            <FieldGroup
               label={t('Remove Organization')}
               help={t(
                 'Removing this organization will delete all data including projects and their associated events.'
@@ -126,7 +126,7 @@ function OrganizationGeneralSettings(props: Props) {
                   <Button priority="danger">{t('Remove Organization')}</Button>
                 </Confirm>
               </div>
-            </Field>
+            </FieldGroup>
           </Panel>
         )}
       </div>

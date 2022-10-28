@@ -2,7 +2,7 @@ import {Component, Fragment} from 'react';
 import {Observer} from 'mobx-react';
 
 import Access from 'sentry/components/acl/access';
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/field';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import TextField from 'sentry/components/forms/fields/textField';
@@ -136,11 +136,11 @@ class MonitorForm extends Component<Props> {
 
               <PanelBody>
                 {monitor && (
-                  <Field label={t('ID')}>
+                  <FieldGroup label={t('ID')}>
                     <div className="controls">
                       <TextCopyInput>{monitor.id}</TextCopyInput>
                     </div>
-                  </Field>
+                  </FieldGroup>
                 )}
                 <SelectField
                   name="project"

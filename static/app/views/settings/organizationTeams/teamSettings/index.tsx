@@ -5,7 +5,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {removeTeam, updateTeamSuccess} from 'sentry/actionCreators/teams';
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/field';
 import Form, {FormProps} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import {Panel, PanelHeader} from 'sentry/components/panels';
@@ -74,7 +74,7 @@ class TeamSettings extends AsyncView<Props, State> {
 
         <Panel>
           <PanelHeader>{t('Remove Team')}</PanelHeader>
-          <Field
+          <FieldGroup
             help={t(
               "This may affect team members' access to projects and associated alert delivery."
             )}
@@ -97,7 +97,7 @@ class TeamSettings extends AsyncView<Props, State> {
                 </Button>
               </Confirm>
             </div>
-          </Field>
+          </FieldGroup>
         </Panel>
       </Fragment>
     );

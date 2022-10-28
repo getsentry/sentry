@@ -8,7 +8,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/field';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NarrowLayout from 'sentry/components/narrowLayout';
@@ -308,7 +308,7 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
           )}
         </p>
 
-        <Field label={t('Organization')} inline={false} stacked required>
+        <FieldGroup label={t('Organization')} inline={false} stacked required>
           <SelectControl
             onChange={this.onSelectOrg}
             value={selectedOrgSlug}
@@ -319,7 +319,7 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
               ValueContainer: this.customValueContainer,
             }}
           />
-        </Field>
+        </FieldGroup>
         {this.renderBottom()}
       </NarrowLayout>
     );

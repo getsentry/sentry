@@ -15,7 +15,7 @@ import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import CircleIndicator from 'sentry/components/circleIndicator';
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/field';
 import Form, {FormProps} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import FormModel from 'sentry/components/forms/model';
@@ -80,9 +80,9 @@ const getFields = ({
         </CodeContainer>
       ),
       () => (
-        <Field key="secret" label={t('Authenticator secret')}>
+        <FieldGroup key="secret" label={t('Authenticator secret')}>
           <TextCopyInput>{authenticator.secret ?? ''}</TextCopyInput>
-        </Field>
+        </FieldGroup>
       ),
       ...form,
       () => (

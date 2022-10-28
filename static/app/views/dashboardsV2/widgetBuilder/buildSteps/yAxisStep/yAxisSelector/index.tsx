@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import ButtonBar from 'sentry/components/buttonBar';
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/field';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {TagCollection} from 'sentry/types';
@@ -87,7 +87,7 @@ export function YAxisSelector({
       aggregates.length === 3);
 
   return (
-    <Field inline={false} flexibleControlStateSize error={fieldError} stacked>
+    <FieldGroup inline={false} flexibleControlStateSize error={fieldError} stacked>
       {aggregates.map((fieldValue, i) => (
         <QueryFieldWrapper key={`${fieldValue}:${i}`}>
           <QueryField
@@ -120,7 +120,7 @@ export function YAxisSelector({
           )}
         </Actions>
       )}
-    </Field>
+    </FieldGroup>
   );
 }
 

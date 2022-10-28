@@ -14,7 +14,7 @@ import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import DateTime from 'sentry/components/dateTime';
 import NotFound from 'sentry/components/errors/notFound';
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/field';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
@@ -319,7 +319,7 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
           <Panel>
             <PanelHeader>{t('Authentication')}</PanelHeader>
             <PanelBody>
-              <Field
+              <FieldGroup
                 alignRight
                 flexibleControlStateSize
                 label={t('Reset two-factor authentication')}
@@ -346,7 +346,7 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
                     </Button>
                   </Confirm>
                 </Tooltip>
-              </Field>
+              </FieldGroup>
             </PanelBody>
           </Panel>
         )}
