@@ -133,6 +133,13 @@ function getTestsForGroup(
     throw new Error('All tests should be accounted for');
   }
 
+  // We need to ensure that everything from jest --listTests is accounted for.
+  for (const test of allTests) {
+    if (!tests.has(test)) {
+      throw new Error(`Test ${test} is not accounted for`);
+    }
+  }
+
   if (!groups[nodeIndex]) {
     throw new Error(`No tests found for node ${nodeIndex}`);
   }
