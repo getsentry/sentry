@@ -605,6 +605,7 @@ CELERY_IMPORTS = (
     "sentry.release_health.tasks",
     "sentry.utils.suspect_resolutions.get_suspect_resolutions",
     "sentry.utils.suspect_resolutions_releases.get_suspect_resolutions_releases",
+    "sentry.tasks.derive_code_mappings",
 )
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
@@ -828,6 +829,11 @@ CELERYBEAT_SCHEDULE = {
         "schedule": timedelta(minutes=20),
         "options": {"expires": 20 * 60},
     },
+    "derive-code-mappings": {
+        "task": "sentry.tasks.derive_code_mappings.process_organizations",
+        "schedule": timedelta(minutes=1),
+        "options": {"expires": 3600},
+    },
 }
 
 BGTASKS = {
@@ -962,6 +968,8 @@ SENTRY_FEATURES = {
     "organizations:active-release-notifications-enable": False,
     # Enables tagging javascript errors from the browser console.
     "organizations:javascript-console-error-tag": False,
+    # Enables automatically deriving of code mappings
+    "organizations:derive-code-mappings": False,
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
     # Use metrics as the dataset for crash free metric alerts
@@ -1145,8 +1153,6 @@ SENTRY_FEATURES = {
     "organizations:performance-autogroup-sibling-spans": False,
     # Enable performance on-boarding checklist
     "organizations:performance-onboarding-checklist": False,
-    # Enable automatic horizontal scrolling on the span tree
-    "organizations:performance-span-tree-autoscroll": False,
     # Enable transaction name only search
     "organizations:performance-transaction-name-only-search": False,
     # Re-enable histograms for Metrics Enhanced Performance Views
