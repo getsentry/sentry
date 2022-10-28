@@ -53,6 +53,7 @@ const ControlState = ({
           offset={8}
           title={!hideErrorMessage && error}
           forceVisible
+          skipWrapper
         >
           <StyledIconWarning color="error" size="sm" />
         </Tooltip>
