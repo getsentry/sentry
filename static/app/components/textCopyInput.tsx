@@ -4,8 +4,14 @@ import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
 import Clipboard from 'sentry/components/clipboard';
-import Input, {InputProps} from 'sentry/components/input';
+import {
+  Input,
+  InputGroup,
+  InputProps,
+  InputTrailingItems,
+} from 'sentry/components/inputGroup';
 import {IconCopy} from 'sentry/icons';
+import space from 'sentry/styles/space';
 import {selectText} from 'sentry/utils/selectText';
 
 interface Props extends Omit<InputProps, 'onCopy'> {
@@ -84,7 +90,7 @@ function TextCopyInput({
   const inputValue = rtl ? '\u202A' + children + '\u202C' : children;
 
   return (
-    <Wrapper className={className}>
+    <InputGroup className={className}>
       <StyledInput
         readOnly
         disabled={disabled}
@@ -96,43 +102,31 @@ function TextCopyInput({
         rtl={rtl}
         {...inputProps}
       />
-      <Clipboard hideUnsupported value={children}>
-        <StyledCopyButton
-          type="button"
-          size={size}
-          disabled={disabled}
-          onClick={handleCopyClick}
-        >
-          <IconCopy size={size === 'xs' ? 'xs' : 'sm'} />
-        </StyledCopyButton>
-      </Clipboard>
-    </Wrapper>
+      <InputTrailingItems>
+        <Clipboard hideUnsupported value={children}>
+          <StyledCopyButton
+            type="button"
+            borderless
+            disabled={disabled}
+            onClick={handleCopyClick}
+          >
+            <IconCopy size={size === 'xs' ? 'xs' : 'sm'} />
+          </StyledCopyButton>
+        </Clipboard>
+      </InputTrailingItems>
+    </InputGroup>
   );
 }
 
 export default TextCopyInput;
 
-const Wrapper = styled('div')`
-  display: flex;
-`;
-
 export const StyledInput = styled(Input)<{rtl?: boolean}>`
-  position: relative;
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
-  border-right-color: transparent;
   direction: ${p => (p.rtl ? 'rtl' : 'ltr')};
-
-  &:focus {
-    z-index: 1;
-    border-right-color: ${p => p.theme.focusBorder};
-  }
 `;
 
 export const StyledCopyButton = styled(Button)`
-  flex-shrink: 0;
-  border-top-left-radius: 0;
-  border-bottom-left-radius: 0;
-  box-shadow: none;
-  transform: translateX(-1px);
+  color: ${p => p.theme.subText};
+  padding: ${space(0.5)};
+  min-height: 0;
+  height: auto;
 `;
