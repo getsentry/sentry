@@ -376,7 +376,7 @@ describe('TraceView', () => {
 
       // Autogroup without span ops or descriptions
       const builder3 = new TransactionEventBuilder();
-      builder2.addSpan(
+      builder3.addSpan(
         new MockSpan({
           startTimestamp: 200,
           endTimestamp: 300,
@@ -396,60 +396,34 @@ describe('TraceView', () => {
       );
     });
 
-    //   it('should automatically expand a sibling span group and select a span if it is anchored', async () => {
-    //     const data = initializeData({});
+    // it('should automatically expand a sibling span group and select a span if it is anchored', async () => {
+    //   const data = initializeData({});
 
-    //     const event = generateSampleEvent();
-    //     generateSampleSpan(
-    //       'group me',
-    //       'http',
-    //       'b000000000000000',
-    //       'a000000000000000',
-    //       event
-    //     );
-    //     generateSampleSpan(
-    //       'group me',
-    //       'http',
-    //       'c000000000000000',
-    //       'a000000000000000',
-    //       event
-    //     );
-    //     generateSampleSpan(
-    //       'group me',
-    //       'http',
-    //       'd000000000000000',
-    //       'a000000000000000',
-    //       event
-    //     );
-    //     generateSampleSpan(
-    //       'group me',
-    //       'http',
-    //       'e000000000000000',
-    //       'a000000000000000',
-    //       event
-    //     );
-    //     generateSampleSpan(
-    //       'group me',
-    //       'http',
-    //       'f000000000000000',
-    //       'a000000000000000',
-    //       event
-    //     );
+    //   const builder = new TransactionEventBuilder();
+    //   builder.addSpan(
+    //     new MockSpan({
+    //       startTimestamp: 100,
+    //       endTimestamp: 200,
+    //       op: 'http',
+    //       description: 'group me',
+    //     }),
+    //     5
+    //   );
 
-    //     // Manually set the hash here, the AnchorLinkManager is expected to automatically expand the group and scroll to the span with this id
-    //     location.hash = spanTargetHash('c000000000000000');
+    //   // Manually set the hash here, the AnchorLinkManager is expected to automatically expand the group and scroll to the span with this id
+    //   location.hash = spanTargetHash('0000000000000003');
 
-    //     const waterfallModel = new WaterfallModel(event);
+    //   const waterfallModel = new WaterfallModel(builder.getEvent());
 
-    //     render(
-    //       <AnchorLinkManager.Provider>
-    //         <TraceView organization={data.organization} waterfallModel={waterfallModel} />
-    //       </AnchorLinkManager.Provider>
-    //     );
+    //   render(
+    //     <AnchorLinkManager.Provider>
+    //       <TraceView organization={data.organization} waterfallModel={waterfallModel} />
+    //     </AnchorLinkManager.Provider>
+    //   );
 
-    //     expect(await screen.findByText(/c000000000000000/i)).toBeInTheDocument();
-    //     location.hash = '';
-    //   });
+    //   expect(await screen.findByText(/0000000000000003/i)).toBeInTheDocument();
+    //   location.hash = '';
+    // });
 
     //   it('should automatically expand a descendant span group and select a span if it is anchored', async () => {
     //     const data = initializeData({});
