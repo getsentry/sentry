@@ -50,10 +50,11 @@ def derive_missing_codemappings(dry_run=False) -> None:
     queue="derive_code_mappings",
     max_retries=0,  # if we don't backfill it this time, we'll get it the next time
 )
-def derive_code_mappings(organization: Organization, dry_run=False) -> None:
+def derive_code_mappings(organization_id: int, dry_run=False) -> None:
     """
     Derive code mappings for an organization and save the derived code mappings.
     """
+    organization: Organization = Organization.objects.get(id=organization_id)
     project_stacktrace_paths = identify_stacktrace_paths(organization)
     if not project_stacktrace_paths:
         return
@@ -138,7 +139,7 @@ def get_installation(organization: Organization) -> Tuple[Integration, Organizat
     integration = None
     try:
         integration = Integration.objects.filter(
-            organizations=organization.id,
+            organizations=organization,
             provider="github",
         )
     except Integration.DoesNotExist:
