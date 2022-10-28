@@ -539,7 +539,7 @@ class SnubaQueryBuilder:
                                 alias=condition.lhs.alias,
                             )[0],
                             op=condition.op,
-                            rhs=resolve_weak(self._use_case_id, self._org_id, condition.rhs)
+                            rhs=resolve_tag_value(self._use_case_id, self._org_id, condition.rhs)
                             if requires_rhs_condition_resolution(condition.lhs.op)
                             else condition.rhs,
                         )
