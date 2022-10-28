@@ -1074,21 +1074,21 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
    * Returns array of possible key values that substring match `query`
    */
   getTagKeys(searchTerm: string): [SearchItem[], ItemType] {
-    const {prepareQuery, supportedTagType} = this.props;
-
-    const supportedTags = this.props.supportedTags ?? {};
-    const {excludedTags} = this.props;
+    const {
+      excludedTags,
+      fieldDefinitionGetter,
+      organization,
+      prepareQuery,
+      supportedTags = {},
+      supportedTagType,
+    } = this.props;
 
     let tagKeys = Object.keys(supportedTags).sort((a, b) => a.localeCompare(b));
 
     if (searchTerm) {
       const preparedSearchTerm = prepareQuery ? prepareQuery(searchTerm) : searchTerm;
 
-      tagKeys = filterKeysFromQuery(
-        tagKeys,
-        preparedSearchTerm,
-        this.props.fieldDefinitionGetter
-      );
+      tagKeys = filterKeysFromQuery(tagKeys, preparedSearchTerm, fieldDefinitionGetter);
     }
 
     // removes any tags that are marked for exclusion
@@ -1099,14 +1099,13 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     const allTagItems = getTagItemsFromKeys(
       tagKeys,
       supportedTags,
-      this.props.fieldDefinitionGetter
+      fieldDefinitionGetter
     );
 
     // Filter out search items that are behind feature flags
     const tagItems = allTagItems.filter(
       item =>
-        item.featureFlag === undefined ||
-        this.props.organization.features.includes(item.featureFlag)
+        item.featureFlag === undefined || organization.features.includes(item.featureFlag)
     );
 
     return [tagItems, supportedTagType ?? ItemType.TAG_KEY];
@@ -1516,7 +1515,8 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     tagName: string,
     type: ItemType
   ) {
-    const {hasRecentSearches, maxSearchItems, maxQueryLength} = this.props;
+    const {fieldDefinitionGetter, hasRecentSearches, maxSearchItems, maxQueryLength} =
+      this.props;
     const {query} = this.state;
 
     const queryCharsLeft =
@@ -1530,7 +1530,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       maxSearchItems,
       queryCharsLeft,
       true,
-      this.props.fieldDefinitionGetter
+      fieldDefinitionGetter
     );
 
     this.setState(searchGroups);
@@ -1542,7 +1542,8 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
    * @param groups Groups that will be used to populate the autocomplete dropdown
    */
   updateAutoCompleteStateMultiHeader = (groups: AutocompleteGroup[]) => {
-    const {hasRecentSearches, maxSearchItems, maxQueryLength} = this.props;
+    const {fieldDefinitionGetter, hasRecentSearches, maxSearchItems, maxQueryLength} =
+      this.props;
     const {query} = this.state;
     const queryCharsLeft =
       maxQueryLength && query ? maxQueryLength - query.length : undefined;
@@ -1557,7 +1558,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
           maxSearchItems,
           queryCharsLeft,
           false,
-          this.props.fieldDefinitionGetter
+          fieldDefinitionGetter
         )
       )
       .reduce(
