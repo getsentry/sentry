@@ -295,6 +295,7 @@ class QueryBuilder:
         from sentry.search.events.datasets.discover import DiscoverDatasetConfig
         from sentry.search.events.datasets.metrics import MetricsDatasetConfig
         from sentry.search.events.datasets.metrics_layer import MetricsLayerDatasetConfig
+        from sentry.search.events.datasets.profiles import ProfilesDatasetConfig
         from sentry.search.events.datasets.sessions import SessionsDatasetConfig
 
         self.config: DatasetConfig
@@ -307,6 +308,8 @@ class QueryBuilder:
                 self.config = MetricsLayerDatasetConfig(self)
             else:
                 self.config = MetricsDatasetConfig(self)
+        elif self.dataset == Dataset.Profiles:
+            self.config = ProfilesDatasetConfig(self)
         else:
             raise NotImplementedError(f"Data Set configuration not found for {self.dataset}.")
 
@@ -1143,12 +1146,12 @@ class QueryBuilder:
     ) -> Optional[WhereType]:
         name = search_filter.key.name
         value = search_filter.value.value
-        if value and (measurement_meta := self.get_measument_by_name(name)):
-            unit = measurement_meta.get("unit")
-            value = self.resolve_measurement_value(unit, value)
-            search_filter = SearchFilter(
-                search_filter.key, search_filter.operator, SearchValue(value)
-            )
+        if value and (unit := self.get_field_type(name)):
+            if unit in SIZE_UNITS or unit in DURATION_UNITS:
+                value = self.resolve_measurement_value(unit, value)
+                search_filter = SearchFilter(
+                    search_filter.key, search_filter.operator, SearchValue(value)
+                )
 
         if name in NO_CONVERSION_FIELDS:
             return None
