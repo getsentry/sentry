@@ -1,6 +1,49 @@
 import {parseViewHierarchy} from './viewHierarchyParser';
 
 describe('parser', () => {
+  it('one layer nesting', () => {
+    const testString = `<A: A;>
+   | <B: first;>`;
+    const output = parseViewHierarchy(testString);
+    expect(output).toEqual({
+      title: 'A: A',
+      children: [
+        {
+          title: 'B: first',
+          children: [],
+        },
+      ],
+    });
+  });
+
+  it('properly does siblings', () => {
+    const testString = `<A: A;>
+   | <B: first;>
+   | <B: second;>`;
+    const output = parseViewHierarchy(testString);
+    expect(output).toEqual({
+      title: 'A: A',
+      children: [
+        {
+          title: 'B: first',
+          children: [],
+        },
+        {
+          title: 'B: second',
+          children: [],
+        },
+      ],
+    });
+  });
+
+  it('does the one nested thing', () => {
+    const testString = `<UIWindow: 0x7f893fc0ebd0; frame = (0 0; 375 667); gestureRecognizers = <NSArray: 0x600003478330>; layer = <UIWindowLayer: 0x600003a5a420>>
+   | <UILayoutContainerView: 0x7f893fe280a0; frame = (0 0; 375 667); autoresize = W+H; gestureRecognizers = <NSArray: 0x600003440060>; layer = <CALayer: 0x600003a47760>>
+   |    | <UILayoutContainerView: 0x7f893fe29999; frame = (0 0; 375 667); autoresize = W+H; gestureRecognizers = <NSArray: 0x600003440060>; layer = <CALayer: 0x600003a47760>>
+   | <UILayoutB: 0x7f893fe280a0; frame = (0 0; 375 667); autoresize = W+H; gestureRecognizers = <NSArray: 0x600003440060>; layer = <CALayer: 0x600003a47760>>`;
+    const output = parseViewHierarchy(testString);
+  });
+
   it('does the thing', () => {
     const testString = `<UIWindow: 0x7f893fc0ebd0; frame = (0 0; 375 667); gestureRecognizers = <NSArray: 0x600003478330>; layer = <UIWindowLayer: 0x600003a5a420>>
    | <UILayoutContainerView: 0x7f893fe280a0; frame = (0 0; 375 667); autoresize = W+H; gestureRecognizers = <NSArray: 0x600003440060>; layer = <CALayer: 0x600003a47760>>
