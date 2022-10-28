@@ -1563,10 +1563,10 @@ DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
         ),
         DerivedOp(
             op="transform_null_to_unparameterized",
-            can_orderby=False,  # TODO: a better and more comprehensive
+            can_orderby=False,
             can_groupby=True,
+            can_filter=True,
             snql_func=transform_null_to_unparameterized_snql,
-            default_null_value=0,
         ),
     ]
 }

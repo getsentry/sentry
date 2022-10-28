@@ -144,6 +144,20 @@ GENERIC_OP_TO_SNUBA_FUNCTION = {
     "generic_metrics_sets": OP_TO_SNUBA_FUNCTION["metrics_sets"],
 }
 
+# This set contains all the operations that require the "rhs" condition to be resolved
+# in a "MetricConditionField". This solution is the simplest one and doesn't require any
+# changes in the transformer, however it requires this list to be discovered and updated
+# in case new operations are added, which is not ideal but given the fact that we already
+# define operations in this file, it is not a deal-breaker.
+REQUIRES_RHS_CONDITION_RESOLUTION = {"transform_null_to_unparameterized"}
+
+
+def require_rhs_condition_resolution(op: MetricOperationType) -> bool:
+    """
+    Checks whether a given operation requires its right operand to be resolved.
+    """
+    return op in REQUIRES_RHS_CONDITION_RESOLUTION
+
 
 def generate_operation_regex():
     """
