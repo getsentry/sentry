@@ -144,6 +144,7 @@ type State = AsyncView['state'] & {
     [key: string]: string[];
   };
   environments: Environment[] | null;
+  incompatibleCondition: number | null;
   issueCount: number;
   loadingPreview: boolean;
   previewCursor: string | null | undefined;
@@ -184,8 +185,12 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     if (prevState.previewCursor !== this.state.previewCursor) {
       this.fetchPreview();
     } else if (this.isRuleStateChange(prevState)) {
-      this.setState({loadingPreview: true});
+      this.setState({
+        loadingPreview: true,
+        incompatibleCondition: null,
+      });
       this.fetchPreviewDebounced();
+      this.checkIncompatibleRule();
     }
     if (prevState.project.id === this.state.project.id) {
       return;
@@ -237,6 +242,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       previewPage: 0,
       loadingPreview: false,
       sendingNotification: false,
+      incompatibleCondition: null,
     };
 
     const projectTeamIds = new Set(project.teams.map(({id}) => id));
@@ -404,6 +410,36 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   fetchPreviewDebounced = debounce(() => {
     this.fetchPreview(true);
   }, 1000);
+
+  // As more incompatible combinations are added, we will need a more generic way to check for incompatibility.
+  checkIncompatibleRule = debounce(() => {
+    const {rule} = this.state;
+    if (
+      !rule ||
+      !this.props.organization.features.includes('issue-alert-incompatible-rules')
+    ) {
+      return;
+    }
+
+    const conditions = rule.conditions;
+    let firstSeen = 0;
+    let regression = 0;
+    let reappearance = 0;
+    for (let i = 0; i < conditions.length; i++) {
+      const id = conditions[i].id;
+      if (id.endsWith('FirstSeenEventCondition')) {
+        firstSeen = 1;
+      } else if (id.endsWith('RegressionEventCondition')) {
+        regression = 1;
+      } else if (id.endsWith('ReappearanceEventCondition')) {
+        reappearance = 1;
+      }
+      if (firstSeen + regression + reappearance > 1) {
+        this.setState({incompatibleCondition: i});
+        break;
+      }
+    }
+  }, 500);
 
   onPreviewCursor: CursorHandler = (cursor, _1, _2, direction) => {
     this.setState({
@@ -1064,8 +1100,15 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
   renderBody() {
     const {organization} = this.props;
-    const {project, rule, detailedError, loading, ownership, sendingNotification} =
-      this.state;
+    const {
+      project,
+      rule,
+      detailedError,
+      loading,
+      ownership,
+      sendingNotification,
+      incompatibleCondition,
+    } = this.state;
     const {actions, filters, conditions, frequency} = rule || {};
 
     const environment =
@@ -1078,7 +1121,10 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       <Access access={['alerts:write']}>
         {({hasAccess}) => {
           // check if superuser or if user is on the alert's team
-          const disabled = loading || !(isActiveSuperuser() || hasAccess);
+          const disabled =
+            loading ||
+            !(isActiveSuperuser() || hasAccess) ||
+            incompatibleCondition !== null;
 
           return (
             <Main fullWidth>
@@ -1196,6 +1242,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                                   </StyledAlert>
                                 )
                               }
+                              incompatibleRule={incompatibleCondition}
                             />
                           </StepContent>
                         </StepContainer>
