@@ -170,7 +170,7 @@ class TestIdentfiyStacktracePaths(TestCase):
                 self.project: ["sentry/models/release.py", "sentry/tasks.py"],
             },
         ) as mock_identify_stacktraces, self.tasks():
-            derive_code_mappings(self.organization)
+            derive_code_mappings(self.organization.id)
 
         assert mock_identify_stacktraces.call_count == 1
         assert mock_get_trees_for_org.call_count == 1
