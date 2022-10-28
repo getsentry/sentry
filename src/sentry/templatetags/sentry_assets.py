@@ -1,6 +1,5 @@
 import re
 
-import sentry_sdk
 from django import template
 from django.conf import settings
 from django.template.base import token_kwargs
@@ -108,8 +107,3 @@ class ScriptNode(template.Node):
         if matches:
             return matches.group(1).strip()
         return text
-
-
-@register.simple_tag
-def generate_pageload_span_meta():
-    return sentry_sdk.Hub.current.trace_propagation_meta()
