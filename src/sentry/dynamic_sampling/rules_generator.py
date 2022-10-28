@@ -12,7 +12,7 @@ from sentry.dynamic_sampling.latest_release_booster import (
 )
 from sentry.dynamic_sampling.utils import (
     BOOSTED_RELEASES_LIMIT,
-    HEALTH_CHECK_BOOST_FACTOR,
+    HEALTH_CHECK_DROPPING_FACTOR,
     RELEASE_BOOST_FACTOR,
     RESERVED_IDS,
     BaseRule,
@@ -57,7 +57,7 @@ def generate_environment_rule() -> BaseRule:
 
 def generate_healthcheck_rule(sample_rate: float) -> BaseRule:
     return {
-        "sampleRate": sample_rate / HEALTH_CHECK_BOOST_FACTOR,
+        "sampleRate": sample_rate / HEALTH_CHECK_DROPPING_FACTOR,
         "type": "trace",
         "condition": {
             "op": "or",
