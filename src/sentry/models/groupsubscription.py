@@ -38,7 +38,11 @@ class GroupSubscriptionManager(BaseManager):  # type: ignore
         try:
             with transaction.atomic():
                 self.create(
-                    user=user, group=group, project=group.project, is_active=True, reason=reason
+                    user_id=user.id,
+                    group=group,
+                    project=group.project,
+                    is_active=True,
+                    reason=reason,
                 )
         except IntegrityError:
             pass
@@ -51,8 +55,9 @@ class GroupSubscriptionManager(BaseManager):  # type: ignore
         reason: int = GroupSubscriptionReason.unknown,
     ) -> Optional[bool]:
         from sentry.models import Team, User
+        from sentry.services.hybrid_cloud.user import APIUser
 
-        if isinstance(actor, User):
+        if isinstance(actor, User) or isinstance(actor, APIUser):
             return self.subscribe(group, actor, reason)
         if isinstance(actor, Team):
             # subscribe the members of the team
@@ -115,7 +120,7 @@ class GroupSubscriptionManager(BaseManager):  # type: ignore
 
         all_possible_users = user_service.get_from_group(group)
         active_and_disabled_subscriptions = self.filter(
-            group=group, user__in=[u.id for u in all_possible_users]
+            group=group, user_id__in=[u.id for u in all_possible_users]
         )
         notification_settings = NotificationSetting.objects.get_for_recipient_by_parent(
             NotificationSettingTypes.WORKFLOW,

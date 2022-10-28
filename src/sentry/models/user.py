@@ -189,6 +189,9 @@ class User(BaseModel, AbstractBaseUser):
 
     __repr__ = sane_repr("id")
 
+    def class_name(self):
+        return "User"
+
     def delete(self):
         if self.username == "sentry":
             raise Exception('You cannot delete the "sentry" user as it is required by Sentry.')

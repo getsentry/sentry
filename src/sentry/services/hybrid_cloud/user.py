@@ -22,6 +22,14 @@ class APIUser:
     username: str = ""
     actor_id: int = -1
 
+    # TODO: Extract these "view" methods to BaseUser class?
+    def class_name(self):
+        """Necessary for integrations that introspect on user objects"""
+        return "User"
+
+    def get_display_name(self):
+        return self.name or self.email or self.username
+
     # TODO: Extract to base dataclass?
     @classmethod
     def from_orm(cls, orm: Any):

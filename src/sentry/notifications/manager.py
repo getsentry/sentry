@@ -28,6 +28,7 @@ from sentry.utils.sdk import configure_scope
 
 if TYPE_CHECKING:
     from sentry.models import NotificationSetting, Organization, Project, Team, User
+    from sentry.services.hybrid_cloud.user import APIUser
 
 REMOVE_SETTING_BATCH_SIZE = 1000
 
@@ -247,9 +248,10 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         self,
         type_: NotificationSettingTypes,
         parent: Organization | Project,
-        recipients: Iterable[Team | User],
+        recipients: Iterable[Team | User | APIUser],
     ) -> QuerySet:
         from sentry.models import Team, User
+        from sentry.services.hybrid_cloud.user import APIUser
 
         """
         Find all of a project/organization's notification settings for a list of
@@ -262,7 +264,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         for recipient in recipients:
             if type(recipient) == Team:
                 team_ids.add(recipient.id)
-            if type(recipient) == User:
+            if type(recipient) == User or type(recipient) == APIUser:
                 user_ids.add(recipient.id)
             actor_ids.add(recipient.actor_id)
 

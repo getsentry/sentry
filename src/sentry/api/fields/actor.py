@@ -27,7 +27,7 @@ class ActorField(serializers.Field):
                 raise serializers.ValidationError("Team is not a member of this organization")
         elif actor.type == User:
             if not OrganizationMember.objects.filter(
-                organization=self.context["organization"], user=obj
+                organization=self.context["organization"], user_id=obj.id
             ).exists():
                 raise serializers.ValidationError("User is not a member of this organization")
         return actor

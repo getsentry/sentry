@@ -169,7 +169,7 @@ class BaseNotification(abc.ABC):
         # referrer needs the provider and recipient
         referrer = f"{self.metrics_key}-{EXTERNAL_PROVIDERS[provider]}"
         if recipient:
-            referrer += "-" + recipient.__class__.__name__.lower()
+            referrer += "-" + recipient.class_name().lower()
         return referrer
 
     def get_sentry_query_params(
