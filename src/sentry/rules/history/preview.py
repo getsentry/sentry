@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any, Dict, Sequence
 
 from django.utils import timezone
@@ -49,7 +49,7 @@ def preview(
     activity.sort(key=k)
 
     frequency = timedelta(minutes=frequency_minutes)
-    group_last_fire = {}
+    group_last_fire: Dict[str, datetime] = {}
     group_ids = set()
     for event in activity:
         # TODO: check conditions and filters to see if event passes
