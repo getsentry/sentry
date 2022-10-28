@@ -1,6 +1,6 @@
 import re
 from datetime import datetime, timedelta
-from typing import Any, Mapping, Optional, Tuple, Union, cast, overload
+from typing import TYPE_CHECKING, Any, Mapping, Optional, Tuple, Union, cast, overload
 
 import pytz
 from dateutil.parser import parse
@@ -9,6 +9,9 @@ from django.utils.timezone import is_aware, make_aware
 
 from sentry import quotas
 from sentry.constants import MAX_ROLLUP_POINTS
+
+if TYPE_CHECKING:
+    from sentry.search.events.types import SnubaParams
 
 epoch = datetime(1970, 1, 1, tzinfo=pytz.utc)
 
@@ -132,12 +135,17 @@ def get_interval_from_range(date_range: timedelta, high_fidelity: bool) -> str:
 
 def get_rollup_from_request(
     request: HttpRequest,
-    params: Mapping[str, Any],
+    params: Union[Mapping[str, Any], "SnubaParams"],
     default_interval: Union[None, str],
     error: Exception,
     top_events: int = 0,
 ) -> int:
-    date_range = params["end"] - params["start"]
+    from sentry.search.events.types import SnubaParams
+
+    if isinstance(params, SnubaParams):
+        date_range = params.end - params.start
+    else:
+        date_range = params["end"] - params["start"]
 
     if default_interval is None:
         default_interval = get_interval_from_range(date_range, False)

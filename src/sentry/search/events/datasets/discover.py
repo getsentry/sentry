@@ -984,7 +984,7 @@ class DiscoverDatasetConfig(DatasetConfig):
     def _project_slug_orderby_converter(self, direction: Direction) -> OrderBy:
         project_ids = {
             project_id
-            for project_id in self.builder.params.get("project_id", [])
+            for project_id in self.builder.params.project_ids
             if isinstance(project_id, int)
         }
 
@@ -1037,8 +1037,8 @@ class DiscoverDatasetConfig(DatasetConfig):
 
     @cached_property
     def _resolve_project_threshold_config(self) -> SelectType:
-        org_id = self.builder.params.get("organization_id")
-        project_ids = self.builder.params.get("project_id")
+        org_id = self.builder.params.organization.id
+        project_ids = self.builder.params.project_ids
 
         project_threshold_configs = (
             ProjectTransactionThreshold.objects.filter(
@@ -1482,10 +1482,10 @@ class DiscoverDatasetConfig(DatasetConfig):
         error_groups = []
         performance_groups = []
 
-        if group_short_ids and self.builder.params and "organization_id" in self.builder.params:
+        if group_short_ids and self.builder.params:
             try:
                 groups = Group.objects.by_qualified_short_id_bulk(
-                    self.builder.params["organization_id"],
+                    self.builder.params.organization.id,
                     group_short_ids,
                 )
             except Exception:

@@ -40,9 +40,9 @@ def resolve_team_key_transaction_alias(
 def get_team_transactions(
     builder: QueryBuilder, resolve_metric_index: bool = False
 ) -> List[Tuple[int, str]]:
-    org_id = builder.params.get("organization_id")
-    project_ids = builder.params.get("project_id")
-    team_ids = builder.params.get("team_id")
+    org_id = builder.params.organization.id
+    project_ids = builder.params.project_ids
+    team_ids = builder.params.team_ids
 
     if org_id is None or team_ids is None or project_ids is None:
         raise TypeError("Team key transactions parameters cannot be None")
@@ -85,6 +85,8 @@ def get_team_transactions(
 
 
 def resolve_project_slug_alias(builder: QueryBuilder, alias: str) -> SelectType:
-    builder.value_resolver_map[alias] = lambda project_id: builder.project_ids.get(project_id, "")
+    builder.value_resolver_map[alias] = lambda project_id: builder.params.project_id_map.get(
+        project_id, ""
+    )
     builder.meta_resolver_map[alias] = "string"
     return AliasedExpression(exp=builder.column("project_id"), alias=alias)

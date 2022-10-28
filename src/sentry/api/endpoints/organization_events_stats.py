@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Dict, Mapping, Optional, Sequence, Set
+from typing import Mapping, Optional, Sequence, Set
 
 import sentry_sdk
 from rest_framework.exceptions import ValidationError
@@ -11,6 +11,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventsV2EndpointBase
 from sentry.constants import MAX_TOP_EVENTS
 from sentry.models import Organization
+from sentry.search.events.types import SnubaParams
 from sentry.snuba import discover, metrics_enhanced_performance
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import SnubaTSResult
@@ -167,7 +168,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
         def get_event_stats(
             query_columns: Sequence[str],
             query: str,
-            params: Dict[str, str],
+            params: SnubaParams,
             rollup: int,
             zerofill_results: bool,
             comparison_delta: Optional[datetime],

@@ -28,7 +28,7 @@ from sentry.search.events.fields import (
     get_json_meta_type,
     is_function,
 )
-from sentry.search.events.types import HistogramParams, ParamsType
+from sentry.search.events.types import HistogramParams, ParamsType, SnubaParams
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 from sentry.utils.dates import to_timestamp
 from sentry.utils.math import nice_int
@@ -132,9 +132,9 @@ def transform_tips(tips):
 
 
 def query(
-    selected_columns,
-    query,
-    params,
+    selected_columns: Sequence[str],
+    query: str,
+    params: SnubaParams,
     equations=None,
     orderby=None,
     offset=None,
@@ -214,7 +214,7 @@ def query(
 def timeseries_query(
     selected_columns: Sequence[str],
     query: str,
-    params: Dict[str, str],
+    params: SnubaParams,
     rollup: int,
     referrer: Optional[str] = None,
     zerofill_results: bool = True,
@@ -263,8 +263,8 @@ def timeseries_query(
             if len(base_builder.aggregates) != 1:
                 raise InvalidSearchQuery("Only one column can be selected for comparison queries")
             comp_query_params = deepcopy(params)
-            comp_query_params["start"] -= comparison_delta
-            comp_query_params["end"] -= comparison_delta
+            comp_query_params.start -= comparison_delta
+            comp_query_params.end -= comparison_delta
             comparison_builder = TimeseriesQueryBuilder(
                 Dataset.Discover,
                 comp_query_params,
@@ -284,8 +284,8 @@ def timeseries_query(
                 {
                     "data": zerofill(
                         result["data"],
-                        snql_query.params["start"],
-                        snql_query.params["end"],
+                        snql_query.params.start,
+                        snql_query.params.end,
                         rollup,
                         "time",
                     )
@@ -317,8 +317,8 @@ def timeseries_query(
                 }
             },
         },
-        params["start"],
-        params["end"],
+        params.start,
+        params.end,
         rollup,
     )
 
@@ -353,7 +353,7 @@ def top_events_timeseries(
     timeseries_columns,
     selected_columns,
     user_query,
-    params,
+    params: SnubaParams,
     orderby,
     rollup,
     limit,
@@ -378,7 +378,7 @@ def top_events_timeseries(
                     this is to determine what the top events are
     user_query (str) Filter query string to create conditions from. needs to be user_query
                     to not conflict with the function query
-    params (Dict[str, str]) Filtering parameters with start, end, project_id, environment,
+    params (SnubaParams) Filtering parameters with start, end, project_id, environment,
     orderby (Sequence[str]) The fields to order results by.
     rollup (int) The bucket width in seconds
     limit (int) The number of events to get timeseries for
@@ -441,12 +441,12 @@ def top_events_timeseries(
     ):
         return SnubaTSResult(
             {
-                "data": zerofill([], params["start"], params["end"], rollup, "time")
+                "data": zerofill([], params.start, params.end, rollup, "time")
                 if zerofill_results
                 else [],
             },
-            params["start"],
-            params["end"],
+            params.start,
+            params.end,
             rollup,
         )
     with sentry_sdk.start_span(
@@ -459,7 +459,7 @@ def top_events_timeseries(
         if "issue" in selected_columns:
             issues = Group.objects.get_issues_mapping(
                 {event["issue.id"] for event in top_events["data"]},
-                params["project_id"],
+                params.project_ids,
                 organization,
             )
         translated_groupby = top_events_builder.translated_groupby
@@ -485,13 +485,13 @@ def top_events_timeseries(
         for key, item in results.items():
             results[key] = SnubaTSResult(
                 {
-                    "data": zerofill(item["data"], params["start"], params["end"], rollup, "time")
+                    "data": zerofill(item["data"], params.start, params.end, rollup, "time")
                     if zerofill_results
                     else item["data"],
                     "order": item["order"],
                 },
-                params["start"],
-                params["end"],
+                params.start,
+                params.end,
                 rollup,
             )
 

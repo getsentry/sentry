@@ -666,8 +666,8 @@ class MetricsDatasetConfig(DatasetConfig):
 
     @cached_property
     def _resolve_project_threshold_config(self) -> SelectType:
-        org_id = self.builder.params.get("organization_id")
-        project_ids = self.builder.params.get("project_id")
+        org_id = self.builder.params.organization.id
+        project_ids = self.builder.params.project_ids
 
         project_threshold_configs = (
             ProjectTransactionThreshold.objects.filter(

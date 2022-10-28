@@ -38,7 +38,7 @@ from sentry.search.events.constants import (
     USER_DISPLAY_ALIAS,
     VALID_FIELD_PATTERN,
 )
-from sentry.search.events.types import NormalizedArg, ParamsType
+from sentry.search.events.types import NormalizedArg, ParamsType, SnubaParams
 from sentry.search.utils import InvalidQuery, parse_duration
 from sentry.utils.numbers import format_grouped_length
 from sentry.utils.sdk import set_measurement
@@ -71,14 +71,18 @@ class PseudoField:
 
         self.validate()
 
-    def get_expression(self, params) -> Union[List[Any], Tuple[Any]]:
+    def get_expression(
+        self, params: Union[ParamsType, SnubaParams]
+    ) -> Union[List[Any], Tuple[Any]]:
         if isinstance(self.expression, (list, tuple)):
             return deepcopy(self.expression)
         elif self.expression_fn is not None:
+            if isinstance(params, SnubaParams):
+                raise Exception("SnubaParams not supported for PseudoFields with expression_fns")
             return self.expression_fn(params)
         return None
 
-    def get_field(self, params=None):
+    def get_field(self, params: Optional[Union[ParamsType, SnubaParams]] = None):
         expression = self.get_expression(params)
         if expression is not None:
             expression.append(self.alias)
@@ -769,7 +773,7 @@ class FunctionArg:
         raise InvalidFunctionArgument(f"{self.name} has no defaults")
 
     def normalize(
-        self, value: str, params: ParamsType, combinator: Optional[Combinator]
+        self, value: str, params: Union[ParamsType, SnubaParams], combinator: Optional[Combinator]
     ) -> NormalizedArg:
         return value
 
@@ -778,7 +782,9 @@ class FunctionArg:
 
 
 class FunctionAliasArg(FunctionArg):
-    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
+    def normalize(
+        self, value: str, params: Union[ParamsType, SnubaParams], combinator: Optional[Combinator]
+    ) -> str:
         if not ALIAS_PATTERN.match(value):
             raise InvalidFunctionArgument(f"{value} is not a valid function alias")
         return value
@@ -805,7 +811,9 @@ class StringArg(FunctionArg):
         self.optional_unquote = optional_unquote
         self.allowed_strings = allowed_strings
 
-    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
+    def normalize(
+        self, value: str, params: Union[ParamsType, SnubaParams], combinator: Optional[Combinator]
+    ) -> str:
         if self.unquote:
             if len(value) < 2 or value[0] != '"' or value[-1] != '"':
                 if not self.optional_unquote:
@@ -823,7 +831,9 @@ class StringArg(FunctionArg):
 class DateArg(FunctionArg):
     date_format = "%Y-%m-%dT%H:%M:%S"
 
-    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
+    def normalize(
+        self, value: str, params: Union[ParamsType, SnubaParams], combinator: Optional[Combinator]
+    ) -> str:
         try:
             datetime.strptime(value, self.date_format)
         except ValueError:
@@ -844,7 +854,9 @@ class ConditionArg(FunctionArg):
         "greater",
     ]
 
-    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
+    def normalize(
+        self, value: str, params: Union[ParamsType, SnubaParams], combinator: Optional[Combinator]
+    ) -> str:
         if value not in self.VALID_CONDITIONS:
             raise InvalidFunctionArgument(
                 "{} is not a valid condition, the only supported conditions are: {}".format(
@@ -870,7 +882,9 @@ class NullColumn(FunctionArg):
     def get_default(self, _) -> None:
         return None
 
-    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> None:
+    def normalize(
+        self, value: str, params: Union[ParamsType, SnubaParams], combinator: Optional[Combinator]
+    ) -> None:
         return None
 
 
@@ -881,7 +895,7 @@ class NumberRange(FunctionArg):
         self.end = end
 
     def normalize(
-        self, value: str, params: ParamsType, combinator: Optional[Combinator]
+        self, value: str, params: Union[ParamsType, SnubaParams], combinator: Optional[Combinator]
     ) -> Optional[float]:
         try:
             normalized_value = float(value)
@@ -906,7 +920,7 @@ class NullableNumberRange(NumberRange):
         return None
 
     def normalize(
-        self, value: str, params: ParamsType, combinator: Optional[Combinator]
+        self, value: str, params: Union[ParamsType, SnubaParams], combinator: Optional[Combinator]
     ) -> Optional[float]:
         if value is None:
             return value
@@ -918,16 +932,21 @@ class IntervalDefault(NumberRange):
         super().__init__(name, start, end)
         self.has_default = True
 
-    def get_default(self, params: ParamsType) -> int:
-        if not params or not params.get("start") or not params.get("end"):
-            raise InvalidFunctionArgument("function called without default")
-        elif not isinstance(params.get("start"), datetime) or not isinstance(
-            params.get("end"), datetime
-        ):
-            raise InvalidFunctionArgument("function called with invalid default")
+    def get_default(self, params: Union[ParamsType, SnubaParams]) -> int:
+        if isinstance(params, SnubaParams):
+            if not params:
+                raise InvalidFunctionArgument("function called without default")
+            return int(params.interval)
+        else:
+            if not params or not params.get("start") or not params.get("end"):
+                raise InvalidFunctionArgument("function called without default")
+            elif not isinstance(params.get("start"), datetime) or not isinstance(
+                params.get("end"), datetime
+            ):
+                raise InvalidFunctionArgument("function called with invalid default")
 
-        interval = (params["end"] - params["start"]).total_seconds()
-        return int(interval)
+            interval = (params["end"] - params["start"]).total_seconds()
+            return int(interval)
 
 
 class ColumnArg(FunctionArg):
@@ -956,7 +975,9 @@ class ColumnArg(FunctionArg):
         # Normalize the value to check if it is valid, but return the value as-is
         self.validate_only = validate_only
 
-    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
+    def normalize(
+        self, value: str, params: Union[ParamsType, SnubaParams], combinator: Optional[Combinator]
+    ) -> str:
         snuba_column = SEARCH_MAP.get(value)
         if len(self.allowed_columns) > 0:
             if (
@@ -980,7 +1001,9 @@ class ColumnArg(FunctionArg):
 class ColumnTagArg(ColumnArg):
     """Validate that the argument is either a column or a valid tag"""
 
-    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
+    def normalize(
+        self, value: str, params: Union[ParamsType, SnubaParams], combinator: Optional[Combinator]
+    ) -> str:
         if TAG_KEY_RE.match(value) or VALID_FIELD_PATTERN.match(value):
             return value
         return super().normalize(value, params, combinator)
@@ -994,7 +1017,9 @@ class CountColumn(ColumnArg):
     def get_default(self, _) -> None:
         return None
 
-    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
+    def normalize(
+        self, value: str, params: Union[ParamsType, SnubaParams], combinator: Optional[Combinator]
+    ) -> str:
         if value is None:
             raise InvalidFunctionArgument("a column is required")
 
@@ -1058,7 +1083,9 @@ class NumericColumn(ColumnArg):
             raise InvalidFunctionArgument(f"{value} is not a numeric column")
         return snuba_column
 
-    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
+    def normalize(
+        self, value: str, params: Union[ParamsType, SnubaParams], combinator: Optional[Combinator]
+    ) -> str:
         snuba_column = None
 
         if combinator is not None and combinator.validate_argument(value):
@@ -1109,7 +1136,9 @@ class NumericColumn(ColumnArg):
 
 
 class DurationColumn(ColumnArg):
-    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
+    def normalize(
+        self, value: str, params: Union[ParamsType, SnubaParams], combinator: Optional[Combinator]
+    ) -> str:
         snuba_column = SEARCH_MAP.get(value)
         if not snuba_column and is_duration_measurement(value):
             return value
@@ -1136,7 +1165,9 @@ class StringArrayColumn(ColumnArg):
         "spans_group",
     }
 
-    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
+    def normalize(
+        self, value: str, params: Union[ParamsType, SnubaParams], combinator: Optional[Combinator]
+    ) -> str:
         if value in self.string_array_columns:
             return value
         raise InvalidFunctionArgument(f"{value} is not a valid string array column")
@@ -1146,7 +1177,9 @@ class SessionColumnArg(ColumnArg):
     # XXX(ahmed): hack to get this to work with crash rate alerts over the sessions dataset until
     # we deprecate the logic that is tightly coupled with the events dataset. At which point,
     # we will just rely on dataset specific logic and refactor this class out
-    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
+    def normalize(
+        self, value: str, params: Union[ParamsType, SnubaParams], combinator: Optional[Combinator]
+    ) -> str:
         if value in SESSIONS_SNUBA_MAP:
             return value
         raise InvalidFunctionArgument(f"{value} is not a valid sessions dataset column")
@@ -1161,7 +1194,9 @@ def with_default(default, argument):
 # TODO(snql-migration): Remove these Arg classes in favour for their
 # non SnQL specific types
 class SnQLStringArg(StringArg):
-    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
+    def normalize(
+        self, value: str, params: Union[ParamsType, SnubaParams], combinator: Optional[Combinator]
+    ) -> str:
         value = super().normalize(value, params, combinator)
         # SnQL interprets string types as string, so strip the
         # quotes added in StringArg.normalize.
@@ -1169,7 +1204,9 @@ class SnQLStringArg(StringArg):
 
 
 class SnQLDateArg(DateArg):
-    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
+    def normalize(
+        self, value: str, params: Union[ParamsType, SnubaParams], combinator: Optional[Combinator]
+    ) -> str:
         value = super().normalize(value, params, combinator)
         # SnQL interprets string types as string, so strip the
         # quotes added in StringArg.normalize.
@@ -1177,7 +1214,9 @@ class SnQLDateArg(DateArg):
 
 
 class SnQLFieldColumn(FieldColumn):
-    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
+    def normalize(
+        self, value: str, params: Union[ParamsType, SnubaParams], combinator: Optional[Combinator]
+    ) -> str:
         if value is None:
             raise InvalidFunctionArgument("a column is required")
 
@@ -1271,7 +1310,10 @@ class DiscoverFunction:
         return alias
 
     def add_default_arguments(
-        self, field: str, columns: List[str], params: ParamsType
+        self,
+        field: str,
+        columns: List[str],
+        params: Union[ParamsType, SnubaParams],
     ) -> List[str]:
         # make sure to validate the argument count first to
         # ensure the right number of arguments have been passed
@@ -1295,7 +1337,7 @@ class DiscoverFunction:
         self,
         field: str,
         columns: List[str],
-        params: ParamsType,
+        params: Union[ParamsType, SnubaParams],
         combinator: Optional[Combinator] = None,
     ) -> Mapping[str, NormalizedArg]:
         columns = self.add_default_arguments(field, columns, params)
@@ -2086,7 +2128,9 @@ class MetricArg(FunctionArg):
         # Normalize the value to check if it is valid, but return the value as-is
         self.validate_only = validate_only
 
-    def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
+    def normalize(
+        self, value: str, params: Union[ParamsType, SnubaParams], combinator: Optional[Combinator]
+    ) -> str:
         if self.allowed_columns is not None and len(self.allowed_columns) > 0:
             if value in self.allowed_columns or (
                 self.allow_custom_measurements and CUSTOM_MEASUREMENT_PATTERN.match(value)

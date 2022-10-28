@@ -20,6 +20,7 @@ from sentry.search.events.fields import is_function
 from sentry.snuba import discover, metrics_enhanced_performance
 from sentry.snuba.referrer import Referrer
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.utils.snuba import QueryOutsideRetentionError
 
 logger = logging.getLogger(__name__)
 
@@ -189,10 +190,12 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             return Response(status=404)
 
         try:
-            params = self.get_snuba_params(request, organization)
+            params = self.get_snuba_dataclass(request, organization)
         except NoProjects:
             return Response([])
         except InvalidParams as err:
+            raise ParseError(err)
+        except QueryOutsideRetentionError as err:
             raise ParseError(err)
 
         referrer = request.GET.get("referrer")
@@ -266,7 +269,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     self.handle_results_with_meta(
                         request,
                         organization,
-                        params["project_id"],
+                        params.project_ids,
                         data_fn(0, self.get_per_page(request)),
                         standard_meta=True,
                     )
@@ -278,7 +281,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     on_results=lambda results: self.handle_results_with_meta(
                         request,
                         organization,
-                        params["project_id"],
+                        params.project_ids,
                         results,
                         standard_meta=True,
                     ),

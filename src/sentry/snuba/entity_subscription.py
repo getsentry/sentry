@@ -9,7 +9,6 @@ from typing import (
     Dict,
     List,
     Mapping,
-    MutableMapping,
     Optional,
     Sequence,
     Tuple,
@@ -22,7 +21,8 @@ from snuba_sdk import Column, Condition, Op
 
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, CRASH_RATE_ALERT_SESSION_COUNT_ALIAS
 from sentry.exceptions import InvalidQuerySubscription, UnsupportedQuerySubscription
-from sentry.models import Environment
+from sentry.models import Environment, Organization, Project
+from sentry.search.events.types import SnubaParams
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import (
     MetricIndexNotFound,
@@ -150,7 +150,7 @@ class BaseEntitySubscription(ABC, _EntitySubscription):
         query: str,
         project_ids: Sequence[int],
         environment: Optional[Environment],
-        params: Optional[MutableMapping[str, Any]] = None,
+        params: Optional[SnubaParams] = None,
     ) -> QueryBuilder:
         pass
 
@@ -170,18 +170,24 @@ class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
         query: str,
         project_ids: Sequence[int],
         environment: Optional[Environment],
-        params: Optional[MutableMapping[str, Any]] = None,
+        params: Optional[SnubaParams] = None,
     ) -> QueryBuilder:
         from sentry.search.events.builder import QueryBuilder
 
         if params is None:
-            params = {}
-
-        params["project_id"] = project_ids
+            params = SnubaParams(
+                None,
+                None,
+                [environment] if environment else None,
+                Project.objects.filter(id__in=project_ids),
+                None,
+                [],
+                None,
+            )
+        else:
+            params.projects = Project.objects.filter(id__in=project_ids)
 
         query = apply_dataset_query_conditions(self.query_type, query, self.event_types)
-        if environment:
-            params["environment"] = environment.name
 
         return QueryBuilder(
             dataset=Dataset(self.dataset.value),
@@ -250,7 +256,7 @@ class SessionsEntitySubscription(BaseEntitySubscription):
         query: str,
         project_ids: Sequence[int],
         environment: Optional[Environment],
-        params: Optional[MutableMapping[str, Any]] = None,
+        params: Optional[SnubaParams] = None,
     ) -> QueryBuilder:
         from sentry.search.events.builder import SessionsQueryBuilder
 
@@ -268,12 +274,17 @@ class SessionsEntitySubscription(BaseEntitySubscription):
         aggregations += [f"identity({count_col_matched}) AS {CRASH_RATE_ALERT_SESSION_COUNT_ALIAS}"]
 
         if params is None:
-            params = {}
-
-        params["project_id"] = project_ids
-
-        if environment:
-            params["environment"] = environment.name
+            params = SnubaParams(
+                None,
+                None,
+                [environment] if environment else None,
+                Project.objects.filter(id__in=project_ids),
+                None,
+                [],
+                Organization.objects.get(id=self.org_id),
+            )
+        else:
+            params.projects = Project.objects.filter(id__in=project_ids)
 
         return SessionsQueryBuilder(
             dataset=Dataset(self.dataset.value),
@@ -325,16 +336,25 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
         query: str,
         project_ids: Sequence[int],
         environment: Optional[Environment],
-        params: Optional[MutableMapping[str, Any]] = None,
+        params: Optional[SnubaParams] = None,
     ) -> QueryBuilder:
         from sentry.search.events.builder import AlertMetricsQueryBuilder
 
         if params is None:
-            params = {}
+            params = SnubaParams(
+                None,
+                None,
+                [environment] if environment else None,
+                Project.objects.filter(id__in=project_ids),
+                None,
+                [],
+                None,
+            )
+        else:
+            params.projects = Project.objects.filter(id__in=project_ids)
 
         query = apply_dataset_query_conditions(self.query_type, query, None)
 
-        params["project_id"] = project_ids
         qb = AlertMetricsQueryBuilder(
             dataset=Dataset(self.dataset.value),
             query=query,
