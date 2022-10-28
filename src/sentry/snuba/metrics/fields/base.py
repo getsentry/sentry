@@ -1567,7 +1567,6 @@ DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
             can_groupby=True,
             can_filter=True,
             snql_func=transform_null_to_unparameterized_snql,
-            default_null_value=0,
         ),
     ]
 }
