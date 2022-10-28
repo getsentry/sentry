@@ -144,63 +144,26 @@ describe('TraceView', () => {
       expect(await screen.findAllByText('test')).toHaveLength(2);
     });
 
-    //   it('should autogroup similar nested spans', async () => {
-    //     const builder = new TransactionEventBuilder();
-    //     builder.addSpan(
-    //       new MockSpan({
-    //         startTimestamp: 0,
-    //         endTimestamp: 100,
-    //         op: 'http',
-    //         description: 'test',
-    //       })
-    //     );
+    it('should autogroup similar nested spans', async () => {
+      const builder = new TransactionEventBuilder();
+      const span = new MockSpan({
+        startTimestamp: 50,
+        endTimestamp: 100,
+        op: 'http',
+        description: 'group me',
+      }).addDuplicateNestedChildren(5);
 
-    //     const event = generateSampleEvent();
-    //     generateSampleSpan(
-    //       'group me',
-    //       'http',
-    //       'b000000000000000',
-    //       'a000000000000000',
-    //       event
-    //     );
-    //     generateSampleSpan(
-    //       'group me',
-    //       'http',
-    //       'c000000000000000',
-    //       'b000000000000000',
-    //       event
-    //     );
-    //     generateSampleSpan(
-    //       'group me',
-    //       'http',
-    //       'd000000000000000',
-    //       'c000000000000000',
-    //       event
-    //     );
-    //     generateSampleSpan(
-    //       'group me',
-    //       'http',
-    //       'e000000000000000',
-    //       'd000000000000000',
-    //       event
-    //     );
-    //     generateSampleSpan(
-    //       'group me',
-    //       'http',
-    //       'f000000000000000',
-    //       'e000000000000000',
-    //       event
-    //     );
+      builder.addSpan(span);
 
-    //     const waterfallModel = new WaterfallModel(event);
+      const waterfallModel = new WaterfallModel(builder.getEvent());
 
-    //     render(
-    //       <TraceView organization={data.organization} waterfallModel={waterfallModel} />
-    //     );
+      render(
+        <TraceView organization={data.organization} waterfallModel={waterfallModel} />
+      );
 
-    //     const grouped = await screen.findByText('group me');
-    //     expect(grouped).toBeInTheDocument();
-    //   });
+      const grouped = await screen.findByText('group me');
+      expect(grouped).toBeInTheDocument();
+    });
 
     //   it('should expand/collapse only the sibling group that is clicked, even if multiple groups have the same op and description', async () => {
     //     const event = generateSampleEvent();
