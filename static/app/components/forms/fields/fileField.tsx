@@ -1,9 +1,11 @@
 import {Fragment, useState} from 'react';
 import omit from 'lodash/omit';
 
+import FormField from 'sentry/components/forms/formField';
 import Input from 'sentry/components/input';
 
-import InputField, {InputFieldProps} from './inputField';
+// XXX(epurkhiser): This is wrong, it should not be inheriting these props
+import {InputFieldProps} from './inputField';
 
 export interface FileFieldProps extends Omit<InputFieldProps, 'type' | 'accept'> {
   accept?: string[];
@@ -39,25 +41,22 @@ export default function FileField({accept, ...props}: FileFieldProps) {
   };
 
   return (
-    <InputField
-      {...props}
-      accept={accept?.join(', ')}
-      field={({onChange, ...fieldProps}) => {
-        return (
-          <Fragment>
-            <Input
-              {...omit(fieldProps, 'value', 'onBlur', 'onKeyDown')}
-              type="file"
-              onChange={e => handleFile(onChange, e)}
-            />
-            {isUploading ? (
-              <div>This is a janky upload indicator. Wait to hit save!</div>
-            ) : (
-              ''
-            )}
-          </Fragment>
-        );
-      }}
-    />
+    <FormField {...props}>
+      {({children: _children, onChange, ...fieldProps}) => (
+        <Fragment>
+          <Input
+            {...omit(fieldProps, 'value', 'onBlur', 'onKeyDown')}
+            type="file"
+            accept={accept?.join(', ')}
+            onChange={e => handleFile(onChange, e)}
+          />
+          {isUploading ? (
+            <div>This is a janky upload indicator. Wait to hit save!</div>
+          ) : (
+            ''
+          )}
+        </Fragment>
+      )}
+    </FormField>
   );
 }

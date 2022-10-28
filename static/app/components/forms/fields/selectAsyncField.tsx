@@ -6,8 +6,10 @@ import SelectAsyncControl, {
 } from 'sentry/components/forms/controls/selectAsyncControl';
 // projects can be passed as a direct prop as well
 import {GeneralSelectValue} from 'sentry/components/forms/controls/selectControl';
+import FormField from 'sentry/components/forms/formField';
 
-import InputField, {InputFieldProps} from './inputField';
+// XXX(epurkhiser): This is wrong, it should not be inheriting these props
+import {InputFieldProps} from './inputField';
 
 export interface SelectAsyncFieldProps
   extends Omit<InputFieldProps, 'highlighted' | 'visible' | 'required' | 'value'>,
@@ -77,9 +79,16 @@ class SelectAsyncField extends Component<SelectAsyncFieldProps, SelectAsyncField
   render() {
     const {onChangeOption, ...otherProps} = this.props;
     return (
-      <InputField
-        {...otherProps}
-        field={({onBlur, onChange, required: _required, onResults, value, ...props}) => (
+      <FormField {...otherProps}>
+        {({
+          required: _required,
+          children: _children,
+          onBlur,
+          onChange,
+          onResults,
+          value,
+          ...props
+        }) => (
           <SelectAsyncControl
             {...props}
             onChange={this.handleChange.bind(this, onBlur, onChange, onChangeOption)}
@@ -97,7 +106,7 @@ class SelectAsyncField extends Component<SelectAsyncFieldProps, SelectAsyncField
             value={this.findValue(value)}
           />
         )}
-      />
+      </FormField>
     );
   }
 }

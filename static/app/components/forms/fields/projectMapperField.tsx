@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import Button from 'sentry/components/button';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import FieldErrorReason from 'sentry/components/forms/field/fieldErrorReason';
+import FormField from 'sentry/components/forms/formField';
 import FormFieldControlState from 'sentry/components/forms/formField/controlState';
 import FormModel from 'sentry/components/forms/model';
 import {ProjectMapperType} from 'sentry/components/forms/types';
@@ -24,7 +25,8 @@ import space from 'sentry/styles/space';
 import {safeGetQsParam} from 'sentry/utils/integrationUtil';
 import {removeAtArrayIndex} from 'sentry/utils/removeAtArrayIndex';
 
-import InputField, {InputFieldProps} from './inputField';
+// XXX(epurkhiser): This is wrong, it should not be inheriting these props
+import {InputFieldProps} from './inputField';
 
 export interface ProjectMapperProps extends Omit<InputFieldProps, 'type'> {}
 
@@ -312,14 +314,15 @@ export class RenderField extends Component<RenderProps, State> {
 
 function ProjectMapperField(props: InputFieldProps) {
   return (
-    <StyledInputField
+    <StyledFormField
       {...props}
       resetOnError
       inline={false}
       stacked={false}
       hideControlState
-      field={(renderProps: RenderProps) => <RenderField {...renderProps} />}
-    />
+    >
+      {(renderProps: RenderProps) => <RenderField {...renderProps} />}
+    </StyledFormField>
   );
 }
 
@@ -379,7 +382,7 @@ const OptionLabelWrapper = styled('div')`
   margin-left: ${space(0.5)};
 `;
 
-const StyledInputField = styled(InputField)`
+const StyledFormField = styled(FormField)`
   padding: 0;
 `;
 
