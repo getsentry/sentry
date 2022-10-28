@@ -1342,7 +1342,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
 
         group_states2 = {
             "is_new": False,
-            "is_regression": None,  # XXX: wut
+            "is_regression": False,
             "is_new_group_environment": False,
         }
 
