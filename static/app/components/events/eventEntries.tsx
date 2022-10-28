@@ -55,7 +55,6 @@ import findBestThread from './interfaces/threads/threadSelector/findBestThread';
 import getThreadException from './interfaces/threads/threadSelector/getThreadException';
 import EventEntry from './eventEntry';
 import EventTagsAndScreenshot from './eventTagsAndScreenshot';
-import HierarchyViewer from './hierarchyViewer';
 import {mockViewHierarchyData, mockViewHierarchyData2} from './mockViewHierarchyData';
 import {parseViewHierarchy} from './viewHierarchyParser';
 
@@ -331,7 +330,7 @@ const EventEntries = ({
   const hasContext = !objectIsEmpty(event.user ?? {}) || !objectIsEmpty(event.contexts);
   const hasErrors = !objectIsEmpty(event.errors) || !!proGuardErrors.length;
 
-  console.log(parseViewHierarchy(mockViewHierarchyData2));
+  console.log(parseViewHierarchy(mockViewHierarchyData));
   return (
     <div className={className} data-test-id={`event-entries-loading-${isLoading}`}>
       {hasErrors && !isLoading && (

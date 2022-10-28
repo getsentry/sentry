@@ -63,14 +63,14 @@ describe('parser', () => {
     });
   });
 
-  it.only('does the other sibling nested thing', () => {
+  it('does the other sibling nested thing', () => {
     const testString = `<A: first;>
    | <B: first;>
    |    | <C: first;>
    | <B: second;>`;
     const output = parseViewHierarchy(testString);
     expect(output).toEqual({
-      title: 'A: A',
+      title: 'A: first',
       children: [
         {
           title: 'B: first',
@@ -89,6 +89,132 @@ describe('parser', () => {
     });
   });
 
+  it('blah', () => {
+    const testString = `<A: first;>
+   | <B: first;>
+   |    | <C: first;>
+   |    | <C: second;>
+   | <B: second;>`;
+    const output = parseViewHierarchy(testString);
+    expect(output).toEqual({
+      title: 'A: first',
+      children: [
+        {
+          title: 'B: first',
+          children: [
+            {
+              title: 'C: first',
+              children: [],
+            },
+            {
+              title: 'C: second',
+              children: [],
+            },
+          ],
+        },
+        {
+          title: 'B: second',
+          children: [],
+        },
+      ],
+    });
+  });
+
+  it('blah 2', () => {
+    const testString = `<A: first;>
+   | <B: first;>
+   |    | <C: first;>
+   |    |    | <D: first;>
+   |    | <C: second;>
+   |    |    | <D: second;>
+   | <B: second;>`;
+    const output = parseViewHierarchy(testString);
+    expect(output).toEqual({
+      title: 'A: first',
+      children: [
+        {
+          title: 'B: first',
+          children: [
+            {
+              title: 'C: first',
+              children: [
+                {
+                  title: 'D: first',
+                  children: [],
+                },
+              ],
+            },
+            {
+              title: 'C: second',
+              children: [
+                {
+                  title: 'D: second',
+                  children: [],
+                },
+              ],
+            },
+          ],
+        },
+        {
+          title: 'B: second',
+          children: [],
+        },
+      ],
+    });
+  });
+  it('blah 3', () => {
+    const testString = `<A: first;>
+   | <B: first;>
+   |    | <C: first;>
+   |    |    | <D: first;>
+   |    | <C: second;>
+   |    |    | <D: second;>
+   |    | <C: third;>
+   |    |    | <D: third;>
+   | <B: second;>`;
+    const output = parseViewHierarchy(testString);
+    expect(output).toEqual({
+      title: 'A: first',
+      children: [
+        {
+          title: 'B: first',
+          children: [
+            {
+              title: 'C: first',
+              children: [
+                {
+                  title: 'D: first',
+                  children: [],
+                },
+              ],
+            },
+            {
+              title: 'C: second',
+              children: [
+                {
+                  title: 'D: second',
+                  children: [],
+                },
+              ],
+            },
+            {
+              title: 'C: third',
+              children: [
+                {
+                  title: 'D: third',
+                  children: [],
+                },
+              ],
+            },
+          ],
+        },
+        {
+          title: 'B: second',
+          children: [],
+        },
+      ],
+    });
+  });
   it.skip('does the thing', () => {
     const testString = `<UIWindow: 0x7f893fc0ebd0; frame = (0 0; 375 667); gestureRecognizers = <NSArray: 0x600003478330>; layer = <UIWindowLayer: 0x600003a5a420>>
    | <UILayoutContainerView: 0x7f893fe280a0; frame = (0 0; 375 667); autoresize = W+H; gestureRecognizers = <NSArray: 0x600003440060>; layer = <CALayer: 0x600003a47760>>
