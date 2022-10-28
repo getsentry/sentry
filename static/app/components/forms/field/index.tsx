@@ -71,7 +71,7 @@ function Field({
     alignRight,
     disabledReason,
     flexibleControlStateSize,
-    controlState: <ControlState error={!!error} isSaving={isSaving} isSaved={isSaved} />,
+    controlState: <ControlState error={error} isSaving={isSaving} isSaved={isSaved} />,
     className: controlClassName,
     disabled: isDisabled,
     help: helpElement,

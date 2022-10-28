@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import Spinner from 'sentry/components/forms/spinner';
 import Tooltip from 'sentry/components/tooltip';
 import {IconCheckmark, IconWarning} from 'sentry/icons';
+import {fadeOut, pulse} from 'sentry/styles/animations';
 import space from 'sentry/styles/space';
 
 export interface ControlStateProps {
@@ -41,9 +42,7 @@ const ControlState = ({
       </ControlStateWrapper>
     ) : isSaved ? (
       <ControlStateWrapper>
-        <FieldIsSaved>
-          <IconCheckmark size="sm" />
-        </FieldIsSaved>
+        <StyledIconCheckmark color="success" size="sm" />
       </ControlStateWrapper>
     ) : null}
 
@@ -55,9 +54,7 @@ const ControlState = ({
           title={!hideErrorMessage && error}
           forceVisible
         >
-          <FieldError>
-            <IconWarning size="sm" />
-          </FieldError>
+          <StyledIconWarning color="error" size="sm" />
         </Tooltip>
       </ControlStateWrapper>
     ) : null}
@@ -65,25 +62,23 @@ const ControlState = ({
 );
 
 const ControlStateWrapper = styled('div')`
-  display: flex;
+  display: grid;
+  grid-auto-flow: column;
   align-items: center;
+  gap: ${space(0.5)};
   padding: 0 ${space(0.5)};
 `;
 
-const FieldIsSaved = styled('div')`
-  color: ${p => p.theme.success};
-  display: flex;
-  align-items: center;
-  justify-content: center;
+const StyledIconCheckmark = styled(IconCheckmark)`
+  animation: ${fadeOut} 0.3s ease 2s 1 forwards;
+`;
+
+const StyledIconWarning = styled(IconWarning)`
+  animation: ${() => pulse(1.15)} 1s ease infinite;
 `;
 
 const FormSpinner = styled(Spinner)`
   margin-left: 0;
 `;
 
-const FieldError = styled('div')`
-  display: flex;
-  align-items: center;
-  color: ${p => p.theme.error};
-`;
 export default ControlState;
