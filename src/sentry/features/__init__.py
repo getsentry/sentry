@@ -131,7 +131,6 @@ default_manager.add("organizations:performance-issues-dev", OrganizationFeature,
 default_manager.add("organizations:performance-issues-all-events-tab", OrganizationFeature, True)
 default_manager.add("organizations:performance-onboarding-checklist", OrganizationFeature, True)
 default_manager.add("organizations:performance-span-histogram-view", OrganizationFeature, True)
-default_manager.add("organizations:performance-span-tree-autoscroll", OrganizationFeature, True)
 default_manager.add("organizations:performance-suspect-spans-view", OrganizationFeature, True)
 default_manager.add("organizations:performance-transaction-name-only-search", OrganizationFeature, True)
 default_manager.add("organizations:performance-use-metrics", OrganizationFeature, True)
@@ -209,6 +208,7 @@ default_manager.add("organizations:relay", OrganizationFeature)
 default_manager.add("organizations:sso-basic", OrganizationFeature)
 default_manager.add("organizations:sso-saml2", OrganizationFeature)
 default_manager.add("organizations:team-insights", OrganizationFeature)
+default_manager.add("organizations:derive-code-mappings", OrganizationFeature)
 
 # Project scoped features
 default_manager.add("projects:alert-filters", ProjectFeature)
