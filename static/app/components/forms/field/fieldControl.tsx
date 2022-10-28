@@ -4,46 +4,21 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import space from 'sentry/styles/space';
 
 import FieldControlState from './fieldControlState';
+import {FieldGroupProps} from './types';
 
-export interface FieldControlProps {
+type FieldControlProps = Pick<
+  FieldGroupProps,
+  | 'alignRight'
+  | 'controlState'
+  | 'disabled'
+  | 'disabledReason'
+  | 'errorState'
+  | 'flexibleControlStateSize'
+  | 'hideControlState'
+  | 'inline'
+> & {
   children: React.ReactNode;
-  /**
-   * Align the control towards the right
-   */
-  alignRight?: boolean;
-  /**
-   * Loading / Saving / Error states of the form. See the ControlState
-   */
-  controlState?: React.ReactNode;
-  /**
-   * Disable the field
-   */
-  disabled?: boolean;
-  /**
-   * Produces a question tooltip on the field, explaining why it is disabled
-   */
-  disabledReason?: React.ReactNode;
-  /**
-   * The error state. Will not be rendered if hideControlState is true
-   */
-  errorState?: React.ReactNode;
-  /**
-   * Allow the control state to flex based on its content. When enabled the
-   * control state element will NOT take up space unless it has some state to
-   * show (such as an error).
-   */
-  flexibleControlStateSize?: boolean;
-  /**
-   * Hide the fields control state
-   */
-  hideControlState?: boolean;
-  /**
-   * Display the field control container in "inline" fashion. The label and
-   * description will be aligned to the left, while the control itself will be
-   * aligned to the right.
-   */
-  inline?: boolean;
-}
+};
 
 const FieldControl = ({
   inline,
@@ -54,7 +29,7 @@ const FieldControl = ({
   controlState,
   children,
   hideControlState,
-  flexibleControlStateSize = false,
+  flexibleControlStateSize,
 }: FieldControlProps) => (
   <FieldControlErrorWrapper inline={inline}>
     <FieldControlWrapper>

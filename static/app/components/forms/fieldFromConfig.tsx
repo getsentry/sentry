@@ -1,4 +1,4 @@
-import {FieldProps} from 'sentry/components/forms/field';
+import {FieldGroupProps} from 'sentry/components/forms/field/types';
 import SeparatorField from 'sentry/components/forms/fields/separatorField';
 import {Field} from 'sentry/components/forms/types';
 import {Scope} from 'sentry/types';
@@ -54,7 +54,7 @@ function FieldFromConfig(props: FieldFromConfigProps): React.ReactElement | null
     case 'range':
       return <RangeField {...(componentProps as RangeFieldProps)} />;
     case 'blank':
-      return <BlankField {...(componentProps as FieldProps)} />;
+      return <BlankField {...(componentProps as FieldGroupProps)} />;
     case 'bool':
     case 'boolean':
       return <BooleanField {...(componentProps as BooleanFieldProps)} />;
