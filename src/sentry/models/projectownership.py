@@ -210,6 +210,20 @@ class ProjectOwnership(Model):
             return rules_with_owners[:limit]
 
     @classmethod
+    def _get_autoassignment_types(cls, ownership):
+        from sentry.models import GroupOwnerType
+
+        autoassignment_types = []
+        if ownership.suspect_committer_auto_assignment:
+            autoassignment_types.append(GroupOwnerType.SUSPECT_COMMIT.value)
+
+        if ownership.auto_assignment:
+            autoassignment_types.extend(
+                [GroupOwnerType.OWNERSHIP_RULE.value, GroupOwnerType.CODEOWNERS.value]
+            )
+        return autoassignment_types
+
+    @classmethod
     def handle_auto_assignment(cls, project_id, event):
         """
         Get the auto-assign owner for a project if there are any.
@@ -225,25 +239,15 @@ class ProjectOwnership(Model):
             if not ownership:
                 ownership = cls(project_id=project_id)
 
-            autoassignment_types = []
-            if ownership.suspect_committer_auto_assignment:
-                autoassignment_types.append(GroupOwnerType.SUSPECT_COMMIT.value)
-
-            if ownership.auto_assignment:
-                autoassignment_types.extend(
-                    [GroupOwnerType.OWNERSHIP_RULE.value, GroupOwnerType.CODEOWNERS.value]
-                )
+            autoassignment_types = cls._get_autoassignment_types(ownership)
+            if not len(autoassignment_types):
+                return
 
             # Get the most recent GroupOwner that matches the following order: Suspect Committer, then Ownership Rule, then Code Owner
-            issue_owner = (
-                GroupOwner.objects.filter(
-                    group=event.group, project_id=project_id, type__in=autoassignment_types
-                )
-                .order_by("type")
-                .first()
+            issue_owner = GroupOwner.get_autoassigned_owner_cached(
+                event.group.id, project_id, autoassignment_types
             )
-
-            if issue_owner is None:
+            if issue_owner is False:
                 return
 
             owner = issue_owner.owner()
@@ -291,18 +295,26 @@ class ProjectOwnership(Model):
         return rules
 
 
+def process_resource_change(instance, change, **kwargs):
+    from sentry.models import GroupOwner, ProjectOwnership
+
+    cache.set(
+        ProjectOwnership.get_cache_key(instance.project_id),
+        instance if change == "updated" else None,
+        READ_CACHE_DURATION,
+    )
+    autoassignment_types = ProjectOwnership._get_autoassignment_types(instance)
+    GroupOwner.invalidate_autoassigned_owner_cache(instance.project_id, autoassignment_types)
+
+
 # Signals update the cached reads used in post_processing
 post_save.connect(
-    lambda instance, **kwargs: cache.set(
-        ProjectOwnership.get_cache_key(instance.project_id), instance, READ_CACHE_DURATION
-    ),
+    lambda instance, **kwargs: process_resource_change(instance, "updated", **kwargs),
     sender=ProjectOwnership,
     weak=False,
 )
 post_delete.connect(
-    lambda instance, **kwargs: cache.set(
-        ProjectOwnership.get_cache_key(instance.project_id), False, READ_CACHE_DURATION
-    ),
+    lambda instance, **kwargs: process_resource_change(instance, "deleted", **kwargs),
     sender=ProjectOwnership,
     weak=False,
 )

@@ -4,7 +4,9 @@ import space from 'sentry/styles/space';
 import {Theme} from 'sentry/utils/theme';
 
 const docsStyles = (theme: Theme) => css`
-  html,
+  html {
+    font-size: 100%;
+  }
   body {
     font-family: ${theme.text.family};
     font-feature-settings: 'liga';
@@ -15,9 +17,11 @@ const docsStyles = (theme: Theme) => css`
   p,
   a,
   button {
-    font-family: ${theme.text.family};
-    font-size: 1rem;
     color: ${theme.textColor};
+  }
+
+  strong {
+    color: ${theme.headingColor};
   }
 
   /** Content wraps */
@@ -25,6 +29,10 @@ const docsStyles = (theme: Theme) => css`
     display: flex;
     justify-content: center;
     background: ${theme.background};
+  }
+  #root,
+  .sbdocs.sbdocs-preview {
+    font-size: ${theme.fontSizeMedium};
   }
   body.sb-show-main {
     background: ${theme.background} !important;
@@ -61,9 +69,9 @@ const docsStyles = (theme: Theme) => css`
   /** Body text */
   .sbdocs.sbdocs-p {
     font-family: ${theme.text.family};
-    font-size: 1rem;
+    font-size: ${theme.fontSizeLarge};
     color: ${theme.textColor};
-    margin: ${space(2)} 0;
+    margin: ${space(1.5)} 0;
   }
   .sbdocs.small {
     font-size: 0.875rem;
@@ -73,7 +81,7 @@ const docsStyles = (theme: Theme) => css`
   /** Links */
   .sbdocs.sbdocs-a {
     font-family: ${theme.text.family};
-    font-size: 1rem;
+    font-size: ${theme.fontSizeLarge};
     color: ${theme.blue300};
     text-decoration: underline;
     text-decoration-color: ${theme.blue100};
@@ -97,7 +105,7 @@ const docsStyles = (theme: Theme) => css`
   }
   .sbdocs.sbdocs-wrapper *:not(pre) > code {
     font-family: ${theme.text.familyMono};
-    font-size: 1rem;
+    font-size: ${theme.fontSizeLarge};
     padding: 0.125rem 0.25rem;
     color: ${theme.textColor};
     background: ${theme.bodyBackground};
@@ -113,7 +121,7 @@ const docsStyles = (theme: Theme) => css`
   .sbdocs.sbdocs-li:first-of-type,
   .sbdocs.sbdocs-li:last-child {
     font-family: ${theme.text.family};
-    font-size: 1rem;
+    font-size: ${theme.fontSizeLarge};
     color: ${theme.textColor};
     margin: ${space(1)} 0;
   }
@@ -131,25 +139,25 @@ const docsStyles = (theme: Theme) => css`
   .sbdocs.sbdocs-h4 {
     font-family: ${theme.text.family};
     font-weight: 600;
-    color: ${theme.textColor};
+    color: ${theme.headingColor};
     border-bottom: none;
   }
   .sbdocs.sbdocs-h1 {
     font-size: 2.25rem;
-    letter-spacing: -0.05rem;
-    margin-bottom: ${space(4)};
+    letter-spacing: -0.02em;
+    margin-bottom: ${space(3)};
   }
   .sbdocs.sbdocs-h2,
   .sbdocs.sbdocs-h2:first-of-type {
     font-size: 1.625rem;
-    letter-spacing: -0.03rem;
+    letter-spacing: -0.012em;
     margin-top: 0;
     margin-bottom: ${space(2)};
   }
   .sbdocs.sbdocs-h3,
   .sbdocs.sbdocs-h3:first-of-type {
     font-size: 1.25rem;
-    letter-spacing: -0.01rem;
+    letter-spacing: -0.004em;
     margin-top: ${space(4)};
     margin-bottom: ${space(1)};
   }

@@ -24,6 +24,7 @@ class NotifyEmailAction(EventAction):
 
         target_type = ActionTargetType(self.data["targetType"])
         target_identifier = self.data.get("targetIdentifier", None)
+        skip_digests = self.data.get("skipDigests", False)
 
         if not determine_eligible_recipients(group.project, target_type, target_identifier, event):
             extra["group_id"] = group.id
@@ -33,7 +34,7 @@ class NotifyEmailAction(EventAction):
         metrics.incr("notifications.sent", instance=self.metrics_slug, skip_internal=False)
         yield self.future(
             lambda event, futures: mail_adapter.rule_notify(
-                event, futures, target_type, target_identifier
+                event, futures, target_type, target_identifier, skip_digests
             )
         )
 

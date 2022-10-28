@@ -80,7 +80,7 @@ def dump_doc(path: str, data: dict[str, Any]) -> None:
         os.makedirs(directory)
     except OSError:
         pass
-    with open(doc_path, "wt", encoding="utf-8") as f:
+    with open(doc_path, "w", encoding="utf-8") as f:
         f.write(json.dumps(data, indent=2))
         f.write("\n")
 

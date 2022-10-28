@@ -100,7 +100,7 @@ def relay_server_setup(live_server, tmpdir_factory):
         for var_name, var_val in template_vars.items():
             content = content.replace("${%s}" % var_name, str(var_val))
 
-        with open(dest_path, "wt") as output:
+        with open(dest_path, "w") as output:
             output.write(content)
 
     # we have a config path for relay that is set up with the current live serve as upstream

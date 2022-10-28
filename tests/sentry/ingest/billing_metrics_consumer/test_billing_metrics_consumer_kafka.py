@@ -109,7 +109,7 @@ def test_outcomes_consumed(track_outcome):
                     reason=None,
                     timestamp=datetime(1970, 1, 2, 10, 17, 36),
                     event_id=None,
-                    category=DataCategory.TRANSACTION_PROCESSED,
+                    category=DataCategory.TRANSACTION,
                     quantity=3,
                 )
             ]
