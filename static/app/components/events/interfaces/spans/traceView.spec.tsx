@@ -396,34 +396,34 @@ describe('TraceView', () => {
       );
     });
 
-    // it('should automatically expand a sibling span group and select a span if it is anchored', async () => {
-    //   const data = initializeData({});
+    it('should automatically expand a sibling span group and select a span if it is anchored', async () => {
+      const data = initializeData({});
 
-    //   const builder = new TransactionEventBuilder();
-    //   builder.addSpan(
-    //     new MockSpan({
-    //       startTimestamp: 100,
-    //       endTimestamp: 200,
-    //       op: 'http',
-    //       description: 'group me',
-    //     }),
-    //     5
-    //   );
+      const builder = new TransactionEventBuilder();
+      builder.addSpan(
+        new MockSpan({
+          startTimestamp: 100,
+          endTimestamp: 200,
+          op: 'http',
+          description: 'group me',
+        }),
+        5
+      );
 
-    //   // Manually set the hash here, the AnchorLinkManager is expected to automatically expand the group and scroll to the span with this id
-    //   location.hash = spanTargetHash('0000000000000003');
+      // Manually set the hash here, the AnchorLinkManager is expected to automatically expand the group and scroll to the span with this id
+      location.hash = spanTargetHash('0000000000000003');
 
-    //   const waterfallModel = new WaterfallModel(builder.getEvent());
+      const waterfallModel = new WaterfallModel(builder.getEvent());
 
-    //   render(
-    //     <AnchorLinkManager.Provider>
-    //       <TraceView organization={data.organization} waterfallModel={waterfallModel} />
-    //     </AnchorLinkManager.Provider>
-    //   );
+      render(
+        <AnchorLinkManager.Provider>
+          <TraceView organization={data.organization} waterfallModel={waterfallModel} />
+        </AnchorLinkManager.Provider>
+      );
 
-    //   expect(await screen.findByText(/0000000000000003/i)).toBeInTheDocument();
-    //   location.hash = '';
-    // });
+      expect(await screen.findByText(/0000000000000003/i)).toBeInTheDocument();
+      location.hash = '';
+    });
 
     //   it('should automatically expand a descendant span group and select a span if it is anchored', async () => {
     //     const data = initializeData({});
