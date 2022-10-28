@@ -119,6 +119,13 @@ class RuleSetSerializer(serializers.Serializer):
         return attrs
 
 
+class RuleActionSerializer(serializers.Serializer):
+    actions = ListField(child=RuleNodeField(type="action/event"), required=False)
+
+    def validate(self, attrs):
+        return validate_actions(attrs)
+
+
 class RuleSerializer(RuleSetSerializer):
     name = serializers.CharField(max_length=64)
     environment = serializers.CharField(max_length=64, required=False, allow_null=True)
@@ -139,25 +146,7 @@ class RuleSerializer(RuleSetSerializer):
         return environment
 
     def validate(self, attrs):
-        # XXX(meredith): For rules that have the Slack integration as an action
-        # we need to check if the channel_id needs to be looked up via an async task.
-        # If the "pending_save" attribute is set we want to bubble that up to the
-        # project_rule(_details) endpoints by setting it on attrs
-        actions = attrs.get("actions", tuple())
-        for action in actions:
-            # XXX(colleen): For ticket rules we need to ensure the user has
-            # at least done minimal configuration
-            if action["id"] in TICKET_ACTIONS:
-                if not action.get("dynamic_form_fields"):
-                    raise serializers.ValidationError(
-                        {"actions": "Must configure issue link settings."}
-                    )
-            # remove this attribute because we don't want it to be saved in the rule
-            if action.pop("pending_save", None):
-                attrs["pending_save"] = True
-                break
-
-        return super().validate(attrs)
+        return super().validate(validate_actions(attrs))
 
     def save(self, rule):
         rule.project = self.context["project"]
@@ -180,3 +169,25 @@ class RuleSerializer(RuleSetSerializer):
             rule.owner = self.validated_data["owner"].resolve_to_actor()
         rule.save()
         return rule
+
+
+def validate_actions(attrs):
+    # XXX(meredith): For rules that have the Slack integration as an action
+    # we need to check if the channel_id needs to be looked up via an async task.
+    # If the "pending_save" attribute is set we want to bubble that up to the
+    # project_rule(_details) endpoints by setting it on attrs
+    actions = attrs.get("actions", tuple())
+    for action in actions:
+        # XXX(colleen): For ticket rules we need to ensure the user has
+        # at least done minimal configuration
+        if action["id"] in TICKET_ACTIONS:
+            if not action.get("dynamic_form_fields"):
+                raise serializers.ValidationError(
+                    {"actions": "Must configure issue link settings."}
+                )
+        # remove this attribute because we don't want it to be saved in the rule
+        if action.pop("pending_save", None):
+            attrs["pending_save"] = True
+            break
+
+    return attrs

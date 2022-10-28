@@ -98,11 +98,32 @@ describe('getFieldRenderer', function () {
     expect(screen.getByText(data.numeric)).toBeInTheDocument();
   });
 
-  it('can render date fields', function () {
-    const renderer = getFieldRenderer('createdAt', {createdAt: 'date'});
-    render(renderer(data, {location, organization}));
+  describe('date', function () {
+    beforeEach(function () {
+      ConfigStore.loadInitialData({
+        user: {
+          options: {
+            timezone: 'America/Los_Angeles',
+          },
+        },
+      });
+    });
 
-    expect(screen.getByText('Oct 3, 2019 4:13:14 PM UTC')).toBeInTheDocument();
+    it('can render date fields', function () {
+      const renderer = getFieldRenderer('createdAt', {createdAt: 'date'});
+      render(renderer(data, {location, organization}));
+
+      expect(screen.getByText('Oct 3, 2019 9:13:14 AM PDT')).toBeInTheDocument();
+    });
+
+    it('can render date fields using utc when query string has utc set to true', function () {
+      const renderer = getFieldRenderer('createdAt', {createdAt: 'date'});
+      render(
+        renderer(data, {location: {...location, query: {utc: 'true'}}, organization})
+      );
+
+      expect(screen.getByText('Oct 3, 2019 4:13:14 PM UTC')).toBeInTheDocument();
+    });
   });
 
   it('can render null date fields', function () {
