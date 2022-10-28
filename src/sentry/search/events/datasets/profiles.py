@@ -89,7 +89,7 @@ COLUMNS = [
 COLUMN_MAP = {column.alias: column for column in COLUMNS}
 
 
-class ProfileColumnArg(ColumnArg):
+class ProfileColumnArg(ColumnArg):  # type: ignore
     def normalize(
         self, value: str, params: ParamsType, combinator: Optional[Combinator]
     ) -> NormalizedArg:
@@ -102,7 +102,7 @@ class ProfileColumnArg(ColumnArg):
         return value
 
 
-class ProfileNumericColumn(NumericColumn):
+class ProfileNumericColumn(NumericColumn):  # type: ignore
     def _normalize(self, value: str) -> str:
         column = COLUMN_MAP.get(value)
 
@@ -125,7 +125,7 @@ class ProfileNumericColumn(NumericColumn):
             return Kind.NUMBER.value
 
 
-class ProfilesDatasetConfig(DatasetConfig):
+class ProfilesDatasetConfig(DatasetConfig):  # type: ignore
     non_nullable_keys = {
         "organization.id",
         "project.id",
@@ -318,7 +318,7 @@ class ProfilesDatasetConfig(DatasetConfig):
         except KeyError:
             raise InvalidSearchQuery(f"Unknown field: {column}")
 
-    def resolve_column_type(self, column: str) -> Optional[str]:
+    def resolve_column_type(self, column: str, units: bool = False) -> Optional[str]:
         try:
             col = COLUMN_MAP[column]
             if col.unit:

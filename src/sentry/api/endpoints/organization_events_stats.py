@@ -154,11 +154,19 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                     )
                 )
             )
+
+            use_profiles = features.has(
+                "organizations:profiling",
+                organization=organization,
+                actor=request.user,
+            )
+
             performance_dry_run_mep = batch_features.get(
                 "organizations:performance-dry-run-mep", False
             )
 
-            dataset = self.get_dataset(request) if use_metrics else discover
+            use_custom_dataset = use_metrics or use_profiles
+            dataset = self.get_dataset(request) if use_custom_dataset else discover
             metrics_enhanced = dataset != discover
 
             allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
