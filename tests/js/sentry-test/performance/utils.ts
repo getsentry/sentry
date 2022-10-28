@@ -90,31 +90,33 @@ export class TransactionEventBuilder {
     return (this.#spans.length + 1).toString(16).padStart(16, '0');
   }
 
-  addSpan(mSpan: MockSpan, parentSpanId?: string) {
-    const spanId = this.generateSpanId();
-    const {span} = mSpan;
-    span.span_id = spanId;
-    span.trace_id = this.TRACE_ID;
-    span.parent_span_id = parentSpanId ?? this.ROOT_SPAN_ID;
+  addSpan(mSpan: MockSpan, numSpans = 1, parentSpanId?: string) {
+    for (let i = 0; i < numSpans; i++) {
+      const spanId = this.generateSpanId();
+      const {span} = mSpan;
+      span.span_id = spanId;
+      span.trace_id = this.TRACE_ID;
+      span.parent_span_id = parentSpanId ?? this.ROOT_SPAN_ID;
 
-    this.#event.entries[0].data.push(span);
+      this.#event.entries[0].data.push(span);
 
-    switch (mSpan.problemSpan) {
-      case ProblemSpan.PARENT:
-        this.#event.perfProblem?.parentSpanIds.push(spanId);
-        break;
-      case ProblemSpan.OFFENDER:
-        this.#event.perfProblem?.offenderSpanIds.push(spanId);
-        break;
-      default:
-        break;
+      switch (mSpan.problemSpan) {
+        case ProblemSpan.PARENT:
+          this.#event.perfProblem?.parentSpanIds.push(spanId);
+          break;
+        case ProblemSpan.OFFENDER:
+          this.#event.perfProblem?.offenderSpanIds.push(spanId);
+          break;
+        default:
+          break;
+      }
+
+      if (span.timestamp > this.#event.endTimestamp) {
+        this.#event.endTimestamp = span.timestamp;
+      }
+
+      mSpan.children.forEach(child => this.addSpan(child, 1, spanId));
     }
-
-    if (span.timestamp > this.#event.endTimestamp) {
-      this.#event.endTimestamp = span.timestamp;
-    }
-
-    mSpan.children.forEach(child => this.addSpan(child, spanId));
 
     return this;
   }
