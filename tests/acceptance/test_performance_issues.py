@@ -31,6 +31,8 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase):
     def test_with_one_performance_issue(self, mock_now):
         event = load_data("transaction")
         event["event_id"] = "d964fdbd649a4cf8bfc35d18082b6b0e"
+        event["contexts"]["trace"]["trace_id"] = "530c14e044aa464db6ddb43660e6474f"
+        event["contexts"]["trace"]["span_id"] = "139fcdb7c5534eb4"
 
         data = json.loads(
             self.load_fixture("events/performance_problems/n-plus-one-in-django-new-view.json")
