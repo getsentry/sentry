@@ -5,6 +5,7 @@ import flatten from 'lodash/flatten';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import FormField from 'sentry/components/forms/formField';
 import {TableType} from 'sentry/components/forms/types';
 import Input from 'sentry/components/input';
 import {IconAdd, IconDelete} from 'sentry/icons';
@@ -13,7 +14,8 @@ import space from 'sentry/styles/space';
 import {defined, objectIsEmpty} from 'sentry/utils';
 import {singleLineRenderer} from 'sentry/utils/marked';
 
-import InputField, {InputFieldProps} from './inputField';
+// XXX(epurkhiser): This is wrong, it should not be inheriting these props
+import {InputFieldProps} from './inputField';
 
 interface DefaultProps {
   /**
@@ -182,12 +184,13 @@ export default class TableField extends Component<InputFieldProps> {
     // change within the toast. Just turn off displaying the from/to portion of
     // the message
     return (
-      <InputField
+      <FormField
         {...this.props}
         formatMessageValue={false}
         inline={({model}) => !this.hasValue(model.getValue(this.props.name))}
-        field={this.renderField}
-      />
+      >
+        {this.renderField}
+      </FormField>
     );
   }
 }

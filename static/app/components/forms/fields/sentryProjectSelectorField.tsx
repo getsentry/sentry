@@ -1,11 +1,13 @@
 import {Component} from 'react';
 
 import SelectControl from 'sentry/components/forms/controls/selectControl';
+import FormField from 'sentry/components/forms/formField';
 import IdBadge from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
 import {Project} from 'sentry/types';
 
-import InputField, {InputFieldProps} from './inputField';
+// XXX(epurkhiser): This is wrong, it should not be inheriting these props
+import {InputFieldProps} from './inputField';
 
 const defaultProps = {
   avatarSize: 20,
@@ -39,7 +41,14 @@ class RenderField extends Component<RenderProps> {
   };
 
   render() {
-    const {projects, avatarSize, onChange, onBlur, ...rest} = this.props;
+    const {
+      children: _children,
+      projects,
+      avatarSize,
+      onChange,
+      onBlur,
+      ...rest
+    } = this.props;
 
     const projectOptions = projects.map(project => ({
       value: project.id,
@@ -65,10 +74,7 @@ class RenderField extends Component<RenderProps> {
 }
 
 const SentryProjectSelectorField = (props: RenderFieldProps) => (
-  <InputField
-    {...props}
-    field={(renderProps: RenderProps) => <RenderField {...renderProps} />}
-  />
+  <FormField {...props}>{fieldProps => <RenderField {...fieldProps} />}</FormField>
 );
 
 export default SentryProjectSelectorField;
