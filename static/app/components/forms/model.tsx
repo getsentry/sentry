@@ -133,7 +133,6 @@ class FormModel {
       setValue: action,
       validateField: action,
       updateShowSaveState: action,
-      updateShowReturnButtonState: action,
       undo: action,
       saveForm: action,
       saveField: action,
@@ -387,7 +386,6 @@ class FormModel {
 
     this.validateField(id);
     this.updateShowSaveState(id, finalValue);
-    this.updateShowReturnButtonState(id, finalValue);
   }
 
   validateField(id: string) {
@@ -425,21 +423,6 @@ class FormModel {
     }
 
     this.setFieldState(id, 'showSave', isValueChanged);
-  }
-
-  updateShowReturnButtonState(id: string, value: FieldValue) {
-    const isValueChanged = value !== this.initialData[id];
-    const shouldShowReturnButton = this.getDescriptor(id, 'showReturnButton');
-
-    if (!shouldShowReturnButton) {
-      return;
-    }
-    // Only update state if state has changed
-    if (this.getFieldState(id, 'showReturnButton') === isValueChanged) {
-      return;
-    }
-
-    this.setFieldState(id, 'showReturnButton', isValueChanged);
   }
 
   /**

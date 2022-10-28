@@ -40,6 +40,7 @@ class MailAdapter:
         futures: Sequence[RuleFuture],
         target_type: ActionTargetType,
         target_identifier: Optional[int] = None,
+        skip_digests: bool = False,
     ) -> None:
         metrics.incr("mail_adapter.rule_notify")
         rules = []
@@ -64,7 +65,11 @@ class MailAdapter:
         extra["project_id"] = project.id
 
         # Only digest errors issues for the moment.
-        if digests.enabled(project) and event.group.issue_category == GroupCategory.ERROR:
+        if (
+            digests.enabled(project)
+            and event.group.issue_category == GroupCategory.ERROR
+            and not skip_digests
+        ):
 
             def get_digest_option(key):
                 return ProjectOption.objects.get_value(project, get_digest_option_key("mail", key))

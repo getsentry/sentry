@@ -44,6 +44,8 @@ import {
   stringToFilter,
 } from 'sentry/views/performance/transactionSummary/filter';
 
+import {decodeScalar} from '../queryString';
+
 import ArrayValue from './arrayValue';
 import {
   BarContainer,
@@ -172,11 +174,19 @@ export const FIELD_FORMATTERS: FieldFormatters = {
   },
   date: {
     isSortable: true,
-    renderFunc: (field, data) => (
+    renderFunc: (field, data, baggage) => (
       <Container>
         {data[field]
           ? getDynamicText({
-              value: <FieldDateTime date={data[field]} year seconds timeZone />,
+              value: (
+                <FieldDateTime
+                  date={data[field]}
+                  year
+                  seconds
+                  timeZone
+                  utc={decodeScalar(baggage?.location?.query?.utc) === 'true'}
+                />
+              ),
               fixed: 'timestamp',
             })
           : emptyValue}
@@ -403,7 +413,7 @@ const SPECIAL_FIELDS: SpecialFields = {
     renderFunc: data => {
       const id: string | unknown = data?.trace;
       if (typeof id !== 'string') {
-        return null;
+        return emptyValue;
       }
 
       return <Container>{getShortEventId(id)}</Container>;
@@ -430,7 +440,7 @@ const SPECIAL_FIELDS: SpecialFields = {
     renderFunc: data => {
       const replayId = data?.replayId;
       if (typeof replayId !== 'string' || !replayId) {
-        return null;
+        return emptyValue;
       }
 
       return (
