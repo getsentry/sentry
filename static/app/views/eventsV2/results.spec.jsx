@@ -409,7 +409,7 @@ describe('Results', function () {
 
     it('excludes top5 options when plan does not include discover-query', async function () {
       const organization = TestStubs.Organization({
-        features: ['discover-basic'],
+        features: ['discover-basic', 'discover-frontend-use-events-endpoint'],
       });
 
       const initialData = initializeOrg({
@@ -452,7 +452,7 @@ describe('Results', function () {
 
     it('needs confirmation on long queries', async function () {
       const organization = TestStubs.Organization({
-        features: ['discover-basic'],
+        features: ['discover-basic', 'discover-frontend-use-events-endpoint'],
       });
 
       const initialData = initializeOrg({
@@ -482,7 +482,7 @@ describe('Results', function () {
 
     it('needs confirmation on long query with explicit projects', async function () {
       const organization = TestStubs.Organization({
-        features: ['discover-basic'],
+        features: ['discover-basic', 'discover-frontend-use-events-endpoint'],
       });
 
       const initialData = initializeOrg({
@@ -518,7 +518,7 @@ describe('Results', function () {
 
     it('does not need confirmation on short queries', async function () {
       const organization = TestStubs.Organization({
-        features: ['discover-basic'],
+        features: ['discover-basic', 'discover-frontend-use-events-endpoint'],
       });
 
       const initialData = initializeOrg({
@@ -548,7 +548,7 @@ describe('Results', function () {
 
     it('does not need confirmation with to few projects', async function () {
       const organization = TestStubs.Organization({
-        features: ['discover-basic'],
+        features: ['discover-basic', 'discover-frontend-use-events-endpoint'],
       });
 
       const initialData = initializeOrg({
@@ -922,7 +922,7 @@ describe('Results', function () {
 
     it('respects pinned filters for prebuilt queries', async function () {
       const organization = TestStubs.Organization({
-        features: [...features, 'global-views'],
+        features: [...features, 'global-views', 'discover-frontend-use-events-endpoint'],
       });
 
       const initialData = initializeOrg({
@@ -1012,7 +1012,7 @@ describe('Results', function () {
 
   it('renders metric fallback alert', async function () {
     const organization = TestStubs.Organization({
-      features: ['discover-basic'],
+      features: ['discover-basic', 'discover-frontend-use-events-endpoint'],
     });
 
     const initialData = initializeOrg({
@@ -1043,7 +1043,7 @@ describe('Results', function () {
 
   it('renders unparameterized data banner', async function () {
     const organization = TestStubs.Organization({
-      features: ['discover-basic'],
+      features: ['discover-basic', 'discover-frontend-use-events-endpoint'],
     });
 
     const initialData = initializeOrg({
@@ -1083,6 +1083,7 @@ describe('Results', function () {
         'discover-basic',
         'discover-query',
         'discover-query-builder-as-landing-page',
+        'discover-frontend-use-events-endpoint',
       ],
     });
 
@@ -1148,6 +1149,7 @@ describe('Results', function () {
         'discover-basic',
         'discover-query',
         'discover-query-builder-as-landing-page',
+        'discover-frontend-use-events-endpoint',
       ],
     });
 
@@ -1206,6 +1208,7 @@ describe('Results', function () {
         'discover-basic',
         'discover-query',
         'discover-query-builder-as-landing-page',
+        'discover-frontend-use-events-endpoint',
       ],
     });
 
@@ -1264,6 +1267,7 @@ describe('Results', function () {
         'discover-basic',
         'discover-query',
         'discover-query-builder-as-landing-page',
+        'discover-frontend-use-events-endpoint',
       ],
     });
 
@@ -1297,6 +1301,7 @@ describe('Results', function () {
         'discover-basic',
         'discover-query',
         'discover-query-builder-as-landing-page',
+        'discover-frontend-use-events-endpoint',
       ],
     });
 
