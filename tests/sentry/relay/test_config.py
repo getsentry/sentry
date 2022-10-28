@@ -59,7 +59,7 @@ DEFAULT_ENVIRONMENT_RULE = {
     "id": 1001,
 }
 
-DEFAULT_ENVIRONMENT_RULE = {
+DEFAULT_IGNORE_HEALTHCHECKS_RULE = {
     "sampleRate": 0.02,
     "type": "trace",
     "condition": {
@@ -68,7 +68,6 @@ DEFAULT_ENVIRONMENT_RULE = {
             {
                 "op": "glob",
                 "name": "transaction.transaction",
-                # TODO (andrii): find final list
                 "value": ["*healthcheck*", "*healthy*"],
                 "options": {"ignoreCase": True},
             }
@@ -306,6 +305,7 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
             {
                 "rules": [
                     DEFAULT_ENVIRONMENT_RULE,
+                    DEFAULT_IGNORE_HEALTHCHECKS_RULE,
                     {
                         "sampleRate": 0.1,
                         "type": "trace",
@@ -347,6 +347,7 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
             {
                 "rules": [
                     DEFAULT_ENVIRONMENT_RULE,
+                    DEFAULT_IGNORE_HEALTHCHECKS_RULE,
                     {
                         "sampleRate": 0.1,
                         "type": "trace",
@@ -384,6 +385,7 @@ def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_pr
             {
                 "rules": [
                     DEFAULT_ENVIRONMENT_RULE,
+                    DEFAULT_IGNORE_HEALTHCHECKS_RULE,
                     {
                         "sampleRate": 0.1,
                         "type": "trace",

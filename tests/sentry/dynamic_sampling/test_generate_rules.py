@@ -79,6 +79,23 @@ def test_generate_rules_return_uniform_rules_and_env_rule(get_blended_sample_rat
             "id": 1001,
         },
         {
+            "sampleRate": 0.02,
+            "type": "trace",
+            "condition": {
+                "op": "or",
+                "inner": [
+                    {
+                        "op": "glob",
+                        "name": "transaction.transaction",
+                        "value": ["*healthcheck*", "*healthy*"],
+                        "options": {"ignoreCase": True},
+                    }
+                ],
+            },
+            "active": True,
+            "id": 1002,
+        },
+        {
             "active": True,
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
@@ -107,6 +124,7 @@ def test_generate_rules_return_uniform_rule_with_100_rate_and_without_env_rule(
         },
     ]
     get_blended_sample_rate.assert_called_with(fake_project)
+<<<<<<< HEAD
 
 
 class LatestReleaseTest(TestCase):
@@ -359,12 +377,23 @@ def test_generate_rules_return_uniform_rule_with_100_rate_and_without_env_rule(
 =======
 ||||||| parent of dba4bbf6a6 (feat(ds): Send boosted releases to relay as part of ProjectConfig [TET-497] (#40415))
 =======
+||||||| parent of f1891c5be8 (add bias release health boosting)
+<<<<<<< HEAD
+>>>>>>> 30e13df85c (feat(dynamic-sampling): Add new bias for dev envs [TET-491] (#40382))
+||||||| parent of dba4bbf6a6 (feat(ds): Send boosted releases to relay as part of ProjectConfig [TET-497] (#40415))
+=======
+=======
+>>>>>>> f1891c5be8 (add bias release health boosting)
 
 
 class LatestReleaseTest(TestCase):
     def setUp(self):
         self.project.update_option(
-            "sentry:dynamic_sampling_biases", [{"id": "boostEnvironments", "active": False}]
+            "sentry:dynamic_sampling_biases",
+            [
+                {"id": "boostEnvironments", "active": False},
+                {"id": "ignoreHealthChecks", "active": False},
+            ],
         )
         self.redis_client = get_redis_client_for_ds()
 
@@ -483,5 +512,10 @@ class LatestReleaseTest(TestCase):
         assert generate_rules(self.project) == expected
         config_str = json.dumps({"rules": expected})
         validate_sampling_configuration(config_str)
+<<<<<<< HEAD
 >>>>>>> dba4bbf6a6 (feat(ds): Send boosted releases to relay as part of ProjectConfig [TET-497] (#40415))
 >>>>>>> a4faf00b39 (feat(ds): Send boosted releases to relay as part of ProjectConfig [TET-497] (#40415))
+||||||| parent of f1891c5be8 (add bias release health boosting)
+>>>>>>> dba4bbf6a6 (feat(ds): Send boosted releases to relay as part of ProjectConfig [TET-497] (#40415))
+=======
+>>>>>>> f1891c5be8 (add bias release health boosting)
