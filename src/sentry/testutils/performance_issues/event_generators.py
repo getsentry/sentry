@@ -1,10 +1,11 @@
 import os
 
+from sentry.testutils.factories import get_fixture_path
 from sentry.utils import json
 
 from .span_builder import SpanBuilder
 
-_fixture_path = os.path.join(os.path.dirname(__file__), "events")
+_fixture_path = get_fixture_path("events", "performance_problems")
 
 EVENTS = {}
 PROJECT_ID = 1
