@@ -1,8 +1,7 @@
-import {Fragment, useCallback, useRef} from 'react';
+import {Fragment} from 'react';
 import {createPortal} from 'react-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {useResizeObserver} from '@react-aria/utils';
 import {AnimatePresence} from 'framer-motion';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
@@ -41,67 +40,6 @@ interface HovercardProps extends Omit<UseHoverOverlayProps, 'isHoverable'> {
   tipColor?: ColorOrAlias;
 }
 
-type UseOverOverlayState = ReturnType<typeof useHoverOverlay>;
-
-interface HovercardContentProps
-  extends Pick<
-    HovercardProps,
-    'bodyClassName' | 'className' | 'header' | 'body' | 'tipColor' | 'tipBorderColor'
-  > {
-  hoverOverlayState: Omit<UseOverOverlayState, 'isOpen' | 'wrapTrigger'>;
-}
-
-function useUpdateOverlayPositionOnContentChange({
-  update,
-}: Pick<UseOverOverlayState, 'update'>) {
-  const ref = useRef<HTMLDivElement | null>(null);
-
-  const onResize = useCallback(() => {
-    update?.();
-  }, [update]);
-
-  useResizeObserver({
-    ref,
-    onResize,
-  });
-
-  return ref;
-}
-
-function HovercardContent({
-  body,
-  bodyClassName,
-  className,
-  tipBorderColor,
-  tipColor,
-  header,
-  hoverOverlayState: {arrowData, arrowProps, overlayProps, placement, update},
-}: HovercardContentProps) {
-  const theme = useTheme();
-  const ref = useUpdateOverlayPositionOnContentChange({update});
-
-  return (
-    <PositionWrapper zIndex={theme.zIndex.hovercard} {...overlayProps}>
-      <StyledHovercard
-        animated
-        arrowProps={{
-          ...arrowProps,
-          size: 20,
-          background: tipColor,
-          border: tipBorderColor,
-        }}
-        originPoint={arrowData}
-        placement={placement}
-        className={className}
-        ref={ref}
-      >
-        {header ? <Header>{header}</Header> : null}
-        {body ? <Body className={bodyClassName}>{body}</Body> : null}
-      </StyledHovercard>
-    </PositionWrapper>
-  );
-}
-
 function Hovercard({
   body,
   bodyClassName,
@@ -115,13 +53,15 @@ function Hovercard({
   tipColor = 'backgroundElevated',
   ...hoverOverlayProps
 }: HovercardProps): React.ReactElement {
-  const {wrapTrigger, isOpen, ...hoverOverlayState} = useHoverOverlay('hovercard', {
-    offset,
-    displayTimeout,
-    isHoverable: true,
-    className: containerClassName,
-    ...hoverOverlayProps,
-  });
+  const theme = useTheme();
+  const {wrapTrigger, isOpen, overlayProps, placement, arrowData, arrowProps} =
+    useHoverOverlay('hovercard', {
+      offset,
+      displayTimeout,
+      isHoverable: true,
+      className: containerClassName,
+      ...hoverOverlayProps,
+    });
 
   // Nothing to render if no header or body. Be consistent with wrapping the
   // children with the trigger in the case that the body / header is set while
@@ -131,17 +71,23 @@ function Hovercard({
   }
 
   const hovercardContent = isOpen && (
-    <HovercardContent
-      {...{
-        body,
-        bodyClassName,
-        className,
-        tipBorderColor,
-        tipColor,
-        header,
-        hoverOverlayState,
-      }}
-    />
+    <PositionWrapper zIndex={theme.zIndex.hovercard} {...overlayProps}>
+      <StyledHovercard
+        animated
+        arrowProps={{
+          ...arrowProps,
+          size: 20,
+          background: tipColor,
+          border: tipBorderColor,
+        }}
+        originPoint={arrowData}
+        placement={placement}
+        className={className}
+      >
+        {header ? <Header>{header}</Header> : null}
+        {body ? <Body className={bodyClassName}>{body}</Body> : null}
+      </StyledHovercard>
+    </PositionWrapper>
   );
 
   return (
