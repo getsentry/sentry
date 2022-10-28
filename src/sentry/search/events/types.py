@@ -23,6 +23,8 @@ NormalizedArg = Optional[Union[str, float]]
 HistogramParams = namedtuple(
     "HistogramParams", ["num_buckets", "bucket_size", "start_offset", "multiplier"]
 )
+# converter is to convert the aggregate filter to snuba query
+Alias = namedtuple("Alias", "converter aggregate resolved_function")
 
 
 @dataclass
@@ -47,7 +49,7 @@ class EventsResponse(TypedDict):
 class SnubaParams:
     start: Optional[datetime]
     end: Optional[datetime]
-    environments: Sequence[Environment]
+    environments: Sequence[Union[Environment, None]]
     projects: Sequence[Project]
     user: Optional[User]
     teams: Sequence[Team]
@@ -59,9 +61,16 @@ class SnubaParams:
         if self.end:
             self.end = self.end.replace(tzinfo=timezone.utc)
 
+        # Only used in the trend query builder
+        self.aliases: Optional[Dict[str, Alias]] = {}
+
     @property
     def environment_names(self) -> Sequence[str]:
-        return [env.name for env in self.environments] if self.environments else []
+        return (
+            [env.name if env is not None else "" for env in self.environments]
+            if self.environments
+            else []
+        )
 
     @property
     def project_ids(self) -> Sequence[int]:

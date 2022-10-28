@@ -286,8 +286,8 @@ def timeseries_query(
                 {
                     "data": zerofill(
                         result["data"],
-                        snql_query.params["start"],
-                        snql_query.params["end"],
+                        snql_query.params.start,
+                        snql_query.params.end,
                         rollup,
                         "time",
                     )

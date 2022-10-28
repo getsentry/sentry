@@ -4,7 +4,7 @@ from snuba_sdk.conditions import Condition, Op
 
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import InvalidSearchQuery
-from sentry.search.events.types import ParamsType, WhereType
+from sentry.search.events.types import ParamsType, SnubaParams, WhereType
 from sentry.snuba.discover import transform_tips
 from sentry.utils.snuba import Dataset
 
@@ -13,6 +13,7 @@ def query(
     selected_columns: Sequence[str],
     query: Optional[str],
     params: ParamsType,
+    snuba_params: Optional[SnubaParams] = None,
     equations: Optional[Sequence[str]] = None,
     orderby: Optional[Sequence[str]] = None,
     offset: int = 0,
@@ -58,11 +59,7 @@ class ProfilesQueryBuilder(QueryBuilder):  # type: ignore
         # the profiles dataset requires a condition
         # on the organization_id in the query
         conditions.append(
-            Condition(
-                self.column("organization.id"),
-                Op.EQ,
-                self.params["organization_id"],
-            )
+            Condition(self.column("organization.id"), Op.EQ, self.params.organization.id)
         )
 
         return conditions

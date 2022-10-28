@@ -55,7 +55,7 @@ def release_filter_converter(
                         v,
                         builder.params.project_ids,
                         builder.params.environments,
-                        builder.params.organization.id,
+                        builder.params.organization.id if builder.params.organization else None,
                     )
                     for v in to_list(search_filter.value.value)
                 ],
@@ -116,6 +116,8 @@ def release_stage_filter_converter(
     Parses a release stage search and returns a snuba condition to filter to the
     requested releases.
     """
+    if builder.params.organization is None:
+        raise ValueError("organization is a required param")
     # TODO: Filter by project here as well. It's done elsewhere, but could critically limit versions
     # for orgs with thousands of projects, each with their own releases (potentially drowning out ones we care about)
     qs = (
@@ -156,6 +158,8 @@ def semver_filter_converter(
        the passed filter. This means that when searching for `>= 1.0.0`, we'll return
        version 1.0.0, 1.0.1, 1.1.0 before 9.x.x.
     """
+    if builder.params.organization is None:
+        raise ValueError("organization is a required param")
     organization_id: int = builder.params.organization.id
     # We explicitly use `raw_value` here to avoid converting wildcards to shell values
     version: str = search_filter.value.raw_value
@@ -213,6 +217,8 @@ def semver_package_filter_converter(
     Applies a semver package filter to the search. Note that if the query returns more than
     `MAX_SEARCH_RELEASES` here we arbitrarily return a subset of the releases.
     """
+    if builder.params.organization is None:
+        raise ValueError("organization is a required param")
     package: str = search_filter.value.raw_value
 
     versions = list(
@@ -237,6 +243,8 @@ def semver_build_filter_converter(
     Applies a semver build filter to the search. Note that if the query returns more than
     `MAX_SEARCH_RELEASES` here we arbitrarily return a subset of the releases.
     """
+    if builder.params.organization is None:
+        raise ValueError("organization is a required param")
     build: str = search_filter.value.raw_value
 
     operator, negated = handle_operator_negation(search_filter.operator)

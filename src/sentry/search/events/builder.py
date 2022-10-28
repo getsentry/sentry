@@ -49,7 +49,7 @@ from sentry.discover.arithmetic import (
     strip_equation,
 )
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
-from sentry.models import Environment, Project, Team, User
+from sentry.models import Environment, Organization, Project, Team, User
 from sentry.search.events.constants import (
     ARRAY_FIELDS,
     DRY_RUN_COLUMNS,
@@ -128,15 +128,41 @@ class QueryBuilder:
         elif "project_id" in params:
             projects = Project.objects.filter(id__in=params["project_id"])
         else:
-            raise InvalidSearchQuery("Projects are required to query")
+            projects = []
 
-        user = User.objects.get(id=params["user_id"]) if "user_id" in params else None
+        if "organization_id" in params:
+            organization = Organization.objects.filter(id=params["organization_id"]).first()
+        else:
+            organization = projects[0].organization if projects else None
+
+        # Yes this is a little janky, but its temporary until we can have everyone passing the dataclass directly
+        environments: Sequence[Union[Environment, None]] = []
+        if "environment_objects" in params:
+            environments = cast(Sequence[Union[Environment, None]], params["environment_objects"])
+        elif "environment" in params and organization is not None:
+            if isinstance(params["environment"], list):
+                environments = list(
+                    Environment.objects.filter(
+                        organization_id=organization.id, name__in=params["environment"]
+                    )
+                )
+                if "" in cast(List[str], params["environment"]):
+                    environments.append(None)
+            elif isinstance(params["environment"], str):
+                environments = list(
+                    Environment.objects.filter(
+                        organization_id=organization.id, name=params["environment"]
+                    )
+                )
+            else:
+                environments = []
+
+        user = User.objects.filter(id=params["user_id"]).first() if "user_id" in params else None
         teams = Team.objects.filter(id__in=params["team_id"]) if "team_id" in params else None
-        organization = projects[0].organization
         return SnubaParams(
             start=cast(datetime, params.get("start")),
             end=cast(datetime, params.get("end")),
-            environments=cast(Sequence[Environment], params.get("environment_objects", [])),
+            environments=environments,
             projects=projects,
             user=user,
             teams=teams,
@@ -1904,7 +1930,10 @@ class MetricsQueryBuilder(QueryBuilder):
             *args,
             **kwargs,
         )
-        self.organization_id: int = self.params.organization.id
+        org_id = self.filter_params.get("organization_id")
+        if org_id is None or not isinstance(org_id, int):
+            raise InvalidSearchQuery("Organization id required to create a metrics query")
+        self.organization_id: int = org_id
 
     def validate_aggregate_arguments(self) -> None:
         if not self.use_metrics_layer:
