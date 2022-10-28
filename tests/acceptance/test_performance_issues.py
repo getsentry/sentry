@@ -1,10 +1,13 @@
 import datetime
+import random
+import string
 from unittest.mock import patch
 
 import pytz
 
 from fixtures.page_objects.issue_details import IssueDetailsPage
 from sentry import options
+from sentry.models import Group
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.utils import json
 from sentry.utils.samples import load_data
@@ -26,6 +29,12 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase):
 
         self.page = IssueDetailsPage(self.browser, self.client)
         self.dismiss_assistant()
+
+    def randomize_span_description(self, span):
+        return {
+            **span,
+            "description": "".join(random.choice(string.ascii_lowercase) for _ in range(10)),
+        }
 
     @patch("django.utils.timezone.now")
     def test_with_one_performance_issue(self, mock_now):
@@ -52,3 +61,60 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.click('[aria-label="Show Details"]')
 
             self.browser.snapshot("performance issue details", desktop_only=True)
+
+    @patch("django.utils.timezone.now")
+    def test_multiple_events_from_one_performance_issue(self, mock_now):
+        data = json.loads(
+            self.load_fixture("events/performance_problems/n-plus-one-in-django-new-view.json")
+        )
+
+        mock_now.return_value = datetime.datetime.fromtimestamp(data["start_timestamp"]).replace(
+            tzinfo=pytz.utc
+        )
+
+        event = load_data("transaction")
+        event.update({"spans": data["spans"]})
+
+        with self.feature(
+            [
+                "projects:performance-suspect-spans-ingestion",
+                "organizations:performance-issues",
+                "organizations:performance-issues-ingest",
+            ]
+        ):
+
+            [self.store_event(data=event, project_id=self.project.id) for _ in range(3)]
+
+            assert Group.objects.count() == 1
+
+    @patch("django.utils.timezone.now")
+    def test_multiple_events_to_multiple_issues(self, mock_now):
+        data = json.loads(
+            self.load_fixture("events/performance_problems/n-plus-one-in-django-new-view.json")
+        )
+
+        mock_now.return_value = datetime.datetime.fromtimestamp(data["start_timestamp"]).replace(
+            tzinfo=pytz.utc
+        )
+
+        # Create identical events with different parent spans
+        for _ in range(3):
+            event = load_data("transaction")
+            spans = [
+                self.randomize_span_description(span) if span["op"] == "django.view" else span
+                for span in data["spans"]
+            ]
+
+            event.update({"spans": spans})
+
+            with self.feature(
+                [
+                    "projects:performance-suspect-spans-ingestion",
+                    "organizations:performance-issues",
+                    "organizations:performance-issues-ingest",
+                ]
+            ):
+
+                self.store_event(data=event, project_id=self.project.id)
+
+        assert Group.objects.count() == 3
