@@ -40,16 +40,15 @@ describe('TraceView', () => {
   describe('Autogrouped spans tests', () => {
     it('should render siblings with the same op and description as a grouped span in the minimap and span tree', async () => {
       const builder = new TransactionEventBuilder();
-      for (let i = 0; i < 5; i++) {
-        builder.addSpan(
-          new MockSpan({
-            startTimestamp: 0,
-            endTimestamp: 100,
-            op: 'http',
-            description: 'group me',
-          })
-        );
-      }
+      builder.addSpan(
+        new MockSpan({
+          startTimestamp: 0,
+          endTimestamp: 100,
+          op: 'http',
+          description: 'group me',
+        }),
+        5
+      );
 
       const waterfallModel = new WaterfallModel(builder.getEvent());
 
@@ -64,16 +63,16 @@ describe('TraceView', () => {
 
     it('should expand grouped siblings when clicked, and then regroup when clicked again', async () => {
       const builder = new TransactionEventBuilder();
-      for (let i = 0; i < 5; i++) {
-        builder.addSpan(
-          new MockSpan({
-            startTimestamp: 0,
-            endTimestamp: 100,
-            op: 'http',
-            description: 'group me',
-          })
-        );
-      }
+
+      builder.addSpan(
+        new MockSpan({
+          startTimestamp: 0,
+          endTimestamp: 100,
+          op: 'http',
+          description: 'group me',
+        }),
+        5
+      );
 
       const waterfallModel = new WaterfallModel(builder.getEvent());
 
@@ -329,7 +328,7 @@ describe('TraceView', () => {
     });
 
     it('should correctly render sibling autogroup text when op and/or description is not provided', async () => {
-      const data = initializeData({});
+      data = initializeData({});
       const builder1 = new TransactionEventBuilder();
 
       // Autogroup without span ops
@@ -397,7 +396,7 @@ describe('TraceView', () => {
     });
 
     it('should automatically expand a sibling span group and select a span if it is anchored', async () => {
-      const data = initializeData({});
+      data = initializeData({});
 
       const builder = new TransactionEventBuilder();
       builder.addSpan(
@@ -425,63 +424,35 @@ describe('TraceView', () => {
       location.hash = '';
     });
 
-    //   it('should automatically expand a descendant span group and select a span if it is anchored', async () => {
-    //     const data = initializeData({});
+    it('should automatically expand a descendant span group and select a span if it is anchored', async () => {
+      data = initializeData({});
 
-    //     const event = generateSampleEvent();
-    //     generateSampleSpan(
-    //       'group me',
-    //       'http',
-    //       'b000000000000000',
-    //       'a000000000000000',
-    //       event
-    //     );
-    //     generateSampleSpan(
-    //       'group me',
-    //       'http',
-    //       'c000000000000000',
-    //       'b000000000000000',
-    //       event
-    //     );
-    //     generateSampleSpan(
-    //       'group me',
-    //       'http',
-    //       'd000000000000000',
-    //       'c000000000000000',
-    //       event
-    //     );
-    //     generateSampleSpan(
-    //       'group me',
-    //       'http',
-    //       'e000000000000000',
-    //       'd000000000000000',
-    //       event
-    //     );
-    //     generateSampleSpan(
-    //       'group me',
-    //       'http',
-    //       'f000000000000000',
-    //       'e000000000000000',
-    //       event
-    //     );
+      const builder = new TransactionEventBuilder();
+      const span = new MockSpan({
+        startTimestamp: 50,
+        endTimestamp: 100,
+        op: 'http',
+        description: 'group me',
+      }).addDuplicateNestedChildren(5);
+      builder.addSpan(span);
 
-    //     location.hash = spanTargetHash('d000000000000000');
+      location.hash = spanTargetHash('0000000000000003');
 
-    //     const waterfallModel = new WaterfallModel(event);
+      const waterfallModel = new WaterfallModel(builder.getEvent());
 
-    //     render(
-    //       <AnchorLinkManager.Provider>
-    //         <TraceView organization={data.organization} waterfallModel={waterfallModel} />
-    //       </AnchorLinkManager.Provider>
-    //     );
+      render(
+        <AnchorLinkManager.Provider>
+          <TraceView organization={data.organization} waterfallModel={waterfallModel} />
+        </AnchorLinkManager.Provider>
+      );
 
-    //     expect(await screen.findByText(/d000000000000000/i)).toBeInTheDocument();
-    //     location.hash = '';
-    //   });
+      expect(await screen.findByText(/0000000000000003/i)).toBeInTheDocument();
+      location.hash = '';
+    });
   });
 
   it('should merge web vitals labels if they are too close together', () => {
-    const data = initializeData({});
+    data = initializeData({});
 
     const event = generateSampleEvent();
     generateSampleSpan('browser', 'test1', 'b000000000000000', 'a000000000000000', event);
@@ -510,7 +481,7 @@ describe('TraceView', () => {
   });
 
   it('should not merge web vitals labels if they are spaced away from each other', () => {
-    const data = initializeData({});
+    data = initializeData({});
 
     const event = generateSampleEvent();
     generateSampleSpan('browser', 'test1', 'b000000000000000', 'a000000000000000', event);
