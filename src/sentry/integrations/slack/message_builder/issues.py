@@ -54,7 +54,9 @@ def build_assigned_text(identity: Identity, assignee: str) -> str | None:
     elif actor.type == User:
         try:
             assignee_ident = Identity.objects.get(
-                user=assigned_actor, idp__type="slack", idp__external_id=identity.idp.external_id
+                user_id=assigned_actor.id,
+                idp__type="slack",
+                idp__external_id=identity.idp.external_id,
             )
             assignee_text = f"<@{assignee_ident.external_id}>"
         except Identity.DoesNotExist:

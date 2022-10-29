@@ -42,11 +42,14 @@ class GroupAssigneeManager(BaseManager):
             group=group, actor=assigned_to, reason=GroupSubscriptionReason.assigned
         )
 
+        assigned_to_id = assigned_to.id
         if isinstance(assigned_to, APIUser) or isinstance(assigned_to, User):
             assignee_type = "user"
+            assignee_type_attr = "user_id"
             other_type = "team"
         elif isinstance(assigned_to, Team):
             assignee_type = "team"
+            assignee_type_attr = "team_id"
             other_type = "user"
         else:
             raise AssertionError(f"Invalid type to assign to: {type(assigned_to)}")
@@ -54,13 +57,17 @@ class GroupAssigneeManager(BaseManager):
         now = timezone.now()
         assignee, created = self.get_or_create(
             group=group,
-            defaults={"project": group.project, assignee_type: assigned_to, "date_added": now},
+            defaults={
+                "project": group.project,
+                assignee_type_attr: assigned_to_id,
+                "date_added": now,
+            },
         )
 
         if not created:
             affected = not create_only and self.filter(group=group).exclude(
-                **{assignee_type: assigned_to}
-            ).update(**{assignee_type: assigned_to, other_type: None, "date_added": now})
+                **{assignee_type_attr: assigned_to_id}
+            ).update(**{assignee_type_attr: assigned_to_id, other_type: None, "date_added": now})
         else:
             affected = True
             issue_assigned.send_robust(
