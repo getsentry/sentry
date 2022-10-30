@@ -60,7 +60,7 @@ def get_providers_from_which_to_remove_user(
     providers = {
         provider
         for provider, participants in participants_by_provider.items()
-        if user in participants
+        if user.id in map(lambda p: p.id, participants)
     }
     if (
         providers

@@ -17,6 +17,7 @@ from sentry.silo import SiloMode
 @dataclass(frozen=True)
 class APIUser:
     id: int = -1
+    pk: int = -1
     name: str = ""
     email: str = ""
     username: str = ""
@@ -42,6 +43,7 @@ class APIUser:
             if name in cls_fields:
                 args[name] = val
 
+        args["pk"] = orm.pk
         ret = cls(**args)
         return ret
 

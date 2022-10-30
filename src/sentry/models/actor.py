@@ -146,7 +146,7 @@ class ActorTuple(namedtuple("Actor", "id type")):
         return fetch_actor_by_id(self.type, self.id)
 
     def resolve_to_actor(self):
-        return self.resolve().actor
+        return Actor.objects.get(id=self.resolve().actor_id)
 
     @classmethod
     def resolve_many(cls, actors: Sequence["ActorTuple"]) -> Sequence[Union["Team", "User"]]:

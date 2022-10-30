@@ -1289,7 +1289,7 @@ class Factories:
         return Identity.objects.create(
             external_id=external_id,
             idp=identity_provider,
-            user=user,
+            user_id=user.id,
             status=IdentityStatus.VALID,
             scopes=[],
         )
