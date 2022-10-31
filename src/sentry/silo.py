@@ -110,7 +110,7 @@ class SiloLimit(abc.ABC):
         return override
 
 
-def enforce_deprecated_code_path(message: str):
+def enforce_deprecated_code_path(message: str) -> None:
     """
     While refactoring out some core interfaces, we want tests to alert us and make guarantee that deprecated paths
     do not run, while at the same time not causing any outage while such deprecations roll forward into production.

@@ -1,5 +1,5 @@
 import logging
-from typing import List, NoReturn, Optional, Tuple
+from typing import List, Optional, Tuple
 
 from django.http import (
     HttpResponse,
@@ -42,7 +42,7 @@ class OrganizationMixin:
     # TODO(dcramer): move the implicit organization logic into its own class
     # as it's only used in a single location and over complicates the rest of
     # the code
-    def determine_active_organization(self, request: Request, organization_slug=None) -> NoReturn:
+    def determine_active_organization(self, request: Request, organization_slug=None) -> None:
         """
         Using the current request and potentially optional organization_slug, 'determines'
         the current session for this mixin object's scope, placing it into the active_organization attribute.

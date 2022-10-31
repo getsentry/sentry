@@ -9,7 +9,7 @@ from typing import Collection, FrozenSet, Iterable, List, Mapping, Optional, Tup
 import sentry_sdk
 from django.conf import settings
 
-from sentry import roles
+from sentry import features, roles
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
 from sentry.models import (
@@ -285,7 +285,7 @@ class Access(abc.ABC):
         if any(self.has_scope(scope) for scope in scopes):
             return True
 
-        if self.api_member:  # and features.has("organizations:team-roles", self.api_organization):
+        if self.api_member and features.has("organizations:team-roles", self.api_organization):
             with sentry_sdk.start_span(op="check_access_for_all_project_teams") as span:
                 memberships: List[ApiTeamMember] = [
                     m for m in self.api_team_members if project.id in m.project_ids

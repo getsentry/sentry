@@ -3,7 +3,19 @@ import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum, IntEnum
-from typing import Dict, Generic, Iterable, List, Mapping, Optional, Type, TypeVar, cast
+from typing import (
+    Any,
+    Dict,
+    Generator,
+    Generic,
+    Iterable,
+    List,
+    Mapping,
+    Optional,
+    Type,
+    TypeVar,
+    cast,
+)
 
 from sentry.models import (
     Organization,
@@ -38,7 +50,7 @@ class ProjectKeyRole(Enum):
     store = "store"
     api = "api"
 
-    def as_orm_role(self):
+    def as_orm_role(self) -> Any:
         from sentry.models import ProjectKey
 
         if self == ProjectKeyRole.store:
@@ -66,7 +78,7 @@ class ApiTeam:
 class ApiTeamMember:
     id: int = -1
     is_active: bool = False
-    role: TeamRole = field(default_factory=TeamRole)
+    role: Optional[TeamRole] = None
     project_ids: List[int] = field(default_factory=list)
     scopes: List[str] = field(default_factory=list)
     team: ApiTeam = field(default_factory=ApiTeam)
@@ -116,7 +128,7 @@ class ApiOrganization:
 
 class InterfaceWithLifecycle(ABC):
     @abstractmethod
-    def close(self):
+    def close(self) -> None:
         pass
 
 
@@ -142,7 +154,9 @@ class DelegatedBySiloMode(Generic[ServiceInterface]):
         self._singleton = {}
 
     @contextlib.contextmanager
-    def with_replacement(self, service: Optional[ServiceInterface], silo_mode: SiloMode):
+    def with_replacement(
+        self, service: Optional[ServiceInterface], silo_mode: SiloMode
+    ) -> Generator[None, None, None]:
         prev = self._singleton
         self.close()
 
