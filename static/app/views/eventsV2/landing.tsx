@@ -284,7 +284,9 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
   render() {
     const {location, organization} = this.props;
     const eventView = EventView.fromNewQueryWithLocation(DEFAULT_EVENT_VIEW, location);
-    const to = eventView.getResultsViewUrlTarget(organization.slug);
+    const to = organization.features.includes('discover-query-builder-as-landing-page')
+      ? `/organizations/${organization.slug}/discover/homepage/`
+      : eventView.getResultsViewUrlTarget(organization.slug);
 
     return (
       <Feature
