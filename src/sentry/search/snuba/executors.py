@@ -176,12 +176,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         group_categories: Set[GroupCategory] = set()
         for search_filter in search_filters or ():
             if search_filter.key.name in ("issue.category", "issue.type"):
-                if not search_filter.is_negation:
-                    group_categories.update(
-                        GROUP_TYPE_TO_CATEGORY[GroupType(value)]
-                        for value in search_filter.value.raw_value
-                    )
-                else:
+                if search_filter.is_negation:
                     group_categories.update(
                         GROUP_TYPE_TO_CATEGORY[GroupType(value)]
                         for value in list(
@@ -191,6 +186,12 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                             )
                         )
                     )
+                else:
+                    group_categories.update(
+                        GROUP_TYPE_TO_CATEGORY[GroupType(value)]
+                        for value in search_filter.value.raw_value
+                    )
+
             if (
                 # Don't filter on postgres fields here, they're not available
                 search_filter.key.name in self.postgres_only_fields
