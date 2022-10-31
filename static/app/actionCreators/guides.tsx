@@ -2,6 +2,7 @@ import * as Sentry from '@sentry/react';
 
 import {Client} from 'sentry/api';
 import ConfigStore from 'sentry/stores/configStore';
+import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
 import GuideStore from 'sentry/stores/guideStore';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
@@ -66,11 +67,11 @@ export function recordFinish(
   switch (guide) {
     case 'sidebar_v2':
       tour = 'tabs';
-      localStorage.removeItem('sidebarGuide');
+      DemoWalkthroughStore.deactivateGuideAnchor('sidebar');
       break;
     case 'issues_v3':
       tour = 'issues';
-      localStorage.removeItem('issueGuide');
+      DemoWalkthroughStore.deactivateGuideAnchor('issues');
       break;
     case 'release-details_v2':
       tour = 'releases';

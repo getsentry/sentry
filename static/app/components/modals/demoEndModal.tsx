@@ -1,19 +1,19 @@
-import React from 'react';
+import React, {useCallback} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {fetchGuides} from 'sentry/actionCreators/guides';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {navigateTo} from 'sentry/actionCreators/navigation';
 import Button from 'sentry/components/button';
 import ModalTask from 'sentry/components/onboardingWizard/modalTask';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
+import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {Organization} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 // tour is a string that tells which tour the user is completing in the walkthrough
 type Props = ModalRenderProps & {orgSlug: Organization['slug'] | null; tour: string};
@@ -21,12 +21,13 @@ type Props = ModalRenderProps & {orgSlug: Organization['slug'] | null; tour: str
 export default function DemoEndingModal({tour, closeModal, CloseButton, orgSlug}: Props) {
   const api = useApi();
 
-  const {router} = useRouteContext();
+  // const {router} = useRouteContext();
+  const navigate = useNavigate();
 
   let cardTitle = '',
     body = '',
     guides = [''],
-    location = '';
+    path = '';
 
   switch (tour) {
     case 'issues':
@@ -35,7 +36,7 @@ export default function DemoEndingModal({tour, closeModal, CloseButton, orgSlug}
         'Thank you for completing the Issues tour. Learn about other Sentry features by starting another tour.'
       );
       guides = ['issues_v3', 'issue_stream_v3'];
-      location = `/organizations/${orgSlug}/issues/`;
+      path = `/organizations/${orgSlug}/issues/`;
       break;
     case 'performance':
       cardTitle = t('Performance Tour');
@@ -43,7 +44,7 @@ export default function DemoEndingModal({tour, closeModal, CloseButton, orgSlug}
         'Thank you for completing the Performance tour. Learn about other Sentry features by starting another tour.'
       );
       guides = ['performance', 'transaction_summary', 'transaction_details_v2'];
-      location = `/organizations/${orgSlug}/performance/`;
+      path = `/organizations/${orgSlug}/performance/`;
       break;
     case 'releases':
       cardTitle = t('Releases Tour');
@@ -51,7 +52,7 @@ export default function DemoEndingModal({tour, closeModal, CloseButton, orgSlug}
         'Thank you for completing the Releases tour. Learn about other Sentry features by starting another tour.'
       );
       guides = ['releases_v2', 'react-native-release', 'release-details_v2'];
-      location = `/organizations/${orgSlug}/releases/`;
+      path = `/organizations/${orgSlug}/releases/`;
       break;
     case 'tabs':
       cardTitle = t('Check out the different tabs');
@@ -59,13 +60,17 @@ export default function DemoEndingModal({tour, closeModal, CloseButton, orgSlug}
         'Thank you for checking out the different tabs. Learn about other Sentry features by starting another tour.'
       );
       guides = ['sidebar_v2'];
-      location = `/organizations/${orgSlug}/projects/`;
+      path = `/organizations/${orgSlug}/projects/`;
       break;
     default:
   }
 
   const sandboxData = window.SandboxData;
   const url = sandboxData?.cta?.url || 'https://sentry.io/signup/';
+
+  const navigation = useCallback(() => {
+    navigate(path);
+  }, [path, navigate]);
 
   async function handleRestart() {
     await Promise.all(
@@ -76,21 +81,18 @@ export default function DemoEndingModal({tour, closeModal, CloseButton, orgSlug}
         })
       )
     );
-
     if (tour === 'issues') {
-      localStorage.setItem('issueGuide', '1');
+      DemoWalkthroughStore.activateGuideAnchor('issues');
     }
     if (tour === 'tabs') {
-      localStorage.setItem('sidebarGuide', '1');
+      DemoWalkthroughStore.activateGuideAnchor('sidebar');
     }
 
     closeModal?.();
 
     fetchGuides();
 
-    const redirectUrl = new URL(location, window.location.origin);
-    redirectUrl.searchParams.append('referrer', 'demo_task');
-    navigateTo(redirectUrl.toString(), router);
+    navigation();
   }
 
   const handleMoreTours = () => {
