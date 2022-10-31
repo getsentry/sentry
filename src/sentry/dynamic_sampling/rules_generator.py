@@ -21,6 +21,10 @@ from sentry.dynamic_sampling.utils import (
 )
 from sentry.models import Project, Release
 
+# https://kubernetes.io/docs/reference/using-api/health-checks/
+# Also it covers: healthz, livez, readyz
+HEALTH_CHECK_GLOBS = ["*healthcheck*", "*healthy*", "*live*", "*ready*"]
+
 
 def generate_uniform_rule(sample_rate: Optional[float]) -> BaseRule:
     return {
@@ -65,8 +69,7 @@ def generate_healthcheck_rule(sample_rate: float) -> BaseRule:
                 {
                     "op": "glob",
                     "name": "transaction.transaction",
-                    # TODO (andrii): find final list
-                    "value": ["*healthcheck*", "*healthy*"],
+                    "value": HEALTH_CHECK_GLOBS,
                     "options": {"ignoreCase": True},
                 }
             ],
