@@ -71,6 +71,33 @@
   {% endblock %}
 </head>
 
+
+{% if show_session_replay_banner %}
+  <style type="text/css">
+    .alert-banner {
+      background: rgb(255, 219, 74);
+      padding-top: 0.75rem;
+      padding-bottom: 0.75rem;
+      display: flex;
+      justify-content: center;
+      border-radius: 4px;
+      margin-bottom: 4px;
+    }
+    .alert-message {
+      margin-left: 1rem;
+      margin-right: 1rem;
+      line-height: 1.5;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-align: left;
+      flex-grow: 1;
+      font-size: 16px;
+      font-family: Rubik;
+    }
+  </style>
+{% endif %}
+
 <body class="{% block wrapperclass %}{% endblock %}">
   {% block body %}
   <div class="app">
@@ -81,6 +108,17 @@
     {% block alerts %}
     {% include "sentry/partial/alerts.html" %}
     {% endblock %}
+
+
+    {% if show_session_replay_banner %}
+      <div class="alert-banner">
+        <div class="alert-message">
+          Session Replay shows you exactly what your user experienced leading up to an issue. Become an early adopter by &nbsp<a target=”_blank” href="https://sentry.io/for/session-replay/?utm_medium=banner&utm_source=sentry&utm_campaign=login-session-replay">joining the waitlist.</a>
+        </div>
+      </div>
+    {% endif %}
+
+
 
     <div class="container">
       <div class="content">
