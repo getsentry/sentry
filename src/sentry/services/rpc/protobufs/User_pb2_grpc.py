@@ -2,10 +2,12 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-from sentry.services.rpc.protobufs import User_pb2 as sentry_dot_services_dot_rpc_dot_protobufs_dot_User__pb2
+from sentry.services.rpc.protobufs import (
+    User_pb2 as sentry_dot_services_dot_rpc_dot_protobufs_dot_User__pb2,
+)
 
 
-class UserServiceStub(object):
+class UserServiceStub:
     """Missing associated documentation comment in .proto file."""
 
     def __init__(self, channel):
@@ -15,52 +17,63 @@ class UserServiceStub(object):
             channel: A grpc.Channel.
         """
         self.ChangeName = channel.unary_unary(
-                '/UserService/ChangeName',
-                request_serializer=sentry_dot_services_dot_rpc_dot_protobufs_dot_User__pb2.ChangeNameRequest.SerializeToString,
-                response_deserializer=sentry_dot_services_dot_rpc_dot_protobufs_dot_User__pb2.User.FromString,
-                )
+            "/UserService/ChangeName",
+            request_serializer=sentry_dot_services_dot_rpc_dot_protobufs_dot_User__pb2.ChangeNameRequest.SerializeToString,
+            response_deserializer=sentry_dot_services_dot_rpc_dot_protobufs_dot_User__pb2.User.FromString,
+        )
 
 
-class UserServiceServicer(object):
+class UserServiceServicer:
     """Missing associated documentation comment in .proto file."""
 
     def ChangeName(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
 
 
 def add_UserServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'ChangeName': grpc.unary_unary_rpc_method_handler(
-                    servicer.ChangeName,
-                    request_deserializer=sentry_dot_services_dot_rpc_dot_protobufs_dot_User__pb2.ChangeNameRequest.FromString,
-                    response_serializer=sentry_dot_services_dot_rpc_dot_protobufs_dot_User__pb2.User.SerializeToString,
-            ),
+        "ChangeName": grpc.unary_unary_rpc_method_handler(
+            servicer.ChangeName,
+            request_deserializer=sentry_dot_services_dot_rpc_dot_protobufs_dot_User__pb2.ChangeNameRequest.FromString,
+            response_serializer=sentry_dot_services_dot_rpc_dot_protobufs_dot_User__pb2.User.SerializeToString,
+        ),
     }
-    generic_handler = grpc.method_handlers_generic_handler(
-            'UserService', rpc_method_handlers)
+    generic_handler = grpc.method_handlers_generic_handler("UserService", rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
 
 
- # This class is part of an EXPERIMENTAL API.
-class UserService(object):
+# This class is part of an EXPERIMENTAL API.
+class UserService:
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
-    def ChangeName(request,
+    def ChangeName(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
+        return grpc.experimental.unary_unary(
+            request,
             target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/UserService/ChangeName',
+            "/UserService/ChangeName",
             sentry_dot_services_dot_rpc_dot_protobufs_dot_User__pb2.ChangeNameRequest.SerializeToString,
             sentry_dot_services_dot_rpc_dot_protobufs_dot_User__pb2.User.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+        )
