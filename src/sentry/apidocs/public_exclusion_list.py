@@ -357,8 +357,6 @@ from sentry.api.endpoints.project_rule_details import ProjectRuleDetailsEndpoint
 from sentry.api.endpoints.project_rule_task_details import ProjectRuleTaskDetailsEndpoint
 from sentry.api.endpoints.project_rules import ProjectRulesEndpoint
 from sentry.api.endpoints.project_rules_configuration import ProjectRulesConfigurationEndpoint
-from sentry.api.endpoints.project_search_details import ProjectSearchDetailsEndpoint
-from sentry.api.endpoints.project_searches import ProjectSearchesEndpoint
 from sentry.api.endpoints.project_servicehook_details import ProjectServiceHookDetailsEndpoint
 from sentry.api.endpoints.project_servicehook_stats import ProjectServiceHookStatsEndpoint
 from sentry.api.endpoints.project_servicehooks import ProjectServiceHooksEndpoint
@@ -840,8 +838,6 @@ __EXCLUDED_FROM_PUBLIC_ENDPOINTS = {
     ProjectRulesConfigurationEndpoint,
     ProjectRuleDetailsEndpoint,
     ProjectRuleTaskDetailsEndpoint,
-    ProjectSearchesEndpoint,
-    ProjectSearchDetailsEndpoint,
     ProjectTagsEndpoint,
     ProjectTagKeyDetailsEndpoint,
     ProjectTeamsEndpoint,

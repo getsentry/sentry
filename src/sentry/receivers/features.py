@@ -254,6 +254,9 @@ def record_advanced_search_feature_gated(user, organization, **kwargs):
     )
 
 
+# XXX(epurkhiser): This was originally used in project saved searches, but
+# those no longer exist and this is no longer connected to anything. We
+# probably want to connect this up to organization level saved searches.
 @save_search_created.connect(weak=False)
 def record_save_search_created(project, user, **kwargs):
     FeatureAdoption.objects.record(
