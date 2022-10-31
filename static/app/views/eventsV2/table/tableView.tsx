@@ -377,19 +377,13 @@ class TableView extends Component<TableViewProps & WithRouterProps> {
       customMeasurements,
     } = this.props;
 
-    const hasBreakdownFeature = organization.features.includes(
-      'performance-ops-breakdown'
-    );
-
     openModal(
       modalProps => (
         <ColumnEditModal
           {...modalProps}
           organization={organization}
           measurementKeys={measurementKeys}
-          spanOperationBreakdownKeys={
-            hasBreakdownFeature ? spanOperationBreakdownKeys : undefined
-          }
+          spanOperationBreakdownKeys={spanOperationBreakdownKeys}
           columns={eventView.getColumns().map(col => col.column)}
           onApply={this.handleUpdateColumns}
           customMeasurements={customMeasurements}

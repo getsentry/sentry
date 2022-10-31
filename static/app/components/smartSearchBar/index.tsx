@@ -42,7 +42,7 @@ import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
-import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
+import {FieldDefinition, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import getDynamicComponent from 'sentry/utils/getDynamicComponent';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -132,133 +132,143 @@ export type ActionBarItem = {
   makeAction: (props: ActionProps) => {Button: VFC; menuItem: MenuItemProps};
 };
 
-type Props = WithRouterProps & {
-  api: Client;
-  organization: Organization;
-  /**
-   * Additional components to render as actions on the right of the search bar
-   */
-  actionBarItems?: ActionBarItem[];
-  className?: string;
-
-  /**
-   * Custom Performance Metrics for query string unit parsing
-   */
-  customPerformanceMetrics?: CustomMeasurementCollection;
-  defaultQuery?: string;
+type DefaultProps = {
+  defaultQuery: string;
   /**
    * Search items to display when there's no tag key. Is a tuple of search
    * items and recent search items
    */
-  defaultSearchItems?: [SearchItem[], SearchItem[]];
+  defaultSearchItems: [SearchItem[], SearchItem[]];
   /**
-   * Disabled control (e.g. read-only)
+   * The lookup strategy for field definitions.
+   * Each SmartSearchBar instance can support a different list of fields and tags,
+   * their definitions may not overlap.
    */
-  disabled?: boolean;
-  dropdownClassName?: string;
-  /**
-   * A list of tags to exclude from the autocompletion list, for ex environment may be excluded
-   * because we don't want to treat environment as a tag in some places such
-   * as the stream view where it is a top level concept
-   */
-  excludedTags?: string[];
-  /**
-   * List user's recent searches
-   */
-  hasRecentSearches?: boolean;
-  /**
-   * Whether or not to highlight unsupported tags red
-   */
-  highlightUnsupportedTags?: boolean;
-  /**
-   * Allows additional content to be played before the search bar and icon
-   */
-  inlineLabel?: React.ReactNode;
-  /**
-   * Maximum height for the search dropdown menu
-   */
-  maxMenuHeight?: number;
-  /**
-   * Used to enforce length on the query
-   */
-  maxQueryLength?: number;
-  /**
-   * Maximum number of search items to display or a falsey value for no
-   * maximum
-   */
-  maxSearchItems?: number;
-  /**
-   * While the data is unused, this list of members can be updated to
-   * trigger re-renders.
-   */
-  members?: User[];
-  /**
-   * Called when the search input is blurred.
-   * Note that the input may be blurred when the user selects an autocomplete
-   * value - if you don't want that, onClose may be a better option.
-   */
-  onBlur?: (value: string) => void;
-  /**
-   * Called when the search input changes
-   */
-  onChange?: (value: string, e: React.ChangeEvent) => void;
-  /**
-   * Called when the user has closed the search dropdown.
-   * Occurs on escape, tab, or clicking outside the component.
-   */
-  onClose?: (value: string, additionalSearchBarState: {validSearch: boolean}) => void;
-  /**
-   * Get a list of recent searches for the current query
-   */
-  onGetRecentSearches?: (query: string) => Promise<SearchItem[]>;
-  /**
-   * Get a list of tag values for the passed tag
-   */
-  onGetTagValues?: (tag: Tag, query: string, params: object) => Promise<string[]>;
-  /**
-   * Called on key down
-   */
-  onKeyDown?: (evt: React.KeyboardEvent<HTMLTextAreaElement>) => void;
-  /**
-   * Called when a recent search is saved
-   */
-  onSavedRecentSearch?: (query: string) => void;
+  fieldDefinitionGetter: (key: string) => FieldDefinition | null;
   /**
    * Called when the user makes a search
    */
-  onSearch?: (query: string) => void;
+  onSearch: (query: string) => void;
   /**
    * Input placeholder
    */
-  placeholder?: string;
-  /**
-   * Prepare query value before filtering dropdown items
-   */
-  prepareQuery?: (query: string) => string;
-  query?: string | null;
+  placeholder: string;
+  query: string | null;
   /**
    * If this is defined, attempt to save search term scoped to the user and
    * the current org
    */
-  savedSearchType?: SavedSearchType;
-  /**
-   * Indicates the usage of the search bar for analytics
-   */
-  searchSource?: string;
-  /**
-   * Type of supported tags
-   */
-  supportedTagType?: ItemType;
+  savedSearchType: SavedSearchType;
   /**
    * Map of tags
    */
-  supportedTags?: TagCollection;
+  supportedTags: TagCollection;
   /**
    * Wrap the input with a form. Useful if search bar is used within a parent
    * form
    */
-  useFormWrapper?: boolean;
+  useFormWrapper: boolean;
 };
+
+type Props = WithRouterProps &
+  Partial<DefaultProps> & {
+    api: Client;
+    organization: Organization;
+    /**
+     * Additional components to render as actions on the right of the search bar
+     */
+    actionBarItems?: ActionBarItem[];
+    className?: string;
+
+    /**
+     * Custom Performance Metrics for query string unit parsing
+     */
+    customPerformanceMetrics?: CustomMeasurementCollection;
+    /**
+     * Disabled control (e.g. read-only)
+     */
+    disabled?: boolean;
+    dropdownClassName?: string;
+    /**
+     * A list of tags to exclude from the autocompletion list, for ex environment may be excluded
+     * because we don't want to treat environment as a tag in some places such
+     * as the stream view where it is a top level concept
+     */
+    excludedTags?: string[];
+    /**
+     * List user's recent searches
+     */
+    hasRecentSearches?: boolean;
+    /**
+     * Whether or not to highlight unsupported tags red
+     */
+    highlightUnsupportedTags?: boolean;
+    /**
+     * Allows additional content to be played before the search bar and icon
+     */
+    inlineLabel?: React.ReactNode;
+    /**
+     * Maximum height for the search dropdown menu
+     */
+    maxMenuHeight?: number;
+    /**
+     * Used to enforce length on the query
+     */
+    maxQueryLength?: number;
+    /**
+     * Maximum number of search items to display or a falsey value for no
+     * maximum
+     */
+    maxSearchItems?: number;
+    /**
+     * While the data is unused, this list of members can be updated to
+     * trigger re-renders.
+     */
+    members?: User[];
+    /**
+     * Called when the search input is blurred.
+     * Note that the input may be blurred when the user selects an autocomplete
+     * value - if you don't want that, onClose may be a better option.
+     */
+    onBlur?: (value: string) => void;
+    /**
+     * Called when the search input changes
+     */
+    onChange?: (value: string, e: React.ChangeEvent) => void;
+    /**
+     * Called when the user has closed the search dropdown.
+     * Occurs on escape, tab, or clicking outside the component.
+     */
+    onClose?: (value: string, additionalSearchBarState: {validSearch: boolean}) => void;
+    /**
+     * Get a list of recent searches for the current query
+     */
+    onGetRecentSearches?: (query: string) => Promise<SearchItem[]>;
+    /**
+     * Get a list of tag values for the passed tag
+     */
+    onGetTagValues?: (tag: Tag, query: string, params: object) => Promise<string[]>;
+    /**
+     * Called on key down
+     */
+    onKeyDown?: (evt: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+    /**
+     * Called when a recent search is saved
+     */
+    onSavedRecentSearch?: (query: string) => void;
+    /**
+     * Prepare query value before filtering dropdown items
+     */
+    prepareQuery?: (query: string) => string;
+    /**
+     * Indicates the usage of the search bar for analytics
+     */
+    searchSource?: string;
+    /**
+     * Type of supported tags
+     */
+    supportedTagType?: ItemType;
+  };
 
 type State = {
   /**
@@ -305,7 +315,7 @@ type State = {
   previousQuery?: string;
 };
 
-class SmartSearchBar extends Component<Props, State> {
+class SmartSearchBar extends Component<DefaultProps & Props, State> {
   static defaultProps = {
     defaultQuery: '',
     query: null,
@@ -315,7 +325,8 @@ class SmartSearchBar extends Component<Props, State> {
     defaultSearchItems: [[], []],
     useFormWrapper: true,
     savedSearchType: SavedSearchType.ISSUE,
-  };
+    fieldDefinitionGetter: getFieldDefinition,
+  } as DefaultProps;
 
   state: State = {
     query: this.initialQuery,
@@ -935,7 +946,7 @@ class SmartSearchBar extends Component<Props, State> {
 
     const tagName = getKeyName(this.cursorToken.key, {aggregateWithArgs: true});
 
-    return getFieldDefinition(tagName);
+    return this.props.fieldDefinitionGetter(tagName);
   }
 
   /**
@@ -1063,17 +1074,21 @@ class SmartSearchBar extends Component<Props, State> {
    * Returns array of possible key values that substring match `query`
    */
   getTagKeys(searchTerm: string): [SearchItem[], ItemType] {
-    const {prepareQuery, supportedTagType} = this.props;
-
-    const supportedTags = this.props.supportedTags ?? {};
-    const {excludedTags} = this.props;
+    const {
+      excludedTags,
+      fieldDefinitionGetter,
+      organization,
+      prepareQuery,
+      supportedTags = {},
+      supportedTagType,
+    } = this.props;
 
     let tagKeys = Object.keys(supportedTags).sort((a, b) => a.localeCompare(b));
 
     if (searchTerm) {
       const preparedSearchTerm = prepareQuery ? prepareQuery(searchTerm) : searchTerm;
 
-      tagKeys = filterKeysFromQuery(tagKeys, preparedSearchTerm);
+      tagKeys = filterKeysFromQuery(tagKeys, preparedSearchTerm, fieldDefinitionGetter);
     }
 
     // removes any tags that are marked for exclusion
@@ -1081,13 +1096,16 @@ class SmartSearchBar extends Component<Props, State> {
       tagKeys = tagKeys.filter(key => !excludedTags?.includes(key));
     }
 
-    const allTagItems = getTagItemsFromKeys(tagKeys, supportedTags);
+    const allTagItems = getTagItemsFromKeys(
+      tagKeys,
+      supportedTags,
+      fieldDefinitionGetter
+    );
 
     // Filter out search items that are behind feature flags
     const tagItems = allTagItems.filter(
       item =>
-        item.featureFlag === undefined ||
-        this.props.organization.features.includes(item.featureFlag)
+        item.featureFlag === undefined || organization.features.includes(item.featureFlag)
     );
 
     return [tagItems, supportedTagType ?? ItemType.TAG_KEY];
@@ -1410,7 +1428,7 @@ class SmartSearchBar extends Component<Props, State> {
           searchText = '';
         }
 
-        const fieldDefinition = getFieldDefinition(tagName);
+        const fieldDefinition = this.props.fieldDefinitionGetter(tagName);
         const isDate = fieldDefinition?.valueType === FieldValueType.DATE;
 
         if (isDate) {
@@ -1497,7 +1515,8 @@ class SmartSearchBar extends Component<Props, State> {
     tagName: string,
     type: ItemType
   ) {
-    const {hasRecentSearches, maxSearchItems, maxQueryLength} = this.props;
+    const {fieldDefinitionGetter, hasRecentSearches, maxSearchItems, maxQueryLength} =
+      this.props;
     const {query} = this.state;
 
     const queryCharsLeft =
@@ -1510,7 +1529,8 @@ class SmartSearchBar extends Component<Props, State> {
       type,
       maxSearchItems,
       queryCharsLeft,
-      true
+      true,
+      fieldDefinitionGetter
     );
 
     this.setState(searchGroups);
@@ -1522,7 +1542,8 @@ class SmartSearchBar extends Component<Props, State> {
    * @param groups Groups that will be used to populate the autocomplete dropdown
    */
   updateAutoCompleteStateMultiHeader = (groups: AutocompleteGroup[]) => {
-    const {hasRecentSearches, maxSearchItems, maxQueryLength} = this.props;
+    const {fieldDefinitionGetter, hasRecentSearches, maxSearchItems, maxQueryLength} =
+      this.props;
     const {query} = this.state;
     const queryCharsLeft =
       maxQueryLength && query ? maxQueryLength - query.length : undefined;
@@ -1536,7 +1557,8 @@ class SmartSearchBar extends Component<Props, State> {
           type,
           maxSearchItems,
           queryCharsLeft,
-          false
+          false,
+          fieldDefinitionGetter
         )
       )
       .reduce(
