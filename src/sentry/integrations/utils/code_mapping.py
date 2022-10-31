@@ -44,7 +44,7 @@ class FrameFilename:
             self.file_name = self.full_path
 
     def __repr__(self) -> str:
-        return self.full_path
+        return f"FrameFilename: {self.full_path}"
 
     def __eq__(self, other) -> bool:  # type: ignore
         return self.full_path == other.full_path  # type: ignore

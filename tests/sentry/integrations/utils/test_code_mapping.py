@@ -39,6 +39,10 @@ class TestDerivedCodeMappings(TestCase):
             CodeMapping(foo_repo, "sentry_plugins", "src/sentry_plugins"),
         ]
 
+    def test_frame_filename_repr(self):
+        path = "getsentry/billing/tax/manager.py"
+        assert FrameFilename(path).__repr__() == f"FrameFilename: {path}"
+
     def test_buckets_logic(self):
         stacktraces = ["app://foo.js", "getsentry/billing/tax/manager.py", "ssl.py"]
         buckets = self.code_mapping_helper.stacktrace_buckets(stacktraces)
