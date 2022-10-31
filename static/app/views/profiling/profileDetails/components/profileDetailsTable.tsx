@@ -239,6 +239,8 @@ function ProfilingFunctionsTableCell({
     case 'self weight':
     case 'total weight':
       return <NumberContainer>{formatter(value as number)}</NumberContainer>;
+    case 'count':
+      return <NumberContainer>{value}</NumberContainer>;
     case 'image':
       return <Container>{value ?? t('Unknown')}</Container>;
     case 'thread': {
