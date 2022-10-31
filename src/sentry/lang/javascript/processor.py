@@ -866,7 +866,7 @@ def get_function_for_token(frame, token, previous_frame=None):
     Get function name for a given frame based on the token resolved by symbolic.
     It tries following paths in order:
     - return token function name if we have a usable value (filtered through `USELESS_FN_NAMES` list),
-    - return caller (previous frame) token function name if it had one mapped,
+    - return mapped name of the caller (previous frame) token if it had,
     - return token function name, including filtered values if it mapped to anything in the first place,
     - return current frames function name as a fallback
     """
@@ -884,7 +884,7 @@ def get_function_for_token(frame, token, previous_frame=None):
         # but better safe than sorry.
         last_token = (previous_frame.get("data") or {}).get("token")
         if last_token:
-            return last_token.function_name
+            return last_token.name
 
     # If there was no minified name at all, return even useless, filtered one from the original token.
     if not frame_function_name:
