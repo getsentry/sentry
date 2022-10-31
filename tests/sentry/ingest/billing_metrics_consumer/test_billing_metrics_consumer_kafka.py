@@ -110,7 +110,7 @@ def test_outcomes_consumed(_gbp):
                 "org_id": 1,
                 "project_id": 2,
                 "outcome": 0,
-                "category": 8,
+                "category": 2,
                 "quantity": 3,
             }
         ).encode("utf-8"),
