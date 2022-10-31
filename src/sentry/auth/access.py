@@ -28,7 +28,7 @@ from sentry.models import (
 )
 from sentry.roles import organization_roles
 from sentry.roles.manager import OrganizationRole, TeamRole
-from sentry.services.hybrid_cloud import (
+from sentry.services.hybrid_cloud.organization import (
     ApiOrganization,
     ApiOrganizationMember,
     ApiProject,
