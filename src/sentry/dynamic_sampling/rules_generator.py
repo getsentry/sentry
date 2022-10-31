@@ -68,7 +68,7 @@ def generate_healthcheck_rule(sample_rate: float) -> BaseRule:
             "inner": [
                 {
                     "op": "glob",
-                    "name": "transaction.transaction",
+                    "name": "event.transaction",
                     "value": HEALTH_CHECK_GLOBS,
                     "options": {"ignoreCase": True},
                 }

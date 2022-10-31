@@ -84,7 +84,7 @@ def test_generate_rules_return_uniform_rules_and_env_rule(get_blended_sample_rat
                 "inner": [
                     {
                         "op": "glob",
-                        "name": "transaction.transaction",
+                        "name": "event.transaction",
                         "value": HEALTH_CHECK_GLOBS,
                         "options": {"ignoreCase": True},
                     }
