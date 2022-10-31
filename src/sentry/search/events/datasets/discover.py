@@ -1600,6 +1600,8 @@ class DiscoverDatasetConfig(DatasetConfig):
         value = to_list(search_filter.value.value)
         value_list_as_ints = []
 
+        lhs = self.builder.column(name)
+
         for v in value:
             if isinstance(v, str) and v.isdigit():
                 value_list_as_ints.append(int(v))
@@ -1612,19 +1614,22 @@ class DiscoverDatasetConfig(DatasetConfig):
 
         if search_filter.is_in_filter:
             return Condition(
-                Function("hasAny", [self.builder.column(name), value_list_as_ints]),
+                Function("hasAny", [lhs, value_list_as_ints]),
                 Op.EQ if operator == "IN" else Op.NEQ,
                 1,
             )
         elif search_filter.value.raw_value == "":
             return Condition(
-                Function("notEmpty", [self.builder.column(name)]),
+                Function("notEmpty", [lhs]),
                 Op.EQ if operator == "!=" else Op.NEQ,
                 1,
             )
         else:
-            lhs = self.builder.column(name)
-            return Condition(lhs, Op(search_filter.operator), value_list_as_ints[0])
+            return Condition(
+                Function("has", [lhs, value_list_as_ints[0]]),
+                Op.EQ,
+                1,
+            )
 
     def _issue_id_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         name = search_filter.key.name
