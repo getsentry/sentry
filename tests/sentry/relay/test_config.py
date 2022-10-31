@@ -9,6 +9,7 @@ from sentry.dynamic_sampling.latest_release_booster import (
     BOOSTED_RELEASE_TIMEOUT,
     get_redis_client_for_ds,
 )
+from sentry.dynamic_sampling.rules_generator import HEALTH_CHECK_GLOBS
 from sentry.dynamic_sampling.utils import RESERVED_IDS, RuleType
 from sentry.models import ProjectKey
 from sentry.models.transaction_threshold import TransactionMetric
@@ -67,7 +68,7 @@ DEFAULT_IGNORE_HEALTHCHECKS_RULE = {
             {
                 "op": "glob",
                 "name": "transaction.transaction",
-                "value": ["*healthcheck*", "*healthy*"],
+                "value": HEALTH_CHECK_GLOBS,
                 "options": {"ignoreCase": True},
             }
         ],
@@ -515,7 +516,7 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                         {
                             "op": "glob",
                             "name": "transaction.transaction",
-                            "value": ["*healthcheck*", "*healthy*"],
+                            "value": HEALTH_CHECK_GLOBS,
                             "options": {"ignoreCase": True},
                         }
                     ],

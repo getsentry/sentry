@@ -6,7 +6,7 @@ from freezegun import freeze_time
 from sentry_relay.processing import validate_sampling_configuration
 
 from sentry.dynamic_sampling.latest_release_booster import get_redis_client_for_ds
-from sentry.dynamic_sampling.rules_generator import generate_rules
+from sentry.dynamic_sampling.rules_generator import HEALTH_CHECK_GLOBS, generate_rules
 from sentry.testutils import TestCase
 from sentry.utils import json
 
@@ -85,7 +85,7 @@ def test_generate_rules_return_uniform_rules_and_env_rule(get_blended_sample_rat
                     {
                         "op": "glob",
                         "name": "transaction.transaction",
-                        "value": ["*healthcheck*", "*healthy*"],
+                        "value": HEALTH_CHECK_GLOBS,
                         "options": {"ignoreCase": True},
                     }
                 ],
