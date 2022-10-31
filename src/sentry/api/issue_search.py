@@ -1,5 +1,5 @@
 from functools import partial
-from typing import Callable, Iterable, List, Mapping, Optional, Sequence, Set, Union
+from typing import Any, Callable, Iterable, List, Mapping, Optional, Sequence, Set, Union
 
 from sentry import features
 from sentry.api.event_search import (
@@ -11,7 +11,7 @@ from sentry.api.event_search import (
 )
 from sentry.api.event_search import parse_search_query as base_parse_query
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import Environment, Organization, Project, Team, User
+from sentry.models import Environment, Organization, Project, User, Team
 from sentry.models.group import STATUS_QUERY_CHOICES, GroupStatus
 from sentry.search.events.constants import EQUALITY_OPERATORS
 from sentry.search.events.filter import to_list
