@@ -226,22 +226,23 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
                 break
 
             future, metrics_msg = self._ongoing_billing_outcomes[0]
-            try:
-                if future:
+            do_commit = True
+            if future:
+                try:
                     future.result(time_left)
-            except Exception:
-                if not future:
-                    continue
-                logger.error(
-                    "Async future failed in billing metrics consumer.",
-                    exc_info=future.exception(),
-                    extra={"offset": metrics_msg.offset},
-                )
-                # Don't commit the future when it fails -- if no futher messages
-                # are committed before shutting down the consumer, new consumers
-                # will process the current offset again.
-                self._ongoing_billing_outcomes.popleft()
-            else:
+                except Exception:
+                    logger.error(
+                        "Async future failed in billing metrics consumer.",
+                        exc_info=future.exception(),
+                        extra={"offset": metrics_msg.offset},
+                    )
+                    # Don't commit the future when it fails -- if no futher messages
+                    # are committed before shutting down the consumer, new consumers
+                    # will process the current offset again.
+                    do_commit = False
+                    self._ongoing_billing_outcomes.popleft()
+
+            if do_commit:
                 self._mark_commit_ready()
                 self._bulk_commit()
 
