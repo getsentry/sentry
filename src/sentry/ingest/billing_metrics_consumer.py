@@ -279,7 +279,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
                     "org_id": bucket_payload["org_id"],
                     "project_id": bucket_payload["project_id"],
                     "outcome": Outcome.ACCEPTED.value,
-                    "category": DataCategory.TRANSACTION_PROCESSED,
+                    "category": DataCategory.TRANSACTION,
                     "quantity": quantity,
                 }
             ).encode("utf-8")

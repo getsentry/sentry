@@ -1,20 +1,15 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {mountGlobalModal} from 'sentry-test/modal';
-import {selectByValue} from 'sentry-test/select-new';
+import selectEvent from 'react-select-event';
 
-import {Client} from 'sentry/api';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
+
 import ModalStore from 'sentry/stores/modalStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import IntegrationCodeMappings from 'sentry/views/organizationIntegrations/integrationCodeMappings';
-
-const mockResponse = mocks => {
-  mocks.forEach(([url, body]) =>
-    Client.addMockResponse({
-      url,
-      body,
-    })
-  );
-};
 
 describe('IntegrationCodeMappings', function () {
   const projects = [
@@ -25,8 +20,6 @@ describe('IntegrationCodeMappings', function () {
       name: 'Some Project',
     }),
   ];
-
-  ProjectsStore.loadInitialData(projects);
 
   const org = TestStubs.Organization();
   const integration = TestStubs.GitHubIntegration();
@@ -59,43 +52,33 @@ describe('IntegrationCodeMappings', function () {
     sourceRoot: 'another/root',
   });
 
-  let wrapper;
-
   beforeEach(() => {
     ModalStore.init();
-    Client.clearMockResponses();
+    ProjectsStore.loadInitialData(projects);
 
-    mockResponse([
-      [`/organizations/${org.slug}/code-mappings/`, [pathConfig1, pathConfig2]],
-      [`/organizations/${org.slug}/repos/`, repos],
-    ]);
-
-    wrapper = mountWithTheme(
-      <IntegrationCodeMappings organization={org} integration={integration} />
-    );
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/code-mappings/`,
+      body: [pathConfig1, pathConfig2],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/repos/`,
+      body: repos,
+    });
   });
 
   afterEach(() => {
     // Clear the fields from the GlobalModal after every test
     ModalStore.reset();
+    ProjectsStore.reset();
+    MockApiClient.clearMockResponses();
   });
 
   it('shows the paths', () => {
-    expect(wrapper.find('RepoName').length).toEqual(2);
-    expect(wrapper.find('RepoName').at(0).text()).toEqual(repos[0].name);
-    expect(wrapper.find('RepoName').at(1).text()).toEqual(repos[1].name);
-  });
+    render(<IntegrationCodeMappings organization={org} integration={integration} />);
 
-  it('opens modal', async () => {
-    const modal = await mountGlobalModal();
-
-    expect(modal.find('input[name="stackRoot"]')).toHaveLength(0);
-    wrapper.find('button[data-test-id="add-mapping-button"]').first().simulate('click');
-
-    await tick();
-    modal.update();
-
-    expect(modal.find('input[name="stackRoot"]')).toHaveLength(1);
+    for (const repo of repos) {
+      expect(screen.getByText(repo.name)).toBeInTheDocument();
+    }
   });
 
   it('create new config', async () => {
@@ -103,7 +86,7 @@ describe('IntegrationCodeMappings', function () {
     const sourceRoot = 'hey/dude';
     const defaultBranch = 'release';
     const url = `/organizations/${org.slug}/code-mappings/`;
-    const createMock = Client.addMockResponse({
+    const createMock = MockApiClient.addMockResponse({
       url,
       method: 'POST',
       body: TestStubs.RepositoryProjectPathConfig({
@@ -115,23 +98,20 @@ describe('IntegrationCodeMappings', function () {
         defaultBranch,
       }),
     });
-    wrapper.find('button[data-test-id="add-mapping-button"]').first().simulate('click');
+    render(<IntegrationCodeMappings organization={org} integration={integration} />);
+    renderGlobalModal();
 
-    const modal = await mountGlobalModal();
+    userEvent.click(screen.getByRole('button', {name: 'Add Code Mapping'}));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
 
-    selectByValue(modal, projects[1].id, {control: true, name: 'projectId'});
-    selectByValue(modal, repos[1].id, {control: true, name: 'repositoryId'});
+    await selectEvent.select(screen.getByText('Choose Sentry project'), projects[1].slug);
+    await selectEvent.select(screen.getByText('Choose repo'), repos[1].name);
 
-    modal
-      .find('input[name="stackRoot"]')
-      .simulate('change', {target: {value: stackRoot}});
-    modal
-      .find('input[name="sourceRoot"]')
-      .simulate('change', {target: {value: sourceRoot}});
-    modal
-      .find('input[name="defaultBranch"]')
-      .simulate('change', {target: {value: defaultBranch}});
-    modal.find('form').simulate('submit');
+    userEvent.type(screen.getByRole('textbox', {name: 'Stack Trace Root'}), stackRoot);
+    userEvent.type(screen.getByRole('textbox', {name: 'Source Code Root'}), sourceRoot);
+    userEvent.clear(screen.getByRole('textbox', {name: 'Branch'}));
+    userEvent.type(screen.getByRole('textbox', {name: 'Branch'}), defaultBranch);
+    userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
 
     expect(createMock).toHaveBeenCalledWith(
       url,
@@ -148,12 +128,12 @@ describe('IntegrationCodeMappings', function () {
     );
   });
 
-  it('edit existing config', async () => {
+  it('edit existing config', () => {
     const stackRoot = 'new/root';
     const sourceRoot = 'source/root';
     const defaultBranch = 'master';
     const url = `/organizations/${org.slug}/code-mappings/${pathConfig1.id}/`;
-    const editMock = Client.addMockResponse({
+    const editMock = MockApiClient.addMockResponse({
       url,
       method: 'PUT',
       body: TestStubs.RepositoryProjectPathConfig({
@@ -165,15 +145,13 @@ describe('IntegrationCodeMappings', function () {
         defaultBranch,
       }),
     });
-    wrapper.find('button[aria-label="edit"]').first().simulate('click');
+    render(<IntegrationCodeMappings organization={org} integration={integration} />);
+    renderGlobalModal();
 
-    await tick();
-    const modal = await mountGlobalModal();
-
-    modal
-      .find('input[name="stackRoot"]')
-      .simulate('change', {target: {value: stackRoot}});
-    modal.find('form').simulate('submit');
+    userEvent.click(screen.getAllByRole('button', {name: 'edit'})[0]);
+    userEvent.clear(screen.getByRole('textbox', {name: 'Stack Trace Root'}));
+    userEvent.type(screen.getByRole('textbox', {name: 'Stack Trace Root'}), stackRoot);
+    userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
 
     expect(editMock).toHaveBeenCalledWith(
       url,

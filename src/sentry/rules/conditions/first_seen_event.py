@@ -1,18 +1,18 @@
 from datetime import datetime
 from typing import Sequence
 
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import GroupEvent
 from sentry.models import Group
 from sentry.rules import EventState
 from sentry.rules.conditions.base import EventCondition
-from sentry.types.condition_activity import ActivityType, ConditionActivity
+from sentry.types.condition_activity import ConditionActivity, ConditionActivityType
 
 
 class FirstSeenEventCondition(EventCondition):
     id = "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"
     label = "A new issue is created"
 
-    def passes(self, event: Event, state: EventState) -> bool:
+    def passes(self, event: GroupEvent, state: EventState) -> bool:
         # TODO(mgaeta): Bug: Rule is optional.
         if self.rule.environment_id is None:  # type: ignore
             return state.is_new
@@ -28,6 +28,8 @@ class FirstSeenEventCondition(EventCondition):
             .values_list("id", "first_seen")
         )
         return [
-            ConditionActivity(group_id=g[0], type=ActivityType.CREATE_ISSUE, timestamp=g[1])
+            ConditionActivity(
+                group_id=g[0], type=ConditionActivityType.CREATE_ISSUE, timestamp=g[1]
+            )
             for g in first_seen
         ]

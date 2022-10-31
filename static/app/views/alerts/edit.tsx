@@ -6,7 +6,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import {Member, Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import Teams from 'sentry/utils/teams';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
@@ -22,6 +22,7 @@ type RouteParams = {
 
 type Props = RouteComponentProps<RouteParams, {}> & {
   hasMetricAlerts: boolean;
+  members: Member[] | undefined;
   organization: Organization;
   project: Project;
 };
@@ -60,7 +61,8 @@ class ProjectAlertsEditor extends Component<Props, State> {
   }
 
   render() {
-    const {hasMetricAlerts, location, organization, project, routes} = this.props;
+    const {hasMetricAlerts, location, organization, project, routes, members} =
+      this.props;
     const alertType = this.getAlertType();
 
     return (
@@ -93,6 +95,7 @@ class ProjectAlertsEditor extends Component<Props, State> {
                       project={project}
                       onChangeTitle={this.handleChangeTitle}
                       userTeamIds={teams.map(({id}) => id)}
+                      members={members}
                     />
                   )}
                   {hasMetricAlerts && alertType === AlertRuleType.METRIC && (

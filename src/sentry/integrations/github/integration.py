@@ -26,6 +26,7 @@ from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.tasks.integrations import migrate_repo
 from sentry.utils import jwt
+from sentry.utils.json import JSONData
 from sentry.web.helpers import render_to_response
 
 from .client import GitHubAppsClient, GitHubClientMixin
@@ -105,7 +106,12 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
     def get_client(self) -> GitHubClientMixin:
         return GitHubAppsClient(integration=self.model)
 
-    def get_repositories(self, query: str | None = None) -> Sequence[Mapping[str, Any]]:
+    def get_trees_for_org(self) -> JSONData:
+        return self.get_client().get_trees_for_org(self.model.name)
+
+    def get_repositories(
+        self, query: str | None = None, fetch_max_pages: bool = False
+    ) -> Sequence[Mapping[str, Any]]:
         """
         This fetches all repositories accessible to a Github App
         https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
@@ -115,7 +121,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         if not query:
             return [
                 {"name": i["name"], "identifier": i["full_name"]}
-                for i in self.get_client().get_repositories()
+                for i in self.get_client().get_repositories(fetch_max_pages)
             ]
 
         full_query = build_repository_query(self.model.metadata, self.model.name, query)
@@ -185,7 +191,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         blame_range = self.get_blame_for_file(repo, filepath, ref, lineno)
 
         try:
-            commit = sorted(
+            commit = max(
                 (
                     blame
                     for blame in blame_range
@@ -194,8 +200,8 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
                 key=lambda blame: datetime.strptime(
                     blame.get("commit", {}).get("committedDate"), "%Y-%m-%dT%H:%M:%SZ"
                 ),
-            )[-1]
-        except IndexError:
+            )
+        except (ValueError, IndexError):
             return None
 
         commitInfo = commit.get("commit")
@@ -315,15 +321,17 @@ class GitHubInstallationRedirect(PipelineView):
             pipeline.bind_state("reinstall_id", request.GET["reinstall_id"])
 
         if "installation_id" in request.GET:
-            organization = self.get_active_organization(request)
+            self.determine_active_organization(request)
 
-            # We want to wait until the scheduled deletions finish or else the
-            # post install to migrate repos do not work.
-            integration_pending_deletion_exists = OrganizationIntegration.objects.filter(
-                integration__provider=GitHubIntegrationProvider.key,
-                organization=organization,
-                status=ObjectStatus.PENDING_DELETION,
-            ).exists()
+            integration_pending_deletion_exists = False
+            if self.active_organization:
+                # We want to wait until the scheduled deletions finish or else the
+                # post install to migrate repos do not work.
+                integration_pending_deletion_exists = OrganizationIntegration.objects.filter(
+                    integration__provider=GitHubIntegrationProvider.key,
+                    organization_id=self.active_organization.id,
+                    status=ObjectStatus.PENDING_DELETION,
+                ).exists()
 
             if integration_pending_deletion_exists:
                 return render_to_response(

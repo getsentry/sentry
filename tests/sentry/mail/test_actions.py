@@ -186,7 +186,7 @@ class NotifyEmailTest(RuleTestCase):
         assert len(mail.outbox) == 1
         sent = mail.outbox[0]
         assert sent.to == [self.user.email]
-        assert "N+1 DB Queries" in sent.subject
+        assert "N+1 Query" in sent.subject
 
     # XXX(gilbert): remove this later one
     @mock.patch("sentry.mail.actions.determine_eligible_recipients")

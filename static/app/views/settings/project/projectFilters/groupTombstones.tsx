@@ -32,6 +32,7 @@ function GroupTombstoneRow({data, onUndiscard}: RowProps) {
           className="truncate"
           size="normal"
           data={data}
+          source="group-tombstome"
         />
       </StyledBox>
       <AvatarContainer>
@@ -46,11 +47,7 @@ function GroupTombstoneRow({data, onUndiscard}: RowProps) {
       <ActionContainer>
         <Confirm
           message={t(
-            'Undiscarding this issue means that ' +
-              'incoming events that match this will no longer be discarded. ' +
-              'New incoming events will count toward your event quota ' +
-              'and will display on your issues dashboard. ' +
-              'Are you sure you wish to continue?'
+            'Undiscarding this issue means that incoming events that match this will no longer be discarded. New incoming events will count toward your event quota and will display on your issues dashboard. Are you sure you wish to continue?'
           )}
           onConfirm={() => onUndiscard(data.id)}
         >

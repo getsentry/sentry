@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC
 from typing import Any, Callable, Mapping, Sequence
 
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import GroupEvent
 from sentry.integrations.slack.message_builder import SLACK_URL_FORMAT
 from sentry.models import Group, Project, Rule, Team, User
 from sentry.notifications.notifications.base import BaseNotification
@@ -31,7 +31,7 @@ def format_actor_option(actor: Team | User) -> Mapping[str, str]:
     raise NotImplementedError
 
 
-def build_attachment_title(obj: Group | Event) -> str:
+def build_attachment_title(obj: Group | GroupEvent) -> str:
     ev_metadata = obj.get_event_metadata()
     ev_type = obj.get_event_type()
 
@@ -55,7 +55,7 @@ def build_attachment_title(obj: Group | Event) -> str:
 
 def get_title_link(
     group: Group,
-    event: Event | None,
+    event: GroupEvent | None,
     link_to_event: bool,
     issue_details: bool,
     notification: BaseNotification | None,
@@ -78,7 +78,7 @@ def get_title_link(
     return url_str
 
 
-def build_attachment_text(group: Group, event: Event | None = None) -> Any | None:
+def build_attachment_text(group: Group, event: GroupEvent | None = None) -> Any | None:
     # Group and Event both implement get_event_{type,metadata}
     obj = event if event is not None else group
     ev_metadata = obj.get_event_metadata()
@@ -87,6 +87,8 @@ def build_attachment_text(group: Group, event: Event | None = None) -> Any | Non
     if ev_type == "error":
         return ev_metadata.get("value") or ev_metadata.get("function")
     elif ev_type == "transaction":
+        if not event:
+            event = group.get_latest_event()
         problem = get_matched_problem(event)
         return get_span_evidence_value_problem(problem)
 

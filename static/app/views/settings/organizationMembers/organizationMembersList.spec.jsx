@@ -1,8 +1,14 @@
 import {browserHistory} from 'react-router';
+import selectEvent from 'react-select-event';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {mountGlobalModal} from 'sentry-test/modal';
-import {selectByValue} from 'sentry-test/select-new';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
@@ -123,21 +129,18 @@ describe('OrganizationMembersList', function () {
       method: 'DELETE',
     });
 
-    const wrapper = mountWithTheme(
-      <OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />,
-      TestStubs.routerContext([{organization}])
-    );
+    render(<OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />, {
+      context: TestStubs.routerContext([{organization}]),
+    });
 
-    wrapper.find('Button[data-test-id="remove"]').at(0).simulate('click');
+    userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
 
-    // Confirm modal
-    const modal = await mountGlobalModal();
-    modal.find('Button[priority="primary"]').simulate('click');
-    await tick();
+    renderGlobalModal();
+    userEvent.click(screen.getByTestId('confirm-button'));
+
+    await waitFor(() => expect(addSuccessMessage).toHaveBeenCalled());
 
     expect(deleteMock).toHaveBeenCalled();
-    expect(addSuccessMessage).toHaveBeenCalled();
-
     expect(browserHistory.push).not.toHaveBeenCalled();
     expect(OrganizationsStore.getAll()).toEqual([organization]);
   });
@@ -149,22 +152,18 @@ describe('OrganizationMembersList', function () {
       statusCode: 500,
     });
 
-    const wrapper = mountWithTheme(
-      <OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />,
-      TestStubs.routerContext([{organization}])
-    );
+    render(<OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />, {
+      context: TestStubs.routerContext([{organization}]),
+    });
 
-    wrapper.find('Button[data-test-id="remove"]').at(0).simulate('click');
+    userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
 
-    // Confirm modal
-    const modal = await mountGlobalModal();
-    modal.find('Button[priority="primary"]').simulate('click');
-    await tick();
+    renderGlobalModal();
+    userEvent.click(screen.getByTestId('confirm-button'));
+
+    await waitFor(() => expect(addErrorMessage).toHaveBeenCalled());
 
     expect(deleteMock).toHaveBeenCalled();
-    await tick();
-    expect(addErrorMessage).toHaveBeenCalled();
-
     expect(browserHistory.push).not.toHaveBeenCalled();
     expect(OrganizationsStore.getAll()).toEqual([organization]);
   });
@@ -175,21 +174,18 @@ describe('OrganizationMembersList', function () {
       method: 'DELETE',
     });
 
-    const wrapper = mountWithTheme(
-      <OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />,
-      TestStubs.routerContext([{organization}])
-    );
+    render(<OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />, {
+      context: TestStubs.routerContext([{organization}]),
+    });
 
-    wrapper.find('Button[priority="danger"]').at(0).simulate('click');
+    userEvent.click(screen.getAllByRole('button', {name: 'Leave'})[0]);
 
-    // Confirm modal
-    const modal = await mountGlobalModal();
-    modal.find('Button[priority="primary"]').simulate('click');
-    await tick();
+    renderGlobalModal();
+    userEvent.click(screen.getByTestId('confirm-button'));
+
+    await waitFor(() => expect(addSuccessMessage).toHaveBeenCalled());
 
     expect(deleteMock).toHaveBeenCalled();
-    expect(addSuccessMessage).toHaveBeenCalled();
-
     expect(browserHistory.push).toHaveBeenCalledTimes(1);
     expect(browserHistory.push).toHaveBeenCalledWith('/organizations/new/');
   });
@@ -207,21 +203,18 @@ describe('OrganizationMembersList', function () {
     });
     OrganizationsStore.addOrReplace(secondOrg);
 
-    const wrapper = mountWithTheme(
-      <OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />,
-      TestStubs.routerContext([{organization}])
-    );
+    render(<OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />, {
+      context: TestStubs.routerContext([{organization}]),
+    });
 
-    wrapper.find('Button[priority="danger"]').at(0).simulate('click');
+    userEvent.click(screen.getAllByRole('button', {name: 'Leave'})[0]);
 
-    // Confirm modal
-    const modal = await mountGlobalModal();
-    modal.find('Button[priority="primary"]').simulate('click');
-    await tick();
+    renderGlobalModal();
+    userEvent.click(screen.getByTestId('confirm-button'));
+
+    await waitFor(() => expect(addSuccessMessage).toHaveBeenCalled());
 
     expect(deleteMock).toHaveBeenCalled();
-    expect(addSuccessMessage).toHaveBeenCalled();
-
     expect(browserHistory.push).toHaveBeenCalledTimes(1);
     expect(browserHistory.push).toHaveBeenCalledWith(`/${secondOrg.slug}/`);
     expect(OrganizationsStore.getAll()).toEqual([secondOrg]);
@@ -234,27 +227,23 @@ describe('OrganizationMembersList', function () {
       statusCode: 500,
     });
 
-    const wrapper = mountWithTheme(
-      <OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />,
-      TestStubs.routerContext([{organization}])
-    );
+    render(<OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />, {
+      context: TestStubs.routerContext([{organization}]),
+    });
 
-    wrapper.find('Button[priority="danger"]').at(0).simulate('click');
+    userEvent.click(screen.getAllByRole('button', {name: 'Leave'})[0]);
 
-    // Confirm modal
-    const modal = await mountGlobalModal();
-    modal.find('Button[priority="primary"]').simulate('click');
-    await tick();
+    renderGlobalModal();
+    userEvent.click(screen.getByTestId('confirm-button'));
+
+    await waitFor(() => expect(addErrorMessage).toHaveBeenCalled());
 
     expect(deleteMock).toHaveBeenCalled();
-    await tick();
-    expect(addErrorMessage).toHaveBeenCalled();
-
     expect(browserHistory.push).not.toHaveBeenCalled();
     expect(OrganizationsStore.getAll()).toEqual([organization]);
   });
 
-  it('can re-send SSO link to member', async function () {
+  it('can re-send SSO link to member', function () {
     const inviteMock = MockApiClient.addMockResponse({
       url: `/organizations/org-id/members/${members[0].id}/`,
       method: 'PUT',
@@ -263,20 +252,17 @@ describe('OrganizationMembersList', function () {
       },
     });
 
-    const wrapper = mountWithTheme(
-      <OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />,
-      TestStubs.routerContext([{organization}])
-    );
+    render(<OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />, {
+      context: TestStubs.routerContext([{organization}]),
+    });
 
     expect(inviteMock).not.toHaveBeenCalled();
 
-    wrapper.find('StyledButton[aria-label="Resend SSO link"]').simulate('click');
-
-    await tick();
+    userEvent.click(screen.getByRole('button', {name: 'Resend SSO link'}));
     expect(inviteMock).toHaveBeenCalled();
   });
 
-  it('can re-send invite to member', async function () {
+  it('can re-send invite to member', function () {
     const inviteMock = MockApiClient.addMockResponse({
       url: `/organizations/org-id/members/${members[1].id}/`,
       method: 'PUT',
@@ -285,16 +271,13 @@ describe('OrganizationMembersList', function () {
       },
     });
 
-    const wrapper = mountWithTheme(
-      <OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />,
-      TestStubs.routerContext([{organization}])
-    );
+    render(<OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />, {
+      context: TestStubs.routerContext([{organization}]),
+    });
 
     expect(inviteMock).not.toHaveBeenCalled();
 
-    wrapper.find('StyledButton[aria-label="Resend invite"]').simulate('click');
-
-    await tick();
+    userEvent.click(screen.getByRole('button', {name: 'Resend invite'}));
     expect(inviteMock).toHaveBeenCalled();
   });
 
@@ -303,15 +286,14 @@ describe('OrganizationMembersList', function () {
       url: '/organizations/org-id/members/',
       body: [],
     });
-    const routerContext = TestStubs.routerContext();
-    const wrapper = mountWithTheme(
-      <OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />,
-      routerContext
-    );
 
-    wrapper
-      .find('AsyncComponentSearchInput input')
-      .simulate('change', {target: {value: 'member'}});
+    const routerContext = TestStubs.routerContext();
+
+    render(<OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />, {
+      context: routerContext,
+    });
+
+    userEvent.type(screen.getByPlaceholderText('Search Members'), 'member');
 
     expect(searchMock).toHaveBeenLastCalledWith(
       '/organizations/org-id/members/',
@@ -323,7 +305,7 @@ describe('OrganizationMembersList', function () {
       })
     );
 
-    wrapper.find('SearchWrapperWithFilter form').simulate('submit');
+    userEvent.keyboard('{enter}');
 
     expect(routerContext.context.router.push).toHaveBeenCalledTimes(1);
   });
@@ -334,16 +316,12 @@ describe('OrganizationMembersList', function () {
       body: [],
     });
     const routerContext = TestStubs.routerContext();
-    const wrapper = mountWithTheme(
-      <OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />,
-      routerContext
-    );
+    render(<OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />, {
+      context: routerContext,
+    });
 
-    wrapper.find('AsyncComponentSearchInput DropdownMenu Button').simulate('click');
-
-    wrapper
-      .find('AsyncComponentSearchInput [data-test-id="filter-role-member"] input')
-      .simulate('change', {target: {checked: true}});
+    userEvent.click(screen.getByRole('button', {name: 'Filter'}));
+    userEvent.click(screen.getByRole('checkbox', {name: 'Member'}));
 
     expect(searchMock).toHaveBeenLastCalledWith(
       '/organizations/org-id/members/',
@@ -353,14 +331,14 @@ describe('OrganizationMembersList', function () {
       })
     );
 
-    wrapper
-      .find('AsyncComponentSearchInput [data-test-id="filter-role-member"] input')
-      .simulate('change', {target: {checked: false}});
+    userEvent.click(screen.getByRole('checkbox', {name: 'Member'}));
 
-    for (const filter of ['isInvited', 'has2fa', 'ssoLinked']) {
-      wrapper
-        .find(`AsyncComponentSearchInput [data-test-id="filter-${filter}"] input`)
-        .simulate('change', {target: {checked: true}});
+    for (const [filter, label] of [
+      ['isInvited', 'Invited'],
+      ['has2fa', '2FA'],
+      ['ssoLinked', 'SSO Linked'],
+    ]) {
+      userEvent.click(screen.getByRole('checkbox', {name: `Enable ${label} filter`}));
 
       expect(searchMock).toHaveBeenLastCalledWith(
         '/organizations/org-id/members/',
@@ -370,9 +348,7 @@ describe('OrganizationMembersList', function () {
         })
       );
 
-      wrapper
-        .find(`AsyncComponentSearchInput [data-test-id="filter-${filter}"] Switch`)
-        .simulate('click');
+      userEvent.click(screen.getByRole('checkbox', {name: `Toggle ${label}`}));
 
       expect(searchMock).toHaveBeenLastCalledWith(
         '/organizations/org-id/members/',
@@ -382,9 +358,7 @@ describe('OrganizationMembersList', function () {
         })
       );
 
-      wrapper
-        .find(`AsyncComponentSearchInput [data-test-id="filter-${filter}"] input`)
-        .simulate('change', {target: {checked: false}});
+      userEvent.click(screen.getByRole('checkbox', {name: `Enable ${label} filter`}));
     }
   });
 
@@ -405,6 +379,7 @@ describe('OrganizationMembersList', function () {
       role: 'member',
       teams: [],
     });
+
     it('disable buttons for no access', function () {
       const org = TestStubs.Organization({
         status: {
@@ -421,24 +396,17 @@ describe('OrganizationMembersList', function () {
         method: 'PUT',
       });
 
-      const wrapper = mountWithTheme(
+      render(
         <OrganizationMembersList
           {...defaultProps}
           params={{orgId: 'org-id'}}
           organization={org}
         />,
-        TestStubs.routerContext([{organization: org}])
+        {context: TestStubs.routerContext([{organization: org}])}
       );
 
-      expect(wrapper.find('InviteRequestRow').exists()).toBe(true);
-
-      expect(wrapper.find('PanelHeader').first().text().includes('Pending Members')).toBe(
-        true
-      );
-
-      expect(wrapper.find('button[aria-label="Approve"]').prop('aria-disabled')).toBe(
-        true
-      );
+      expect(screen.getByText('Pending Members')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Approve'})).toBeDisabled();
     });
 
     it('can approve invite request and update', async function () {
@@ -458,30 +426,23 @@ describe('OrganizationMembersList', function () {
         method: 'PUT',
       });
 
-      const wrapper = mountWithTheme(
+      render(
         <OrganizationMembersList
           {...defaultProps}
           params={{orgId: 'org-id'}}
           organization={org}
         />,
-        TestStubs.routerContext([{organization: org}])
+        {context: TestStubs.routerContext([{organization: org}])}
       );
 
-      expect(wrapper.find('InviteRequestRow').exists()).toBe(true);
+      expect(screen.getByText('Pending Members')).toBeInTheDocument();
 
-      expect(wrapper.find('PanelHeader').first().text().includes('Pending Members')).toBe(
-        true
-      );
+      userEvent.click(screen.getByRole('button', {name: 'Approve'}));
 
-      wrapper.find('button[aria-label="Approve"]').simulate('click');
+      renderGlobalModal();
+      userEvent.click(screen.getByTestId('confirm-button'));
 
-      const modal = await mountGlobalModal();
-      modal.find('button[aria-label="Confirm"]').simulate('click');
-
-      await tick();
-      wrapper.update();
-
-      expect(wrapper.find('InviteRequestRow').exists()).toBe(false);
+      await waitForElementToBeRemoved(() => screen.queryByText('Pending Members'));
 
       expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
         'invite_request.approved',
@@ -510,27 +471,20 @@ describe('OrganizationMembersList', function () {
         method: 'DELETE',
       });
 
-      const wrapper = mountWithTheme(
+      render(
         <OrganizationMembersList
           {...defaultProps}
           params={{orgId: 'org-id'}}
           organization={org}
         />,
-        TestStubs.routerContext([{organization: org}])
+        {context: TestStubs.routerContext([{organization: org}])}
       );
 
-      expect(wrapper.find('InviteRequestRow').exists()).toBe(true);
+      expect(screen.getByText('Pending Members')).toBeInTheDocument();
 
-      expect(wrapper.find('PanelHeader').first().text().includes('Pending Members')).toBe(
-        true
-      );
+      userEvent.click(screen.getByRole('button', {name: 'Deny'}));
 
-      wrapper.find('button[aria-label="Deny"]').simulate('click');
-
-      await tick();
-      wrapper.update();
-
-      expect(wrapper.find('InviteRequestRow').exists()).toBe(false);
+      await waitForElementToBeRemoved(() => screen.queryByText('Pending Members'));
 
       expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith('invite_request.denied', {
         invite_status: joinRequest.inviteStatus,
@@ -557,23 +511,21 @@ describe('OrganizationMembersList', function () {
         method: 'PUT',
       });
 
-      const wrapper = mountWithTheme(
+      render(
         <OrganizationMembersList
           {...defaultProps}
           params={{orgId: 'org-id'}}
           organization={org}
         />,
-        TestStubs.routerContext([{organization: org}])
+        {context: TestStubs.routerContext([{organization: org}])}
       );
 
-      selectByValue(wrapper, 'admin', {name: 'role', control: true});
+      await selectEvent.select(screen.getAllByRole('textbox')[1], ['Admin']);
 
-      wrapper.find('button[aria-label="Approve"]').simulate('click');
-      const modal = await mountGlobalModal();
-      modal.find('button[aria-label="Confirm"]').simulate('click');
+      userEvent.click(screen.getByRole('button', {name: 'Approve'}));
 
-      await tick();
-      wrapper.update();
+      renderGlobalModal();
+      userEvent.click(screen.getByTestId('confirm-button'));
 
       expect(updateWithApprove).toHaveBeenCalledWith(
         `/organizations/org-id/invite-requests/${inviteRequest.id}/`,

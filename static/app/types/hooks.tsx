@@ -1,10 +1,11 @@
-import type {Route, RouteComponentProps} from 'react-router';
+import type {Route, RouteComponentProps, RouteContextInterface} from 'react-router';
 
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
 import type {Guide} from 'sentry/components/assistant/types';
 import type DateRange from 'sentry/components/organizations/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/organizations/timeRangeSelector/selectorItems';
 import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
+import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 import type {NavigationItem, NavigationSection} from 'sentry/views/settings/types';
 
 import type {ExperimentKey} from './experiments';
@@ -35,6 +36,7 @@ export interface Hooks
     InterfaceChromeHooks,
     OnboardingHooks,
     SettingsHooks,
+    ReactHooks,
     CallbackHooks {
   _: any;
 }
@@ -45,8 +47,6 @@ export type HookName = keyof Hooks;
  * Route hooks.
  */
 export type RouteHooks = {
-  routes: RoutesHook;
-  'routes:admin': RoutesHook;
   'routes:api': RoutesHook;
   'routes:organization': RoutesHook;
 };
@@ -95,6 +95,7 @@ export type ComponentHooks = {
   'component:disabled-custom-symbol-sources': () => React.ComponentType<DisabledCustomSymbolSources>;
   'component:disabled-member': () => React.ComponentType<DisabledMemberViewProps>;
   'component:disabled-member-tooltip': () => React.ComponentType<DisabledMemberTooltipProps>;
+  'component:dynamic-sampling-limited-availability-program-ending': () => React.ComponentType<{}>;
   'component:first-party-integration-additional-cta': () => React.ComponentType<FirstPartyIntegrationAdditionalCTAProps>;
   'component:first-party-integration-alert': () => React.ComponentType<FirstPartyIntegrationAlertProps>;
   'component:header-date-range': () => React.ComponentType<DateRangeProps>;
@@ -150,8 +151,6 @@ export type FeatureDisabledHooks = {
   'feature-disabled:discover-sidebar-item': FeatureDisabledHook;
   'feature-disabled:discover2-page': FeatureDisabledHook;
   'feature-disabled:discover2-sidebar-item': FeatureDisabledHook;
-  'feature-disabled:dynamic-sampling-advanced': FeatureDisabledHook;
-  'feature-disabled:dynamic-sampling-basic': FeatureDisabledHook;
   'feature-disabled:events-page': FeatureDisabledHook;
   'feature-disabled:events-sidebar-item': FeatureDisabledHook;
   'feature-disabled:grid-editable-actions': FeatureDisabledHook;
@@ -205,6 +204,15 @@ export type SettingsHooks = {
   'settings:api-navigation-config': SettingsItemsHook;
   'settings:organization-navigation': OrganizationSettingsHook;
   'settings:organization-navigation-config': SettingsConfigHook;
+};
+
+/**
+ * Hooks that are actually React Hooks as well
+ */
+export type ReactHooks = {
+  'react-hook:route-activated': (
+    props: RouteContextInterface
+  ) => React.ContextType<typeof RouteAnalyticsContext>;
 };
 
 /**

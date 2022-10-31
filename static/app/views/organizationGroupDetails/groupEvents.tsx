@@ -178,7 +178,7 @@ class GroupEvents extends Component<Props, State> {
   }
 
   renderResults() {
-    const {group, params} = this.props;
+    const {group, params, organization} = this.props;
     const tagList = group.tags.filter(tag => tag.key !== 'user') || [];
 
     return (
@@ -188,6 +188,7 @@ class GroupEvents extends Component<Props, State> {
         orgId={params.orgId}
         projectId={group.project.slug}
         groupId={params.groupId}
+        orgFeatures={organization.features}
       />
     );
   }

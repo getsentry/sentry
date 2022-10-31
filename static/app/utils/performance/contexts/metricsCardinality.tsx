@@ -87,7 +87,8 @@ export const MetricsCardinalityProvider = (props: {
                                 ...sumsResult.tableData,
                               }
                             : null,
-                          !!compatabilityResult.error && !!sumsResult.error
+                          !!compatabilityResult.error && !!sumsResult.error,
+                          props.organization
                         ),
                 }}
               >
@@ -110,7 +111,8 @@ export const useMetricsCardinalityContext = _useContext;
  */
 function getMetricsOutcome(
   dataCounts: MergedMetricsData | null,
-  hasOtherFallbackCondition: boolean
+  hasOtherFallbackCondition: boolean,
+  organization: Organization
 ) {
   const fallbackOutcome: MetricDataSwitcherOutcome = {
     forceTransactionsOnly: true,
@@ -118,6 +120,11 @@ function getMetricsOutcome(
   const successOutcome: MetricDataSwitcherOutcome = {
     forceTransactionsOnly: false,
   };
+
+  if (organization.features.includes('organizations:performance-mep-bannerless-ui')) {
+    return successOutcome;
+  }
+
   if (!dataCounts) {
     return fallbackOutcome;
   }
@@ -128,10 +135,6 @@ function getMetricsOutcome(
   }
 
   if (!dataCounts) {
-    return fallbackOutcome;
-  }
-
-  if (checkForSamplingRules(dataCounts)) {
     return fallbackOutcome;
   }
 
@@ -164,21 +167,6 @@ function getMetricsOutcome(
   }
 
   return successOutcome;
-}
-
-/**
- * Fallback if very similar amounts of metrics and transactions are found.
- * No projects with dynamic sampling means no rules have been enabled yet.
- */
-function checkForSamplingRules(dataCounts: MergedMetricsData) {
-  const counts = normalizeCounts(dataCounts);
-  if (!dataCounts.dynamic_sampling_projects?.length) {
-    return true;
-  }
-  if (counts.metricsCount === 0) {
-    return true;
-  }
-  return false;
 }
 
 /**

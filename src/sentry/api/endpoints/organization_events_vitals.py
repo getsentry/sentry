@@ -72,6 +72,7 @@ class OrganizationEventsVitalsEndpoint(OrganizationEventsV2EndpointBase):
                 auto_aggregations=False,
                 use_aggregate_conditions=False,
                 allow_metric_aggregates=allow_metric_aggregates,
+                transform_alias_to_input_format=False,
             )
 
         results = {}

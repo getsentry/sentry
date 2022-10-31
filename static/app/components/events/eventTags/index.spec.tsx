@@ -3,8 +3,6 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {EventTags} from 'sentry/components/events/eventTags';
-import {OrganizationContext} from 'sentry/views/organizationContext';
-import {RouteContext} from 'sentry/views/routeContext';
 
 describe('event tags', function () {
   it('display redacted tags', async function () {
@@ -25,29 +23,21 @@ describe('event tags', function () {
     });
 
     render(
-      <OrganizationContext.Provider value={organization}>
-        <RouteContext.Provider
-          value={{
-            router,
-            location: router.location,
-            params: {},
-            routes: [],
-          }}
-        >
-          <EventTags
-            organization={organization}
-            projectId={project.id}
-            location={router.location}
-            event={event}
-          />
-        </RouteContext.Provider>
-      </OrganizationContext.Provider>
+      <EventTags
+        organization={organization}
+        projectId={project.id}
+        location={router.location}
+        event={event}
+      />,
+      {organization}
     );
 
     userEvent.hover(screen.getByText(/redacted/));
     expect(
       await screen.findByText(
-        textWithMarkupMatcher('Removed because of the PII rule project:2')
+        textWithMarkupMatcher(
+          "Removed because of a data scrubbing rule in your project's settings"
+        )
       ) // Fall back case
     ).toBeInTheDocument(); // tooltip description
   });
@@ -81,23 +71,13 @@ describe('event tags', function () {
     });
 
     render(
-      <OrganizationContext.Provider value={organization}>
-        <RouteContext.Provider
-          value={{
-            router,
-            location: router.location,
-            params: {},
-            routes: [],
-          }}
-        >
-          <EventTags
-            organization={organization}
-            projectId={project.id}
-            location={router.location}
-            event={event}
-          />
-        </RouteContext.Provider>
-      </OrganizationContext.Provider>
+      <EventTags
+        organization={organization}
+        projectId={project.id}
+        location={router.location}
+        event={event}
+      />,
+      {organization}
     );
 
     expect(screen.getByText('device.family')).toBeInTheDocument();
@@ -108,7 +88,9 @@ describe('event tags', function () {
 
     expect(
       await screen.findByText(
-        textWithMarkupMatcher('Removed because of the PII rule project:2')
+        textWithMarkupMatcher(
+          "Removed because of a data scrubbing rule in your project's settings"
+        )
       ) // Fall back case
     ).toBeInTheDocument(); // tooltip description
   });

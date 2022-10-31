@@ -13,7 +13,6 @@ import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import ErrorLevel from 'sentry/components/events/errorLevel';
 import EventAnnotation from 'sentry/components/events/eventAnnotation';
 import EventMessage from 'sentry/components/events/eventMessage';
-import FeatureBadge from 'sentry/components/featureBadge';
 import InboxReason from 'sentry/components/group/inboxBadges/inboxReason';
 import UnhandledInboxTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -251,7 +250,7 @@ function GroupHeader({
 
   const performanceIssueTabs = useMemo(() => {
     return (
-      <StyledTabList>
+      <StyledTabList hideBorder>
         <Item key={Tab.DETAILS} disabled={disabledTabs.includes(Tab.DETAILS)}>
           {t('Details')}
         </Item>
@@ -318,12 +317,6 @@ function GroupHeader({
         >
           <StyledShortId shortId={group.shortId} />
         </Tooltip>
-        {group.issueCategory === IssueCategory.PERFORMANCE && (
-          <FeatureBadge
-            type="beta"
-            title="Performance issues are available for early adopters and may change"
-          />
-        )}
       </ShortIdBreadrcumb>
     </GuideAnchor>
   );
@@ -416,11 +409,13 @@ function GroupHeader({
             )}
           </StatsWrapper>
         </HeaderRow>
-        <HeaderRow>
-          {hasIssueActionsV2 ? (
-            // Render empty div to keep flex layout
-            <div />
-          ) : (
+        {hasIssueActionsV2 ? (
+          // Environment picker for mobile
+          <HeaderRow className="hidden-sm hidden-md hidden-lg">
+            <EnvironmentPageFilter alignDropdown="right" />
+          </HeaderRow>
+        ) : (
+          <HeaderRow>
             <GroupActions
               group={group}
               project={project}
@@ -428,17 +423,12 @@ function GroupHeader({
               event={event}
               query={location.query}
             />
-          )}
-          <StyledSeenByList
-            seenBy={group.seenBy}
-            iconTooltip={t('People who have viewed this issue')}
-          />
-          {hasIssueActionsV2 && (
-            <div className="hidden-sm hidden-md hidden-lg">
-              <EnvironmentPageFilter alignDropdown="right" />
-            </div>
-          )}
-        </HeaderRow>
+            <StyledSeenByList
+              seenBy={group.seenBy}
+              iconTooltip={t('People who have viewed this issue')}
+            />
+          </HeaderRow>
+        )}
         {group.issueCategory === IssueCategory.PERFORMANCE
           ? performanceIssueTabs
           : errorIssueTabs}

@@ -61,7 +61,7 @@ function SeenInfo({
           date ? (
             <StyledDateTime date={date} />
           ) : (
-            <NoEnvironment>{t(`N/A for ${environment}`)}</NoEnvironment>
+            <NoEnvironment>{t('N/A for %s', environment)}</NoEnvironment>
           )
         }
         position="top"

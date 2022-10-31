@@ -1,10 +1,7 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {BrowserEventContext} from 'sentry/components/events/contexts/browser';
-import {OrganizationContext} from 'sentry/views/organizationContext';
-import {RouteContext} from 'sentry/views/routeContext';
 
 export const browserMockData = {
   version: '83.0.4103',
@@ -40,28 +37,11 @@ const event = {
 
 describe('browser event context', function () {
   it('display redacted data', async function () {
-    const {organization, router} = initializeOrg({
-      ...initializeOrg(),
+    render(<BrowserEventContext event={event} data={browserMockData} />, {
       organization: {
-        ...initializeOrg().organization,
         relayPiiConfig: JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig()),
       },
     });
-
-    render(
-      <OrganizationContext.Provider value={organization}>
-        <RouteContext.Provider
-          value={{
-            router,
-            location: router.location,
-            params: {},
-            routes: [],
-          }}
-        >
-          <BrowserEventContext event={event} data={browserMockData} />
-        </RouteContext.Provider>
-      </OrganizationContext.Provider>
-    );
 
     expect(screen.getByText('Name')).toBeInTheDocument(); // subject
     expect(screen.getByText(/redacted/)).toBeInTheDocument(); // value
@@ -69,7 +49,7 @@ describe('browser event context', function () {
     expect(
       await screen.findByText(
         textWithMarkupMatcher(
-          'Removed because of the PII rule [Replace] [Password fields] with [Scrubbed] from [password] in the settings of the organization org-slug'
+          "Removed because of the data scrubbing rule [Replace] [Password fields] with [Scrubbed] from [password] in your organization's settings"
         )
       )
     ).toBeInTheDocument(); // tooltip description

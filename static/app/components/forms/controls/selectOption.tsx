@@ -9,7 +9,11 @@ import {defined} from 'sentry/utils';
 
 type Props = React.ComponentProps<typeof selectComponents.Option>;
 
-// We still have some tests that find select options by the display name "Option".
+// FIXME(epurkhiser): This is actually mutating the MenuListItem component, and
+// is probably not something we should be doing.
+//
+// We still have some tests that find select options by the display name
+// "Option".
 MenuListItem.displayName = 'Option';
 
 function SelectOption(props: Props) {
@@ -39,6 +43,8 @@ function SelectOption(props: Props) {
         <MenuListItem
           {...itemProps}
           {...innerProps}
+          role={isMultiple ? 'menuitemcheckbox' : 'menuitemradio'}
+          aria-checked={isSelected}
           ref={innerRef}
           className={cx({
             option: true,

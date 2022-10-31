@@ -1,4 +1,5 @@
 import time
+from typing import NoReturn
 
 from django.conf import settings
 from packaging.version import Version
@@ -19,6 +20,12 @@ CACHE_CONTROL = (
 
 class JavaScriptSdkLoader(BaseView):
     auth_required = False
+
+    # Do not let an organization load trigger session, breaking Vary header.
+    # TODO: This view should probably not be a subclass of BaseView if it doesn't actually use the
+    # large amount of organization related support utilities, but that ends up being a large refactor.
+    def determine_active_organization(self, request: Request, organization_slug=None) -> NoReturn:
+        pass
 
     def _get_context(self, key):
         """Sets context information needed to render the loader"""

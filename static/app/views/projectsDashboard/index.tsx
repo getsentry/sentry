@@ -115,6 +115,7 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
             <Layout.HeaderActions>
               <ButtonContainer>
                 <Button
+                  size="sm"
                   icon={<IconUser size="xs" />}
                   title={
                     canJoinTeam
@@ -128,6 +129,7 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
                   {t('Join a Team')}
                 </Button>
                 <Button
+                  size="sm"
                   priority="primary"
                   disabled={!canCreateProjects}
                   title={

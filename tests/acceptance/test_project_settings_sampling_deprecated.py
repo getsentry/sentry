@@ -20,9 +20,7 @@ from sentry.utils.outcomes import Outcome
 
 FEATURE_NAME = [
     "organizations:server-side-sampling",
-    "organizations:server-side-sampling-ui",
-    "organizations:dynamic-sampling-basic",
-    "organizations:dynamic-sampling-advanced",
+    "organizations:dynamic-sampling-deprecated",
 ]
 
 uniform_rule_with_recommended_sampling_values = {
@@ -371,7 +369,7 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
             {
                 "data": [
                     {
-                        "project": self.project.slug,
+                        "project": self.project.id,
                         "project_id": self.project.id,
                         "count": 2,
                         "root_count": 2,
@@ -451,7 +449,7 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
             {
                 "data": [
                     {
-                        "project": self.project.slug,
+                        "project": self.project.id,
                         "project_id": self.project.id,
                         "count": 2,
                         "root_count": 2,

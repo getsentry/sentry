@@ -29,7 +29,7 @@ from sentry.ownership.grammar import Rule as GrammarRule
 from sentry.ownership.grammar import dump_schema
 from sentry.plugins.base import Notification
 from sentry.tasks.digests import deliver_digest
-from sentry.testutils.cases import SlackActivityNotificationTest
+from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest
 from sentry.testutils.helpers.slack import get_attachment, send_notification
 from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import ExternalProviders
@@ -37,7 +37,7 @@ from sentry.utils import json
 
 
 @region_silo_test
-class SlackIssueAlertNotificationTest(SlackActivityNotificationTest):
+class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, PerformanceIssueTestCase):
     @responses.activate
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     def test_issue_alert_user(self, mock_func):
@@ -73,6 +73,44 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest):
         assert (
             attachment["footer"]
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/alerts/?referrer=issue_alert-slack-user|Notification Settings>"
+        )
+
+    @responses.activate
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
+    def test_performance_issue_alert_user(self, mock_func):
+        """Test that performance issue alerts are sent to a Slack user."""
+
+        event = self.create_performance_issue()
+
+        action_data = {
+            "id": "sentry.mail.actions.NotifyEmailAction",
+            "targetType": "Member",
+            "targetIdentifier": str(self.user.id),
+        }
+        rule = Rule.objects.create(
+            project=self.project,
+            label="ja rule",
+            data={
+                "match": "all",
+                "actions": [action_data],
+            },
+        )
+
+        notification = AlertRuleNotification(
+            Notification(event=event, rule=rule), ActionTargetType.MEMBER, self.user.id
+        )
+        with self.feature("organizations:performance-issues"), self.tasks():
+            notification.send()
+
+        attachment, text = get_attachment()
+        assert attachment["title"] == "N+1 Query"
+        assert (
+            attachment["text"]
+            == "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
+        )
+        assert (
+            attachment["footer"]
+            == f"{self.project.slug} | production | <http://testserver/settings/account/notifications/alerts/?referrer=issue_alert-slack-user|Notification Settings>"
         )
 
     @responses.activate

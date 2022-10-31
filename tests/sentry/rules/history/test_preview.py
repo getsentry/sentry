@@ -3,17 +3,22 @@ from datetime import timedelta
 from django.utils import timezone
 from freezegun import freeze_time
 
-from sentry.models import Group
-from sentry.rules.history.preview import PREVIEW_TIME_RANGE, get_hourly_bucket, preview
+from sentry.models import Activity, Group, Project
+from sentry.rules.history.preview import PREVIEW_TIME_RANGE, preview
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
+from sentry.types.activity import ActivityType
+
+
+def get_hours(time: timedelta) -> int:
+    return time.days * 24 + time.seconds // (60 * 60)
 
 
 @freeze_time()
 @region_silo_test
 class ProjectRulePreviewTest(TestCase):
-    def set_up(self):
-        hours = get_hourly_bucket(PREVIEW_TIME_RANGE)
+    def _set_up_first_seen(self):
+        hours = get_hours(PREVIEW_TIME_RANGE)
         for i in range(hours):
             for j in range(i % 5):
                 Group.objects.create(
@@ -21,20 +26,50 @@ class ProjectRulePreviewTest(TestCase):
                 )
         return hours
 
-    def test_first_seen(self):
-        hours = self.set_up()
-        conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
+    def _set_up_activity(self, condition_type):
+        hours = get_hours(PREVIEW_TIME_RANGE)
+        for i in range(hours):
+            group = Group.objects.create(id=i, project=self.project)
+            Activity.objects.create(
+                project=self.project,
+                group=group,
+                type=condition_type.value,
+                datetime=timezone.now() - timedelta(hours=i + 1),
+            )
+        return hours
 
+    def _test_preview(self, condition, result1, result2):
+        conditions = [{"id": condition}]
         result = preview(self.project, conditions, [], "all", "all", 0)
-        for i in range(hours):
-            assert result[hours - i - 1].count == i % 5
+        assert result.count() == result1
 
-        result = preview(self.project, conditions, [], "all", "all", 60)
-        for i in range(hours):
-            assert result[i].count == (1 if i % 5 else 0)
+        result = preview(self.project, conditions, [], "all", "all", 120)
+        assert result.count() == result2
+
+    def test_first_seen(self):
+        hours = self._set_up_first_seen()
+        self._test_preview(
+            "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+            (hours - 1) * 2,
+            (hours - 1) * 2 / 5,
+        )
+
+    def test_regression(self):
+        hours = self._set_up_activity(ActivityType.SET_REGRESSION)
+        self._test_preview(
+            "sentry.rules.conditions.regression_event.RegressionEventCondition",
+            hours,
+            hours / 2,
+        )
+
+    def test_reappeared(self):
+        hours = self._set_up_activity(ActivityType.SET_UNRESOLVED)
+        self._test_preview(
+            "sentry.rules.conditions.reappeared_event.ReappearedEventCondition", hours, hours / 2
+        )
 
     def test_unsupported_conditions(self):
-        self.set_up()
+        self._set_up_first_seen()
         # conditions with no immediate plan to support
         unsupported_conditions = [
             "sentry.rules.conditions.tagged_event.TaggedEventCondition",
@@ -67,5 +102,37 @@ class ProjectRulePreviewTest(TestCase):
         ]
 
         result = preview(self.project, mutually_exclusive, [], "all", "all", 60)
-        for bucket in result:
-            assert bucket.count == 0
+        assert len(result) == 0
+
+    def test_multiple_projects(self):
+        other_project = Project.objects.create(organization=self.organization)
+        prev_hour = timezone.now() - timedelta(hours=1)
+        groups = [[], []]
+        for i, project in enumerate((self.project, other_project)):
+            first_seen = Group.objects.create(project=project, first_seen=prev_hour)
+            regression = Group.objects.create(project=project)
+            reappearance = Group.objects.create(project=project)
+            groups[i] = [first_seen, regression, reappearance]
+            Activity.objects.create(
+                project=project,
+                group=regression,
+                type=ActivityType.SET_REGRESSION.value,
+                datetime=prev_hour,
+            )
+            Activity.objects.create(
+                project=project,
+                group=reappearance,
+                type=ActivityType.SET_UNRESOLVED.value,
+                user=None,
+                datetime=prev_hour,
+            )
+
+        conditions = [
+            {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"},
+            {"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"},
+            {"id": "sentry.rules.conditions.reappeared_event.ReappearedEventCondition"},
+        ]
+        result = preview(self.project, conditions, [], "any", "all", 0)
+        # result should only contain groups of `self.project`
+        assert all(g in result for g in groups[0])
+        assert all(g not in result for g in groups[1])

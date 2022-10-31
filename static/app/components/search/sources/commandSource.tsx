@@ -3,7 +3,7 @@ import {PlainRoute} from 'react-router';
 
 import {openHelpSearchModal, openSudo} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
-import {toggleLocaleDebug} from 'sentry/locale';
+import {t, toggleLocaleDebug} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
 
@@ -18,8 +18,8 @@ type Action = {
 
 const ACTIONS: Action[] = [
   {
-    title: 'Open Sudo Modal',
-    description: 'Open Sudo Modal to re-identify yourself.',
+    title: t('Open Sudo Modal'),
+    description: t('Open Sudo Modal to re-identify yourself.'),
     requiresSuperuser: false,
     action: () =>
       openSudo({
@@ -28,8 +28,8 @@ const ACTIONS: Action[] = [
   },
 
   {
-    title: 'Open Superuser Modal',
-    description: 'Open Superuser Modal to re-identify yourself.',
+    title: t('Open Superuser Modal'),
+    description: t('Open Superuser Modal to re-identify yourself.'),
     requiresSuperuser: true,
     action: () =>
       openSudo({
@@ -38,16 +38,16 @@ const ACTIONS: Action[] = [
   },
 
   {
-    title: 'Toggle dark mode',
-    description: 'Toggle dark mode (superuser only atm)',
+    title: t('Toggle dark mode'),
+    description: t('Toggle dark mode (superuser only atm)'),
     requiresSuperuser: true,
     action: () =>
       ConfigStore.set('theme', ConfigStore.get('theme') === 'dark' ? 'light' : 'dark'),
   },
 
   {
-    title: 'Toggle Translation Markers',
-    description: 'Toggles translation markers on or off in the application',
+    title: t('Toggle Translation Markers'),
+    description: t('Toggles translation markers on or off in the application'),
     requiresSuperuser: true,
     action: () => {
       toggleLocaleDebug();
@@ -56,8 +56,8 @@ const ACTIONS: Action[] = [
   },
 
   {
-    title: 'Search Documentation and FAQ',
-    description: 'Open the Documentation and FAQ search modal.',
+    title: t('Search Documentation and FAQ'),
+    description: t('Open the Documentation and FAQ search modal.'),
     requiresSuperuser: false,
     action: () => {
       openHelpSearchModal();

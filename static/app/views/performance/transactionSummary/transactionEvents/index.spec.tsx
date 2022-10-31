@@ -8,21 +8,18 @@ import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLi
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 import TransactionEvents from 'sentry/views/performance/transactionSummary/transactionEvents';
 
 import {EVENTS_TABLE_RESPONSE_FIELDS, MOCK_EVENTS_TABLE_DATA} from './eventsTable.spec';
 
 const WrappedComponent = ({data}) => {
   return (
-    <OrganizationContext.Provider value={data.organization}>
-      <MEPSettingProvider>
-        <TransactionEvents
-          organization={data.organization}
-          location={data.router.location}
-        />
-      </MEPSettingProvider>
-    </OrganizationContext.Provider>
+    <MEPSettingProvider>
+      <TransactionEvents
+        organization={data.organization}
+        location={data.router.location}
+      />
+    </MEPSettingProvider>
   );
 };
 

@@ -10,7 +10,7 @@ import socket
 import sys
 import tempfile
 from datetime import datetime, timedelta
-from typing import Iterable
+from typing import Iterable, Mapping, Tuple
 from urllib.parse import urlparse
 
 import sentry
@@ -589,6 +589,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.release_registry",
     "sentry.tasks.release_summary",
     "sentry.tasks.reports",
+    "sentry.tasks.weekly_reports",
     "sentry.tasks.reprocessing",
     "sentry.tasks.reprocessing2",
     "sentry.tasks.scheduler",
@@ -659,7 +660,7 @@ CELERY_QUEUES = [
     Queue("merge", routing_key="merge"),
     Queue("options", routing_key="options"),
     Queue("post_process_errors", routing_key="post_process_errors"),
-    Queue("post_process_performance", routing_key="post_process_performance"),
+    Queue("post_process_transactions", routing_key="post_process_transactions"),
     Queue("relay_config", routing_key="relay_config"),
     Queue("relay_config_bulk", routing_key="relay_config_bulk"),
     Queue("reports.deliver", routing_key="reports.deliver"),
@@ -680,9 +681,11 @@ CELERY_QUEUES = [
     Queue("release_health.duplex", routing_key="release_health.duplex"),
     Queue("get_suspect_resolutions", routing_key="get_suspect_resolutions"),
     Queue("get_suspect_resolutions_releases", routing_key="get_suspect_resolutions_releases"),
+    Queue("replays.ingest_replay", routing_key="replays.ingest_replay"),
     Queue("replays.delete_replay", routing_key="replays.delete_replay"),
     Queue("counters-0", routing_key="counters-0"),
     Queue("triggers-0", routing_key="triggers-0"),
+    Queue("derive_code_mappings", routing_key="derive_code_mappings"),
 ]
 
 for queue in CELERY_QUEUES:
@@ -781,6 +784,13 @@ CELERYBEAT_SCHEDULE = {
     },
     "schedule-weekly-organization-reports": {
         "task": "sentry.tasks.reports.prepare_reports",
+        "schedule": crontab(
+            minute=0, hour=12, day_of_week="monday"  # 05:00 PDT, 09:00 EDT, 12:00 UTC
+        ),
+        "options": {"expires": 60 * 60 * 3},
+    },
+    "schedule-weekly-organization-reports-new": {
+        "task": "sentry.tasks.weekly_reports.schedule_organizations",
         "schedule": crontab(
             minute=0, hour=12, day_of_week="monday"  # 05:00 PDT, 09:00 EDT, 12:00 UTC
         ),
@@ -952,6 +962,8 @@ SENTRY_FEATURES = {
     "organizations:active-release-notifications-enable": False,
     # Enables tagging javascript errors from the browser console.
     "organizations:javascript-console-error-tag": False,
+    # Enables automatically deriving of code mappings
+    "organizations:derive-code-mappings": False,
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
     # Use metrics as the dataset for crash free metric alerts
@@ -1022,6 +1034,8 @@ SENTRY_FEATURES = {
     "organizations:incidents": False,
     # Enable issue alert previews
     "organizations:issue-alert-preview": False,
+    # Enable issue alert test notifications
+    "organizations:issue-alert-test-notifications": False,
     # Whether to allow issue only search on the issue list
     "organizations:issue-search-allow-postgres-only-search": False,
     # Flags for enabling CdcEventsDatasetSnubaSearchBackend in sentry.io. No effect in open-source
@@ -1112,6 +1126,8 @@ SENTRY_FEATURES = {
     "organizations:issue-details-owners": False,
     # Enable removing issue from issue list if action taken.
     "organizations:issue-list-removal-action": False,
+    # Enable new saved searches sidebar and visibility features
+    "organizations:issue-list-saved-searches-v2": False,
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
@@ -1131,14 +1147,16 @@ SENTRY_FEATURES = {
     "organizations:performance-autogroup-sibling-spans": False,
     # Enable performance on-boarding checklist
     "organizations:performance-onboarding-checklist": False,
-    # Enable automatic horizontal scrolling on the span tree
-    "organizations:performance-span-tree-autoscroll": False,
     # Enable transaction name only search
     "organizations:performance-transaction-name-only-search": False,
+    # Re-enable histograms for Metrics Enhanced Performance Views
+    "organizations:performance-mep-reintroduce-histograms": False,
     # Enable showing INP web vital in default views
     "organizations:performance-vitals-inp": False,
     # Enable processing transactions in post_process_group
     "organizations:performance-issues-post-process-group": False,
+    # Enable internal view for bannerless MEP view
+    "organizations:performance-mep-bannerless-ui": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable populating suggested assignees with release committers
@@ -1179,24 +1197,16 @@ SENTRY_FEATURES = {
     # Enable SAML2 based SSO functionality. getsentry/sentry-auth-saml2 plugin
     # must be installed to use this functionality.
     "organizations:sso-saml2": True,
-    # Enable the server-side sampling feature (backend + relay)
+    # Enable the server-side sampling (backend + relay)
     "organizations:server-side-sampling": False,
-    # Enable the server-side sampling feature (frontend)
-    "organizations:server-side-sampling-ui": False,
-    # Enable the updated dynamic sampling UI for the total transaction packaging experience
-    "organizations:dynamic-sampling-total-transaction-packaging": False,
+    # Enable the original behavior of sampling and UI that was used in LA (supported for selected orgs until end of November)
+    "organizations:dynamic-sampling-deprecated": False,
     # Enable creating DS rules on incompatible platforms (used by SDK teams for dev purposes)
     "organizations:server-side-sampling-allow-incompatible-platforms": False,
     # Enable the deletion of sampling uniform rules (used internally for demo purposes)
     "organizations:dynamic-sampling-demo": False,
-    # Enable the creation of a uniform sampling rule.
-    "organizations:dynamic-sampling-basic": False,
-    # Enable the creation of uniform and conditional sampling rules.
-    "organizations:dynamic-sampling-advanced": False,
-    # Enable dynamic sampling call to action in the performance product
-    "organizations:dynamic-sampling-performance-cta": False,
-    # Enable a more advanced dynamic sampling call to action in the performance product
-    "organizations:dynamic-sampling-performance-cta-advanced": False,
+    # Enable the new opinionated dynamic sampling
+    "organizations:dynamic-sampling": False,
     # Enable the mobile screenshots feature
     "organizations:mobile-screenshots": False,
     # Enable the mobile screenshot gallery in the attachments tab
@@ -2317,7 +2327,7 @@ SENTRY_BUILTIN_SOURCES = {
         "id": "sentry:microsoft",
         "name": "Microsoft",
         "layout": {"type": "symstore"},
-        "filters": {"filetypes": ["pdb", "pe"]},
+        "filters": {"filetypes": ["pe", "pdb", "portablepdb"]},
         "url": "https://msdl.microsoft.com/download/symbols/",
         "is_public": True,
     },
@@ -2326,7 +2336,7 @@ SENTRY_BUILTIN_SOURCES = {
         "id": "sentry:citrix",
         "name": "Citrix",
         "layout": {"type": "symstore"},
-        "filters": {"filetypes": ["pdb", "pe"]},
+        "filters": {"filetypes": ["pe", "pdb"]},
         "url": "http://ctxsym.citrix.com/symbols/",
         "is_public": True,
     },
@@ -2335,7 +2345,7 @@ SENTRY_BUILTIN_SOURCES = {
         "id": "sentry:intel",
         "name": "Intel",
         "layout": {"type": "symstore"},
-        "filters": {"filetypes": ["pdb", "pe"]},
+        "filters": {"filetypes": ["pe", "pdb"]},
         "url": "https://software.intel.com/sites/downloads/symbols/",
         "is_public": True,
     },
@@ -2344,7 +2354,7 @@ SENTRY_BUILTIN_SOURCES = {
         "id": "sentry:amd",
         "name": "AMD",
         "layout": {"type": "symstore"},
-        "filters": {"filetypes": ["pdb", "pe"]},
+        "filters": {"filetypes": ["pe", "pdb"]},
         "url": "https://download.amd.com/dir/bin/",
         "is_public": True,
     },
@@ -2353,7 +2363,7 @@ SENTRY_BUILTIN_SOURCES = {
         "id": "sentry:nvidia",
         "name": "NVIDIA",
         "layout": {"type": "symstore"},
-        "filters": {"filetypes": ["pdb", "pe"]},
+        "filters": {"filetypes": ["pe", "pdb"]},
         "url": "https://driver-symbols.nvidia.com/",
         "is_public": True,
     },
@@ -2362,7 +2372,7 @@ SENTRY_BUILTIN_SOURCES = {
         "id": "sentry:chromium",
         "name": "Chromium",
         "layout": {"type": "symstore"},
-        "filters": {"filetypes": ["pdb", "pe"]},
+        "filters": {"filetypes": ["pe", "pdb"]},
         "url": "https://chromium-browser-symsrv.commondatastorage.googleapis.com/",
         "is_public": True,
     },
@@ -2371,7 +2381,7 @@ SENTRY_BUILTIN_SOURCES = {
         "id": "sentry:unity",
         "name": "Unity",
         "layout": {"type": "symstore"},
-        "filters": {"filetypes": ["pdb", "pe"]},
+        "filters": {"filetypes": ["pe", "pdb"]},
         "url": "http://symbolserver.unity3d.com/",
         "is_public": True,
     },
@@ -2864,3 +2874,11 @@ SENTRY_REGION_CONFIG: Iterable[Region] = ()
 
 # How long we should wait for a gateway proxy request to return before giving up
 GATEWAY_PROXY_TIMEOUT = None
+
+SENTRY_SLICING_LOGICAL_PARTITION_COUNT = 256
+# This maps a Sliceable for slicing by name and (lower logical partition, upper physical partition)
+# to a given slice. A slice is a set of physical resources in Sentry and Snuba.
+#
+# For each Sliceable, the range [0, SENTRY_SLICING_LOGICAL_PARTITION_COUNT) must be mapped
+# to a slice ID
+SENTRY_SLICING_CONFIG: Mapping[str, Mapping[Tuple[int, int], int]] = {}

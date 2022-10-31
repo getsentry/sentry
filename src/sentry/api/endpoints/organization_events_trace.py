@@ -256,7 +256,7 @@ def query_trace_data(
         referrer="api.trace-view.get-events",
     )
     transformed_results = [
-        discover.transform_results(result, query, {}, None)["data"]
+        query.process_results(result)["data"]
         for result, query in zip(results, [transaction_query, error_query])
     ]
     return cast(Sequence[SnubaTransaction], transformed_results[0]), cast(
