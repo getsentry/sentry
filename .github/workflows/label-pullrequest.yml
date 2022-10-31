@@ -17,7 +17,7 @@ jobs:
           persist-credentials: false
 
       - name: Check for file changes
-        uses: getsentry/paths-filter@78ab00f87740f82aec8ed8826eb4c3c851044126  # master
+        uses: getsentry/paths-filter@4512585405083f25c027a35db413c2b3b9006d50  # v2.11.1
         id: changes
         with:
           token: ${{ github.token }}
