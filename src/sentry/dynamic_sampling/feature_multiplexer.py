@@ -1,8 +1,10 @@
-from typing import List, Optional, Set
+from typing import TYPE_CHECKING, List, Optional, Set
 
 from sentry import features, options
 from sentry.dynamic_sampling.utils import DEFAULT_BIASES, Bias
-from sentry.models import Project
+
+if TYPE_CHECKING:
+    from sentry.models import Project
 
 
 class DynamicSamplingFeatureMultiplexer:
@@ -16,7 +18,7 @@ class DynamicSamplingFeatureMultiplexer:
     - The `organizations:dynamic-sampling` feature flag is the flag that enables the new adaptive sampling
     """
 
-    def __init__(self, project: Project):
+    def __init__(self, project: "Project"):
         # Feature flag that informs us that relay is handling DS rules
         self.allow_dynamic_sampling = features.has(
             "organizations:server-side-sampling", project.organization
