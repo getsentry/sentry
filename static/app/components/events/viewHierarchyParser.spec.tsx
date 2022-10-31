@@ -127,7 +127,8 @@ describe('parser', () => {
    |    |    | <D: first;>
    |    | <C: second;>
    |    |    | <D: second;>
-   | <B: second;>`;
+   | <B: second;>
+   |    | <C: third;>`;
     const output = parseViewHierarchy(testString);
     expect(output).toEqual({
       title: 'A: first',
@@ -157,12 +158,17 @@ describe('parser', () => {
         },
         {
           title: 'B: second',
-          children: [],
+          children: [
+            {
+              title: 'C: third',
+              children: [],
+            },
+          ],
         },
       ],
     });
   });
-  it('blah 3', () => {
+  it.only('blah 3', () => {
     const testString = `<A: first;>
    | <B: first;>
    |    | <C: first;>
