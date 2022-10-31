@@ -28,7 +28,7 @@ counter_payload = {
 }
 
 
-def test_basic(request):
+def testass_basic(request):
     """
     Integration test to verify that the parallel indexer can spawn subprocesses
     properly. The main purpose is to verify that there are no

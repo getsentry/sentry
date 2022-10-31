@@ -6,7 +6,6 @@ from arroyo.backends.kafka import KafkaPayload
 from arroyo.backends.local.backend import LocalBroker
 from arroyo.backends.local.storages.memory import MemoryMessageStorage
 from arroyo.types import Message, Partition, Topic
-from arroyo.utils.clock import TestingClock
 from confluent_kafka import Producer
 
 from sentry.sentry_metrics.consumers.indexer.routing_producer import (
@@ -20,11 +19,10 @@ class RoundRobinRouter(MessageRouter[KafkaPayload]):
     def __init__(self) -> None:
         self.all_broker_storages: MutableSequence[MemoryMessageStorage[KafkaPayload]] = []
         self.all_producers: MutableSequence[Producer] = []
-        clock = TestingClock()
 
         for i in range(3):
             broker_storage: MemoryMessageStorage[KafkaPayload] = MemoryMessageStorage()
-            broker: LocalBroker[KafkaPayload] = LocalBroker(broker_storage, clock)
+            broker: LocalBroker[KafkaPayload] = LocalBroker(broker_storage)
             broker.create_topic(Topic(f"result-topic-{i}"), partitions=1)
             self.all_broker_storages.append(broker_storage)
             self.all_producers.append(broker.get_producer())
