@@ -145,6 +145,7 @@ type State = AsyncView['state'] & {
   };
   environments: Environment[] | null;
   incompatibleCondition: number | null;
+  incompatibleFilter: number | null;
   issueCount: number;
   loadingPreview: boolean;
   previewCursor: string | null | undefined;
@@ -188,6 +189,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       this.setState({
         loadingPreview: true,
         incompatibleCondition: null,
+        incompatibleFilter: null,
       });
       this.fetchPreviewDebounced();
       this.checkIncompatibleRule();
@@ -243,6 +245,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       loadingPreview: false,
       sendingNotification: false,
       incompatibleCondition: null,
+      incompatibleFilter: null,
     };
 
     const projectTeamIds = new Set(project.teams.map(({id}) => id));
@@ -416,28 +419,51 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     const {rule} = this.state;
     if (
       !rule ||
-      rule.actionMatch !== 'all' ||
       !this.props.organization.features.includes('issue-alert-incompatible-rules')
     ) {
       return;
     }
 
-    const conditions = rule.conditions;
-    let firstSeen = 0;
-    let regression = 0;
-    let reappearance = 0;
-    for (let i = 0; i < conditions.length; i++) {
-      const id = conditions[i].id;
-      if (id.endsWith('FirstSeenEventCondition')) {
-        firstSeen = 1;
-      } else if (id.endsWith('RegressionEventCondition')) {
-        regression = 1;
-      } else if (id.endsWith('ReappearanceEventCondition')) {
-        reappearance = 1;
+    const {conditions, filters} = rule;
+    // Check for more than one 'issue state change' condition
+    // or 'FirstSeenEventCondition' + 'EventFrequencyCondition'
+    if (rule.actionMatch === 'all') {
+      let firstSeen = 0;
+      let regression = 0;
+      let reappeared = 0;
+      let eventFrequency = 0;
+      for (let i = 0; i < conditions.length; i++) {
+        const id = conditions[i].id;
+        if (id.endsWith('FirstSeenEventCondition')) {
+          firstSeen = 1;
+        } else if (id.endsWith('RegressionEventCondition')) {
+          regression = 1;
+        } else if (id.endsWith('ReappearedEventCondition')) {
+          reappeared = 1;
+        } else if (id.endsWith('EventFrequencyCondition') && conditions[i].value >= 1) {
+          eventFrequency = 1;
+        }
+        if (firstSeen + regression + reappeared > 1 || firstSeen + eventFrequency > 1) {
+          this.setState({incompatibleCondition: i});
+          return;
+        }
       }
-      if (firstSeen + regression + reappearance > 1) {
-        this.setState({incompatibleCondition: i});
-        break;
+    }
+    // Check for 'FirstSeenEventCondition' and 'IssueOccurrencesFilter'
+    const firstSeen = conditions.some(condition =>
+      condition.id.endsWith('FirstSeenEventCondition')
+    );
+    if (
+      firstSeen &&
+      (rule.actionMatch === 'all' || conditions.length === 1) &&
+      (rule.filterMatch === 'all' || filters.length === 1)
+    ) {
+      for (let i = 0; i < filters.length; i++) {
+        const id = filters[i].id;
+        if (id.endsWith('IssueOccurrencesFilter') && filters[i].value > 1) {
+          this.setState({incompatibleFilter: i});
+          return;
+        }
       }
     }
   }, 500);
@@ -1109,6 +1135,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       ownership,
       sendingNotification,
       incompatibleCondition,
+      incompatibleFilter,
     } = this.state;
     const {actions, filters, conditions, frequency} = rule || {};
 
@@ -1141,7 +1168,11 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                 extraButton={
                   isSavedAlertRule(rule) ? (
                     <Confirm
-                      disabled={disabled || incompatibleCondition !== null}
+                      disabled={
+                        disabled ||
+                        incompatibleCondition !== null ||
+                        incompatibleFilter !== null
+                      }
                       priority="danger"
                       confirmText={t('Delete Rule')}
                       onConfirm={this.handleDeleteRule}
@@ -1311,6 +1342,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                                   </StyledAlert>
                                 )
                               }
+                              incompatibleRule={incompatibleFilter}
                             />
                           </StepContent>
                         </StepContainer>
