@@ -73,8 +73,6 @@ export function ProfileDetailsTable() {
     return search(searchQuery);
   });
 
-  const pageLinks = usePageLinks(filteredDataBySearch, cursor);
-
   const {filters, columnFilters, filterPredicate} = useColumnFilters(allData, [
     'type',
     'image',
@@ -101,10 +99,19 @@ export function ProfileDetailsTable() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allData, search]);
 
-  const data = filteredDataBySearch
-    .filter(filterPredicate)
-    .sort(sortCompareFn)
-    .slice(cursor, cursor + RESULTS_PER_PAGE);
+  const filteredData = useMemo(
+    () => filteredDataBySearch.filter(filterPredicate),
+    [filterPredicate, filteredDataBySearch]
+  );
+
+  const sortedData = useMemo(
+    () => filteredData.sort(sortCompareFn),
+    [filteredData, sortCompareFn]
+  );
+
+  const pageLinks = usePageLinks(sortedData, cursor);
+
+  const data = sortedData.slice(cursor, cursor + RESULTS_PER_PAGE);
 
   return (
     <Fragment>
@@ -233,7 +240,7 @@ function ProfilingFunctionsTableCell({
     case 'total weight':
       return <NumberContainer>{formatter(value as number)}</NumberContainer>;
     case 'image':
-      return <Container>{value ?? 'Unknown'}</Container>;
+      return <Container>{value ?? t('Unknown')}</Container>;
     case 'thread': {
       return (
         <Container>
