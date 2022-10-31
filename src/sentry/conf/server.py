@@ -1149,6 +1149,8 @@ SENTRY_FEATURES = {
     "organizations:performance-onboarding-checklist": False,
     # Enable transaction name only search
     "organizations:performance-transaction-name-only-search": False,
+    # Enable transaction name only search on indexed
+    "organizations:performance-transaction-name-only-search-indexed": False,
     # Re-enable histograms for Metrics Enhanced Performance Views
     "organizations:performance-mep-reintroduce-histograms": False,
     # Enable showing INP web vital in default views
