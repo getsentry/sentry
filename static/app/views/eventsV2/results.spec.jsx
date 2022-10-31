@@ -1295,6 +1295,38 @@ describe('Results', function () {
     );
   });
 
+  it('links back to the Saved Queries through the Saved Queries breadcrumb', () => {
+    const organization = TestStubs.Organization({
+      features: [
+        'discover-basic',
+        'discover-query',
+        'discover-query-builder-as-landing-page',
+        'discover-frontend-use-events-endpoint',
+      ],
+    });
+
+    const initialData = initializeOrg({
+      organization,
+      router: {
+        location: {query: {id: '1'}},
+      },
+    });
+
+    render(
+      <Results
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+      />,
+      {context: initialData.routerContext, organization}
+    );
+
+    expect(screen.getByRole('link', {name: 'Saved Queries'})).toHaveAttribute(
+      'href',
+      expect.stringMatching(new RegExp('^/organizations/org-slug/discover/queries/'))
+    );
+  });
+
   it('allows users to Set As Default on the All Events query', () => {
     const organization = TestStubs.Organization({
       features: [
