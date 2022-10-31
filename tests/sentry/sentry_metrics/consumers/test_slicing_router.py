@@ -99,7 +99,6 @@ def test_slicing_router_with_no_org_in_message(metrics_message, setup_slicing):
     """
     When no org id is present in the message, the message should be routed to slice 0.
     """
-
     router = SlicingRouter("generic_metrics_sets", KAFKA_SNUBA_GENERIC_METRICS)
     assert metrics_message.payload.headers == []
     route = router.get_route_for_message(metrics_message)
