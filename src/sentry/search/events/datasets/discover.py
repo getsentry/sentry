@@ -1486,7 +1486,6 @@ class DiscoverDatasetConfig(DatasetConfig):
 
         if group_short_ids and self.builder.params and "organization_id" in self.builder.params:
             try:
-                # TODO - cache groups, store as an instance variable with underscore, use it perf issue id converter
                 groups = Group.objects.by_qualified_short_id_bulk(
                     self.builder.params["organization_id"],
                     group_short_ids,
@@ -1630,7 +1629,6 @@ class DiscoverDatasetConfig(DatasetConfig):
         )
         transaction_names: list[str] = list(map(lambda tag: tag.value, transaction_tags))
 
-        # perform_optimization = False
         perform_optimization = (
             True
             if len(transaction_names) < transaction_limit - 1 or len(transaction_names) == 0

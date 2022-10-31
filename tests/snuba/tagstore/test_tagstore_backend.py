@@ -1047,6 +1047,72 @@ class PerfTagStorageTest(TestCase, SnubaTestCase, PerfIssueTransactionTestMixin)
             [self.project.id], group_ids=[first_group.id, second_group.id], environment_ids=None
         ) == {first_group.id: 3, second_group.id: 3}
 
+    def test_get_perf_group_list_tag_and_values_by_single_group(self):
+        group_fingerprint_1 = f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group1"
+        group_fingerprint_2 = f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group2"
+        start_timestamp = timezone.now() - timedelta(hours=1)
+        first_event_ts = start_timestamp + timedelta(minutes=1)
+        event1 = self.store_transaction(
+            self.project.id,
+            "user1",
+            [group_fingerprint_1],
+            self.environment.name,
+            timestamp=first_event_ts,
+        )
+        last_event_ts = start_timestamp + timedelta(hours=1)
+
+        self.store_transaction(
+            self.project.id,
+            "user1",
+            [group_fingerprint_2],
+            self.environment.name,
+            timestamp=last_event_ts,
+        )
+        group = event1.groups[0]
+
+        result = self.ts.get_perf_group_list_tag_and_values(
+            [group],
+            [self.environment.id],
+            "transaction",
+        )
+
+        assert len(result) == 1
+        assert result[0].value == event1.transaction
+
+    def test_get_perf_group_list_tag_and_values_by_multiple_groups(self):
+        group_fingerprint_1 = f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group1"
+        group_fingerprint_2 = f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group2"
+        start_timestamp = timezone.now() - timedelta(hours=1)
+        first_event_ts = start_timestamp + timedelta(minutes=1)
+        event1 = self.store_transaction(
+            self.project.id,
+            "user1",
+            [group_fingerprint_1],
+            self.environment.name,
+            timestamp=first_event_ts,
+        )
+        last_event_ts = start_timestamp + timedelta(hours=1)
+
+        event2 = self.store_transaction(
+            self.project.id,
+            "user1",
+            [group_fingerprint_2],
+            self.environment.name,
+            timestamp=last_event_ts,
+        )
+        group1 = event1.groups[0]
+        group2 = event2.groups[0]
+
+        result = self.ts.get_perf_group_list_tag_and_values(
+            [group1, group2],
+            [self.environment.id],
+            "transaction",
+        )
+
+        assert len(result) == 2
+        assert result[0].value == event1.transaction
+        assert result[1].value == event2.transaction
+
     def test_get_perf_group_list_tag_value_by_environment(self):
         group_fingerprint = f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group1"
         start_timestamp = timezone.now() - timedelta(hours=1)
