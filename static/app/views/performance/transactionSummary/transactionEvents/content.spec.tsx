@@ -18,7 +18,7 @@ import {RouteContext} from 'sentry/views/routeContext';
 
 function initializeData() {
   const organization = TestStubs.Organization({
-    features: ['discover-basic', 'performance-view', 'performance-ops-breakdown'],
+    features: ['discover-basic', 'performance-view'],
     projects: [TestStubs.Project()],
     apdexThreshold: 400,
   });
