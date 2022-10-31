@@ -216,9 +216,9 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
 
         while self._ongoing_billing_outcomes:
             now = time.time()
-            time_left = now - deadline if deadline else None
+            time_left = deadline - now if deadline else None
 
-            if deadline and time_left and time_left > 0:
+            if deadline and time_left and time_left <= 0:
                 items_left = self._messages_ready_since_last_commit + len(
                     self._ongoing_billing_outcomes
                 )
