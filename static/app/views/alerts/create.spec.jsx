@@ -540,11 +540,9 @@ describe('ProjectAlertsCreate', function () {
     await selectEvent.select(screen.getByText('Add optional trigger...'), [
       'The issue changes state from resolved to unresolved',
     ]);
-    expect(
-      screen.getByText(
-        'This condition conflicts with other condition(s) above. Please select a different condition'
-      )
-    ).toBeInTheDocument();
+    const errorText =
+      'This condition conflicts with other condition(s) above. Please select a different condition.';
+    expect(screen.getByText(errorText)).toBeInTheDocument();
 
     expect(screen.getByRole('button', {name: 'Save Rule'})).toHaveAttribute(
       'aria-disabled',
@@ -552,10 +550,6 @@ describe('ProjectAlertsCreate', function () {
     );
 
     userEvent.click(screen.getAllByLabelText('Delete Node')[0]);
-    expect(
-      screen.queryByText(
-        'This condition conflicts with other condition(s) above. Please select a different condition'
-      )
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText(errorText)).not.toBeInTheDocument();
   });
 });
