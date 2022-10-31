@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -47,10 +47,11 @@ class GroupTagsEndpoint(GroupEndpoint):  # type: ignore
         return Response(data)
 
 
-def add_readable_tag_values(data):
+def add_readable_tag_values(data: Any) -> Any:
     # Map device tag to a more readable value if possible
     device_tag = next((tag for tag in data if tag["key"] == "device"), None)
-    for top_device in device_tag["topValues"]:
-        readable_value = get_readable_device_name(top_device["value"])
-        if readable_value:
-            top_device["readable"] = readable_value
+    if device_tag:
+        for top_device in device_tag["topValues"]:
+            readable_value = get_readable_device_name(top_device["value"])
+            if readable_value:
+                top_device["readable"] = readable_value
