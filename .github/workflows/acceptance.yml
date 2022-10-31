@@ -4,7 +4,7 @@
 #
 # Also note that this name *MUST* match the filename because GHA
 # only provides the workflow name (https://docs.github.com/en/free-pro-team@latest/actions/reference/environment-variables#default-environment-variables)
-# and GH APIs only support querying by workflow *FILENAME* (https://developer.github.com/v3/actions/workflows/#get-a-workflow)
+# and GH APIs only support querying by workflow *FILENAME* (https://developer.github.com/v6.3.3/actions/workflows/#get-a-workflow)
 name: acceptance
 on:
   push:
@@ -33,7 +33,7 @@ jobs:
       acceptance: ${{ steps.changes.outputs.acceptance }}
       backend: ${{ steps.changes.outputs.backend_all }}
     steps:
-      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v6.3.3.1.0
 
       - name: Check for backend file changes
         uses: getsentry/paths-filter@4512585405083f25c027a35db413c2b3b9006d50  # v2.11.1
@@ -61,7 +61,7 @@ jobs:
     env:
       VISUAL_HTML_ENABLE: 1
     steps:
-      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v6.3.3.1.0
         name: Checkout sentry
 
         with:
@@ -135,7 +135,7 @@ jobs:
       TEST_GROUP_STRATEGY: roundrobin
 
     steps:
-      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v6.3.3.1.0
         name: Checkout sentry
 
       - uses: getsentry/action-setup-volta@54775a59c41065f54ecc76d1dd5f2cdc7a1550cb  # v1.1.0
@@ -145,7 +145,7 @@ jobs:
         run: echo "webpack-path=.webpack_cache" >> "$GITHUB_OUTPUT"
 
       - name: webpack cache
-        uses: actions/cache@56046cbc4743437ac40542086317b1561d7705f8  # v3.0.8
+        uses: actions/cache@56046cbc4743437ac40542086317b1561d7705f8  # v6.3.3.0.8
         with:
           path: ${{ steps.config.outputs.webpack-path }}
           key: ${{ runner.os }}-v2-webpack-cache-${{ hashFiles('webpack.config.ts') }}
@@ -209,7 +209,7 @@ jobs:
       VISUAL_SNAPSHOT_ENABLE: 1
 
     steps:
-      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v6.3.3.1.0
         with:
           # Avoid codecov error message related to SHA resolution:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
@@ -222,7 +222,7 @@ jobs:
           chartcuterie: true
 
       - name: yarn cache
-        uses: actions/cache@56046cbc4743437ac40542086317b1561d7705f8  # v3.0.8
+        uses: actions/cache@56046cbc4743437ac40542086317b1561d7705f8  # v6.3.3.0.8
         with:
           path: ${{ steps.setup.outputs.yarn-cache-dir }}
           key: ${{ runner.os }}-v2-yarn-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
