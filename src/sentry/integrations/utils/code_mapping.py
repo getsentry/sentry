@@ -1,8 +1,6 @@
 import logging
 from typing import Dict, List, NamedTuple, Union
 
-from sentry.utils.json import JSONData
-
 logger = logging.getLogger("sentry.integrations.utils.code_mapping")
 logger.setLevel(logging.INFO)
 
@@ -19,6 +17,11 @@ class CodeMapping(NamedTuple):
     repo: Repo
     stacktrace_root: str
     source_path: str
+
+
+class RepoTree(NamedTuple):
+    repo: Repo
+    files: List[str]
 
 
 # XXX: Look at sentry.interfaces.stacktrace and maybe use that
@@ -45,7 +48,7 @@ class FrameFilename:
 
 
 class CodeMappingTreesHelper:
-    def __init__(self, trees: JSONData):
+    def __init__(self, trees: Dict[str, RepoTree]):
         self.trees = trees
         self.code_mappings: Dict[str, CodeMapping] = {}
 
@@ -126,7 +129,7 @@ class CodeMappingTreesHelper:
     ) -> List[CodeMapping]:
         matched_files = [
             src_path
-            for src_path in self.trees[repo_full_name]["files"]
+            for src_path in self.trees[repo_full_name].files
             if self._potential_match(src_path, frame_filename)
         ]
         # It is too risky generating code mappings when there's more
@@ -134,10 +137,7 @@ class CodeMappingTreesHelper:
         return (
             [
                 CodeMapping(
-                    repo=Repo(
-                        name=repo_full_name,
-                        branch=self.trees[repo_full_name]["default_branch"],
-                    ),
+                    repo=self.trees[repo_full_name].repo,
                     stacktrace_root=frame_filename.root,  # sentry
                     # e.g. src/sentry/identity/oauth2.py -> src/sentry
                     source_path=matched_files[0].rsplit(frame_filename.dir_path)[0].rstrip("/"),

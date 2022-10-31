@@ -1,18 +1,28 @@
 import os
 
-from sentry.integrations.utils.code_mapping import CodeMapping, CodeMappingTreesHelper, Repo
+from sentry.integrations.utils.code_mapping import (
+    CodeMapping,
+    CodeMappingTreesHelper,
+    Repo,
+    RepoTree,
+)
+from sentry.testutils import TestCase
 from sentry.utils import json
 
 with open(
-    os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures/sentry_tree.json")
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures/sentry_files.json")
 ) as fd:
-    sentry_tree = json.load(fd)
+    sentry_files = json.load(fd)
 
 
-class TestDerivedCodeMappings:
+class TestDerivedCodeMappings(TestCase):
     def setUp(self):
-        self.code_mapping_helper = CodeMappingTreesHelper({"sentry": sentry_tree})
+        super().setUp()
         repo = Repo("Test-Organization/foo", "master")
+        self.code_mapping_helper = CodeMappingTreesHelper(
+            {"sentry": RepoTree(repo, files=sentry_files)}
+        )
+
         self.expected_code_mappings = [
             CodeMapping(repo, "sentry", "src/sentry"),
             CodeMapping(repo, "sentry_plugins", "src/sentry_plugins"),
