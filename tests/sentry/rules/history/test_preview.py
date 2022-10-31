@@ -131,3 +131,28 @@ class ProjectRulePreviewTest(TestCase):
         # result should only contain groups of `self.project`
         assert all(g in result for g in groups[0])
         assert all(g not in result for g in groups[1])
+
+    def test_out_of_time_range(self):
+        out_of_range = timezone.now() - PREVIEW_TIME_RANGE - timedelta(hours=1)
+        Group.objects.create(project=self.project, first_seen=out_of_range)
+        Activity.objects.create(
+            project=self.project,
+            group=self.group,
+            type=ActivityType.SET_REGRESSION.value,
+            datetime=out_of_range,
+        )
+        Activity.objects.create(
+            project=self.project,
+            group=self.group,
+            type=ActivityType.SET_UNRESOLVED.value,
+            user=None,
+            datetime=out_of_range,
+        )
+
+        conditions = [
+            {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"},
+            {"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"},
+            {"id": "sentry.rules.conditions.reappeared_event.ReappearedEventCondition"},
+        ]
+        result = preview(self.project, conditions, [], "all", "all", 0)
+        assert result.count() == 0
