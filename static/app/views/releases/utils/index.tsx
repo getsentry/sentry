@@ -235,3 +235,12 @@ export const ADOPTION_STAGE_LABELS: Record<
 
 export const isMobileRelease = (releaseProjectPlatform: PlatformKey) =>
   ([...mobile, ...desktop] as string[]).includes(releaseProjectPlatform);
+
+/**
+ * Helper that escapes quotes and formats release version into release search
+ * ex - com.sentry.go_app@"1.0.0-chore"
+ */
+export function searchReleaseVersion(version: string): string {
+  // Wrap with quotes and escape any quotes inside
+  return `release:"${version.replace(/"/g, '\\"')}"`;
+}

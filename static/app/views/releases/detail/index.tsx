@@ -37,7 +37,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import AsyncView from 'sentry/views/asyncView';
 
-import {getReleaseBounds, ReleaseBounds} from '../utils';
+import {getReleaseBounds, ReleaseBounds, searchReleaseVersion} from '../utils';
 
 import ReleaseHeader from './header/releaseHeader';
 
@@ -143,11 +143,14 @@ class ReleasesDetail extends AsyncView<Props, State> {
         query: {
           project: location.query.project,
           environment: location.query.environment ?? [],
-          query: `release:"${params.release}"`,
+          query: searchReleaseVersion(params.release),
           field: 'sum(session)',
           statsPeriod: '90d',
           interval: '1d',
         },
+      },
+      {
+        allowError: error => error.status === 400,
       },
     ]);
 
