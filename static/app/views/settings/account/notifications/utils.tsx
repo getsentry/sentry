@@ -6,6 +6,7 @@ import {OrganizationSummary, Project} from 'sentry/types';
 import {
   ALL_PROVIDERS,
   MIN_PROJECTS_FOR_CONFIRMATION,
+  NOTIFICATION_SETTINGS_PATHNAMES,
   NotificationSettingsByProviderObject,
   NotificationSettingsObject,
   VALUE_MAPPING,
@@ -17,7 +18,9 @@ import ParentLabel from 'sentry/views/settings/account/notifications/parentLabel
  * Which fine-tuning parts are grouped by project
  */
 export const isGroupedByProject = (notificationType: string): boolean =>
-  ['alerts', 'email', 'workflow', 'activeRelease'].includes(notificationType);
+  ['alerts', 'email', 'workflow', 'activeRelease', 'spikeProtection'].includes(
+    notificationType
+  );
 
 export const getParentKey = (notificationType: string): string => {
   return isGroupedByProject(notificationType) ? 'project' : 'organization';
@@ -435,4 +438,12 @@ export function getDocsLinkForEventType(event: 'error' | 'transaction' | 'attach
     default:
       return 'https://docs.sentry.io/product/accounts/quotas/manage-event-stream-guide/#common-workflows-for-managing-your-event-stream';
   }
+}
+
+export function getNotificationTypeFromPathname(name: string) {
+  const result = Object.entries(NOTIFICATION_SETTINGS_PATHNAMES).find(
+    ([_, pathname]) => pathname === name
+  );
+
+  return result ? result[0] : '';
 }

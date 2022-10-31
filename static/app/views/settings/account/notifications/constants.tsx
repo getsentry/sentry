@@ -36,12 +36,25 @@ export const NOTIFICATION_SETTINGS_TYPES = [
   'quota',
   'reports',
   'email',
+  'spikeProtection',
 ];
 
 export const SELF_NOTIFICATION_SETTINGS_TYPES = [
   'personalActivityNotifications',
   'selfAssignOnResolve',
 ];
+
+export const NOTIFICATION_SETTINGS_PATHNAMES = {
+  alerts: 'alerts',
+  activeRelease: 'activeRelease',
+  workflow: 'workflow',
+  deploy: 'deploy',
+  approval: 'approval',
+  quota: 'quota',
+  reports: 'reports',
+  email: 'email',
+  spikeProtection: 'spike-protection',
+};
 
 export const CONFIRMATION_MESSAGE = (
   <div>

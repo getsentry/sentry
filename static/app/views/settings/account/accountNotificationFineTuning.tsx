@@ -19,6 +19,7 @@ import {
 } from 'sentry/views/settings/account/notifications/fields';
 import NotificationSettingsByType from 'sentry/views/settings/account/notifications/notificationSettingsByType';
 import {
+  getNotificationTypeFromPathname,
   groupByOrganization,
   isGroupedByProject,
 } from 'sentry/views/settings/account/notifications/utils';
@@ -128,7 +129,8 @@ type State = AsyncView['state'] & {
 
 class AccountNotificationFineTuning extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {fineTuneType} = this.props.params;
+    const {fineTuneType: param} = this.props.params;
+    const fineTuneType = getNotificationTypeFromPathname(param);
     const endpoints = [
       ['notifications', '/users/me/notifications/'],
       ['fineTuneData', `/users/me/notifications/${fineTuneType}/`],
@@ -167,12 +169,19 @@ class AccountNotificationFineTuning extends AsyncView<Props, State> {
 
   renderBody() {
     const {params} = this.props;
-    const {fineTuneType} = params;
+    const {fineTuneType: param} = params;
+    const fineTuneType = getNotificationTypeFromPathname(param);
 
     if (
-      ['alerts', 'deploy', 'workflow', 'activeRelease', 'approval', 'quota'].includes(
-        fineTuneType
-      )
+      [
+        'alerts',
+        'deploy',
+        'workflow',
+        'activeRelease',
+        'approval',
+        'quota',
+        'spikeProtection',
+      ].includes(fineTuneType)
     ) {
       return <NotificationSettingsByType notificationType={fineTuneType} />;
     }
