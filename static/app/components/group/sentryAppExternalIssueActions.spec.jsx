@@ -1,208 +1,193 @@
-import {Fragment} from 'react';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
-
-import GlobalModal from 'sentry/components/globalModal';
 import SentryAppExternalIssueActions from 'sentry/components/group/sentryAppExternalIssueActions';
 
 describe('SentryAppExternalIssueActions', () => {
-  let group;
-  let component;
-  let sentryApp;
-  let install;
-  let submitUrl;
-  let externalIssue;
-  let wrapper;
+  const group = TestStubs.Group();
+  const sentryApp = TestStubs.SentryApp();
+  const component = TestStubs.SentryAppComponent({
+    sentryApp: {
+      uuid: sentryApp.uuid,
+      slug: sentryApp.slug,
+      name: sentryApp.name,
+    },
+  });
+  // unable to use the selectByValue here so remove the select option
+  component.schema.create.required_fields.pop();
+  const install = TestStubs.SentryAppInstallation({sentryApp});
+  const submitUrl = `/sentry-app-installations/${install.uuid}/external-issue-actions/`;
+  const externalIssue = TestStubs.PlatformExternalIssue({
+    groupId: group.id,
+    serviceType: component.sentryApp.slug,
+  });
 
   beforeEach(() => {
-    group = TestStubs.Group();
-    sentryApp = TestStubs.SentryApp();
-    component = TestStubs.SentryAppComponent({
-      sentryApp: {
-        uuid: sentryApp.uuid,
-        slug: sentryApp.slug,
-        name: sentryApp.name,
-      },
-    });
-    // unable to use the selectByValue here so remove the select option
-    component.schema.create.required_fields.pop();
-    install = TestStubs.SentryAppInstallation({sentryApp});
-    submitUrl = `/sentry-app-installations/${install.uuid}/external-issue-actions/`;
-    externalIssue = TestStubs.PlatformExternalIssue({
-      groupId: group.id,
-      serviceType: component.sentryApp.slug,
-    });
-
     MockApiClient.addMockResponse({
       url: `/sentry-apps/${sentryApp.slug}/interaction/`,
       method: 'POST',
     });
   });
 
-  describe('without an external issue linked', () => {
-    beforeEach(() => {
-      wrapper = mountWithTheme(
-        <Fragment>
-          <GlobalModal />
-          <SentryAppExternalIssueActions
-            group={group}
-            sentryAppInstallation={install}
-            sentryAppComponent={component}
-          />
-        </Fragment>
-      );
-    });
-
-    it('renders a link to open the modal', () => {
-      expect(wrapper.find('StyledIntegrationLink a').text()).toEqual(
-        `${component.sentryApp.name} Issue`
-      );
-    });
-
-    it('renders the add icon', () => {
-      expect(wrapper.find('StyledIcon IconAdd')).toHaveLength(1);
-    });
-
-    it('opens the modal', async () => {
-      wrapper.find('StyledIntegrationLink a').simulate('click');
-
-      await tick();
-      wrapper.update();
-
-      expect(wrapper.find('GlobalModal[visible=true]').exists()).toEqual(true);
-    });
-
-    it('renders the Create Issue form fields, based on schema', async () => {
-      wrapper.find('StyledIntegrationLink a').simulate('click');
-      await tick();
-      wrapper.update();
-
-      wrapper.find('Modal NavTabs li.create a').first().simulate('click'); // Create
-
-      component.schema.create.required_fields.forEach(field => {
-        expect(wrapper.exists(`SentryAppExternalIssueForm #${field.name}`)).toBe(true);
-      });
-
-      (component.schema.create.optional_fields || []).forEach(field => {
-        expect(wrapper.exists(`SentryAppExternalIssueForm #${field.name}`)).toBe(true);
-      });
-    });
-
-    it('renders the Link Issue form fields, based on schema', async () => {
-      wrapper.find('StyledIntegrationLink a').simulate('click');
-      await tick();
-      wrapper.update();
-
-      wrapper.find('Modal NavTabs li.link a').first().simulate('click'); // Link
-
-      component.schema.link.required_fields.forEach(field => {
-        expect(wrapper.exists(`SentryAppExternalIssueForm #${field.name}`)).toBe(true);
-      });
-
-      (component.schema.link.optional_fields || []).forEach(field => {
-        expect(wrapper.exists(`SentryAppExternalIssueForm #${field.name}`)).toBe(true);
-      });
-    });
-
-    it('links to an existing Issue', async () => {
-      const request = MockApiClient.addMockResponse({
-        url: submitUrl,
-        method: 'POST',
-        body: externalIssue,
-      });
-
-      wrapper.find('StyledIntegrationLink a').simulate('click');
-
-      await tick();
-      wrapper.update();
-
-      wrapper.find('NavTabs li.link a').simulate('click');
-
-      wrapper.find('Input#issue').simulate('change', {target: {value: '99'}});
-
-      wrapper.find('Form form').simulate('submit');
-
-      expect(request).toHaveBeenCalledWith(
-        submitUrl,
-        expect.objectContaining({
-          data: expect.objectContaining({
-            action: 'link',
-            issue: '99',
-            groupId: group.id,
-          }),
-        })
-      );
-    });
-
-    it('creates a new Issue', async () => {
-      const request = MockApiClient.addMockResponse({
-        url: submitUrl,
-        method: 'POST',
-        body: externalIssue,
-      });
-
-      wrapper.find('StyledIntegrationLink a').simulate('click');
-      await tick();
-      wrapper.update();
-
-      wrapper.find('NavTabs li.create a').simulate('click');
-
-      wrapper.find('Input#title').simulate('change', {target: {value: 'foo'}});
-      wrapper.find('TextArea#description').simulate('change', {target: {value: 'bar'}});
-
-      wrapper.find('Form form').simulate('submit');
-
-      expect(request).toHaveBeenCalledWith(
-        submitUrl,
-        expect.objectContaining({
-          data: expect.objectContaining({
-            action: 'create',
-            title: 'foo',
-            description: 'bar',
-            groupId: group.id,
-          }),
-        })
-      );
-    });
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
+    jest.clearAllMocks();
   });
 
-  describe('with an external issue linked', () => {
-    beforeEach(() => {
-      wrapper = mountWithTheme(
-        <SentryAppExternalIssueActions
-          group={group}
-          sentryAppComponent={component}
-          sentryAppInstallation={install}
-          externalIssue={externalIssue}
-        />
-      );
+  it('renders without an external issue linked', () => {
+    render(
+      <SentryAppExternalIssueActions
+        group={group}
+        sentryAppInstallation={install}
+        sentryAppComponent={component}
+      />
+    );
+    renderGlobalModal();
+
+    // Link to open the modal
+    const link = screen.getByRole('link', {name: `${component.sentryApp.name} Issue`});
+    expect(link).toBeInTheDocument();
+
+    // Renders the add icon
+    expect(screen.getByLabelText('Add')).toBeInTheDocument();
+
+    // Open The Modal
+    userEvent.click(link);
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+    // renders the Create Issue form fields, based on schema
+    expect(component.schema.create.required_fields).toHaveLength(2);
+    for (const field of component.schema.create.required_fields) {
+      expect(screen.getByRole('textbox', {name: field.label})).toBeInTheDocument();
+    }
+
+    // Click the link tab
+    userEvent.click(screen.getByText('Link'));
+
+    // renders the Link Issue form fields, based on schema
+    expect(component.schema.link.required_fields).toHaveLength(1);
+    for (const field of component.schema.link.required_fields) {
+      expect(screen.getByRole('textbox', {name: field.label})).toBeInTheDocument();
+    }
+  });
+
+  it('links to an existing Issue', () => {
+    const request = MockApiClient.addMockResponse({
+      url: submitUrl,
+      method: 'POST',
+      body: externalIssue,
     });
+    render(
+      <SentryAppExternalIssueActions
+        group={group}
+        sentryAppInstallation={install}
+        sentryAppComponent={component}
+      />
+    );
+    renderGlobalModal();
 
-    it('renders a link to the external issue', () => {
-      expect(wrapper.find('StyledIntegrationLink a').text()).toEqual(
-        externalIssue.displayName
-      );
+    // Open The Modal
+    userEvent.click(
+      screen.getByRole('link', {name: `${component.sentryApp.name} Issue`})
+    );
+
+    // Click the link tab
+    userEvent.click(screen.getByText('Link'));
+
+    userEvent.type(screen.getByRole('textbox', {name: 'Issue'}), '99');
+    userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+
+    expect(request).toHaveBeenCalledWith(
+      submitUrl,
+      expect.objectContaining({
+        data: expect.objectContaining({
+          action: 'link',
+          issue: '99',
+          groupId: group.id,
+        }),
+      })
+    );
+  });
+
+  it('creates a new Issue', () => {
+    const request = MockApiClient.addMockResponse({
+      url: submitUrl,
+      method: 'POST',
+      body: externalIssue,
     });
+    render(
+      <SentryAppExternalIssueActions
+        group={group}
+        sentryAppInstallation={install}
+        sentryAppComponent={component}
+      />
+    );
+    renderGlobalModal();
 
-    it('links to the issue', () => {
-      expect(wrapper.find('StyledIntegrationLink').first().prop('href')).toEqual(
-        externalIssue.webUrl
-      );
+    // Open The Modal
+    userEvent.click(
+      screen.getByRole('link', {name: `${component.sentryApp.name} Issue`})
+    );
+
+    userEvent.clear(screen.getByRole('textbox', {name: 'Title'}));
+    userEvent.type(screen.getByRole('textbox', {name: 'Title'}), 'foo');
+
+    userEvent.clear(screen.getByRole('textbox', {name: 'Description'}));
+    userEvent.type(screen.getByRole('textbox', {name: 'Description'}), 'bar');
+
+    userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+
+    expect(request).toHaveBeenCalledWith(
+      submitUrl,
+      expect.objectContaining({
+        data: expect.objectContaining({
+          action: 'create',
+          title: 'foo',
+          description: 'bar',
+          groupId: group.id,
+        }),
+      })
+    );
+  });
+
+  it('renders with an external issue linked', () => {
+    render(
+      <SentryAppExternalIssueActions
+        group={group}
+        sentryAppComponent={component}
+        sentryAppInstallation={install}
+        externalIssue={externalIssue}
+      />
+    );
+
+    // Renders a link to the external issue
+    const link = screen.getByRole('link', {name: externalIssue.displayName});
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute('href', externalIssue.webUrl);
+
+    // Renders the remove issue button
+    expect(screen.getByLabelText('Remove')).toBeInTheDocument();
+  });
+
+  it('deletes a Linked Issue', () => {
+    const request = MockApiClient.addMockResponse({
+      url: `/issues/${group.id}/external-issues/${externalIssue.id}/`,
+      method: 'DELETE',
     });
+    render(
+      <SentryAppExternalIssueActions
+        group={group}
+        sentryAppComponent={component}
+        sentryAppInstallation={install}
+        externalIssue={externalIssue}
+      />
+    );
 
-    it('renders the remove issue button', () => {
-      expect(wrapper.find('StyledIcon IconClose')).toHaveLength(1);
-    });
-
-    it('deletes a Linked Issue', () => {
-      const request = MockApiClient.addMockResponse({
-        url: `/issues/${group.id}/external-issues/${externalIssue.id}/`,
-        method: 'DELETE',
-      });
-
-      wrapper.find('StyledIcon').simulate('click');
-
-      expect(request).toHaveBeenCalled();
-    });
+    userEvent.click(screen.getByLabelText('Remove'));
+    expect(request).toHaveBeenCalledTimes(1);
   });
 });

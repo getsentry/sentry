@@ -148,7 +148,11 @@ class SentryAppExternalIssueActions extends Component<Props, State> {
           disabled={disabled}
           onClick={() => !disabled && this.onAddRemoveClick()}
         >
-          {externalIssue ? <IconClose /> : <IconAdd />}
+          {externalIssue ? (
+            <IconClose aria-label={t('Remove')} />
+          ) : (
+            <IconAdd aria-label={t('Add')} />
+          )}
         </StyledIcon>
       </IssueLinkContainer>
     );
