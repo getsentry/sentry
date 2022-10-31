@@ -456,7 +456,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     if (
       firstSeen &&
       (rule.actionMatch === 'all' || conditions.length === 1) &&
-      (rule.filterMatch === 'all' || filters.length === 1)
+      (rule.filterMatch === 'all' || (rule.filterMatch === 'any' && filters.length === 1))
     ) {
       for (let i = 0; i < filters.length; i++) {
         const id = filters[i].id;
