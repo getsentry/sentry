@@ -121,7 +121,7 @@ describe('ProjectAlertsCreate', function () {
         expect(screen.getAllByDisplayValue('all')).toHaveLength(2);
       });
       await waitFor(() => {
-        expect(screen.getByText('30 minutes')).toBeInTheDocument();
+        expect(screen.getByText('24 hours')).toBeInTheDocument();
       });
     });
 
@@ -155,7 +155,7 @@ describe('ProjectAlertsCreate', function () {
               conditions: [],
               filterMatch: 'all',
               filters: [],
-              frequency: 30,
+              frequency: 60 * 24,
               name: 'My Rule Name',
               owner: null,
             },
@@ -209,7 +209,7 @@ describe('ProjectAlertsCreate', function () {
               conditions: [],
               filterMatch: 'all',
               filters: [],
-              frequency: 30,
+              frequency: 60 * 24,
               name: 'My Rule Name',
               owner: null,
             },
@@ -251,7 +251,7 @@ describe('ProjectAlertsCreate', function () {
               conditions: [],
               filterMatch: 'all',
               filters: [],
-              frequency: 30,
+              frequency: 60 * 24,
               name: 'My Rule Name',
               owner: null,
             },
@@ -305,7 +305,7 @@ describe('ProjectAlertsCreate', function () {
               actions: [],
               filters: [],
               environment: 'production',
-              frequency: 30,
+              frequency: 60 * 24,
               name: 'My Rule Name',
               owner: null,
             },
@@ -353,7 +353,7 @@ describe('ProjectAlertsCreate', function () {
                   value: 'conditionValue',
                 },
               ],
-              frequency: 30,
+              frequency: 60 * 24,
               name: 'My Rule Name',
               owner: null,
             },
@@ -398,7 +398,7 @@ describe('ProjectAlertsCreate', function () {
               ],
               actions: [],
               conditions: [],
-              frequency: 30,
+              frequency: 60 * 24,
               name: 'My Rule Name',
               owner: null,
             },
@@ -425,7 +425,7 @@ describe('ProjectAlertsCreate', function () {
         ]);
 
         // Update action interval
-        await selectEvent.select(screen.getByText('30 minutes'), ['60 minutes']);
+        await selectEvent.select(screen.getByText('24 hours'), ['60 minutes']);
 
         userEvent.click(screen.getByText('Save Rule'));
 
@@ -482,7 +482,7 @@ describe('ProjectAlertsCreate', function () {
               conditions: [],
               filterMatch: 'all',
               filters: [],
-              frequency: 30,
+              frequency: 60 * 24,
             },
           })
         );
