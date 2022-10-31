@@ -1,40 +1,25 @@
 import {browserHistory} from 'react-router';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   initializeData as _initializeData,
   initializeDataSettings,
 } from 'sentry-test/performance/initializePerformanceData';
-import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 import TransactionEvents from 'sentry/views/performance/transactionSummary/transactionEvents';
-import {RouteContext} from 'sentry/views/routeContext';
 
 import {EVENTS_TABLE_RESPONSE_FIELDS, MOCK_EVENTS_TABLE_DATA} from './eventsTable.spec';
 
 const WrappedComponent = ({data}) => {
-  const {router} = initializeOrg();
   return (
-    <RouteContext.Provider
-      value={{
-        router,
-        location: router.location,
-        params: {},
-        routes: [],
-      }}
-    >
-      <OrganizationContext.Provider value={data.organization}>
-        <MEPSettingProvider>
-          <TransactionEvents
-            organization={data.organization}
-            location={data.router.location}
-          />
-        </MEPSettingProvider>
-      </OrganizationContext.Provider>
-    </RouteContext.Provider>
+    <MEPSettingProvider>
+      <TransactionEvents
+        organization={data.organization}
+        location={data.router.location}
+      />
+    </MEPSettingProvider>
   );
 };
 
@@ -177,8 +162,9 @@ describe('Performance > Transaction Summary > Transaction Events > Index', () =>
     const data = initializeData();
 
     render(<WrappedComponent data={data} />, {context: data.routerContext});
-    const percentileContainer = await screen.findByRole('presentation');
-    const percentileButton = await within(percentileContainer).findByRole('button');
+    const percentileButton = await screen.findByRole('button', {
+      name: /percentile p100/i,
+    });
 
     userEvent.click(percentileButton);
 

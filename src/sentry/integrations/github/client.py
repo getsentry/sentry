@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import Any, Mapping, Sequence
+from typing import Any, Dict, Mapping, Sequence
 
 import sentry_sdk
 
 from sentry.integrations.client import ApiClient
 from sentry.integrations.github.utils import get_jwt, get_next_link
+from sentry.integrations.utils.tree import trim_tree
 from sentry.models import Integration, Repository
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.utils import jwt
@@ -72,7 +73,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
     def get_tree(self, repo_full_name: str, tree_sha: str) -> JSONData:
         tree = []
         try:
-            contents = self.get(
+            contents: Dict[str, Any] = self.get(
                 f"/repos/{repo_full_name}/git/trees/{tree_sha}",
                 # Will cause all objects or subtrees referenced by the tree specified in :tree_sha
                 params={"recursive": 1},
@@ -86,9 +87,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                 logger.warning(
                     f"The tree for {repo_full_name} has been truncated. Use different a approach for retrieving contents of tree."
                 )
-            # tree -> list of mode, path, sha, type and url for file/directory
-            # XXX: We should optimize the data structure to be a tree from file to top src dir
-            tree = contents["tree"]
+            tree = trim_tree(contents["tree"], ["python"])
         except ApiError as e:
             json_data: JSONData = e.json
             msg: str = json_data.get("message")
@@ -108,22 +107,28 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         This fetches tree representations of all repos for an org.
         """
         trees: JSONData = {}
-        repositories = self.get_repositories()
+        repositories = self.get_repositories(fetch_max_pages=True)
         # XXX: In order to speed up this function we will need to parallelize this
         # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
         for repo_info in repositories:
-            full_name = repo_info["full_name"]
-            trees[full_name] = self.get_tree(full_name, repo_info["default_branch"])
+            full_name: str = repo_info["full_name"]
+            branch = repo_info["default_branch"]
+            trees[full_name] = {"default_branch": branch, "files": self.get_tree(full_name, branch)}
         return trees
 
-    def get_repositories(self) -> Sequence[JSONData]:
+    def get_repositories(self, fetch_max_pages: bool = False) -> Sequence[JSONData]:
         """
+        args:
+         * fetch_max_pages - fetch as many repos as possible using pagination (slow)
+
         This fetches all repositories accessible to the Github App
         https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
         """
         # Explicitly typing to satisfy mypy.
         repos: JSONData = self.get_with_pagination(
-            "/installation/repositories", response_key="repositories"
+            "/installation/repositories",
+            response_key="repositories",
+            page_number_limit=self.page_number_limit if fetch_max_pages else 1,
         )
         return [repo for repo in repos if not repo.get("archived")]
 
@@ -142,7 +147,9 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         assignees: Sequence[JSONData] = self.get_with_pagination(f"/repos/{repo}/assignees")
         return assignees
 
-    def get_with_pagination(self, path: str, response_key: str | None = None) -> Sequence[JSONData]:
+    def get_with_pagination(
+        self, path: str, response_key: str | None = None, page_number_limit: int | None = None
+    ) -> Sequence[JSONData]:
         """
         Github uses the Link header to provide pagination links. Github
         recommends using the provided link relations and not constructing our
@@ -160,6 +167,9 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                 parent_span_id = None
                 trace_id = None
 
+        if page_number_limit is None or page_number_limit > self.page_number_limit:
+            page_number_limit = self.page_number_limit
+
         with sentry_sdk.start_transaction(
             op=f"{self.integration_type}.http.pagination",
             name=f"{self.integration_type}.http_response.pagination.{self.name}",
@@ -175,7 +185,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
 
             # XXX: In order to speed up this function we will need to parallelize this
             # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
-            while get_next_link(resp) and page_number < self.page_number_limit:
+            while get_next_link(resp) and page_number < page_number_limit:
                 resp = self.get(get_next_link(resp))
                 output.extend(resp) if not response_key else output.extend(resp[response_key])
                 page_number += 1
@@ -310,15 +320,19 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             path="/graphql",
             data={"query": query},
         )
-        results: Sequence[Mapping[str, Any]] = (
-            contents.get("data", {})
-            .get("repository", {})
-            .get("ref", {})
-            .get("target", {})
-            .get("blame", {})
-            .get("ranges", [])
-        )
-        return results
+        try:
+            results: Sequence[Mapping[str, Any]] = (
+                contents.get("data", {})
+                .get("repository", {})
+                .get("ref", {})
+                .get("target", {})
+                .get("blame", {})
+                .get("ranges", [])
+            )
+            return results
+        except AttributeError as e:
+            sentry_sdk.capture_exception(e)
+            return []
 
 
 class GitHubAppsClient(GitHubClientMixin):

@@ -1,4 +1,6 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import ReleaseIssues from 'sentry/views/releases/detail/overview/releaseIssues';
 import {getReleaseBounds} from 'sentry/views/releases/utils';
@@ -62,120 +64,78 @@ describe('ReleaseIssues', function () {
     });
   });
 
-  const filterIssues = (wrapper, filter) => {
-    wrapper.find(`ButtonBar Button[data-test-id="filter-${filter}"]`).simulate('click');
-  };
-
   it('shows an empty state', async function () {
-    const wrapper = mountWithTheme(<ReleaseIssues {...props} />);
-    const wrapper2 = mountWithTheme(
-      <ReleaseIssues {...props} location={{query: {pageStatsPeriod: '24h'}}} />
-    );
+    render(<ReleaseIssues {...props} />);
 
-    await tick();
+    expect(await screen.findByText('No new issues in this release.')).toBeInTheDocument();
 
-    wrapper.update();
-    expect(wrapper.find('EmptyStateWarning').text()).toBe(
-      'No new issues in this release.'
-    );
+    userEvent.click(screen.getByRole('button', {name: 'Resolved 0'}));
+    expect(
+      await screen.findByText('No resolved issues in this release.')
+    ).toBeInTheDocument();
+  });
 
-    wrapper2.update();
-    expect(wrapper2.find('EmptyStateWarning').text()).toBe(
-      'No new issues for the last 24 hours.'
-    );
+  it('shows an empty sttate with stats period', async function () {
+    render(<ReleaseIssues {...props} location={{query: {pageStatsPeriod: '24h'}}} />);
 
-    filterIssues(wrapper, 'resolved');
-    await tick();
-    wrapper.update();
-    expect(wrapper.find('EmptyStateWarning').text()).toBe(
-      'No resolved issues in this release.'
-    );
+    expect(
+      await screen.findByText(
+        textWithMarkupMatcher('No new issues for the last 24 hours.')
+      )
+    ).toBeInTheDocument();
 
-    filterIssues(wrapper2, 'unhandled');
-    await tick();
-    wrapper2.update();
-    expect(wrapper2.find('EmptyStateWarning').text()).toBe(
-      'No unhandled issues for the last 24 hours.'
-    );
+    userEvent.click(screen.getByRole('button', {name: 'Unhandled 0'}));
+    expect(
+      await screen.findByText(
+        textWithMarkupMatcher('No unhandled issues for the last 24 hours.')
+      )
+    ).toBeInTheDocument();
   });
 
   it('filters the issues', function () {
-    const wrapper = mountWithTheme(<ReleaseIssues {...props} />);
+    render(<ReleaseIssues {...props} />);
 
-    const filterOptions = wrapper.find('ButtonBar Button');
+    expect(screen.getAllByRole('button')).toHaveLength(6);
 
-    expect(filterOptions).toHaveLength(6); // sixth one is "Open Issues" button
-    expect(filterOptions.at(2).text()).toEqual('Unhandled');
-
-    filterIssues(wrapper, 'new');
+    userEvent.click(screen.getByRole('button', {name: 'New Issues'}));
     expect(newIssuesEndpoint).toHaveBeenCalledTimes(1);
 
-    filterIssues(wrapper, 'resolved');
+    userEvent.click(screen.getByRole('button', {name: 'Resolved'}));
     expect(resolvedIssuesEndpoint).toHaveBeenCalledTimes(1);
 
-    filterIssues(wrapper, 'unhandled');
+    userEvent.click(screen.getByRole('button', {name: 'Unhandled'}));
     expect(unhandledIssuesEndpoint).toHaveBeenCalledTimes(1);
 
-    filterIssues(wrapper, 'all');
+    userEvent.click(screen.getByRole('button', {name: 'All Issues'}));
     expect(allIssuesEndpoint).toHaveBeenCalledTimes(1);
   });
 
   it('renders link to Issues', function () {
-    const wrapper = mountWithTheme(<ReleaseIssues {...props} />);
+    const {routerContext} = initializeOrg();
 
-    expect(wrapper.find('Link[data-test-id="issues-button"]').prop('to')).toEqual({
-      pathname: `/organizations/${props.organization.slug}/issues/`,
-      query: {
-        sort: 'freq',
-        query: 'firstRelease:1.0.0',
-        cursor: undefined,
-        limit: undefined,
-        start: '2020-03-23T01:02:00Z',
-        end: '2020-03-24T02:04:59Z',
-        groupStatsPeriod: 'auto',
-      },
-    });
+    render(<ReleaseIssues {...props} />, {context: routerContext});
 
-    filterIssues(wrapper, 'resolved');
-    expect(wrapper.find('Link[data-test-id="issues-button"]').prop('to')).toEqual({
-      pathname: `/organizations/${props.organization.slug}/issues/`,
-      query: {
-        sort: 'freq',
-        query: 'release:1.0.0',
-        cursor: undefined,
-        limit: undefined,
-        start: '2020-03-23T01:02:00Z',
-        end: '2020-03-24T02:04:59Z',
-        groupStatsPeriod: 'auto',
-      },
-    });
+    expect(screen.getByRole('button', {name: 'Open in Issues'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/issues/?end=2020-03-24T02%3A04%3A59Z&groupStatsPeriod=auto&query=firstRelease%3A1.0.0&sort=freq&start=2020-03-23T01%3A02%3A00Z'
+    );
 
-    filterIssues(wrapper, 'unhandled');
-    expect(wrapper.find('Link[data-test-id="issues-button"]').prop('to')).toEqual({
-      pathname: `/organizations/${props.organization.slug}/issues/`,
-      query: {
-        sort: 'freq',
-        query: 'release:1.0.0 error.handled:0',
-        cursor: undefined,
-        limit: undefined,
-        start: '2020-03-23T01:02:00Z',
-        end: '2020-03-24T02:04:59Z',
-        groupStatsPeriod: 'auto',
-      },
-    });
+    userEvent.click(screen.getByRole('button', {name: 'Resolved'}));
+    expect(screen.getByRole('button', {name: 'Open in Issues'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/issues/?end=2020-03-24T02%3A04%3A59Z&groupStatsPeriod=auto&query=release%3A1.0.0&sort=freq&start=2020-03-23T01%3A02%3A00Z'
+    );
 
-    filterIssues(wrapper, 'all');
-    expect(wrapper.find('Link[data-test-id="issues-button"]').prop('to')).toEqual({
-      pathname: `/organizations/${props.organization.slug}/issues/`,
-      query: {
-        sort: 'freq',
-        query: 'release:1.0.0',
-        cursor: undefined,
-        limit: undefined,
-        start: '2020-03-23T01:02:00Z',
-        end: '2020-03-24T02:04:59Z',
-        groupStatsPeriod: 'auto',
-      },
-    });
+    userEvent.click(screen.getByRole('button', {name: 'Unhandled'}));
+    expect(screen.getByRole('button', {name: 'Open in Issues'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/issues/?end=2020-03-24T02%3A04%3A59Z&groupStatsPeriod=auto&query=release%3A1.0.0%20error.handled%3A0&sort=freq&start=2020-03-23T01%3A02%3A00Z'
+    );
+
+    userEvent.click(screen.getByRole('button', {name: 'All Issues'}));
+    expect(screen.getByRole('button', {name: 'Open in Issues'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/issues/?end=2020-03-24T02%3A04%3A59Z&groupStatsPeriod=auto&query=release%3A1.0.0&sort=freq&start=2020-03-23T01%3A02%3A00Z'
+    );
   });
 });

@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectContext} from 'sentry/views/projects/projectContext';
 
@@ -56,14 +56,15 @@ describe('projectContext component', function () {
       />
     );
 
-    const wrapper = mountWithTheme(projectContext);
+    render(projectContext);
 
-    await tick();
-    wrapper.update();
+    const loading = screen.getByTestId('loading-indicator');
+    const errorText = await screen.findByText(
+      'The project you were looking for was not found.'
+    );
 
-    expect(wrapper.state('error')).toBe(true);
-    expect(wrapper.state('loading')).toBe(false);
-    expect(wrapper.state('errorType')).toBe('PROJECT_NOT_FOUND');
+    expect(errorText).toBeInTheDocument();
+    expect(loading).not.toBeInTheDocument();
   });
 
   it('fetches data again if projectId changes', function () {
@@ -88,12 +89,12 @@ describe('projectContext component', function () {
       />
     );
 
-    const wrapper = mountWithTheme(projectContext);
+    const {rerender} = render(projectContext);
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
 
     // Nothing should happen if we update and projectId is the same
-    wrapper.update();
+    rerender(projectContext);
     expect(fetchMock).toHaveBeenCalledTimes(1);
 
     fetchMock = MockApiClient.addMockResponse({
@@ -103,10 +104,18 @@ describe('projectContext component', function () {
       body: TestStubs.Project({slug: 'new-slug'}),
     });
 
-    wrapper.setProps({
-      projectId: 'new-slug',
-    });
-    wrapper.update();
+    rerender(
+      <ProjectContext
+        api={new MockApiClient()}
+        params={{orgId: org.slug, projectId: project.slug}}
+        projects={[]}
+        routes={routes}
+        router={router}
+        location={location}
+        orgId={org.slug}
+        projectId="new-slug"
+      />
+    );
 
     expect(fetchMock).toHaveBeenCalled();
   });
@@ -133,7 +142,7 @@ describe('projectContext component', function () {
       />
     );
 
-    const wrapper = mountWithTheme(projectContext);
+    const {rerender} = render(projectContext);
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
 
@@ -145,8 +154,18 @@ describe('projectContext component', function () {
       body: [],
     });
 
-    wrapper.setProps({projects: [project]});
-    wrapper.update();
+    rerender(
+      <ProjectContext
+        api={new MockApiClient()}
+        params={{orgId: org.slug, projectId: project.slug}}
+        projects={[project]}
+        routes={routes}
+        router={router}
+        location={location}
+        orgId={org.slug}
+        projectId={project.slug}
+      />
+    );
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });

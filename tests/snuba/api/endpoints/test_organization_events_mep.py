@@ -84,7 +84,8 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
         assert response.status_code == 400, response.content
         assert (
-            response.data["detail"] == "dataset must be one of: discover, metricsEnhanced, metrics"
+            response.data["detail"]
+            == "dataset must be one of: discover, metricsEnhanced, metrics, profiles"
         )
 
     def test_out_of_retention(self):
@@ -1663,6 +1664,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             }
         )
 
+        assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 2
         data = response.data["data"]
         meta = response.data["meta"]
@@ -1879,3 +1881,35 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
         meta = response.data["meta"]
         assert not meta["isMetricsData"]
+
+
+class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
+    OrganizationEventsMetricsEnhancedPerformanceEndpointTest
+):
+    def setUp(self):
+        super().setUp()
+        self.features["organizations:use-metrics-layer"] = True
+
+    @pytest.mark.xfail(reason="Having not supported")
+    def test_custom_measurement_duration_filtering(self):
+        super().test_custom_measurement_size_filtering()
+
+    @pytest.mark.xfail(reason="Having not supported")
+    def test_having_condition_not_selected(self):
+        super().test_having_condition_not_selected()
+
+    @pytest.mark.xfail(reason="Having not supported")
+    def test_custom_measurement_size_filtering(self):
+        super().test_custom_measurement_size_filtering()
+
+    @pytest.mark.xfail(reason="Having not supported")
+    def test_having_condition(self):
+        super().test_having_condition()
+
+    @pytest.mark.xfail(reason="Metrics layer failing to support ordering by apdex")
+    def test_apdex_project_threshold(self):
+        super().test_apdex_project_threshold()
+
+    @pytest.mark.xfail(reason="Metrics layer failing to support ordering by apdex")
+    def test_apdex_transaction_threshold(self):
+        super().test_apdex_transaction_threshold()

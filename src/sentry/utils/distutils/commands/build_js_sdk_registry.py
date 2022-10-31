@@ -25,7 +25,7 @@ def dump_registry(path, data):
         os.makedirs(directory)
     except OSError:
         pass
-    with open(fn, "wt", encoding="utf-8") as f:
+    with open(fn, "w", encoding="utf-8") as f:
         f.write(json.dumps(data, indent=2))
         f.write("\n")
 

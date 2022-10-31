@@ -8,6 +8,7 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
+import PullRequestLink from 'sentry/components/pullRequestLink';
 import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -69,6 +70,37 @@ describe('GroupActivity', function () {
     });
     expect(screen.getByText('marked this issue as reviewed')).toBeInTheDocument();
     expect(screen.getByText(user.name)).toBeInTheDocument();
+  });
+
+  it('renders a pr activity', function () {
+    const user = TestStubs.User({name: 'Test User'});
+    const repository = TestStubs.Repository();
+    const pullRequest = TestStubs.PullRequest({message: 'Fixes ISSUE-1'});
+    createWrapper({
+      activity: [
+        {
+          type: 'set_resolved_in_pull_request',
+          id: 'pr-1',
+          data: {
+            pullRequest: {
+              author: 'Test User',
+              version: (
+                <PullRequestLink
+                  inline
+                  pullRequest={pullRequest}
+                  repository={pullRequest.repository}
+                />
+              ),
+              repository: {repository},
+            },
+          },
+          user,
+        },
+      ],
+    });
+    expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+      'Test User has created a PR for this issue:'
+    );
   });
 
   it('renders a assigned to self activity', function () {
