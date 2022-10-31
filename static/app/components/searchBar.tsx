@@ -80,6 +80,7 @@ function SearchBar({
         <InputTrailingItems>
           {!!query && (
             <SearchClearButton
+              type="button"
               size="zero"
               borderless
               onClick={clearSearch}
