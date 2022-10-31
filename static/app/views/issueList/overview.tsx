@@ -50,6 +50,9 @@ import parseApiError from 'sentry/utils/parseApiError';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {decodeScalar} from 'sentry/utils/queryString';
+import withRouteAnalytics, {
+  WithRouteAnalyticsProps,
+} from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import withApi from 'sentry/utils/withApi';
 import withIssueTags from 'sentry/utils/withIssueTags';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -93,7 +96,8 @@ type Props = {
   savedSearches: SavedSearch[];
   selection: PageFilters;
   tags: TagCollection;
-} & RouteComponentProps<{searchId?: string}, {}>;
+} & RouteComponentProps<{searchId?: string}, {}> &
+  WithRouteAnalyticsProps;
 
 type State = {
   actionTaken: boolean;
@@ -190,6 +194,8 @@ class IssueListOverview extends Component<Props, State> {
     this.fetchSavedSearches();
     this.fetchTags();
     this.fetchMemberList();
+    // let custom analytics take control
+    this.props.setDisableRouteAnalytics?.();
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
@@ -1286,9 +1292,11 @@ class IssueListOverview extends Component<Props, State> {
   }
 }
 
-export default withApi(
-  withPageFilters(
-    withSavedSearches(withOrganization(withIssueTags(withProfiler(IssueListOverview))))
+export default withRouteAnalytics(
+  withApi(
+    withPageFilters(
+      withSavedSearches(withOrganization(withIssueTags(withProfiler(IssueListOverview))))
+    )
   )
 );
 
