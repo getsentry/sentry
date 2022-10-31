@@ -1032,6 +1032,8 @@ SENTRY_FEATURES = {
     "organizations:rule-page": False,
     # Enable incidents feature
     "organizations:incidents": False,
+    # Enable issue alert incompatible rule check
+    "organizations:issue-alert-incompatible-rules": False,
     # Enable issue alert previews
     "organizations:issue-alert-preview": False,
     # Enable issue alert test notifications
