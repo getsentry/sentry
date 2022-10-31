@@ -37,9 +37,7 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase):
 
     def create_sample_event(self, start_timestamp):
         event = json.loads(
-            self.load_fixture(
-                "events/performance_problems/n-plus-one-in-django-new-view.json"
-            ).decode("utf-8")
+            self.load_fixture("events/performance_problems/n-plus-one-in-django-new-view.json")
         )
 
         for key in ["datetime", "location", "title"]:
@@ -77,7 +75,7 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.snapshot("performance issue details", desktop_only=True)
 
     @patch("django.utils.timezone.now")
-    def test_multiple_events_from_one_performance_issue(self, mock_now):
+    def test_multiple_events_with_one_cause_are_grouped(self, mock_now):
         mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc) - timedelta(minutes=5)
         event_data = self.create_sample_event(mock_now.return_value.timestamp())
 
@@ -87,7 +85,7 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase):
             assert Group.objects.count() == 1
 
     @patch("django.utils.timezone.now")
-    def test_multiple_events_to_multiple_issues(self, mock_now):
+    def test_multiple_events_with_multiple_causes_are_not_grouped(self, mock_now):
         mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc) - timedelta(minutes=5)
 
         # Create identical events with different parent spans
