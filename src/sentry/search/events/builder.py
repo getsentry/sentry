@@ -269,23 +269,27 @@ class QueryBuilder:
         Mapping[str, Callable[[SearchFilter], Optional[WhereType]]],
         Mapping[str, Callable[[Direction], OrderBy]],
     ]:
-        from sentry.search.events.datasets.discover import DiscoverDatasetConfig
-        from sentry.search.events.datasets.metrics import MetricsDatasetConfig
-        from sentry.search.events.datasets.metrics_layer import MetricsLayerDatasetConfig
-        from sentry.search.events.datasets.profiles import ProfilesDatasetConfig
-        from sentry.search.events.datasets.sessions import SessionsDatasetConfig
-
         self.config: DatasetConfig
         if self.dataset in [Dataset.Discover, Dataset.Transactions, Dataset.Events]:
+            from sentry.search.events.datasets.discover import DiscoverDatasetConfig
+
             self.config = DiscoverDatasetConfig(self)
         elif self.dataset == Dataset.Sessions:
+            from sentry.search.events.datasets.sessions import SessionsDatasetConfig
+
             self.config = SessionsDatasetConfig(self)
         elif self.dataset in [Dataset.Metrics, Dataset.PerformanceMetrics]:
             if self.use_metrics_layer:
+                from sentry.search.events.datasets.metrics_layer import MetricsLayerDatasetConfig
+
                 self.config = MetricsLayerDatasetConfig(self)
             else:
+                from sentry.search.events.datasets.metrics import MetricsDatasetConfig
+
                 self.config = MetricsDatasetConfig(self)
         elif self.dataset == Dataset.Profiles:
+            from sentry.search.events.datasets.profiles import ProfilesDatasetConfig
+
             self.config = ProfilesDatasetConfig(self)
         else:
             raise NotImplementedError(f"Data Set configuration not found for {self.dataset}.")
