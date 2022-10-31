@@ -28,9 +28,7 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase):
 
     def create_sample_event(self, start_timestamp):
         event = json.loads(
-            self.load_fixture(
-                "events/performance_problems/n-plus-one-in-django-new-view.json"
-            ).decode("utf-8")
+            self.load_fixture("events/performance_problems/n-plus-one-in-django-new-view.json")
         )
 
         for key in ["datetime", "location", "title"]:
