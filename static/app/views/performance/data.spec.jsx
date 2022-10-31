@@ -1,3 +1,7 @@
+import {
+  MEPState,
+  METRIC_SEARCH_SETTING_PARAM,
+} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {generatePerformanceEventView} from 'sentry/views/performance/data';
 
 describe('generatePerformanceEventView()', function () {
@@ -104,5 +108,19 @@ describe('generatePerformanceEventView()', function () {
     expect(result.fields).toEqual(
       expect.arrayContaining([expect.objectContaining({field: 'apdex()'})])
     );
+  });
+
+  it('removes unsupported tokens for limited search', function () {
+    const result = generatePerformanceEventView(
+      {
+        query: {
+          query: 'tag:value transaction:*auth*',
+          [METRIC_SEARCH_SETTING_PARAM]: MEPState.metricsOnly,
+        },
+      },
+      [],
+      {withStaticFilters: true}
+    );
+    expect(result.query).toEqual('transaction:*auth*');
   });
 });

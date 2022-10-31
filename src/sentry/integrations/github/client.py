@@ -111,8 +111,9 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         # XXX: In order to speed up this function we will need to parallelize this
         # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
         for repo_info in repositories:
-            full_name = repo_info["full_name"]
-            trees[full_name] = self.get_tree(full_name, repo_info["default_branch"])
+            full_name: str = repo_info["full_name"]
+            branch = repo_info["default_branch"]
+            trees[full_name] = {"default_branch": branch, "files": self.get_tree(full_name, branch)}
         return trees
 
     def get_repositories(self, fetch_max_pages: bool = False) -> Sequence[JSONData]:

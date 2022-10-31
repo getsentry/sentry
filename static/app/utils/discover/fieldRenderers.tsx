@@ -18,7 +18,7 @@ import {pickBarColor, toPercent} from 'sentry/components/performance/waterfall/u
 import Tooltip from 'sentry/components/tooltip';
 import UserMisery from 'sentry/components/userMisery';
 import Version from 'sentry/components/version';
-import {IconDownload} from 'sentry/icons';
+import {IconDownload, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {AvatarProject, IssueAttachment, Organization, Project} from 'sentry/types';
@@ -44,6 +44,8 @@ import {
   stringToFilter,
 } from 'sentry/views/performance/transactionSummary/filter';
 
+import {decodeScalar} from '../queryString';
+
 import ArrayValue from './arrayValue';
 import {
   BarContainer,
@@ -53,7 +55,6 @@ import {
   FlexContainer,
   NumberContainer,
   OverflowLink,
-  StyledIconPlay,
   UserIcon,
   VersionContainer,
 } from './styles';
@@ -68,6 +69,10 @@ export type RenderFunctionBaggage = {
   eventView?: EventView;
   projectId?: string;
   unit?: string;
+};
+
+type RenderFunctionOptions = {
+  enableOnClick?: boolean;
 };
 
 type FieldFormatterRenderFunction = (
@@ -173,11 +178,19 @@ export const FIELD_FORMATTERS: FieldFormatters = {
   },
   date: {
     isSortable: true,
-    renderFunc: (field, data) => (
+    renderFunc: (field, data, baggage) => (
       <Container>
         {data[field]
           ? getDynamicText({
-              value: <FieldDateTime date={data[field]} year seconds timeZone />,
+              value: (
+                <FieldDateTime
+                  date={data[field]}
+                  year
+                  seconds
+                  timeZone
+                  utc={decodeScalar(baggage?.location?.query?.utc) === 'true'}
+                />
+              ),
               fixed: 'timestamp',
             })
           : emptyValue}
@@ -404,7 +417,7 @@ const SPECIAL_FIELDS: SpecialFields = {
     renderFunc: data => {
       const id: string | unknown = data?.trace;
       if (typeof id !== 'string') {
-        return null;
+        return emptyValue;
       }
 
       return <Container>{getShortEventId(id)}</Container>;
@@ -435,10 +448,11 @@ const SPECIAL_FIELDS: SpecialFields = {
       }
 
       return (
-        <FlexContainer>
-          <StyledIconPlay size="xs" />
-          <Container>{getShortEventId(replayId)}</Container>
-        </FlexContainer>
+        <Container>
+          <Button size="xs">
+            <IconPlay size="xs" />
+          </Button>
+        </Container>
       );
     },
   },
@@ -748,8 +762,11 @@ const isDurationValue = (data: EventData, field: string): boolean => {
 
 export const spanOperationRelativeBreakdownRenderer = (
   data: EventData,
-  {location, organization, eventView}: RenderFunctionBaggage
+  {location, organization, eventView}: RenderFunctionBaggage,
+  options?: RenderFunctionOptions
 ): React.ReactNode => {
+  const {enableOnClick = true} = options ?? {};
+
   const sumOfSpanTime = SPAN_OP_BREAKDOWN_FIELDS.reduce(
     (prev, curr) => (isDurationValue(data, curr) ? prev + data[curr] : prev),
     0
@@ -809,9 +826,12 @@ export const spanOperationRelativeBreakdownRenderer = (
               <RectangleRelativeOpsBreakdown
                 style={{
                   backgroundColor: pickBarColor(operationName),
-                  cursor: 'pointer',
+                  cursor: enableOnClick ? 'pointer' : 'default',
                 }}
                 onClick={event => {
+                  if (!enableOnClick) {
+                    return;
+                  }
                   event.stopPropagation();
                   const filter = stringToFilter(operationName);
                   if (filter === SpanOperationBreakdownFilter.None) {

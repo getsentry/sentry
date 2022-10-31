@@ -114,9 +114,11 @@ class BaseNotification(abc.ABC):
         return None
 
     def get_log_params(self, recipient: Team | User) -> Mapping[str, Any]:
+        group = getattr(self, "group", None)
         params = {
             "organization_id": self.organization.id,
             "actor_id": recipient.actor_id,
+            "group_id": group.id if group else None,
         }
         if isinstance(recipient, User) or isinstance(recipient, APIUser):
             params["user_id"] = recipient.id
