@@ -512,7 +512,11 @@ export class Results extends Component<Props, State> {
   };
 
   renderMetricsFallbackBanner() {
-    if (this.state.showMetricsAlert) {
+    const {organization} = this.props;
+    if (
+      !organization.features.includes('performance-mep-bannerless-ui') &&
+      this.state.showMetricsAlert
+    ) {
       return (
         <Alert type="info" showIcon>
           {t(
