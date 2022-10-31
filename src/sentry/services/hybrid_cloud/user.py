@@ -24,6 +24,8 @@ class APIUser:
     actor_id: int = -1
 
     # TODO: Extract these "view" methods to BaseUser class?
+    # BaseUser class would also be useful for catching `isinstance(foo, User)` checks
+    # which may no longer mean what they used to mean
     def class_name(self):
         """Necessary for integrations that introspect on user objects"""
         return "User"
