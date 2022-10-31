@@ -131,6 +131,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
                                 owner=result.get("owner"),
                                 date_released=result.get("dateReleased"),
                                 status=new_status or ReleaseStatus.OPEN,
+                                user_agent=request.META.get("HTTP_USER_AGENT", ""),
                             ),
                             True,
                         )
@@ -181,7 +182,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
                     user_id=request.user.id if request.user and request.user.id else None,
                     organization_id=project.organization_id,
                     project_ids=[project.id],
-                    user_agent=request.META.get("HTTP_USER_AGENT", ""),
+                    user_agent=request.META.get("HTTP_USER_AGENT", "")[:256],
                     created_status=status,
                 )
                 scope.set_tag("success_status", status)
