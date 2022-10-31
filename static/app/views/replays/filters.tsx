@@ -12,9 +12,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import ReplaySearchBar from 'sentry/views/replays/replaySearchBar';
 
-type Props = {};
-
-function ReplaysFilters({}: Props) {
+function ReplaysFilters() {
   const {selection} = usePageFilters();
   const location = useLocation();
   const organization = useOrganization();
