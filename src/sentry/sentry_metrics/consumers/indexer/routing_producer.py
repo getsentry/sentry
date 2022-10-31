@@ -3,12 +3,12 @@ import time
 from abc import ABC, abstractmethod
 from collections import deque
 from concurrent.futures import Future
-from typing import Deque, MutableMapping, NamedTuple, Optional, Tuple
+from typing import Deque, Generic, MutableMapping, NamedTuple, Optional, Tuple
 
 from arroyo.backends.abstract import Producer
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies import ProcessingStrategy
-from arroyo.types import Commit, Message, Partition, Position, Topic
+from arroyo.types import Commit, Message, Partition, Position, Topic, TPayload
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +23,7 @@ class MessageRoute(NamedTuple):
     topic: Topic
 
 
-class MessageRouter(ABC):
+class MessageRouter(ABC, Generic[TPayload]):
     """
     An abstract class that defines the interface for a message router. A message
     router relies on the implementation of the get_route_for_message method
@@ -38,7 +38,7 @@ class MessageRouter(ABC):
     """
 
     @abstractmethod
-    def get_route_for_message(self, message: Message[KafkaPayload]) -> MessageRoute:
+    def get_route_for_message(self, message: Message[TPayload]) -> MessageRoute:
         """
         This method must return the MessageRoute on which the message should
         be produced. Implementations of this method can vary based on the
@@ -75,7 +75,7 @@ class RoutingProducerStep(ProcessingStrategy[KafkaPayload]):
     def __init__(
         self,
         commit_function: Commit,
-        message_router: MessageRouter,
+        message_router: MessageRouter[KafkaPayload],
     ) -> None:
         self.__commit_function = commit_function
         self.__message_router = message_router

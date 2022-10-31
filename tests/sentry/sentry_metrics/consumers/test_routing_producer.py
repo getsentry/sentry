@@ -16,7 +16,7 @@ from sentry.sentry_metrics.consumers.indexer.routing_producer import (
 )
 
 
-class RoundRobinRouter(MessageRouter):
+class RoundRobinRouter(MessageRouter[KafkaPayload]):
     def __init__(self) -> None:
         self.all_broker_storages: MutableSequence[MemoryMessageStorage[KafkaPayload]] = []
         self.all_producers: MutableSequence[Producer] = []
