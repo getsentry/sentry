@@ -183,7 +183,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                         GROUP_TYPE_TO_CATEGORY[GroupType(value)]
                         for value in list(
                             filter(
-                                lambda x: x not in {gt.value for gt in GroupType},
+                                lambda x: x not in ALL_ISSUE_TYPES,
                                 search_filter.value.raw_value,
                             )
                         )
