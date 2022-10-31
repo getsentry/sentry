@@ -9,9 +9,6 @@ from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry.api.event_search import ParenExpression, SearchFilter
 
-# Interface.
-
-
 OPERATOR_MAP = {
     "=": Op.EQ,
     "!=": Op.NEQ,
@@ -87,13 +84,27 @@ class Field:
         field_alias: str,
         operator: Op,
         value: Union[List[str], str],
+        is_wildcard: bool = False,
     ) -> Condition:
+
         return Condition(Column(self.query_alias or self.attribute_name), operator, value)
 
 
 class String(Field):
     _operators = [Op.EQ, Op.NEQ, Op.IN, Op.NOT_IN]
     _python_type = str
+
+    def as_condition(
+        self, field_alias: str, operator: Op, value: Union[List[str], str], is_wildcard: bool
+    ) -> Condition:
+        if is_wildcard:
+            return Condition(
+                _wildcard_search_function(value, Column(self.query_alias or self.attribute_name)),
+                operator,
+                1,
+            )
+
+        return super().as_condition(field_alias, operator, value, is_wildcard)
 
 
 class Number(Field):
@@ -106,15 +117,32 @@ class ListField(Field):
     _python_type = None
 
     def as_condition(
-        self,
-        _: str,
-        operator: Op,
-        value: Union[List[str], str],
+        self, _: str, operator: Op, value: Union[List[str], str], is_wildcard: bool = False
     ) -> Condition:
         if operator in [Op.EQ, Op.NEQ]:
+            if is_wildcard:
+                # wildcard search isn't supported with the IN operator
+                return self._wildcard_condition(operator, value)
+
             return self._has_condition(operator, value)
         else:
             return self._has_any_condition(operator, value)
+
+    def _wildcard_condition(self, operator: Op, value: str):
+        return Condition(
+            Function(
+                "arrayExists",
+                parameters=[
+                    Lambda(
+                        ["list_element"],
+                        _wildcard_search_function(value, Identifier("list_element")),
+                    ),
+                    Column(self.query_alias or self.attribute_name),
+                ],
+            ),
+            Op.EQ,
+            1 if operator == Op.EQ else 0,
+        )
 
     def _has_condition(
         self,
@@ -170,12 +198,39 @@ class Tag(Field):
         field_alias: str,
         operator: Op,
         value: Union[List[str], str],
+        is_wildcard: bool = False,
     ) -> Condition:
-        negated = operator not in (Op.EQ, Op.IN)
-        return filter_tag_by_value(
-            key=field_alias,
-            values=value,
-            negated=negated,
+
+        if is_wildcard:
+            return self._filter_tag_by_wildcard_search(field_alias, value, operator)
+
+        return self._filter_tag_by_value(field_alias, value, operator)
+
+    def _filter_tag_by_wildcard_search(self, field_alias: str, value: str, operator: Op):
+        return Condition(
+            Function(
+                "arrayExists",
+                parameters=[
+                    Lambda(
+                        ["tag_value"], _wildcard_search_function(value, Identifier("tag_value"))
+                    ),
+                    _all_values_for_tag_key(field_alias),
+                ],
+            ),
+            operator,
+            1,
+        )
+
+    def _filter_tag_by_value(
+        self, key: str, values: Union[List[str], str], operator: Op
+    ) -> Condition:
+        """Helper function that allows filtering a tag by multiple values."""
+        expected = 0 if operator not in (Op.EQ, Op.IN) else 1
+        function = "hasAny" if isinstance(values, list) else "has"
+        return Condition(
+            Function(function, parameters=[_all_values_for_tag_key(key), values]),
+            Op.EQ,
+            expected,
         )
 
 
@@ -261,7 +316,9 @@ def filter_to_condition(search_filter: SearchFilter, query_config: QueryConfig) 
     if errors:
         raise ParseError(f"Invalid value specified: {field_alias}.")
 
-    return field.as_condition(field_alias, operator, value)
+    is_wildcard = search_filter.value.is_wildcard()
+
+    return field.as_condition(field_alias, operator, value, is_wildcard)
 
 
 def attempt_compressed_condition(
@@ -307,21 +364,6 @@ def get_valid_sort_commands(
 # Tag filtering behavior.
 
 
-def filter_tag_by_value(
-    key: str,
-    values: Union[List[str], str],
-    negated: bool = False,
-) -> Condition:
-    """Helper function that allows filtering a tag by multiple values."""
-    function = "hasAny" if isinstance(values, list) else "has"
-    expected = 0 if negated else 1
-    return Condition(
-        Function(function, parameters=[_all_values_for_tag_key(key), values]),
-        Op.EQ,
-        expected,
-    )
-
-
 def _all_values_for_tag_key(key: str) -> Function:
     return Function(
         "arrayFilter",
@@ -351,5 +393,19 @@ def _bitmask_on_tag_key(key: str) -> Function:
             ),
             Function("arrayEnumerate", parameters=[Column("tk")]),
             Column("tk"),
+        ],
+    )
+
+
+def _wildcard_search_function(value, identifier):
+    # XXX: We don't want the '^$' values at the beginning and end of
+    # the regex since we want to find the pattern anywhere in the
+    # message. Strip off here
+    wildcard_value = value[1:-1]
+    return Function(
+        "match",
+        parameters=[
+            identifier,
+            f"(?i){wildcard_value}",
         ],
     )

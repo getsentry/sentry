@@ -1,8 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render} from 'sentry-test/reactTestingLibrary';
+import {renderGlobalModal} from 'sentry-test/reactTestingLibrary';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import GlobalModal from 'sentry/components/globalModal';
 import {RedirectToProjectModal} from 'sentry/components/modals/redirectToProject';
 
 jest.unmock('sentry/utils/recreateRoute');
@@ -25,7 +24,7 @@ describe('RedirectToProjectModal', function () {
 
     jest.spyOn(window.location, 'assign').mockImplementation(() => {});
 
-    render(<GlobalModal />);
+    renderGlobalModal();
 
     openModal(modalProps => (
       <RedirectToProjectModal

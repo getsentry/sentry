@@ -5,6 +5,7 @@ from django.urls import reverse
 
 from sentry.replays.testutils import assert_expected_response, mock_expected_response, mock_replay
 from sentry.testutils import APITestCase, ReplaysSnubaTestCase
+from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.cursors import Cursor
 
@@ -12,6 +13,7 @@ REPLAYS_FEATURES = {"organizations:session-replay": True}
 
 
 @region_silo_test
+@apply_feature_flag_on_cls("organizations:global-views")
 class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
     endpoint = "sentry-api-0-organization-replay-index"
 
@@ -341,7 +343,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 device_brand="Apple",
                 device_family="Macintosh",
                 device_model="10",
-                tags={"a": "m", "b": "q"},
+                tags={"a": "m", "b": "q", "c": "test"},
+                urls=["example.com"],
             )
         )
         self.store_replays(
@@ -371,6 +374,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "user.id:123",
                 "user.name:username123",
                 "user.email:username@example.com",
+                "user.email:*@example.com",
                 "user.ipAddress:127.0.0.1",
                 "sdk.name:sentry.javascript.react",
                 "os.name:macOS",
@@ -378,6 +382,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "browser.name:Firefox",
                 "browser.version:99",
                 "dist:abc123",
+                "releases:*3",
+                "!releases:*4",
                 "countSegments:>=2",
                 "device.name:Macbook",
                 "device.brand:Apple",
@@ -397,6 +403,9 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 # Tag filters.
                 "a:m",
                 "a:[n,o]",
+                "c:*st",
+                "!c:*zz",
+                "urls:example.com",
             ]
 
             for query in queries:
@@ -421,7 +430,11 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "a:o",
                 "a:[o,p]",
                 "releases:a",
+                "releases:*4",
+                "!releases:*3",
                 "releases:[a,b]",
+                "c:*zz",
+                "!c:*st",
             ]
             for query in null_queries:
                 response = self.client.get(self.url + f"?query={query}")
@@ -593,6 +606,21 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             response = self.client.get(self.url + "?query=duration:a")
             assert response.status_code == 400
             assert b"duration" in response.content
+
+    def test_get_replays_no_multi_project_select(self):
+        self.create_project(teams=[self.team])
+        self.create_project(teams=[self.team])
+
+        user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user, organization=self.organization, role="member", teams=[self.team]
+        )
+        self.login_as(user)
+
+        with self.feature(REPLAYS_FEATURES), self.feature({"organizations:global-views": False}):
+            response = self.client.get(self.url)
+            assert response.status_code == 400
+            assert response.data["detail"] == "You cannot view events from multiple projects."
 
     def test_get_replays_unknown_field(self):
         """Test replays unknown fields raise a 400 error."""

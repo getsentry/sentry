@@ -19,10 +19,14 @@ import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {
+  normalizeDateTimeParams,
+  normalizeDateTimeString,
+} from 'sentry/components/organizations/pageFilters/parse';
 import {CursorHandler} from 'sentry/components/pagination';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -42,6 +46,7 @@ import {
   MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES,
 } from 'sentry/utils/discover/types';
 import localStorage from 'sentry/utils/localStorage';
+import marked from 'sentry/utils/marked';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
@@ -64,7 +69,7 @@ type Props = {
   organization: Organization;
   router: InjectedRouter;
   selection: PageFilters;
-  setSavedQuery: (savedQuery: SavedQuery) => void;
+  setSavedQuery: (savedQuery?: SavedQuery) => void;
   isHomepage?: boolean;
   savedQuery?: SavedQuery;
 };
@@ -76,6 +81,7 @@ type State = {
   eventView: EventView;
   needConfirmation: boolean;
   showTags: boolean;
+  tips: string[];
   totalValues: null | number;
   savedQuery?: SavedQuery;
   showMetricsAlert?: boolean;
@@ -103,14 +109,11 @@ function getYAxis(location: Location, eventView: EventView, savedQuery?: SavedQu
 
 export class Results extends Component<Props, State> {
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
-    if (nextProps.savedQuery || !nextProps.loading) {
-      const eventView = EventView.fromSavedQueryOrLocation(
-        nextProps.savedQuery,
-        nextProps.location
-      );
-      return {...prevState, eventView, savedQuery: nextProps.savedQuery};
-    }
-    return prevState;
+    const eventView = EventView.fromSavedQueryOrLocation(
+      nextProps.savedQuery,
+      nextProps.location
+    );
+    return {...prevState, eventView, savedQuery: nextProps.savedQuery};
   }
 
   state: State = {
@@ -124,6 +127,7 @@ export class Results extends Component<Props, State> {
     showTags: readShowTagsState(),
     needConfirmation: false,
     confirmedQuery: false,
+    tips: [],
   };
 
   componentDidMount() {
@@ -299,10 +303,20 @@ export class Results extends Component<Props, State> {
     if (nextEventView.project.length === 0 && selection.projects) {
       nextEventView.project = selection.projects;
     }
+    if (selection.datetime) {
+      const {period, utc, start, end} = selection.datetime;
+      nextEventView.statsPeriod = period ?? undefined;
+      nextEventView.utc = utc?.toString();
+      nextEventView.start = normalizeDateTimeString(start);
+      nextEventView.end = normalizeDateTimeString(end);
+    }
     if (location.query?.query) {
       nextEventView.query = decodeScalar(location.query.query, '');
     }
 
+    if (isHomepage && !this.state.savedQuery) {
+      this.setState({savedQuery, eventView: nextEventView});
+    }
     browserHistory.replace(
       nextEventView.getResultsViewUrlTarget(organization.slug, isHomepage)
     );
@@ -527,6 +541,18 @@ export class Results extends Component<Props, State> {
     return null;
   }
 
+  renderTips() {
+    const {tips} = this.state;
+    if (tips) {
+      return tips.map((tip, index) => (
+        <Alert type="info" showIcon key={`tip-${index}`}>
+          <TipContainer dangerouslySetInnerHTML={{__html: marked(tip)}} />
+        </Alert>
+      ));
+    }
+    return null;
+  }
+
   render() {
     const {organization, location, router, selection, api, setSavedQuery, isHomepage} =
       this.props;
@@ -545,6 +571,10 @@ export class Results extends Component<Props, State> {
     const query = eventView.query;
     const title = this.getDocumentTitle();
     const yAxisArray = getYAxis(location, eventView, savedQuery);
+
+    if (!eventView.isValid()) {
+      return <LoadingIndicator />;
+    }
 
     return (
       <SentryDocumentTitle title={title} orgSlug={organization.slug}>
@@ -568,6 +598,7 @@ export class Results extends Component<Props, State> {
                 <Top fullWidth>
                   {this.renderMetricsFallbackBanner()}
                   {this.renderError(error)}
+                  {this.renderTips()}
                   <StyledPageFilterBar condensed>
                     <ProjectPageFilter />
                     <EnvironmentPageFilter />
@@ -619,6 +650,7 @@ export class Results extends Component<Props, State> {
                     confirmedQuery={confirmedQuery}
                     onCursor={this.handleCursor}
                     isHomepage={isHomepage}
+                    setTips={(tips: string[]) => this.setState({tips})}
                   />
                 </Layout.Main>
                 {showTags ? this.renderTagsTable() : null}
@@ -671,11 +703,19 @@ const Top = styled(Layout.Main)`
   flex-grow: 0;
 `;
 
+const TipContainer = styled('span')`
+  > p {
+    margin: 0;
+  }
+`;
+
 type SavedQueryState = AsyncComponent['state'] & {
   savedQuery?: SavedQuery | null;
 };
 
 class SavedQueryAPI extends AsyncComponent<Props, SavedQueryState> {
+  shouldReload = true;
+
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization, location} = this.props;
 
@@ -690,13 +730,9 @@ class SavedQueryAPI extends AsyncComponent<Props, SavedQueryState> {
     return endpoints;
   }
 
-  setSavedQuery = (newSavedQuery: SavedQuery) => {
+  setSavedQuery = (newSavedQuery?: SavedQuery) => {
     this.setState({savedQuery: newSavedQuery});
   };
-
-  renderLoading() {
-    return this.renderBody();
-  }
 
   renderBody(): React.ReactNode {
     const {savedQuery, loading} = this.state;

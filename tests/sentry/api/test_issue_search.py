@@ -158,6 +158,22 @@ class ParseSearchQueryTest(unittest.TestCase):
         ]
 
 
+class ConvertJavaScriptConsoleTagTest(TestCase):
+    def test_valid(self):
+        filters = [SearchFilter(SearchKey("empty_stacktrace.js_console"), "=", SearchValue(True))]
+        with self.feature("organizations:javascript-console-error-tag"):
+            result = convert_query_values(filters, [self.project], self.user, None)
+            assert result[0].value.raw_value is True
+
+    def test_invalid(self):
+        filters = [SearchFilter(SearchKey("empty_stacktrace.js_console"), "=", SearchValue(True))]
+        with self.feature({"organizations:javascript-console-error-tag": False}) and pytest.raises(
+            InvalidSearchQuery,
+            match="The empty_stacktrace.js_console filter is not supported for this organization",
+        ):
+            convert_query_values(filters, [self.project], self.user, None)
+
+
 class ConvertQueryValuesTest(TestCase):
     def test_valid_converter(self):
         filters = [SearchFilter(SearchKey("assigned_to"), "=", SearchValue("me"))]

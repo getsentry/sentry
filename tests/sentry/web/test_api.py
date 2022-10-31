@@ -1,8 +1,10 @@
 from unittest import mock
 
+from django.conf import settings
 from django.urls import reverse
 from exam import fixture
 
+from sentry.auth import superuser
 from sentry.models import (
     ApiToken,
     Organization,
@@ -78,6 +80,72 @@ class ClientConfigViewTest(TestCase):
     def path(self):
         return reverse("sentry-api-client-config")
 
+    def test_cookie_names(self):
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        assert resp["Content-Type"] == "application/json"
+
+        data = json.loads(resp.content)
+        assert data["csrfCookieName"] == "sc"
+        assert data["csrfCookieName"] == settings.CSRF_COOKIE_NAME
+        assert data["superUserCookieName"] == "su"
+        assert data["superUserCookieName"] == superuser.COOKIE_NAME
+
+    def test_has_user_registration(self):
+        with self.options({"auth.allow-registration": True}):
+            resp = self.client.get(self.path)
+            assert resp.status_code == 200
+            assert resp["Content-Type"] == "application/json"
+            data = json.loads(resp.content)
+            assert data["features"] == ["organizations:create", "auth:register"]
+
+        with self.options({"auth.allow-registration": False}):
+            resp = self.client.get(self.path)
+            assert resp.status_code == 200
+            assert resp["Content-Type"] == "application/json"
+            data = json.loads(resp.content)
+            assert data["features"] == ["organizations:create"]
+
+    def test_org_create_feature(self):
+        with self.feature({"organizations:create": True}):
+            resp = self.client.get(self.path)
+            assert resp.status_code == 200
+            assert resp["Content-Type"] == "application/json"
+            data = json.loads(resp.content)
+            assert data["features"] == ["organizations:create"]
+
+        with self.feature({"organizations:create": False}):
+            resp = self.client.get(self.path)
+            assert resp.status_code == 200
+            assert resp["Content-Type"] == "application/json"
+            data = json.loads(resp.content)
+            assert data["features"] == []
+
+    def test_customer_domain_feature(self):
+        self.login_as(self.user)
+
+        # Induce last active organization
+        resp = self.client.get(
+            reverse("sentry-api-0-organization-projects", args=[self.organization.slug])
+        )
+        assert resp.status_code == 200
+        assert resp["Content-Type"] == "application/json"
+
+        with self.feature({"organizations:customer-domains": True}):
+            resp = self.client.get(self.path)
+            assert resp.status_code == 200
+            assert resp["Content-Type"] == "application/json"
+            data = json.loads(resp.content)
+            assert data["lastOrganization"] == self.organization.slug
+            assert data["features"] == ["organizations:create", "organizations:customer-domains"]
+
+        with self.feature({"organizations:customer-domains": False}):
+            resp = self.client.get(self.path)
+            assert resp.status_code == 200
+            assert resp["Content-Type"] == "application/json"
+            data = json.loads(resp.content)
+            assert data["features"] == ["organizations:create"]
+
     def test_unauthenticated(self):
         resp = self.client.get(self.path)
         assert resp.status_code == 200
@@ -86,6 +154,7 @@ class ClientConfigViewTest(TestCase):
         data = json.loads(resp.content)
         assert not data["isAuthenticated"]
         assert data["user"] is None
+        assert data["features"] == ["organizations:create"]
 
     def test_authenticated(self):
         user = self.create_user("foo@example.com")
@@ -99,6 +168,7 @@ class ClientConfigViewTest(TestCase):
         assert data["isAuthenticated"]
         assert data["user"]
         assert data["user"]["email"] == user.email
+        assert data["features"] == ["organizations:create"]
 
     def test_superuser(self):
         user = self.create_user("foo@example.com", is_superuser=True)

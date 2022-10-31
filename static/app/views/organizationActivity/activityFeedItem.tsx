@@ -78,7 +78,12 @@ class ActivityItem extends Component<Props, State> {
     const basePath = `/organizations/${orgId}/issues/`;
 
     const issueLink = issue ? (
-      <IssueLink orgId={orgId} issue={issue} to={`${basePath}${issue.id}/`} card>
+      <IssueLink
+        orgId={orgId}
+        issue={issue}
+        to={`${basePath}${issue.id}/?referrer=activity-feed-issue-link`}
+        card
+      >
         {issue.shortId}
       </IssueLink>
     ) : null;
@@ -94,7 +99,7 @@ class ActivityItem extends Component<Props, State> {
               card
               orgId={orgId}
               issue={issue}
-              to={`${basePath}${issue.id}/activity/#event_${item.id}`}
+              to={`${basePath}${issue.id}/activity/?referrer=activity-comment#event_${item.id}`}
             >
               {issue.shortId}
             </IssueLink>
@@ -305,7 +310,7 @@ class ActivityItem extends Component<Props, State> {
         return tct('[author] merged [count] [link:issues]', {
           author,
           count: data.issues.length + 1,
-          link: <Link to={`${basePath}${issue.id}/`} />,
+          link: <Link to={`${basePath}${issue.id}/?referrer=activity-feed-merge`} />,
         });
       case 'release':
         return tct('[author] released version [version]', {
@@ -358,7 +363,7 @@ class ActivityItem extends Component<Props, State> {
     };
 
     return (
-      <div className={className}>
+      <div data-test-id="activity-feed-item" className={className}>
         {author.avatar}
         <div>
           {this.formatProjectActivity(

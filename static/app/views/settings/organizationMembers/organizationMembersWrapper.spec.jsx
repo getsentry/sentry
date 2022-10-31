@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -56,13 +56,9 @@ describe('OrganizationMembersWrapper', function () {
   });
 
   it('can invite member', function () {
-    const wrapper = mountWithTheme(
-      <OrganizationMembersWrapper organization={organization} {...defaultProps} />
-    );
+    render(<OrganizationMembersWrapper organization={organization} {...defaultProps} />);
 
-    const inviteButton = wrapper.find('StyledButton');
-    inviteButton.simulate('click');
-
+    userEvent.click(screen.getByRole('button', {name: 'Invite Members'}));
     expect(openInviteMembersModal).toHaveBeenCalled();
   });
 
@@ -74,12 +70,9 @@ describe('OrganizationMembersWrapper', function () {
         id: 'active',
       },
     });
-    const wrapper = mountWithTheme(
-      <OrganizationMembersWrapper organization={org} {...defaultProps} />
-    );
+    render(<OrganizationMembersWrapper organization={org} {...defaultProps} />);
 
-    const inviteButton = wrapper.find('StyledButton');
-    expect(inviteButton.props().disabled).toBeTruthy();
+    expect(screen.getByRole('button', {name: 'Invite Members'})).toBeDisabled();
   });
 
   it('can invite without permissions', function () {
@@ -91,13 +84,9 @@ describe('OrganizationMembersWrapper', function () {
       },
     });
 
-    const wrapper = mountWithTheme(
-      <OrganizationMembersWrapper organization={org} {...defaultProps} />
-    );
+    render(<OrganizationMembersWrapper organization={org} {...defaultProps} />);
 
-    const inviteButton = wrapper.find('StyledButton');
-    inviteButton.simulate('click');
-
+    userEvent.click(screen.getByRole('button', {name: 'Invite Members'}));
     expect(openInviteMembersModal).toHaveBeenCalled();
   });
 
@@ -107,15 +96,13 @@ describe('OrganizationMembersWrapper', function () {
       method: 'GET',
       body: [member],
     });
-    const wrapper = mountWithTheme(
+    render(
       <OrganizationMembersWrapper organization={organization} {...defaultProps}>
         <OrganizationMembersList {...defaultProps} router={{routes: []}} />
       </OrganizationMembersWrapper>
     );
 
-    expect(wrapper.find('OrganizationMembersList').exists()).toBe(true);
-    expect(wrapper.find('PanelHeader').text().includes('Members')).toBe(true);
-
-    expect(wrapper.find('StyledPanelItem').text().includes(member.name)).toBe(true);
+    expect(screen.getByText('Members')).toBeInTheDocument();
+    expect(screen.getByText(member.name)).toBeInTheDocument();
   });
 });

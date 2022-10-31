@@ -3,7 +3,7 @@ import {Fragment} from 'react';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import {Field} from 'sentry/components/forms/type';
+import {Field} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
 import {Organization, OrganizationSummary} from 'sentry/types';
 import {OrganizationIntegration} from 'sentry/types/integrations';
@@ -51,7 +51,13 @@ type State = {
 } & AsyncComponent['state'];
 
 const typeMappedChildren = {
-  quota: ['quotaErrors', 'quotaTransactions', 'quotaAttachments', 'quotaWarnings'],
+  quota: [
+    'quotaErrors',
+    'quotaTransactions',
+    'quotaAttachments',
+    'quotaWarnings',
+    'quotaSpendAllocations',
+  ],
 };
 
 const getQueryParams = (notificationType: string) => {

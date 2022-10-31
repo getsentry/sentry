@@ -147,6 +147,7 @@ class GitHubAppsClientTest(TestCase):
             json={"text": 200},
             headers={"link": f'<{url}&page=2>; rel="next", <{url}&page=4>; rel="last"'},
         )
+        # For simplicity, we're skipping the `first` and `prev` links from the following responses
         responses.add(
             method=responses.GET,
             url=f"{url}&page=2",
@@ -163,6 +164,9 @@ class GitHubAppsClientTest(TestCase):
             method=responses.GET,
             url=f"{url}&page=4",
             json={"text": 200},
+            # To help understanding, the last page only contains the `first` and `prev` links
+            # The code only cares about the `next` value which is not included here
+            headers={"link": f'<{url}&page=1>; rel="first", <{url}&page=3>; rel="prev"'},
         )
         self.client.get_with_pagination(f"/repos/{self.repo.name}/assignees")
         assert len(responses.calls) == 5
@@ -241,7 +245,7 @@ class GitHubAppsClientTest(TestCase):
             json={"query": query},
             content_type="application/json",
         )
-        resp = self.client.get_blame_for_file(self.repo, path, ref)
+        resp = self.client.get_blame_for_file(self.repo, path, ref, 1)
         assert (
             responses.calls[1].request.body
             == b'{"query": "query {\\n            repository(name: \\"foo\\", owner: \\"Test-Organization\\") {\\n                ref(qualifiedName: \\"master\\") {\\n                    target {\\n                        ... on Commit {\\n                            blame(path: \\"src/sentry/integrations/github/client.py\\") {\\n                                ranges {\\n                                        commit {\\n                                            oid\\n                                            author {\\n                                                name\\n                                                email\\n                                            }\\n                                            message\\n                                            committedDate\\n                                        }\\n                                    startingLine\\n                                    endingLine\\n                                    age\\n                                }\\n                            }\\n                        }\\n                    }\\n                }\\n            }\\n        }"}'

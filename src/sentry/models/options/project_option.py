@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, Mapping, Sequence
 from django.db import models, transaction
 
 from sentry import projectoptions
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model, sane_repr
 from sentry.db.models.fields import PickledObjectField
 from sentry.db.models.manager import OptionManager, ValidateFunction, Value
 from sentry.tasks.relay import schedule_invalidate_project_config
@@ -48,6 +48,7 @@ OPTION_KEYS = frozenset(
         "sentry:fingerprinting_rules",
         "sentry:relay_pii_config",
         "sentry:dynamic_sampling",
+        "sentry:dynamic_sampling_biases",
         "sentry:breakdowns",
         "sentry:span_attributes",
         "sentry:performance_issue_creation_rate",
@@ -143,7 +144,7 @@ class ProjectOptionManager(OptionManager["Project"]):
         self.reload_cache(instance.project_id, "projectoption.post_delete")
 
 
-@region_silo_model
+@region_silo_only_model
 class ProjectOption(Model):  # type: ignore
     """
     Project options apply only to an instance of a project.

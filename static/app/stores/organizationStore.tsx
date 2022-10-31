@@ -4,6 +4,7 @@ import {ORGANIZATION_FETCH_ERROR_TYPES} from 'sentry/constants';
 import {Organization} from 'sentry/types';
 import RequestError from 'sentry/utils/requestError/requestError';
 
+import HookStore from './hookStore';
 import LatestContextStore from './latestContextStore';
 import ReleaseStore from './releaseStore';
 import {CommonStoreDefinition} from './types';
@@ -27,6 +28,9 @@ interface OrganizationStoreDefinition extends CommonStoreDefinition<State> {
 
 const storeConfig: OrganizationStoreDefinition = {
   init() {
+    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
+    // listeners due to their leaky nature in tests.
+
     this.reset();
   },
 
@@ -49,6 +53,10 @@ const storeConfig: OrganizationStoreDefinition = {
 
     ReleaseStore.updateOrganization(this.organization);
     LatestContextStore.onUpdateOrganization(this.organization);
+    HookStore.getCallback(
+      'react-hook:route-activated',
+      'setOrganization'
+    )?.(this.organization);
   },
 
   onFetchOrgError(err) {

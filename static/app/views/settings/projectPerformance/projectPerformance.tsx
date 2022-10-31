@@ -7,13 +7,13 @@ import Feature from 'sentry/components/acl/feature';
 import Button from 'sentry/components/button';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import {Field} from 'sentry/components/forms/type';
+import {Field} from 'sentry/components/forms/types';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PanelItem} from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
 import {Organization, Project, Scope} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -83,11 +83,10 @@ class ProjectPerformance extends AsyncView<Props, State> {
     this.api.request(`/projects/${orgId}/${projectId}/transaction-threshold/configure/`, {
       method: 'DELETE',
       success: () => {
-        trackAnalyticsEvent({
-          eventKey: 'performance_views.project_transaction_threshold.clear',
-          eventName: 'Project Transaction Threshold: Cleared',
-          organization_id: organization.id,
-        });
+        trackAdvancedAnalyticsEvent(
+          'performance_views.project_transaction_threshold.clear',
+          {organization}
+        );
       },
       complete: () => this.fetchData(),
     });
@@ -231,14 +230,15 @@ class ProjectPerformance extends AsyncView<Props, State> {
           onSubmitSuccess={resp => {
             const initial = this.initialData;
             const changedThreshold = initial.metric === resp.metric;
-            trackAnalyticsEvent({
-              eventKey: 'performance_views.project_transaction_threshold.change',
-              eventName: 'Project Transaction Threshold: Changed',
-              organization_id: organization.id,
-              from: changedThreshold ? initial.threshold : initial.metric,
-              to: changedThreshold ? resp.threshold : resp.metric,
-              key: changedThreshold ? 'threshold' : 'metric',
-            });
+            trackAdvancedAnalyticsEvent(
+              'performance_views.project_transaction_threshold.change',
+              {
+                organization,
+                from: changedThreshold ? initial.threshold : initial.metric,
+                to: changedThreshold ? resp.threshold : resp.metric,
+                key: changedThreshold ? 'threshold' : 'metric',
+              }
+            );
             this.setState({threshold: resp});
           }}
         >

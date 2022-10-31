@@ -1,3 +1,5 @@
+import {Outcome} from 'sentry/types';
+
 export function Outcomes() {
   return {
     start: '2022-07-02T19:00:00Z',
@@ -317,5 +319,14 @@ export function OutcomesWithLowProcessedEvents() {
         },
       },
     ],
+  };
+}
+
+export function OutcomesWithoutClientDiscarded() {
+  return {
+    ...TestStubs.OutcomesWithReason(),
+    groups: TestStubs.OutcomesWithReason().groups.filter(
+      group => group.by.outcome !== Outcome.CLIENT_DISCARD
+    ),
   };
 }

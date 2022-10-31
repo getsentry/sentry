@@ -1,4 +1,4 @@
-import {JsonFormObject} from 'sentry/components/forms/type';
+import {JsonFormObject} from 'sentry/components/forms/types';
 import languages from 'sentry/data/languages';
 import timezones from 'sentry/data/timezones';
 import {t} from 'sentry/locale';
@@ -22,10 +22,10 @@ const formGroups: JsonFormObject[] = [
         help: t(
           "Select your theme preference. It can be synced to your system's theme, always light mode, or always dark mode."
         ),
-        choices: [
-          ['light', t('Light')],
-          ['dark', t('Dark')],
-          ['system', t('Default to system')],
+        options: [
+          {value: 'light', label: t('Light')},
+          {value: 'dark', label: t('Dark')},
+          {value: 'system', label: t('Default to system')},
         ],
         getData: transformOptions,
       },
@@ -33,14 +33,14 @@ const formGroups: JsonFormObject[] = [
         name: 'language',
         type: 'select',
         label: t('Language'),
-        choices: languages,
+        options: languages.map(([value, label]) => ({value, label})),
         getData: transformOptions,
       },
       {
         name: 'timezone',
         type: 'select',
         label: t('Timezone'),
-        choices: timezones,
+        options: timezones.map(([value, label]) => ({value, label})),
         getData: transformOptions,
       },
       {
@@ -53,10 +53,10 @@ const formGroups: JsonFormObject[] = [
         name: 'stacktraceOrder',
         type: 'select',
         required: false,
-        choices: [
-          [-1, t('Default (let Sentry decide)')],
-          [1, t('Most recent call last')],
-          [2, t('Most recent call first')],
+        options: [
+          {value: -1, label: t('Default (let Sentry decide)')},
+          {value: 1, label: t('Most recent call last')},
+          {value: 2, label: t('Most recent call first')},
         ],
         label: t('Stack Trace Order'),
         help: t('Choose the default ordering of frames in stack traces'),

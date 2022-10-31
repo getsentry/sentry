@@ -172,8 +172,7 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
           );
         if (deployedReleases.length === 1) {
           return tct(
-            '[author] marked this issue as resolved in [version] [break]' +
-              'This commit was released in [release]',
+            '[author] marked this issue as resolved in [version] [break]This commit was released in [release]',
             {
               author,
               version: (
@@ -196,12 +195,10 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
         }
         if (deployedReleases.length > 1) {
           return tct(
-            '[author] marked this issue as resolved in [version] [break]' +
-              'This commit was released in [release] and ' +
-              (deployedReleases.length - 1) +
-              ' others',
+            '[author] marked this issue as resolved in [version] [break]This commit was released in [release] and [otherCount] others',
             {
               author,
+              otherCount: deployedReleases.length - 1,
               version: (
                 <CommitLink
                   inline
@@ -233,7 +230,7 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
       case GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST: {
         const {data} = activity;
         const {pullRequest} = data;
-        return tct('[author] marked this issue as resolved in [version]', {
+        return tct('[author] has created a PR for this issue: [version]', {
           author,
           version: (
             <PullRequestLink
@@ -282,7 +279,11 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
           fingerprints.length,
           author,
           destination ? (
-            <Link to={`${issuesLink}${destination.id}`}>{destination.shortId}</Link>
+            <Link
+              to={`${issuesLink}${destination.id}?referrer=group-activity-unmerged-source`}
+            >
+              {destination.shortId}
+            </Link>
           ) : (
             t('a group')
           )
@@ -297,7 +298,11 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
           fingerprints.length,
           author,
           source ? (
-            <Link to={`${issuesLink}${source.id}`}>{source.shortId}</Link>
+            <Link
+              to={`${issuesLink}${source.id}?referrer=group-activity-unmerged-destination`}
+            >
+              {source.shortId}
+            </Link>
           ) : (
             t('a group')
           )
@@ -326,7 +331,7 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
           author,
           ['new-events']: (
             <Link
-              to={`/organizations/${orgSlug}/issues/?query=reprocessing.original_issue_id:${oldGroupId}`}
+              to={`/organizations/${orgSlug}/issues/?query=reprocessing.original_issue_id:${oldGroupId}&referrer=group-activity-reprocesses`}
             >
               {tn('See %s new event', 'See %s new events', eventCount)}
             </Link>

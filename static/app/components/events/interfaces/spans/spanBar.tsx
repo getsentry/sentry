@@ -4,10 +4,7 @@ import {Component, createRef, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Count from 'sentry/components/count';
-import {
-  ROW_HEIGHT,
-  SpanBarHatch,
-} from 'sentry/components/performance/waterfall/constants';
+import {ROW_HEIGHT, SpanBarType} from 'sentry/components/performance/waterfall/constants';
 import {MessageRow} from 'sentry/components/performance/waterfall/messageRow';
 import {
   Row,
@@ -137,7 +134,7 @@ type SpanBarProps = {
   isLast?: boolean;
   isRoot?: boolean;
   spanBarColor?: string;
-  spanBarHatch?: SpanBarHatch;
+  spanBarType?: SpanBarType;
   toggleSiblingSpanGroup?: ((span: SpanType, occurrence: number) => void) | undefined;
 };
 
@@ -475,7 +472,7 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
   }
 
   renderTitle(errors: TraceError[] | null) {
-    const {generateContentSpanBarRef} = this.props;
+    const {generateContentSpanBarRef, spanBarType} = this.props;
     const {
       span,
       treeDepth,
@@ -539,7 +536,10 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
             width: '100%',
           }}
         >
-          <RowTitleContent errored={errored}>
+          <RowTitleContent
+            errored={errored}
+            data-test-id={`row-title-content${spanBarType ? `-${spanBarType}` : ''}`}
+          >
             <strong>{titleFragments}</strong>
             {description}
           </RowTitleContent>
@@ -895,7 +895,7 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
     errors: TraceError[] | null;
     transactions: QuickTraceEvent[] | null;
   }) {
-    const {span, spanBarColor, spanBarHatch, spanNumber} = this.props;
+    const {span, spanBarColor, spanBarType, spanNumber} = this.props;
     const startTimestamp: number = span.start_timestamp;
     const endTimestamp: number = span.timestamp;
     const duration = Math.abs(endTimestamp - startTimestamp);
@@ -939,7 +939,7 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
         >
           {displaySpanBar && (
             <RowRectangle
-              spanBarHatch={spanBarHatch}
+              spanBarType={spanBarType}
               style={{
                 backgroundColor: spanBarColor,
                 left: `min(${toPercent(bounds.left || 0)}, calc(100% - 1px))`,
@@ -949,7 +949,7 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
               <DurationPill
                 durationDisplay={durationDisplay}
                 showDetail={this.state.showDetail}
-                spanBarHatch={spanBarHatch}
+                spanBarType={spanBarType}
               >
                 {durationString}
                 {this.renderWarningText()}

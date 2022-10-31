@@ -40,7 +40,7 @@ __all__ = (
 
 import re
 from abc import ABC
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import (
     Collection,
     Dict,
@@ -61,6 +61,7 @@ MAX_POINTS = 10000
 GRANULARITY = 24 * 60 * 60
 TS_COL_QUERY = "timestamp"
 TS_COL_GROUP = "bucketed_time"
+METRICS_LAYER_GRANULARITIES = [86400, 3600, 60]
 
 TAG_REGEX = re.compile(r"^([\w.]+)$")
 
@@ -82,6 +83,7 @@ MetricOperationType = Literal[
     "count_web_vitals",
     "count_transaction_name",
     "team_key_transaction",
+    "transform_null_to_unparameterized",
 ]
 MetricUnit = Literal[
     "nanosecond",
@@ -132,6 +134,7 @@ OP_TO_SNUBA_FUNCTION = {
         "p95": "quantilesIf(0.95)",
         "p99": "quantilesIf(0.99)",
         "histogram": "histogramIf(250)",
+        "sum": "sumIf",
     },
     "metrics_sets": {"count_unique": "uniqIf"},
 }
@@ -140,6 +143,20 @@ GENERIC_OP_TO_SNUBA_FUNCTION = {
     "generic_metrics_distributions": OP_TO_SNUBA_FUNCTION["metrics_distributions"],
     "generic_metrics_sets": OP_TO_SNUBA_FUNCTION["metrics_sets"],
 }
+
+# This set contains all the operations that require the "rhs" condition to be resolved
+# in a "MetricConditionField". This solution is the simplest one and doesn't require any
+# changes in the transformer, however it requires this list to be discovered and updated
+# in case new operations are added, which is not ideal but given the fact that we already
+# define operations in this file, it is not a deal-breaker.
+REQUIRES_RHS_CONDITION_RESOLUTION = {"transform_null_to_unparameterized"}
+
+
+def require_rhs_condition_resolution(op: MetricOperationType) -> bool:
+    """
+    Checks whether a given operation requires its right operand to be resolved.
+    """
+    return op in REQUIRES_RHS_CONDITION_RESOLUTION
 
 
 def generate_operation_regex():
@@ -153,7 +170,6 @@ def generate_operation_regex():
 
 
 OP_REGEX = generate_operation_regex()
-
 
 AVAILABLE_OPERATIONS = {
     type_: sorted(mapping.keys()) for type_, mapping in OP_TO_SNUBA_FUNCTION.items()
@@ -198,6 +214,7 @@ class MetricMeta(TypedDict):
     operations: Collection[MetricOperationType]
     unit: Optional[MetricUnit]
     metric_id: Optional[int]
+    mri_string: str
 
 
 class MetricMetaWithTagKeys(MetricMeta):
@@ -217,6 +234,7 @@ DERIVED_OPERATIONS = (
     "count_web_vitals",
     "count_transaction_name",
     "team_key_transaction",
+    "transform_null_to_unparameterized",
 )
 OPERATIONS = (
     (
@@ -298,9 +316,15 @@ class OrderByNotSupportedOverCompositeEntityException(NotSupportedOverCompositeE
     ...
 
 
-def get_intervals(start: datetime, end: datetime, granularity: int):
-    assert granularity > 0
-    delta = timedelta(seconds=granularity)
+def get_intervals(start: datetime, end: datetime, granularity: int, interval: Optional[int] = None):
+    if interval is None:
+        assert granularity > 0
+        delta = timedelta(seconds=granularity)
+    else:
+        start = datetime.fromtimestamp(int(start.timestamp() / interval) * interval, timezone.utc)
+        end = datetime.fromtimestamp(int(end.timestamp() / interval) * interval, timezone.utc)
+        assert interval > 0
+        delta = timedelta(seconds=interval)
     while start < end:
         yield start
         start += delta

@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ReleaseStore from 'sentry/stores/releaseStore';
 import withRelease from 'sentry/utils/withRelease';
@@ -34,10 +34,10 @@ describe('withRelease HoC', function () {
     ReleaseStore.reset();
   });
 
-  it('adds release/deploys prop', async () => {
-    const Component = () => null;
+  it('adds release/deploys prop', async function () {
+    const Component = jest.fn(() => null);
     const Container = withRelease(Component);
-    const wrapper = mountWithTheme(
+    render(
       <Container
         api={api}
         organization={organization}
@@ -46,21 +46,23 @@ describe('withRelease HoC', function () {
       />
     );
 
-    await tick(); // Run Store.loadEtc
-    await tick(); // Run Store.loadEtcSuccess
-    wrapper.update();
-
-    const mountedComponent = wrapper.find(Component);
-    expect(mountedComponent.prop('release')).toEqual(mockData);
-    expect(mountedComponent.prop('releaseLoading')).toEqual(false);
-    expect(mountedComponent.prop('releaseError')).toEqual(undefined);
-    expect(mountedComponent.prop('deploys')).toEqual([mockData]);
-    expect(mountedComponent.prop('deploysLoading')).toEqual(false);
-    expect(mountedComponent.prop('deploysError')).toEqual(undefined);
+    await waitFor(() =>
+      expect(Component).toHaveBeenCalledWith(
+        expect.objectContaining({
+          release: mockData,
+          releaseLoading: false,
+          releaseError: undefined,
+          deploys: [mockData],
+          deploysLoading: false,
+          deploysError: undefined,
+        }),
+        {}
+      )
+    );
   });
 
-  it('prevents repeated calls', async () => {
-    const Component = () => null;
+  it('prevents repeated calls', function () {
+    const Component = jest.fn(() => null);
     const Container = withRelease(Component);
 
     jest.spyOn(api, 'requestPromise');
@@ -68,7 +70,7 @@ describe('withRelease HoC', function () {
     jest.spyOn(Container.prototype, 'fetchDeploys');
 
     // Mount and run component
-    mountWithTheme(
+    render(
       <Container
         api={api}
         organization={organization}
@@ -76,11 +78,9 @@ describe('withRelease HoC', function () {
         releaseVersion={releaseVersion}
       />
     );
-    await tick();
-    await tick();
 
     // Mount and run duplicates
-    mountWithTheme(
+    render(
       <Container
         api={api}
         organization={organization}
@@ -88,8 +88,8 @@ describe('withRelease HoC', function () {
         releaseVersion={releaseVersion}
       />
     );
-    await tick();
-    mountWithTheme(
+
+    render(
       <Container
         api={api}
         organization={organization}
@@ -97,7 +97,6 @@ describe('withRelease HoC', function () {
         releaseVersion={releaseVersion}
       />
     );
-    await tick();
 
     expect(api.requestPromise).toHaveBeenCalledTimes(2); // 1 for fetchRelease, 1 for fetchDeploys
     expect(Container.prototype.fetchRelease).toHaveBeenCalledTimes(3);

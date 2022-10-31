@@ -1,24 +1,20 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import keyBy from 'lodash/keyBy';
+import * as Sentry from '@sentry/react';
 
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import {PanelTable} from 'sentry/components/panels';
-import Placeholder from 'sentry/components/placeholder';
 import {DEFAULT_STREAM_GROUP_STATS_PERIOD} from 'sentry/components/stream/group';
 import GroupChart from 'sentry/components/stream/groupChart';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Group, NewQuery} from 'sentry/types';
-import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
+import {Group, Organization} from 'sentry/types';
+import RequestError from 'sentry/utils/requestError/requestError';
 import theme from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
-import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 
 type Props = {
   projectId: string;
@@ -26,67 +22,51 @@ type Props = {
 };
 const columns = [t('Issue'), t('Graph'), t('Events'), t('Users')];
 
+type State = {
+  fetchError: undefined | RequestError;
+  fetching: boolean;
+  issues: Group[];
+};
+
 function IssueList(props: Props) {
   const organization = useOrganization();
-  const location = useLocation();
   const api = useApi();
-  const {selection} = usePageFilters();
   const isScreenLarge = useMedia(`(min-width: ${theme.breakpoints.large})`);
 
-  const [loadingIssueData, setLoadingIssueData] = useState(false);
-  const [issuesById, setIssuesById] = useState<Record<string, Group>>({});
-  const [issueStatsById, setIssuesStatsById] = useState<Record<string, Group>>({});
-
-  const getEventView = () => {
-    const eventQueryParams: NewQuery = {
-      id: '',
-      name: '',
-      version: 2,
-      fields: ['count(issue)', 'issue'],
-      environment: selection.environments,
-      projects: selection.projects,
-      query: `replayId:${props.replayId} AND event.type:error`,
-    };
-    const result = EventView.fromNewQueryWithLocation(eventQueryParams, location);
-    return result;
-  };
+  const [state, setState] = useState<State>({
+    fetchError: undefined,
+    fetching: true,
+    issues: [],
+  });
 
   const fetchIssueData = useCallback(async () => {
-    let issues;
-    setLoadingIssueData(true);
+    setState(prev => ({
+      ...prev,
+      fetching: true,
+    }));
     try {
-      issues = await api.requestPromise(`/organizations/${organization.slug}/issues/`, {
-        includeAllArgs: true,
-        query: {
-          project: props.projectId,
-          query: `replayId:${props.replayId}`,
-        },
-      });
-
-      setIssuesById(keyBy(issues[0], 'id'));
-    } catch (error) {
-      setIssuesById({});
-      setLoadingIssueData(false);
-      return;
-    }
-
-    try {
-      const issuesResults = await api.requestPromise(
-        `/organizations/${organization.slug}/issues-stats/`,
+      const issues = await api.requestPromise(
+        `/organizations/${organization.slug}/issues/`,
         {
-          includeAllArgs: true,
           query: {
+            // TODO(replays): What about backend issues?
             project: props.projectId,
-            groups: issues[0]?.map(issue => issue.id),
             query: `replayId:${props.replayId}`,
           },
         }
       );
-      setIssuesStatsById(keyBy(issuesResults[0], 'id'));
-    } catch (error) {
-      setIssuesStatsById({});
-    } finally {
-      setLoadingIssueData(false);
+      setState({
+        fetchError: undefined,
+        fetching: false,
+        issues,
+      });
+    } catch (fetchError) {
+      Sentry.captureException(fetchError);
+      setState({
+        fetchError,
+        fetching: false,
+        issues: [],
+      });
     }
   }, [api, organization.slug, props.replayId, props.projectId]);
 
@@ -94,90 +74,61 @@ function IssueList(props: Props) {
     fetchIssueData();
   }, [fetchIssueData]);
 
-  const renderTableRow = error => {
-    const matchedIssue = issuesById[error['issue.id']];
-    const matchedIssueStats = issueStatsById[error['issue.id']];
-
-    if (!matchedIssue) {
-      return null;
-    }
-    return (
-      <Fragment key={matchedIssue.id}>
-        <IssueDetailsWrapper>
-          <EventOrGroupHeader
-            includeLink
-            data={matchedIssue}
-            organization={organization}
-            size="normal"
-          />
-          <EventOrGroupExtraDetails
-            data={{
-              ...matchedIssue,
-              firstSeen: matchedIssueStats?.firstSeen || '',
-              lastSeen: matchedIssueStats?.lastSeen || '',
-            }}
-          />
-        </IssueDetailsWrapper>
-        {isScreenLarge && (
-          <ChartWrapper>
-            {matchedIssueStats?.stats ? (
-              <GroupChart
-                statsPeriod={DEFAULT_STREAM_GROUP_STATS_PERIOD}
-                data={matchedIssueStats}
-                showSecondaryPoints
-                showMarkLine
-              />
-            ) : (
-              <Placeholder height="44px" />
-            )}
-          </ChartWrapper>
-        )}
-
-        <Item>
-          {matchedIssueStats?.count ? (
-            matchedIssueStats?.count
-          ) : (
-            <Placeholder height="24px" />
-          )}
-        </Item>
-
-        <Item>
-          {matchedIssueStats?.userCount ? (
-            matchedIssueStats?.userCount
-          ) : (
-            <Placeholder height="24px" />
-          )}
-        </Item>
-      </Fragment>
-    );
-  };
-
   return (
-    <DiscoverQuery
-      eventView={getEventView()}
-      location={location}
-      orgSlug={organization.slug}
-      limit={15}
-      useEvents
+    <StyledPanelTable
+      isEmpty={state.issues.length === 0}
+      emptyMessage={t('No related Issues found.')}
+      isLoading={state.fetching}
+      headers={isScreenLarge ? columns : columns.filter(column => column !== t('Graph'))}
     >
-      {data => {
-        return (
-          <StyledPanelTable
-            isEmpty={data.tableData?.data.length === 0}
-            emptyMessage={t('No related Issues found.')}
-            isLoading={data.isLoading || loadingIssueData}
-            headers={
-              isScreenLarge ? columns : columns.filter(column => column !== t('Graph'))
-            }
-          >
-            {data.tableData?.data.map(renderTableRow) || null}
-          </StyledPanelTable>
-        );
-      }}
-    </DiscoverQuery>
+      {state.issues.map(issue => (
+        <TableRow
+          key={issue.id}
+          isScreenLarge={isScreenLarge}
+          issue={issue}
+          organization={organization}
+        />
+      )) || null}
+    </StyledPanelTable>
   );
 }
 
+function TableRow({
+  isScreenLarge,
+  issue,
+  organization,
+}: {
+  isScreenLarge: boolean;
+  issue: Group;
+  organization: Organization;
+}) {
+  return (
+    <Fragment>
+      <IssueDetailsWrapper>
+        <EventOrGroupHeader
+          includeLink
+          data={issue}
+          organization={organization}
+          size="normal"
+          source="replay"
+        />
+        <EventOrGroupExtraDetails data={issue} />
+      </IssueDetailsWrapper>
+      {isScreenLarge && (
+        <ChartWrapper>
+          <GroupChart
+            statsPeriod={DEFAULT_STREAM_GROUP_STATS_PERIOD}
+            data={issue}
+            showSecondaryPoints
+            showMarkLine
+          />
+        </ChartWrapper>
+      )}
+      <Item>{issue.count}</Item>
+      <Item>{issue.userCount}</Item>
+    </Fragment>
+  );
+}
 const ChartWrapper = styled('div')`
   width: 200px;
   margin-left: -${space(2)};

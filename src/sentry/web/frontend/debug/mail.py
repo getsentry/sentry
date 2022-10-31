@@ -46,8 +46,8 @@ from sentry.notifications.notifications.activity import EMAIL_CLASSES_BY_TYPE
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.digest import DigestNotification
 from sentry.notifications.types import GroupSubscriptionReason
-from sentry.notifications.utils import get_group_settings_link, get_rules
-from sentry.utils import loremipsum
+from sentry.notifications.utils import get_group_settings_link, get_interface_list, get_rules
+from sentry.utils import json, loremipsum
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.email import MessageBuilder, inline_css
 from sentry.utils.http import absolute_uri
@@ -56,6 +56,40 @@ from sentry.web.decorators import login_required
 from sentry.web.helpers import render_to_response, render_to_string
 
 logger = logging.getLogger(__name__)
+
+# TODO(dcramer): change to use serializer
+COMMIT_EXAMPLE = """[
+{
+    "repository": {
+        "status": "active",
+        "name": "Example Repo",
+        "url": "https://github.com/example/example",
+        "dateCreated": "2018-02-28T23:39:22.402Z",
+        "provider": {"id": "github", "name": "GitHub"},
+        "id": "1"
+    },
+    "score": "2",
+    "subject": "feat: Do something to raven/base.py",
+    "message": "feat: Do something to raven/base.py\\naptent vivamus vehicula tempus volutpat hac tortor",
+    "id": "1b17483ffc4a10609e7921ee21a8567bfe0ed006",
+    "shortId": "1b17483",
+    "author": {
+        "username": "dcramer@gmail.com",
+        "isManaged": false,
+        "lastActive": "2018-03-01T18:25:28.149Z",
+        "id": "1",
+        "isActive": true,
+        "has2fa": false,
+        "name": "dcramer@gmail.com",
+        "avatarUrl": "https://secure.gravatar.com/avatar/51567a4f786cd8a2c41c513b592de9f9?s=32&d=mm",
+        "dateJoined": "2018-02-27T22:04:32.847Z",
+        "emails": [{"is_verified": false, "id": "1", "email": "dcramer@gmail.com"}],
+        "avatar": {"avatarUuid": "", "avatarType": "letter_avatar"},
+        "lastLogin": "2018-02-27T22:04:32.847Z",
+        "email": "dcramer@gmail.com"
+    }
+}
+]"""
 
 
 def get_random(request):
@@ -312,16 +346,7 @@ def alert(request):
     group.data = {"type": event_type.key, "metadata": event_type.get_metadata(data)}
 
     rule = Rule(id=1, label="An example rule")
-
-    # XXX: this interface_list code needs to be the same as in
-    #      src/sentry/mail/adapter.py
-    interface_list = []
-    for interface in event.interfaces.values():
-        body = interface.to_email_html(event)
-        if not body:
-            continue
-        text_body = interface.to_string(event)
-        interface_list.append((interface.get_title(), mark_safe(body), text_body))
+    interface_list = get_interface_list(event)
 
     return MailPreview(
         html_template="sentry/emails/error.html",
@@ -338,39 +363,7 @@ def alert(request):
             "interfaces": interface_list,
             "tags": event.tags,
             "project_label": project.slug,
-            "commits": [
-                {
-                    # TODO(dcramer): change to use serializer
-                    "repository": {
-                        "status": "active",
-                        "name": "Example Repo",
-                        "url": "https://github.com/example/example",
-                        "dateCreated": "2018-02-28T23:39:22.402Z",
-                        "provider": {"id": "github", "name": "GitHub"},
-                        "id": "1",
-                    },
-                    "score": 2,
-                    "subject": "feat: Do something to raven/base.py",
-                    "message": "feat: Do something to raven/base.py\naptent vivamus vehicula tempus volutpat hac tortor",
-                    "id": "1b17483ffc4a10609e7921ee21a8567bfe0ed006",
-                    "shortId": "1b17483",
-                    "author": {
-                        "username": "dcramer@gmail.com",
-                        "isManaged": False,
-                        "lastActive": "2018-03-01T18:25:28.149Z",
-                        "id": "1",
-                        "isActive": True,
-                        "has2fa": False,
-                        "name": "dcramer@gmail.com",
-                        "avatarUrl": "https://secure.gravatar.com/avatar/51567a4f786cd8a2c41c513b592de9f9?s=32&d=mm",
-                        "dateJoined": "2018-02-27T22:04:32.847Z",
-                        "emails": [{"is_verified": False, "id": "1", "email": "dcramer@gmail.com"}],
-                        "avatar": {"avatarUuid": None, "avatarType": "letter_avatar"},
-                        "lastLogin": "2018-02-27T22:04:32.847Z",
-                        "email": "dcramer@gmail.com",
-                    },
-                }
-            ],
+            "commits": json.loads(COMMIT_EXAMPLE),
         },
     ).render(request)
 

@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import CompactSelect from 'sentry/components/forms/compactSelect';
+import CompactSelect from 'sentry/components/compactSelect';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {IconFilter, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';

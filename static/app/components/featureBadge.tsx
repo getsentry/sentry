@@ -2,10 +2,10 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {captureException, withScope} from '@sentry/react';
-import type {Severity} from '@sentry/types';
+import type {SeverityLevel} from '@sentry/types';
 
+import Badge from 'sentry/components/badge';
 import CircleIndicator from 'sentry/components/circleIndicator';
-import Tag from 'sentry/components/tagDeprecated';
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import space, {ValidSize} from 'sentry/styles/space';
@@ -47,7 +47,7 @@ function BaseFeatureBadge({
       withScope(scope => {
         scope.setTag('title', title);
         scope.setTag('type', type);
-        scope.setLevel('warning' as Severity);
+        scope.setLevel('warning' as SeverityLevel);
         captureException(new Error('Expired Feature Badge'));
       });
     }
@@ -58,7 +58,7 @@ function BaseFeatureBadge({
     <div {...props}>
       <Tooltip title={title ?? defaultTitles[type]} disabled={noTooltip} position="right">
         <Fragment>
-          {variant === 'badge' && <StyledTag priority={type}>{labels[type]}</StyledTag>}
+          {variant === 'badge' && <StyledBadge type={type} text={labels[type]} />}
           {variant === 'indicator' && (
             <CircleIndicator color={theme.badge[type].indicatorColor} size={8} />
           )}
@@ -68,8 +68,14 @@ function BaseFeatureBadge({
   );
 }
 
-const StyledTag = styled(Tag)`
-  padding: 3px ${space(0.75)};
+const StyledBadge = styled(Badge)`
+  margin: 0;
+  padding: 0 ${space(0.75)};
+  line-height: ${space(2)};
+  height: ${space(2)};
+  font-weight: normal;
+  font-size: ${p => p.theme.fontSizeExtraSmall};
+  vertical-align: middle;
 `;
 
 const FeatureBadge = styled(BaseFeatureBadge)<{space?: ValidSize}>`

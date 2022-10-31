@@ -4,10 +4,10 @@ import {Location} from 'history';
 import omit from 'lodash/omit';
 
 import Button from 'sentry/components/button';
+import CompactSelect from 'sentry/components/compactSelect';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
-import CompactSelect from 'sentry/components/forms/compactSelect';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
@@ -18,6 +18,7 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import EventView from 'sentry/utils/discover/eventView';
 import {WebVital} from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useRoutes} from 'sentry/utils/useRoutes';
 
 import Filter, {filterToSearchConditions, SpanOperationBreakdownFilter} from '../filter';
 import {SetStateAction} from '../types';
@@ -60,12 +61,12 @@ function EventsContent(props: Props) {
     setError,
     totalEventCount,
   } = props;
-
+  const routes = useRoutes();
   const eventView = originalEventView.clone();
   const transactionsListTitles = TRANSACTIONS_LIST_TITLES.slice();
 
   if (webVital) {
-    transactionsListTitles.splice(3, 0, t(webVital));
+    transactionsListTitles.splice(3, 0, webVital);
   }
 
   const spanOperationBreakdownConditions = filterToSearchConditions(
@@ -75,7 +76,11 @@ function EventsContent(props: Props) {
 
   if (spanOperationBreakdownConditions) {
     eventView.query = `${eventView.query} ${spanOperationBreakdownConditions}`.trim();
-    transactionsListTitles.splice(2, 1, t(`${spanOperationBreakdownFilter} duration`));
+    transactionsListTitles.splice(2, 1, t('%s duration', spanOperationBreakdownFilter));
+  }
+
+  if (organization.features.includes('session-replay-ui')) {
+    transactionsListTitles.push(t('replay'));
   }
 
   return (
@@ -85,6 +90,7 @@ function EventsContent(props: Props) {
         totalEventCount={totalEventCount}
         eventView={eventView}
         organization={organization}
+        routes={routes}
         location={location}
         setError={setError}
         columnTitles={transactionsListTitles}

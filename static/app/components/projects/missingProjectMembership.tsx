@@ -6,7 +6,7 @@ import {joinTeam} from 'sentry/actionCreators/teams';
 import {Client} from 'sentry/api';
 import Button from 'sentry/components/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import SelectControl from 'sentry/components/forms/selectControl';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {Panel} from 'sentry/components/panels';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -121,7 +121,7 @@ class MissingProjectMembership extends Component<Props, State> {
   getPendingTeamOption = (team: string) => {
     return {
       value: team,
-      label: <DisabledLabel>{t(`#${team}`)}</DisabledLabel>,
+      label: <DisabledLabel>{`#${team}`}</DisabledLabel>,
     };
   };
 
@@ -136,7 +136,7 @@ class MissingProjectMembership extends Component<Props, State> {
         label: t('Request Access'),
         options: this.getTeamsForAccess()[0].map(request => ({
           value: request,
-          label: t(`#${request}`),
+          label: `#${request}`,
         })),
       },
       {

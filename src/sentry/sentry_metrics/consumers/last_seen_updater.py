@@ -8,8 +8,8 @@ from arroyo import Message, Topic
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
 from arroyo.processing import StreamProcessor
 from arroyo.processing.strategies import ProcessingStrategy
-from arroyo.processing.strategies.streaming import KafkaConsumerStrategyFactory
-from arroyo.processing.strategies.streaming.factory import StreamMessageFilter
+from arroyo.processing.strategies.factory import KafkaConsumerStrategyFactory, StreamMessageFilter
+from arroyo.types import TPayload
 from django.utils import timezone
 
 from sentry.sentry_metrics.configuration import MetricsIngestConfiguration
@@ -51,6 +51,47 @@ class LastSeenUpdaterMessageFilter(StreamMessageFilter[KafkaPayload]):
             return False
 
         return FetchType.DB_READ.value not in str(header_value)
+
+
+class KeepAliveMessageFilter(StreamMessageFilter[TPayload]):
+    """
+    A message filter that wraps another message filter, and ensures that at
+    most `consecutive_drop_limit` messages are dropped in a row. If the wrapped
+    `inner_filter` drops `consecutive_drop_limit` messages in a row, the next
+    message will be unconditionally accepted.
+
+    The reason to use this has to do with the way Kafka works. Kafka works with
+    offsets of messages which need to be committed to the broker to acknowledge
+    them. In cases where there is a shared topic, and only one type of messages
+    on the topic, if we drop all messages then that consumer would never commit
+    offsets to the broker which would result in increase in consumer group lag
+    of the consumer group.
+
+    This leads to false positives in our alerts regarding consumer group having
+    some issues.
+
+    Note: This filter can only be used if the wrapped filter is not required
+    for correctness.
+    """
+
+    def __init__(
+        self, inner_filter: StreamMessageFilter[TPayload], consecutive_drop_limit: int
+    ) -> None:
+        self.inner_filter = inner_filter
+        self.consecutive_drop_count = 0
+        self.consecutive_drop_limit = consecutive_drop_limit
+
+    def should_drop(self, message: Message[TPayload]) -> bool:
+        if not self.inner_filter.should_drop(message):
+            self.consecutive_drop_count = 0
+            return False
+
+        self.consecutive_drop_count += 1
+        if self.consecutive_drop_count < self.consecutive_drop_limit:
+            return True
+        else:
+            self.consecutive_drop_count = 0
+            return False
 
 
 def _update_stale_last_seen(
@@ -123,7 +164,7 @@ def _last_seen_updater_processing_factory(
         input_block_size=None,
         output_block_size=None,
         process_message=retrieve_db_read_keys,
-        prefilter=LastSeenUpdaterMessageFilter(metrics=get_metrics()),
+        prefilter=KeepAliveMessageFilter(LastSeenUpdaterMessageFilter(metrics=get_metrics()), 100),
         collector=lambda: LastSeenUpdaterCollector(
             metrics=get_metrics(), table=TABLE_MAPPING[ingest_config.use_case_id]
         ),

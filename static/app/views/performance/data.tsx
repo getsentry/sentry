@@ -38,6 +38,8 @@ export const COLUMN_TITLES = [
   'user misery',
 ];
 
+const TOKEN_KEYS_SUPPORTED_IN_LIMITED_SEARCH = ['transaction'];
+
 export enum PERFORMANCE_TERM {
   TPM = 'tpm',
   THROUGHPUT = 'throughput',
@@ -467,6 +469,11 @@ function generateGenericPerformanceEventView(
       conditions.setFilterValues('transaction', [`*${parsedFreeText}*`], false);
     }
     conditions.freeText = [];
+  }
+  if (isLimitedSearch) {
+    conditions.tokens = conditions.tokens.filter(
+      token => token.key && TOKEN_KEYS_SUPPORTED_IN_LIMITED_SEARCH.includes(token.key)
+    );
   }
   savedQuery.query = conditions.formatString();
 

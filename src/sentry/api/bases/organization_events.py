@@ -20,7 +20,7 @@ from sentry.models import Organization, Project, Team
 from sentry.models.group import Group
 from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS, TIMEOUT_ERROR_MESSAGE
 from sentry.search.events.fields import get_function_alias
-from sentry.snuba import discover, metrics_enhanced_performance, metrics_performance
+from sentry.snuba import discover, metrics_enhanced_performance, metrics_performance, profiles
 from sentry.utils import snuba
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import get_interval_from_range, get_rollup_from_request, parse_stats_period
@@ -33,6 +33,7 @@ DATASET_OPTIONS = {
     "discover": discover,
     "metricsEnhanced": metrics_enhanced_performance,
     "metrics": metrics_performance,
+    "profiles": profiles,
 }
 
 
@@ -242,17 +243,21 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         with sentry_sdk.start_span(op="discover.endpoint", description="base.handle_results"):
             data = self.handle_data(request, organization, project_ids, results.get("data"))
             meta = results.get("meta", {})
+            fields_meta = meta.get("fields", {})
 
             if standard_meta:
                 isMetricsData = meta.pop("isMetricsData", False)
-                fields, units = self.handle_unit_meta(meta)
+                fields, units = self.handle_unit_meta(fields_meta)
                 meta = {
                     "fields": fields,
                     "units": units,
                     "isMetricsData": isMetricsData,
-                    "tips": results.get("tips", {}),
+                    "tips": meta.get("tips", {}),
                 }
-            elif "isMetricsData" not in meta:
+            else:
+                meta = fields_meta
+
+            if "isMetricsData" not in meta:
                 meta["isMetricsData"] = False
 
             if not data:

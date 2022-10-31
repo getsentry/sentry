@@ -6,9 +6,9 @@ import moment from 'moment-timezone';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Button, {StyledButton} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
+import CompactSelect from 'sentry/components/compactSelect';
 import DateTime from 'sentry/components/dateTime';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import CompactSelect from 'sentry/components/forms/compactSelect';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
@@ -241,7 +241,7 @@ export default class RequestLog extends AsyncComponent<Props, State> {
             <PanelBody>
               {currentRequests.length > 0 ? (
                 currentRequests.map((request, idx) => (
-                  <PanelItem key={idx}>
+                  <PanelItem key={idx} data-test-id="request-item">
                     <TableLayout hasOrganization={app.status !== 'internal'}>
                       <TimestampLink date={request.date} link={request.errorUrl} />
                       <ResponseCode code={request.responseCode} />

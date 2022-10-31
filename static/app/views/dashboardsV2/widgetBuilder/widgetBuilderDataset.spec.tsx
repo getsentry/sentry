@@ -246,7 +246,6 @@ describe('WidgetBuilder', function () {
       body: {
         incompatible_projects: [],
         compatible_projects: [1],
-        dynamic_sampling_projects: [1],
       },
     });
 
@@ -609,12 +608,12 @@ describe('WidgetBuilder', function () {
 
       expect(
         screen.getByRole('radio', {
-          name: 'Select Errors and Transactions',
+          name: 'Errors and Transactions',
         })
       ).toBeEnabled();
       expect(
         screen.getByRole('radio', {
-          name: 'Select Issues (States, Assignment, Time, etc.)',
+          name: 'Issues (States, Assignment, Time, etc.)',
         })
       ).toBeDisabled();
     });
@@ -705,12 +704,12 @@ describe('WidgetBuilder', function () {
       userEvent.click(screen.getByText('Line Chart'));
       expect(
         screen.getByRole('radio', {
-          name: 'Select Errors and Transactions',
+          name: 'Errors and Transactions',
         })
       ).toBeEnabled();
       expect(
         screen.getByRole('radio', {
-          name: 'Select Issues (States, Assignment, Time, etc.)',
+          name: 'Issues (States, Assignment, Time, etc.)',
         })
       ).toBeDisabled();
     });

@@ -1,25 +1,23 @@
 import {action} from '@storybook/addon-actions';
 
-import NewBooleanField from 'sentry/components/forms/booleanField';
-import CheckboxField from 'sentry/components/forms/checkboxField';
-import CompactSelect from 'sentry/components/forms/compactSelect';
-import CompositeSelect from 'sentry/components/forms/compositeSelect';
+import CompactSelect from 'sentry/components/compactSelect';
+import CompositeSelect from 'sentry/components/compositeSelect';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
-import DatePickerField from 'sentry/components/forms/datePickerField';
-import FileField from 'sentry/components/forms/fileField';
+import NewBooleanField from 'sentry/components/forms/fields/booleanField';
+import CheckboxField from 'sentry/components/forms/fields/checkboxField';
+import DatePickerField from 'sentry/components/forms/fields/datePickerField';
+import FileField from 'sentry/components/forms/fields/fileField';
+import RadioField from 'sentry/components/forms/fields/radioField';
+import SelectField from 'sentry/components/forms/fields/selectField';
+import TextareaField from 'sentry/components/forms/fields/textareaField';
+import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
-import MultipleCheckboxField from 'sentry/components/forms/MultipleCheckboxField';
-import RadioBooleanField from 'sentry/components/forms/radioBooleanField';
-import RadioField from 'sentry/components/forms/radioField';
-import SelectField from 'sentry/components/forms/selectField';
-import TextareaField from 'sentry/components/forms/textareaField';
-import TextCopyInput from 'sentry/components/forms/textCopyInput';
-import TextField from 'sentry/components/forms/textField';
 import {Panel} from 'sentry/components/panels';
 import {RadioGroupRating} from 'sentry/components/radioGroupRating';
 import Switch from 'sentry/components/switchButton';
+import TextCopyInput from 'sentry/components/textCopyInput';
 
 export default {
   title: 'Components/Forms/Fields',
@@ -51,12 +49,6 @@ export const _TextField = () => (
         label="Disabled - Simple Text Field with Placeholder"
         placeholder="This is placeholder text in a disabled field"
         disabled
-      />
-      <TextField
-        name="textfieldwithreturnsubmit"
-        label="Text Field With Return Submit"
-        placeholder="Type here to show the return button"
-        showReturnButton
       />
       <TextField
         name="textfieldflexiblecontrol"
@@ -116,12 +108,6 @@ export const _TextareaField = ({autosize, rows}) => (
         disabled
       />
       <TextareaField
-        name="textfieldwithreturnsubmit"
-        label="Textarea Field With Return Submit"
-        placeholder="Type here to show the return button"
-        showReturnButton
-      />
-      <TextareaField
         name="textfieldflexiblecontrol"
         label="Textarea Field With Flexible Control State Size"
         placeholder="Type text and then delete it"
@@ -161,11 +147,9 @@ __BooleanField.storyName = 'Boolean';
 
 export const _CheckboxField = () => (
   <Form>
-    <CheckboxField key="agree" name="agree" id="agree" label="Do you agree?" />
+    <CheckboxField name="agree" label="Do you agree?" />
     <CheckboxField
-      key="compelled"
       name="compelled"
-      id="compelled"
       label="You are compelled to agree"
       help="More content to help you decide."
       required
@@ -174,28 +158,6 @@ export const _CheckboxField = () => (
 );
 
 _CheckboxField.storyName = 'Checkbox';
-
-export const _MultipleCheckboxField = () => (
-  <Form>
-    <MultipleCheckboxField
-      choices={[
-        {title: 'Checkbox', value: 0},
-        {title: 'Disabled Checkbox', value: 1},
-        {title: 'Checked Checkbox', value: 2, checked: true},
-        {title: 'Intermediate Checkbox', value: 3, intermediate: true},
-        {title: 'Disabled Checked Checkbox', value: 4, checked: true, disabled: true},
-        {
-          title: 'Disabled Intermediate Checkbox',
-          value: 5,
-          intermediate: true,
-          disabled: true,
-        },
-      ]}
-    />
-  </Form>
-);
-
-_MultipleCheckboxField.storyName = 'MultipleCheckbox';
 
 export const _DatePickerField = () => (
   <Form>
@@ -238,32 +200,15 @@ __FileField.storyName = 'File';
 
 _RadioField.storyName = 'Radio';
 
-export const _RadioBooleanField = ({disabled}) => (
-  <Form>
-    <RadioBooleanField
-      name="subscribe"
-      yesLabel="Yes, I would like to receive updates via email"
-      noLabel="No, I'd prefer not to receive these updates"
-      help="Help text for making an informed decision"
-      disabled={disabled}
-    />
-  </Form>
-);
-
-_RadioBooleanField.storyName = 'Radio - Boolean';
-_RadioBooleanField.args = {
-  disabled: false,
-};
-
 export const _SelectField = () => (
   <Form>
     <SelectField
       name="select"
       label="Select Field"
-      choices={[
-        ['choice_one', 'Choice One'],
-        ['choice_two', 'Choice Two'],
-        ['choice_three', 'Choice Three'],
+      options={[
+        {value: 'choice_one', label: 'Choice One'},
+        {value: 'choice_two', label: 'Choice Two'},
+        {value: 'choice_three', label: 'Choice Three'},
       ]}
     />
   </Form>
@@ -277,10 +222,10 @@ export const SelectFieldMultiple = () => (
       name="select"
       label="Multi Select"
       multiple
-      choices={[
-        ['choice_one', 'Choice One'],
-        ['choice_two', 'Choice Two'],
-        ['choice_three', 'Choice Three'],
+      options={[
+        {value: 'choice_one', label: 'Choice One'},
+        {value: 'choice_two', label: 'Choice Two'},
+        {value: 'choice_three', label: 'Choice Three'},
       ]}
     />
   </Form>
@@ -321,10 +266,10 @@ export const SelectFieldInFieldLabel = () => (
       name="select"
       label="Select With Label In Field"
       inFieldLabel="Label: "
-      choices={[
-        ['choice_one', 'Choice One'],
-        ['choice_two', 'Choice Two'],
-        ['choice_three', 'Choice Three'],
+      options={[
+        {value: 'choice_one', label: 'Choice One'},
+        {value: 'choice_two', label: 'Choice Two'},
+        {value: 'choice_three', label: 'Choice Three'},
       ]}
     />
   </Form>

@@ -3,7 +3,7 @@ from django.db.models import Q, UniqueConstraint
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model, sane_repr
 from sentry.db.models.fields.text import CharField
 from sentry.models.search_common import SearchType
 
@@ -30,7 +30,7 @@ class SortOptions:
         )
 
 
-@region_silo_model
+@region_silo_only_model
 class SavedSearch(Model):
     """
     A saved search query.
@@ -92,7 +92,7 @@ class SavedSearch(Model):
 
 
 # TODO: Remove once we've completely removed sentry 9
-@region_silo_model
+@region_silo_only_model
 class SavedSearchUserDefault(Model):
     """
     Indicates the default saved search for a given user

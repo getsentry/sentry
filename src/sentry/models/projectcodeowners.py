@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 
 from django.db import models
+from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
@@ -10,7 +11,7 @@ from sentry.db.models import (
     DefaultFieldsModel,
     FlexibleForeignKey,
     JSONField,
-    region_silo_model,
+    region_silo_only_model,
     sane_repr,
 )
 from sentry.ownership.grammar import convert_codeowners_syntax, create_schema_from_issue_owners
@@ -20,7 +21,7 @@ logger = logging.getLogger(__name__)
 READ_CACHE_DURATION = 3600
 
 
-@region_silo_model
+@region_silo_only_model
 class ProjectCodeOwners(DefaultFieldsModel):
 
     __include_in_export__ = False
@@ -118,3 +119,32 @@ class ProjectCodeOwners(DefaultFieldsModel):
                 self.save()
         except ValidationError:
             return
+
+
+def process_resource_change(instance, change, **kwargs):
+    from sentry.models import GroupOwner, ProjectOwnership
+
+    cache.set(
+        ProjectCodeOwners.get_cache_key(instance.project_id),
+        None,
+        READ_CACHE_DURATION,
+    )
+    ownership = ProjectOwnership.get_ownership_cached(instance.project_id)
+    if not ownership:
+        ownership = ProjectOwnership(project_id=instance.project_id)
+
+    autoassignment_types = ProjectOwnership._get_autoassignment_types(ownership)
+    GroupOwner.invalidate_autoassigned_owner_cache(instance.project_id, autoassignment_types)
+
+
+# Signals update the cached reads used in post_processing
+post_save.connect(
+    lambda instance, **kwargs: process_resource_change(instance, "updated", **kwargs),
+    sender=ProjectCodeOwners,
+    weak=False,
+)
+post_delete.connect(
+    lambda instance, **kwargs: process_resource_change(instance, "deleted", **kwargs),
+    sender=ProjectCodeOwners,
+    weak=False,
+)

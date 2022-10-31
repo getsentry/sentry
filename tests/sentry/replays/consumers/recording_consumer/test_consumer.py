@@ -1,7 +1,9 @@
 # type:ignore
+import time
 import uuid
 from datetime import datetime
 from hashlib import sha1
+from unittest.mock import patch
 
 import msgpack
 from arroyo import Message, Partition, Topic
@@ -22,7 +24,8 @@ class TestRecordingsConsumerEndToEnd(TransactionTestCase):
         self.replay_id = uuid.uuid4().hex
         self.replay_recording_id = uuid.uuid4().hex
 
-    def test_basic_flow(self):
+    @patch("sentry.analytics.record")
+    def test_basic_flow(self, mock_record):
         processing_strategy = self.processing_factory().create_with_partitions(lambda x: None, None)
         segment_id = 0
         consumer_messages = [
@@ -33,6 +36,9 @@ class TestRecordingsConsumerEndToEnd(TransactionTestCase):
                 "id": self.replay_recording_id,
                 "chunk_index": 0,
                 "type": "replay_recording_chunk",
+                "org_id": self.organization.id,
+                "received": time.time(),
+                "key_id": 123,
             },
             {
                 "payload": b"foobar",
@@ -41,6 +47,8 @@ class TestRecordingsConsumerEndToEnd(TransactionTestCase):
                 "id": self.replay_recording_id,
                 "chunk_index": 1,
                 "type": "replay_recording_chunk",
+                "org_id": self.organization.id,
+                "received": time.time(),
             },
             {
                 "type": "replay_recording",
@@ -50,6 +58,8 @@ class TestRecordingsConsumerEndToEnd(TransactionTestCase):
                     "id": self.replay_recording_id,
                 },
                 "project_id": self.project.id,
+                "org_id": self.organization.id,
+                "received": time.time(),
             },
         ]
         for message in consumer_messages:
@@ -70,6 +80,17 @@ class TestRecordingsConsumerEndToEnd(TransactionTestCase):
         assert recording
         assert recording.checksum == sha1(b"testfoobar").hexdigest()
         assert ReplayRecordingSegment.objects.get(replay_id=self.replay_id)
+
+        self.project.refresh_from_db()
+        assert self.project.flags.has_replays
+
+        mock_record.assert_called_with(
+            "first_replay.sent",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            platform=self.project.platform,
+            user_id=self.organization.default_owner_id,
+        )
 
     def test_duplicate_segment_flow(self):
         processing_strategy = self.processing_factory().create_with_partitions(lambda x: None, None)

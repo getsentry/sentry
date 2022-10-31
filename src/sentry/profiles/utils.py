@@ -66,7 +66,7 @@ _profiling_pool = connection_from_url(
         status_forcelist={502},
         allowed_methods={"GET", "POST"},
     ),
-    timeout=30,
+    timeout=10,
     maxsize=10,
     headers={"Accept-Encoding": "br, gzip"},
 )
@@ -84,6 +84,9 @@ def get_from_profiling_service(
         params = {
             key: value.isoformat() if isinstance(value, datetime) else value
             for key, value in params.items()
+            # do not want to proxy the project_objects to the profiling service
+            # this make the query param unnecessarily large
+            if key != "project_objects"
         }
         path = f"{path}?{urlencode(params, doseq=True)}"
     if headers:

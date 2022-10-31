@@ -1,8 +1,8 @@
 import {RouteComponentProps} from 'react-router';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import SelectField from 'sentry/components/forms/fields/selectField';
 import Form from 'sentry/components/forms/form';
-import SelectField from 'sentry/components/forms/selectField';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
@@ -83,10 +83,7 @@ class AcceptProjectTransfer extends AsyncView<Props, State> {
         <SettingsPageHeader title={t('Approve Transfer Project Request')} />
         <p>
           {tct(
-            'Projects must be transferred to a specific [organization]. ' +
-              'You can grant specific teams access to the project later under the [projectSettings]. ' +
-              '(Note that granting access to at least one team is necessary for the project to ' +
-              'appear in all parts of the UI.)',
+            'Projects must be transferred to a specific [organization]. You can grant specific teams access to the project later under the [projectSettings]. (Note that granting access to at least one team is necessary for the project to appear in all parts of the UI.)',
             {
               organization: <strong>{t('Organization')}</strong>,
               projectSettings: <strong>{t('Project Settings')}</strong>,

@@ -1,12 +1,11 @@
 import {
-  render,
+  renderGlobalModal,
   screen,
   userEvent,
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import GlobalModal from 'sentry/components/globalModal';
 import {SpecifyClientRateModal} from 'sentry/views/settings/project/server-side-sampling/modals/specifyClientRateModal';
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/server-side-sampling/utils';
 
@@ -21,7 +20,7 @@ describe('Server-Side Sampling - Specify Client Rate Modal', function () {
     const handleGoNext = jest.fn();
     const handleChange = jest.fn();
 
-    const {container} = render(<GlobalModal />);
+    const {container} = renderGlobalModal();
 
     openModal(modalProps => (
       <SpecifyClientRateModal

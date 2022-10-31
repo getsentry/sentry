@@ -1,22 +1,22 @@
 import {Component, Fragment} from 'react';
-import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
-import Field, {FieldProps} from 'sentry/components/forms/field';
-import FieldControl from 'sentry/components/forms/field/fieldControl';
-import FieldErrorReason from 'sentry/components/forms/field/fieldErrorReason';
-import FormContext from 'sentry/components/forms/formContext';
-import FormFieldControlState from 'sentry/components/forms/formField/controlState';
-import FormModel, {MockModel} from 'sentry/components/forms/model';
-import ReturnButton from 'sentry/components/forms/returnButton';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 
-import {FieldValue} from '../type';
+import Field from '../field';
+import FieldControl from '../field/fieldControl';
+import FieldErrorReason from '../field/fieldErrorReason';
+import {FieldGroupProps} from '../field/types';
+import FormContext from '../formContext';
+import FormModel, {MockModel} from '../model';
+import {FieldValue} from '../types';
+
+import FormFieldControlState from './controlState';
 
 /**
  * Some fields don't need to implement their own onChange handlers, in
@@ -58,23 +58,26 @@ type ObservedPropResolver = [
  * Construct the type for properties that may be given observed functions
  */
 interface ObservableProps {
-  disabled?: ObservedFnOrValue<{}, FieldProps['disabled']>;
-  help?: ObservedFnOrValue<{}, FieldProps['help']>;
-  highlighted?: ObservedFnOrValue<{}, FieldProps['highlighted']>;
-  inline?: ObservedFnOrValue<{}, FieldProps['inline']>;
-  visible?: ObservedFnOrValue<{}, FieldProps['visible']>;
+  disabled?: ObservedFnOrValue<{}, FieldGroupProps['disabled']>;
+  help?: ObservedFnOrValue<{}, FieldGroupProps['help']>;
+  highlighted?: ObservedFnOrValue<{}, FieldGroupProps['highlighted']>;
+  inline?: ObservedFnOrValue<{}, FieldGroupProps['inline']>;
+  visible?: ObservedFnOrValue<{}, FieldGroupProps['visible']>;
 }
 
 /**
  * The same ObservableProps, once they have been resolved
  */
 interface ResolvedObservableProps {
-  disabled?: FieldProps['disabled'];
-  help?: FieldProps['help'];
-  highlighted?: FieldProps['highlighted'];
-  inline?: FieldProps['inline'];
-  visible?: FieldProps['visible'];
+  disabled?: FieldGroupProps['disabled'];
+  help?: FieldGroupProps['help'];
+  highlighted?: FieldGroupProps['highlighted'];
+  inline?: FieldGroupProps['inline'];
+  visible?: FieldGroupProps['visible'];
 }
+
+// XXX(epurkhiser): Many of these props are duplicated in form types. The forms
+// interfaces need some serious consolidation
 
 interface BaseProps {
   /**
@@ -113,12 +116,12 @@ interface BaseProps {
    * The alert type to use when saveOnBlur is false
    */
   saveMessageAlertType?: React.ComponentProps<typeof Alert>['type'];
-
   /**
    * When the field is blurred should it automatically persist its value into
    * the model. Will show a confirm button 'save' otherwise.
    */
   saveOnBlur?: boolean;
+
   /**
    * A function producing an optional component with extra information.
    */
@@ -126,25 +129,31 @@ interface BaseProps {
     props: PassthroughProps & {value: FieldValue; error?: string}
   ) => React.ReactNode;
   /**
+   * Used in the form model to transform the value
+   */
+  setValue?: (value: FieldValue, props?: any) => any;
+  /**
    * Extra styles to apply to the field
    */
   style?: React.CSSProperties;
   /**
    * Transform input when a value is set to the model.
    */
-  transformInput?: (value: any) => any; // used in prettyFormString
+  transformInput?: (value: any) => any;
+  // used in prettyFormString
+  validate?: Function;
 }
 
 export interface FormFieldProps
   extends BaseProps,
     ObservableProps,
-    Omit<FieldProps, keyof ResolvedObservableProps | 'children'> {}
+    Omit<FieldGroupProps, keyof ResolvedObservableProps | 'children'> {}
 
 /**
  * ResolvedProps do NOT include props which may be given functions that are
  * reacted on. Resolved props are used inside of makeField.
  */
-type ResolvedProps = BaseProps & FieldProps;
+type ResolvedProps = BaseProps & FieldGroupProps;
 
 type PassthroughProps = Omit<
   ResolvedProps,
@@ -343,10 +352,6 @@ class FormField extends Component<FormFieldProps> {
                   {() => {
                     const error = this.getError();
                     const value = model.getValue(name);
-                    const showReturnButton = model.getFieldState(
-                      name,
-                      'showReturnButton'
-                    );
 
                     return (
                       <Fragment>
@@ -365,8 +370,8 @@ class FormField extends Component<FormFieldProps> {
                           error,
                           disabled,
                           initialData: model.initialData,
+                          'aria-describedby': `${id}_help`,
                         })}
-                        {showReturnButton && <StyledReturnButton />}
                       </Fragment>
                     );
                   }}
@@ -408,12 +413,13 @@ class FormField extends Component<FormFieldProps> {
                     type={saveMessageAlertType}
                     trailingItems={
                       <Fragment>
-                        <Button onClick={this.handleCancelField} size="xs">
+                        <Button onClick={this.handleCancelField} size="xs" type="button">
                           {t('Cancel')}
                         </Button>
                         <Button
                           priority="primary"
                           size="xs"
+                          type="button"
                           onClick={this.handleSaveField}
                         >
                           {t('Save')}
@@ -463,9 +469,3 @@ class FormField extends Component<FormFieldProps> {
 }
 
 export default FormField;
-
-const StyledReturnButton = styled(ReturnButton)`
-  position: absolute;
-  right: 0;
-  top: 0;
-`;

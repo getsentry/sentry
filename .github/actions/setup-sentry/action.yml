@@ -68,6 +68,7 @@ runs:
         fi
 
         echo "PIP_DISABLE_PIP_VERSION_CHECK=on" >> $GITHUB_ENV
+        echo "PIP_INDEX_URL=https://pypi.devinfra.sentry.io/simple" >> $GITHUB_ENV
         echo "PY_COLORS=1" >> "$GITHUB_ENV"
         echo "SENTRY_SKIP_BACKEND_VALIDATION=1" >> $GITHUB_ENV
 
@@ -77,7 +78,7 @@ runs:
 
         ### pytest-sentry configuration ###
         echo "PYTEST_SENTRY_DSN=https://6fd5cfea2d4d46b182ad214ac7810508@sentry.io/2423079" >> $GITHUB_ENV
-        echo "PYTEST_ADDOPTS=--reruns 5" >> $GITHUB_ENV
+        echo "PYTEST_ADDOPTS=--reruns=5 --durations=10" >> $GITHUB_ENV
 
         # Configure a different release version, otherwise it defaults to the
         # commit sha which will conflict with our actual prod releases. This is a
@@ -101,7 +102,7 @@ runs:
         [ "$GITHUB_REF" = "refs/heads/master" ] && echo "PYTEST_SENTRY_ALWAYS_REPORT=1" >> $GITHUB_ENV || true
 
     - name: Setup python
-      uses: actions/setup-python@b4fe97ecda6b7a5fcd2448cdbf6a8fc76b3bedb0
+      uses: actions/setup-python@13ae5bb136fac2878aff31522b9efb785519f984  # v4.3.0
       with:
         python-version: ${{ inputs.python-version }}
         cache: pip
@@ -113,10 +114,10 @@ runs:
         MATRIX_INSTANCE: ${{ matrix.instance }}
       shell: bash
       run: |
-        echo "::set-output name=yarn-cache-dir::$(yarn cache dir)"
-        echo "::set-output name=matrix-instance-number::$(($MATRIX_INSTANCE+1))"
-        echo "::set-output name=matrix-instance-total::$(($MATRIX_INSTANCE_TOTAL))"
-        echo "::set-output name=acceptance-dir::.artifacts/visual-snapshots/acceptance"
+        echo "yarn-cache-dir=$(yarn cache dir)" >> "$GITHUB_OUTPUT"
+        echo "matrix-instance-number=$(($MATRIX_INSTANCE+1))" >> "$GITHUB_OUTPUT"
+        echo "matrix-instance-total=$(($MATRIX_INSTANCE_TOTAL))" >> "$GITHUB_OUTPUT"
+        echo "acceptance-dir=.artifacts/visual-snapshots/acceptance" >> "$GITHUB_OUTPUT"
 
     - name: Install python dependencies
       shell: bash

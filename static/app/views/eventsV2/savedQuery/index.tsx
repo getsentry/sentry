@@ -15,15 +15,18 @@ import Banner from 'sentry/components/banner';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
+import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
+import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import FeatureBadge from 'sentry/components/featureBadge';
 import {Hovercard} from 'sentry/components/hovercard';
 import InputControl from 'sentry/components/input';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
-import {IconDelete, IconStar} from 'sentry/icons';
+import {IconBookmark, IconDelete, IconEllipsis, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project, SavedQuery} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import {getDiscoverQueriesUrl} from 'sentry/utils/discover/urls';
 import useOverlay from 'sentry/utils/useOverlay';
@@ -40,6 +43,21 @@ import {
   handleUpdateHomepageQuery,
   handleUpdateQuery,
 } from './utils';
+
+const renderDisabled = p => (
+  <Hovercard
+    body={
+      <FeatureDisabled
+        features={p.features}
+        hideHelpToggle
+        message={t('Discover queries are disabled')}
+        featureName={t('Discover queries')}
+      />
+    }
+  >
+    {p.children(p)}
+  </Hovercard>
+);
 
 type SaveAsDropdownProps = {
   disabled: boolean;
@@ -61,6 +79,7 @@ function SaveAsDropdown({
     <div>
       <Button
         {...triggerProps}
+        size="sm"
         icon={<IconStar />}
         aria-label={t('Save as')}
         disabled={disabled}
@@ -263,9 +282,9 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     );
   };
 
-  handleDeleteQuery = (event: React.MouseEvent<Element>) => {
-    event.preventDefault();
-    event.stopPropagation();
+  handleDeleteQuery = (event?: React.MouseEvent<Element>) => {
+    event?.preventDefault();
+    event?.stopPropagation();
 
     const {api, organization, eventView} = this.props;
 
@@ -288,6 +307,24 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     });
   };
 
+  renderButtonViewSaved(disabled: boolean) {
+    const {organization} = this.props;
+    return (
+      <Button
+        onClick={() => {
+          trackAdvancedAnalyticsEvent('discover_v2.view_saved_queries', {organization});
+        }}
+        data-test-id="discover2-savedquery-button-view-saved"
+        disabled={disabled}
+        size="sm"
+        icon={<IconStar isSolid />}
+        to={getDiscoverQueriesUrl(organization)}
+      >
+        {t('Saved Queries')}
+      </Button>
+    );
+  }
+
   renderButtonSaveAs(disabled: boolean) {
     const {queryName} = this.state;
     return (
@@ -302,12 +339,18 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
 
   renderButtonSave(disabled: boolean) {
     const {isNewQuery, isEditingQuery} = this.state;
+    const {organization} = this.props;
 
+    // TODO(nar): Remove this button when Discover homepage is released
     // Existing query that hasn't been modified.
     if (!isNewQuery && !isEditingQuery) {
+      if (organization.features.includes('discover-query-builder-as-landing-page')) {
+        return null;
+      }
       return (
         <Button
           icon={<IconStar color="yellow100" isSolid size="sm" />}
+          size="sm"
           disabled
           data-test-id="discover2-savedquery-button-saved"
         >
@@ -323,6 +366,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
             onClick={this.handleUpdateQuery}
             data-test-id="discover2-savedquery-button-update"
             disabled={disabled}
+            size="sm"
           >
             <IconUpdate />
             {t('Save Changes')}
@@ -348,6 +392,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
         data-test-id="discover2-savedquery-button-delete"
         onClick={this.handleDeleteQuery}
         disabled={disabled}
+        size="sm"
         icon={<IconDelete />}
         aria-label={t('Delete')}
       />
@@ -365,6 +410,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
           projects={projects}
           onClick={this.handleCreateAlertSuccess}
           referrer="discover"
+          size="sm"
           aria-label={t('Create Alert')}
           data-test-id="discover2-create-from-discover"
         />
@@ -378,6 +424,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
       <Button
         key="add-dashboard-widget-from-discover"
         data-test-id="add-dashboard-widget-from-discover"
+        size="sm"
         onClick={() =>
           handleAddQueryToDashboard({
             organization,
@@ -394,7 +441,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     );
   }
 
-  renderSaveAsHomepage() {
+  renderSaveAsHomepage(disabled: boolean) {
     const {
       api,
       organization,
@@ -405,10 +452,12 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
       homepageQuery,
       queryDataLoading,
     } = this.props;
-    const buttonDisabled =
-      queryDataLoading ||
-      (!homepageQuery &&
-        eventView.isEqualTo(EventView.fromSavedQuery(DEFAULT_EVENT_VIEW)));
+    const buttonDisabled = disabled || queryDataLoading;
+    const analyticsEventSource = isHomepage
+      ? 'homepage'
+      : eventView.id
+      ? 'saved-query'
+      : 'prebuilt-query';
     if (
       homepageQuery &&
       eventView.isEqualTo(EventView.fromSavedQuery(homepageQuery), ['id', 'name'])
@@ -419,6 +468,10 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
           data-test-id="reset-discover-homepage"
           onClick={async () => {
             await handleResetHomepageQuery(api, organization);
+            trackAdvancedAnalyticsEvent('discover_v2.remove_default', {
+              organization,
+              source: analyticsEventSource,
+            });
             setHomepageQuery(undefined);
             if (isHomepage) {
               const nextEventView = EventView.fromNewQueryWithLocation(
@@ -431,83 +484,153 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
               });
             }
           }}
+          size="sm"
+          icon={<IconBookmark isSolid />}
           disabled={buttonDisabled}
         >
-          {t('Reset Discover Home')}
-          <FeatureBadge type="alpha" />
+          {t('Remove Default')}
+          <FeatureBadge type="beta" />
         </Button>
       );
     }
 
     return (
       <Button
-        key="save-query-as-homepage"
-        data-test-id="save-query-as-homepage"
+        key="set-as-default"
+        data-test-id="set-as-default"
         onClick={async () => {
           const updatedHomepageQuery = await handleUpdateHomepageQuery(
             api,
             organization,
             eventView.toNewQuery()
           );
+          trackAdvancedAnalyticsEvent('discover_v2.set_as_default', {
+            organization,
+            source: analyticsEventSource,
+          });
           if (updatedHomepageQuery) {
             setHomepageQuery(updatedHomepageQuery);
           }
         }}
+        size="sm"
+        icon={<IconBookmark />}
         disabled={buttonDisabled}
       >
-        {t('Use as Discover Home')}
-        <FeatureBadge type="alpha" />
+        {t('Set as Default')}
+        <FeatureBadge type="beta" />
       </Button>
+    );
+  }
+
+  renderQueryButton(renderFunc: (disabled: boolean) => React.ReactNode) {
+    const {organization} = this.props;
+    return (
+      <Feature
+        organization={organization}
+        features={['discover-query']}
+        hookName="feature-disabled:discover-saved-query-create"
+        renderDisabled={renderDisabled}
+      >
+        {({hasFeature}) => renderFunc(!hasFeature || this.props.disabled)}
+      </Feature>
+    );
+  }
+
+  renderHomepageFeatureButtons() {
+    const {organization, eventView, savedQuery, yAxis, router, location, isHomepage} =
+      this.props;
+
+    const contextMenuItems: MenuItemProps[] = [];
+
+    if (organization.features.includes('dashboards-edit')) {
+      contextMenuItems.push({
+        key: 'add-to-dashboard',
+        label: t('Add to Dashboard'),
+        onAction: () => {
+          handleAddQueryToDashboard({
+            organization,
+            location,
+            eventView,
+            query: savedQuery,
+            yAxis,
+            router,
+          });
+        },
+      });
+    }
+
+    if (!isHomepage && savedQuery) {
+      contextMenuItems.push({
+        key: 'delete-saved-query',
+        label: t('Delete Saved Query'),
+        onAction: () => this.handleDeleteQuery(),
+      });
+    }
+
+    const contextMenu = (
+      <DropdownMenuControl
+        items={contextMenuItems}
+        trigger={triggerProps => (
+          <Button
+            {...triggerProps}
+            aria-label={t('Discover Context Menu')}
+            size="sm"
+            onClick={e => {
+              e.stopPropagation();
+              e.preventDefault();
+
+              triggerProps.onClick?.(e);
+            }}
+            icon={<IconEllipsis />}
+          />
+        )}
+        position="bottom-end"
+        offset={4}
+      />
+    );
+
+    return (
+      <ResponsiveButtonBar gap={1}>
+        <Feature
+          organization={organization}
+          features={['discover-query-builder-as-landing-page']}
+        >
+          {this.renderQueryButton(disabled => this.renderSaveAsHomepage(disabled))}
+        </Feature>
+        {this.renderQueryButton(disabled => this.renderButtonSave(disabled))}
+        <Feature organization={organization} features={['incidents']}>
+          {({hasFeature}) => hasFeature && this.renderButtonCreateAlert()}
+        </Feature>
+
+        {contextMenuItems.length > 0 && contextMenu}
+
+        <Feature
+          organization={organization}
+          features={['discover-query-builder-as-landing-page']}
+        >
+          {this.renderQueryButton(disabled => this.renderButtonViewSaved(disabled))}
+        </Feature>
+      </ResponsiveButtonBar>
     );
   }
 
   render() {
     const {organization} = this.props;
 
-    const renderDisabled = p => (
-      <Hovercard
-        body={
-          <FeatureDisabled
-            features={p.features}
-            hideHelpToggle
-            message={t('Discover queries are disabled')}
-            featureName={t('Discover queries')}
-          />
-        }
-      >
-        {p.children(p)}
-      </Hovercard>
-    );
-
-    const renderQueryButton = (renderFunc: (disabled: boolean) => React.ReactNode) => {
-      return (
-        <Feature
-          organization={organization}
-          features={['discover-query']}
-          hookName="feature-disabled:discover-saved-query-create"
-          renderDisabled={renderDisabled}
-        >
-          {({hasFeature}) => renderFunc(!hasFeature || this.props.disabled)}
-        </Feature>
-      );
-    };
+    if (organization.features.includes('discover-query-builder-as-landing-page')) {
+      return this.renderHomepageFeatureButtons();
+    }
 
     return (
       <ResponsiveButtonBar gap={1}>
-        <Feature
-          organization={organization}
-          features={['discover-query', 'discover-query-builder-as-landing-page']}
-        >
-          {({hasFeature}) => hasFeature && this.renderSaveAsHomepage()}
-        </Feature>
-        {renderQueryButton(disabled => this.renderButtonSave(disabled))}
+        {this.renderQueryButton(disabled => this.renderButtonSave(disabled))}
         <Feature organization={organization} features={['incidents']}>
           {({hasFeature}) => hasFeature && this.renderButtonCreateAlert()}
         </Feature>
         <Feature organization={organization} features={['dashboards-edit']}>
           {({hasFeature}) => hasFeature && this.renderButtonAddToDashboard()}
         </Feature>
-        {renderQueryButton(disabled => this.renderButtonDelete(disabled))}
+        {this.renderQueryButton(disabled => this.renderButtonDelete(disabled))}
       </ResponsiveButtonBar>
     );
   }
@@ -528,7 +651,6 @@ const SaveAsButton = styled(Button)`
 `;
 
 const SaveAsInput = styled(InputControl)`
-  height: 40px;
   margin-bottom: ${space(1)};
 `;
 

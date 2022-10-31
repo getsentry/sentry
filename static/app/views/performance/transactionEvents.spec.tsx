@@ -1,13 +1,11 @@
-import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {Organization} from 'sentry/types';
 import {WebVital} from 'sentry/utils/fields';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 import TransactionEvents from 'sentry/views/performance/transactionSummary/transactionEvents';
+
+// XXX(epurkhiser): This appears to also be tested by ./transactionSummary/transactionEvents/index.spec.tsx
 
 type Data = {
   features?: string[];
@@ -23,7 +21,7 @@ function initializeData({features: additionalFeatures = [], query = {}}: Data = 
     projects: [TestStubs.Project()],
     apdexThreshold: 400,
   });
-  const initialData = initializeOrg({
+  return initializeOrg({
     organization,
     router: {
       location: {
@@ -38,27 +36,10 @@ function initializeData({features: additionalFeatures = [], query = {}}: Data = 
     project: 1,
     projects: [],
   });
-  act(() => ProjectsStore.loadInitialData(initialData.organization.projects));
-  return initialData;
 }
 
-const WrappedComponent = ({
-  organization,
-  ...props
-}: Omit<React.ComponentProps<typeof TransactionEvents>, 'organization'> & {
-  organization: Organization;
-}) => {
-  return (
-    <OrganizationContext.Provider value={organization}>
-      <TransactionEvents organization={organization} {...props} />
-    </OrganizationContext.Provider>
-  );
-};
-
 describe('Performance > TransactionSummary', function () {
-  enforceActOnUseLegacyStoreHook();
-
-  beforeEach(function () {
+  beforeAll(function () {
     // @ts-ignore no-console
     // eslint-disable-next-line no-console
     jest.spyOn(console, 'error').mockImplementation(jest.fn());
@@ -67,14 +48,17 @@ describe('Performance > TransactionSummary', function () {
       url: '/organizations/org-slug/projects/',
       body: [],
     });
+
     MockApiClient.addMockResponse({
       url: '/prompts-activity/',
       body: {},
     });
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',
       body: [],
     });
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: {
@@ -165,128 +149,114 @@ describe('Performance > TransactionSummary', function () {
     });
   });
 
-  afterEach(function () {
-    MockApiClient.clearMockResponses();
-    // @ts-ignore no-console
-    // eslint-disable-next-line no-console
-    console.error.mockRestore();
-
-    act(() => ProjectsStore.reset());
-    jest.clearAllMocks();
-  });
-
   it('renders basic UI elements', async function () {
-    const initialData = initializeData();
-    const wrapper = mountWithTheme(
-      <WrappedComponent
-        organization={initialData.organization}
-        location={initialData.router.location}
-      />,
-      initialData.routerContext
+    const {organization, router, routerContext} = initializeData();
+
+    ProjectsStore.loadInitialData(organization.projects);
+
+    render(<TransactionEvents organization={organization} location={router.location} />, {
+      context: routerContext,
+    });
+
+    // Breadcrumb
+    expect(screen.getByRole('link', {name: 'Performance'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/performance/?project=1&transactionCursor=1%3A0%3A0'
     );
-    await tick();
-    wrapper.update();
+
+    // Header
+    expect(screen.getByRole('heading', {name: '/performance'})).toBeInTheDocument();
 
     expect(
-      wrapper.find('NavTabs').find({children: 'All Events'}).find('Link')
-    ).toHaveLength(1);
-    expect(wrapper.find('SentryDocumentTitle')).toHaveLength(1);
-    expect(wrapper.find('SearchBar')).toHaveLength(1);
-    expect(wrapper.find('GridEditable')).toHaveLength(1);
-    expect(wrapper.find('Pagination')).toHaveLength(1);
-    expect(wrapper.find('EventsContent')).toHaveLength(1);
-    expect(wrapper.find('TransactionHeader')).toHaveLength(1);
+      await screen.findByRole('textbox', {name: 'Search events'})
+    ).toBeInTheDocument();
+
+    expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Previous'})).toBeInTheDocument();
+
+    expect(screen.getByRole('table')).toBeInTheDocument();
+
+    expect(screen.getByRole('tab', {name: 'Overview'})).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'All Events'})).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'Tags'})).toBeInTheDocument();
+
+    ProjectsStore.reset();
   });
 
   it('renders relative span breakdown header when no filter selected', async function () {
-    const initialData = initializeData();
-    const wrapper = mountWithTheme(
-      <WrappedComponent
-        organization={initialData.organization}
-        location={initialData.router.location}
-      />,
-      initialData.routerContext
-    );
-    await tick();
-    wrapper.update();
+    const {organization, router, routerContext} = initializeData();
 
-    expect(wrapper.find('GridHeadCell')).toHaveLength(6);
-    expect(
-      wrapper.find('OperationTitle').children().children().children().at(0).html()
-    ).toEqual(t('operation duration'));
+    ProjectsStore.loadInitialData(organization.projects);
+
+    render(<TransactionEvents organization={organization} location={router.location} />, {
+      context: routerContext,
+    });
+
+    expect(await screen.findByText('operation duration')).toBeInTheDocument();
+    expect(screen.getAllByRole('columnheader')).toHaveLength(6);
+
+    ProjectsStore.reset();
   });
 
   it('renders event column results correctly', async function () {
-    const initialData = initializeData();
-    const wrapper = mountWithTheme(
-      <WrappedComponent
-        organization={initialData.organization}
-        location={initialData.router.location}
-      />,
-      initialData.routerContext
-    );
-    await tick();
-    wrapper.update();
+    const {organization, router, routerContext} = initializeData();
 
-    function keyAt(index) {
-      return wrapper.find('CellAction').at(index).props().column.key;
-    }
+    ProjectsStore.loadInitialData(organization.projects);
 
-    function valueAt(index, element = 'div') {
-      return wrapper.find('CellAction').at(index).find(element).last().children().html();
-    }
+    render(<TransactionEvents organization={organization} location={router.location} />, {
+      context: routerContext,
+    });
 
-    expect(wrapper.find('CellAction')).toHaveLength(12);
-    expect(keyAt(0)).toEqual('id');
-    expect(valueAt(0)).toEqual('deadbeef');
-    expect(keyAt(1)).toEqual('user.display');
-    expect(valueAt(1, 'span')).toEqual('uhoh@example.com');
-    expect(keyAt(2)).toEqual('span_ops_breakdown.relative');
-    expect(valueAt(2, 'span')).toEqual('(no value)');
-    expect(keyAt(3)).toEqual('transaction.duration');
-    expect(valueAt(3, 'span')).toEqual('400.00ms');
-    expect(keyAt(4)).toEqual('trace');
-    expect(valueAt(4)).toEqual('1234');
-    expect(keyAt(5)).toEqual('timestamp');
-    expect(valueAt(5, 'time')).toEqual('May 21, 2020 3:31:18 PM UTC');
+    const tableHeader = await screen.findAllByRole('columnheader');
+    expect(tableHeader).toHaveLength(6);
+    expect(tableHeader[0]).toHaveTextContent('event id');
+    expect(tableHeader[1]).toHaveTextContent('user');
+    expect(tableHeader[2]).toHaveTextContent('operation duration');
+    expect(tableHeader[3]).toHaveTextContent('total duration');
+    expect(tableHeader[4]).toHaveTextContent('trace id');
+    expect(tableHeader[5]).toHaveTextContent('timestamp');
+
+    const tableFirstRowColumns = screen.getAllByRole('cell');
+    expect(tableFirstRowColumns[0]).toHaveTextContent('deadbeef');
+    expect(tableFirstRowColumns[1]).toHaveTextContent('Uuhoh@example.com');
+    expect(tableFirstRowColumns[2]).toHaveTextContent('(no value)');
+    expect(tableFirstRowColumns[3]).toHaveTextContent('400.00ms');
+    expect(tableFirstRowColumns[4]).toHaveTextContent('1234');
+    expect(tableFirstRowColumns[5]).toHaveTextContent('May 21, 2020 3:31:18 PM UTC');
+
+    ProjectsStore.reset();
   });
 
   it('renders additional Web Vital column', async function () {
-    const initialData = initializeData({
+    const {organization, router, routerContext} = initializeData({
       query: {webVital: WebVital.LCP},
     });
-    const wrapper = mountWithTheme(
-      <WrappedComponent
-        organization={initialData.organization}
-        location={initialData.router.location}
-      />,
-      initialData.routerContext
-    );
-    await tick();
-    wrapper.update();
 
-    function keyAt(index) {
-      return wrapper.find('CellAction').at(index).props().column.key;
-    }
+    ProjectsStore.loadInitialData(organization.projects);
 
-    function valueAt(index, element = 'div') {
-      return wrapper.find('CellAction').at(index).find(element).last().children().html();
-    }
+    render(<TransactionEvents organization={organization} location={router.location} />, {
+      context: routerContext,
+    });
 
-    expect(wrapper.find('CellAction')).toHaveLength(14);
-    expect(keyAt(0)).toEqual('id');
-    expect(valueAt(0)).toEqual('deadbeef');
-    expect(keyAt(1)).toEqual('user.display');
-    expect(valueAt(1, 'span')).toEqual('uhoh@example.com');
-    expect(keyAt(2)).toEqual('span_ops_breakdown.relative');
-    expect(valueAt(2, 'span')).toEqual('(no value)');
-    expect(keyAt(3)).toEqual('measurements.lcp');
-    expect(valueAt(3)).toEqual('200');
-    expect(keyAt(4)).toEqual('transaction.duration');
-    expect(valueAt(4, 'span')).toEqual('400.00ms');
-    expect(keyAt(5)).toEqual('trace');
-    expect(valueAt(5)).toEqual('1234');
-    expect(keyAt(6)).toEqual('timestamp');
-    expect(valueAt(6, 'time')).toEqual('May 21, 2020 3:31:18 PM UTC');
+    const tableHeader = await screen.findAllByRole('columnheader');
+    expect(tableHeader).toHaveLength(7);
+    expect(tableHeader[0]).toHaveTextContent('event id');
+    expect(tableHeader[1]).toHaveTextContent('user');
+    expect(tableHeader[2]).toHaveTextContent('operation duration');
+    expect(tableHeader[3]).toHaveTextContent('measurements.lcp');
+    expect(tableHeader[4]).toHaveTextContent('total duration');
+    expect(tableHeader[5]).toHaveTextContent('trace id');
+    expect(tableHeader[6]).toHaveTextContent('timestamp');
+
+    const tableFirstRowColumns = screen.getAllByRole('cell');
+    expect(tableFirstRowColumns[0]).toHaveTextContent('deadbeef');
+    expect(tableFirstRowColumns[1]).toHaveTextContent('Uuhoh@example.com');
+    expect(tableFirstRowColumns[2]).toHaveTextContent('(no value)');
+    expect(tableFirstRowColumns[3]).toHaveTextContent('200');
+    expect(tableFirstRowColumns[4]).toHaveTextContent('400.00ms');
+    expect(tableFirstRowColumns[5]).toHaveTextContent('1234');
+    expect(tableFirstRowColumns[6]).toHaveTextContent('May 21, 2020 3:31:18 PM UTC');
+
+    ProjectsStore.reset();
   });
 });

@@ -9,7 +9,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_model,
+    control_silo_only_model,
     sane_repr,
 )
 from sentry.db.models.fields.jsonfield import JSONField
@@ -23,7 +23,7 @@ SCIM_INTERNAL_INTEGRATION_OVERVIEW = (
 )
 
 
-@region_silo_model
+@control_silo_only_model
 class AuthProviderDefaultTeams(Model):
     __include_in_export__ = False
 
@@ -36,7 +36,7 @@ class AuthProviderDefaultTeams(Model):
         unique_together = (("authprovider", "team"),)
 
 
-@region_silo_model
+@control_silo_only_model
 class AuthProvider(Model):
     __include_in_export__ = True
 

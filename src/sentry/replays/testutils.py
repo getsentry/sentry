@@ -21,6 +21,15 @@ SegmentList = typing.Iterable[typing.Dict[str, typing.Any]]
 RRWebNode = typing.Dict[str, typing.Any]
 
 
+def sec(timestamp: datetime.datetime):
+    # sentry data inside rrweb is recorded in seconds
+    return int(timestamp.timestamp())
+
+
+def ms(timestamp: datetime.datetime):
+    return int(timestamp.timestamp()) * 1000
+
+
 def assert_expected_response(
     response: typing.Dict[str, typing.Any], expected_response: typing.Dict[str, typing.Any]
 ) -> None:
@@ -46,7 +55,7 @@ def assert_expected_response(
             assert response_value == value, f'"{key}, {response_value}" "{value}"'
 
     # Ensure no lingering unexpected keys exist.
-    assert list(response.keys()) == []
+    assert list(response.keys()) == [], response.keys()
 
 
 def mock_expected_response(
@@ -112,10 +121,9 @@ def mock_replay(
 ) -> typing.Dict[str, typing.Any]:
     tags = kwargs.pop("tags", {})
     tags.update({"transaction": kwargs.pop("title", "Title")})
-
     return {
         "type": "replay_event",
-        "start_time": int(timestamp.timestamp()),
+        "start_time": sec(timestamp),
         "replay_id": replay_id,
         "project_id": project_id,
         "retention_days": 30,
@@ -137,9 +145,9 @@ def mock_replay(
                         ),
                         "dist": kwargs.pop("dist", "abc123"),
                         "platform": kwargs.pop("platform", "javascript"),
-                        "timestamp": int(timestamp.timestamp()),
+                        "timestamp": sec(timestamp),
                         "replay_start_timestamp": kwargs.pop(
-                            "replay_start_timestamp", int(timestamp.timestamp())
+                            "replay_start_timestamp", sec(timestamp)
                         ),
                         "environment": kwargs.pop("environment", "production"),
                         "release": kwargs.pop("release", "version@1.3"),
@@ -197,16 +205,16 @@ def mock_segment_init(
     return [
         {
             "type": EventType.DomContentLoaded,
-            "timestamp": int(timestamp.timestamp()),
+            "timestamp": ms(timestamp),  # rrweb timestamps are in ms
         },
         {
             "type": EventType.Load,
-            "timestamp": int(timestamp.timestamp()),
+            "timestamp": ms(timestamp),  # rrweb timestamps are in ms
         },
         {
             "type": EventType.Meta,
             "data": {"href": href, "width": width, "height": height},
-            "timestamp": int(timestamp.timestamp()),
+            "timestamp": ms(timestamp),  # rrweb timestamps are in ms
         },
     ]
 
@@ -223,11 +231,12 @@ def mock_segment_fullsnapshot(timestamp: datetime.datetime, bodyChildNodes) -> S
         tagName="html",
         childNodes=[bodyNode],
     )
+
     return [
         {
             "type": EventType.FullSnapshot,
             "data": {
-                "timestamp": int(timestamp.timestamp()),
+                "timestamp": ms(timestamp),  # rrweb timestamps are in ms
                 "node": {
                     "type": EventType.DomContentLoaded,
                     "childNodes": [htmlNode],
@@ -241,11 +250,11 @@ def mock_segment_console(timestamp: datetime.datetime) -> SegmentList:
     return [
         {
             "type": EventType.Custom,
-            "timestamp": int(timestamp.timestamp()),
+            "timestamp": ms(timestamp),  # rrweb timestamps are in ms
             "data": {
                 "tag": "breadcrumb",
                 "payload": {
-                    "timestamp": int(timestamp.timestamp()) / 1000,
+                    "timestamp": sec(timestamp),  # sentry data inside rrweb is in seconds
                     "type": "default",
                     "category": "console",
                     "data": {
@@ -266,7 +275,7 @@ def mock_segment_breadcrumb(timestamp: datetime.datetime, payload) -> SegmentLis
     return [
         {
             "type": 5,
-            "timestamp": int(timestamp.timestamp()),
+            "timestamp": ms(timestamp),  # rrweb timestamps are in ms
             "data": {
                 "tag": "breadcrumb",
                 "payload": payload,
@@ -281,7 +290,7 @@ def mock_segment_nagivation(
     return mock_segment_breadcrumb(
         timestamp,
         {
-            "timestamp": int(timestamp.timestamp()) / 1000,
+            "timestamp": sec(timestamp),  # sentry data inside rrweb is in seconds
             "type": "default",
             "category": "navigation",
             "data": {"from": hrefFrom, "to": hrefTo},

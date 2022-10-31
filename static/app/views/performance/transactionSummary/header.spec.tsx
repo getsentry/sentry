@@ -1,9 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 import TransactionHeader from 'sentry/views/performance/transactionSummary/header';
 import Tab from 'sentry/views/performance/transactionSummary/tabs';
 
@@ -48,20 +46,6 @@ function initializeData(opts?: InitialOpts) {
   };
 }
 
-function ComponentProviders({
-  organization,
-  children,
-}: {
-  children: React.ReactNode;
-  organization: Organization;
-}) {
-  return (
-    <OrganizationContext.Provider value={organization}>
-      {children}
-    </OrganizationContext.Provider>
-  );
-}
-
 describe('Performance > Transaction Summary Header', function () {
   beforeEach(function () {
     MockApiClient.clearMockResponses();
@@ -70,28 +54,12 @@ describe('Performance > Transaction Summary Header', function () {
   it('should render web vitals tab when yes', function () {
     const {project, organization, router, eventView} = initializeData();
 
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-has-measurements/',
+      body: {measurements: true},
+    });
+
     render(
-      <ComponentProviders organization={organization}>
-        <TransactionHeader
-          eventView={eventView}
-          location={router.location}
-          organization={organization}
-          projects={[project]}
-          projectId={project.id}
-          transactionName="transaction_name"
-          currentTab={Tab.TransactionSummary}
-          hasWebVitals="yes"
-        />
-      </ComponentProviders>
-    );
-
-    expect(screen.getByRole('link', {name: 'Web Vitals'})).toBeInTheDocument();
-  });
-
-  it('should not render web vitals tab when no', function () {
-    const {project, organization, router, eventView} = initializeData();
-
-    <ComponentProviders organization={organization}>
       <TransactionHeader
         eventView={eventView}
         location={router.location}
@@ -100,11 +68,33 @@ describe('Performance > Transaction Summary Header', function () {
         projectId={project.id}
         transactionName="transaction_name"
         currentTab={Tab.TransactionSummary}
-        hasWebVitals="no"
+        hasWebVitals="yes"
       />
-    </ComponentProviders>;
+    );
 
-    expect(screen.queryByRole('link', {name: 'Web Vitals'})).not.toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'Web Vitals'})).toBeInTheDocument();
+  });
+
+  it('should not render web vitals tab when no', function () {
+    const {project, organization, router, eventView} = initializeData();
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-has-measurements/',
+      body: {measurements: true},
+    });
+
+    <TransactionHeader
+      eventView={eventView}
+      location={router.location}
+      organization={organization}
+      projects={[project]}
+      projectId={project.id}
+      transactionName="transaction_name"
+      currentTab={Tab.TransactionSummary}
+      hasWebVitals="no"
+    />;
+
+    expect(screen.queryByRole('tab', {name: 'Web Vitals'})).not.toBeInTheDocument();
   });
 
   it('should render web vitals tab when maybe and is frontend platform', function () {
@@ -112,22 +102,25 @@ describe('Performance > Transaction Summary Header', function () {
       platform: 'javascript',
     });
 
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-has-measurements/',
+      body: {measurements: true},
+    });
+
     render(
-      <ComponentProviders organization={organization}>
-        <TransactionHeader
-          eventView={eventView}
-          location={router.location}
-          organization={organization}
-          projects={[project]}
-          projectId={project.id}
-          transactionName="transaction_name"
-          currentTab={Tab.TransactionSummary}
-          hasWebVitals="maybe"
-        />
-      </ComponentProviders>
+      <TransactionHeader
+        eventView={eventView}
+        location={router.location}
+        organization={organization}
+        projects={[project]}
+        projectId={project.id}
+        transactionName="transaction_name"
+        currentTab={Tab.TransactionSummary}
+        hasWebVitals="maybe"
+      />
     );
 
-    expect(screen.getByRole('link', {name: 'Web Vitals'})).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'Web Vitals'})).toBeInTheDocument();
   });
 
   it('should render web vitals tab when maybe and has measurements', async function () {
@@ -139,23 +132,21 @@ describe('Performance > Transaction Summary Header', function () {
     });
 
     render(
-      <ComponentProviders organization={organization}>
-        <TransactionHeader
-          eventView={eventView}
-          location={router.location}
-          organization={organization}
-          projects={[project]}
-          projectId={project.id}
-          transactionName="transaction_name"
-          currentTab={Tab.TransactionSummary}
-          hasWebVitals="maybe"
-        />
-      </ComponentProviders>
+      <TransactionHeader
+        eventView={eventView}
+        location={router.location}
+        organization={organization}
+        projects={[project]}
+        projectId={project.id}
+        transactionName="transaction_name"
+        currentTab={Tab.TransactionSummary}
+        hasWebVitals="maybe"
+      />
     );
 
     await waitFor(() => expect(eventHasMeasurementsMock).toHaveBeenCalled());
 
-    expect(screen.getByRole('link', {name: 'Web Vitals'})).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'Web Vitals'})).toBeInTheDocument();
   });
 
   it('should not render web vitals tab when maybe and has no measurements', async function () {
@@ -167,23 +158,21 @@ describe('Performance > Transaction Summary Header', function () {
     });
 
     render(
-      <ComponentProviders organization={organization}>
-        <TransactionHeader
-          eventView={eventView}
-          location={router.location}
-          organization={organization}
-          projects={[project]}
-          projectId={project.id}
-          transactionName="transaction_name"
-          currentTab={Tab.TransactionSummary}
-          hasWebVitals="maybe"
-        />
-      </ComponentProviders>
+      <TransactionHeader
+        eventView={eventView}
+        location={router.location}
+        organization={organization}
+        projects={[project]}
+        projectId={project.id}
+        transactionName="transaction_name"
+        currentTab={Tab.TransactionSummary}
+        hasWebVitals="maybe"
+      />
     );
 
     await waitFor(() => expect(eventHasMeasurementsMock).toHaveBeenCalled());
 
-    expect(screen.queryByRole('link', {name: 'Web Vitals'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', {name: 'Web Vitals'})).not.toBeInTheDocument();
   });
 
   it('should render spans tab with feature', function () {
@@ -191,21 +180,24 @@ describe('Performance > Transaction Summary Header', function () {
       features: ['performance-suspect-spans-view'],
     });
 
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-has-measurements/',
+      body: {measurements: true},
+    });
+
     render(
-      <ComponentProviders organization={organization}>
-        <TransactionHeader
-          eventView={eventView}
-          location={router.location}
-          organization={organization}
-          projects={[project]}
-          projectId={project.id}
-          transactionName="transaction_name"
-          currentTab={Tab.TransactionSummary}
-          hasWebVitals="yes"
-        />
-      </ComponentProviders>
+      <TransactionHeader
+        eventView={eventView}
+        location={router.location}
+        organization={organization}
+        projects={[project]}
+        projectId={project.id}
+        transactionName="transaction_name"
+        currentTab={Tab.TransactionSummary}
+        hasWebVitals="yes"
+      />
     );
 
-    expect(screen.getByRole('link', {name: 'Spans'})).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'Spans'})).toBeInTheDocument();
   });
 });

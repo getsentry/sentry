@@ -1,4 +1,3 @@
-import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Checkbox from 'sentry/components/checkbox';
@@ -16,71 +15,65 @@ import {
 
 type Resource = typeof EVENT_CHOICES[number];
 
-type DefaultProps = {
-  webhookDisabled: boolean;
-};
-
-type Props = DefaultProps & {
+type Props = {
   checked: boolean;
   disabledFromPermissions: boolean;
   isNew: boolean;
   onChange: (resource: Resource, checked: boolean) => void;
   organization: Organization;
   resource: Resource;
+  webhookDisabled?: boolean;
 };
 
-export class SubscriptionBox extends Component<Props> {
-  static defaultProps: DefaultProps = {
-    webhookDisabled: false,
-  };
+function SubscriptionBox({
+  checked,
+  disabledFromPermissions,
+  isNew,
+  onChange,
+  organization,
+  resource,
+  webhookDisabled = false,
+}: Props) {
+  const {features} = organization;
 
-  onChange = (evt: React.ChangeEvent<HTMLInputElement>) => {
-    const checked = evt.target.checked;
-    const {resource} = this.props;
-    this.props.onChange(resource, checked);
-  };
+  let disabled = disabledFromPermissions || webhookDisabled;
+  let message = t(
+    "Must have at least 'Read' permissions enabled for %s",
+    PERMISSIONS_MAP[resource]
+  );
 
-  render() {
-    const {resource, organization, webhookDisabled, checked, isNew} = this.props;
-    const features = new Set(organization.features);
-
-    let disabled = this.props.disabledFromPermissions || webhookDisabled;
-    let message = `Must have at least 'Read' permissions enabled for ${PERMISSIONS_MAP[resource]}`;
-    if (resource === 'error' && !features.has('integrations-event-hooks')) {
-      disabled = true;
-      message =
-        'Your organization does not have access to the error subscription resource.';
-    }
-    if (webhookDisabled) {
-      message = 'Cannot enable webhook subscription without specifying a webhook url';
-    }
-
-    return (
-      <Fragment>
-        <Tooltip disabled={!disabled} title={message} key={resource}>
-          <SubscriptionGridItem disabled={disabled}>
-            <SubscriptionInfo>
-              <SubscriptionTitle>
-                {t(`${resource}`)}
-                {isNew && <FeatureBadge type="new" />}
-              </SubscriptionTitle>
-              <SubscriptionDescription>
-                {t(`${DESCRIPTIONS[resource]}`)}
-              </SubscriptionDescription>
-            </SubscriptionInfo>
-            <Checkbox
-              key={`${resource}${checked}`}
-              disabled={disabled}
-              id={resource}
-              value={resource}
-              checked={checked}
-              onChange={this.onChange}
-            />
-          </SubscriptionGridItem>
-        </Tooltip>
-      </Fragment>
+  if (resource === 'error' && !features.includes('integrations-event-hooks')) {
+    disabled = true;
+    message = t(
+      'Your organization does not have access to the error subscription resource.'
     );
   }
+
+  if (webhookDisabled) {
+    message = t('Cannot enable webhook subscription without specifying a webhook url');
+  }
+
+  return (
+    <Tooltip disabled={!disabled} title={message} key={resource}>
+      <SubscriptionGridItem disabled={disabled}>
+        <SubscriptionInfo>
+          <SubscriptionTitle>
+            {resource}
+            {isNew && <FeatureBadge type="new" />}
+          </SubscriptionTitle>
+          <SubscriptionDescription>{DESCRIPTIONS[resource]}</SubscriptionDescription>
+        </SubscriptionInfo>
+        <Checkbox
+          key={`${resource}${checked}`}
+          disabled={disabled}
+          id={resource}
+          value={resource}
+          checked={checked}
+          onChange={evt => onChange(resource, evt.target.checked)}
+        />
+      </SubscriptionGridItem>
+    </Tooltip>
+  );
 }
 
 export default withOrganization(SubscriptionBox);

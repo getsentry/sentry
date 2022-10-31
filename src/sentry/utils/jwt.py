@@ -3,8 +3,9 @@
 This is an attempt to have all the interactions with JWT in once place, so that we have once
 central place which handles JWT in a uniform way.
 """
+from __future__ import annotations
 
-from typing import List, Mapping, Optional, Union
+from typing import Mapping
 
 import jwt as pyjwt
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey, RSAPublicKey
@@ -47,9 +48,9 @@ def decode(
     token: str,
     key: str,
     *,  # Force passing optional arguments by keyword
-    audience: Optional[Union[str, bool]] = None,
-    algorithms: Optional[List[str]] = None,
-) -> JSONData:
+    audience: str | bool | None = None,
+    algorithms: list[str] | None = None,
+) -> dict[str, JSONData]:
     """Returns the claims (payload) in the JWT token.
 
     This will raise an exception if the claims can not be validated with the provided key.
@@ -64,8 +65,8 @@ def decode(
     """
     # TODO: We do not currently have type-safety for keys suitable for decoding *and*
     # encoding vs those only suitable for decoding.
-    # TODO(flub): The algorithms parameter really does not need to be Optional and should be
-    # a straight List[str].  However this is used by some unclear code in
+    # TODO(flub): The algorithms parameter really does not need to be optional and should be
+    # a straight list[str].  However this is used by some unclear code in
     # sentry.integrations.msteams.webhook.verify_signature which isn't checked by mypy yet,
     # and I am too afraid to change this.  One day (hah!) all will be checked by mypy and
     # this can be safely fixed.
@@ -87,7 +88,7 @@ def encode(
     key: str,
     *,  # Force passing optional arguments by keyword
     algorithm: str = "HS256",
-    headers: Optional[JSONData] = None,
+    headers: JSONData | None = None,
 ) -> str:
     """Encode a JWT token containing the provided payload/claims.
 

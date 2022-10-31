@@ -1,15 +1,14 @@
 import {useCallback} from 'react';
 
+// eslint-disable-next-line no-restricted-imports
+import {fetchTagValues} from 'sentry/actionCreators/tags';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
-import {
-  makePinSearchAction,
-  makeSaveSearchAction,
-  makeSearchBuilderAction,
-} from 'sentry/components/smartSearchBar/actions';
-import {SavedSearch, SavedSearchType, Tag, TagCollection} from 'sentry/types';
+import {Organization, SavedSearchType, Tag, TagCollection} from 'sentry/types';
+import {getUtcDateString} from 'sentry/utils/dates';
 import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
-
-import {TagValueLoader} from './types';
+import useApi from 'sentry/utils/useApi';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import withIssueTags, {WithIssueTagsProps} from 'sentry/utils/withIssueTags';
 
 const getSupportedTags = (supportedTags: TagCollection) =>
   Object.fromEntries(
@@ -24,22 +23,45 @@ const getSupportedTags = (supportedTags: TagCollection) =>
     ])
   );
 
-interface Props extends React.ComponentProps<typeof SmartSearchBar> {
-  onSidebarToggle: (e: React.MouseEvent) => void;
-  sort: string;
-  supportedTags: TagCollection;
-  tagValueLoader: TagValueLoader;
-  savedSearch?: SavedSearch;
+interface Props extends React.ComponentProps<typeof SmartSearchBar>, WithIssueTagsProps {
+  organization: Organization;
 }
 
-function IssueListSearchBar({
-  onSidebarToggle,
-  sort,
-  supportedTags,
-  tagValueLoader,
-  savedSearch,
-  ...props
-}: Props) {
+const EXCLUDED_TAGS = ['environment'];
+
+function IssueListSearchBar({organization, tags, ...props}: Props) {
+  const api = useApi();
+  const {selection: pageFilters} = usePageFilters();
+
+  const tagValueLoader = useCallback(
+    (key: string, search: string) => {
+      const orgSlug = organization.slug;
+      const projectIds = pageFilters.projects.map(id => id.toString());
+      const endpointParams = {
+        start: getUtcDateString(pageFilters.datetime.start),
+        end: getUtcDateString(pageFilters.datetime.end),
+        statsPeriod: pageFilters.datetime.period,
+      };
+
+      return fetchTagValues({
+        api,
+        orgSlug,
+        tagKey: key,
+        search,
+        projectIds,
+        endpointParams,
+      });
+    },
+    [
+      api,
+      organization.slug,
+      pageFilters.datetime.end,
+      pageFilters.datetime.period,
+      pageFilters.datetime.start,
+      pageFilters.projects,
+    ]
+  );
+
   const getTagValues = useCallback(
     async (tag: Tag, query: string): Promise<string[]> => {
       const values = await tagValueLoader(tag.key, query);
@@ -48,24 +70,17 @@ function IssueListSearchBar({
     [tagValueLoader]
   );
 
-  const pinnedSearch = savedSearch?.isPinned ? savedSearch : undefined;
-
   return (
     <SmartSearchBar
-      searchSource="main_search"
       hasRecentSearches
       savedSearchType={SavedSearchType.ISSUE}
       onGetTagValues={getTagValues}
-      actionBarItems={[
-        makePinSearchAction({sort, pinnedSearch}),
-        makeSaveSearchAction({sort}),
-        makeSearchBuilderAction({onSidebarToggle}),
-      ]}
-      {...props}
+      excludedTags={EXCLUDED_TAGS}
       maxMenuHeight={500}
-      supportedTags={getSupportedTags(supportedTags)}
+      supportedTags={getSupportedTags(tags)}
+      {...props}
     />
   );
 }
 
-export default IssueListSearchBar;
+export default withIssueTags(IssueListSearchBar);

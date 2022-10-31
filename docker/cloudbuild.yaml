@@ -41,7 +41,6 @@ steps:
       - '-c'
       - |
         mkdir self-hosted && cd self-hosted
-        echo "no" > .reporterrors
         curl -L "https://github.com/getsentry/self-hosted/archive/master.tar.gz" | tar xzf - --strip-components=1
         echo '{"version": "3.4", "networks":{"default":{"external":{"name":"cloudbuild"}}}}' > docker-compose.override.yml
   - name: 'gcr.io/$PROJECT_ID/docker-compose'
@@ -51,6 +50,8 @@ steps:
       - get-self-hosted-repo
     entrypoint: 'bash'
     dir: self-hosted
+    env:
+      - 'REPORT_SELF_HOSTED_ISSUES=0'
     args:
       - '-e'
       - '-c'

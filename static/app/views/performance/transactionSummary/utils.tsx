@@ -1,3 +1,4 @@
+import {PlainRoute} from 'react-router';
 import styled from '@emotion/styled';
 import {LocationDescriptor, Query} from 'history';
 
@@ -5,6 +6,7 @@ import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
+import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
@@ -95,6 +97,7 @@ export function transactionSummaryRouteWithQuery({
       display,
       trendFunction,
       trendColumn,
+      referrer: 'performance-transaction-summary',
       ...additionalQuery,
     },
   };
@@ -133,6 +136,43 @@ export function generateTransactionLink(transactionName: string) {
   };
 }
 
+export function generateReplayLink(routes: PlainRoute<any>[]) {
+  return (
+    organization: Organization,
+    tableRow: TableDataRow,
+    _query: Query | undefined
+  ): LocationDescriptor => {
+    const replayId = tableRow.replayId;
+    if (!replayId) {
+      return {};
+    }
+
+    const replaySlug = `${tableRow['project.name']}:${replayId}`;
+    const referrer = getRouteStringFromRoutes(routes);
+
+    if (!tableRow.timestamp) {
+      return {
+        pathname: `/organizations/${organization.slug}/replays/${replaySlug}/`,
+        query: {
+          referrer,
+        },
+      };
+    }
+
+    const transactionTimestamp = new Date(tableRow.timestamp).getTime();
+
+    const transactionStartTimestamp =
+      transactionTimestamp - (tableRow['transaction.duration'] as number);
+
+    return {
+      pathname: `/organizations/${organization.slug}/replays/${replaySlug}/`,
+      query: {
+        event_t: transactionStartTimestamp,
+        referrer,
+      },
+    };
+  };
+}
 export const SidebarSpacer = styled('div')`
   margin-top: ${space(3)};
 `;

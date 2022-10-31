@@ -1,11 +1,9 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import StreamGroup from 'sentry/components/stream/group';
 import TagStore from 'sentry/stores/tagStore';
 import IssueList from 'sentry/views/issueList/overview';
-
-import {OrganizationContext} from '../organizationContext';
 
 // Mock <IssueListSidebar> (need <IssueListActions> to toggling real time polling)
 jest.mock('sentry/views/issueList/sidebar', () => jest.fn(() => null));
@@ -62,17 +60,12 @@ describe('IssueList -> Polling', function () {
       },
     };
 
-    render(
-      <OrganizationContext.Provider value={TestStubs.Organization()}>
-        <IssueList {...newRouter} {...defaultProps} {...p} />
-      </OrganizationContext.Provider>,
-      {context: routerContext}
-    );
-
-    await act(async () => {
-      await Promise.resolve();
-      jest.runAllTimers();
+    render(<IssueList {...newRouter} {...defaultProps} {...p} />, {
+      context: routerContext,
     });
+
+    await Promise.resolve();
+    jest.runAllTimers();
   };
 
   beforeEach(function () {

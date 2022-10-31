@@ -120,7 +120,7 @@ export class InstalledPlugin extends Component<Props> {
   render() {
     const {className, plugin, organization, projectItem} = this.props;
     return (
-      <Container>
+      <Container data-test-id="installed-plugin">
         <Access access={['org:integrations']}>
           {({hasAccess}) => (
             <IntegrationFlex className={className}>

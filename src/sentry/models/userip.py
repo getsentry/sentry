@@ -3,13 +3,13 @@ from django.core.cache import cache
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import FlexibleForeignKey, Model, all_silo_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, control_silo_only_model, sane_repr
 from sentry.models import User
 from sentry.region_to_control.messages import UserIpEvent
 from sentry.utils.geo import geo_by_addr
 
 
-@all_silo_model
+@control_silo_only_model
 class UserIP(Model):
     __include_in_export__ = True
 
@@ -38,7 +38,7 @@ class UserIP(Model):
 
 
 def _perform_log(user: User, ip_address: str):
-    from sentry.region_to_control.producer import produce_user_ip
+    from sentry.region_to_control.producer import user_ip_service
 
     try:
         geo = geo_by_addr(ip_address)
@@ -55,4 +55,4 @@ def _perform_log(user: User, ip_address: str):
         event.country_code = geo["country_code"]
         event.region_code = geo["region"]
 
-    produce_user_ip(event)
+    user_ip_service.produce_user_ip(event)
