@@ -50,8 +50,8 @@ const renderQuickContextContent = (
 };
 
 describe('Quick Context', function () {
-  describe('Test Quick Context Content', function () {
-    describe('Test Quick Context Content default behaviour', function () {
+  describe('Quick Context Content', function () {
+    describe('Quick Context Content default behaviour', function () {
       it('Loading state renders for Quick Context.', () => {
         renderQuickContextContent(null, defaultRow, ContextType.ISSUE, true);
 
@@ -70,7 +70,7 @@ describe('Quick Context', function () {
       });
     });
 
-    describe('Test Quick Context Content Issue Column', function () {
+    describe('Quick Context Content Issue Column', function () {
       beforeEach(() => {
         MockApiClient.addMockResponse({
           url: '/organizations/org-slug/users/',
@@ -89,7 +89,7 @@ describe('Quick Context', function () {
         MockApiClient.clearMockResponses();
       });
 
-      describe('Test Quick Context for Issue Column - Status', function () {
+      describe('Quick Context for Issue Column - Status', function () {
         it('Render Ignored Issue status context when data is loaded', async () => {
           renderQuickContextContent(mockedGroup);
 
@@ -117,7 +117,7 @@ describe('Quick Context', function () {
         });
       });
 
-      describe('Test Quick Context for Issue Column - Assignee', function () {
+      describe('Quick Context for Issue Column - Assignee', function () {
         it('Render Assigned To context when data is loaded', async () => {
           renderQuickContextContent(mockedGroup);
 
@@ -126,7 +126,7 @@ describe('Quick Context', function () {
         });
       });
 
-      describe('Test Quick Context for Issue Column - Suspect Commits', function () {
+      describe('Quick Context for Issue Column - Suspect Commits', function () {
         it('Does not render suspect commit to context when row lacks event id', async () => {
           const dataRowWithoutId: unknown = {
             issue: 'SENTRY-VVY',
@@ -182,7 +182,7 @@ describe('Quick Context', function () {
     });
   });
 
-  describe('Test Quick Context Hover', function () {
+  describe('Quick Context Hover', function () {
     afterEach(() => {
       GroupStore.reset();
       MockApiClient.clearMockResponses();
