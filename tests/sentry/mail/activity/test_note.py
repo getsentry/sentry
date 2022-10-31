@@ -5,6 +5,7 @@ from sentry.notifications.types import (
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
+from sentry.services.hybrid_cloud.user import APIUser
 from sentry.testutils.cases import ActivityTestCase
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
@@ -41,7 +42,7 @@ class NoteTestCase(ActivityTestCase):
         ]
         assert len(participants) == 1
         assert participants == {
-            self.user: GroupSubscriptionReason.implicit,
+            APIUser.from_orm(self.user): GroupSubscriptionReason.implicit,
         }
 
     def test_disable_self_notifications(self):
