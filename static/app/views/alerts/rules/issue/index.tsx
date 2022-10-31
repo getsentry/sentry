@@ -419,7 +419,8 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     const {rule} = this.state;
     if (
       !rule ||
-      !this.props.organization.features.includes('issue-alert-incompatible-rules')
+      false
+      // !this.props.organization.features.includes('issue-alert-incompatible-rules')
     ) {
       return;
     }
@@ -1163,16 +1164,16 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                   frequency: `${frequency}`,
                   projectId: project.id,
                 }}
-                submitDisabled={disabled}
+                submitDisabled={
+                  disabled ||
+                  incompatibleCondition !== null ||
+                  incompatibleFilter !== null
+                }
                 submitLabel={t('Save Rule')}
                 extraButton={
                   isSavedAlertRule(rule) ? (
                     <Confirm
-                      disabled={
-                        disabled ||
-                        incompatibleCondition !== null ||
-                        incompatibleFilter !== null
-                      }
+                      disabled={disabled}
                       priority="danger"
                       confirmText={t('Delete Rule')}
                       onConfirm={this.handleDeleteRule}

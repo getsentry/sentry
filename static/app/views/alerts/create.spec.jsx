@@ -528,6 +528,11 @@ describe('ProjectAlertsCreate', function () {
       )
     ).toBeInTheDocument();
 
+    expect(screen.getByRole('button', {name: 'Save Rule'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+
     userEvent.click(screen.getAllByLabelText('Delete Node')[0]);
     expect(
       screen.queryByText(
