@@ -241,7 +241,7 @@ export default class RequestLog extends AsyncComponent<Props, State> {
             <PanelBody>
               {currentRequests.length > 0 ? (
                 currentRequests.map((request, idx) => (
-                  <PanelItem key={idx}>
+                  <PanelItem key={idx} data-test-id="request-item">
                     <TableLayout hasOrganization={app.status !== 'internal'}>
                       <TimestampLink date={request.date} link={request.errorUrl} />
                       <ResponseCode code={request.responseCode} />
