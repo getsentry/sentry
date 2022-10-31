@@ -1,5 +1,5 @@
 import {Fragment, useMemo, useRef} from 'react';
-import {useTheme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import {useKeyboard} from '@react-aria/interactions';
@@ -40,6 +40,7 @@ type Props = {
    * Title to display on top of the menu
    */
   menuTitle?: string;
+  minWidth?: number;
   onClose?: () => void;
   size?: MenuItemProps['size'];
   /**
@@ -60,6 +61,7 @@ function DropdownMenu({
   closeRootMenu,
   closeCurrentSubmenu,
   overlayPositionProps,
+  minWidth,
   ...props
 }: Props) {
   const state = useTreeState<MenuItemProps>({...props, selectionMode: 'single'});
@@ -193,7 +195,7 @@ function DropdownMenu({
   return (
     <FocusScope restoreFocus autoFocus>
       <PositionWrapper zIndex={theme.zIndex.dropdown} {...overlayPositionProps}>
-        <StyledOverlay>
+        <StyledOverlay minWidth={minWidth}>
           <MenuWrap
             ref={menuRef}
             {...mergeProps(modifiedMenuProps, keyboardProps)}
@@ -213,7 +215,12 @@ function DropdownMenu({
 
 export default DropdownMenu;
 
-const StyledOverlay = styled(Overlay)`
+const StyledOverlay = styled(Overlay)<{minWidth?: number}>`
+  ${p =>
+    p.minWidth &&
+    css`
+      min-width: ${p.minWidth}px;
+    `}
   max-width: 24rem;
   @media only screen and (max-width: calc(24rem + ${space(2)} * 2)) {
     max-width: calc(100vw - ${space(2)} * 2);

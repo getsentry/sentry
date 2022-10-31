@@ -80,6 +80,10 @@ interface Props
    */
   menuTitle?: string;
   /**
+   * Minimum menu width. By default, expands to content.
+   */
+  minWidth?: number;
+  /**
    * Tag name for the outer wrap, defaults to `div`
    */
   renderWrapAs?: React.ElementType;
