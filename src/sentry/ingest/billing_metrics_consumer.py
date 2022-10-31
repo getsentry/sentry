@@ -212,6 +212,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
 
     def join(self, timeout: Optional[float] = None) -> None:
         deadline = time.time() + timeout if timeout else None
+        self._mark_commit_ready()
         self._bulk_commit()
 
         while self._ongoing_billing_outcomes:
