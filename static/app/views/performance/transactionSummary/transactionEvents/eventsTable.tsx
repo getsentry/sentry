@@ -150,8 +150,7 @@ class EventsTable extends Component<Props, State> {
     column: TableColumn<keyof TableDataRow>,
     dataRow: TableDataRow
   ): React.ReactNode {
-    const {eventView, organization, location, transactionName, projectId, showReplayCol} =
-      this.props;
+    const {eventView, organization, location, transactionName, projectId} = this.props;
 
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
