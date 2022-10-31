@@ -106,7 +106,7 @@ class MetricsBucket(TypedDict):
 class MetricsBucketBilling(NamedTuple):
     #: None represents no billing outcomes. The instance still exists to commit
     # the metric bucket.
-    billing_future: Union[Future[Message[KafkaPayload]], None]
+    billing_future: Optional[Future[Message[KafkaPayload]]]
     metrics_msg: Message[KafkaPayload]
 
 
