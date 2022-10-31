@@ -1,11 +1,19 @@
 from typing import Mapping, Optional, Union
 
+from arroyo.utils import Metrics
+
 from sentry.metrics.base import MetricsBackend
 
 Tags = Mapping[str, str]
 
 
-class MetricsWrapper:
+class MetricsWrapper(Metrics):
+    """
+    Metrics adapter for use with the Arroyo library. This allows consumer
+    metrics instrumented via the Arroyo library to be automatically recorded
+    and sent to Sentry's configured metrics backend.
+    """
+
     def __init__(
         self,
         backend: MetricsBackend,
