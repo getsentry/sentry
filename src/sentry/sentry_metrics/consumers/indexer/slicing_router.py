@@ -77,5 +77,7 @@ class SlicingRouter(MessageRouter[KafkaPayload]):
         return producer
 
     def shutdown(self, timeout: Optional[float] = None) -> None:
+        if not timeout:
+            timeout = 1.0
         for route in self.__slice_to_producer.values():
-            route.producer.close()
+            route.producer.flush(timeout=timeout)

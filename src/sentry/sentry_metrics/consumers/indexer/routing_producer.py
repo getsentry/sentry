@@ -5,10 +5,10 @@ from collections import deque
 from concurrent.futures import Future
 from typing import Deque, Generic, MutableMapping, NamedTuple, Optional, Tuple
 
-from arroyo.backends.abstract import Producer
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.types import Commit, Message, Partition, Position, Topic, TPayload
+from confluent_kafka import Producer
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +19,7 @@ class MessageRoute(NamedTuple):
     routed to.
     """
 
-    producer: Producer[KafkaPayload]
+    producer: Producer
     topic: Topic
 
 
@@ -47,7 +47,7 @@ class MessageRouter(ABC, Generic[TPayload]):
         raise NotImplementedError
 
     @abstractmethod
-    def shutdown(self, timeout: Optional[float] = None) -> None:
+    def shutdown(self, timeout: Optional[float]) -> None:
         """
         Shutdown the router. This method is called when join() is called on
         the strategy. This method can be used to perform any cleanup needed

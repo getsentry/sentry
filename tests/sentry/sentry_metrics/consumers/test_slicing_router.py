@@ -61,10 +61,15 @@ def test_slicing_router_with_no_partitioning(metrics_message):
     router = SlicingRouter("generic_metrics_sets", KAFKA_SNUBA_GENERIC_METRICS)
     route = router.get_route_for_message(metrics_message)
     assert route.topic.name == KAFKA_SNUBA_GENERIC_METRICS
+    router.shutdown()
 
 
 @pytest.mark.parametrize("org_id", [1, 127, 128, 256, 257])
 def test_slicing_router_with_partitioning(metrics_message, setup_slicing):
+    """
+    With partitioning settings, the SlicingRouter should route to the correct topic
+    based on the org_id header.
+    """
     org_id = metrics_message.payload.headers[0][1].decode("utf-8")
     router = SlicingRouter("generic_metrics_sets", KAFKA_SNUBA_GENERIC_METRICS)
     route = router.get_route_for_message(metrics_message)
@@ -74,13 +79,14 @@ def test_slicing_router_with_partitioning(metrics_message, setup_slicing):
         assert route.topic.name == "sliced_topic_1"
     else:
         assert False, "unexpected org_id"
+    router.shutdown()
 
 
 @pytest.mark.parametrize("org_id", [100])
 def test_slicing_router_with_misconfiguration(metrics_message, monkeypatch):
     """
     Configuring topic override only does not kick in routing logic. So the
-    messages should be routed to the default topic.
+    messages should be routed to the logical topic.
     """
     monkeypatch.setitem(
         SLICED_KAFKA_TOPIC_MAP, (KAFKA_SNUBA_GENERIC_METRICS, 0), "sliced_topic_0"  # type: ignore
@@ -92,6 +98,7 @@ def test_slicing_router_with_misconfiguration(metrics_message, monkeypatch):
     router = SlicingRouter("generic_metrics_sets", KAFKA_SNUBA_GENERIC_METRICS)
     route = router.get_route_for_message(metrics_message)
     assert route.topic.name == KAFKA_SNUBA_GENERIC_METRICS
+    router.shutdown()
 
 
 @pytest.mark.parametrize("org_id", [0])
@@ -103,3 +110,4 @@ def test_slicing_router_with_no_org_in_message(metrics_message, setup_slicing):
     assert metrics_message.payload.headers == []
     route = router.get_route_for_message(metrics_message)
     assert route.topic.name == "sliced_topic_0"
+    router.shutdown()
