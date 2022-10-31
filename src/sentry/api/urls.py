@@ -2449,7 +2449,7 @@ urlpatterns = [
                 url(r"^packages/$", InternalPackagesEndpoint.as_view()),
                 url(r"^environment/$", InternalEnvironmentEndpoint.as_view()),
                 url(r"^mail/$", InternalMailEndpoint.as_view()),
-                url(r"^silo-debug/", InternalSiloDebugEndpoint.as_view()),
+                url(r"^silo-debug/(?P<model_name>[^\/]+)/$", InternalSiloDebugEndpoint.as_view()),
             ]
         ),
     ),
