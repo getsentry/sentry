@@ -28,5 +28,13 @@ class OrganizationUserTeamsEndpoint(OrganizationEndpoint):
             return Response(serialize(list(queryset), request.user, TeamWithProjectsSerializer()))
         else:
             return Response(
-                serialize(list(request.access.teams), request.user, TeamWithProjectsSerializer())
+                serialize(
+                    list(
+                        Team.objects.filter(
+                            id__in=[t.team.id for t in request.access.api_team_members]
+                        )
+                    ),
+                    request.user,
+                    TeamWithProjectsSerializer(),
+                )
             )

@@ -1,17 +1,37 @@
 import contextlib
 import logging
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
-from enum import Enum
+from dataclasses import dataclass, field
+from enum import Enum, IntEnum
 from typing import Dict, Generic, Iterable, List, Mapping, Optional, Type, TypeVar, cast
 
-from sentry.models import Organization, OrganizationMember, OrganizationStatus
+from sentry.models import (
+    Organization,
+    OrganizationMember,
+    OrganizationStatus,
+    ProjectStatus,
+    TeamStatus,
+)
+from sentry.roles.manager import TeamRole
 
 logger = logging.getLogger(__name__)
 
 from django.db.models import F
 
 from sentry.silo import SiloMode
+
+
+class ApiTeamStatus(IntEnum):
+    VISIBLE = TeamStatus.VISIBLE
+    PENDING_DELETION = TeamStatus.PENDING_DELETION
+    DELETION_IN_PROGRESS = TeamStatus.DELETION_IN_PROGRESS
+
+
+class ApiProjectStatus(IntEnum):
+    VISIBLE = ProjectStatus.VISIBLE
+    HIDDEN = ProjectStatus.HIDDEN
+    PENDING_DELETION = ProjectStatus.PENDING_DELETION
+    DELETION_IN_PROGRESS = ProjectStatus.DELETION_IN_PROGRESS
 
 
 class ProjectKeyRole(Enum):
@@ -35,19 +55,63 @@ class ApiProjectKey:
 
 
 @dataclass
+class ApiTeam:
+    id: int = -1
+    status: ApiTeamStatus = ApiTeamStatus.VISIBLE
+    organization_id: int = -1
+    slug: str = ""
+
+
+@dataclass
+class ApiTeamMember:
+    id: int = -1
+    is_active: bool = False
+    role: TeamRole = field(default_factory=TeamRole)
+    project_ids: List[int] = field(default_factory=list)
+    scopes: List[str] = field(default_factory=list)
+    team: ApiTeam = field(default_factory=ApiTeam)
+
+
+@dataclass
+class ApiProject:
+    id: int = -1
+    slug: str = ""
+    name: str = ""
+    organization_id: int = -1
+    status: ApiProjectStatus = ApiProjectStatus.VISIBLE
+
+
+@dataclass
 class ApiOrganizationMember:
+    id: int = -1
+    organization_id: int = -1
     # This can be null when the user is deleted.
-    user_id: Optional[int]
-    pass
+    user_id: Optional[int] = None
+    teams: List[ApiTeamMember] = field(default_factory=list)
+    role: str = ""
+    projects: List[ApiProject] = field(default_factory=list)
+    scopes: List[str] = field(default_factory=list)
 
 
 @dataclass
 class ApiOrganization:
     slug: str = ""
     id: int = -1
-    # exists iff the organization was queried with a user_id context, and that user_id
+    # exists if and only if the organization was queried with a user_id context, and that user_id
     # was confirmed to be a member.
     member: Optional[ApiOrganizationMember] = None
+
+    # Represents the full set of teams and proejcts associated with the org.
+    teams: List[ApiTeam] = field(default_factory=list)
+    projects: List[ApiProject] = field(default_factory=list)
+
+    allow_joinleave: bool = False
+    enhanced_privacy: bool = False
+    disable_shared_issues: bool = False
+    early_adopter: bool = False
+    require_2fa: bool = False
+    disable_new_visibility_features: bool = False
+    require_email_verification: bool = False
 
 
 class InterfaceWithLifecycle(ABC):
@@ -114,6 +178,15 @@ class ProjectKeyService(InterfaceWithLifecycle):
 
 class OrganizationService(InterfaceWithLifecycle):
     @abstractmethod
+    def get_organization_by_id(self, *, id: int) -> Optional[ApiOrganization]:
+        """
+        Returns an organization object by simply fetching for it by id.  Note that this is generally for
+        systems lookup of organization objects and does not handle user scoping memberships.  For that,
+        use `get_organization_by_slug` which is designed for looking up on behalf of a request user context.
+        """
+        pass
+
+    @abstractmethod
     def get_organizations(
         self, user_id: Optional[int], scope: Optional[str], only_visible: bool
     ) -> List[ApiOrganization]:
@@ -161,6 +234,12 @@ class OrganizationService(InterfaceWithLifecycle):
 
 
 class DatabaseBackedOrganizationService(OrganizationService):
+    def get_organization_by_id(self, *, id: int) -> Optional[ApiOrganization]:
+        try:
+            return self._serialize_organization(Organization.objects.get(id))
+        except Organization.NotFound:
+            return None
+
     def check_membership_by_email(
         self, organization_id: int, email: str
     ) -> Optional[ApiOrganizationMember]:

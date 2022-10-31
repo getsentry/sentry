@@ -191,11 +191,11 @@ class SentryApp(ParanoidModel, HasApiScopes):
         self.date_updated = timezone.now()
         return super().save(*args, **kwargs)
 
-    def is_installed_on(self, organization):
+    def is_installed_on(self, *, organization_id: int):
         from sentry.models import SentryAppInstallation
 
         return SentryAppInstallation.objects.filter(
-            organization=organization,
+            organization_id=organization_id,
             sentry_app=self,
         ).exists()
 

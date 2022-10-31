@@ -6,6 +6,7 @@ import itertools
 from enum import Enum
 from typing import Any, Callable, Iterable
 
+import sentry_sdk
 from django.conf import settings
 
 
@@ -107,3 +108,19 @@ class SiloLimit(abc.ABC):
 
         functools.update_wrapper(override, original_method)
         return override
+
+
+def enforce_deprecated_code_path(message: str):
+    """
+    While refactoring out some core interfaces, we want tests to alert us and make guarantee that deprecated paths
+    do not run, while at the same time not causing any outage while such deprecations roll forward into production.
+
+    A call to this function is expected to fail in tests to provide developer feedback on dead code paths (that are
+    intended to be removed) while 'only' alerting in production if these code paths get executed there.
+    """
+    import sys
+
+    if "pytest" in sys.modules:
+        assert f"This code path should be deprecated and will be removed! {message}"
+    else:
+        sentry_sdk.capture_message(f"Deprecated code path found: {message}")

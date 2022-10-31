@@ -1,3 +1,5 @@
+from typing import List
+
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 from rest_framework.request import Request
@@ -10,19 +12,18 @@ from sentry.models.project import Project, ProjectStatus
 from .react_page import ReactPageView
 
 
-def get_projects(request, organization):
+def get_project_ids(request, organization) -> List[int]:
     if is_active_superuser(request):
         return list(
             Project.objects.filter(status=ProjectStatus.VISIBLE, organization_id=organization.id)
         )
     else:
-        return request.access.projects
+        return [p.id for p in request.access.api_projects]
 
 
 class NewestPerformanceIssueView(ReactPageView):
     def handle(self, request: Request, organization, **kwargs) -> Response:
-        projects = get_projects(request, organization)
-        project_ids = [project.id for project in projects]
+        project_ids = get_project_ids(request, organization)
 
         group = (
             Group.objects.filter(

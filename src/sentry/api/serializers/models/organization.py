@@ -45,6 +45,7 @@ from sentry.models import (
     Organization,
     OrganizationAccessRequest,
     OrganizationAvatar,
+    OrganizationMemberTeam,
     OrganizationOnboardingTask,
     OrganizationOption,
     OrganizationStatus,
@@ -480,7 +481,9 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
         return super().get_attrs(item_list, user)
 
     def _project_list(self, organization: Organization, access: Access) -> list[Project]:
-        member_projects = list(access.projects)
+        member_projects = list(
+            Project.objects.filter(project_id__in=[p.id for p in access.api_projects])
+        )
         member_project_ids = [p.id for p in member_projects]
         other_projects = list(
             Project.objects.filter(organization=organization, status=ProjectStatus.VISIBLE).exclude(
@@ -495,7 +498,7 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
         return project_list
 
     def _team_list(self, organization: Organization, access: Access) -> list[Team]:
-        member_teams = list(access.teams)
+        member_teams = self._team_memberships(access)
         member_team_ids = [p.id for p in member_teams]
         other_teams = list(
             Team.objects.filter(organization=organization, status=TeamStatus.VISIBLE).exclude(
@@ -508,6 +511,19 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
             team.set_cached_field_value("organization", organization)
 
         return team_list
+
+    def _team_memberships(self, access: Access) -> List[Team]:
+        if access.api_member is None:
+            return []
+
+        return [
+            omt.team
+            for omt in OrganizationMemberTeam.objects.filter(
+                organizationmember_id=access.api_member.id,
+                is_active=True,
+                team__status=TeamStatus.VISIBLE,
+            ).select_related("team")
+        ]
 
     def serialize(  # type: ignore
         self, obj: Organization, attrs: Mapping[str, Any], user: User, access: Access

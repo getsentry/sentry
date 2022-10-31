@@ -20,7 +20,7 @@ def get_teams(request, organization, teams=None):
             ).values_list("id", flat=True)
             verified_ids.update(myteams)
         else:
-            myteams = [t.id for t in request.access.teams]
+            myteams = [t.team.id for t in request.access.api_team_members]
             verified_ids.update(myteams)
 
     for team_id in requested_teams:  # Verify each passed Team id is numeric
