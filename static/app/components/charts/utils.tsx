@@ -1,9 +1,4 @@
-import type {
-  BarSeriesOption,
-  EChartsOption,
-  LegendComponentOption,
-  LineSeriesOption,
-} from 'echarts';
+import type {EChartsOption, LegendComponentOption, LineSeriesOption} from 'echarts';
 import type {Location} from 'history';
 import moment from 'moment';
 
