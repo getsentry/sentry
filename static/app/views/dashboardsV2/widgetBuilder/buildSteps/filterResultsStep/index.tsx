@@ -107,9 +107,11 @@ export function FilterResultsStep({
       description={
         canAddSearchConditions
           ? t(
-              'This is how you filter down your search. You can add multiple queries to compare data for each overlay.'
+              'Projects, environments, and date range have been preselected at the dashboard level. Filter down your search here. You can add multiple queries to compare data for each overlay.'
             )
-          : t('This is how you filter down your search.')
+          : t(
+              'Projects, environments, and date range have been preselected at the dashboard level. Filter down your search here.'
+            )
       }
     >
       <Feature features={['dashboards-top-level-filter']}>
