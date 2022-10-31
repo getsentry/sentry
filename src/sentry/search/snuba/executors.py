@@ -43,6 +43,8 @@ from sentry.utils import json, metrics, snuba
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.snuba import SnubaQueryParams, aliased_query_params, bulk_raw_query
 
+ALL_ISSUE_TYPES = {gt.value for gt in GroupType}
+
 
 def get_search_filter(
     search_filters: Optional[Sequence[SearchFilter]], name: str, operator: str
@@ -181,7 +183,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                         GROUP_TYPE_TO_CATEGORY[GroupType(value)]
                         for value in list(
                             filter(
-                                lambda x: x not in {gt.value for gt in GroupType},
+                                lambda x: x not in ALL_ISSUE_TYPES,
                                 search_filter.value.raw_value,
                             )
                         )
