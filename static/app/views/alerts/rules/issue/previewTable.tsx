@@ -44,6 +44,13 @@ const PreviewTable = ({
         </EmptyStateWarning>
       );
     }
+    if (issueCount === 0) {
+      return (
+        <EmptyStateWarning>
+          <p>{t("We couldn't find any issues that would've triggered your rule")}</p>
+        </EmptyStateWarning>
+      );
+    }
     const memberList = indexMembersByProject(members);
     return previewGroups?.map((id, index) => {
       const group = GroupStore.get(id) as Group | undefined;
