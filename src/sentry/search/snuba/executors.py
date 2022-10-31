@@ -191,9 +191,13 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 else:
                     group_categories.update(
                         GROUP_TYPE_TO_CATEGORY[GroupType(value)]
-                        for value in search_filter.value.raw_value
+                        for value in list(
+                            filter(
+                                lambda x: x not in {gt.value for gt in GroupType},
+                                search_filter.value.raw_value,
+                            )
+                        )
                     )
-
             if (
                 # Don't filter on postgres fields here, they're not available
                 search_filter.key.name in self.postgres_only_fields
