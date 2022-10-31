@@ -61,7 +61,7 @@ describe('OrganizationStats', function () {
   /**
    * Features and Alerts
    */
-  it('renders header state wihout tabs', () => {
+  it('renders header state without tabs', () => {
     const newOrg = initializeOrg();
     render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />, {
       context: newOrg.routerContext,
