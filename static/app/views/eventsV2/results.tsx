@@ -46,6 +46,7 @@ import {
   MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES,
 } from 'sentry/utils/discover/types';
 import localStorage from 'sentry/utils/localStorage';
+import marked from 'sentry/utils/marked';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
@@ -80,6 +81,7 @@ type State = {
   eventView: EventView;
   needConfirmation: boolean;
   showTags: boolean;
+  tips: string[];
   totalValues: null | number;
   savedQuery?: SavedQuery;
   showMetricsAlert?: boolean;
@@ -125,6 +127,7 @@ export class Results extends Component<Props, State> {
     showTags: readShowTagsState(),
     needConfirmation: false,
     confirmedQuery: false,
+    tips: [],
   };
 
   componentDidMount() {
@@ -538,6 +541,18 @@ export class Results extends Component<Props, State> {
     return null;
   }
 
+  renderTips() {
+    const {tips} = this.state;
+    if (tips) {
+      return tips.map((tip, index) => (
+        <Alert type="info" showIcon key={`tip-${index}`}>
+          <TipContainer dangerouslySetInnerHTML={{__html: marked(tip)}} />
+        </Alert>
+      ));
+    }
+    return null;
+  }
+
   render() {
     const {organization, location, router, selection, api, setSavedQuery, isHomepage} =
       this.props;
@@ -583,6 +598,7 @@ export class Results extends Component<Props, State> {
                 <Top fullWidth>
                   {this.renderMetricsFallbackBanner()}
                   {this.renderError(error)}
+                  {this.renderTips()}
                   <StyledPageFilterBar condensed>
                     <ProjectPageFilter />
                     <EnvironmentPageFilter />
@@ -634,6 +650,7 @@ export class Results extends Component<Props, State> {
                     confirmedQuery={confirmedQuery}
                     onCursor={this.handleCursor}
                     isHomepage={isHomepage}
+                    setTips={(tips: string[]) => this.setState({tips})}
                   />
                 </Layout.Main>
                 {showTags ? this.renderTagsTable() : null}
@@ -684,6 +701,12 @@ const StyledSearchBar = styled(SearchBar)`
 
 const Top = styled(Layout.Main)`
   flex-grow: 0;
+`;
+
+const TipContainer = styled('span')`
+  > p {
+    margin: 0;
+  }
 `;
 
 type SavedQueryState = AsyncComponent['state'] & {
