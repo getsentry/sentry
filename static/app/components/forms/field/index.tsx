@@ -12,11 +12,6 @@ import FieldWrapper from './fieldWrapper';
 import {FieldGroupProps} from './types';
 
 /**
- * XXX: BC with getsentry
- */
-export type FieldProps = FieldGroupProps;
-
-/**
  * A component to render a Field (i.e. label + help + form "control"),
  * generally inside of a Panel.
  *
