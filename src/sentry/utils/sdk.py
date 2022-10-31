@@ -403,6 +403,9 @@ def configure_sdk():
         **sdk_options,
     )
 
+    if settings.SENTRY_PROFILING_ENABLED:
+        sentry_sdk.set_tag("sentry.profiler", settings.SENTRY_PROFILER_MODE)
+
 
 class RavenShim:
     """Wrapper around sentry-sdk in case people are writing their own

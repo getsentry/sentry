@@ -585,7 +585,10 @@ class IssueListOverview extends Component<Props, State> {
 
           browserHistory.replace({
             pathname: redirect,
-            query: extractSelectionParameters(this.props.location.query),
+            query: {
+              referrer: 'issue-list',
+              ...extractSelectionParameters(this.props.location.query),
+            },
           });
           return;
         }
@@ -890,6 +893,7 @@ class IssueListOverview extends Component<Props, State> {
     savedSearch: (SavedSearch & {projectId?: number}) | null = this.props.savedSearch
   ) => {
     const query = {
+      referrer: 'issue-list',
       ...this.getEndpointParams(),
       ...newParams,
     };
@@ -1111,14 +1115,14 @@ class IssueListOverview extends Component<Props, State> {
     const projectIds = this.getSelectedProjectIds();
     const endpointParams = this.getEndpointParams();
 
-    return fetchTagValues(
-      this.props.api,
-      orgId,
-      key,
+    return fetchTagValues({
+      api: this.props.api,
+      orgSlug: orgId,
+      tagKey: key,
       search,
       projectIds,
-      endpointParams as any
-    );
+      endpointParams: endpointParams as any,
+    });
   };
 
   render() {
@@ -1209,10 +1213,7 @@ class IssueListOverview extends Component<Props, State> {
               savedSearch={savedSearch}
               sort={this.getSort()}
               onSearch={this.onSearch}
-              onSidebarToggle={this.onSidebarToggle}
               isSearchDisabled={isSidebarVisible}
-              tagValueLoader={this.tagValueLoader}
-              tags={tags}
             />
 
             <Panel>

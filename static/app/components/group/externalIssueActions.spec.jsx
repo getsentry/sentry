@@ -1,48 +1,72 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
 
 import ExternalIssueActions from 'sentry/components/group/externalIssueActions';
 
 describe('ExternalIssueActions', function () {
   const group = TestStubs.Group();
 
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
+  });
+
   describe('with no external issues linked', function () {
     const integration = TestStubs.GitHubIntegration({externalIssues: []});
     const configurations = [integration];
-    const wrapper = mountWithTheme(
-      <ExternalIssueActions
-        key="github"
-        group={group}
-        configurations={configurations}
-        onChange={() => {}}
-      />
-    );
 
-    // console.log(configurations);
     it('renders', function () {
-      expect(wrapper).toSnapshot();
+      const {container} = render(
+        <ExternalIssueActions
+          key="github"
+          group={group}
+          configurations={configurations}
+          onChange={() => {}}
+        />
+      );
+
+      expect(container).toSnapshot();
+      // renders GitHub Issue when no issues currently linked
+      expect(screen.getByText('GitHub Issue')).toBeInTheDocument();
     });
 
-    it('renders GitHub Issue when no issues currently linked', function () {
-      expect(wrapper.find('IntegrationLink a').text()).toEqual('GitHub Issue');
+    it('opens hovercard', async function () {
+      render(
+        <ExternalIssueActions
+          key="github"
+          group={group}
+          configurations={configurations}
+          onChange={() => {}}
+        />
+      );
+
+      userEvent.hover(screen.getByText('GitHub Issue'));
+      expect(await screen.findByText('GitHub Integration')).toBeInTheDocument();
+      expect(screen.getByText('github.com/test-integration')).toBeInTheDocument();
     });
 
-    it('should not have `+` icon', function () {
-      const container = wrapper.find('IssueSyncListElementContainer').first();
-      expect(container.contains('StyledIcon')).toBe(false);
-    });
-
-    describe('opens modal', function () {
-      MockApiClient.addMockResponse({
-        url: '/groups/1/integrations/1/?action=create',
+    it('opens modal', async function () {
+      const integrationConfigMock = MockApiClient.addMockResponse({
+        url: '/groups/1/integrations/1/',
         body: {createIssueConfig: []},
       });
 
-      it('opens when clicking text', function () {
-        wrapper.find('IntegrationLink a').simulate('click');
-        expect(wrapper.find('Hovercard').first().prop('header')).toEqual(
-          'GitHub Integration'
-        );
-      });
+      render(
+        <ExternalIssueActions
+          key="github"
+          group={group}
+          configurations={configurations}
+          onChange={() => {}}
+        />
+      );
+      renderGlobalModal();
+
+      userEvent.click(screen.getByRole('button', {name: 'Add'}));
+      expect(await screen.findByText('Create Issue')).toBeInTheDocument();
+      expect(integrationConfigMock).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -56,32 +80,36 @@ describe('ExternalIssueActions', function () {
     ];
     const integration = TestStubs.GitHubIntegration({externalIssues});
     const configurations = [integration];
-    const wrapper = mountWithTheme(
-      <ExternalIssueActions
-        key="github"
-        group={group}
-        configurations={configurations}
-        onChange={() => {}}
-      />
-    );
     it('renders', function () {
-      expect(wrapper.find('IssueSyncElement')).toHaveLength(0);
+      render(
+        <ExternalIssueActions
+          key="github"
+          group={group}
+          configurations={configurations}
+          onChange={() => {}}
+        />
+      );
+
+      expect(screen.getByText('getsentry/sentry#2')).toBeInTheDocument();
     });
 
-    it('renders GitHub Issue when no issues currently linked', function () {
-      expect(wrapper.find('IntegrationLink a').text()).toEqual('getsentry/sentry#2');
-    });
-
-    describe('deletes linked issue', function () {
+    it('deletes when clicking x', function () {
       const mockDelete = MockApiClient.addMockResponse({
         url: '/groups/1/integrations/1/?externalIssue=100',
         method: 'DELETE',
       });
 
-      it('deletes when clicking x', function () {
-        wrapper.find('StyledIcon').simulate('click');
-        expect(mockDelete).toHaveBeenCalled();
-      });
+      render(
+        <ExternalIssueActions
+          key="github"
+          group={group}
+          configurations={configurations}
+          onChange={() => {}}
+        />
+      );
+
+      userEvent.click(screen.getByRole('button', {name: 'Close'}));
+      expect(mockDelete).toHaveBeenCalledTimes(1);
     });
   });
 });

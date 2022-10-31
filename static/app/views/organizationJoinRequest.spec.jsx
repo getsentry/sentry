@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {trackAdhocEvent} from 'sentry/utils/analytics';
@@ -19,13 +19,11 @@ describe('OrganizationJoinRequest', function () {
   });
 
   it('renders', function () {
-    const wrapper = mountWithTheme(
-      <OrganizationJoinRequest params={{orgId: org.slug}} />
-    );
+    render(<OrganizationJoinRequest params={{orgId: org.slug}} />);
 
-    expect(wrapper.find('h3').text()).toBe('Request to Join');
-    expect(wrapper.find('EmailField').exists()).toBe(true);
-    expect(wrapper.find('button[aria-label="Request to Join"]').exists()).toBe(true);
+    expect(screen.getByRole('heading', {name: 'Request to Join'})).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'Email Address'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Request to Join'})).toBeInTheDocument();
 
     expect(trackAdhocEvent).toHaveBeenCalledWith({
       eventKey: 'join_request.viewed',
@@ -39,23 +37,22 @@ describe('OrganizationJoinRequest', function () {
       method: 'POST',
     });
 
-    const wrapper = mountWithTheme(
-      <OrganizationJoinRequest params={{orgId: org.slug}} />
+    render(<OrganizationJoinRequest params={{orgId: org.slug}} />);
+
+    userEvent.type(
+      screen.getByRole('textbox', {name: 'Email Address'}),
+      'email@example.com{enter}'
     );
 
-    wrapper
-      .find('input[id="email"]')
-      .simulate('change', {target: {value: 'email@example.com'}});
-
-    wrapper.find('form').simulate('submit');
     expect(postMock).toHaveBeenCalled();
 
-    await tick();
-    wrapper.update();
+    expect(
+      await screen.findByRole('heading', {name: 'Request Sent'})
+    ).toBeInTheDocument();
 
-    expect(wrapper.find('h3').text()).toBe('Request Sent');
-    expect(wrapper.find('EmailField').exists()).toBe(false);
-    expect(wrapper.find('button[aria-label="Request to Join"]').exists()).toBe(false);
+    expect(
+      screen.queryByRole('button', {name: 'Request to Join'})
+    ).not.toBeInTheDocument();
   });
 
   it('errors', async function () {
@@ -65,33 +62,26 @@ describe('OrganizationJoinRequest', function () {
       statusCode: 400,
     });
 
-    const wrapper = mountWithTheme(
-      <OrganizationJoinRequest params={{orgId: org.slug}} />
+    render(<OrganizationJoinRequest params={{orgId: org.slug}} />);
+
+    userEvent.type(
+      screen.getByRole('textbox', {name: 'Email Address'}),
+      'email@example.com{enter}'
     );
 
-    wrapper
-      .find('input[id="email"]')
-      .simulate('change', {target: {value: 'email@example.com'}});
+    await waitFor(() => {
+      expect(postMock).toHaveBeenCalled();
+      expect(addErrorMessage).toHaveBeenCalled();
+    });
 
-    wrapper.find('form').simulate('submit');
-    expect(postMock).toHaveBeenCalled();
-
-    await tick();
-    wrapper.update();
-
-    expect(addErrorMessage).toHaveBeenCalled();
-    expect(wrapper.find('h3').text()).toBe('Request to Join');
-    expect(wrapper.find('EmailField').exists()).toBe(true);
-    expect(wrapper.find('button[aria-label="Request to Join"]').exists()).toBe(true);
+    expect(screen.getByRole('heading', {name: 'Request to Join'})).toBeInTheDocument();
   });
 
   it('cancels', function () {
     const spy = jest.spyOn(window.location, 'assign').mockImplementation(() => {});
-    const wrapper = mountWithTheme(
-      <OrganizationJoinRequest params={{orgId: org.slug}} />
-    );
+    render(<OrganizationJoinRequest params={{orgId: org.slug}} />);
 
-    wrapper.find('button[aria-label="Cancel"]').simulate('click');
+    userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
     expect(spy).toHaveBeenCalledWith(`/auth/login/${org.slug}/`);
   });
 });

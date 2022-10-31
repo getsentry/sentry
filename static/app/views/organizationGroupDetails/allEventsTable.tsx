@@ -30,6 +30,8 @@ const AllEventsTable = (props: Props) => {
   } = props;
   const [error, setError] = useState<string>('');
   const routes = useRoutes();
+
+  const isReplayEnabled = organization.features.includes('session-replay-ui');
   const fields: string[] = [
     'id',
     'transaction',
@@ -39,6 +41,7 @@ const AllEventsTable = (props: Props) => {
     'user.display',
     ...(isPerfIssue ? ['transaction.duration'] : []),
     'timestamp',
+    ...(isReplayEnabled ? ['replayId'] : []),
   ];
 
   const eventView: EventView = EventView.fromLocation(props.location);
@@ -51,7 +54,7 @@ const AllEventsTable = (props: Props) => {
   }
 
   const idQuery = isPerfIssue
-    ? `performance.issue_ids:${issueId}`
+    ? `performance.issue_ids:${issueId} event.type:transaction`
     : `issue.id:${issueId}`;
   eventView.query = `${idQuery} ${props.location.query.query || ''}`;
   eventView.statsPeriod = '90d';
@@ -65,6 +68,7 @@ const AllEventsTable = (props: Props) => {
     t('user'),
     ...(isPerfIssue ? [t('total duration')] : []),
     t('timestamp'),
+    ...(isReplayEnabled ? [t('replay')] : []),
     t('minidump'),
   ];
 

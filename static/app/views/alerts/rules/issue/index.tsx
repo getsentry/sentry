@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 import {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
+import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
 import set from 'lodash/set';
 
@@ -31,15 +32,18 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingMask from 'sentry/components/loadingMask';
+import {CursorHandler} from 'sentry/components/pagination';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import TeamSelector from 'sentry/components/teamSelector';
 import {ALL_ENVIRONMENTS_KEY} from 'sentry/constants';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
 import {
   Environment,
   IssueOwnership,
+  Member,
   OnboardingTaskKey,
   Organization,
   Project,
@@ -50,7 +54,6 @@ import {
   IssueAlertRuleAction,
   IssueAlertRuleActionTemplate,
   IssueAlertRuleConditionTemplate,
-  ProjectAlertRuleStats,
   UnsavedIssueAlertRule,
 } from 'sentry/types/alerts';
 import {metric} from 'sentry/utils/analytics';
@@ -61,7 +64,7 @@ import recreateRoute from 'sentry/utils/recreateRoute';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
-import PreviewChart from 'sentry/views/alerts/rules/issue/previewChart';
+import PreviewTable from 'sentry/views/alerts/rules/issue/previewTable';
 import {
   CHANGE_ALERT_CONDITION_IDS,
   CHANGE_ALERT_PLACEHOLDERS_LABELS,
@@ -107,6 +110,9 @@ const defaultRule: UnsavedIssueAlertRule = {
 
 const POLLING_MAX_TIME_LIMIT = 3 * 60000;
 
+const SENTRY_ISSUE_ALERT_DOCS_URL =
+  'https://docs.sentry.io/product/alerts/alert-types/#issue-alerts';
+
 type ConditionOrActionProperty = 'conditions' | 'actions' | 'filters';
 
 type RuleTaskResponse = {
@@ -119,6 +125,7 @@ type RouteParams = {orgId: string; projectId?: string; ruleId?: string};
 
 type Props = {
   location: Location;
+  members: Member[] | undefined;
   organization: Organization;
   project: Project;
   projects: Project[];
@@ -137,9 +144,14 @@ type State = AsyncView['state'] & {
     [key: string]: string[];
   };
   environments: Environment[] | null;
-  previewError: null | string;
+  issueCount: number;
+  loadingPreview: boolean;
+  previewCursor: string | null | undefined;
+  previewError: boolean;
+  previewGroups: string[] | null;
+  previewPage: number;
   project: Project;
-  ruleFireHistory: ProjectAlertRuleStats[] | null;
+  sendingNotification: boolean;
   uuid: null | string;
   duplicateTargetRule?: UnsavedIssueAlertRule | IssueAlertRule | null;
   ownership?: null | IssueOwnership;
@@ -159,16 +171,40 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     return createFromDuplicate && location?.query.duplicateRuleId;
   }
 
+  componentWillMount() {
+    this.fetchPreview();
+  }
+
   componentWillUnmount() {
+    GroupStore.reset();
     window.clearTimeout(this.pollingTimeout);
   }
 
   componentDidUpdate(_prevProps: Props, prevState: State) {
+    if (prevState.previewCursor !== this.state.previewCursor) {
+      this.fetchPreview();
+    } else if (this.isRuleStateChange(prevState)) {
+      this.setState({loadingPreview: true});
+      this.fetchPreviewDebounced();
+    }
     if (prevState.project.id === this.state.project.id) {
       return;
     }
 
     this.fetchEnvironments();
+  }
+
+  isRuleStateChange(prevState: State): boolean {
+    const prevRule = prevState.rule;
+    const curRule = this.state.rule;
+    return (
+      JSON.stringify(prevRule?.conditions) !== JSON.stringify(curRule?.conditions) ||
+      JSON.stringify(prevRule?.filters) !== JSON.stringify(curRule?.filters) ||
+      prevRule?.actionMatch !== curRule?.actionMatch ||
+      prevRule?.filterMatch !== curRule?.filterMatch ||
+      prevRule?.frequency !== curRule?.frequency ||
+      JSON.stringify(prevState.project) !== JSON.stringify(this.state.project)
+    );
   }
 
   getTitle() {
@@ -194,7 +230,13 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       environments: [],
       uuid: null,
       project,
-      ruleFireHistory: null,
+      previewGroups: null,
+      previewCursor: null,
+      previewError: false,
+      issueCount: 0,
+      previewPage: 0,
+      loadingPreview: false,
+      sendingNotification: false,
     };
 
     const projectTeamIds = new Set(project.teams.map(({id}) => id));
@@ -307,40 +349,67 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     }
   };
 
-  fetchPreview = async () => {
+  fetchPreview = (resetCursor = false) => {
     const {organization} = this.props;
-    const {project, rule} = this.state;
+    const {project, rule, previewCursor} = this.state;
 
-    if (!rule) {
+    if (!rule || !organization.features.includes('issue-alert-preview')) {
       return;
     }
+
     this.setState({loadingPreview: true});
-    try {
-      const response = await this.api.requestPromise(
-        `/projects/${organization.slug}/${project.slug}/rules/preview`,
-        {
-          method: 'POST',
-          data: {
-            conditions: rule?.conditions || [],
-            filters: rule?.filters || [],
-            actionMatch: rule?.actionMatch || 'all',
-            filterMatch: rule?.filterMatch || 'all',
-            frequency: rule?.frequency || 60,
-          },
-        }
-      );
-      this.setState({
-        ruleFireHistory: response,
-        previewError: null,
-        loadingPreview: false,
-      });
-    } catch (err) {
-      this.setState({
-        previewError:
-          'Previews are unavailable for this combination of conditions and filters',
-        loadingPreview: false,
-      });
+    if (resetCursor) {
+      this.setState({previewCursor: null, previewPage: 0});
     }
+    // we currently don't have a way to parse objects from query params, so this method is POST for now
+    this.api
+      .requestPromise(`/projects/${organization.slug}/${project.slug}/rules/preview`, {
+        method: 'POST',
+        includeAllArgs: true,
+        query: {
+          cursor: resetCursor ? null : previewCursor,
+          per_page: 5,
+        },
+        data: {
+          conditions: rule?.conditions || [],
+          filters: rule?.filters || [],
+          actionMatch: rule?.actionMatch || 'all',
+          filterMatch: rule?.filterMatch || 'all',
+          frequency: rule?.frequency || 60,
+        },
+      })
+      .then(([data, _, resp]) => {
+        GroupStore.add(data);
+
+        const pageLinks = resp?.getResponseHeader('Link');
+        const hits = resp?.getResponseHeader('X-Hits');
+        const issueCount =
+          typeof hits !== 'undefined' && hits ? parseInt(hits, 10) || 0 : 0;
+        this.setState({
+          previewGroups: data.map(g => g.id),
+          previewError: false,
+          pageLinks: pageLinks ?? '',
+          issueCount,
+          loadingPreview: false,
+        });
+      })
+      .catch(_ => {
+        this.setState({
+          previewError: true,
+          loadingPreview: false,
+        });
+      });
+  };
+
+  fetchPreviewDebounced = debounce(() => {
+    this.fetchPreview(true);
+  }, 1000);
+
+  onPreviewCursor: CursorHandler = (cursor, _1, _2, direction) => {
+    this.setState({
+      previewCursor: cursor,
+      previewPage: this.state.previewPage + direction,
+    });
   };
 
   fetchEnvironments() {
@@ -370,6 +439,29 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       this.pollHandler(quitTime);
     }, 1000);
   }
+
+  testNotifications = () => {
+    const {organization} = this.props;
+    const {project, rule} = this.state;
+    this.setState({sendingNotification: true});
+    addLoadingMessage(t('Sending a test notification...'));
+    this.api
+      .requestPromise(`/projects/${organization.slug}/${project.slug}/rule-actions/`, {
+        method: 'POST',
+        data: {
+          actions: rule?.actions ?? [],
+        },
+      })
+      .then(() => {
+        addSuccessMessage(t('Notification sent!'));
+      })
+      .catch(() => {
+        addErrorMessage(t('Notification failed'));
+      })
+      .finally(() => {
+        this.setState({sendingNotification: false});
+      });
+  };
 
   handleRuleSuccess = (isNew: boolean, rule: IssueAlertRule) => {
     const {organization, router} = this.props;
@@ -602,10 +694,8 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     this.setState(prevState => {
       const clonedState = cloneDeep(prevState);
 
-      const newTypeList = prevState.rule ? prevState.rule[type] : [];
-      if (prevState.rule) {
-        newTypeList.splice(idx, 1);
-      }
+      const newTypeList = prevState.rule ? [...prevState.rule[type]] : [];
+      newTypeList.splice(idx, 1);
 
       set(clonedState, `rule[${type}]`, newTypeList);
       return clonedState;
@@ -801,19 +891,44 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     );
   }
 
-  renderPreviewGraph() {
-    const {ruleFireHistory, previewError} = this.state;
-    if (ruleFireHistory && !previewError) {
-      return <PreviewChart ruleFireHistory={ruleFireHistory} />;
-    }
+  renderPreviewText() {
+    const {issueCount, previewError} = this.state;
     if (previewError) {
-      return (
-        <Alert type="error" showIcon>
-          {previewError}
-        </Alert>
+      return t(
+        "Select a condition above to see which issues would've triggered this alert"
       );
     }
-    return null;
+    return tct(
+      "[issueCount] issues would have triggered this rule in the past 14 days approximately. If you're looking to reduce noise then make sure to [link:read the docs].",
+      {
+        issueCount,
+        link: <a href={SENTRY_ISSUE_ALERT_DOCS_URL} />,
+      }
+    );
+  }
+
+  renderPreviewTable() {
+    const {members} = this.props;
+    const {
+      previewGroups,
+      previewError,
+      pageLinks,
+      issueCount,
+      previewPage,
+      loadingPreview,
+    } = this.state;
+    return (
+      <PreviewTable
+        previewGroups={previewGroups}
+        members={members}
+        pageLinks={pageLinks}
+        onCursor={this.onPreviewCursor}
+        issueCount={issueCount}
+        page={previewPage}
+        loading={loadingPreview}
+        error={previewError}
+      />
+    );
   }
 
   renderProjectSelect(disabled: boolean) {
@@ -949,7 +1064,8 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
   renderBody() {
     const {organization} = this.props;
-    const {project, rule, detailedError, loading, ownership, loadingPreview} = this.state;
+    const {project, rule, detailedError, loading, ownership, sendingNotification} =
+      this.state;
     const {actions, filters, conditions, frequency} = rule || {};
 
     const environment =
@@ -1193,6 +1309,24 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                                 )
                               }
                             />
+                            <Feature
+                              organization={organization}
+                              features={['issue-alert-test-notifications']}
+                            >
+                              <TestButtonWrapper>
+                                <Button
+                                  type="button"
+                                  onClick={this.testNotifications}
+                                  disabled={
+                                    sendingNotification ||
+                                    rule?.actions === undefined ||
+                                    rule?.actions.length === 0
+                                  }
+                                >
+                                  {t('Test Notifications')}
+                                </Button>
+                              </TestButtonWrapper>
+                            </Feature>
                           </StepContent>
                         </StepContainer>
                       </Step>
@@ -1209,23 +1343,12 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                     <StyledListItem>
                       <StyledListItemSpaced>
                         <div>
-                          {t('Preview history graph')}
-                          <StyledFieldHelp>
-                            {t(
-                              'Shows when this rule would have fired in the past 2 weeks'
-                            )}
-                          </StyledFieldHelp>
+                          {t('Preview')}
+                          <StyledFieldHelp>{this.renderPreviewText()}</StyledFieldHelp>
                         </div>
-                        <Button
-                          onClick={this.fetchPreview}
-                          type="button"
-                          disabled={loadingPreview}
-                        >
-                          Generate Preview
-                        </Button>
                       </StyledListItemSpaced>
                     </StyledListItem>
-                    {this.renderPreviewGraph()}
+                    {this.renderPreviewTable()}
                   </Feature>
                   <StyledListItem>{t('Establish ownership')}</StyledListItem>
                   {this.renderRuleName(disabled)}
@@ -1308,6 +1431,10 @@ const StepLead = styled('div')`
     align-items: center;
     gap: ${space(0.5)};
   }
+`;
+
+const TestButtonWrapper = styled('div')`
+  margin-top: ${space(1.5)};
 `;
 
 const ChevronContainer = styled('div')`

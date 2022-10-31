@@ -380,7 +380,7 @@ export const getButtonStyles = ({theme, ...props}: StyledButtonProps) => {
     transition: background 0.1s, border 0.1s, box-shadow 0.1s;
 
     ${props.priority === 'link' &&
-    `font-size: inherit; font-weight: inherit; padding: 0;`}
+    `font-size: inherit; font-weight: inherit; padding: 0; height: auto; min-height: auto;`}
     ${props.size === 'zero' && `height: auto; min-height: auto; padding: ${space(0.25)};`}
 
   &:focus {

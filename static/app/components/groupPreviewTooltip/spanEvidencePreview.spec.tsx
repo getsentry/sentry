@@ -1,4 +1,3 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   MockSpan,
   ProblemSpan,
@@ -7,8 +6,6 @@ import {
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as useApi from 'sentry/utils/useApi';
-import {OrganizationContext} from 'sentry/views/organizationContext';
-import {RouteContext} from 'sentry/views/routeContext';
 
 import {SpanEvidencePreview} from './spanEvidencePreview';
 
@@ -18,27 +15,19 @@ describe('SpanEvidencePreview', () => {
     jest.restoreAllMocks();
   });
 
-  const {organization, router} = initializeOrg();
-
-  const TestComponent: typeof SpanEvidencePreview = props => (
-    <OrganizationContext.Provider value={organization}>
-      <RouteContext.Provider
-        value={{router, location: router.location, params: {}, routes: []}}
-      >
-        <SpanEvidencePreview {...props} />
-      </RouteContext.Provider>
-    </OrganizationContext.Provider>
-  );
-
   it('does not fetch before hover', () => {
     const api = new MockApiClient();
     jest.spyOn(useApi, 'default').mockReturnValue(api);
     const spy = jest.spyOn(api, 'requestPromise');
 
     render(
-      <TestComponent eventId="event-id" projectSlug="project-slug" groupId="group-id">
+      <SpanEvidencePreview
+        eventId="event-id"
+        projectSlug="project-slug"
+        groupId="group-id"
+      >
         Hover me
-      </TestComponent>
+      </SpanEvidencePreview>
     );
 
     jest.runAllTimers();
@@ -53,9 +42,13 @@ describe('SpanEvidencePreview', () => {
     });
 
     render(
-      <TestComponent eventId="event-id" projectSlug="project-slug" groupId="group-id">
+      <SpanEvidencePreview
+        eventId="event-id"
+        projectSlug="project-slug"
+        groupId="group-id"
+      >
         Hover me
-      </TestComponent>
+      </SpanEvidencePreview>
     );
 
     userEvent.hover(screen.getByText('Hover me'));
@@ -71,7 +64,7 @@ describe('SpanEvidencePreview', () => {
       body: null,
     });
 
-    render(<TestComponent groupId="group-id">Hover me</TestComponent>);
+    render(<SpanEvidencePreview groupId="group-id">Hover me</SpanEvidencePreview>);
 
     userEvent.hover(screen.getByText('Hover me'));
 
@@ -85,7 +78,7 @@ describe('SpanEvidencePreview', () => {
     jest.spyOn(useApi, 'default').mockReturnValue(api);
     jest.spyOn(api, 'requestPromise').mockRejectedValue(new Error());
 
-    render(<TestComponent groupId="group-id">Hover me</TestComponent>);
+    render(<SpanEvidencePreview groupId="group-id">Hover me</SpanEvidencePreview>);
 
     userEvent.hover(screen.getByText('Hover me'));
 
@@ -151,7 +144,7 @@ describe('SpanEvidencePreview', () => {
       body: event,
     });
 
-    render(<TestComponent groupId="group-id">Hover me</TestComponent>);
+    render(<SpanEvidencePreview groupId="group-id">Hover me</SpanEvidencePreview>);
 
     userEvent.hover(screen.getByText('Hover me'));
 

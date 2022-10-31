@@ -4,6 +4,9 @@ import {Client} from 'sentry/api';
 import EventCause from 'sentry/components/events/eventCause';
 import CommitterStore from 'sentry/stores/committerStore';
 
+import {CommitRow} from '../commitRow';
+import {QuickContextCommitRow} from '../discover/quickContextCommitRow';
+
 describe('EventCause', function () {
   const organization = TestStubs.Organization();
   const project = TestStubs.Project();
@@ -60,15 +63,53 @@ describe('EventCause', function () {
     });
   });
 
-  it('renders', async function () {
-    render(<EventCause project={project} event={event} group={group} />, {organization});
+  it('Renders base commit row', async function () {
+    render(
+      <EventCause
+        project={project}
+        commitRow={CommitRow}
+        eventId={event.id}
+        group={group}
+      />,
+      {
+        organization,
+      }
+    );
 
     expect(await screen.findByTestId('commit-row')).toBeInTheDocument();
+    expect(screen.queryByTestId('quick-context-commit-row')).not.toBeInTheDocument();
     expect(screen.queryByTestId('email-warning')).not.toBeInTheDocument();
   });
 
+  it('Renders quick context commit row', async function () {
+    render(
+      <EventCause
+        project={project}
+        commitRow={QuickContextCommitRow}
+        eventId={event.id}
+        group={group}
+      />,
+      {
+        organization,
+      }
+    );
+
+    expect(await screen.findByTestId('quick-context-commit-row')).toBeInTheDocument();
+    expect(screen.queryByTestId('commit-row')).not.toBeInTheDocument();
+  });
+
   it('expands', async function () {
-    render(<EventCause project={project} event={event} group={group} />, {organization});
+    render(
+      <EventCause
+        project={project}
+        commitRow={CommitRow}
+        eventId={event.id}
+        group={group}
+      />,
+      {
+        organization,
+      }
+    );
 
     userEvent.click(await screen.findByText('Show more'));
     expect(screen.getAllByTestId('commit-row')).toHaveLength(2);
@@ -100,9 +141,17 @@ describe('EventCause', function () {
       },
     });
 
-    render(<EventCause project={project} event={event} group={group} />, {
-      organization,
-    });
+    render(
+      <EventCause
+        project={project}
+        commitRow={CommitRow}
+        eventId={event.id}
+        group={group}
+      />,
+      {
+        organization,
+      }
+    );
 
     expect(await screen.findByTestId('commit-row')).toBeInTheDocument();
     expect(screen.getByTestId('email-warning')).toBeInTheDocument();
