@@ -178,6 +178,9 @@ export function ProfileDetailsTable() {
         data={data}
         columnOrder={groupByView.columns.map(key => COLUMNS[key])}
         columnSortBy={[currentSort]}
+        scrollable
+        stickyHeader
+        height="75vh"
         grid={{
           renderHeadCell: renderTableHead({
             rightAlignedColumns: new Set(groupByView.rightAlignedColumns),
