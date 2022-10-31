@@ -2355,10 +2355,10 @@
     lru_map "^0.3.3"
     tslib "^1.9.3"
 
-"@sentry/profiling-node@^0.0.4":
-  version "0.0.4"
-  resolved "https://registry.yarnpkg.com/@sentry/profiling-node/-/profiling-node-0.0.4.tgz#c35d2051f8e88df17d7b25994b8151a70f67a478"
-  integrity sha512-BQM8YS8A3od2QWXX4rZVB81vd2Ylum5aPW1RxFCBkSq+FhoLkejxHUomgvDkSVuvQEYisuLq8YVMaQ6VqylZHQ==
+"@sentry/profiling-node@^0.0.5":
+  version "0.0.5"
+  resolved "https://registry.yarnpkg.com/@sentry/profiling-node/-/profiling-node-0.0.5.tgz#5be21294893767242d7f06a6595985c30cf11d43"
+  integrity sha512-ahe9nLI8ZPLTJ13QV0zDSAzrF+IJsUpyVBALGXx2sgKjmBVtisrfeUIglrkBk2YslQn7fEMjgLocDx9tZkv2Pw==
   dependencies:
     "@sentry/hub" "^7.16.0"
     "@sentry/node" "^7.16.0"
