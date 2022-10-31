@@ -1,6 +1,6 @@
 from typing import Mapping, Optional, Union
 
-from arroyo.utils import Metrics
+from arroyo.utils.metrics import Metrics
 
 from sentry.metrics.base import MetricsBackend
 
