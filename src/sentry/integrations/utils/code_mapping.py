@@ -118,7 +118,7 @@ class CodeMappingTreesHelper:
             return None
         # This means that the file has been found in more than one repo
         elif len(_code_mappings) > 1:
-            logger.warning(f"More than one file matched for {frame_filename.full_path}")
+            logger.warning(f"More than one repo matched {frame_filename.full_path}")
             return None
 
         return _code_mappings[0]

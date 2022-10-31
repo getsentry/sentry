@@ -1,5 +1,7 @@
 import os
 
+import pytest
+
 from sentry.integrations.utils.code_mapping import (
     CodeMapping,
     CodeMappingTreesHelper,
@@ -17,16 +19,24 @@ with open(
 
 
 class TestDerivedCodeMappings(TestCase):
+    @pytest.fixture(autouse=True)
+    def inject_fixtures(self, caplog):
+        self._caplog = caplog
+
     def setUp(self):
         super().setUp()
-        repo = Repo("Test-Organization/foo", "master")
+        foo_repo = Repo("Test-Organization/foo", "master")
+        bar_repo = Repo("Test-Organization/bar", "main")
         self.code_mapping_helper = CodeMappingTreesHelper(
-            {"sentry": RepoTree(repo, files=sentry_files)}
+            {
+                "sentry": RepoTree(foo_repo, files=sentry_files),
+                "getsentry": RepoTree(bar_repo, files=["getsentry/web/urls.py"]),
+            }
         )
 
         self.expected_code_mappings = [
-            CodeMapping(repo, "sentry", "src/sentry"),
-            CodeMapping(repo, "sentry_plugins", "src/sentry_plugins"),
+            CodeMapping(foo_repo, "sentry", "src/sentry"),
+            CodeMapping(foo_repo, "sentry_plugins", "src/sentry_plugins"),
         ]
 
     def test_buckets_logic(self):
@@ -71,11 +81,22 @@ class TestDerivedCodeMappings(TestCase):
     def test_more_than_one_match_works_with_different_order(self):
         # We do *not* derive sentry_plugins because we don't derive sentry first
         stacktraces = [
-            # This file matches two files in the repo and because we process it
-            # before we derive
+            # This file matches twice files in the repo, however, the reprocessing
+            # feature allows deriving both code mappings
             "sentry_plugins/slack/client.py",
             "sentry/identity/oauth2.py",
         ]
         code_mappings = self.code_mapping_helper.generate_code_mappings(stacktraces)
         # Order matters, this is why we only derive one of the two code mappings
         assert code_mappings == self.expected_code_mappings
+
+    def test_more_than_one_repo_match(self):
+        # XXX: There's a chance that we could infer package names but that is risky
+        # repo 1: src/sentry/web/urls.py
+        # repo 2: getsentry/web/urls.py
+        stacktraces = ["sentry/web/urls.py"]
+        code_mappings = self.code_mapping_helper.generate_code_mappings(stacktraces)
+        # The file appears in more than one repo, thus, we are unable to determine the code mapping
+        assert code_mappings == []
+        assert self._caplog.records[0].message == "More than one repo matched sentry/web/urls.py"
+        assert self._caplog.records[0].levelname == "WARNING"
