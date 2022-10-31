@@ -3,6 +3,7 @@ import os
 from sentry.integrations.utils.code_mapping import (
     CodeMapping,
     CodeMappingTreesHelper,
+    FrameFilename,
     Repo,
     RepoTree,
 )
@@ -27,6 +28,15 @@ class TestDerivedCodeMappings(TestCase):
             CodeMapping(repo, "sentry", "src/sentry"),
             CodeMapping(repo, "sentry_plugins", "src/sentry_plugins"),
         ]
+
+    def test_buckets_logic(self):
+        stacktraces = ["app://foo.js", "getsentry/billing/tax/manager.py", "ssl.py"]
+        buckets = self.code_mapping_helper.stacktrace_buckets(stacktraces)
+        assert buckets == {
+            "NO_TOP_DIR": [FrameFilename("ssl.py")],
+            "app:": [FrameFilename("app://foo.js")],
+            "getsentry": [FrameFilename("getsentry/billing/tax/manager.py")],
+        }
 
     def test_no_matches(self):
         stacktraces = [

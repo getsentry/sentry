@@ -46,6 +46,9 @@ class FrameFilename:
     def __repr__(self) -> str:
         return self.full_path
 
+    def __eq__(self, other) -> bool:  # type: ignore
+        return self.full_path == other.full_path  # type: ignore
+
 
 class CodeMappingTreesHelper:
     def __init__(self, trees: Dict[str, RepoTree]):
@@ -64,10 +67,8 @@ class CodeMappingTreesHelper:
                     buckets[bucket_key] = []
                 buckets[bucket_key].append(frame_filename)
 
-            except ValueError:
-                logger.exception(
-                    f"Unable to split stacktrace path into buckets: {stacktrace_frame_file_path}"
-                )
+            except Exception:
+                logger.exception("Unable to split stacktrace path into buckets")
                 continue
         return buckets
 
