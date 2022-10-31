@@ -140,6 +140,7 @@ class FineTuningAPIKey(Enum):
     REPORTS = "reports"
     WORKFLOW = "workflow"
     ACTIVE_RELEASE = "activeRelease"
+    SPIKE_PROTECTION = "spikeProtection"
 
 
 class UserOptionsSettingsKey(Enum):
