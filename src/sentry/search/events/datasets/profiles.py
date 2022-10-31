@@ -84,6 +84,9 @@ COLUMNS = [
     # We want to alias `project_id` to the column as well
     # because the query builder uses that internally
     Column(alias="project_id", column="project_id", kind=Kind.INTEGER),
+    # Snuba adds a time column for the dataset that rounds the timestamp.
+    # The exact rounding depends on the granularity in the query.
+    Column(alias="time", column="time", kind=Kind.DATE),
 ]
 
 COLUMN_MAP = {column.alias: column for column in COLUMNS}

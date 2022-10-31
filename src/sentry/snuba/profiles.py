@@ -6,7 +6,7 @@ from snuba_sdk.conditions import Condition, Op
 
 from sentry.search.events.builder import QueryBuilder, TimeseriesQueryBuilder
 from sentry.search.events.datasets.profiles import ProfilesDatasetConfig
-from sentry.search.events.fields import InvalidSearchQuery
+from sentry.search.events.fields import InvalidSearchQuery, get_json_meta_type
 from sentry.search.events.types import ParamsType, WhereType
 from sentry.snuba.discover import transform_tips, zerofill
 from sentry.utils.snuba import Dataset, SnubaTSResult
@@ -85,10 +85,7 @@ def timeseries_query(
             else results["data"],
             "meta": {
                 "fields": {
-                    value["name"]: "duration"
-                    # value["name"]: get_json_meta_type(
-                    #     value["name"], value.get("type"), builder
-                    # )
+                    value["name"]: get_json_meta_type(value["name"], value.get("type"), builder)
                     for value in results["meta"]
                 }
             },
