@@ -34,7 +34,11 @@ def derive_missing_codemappings(dry_run=False) -> None:
     """
     Queue tasks to process each organization to derive missing codemappings.
     """
-    organizations = Organization.objects.filter(status=OrganizationStatus.ACTIVE)
+    organizations = Organization.objects.filter(
+        status=OrganizationStatus.ACTIVE,
+        # Temporary change in order to enable the task until we fix perf issues
+        name__in=["sentry-test", "Sentry", "sentry", "Foo_org"],
+    )
     for _, organization in enumerate(
         RangeQuerySetWrapper(organizations, step=1000, result_value_getter=lambda item: item.id)
     ):
@@ -80,6 +84,8 @@ def identify_stacktrace_paths(organization: Organization) -> Mapping[Project, Li
     projects = Project.objects.filter(
         organization=organization,
         first_event__isnull=False,
+        # This is temporary in order to enable the task while fixing perf issues
+        name__in=["sentry-github-actions-app", "foo"],
     )
     projects = [
         project

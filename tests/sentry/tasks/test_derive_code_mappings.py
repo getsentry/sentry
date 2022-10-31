@@ -17,9 +17,11 @@ from sentry.testutils.helpers.features import with_feature
 class TestIdentfiyStacktracePaths(TestCase):
     def setUp(self):
         self.organization = self.create_organization(
+            name="sentry-test",  # Temp change
             status=OrganizationStatus.ACTIVE,
         )
         self.project = self.create_project(
+            name="sentry-github-actions-app",  # Temp change
             organization=self.organization,
             platform="python",
         )
@@ -68,6 +70,7 @@ class TestIdentfiyStacktracePaths(TestCase):
 
     def test_finds_stacktrace_paths_multiple_projects(self):
         project_2 = self.create_project(
+            name="foo",  # Temp change
             organization=self.organization,
             platform="python",
         )
@@ -182,7 +185,7 @@ class TestIdentfiyStacktracePaths(TestCase):
     @patch("sentry.tasks.derive_code_mappings.derive_code_mappings.delay")
     @with_feature("organizations:derive-code-mappings")
     def test_derive_missing_code_mappings(self, mock_derive_code_mappings):
-        self.create_organization()
+        self.create_organization(name="Foo_org")
         with self.tasks():
             derive_missing_codemappings(self)
 
