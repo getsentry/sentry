@@ -1,9 +1,6 @@
 import os
 
-import pytest
-
 from sentry.integrations.utils.code_mapping import CodeMapping, CodeMappingTreesHelper, Repo
-from sentry.testutils import TestCase
 from sentry.utils import json
 
 with open(
@@ -12,18 +9,13 @@ with open(
     sentry_tree = json.load(fd)
 
 
-class TestDerivedCodeMappings(TestCase):
+class TestDerivedCodeMappings:
     def setUp(self):
-        super().setUp()
         self.code_mapping_helper = CodeMappingTreesHelper({"sentry": sentry_tree})
         repo = Repo("Test-Organization/foo", "master")
         self.expected_code_mappings = [
             CodeMapping(repo, "sentry", "src/sentry"),
-            CodeMapping(
-                repo,
-                "sentry_plugins",
-                "src/sentry_plugins",
-            ),
+            CodeMapping(repo, "sentry_plugins", "src/sentry_plugins"),
         ]
 
     def test_no_matches(self):
@@ -56,7 +48,6 @@ class TestDerivedCodeMappings(TestCase):
         code_mappings = self.code_mapping_helper.generate_code_mappings(stacktraces)
         assert code_mappings == self.expected_code_mappings
 
-    @pytest.mark.xfail("The order of stacktrace frames affects the result")
     def test_more_than_one_match_works_with_different_order(self):
         # We do *not* derive sentry_plugins because we don't derive sentry first
         stacktraces = [
