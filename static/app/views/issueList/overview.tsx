@@ -1209,6 +1209,7 @@ class IssueListOverview extends Component<Props, State> {
           onSavedSearchSelect={this.onSavedSearchSelect}
           onSavedSearchDelete={this.onSavedSearchDelete}
           displayReprocessingTab={showReprocessingTab}
+          savedSearch={savedSearch}
           selectedProjectIds={selection.projects}
         />
         <Layout.Body {...layoutProps}>
