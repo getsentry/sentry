@@ -59,7 +59,7 @@ function getRequestParams(
       };
 }
 
-type Props = {
+type QuickContextProps = {
   contextType: ContextType;
   data: Group | null;
   dataRow: EventData;
@@ -73,7 +73,7 @@ export default function QuickContext({
   data,
   contextType,
   dataRow,
-}: Props) {
+}: QuickContextProps) {
   return (
     <Wrapper>
       {loading ? (
@@ -105,7 +105,7 @@ function IssueContext(props: IssueContextProps) {
   const {status} = props.data;
 
   const renderStatus = () => (
-    <IssueContextContainer>
+    <IssueContextContainer data-test-id="quick-context-issue-status-container">
       <ContextTitle>
         {statusTitle}
         <FeatureBadge type="alpha" />
@@ -128,7 +128,7 @@ function IssueContext(props: IssueContextProps) {
   );
 
   const renderAssigneeSelector = () => (
-    <IssueContextContainer>
+    <IssueContextContainer data-test-id="quick-context-assigned-to-container">
       <AssignedTo group={props.data} projectId={props.data.project.id} />
     </IssueContextContainer>
   );
@@ -225,9 +225,10 @@ export function QuickContextHoverWrapper(props: ContextProps) {
         }
       >
         <StyledIconInfo
+          data-test-id="quick-context-hover-trigger"
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
-          ishovering={ishovering}
+          ishovering={ishovering ? 1 : 0}
           onClick={e => e.preventDefault()}
         />
       </StyledHovercard>
@@ -247,7 +248,7 @@ const StyledHovercard = styled(Hovercard)`
   min-width: 300px;
 `;
 
-const StyledIconInfo = styled(IconInfo)<{ishovering: boolean}>`
+const StyledIconInfo = styled(IconInfo)<{ishovering: number}>`
   color: ${p => (p.ishovering ? p.theme.gray300 : p.theme.gray200)};
 `;
 

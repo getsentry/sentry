@@ -476,9 +476,13 @@ const SPECIAL_FIELDS: SpecialFields = {
       return (
         <Container>
           <OverflowLink to={target} aria-label={issueID}>
-            <QuickContextHoverWrapper dataRow={data} contextType={ContextType.ISSUE}>
+            {organization.features.includes('discover-quick-context') ? (
+              <QuickContextHoverWrapper dataRow={data} contextType={ContextType.ISSUE}>
+                <FieldShortId shortId={`${data.issue}`} />
+              </QuickContextHoverWrapper>
+            ) : (
               <FieldShortId shortId={`${data.issue}`} />
-            </QuickContextHoverWrapper>
+            )}
           </OverflowLink>
         </Container>
       );
