@@ -320,15 +320,19 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             path="/graphql",
             data={"query": query},
         )
-        results: Sequence[Mapping[str, Any]] = (
-            contents.get("data", {})
-            .get("repository", {})
-            .get("ref", {})
-            .get("target", {})
-            .get("blame", {})
-            .get("ranges", [])
-        )
-        return results
+        try:
+            results: Sequence[Mapping[str, Any]] = (
+                contents.get("data", {})
+                .get("repository", {})
+                .get("ref", {})
+                .get("target", {})
+                .get("blame", {})
+                .get("ranges", [])
+            )
+            return results
+        except AttributeError as e:
+            sentry_sdk.capture_exception(e)
+            return []
 
 
 class GitHubAppsClient(GitHubClientMixin):
