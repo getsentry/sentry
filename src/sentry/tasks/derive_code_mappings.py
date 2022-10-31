@@ -3,6 +3,7 @@ from datetime import timedelta
 from typing import Any, List, Mapping, Set, Tuple
 
 from django.utils import timezone
+from sentry_sdk import set_tag, set_user
 
 from sentry import features
 from sentry.db.models.fields.node import NodeData
@@ -55,6 +56,9 @@ def derive_code_mappings(organization_id: int, dry_run=False) -> None:
     Derive code mappings for an organization and save the derived code mappings.
     """
     organization: Organization = Organization.objects.get(id=organization_id)
+    set_tag("organization.slug", organization.slug)
+    # When you look at the performance page the user is a default column
+    set_user({"username": organization.slug})
     project_stacktrace_paths = identify_stacktrace_paths(organization)
     if not project_stacktrace_paths:
         return

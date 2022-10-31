@@ -605,6 +605,7 @@ CELERY_IMPORTS = (
     "sentry.release_health.tasks",
     "sentry.utils.suspect_resolutions.get_suspect_resolutions",
     "sentry.utils.suspect_resolutions_releases.get_suspect_resolutions_releases",
+    "sentry.tasks.derive_code_mappings",
 )
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
