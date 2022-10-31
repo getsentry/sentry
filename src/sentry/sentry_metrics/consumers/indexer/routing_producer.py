@@ -3,11 +3,11 @@ import time
 from abc import ABC, abstractmethod
 from collections import deque
 from concurrent.futures import Future
-from typing import Deque, Generic, MutableMapping, NamedTuple, Optional, Tuple
+from typing import Deque, Generic, MutableMapping, NamedTuple, Optional, Tuple, TypeVar
 
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies import ProcessingStrategy
-from arroyo.types import Commit, Message, Partition, Position, Topic, TPayload
+from arroyo.types import Commit, Message, Partition, Position, Topic
 from confluent_kafka import Producer
 
 logger = logging.getLogger(__name__)
@@ -21,6 +21,9 @@ class MessageRoute(NamedTuple):
 
     producer: Producer
     topic: Topic
+
+
+TPayload = TypeVar("TPayload")
 
 
 class MessageRouter(ABC, Generic[TPayload]):
