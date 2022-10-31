@@ -24,21 +24,19 @@ type Props = {
   openVisualizationModal: (eventAttachment: EventAttachment, downloadUrl: string) => void;
   organization: Organization;
   projectSlug: Project['slug'];
-  screenshots: EventAttachment[];
+  screenshot: EventAttachment;
   onlyRenderScreenshot?: boolean;
 };
 
 function Screenshot({
   eventId,
   organization,
-  screenshots,
+  screenshot,
   projectSlug,
   onlyRenderScreenshot,
   onDelete,
   openVisualizationModal,
 }: Props) {
-  const [screenshotInFocus, setScreenshotInFoucs] = useState<number>(0);
-  const screenshot = screenshots[screenshotInFocus];
   const orgSlug = organization.slug;
   const [loadingImage, setLoadingImage] = useState(true);
 

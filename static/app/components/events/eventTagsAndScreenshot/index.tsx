@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
@@ -48,11 +49,14 @@ function EventTagsAndScreenshots({
     ].includes(name)
   );
 
+  const [screenshotInFocus, setScreenshotInFoucs] = useState<number>(0);
+
   if (!tags.length && !hasContext && (isShare || !screenshots.length)) {
     return null;
   }
 
   const showScreenshot = !isShare && !!screenshots.length;
+  const screenshot = screenshots[screenshotInFocus];
   // Check for context bailout condition. No context is rendered if only user is provided
   const hasEventContext = hasContext && !objectIsEmpty(event.contexts);
   const showTags = !!tags.length || hasContext;
@@ -103,12 +107,13 @@ function EventTagsAndScreenshots({
             organization={organization}
             eventId={event.id}
             projectSlug={projectSlug}
-            screenshots={screenshots}
+            screenshot={screenshot}
             onDelete={onDeleteScreenshot}
             openVisualizationModal={handleOpenVisualizationModal}
           />
         </ScreenshotWrapper>
       )}
+      {showScreenshot && <IconUpdate inFocus />}
       {showScreenshot && (showTags || hasEventContext) && <VerticalDivider />}
       <TagWrapper hasEventContext={hasEventContext}>
         {hasEventContext && (
@@ -185,4 +190,16 @@ const TagsHighlightWrapper = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     padding: 0 ${space(4)};
   }
+`;
+
+const IconUpdate = styled('div')<{
+  inFocus: boolean;
+}>`
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+
+  margin-right: ${space(0.75)};
+  border-radius: 5px;
+  background-color: ${p => (p.inFocus ? p.theme.gray300 : p.theme.gray100)};
 `;
