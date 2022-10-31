@@ -1143,8 +1143,6 @@ SENTRY_FEATURES = {
     "organizations:performance-anomaly-detection-ui": False,
     # Enable histogram view in span details
     "organizations:performance-span-histogram-view": False,
-    # Enable autogrouping of sibling spans
-    "organizations:performance-autogroup-sibling-spans": False,
     # Enable performance on-boarding checklist
     "organizations:performance-onboarding-checklist": False,
     # Enable transaction name only search
