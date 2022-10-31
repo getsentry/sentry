@@ -1,3 +1,5 @@
+import groupBy from 'lodash/groupBy';
+
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {Profile} from 'sentry/utils/profiling/profile/profile';
 
@@ -52,13 +54,20 @@ export function aggregate<T extends string>(
   groups: Extract<T, string>[],
   aggregates: AggregateColumnConfig<T>[]
 ): Row<T>[] {
-  const groupedData = groupBy(data, groups);
+  // group by a key composed by unique values
+  // ex: { a: "foo", b: "bar" } => { "foo bar": [...] }
+  const groupedData = groupBy(data, row => getGroupedKey(row, groups));
 
   const rows: Row[] = [];
   for (const groupedKey in groupedData) {
+    // unwrap the grouped key into a base value
+    // ex: { "foo bar": [...] } => {a: "foo", b: "bar"}
     const row = makeRowFromGroupedKey(groupedKey, groups);
-    const groupedValues = groupedData[groupedKey];
+    const groupedValues = groupedData[groupedKey] as Row<T>[];
+
     aggregates.forEach(agg => {
+      // do the actual aggregation with the grouped values
+      // ex: { a: "foo", b: "bar", sum: 123 }
       row[agg.key] = agg.compute(groupedValues);
     });
     rows.push(row);
@@ -66,20 +75,12 @@ export function aggregate<T extends string>(
   return rows;
 }
 
-function groupBy<T extends Row>(data: T[], groups: Extract<keyof T, string>[]) {
-  return data.reduce((acc, row) => {
-    const key = getGroupedKey(row, groups);
-    if (!acc[key]) {
-      acc[key] = [];
-    }
-
-    acc[key].push(row);
-    return acc;
-  }, {});
-}
-
+// we'll use the "unit separator" character to delimit grouped values
+// https://en.wikipedia.org/wiki/Delimiter#ASCII_delimited_text
 const FIELD_SEPARATOR = String.fromCharCode(31);
 
+// getGroupedKey will derive a key from an objects values and delimit them using
+// the unit separator char
 function getGroupedKey(row: Record<string, unknown>, groups: string[]) {
   return groups.map(key => row[key]).join(FIELD_SEPARATOR);
 }
