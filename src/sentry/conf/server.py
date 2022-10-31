@@ -829,11 +829,6 @@ CELERYBEAT_SCHEDULE = {
         "schedule": timedelta(minutes=20),
         "options": {"expires": 20 * 60},
     },
-    "derive-code-mappings": {
-        "task": "sentry.tasks.derive_code_mappings.process_organizations",
-        "schedule": timedelta(minutes=1),
-        "options": {"expires": 3600},
-    },
 }
 
 BGTASKS = {
