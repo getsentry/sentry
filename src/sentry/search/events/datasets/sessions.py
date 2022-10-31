@@ -1,6 +1,6 @@
 from typing import Callable, Mapping, Optional
 
-from snuba_sdk import Function
+from snuba_sdk import Function, OrderBy
 
 from sentry.api.event_search import SearchFilter
 from sentry.search.events.builder import QueryBuilder
@@ -69,6 +69,10 @@ class SessionsDatasetConfig(DatasetConfig):
                 ),
             ]
         }
+
+    @property
+    def orderby_converter(self) -> Mapping[str, OrderBy]:
+        return {}
 
     def _release_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         return filter_aliases.release_filter_converter(self.builder, search_filter)

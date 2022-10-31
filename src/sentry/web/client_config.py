@@ -2,7 +2,6 @@ from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.contrib.messages import get_messages
 from django.core.cache import cache
-from django.db.models import F
 from packaging.version import parse as parse_version
 
 import sentry
@@ -13,7 +12,8 @@ from sentry.api.utils import generate_organization_url, generate_region_url
 from sentry.auth import superuser
 from sentry.auth.access import get_cached_organization_member
 from sentry.auth.superuser import is_active_superuser
-from sentry.models import Organization, OrganizationMember, ProjectKey
+from sentry.models import Organization, OrganizationMember
+from sentry.services.hybrid_cloud import ProjectKeyRole, project_key_service
 from sentry.utils import auth
 from sentry.utils.assets import get_frontend_app_asset_url
 from sentry.utils.email import is_smtp_enabled
@@ -70,15 +70,6 @@ def _get_statuspage():
     return {"id": id, "api_host": settings.STATUS_PAGE_API_HOST}
 
 
-def _get_project_key(project_id):
-    try:
-        return ProjectKey.objects.filter(
-            project=project_id, roles=F("roles").bitor(ProjectKey.roles.store)
-        )[0]
-    except IndexError:
-        return None
-
-
 def _get_public_dsn():
 
     if settings.SENTRY_FRONTEND_DSN:
@@ -88,11 +79,14 @@ def _get_public_dsn():
         return ""
 
     project_id = settings.SENTRY_FRONTEND_PROJECT or settings.SENTRY_PROJECT
+    if project_id is None:
+        return None
+
     cache_key = f"dsn:{project_id}"
 
     result = cache.get(cache_key)
     if result is None:
-        key = _get_project_key(project_id)
+        key = project_key_service.get_project_key(project_id, ProjectKeyRole.store)
         if key:
             result = key.dsn_public
         else:
@@ -169,7 +163,7 @@ def get_client_config(request=None):
         last_org_slug = last_org.slug
     if last_org is None:
         _delete_activeorg(session)
-    if features.has("organizations:customer-domains", last_org):
+    if last_org is not None and features.has("organizations:customer-domains", last_org):
         enabled_features.append("organizations:customer-domains")
 
     context = {

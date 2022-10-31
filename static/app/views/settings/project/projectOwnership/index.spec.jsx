@@ -29,7 +29,7 @@ describe('Project Ownership', () => {
       url: `/organizations/${org.slug}/integrations/`,
       query: {features: 'codeowners'},
       method: 'GET',
-      body: [TestStubs.GithubIntegrationConfig()],
+      body: [TestStubs.GitHubIntegrationConfig()],
     });
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/codeowners/`,

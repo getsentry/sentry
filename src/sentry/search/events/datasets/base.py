@@ -1,6 +1,8 @@
 import abc
 from typing import Any, Callable, Dict, List, Mapping, Optional
 
+from snuba_sdk import OrderBy
+
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events import fields
@@ -27,6 +29,11 @@ class DatasetConfig(abc.ABC):
     @property
     @abc.abstractmethod
     def function_converter(self) -> Mapping[str, fields.SnQLFunction]:
+        pass
+
+    @property
+    @abc.abstractmethod
+    def orderby_converter(self) -> Mapping[str, OrderBy]:
         pass
 
     def reflective_result_type(

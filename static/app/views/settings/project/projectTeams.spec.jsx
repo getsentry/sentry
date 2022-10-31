@@ -1,13 +1,14 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {mountGlobalModal} from 'sentry-test/modal';
-import {act} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 
-import * as modals from 'sentry/actionCreators/modal';
 import TeamStore from 'sentry/stores/teamStore';
-import App from 'sentry/views/app';
 import ProjectTeams from 'sentry/views/settings/project/projectTeams';
-
-jest.unmock('sentry/actionCreators/modal');
 
 describe('ProjectTeams', function () {
   let org;
@@ -22,11 +23,10 @@ describe('ProjectTeams', function () {
   });
 
   beforeEach(function () {
-    jest.spyOn(modals, 'openCreateTeamModal');
     org = TestStubs.Organization();
     project = TestStubs.ProjectDetails();
 
-    act(() => void TeamStore.loadInitialData([team1, team2]));
+    TeamStore.loadInitialData([team1, team2]);
 
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,
@@ -47,20 +47,17 @@ describe('ProjectTeams', function () {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
-    modals.openCreateTeamModal.mockRestore();
   });
 
   it('renders', function () {
-    const wrapper = mountWithTheme(
+    const {container} = render(
       <ProjectTeams
         params={{orgId: org.slug, projectId: project.slug}}
         organization={org}
       />
     );
-    // Wait for team list to fetch.
-    wrapper.update();
 
-    expect(wrapper).toSnapshot();
+    expect(container).toSnapshot();
   });
 
   it('can remove a team from project', async function () {
@@ -84,19 +81,16 @@ describe('ProjectTeams', function () {
       statusCode: 200,
     });
 
-    const wrapper = mountWithTheme(
+    render(
       <ProjectTeams
         params={{orgId: org.slug, projectId: project.slug}}
         organization={org}
       />
     );
-    // Wait for team list to fetch.
-    wrapper.update();
 
     expect(mock).not.toHaveBeenCalled();
 
-    // Click "Remove"
-    wrapper.find('PanelBody Button').first().simulate('click');
+    userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
 
     expect(mock).toHaveBeenCalledWith(
       endpoint,
@@ -105,15 +99,17 @@ describe('ProjectTeams', function () {
       })
     );
 
-    await tick();
+    // Wait for row to be removed
+    await waitForElementToBeRemoved(() => screen.queryByText('#team-slug'));
 
     // Remove second team
-    wrapper.update().find('PanelBody Button').first().simulate('click');
+    userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
 
     // Modal opens because this is the last team in project
-    // Click confirm
-    const modal = await mountGlobalModal();
-    modal.find('Button[priority="primary"]').simulate('click');
+    renderGlobalModal();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+    userEvent.click(screen.getByTestId('confirm-button'));
 
     expect(mock2).toHaveBeenCalledWith(
       endpoint2,
@@ -156,19 +152,17 @@ describe('ProjectTeams', function () {
       ],
     });
 
-    const wrapper = mountWithTheme(
+    render(
       <ProjectTeams
         params={{orgId: org.slug, projectId: project.slug}}
         organization={org}
       />
     );
-    // Wait for team list to fetch.
-    wrapper.update();
 
     expect(mock).not.toHaveBeenCalled();
 
     // Click "Remove"
-    wrapper.find('PanelBody Button').first().simulate('click');
+    userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
 
     expect(mock).toHaveBeenCalledWith(
       endpoint,
@@ -177,15 +171,17 @@ describe('ProjectTeams', function () {
       })
     );
 
-    await tick();
+    await waitForElementToBeRemoved(() => screen.queryByText('#team-slug'));
 
     // Remove second team
-    wrapper.update().find('PanelBody Button').first().simulate('click');
+    userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
 
     // Modal opens because this is the last team in project
+    renderGlobalModal();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+
     // Click confirm
-    const modal = await mountGlobalModal();
-    modal.find('Button[priority="primary"]').simulate('click');
+    userEvent.click(screen.getByTestId('confirm-button'));
 
     expect(mock2).toHaveBeenCalledWith(
       endpoint2,
@@ -203,23 +199,18 @@ describe('ProjectTeams', function () {
       statusCode: 200,
     });
 
-    const wrapper = mountWithTheme(
+    render(
       <ProjectTeams
         params={{orgId: org.slug, projectId: project.slug}}
         organization={org}
       />
     );
-    // Wait for team list to fetch.
-    wrapper.update();
 
     expect(mock).not.toHaveBeenCalled();
 
-    // open dropdown
-    wrapper.find('DropdownButton').simulate('click');
-
-    // click a team
-    const el = wrapper.find('AutoCompleteItem').first();
-    el.simulate('click');
+    // Add a team
+    userEvent.click(screen.getAllByRole('button', {name: 'Add Team'})[1]);
+    userEvent.click(screen.getByText('#team-slug-2'));
 
     expect(mock).toHaveBeenCalledWith(
       endpoint,
@@ -252,52 +243,34 @@ describe('ProjectTeams', function () {
       body: {slug: 'new-team'},
     });
 
-    const wrapper = mountWithTheme(
-      <App params={{orgId: org.slug}}>
-        <ProjectTeams
-          params={{orgId: org.slug, projectId: project.slug}}
-          project={project}
-          organization={org}
-        />
-      </App>
-    );
-    // Wait for team list to fetch.
-    wrapper.update();
-
-    // Open the dropdown
-    wrapper.find('TeamSelect DropdownButton').simulate('click');
-
-    // Click "Create Team" inside of dropdown
-    wrapper.find('TeamSelect StyledCreateTeamLink').simulate('click');
-
-    // action creator to open "create team modal" is called
-    expect(modals.openCreateTeamModal).toHaveBeenCalledWith(
-      expect.objectContaining({
-        project: expect.objectContaining({
-          slug: project.slug,
-        }),
-        organization: expect.objectContaining({
-          slug: org.slug,
-        }),
-      })
+    render(
+      <ProjectTeams
+        params={{orgId: org.slug, projectId: project.slug}}
+        project={project}
+        organization={org}
+      />
     );
 
-    // Two ticks are required
-    await act(tick);
-    await act(tick);
-    wrapper.update();
+    // Add new team
+    userEvent.click(screen.getAllByRole('button', {name: 'Add Team'})[1]);
 
-    wrapper.find('input[name="slug"]').simulate('change', {target: {value: 'new-team'}});
-    wrapper.find('[data-test-id="create-team-form"] form').simulate('submit');
-    expect(createTeam).toHaveBeenCalledTimes(1);
+    // XXX(epurkhiser): Create Team should really be a button
+    userEvent.click(screen.getByRole('link', {name: 'Create Team'}));
+
+    renderGlobalModal();
+    await screen.findByRole('dialog');
+
+    userEvent.type(screen.getByRole('textbox', {name: 'Team Name'}), 'new-team');
+    userEvent.click(screen.getByRole('button', {name: 'Create Team'}));
+
+    await waitFor(() => expect(createTeam).toHaveBeenCalledTimes(1));
+
     expect(createTeam).toHaveBeenCalledWith(
       '/organizations/org-slug/teams/',
       expect.objectContaining({
         data: {slug: 'new-team'},
       })
     );
-
-    await act(tick);
 
     expect(addTeamToProject).toHaveBeenCalledTimes(1);
     expect(addTeamToProject).toHaveBeenCalledWith(

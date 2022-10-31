@@ -1,11 +1,16 @@
 import AttachmentUrl from 'sentry/components/attachmentUrl';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
+import Button from 'sentry/components/button';
 import DateTime from 'sentry/components/dateTime';
 import {DeviceName} from 'sentry/components/deviceName';
 import FileSize from 'sentry/components/fileSize';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
+import {IconPlay} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {AvatarUser, Organization, Tag} from 'sentry/types';
 import {Event} from 'sentry/types/event';
+import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import {useRoutes} from 'sentry/utils/useRoutes';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {
@@ -27,7 +32,10 @@ function EventsTableRow({
   groupId,
   tagList,
   hasUser,
+  organization,
 }: Props) {
+  const routes = useRoutes();
+
   const crashFileLink = !event.crashFile ? null : (
     <AttachmentUrl projectId={projectId} eventId={event.id} attachment={event.crashFile}>
       {url =>
@@ -44,12 +52,21 @@ function EventsTableRow({
 
   const tagMap = Object.fromEntries(event.tags.map(tag => [tag.key, tag.value]));
 
+  const hasReplay = Boolean(tagMap.replayId);
+  const fullReplayUrl = {
+    pathname: `/organizations/${organization.slug}/replays/${projectId}:${tagMap.replayId}/`,
+    query: {
+      referrer: getRouteStringFromRoutes(routes),
+      event_t: event.dateCreated ? new Date(event.dateCreated).getTime() : undefined,
+    },
+  };
+
   return (
     <tr key={event.id} className={className}>
       <td>
         <h5>
           <GlobalSelectionLink
-            to={`/organizations/${orgId}/issues/${groupId}/events/${event.id}/`}
+            to={`/organizations/${orgId}/issues/${groupId}/events/${event.id}/?referrer=events-table`}
           >
             <DateTime date={event.dateCreated} year seconds timeZone />
           </GlobalSelectionLink>
@@ -83,6 +100,15 @@ function EventsTableRow({
           <div>
             {tag.key === 'device' ? (
               <DeviceName value={tagMap[tag.key]} />
+            ) : tag.key === 'replayId' ? (
+              hasReplay ? (
+                <Button
+                  to={fullReplayUrl}
+                  size="sm"
+                  icon={<IconPlay size="sm" />}
+                  aria-label={t('View Full Replay')}
+                />
+              ) : null
             ) : (
               tagMap[tag.key]
             )}

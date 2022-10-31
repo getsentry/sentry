@@ -11,7 +11,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import Results from 'sentry/views/eventsV2/results';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
-import {TRANSACTION_VIEWS} from './data';
+import {DEFAULT_EVENT_VIEW, TRANSACTION_VIEWS} from './data';
 
 const FIELDS = [
   {
@@ -1730,7 +1730,7 @@ describe('Results', function () {
     );
   });
 
-  it('updates the homepage query with up to date eventView when Set As Default is clicked', async () => {
+  it('updates the homepage query with up to date eventView when Set as Default is clicked', async () => {
     const mockHomepageUpdate = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/discover/homepage/',
       method: 'PUT',
@@ -1766,7 +1766,7 @@ describe('Results', function () {
     await waitFor(() =>
       expect(screen.getByRole('button', {name: /set as default/i})).toBeEnabled()
     );
-    userEvent.click(screen.getByText('Set As Default'));
+    userEvent.click(screen.getByText('Set as Default'));
 
     expect(mockHomepageUpdate).toHaveBeenCalledWith(
       '/organizations/org-slug/discover/homepage/',
@@ -1830,7 +1830,7 @@ describe('Results', function () {
     await waitFor(() =>
       expect(screen.getByRole('button', {name: /set as default/i})).toBeEnabled()
     );
-    userEvent.click(screen.getByText('Set As Default'));
+    userEvent.click(screen.getByText('Set as Default'));
     expect(await screen.findByText('Remove Default')).toBeInTheDocument();
 
     userEvent.click(screen.getByText('Total Period'));
@@ -1849,7 +1849,7 @@ describe('Results', function () {
       />
     );
     screen.getByText('Previous Period');
-    expect(await screen.findByText('Set As Default')).toBeInTheDocument();
+    expect(await screen.findByText('Set as Default')).toBeInTheDocument();
   });
 
   it('Changes the Use as Discover button to a reset button for prebuilt query', async () => {
@@ -1894,7 +1894,7 @@ describe('Results', function () {
     );
 
     await screen.findAllByText(TRANSACTION_VIEWS[0].name);
-    userEvent.click(screen.getByText('Set As Default'));
+    userEvent.click(screen.getByText('Set as Default'));
     expect(await screen.findByText('Remove Default')).toBeInTheDocument();
 
     userEvent.click(screen.getByText('Total Period'));
@@ -1913,6 +1913,77 @@ describe('Results', function () {
       />
     );
     screen.getByText('Previous Period');
-    expect(await screen.findByText('Set As Default')).toBeInTheDocument();
+    expect(await screen.findByText('Set as Default')).toBeInTheDocument();
+  });
+
+  it('links back to the homepage through the Discover breadcrumb', () => {
+    const organization = TestStubs.Organization({
+      features: [
+        'discover-basic',
+        'discover-query',
+        'discover-query-builder-as-landing-page',
+      ],
+    });
+
+    const initialData = initializeOrg({
+      organization,
+      router: {
+        location: {query: {id: '1'}},
+      },
+    });
+
+    ProjectsStore.loadInitialData([TestStubs.Project()]);
+
+    render(
+      <Results
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+      />,
+      {context: initialData.routerContext, organization}
+    );
+
+    expect(screen.getByText('Discover')).toHaveAttribute(
+      'href',
+      expect.stringMatching(new RegExp('^/organizations/org-slug/discover/homepage/'))
+    );
+  });
+
+  it('allows users to Set As Default on the All Events query', () => {
+    const organization = TestStubs.Organization({
+      features: [
+        'discover-basic',
+        'discover-query',
+        'discover-query-builder-as-landing-page',
+      ],
+    });
+
+    const initialData = initializeOrg({
+      organization,
+      router: {
+        location: {
+          ...TestStubs.location(),
+          query: {
+            ...EventView.fromNewQueryWithLocation(
+              DEFAULT_EVENT_VIEW,
+              TestStubs.location()
+            ).generateQueryStringObject(),
+          },
+        },
+      },
+    });
+
+    ProjectsStore.loadInitialData([TestStubs.Project()]);
+
+    render(
+      <Results
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+      />,
+      {context: initialData.routerContext, organization}
+    );
+
+    expect(screen.getByTestId('set-as-default')).toBeEnabled();
   });
 });
