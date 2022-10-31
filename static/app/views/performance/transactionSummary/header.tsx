@@ -18,6 +18,7 @@ import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {MetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import HasMeasurementsQuery from 'sentry/utils/performance/vitals/hasMeasurementsQuery';
+import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 
 import {getCurrentLandingDisplay, LandingDisplayField} from '../landing/utils';
@@ -68,7 +69,10 @@ function TransactionHeader({
   const hasAnomalyDetection = organization.features?.includes(
     'performance-anomaly-detection-ui'
   );
-  const hasSessionReplay = organization.features?.includes('session-replay-ui');
+
+  const hasSessionReplay =
+    organization.features?.includes('session-replay-ui') &&
+    projectSupportsReplay(project);
 
   const getWebVitals = useCallback(
     (hasMeasurements: boolean) => {
