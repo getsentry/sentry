@@ -2,6 +2,7 @@ import {ReactNode, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 
+import {TagSegment} from 'sentry/actionCreators/events';
 import Placeholder from 'sentry/components/placeholder';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
@@ -97,7 +98,7 @@ export function TagFacets({
   // Format tagsData if the component was given a tagFormatter
   const tagsData = tagFormatter?.(state.tagsData) ?? state.tagsData;
   const url = `/organizations/${organization.slug}/issues/${groupId}/tags/${state.selectedTag}/?referrer=tag-distribution-meter`;
-  const points =
+  const segments: TagSegment[] =
     tagsData[state.selectedTag]?.topValues.map(({name, value, count}) => {
       const isTagValueOfCurrentEvent =
         event?.tags.find(({key}) => key === state.selectedTag)?.value === value;
@@ -146,7 +147,11 @@ export function TagFacets({
             })}
           </StyledButtonBar>
           <BreakdownContainer>
-            <TagBreakdown points={points} maxItems={5} selectedTag={state.selectedTag} />
+            <TagBreakdown
+              segments={segments}
+              maxItems={5}
+              selectedTag={state.selectedTag}
+            />
           </BreakdownContainer>
         </TagFacetsContainer>
       </SidebarSection.Wrap>

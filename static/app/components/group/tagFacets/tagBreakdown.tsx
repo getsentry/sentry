@@ -1,19 +1,22 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {TagSegment} from 'sentry/actionCreators/events';
 import TagDistributionMeter from 'sentry/components/tagDistributionMeter';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {percent} from 'sentry/utils';
 import {formatPercentage} from 'sentry/utils/formatters';
 
+type TagData = TagSegment & {active?: boolean; tooltip?: string};
+
 type TagBreakdownProps = {
   maxItems: number;
-  points: any;
+  segments: TagData[];
   selectedTag: string;
 };
 
-function TagBreakdown({points, maxItems, selectedTag}: TagBreakdownProps) {
+function TagBreakdown({segments, maxItems, selectedTag}: TagBreakdownProps) {
   const theme = useTheme();
   const colors = [
     theme.purple400,
@@ -26,26 +29,29 @@ function TagBreakdown({points, maxItems, selectedTag}: TagBreakdownProps) {
 
   const sumPoints = (sum, point) => sum + point.count;
 
-  const pointsTotal = points.reduce(sumPoints, 0);
-  const otherTotal = points.slice(maxItems).reduce(sumPoints, 0);
-  const segments = maxItems ? points.slice(0, maxItems) : points;
+  const segmentsTotal = segments.reduce(sumPoints, 0);
+  const otherTotal = segments.slice(maxItems).reduce(sumPoints, 0);
+  const visibleSegments = maxItems ? segments.slice(0, maxItems) : segments;
 
   return (
     <Container>
       <TagDistributionMeter
         title={selectedTag}
-        totalValues={pointsTotal}
-        segments={segments}
+        totalValues={segmentsTotal}
+        segments={visibleSegments}
         colors={colors}
         showTitle={false}
       />
-      {segments.map((segment, index) => {
+      {visibleSegments.map((segment, index) => {
         return (
           <BreakdownRow key={segment.name}>
             <LegendIcon color={colors[index]} />
             {segment.name}
             <Percent>
-              {formatPercentage(Math.floor(percent(segment.count, pointsTotal)) / 100, 0)}
+              {formatPercentage(
+                Math.floor(percent(segment.count, segmentsTotal)) / 100,
+                0
+              )}
             </Percent>
           </BreakdownRow>
         );
@@ -55,7 +61,7 @@ function TagBreakdown({points, maxItems, selectedTag}: TagBreakdownProps) {
           <LegendIcon color={colors[colors.length - 1]} />
           <OtherLabel>{t('Other')}</OtherLabel>
           <Percent>
-            {formatPercentage(Math.floor(percent(otherTotal, pointsTotal)) / 100, 0)}
+            {formatPercentage(Math.floor(percent(otherTotal, segmentsTotal)) / 100, 0)}
           </Percent>
         </BreakdownRow>
       )}
