@@ -104,6 +104,16 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
     label: t('Email Routing'),
     help: t('Change the email address that receives notifications.'),
   },
+  spikeProtection: {
+    name: 'spikeProtection',
+    type: 'select',
+    label: t('Spike Protection'),
+    choices: [
+      ['always', t('On')],
+      ['never', t('Off')],
+    ],
+    help: t('Notifications about spikes on a per project basis.'),
+  },
   personalActivityNotifications: {
     name: 'personalActivityNotifications',
     type: 'select',
