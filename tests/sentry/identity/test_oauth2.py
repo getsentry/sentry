@@ -99,6 +99,22 @@ class OAuth2CallbackViewTest(TestCase):
         assert "SSL" in result["error_description"]
 
     @responses.activate
+    def test_connection_error(self):
+        def connection_error(request):
+            raise ConnectionError("Name or service not known")
+
+        responses.add_callback(
+            responses.POST, "https://example.org/oauth/token", callback=connection_error
+        )
+        pipeline = IdentityProviderPipeline(request=self.request, provider_key="dummy")
+        code = "auth-code"
+        result = self.view.exchange_token(self.request, pipeline, code)
+        assert "token" not in result
+        assert "error" in result
+        assert "connect" in result["error"]
+        assert "error_description" in result
+
+    @responses.activate
     def test_exchange_token_no_json(self):
         responses.add(responses.POST, "https://example.org/oauth/token", body="")
         pipeline = IdentityProviderPipeline(request=self.request, provider_key="dummy")
