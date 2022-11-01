@@ -5,6 +5,7 @@ from collections import defaultdict
 from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from contextlib import contextmanager
 from enum import Enum
+from threading import Lock
 from typing import Any, Generator, Mapping, MutableMapping, Optional, Sequence, Tuple
 
 from sentry import options
@@ -59,6 +60,7 @@ def _get_task_kwargs(message: Message) -> Optional[Mapping[str, Any]]:
 __metrics: MutableMapping[Tuple[int, str], int] = defaultdict(int)
 __metric_record_freq_sec = 1.0
 __last_flush = time.time()
+__lock = Lock()
 
 
 def _record_metrics(partition: int, task_kwargs: Mapping[str, Any]) -> None:
@@ -71,15 +73,17 @@ def _record_metrics(partition: int, task_kwargs: Mapping[str, Any]) -> None:
 
     current_time = time.time()
     if current_time - __last_flush > __metric_record_freq_sec:
-        for ((partition, event_type), count) in __metrics.items():
+        with __lock:
+            metrics_to_send = __metrics
+            __metrics.clear()
+            __last_flush = current_time
+        for ((partition, event_type), count) in metrics_to_send.items():
             metrics.incr(
                 _MESSAGES_METRIC,
                 amount=count,
                 tags={"partition": partition, "type": event_type},
                 sample_rate=1,
             )
-        __last_flush = current_time
-        __metrics.clear()
 
 
 def dispatch_post_process_group_task(
