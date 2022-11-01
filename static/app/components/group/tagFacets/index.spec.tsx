@@ -116,7 +116,9 @@ describe('Tag Facets', function () {
     expect(screen.getByText('org.mozilla.ios.Fennec@106.0')).toBeInTheDocument();
   });
 
-  it('shows tooltip', async function () {
+  // Skipping because this behaviour will be re-introduced
+  // eslint-disable-next-line jest/no-disabled-tests
+  it.skip('shows tooltip', async function () {
     render(
       <TagFacets
         environments={[]}
