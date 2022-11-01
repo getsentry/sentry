@@ -16,7 +16,6 @@ from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 from sentry_relay import RelayError, parse_release
 
-from sentry import features
 from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER
 from sentry.db.models import (
     ArrayField,
@@ -29,6 +28,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
 from sentry.exceptions import InvalidSearchQuery
 from sentry.locks import locks
 from sentry.models import (
@@ -99,12 +99,8 @@ class ReleaseProjectModelManager(BaseManager):
         # task.
         #
         # If there is no transaction open, on_commit should run immediately.
-
-        allow_dynamic_sampling = features.has(
-            "organizations:server-side-sampling",
-            instance.project.organization,
-        )
-        if allow_dynamic_sampling:
+        ds_feature_multiplexer = DynamicSamplingFeatureMultiplexer(instance.project)
+        if ds_feature_multiplexer.is_on_dynamic_sampling_deprecated:
             dynamic_sampling = instance.project.get_option("sentry:dynamic_sampling")
             if dynamic_sampling is not None and ds_rules_contain_latest_release_rule(
                 dynamic_sampling["rules"]
@@ -122,11 +118,8 @@ class ReleaseProjectModelManager(BaseManager):
         # task.
         #
         # If there is no transaction open, on_commit should run immediately.
-        allow_dynamic_sampling = features.has(
-            "organizations:server-side-sampling",
-            instance.project.organization,
-        )
-        if allow_dynamic_sampling:
+        ds_feature_multiplexer = DynamicSamplingFeatureMultiplexer(instance.project)
+        if ds_feature_multiplexer.is_on_dynamic_sampling_deprecated:
             dynamic_sampling = instance.project.get_option("sentry:dynamic_sampling")
             if dynamic_sampling is not None and ds_rules_contain_latest_release_rule(
                 dynamic_sampling["rules"]
@@ -561,6 +554,8 @@ class Release(Model):
     # later split up releases by project again.  This is for instance used
     # by the org release listing.
     _for_project_id = None
+    # the user agent that set the release
+    user_agent = models.TextField(null=True)
 
     # Custom Model Manager required to override create method
     objects = ReleaseModelManager()

@@ -60,13 +60,13 @@ pytest-rerunfailures==10.2
 pytest-sentry==0.1.9
 pytest-xdist==3.0.2
 python-dateutil==2.8.2
-pyupgrade==2.37.2
+pyupgrade==3.1.0
 pyyaml==6.0
 requests==2.27.1
 responses==0.21.0
 sentry-sdk==1.6.0
 six==1.16.0
-tokenize-rt==4.2.1
+tokenize-rt==5.0.0
 toml==0.10.2
 tomli==2.0.1
 types-beautifulsoup4==4.11.6

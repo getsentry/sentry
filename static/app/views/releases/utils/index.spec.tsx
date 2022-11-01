@@ -1,6 +1,6 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import {getReleaseBounds, getReleaseParams} from 'sentry/views/releases/utils';
+import {getReleaseBounds, getReleaseParams, searchReleaseVersion} from './index';
 
 describe('releases/utils', () => {
   describe('getReleaseBounds', () => {
@@ -148,5 +148,13 @@ describe('releases/utils', () => {
         end: '2022-03-23T01:02:30.000',
       });
     });
+  });
+});
+
+describe('searchReleaseVersion()', function () {
+  it('should escape quotes', function () {
+    expect(searchReleaseVersion('com.sentry.go_app@"1.0.0-chore"')).toBe(
+      'release:"com.sentry.go_app@\\"1.0.0-chore\\""'
+    );
   });
 });

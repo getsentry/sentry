@@ -1,11 +1,15 @@
 import {browserHistory, Router, RouterContext} from 'react-router';
-import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
 import DemoHeader from 'sentry/components/demo/demoHeader';
 import ThemeAndStyleProvider from 'sentry/components/themeAndStyleProvider';
 import {routes} from 'sentry/routes';
 import ConfigStore from 'sentry/stores/configStore';
 import {PersistedStoreProvider} from 'sentry/stores/persistedStore';
+import {
+  DEFAULT_QUERY_CLIENT_CONFIG,
+  QueryClient,
+  QueryClientProvider,
+} from 'sentry/utils/queryClient';
 import {RouteContext} from 'sentry/views/routeContext';
 
 import RouteAnalyticsContextProvider from './views/routeAnalyticsContextProvider';
@@ -23,7 +27,7 @@ function renderRouter(props: any) {
   );
 }
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient(DEFAULT_QUERY_CLIENT_CONFIG);
 
 function Main() {
   return (
