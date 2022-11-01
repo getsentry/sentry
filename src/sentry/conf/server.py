@@ -2884,3 +2884,6 @@ SENTRY_SLICING_LOGICAL_PARTITION_COUNT = 256
 # For each Sliceable, the range [0, SENTRY_SLICING_LOGICAL_PARTITION_COUNT) must be mapped
 # to a slice ID
 SENTRY_SLICING_CONFIG: Mapping[str, Mapping[Tuple[int, int], int]] = {}
+
+# Flag if we are in SaaS mode
+SENTRY_IS_SAAS = False
