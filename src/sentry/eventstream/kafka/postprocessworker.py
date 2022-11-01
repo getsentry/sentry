@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import random
 from concurrent.futures import Future, ThreadPoolExecutor, as_completed
