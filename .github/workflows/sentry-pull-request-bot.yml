@@ -27,7 +27,7 @@ jobs:
         with:
           script: |
             try {
-              const result = await github.orgs.checkMembershipForUser({
+              const result = await github.rest.orgs.checkMembershipForUser({
                 org: 'getsentry',
                 username: context.payload.sender.login,
               })
@@ -50,7 +50,7 @@ jobs:
         with:
           github-token: ${{ steps.getsentry.outputs.token }}
           script: |
-            github.actions.createWorkflowDispatch({
+            github.rest.actions.createWorkflowDispatch({
               owner: 'getsentry',
               repo: 'getsentry',
               workflow_id: 'acceptance.yml',
