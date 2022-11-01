@@ -108,6 +108,14 @@ setup-git-config() {
 
 setup-git() {
     setup-git-config
+
+    # if hooks are explicitly turned off do nothing
+    if [[ "$(git config core.hooksPath)" == '/dev/null' ]]; then
+        echo "--> core.hooksPath set to /dev/null. Skipping git hook setup"
+        echo ""
+        return
+    fi
+
     echo "--> Installing git hooks"
     mkdir -p .git/hooks && cd .git/hooks && ln -sf ../../config/hooks/* ./ && cd - || exit
     # shellcheck disable=SC2016
