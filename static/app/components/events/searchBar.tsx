@@ -1,4 +1,4 @@
-import {useEffect, useRef} from 'react';
+import {useEffect, useMemo, useRef} from 'react';
 import * as Sentry from '@sentry/react';
 import {Transaction} from '@sentry/types';
 import assign from 'lodash/assign';
@@ -33,59 +33,60 @@ const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   'g'
 );
 
-const getFunctionTags = (fields: Readonly<Field[]>) =>
-  Object.fromEntries(
-    fields
-      .filter(
-        item =>
-          !Object.keys(FIELD_TAGS).includes(item.field) &&
-          !isEquation(item.field) &&
-          !isCustomMeasurement(item.field)
-      )
-      .map(item => [
-        item.field,
-        {key: item.field, name: item.field, kind: FieldKind.FUNCTION},
-      ])
-  );
+const STATIC_FIELD_TAGS_SET = new Set(Object.keys(FIELD_TAGS));
+const getFunctionTags = (fields: Readonly<Field[]> | undefined) => {
+  if (!fields) {
+    return [];
+  }
+  return fields.reduce((acc, item) => {
+    if (
+      !STATIC_FIELD_TAGS_SET.has(item.field) &&
+      !isEquation(item.field) &&
+      !isCustomMeasurement(item.field)
+    ) {
+      acc[item.field] = {key: item.field, name: item.field, kind: FieldKind.FUNCTION};
+    }
+
+    return acc;
+  }, {});
+};
 
 const getMeasurementTags = (
   measurements: Parameters<
     React.ComponentProps<typeof Measurements>['children']
   >[0]['measurements']
-) =>
-  Object.fromEntries(
-    Object.keys(measurements).map(key => [
-      key,
-      {
-        ...measurements[key],
-        kind: FieldKind.MEASUREMENT,
-      },
-    ])
-  );
+) => {
+  return Object.keys(measurements).reduce((tags, key) => {
+    tags[key] = {
+      ...measurements[key],
+      kind: FieldKind.MEASUREMENT,
+    };
+    return tags;
+  }, {});
+};
 
-const COMPUTED_FIELD_TAGS = Object.fromEntries(
-  Object.keys(FIELD_TAGS).map(key => [
-    key,
-    {
-      ...FIELD_TAGS[key],
-      kind: FieldKind.FIELD,
-    },
-  ])
-);
+const STATIC_FIELD_TAGS = Object.keys(FIELD_TAGS).reduce((tags, key) => {
+  tags[key] = {
+    ...FIELD_TAGS[key],
+    kind: FieldKind.FIELD,
+  };
+  return tags;
+}, {});
 
-const COMPUTER_SPAN_TAGS = Object.fromEntries(
-  SPAN_OP_BREAKDOWN_FIELDS.map(key => [key, {key, name: key, kind: FieldKind.METRICS}])
-);
+const STATIC_FIELD_TAGS_WITHOUT_TRACING = omit(STATIC_FIELD_TAGS, TRACING_FIELDS);
 
-const COMPUTER_SEMVER_TAGS = Object.fromEntries(
-  Object.keys(SEMVER_TAGS).map(key => [
-    key,
-    {
-      ...SEMVER_TAGS[key],
-      kind: FieldKind.FIELD,
-    },
-  ])
-);
+const STATIC_SPAN_TAGS = SPAN_OP_BREAKDOWN_FIELDS.reduce((tags, key) => {
+  tags[key] = {name: key, kind: FieldKind.METRICS};
+  return tags;
+}, {});
+
+const STATIC_SEMVER_TAGS = Object.keys(SEMVER_TAGS).reduce((tags, key) => {
+  tags[key] = {
+    ...SEMVER_TAGS[key],
+    kind: FieldKind.FIELD,
+  };
+  return tags;
+}, {});
 
 export type SearchBarProps = Omit<React.ComponentProps<typeof SmartSearchBar>, 'tags'> & {
   organization: Organization;
@@ -115,8 +116,19 @@ function SearchBar(props: SearchBarProps) {
     customMeasurements,
   } = props;
 
-  const collectedTransactionFromGetTagsListRef = useRef<boolean>(false);
   const api = useApi();
+  const collectedTransactionFromGetTagsListRef = useRef<boolean>(false);
+
+  const functionTags = useMemo(() => getFunctionTags(fields), [fields]);
+  const tagsWithKind = useMemo(() => {
+    return Object.keys(tags).reduce((acc, key) => {
+      acc[key] = {
+        ...tags[key],
+        kind: FieldKind.TAG,
+      };
+      return acc;
+    }, {});
+  }, [tags]);
 
   useEffect(() => {
     // Clear memoized data on mount to make tests more consistent.
@@ -176,44 +188,32 @@ function SearchBar(props: SearchBarProps) {
       collectedTransactionFromGetTagsListRef.current = true;
     }
 
-    const functionTags = getFunctionTags(fields ?? []);
     const measurementsWithKind = getMeasurementTags(measurements);
-    const fieldTags = COMPUTED_FIELD_TAGS;
-    const spanTags = COMPUTER_SPAN_TAGS;
-    const semverTags = COMPUTER_SEMVER_TAGS;
-
     const orgHasPerformanceView = organization.features.includes('performance-view');
 
     const combinedTags: TagCollection = orgHasPerformanceView
-      ? Object.assign({}, measurementsWithKind, spanTags, fieldTags, functionTags)
-      : omit(fieldTags, TRACING_FIELDS);
+      ? Object.assign(
+          measurementsWithKind,
+          functionTags,
+          STATIC_SPAN_TAGS,
+          STATIC_FIELD_TAGS
+        )
+      : STATIC_FIELD_TAGS_WITHOUT_TRACING;
 
-    const tagsWithKind = Object.fromEntries(
-      Object.keys(tags).map(key => [
-        key,
-        {
-          ...tags[key],
-          kind: FieldKind.TAG,
-        },
-      ])
-    );
-
-    assign(combinedTags, tagsWithKind, fieldTags, semverTags);
-
-    const sortedTagKeys = Object.keys(combinedTags);
-    sortedTagKeys.sort((a, b) => {
-      return a.toLowerCase().localeCompare(b.toLowerCase());
-    });
+    assign({}, tagsWithKind, combinedTags, STATIC_FIELD_TAGS, STATIC_SEMVER_TAGS);
 
     combinedTags.has = {
       key: FieldKey.HAS,
       name: 'Has property',
-      values: sortedTagKeys,
+      values: Object.keys(combinedTags).sort((a, b) => {
+        return a.toLowerCase().localeCompare(b.toLowerCase());
+      }),
       predefined: true,
       kind: FieldKind.FIELD,
     };
 
-    const list = omit(combinedTags, omitTags ?? []);
+    const list =
+      omitTags && omitTags.length > 0 ? omit(combinedTags, omitTags) : combinedTags;
 
     if (transaction) {
       const totalCount: number = Object.keys(list).length;
