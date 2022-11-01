@@ -2205,7 +2205,7 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects):
                     client = redis.redis_clusters.get(cluster_key)
 
                     for new_grouphash in new_grouphashes:
-                        if should_create_group(client, new_grouphash):
+                        if not should_create_group(client, new_grouphash):
                             groups_to_create.remove(new_grouphash)
 
                     new_grouphashes = groups_to_create
