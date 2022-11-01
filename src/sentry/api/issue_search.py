@@ -1,5 +1,5 @@
 from functools import partial
-from typing import Any, Callable, Iterable, List, Mapping, Optional, Sequence, Set, Union
+from typing import Callable, Iterable, List, Mapping, Optional, Sequence, Set, Union
 
 from sentry import features
 from sentry.api.event_search import (
@@ -11,8 +11,8 @@ from sentry.api.event_search import (
 )
 from sentry.api.event_search import parse_search_query as base_parse_query
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import Environment, Organization, Project, User
-from sentry.models.group import STATUS_QUERY_CHOICES
+from sentry.models import Environment, Organization, Project, Team, User
+from sentry.models.group import STATUS_QUERY_CHOICES, GroupStatus
 from sentry.search.events.constants import EQUALITY_OPERATORS
 from sentry.search.events.filter import to_list
 from sentry.search.utils import (
@@ -58,34 +58,40 @@ issue_search_config = SearchConfig.create_from(
 parse_search_query = partial(base_parse_query, config=issue_search_config)
 
 ValueConverter = Callable[
-    [Iterable[Any], Sequence[Project], User, Optional[Sequence[Environment]]], Union[Any, List[Any]]
+    [
+        Iterable[Union[User, Team, str, GroupStatus]],
+        Sequence[Project],
+        User,
+        Optional[Sequence[Environment]],
+    ],
+    Union[str, List[str], List[Optional[Union[User, Team]]], List[User], List[int]],
 ]
 
 
 def convert_actor_or_none_value(
-    value: Iterable[Any],
+    value: Iterable[Union[User, Team]],
     projects: Sequence[Project],
     user: User,
     environments: Optional[Sequence[Environment]],
-) -> List[Any]:
+) -> List[Optional[Union[User, Team]]]:
     # TODO: This will make N queries. This should be ok, we don't typically have large
     # lists of actors here, but we can look into batching it if needed.
     return [parse_actor_or_none_value(projects, actor, user) for actor in value]
 
 
 def convert_user_value(
-    value: Iterable[Any],
+    value: Iterable[str],
     projects: Sequence[Project],
     user: User,
     environments: Optional[Sequence[Environment]],
-) -> List[Any]:
+) -> List[User]:
     # TODO: This will make N queries. This should be ok, we don't typically have large
     # lists of usernames here, but we can look into batching it if needed.
     return [parse_user_value(username, user) for username in value]
 
 
 def convert_release_value(
-    value: Iterable[Any],
+    value: Iterable[str],
     projects: Sequence[Project],
     user: User,
     environments: Optional[Sequence[Environment]],
@@ -102,7 +108,7 @@ def convert_release_value(
 
 
 def convert_first_release_value(
-    value: Iterable[Any],
+    value: Iterable[str],
     projects: Sequence[Project],
     user: User,
     environments: Optional[Sequence[Environment]],
@@ -116,11 +122,11 @@ def convert_first_release_value(
 
 
 def convert_status_value(
-    value: Iterable[Any],
+    value: Iterable[Union[str, int]],
     projects: Sequence[Project],
     user: User,
     environments: Optional[Sequence[Environment]],
-) -> List[Any]:
+) -> List[int]:
     parsed = []
     for status in value:
         try:
@@ -131,7 +137,7 @@ def convert_status_value(
 
 
 def convert_category_value(
-    value: Iterable[Any],
+    value: Iterable[str],
     projects: Sequence[Project],
     user: User,
     environments: Optional[Sequence[Environment]],
@@ -149,7 +155,7 @@ def convert_category_value(
 
 
 def convert_type_value(
-    value: Iterable[Any],
+    value: Iterable[str],
     projects: Sequence[Project],
     user: User,
     environments: Optional[Sequence[Environment]],
