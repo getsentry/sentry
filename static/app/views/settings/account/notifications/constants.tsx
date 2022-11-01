@@ -37,14 +37,17 @@ export const NOTIFICATION_SETTINGS_TYPES = [
   'reports',
   'email',
   'spikeProtection',
-];
+] as const;
 
 export const SELF_NOTIFICATION_SETTINGS_TYPES = [
   'personalActivityNotifications',
   'selfAssignOnResolve',
 ];
 
-export const NOTIFICATION_SETTINGS_PATHNAMES = {
+// 'alerts' | 'activeRelease' | 'workflow' ...
+export type NotificationSettingsType = typeof NOTIFICATION_SETTINGS_TYPES[number];
+
+export const NOTIFICATION_SETTINGS_PATHNAMES: Record<NotificationSettingsType, string> = {
   alerts: 'alerts',
   activeRelease: 'activeRelease',
   workflow: 'workflow',

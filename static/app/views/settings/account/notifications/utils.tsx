@@ -17,10 +17,16 @@ import ParentLabel from 'sentry/views/settings/account/notifications/parentLabel
 /**
  * Which fine-tuning parts are grouped by project
  */
+const notificationsByProject = [
+  'alerts',
+  'email',
+  'workflow',
+  'activeRelease',
+  'spikeProtection',
+];
+
 export const isGroupedByProject = (notificationType: string): boolean =>
-  ['alerts', 'email', 'workflow', 'activeRelease', 'spikeProtection'].includes(
-    notificationType
-  );
+  notificationsByProject.includes(notificationType);
 
 export const getParentKey = (notificationType: string): string => {
   return isGroupedByProject(notificationType) ? 'project' : 'organization';
@@ -440,10 +446,12 @@ export function getDocsLinkForEventType(event: 'error' | 'transaction' | 'attach
   }
 }
 
-export function getNotificationTypeFromPathname(name: string) {
+/**
+ * Returns the corresponding notification type name from the router path name
+ */
+export function getNotificationTypeFromPathname(routerPathname: string) {
   const result = Object.entries(NOTIFICATION_SETTINGS_PATHNAMES).find(
-    ([_, pathname]) => pathname === name
-  );
-
-  return result ? result[0] : '';
+    ([_, pathname]) => pathname === routerPathname
+  ) ?? [routerPathname];
+  return result[0];
 }
