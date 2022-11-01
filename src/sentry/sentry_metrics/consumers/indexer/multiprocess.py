@@ -10,13 +10,15 @@ from arroyo.processing import StreamProcessor
 from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
 from arroyo.processing.strategies import ProcessingStrategyFactory
-from arroyo.types import Message, Partition, Position, Topic
+from arroyo.types import Commit, Message, Partition, Position, Topic
 from confluent_kafka import Producer
 from django.conf import settings
 
 from sentry.sentry_metrics.configuration import MetricsIngestConfiguration
 from sentry.sentry_metrics.consumers.indexer.common import BatchMessages, MessageBatch, get_config
 from sentry.sentry_metrics.consumers.indexer.processing import MessageProcessor
+from sentry.sentry_metrics.consumers.indexer.routing_producer import RoutingProducerStep
+from sentry.sentry_metrics.consumers.indexer.slicing_router import SlicingRouter
 from sentry.utils import kafka_config, metrics
 from sentry.utils.batching_kafka_consumer import create_topics
 
@@ -44,17 +46,27 @@ class BatchConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
     def create_with_partitions(
         self,
-        commit: Callable[[Mapping[Partition, Position]], None],
+        commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-        transform_step = TransformStep(
-            next_step=SimpleProduceStep(
+        if self.__config.is_output_sliced:
+            produce_step = RoutingProducerStep(
+                commit_function=commit,
+                message_router=SlicingRouter(
+                    sliceable="generic_metrics_sets",
+                    logical_output_topic=self.__config.output_topic,
+                ),
+            )
+        else:
+            produce_step = SimpleProduceStep(
                 commit_function=commit,
                 commit_max_batch_size=self.__commit_max_batch_size,
-                # convert to seconds
+                # This is in seconds
                 commit_max_batch_time=self.__commit_max_batch_time / 1000,
                 output_topic=self.__config.output_topic,
-            ),
+            )
+        transform_step = TransformStep(
+            next_step=produce_step,
             config=self.__config,
         )
         strategy = BatchMessages(transform_step, self.__max_batch_time, self.__max_batch_size)
