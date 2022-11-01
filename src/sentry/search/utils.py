@@ -4,13 +4,16 @@ from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import TYPE_CHECKING, FrozenSet, Optional, Sequence
+from typing import TYPE_CHECKING, Any, FrozenSet, Optional, Sequence, Set, Tuple, TypedDict, Union
 
 from django.db import DataError, connections, router
 from django.utils import timezone
 
+from sentry.utils.types import Type
+
 if TYPE_CHECKING:
     from sentry.api.event_search import SearchFilter
+    from typing_extensions import NotRequired
 
 from sentry.models import (
     KEYWORD_MAP,
@@ -31,7 +34,7 @@ class InvalidQuery(Exception):
     pass
 
 
-def get_user_tag(projects, key, value):
+def get_user_tag(projects: Sequence[Project], key: str, value: str) -> str:
     # TODO(dcramer): do something with case of multiple matches
     try:
         lookup = EventUser.attr_from_keyword(key)
@@ -42,18 +45,18 @@ def get_user_tag(projects, key, value):
         return f"{key}:{value}"
     except DataError:
         raise InvalidQuery(f"malformed '{key}:' query '{value}'.")
-    return euser.tag_value
+    return euser.tag_value  # type: ignore
 
 
-def parse_status_value(value):
+def parse_status_value(value: Union[str, int]) -> int:
     if value in STATUS_QUERY_CHOICES:
-        return STATUS_QUERY_CHOICES[value]
+        return STATUS_QUERY_CHOICES[value]  # type: ignore[no-any-return]
     if value in STATUS_QUERY_CHOICES.values():
-        return value
+        return value  # type: ignore[return-value]
     raise ValueError("Invalid status value")
 
 
-def parse_duration(value, interval):
+def parse_duration(value: int, interval: str) -> float:
     try:
         duration = float(value)
     except ValueError:
@@ -85,7 +88,7 @@ def parse_duration(value, interval):
     return delta.total_seconds() * 1000.0
 
 
-def parse_size(value, size):
+def parse_size(value: int, size: str) -> float:
     """Returns in total bytes"""
     try:
         size_value = float(value)
@@ -138,32 +141,34 @@ def parse_size(value, size):
     return byte
 
 
-def parse_percentage(value):
+def parse_percentage(value: int) -> float:
     try:
-        value = float(value)
+        value = float(value)  # type: ignore[assignment]
     except ValueError:
         raise InvalidQuery(f"{value} is not a valid percentage value")
 
     return value / 100
 
 
-def parse_numeric_value(value, suffix=None):
+def parse_numeric_value(value: str, suffix: Optional[str] = None) -> float:
     try:
-        value = float(value)
+        ret_value = float(value)
     except ValueError:
         raise InvalidQuery("Invalid number")
 
     if not suffix:
-        return value
+        return ret_value
 
     numeric_multiples = {"k": 10.0**3, "m": 10.0**6, "b": 10.0**9}
     if suffix not in numeric_multiples:
         raise InvalidQuery(f"{suffix} is not a valid number suffix, must be k, m or b")
 
-    return value * numeric_multiples[suffix]
+    return ret_value * numeric_multiples[suffix]
 
 
-def parse_datetime_range(value):
+def parse_datetime_range(
+    value: str,
+) -> Union[tuple[tuple[datetime, bool], None], tuple[None, tuple[datetime, bool]]]:
     try:
         flag, count, interval = value[0], int(value[1:-1]), value[-1]
     except (ValueError, TypeError, IndexError):
@@ -184,19 +189,19 @@ def parse_datetime_range(value):
         raise InvalidQuery(f"{value} is not a valid datetime query")
 
     if flag == "-":
-        return ((timezone.now() - delta, True), None)
+        return (timezone.now() - delta, True), None
     else:
-        return (None, (timezone.now() - delta, True))
+        return None, (timezone.now() - delta, True)
 
 
 DATE_FORMAT = "%Y-%m-%d"
 
 
-def parse_unix_timestamp(value):
+def parse_unix_timestamp(value: str) -> datetime:
     return datetime.utcfromtimestamp(float(value)).replace(tzinfo=timezone.utc)
 
 
-def parse_iso_timestamp(value):
+def parse_iso_timestamp(value: str) -> datetime:
     # datetime.fromisoformat does not support parsing 'Z'
     date = datetime.fromisoformat(value.replace("Z", "+00:00"))
 
@@ -208,7 +213,7 @@ def parse_iso_timestamp(value):
     return datetime.fromtimestamp(date.timestamp(), tz=timezone.utc)
 
 
-def parse_datetime_string(value):
+def parse_datetime_string(value: str) -> datetime:
     try:
         return parse_iso_timestamp(value)
     except ValueError:
@@ -222,20 +227,25 @@ def parse_datetime_string(value):
     raise InvalidQuery(f"{value} is not a valid ISO8601 date query")
 
 
-def parse_datetime_comparison(value):
+ParsedDatetime = Optional[Tuple[datetime, bool]]
+
+
+def parse_datetime_comparison(
+    value: str,
+) -> tuple[ParsedDatetime, ParsedDatetime]:
     if value[:2] == ">=":
-        return ((parse_datetime_string(value[2:]), True), None)
+        return (parse_datetime_string(value[2:]), True), None
     if value[:2] == "<=":
-        return (None, (parse_datetime_string(value[2:]), True))
+        return None, (parse_datetime_string(value[2:]), True)
     if value[:1] == ">":
-        return ((parse_datetime_string(value[1:]), False), None)
+        return (parse_datetime_string(value[1:]), False), None
     if value[:1] == "<":
-        return (None, (parse_datetime_string(value[1:]), False))
+        return None, (parse_datetime_string(value[1:]), False)
 
     raise InvalidQuery(f"{value} is not a valid datetime query")
 
 
-def parse_datetime_value(value):
+def parse_datetime_value(value: str) -> tuple[ParsedDatetime, ParsedDatetime]:
     result = None
 
     # A value that only specifies the date (without a time component) should be
@@ -245,7 +255,7 @@ def parse_datetime_value(value):
     except ValueError:
         pass
     else:
-        return ((result, True), (result + timedelta(days=1), False))
+        return (result, True), (result + timedelta(days=1), False)
 
     # A value that contains the time should converted to an interval.
     try:
@@ -259,10 +269,10 @@ def parse_datetime_value(value):
     if result is None:
         raise InvalidQuery(f"{value} is not a valid datetime query")
 
-    return ((result - timedelta(minutes=5), True), (result + timedelta(minutes=6), False))
+    return (result - timedelta(minutes=5), True), (result + timedelta(minutes=6), False)
 
 
-def parse_datetime_expression(value):
+def parse_datetime_expression(value: str) -> tuple[ParsedDatetime, ParsedDatetime]:
     if value.startswith(("-", "+")):
         return parse_datetime_range(value)
     elif value.startswith((">", "<", "<=", ">=")):
@@ -271,7 +281,7 @@ def parse_datetime_expression(value):
         return parse_datetime_value(value)
 
 
-def get_date_params(value, from_field, to_field):
+def get_date_params(value: str, from_field: str, to_field: str) -> dict[str, Union[datetime, bool]]:
     date_from, date_to = parse_datetime_expression(value)
     result = {}
     if date_from is not None:
@@ -280,28 +290,30 @@ def get_date_params(value, from_field, to_field):
     if date_to is not None:
         date_to_value, date_to_inclusive = date_to
         result.update({to_field: date_to_value, f"{to_field}_inclusive": date_to_inclusive})
-    return result
+    return result  # type: ignore[return-value]
 
 
-def parse_team_value(projects, value, user):
+def parse_team_value(projects: Sequence[Project], value: Sequence[str], user: User) -> Team:
     return Team.objects.filter(
         slug__iexact=value[1:], projectteam__project__in=projects
     ).first() or Team(id=0)
 
 
-def parse_actor_value(projects, value, user):
+def parse_actor_value(projects: Sequence[Project], value: str, user: User) -> Union[User, Team]:
     if value.startswith("#"):
         return parse_team_value(projects, value, user)
     return parse_user_value(value, user)
 
 
-def parse_actor_or_none_value(projects, value, user):
+def parse_actor_or_none_value(
+    projects: Sequence[Project], value: str, user: User
+) -> Optional[Union[User, Team]]:
     if value == "none":
         return None
     return parse_actor_value(projects, value, user)
 
 
-def parse_user_value(value, user):
+def parse_user_value(value: str, user: User) -> User:
     if value == "me":
         return user
 
@@ -326,7 +338,7 @@ def get_latest_release(
     if organization_id is None:
         project = projects[0]
         if hasattr(project, "organization_id"):
-            organization_id = project.organization_id
+            organization_id = project.organization_id  # type: ignore[union-attr]
         else:
             return []
 
@@ -341,7 +353,7 @@ def get_latest_release(
         else:
             date_project_ids.append(project_id)
 
-    versions = set()
+    versions: Set[str] = set()
     versions.update(
         _run_latest_release_query(
             LatestReleaseOrders.SEMVER, semver_project_ids, environments, organization_id
@@ -409,7 +421,7 @@ def _run_latest_release_query(
 def parse_release(
     value: str,
     projects: Sequence[Project | int],
-    environments: Sequence[Environment],
+    environments: Optional[Sequence[Environment]],
     organization_id: Optional[int] = None,
 ) -> Sequence[str]:
     if value == "latest":
@@ -454,11 +466,13 @@ numeric_modifiers = [
 ]
 
 
-def get_numeric_field_value(field, raw_value, type=int):
+def get_numeric_field_value(
+    field: str, raw_value: str, type: Type = int
+) -> dict[str, Union[int, float]]:
     try:
         for modifier, function in numeric_modifiers:
             if raw_value.startswith(modifier):
-                return function(field, type(raw_value[len(modifier) :]))
+                return function(field, type(raw_value[len(modifier) :]))  # type: ignore[no-untyped-call]
         else:
             return {field: type(raw_value)}
     except ValueError:
@@ -466,7 +480,7 @@ def get_numeric_field_value(field, raw_value, type=int):
         raise InvalidQuery(msg)
 
 
-def tokenize_query(query):
+def tokenize_query(query: str) -> dict[str, list[str]]:
     """
     Tokenizes a standard Sentry search query.
 
@@ -509,15 +523,15 @@ def tokenize_query(query):
     return dict(result)
 
 
-def format_tag(tag):
+def format_tag(tag: str) -> tuple[str, str]:
     """
-    Splits tags on ':' and removes enclosing quotes and grouping parens if present and returns
+    Splits tags on ':' and removes enclosing quotes and grouping parens if present and
     returns both sides of the split as strings
 
     Example:
     >>> format_tag('user:foo')
     'user', 'foo'
-    >>>format_tag('user:"foo bar"'')
+    >>>format_tag('user:"foo bar"')
     'user', 'foo bar'
     """
     idx = tag.index(":")
@@ -526,7 +540,7 @@ def format_tag(tag):
     return key, value
 
 
-def remove_surrounding_quotes(text):
+def remove_surrounding_quotes(text: str) -> str:
     length = len(text)
     if length <= 1:
         return text
@@ -546,7 +560,7 @@ def remove_surrounding_quotes(text):
     return text[left : right + 1]
 
 
-def format_query(query):
+def format_query(query: str) -> str:
     """
     Strips enclosing quotes and grouping parens from queries if present.
 
@@ -557,7 +571,7 @@ def format_query(query):
     return query.strip('"()')
 
 
-def split_query_into_tokens(query):
+def split_query_into_tokens(query: str) -> Sequence[str]:
     """
     Splits query string into tokens for parsing by 'tokenize_query'.
     Returns list of strigs
@@ -595,7 +609,7 @@ def split_query_into_tokens(query):
                 if quote_enclosed:
                     quote_type = char
         if quote_enclosed and char == "\\" and next_char == quote_type:
-            token += next_char
+            token += next_char  # type: ignore[operator]
             idx += 1
         idx += 1
     if not token.isspace():
@@ -603,11 +617,35 @@ def split_query_into_tokens(query):
     return tokens
 
 
-def parse_query(projects, query, user, environments):
+class ParsedQueryValues(TypedDict, total=False):
+    tags: dict[str, Union[str, list[str], Any]]
+    query: str
+    unassigned: NotRequired[bool]
+    for_review: NotRequired[bool]
+    linked: NotRequired[bool]
+    status: NotRequired[int]
+    assigned_to: NotRequired[Optional[Union[User, Team]]]
+    assigned_or_suggested: NotRequired[Optional[Union[User, Team]]]
+    bookmarked_by: NotRequired[User]
+    subscribed_by: NotRequired[User]
+    first_release: NotRequired[Sequence[str]]
+
+    age_from: NotRequired[Union[datetime, bool]]
+    age_to: NotRequired[Union[datetime, bool]]
+    last_seen_from: NotRequired[Union[datetime, bool]]
+    last_seen_to: NotRequired[Union[datetime, bool]]
+    date_from: NotRequired[Union[datetime, bool]]
+    date_to: NotRequired[Union[datetime, bool]]
+    times_seen: NotRequired[Union[int, float]]
+
+
+def parse_query(
+    projects: Sequence[Project], query: str, user: User, environments: Sequence[Environment]
+) -> ParsedQueryValues:
     # TODO(dcramer): handle query being wrapped in quotes
     tokens = tokenize_query(query)
 
-    results = {"tags": {}, "query": []}
+    results: dict[str, Any] = {"tags": {}, "query": []}
     for key, token_list in tokens.items():
         for value in token_list:
             if key == "query":
@@ -673,10 +711,10 @@ def parse_query(projects, query, user, environments):
 
     results["query"] = " ".join(results["query"])
 
-    return results
+    return results  # type: ignore[return-value]
 
 
-def convert_user_tag_to_query(key, value):
+def convert_user_tag_to_query(key: str, value: str) -> Optional[str]:
     """
     Converts a user tag to a query string that can be used to search for that
     user. Returns None if not a user tag.
@@ -685,6 +723,7 @@ def convert_user_tag_to_query(key, value):
         sub_key, value = value.split(":", 1)
         if KEYWORD_MAP.get_key(sub_key, None):
             return 'user.{}:"{}"'.format(sub_key, value.replace('"', '\\"'))
+    return None
 
 
 @dataclass
@@ -701,11 +740,11 @@ supported_cdc_conditions_lookup = {
 }
 
 
-def validate_cdc_search_filters(search_filters: Sequence[SearchFilter]) -> bool:
+def validate_cdc_search_filters(search_filters: Optional[Sequence[SearchFilter]]) -> bool:
     """
     Validates whether a set of search filters can be handled by the cdc search backend.
     """
-    for search_filter in search_filters:
+    for search_filter in search_filters or ():
         supported_condition = supported_cdc_conditions_lookup.get(search_filter.key.name)
         if not supported_condition:
             return False
