@@ -49,7 +49,7 @@ class BaseSiloClient(BaseApiClient):
 class RegionSiloClient(BaseSiloClient):
     access_modes = [SiloMode.CONTROL]
 
-    datadog_prefix = "silo_client.region"
+    metrics_prefix = "silo_client.region"
     log_path = "sentry.silo.client.region"
     silo_client_name = "region"
 
@@ -62,7 +62,7 @@ class RegionSiloClient(BaseSiloClient):
 class ControlSiloClient(BaseSiloClient):
     access_modes = [SiloMode.REGION]
 
-    datadog_prefix = "silo_client.control"
+    metrics_prefix = "silo_client.control"
     log_path = "sentry.silo.client.control"
     silo_client_name = "control"
 

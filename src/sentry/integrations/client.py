@@ -7,7 +7,7 @@ from sentry.shared_integrations.client import BaseApiClient
 class ApiClient(BaseApiClient):
     integration_type = "integration"
 
-    datadog_prefix = "integrations"
+    metrics_prefix = "integrations"
 
     log_path = "sentry.integrations.client"
 

@@ -31,7 +31,7 @@ class BaseApiClient(TrackResponseMixin):
 
     log_path: str | None = None
 
-    datadog_prefix: str | None = None
+    metrics_prefix: str | None = None
 
     cache_time = 900
 
@@ -96,7 +96,7 @@ class BaseApiClient(TrackResponseMixin):
         full_url = self.build_url(path)
 
         metrics.incr(
-            f"{self.datadog_prefix}.http_request",
+            f"{self.metrics_prefix}.http_request",
             sample_rate=1.0,
             tags={str(self.integration_type): self.name},
         )

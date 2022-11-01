@@ -11,7 +11,7 @@ from sentry.utils import metrics
 
 class TrackResponseMixin:
     @property
-    def datadog_prefix(self) -> str | None:
+    def metrics_prefix(self) -> str | None:
         raise NotImplementedError
 
     @property
@@ -43,7 +43,7 @@ class TrackResponseMixin:
         resp: Response | None = None,
     ) -> None:
         metrics.incr(
-            f"{self.datadog_prefix}.http_response",
+            f"{self.metrics_prefix}.http_response",
             sample_rate=1.0,
             tags={str(self.integration_type): self.name, "status": code},
         )
