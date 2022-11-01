@@ -299,7 +299,7 @@ class BaseGroupSidebar extends Component<Props, State> {
         {this.renderPluginIssue()}
 
         {!organization.features.includes('issue-details-tag-improvements') &&
-          isMobilePlatform(project.platform) && (
+          !isMobilePlatform(project.platform) && (
             <SidebarSection.Wrap>
               <SidebarSection.Title>{t('Tag Summary')}</SidebarSection.Title>
               <SidebarSection.Content>
