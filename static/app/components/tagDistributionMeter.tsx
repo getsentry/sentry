@@ -13,8 +13,8 @@ import {percent} from 'sentry/utils';
 
 type Props = {
   segments: TagSegment[];
-  title: string;
   totalValues: number;
+  colors?: string[];
   hasError?: boolean;
   isLoading?: boolean;
   onTagClick?: (title: string, value: TagSegment) => void;
@@ -22,6 +22,7 @@ type Props = {
   renderError?: () => React.ReactNode;
   renderLoading?: () => React.ReactNode;
   showReleasePackage?: boolean;
+  title?: string;
 };
 
 type SegmentValue = {
@@ -31,6 +32,7 @@ type SegmentValue = {
 };
 
 function TagDistributionMeter({
+  colors,
   isLoading = false,
   hasError = false,
   renderLoading = () => null,
@@ -127,7 +129,7 @@ function TagDistributionMeter({
           const segmentProps: SegmentValue = {
             index,
             to: value.url,
-            onClick: () => onTagClick?.(title, value),
+            onClick: () => onTagClick?.(title ?? '', value),
           };
 
           return (
@@ -138,7 +140,10 @@ function TagDistributionMeter({
             >
               <Tooltip title={tooltipHtml} containerDisplayMode="block">
                 {value.isOther ? (
-                  <OtherSegment aria-label={t('Other')} />
+                  <OtherSegment
+                    aria-label={t('Other')}
+                    color={colors ? colors[colors.length - 1] : COLORS[COLORS.length - 1]}
+                  />
                 ) : (
                   <Segment
                     aria-label={t(
@@ -146,6 +151,7 @@ function TagDistributionMeter({
                       title,
                       value.value
                     )}
+                    color={(colors ?? COLORS)?.[index] ?? COLORS[COLORS.length - 1]}
                     {...segmentProps}
                   />
                 )}
@@ -172,7 +178,7 @@ function TagDistributionMeter({
 
   return (
     <TagSummary>
-      {renderTitle()}
+      {title && renderTitle()}
       {renderSegments()}
     </TagSummary>
   );
@@ -234,21 +240,21 @@ const Percent = styled('div')`
   color: ${p => p.theme.textColor};
 `;
 
-const OtherSegment = styled('span')`
+const OtherSegment = styled('span')<{color: string}>`
   display: block;
   width: 100%;
   height: 16px;
   color: inherit;
   outline: none;
-  background-color: ${COLORS[COLORS.length - 1]};
+  background-color: ${p => p.color};
 `;
 
-const Segment = styled(Link, {shouldForwardProp: isPropValid})<SegmentValue>`
+const Segment = styled(Link, {shouldForwardProp: isPropValid})<{color: string}>`
   display: block;
   width: 100%;
   height: 16px;
   color: inherit;
   outline: none;
-  background-color: ${p => COLORS[p.index]};
+  background-color: ${p => p.color};
   border-radius: 0;
 `;

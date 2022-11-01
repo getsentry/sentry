@@ -1,4 +1,4 @@
-import {Fragment, ReactNode, useEffect, useState} from 'react';
+import {ReactNode, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 
@@ -12,9 +12,10 @@ import {formatVersion} from 'sentry/utils/formatters';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import Button from '../button';
-import ButtonBar from '../buttonBar';
-import BreakdownBars from '../charts/breakdownBars';
+import Button from '../../button';
+import ButtonBar from '../../buttonBar';
+
+import TagBreakdown from './tagBreakdown';
 
 export const MOBILE_TAGS = ['os', 'device', 'release'];
 export function MOBILE_TAGS_FORMATTER(tagsData: Record<string, TagWithTopValues>) {
@@ -37,9 +38,6 @@ export function MOBILE_TAGS_FORMATTER(tagsData: Record<string, TagWithTopValues>
   });
   return transformedTagsData;
 }
-
-const LESS_ITEMS = 4;
-const MORE_ITEMS = 8;
 
 type Props = {
   environments: Environment[];
@@ -98,13 +96,16 @@ export function TagFacets({
   const availableTagKeys = tagKeys.filter(tagKey => !!state.tagsData[tagKey]);
   // Format tagsData if the component was given a tagFormatter
   const tagsData = tagFormatter?.(state.tagsData) ?? state.tagsData;
+  const url = `/organizations/${organization.slug}/issues/${groupId}/tags/${state.selectedTag}/?referrer=tag-distribution-meter`;
   const points =
     tagsData[state.selectedTag]?.topValues.map(({name, value, count}) => {
       const isTagValueOfCurrentEvent =
         event?.tags.find(({key}) => key === state.selectedTag)?.value === value;
       return {
-        label: name,
-        value: count,
+        name,
+        value: name,
+        count,
+        url,
         active: isTagValueOfCurrentEvent,
         tooltip: isTagValueOfCurrentEvent
           ? t('This is also the tag value of the error event you are viewing.')
@@ -118,13 +119,21 @@ export function TagFacets({
   if (availableTagKeys.length > 0) {
     return (
       <SidebarSection.Wrap>
-        <SidebarSection.Title>{title ?? t('Tag Summary')}</SidebarSection.Title>
+        <Title>
+          {title ?? t('Tag Summary')}
+          <Button
+            size="xs"
+            to={`/organizations/${organization.slug}/issues/${groupId}/tags/`}
+          >
+            {t('View all')}
+          </Button>
+        </Title>
         <TagFacetsContainer>
-          <ButtonBar merged active={state.selectedTag}>
+          <StyledButtonBar merged active={state.selectedTag}>
             {availableTagKeys.map(tagKey => {
               return (
                 <Button
-                  size="xs"
+                  size="sm"
                   key={tagKey}
                   barId={tagKey}
                   onClick={() => {
@@ -135,33 +144,10 @@ export function TagFacets({
                 </Button>
               );
             })}
-          </ButtonBar>
-          <BreakdownBarsContainer>
-            <BreakdownBars
-              data={points}
-              maxItems={state.showMore ? MORE_ITEMS : LESS_ITEMS}
-            />
-          </BreakdownBarsContainer>
-          <ButtonContainer>
-            {points.length > LESS_ITEMS && (
-              <Fragment>
-                {state.showMore && (
-                  <Button
-                    size="xs"
-                    to={getTagUrl(organization.slug, groupId, state.selectedTag)}
-                  >
-                    {t('View all')}
-                  </Button>
-                )}
-                <Button
-                  size="xs"
-                  onClick={() => setState({...state, showMore: !state.showMore})}
-                >
-                  {state.showMore ? t('Show less') : t('Show more')}
-                </Button>
-              </Fragment>
-            )}
-          </ButtonContainer>
+          </StyledButtonBar>
+          <BreakdownContainer>
+            <TagBreakdown points={points} maxItems={5} />
+          </BreakdownContainer>
         </TagFacetsContainer>
       </SidebarSection.Wrap>
     );
@@ -169,22 +155,22 @@ export function TagFacets({
   return null;
 }
 
-function getTagUrl(orgSlug: string, groupId: string, tag: string) {
-  return `/organizations/${orgSlug}/issues/${groupId}/tags/${tag}/`;
-}
-
 const TagFacetsContainer = styled('div')`
   margin-top: ${space(2)};
 `;
 
-const BreakdownBarsContainer = styled('div')`
+const BreakdownContainer = styled('div')`
   margin-top: ${space(2)};
   overflow: hidden;
 `;
 
-const ButtonContainer = styled('div')`
-  margin-top: ${space(1)};
+const StyledButtonBar = styled(ButtonBar)`
   display: flex;
-  column-gap: ${space(0.5)};
-  justify-content: flex-end;
+`;
+
+const Title = styled(SidebarSection.Title)`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0;
 `;

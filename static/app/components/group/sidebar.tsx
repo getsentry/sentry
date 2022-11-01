@@ -261,9 +261,9 @@ class BaseGroupSidebar extends Component<Props, State> {
               tagKeys={MOBILE_TAGS}
               event={event}
               title={
-                <Fragment>
-                  {t('Mobile Tag Breakdown')} <FeatureBadge type="alpha" />
-                </Fragment>
+                <div>
+                  {t('Tag Summary')} <FeatureBadge type="alpha" />
+                </div>
               }
               tagFormatter={MOBILE_TAGS_FORMATTER}
             />
