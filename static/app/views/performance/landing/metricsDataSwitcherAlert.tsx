@@ -57,6 +57,10 @@ const UNSUPPORTED_TRANSACTION_NAME_DOCS = [
 export function MetricsDataSwitcherAlert(
   props: MetricEnhancedDataAlertProps
 ): React.ReactElement | null {
+  const isOnFallbackThresolds = props.organization.features.includes(
+    'performance-mep-bannerless-ui'
+  );
+
   const handleReviewUpdatesClick = useCallback(() => {
     SidebarPanelStore.activatePanel(SidebarPanelKey.Broadcasts);
   }, []);
@@ -93,6 +97,10 @@ export function MetricsDataSwitcherAlert(
   }
 
   const discoverTarget = createUnnamedTransactionsDiscoverTarget(props);
+
+  if (isOnFallbackThresolds) {
+    return null;
+  }
 
   if (props.shouldWarnIncompatibleSDK) {
     const updateSDK = (

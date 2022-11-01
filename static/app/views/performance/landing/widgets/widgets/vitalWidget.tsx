@@ -21,7 +21,10 @@ import {VitalData} from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuer
 import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
-import {UNPARAMETERIZED_TRANSACTION} from 'sentry/views/performance/utils';
+import {
+  createUnnamedTransactionsDiscoverTarget,
+  UNPARAMETERIZED_TRANSACTION,
+} from 'sentry/views/performance/utils';
 import {vitalDetailRouteWithQuery} from 'sentry/views/performance/vitalDetail/utils';
 import {_VitalChart} from 'sentry/views/performance/vitalDetail/vitalChart';
 
@@ -293,12 +296,18 @@ export function VitalWidget(props: PerformanceWidgetProps) {
 
                 _eventView.query = initialConditions.formatString();
 
-                const target = vitalDetailRouteWithQuery({
-                  orgSlug: organization.slug,
-                  query: _eventView.generateQueryStringObject(),
-                  vitalName: vital,
-                  projectID: decodeList(location.query.project),
-                });
+                const isUnparameterizedRow = transaction === UNPARAMETERIZED_TRANSACTION;
+                const target = isUnparameterizedRow
+                  ? createUnnamedTransactionsDiscoverTarget({
+                      organization,
+                      location,
+                    })
+                  : vitalDetailRouteWithQuery({
+                      orgSlug: organization.slug,
+                      query: _eventView.generateQueryStringObject(),
+                      vitalName: vital,
+                      projectID: decodeList(location.query.project),
+                    });
 
                 const data = {
                   [settingToVital[props.chartSetting]]: getVitalDataForListItem(
