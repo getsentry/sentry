@@ -56,7 +56,7 @@ def parse_status_value(value: Union[str, int]) -> int:
     raise ValueError("Invalid status value")
 
 
-def parse_duration(value: int, interval: str) -> float:
+def parse_duration(value: str, interval: str) -> float:
     try:
         duration = float(value)
     except ValueError:
@@ -88,7 +88,7 @@ def parse_duration(value: int, interval: str) -> float:
     return delta.total_seconds() * 1000.0
 
 
-def parse_size(value: int, size: str) -> float:
+def parse_size(value: str, size: str) -> float:
     """Returns in total bytes"""
     try:
         size_value = float(value)
@@ -141,29 +141,29 @@ def parse_size(value: int, size: str) -> float:
     return byte
 
 
-def parse_percentage(value: int) -> float:
+def parse_percentage(value: str) -> float:
     try:
-        value = float(value)  # type: ignore[assignment]
+        parsed_value = float(value)
     except ValueError:
         raise InvalidQuery(f"{value} is not a valid percentage value")
 
-    return value / 100
+    return parsed_value / 100
 
 
 def parse_numeric_value(value: str, suffix: Optional[str] = None) -> float:
     try:
-        ret_value = float(value)
+        parsed_value = float(value)
     except ValueError:
         raise InvalidQuery("Invalid number")
 
     if not suffix:
-        return ret_value
+        return parsed_value
 
     numeric_multiples = {"k": 10.0**3, "m": 10.0**6, "b": 10.0**9}
     if suffix not in numeric_multiples:
         raise InvalidQuery(f"{suffix} is not a valid number suffix, must be k, m or b")
 
-    return ret_value * numeric_multiples[suffix]
+    return parsed_value * numeric_multiples[suffix]
 
 
 def parse_datetime_range(
