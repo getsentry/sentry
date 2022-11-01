@@ -205,31 +205,24 @@ describe('Performance > Web Vitals', function () {
     expect(screen.getByRole('navigation')).toHaveTextContent('PerformanceWeb Vitals');
   });
 
-  it('renders all vitals cards correctly', async function () {
+  describe('renders all vitals cards correctly', function () {
     const {organization, router, routerContext} = initialize();
 
-    const wrapper = mountWithTheme(
-      <WrappedComponent
-        organization={organization}
-        location={router.location}
-        router={router}
-      />,
-      routerContext
-    );
-
-    await tick();
-    wrapper.update();
-
-    const vitalCards = wrapper.find('VitalCard');
-    expect(vitalCards).toHaveLength(5);
-
-    vitalCards.forEach((vitalCard, i) => {
-      expect(vitalCard.find('CardSectionHeading').text()).toEqual(
-        expect.stringContaining(vitals[i].heading)
+    beforeEach(() => {
+      render(
+        <WrappedComponent
+          organization={organization}
+          location={router.location}
+          router={router}
+        />,
+        {context: routerContext}
       );
-      expect(vitalCard.find('StatNumber').text()).toEqual(vitals[i].baseline);
     });
-    expect(vitalCards.find('BarChart')).toHaveLength(5);
+
+    it.each(vitals)('Renders %s', function (vital) {
+      expect(screen.getByText(vital.heading)).toBeInTheDocument();
+      expect(screen.getByText(vital.baseline)).toBeInTheDocument();
+    });
   });
 
   describe('reset view', function () {
