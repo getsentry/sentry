@@ -15,7 +15,7 @@ from typing_extensions import TypedDict
 from sentry.models import Environment, Organization, Project, Team, User
 
 WhereType = Union[Condition, BooleanCondition]
-# TODO: this should be a dataclass instead
+# Replaced by SnubaParams
 ParamsType = Mapping[str, Union[List[int], int, str, datetime]]
 SelectType = Union[AliasedExpression, Column, Function, CurriedFunction]
 
@@ -49,6 +49,7 @@ class EventsResponse(TypedDict):
 class SnubaParams:
     start: Optional[datetime]
     end: Optional[datetime]
+    # The None value in this sequence is because the filter params could include that
     environments: Sequence[Union[Environment, None]]
     projects: Sequence[Project]
     user: Optional[User]

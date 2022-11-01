@@ -1480,7 +1480,7 @@ class DiscoverDatasetConfig(DatasetConfig):
         error_groups = []
         performance_groups = []
 
-        if group_short_ids:
+        if group_short_ids and self.builder.params.organization is not None:
             try:
                 groups = Group.objects.by_qualified_short_id_bulk(
                     self.builder.params.organization.id,
