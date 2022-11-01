@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
@@ -35,17 +35,17 @@ export function ProfileDetailsTable() {
   const [state] = useProfileGroup();
   const [groupByViewKey, setGroupByView] = useQuerystringState({
     key: 'detailView',
-    defaultState: 'occurrence',
+    initialState: 'occurrence',
   });
 
   const [searchQuery, setSearchQuery] = useQuerystringState({
     key: 'query',
-    defaultState: '',
+    initialState: '',
   });
 
   const [paginationCursor, setPaginationCursor] = useQuerystringState({
     key: 'cursor',
-    defaultState: '',
+    initialState: '',
   });
 
   const groupByView = GROUP_BY_OPTIONS[groupByViewKey] ?? GROUP_BY_OPTIONS.occurrence;
@@ -73,10 +73,26 @@ export function ProfileDetailsTable() {
     return search(searchQuery);
   });
 
-  const {filters, columnFilters, filterPredicate} = useColumnFilters(allData, [
-    'type',
-    'image',
-  ]);
+  const [typeFilter, setTypeFilter] = useQuerystringState({
+    key: 'type',
+  });
+
+  const [imageFilter, setImageFilter] = useQuerystringState({
+    key: 'image',
+  });
+
+  const {filters, columnFilters, filterPredicate} = useColumnFilters(allData, {
+    columns: ['type', 'image'],
+    initialState: {
+      type: typeFilter,
+      image: imageFilter,
+    },
+  });
+
+  useEffect(() => {
+    setTypeFilter(filters.type);
+    setImageFilter(filters.image);
+  }, [filters, setTypeFilter, setImageFilter]);
 
   const {currentSort, generateSortLink, sortCompareFn} = useSortableColumns({
     ...groupByView.sort,

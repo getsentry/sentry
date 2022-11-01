@@ -5,21 +5,22 @@ import {useLocation} from 'sentry/utils/useLocation';
 
 interface UseQuerystringStateOptions {
   key: string;
-  defaultState?: string;
+  initialState?: string;
 }
 
-export function useQuerystringState({key, defaultState}: UseQuerystringStateOptions) {
+export function useQuerystringState({key, initialState}: UseQuerystringStateOptions) {
   const location = useLocation();
   const [state, setState] = useState<string | string[] | null | undefined>(
-    location.query[key] ?? defaultState
+    location.query[key] ?? initialState
   );
 
   const createLocationDescriptor = useCallback(
-    (nextState: string | undefined) => {
+    (nextState: string | string[] | undefined) => {
       // we can't use the result of `useLocation` here
       // if there are multiple instances of `useQuerystringState` firing at once
       // the value of location will be stale in the callback
       const currentLocation = browserHistory.getCurrentLocation();
+
       return {
         ...currentLocation,
         query: {
@@ -32,7 +33,7 @@ export function useQuerystringState({key, defaultState}: UseQuerystringStateOpti
   );
 
   const setQueryStringState = useCallback(
-    (nextState: string | undefined) => {
+    (nextState: string | string[] | undefined) => {
       browserHistory.replace(createLocationDescriptor(nextState));
     },
     [createLocationDescriptor]
