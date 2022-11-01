@@ -23,16 +23,14 @@ class Migration(CheckedMigration):
     # back-fills this results in us locking an increasing number of rows until we finally commit.
     atomic = False
 
-
     dependencies = [
-        ('sentry', '0335_cleanup_old_savedsearches'),
+        ("sentry", "0335_cleanup_old_savedsearches"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='savedsearch',
-            name='is_default',
+            model_name="savedsearch",
+            name="is_default",
             field=models.BooleanField(default=False, null=True),
         ),
     ]
-
