@@ -38,7 +38,7 @@ export function pluckUniqueValues<T extends Record<string, any>>(
       acc.push(value);
     }
     return acc;
-  }, [] as string[]);
+  }, [] as any[]);
 }
 
 export type Row<K extends string = string> = Record<
@@ -80,7 +80,7 @@ export function aggregate<T extends string>(
 const FIELD_SEPARATOR = String.fromCharCode(31);
 
 // getGroupedKey will derive a key from an objects values and delimit them using
-// the unit separator char
+// the unit separator
 function getGroupedKey(row: Record<string, unknown>, groups: string[]) {
   return groups.map(key => row[key]).join(FIELD_SEPARATOR);
 }
