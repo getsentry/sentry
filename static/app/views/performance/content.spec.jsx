@@ -307,9 +307,7 @@ describe('Performance > Content', function () {
     });
 
     // performance landing container
-    expect(wrapper.find('div[data-test-id="performance-landing-v3"]').exists()).toBe(
-      true
-    );
+    expect(wrapper.find('[data-test-id="performance-landing-v3"]').exists()).toBe(true);
 
     // No onboarding should show.
     expect(wrapper.find('Onboarding')).toHaveLength(0);

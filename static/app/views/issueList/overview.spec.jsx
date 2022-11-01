@@ -23,8 +23,7 @@ import * as parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import IssueListWithStores, {IssueListOverview} from 'sentry/views/issueList/overview';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
-// Mock <IssueListSidebar> and <IssueListActions>
-jest.mock('sentry/views/issueList/sidebar', () => jest.fn(() => null));
+// Mock <IssueListActions>
 jest.mock('sentry/views/issueList/actions', () => jest.fn(() => null));
 jest.mock('sentry/components/stream/group', () => jest.fn(() => null));
 jest.mock('sentry/views/issueList/noGroupsHandler/congratsRobots', () =>
