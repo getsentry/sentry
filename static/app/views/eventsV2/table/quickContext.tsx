@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {RequestOptions} from 'sentry/api';
@@ -7,44 +7,29 @@ import EventCause from 'sentry/components/events/eventCause';
 import {CauseHeader, DataSection} from 'sentry/components/events/styles';
 import FeatureBadge from 'sentry/components/featureBadge';
 import AssignedTo from 'sentry/components/group/assignedTo';
+import {Body, Hovercard} from 'sentry/components/hovercard';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels';
 import * as SidebarSection from 'sentry/components/sidebarSection';
-import {IconCheckmark, IconMute, IconNot} from 'sentry/icons';
+import {IconCheckmark, IconInfo, IconMute, IconNot} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
 import {Group, Organization} from 'sentry/types';
-import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import {EventData} from 'sentry/utils/discover/eventView';
 import useApi from 'sentry/utils/useApi';
 
-import {TableColumn} from './types';
-
-const UNKNOWN_ISSUE = 'unknown';
-
 // Will extend this enum as we add contexts for more columns
-export enum ColumnType {
+export enum ContextType {
   ISSUE = 'issue',
   RELEASE = 'release',
 }
 
-function isIssueContext(
-  dataRow: TableDataRow,
-  column: TableColumn<keyof TableDataRow>
-): boolean {
-  return (
-    column.column.kind === 'field' &&
-    column.column.field === ColumnType.ISSUE &&
-    dataRow.issue !== UNKNOWN_ISSUE
-  );
-}
+const HOVER_DELAY: number = 400;
+const DATA_FETCH_DELAY: number = 200;
 
-// NOTE: Will add release column as an eligible column.
-export function hasContext(
-  dataRow: TableDataRow,
-  column: TableColumn<keyof TableDataRow>
-): boolean {
-  return isIssueContext(dataRow, column);
+function isIssueContext(contextType: ContextType): boolean {
+  return contextType === ContextType.ISSUE;
 }
 
 type RequestParams = {
@@ -54,11 +39,11 @@ type RequestParams = {
 
 // NOTE: Will extend when we add more type of contexts. Context is only relevant to issue and release columns for now.
 function getRequestParams(
-  dataRow: TableDataRow,
-  column: TableColumn<keyof TableDataRow>,
+  dataRow: EventData,
+  contextType: ContextType,
   organization?: Organization
 ): RequestParams {
-  return isIssueContext(dataRow, column)
+  return isIssueContext(contextType)
     ? {
         path: `/issues/${dataRow['issue.id']}/`,
         options: {
@@ -74,49 +59,21 @@ function getRequestParams(
       };
 }
 
-type Props = {
-  column: TableColumn<keyof TableDataRow>;
-  dataRow: TableDataRow;
-  organization?: Organization;
+type QuickContextProps = {
+  contextType: ContextType;
+  data: Group | null;
+  dataRow: EventData;
+  error: boolean;
+  loading: boolean;
 };
 
-export default function QuickContext({column, dataRow, organization}: Props) {
-  // Will add setter for error.
-  const api = useApi();
-  const [error, setError] = useState<boolean>(false);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [data, setData] = useState<Group | null>(null);
-
-  // NOTE: Will extend when we add more type of contexts.
-
-  useEffect(() => {
-    // Track mounted state so we dont call setState on unmounted components
-    let unmounted = false;
-
-    const params = getRequestParams(dataRow, column, organization);
-    api
-      .requestPromise(params.path, params.options)
-      .then(response => {
-        if (unmounted) {
-          return;
-        }
-
-        setData(response);
-        GroupStore.add([response]);
-      })
-      .catch(() => {
-        setError(true);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-
-    return () => {
-      // If component has unmounted, dont set state
-      unmounted = true;
-    };
-  }, [api, dataRow, column, organization]);
-
+export default function QuickContext({
+  loading,
+  error,
+  data,
+  contextType,
+  dataRow,
+}: QuickContextProps) {
   return (
     <Wrapper>
       {loading ? (
@@ -129,7 +86,7 @@ export default function QuickContext({column, dataRow, organization}: Props) {
         </NoContextWrapper>
       ) : error ? (
         <NoContextWrapper>{t('Failed to load context for column.')}</NoContextWrapper>
-      ) : isIssueContext(dataRow, column) && data ? (
+      ) : isIssueContext(contextType) && data ? (
         <IssueContext data={data} eventID={dataRow.id} />
       ) : (
         <NoContextWrapper>{t('There is no context available.')}</NoContextWrapper>
@@ -148,7 +105,7 @@ function IssueContext(props: IssueContextProps) {
   const {status} = props.data;
 
   const renderStatus = () => (
-    <IssueContextContainer>
+    <IssueContextContainer data-test-id="quick-context-issue-status-container">
       <ContextTitle>
         {statusTitle}
         <FeatureBadge type="alpha" />
@@ -171,7 +128,7 @@ function IssueContext(props: IssueContextProps) {
   );
 
   const renderAssigneeSelector = () => (
-    <IssueContextContainer>
+    <IssueContextContainer data-test-id="quick-context-assigned-to-container">
       <AssignedTo group={props.data} projectId={props.data.project.id} />
     </IssueContextContainer>
   );
@@ -196,13 +153,113 @@ function IssueContext(props: IssueContextProps) {
   );
 }
 
+type ContextProps = {
+  children: React.ReactNode;
+  contextType: ContextType;
+  dataRow: EventData;
+  organization?: Organization;
+};
+
+export function QuickContextHoverWrapper(props: ContextProps) {
+  const api = useApi();
+  const [ishovering, setisHovering] = useState<boolean>(false);
+  const [error, setError] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [data, setData] = useState<Group | null>(null);
+  const delayOpenTimeoutRef = useRef<number | undefined>(undefined);
+
+  const handleHoverState = () => {
+    setisHovering(prevState => !prevState);
+  };
+
+  const fetchData = () => {
+    if (!data) {
+      const params = getRequestParams(
+        props.dataRow,
+        props.contextType,
+        props.organization
+      );
+      api
+        .requestPromise(params.path, params.options)
+        .then(response => {
+          setData(response);
+          if (isIssueContext(props.contextType)) {
+            GroupStore.add([response]);
+          }
+        })
+        .catch(() => {
+          setError(true);
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+    }
+  };
+
+  const handleMouseEnter = () => {
+    handleHoverState();
+    delayOpenTimeoutRef.current = window.setTimeout(() => {
+      fetchData();
+    }, DATA_FETCH_DELAY);
+  };
+
+  const handleMouseLeave = () => {
+    handleHoverState();
+    window.clearTimeout(delayOpenTimeoutRef.current);
+  };
+
+  return (
+    <HoverWrapper>
+      {props.children}
+      <StyledHovercard
+        skipWrapper
+        delay={HOVER_DELAY}
+        body={
+          <QuickContext
+            loading={loading}
+            error={error}
+            data={data}
+            contextType={props.contextType}
+            dataRow={props.dataRow}
+          />
+        }
+      >
+        <StyledIconInfo
+          data-test-id="quick-context-hover-trigger"
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          ishovering={ishovering ? 1 : 0}
+          onClick={e => e.preventDefault()}
+        />
+      </StyledHovercard>
+    </HoverWrapper>
+  );
+}
+
 const ContextContainer = styled('div')`
   display: flex;
   flex-direction: column;
 `;
 
+const StyledHovercard = styled(Hovercard)`
+  ${Body} {
+    padding: 0;
+  }
+  min-width: 300px;
+`;
+
+const StyledIconInfo = styled(IconInfo)<{ishovering: number}>`
+  color: ${p => (p.ishovering ? p.theme.gray300 : p.theme.gray200)};
+`;
+
+const HoverWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.75)};
+`;
+
 const IssueContextContainer = styled(ContextContainer)`
-  ${SidebarSection.Wrap}, ${Panel} {
+  ${SidebarSection.Wrap}, ${Panel}, h6 {
     margin: 0;
   }
 
@@ -245,9 +302,7 @@ const StatusText = styled('span')`
 
 const Wrapper = styled('div')`
   background: ${p => p.theme.background};
-  border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  box-shadow: ${p => p.theme.dropShadowHeavy};
   width: 300px;
   padding: ${space(1.5)};
 `;

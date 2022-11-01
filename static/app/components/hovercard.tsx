@@ -155,7 +155,6 @@ function Hovercard({
 const StyledHovercard = styled(Overlay)`
   width: 295px;
   line-height: 1.2;
-
   h6 {
     color: ${p => p.theme.subText};
     font-size: ${p => p.theme.fontSizeExtraSmall};
@@ -183,7 +182,6 @@ const Divider = styled('div')`
   position: relative;
   margin-top: ${space(1.5)};
   margin-bottom: ${space(1)};
-
   &:before {
     display: block;
     position: absolute;
@@ -195,7 +193,6 @@ const Divider = styled('div')`
     background: ${p => p.theme.innerBorder};
     z-index: -1;
   }
-
   h6 {
     display: inline;
     padding-right: ${space(1)};

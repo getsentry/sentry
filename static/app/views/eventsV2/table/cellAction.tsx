@@ -1,14 +1,12 @@
 import {Component} from 'react';
 import {createPortal} from 'react-dom';
-import {Manager, Modifier, Popper, Reference} from 'react-popper';
+import {Manager, Popper, Reference} from 'react-popper';
 import styled from '@emotion/styled';
 import color from 'color';
 
-import Feature from 'sentry/components/acl/feature';
-import {IconEllipsis, IconInfo} from 'sentry/icons';
+import {IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {
@@ -18,7 +16,6 @@ import {
 import {getDuration} from 'sentry/utils/formatters';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
-import QuickContext, {hasContext} from './quickContext';
 import {TableColumn} from './types';
 
 export enum Actions {
@@ -132,8 +129,6 @@ type CellActionsOpts = {
    * allow list of actions to display on the context menu
    */
   allowActions?: Actions[];
-  organization?: Organization;
-  showQuickContextMenu?: boolean;
 };
 
 function makeCellActions({
@@ -295,9 +290,8 @@ function makeCellActions({
 type Props = React.PropsWithoutRef<CellActionsOpts>;
 
 type State = {
-  isContextPopperOpen: boolean;
   isHovering: boolean;
-  isMenuPopperOpen: boolean;
+  isOpen: boolean;
 };
 
 class CellAction extends Component<Props, State> {
@@ -311,26 +305,18 @@ class CellAction extends Component<Props, State> {
     }
     this.portalEl = portal;
     this.menuEl = null;
-    this.contextEl = null;
   }
 
   state: State = {
     isHovering: false,
-    isMenuPopperOpen: false,
-    isContextPopperOpen: false,
+    isOpen: false,
   };
 
   componentDidUpdate(_props: Props, prevState: State) {
-    if (
-      (this.state.isMenuPopperOpen && prevState.isMenuPopperOpen === false) ||
-      (this.state.isContextPopperOpen && prevState.isContextPopperOpen === false)
-    ) {
+    if (this.state.isOpen && prevState.isOpen === false) {
       document.addEventListener('click', this.handleClickOutside, true);
     }
-    if (
-      (this.state.isMenuPopperOpen === false && prevState.isMenuPopperOpen) ||
-      (this.state.isContextPopperOpen === false && prevState.isContextPopperOpen)
-    ) {
+    if (this.state.isOpen === false && prevState.isOpen) {
       document.removeEventListener('click', this.handleClickOutside, true);
     }
   }
@@ -341,54 +327,18 @@ class CellAction extends Component<Props, State> {
 
   private portalEl: Element;
   private menuEl: Element | null;
-  private contextEl: Element | null;
-  private modifiers: ReadonlyArray<Modifier<any>> = [
-    {
-      name: 'hide',
-      enabled: false,
-    },
-    {
-      name: 'preventOverflow',
-      enabled: true,
-      options: {
-        padding: 10,
-        altAxis: true,
-      },
-    },
-    {
-      name: 'offset',
-      options: {
-        offset: [0, ARROW_SIZE / 2],
-      },
-    },
-    {
-      name: 'computeStyles',
-      options: {
-        // Using the `transform` attribute causes our borders to get blurry
-        // in chrome. See [0]. This just causes it to use `top` / `left`
-        // positions, which should be fine.
-        //
-        // [0]: https://stackoverflow.com/questions/29543142/css3-transformation-blurry-borders
-        gpuAcceleration: false,
-      },
-    },
-  ];
 
   handleClickOutside = (event: MouseEvent) => {
-    if (!this.menuEl && !this.contextEl) {
+    if (!this.menuEl) {
       return;
     }
     if (!(event.target instanceof Element)) {
       return;
     }
-    if (this.menuEl?.contains(event.target) || this.contextEl?.contains(event.target)) {
+    if (this.menuEl.contains(event.target)) {
       return;
     }
-    this.setState({
-      isMenuPopperOpen: false,
-      isContextPopperOpen: false,
-      isHovering: false,
-    });
+    this.setState({isOpen: false, isHovering: false});
   };
 
   handleMouseEnter = () => {
@@ -398,7 +348,7 @@ class CellAction extends Component<Props, State> {
   handleMouseLeave = () => {
     this.setState(state => {
       // Don't hide the button if the menu is open.
-      if (state.isMenuPopperOpen || state.isContextPopperOpen) {
+      if (state.isOpen) {
         return state;
       }
       return {...state, isHovering: false};
@@ -407,22 +357,11 @@ class CellAction extends Component<Props, State> {
 
   handleMenuToggle = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
-    this.setState({
-      isMenuPopperOpen: !this.state.isMenuPopperOpen,
-      isContextPopperOpen: false,
-    });
-  };
-
-  handleContextToggle = (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault();
-    this.setState({
-      isContextPopperOpen: !this.state.isContextPopperOpen,
-      isMenuPopperOpen: false,
-    });
+    this.setState({isOpen: !this.state.isOpen});
   };
 
   renderMenu() {
-    const {isMenuPopperOpen: isOpen} = this.state;
+    const {isOpen} = this.state;
 
     const actions = makeCellActions(this.props);
 
@@ -431,10 +370,42 @@ class CellAction extends Component<Props, State> {
       return null;
     }
 
+    const modifiers = [
+      {
+        name: 'hide',
+        enabled: false,
+      },
+      {
+        name: 'preventOverflow',
+        enabled: true,
+        options: {
+          padding: 10,
+          altAxis: true,
+        },
+      },
+      {
+        name: 'offset',
+        options: {
+          offset: [0, ARROW_SIZE / 2],
+        },
+      },
+      {
+        name: 'computeStyles',
+        options: {
+          // Using the `transform` attribute causes our borders to get blurry
+          // in chrome. See [0]. This just causes it to use `top` / `left`
+          // positions, which should be fine.
+          //
+          // [0]: https://stackoverflow.com/questions/29543142/css3-transformation-blurry-borders
+          gpuAcceleration: false,
+        },
+      },
+    ];
+
     const menu = !isOpen
       ? null
       : createPortal(
-          <Popper placement="top" modifiers={this.modifiers}>
+          <Popper placement="top" modifiers={modifiers}>
             {({ref: popperRef, style, placement, arrowProps}) => (
               <Menu
                 ref={ref => {
@@ -442,7 +413,6 @@ class CellAction extends Component<Props, State> {
                   this.menuEl = ref;
                 }}
                 style={style}
-                data-test-id="action-menu"
               >
                 <MenuArrow
                   ref={arrowProps.ref}
@@ -459,84 +429,24 @@ class CellAction extends Component<Props, State> {
         );
 
     return (
-      <MenuActionButton>
+      <MenuRoot>
         <Manager>
           <Reference>
             {({ref}) => (
-              <MenuButton
-                ref={ref}
-                data-test-id="action-menu-button"
-                onClick={this.handleMenuToggle}
-              >
+              <MenuButton ref={ref} onClick={this.handleMenuToggle}>
                 <IconEllipsis size="sm" data-test-id="cell-action" color="blue300" />
               </MenuButton>
             )}
           </Reference>
           {menu}
         </Manager>
-      </MenuActionButton>
-    );
-  }
-
-  renderContext() {
-    const {isContextPopperOpen: isOpen} = this.state;
-
-    if (!hasContext(this.props.dataRow, this.props.column)) {
-      return null;
-    }
-
-    const context = !isOpen
-      ? null
-      : createPortal(
-          <Popper placement="top" modifiers={this.modifiers}>
-            {({ref: popperRef, style, placement, arrowProps}) => (
-              <Menu
-                ref={ref => {
-                  (popperRef as Function)(ref);
-                  this.contextEl = ref;
-                }}
-                style={style}
-                data-test-id="context-menu"
-              >
-                <MenuArrow
-                  ref={arrowProps.ref}
-                  data-placement={placement}
-                  style={arrowProps.style}
-                />
-                <QuickContext
-                  dataRow={this.props.dataRow}
-                  column={this.props.column}
-                  organization={this.props.organization}
-                />
-              </Menu>
-            )}
-          </Popper>,
-          this.portalEl
-        );
-
-    return (
-      <ContextActionButton>
-        <Manager>
-          <Reference>
-            {({ref}) => (
-              <MenuButton
-                ref={ref}
-                data-test-id="context-button"
-                onClick={this.handleContextToggle}
-              >
-                <IconInfo size="sm" color="subText" />
-              </MenuButton>
-            )}
-          </Reference>
-          {context}
-        </Manager>
-      </ContextActionButton>
+      </MenuRoot>
     );
   }
 
   render() {
-    const {children, organization, showQuickContextMenu} = this.props;
-    const {isHovering, isContextPopperOpen, isMenuPopperOpen} = this.state;
+    const {children} = this.props;
+    const {isHovering} = this.state;
 
     return (
       <Container
@@ -544,13 +454,7 @@ class CellAction extends Component<Props, State> {
         onMouseLeave={this.handleMouseLeave}
       >
         {children}
-        <Feature organization={organization} features={['discover-quick-context']}>
-          {showQuickContextMenu &&
-            isHovering &&
-            !isMenuPopperOpen &&
-            this.renderContext()}
-        </Feature>
-        {isHovering && !isContextPopperOpen && this.renderMenu()}
+        {isHovering && this.renderMenu()}
       </Container>
     );
   }
@@ -567,19 +471,10 @@ const Container = styled('div')`
   justify-content: center;
 `;
 
-const MenuActionButton = styled('div')`
+const MenuRoot = styled('div')`
   position: absolute;
   top: 0;
   right: 0;
-`;
-
-const MenuButtonWidth = 24;
-
-const ContextActionButton = styled('div')`
-  position: absolute;
-  top: 0;
-  right: ${MenuButtonWidth}px;
-  margin-right: ${space(0.5)};
 `;
 
 const Menu = styled('div')`
@@ -682,7 +577,7 @@ const ActionItem = styled('button')`
 
 const MenuButton = styled('button')`
   display: flex;
-  width: ${MenuButtonWidth}px;
+  width: 24px;
   height: 24px;
   padding: 0;
   justify-content: center;
