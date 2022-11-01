@@ -230,27 +230,4 @@ describe('ConfigureDistributedTracing', function () {
 
     expect(wrapper.find('ExampleQuickTracePanel').exists()).toBe(false);
   });
-
-  it('can capture analytics on docs click', async function () {
-    const wrapper = mountWithTheme(
-      <ConfigureDistributedTracing
-        event={event}
-        organization={organization}
-        project={project}
-      />
-    );
-
-    await tick();
-    wrapper.update();
-
-    wrapper.find('[aria-label="Read the docs"]').first().simulate('click');
-    expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
-      'quick_trace.missing_instrumentation.docs',
-      {
-        organization,
-        project_id: parseInt(project.id, 10),
-        platform: project.platform,
-      }
-    );
-  });
 });
