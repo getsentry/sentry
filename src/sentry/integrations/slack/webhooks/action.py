@@ -308,6 +308,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
             )
             return self.respond_ephemeral(LINK_IDENTITY_MESSAGE.format(associate_url=associate_url))
 
+        original_tags_from_request = slack_request.get_tags()
         # Handle status dialog submission
         if (
             slack_request.type == "dialog_submission"
@@ -325,7 +326,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
                 return self.api_error(slack_request, group, identity, error, "status_dialog")
 
             attachment = SlackIssuesMessageBuilder(
-                group, identity=identity, actions=[action]
+                group, identity=identity, actions=[action], tags=original_tags_from_request
             ).build()
             body = self.construct_reply(
                 attachment, is_message=slack_request.callback_data["is_message"]
@@ -370,7 +371,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         group = Group.objects.get(id=group.id)
 
         attachment = SlackIssuesMessageBuilder(
-            group, identity=identity, actions=action_list
+            group, identity=identity, actions=action_list, tags=original_tags_from_request
         ).build()
         body = self.construct_reply(attachment, is_message=_is_message(slack_request.data))
 

@@ -5,12 +5,14 @@ import {FocusScope} from '@react-aria/focus';
 import moment from 'moment';
 
 import {DatePicker} from 'sentry/components/calendar';
+import FormField from 'sentry/components/forms/formField';
 import Input from 'sentry/components/input';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {IconCalendar} from 'sentry/icons';
 import useOverlay from 'sentry/utils/useOverlay';
 
-import InputField, {InputFieldProps, OnEvent} from './inputField';
+// XXX(epurkhiser): This is wrong, it should not be inheriting these props
+import {InputFieldProps, OnEvent} from './inputField';
 
 interface DatePickerFieldProps extends Omit<InputFieldProps, 'field'> {}
 
@@ -37,9 +39,8 @@ export default function DatePickerField(props: DatePickerFieldProps) {
   const theme = useTheme();
 
   return (
-    <InputField
-      {...props}
-      field={({onChange, onBlur, value, id, size, ...inputProps}) => {
+    <FormField {...props}>
+      {({children: _children, onChange, onBlur, value, id, size, ...inputProps}) => {
         const dateObj = new Date(value);
         const inputValue = !isNaN(dateObj.getTime()) ? dateObj : new Date();
         const dateString = moment(inputValue).format('LL');
@@ -74,7 +75,7 @@ export default function DatePickerField(props: DatePickerFieldProps) {
           </div>
         );
       }}
-    />
+    </FormField>
   );
 }
 

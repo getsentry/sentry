@@ -23,7 +23,7 @@ jobs:
     name: getsentry dispatch
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b  # v3
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
         with:
           persist-credentials: false
 
@@ -42,14 +42,14 @@ jobs:
           ARG_LABEL_NAMES: ${{ toJSON(github.event.pull_request.labels.*.name) }}
 
       - name: Check for file changes
-        uses: getsentry/paths-filter@66f7f1844185eb7fb6738ea4ea59d74bb99199e5  # v2
+        uses: getsentry/paths-filter@4512585405083f25c027a35db413c2b3b9006d50  # v2.11.1
         id: changes
         with:
           token: ${{ github.token }}
           filters: .github/file-filters.yml
 
       - name: getsentry token
-        uses: getsentry/action-github-app-token@38a3ce582e170ddfe8789f509597c6944f2292a9  # v1
+        uses: getsentry/action-github-app-token@97c9e23528286821f97fba885c1b1123284b29cc  # v2.0.0
         id: getsentry
         with:
           app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}

@@ -199,6 +199,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                 <Feature organization={organization} features={['performance-view']}>
                   {({hasFeature}) => (
                     <Button
+                      size="sm"
                       disabled={!hasFeature}
                       priority="primary"
                       to={transactionSummaryTarget}
