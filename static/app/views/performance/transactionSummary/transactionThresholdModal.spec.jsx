@@ -1,6 +1,6 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {act} from 'sentry-test/reactTestingLibrary';
-import {selectByLabel} from 'sentry-test/select-new';
+import selectEvent from 'react-select-event';
+
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
@@ -8,22 +8,8 @@ import TransactionThresholdModal from 'sentry/views/performance/transactionSumma
 
 const stubEl = props => <div>{props.children}</div>;
 
-function clickSubmit(wrapper) {
-  // Click on submit.
-  const button = wrapper.find('Button[data-test-id="apply-threshold"] button');
-  button.simulate('click');
-  return tick();
-}
-
-function clickReset(wrapper) {
-  // Click on submit.
-  const button = wrapper.find('Button[data-test-id="reset-all"] button');
-  button.simulate('click');
-  return tick();
-}
-
 function mountModal(eventView, organization, onApply) {
-  return mountWithTheme(
+  render(
     <TransactionThresholdModal
       Header={stubEl}
       Footer={stubEl}
@@ -70,39 +56,32 @@ describe('TransactionThresholdModal', function () {
     });
   });
 
-  it('can update threshold', async function () {
-    const wrapper = mountModal(eventView, organization, onApply);
-    await tick();
-    wrapper.update();
+  it('can update threshold', function () {
+    mountModal(eventView, organization, onApply);
 
-    const input = wrapper.find('Input[name="threshold"]');
-    input.simulate('change', {target: {value: '1000'}}).simulate('blur');
+    userEvent.clear(screen.getByRole('spinbutton'));
+    userEvent.type(screen.getByRole('spinbutton'), '1000{enter}');
 
-    await clickSubmit(wrapper);
+    userEvent.click(screen.getByTestId('apply-threshold'));
+
     expect(postTransactionThresholdMock).toHaveBeenCalledWith(
       '/organizations/org-slug/project-transaction-threshold-override/',
       expect.objectContaining({
         data: {metric: 'lcp', threshold: '1000', transaction: 'transaction/threshold'},
       })
     );
-    wrapper.unmount();
   });
 
   it('can update metric', async function () {
-    const wrapper = mountModal(eventView, organization, onApply);
-    await tick();
-    wrapper.update();
+    mountModal(eventView, organization, onApply);
 
-    selectByLabel(wrapper, 'Transaction Duration', {
-      name: 'responseMetric',
-      at: 0,
-      control: true,
-    });
-    expect(wrapper.find('input[name="responseMetric"]').props().value).toEqual(
-      'duration'
+    await selectEvent.select(
+      screen.getByText('Largest Contentful Paint'),
+      'Transaction Duration'
     );
 
-    await clickSubmit(wrapper);
+    userEvent.click(screen.getByTestId('apply-threshold'));
+
     expect(postTransactionThresholdMock).toHaveBeenCalledWith(
       '/organizations/org-slug/project-transaction-threshold-override/',
       expect.objectContaining({
@@ -113,16 +92,10 @@ describe('TransactionThresholdModal', function () {
         },
       })
     );
-    wrapper.unmount();
   });
 
   it('can clear metrics', async function () {
-    const wrapper = mountModal(eventView, organization, onApply);
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('input[name="responseMetric"]').props().value).toEqual('lcp');
-    expect(wrapper.find('input[name="threshold"]').props().value).toEqual('400');
+    mountModal(eventView, organization, onApply);
 
     const deleteTransactionThresholdMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/project-transaction-threshold-override/',
@@ -138,11 +111,12 @@ describe('TransactionThresholdModal', function () {
       },
     });
 
-    await clickReset(wrapper);
-    wrapper.update();
+    userEvent.click(screen.getByTestId('reset-all'));
+
     expect(deleteTransactionThresholdMock).toHaveBeenCalledTimes(1);
     // Replace with project fallback
-    expect(getProjectThresholdMock).toHaveBeenCalledTimes(1);
-    wrapper.unmount();
+    await waitFor(() => {
+      expect(getProjectThresholdMock).toHaveBeenCalledTimes(1);
+    });
   });
 });
