@@ -1326,7 +1326,12 @@ class ReleaseProjectManagerTestCase(TransactionTestCase):
             assert mock_task.mock_calls == []
 
     def test_post_save_signal_runs_if_dynamic_sampling_is_enabled(self):
-        with Feature({"organizations:server-side-sampling": True}):
+        with Feature(
+            {
+                "organizations:server-side-sampling": True,
+                "organizations:dynamic-sampling-deprecated": True,
+            }
+        ):
             self.project = self.create_project(name="foo")
 
             self.project.update_option(

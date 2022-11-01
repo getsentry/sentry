@@ -46,7 +46,6 @@ function Replays({location}: Props) {
     );
   }, [location]);
 
-  const {pathname, query} = location;
   const {replays, pageLinks, isFetching, fetchError} = useReplayList({
     organization,
     eventView,
@@ -56,27 +55,12 @@ function Replays({location}: Props) {
     <Fragment>
       <StyledPageHeader>
         <HeaderTitle>
-          <div>
-            {t('Replays')} <ReplaysFeatureBadge />
-          </div>
+          {t('Replays')} <ReplaysFeatureBadge space={1} />
         </HeaderTitle>
       </StyledPageHeader>
       <PageFiltersContainer>
         <StyledPageContent>
-          <ReplaysFilters
-            query={query.query || ''}
-            organization={organization}
-            handleSearchQuery={searchQuery => {
-              browserHistory.push({
-                pathname,
-                query: {
-                  ...query,
-                  cursor: undefined,
-                  query: searchQuery.trim(),
-                },
-              });
-            }}
-          />
+          <ReplaysFilters />
           <ReplayTable
             isFetching={isFetching}
             fetchError={fetchError}
@@ -112,8 +96,6 @@ const StyledPageContent = styled(PageContent)`
 
 const HeaderTitle = styled(PageHeading)`
   display: flex;
-  align-items: center;
-  justify-content: space-between;
   flex: 1;
 `;
 

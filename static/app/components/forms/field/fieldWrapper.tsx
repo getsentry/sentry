@@ -3,32 +3,12 @@ import styled from '@emotion/styled';
 
 import space from 'sentry/styles/space';
 
-/**
- * Using Parameters<typeof FieldWrapper> in the Field component somehow
- * causes an infinite recursive depth so exporting the props is best workaround
- */
-export interface FieldWrapperProps {
-  /**
-   * When false adds padding to the right of the element to ensure visual
-   * consistency with other fields that aren't using flexible control states.
-   */
-  hasControlState?: boolean;
-  /**
-   * Is "highlighted", i.e. after a search
-   */
-  highlighted?: boolean;
-  /**
-   * Display the field control container in "inline" fashion. The label and
-   * description will be aligned to the left, while the control itself will be
-   * aligned to the right.
-   */
-  inline?: boolean;
-  /**
-   * When stacking forms the bottom border is hidden and padding is adjusted
-   * for form elements to be stacked on each other.
-   */
-  stacked?: boolean;
-}
+import {FieldGroupProps} from './types';
+
+type FieldWrapperProps = Pick<
+  FieldGroupProps,
+  'hasControlState' | 'highlighted' | 'inline' | 'stacked'
+>;
 
 const inlineStyle = (p: FieldWrapperProps) =>
   p.inline
