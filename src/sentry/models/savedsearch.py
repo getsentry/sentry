@@ -62,7 +62,7 @@ class SavedSearch(Model):
     # are not queried on or in use anywhere, after creating a migration to
     # remove old rows, we should remove these.
     project = FlexibleForeignKey("sentry.Project", null=True)
-    is_default = models.BooleanField(default=False)
+    is_default = models.BooleanField(default=False, null=True)
 
     class Meta:
         app_label = "sentry"
