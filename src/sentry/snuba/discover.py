@@ -829,6 +829,7 @@ def histogram_query(
     histogram_rows=None,
     extra_conditions=None,
     normalize_results=True,
+    use_metrics_layer=False,
 ):
     """
     API for generating histograms for numeric columns.
