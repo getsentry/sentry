@@ -1,8 +1,13 @@
 import {browserHistory} from 'react-router';
 
-import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -76,8 +81,6 @@ const vitals = [
 ];
 
 describe('Performance > Web Vitals', function () {
-  enforceActOnUseLegacyStoreHook();
-
   beforeEach(function () {
     // @ts-ignore no-console
     // eslint-disable-next-line no-console
@@ -87,10 +90,12 @@ describe('Performance > Web Vitals', function () {
       url: '/organizations/org-slug/projects/',
       body: [],
     });
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-has-measurements/',
       body: {measurements: true},
     });
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/project-transaction-threshold-override/',
       method: 'GET',
@@ -99,6 +104,7 @@ describe('Performance > Web Vitals', function () {
         metric: 'lcp',
       },
     });
+
     // Mock baseline measurements
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-vitals/',
@@ -124,19 +130,23 @@ describe('Performance > Web Vitals', function () {
       }
       histogramData[`measurements.${measurement}`] = data;
     }
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-histogram/',
       body: histogramData,
     });
+
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/key-transactions-list/`,
       body: [],
     });
+
     MockApiClient.addMockResponse({
       url: '/prompts-activity/',
       body: {},
     });
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',
       body: [],
@@ -149,158 +159,130 @@ describe('Performance > Web Vitals', function () {
     console.error.mockRestore();
   });
 
-  it('render no access without feature', async function () {
-    const {organization, router} = initialize({
+  it('render no access without feature', function () {
+    const {organization, router, routerContext} = initialize({
       features: [],
     });
 
-    const wrapper = mountWithTheme(
-      <WrappedComponent organization={organization} location={router.location} />
-    );
-
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.text()).toEqual("You don't have access to this feature");
-  });
-
-  it('renders the basic UI components', async function () {
-    const {organization, router, routerContext} = initialize();
-
-    const wrapper = mountWithTheme(
-      <WrappedComponent
-        organization={organization}
-        location={router.location}
-        router={router}
-      />,
-      routerContext
-    );
-
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('TransactionHeader')).toHaveLength(1);
-    expect(wrapper.find('SearchBar')).toHaveLength(1);
-    expect(wrapper.find('TransactionVitals')).toHaveLength(1);
-  });
-
-  it('renders the correct bread crumbs', async function () {
-    const {organization, router, routerContext} = initialize();
-
-    const wrapper = mountWithTheme(
-      <WrappedComponent
-        organization={organization}
-        location={router.location}
-        router={router}
-      />,
-      routerContext
-    );
-
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('Breadcrumb').text()).toEqual(
-      expect.stringContaining('Web Vitals')
-    );
-  });
-
-  it('renders all vitals cards correctly', async function () {
-    const {organization, router, routerContext} = initialize();
-
-    const wrapper = mountWithTheme(
-      <WrappedComponent
-        organization={organization}
-        location={router.location}
-        router={router}
-      />,
-      routerContext
-    );
-
-    await tick();
-    wrapper.update();
-
-    const vitalCards = wrapper.find('VitalCard');
-    expect(vitalCards).toHaveLength(5);
-
-    vitalCards.forEach((vitalCard, i) => {
-      expect(vitalCard.find('CardSectionHeading').text()).toEqual(
-        expect.stringContaining(vitals[i].heading)
-      );
-      expect(vitalCard.find('StatNumber').text()).toEqual(vitals[i].baseline);
+    render(<WrappedComponent organization={organization} location={router.location} />, {
+      context: routerContext,
     });
-    expect(vitalCards.find('BarChart')).toHaveLength(5);
+    expect(screen.getByText("You don't have access to this feature")).toBeInTheDocument();
   });
 
-  describe('reset view', function () {
-    it('disables button on default view', async function () {
-      const {organization, router, routerContext} = initialize();
+  it('renders the basic UI components', function () {
+    const {organization, router, routerContext} = initialize({
+      transaction: '/organizations/:orgId/',
+    });
 
-      const wrapper = mountWithTheme(
+    render(
+      <WrappedComponent
+        organization={organization}
+        location={router.location}
+        router={router}
+      />,
+      {context: routerContext}
+    );
+
+    expect(
+      screen.getByRole('heading', {name: '/organizations/:orgId/'})
+    ).toBeInTheDocument();
+
+    ['navigation', 'main'].forEach(role => {
+      expect(screen.getByRole(role)).toBeInTheDocument();
+    });
+  });
+
+  it('renders the correct bread crumbs', function () {
+    const {organization, router, routerContext} = initialize();
+
+    render(
+      <WrappedComponent
+        organization={organization}
+        location={router.location}
+        router={router}
+      />,
+      {context: routerContext}
+    );
+
+    expect(screen.getByRole('navigation')).toHaveTextContent('PerformanceWeb Vitals');
+  });
+
+  describe('renders all vitals cards correctly', function () {
+    const {organization, router, routerContext} = initialize();
+
+    beforeEach(() => {
+      render(
         <WrappedComponent
           organization={organization}
           location={router.location}
           router={router}
         />,
-        routerContext
+        {context: routerContext}
       );
-
-      await tick();
-      wrapper.update();
-
-      expect(
-        wrapper.find('Button[data-test-id="reset-view"]').prop('disabled')
-      ).toBeTruthy();
     });
 
-    it('enables button on left zoom', async function () {
+    it.each(vitals)('Renders %s', function (vital) {
+      expect(screen.getByText(vital.heading)).toBeInTheDocument();
+      expect(screen.getByText(vital.baseline)).toBeInTheDocument();
+    });
+  });
+
+  describe('reset view', function () {
+    it('disables button on default view', function () {
+      const {organization, router, routerContext} = initialize();
+
+      render(
+        <WrappedComponent
+          organization={organization}
+          location={router.location}
+          router={router}
+        />,
+        {context: routerContext}
+      );
+
+      expect(screen.getByRole('button', {name: 'Reset View'})).toBeDisabled();
+    });
+
+    it('enables button on left zoom', function () {
       const {organization, router, routerContext} = initialize({
         query: {
           lcpStart: '20',
         },
       });
 
-      const wrapper = mountWithTheme(
+      render(
         <WrappedComponent
           organization={organization}
           location={router.location}
           router={router}
         />,
-        routerContext
+        {context: routerContext}
       );
 
-      await tick();
-      wrapper.update();
-
-      expect(
-        wrapper.find('Button[data-test-id="reset-view"]').prop('disabled')
-      ).toBeFalsy();
+      expect(screen.getByRole('button', {name: 'Reset View'})).toBeEnabled();
     });
 
-    it('enables button on right zoom', async function () {
+    it('enables button on right zoom', function () {
       const {organization, router, routerContext} = initialize({
         query: {
           fpEnd: '20',
         },
       });
 
-      const wrapper = mountWithTheme(
+      render(
         <WrappedComponent
           organization={organization}
           location={router.location}
           router={router}
         />,
-        routerContext
+        {context: routerContext}
       );
 
-      await tick();
-      wrapper.update();
-
-      expect(
-        wrapper.find('Button[data-test-id="reset-view"]').prop('disabled')
-      ).toBeFalsy();
+      expect(screen.getByRole('button', {name: 'Reset View'})).toBeEnabled();
     });
 
-    it('enables button on left and right zoom', async function () {
+    it('enables button on left and right zoom', function () {
       const {organization, router, routerContext} = initialize({
         query: {
           fcpStart: '20',
@@ -308,24 +290,19 @@ describe('Performance > Web Vitals', function () {
         },
       });
 
-      const wrapper = mountWithTheme(
+      render(
         <WrappedComponent
           organization={organization}
           location={router.location}
           router={router}
         />,
-        routerContext
+        {context: routerContext}
       );
 
-      await tick();
-      wrapper.update();
-
-      expect(
-        wrapper.find('Button[data-test-id="reset-view"]').prop('disabled')
-      ).toBeFalsy();
+      expect(screen.getByRole('button', {name: 'Reset View'})).toBeEnabled();
     });
 
-    it('resets view properly', async function () {
+    it('resets view properly', function () {
       const {organization, router, routerContext} = initialize({
         query: {
           fidStart: '20',
@@ -333,19 +310,17 @@ describe('Performance > Web Vitals', function () {
         },
       });
 
-      const wrapper = mountWithTheme(
+      render(
         <WrappedComponent
           organization={organization}
           location={router.location}
           router={router}
         />,
-        routerContext
+        {context: routerContext}
       );
 
-      await tick();
-      wrapper.update();
+      userEvent.click(screen.getByRole('button', {name: 'Reset View'}));
 
-      wrapper.find('Button[data-test-id="reset-view"]').simulate('click');
       expect(browserHistory.push).toHaveBeenCalledWith({
         query: expect.not.objectContaining(
           ZOOM_KEYS.reduce((obj, key) => {
@@ -371,19 +346,24 @@ describe('Performance > Web Vitals', function () {
         },
       });
 
-      const wrapper = mountWithTheme(
+      render(
         <WrappedComponent
           organization={organization}
           location={router.location}
           router={router}
         />,
-        routerContext
+        {context: routerContext}
       );
 
-      await tick();
-      wrapper.update();
+      await waitForElementToBeRemoved(() =>
+        screen.queryAllByTestId('loading-placeholder')
+      );
 
-      expect(wrapper.find('Alert')).toHaveLength(1);
+      expect(
+        screen.getByText(
+          'If this page is looking a little bare, keep in mind not all browsers support these vitals.'
+        )
+      ).toBeInTheDocument();
     });
 
     it('does not render an info alert when data from all web vitals is present', async function () {
@@ -393,19 +373,24 @@ describe('Performance > Web Vitals', function () {
         },
       });
 
-      const wrapper = mountWithTheme(
+      render(
         <WrappedComponent
           organization={organization}
           location={router.location}
           router={router}
         />,
-        routerContext
+        {context: routerContext}
       );
 
-      await tick();
-      wrapper.update();
+      await waitForElementToBeRemoved(() =>
+        screen.queryAllByTestId('loading-placeholder')
+      );
 
-      expect(wrapper.find('Alert')).toHaveLength(0);
+      expect(
+        screen.queryByText(
+          'If this page is looking a little bare, keep in mind not all browsers support these vitals.'
+        )
+      ).not.toBeInTheDocument();
     });
   });
 
@@ -427,18 +412,21 @@ describe('Performance > Web Vitals', function () {
       },
     });
 
-    const wrapper = mountWithTheme(
+    render(
       <WrappedComponent
         organization={organization}
         location={router.location}
         router={router}
       />,
-      routerContext
+      {context: routerContext}
     );
 
-    await tick();
-    wrapper.update();
+    await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-placeholder'));
 
-    expect(wrapper.find('Alert')).toHaveLength(1);
+    expect(
+      screen.getByText(
+        'If this page is looking a little bare, keep in mind not all browsers support these vitals.'
+      )
+    ).toBeInTheDocument();
   });
 });
