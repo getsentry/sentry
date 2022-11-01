@@ -167,24 +167,27 @@ describe('Performance > Web Vitals', function () {
     expect(screen.getByText("You don't have access to this feature")).toBeInTheDocument();
   });
 
-  it('renders the basic UI components', async function () {
-    const {organization, router, routerContext} = initialize();
+  it('renders the basic UI components', function () {
+    const {organization, router, routerContext} = initialize({
+      transaction: '/organizations/:orgId/',
+    });
 
-    const wrapper = mountWithTheme(
+    render(
       <WrappedComponent
         organization={organization}
         location={router.location}
         router={router}
       />,
-      routerContext
+      {context: routerContext}
     );
 
-    await tick();
-    wrapper.update();
+    expect(
+      screen.getByRole('heading', {name: '/organizations/:orgId/'})
+    ).toBeInTheDocument();
 
-    expect(wrapper.find('TransactionHeader')).toHaveLength(1);
-    expect(wrapper.find('SearchBar')).toHaveLength(1);
-    expect(wrapper.find('TransactionVitals')).toHaveLength(1);
+    ['navigation', 'main'].forEach(role => {
+      expect(screen.getByRole(role)).toBeInTheDocument();
+    });
   });
 
   it('renders the correct bread crumbs', async function () {
