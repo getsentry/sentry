@@ -25,7 +25,6 @@ class OrganizationMetricsCompatibility(OrganizationEventsEndpointBase):
         data = {
             "incompatible_projects": [],
             "compatible_projects": [],
-            "dynamic_sampling_projects": [],
         }
         try:
             # This will be used on the perf homepage and contains preset queries, allow global views
@@ -33,21 +32,6 @@ class OrganizationMetricsCompatibility(OrganizationEventsEndpointBase):
         except NoProjects:
             return Response(data)
         original_project_ids = params["project_id"].copy()
-        for project in params["project_objects"]:
-            dynamic_sampling = project.get_option("sentry:dynamic_sampling")
-            if dynamic_sampling is not None:
-                data["dynamic_sampling_projects"].append(project.id)
-                if len(data["dynamic_sampling_projects"]) > 50:
-                    break
-
-        # None of the projects had DS rules, nothing is compat the sum & compat projects list is useless
-        if len(data["dynamic_sampling_projects"]) == 0:
-            return Response(data)
-        data["dynamic_sampling_projects"].sort()
-
-        # Save ourselves some work, only query the projects that have DS rules
-        data["compatible_projects"] = params["project_id"]
-        params["project_id"] = data["dynamic_sampling_projects"]
 
         with self.handle_query_errors():
             count_has_txn = "count_has_transaction_name()"
