@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {useEffect, useMemo, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import {PlatformIcon} from 'platformicons';
@@ -6,9 +6,8 @@ import {PlatformIcon} from 'platformicons';
 import Button from 'sentry/components/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
-import ListLink from 'sentry/components/links/listLink';
-import NavTabs from 'sentry/components/navTabs';
 import SearchBar from 'sentry/components/searchBar';
+import {Item, TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import categoryList, {filterAliases, PlatformKey} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
@@ -19,13 +18,6 @@ import {Organization, PlatformIntegration} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
 const PLATFORM_CATEGORIES = [...categoryList, {id: 'all', name: t('All')}] as const;
-
-const PlatformList = styled('div')`
-  display: grid;
-  gap: ${space(1)};
-  grid-template-columns: repeat(auto-fill, 112px);
-  margin-bottom: ${space(2)};
-`;
 
 type Category = typeof PLATFORM_CATEGORIES[number]['id'];
 
@@ -41,163 +33,179 @@ interface PlatformPickerProps {
   source?: string;
 }
 
-type State = {
-  category: Category;
-  filter: string;
-};
+function PlatformPicker({
+  platform,
+  setPlatform,
+  listProps,
+  listClassName,
+  defaultCategory,
+  noAutoFilter,
+  showOther = true,
+  source,
+  organization,
+}: PlatformPickerProps) {
+  const [category, setCategory] = useState<Category>(
+    defaultCategory ?? PLATFORM_CATEGORIES[0].id
+  );
+  const [filter, setFilter] = useState(
+    noAutoFilter ? '' : (platform ?? '').split('-')[0]
+  );
 
-class PlatformPicker extends Component<PlatformPickerProps, State> {
-  static defaultProps = {
-    showOther: true,
-  };
+  const getPlatformList = useCallback(
+    (cat: Category) => {
+      const currentCategory = categoryList.find(({id}) => id === cat);
+      const lowercaseFilter = filter.toLowerCase();
 
-  state: State = {
-    category: this.props.defaultCategory ?? PLATFORM_CATEGORIES[0].id,
-    filter: this.props.noAutoFilter ? '' : (this.props.platform || '').split('-')[0],
-  };
+      const subsetMatch = (p: PlatformIntegration) =>
+        p.id.includes(lowercaseFilter) ||
+        p.name.toLowerCase().includes(lowercaseFilter) ||
+        filterAliases[p.id as PlatformKey]?.some(alias =>
+          alias.includes(lowercaseFilter)
+        );
 
-  get platformList() {
-    const {category} = this.state;
-    const currentCategory = categoryList.find(({id}) => id === category);
+      const categoryMatch = (p: PlatformIntegration) =>
+        category === 'all' ||
+        (currentCategory?.platforms as undefined | string[])?.includes(p.id);
 
-    const filter = this.state.filter.toLowerCase();
+      const filtered = platforms
+        .filter(filter ? subsetMatch : categoryMatch)
+        .sort((a, b) => a.id.localeCompare(b.id));
 
-    const subsetMatch = (platform: PlatformIntegration) =>
-      platform.id.includes(filter) ||
-      platform.name.toLowerCase().includes(filter) ||
-      filterAliases[platform.id as PlatformKey]?.some(alias => alias.includes(filter));
+      return showOther ? filtered : filtered.filter(({id}) => id !== 'other');
+    },
+    [category, filter, showOther]
+  );
 
-    const categoryMatch = (platform: PlatformIntegration) =>
-      category === 'all' ||
-      (currentCategory?.platforms as undefined | string[])?.includes(platform.id);
+  const logSearch = useMemo(
+    () =>
+      debounce((search, platformList) => {
+        if (!search) {
+          return;
+        }
 
-    const filtered = platforms
-      .filter(this.state.filter ? subsetMatch : categoryMatch)
-      .sort((a, b) => a.id.localeCompare(b.id));
+        trackAdvancedAnalyticsEvent('growth.platformpicker_search', {
+          search: search.toLowerCase(),
+          num_results: platformList.length,
+          source,
+          organization: organization ?? null,
+        });
+      }, DEFAULT_DEBOUNCE_DURATION),
+    [organization, source]
+  );
 
-    return this.props.showOther ? filtered : filtered.filter(({id}) => id !== 'other');
-  }
-
-  logSearch = debounce(() => {
-    if (this.state.filter) {
-      trackAdvancedAnalyticsEvent('growth.platformpicker_search', {
-        search: this.state.filter.toLowerCase(),
-        num_results: this.platformList.length,
-        source: this.props.source,
-        organization: this.props.organization ?? null,
-      });
+  useEffect(() => {
+    if (!filter) {
+      return;
     }
-  }, DEFAULT_DEBOUNCE_DURATION);
 
-  render() {
-    const platformList = this.platformList;
-    const {setPlatform, listProps, listClassName} = this.props;
-    const {filter, category} = this.state;
+    logSearch(filter, getPlatformList(category));
+  }, [filter, logSearch, category, getPlatformList]);
 
-    return (
-      <Fragment>
-        <NavContainer>
-          <CategoryNav>
-            {PLATFORM_CATEGORIES.map(({id, name}) => (
-              <ListLink
-                key={id}
-                onClick={(e: React.MouseEvent) => {
-                  trackAdvancedAnalyticsEvent('growth.platformpicker_category', {
-                    category: id,
-                    source: this.props.source,
-                    organization: this.props.organization ?? null,
-                  });
-                  this.setState({category: id, filter: ''});
-                  e.preventDefault();
-                }}
-                to=""
-                isActive={() => id === (filter ? 'all' : category)}
-              >
-                {name}
-              </ListLink>
-            ))}
-          </CategoryNav>
-          <StyledSearchBar
-            size="sm"
-            query={filter}
-            placeholder={t('Filter Platforms')}
-            onChange={val => this.setState({filter: val}, this.logSearch)}
-          />
-        </NavContainer>
-        <PlatformList className={listClassName} {...listProps}>
-          {platformList.map(platform => (
-            <PlatformCard
-              data-test-id={`platform-${platform.id}`}
-              key={platform.id}
-              platform={platform}
-              selected={this.props.platform === platform.id}
-              onClear={(e: React.MouseEvent) => {
-                setPlatform(null);
-                e.stopPropagation();
-              }}
-              onClick={() => {
-                trackAdvancedAnalyticsEvent('growth.select_platform', {
-                  platform_id: platform.id,
-                  source: this.props.source,
-                  organization: this.props.organization ?? null,
-                });
-                setPlatform(platform.id as PlatformKey);
-              }}
-            />
+  return (
+    <Tabs
+      onChange={tab => {
+        trackAdvancedAnalyticsEvent('growth.platformpicker_category', {
+          category: tab,
+          source,
+          organization: organization ?? null,
+        });
+        setCategory(tab);
+        setFilter('');
+      }}
+      value={filter ? 'all' : category}
+    >
+      <NavContainer>
+        <TabList hideBorder>
+          {PLATFORM_CATEGORIES.map(({id, name}) => (
+            <Item key={id}>{name}</Item>
           ))}
-        </PlatformList>
-        {platformList.length === 0 && (
-          <EmptyMessage
-            icon={<IconProject size="xl" />}
-            title={t("We don't have an SDK for that yet!")}
-          >
-            {tct(
-              `Not finding your platform? You can still create your project,
-              but looks like we don't have an official SDK for your platform
-              yet. However, there's a rich ecosystem of community supported
-              SDKs (including Perl, CFML, Clojure, and ActionScript). Try
-              [search:searching for Sentry clients] or contacting support.`,
-              {
-                search: (
-                  <ExternalLink href="https://github.com/search?q=-org%3Agetsentry+topic%3Asentry&type=Repositories" />
-                ),
-              }
-            )}
-          </EmptyMessage>
-        )}
-      </Fragment>
-    );
-  }
+        </TabList>
+        <StyledSearchBar
+          size="sm"
+          query={filter}
+          placeholder={t('Filter Platforms')}
+          onChange={setFilter}
+        />
+      </NavContainer>
+      <TabPanels>
+        {PLATFORM_CATEGORIES.map(({id}) => {
+          const platformList = getPlatformList(id);
+
+          return (
+            <Item key={id}>
+              {platformList.length > 0 ? (
+                <PlatformList className={listClassName} {...listProps}>
+                  {platformList.map(platformItem => (
+                    <PlatformCard
+                      data-test-id={`platform-${platformItem.id}`}
+                      key={platformItem.id}
+                      platform={platformItem}
+                      selected={platform === platformItem.id}
+                      onClear={(e: React.MouseEvent) => {
+                        setPlatform(null);
+                        e.stopPropagation();
+                      }}
+                      onClick={() => {
+                        trackAdvancedAnalyticsEvent('growth.select_platform', {
+                          platform_id: platformItem.id,
+                          source,
+                          organization: organization ?? null,
+                        });
+                        setPlatform(platformItem.id as PlatformKey);
+                      }}
+                    />
+                  ))}{' '}
+                </PlatformList>
+              ) : (
+                <EmptyMessage
+                  icon={<IconProject size="xl" />}
+                  title={t("We don't have an SDK for that yet!")}
+                >
+                  {tct(
+                    `Not finding your platform? You can still create your project,
+                        but looks like we don't have an official SDK for your platform
+                        yet. However, there's a rich ecosystem of community supported
+                        SDKs (including Perl, CFML, Clojure, and ActionScript). Try
+                        [search:searching for Sentry clients] or contacting support.`,
+                    {
+                      search: (
+                        <ExternalLink href="https://github.com/search?q=-org%3Agetsentry+topic%3Asentry&type=Repositories" />
+                      ),
+                    }
+                  )}
+                </EmptyMessage>
+              )}
+            </Item>
+          );
+        })}
+      </TabPanels>
+    </Tabs>
+  );
 }
 
 const NavContainer = styled('div')`
   margin-bottom: ${space(2)};
   display: grid;
   gap: ${space(2)};
-  grid-template-columns: 1fr minmax(0, 300px);
+  grid-template-columns: minmax(0, 1fr) max-content;
   align-items: start;
   border-bottom: 1px solid ${p => p.theme.border};
 `;
 
 const StyledSearchBar = styled(SearchBar)`
-  min-width: 6rem;
-  max-width: 12rem;
+  width: 12rem;
   margin-top: -${space(0.25)};
-  margin-left: auto;
-  flex-shrink: 0;
-  flex-basis: 0;
-  flex-grow: 1;
+
+  @media only screen and (max-width: ${p => p.theme.breakpoints.small}) {
+    width: 10em;
+  }
 `;
 
-const CategoryNav = styled(NavTabs)`
-  margin: 0;
-  margin-top: 4px;
-  white-space: nowrap;
-
-  > li {
-    float: none;
-    display: inline-block;
-  }
+const PlatformList = styled('div')`
+  display: grid;
+  gap: ${space(1)};
+  grid-template-columns: repeat(auto-fill, 112px);
+  margin-bottom: ${space(2)};
 `;
 
 const StyledPlatformIcon = styled(PlatformIcon)`

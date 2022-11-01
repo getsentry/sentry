@@ -1,4 +1,11 @@
-import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import {CreateProject} from 'sentry/views/projectInstall/createProject';
@@ -50,14 +57,16 @@ describe('CreateProject', function () {
     expect(openCreateTeamModal).toHaveBeenCalled();
   });
 
-  it('should fill in project name if its empty when platform is chosen', function () {
+  it('should fill in project name if its empty when platform is chosen', async function () {
     const wrapper = render(<CreateProject {...baseProps} teams={[teamWithAccess]} />, {
       context: TestStubs.routerContext([
         {organization: {id: '1', slug: 'testOrg'}, location: {query: {}}},
       ]),
     });
 
-    userEvent.click(screen.getByTestId('platform-apple-ios'));
+    await act(async () => {
+      userEvent.click(await screen.findByTestId('platform-apple-ios'));
+    });
     expect(screen.getByPlaceholderText('project-name')).toHaveValue('apple-ios');
 
     userEvent.click(screen.getByTestId('platform-ruby-rails'));
@@ -67,7 +76,7 @@ describe('CreateProject', function () {
     userEvent.clear(screen.getByPlaceholderText('project-name'));
     userEvent.type(screen.getByPlaceholderText('project-name'), 'another');
 
-    userEvent.click(screen.getByTestId('platform-apple-ios'));
+    act(() => userEvent.click(screen.getByTestId('platform-apple-ios')));
     expect(screen.getByPlaceholderText('project-name')).toHaveValue('another');
 
     expect(wrapper.container).toSnapshot();
@@ -133,7 +142,7 @@ describe('CreateProject', function () {
       MockApiClient.clearMockResponses();
     });
 
-    it('should enabled the submit button if and only if all the required information has been filled', () => {
+    it('should enabled the submit button if and only if all the required information has been filled', async () => {
       render(<CreateProject {...props} />, {
         context: TestStubs.routerContext([
           {
@@ -151,7 +160,9 @@ describe('CreateProject', function () {
       expect(screen.getByTestId('range-input')).toHaveValue(2);
       expect(createProjectButton).toBeDisabled();
 
-      userEvent.click(screen.getByTestId('platform-apple-ios'));
+      await act(async () => {
+        userEvent.click(await screen.findByTestId('platform-apple-ios'));
+      });
       expect(createProjectButton).toBeEnabled();
 
       userEvent.clear(screen.getByTestId('range-input'));
