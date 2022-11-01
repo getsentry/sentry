@@ -33,7 +33,7 @@ type SegmentValue = {
 };
 
 function TagDistributionMeter({
-  colors,
+  colors = COLORS,
   isLoading = false,
   hasError = false,
   renderLoading = () => null,
@@ -144,7 +144,7 @@ function TagDistributionMeter({
                 {value.isOther ? (
                   <OtherSegment
                     aria-label={t('Other')}
-                    color={colors ? colors[colors.length - 1] : COLORS[COLORS.length - 1]}
+                    color={colors[colors.length - 1]}
                   />
                 ) : (
                   <Segment
@@ -153,7 +153,7 @@ function TagDistributionMeter({
                       title,
                       value.value
                     )}
-                    color={(colors ?? COLORS)?.[index] ?? COLORS[COLORS.length - 1]}
+                    color={colors[index]}
                     {...segmentProps}
                   />
                 )}
