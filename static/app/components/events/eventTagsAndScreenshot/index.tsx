@@ -148,7 +148,7 @@ function EventTagsAndScreenshots({
             <Container>
               {screenshots.map((s, index) => {
                 return (
-                  <IconUpdate
+                  <IconEllipse
                     key={`${index}-${s.name}`}
                     inFocus={screenshotInFocus === index}
                     onClick={() => setScreenshotInFoucs(index)}
@@ -237,7 +237,7 @@ const TagsHighlightWrapper = styled('div')`
   }
 `;
 
-const IconUpdate = styled('div')<{
+const IconEllipse = styled('div')<{
   inFocus: boolean;
 }>`
   width: 6px;
