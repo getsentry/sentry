@@ -389,6 +389,32 @@ describe('groupEvents', function () {
         expect.objectContaining({query: expect.not.objectContaining({sort: 'user'})})
       );
     });
+
+    it('shows discover query error message', async () => {
+      discoverRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        statusCode: 500,
+        body: {
+          detail: 'Internal Error',
+          errorId: '69ab396e73704cdba9342ff8dcd59795',
+        },
+      });
+
+      render(
+        <GroupEvents
+          organization={org.organization}
+          api={new MockApiClient()}
+          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+          group={group}
+          location={{query: {environment: ['prod', 'staging']}}}
+        />,
+        {context: routerContext, organization}
+      );
+
+      await waitForElementToBeRemoved(document.querySelector('div.loading-indicator'));
+
+      expect(screen.getByTestId('loading-error')).toHaveTextContent('Internal Error');
+    });
   });
 
   it('does not renders new events table if error', function () {
