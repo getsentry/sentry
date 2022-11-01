@@ -92,7 +92,6 @@ describe('IssueListFilters', function () {
             query: 'url:"fu"',
             sort: 'date',
             dateCreated: '',
-            isOrgCustom: false,
             isGlobal: false,
             type: 0,
           }}

@@ -28,7 +28,6 @@ export type SavedSearch = {
   dateCreated: string;
   id: string;
   isGlobal: boolean;
-  isOrgCustom: boolean;
   isPinned: boolean;
   name: string;
   query: string;
