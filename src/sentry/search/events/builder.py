@@ -125,7 +125,9 @@ class QueryBuilder:
 
         if "project_objects" in params:
             projects = cast(Sequence[Project], params["project_objects"])
-        elif "project_id" in params and isinstance(params["project_id"], list):
+        elif "project_id" in params and (
+            isinstance(params["project_id"], list) or isinstance(params["project_id"], tuple)
+        ):
             projects = Project.objects.filter(id__in=params["project_id"])
         else:
             projects = []
