@@ -400,7 +400,13 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                     ),
                     default_result_type="percentage",
                 ),
-                # TODO: histogram
+                fields.MetricsFunction(
+                    "histogram",
+                    required_args=[fields.MetricArg("column")],
+                    snql_metric_layer=self._resolve_histogram_function,
+                    default_result_type="number",
+                    private=True,
+                ),
             ]
         }
 
@@ -602,5 +608,27 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
         return Function(
             "count_web_vitals",
             [Column(constants.METRICS_MAP.get(column, column)), quality],
+            alias,
+        )
+
+    def _resolve_histogram_function(
+        self,
+        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: Optional[str] = None,
+    ) -> SelectType:
+        """zoom_params is based on running metrics zoom_histogram function that adds conditions based on min, max,
+        buckets"""
+        min_bin = getattr(self.builder, "min_bin", None)
+        max_bin = getattr(self.builder, "max_bin", None)
+        num_buckets = getattr(self.builder, "num_buckets", 250)
+        self.builder.histogram_aliases.append(alias)
+        return Function(
+            "histogram",
+            [
+                Column(constants.METRICS_MAP.get(args["column"], args["column"])),
+                min_bin,
+                max_bin,
+                num_buckets,
+            ],
             alias,
         )

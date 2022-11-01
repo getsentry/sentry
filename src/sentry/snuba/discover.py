@@ -658,6 +658,7 @@ def spans_histogram_query(
     limit_by=None,
     extra_condition=None,
     normalize_results=True,
+    use_metrics_layer=False,
 ):
     """
     API for generating histograms for span exclusive time.
