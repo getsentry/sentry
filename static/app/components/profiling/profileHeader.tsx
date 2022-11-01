@@ -72,7 +72,7 @@ function ProfileHeader({profiles}: ProfileHeaderProps) {
       </Layout.HeaderContent>
       <Layout.HeaderActions>
         {transactionTarget && (
-          <Button onClick={handleGoToTransaction} to={transactionTarget}>
+          <Button size="sm" onClick={handleGoToTransaction} to={transactionTarget}>
             {t('Go to Transaction')}
           </Button>
         )}
