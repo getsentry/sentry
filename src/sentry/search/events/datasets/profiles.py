@@ -319,7 +319,7 @@ class ProfilesDatasetConfig(DatasetConfig):
         }
 
     def _project_slug_orderby_converter(self, direction: Direction) -> OrderBy:
-        projects = self.builder.params["project_objects"]
+        projects = self.builder.params.projects
 
         # Try to reduce the size of the transform by using any existing conditions on projects
         # Do not optimize projects list if conditions contain OR operator
