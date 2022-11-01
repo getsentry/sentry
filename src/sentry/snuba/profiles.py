@@ -121,6 +121,8 @@ class ProfilesQueryBuilderMixin:
         return resolved
 
     def resolve_params(self: ProfilesQueryBuilderProtocol) -> List[WhereType]:
+        if self.params.organization is None:
+            raise InvalidSearchQuery("Organization is required to query Profiles")
         # not sure how to make mypy happy here as `super()`
         # refers to the other parent query builder class
         conditions: List[WhereType] = super().resolve_params()  # type: ignore

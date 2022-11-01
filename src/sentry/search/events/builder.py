@@ -125,12 +125,12 @@ class QueryBuilder:
 
         if "project_objects" in params:
             projects = cast(Sequence[Project], params["project_objects"])
-        elif "project_id" in params:
+        elif "project_id" in params and isinstance(params["project_id"], list):
             projects = Project.objects.filter(id__in=params["project_id"])
         else:
             projects = []
 
-        if "organization_id" in params:
+        if "organization_id" in params and isinstance(params["organization_id"], int):
             organization = Organization.objects.filter(id=params["organization_id"]).first()
         else:
             organization = projects[0].organization if projects else None
@@ -158,7 +158,11 @@ class QueryBuilder:
                 environments = []
 
         user = User.objects.filter(id=params["user_id"]).first() if "user_id" in params else None
-        teams = Team.objects.filter(id__in=params["team_id"]) if "team_id" in params else None
+        teams = (
+            Team.objects.filter(id__in=params["team_id"])
+            if "team_id" in params and isinstance(params["team_id"], list)
+            else None
+        )
         return SnubaParams(
             start=cast(datetime, params.get("start")),
             end=cast(datetime, params.get("end")),

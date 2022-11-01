@@ -54,7 +54,7 @@ class SnubaParams:
     projects: Sequence[Project]
     user: Optional[User]
     teams: Sequence[Team]
-    organization: Organization
+    organization: Optional[Organization]
 
     def __post_init__(self) -> None:
         if self.start:

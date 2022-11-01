@@ -1033,7 +1033,11 @@ class DiscoverDatasetConfig(DatasetConfig):
 
     @cached_property  # type: ignore
     def _resolve_project_threshold_config(self) -> SelectType:
-        org_id = self.builder.params.organization.id
+        org_id = (
+            self.builder.params.organization.id
+            if self.builder.params.organization is not None
+            else None
+        )
         project_ids = self.builder.params.project_ids
 
         project_threshold_configs = (

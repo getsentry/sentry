@@ -40,7 +40,7 @@ def resolve_team_key_transaction_alias(
 def get_team_transactions(
     builder: QueryBuilder, resolve_metric_index: bool = False
 ) -> List[Tuple[int, str]]:
-    org_id = builder.params.organization.id
+    org_id = builder.params.organization.id if builder.params.organization is not None else None
     project_ids = builder.params.project_ids
     team_ids = builder.params.team_ids
 
