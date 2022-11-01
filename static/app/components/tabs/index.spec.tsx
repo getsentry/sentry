@@ -1,4 +1,4 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {Item, TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 
@@ -199,5 +199,45 @@ describe('Tabs', () => {
         'true'
       );
     });
+  });
+
+  it('renders tab links', () => {
+    render(
+      <Tabs>
+        <TabList>
+          {TABS.map(tab => (
+            <Item key={tab.key} to="/some-link">
+              {tab.label}
+            </Item>
+          ))}
+        </TabList>
+        <TabPanels>
+          {TABS.map(tab => (
+            <Item key={tab.key}>{tab.content}</Item>
+          ))}
+        </TabPanels>
+      </Tabs>
+    );
+
+    TABS.forEach(tab => {
+      const tabEl = screen.getByRole('tab', {name: tab.label});
+      expect(within(tabEl).getByRole('link', {hidden: true})).toHaveAttribute(
+        'href',
+        '/some-link'
+      );
+    });
+
+    // Command/ctrl/shift-clicking on a tab link doesn't change the tab selection.
+    // The expected behavior is that clicking on a tab link will open a new browser
+    // tab/window. The current view shouldn't update.
+    const secondTabEl = screen.getByRole('tab', {name: TABS[1].label});
+    const secondTabLink = within(secondTabEl).getByRole('link', {hidden: true});
+    userEvent.click(secondTabLink, {metaKey: true});
+    userEvent.click(secondTabLink, {ctrlKey: true});
+    userEvent.click(secondTabLink, {shiftKey: true});
+    expect(screen.getByRole('tab', {name: TABS[0].label})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
   });
 });

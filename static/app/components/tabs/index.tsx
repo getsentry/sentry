@@ -12,7 +12,7 @@ import {TabPanels} from './tabPanels';
 import {tabsShouldForwardProp} from './utils';
 
 const _Item = Item as (
-  props: ItemProps<any> & {disabled?: boolean; hidden?: boolean}
+  props: ItemProps<any> & {disabled?: boolean; hidden?: boolean; to?: string}
 ) => JSX.Element;
 export {_Item as Item, TabList, TabPanels};
 
@@ -57,6 +57,7 @@ export const TabsContext = createContext<TabContext>({
 export function Tabs<T extends React.Key>({
   orientation = 'horizontal',
   className,
+  children,
   ...props
 }: TabsProps<T>) {
   const [tabListState, setTabListState] = useState<TabListState<any>>();
@@ -66,7 +67,7 @@ export function Tabs<T extends React.Key>({
       value={{rootProps: {...props, orientation}, tabListState, setTabListState}}
     >
       <TabsWrap orientation={orientation} className={className}>
-        {props.children}
+        {children}
       </TabsWrap>
     </TabsContext.Provider>
   );

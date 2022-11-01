@@ -1,10 +1,11 @@
 import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 import {useTab} from '@react-aria/tabs';
-import {mergeProps, useObjectRef} from '@react-aria/utils';
+import {useObjectRef} from '@react-aria/utils';
 import {TabListState} from '@react-stately/tabs';
 import {Node, Orientation} from '@react-types/shared';
 
+import Link from 'sentry/components/links/link';
 import space from 'sentry/styles/space';
 
 import {tabsShouldForwardProp} from './utils';
@@ -22,6 +23,18 @@ interface TabProps {
 }
 
 /**
+ * Stops event propagation if the command/ctrl/shift key is pressed, in effect
+ * preventing any state change. This is useful because when a user
+ * command/ctrl/shift-clicks on a tab link, the intention is to view the tab
+ * in a new browser tab/window, not to update the current view.
+ */
+function handleLinkClick(e: React.PointerEvent<HTMLAnchorElement>) {
+  if (e.metaKey || e.ctrlKey || e.shiftKey) {
+    e.stopPropagation();
+  }
+}
+
+/**
  * Renders a single tab item. This should not be imported directly into any
  * page/view – it's only meant to be used by <TabsList />. See the correct
  * usage in tabs.stories.js
@@ -32,12 +45,16 @@ function BaseTab(
 ) {
   const ref = useObjectRef(forwardedRef);
 
-  const {key, rendered} = item;
+  const {
+    key,
+    rendered,
+    props: {to},
+  } = item;
   const {tabProps, isSelected, isDisabled} = useTab({key}, state, ref);
 
   return (
     <TabWrap
-      {...mergeProps(tabProps)}
+      {...tabProps}
       disabled={isDisabled}
       selected={isSelected}
       overflowing={overflowing}
@@ -48,6 +65,14 @@ function BaseTab(
       <FocusLayer orientation={orientation} />
       {rendered}
       <TabSelectionIndicator orientation={orientation} selected={isSelected} />
+      {to && (
+        <TabLink
+          to={to}
+          onMouseDown={handleLinkClick}
+          onPointerDown={handleLinkClick}
+          aria-hidden="true"
+        />
+      )}
     </TabWrap>
   );
 }
@@ -187,4 +212,12 @@ const TabSelectionIndicator = styled('div')<{
         top: 50%;
         transform: translateY(-50%);
       `};
+`;
+
+const TabLink = styled(Link)<{orientation: Orientation}>`
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
 `;

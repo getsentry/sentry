@@ -1,4 +1,5 @@
 import {useContext, useEffect, useMemo, useRef, useState} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {AriaTabListProps, useTabList} from '@react-aria/tabs';
 import {Item, useCollection} from '@react-stately/collections';
@@ -80,11 +81,21 @@ function BaseTabList({hideBorder = false, className, ...props}: TabListProps) {
   const ariaProps = {
     selectedKey: value,
     defaultSelectedKey: defaultValue,
-    onSelectionChange: onChange,
+    onSelectionChange: key => {
+      onChange?.(key);
+
+      // If the newly selected tab is a tab link, then navigate to the specified link
+      const linkTo = [...(props.items ?? [])].find(item => item.key === key)?.to;
+      if (!linkTo) {
+        return;
+      }
+      browserHistory.push(linkTo);
+    },
     isDisabled: disabled,
     ...otherRootProps,
     ...props,
   };
+
   const state = useTabListState(ariaProps);
   const {tabListProps} = useTabList({orientation, ...ariaProps}, state, tabListRef);
   useEffect(() => {
