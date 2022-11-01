@@ -80,7 +80,7 @@ const mockedReleaseWithHealth = TestStubs.Release({
   lastEvent: '2011-10-17T02:41:20Z',
   firstEvent: '2010-05-17T02:41:20Z',
   status: 'open',
-  commitCount: 7,
+  commitCount: 4,
   lastCommit: mockedCommit,
   newGroups: 21,
   authors: [mockedUser1, mockedUser2],
@@ -310,7 +310,10 @@ describe('Quick Context', function () {
           ContextType.RELEASE
         );
 
-        expect(await screen.findByText(/7 commits by 2 authors/i)).toBeInTheDocument();
+        expect(await screen.findByText(/4/i)).toBeInTheDocument();
+        expect(screen.getByText(/commits/i)).toBeInTheDocument();
+        expect(screen.getAllByText(/by/i)).toHaveLength(2);
+        expect(screen.getByText(/2 authors/i)).toBeInTheDocument();
         expect(screen.getByText(/KN/i)).toBeInTheDocument();
         expect(screen.getByText(/VN/i)).toBeInTheDocument();
       });
@@ -323,9 +326,10 @@ describe('Quick Context', function () {
           ContextType.RELEASE
         );
 
-        expect(
-          await screen.findByText(/7 commits by you and 1 other author/i)
-        ).toBeInTheDocument();
+        expect(await screen.findByText(/4/i)).toBeInTheDocument();
+        expect(screen.getByText(/commits/i)).toBeInTheDocument();
+        expect(screen.getAllByText(/by/i)).toHaveLength(2);
+        expect(screen.getByText(/you and 1 other author/i)).toBeInTheDocument();
         expect(screen.getByText(/KN/i)).toBeInTheDocument();
         expect(screen.getByText(/VN/i)).toBeInTheDocument();
       });
@@ -378,6 +382,31 @@ describe('Quick Context', function () {
       ).toBeInTheDocument();
       expect(
         screen.getByTestId('quick-context-assigned-to-container')
+      ).toBeInTheDocument();
+    });
+
+    it('Renders HoverCard with Release Context', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/undefined/releases/backend@22.10.0+aaf33944f93dc8fa4234ca046a8d88fb1dccfb76/',
+        body: mockedReleaseWithHealth,
+      });
+
+      render(
+        <QuickContextHoverWrapper contextType={ContextType.RELEASE} dataRow={defaultRow}>
+          Text from Child
+        </QuickContextHoverWrapper>
+      );
+
+      userEvent.hover(screen.getByTestId('quick-context-hover-trigger'));
+
+      expect(
+        await screen.findByTestId('quick-context-release-details-container')
+      ).toBeInTheDocument();
+      expect(
+        screen.getByTestId('quick-context-release-issues-and-authors-container')
+      ).toBeInTheDocument();
+      expect(
+        screen.getByTestId('quick-context-release-last-commit-container')
       ).toBeInTheDocument();
     });
   });

@@ -180,15 +180,13 @@ function ReleaseContext({data}: ReleaseContextProps) {
       commitCount,
       commitDesc: commitCount !== 1 ? 'commits' : 'commit',
       authorDesc: userInAuthors
-        ? `you and ${authors.length - 1} ${
-            authors.length - 1 !== 1 ? 'others' : 'other author'
-          }`
+        ? `you and ${authors.length - 1} ${authors.length - 1 !== 1 ? 'others' : 'other'}`
         : `${authors.length} ${authors.length !== 1 ? 'authors' : 'author'}`,
     });
   };
 
   const renderReleaseDetails = () => (
-    <ReleaseContextContainer>
+    <ReleaseContextContainer data-test-id="quick-context-release-details-container">
       <ContextTitle>
         {t('Release Details')}
         <FeatureBadge type="alpha" />
@@ -219,7 +217,7 @@ function ReleaseContext({data}: ReleaseContextProps) {
 
   const renderLastCommit = () =>
     data.lastCommit && (
-      <ReleaseContextContainer>
+      <ReleaseContextContainer data-test-id="quick-context-release-last-commit-container">
         <ContextTitle>{t('Last Commit')}</ContextTitle>
         <DataSection>
           <Panel>
@@ -230,7 +228,7 @@ function ReleaseContext({data}: ReleaseContextProps) {
     );
 
   const renderIssueCountAndAuthors = () => (
-    <ReleaseContextContainer>
+    <ReleaseContextContainer data-test-id="quick-context-release-issues-and-authors-container">
       <ContextRow>
         <div>
           <ContextTitle>{t('New Issues')}</ContextTitle>
