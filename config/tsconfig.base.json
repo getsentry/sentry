@@ -42,6 +42,7 @@
     "strict": true,
     "strictBindCallApply": false,
     "useUnknownInCatchVariables": false,
+    "noUncheckedIndexedAccess": true,
 
     // We do not configure these, but are left here for documentation purposes
     //
@@ -50,7 +51,6 @@
     // exactOptionalPropertyTypes
     // noImplicitOverride
     // noPropertyAccessFromIndexSignature
-    // noUncheckedIndexedAccess
     // strictFunctionTypes
     // strictNullChecks
     // strictPropertyInitialization
