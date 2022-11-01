@@ -1,11 +1,18 @@
 from functools import partial
-from typing import List, Union
+from typing import Callable, Iterable, List, Mapping, Optional, Sequence, Set, Union
 
 from sentry import features
-from sentry.api.event_search import AggregateFilter, SearchConfig, SearchValue, default_config
+from sentry.api.event_search import (
+    AggregateFilter,
+    SearchConfig,
+    SearchFilter,
+    SearchValue,
+    default_config,
+)
 from sentry.api.event_search import parse_search_query as base_parse_query
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models.group import STATUS_QUERY_CHOICES
+from sentry.models import Environment, Organization, Project, Team, User
+from sentry.models.group import STATUS_QUERY_CHOICES, GroupStatus
 from sentry.search.events.constants import EQUALITY_OPERATORS
 from sentry.search.events.filter import to_list
 from sentry.search.utils import (
@@ -50,32 +57,62 @@ issue_search_config = SearchConfig.create_from(
 )
 parse_search_query = partial(base_parse_query, config=issue_search_config)
 
+ValueConverter = Callable[
+    [
+        Iterable[Union[User, Team, str, GroupStatus]],
+        Sequence[Project],
+        User,
+        Optional[Sequence[Environment]],
+    ],
+    Union[str, List[str], List[Optional[Union[User, Team]]], List[User], List[int]],
+]
 
-def convert_actor_or_none_value(value, projects, user, environments):
+
+def convert_actor_or_none_value(
+    value: Iterable[Union[User, Team]],
+    projects: Sequence[Project],
+    user: User,
+    environments: Optional[Sequence[Environment]],
+) -> List[Optional[Union[User, Team]]]:
     # TODO: This will make N queries. This should be ok, we don't typically have large
     # lists of actors here, but we can look into batching it if needed.
     return [parse_actor_or_none_value(projects, actor, user) for actor in value]
 
 
-def convert_user_value(value, projects, user, environments):
+def convert_user_value(
+    value: Iterable[str],
+    projects: Sequence[Project],
+    user: User,
+    environments: Optional[Sequence[Environment]],
+) -> List[User]:
     # TODO: This will make N queries. This should be ok, we don't typically have large
     # lists of usernames here, but we can look into batching it if needed.
     return [parse_user_value(username, user) for username in value]
 
 
-def convert_release_value(value, projects, user, environments) -> Union[str, List[str]]:
+def convert_release_value(
+    value: Iterable[str],
+    projects: Sequence[Project],
+    user: User,
+    environments: Optional[Sequence[Environment]],
+) -> Union[str, List[str]]:
     # TODO: This will make N queries. This should be ok, we don't typically have large
     # lists of versions here, but we can look into batching it if needed.
-    releases = set()
+    releases: Set[str] = set()
     for version in value:
         releases.update(parse_release(version, projects, environments))
-    releases = list(releases)
-    if len(releases) == 1:
-        return releases[0]
-    return releases
+    results = list(releases)
+    if len(results) == 1:
+        return results[0]
+    return results
 
 
-def convert_first_release_value(value, projects, user, environments) -> List[str]:
+def convert_first_release_value(
+    value: Iterable[str],
+    projects: Sequence[Project],
+    user: User,
+    environments: Optional[Sequence[Environment]],
+) -> List[str]:
     # TODO: This will make N queries. This should be ok, we don't typically have large
     # lists of versions here, but we can look into batching it if needed.
     releases = set()
@@ -84,7 +121,12 @@ def convert_first_release_value(value, projects, user, environments) -> List[str
     return list(releases)
 
 
-def convert_status_value(value, projects, user, environments):
+def convert_status_value(
+    value: Iterable[Union[str, int]],
+    projects: Sequence[Project],
+    user: User,
+    environments: Optional[Sequence[Environment]],
+) -> List[int]:
     parsed = []
     for status in value:
         try:
@@ -94,7 +136,12 @@ def convert_status_value(value, projects, user, environments):
     return parsed
 
 
-def convert_category_value(value, projects, user, environments):
+def convert_category_value(
+    value: Iterable[str],
+    projects: Sequence[Project],
+    user: User,
+    environments: Optional[Sequence[Environment]],
+) -> List[int]:
     """Convert a value like 'error' or 'performance' to the GroupType value for issue lookup"""
     if features.has("organizations:performance-issues", projects[0].organization):
         results = []
@@ -104,9 +151,15 @@ def convert_category_value(value, projects, user, environments):
                 raise InvalidSearchQuery(f"Invalid category value of '{category}'")
             results.extend([type.value for type in GROUP_CATEGORY_TO_TYPES.get(group_category, [])])
         return results
+    return []
 
 
-def convert_type_value(value, projects, user, environments):
+def convert_type_value(
+    value: Iterable[str],
+    projects: Sequence[Project],
+    user: User,
+    environments: Optional[Sequence[Environment]],
+) -> List[int]:
     """Convert a value like 'error' or 'performance_n_plus_one' to the GroupType value for issue lookup"""
     if features.has("organizations:performance-issues", projects[0].organization):
         results = []
@@ -116,9 +169,10 @@ def convert_type_value(value, projects, user, environments):
                 raise InvalidSearchQuery(f"Invalid type value of '{type}'")
             results.append(group_type.value)
         return results
+    return []
 
 
-value_converters = {
+value_converters: Mapping[str, ValueConverter] = {
     "assigned_or_suggested": convert_actor_or_none_value,
     "assigned_to": convert_actor_or_none_value,
     "bookmarked_by": convert_user_value,
@@ -132,17 +186,25 @@ value_converters = {
 }
 
 
-def convert_query_values(search_filters, projects, user, environments):
+def convert_query_values(
+    search_filters: Sequence[SearchFilter],
+    projects: Sequence[Project],
+    user: User,
+    environments: Optional[Sequence[Environment]],
+) -> List[SearchFilter]:
     """
     Accepts a collection of SearchFilter objects and converts their values into
     a specific format, based on converters specified in `value_converters`.
     :param search_filters: Collection of `SearchFilter` objects.
     :param projects: List of projects being searched across
     :param user: The user making the search
+    :param environments: The environments to consider when making the search
     :return: New collection of `SearchFilters`, which may have converted values.
     """
 
-    def convert_search_filter(search_filter, organization):
+    def convert_search_filter(
+        search_filter: SearchFilter, organization: Organization
+    ) -> SearchFilter:
         if search_filter.key.name == "empty_stacktrace.js_console":
             if not features.has(
                 "organizations:javascript-console-error-tag", organization, actor=None
