@@ -169,6 +169,7 @@ export function ProfileDetailsTable() {
           multiple
           onChange={columnFilters.image.onChange}
           placement="bottom right"
+          isSearchable
         />
       </ActionBar>
 
