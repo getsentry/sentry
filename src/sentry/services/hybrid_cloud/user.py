@@ -99,8 +99,10 @@ class UserService(InterfaceWithLifecycle):
 
 class DatabaseBackedUserService(UserService):
     def get_many_by_email(self, email: str) -> Sequence[APIUser]:
-        return User.objects.filter(
-            emails__is_verified=True, is_active=True, emails__email__iexact=email
+        return self._to_api(
+            User.objects.filter(
+                emails__is_verified=True, is_active=True, emails__email__iexact=email
+            )
         )
 
     def get_from_group(self, group: Group) -> List[APIUser]:
