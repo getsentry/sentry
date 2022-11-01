@@ -8,6 +8,7 @@ from django.utils import timezone
 from sentry.db.models import BaseQuerySet
 from sentry.models import Group, Project
 from sentry.rules import rules
+from sentry.rules.processor import get_match_function
 
 PREVIEW_TIME_RANGE = timedelta(weeks=2)
 # limit on number of ConditionActivity's a condition will return
@@ -26,8 +27,8 @@ def preview(
     end = timezone.now()
     start = end - PREVIEW_TIME_RANGE
 
-    # must have at least one condition to filter activity. Filters currently not supported
-    if len(conditions) == 0 or len(filters):
+    # must have at least one condition to filter activity
+    if len(conditions) == 0:
         return None
     # all the currently supported conditions are mutually exclusive
     elif len(conditions) > 1 and condition_match == "all":
@@ -48,13 +49,27 @@ def preview(
     k = lambda a: a.timestamp
     activity.sort(key=k)
 
+    filter_objects = []
+    for filter in filters:
+        filter_cls = rules.get(filter["id"])
+        if filter_cls is None:
+            return None
+        filter_objects.append(filter_cls(project, data=filter))
+
+    filter_func = get_match_function(filter_match)
+    if filter_func is None:
+        return None
+
     frequency = timedelta(minutes=frequency_minutes)
     group_last_fire: Dict[str, datetime] = {}
     group_ids = set()
     for event in activity:
-        # TODO: check conditions and filters to see if event passes
+        try:
+            passes = [f.passes_activity(event) for f in filter_objects]
+        except NotImplementedError:
+            return None
         last_fire = group_last_fire.get(event.group_id, event.timestamp - frequency)
-        if last_fire <= event.timestamp - frequency:
+        if last_fire <= event.timestamp - frequency and filter_func(passes):
             group_ids.add(event.group_id)
             group_last_fire[event.group_id] = event.timestamp
 

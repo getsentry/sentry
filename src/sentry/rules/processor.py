@@ -26,6 +26,16 @@ from sentry.utils.safe import safe_execute
 SLOW_CONDITION_MATCHES = ["event_frequency"]
 
 
+def get_match_function(match_name: str) -> Callable[..., bool] | None:
+    if match_name == "all":
+        return all
+    elif match_name == "any":
+        return any
+    elif match_name == "none":
+        return lambda bool_iter: not any(bool_iter)
+    return None
+
+
 class RuleProcessor:
     logger = logging.getLogger("sentry.rules")
 
@@ -147,15 +157,6 @@ class RuleProcessor:
             has_reappeared=self.has_reappeared,
         )
 
-    def get_match_function(self, match_name: str) -> Callable[..., bool] | None:
-        if match_name == "all":
-            return all
-        elif match_name == "any":
-            return any
-        elif match_name == "none":
-            return lambda bool_iter: not any(bool_iter)
-        return None
-
     def apply_rule(self, rule: Rule, status: GroupRuleStatus) -> None:
         """
         If all conditions and filters pass, execute every action.
@@ -203,7 +204,7 @@ class RuleProcessor:
             if not predicate_list:
                 continue
             predicate_iter = (self.condition_matches(f, state, rule) for f in predicate_list)
-            predicate_func = self.get_match_function(match)
+            predicate_func = get_match_function(match)
             if predicate_func:
                 if not predicate_func(predicate_iter):
                     return
