@@ -9,7 +9,6 @@ import ModalTask from 'sentry/components/onboardingWizard/modalTask';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
-import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {Organization} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
@@ -81,12 +80,6 @@ export default function DemoEndingModal({tour, closeModal, CloseButton, orgSlug}
         })
       )
     );
-    if (tour === 'issues') {
-      DemoWalkthroughStore.activateGuideAnchor('issues');
-    }
-    if (tour === 'tabs') {
-      DemoWalkthroughStore.activateGuideAnchor('sidebar');
-    }
 
     closeModal?.();
 
