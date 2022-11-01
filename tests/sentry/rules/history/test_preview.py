@@ -66,7 +66,7 @@ class ProjectRulePreviewTest(TestCase):
 
     def test_age_comparison(self):
         hours = get_hours(PREVIEW_TIME_RANGE)
-        conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
+        conditions = [{"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"}]
         threshold = 24
         filters = [
             {
@@ -76,20 +76,26 @@ class ProjectRulePreviewTest(TestCase):
                 "value": threshold,
             }
         ]
-        groups = []
+        first_seen = timezone.now() - PREVIEW_TIME_RANGE
+        newer = []
+        older = []
         for i in range(hours):
-            groups.append(
-                Group.objects.create(
-                    id=i, project=self.project, first_seen=timezone.now() - timedelta(hours=i + 1)
-                )
+            group = Group.objects.create(project=self.project, first_seen=first_seen)
+            Activity.objects.create(
+                project=self.project,
+                group=group,
+                type=ActivityType.SET_REGRESSION.value,
+                datetime=first_seen + timedelta(hours=i),
             )
+            # this filter is strictly older/newer
+            if i < threshold:
+                newer.append(group)
+            else:
+                older.append(group)
 
         result = preview(self.project, conditions, filters, "all", "all", 0)
-        # this filter is strictly older/newer
-        for i in range(threshold - 1):
-            assert groups[i] in result
-        for i in range(threshold - 1, hours):
-            assert groups[i] not in result
+        assert all(g in result for g in newer)
+        assert all(g not in result for g in older)
 
     def test_occurrences(self):
         hours = get_hours(PREVIEW_TIME_RANGE)
