@@ -2,7 +2,13 @@ import {browserHistory} from 'react-router';
 
 import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -343,19 +349,24 @@ describe('Performance > Web Vitals', function () {
         },
       });
 
-      const wrapper = mountWithTheme(
+      render(
         <WrappedComponent
           organization={organization}
           location={router.location}
           router={router}
         />,
-        routerContext
+        {context: routerContext}
       );
 
-      await tick();
-      wrapper.update();
+      await waitForElementToBeRemoved(() =>
+        screen.queryAllByTestId('loading-placeholder')
+      );
 
-      expect(wrapper.find('Alert')).toHaveLength(1);
+      expect(
+        screen.getByText(
+          'If this page is looking a little bare, keep in mind not all browsers support these vitals.'
+        )
+      ).toBeInTheDocument();
     });
 
     it('does not render an info alert when data from all web vitals is present', async function () {
@@ -365,19 +376,24 @@ describe('Performance > Web Vitals', function () {
         },
       });
 
-      const wrapper = mountWithTheme(
+      render(
         <WrappedComponent
           organization={organization}
           location={router.location}
           router={router}
         />,
-        routerContext
+        {context: routerContext}
       );
 
-      await tick();
-      wrapper.update();
+      await waitForElementToBeRemoved(() =>
+        screen.queryAllByTestId('loading-placeholder')
+      );
 
-      expect(wrapper.find('Alert')).toHaveLength(0);
+      expect(
+        screen.queryByText(
+          'If this page is looking a little bare, keep in mind not all browsers support these vitals.'
+        )
+      ).not.toBeInTheDocument();
     });
   });
 
@@ -399,18 +415,21 @@ describe('Performance > Web Vitals', function () {
       },
     });
 
-    const wrapper = mountWithTheme(
+    render(
       <WrappedComponent
         organization={organization}
         location={router.location}
         router={router}
       />,
-      routerContext
+      {context: routerContext}
     );
 
-    await tick();
-    wrapper.update();
+    await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-placeholder'));
 
-    expect(wrapper.find('Alert')).toHaveLength(1);
+    expect(
+      screen.getByText(
+        'If this page is looking a little bare, keep in mind not all browsers support these vitals.'
+      )
+    ).toBeInTheDocument();
   });
 });
