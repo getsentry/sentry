@@ -75,3 +75,11 @@ class SlackActionRequest(SlackRequest):
             )
 
         return logging_data
+
+    def get_tags(self) -> set[str]:
+        attachments = self.data.get("original_message", {}).get("attachments", [{}])
+        tags = set()
+        for attachment in attachments:
+            for field in attachment.get("fields", []):
+                tags.add(field["title"])
+        return tags
