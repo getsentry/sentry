@@ -37,9 +37,6 @@ class SavedSearch(Model):
     """
 
     __include_in_export__ = True
-    # TODO: Remove this column and rows where it's not null once we've
-    # completely removed Sentry 9
-    project = FlexibleForeignKey("sentry.Project", null=True)
     organization = FlexibleForeignKey("sentry.Organization", null=True)
     type = models.PositiveSmallIntegerField(default=SearchType.ISSUE.value, null=True)
     name = models.CharField(max_length=128)
@@ -48,10 +45,24 @@ class SavedSearch(Model):
         max_length=16, default=SortOptions.DATE, choices=SortOptions.as_choices(), null=True
     )
     date_added = models.DateTimeField(default=timezone.now)
-    # TODO: Remove this column once we've completely removed Sentry 9
-    is_default = models.BooleanField(default=False)
+
+    # Global searches exist for ALL organizations. A savedsearch marked with
+    # is_global does NOT have an associated organization_id
     is_global = models.NullBooleanField(null=True, default=False, db_index=True)
+
+    # XXX(epurkhiser): This is different from "creator". Owner is a misnomer
+    # for this column, as this actually indicates that the search is "pinned"
+    # by the user. A user may only have one pinned search epr (org, type)
     owner = FlexibleForeignKey("sentry.User", null=True)
+
+    # Deprecated fields
+    #
+    # Prior to Sentry 10 we created "is_default" saved searches for EVERY new
+    # project. Back then searches were associated to project_id. These fields
+    # are not queried on or in use anywhere, after creating a migration to
+    # remove old rows, we should remove these.
+    project = FlexibleForeignKey("sentry.Project", null=True)
+    is_default = models.BooleanField(default=False, null=True)
 
     class Meta:
         app_label = "sentry"
@@ -83,10 +94,6 @@ class SavedSearch(Model):
     @is_pinned.setter
     def is_pinned(self, value):
         self._is_pinned = value
-
-    @property
-    def is_org_custom_search(self):
-        return self.owner is None and self.organization is not None
 
     __repr__ = sane_repr("project_id", "name")
 

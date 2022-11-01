@@ -30,6 +30,8 @@ const AllEventsTable = (props: Props) => {
   } = props;
   const [error, setError] = useState<string>('');
   const routes = useRoutes();
+
+  const isReplayEnabled = organization.features.includes('session-replay-ui');
   const fields: string[] = [
     'id',
     'transaction',
@@ -39,6 +41,7 @@ const AllEventsTable = (props: Props) => {
     'user.display',
     ...(isPerfIssue ? ['transaction.duration'] : []),
     'timestamp',
+    ...(isReplayEnabled ? ['replayId'] : []),
   ];
 
   const eventView: EventView = EventView.fromLocation(props.location);
@@ -65,6 +68,7 @@ const AllEventsTable = (props: Props) => {
     t('user'),
     ...(isPerfIssue ? [t('total duration')] : []),
     t('timestamp'),
+    ...(isReplayEnabled ? [t('replay')] : []),
     t('minidump'),
   ];
 
@@ -83,9 +87,7 @@ const AllEventsTable = (props: Props) => {
       projectId={projectId}
       totalEventCount={totalEventCount}
       customColumns={['minidump']}
-      setError={() => {
-        (msg: string) => setError(msg);
-      }}
+      setError={(msg: string | undefined) => setError(msg ?? '')}
       transactionName=""
       columnTitles={columnTitles.slice()}
       referrer="api.issues.issue_events"
