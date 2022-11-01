@@ -2809,7 +2809,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
                 granularity=self.granularity,
                 limit=Limit(limit),
             )
-            if True:
+            try:
                 metric_query = tranform_mqb_query_to_metrics_query(snuba_query)
                 metrics_data = get_series(
                     projects=self.projects,
@@ -2817,7 +2817,8 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
                     use_case_id=use_case_id,
                     include_meta=True,
                 )
-            # breakpoint()
+            except Exception as err:
+                raise IncompatibleMetricsQuery(err)
             metric_layer_result: Any = {
                 "data": [],
                 "meta": metrics_data["meta"],
