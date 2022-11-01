@@ -32,7 +32,7 @@ function SettingsBreadcrumb({className, routes, params}: Props) {
   const lastRouteIndex = routes.map(r => !!r.name).lastIndexOf(true);
 
   return (
-    <Breadcrumbs aria-label={t('Settinsg Breadcrumbs')} className={className}>
+    <Breadcrumbs aria-label={t('Settings Breadcrumbs')} className={className}>
       {routes.map((route, i) => {
         if (!route.name) {
           return null;
