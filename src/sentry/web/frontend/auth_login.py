@@ -28,7 +28,6 @@ from sentry.utils.auth import (
 )
 from sentry.utils.client_state import get_client_state_redirect_uri
 from sentry.utils.sdk import capture_exception
-from sentry.utils.settings import is_saas
 from sentry.utils.urls import add_params_to_url
 from sentry.web.forms.accounts import AuthenticationForm, RegistrationForm
 from sentry.web.frontend.base import BaseView
@@ -263,7 +262,7 @@ class AuthLoginView(BaseView):
             "register_form": register_form,
             "CAN_REGISTER": can_register,
             "join_request_link": self.get_join_request_link(organization),
-            "show_session_replay_banner": is_saas(),
+            "show_session_replay_banner": settings.SHOW_SESSION_REPLAY_BANNER,
         }
 
         context.update(additional_context.run_callbacks(request))
