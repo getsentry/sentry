@@ -1627,7 +1627,7 @@ class DiscoverDatasetConfig(DatasetConfig):
         else:
             return Condition(
                 Function("has", [lhs, value_list_as_ints[0]]),
-                Op.EQ,
+                Op(search_filter.operator),
                 1,
             )
 
