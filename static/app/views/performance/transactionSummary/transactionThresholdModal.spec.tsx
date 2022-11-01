@@ -2,23 +2,27 @@ import selectEvent from 'react-select-event';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
-import TransactionThresholdModal from 'sentry/views/performance/transactionSummary/transactionThresholdModal';
+import TransactionThresholdModal, {
+  TransactionThresholdMetric,
+} from 'sentry/views/performance/transactionSummary/transactionThresholdModal';
 
 const stubEl = props => <div>{props.children}</div>;
 
 function mountModal(eventView, organization, onApply) {
   render(
     <TransactionThresholdModal
-      Header={stubEl}
-      Footer={stubEl}
-      Body={stubEl}
+      Header={stubEl as ModalRenderProps['Header']}
+      Footer={stubEl as ModalRenderProps['Footer']}
+      Body={stubEl as ModalRenderProps['Body']}
+      CloseButton={stubEl as ModalRenderProps['CloseButton']}
       eventView={eventView}
       organization={organization}
       transactionName="transaction/threshold"
-      transactionThreshold="400"
-      transactionThresholdMetric="lcp"
+      transactionThreshold={400}
+      transactionThresholdMetric={TransactionThresholdMetric.LARGEST_CONTENTFUL_PAINT}
       onApply={onApply}
       closeModal={() => void 0}
     />
@@ -28,16 +32,16 @@ function mountModal(eventView, organization, onApply) {
 describe('TransactionThresholdModal', function () {
   const organization = TestStubs.Organization({features: ['performance-view']});
   const project = TestStubs.Project();
-  const eventView = new EventView({
+  const eventView = EventView.fromSavedQuery({
     id: '1',
+    version: 2,
     name: 'my query',
-    fields: [{field: 'count()'}],
-    sorts: [{field: 'count', kind: 'desc'}],
+    fields: ['count()'],
+    orderby: '-count',
     query: '',
-    project: [project.id],
+    projects: [project.id],
     start: '2019-10-01T00:00:00',
     end: '2019-10-02T00:00:00',
-    statsPeriod: '14d',
     environment: [],
   });
 
@@ -87,7 +91,7 @@ describe('TransactionThresholdModal', function () {
       expect.objectContaining({
         data: {
           metric: 'duration',
-          threshold: '400',
+          threshold: 400,
           transaction: 'transaction/threshold',
         },
       })
