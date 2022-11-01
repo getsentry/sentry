@@ -7,7 +7,13 @@ import space from 'sentry/styles/space';
 import {percent} from 'sentry/utils';
 import {formatPercentage} from 'sentry/utils/formatters';
 
-function TagBreakdown({points, maxItems}) {
+type TagBreakdownProps = {
+  maxItems: number;
+  points: any;
+  selectedTag: string;
+};
+
+function TagBreakdown({points, maxItems, selectedTag}: TagBreakdownProps) {
   const theme = useTheme();
   const colors = [
     theme.purple400,
@@ -27,9 +33,11 @@ function TagBreakdown({points, maxItems}) {
   return (
     <Container>
       <TagDistributionMeter
+        title={selectedTag}
         totalValues={pointsTotal}
         segments={segments}
         colors={colors}
+        showTitle={false}
       />
       {segments.map((segment, index) => {
         return (

@@ -62,6 +62,10 @@ describe('Tag Facets', function () {
               name: 'iPhone10',
               count: 18,
             },
+            {
+              name: 'Other device',
+              count: 2,
+            },
           ],
         },
       },
@@ -100,7 +104,7 @@ describe('Tag Facets', function () {
     expect(screen.getByText('iOS 16.0')).toBeInTheDocument();
 
     userEvent.click(screen.getByText('device'));
-    expect(screen.getByText('11%')).toBeInTheDocument();
+    expect(screen.getByText('10%')).toBeInTheDocument();
     expect(screen.getByText('iPhone15')).toBeInTheDocument();
     expect(screen.getByText('15%')).toBeInTheDocument();
     expect(screen.getByText('Android Phone')).toBeInTheDocument();
@@ -108,8 +112,10 @@ describe('Tag Facets', function () {
     expect(screen.getByText('iPhone12')).toBeInTheDocument();
     expect(screen.getByText('23%')).toBeInTheDocument();
     expect(screen.getByText('iPhone11')).toBeInTheDocument();
-    expect(screen.getByText('28%')).toBeInTheDocument();
+    expect(screen.getByText('27%')).toBeInTheDocument();
     expect(screen.getByText('iPhone10')).toBeInTheDocument();
+    expect(screen.getByText('3%')).toBeInTheDocument();
+    expect(screen.getByText('Other')).toBeInTheDocument();
 
     userEvent.click(screen.getByText('release'));
     expect(screen.getByText('100%')).toBeInTheDocument();
@@ -161,5 +167,62 @@ describe('Tag Facets', function () {
     userEvent.click(screen.getByText('release'));
     expect(screen.getByText('100%')).toBeInTheDocument();
     expect(screen.getByText('106.0')).toBeInTheDocument();
+  });
+
+  it('renders a View all button to navigate to the tags page', async () => {
+    render(
+      <TagFacets
+        environments={[]}
+        groupId="1"
+        tagKeys={MOBILE_TAGS}
+        tagFormatter={MOBILE_TAGS_FORMATTER}
+      />,
+      {
+        organization,
+      }
+    );
+    expect(await screen.findByRole('button', {name: 'View All'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/issues/1/tags/'
+    );
+  });
+
+  it('renders a breakdown bar with segments that link to the tag', async () => {
+    render(
+      <TagFacets
+        environments={[]}
+        groupId="1"
+        tagKeys={MOBILE_TAGS}
+        tagFormatter={MOBILE_TAGS_FORMATTER}
+      />,
+      {
+        organization,
+      }
+    );
+    expect(
+      await screen.findByRole('link', {
+        name: 'Add the os Android 12 segment tag to the search query',
+      })
+    ).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/issues/1/tags/os/?referrer=tag-distribution-meter'
+    );
+  });
+
+  it('does not render other if visible tags renders 100%', async () => {
+    render(
+      <TagFacets
+        environments={[]}
+        groupId="1"
+        tagKeys={MOBILE_TAGS}
+        tagFormatter={MOBILE_TAGS_FORMATTER}
+      />,
+      {
+        organization,
+      }
+    );
+    userEvent.click(await screen.findByText('release'));
+    expect(screen.getByText('100%')).toBeInTheDocument();
+    expect(screen.queryByText('Other')).not.toBeInTheDocument();
   });
 });

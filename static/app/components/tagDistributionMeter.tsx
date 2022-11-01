@@ -13,6 +13,7 @@ import {percent} from 'sentry/utils';
 
 type Props = {
   segments: TagSegment[];
+  title: string;
   totalValues: number;
   colors?: string[];
   hasError?: boolean;
@@ -22,7 +23,7 @@ type Props = {
   renderError?: () => React.ReactNode;
   renderLoading?: () => React.ReactNode;
   showReleasePackage?: boolean;
-  title?: string;
+  showTitle?: boolean;
 };
 
 type SegmentValue = {
@@ -39,6 +40,7 @@ function TagDistributionMeter({
   renderEmpty = () => <p>{t('No recent data.')}</p>,
   renderError = () => null,
   showReleasePackage = false,
+  showTitle = true,
   segments,
   title,
   totalValues,
@@ -129,7 +131,7 @@ function TagDistributionMeter({
           const segmentProps: SegmentValue = {
             index,
             to: value.url,
-            onClick: () => onTagClick?.(title ?? '', value),
+            onClick: () => onTagClick?.(title, value),
           };
 
           return (
@@ -178,7 +180,7 @@ function TagDistributionMeter({
 
   return (
     <TagSummary>
-      {title && renderTitle()}
+      {showTitle && renderTitle()}
       {renderSegments()}
     </TagSummary>
   );

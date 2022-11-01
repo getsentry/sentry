@@ -125,7 +125,7 @@ export function TagFacets({
             size="xs"
             to={`/organizations/${organization.slug}/issues/${groupId}/tags/`}
           >
-            {t('View all')}
+            {t('View All')}
           </Button>
         </Title>
         <TagFacetsContainer>
@@ -146,7 +146,7 @@ export function TagFacets({
             })}
           </StyledButtonBar>
           <BreakdownContainer>
-            <TagBreakdown points={points} maxItems={5} />
+            <TagBreakdown points={points} maxItems={5} selectedTag={state.selectedTag} />
           </BreakdownContainer>
         </TagFacetsContainer>
       </SidebarSection.Wrap>
