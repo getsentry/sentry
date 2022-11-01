@@ -112,6 +112,11 @@ class Access(abc.ABC):
 
     api_organization: Optional[ApiOrganization] = None
     api_member: Optional[ApiOrganizationMember] = None
+
+    # public interface
+    accessible_team_ids: Iterable[int] = dataclasses.field(default_factory=list)
+    accessible_project_ids: Iterable[int] = dataclasses.field(default_factory=list)
+
     api_team_members: List[ApiTeamMember] = dataclasses.field(default_factory=list)
     api_projects: List[ApiProject] = dataclasses.field(default_factory=list)
 
@@ -212,7 +217,7 @@ class Access(abc.ABC):
             return True
 
         for member in self.api_member.teams:
-            if member.team.id == team.id:
+            if member.team_id == team.id:
                 if scope in member.scopes:
                     metrics.incr(
                         "team_roles.pass_by_team_scope",
@@ -226,13 +231,13 @@ class Access(abc.ABC):
 
     def has_team_membership(self, team: Union[Team, ApiTeam]) -> bool:
         for t in self.api_team_members:
-            if t.team.id == team.id:
+            if t.team_id == team.id:
                 return True
         return False
 
     def get_team_role(self, team: Team) -> Optional[TeamRole]:
         for t in self.api_team_members:
-            if t.team.id == team.id:
+            if t.team_id == team.id:
                 return t.role
         return None
 
@@ -509,7 +514,7 @@ def from_user(
         user_id=user.id, slug=organization.slug, only_visible=False
     )
 
-    return _from_user(user, lookup.member, lookup, scopes=scopes, is_superuser=is_superuser)
+    return _from_user(user, lookup, lookup.member, scopes=scopes, is_superuser=is_superuser)
 
 
 def _from_user(

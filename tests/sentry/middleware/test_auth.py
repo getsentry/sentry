@@ -14,6 +14,7 @@ from sentry.region_to_control.producer import (
 )
 from sentry.silo import SiloMode
 from sentry.testutils import TestCase
+from sentry.testutils.silo import exempt_from_silo_limits
 from sentry.utils.auth import login
 
 
@@ -99,9 +100,10 @@ class AuthenticationMiddlewareTestCase(TestCase):
 
     def test_process_request_bad_nonce(self):
         request = self.request
-        user = self.user
-        user.session_nonce = "xxx"
-        user.save()
+        with exempt_from_silo_limits():
+            user = self.user
+            user.session_nonce = "xxx"
+            user.save()
         assert login(request, user)
         request.session["_nonce"] = "gtfo"
         self.middleware.process_request(request)
