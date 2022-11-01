@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
 import {indexMembersByProject} from 'sentry/actionCreators/members';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -44,6 +45,13 @@ const PreviewTable = ({
         </EmptyStateWarning>
       );
     }
+    if (issueCount === 0) {
+      return (
+        <EmptyStateWarning>
+          <p>{t("We couldn't find any issues that would've triggered your rule")}</p>
+        </EmptyStateWarning>
+      );
+    }
     const memberList = indexMembersByProject(members);
     return previewGroups?.map((id, index) => {
       const group = GroupStore.get(id) as Group | undefined;
@@ -58,6 +66,7 @@ const PreviewTable = ({
           displayReprocessingLayout={false}
           useFilteredStats
           withChart={false}
+          canSelect={false}
         />
       );
     });
@@ -77,7 +86,7 @@ const PreviewTable = ({
         <GroupListHeader withChart={false} />
         <PanelBody>{renderBody()}</PanelBody>
       </Panel>
-      <Pagination
+      <StyledPagination
         pageLinks={pageLinks}
         onCursor={onCursor}
         caption={renderCaption()}
@@ -86,5 +95,9 @@ const PreviewTable = ({
     </Fragment>
   );
 };
+
+const StyledPagination = styled(Pagination)`
+  margin-top: 0;
+`;
 
 export default PreviewTable;

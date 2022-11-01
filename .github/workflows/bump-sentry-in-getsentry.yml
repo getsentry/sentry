@@ -14,13 +14,13 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: checkout
-        uses: actions/checkout@d0651293c4a5a52e711f25b41b05b2212f385d28  # v3
+        uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
         with:
           # For getsentry/bin/bump-sentry, sentry needs to be at ../sentry relative to getsentry.
           path: sentry
 
       - name: checkout getsentry
-        uses: actions/checkout@d0651293c4a5a52e711f25b41b05b2212f385d28  # v3
+        uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
         with:
           repository: 'getsentry/getsentry'
           path: getsentry

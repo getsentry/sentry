@@ -37,7 +37,7 @@ class RestoreOrganizationView(OrganizationView):
         organization = organization_service.get_organization_by_slug(
             user_id=request.user.id, slug=organization_slug, only_visible=False, allow_stale=False
         )
-        if organization.member:
+        if organization and organization.member:
             self.active_organization = organization
         else:
             self.active_organization = None
