@@ -1,3 +1,13 @@
+"""
+The following mapping was obtained from this link: https://support.google.com/googleplay/answer/1727131
+Steps on how to generate this mapping
+1. Download the List of Supported Android Devices csv file (https://storage.googleapis.com/play_public/supported_devices.csv)
+2. Convert the contents of the csv to a dict:
+    a. There's an extract-android-device-names.js file in the scripts folder that maps values to a JSON that can be pasted here.
+    b. You can probably also use any external tools (like Google Sheets) to export as JSON
+3. Paste dict here
+"""
+
 ANDROID_MODELS = {
     "1": "mu 1",
     "562": "TCL 562",
@@ -3033,7 +3043,7 @@ ANDROID_MODELS = {
     "nuvifone A50": "Nuvifone",
     "nüvifone A50": "Nuvifone",
     "SENSE901": "Retailer Stores",
-    "GWAT10_1": "GWAT10_1 ",
+    "GWAT10_1": "GWAT10_1 ",
     "1008S": "Feel_1008S",
     "8002N": "Feel_8002N",
     "GD Tough Mobile": "GD Tough mobile",
@@ -18036,7 +18046,7 @@ ANDROID_MODELS = {
     "ZTE-X500": "X500",
     "X501_USA_RS": "X501_USA_Cricket",
     "A2020N3": "Z2020N3",
-    "NX701J": "Z40 Pro",
+    "NX701J": "Z40 Pro",
     "Z5156CC": "ZTE Avid 579",
     "Z559DL": "ZTE AVID 559",
     "Z6410S": "Z6410",
@@ -18087,9 +18097,9 @@ ANDROID_MODELS = {
     "Z851": "ZTE Overture 3",
     "ZTE T0801": "ZTE T0801",
     "Z558VL": "ZTE ZFive C LTE",
-    "ZTE A2022": "ZTE Axon 30 5G",
-    "ZTE A2022H": "ZTE Axon 30 5G",
-    "K83CA": "ZTE Grand X View 3",
+    "ZTE A2022": "ZTE Axon 30 5G",
+    "ZTE A2022H": "ZTE Axon 30 5G",
+    "K83CA": "ZTE Grand X View 3",
     "ZTE V6700": "ZXY-ZTE_V6700",
     "Z978": "Zmax 3",
     "Z719DL": "Zmax One",
