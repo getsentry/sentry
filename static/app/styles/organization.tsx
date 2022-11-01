@@ -3,14 +3,14 @@ import styled from '@emotion/styled';
 
 import space from 'sentry/styles/space';
 
-export const PageContent = styled('div')`
+export const PageContent = styled('main')`
   display: flex;
   flex-direction: column;
   flex: 1;
   padding: ${space(3)} ${space(4)};
 `;
 
-export const PageHeader = styled('div')`
+export const PageHeader = styled('header')`
   display: flex;
   justify-content: space-between;
   align-items: center;
