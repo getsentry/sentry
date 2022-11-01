@@ -5,10 +5,12 @@ import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {createSavedSearch} from 'sentry/actionCreators/savedSearches';
 import Alert from 'sentry/components/alert';
 import {Form, SelectField, TextField} from 'sentry/components/forms';
+import FormField from 'sentry/components/forms/formField';
 import {OnSubmitCallback} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
+import IssueListSearchBar from 'sentry/views/issueList/searchBar';
 import {getSortLabel, IssueSortOptions} from 'sentry/views/issueList/utils';
 
 type Props = ModalRenderProps & {
@@ -119,7 +121,7 @@ function CreateSavedSearchModal({
           flexibleControlStateSize
           required
         />
-        <TextField
+        <FormField
           key="query"
           name="query"
           label={t('Query')}
@@ -127,7 +129,20 @@ function CreateSavedSearchModal({
           stacked
           flexibleControlStateSize
           required
-        />
+        >
+          {({onChange, onBlur, disabled, value}) => (
+            <IssueListSearchBar
+              organization={organization}
+              onClose={newValue => {
+                onChange(newValue, {});
+                onBlur(newValue, {});
+              }}
+              useFormWrapper={false}
+              disabled={disabled}
+              query={value}
+            />
+          )}
+        </FormField>
         <SelectField
           key="sort"
           name="sort"
