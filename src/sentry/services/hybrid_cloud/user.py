@@ -1,11 +1,10 @@
 from abc import abstractmethod
-from dataclasses import dataclass
-from inspect import signature
-from typing import Any, Iterable, List, Optional, Sequence, Union
+from dataclasses import dataclass, fields
+from typing import Iterable, List, Optional, Sequence, Union
 
 from sentry.models.group import Group
 from sentry.models.organizationmember import OrganizationMember
-from sentry.models.user import User
+from sentry.models.user import BaseUser, User
 from sentry.services.hybrid_cloud import (
     CreateStubFromBase,
     InterfaceWithLifecycle,
@@ -15,39 +14,17 @@ from sentry.silo import SiloMode
 
 
 @dataclass(frozen=True)
-class APIUser:
+class APIUser(BaseUser):
     id: int = -1
     pk: int = -1
     name: str = ""
     email: str = ""
     username: str = ""
     actor_id: int = -1
+    display_name: str = ""
 
-    # TODO: Extract these "view" methods to BaseUser class?
-    # BaseUser class would also be useful for catching `isinstance(foo, User)` checks
-    # which may no longer mean what they used to mean
-    def class_name(self):
-        """Necessary for integrations that introspect on user objects"""
-        return "User"
-
-    def get_display_name(self):
-        return self.name or self.email or self.username
-
-    # TODO: Extract to base dataclass?
-    @classmethod
-    def from_orm(cls, orm: Any):
-        # fetch the constructor's signature
-        cls_fields = {field for field in signature(cls).parameters}
-
-        # isolate params we care about
-        args = {}
-        for name, val in orm.__dict__.items():
-            if name in cls_fields:
-                args[name] = val
-
-        args["pk"] = orm.pk
-        ret = cls(**args)
-        return ret
+    def get_display_name(self):  # API compatibility with ORM User
+        return self.display_name
 
 
 class UserService(InterfaceWithLifecycle):
@@ -99,14 +76,25 @@ class UserService(InterfaceWithLifecycle):
             return None
 
     # TODO: Extract to base service?
-    def to_api(self, resp: Union[Sequence[User], Optional[User]]) -> APIUser:
+    def _to_api(self, resp: Union[Sequence[User], Optional[User]]) -> APIUser:
         if resp is None:
             return None
         if type(resp) is APIUser:
             return resp
         if type(resp) is User:
-            return APIUser.from_orm(resp)
-        return list(map(lambda x: self.to_api(x), resp))
+            return self._serialize_user(resp)
+        return list(map(lambda x: self._to_api(x), resp))
+
+    @classmethod
+    def _serialize_user(cls, user: User) -> APIUser:
+        args = {
+            field.name: getattr(user, field.name)
+            for field in fields(APIUser)
+            if hasattr(user, field.name)
+        }
+        args["pk"] = user.pk
+        args["display_name"] = user.get_display_name()
+        return APIUser(**args)
 
 
 class DatabaseBackedUserService(UserService):
@@ -120,17 +108,17 @@ class DatabaseBackedUserService(UserService):
             organization=group.organization,
             teams__in=group.project.teams.all(),
         ).values_list("user_id", flat=True)
-        return self.to_api(self.get_many(set(group_memberships)))
+        return self._to_api(self.get_many(set(group_memberships)))
 
     def get_many(self, user_ids: Iterable[int], is_active=True) -> List[APIUser]:
 
         query = User.objects.filter(id__in=user_ids)
         if is_active is not None:
             query = query.filter(is_active=is_active)
-        return self.to_api(query)
+        return self._to_api(query)
 
     def get_by_actor_id(self, actor_id: int) -> Optional[APIUser]:
-        return self.to_api(User.objects.get(actor_id=actor_id))
+        return self._to_api(User.objects.get(actor_id=actor_id))
 
     def close(self):
         pass

@@ -8,10 +8,9 @@ import sentry_sdk
 
 from sentry import analytics
 from sentry.db.models import Model
-from sentry.models import Environment, NotificationSetting, Team, User
+from sentry.models import BaseUser, Environment, NotificationSetting, Team, User
 from sentry.notifications.types import NotificationSettingTypes, get_notification_setting_type_name
 from sentry.notifications.utils.actions import MessageAction
-from sentry.services.hybrid_cloud.user import APIUser
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
@@ -120,7 +119,7 @@ class BaseNotification(abc.ABC):
             "actor_id": recipient.actor_id,
             "group_id": group.id if group else None,
         }
-        if isinstance(recipient, User) or isinstance(recipient, APIUser):
+        if isinstance(recipient, BaseUser):
             params["user_id"] = recipient.id
         return params
 

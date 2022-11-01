@@ -9,6 +9,7 @@ from sentry_relay import parse_release
 from sentry.integrations.slack.utils.escape import escape_slack_text
 from sentry.models import (
     Activity,
+    BaseUser,
     Commit,
     CommitFileChange,
     Environment,
@@ -103,7 +104,7 @@ class ReleaseSummaryActivityNotification(ActivityNotification):
         if not self.release:
             return set()
 
-        if isinstance(recipient, User):
+        if isinstance(recipient, BaseUser):
             if recipient.is_superuser or self.organization.flags.allow_joinleave:
                 # Admins can see all projects.
                 return self.projects

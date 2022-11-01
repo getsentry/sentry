@@ -34,6 +34,7 @@ from sentry.models import (
     AuditLogEntry,
     AuthIdentity,
     AuthProvider,
+    BaseUser,
     Organization,
     OrganizationMember,
     OrganizationMemberTeam,
@@ -424,7 +425,7 @@ class AuthIdentityHandler:
     @property
     def _app_user(self) -> Optional[User]:
         """The user, if they are represented persistently in our app."""
-        return self.user if isinstance(self.user, User) else None
+        return self.user if isinstance(self.user, BaseUser) else None
 
     def _has_usable_password(self):
         return self._app_user and self._app_user.has_usable_password()

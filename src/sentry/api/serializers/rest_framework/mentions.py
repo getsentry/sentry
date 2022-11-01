@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from sentry.models import ActorTuple, Team, User
+from sentry.models import ActorTuple, BaseUser, Team, User
 
 
 def extract_user_ids_from_mentions(organization_id, mentions):
@@ -34,7 +34,7 @@ def separate_actors(actors):
 
 
 def separate_resolved_actors(actors):
-    users = [actor for actor in actors if isinstance(actor, User)]
+    users = [actor for actor in actors if isinstance(actor, BaseUser)]
     teams = [actor for actor in actors if isinstance(actor, Team)]
 
     return {"users": users, "teams": teams}

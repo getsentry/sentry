@@ -5,10 +5,9 @@ from typing import Any, Callable, Mapping, Sequence
 
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.slack.message_builder import SLACK_URL_FORMAT
-from sentry.models import Group, Project, Rule, Team, User
+from sentry.models import BaseUser, Group, Project, Rule, Team, User
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.utils import get_matched_problem, get_span_evidence_value_problem
-from sentry.services.hybrid_cloud.user import APIUser
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupCategory
 from sentry.utils.http import absolute_uri
@@ -24,7 +23,7 @@ def format_actor_options(actors: Sequence[Team | User]) -> Sequence[Mapping[str,
 
 
 def format_actor_option(actor: Team | User) -> Mapping[str, str]:
-    if isinstance(actor, User) or isinstance(actor, APIUser):
+    if isinstance(actor, BaseUser):
         return {"text": actor.get_display_name(), "value": f"user:{actor.id}"}
     if isinstance(actor, Team):
         return {"text": f"#{actor.slug}", "value": f"team:{actor.id}"}

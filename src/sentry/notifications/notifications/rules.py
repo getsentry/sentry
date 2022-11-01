@@ -6,7 +6,7 @@ from typing import Any, Iterable, Mapping, MutableMapping
 import pytz
 
 from sentry.db.models import Model
-from sentry.models import Team, User, UserOption
+from sentry.models import BaseUser, Team, User, UserOption
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import ActionTargetType, NotificationSettingTypes
 from sentry.notifications.utils import (
@@ -73,7 +73,7 @@ class AlertRuleNotification(ProjectNotification):
     ) -> MutableMapping[str, Any]:
         timezone = pytz.timezone("UTC")
 
-        if isinstance(recipient, User):
+        if isinstance(recipient, BaseUser):
             user_tz = UserOption.objects.get_value(user=recipient, key="timezone", default="UTC")
             try:
                 timezone = pytz.timezone(user_tz)

@@ -35,15 +35,14 @@ class GroupAssigneeManager(BaseManager):
     ):
         from sentry import features
         from sentry.integrations.utils import sync_group_assignee_outbound
-        from sentry.models import Activity, GroupSubscription, Team, User
-        from sentry.services.hybrid_cloud.user import APIUser
+        from sentry.models import Activity, BaseUser, GroupSubscription, Team
 
         GroupSubscription.objects.subscribe_actor(
             group=group, actor=assigned_to, reason=GroupSubscriptionReason.assigned
         )
 
         assigned_to_id = assigned_to.id
-        if isinstance(assigned_to, APIUser) or isinstance(assigned_to, User):
+        if isinstance(assigned_to, BaseUser):
             assignee_type = "user"
             assignee_type_attr = "user_id"
             other_type = "team"
