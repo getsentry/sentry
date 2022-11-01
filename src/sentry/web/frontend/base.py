@@ -21,7 +21,8 @@ from sentry.api.utils import is_member_disabled_from_limit
 from sentry.auth import access
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import Authenticator, Organization, Project, ProjectStatus, Team, TeamStatus
-from sentry.services.hybrid_cloud import ApiOrganization, organization_service
+from sentry.services.hybrid_cloud import ApiOrganization
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.silo import SiloMode
 from sentry.utils import auth
 from sentry.utils.audit import create_audit_entry
