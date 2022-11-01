@@ -489,7 +489,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
           disabled={buttonDisabled}
         >
           {t('Remove Default')}
-          <FeatureBadge type="beta" />
+          <FeatureBadge type="new" />
         </Button>
       );
     }
@@ -517,7 +517,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
         disabled={buttonDisabled}
       >
         {t('Set as Default')}
-        <FeatureBadge type="beta" />
+        <FeatureBadge type="new" />
       </Button>
     );
   }
