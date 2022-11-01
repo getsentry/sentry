@@ -214,7 +214,7 @@ const TabSelectionIndicator = styled('div')<{
       `};
 `;
 
-const TabLink = styled(Link)<{orientation: Orientation}>`
+const TabLink = styled(Link)`
   position: absolute;
   left: 0;
   right: 0;
