@@ -23,9 +23,9 @@ jobs:
     name: getsentry dispatch
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
+      - uses: actions/checkout@v3
         with:
-          persist-credentials: false
+          fetch-depth: 0
 
       - name: permissions
         run: |
