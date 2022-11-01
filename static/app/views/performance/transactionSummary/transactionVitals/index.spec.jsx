@@ -241,55 +241,45 @@ describe('Performance > Web Vitals', function () {
       expect(screen.getByRole('button', {name: 'Reset View'})).toBeDisabled();
     });
 
-    it('enables button on left zoom', async function () {
+    it('enables button on left zoom', function () {
       const {organization, router, routerContext} = initialize({
         query: {
           lcpStart: '20',
         },
       });
 
-      const wrapper = mountWithTheme(
+      render(
         <WrappedComponent
           organization={organization}
           location={router.location}
           router={router}
         />,
-        routerContext
+        {context: routerContext}
       );
 
-      await tick();
-      wrapper.update();
-
-      expect(
-        wrapper.find('Button[data-test-id="reset-view"]').prop('disabled')
-      ).toBeFalsy();
+      expect(screen.getByRole('button', {name: 'Reset View'})).toBeEnabled();
     });
 
-    it('enables button on right zoom', async function () {
+    it('enables button on right zoom', function () {
       const {organization, router, routerContext} = initialize({
         query: {
           fpEnd: '20',
         },
       });
 
-      const wrapper = mountWithTheme(
+      render(
         <WrappedComponent
           organization={organization}
           location={router.location}
           router={router}
         />,
-        routerContext
+        {context: routerContext}
       );
 
-      await tick();
-      wrapper.update();
-
-      expect(
-        wrapper.find('Button[data-test-id="reset-view"]').prop('disabled')
-      ).toBeFalsy();
+      expect(screen.getByRole('button', {name: 'Reset View'})).toBeEnabled();
     });
 
-    it('enables button on left and right zoom', async function () {
+    it('enables button on left and right zoom', function () {
       const {organization, router, routerContext} = initialize({
         query: {
           fcpStart: '20',
@@ -297,21 +287,16 @@ describe('Performance > Web Vitals', function () {
         },
       });
 
-      const wrapper = mountWithTheme(
+      render(
         <WrappedComponent
           organization={organization}
           location={router.location}
           router={router}
         />,
-        routerContext
+        {context: routerContext}
       );
 
-      await tick();
-      wrapper.update();
-
-      expect(
-        wrapper.find('Button[data-test-id="reset-view"]').prop('disabled')
-      ).toBeFalsy();
+      expect(screen.getByRole('button', {name: 'Reset View'})).toBeEnabled();
     });
 
     it('resets view properly', async function () {
