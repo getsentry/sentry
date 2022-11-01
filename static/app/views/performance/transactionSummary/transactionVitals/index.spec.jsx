@@ -1,6 +1,5 @@
 import {browserHistory} from 'react-router';
 
-import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   act,
@@ -82,8 +81,6 @@ const vitals = [
 ];
 
 describe('Performance > Web Vitals', function () {
-  enforceActOnUseLegacyStoreHook();
-
   beforeEach(function () {
     // @ts-ignore no-console
     // eslint-disable-next-line no-console
