@@ -416,6 +416,15 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             with self.feature("organizations:performance-issues"):
                 self.make_query(search_filter_query="issue.category:hellboy")
 
+    def test_not_perf_category(self):
+        with self.feature("organizations:performance-issues"):
+            results = self.make_query(search_filter_query="issue.category:error foo")
+        assert set(results) == {self.group1}
+
+        with self.feature("organizations:performance-issues"):
+            not_results = self.make_query(search_filter_query="!issue.category:performance foo")
+        assert set(not_results) == {self.group1}
+
     def test_type(self):
         with self.feature("organizations:performance-issues"):
             results = self.make_query(search_filter_query="issue.type:error")

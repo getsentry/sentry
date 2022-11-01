@@ -43,6 +43,8 @@ from sentry.utils import json, metrics, snuba
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.snuba import SnubaQueryParams, aliased_query_params, bulk_raw_query
 
+ALL_ISSUE_TYPES = {gt.value for gt in GroupType}
+
 
 def get_search_filter(
     search_filters: Optional[Sequence[SearchFilter]], name: str, operator: str
@@ -176,10 +178,22 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         group_categories: Set[GroupCategory] = set()
         for search_filter in search_filters or ():
             if search_filter.key.name in ("issue.category", "issue.type"):
-                group_categories.update(
-                    GROUP_TYPE_TO_CATEGORY[GroupType(value)]
-                    for value in search_filter.value.raw_value
-                )
+                if search_filter.is_negation:
+                    group_categories.update(
+                        GROUP_TYPE_TO_CATEGORY[GroupType(value)]
+                        for value in list(
+                            filter(
+                                lambda x: x not in ALL_ISSUE_TYPES,
+                                search_filter.value.raw_value,
+                            )
+                        )
+                    )
+                else:
+                    group_categories.update(
+                        GROUP_TYPE_TO_CATEGORY[GroupType(value)]
+                        for value in search_filter.value.raw_value
+                    )
+
             if (
                 # Don't filter on postgres fields here, they're not available
                 search_filter.key.name in self.postgres_only_fields
