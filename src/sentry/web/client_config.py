@@ -13,8 +13,7 @@ from sentry.auth import superuser
 from sentry.auth.access import get_cached_organization_member
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import Organization, OrganizationMember
-from sentry.services.hybrid_cloud import ProjectKeyRole
-from sentry.services.hybrid_cloud.project_key import project_key_service
+from sentry.services.hybrid_cloud.project_key import ProjectKeyRole, project_key_service
 from sentry.utils import auth
 from sentry.utils.assets import get_frontend_app_asset_url
 from sentry.utils.email import is_smtp_enabled
