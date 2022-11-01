@@ -35,7 +35,7 @@ const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
 
 const STATIC_FIELD_TAGS_SET = new Set(Object.keys(FIELD_TAGS));
 const getFunctionTags = (fields: Readonly<Field[]> | undefined) => {
-  if (!fields) {
+  if (!fields?.length) {
     return [];
   }
   return fields.reduce((acc, item) => {
@@ -54,15 +54,30 @@ const getFunctionTags = (fields: Readonly<Field[]> | undefined) => {
 const getMeasurementTags = (
   measurements: Parameters<
     React.ComponentProps<typeof Measurements>['children']
-  >[0]['measurements']
+  >[0]['measurements'],
+  customMeasurements:
+    | Parameters<React.ComponentProps<typeof Measurements>['children']>[0]['measurements']
+    | undefined
 ) => {
-  return Object.keys(measurements).reduce((tags, key) => {
+  const measurementsWithKind = Object.keys(measurements).reduce((tags, key) => {
     tags[key] = {
       ...measurements[key],
       kind: FieldKind.MEASUREMENT,
     };
     return tags;
   }, {});
+
+  if (!customMeasurements) {
+    return measurementsWithKind;
+  }
+
+  return Object.keys(customMeasurements).reduce((tags, key) => {
+    tags[key] = {
+      ...measurements[key],
+      kind: FieldKind.MEASUREMENT,
+    };
+    return tags;
+  }, measurementsWithKind);
 };
 
 const STATIC_FIELD_TAGS = Object.keys(FIELD_TAGS).reduce((tags, key) => {
@@ -188,11 +203,12 @@ function SearchBar(props: SearchBarProps) {
       collectedTransactionFromGetTagsListRef.current = true;
     }
 
-    const measurementsWithKind = getMeasurementTags(measurements);
+    const measurementsWithKind = getMeasurementTags(measurements, customMeasurements);
     const orgHasPerformanceView = organization.features.includes('performance-view');
 
     const combinedTags: TagCollection = orgHasPerformanceView
       ? Object.assign(
+          {},
           measurementsWithKind,
           functionTags,
           STATIC_SPAN_TAGS,
@@ -200,7 +216,7 @@ function SearchBar(props: SearchBarProps) {
         )
       : STATIC_FIELD_TAGS_WITHOUT_TRACING;
 
-    assign({}, tagsWithKind, combinedTags, STATIC_FIELD_TAGS, STATIC_SEMVER_TAGS);
+    assign(combinedTags, tagsWithKind, STATIC_FIELD_TAGS, STATIC_SEMVER_TAGS);
 
     combinedTags.has = {
       key: FieldKey.HAS,
@@ -234,7 +250,7 @@ function SearchBar(props: SearchBarProps) {
           hasRecentSearches
           savedSearchType={SavedSearchType.EVENT}
           onGetTagValues={getEventFieldValues}
-          supportedTags={getTagList({...measurements, ...(customMeasurements ?? {})})}
+          supportedTags={getTagList(measurements)}
           prepareQuery={query => {
             // Prepare query string (e.g. strip special characters like negation operator)
             return query.replace(SEARCH_SPECIAL_CHARS_REGEXP, '');
