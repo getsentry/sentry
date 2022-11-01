@@ -1,6 +1,7 @@
 import * as reactQuery from '@tanstack/react-query';
 import {QueryClientConfig} from '@tanstack/react-query';
 
+import {APIRequestMethod} from 'sentry/api';
 import RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 
@@ -16,6 +17,24 @@ type UseQueryOptions<TQueryFnData, TError, TData, TQueryKey extends QueryKey> = 
   reactQuery.UseQueryOptions<TQueryFnData, TError, TData, TQueryKey>,
   'queryKey' | 'queryFn'
 >;
+
+interface UseMutationOptionsWithApiOptions<TData, TError, TVariables, TContext>
+  extends Omit<
+    reactQuery.UseMutationOptions<TData, TError, TVariables, TContext>,
+    'mutationFn'
+  > {
+  api: {
+    method: Exclude<APIRequestMethod, 'GET'>;
+    url: string;
+    data?: any;
+    query?: Record<string, any>;
+  };
+  mutationFn?: never;
+}
+
+type UseMutationOptions<TData, TError, TVariables, TContext> =
+  | reactQuery.UseMutationOptions<TData, TError, TVariables, TContext>
+  | UseMutationOptionsWithApiOptions<TData, TError, TVariables, TContext>;
 
 // We are not overriding any defaults options for stale time, retries, etc.
 // See https://tanstack.com/query/v4/docs/guides/important-defaults
@@ -56,8 +75,40 @@ function useQuery<TQueryFnData, TError = RequestError, TData = TQueryFnData>(
   return reactQuery.useQuery(queryKey, queryFn, queryOptions);
 }
 
+/**
+ * Wraps React Query's useMutation for consistent usage in the Sentry app.
+ *
+ * Must provide either an api config object (preferred) or a custom mutation function.
+ *
+ * Example usage:
+ *
+ * const { mutate } = useMutation({ api: { url: /events, method: 'POST', data: { name: 'test' }}})
+ */
+function useMutation<
+  TData = unknown,
+  TError = unknown,
+  TVariables = void,
+  TContext = unknown
+>(options: UseMutationOptions<TData, TError, TVariables, TContext>) {
+  const api = useApi();
+
+  if ('api' in options) {
+    return reactQuery.useMutation({
+      ...options,
+      mutationFn: () =>
+        api.requestPromise(options.api.url, {
+          method: options.api.method,
+          data: options.api.data,
+          query: options.api.query,
+        }),
+    });
+  }
+
+  return reactQuery.useMutation(options);
+}
+
 // eslint-disable-next-line import/export
 export * from '@tanstack/react-query';
 
 // eslint-disable-next-line import/export
-export {DEFAULT_QUERY_CLIENT_CONFIG, useQuery};
+export {DEFAULT_QUERY_CLIENT_CONFIG, useQuery, useMutation};

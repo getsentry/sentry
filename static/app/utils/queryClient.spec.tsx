@@ -1,6 +1,8 @@
+import {useEffect} from 'react';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {useQuery} from 'sentry/utils/queryClient';
+import {useMutation, useQuery} from 'sentry/utils/queryClient';
 import RequestError from 'sentry/utils/requestError/requestError';
 import * as useApi from 'sentry/utils/useApi';
 
@@ -9,6 +11,7 @@ type ResponseData = {
 };
 
 beforeEach(() => {
+  MockApiClient.clearMockResponses();
   jest.restoreAllMocks();
 });
 
@@ -105,6 +108,60 @@ describe('queryClient', function () {
       render(<TestComponent />);
 
       expect(await screen.findByText('something bad happened')).toBeInTheDocument();
+    });
+  });
+
+  describe('useMutation', function () {
+    it('can do a simple mutation', async function () {
+      const mock = MockApiClient.addMockResponse({
+        url: '/some/test/path/',
+        method: 'POST',
+        body: {value: 5},
+      });
+
+      const TestComponent = () => {
+        const {mutate, isSuccess, data} = useMutation<ResponseData>({
+          api: {url: '/some/test/path/', method: 'POST'},
+        });
+
+        useEffect(() => {
+          mutate();
+        }, [mutate]);
+
+        if (!isSuccess) {
+          return null;
+        }
+
+        return <div>{data.value}</div>;
+      };
+
+      render(<TestComponent />);
+
+      expect(await screen.findByText('5')).toBeInTheDocument();
+
+      expect(mock).toHaveBeenCalledWith('/some/test/path/', expect.anything());
+    });
+
+    it('can mutate with a custom mutation function', async function () {
+      const TestComponent = () => {
+        const {mutate, isSuccess, data} = useMutation<ResponseData>({
+          mutationFn: () => Promise.resolve({value: 5}),
+        });
+
+        useEffect(() => {
+          mutate();
+        }, [mutate]);
+
+        if (!isSuccess) {
+          return null;
+        }
+
+        return <div>{data.value}</div>;
+      };
+
+      render(<TestComponent />);
+
+      expect(await screen.findByText('5')).toBeInTheDocument();
     });
   });
 });
