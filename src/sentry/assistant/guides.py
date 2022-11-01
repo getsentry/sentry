@@ -46,4 +46,5 @@ if settings.DEMO_MODE:
         "performance": 33,
         "transaction_summary": 34,
         "transaction_details_v2": 35,
+        "issue_stream_v3": 36,
     }

@@ -230,7 +230,7 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
       case GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST: {
         const {data} = activity;
         const {pullRequest} = data;
-        return tct('[author] marked this issue as resolved in [version]', {
+        return tct('[author] has created a PR for this issue: [version]', {
           author,
           version: (
             <PullRequestLink
