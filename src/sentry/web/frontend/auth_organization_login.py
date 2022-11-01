@@ -9,7 +9,6 @@ from sentry.auth.helper import AuthHelper
 from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.models import AuthProvider, Organization
 from sentry.services.hybrid_cloud.organization import ApiOrganization, organization_service
-from sentry.testutils.silo import exempt_from_silo_limits
 from sentry.utils.auth import initiate_login
 from sentry.web.frontend.auth_login import AuthLoginView
 
@@ -22,8 +21,7 @@ class AuthOrganizationLoginView(AuthLoginView):
         if request.method == "POST":
             try:
                 # TODO: This will need to go after pipeline refactor
-                with exempt_from_silo_limits():
-                    org = Organization.objects.get(organization.id)
+                org = Organization.objects.get(organization.id)
             except Organization.NotFound:
                 return self.redirect(reverse("sentry-login"))
 
