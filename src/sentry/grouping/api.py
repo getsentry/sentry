@@ -1,4 +1,5 @@
 import re
+from typing import TypedDict
 
 from sentry import options
 from sentry.grouping.component import GroupingComponent
@@ -47,12 +48,17 @@ class GroupingConfigNotFound(LookupError):
     pass
 
 
+class GroupingConfig(TypedDict):
+    id: str
+    enhancements: Enhancements
+
+
 class GroupingConfigLoader:
     """Load a grouping config based on global or project options"""
 
     cache_prefix: str  # Set in subclasses
 
-    def get_config_dict(self, project):
+    def get_config_dict(self, project) -> GroupingConfig:
         return {
             "id": self._get_config_id(project),
             "enhancements": self._get_enhancements(project),

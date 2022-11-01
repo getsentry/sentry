@@ -51,12 +51,6 @@ export const _TextField = () => (
         disabled
       />
       <TextField
-        name="textfieldwithreturnsubmit"
-        label="Text Field With Return Submit"
-        placeholder="Type here to show the return button"
-        showReturnButton
-      />
-      <TextField
         name="textfieldflexiblecontrol"
         label="Text Field With Flexible Control State Size"
         placeholder="Type text and then delete it"
@@ -112,12 +106,6 @@ export const _TextareaField = ({autosize, rows}) => (
         label="Disabled - Simple Textarea Field with Placeholder"
         placeholder="This is placeholder text in a disabled field"
         disabled
-      />
-      <TextareaField
-        name="textfieldwithreturnsubmit"
-        label="Textarea Field With Return Submit"
-        placeholder="Type here to show the return button"
-        showReturnButton
       />
       <TextareaField
         name="textfieldflexiblecontrol"

@@ -12,7 +12,7 @@ STRING_NOT_FOUND = -1
 TAG_NOT_SET = 0
 
 
-class MetricIndexNotFound(InvalidParams):  # type: ignore
+class MetricIndexNotFound(InvalidParams):
     pass
 
 

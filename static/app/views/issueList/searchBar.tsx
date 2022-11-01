@@ -35,7 +35,7 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
 
   const tagValueLoader = useCallback(
     (key: string, search: string) => {
-      const orgId = organization.slug;
+      const orgSlug = organization.slug;
       const projectIds = pageFilters.projects.map(id => id.toString());
       const endpointParams = {
         start: getUtcDateString(pageFilters.datetime.start),
@@ -43,7 +43,14 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
         statsPeriod: pageFilters.datetime.period,
       };
 
-      return fetchTagValues(api, orgId, key, search, projectIds, endpointParams);
+      return fetchTagValues({
+        api,
+        orgSlug,
+        tagKey: key,
+        search,
+        projectIds,
+        endpointParams,
+      });
     },
     [
       api,
