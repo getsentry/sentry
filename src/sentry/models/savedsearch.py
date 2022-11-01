@@ -95,10 +95,6 @@ class SavedSearch(Model):
     def is_pinned(self, value):
         self._is_pinned = value
 
-    @property
-    def is_org_custom_search(self):
-        return self.owner is None and self.organization is not None
-
     __repr__ = sane_repr("project_id", "name")
 
 
