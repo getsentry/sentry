@@ -2389,7 +2389,7 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
 
 
 @metrics.wraps("performance.performance_issue.should_create_group")
-def should_create_group(client: any, grouphash: str) -> bool:
+def should_create_group(client: Any, grouphash: str) -> bool:
     times_seen = client.incr(f"grouphash:{grouphash}")
     metrics.incr(
         "performance.performance_issue.grouphash_counted",
