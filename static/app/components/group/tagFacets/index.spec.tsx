@@ -181,7 +181,7 @@ describe('Tag Facets', function () {
         organization,
       }
     );
-    expect(await screen.findByRole('button', {name: 'View All'})).toHaveAttribute(
+    expect(await screen.findByRole('button', {name: 'View All Tags'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/issues/1/tags/'
     );

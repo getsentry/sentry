@@ -139,7 +139,7 @@ export function TagFacets({
             size="xs"
             to={`/organizations/${organization.slug}/issues/${groupId}/tags/`}
           >
-            {t('View All')}
+            {t('View All Tags')}
           </Button>
         </Title>
         <TagFacetsContainer>
