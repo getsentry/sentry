@@ -27,12 +27,14 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
+import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
 import HookStore from 'sentry/stores/hookStore';
 import PreferencesStore from 'sentry/stores/preferencesStore';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
+import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import theme from 'sentry/utils/theme';
 import useMedia from 'sentry/utils/useMedia';
@@ -128,9 +130,8 @@ function Sidebar({location, organization}: Props) {
     organization,
   };
 
-  const walkthrough = localStorage.getItem('new-walkthrough') === '1';
-  const sidebarAnchor = walkthrough ? (
-    <GuideAnchor target="projects" disabled={!localStorage.getItem('sidebarGuide')}>
+  const sidebarAnchor = isDemoWalkthrough() ? (
+    <GuideAnchor target="projects" disabled={!DemoWalkthroughStore.get('sidebar')}>
       {t('Projects')}
     </GuideAnchor>
   ) : (

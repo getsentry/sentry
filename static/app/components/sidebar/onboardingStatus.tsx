@@ -13,6 +13,7 @@ import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {OnboardingTaskStatus, Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import theme, {Theme} from 'sentry/utils/theme';
 import withProjects from 'sentry/utils/withProjects';
 import {usePersistedOnboardingState} from 'sentry/views/onboarding/utils';
@@ -76,7 +77,7 @@ function OnboardingStatus({
     return null;
   }
 
-  const walkthrough = localStorage.getItem('new-walkthrough') === '1';
+  const walkthrough = isDemoWalkthrough();
   const label = walkthrough ? t('Guided Tours') : t('Quick Start');
   const task = walkthrough ? 'tours' : 'tasks';
 

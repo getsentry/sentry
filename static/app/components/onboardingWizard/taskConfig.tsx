@@ -17,6 +17,7 @@ import {
   Organization,
   Project,
 } from 'sentry/types';
+import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import withApi from 'sentry/utils/withApi';
 import {OnboardingState} from 'sentry/views/onboarding/types';
@@ -74,8 +75,7 @@ export function getOnboardingTasks({
   projects,
   onboardingState,
 }: Options): OnboardingTaskDescriptor[] {
-  const walkthrough = localStorage.getItem('new-walkthrough');
-  if (walkthrough === '1') {
+  if (isDemoWalkthrough()) {
     return [
       {
         task: OnboardingTaskKey.SIDEBAR_GUIDE,

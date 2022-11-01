@@ -22,6 +22,7 @@ import GroupChart from 'sentry/components/stream/groupChart';
 import TimeSince from 'sentry/components/timeSince';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
+import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
 import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -36,6 +37,7 @@ import {
 } from 'sentry/types';
 import {defined, percent} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import EventView from 'sentry/utils/discover/eventView';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -413,9 +415,8 @@ function BaseGroupRow({
     </DeprecatedDropdownMenu>
   );
 
-  const walkthrough = localStorage.getItem('new-walkthrough') === '1';
-  const issueStreamAnchor = walkthrough ? (
-    <GuideAnchor target="issue_stream" disabled={!localStorage.getItem('issueGuide')} />
+  const issueStreamAnchor = isDemoWalkthrough() ? (
+    <GuideAnchor target="issue_stream" disabled={!DemoWalkthroughStore.get('issue')} />
   ) : (
     <GuideAnchor target="issue_stream" />
   );

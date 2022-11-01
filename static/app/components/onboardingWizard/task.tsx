@@ -11,6 +11,7 @@ import LetterAvatar from 'sentry/components/letterAvatar';
 import Tooltip from 'sentry/components/tooltip';
 import {IconCheckmark, IconClose, IconLock, IconSync} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
 import space from 'sentry/styles/space';
 import {AvatarUser, OnboardingTask, OnboardingTaskKey, Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -65,11 +66,14 @@ function Task(props: Props) {
     recordAnalytics(task, organization, 'clickthrough');
     e.stopPropagation();
 
-    if (task.task === OnboardingTaskKey.SIDEBAR_GUIDE) {
-      localStorage.setItem('sidebarGuide', '1');
-    }
-    if (task.task === OnboardingTaskKey.ISSUE_GUIDE) {
-      localStorage.setItem('issueGuide', '1');
+    switch (task.task) {
+      case OnboardingTaskKey.SIDEBAR_GUIDE:
+        DemoWalkthroughStore.activateGuideAnchor('sidebar');
+        break;
+      case OnboardingTaskKey.ISSUE_GUIDE:
+        DemoWalkthroughStore.activateGuideAnchor('issue');
+        break;
+      default:
     }
 
     if (task.actionType === 'external') {

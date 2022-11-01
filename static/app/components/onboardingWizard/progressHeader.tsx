@@ -5,6 +5,7 @@ import ProgressRing from 'sentry/components/progressRing';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {OnboardingTaskDescriptor, OnboardingTaskStatus} from 'sentry/types';
+import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 
 type Props = {
   allTasks: OnboardingTaskDescriptor[];
@@ -15,8 +16,7 @@ function ProgressHeader({allTasks, completedTasks}: Props) {
   const theme = useTheme();
 
   let title: string, description: string;
-  const walkthrough = localStorage.getItem('new-walkthrough');
-  if (walkthrough === '1') {
+  if (isDemoWalkthrough()) {
     title = t('Guided Tours');
     description = t('Take a guided tour to see what Sentry can do for you');
   } else {
