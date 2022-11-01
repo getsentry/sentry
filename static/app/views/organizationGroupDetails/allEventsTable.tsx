@@ -87,7 +87,7 @@ const AllEventsTable = (props: Props) => {
       projectId={projectId}
       totalEventCount={totalEventCount}
       customColumns={['minidump']}
-      setError={(msg: string | undefined) => setError(msg || '')}
+      setError={(msg: string | undefined) => setError(msg ?? '')}
       transactionName=""
       columnTitles={columnTitles.slice()}
       referrer="api.issues.issue_events"
