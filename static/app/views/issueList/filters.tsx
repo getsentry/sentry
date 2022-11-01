@@ -50,7 +50,9 @@ function IssueListFilters({
         disabled={isSearchDisabled}
         excludedTags={['environment']}
         actionBarItems={[
-          makePinSearchAction({sort, pinnedSearch, location}),
+          ...(!organization.features.includes('issue-list-saved-searches-v2')
+            ? [makePinSearchAction({sort, pinnedSearch, location})]
+            : []),
           makeSaveSearchAction({
             sort,
             disabled: !organization.access.includes('org:write'),
