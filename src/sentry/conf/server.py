@@ -2888,5 +2888,5 @@ SENTRY_SLICING_LOGICAL_PARTITION_COUNT = 256
 # to a slice ID
 SENTRY_SLICING_CONFIG: Mapping[str, Mapping[Tuple[int, int], int]] = {}
 
-# Flag if we are in SaaS mode
-SENTRY_IS_SAAS = False
+# Show sessin replay banner on login page
+SHOW_SESSION_REPLAY_BANNER = False
