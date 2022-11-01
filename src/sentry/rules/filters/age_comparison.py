@@ -59,7 +59,7 @@ class AgeComparisonFilter(EventFilter):
     label = "The issue is {comparison_type} than {value} {time}"
     prompt = "The issue is older or newer than..."
 
-    def _passes(self, first_seen: datetime) -> bool:
+    def _passes(self, first_seen: datetime, current_time: datetime) -> bool:
         comparison_type = self.get_option("comparison_type")
         time = self.get_option("time")
 
@@ -82,12 +82,12 @@ class AgeComparisonFilter(EventFilter):
         _, delta_time = timeranges[time]
 
         passes_: bool = age_comparison_map[comparison_type](
-            first_seen + (value * delta_time), timezone.now()
+            first_seen + (value * delta_time), current_time
         )
         return passes_
 
     def passes(self, event: GroupEvent, state: EventState) -> bool:
-        return self._passes(event.group.first_seen)
+        return self._passes(event.group.first_seen, timezone.now())
 
     def passes_activity(self, condition_activity: ConditionActivity) -> bool:
         try:
@@ -95,4 +95,4 @@ class AgeComparisonFilter(EventFilter):
         except Group.DoesNotExist:
             return False
 
-        return self._passes(group.first_seen)
+        return self._passes(group.first_seen, condition_activity.timestamp)
