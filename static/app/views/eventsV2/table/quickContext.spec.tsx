@@ -1,7 +1,14 @@
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
+import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
-import {Group} from 'sentry/types';
+import {Commit, Group, ReleaseWithHealth, Repository, User} from 'sentry/types';
 import {EventData} from 'sentry/utils/discover/eventView';
 
 import QuickContext, {ContextType, QuickContextHoverWrapper} from './quickContext';
@@ -29,8 +36,58 @@ let mockedGroup = TestStubs.Group({
   },
 });
 
+const mockedCommit: Commit = {
+  dateCreated: '2020-11-30T18:46:31Z',
+  id: 'f7f395d14b2fe29a4e253bf1d3094d61e6ad4434',
+  message: 'ref(commitRow): refactor to fc\n',
+  author: {
+    id: '0',
+    username: 'author',
+    ip_address: '192.168.1.1',
+    email: 'author@commit.com',
+    name: 'Author',
+  } as User,
+  repository: {
+    id: '1',
+    integrationId: '2',
+    name: 'getsentry/sentry',
+    dateCreated: '2019-11-30T18:46:31Z',
+  } as Repository,
+  releases: [],
+};
+
+const mockedUser1 = {
+  id: '2',
+  username: 'author456',
+  ip_address: '192.168.1.1',
+  email: 'author1@commit.com',
+  name: 'Key Name',
+} as User;
+
+const mockedUser2 = {
+  id: '3',
+  username: 'author123',
+  ip_address: '192.168.1.3',
+  email: 'author2@commit.com',
+  name: 'Value Name',
+} as User;
+
+const mockedReleaseWithHealth = TestStubs.Release({
+  id: '1',
+  shortVersion: 'sentry-android-shop@1.2.0',
+  version: 'sentry-android-shop@1.2.0',
+  dateCreated: '2010-05-17T02:41:20Z',
+  lastEvent: '2011-10-17T02:41:20Z',
+  firstEvent: '2010-05-17T02:41:20Z',
+  status: 'open',
+  commitCount: 7,
+  lastCommit: mockedCommit,
+  newGroups: 21,
+  authors: [mockedUser1, mockedUser2],
+});
+
 const renderQuickContextContent = (
-  data: Group | null = null,
+  data: Group | ReleaseWithHealth | null = null,
   dataRow: EventData = defaultRow,
   contextType: ContextType = ContextType.ISSUE,
   loading: boolean = false,
@@ -178,6 +235,99 @@ describe('Quick Context', function () {
           expect(screen.getByText(/by/i)).toBeInTheDocument();
           expect(screen.getByText(/You/i)).toBeInTheDocument();
         });
+      });
+    });
+
+    describe('Quick Context Content Release Column', function () {
+      beforeEach(() => {
+        jest.restoreAllMocks();
+      });
+
+      it('Renders Release details for active release', async () => {
+        renderQuickContextContent(
+          mockedReleaseWithHealth,
+          defaultRow,
+          ContextType.RELEASE
+        );
+
+        expect(await screen.findByText(/Release Details/i)).toBeInTheDocument();
+
+        const definitions = screen.getAllByRole('definition');
+        const terms = screen.getAllByRole('term');
+
+        expect(within(terms[0]).getByText(/Status/i)).toBeInTheDocument();
+        expect(within(definitions[0]).getByText(/Active/i)).toBeInTheDocument();
+        expect(within(terms[1]).getByText(/Created/i)).toBeInTheDocument();
+        expect(within(definitions[1]).getByText(/7 years ago/i)).toBeInTheDocument();
+        expect(within(terms[2]).getByText(/First Event/i)).toBeInTheDocument();
+        expect(within(definitions[2]).getByText(/7 years ago/i)).toBeInTheDocument();
+        expect(within(terms[3]).getByText(/Last Event/i)).toBeInTheDocument();
+        expect(within(definitions[3]).getByText(/6 years ago/i)).toBeInTheDocument();
+      });
+
+      it('Renders Release details for archived release', async () => {
+        renderQuickContextContent(
+          {...mockedReleaseWithHealth, status: 'closed'},
+          defaultRow,
+          ContextType.RELEASE
+        );
+
+        expect(await screen.findByText(/Release Details/i)).toBeInTheDocument();
+
+        expect(screen.getByText(/Status/i)).toBeInTheDocument();
+        expect(screen.getByText(/Archived/i)).toBeInTheDocument();
+        expect(screen.queryByText(/Created/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/First Event/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/Last Event/i)).not.toBeInTheDocument();
+      });
+
+      it('Renders Last Commit', async () => {
+        renderQuickContextContent(
+          mockedReleaseWithHealth,
+          defaultRow,
+          ContextType.RELEASE
+        );
+
+        expect(await screen.findByText(/Last Commit/i)).toBeInTheDocument();
+        expect(screen.getByTestId('quick-context-commit-row')).toBeInTheDocument();
+      });
+
+      it('Renders New Issues Count', async () => {
+        renderQuickContextContent(
+          mockedReleaseWithHealth,
+          defaultRow,
+          ContextType.RELEASE
+        );
+
+        expect(await screen.findByText(/New Issues/i)).toBeInTheDocument();
+        expect(screen.getByText(/21/i)).toBeInTheDocument();
+      });
+
+      it('Renders Commit Count and Author when user is NOT in list of authors', async () => {
+        renderQuickContextContent(
+          mockedReleaseWithHealth,
+          defaultRow,
+          ContextType.RELEASE
+        );
+
+        expect(await screen.findByText(/7 commits by 2 authors/i)).toBeInTheDocument();
+        expect(screen.getByText(/KN/i)).toBeInTheDocument();
+        expect(screen.getByText(/VN/i)).toBeInTheDocument();
+      });
+
+      it('Renders Commit Count and Author when user is in list of authors', async () => {
+        jest.spyOn(ConfigStore, 'get').mockImplementation(() => mockedUser1);
+        renderQuickContextContent(
+          mockedReleaseWithHealth,
+          defaultRow,
+          ContextType.RELEASE
+        );
+
+        expect(
+          await screen.findByText(/7 commits by you and 1 other author/i)
+        ).toBeInTheDocument();
+        expect(screen.getByText(/KN/i)).toBeInTheDocument();
+        expect(screen.getByText(/VN/i)).toBeInTheDocument();
       });
     });
   });

@@ -584,10 +584,16 @@ const SPECIAL_FIELDS: SpecialFields = {
   },
   release: {
     sortField: 'release',
-    renderFunc: data =>
+    renderFunc: (data, {organization}) =>
       data.release ? (
         <VersionContainer>
-          <Version version={data.release} anchor={false} tooltipRawVersion truncate />
+          <QuickContextHoverWrapper
+            dataRow={data}
+            contextType={ContextType.RELEASE}
+            organization={organization}
+          >
+            <Version version={data.release} anchor={false} tooltipRawVersion truncate />
+          </QuickContextHoverWrapper>
         </VersionContainer>
       ) : (
         <Container>{emptyValue}</Container>
