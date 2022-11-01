@@ -4,12 +4,22 @@ from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import TYPE_CHECKING, Any, FrozenSet, Optional, Sequence, Set, Tuple, TypedDict, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    FrozenSet,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    TypedDict,
+    Union,
+    cast,
+)
 
 from django.db import DataError, connections, router
 from django.utils import timezone
-
-from sentry.utils.types import Type
 
 if TYPE_CHECKING:
     from sentry.api.event_search import SearchFilter
@@ -50,9 +60,9 @@ def get_user_tag(projects: Sequence[Project], key: str, value: str) -> str:
 
 def parse_status_value(value: Union[str, int]) -> int:
     if value in STATUS_QUERY_CHOICES:
-        return STATUS_QUERY_CHOICES[value]  # type: ignore[no-any-return]
+        return int(STATUS_QUERY_CHOICES[value])
     if value in STATUS_QUERY_CHOICES.values():
-        return value  # type: ignore[return-value]
+        return int(value)
     raise ValueError("Invalid status value")
 
 
@@ -283,14 +293,14 @@ def parse_datetime_expression(value: str) -> tuple[ParsedDatetime, ParsedDatetim
 
 def get_date_params(value: str, from_field: str, to_field: str) -> dict[str, Union[datetime, bool]]:
     date_from, date_to = parse_datetime_expression(value)
-    result = {}
+    result: dict[str, Union[datetime, bool]] = {}
     if date_from is not None:
         date_from_value, date_from_inclusive = date_from
         result.update({from_field: date_from_value, f"{from_field}_inclusive": date_from_inclusive})
     if date_to is not None:
         date_to_value, date_to_inclusive = date_to
         result.update({to_field: date_to_value, f"{to_field}_inclusive": date_to_inclusive})
-    return result  # type: ignore[return-value]
+    return result
 
 
 def parse_team_value(projects: Sequence[Project], value: Sequence[str], user: User) -> Team:
@@ -434,7 +444,9 @@ def parse_release(
         return [value]
 
 
-numeric_modifiers = [
+numeric_modifiers: Sequence[
+    Tuple[str, Callable[[str, Union[int, float]], dict[str, Union[int, float, bool]]]]
+] = [
     (
         ">=",
         lambda field, value: {
@@ -467,12 +479,12 @@ numeric_modifiers = [
 
 
 def get_numeric_field_value(
-    field: str, raw_value: str, type: Type = int
-) -> dict[str, Union[int, float]]:
+    field: str, raw_value: str, type: Callable[[str], Union[int, float]] = int
+) -> dict[str, Union[int, float, bool]]:
     try:
         for modifier, function in numeric_modifiers:
             if raw_value.startswith(modifier):
-                return function(field, type(raw_value[len(modifier) :]))  # type: ignore[no-untyped-call]
+                return function(field, type(str(raw_value[len(modifier) :])))
         else:
             return {field: type(raw_value)}
     except ValueError:
@@ -609,8 +621,9 @@ def split_query_into_tokens(query: str) -> Sequence[str]:
                 if quote_enclosed:
                     quote_type = char
         if quote_enclosed and char == "\\" and next_char == quote_type:
-            token += next_char  # type: ignore[operator]
-            idx += 1
+            if next_char:
+                token += next_char
+                idx += 1
         idx += 1
     if not token.isspace():
         tokens.append(token.strip(" "))
@@ -711,7 +724,7 @@ def parse_query(
 
     results["query"] = " ".join(results["query"])
 
-    return results  # type: ignore[return-value]
+    return cast(ParsedQueryValues, results)
 
 
 def convert_user_tag_to_query(key: str, value: str) -> Optional[str]:
