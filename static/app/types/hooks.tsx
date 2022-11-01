@@ -95,6 +95,7 @@ export type ComponentHooks = {
   'component:disabled-custom-symbol-sources': () => React.ComponentType<DisabledCustomSymbolSources>;
   'component:disabled-member': () => React.ComponentType<DisabledMemberViewProps>;
   'component:disabled-member-tooltip': () => React.ComponentType<DisabledMemberTooltipProps>;
+  'component:dynamic-sampling-limited-availability-program-ending': () => React.ComponentType<{}>;
   'component:first-party-integration-additional-cta': () => React.ComponentType<FirstPartyIntegrationAdditionalCTAProps>;
   'component:first-party-integration-alert': () => React.ComponentType<FirstPartyIntegrationAlertProps>;
   'component:header-date-range': () => React.ComponentType<DateRangeProps>;
@@ -150,8 +151,6 @@ export type FeatureDisabledHooks = {
   'feature-disabled:discover-sidebar-item': FeatureDisabledHook;
   'feature-disabled:discover2-page': FeatureDisabledHook;
   'feature-disabled:discover2-sidebar-item': FeatureDisabledHook;
-  'feature-disabled:dynamic-sampling-advanced': FeatureDisabledHook;
-  'feature-disabled:dynamic-sampling-basic': FeatureDisabledHook;
   'feature-disabled:events-page': FeatureDisabledHook;
   'feature-disabled:events-sidebar-item': FeatureDisabledHook;
   'feature-disabled:grid-editable-actions': FeatureDisabledHook;

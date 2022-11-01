@@ -142,7 +142,17 @@ def record_first_event(project, event, **kwargs):
         )
         return
 
+    # this event fires once per project
+    analytics.record(
+        "first_event_for_project.sent",
+        user_id=user.id,
+        organization_id=project.organization_id,
+        project_id=project.id,
+        platform=event.platform,
+    )
+
     if rows_affected or created:
+        # this event only fires once per org
         analytics.record(
             "first_event.sent",
             user_id=user.id,
@@ -217,6 +227,7 @@ def record_first_replay(project, **kwargs):
     project.update(flags=F("flags").bitor(Project.flags.has_replays))
     analytics.record(
         "first_replay.sent",
+        user_id=project.organization.default_owner_id,
         organization_id=project.organization_id,
         project_id=project.id,
         platform=project.platform,

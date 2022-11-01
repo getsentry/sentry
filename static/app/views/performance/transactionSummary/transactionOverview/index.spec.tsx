@@ -428,7 +428,12 @@ describe('Performance > TransactionSummary', function () {
       expect(screen.getByRole('button', {name: 'Open in Issues'})).toBeInTheDocument();
 
       // Ensure transaction filter button exists
-      expect(screen.getByText('Filter').closest('button')).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: 'Filter Slow Transactions (p95)'})
+      ).toBeInTheDocument();
+
+      // Ensure ops breakdown filter exists
+      expect(screen.getByTestId('span-operation-breakdown-filter')).toBeInTheDocument();
 
       // Ensure create alert from discover is hidden without metric alert
       expect(
@@ -835,7 +840,9 @@ describe('Performance > TransactionSummary', function () {
       expect(screen.getByRole('button', {name: 'Open in Issues'})).toBeInTheDocument();
 
       // Ensure transaction filter button exists
-      expect(screen.getByText('Filter').closest('button')).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: 'Filter Slow Transactions (p95)'})
+      ).toBeInTheDocument();
 
       // Ensure create alert from discover is hidden without metric alert
       expect(

@@ -5,10 +5,12 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import SelectControl, {
   ControlProps,
 } from 'sentry/components/forms/controls/selectControl';
+import FormField from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
 import {Choices, SelectValue} from 'sentry/types';
 
-import InputField, {InputFieldProps} from './inputField';
+// XXX(epurkhiser): This is wrong, it should not be inheriting these props
+import {InputFieldProps} from './inputField';
 
 export interface SelectFieldProps<OptionType extends OptionTypeBase>
   extends InputFieldProps,
@@ -97,9 +99,8 @@ export default class SelectField<OptionType extends SelectValue<any>> extends Co
   render() {
     const {allowClear, confirm, multiple, ...otherProps} = this.props;
     return (
-      <InputField
-        {...otherProps}
-        field={({id, onChange, onBlur, required: _required, ...props}) => (
+      <FormField {...otherProps}>
+        {({id, onChange, onBlur, required: _required, children: _children, ...props}) => (
           <SelectControl
             {...props}
             inputId={id}
@@ -145,7 +146,7 @@ export default class SelectField<OptionType extends SelectValue<any>> extends Co
             }}
           />
         )}
-      />
+      </FormField>
     );
   }
 }

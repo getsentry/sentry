@@ -242,6 +242,7 @@ yarn.lock           @getsentry/owners-js-deps
 /src/sentry/tasks/commits.py                  @getsentry/ecosystem
 /src/sentry/tasks/commit_context.py           @getsentry/ecosystem
 /src/sentry/tasks/digests.py                  @getsentry/ecosystem
+/src/sentry/tasks/derive_code_mappings.py     @getsentry/ecosystem
 /src/sentry/tasks/email.py                    @getsentry/ecosystem
 /src/sentry/tasks/integrations/               @getsentry/ecosystem
 /src/sentry/tasks/reports.py                  @getsentry/ecosystem
