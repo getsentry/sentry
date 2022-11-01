@@ -145,9 +145,6 @@ def use_real_service(
     """
     from django.test import override_settings
 
-    if silo_mode is None:
-        silo_mode = SiloMode.get_current_mode()
-
     if isinstance(service, DelegatedBySiloMode):
         with override_settings(SILO_MODE=silo_mode):
             with service.with_replacement(None, silo_mode):
