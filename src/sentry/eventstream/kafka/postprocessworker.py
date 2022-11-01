@@ -1,9 +1,11 @@
 import logging
 import random
+import time
+from collections import defaultdict
 from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from contextlib import contextmanager
 from enum import Enum
-from typing import Any, Generator, Mapping, Optional, Sequence
+from typing import Any, Generator, Mapping, MutableMapping, Optional, Sequence, Tuple
 
 from sentry import options
 from sentry.eventstream.base import GroupStates
@@ -54,12 +56,30 @@ def _get_task_kwargs(message: Message) -> Optional[Mapping[str, Any]]:
             return get_task_kwargs_for_message(message.value())
 
 
+__metrics: MutableMapping[Tuple[int, str], int] = defaultdict(int)
+__metric_record_freq_sec = 1.0
+__last_flush = time.time()
+
+
 def _record_metrics(partition: int, task_kwargs: Mapping[str, Any]) -> None:
+    """
+    Records the number of messages processed per partition. Metric is flushed every second.
+    """
+    global __last_flush
     event_type = "transactions" if task_kwargs["group_id"] is None else "errors"
-    metrics.incr(
-        _MESSAGES_METRIC,
-        tags={"partition": partition, "type": event_type},
-    )
+    __metrics[(partition, event_type)] += 1
+
+    current_time = time.time()
+    if current_time - __last_flush > __metric_record_freq_sec:
+        for ((partition, event_type), count) in __metrics.items():
+            metrics.incr(
+                _MESSAGES_METRIC,
+                amount=count,
+                tags={"partition": partition, "type": event_type},
+                sample_rate=1,
+            )
+        __last_flush = current_time
+        __metrics.clear()
 
 
 def dispatch_post_process_group_task(
