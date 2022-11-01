@@ -2,7 +2,7 @@ import {browserHistory} from 'react-router';
 
 import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -87,10 +87,12 @@ describe('Performance > Web Vitals', function () {
       url: '/organizations/org-slug/projects/',
       body: [],
     });
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-has-measurements/',
       body: {measurements: true},
     });
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/project-transaction-threshold-override/',
       method: 'GET',
@@ -99,6 +101,7 @@ describe('Performance > Web Vitals', function () {
         metric: 'lcp',
       },
     });
+
     // Mock baseline measurements
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-vitals/',
@@ -124,19 +127,23 @@ describe('Performance > Web Vitals', function () {
       }
       histogramData[`measurements.${measurement}`] = data;
     }
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-histogram/',
       body: histogramData,
     });
+
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/key-transactions-list/`,
       body: [],
     });
+
     MockApiClient.addMockResponse({
       url: '/prompts-activity/',
       body: {},
     });
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',
       body: [],
@@ -149,19 +156,15 @@ describe('Performance > Web Vitals', function () {
     console.error.mockRestore();
   });
 
-  it('render no access without feature', async function () {
-    const {organization, router} = initialize({
+  it('render no access without feature', function () {
+    const {organization, router, routerContext} = initialize({
       features: [],
     });
 
-    const wrapper = mountWithTheme(
-      <WrappedComponent organization={organization} location={router.location} />
-    );
-
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.text()).toEqual("You don't have access to this feature");
+    render(<WrappedComponent organization={organization} location={router.location} />, {
+      context: routerContext,
+    });
+    expect(screen.getByText("You don't have access to this feature")).toBeInTheDocument();
   });
 
   it('renders the basic UI components', async function () {
