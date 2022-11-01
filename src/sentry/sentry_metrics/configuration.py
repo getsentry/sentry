@@ -179,7 +179,7 @@ def initialize_global_consumer_state(config: MetricsIngestConfiguration) -> None
 
     add_global_tags(_all_threads=True, **global_tag_map)
 
-    from sentry.sentry_metrics.metrics_wrapper import MetricsWrapper
+    from sentry.utils.arroyo import MetricsWrapper
 
     metrics_wrapper = MetricsWrapper(backend, name="sentry_metrics.indexer", tags=global_tag_map)
     configure_metrics(metrics_wrapper)
