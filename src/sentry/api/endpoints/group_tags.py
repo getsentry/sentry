@@ -47,11 +47,12 @@ class GroupTagsEndpoint(GroupEndpoint):  # type: ignore
         return Response(data)
 
 
-def add_readable_tag_values(data: Any) -> Any:
+def add_readable_tag_values(data: Any) -> None:
     # Map device tag to a more readable value if possible
-    device_tag = next((tag for tag in data if tag["key"] == "device"), None)
-    if device_tag:
-        for top_device in device_tag["topValues"]:
-            readable_value = get_readable_device_name(top_device["value"])
-            if readable_value:
-                top_device["readable"] = readable_value
+    for device_tag in data:
+        if device_tag["key"] == "device":
+            for top_device in device_tag["topValues"]:
+                readable_value = get_readable_device_name(top_device["value"])
+                if readable_value:
+                    top_device["readable"] = readable_value
+            break
