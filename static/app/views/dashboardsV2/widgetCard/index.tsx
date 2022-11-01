@@ -323,43 +323,44 @@ class WidgetCard extends Component<Props, State> {
               )}
               {this.renderToolbar()}
             </WidgetCardPanel>
-            {(organization.features.includes('dashboards-mep') ||
-              organization.features.includes('mep-rollout-flag')) && (
-              <MEPConsumer>
-                {metricSettingContext => {
-                  return (
-                    <DashboardsMEPConsumer>
-                      {({isMetricsData}) => {
-                        if (
-                          showStoredAlert &&
-                          isMetricsData === false &&
-                          widget.widgetType === WidgetType.DISCOVER &&
-                          metricSettingContext &&
-                          metricSettingContext.metricSettingState !==
-                            MEPState.transactionsOnly
-                        ) {
-                          if (!widgetContainsErrorFields) {
-                            return (
-                              <StoredDataAlert showIcon>
-                                {tct(
-                                  "Your selection is only applicable to [indexedData: indexed event data]. We've automatically adjusted your results.",
-                                  {
-                                    indexedData: (
-                                      <ExternalLink href="https://docs.sentry.io/product/dashboards/widget-builder/#errors--transactions" />
-                                    ),
-                                  }
-                                )}
-                              </StoredDataAlert>
-                            );
+            {!organization.features.includes('performance-mep-bannerless-ui') &&
+              (organization.features.includes('dashboards-mep') ||
+                organization.features.includes('mep-rollout-flag')) && (
+                <MEPConsumer>
+                  {metricSettingContext => {
+                    return (
+                      <DashboardsMEPConsumer>
+                        {({isMetricsData}) => {
+                          if (
+                            showStoredAlert &&
+                            isMetricsData === false &&
+                            widget.widgetType === WidgetType.DISCOVER &&
+                            metricSettingContext &&
+                            metricSettingContext.metricSettingState !==
+                              MEPState.transactionsOnly
+                          ) {
+                            if (!widgetContainsErrorFields) {
+                              return (
+                                <StoredDataAlert showIcon>
+                                  {tct(
+                                    "Your selection is only applicable to [indexedData: indexed event data]. We've automatically adjusted your results.",
+                                    {
+                                      indexedData: (
+                                        <ExternalLink href="https://docs.sentry.io/product/dashboards/widget-builder/#errors--transactions" />
+                                      ),
+                                    }
+                                  )}
+                                </StoredDataAlert>
+                              );
+                            }
                           }
-                        }
-                        return null;
-                      }}
-                    </DashboardsMEPConsumer>
-                  );
-                }}
-              </MEPConsumer>
-            )}
+                          return null;
+                        }}
+                      </DashboardsMEPConsumer>
+                    );
+                  }}
+                </MEPConsumer>
+              )}
           </React.Fragment>
         )}
       </ErrorBoundary>
