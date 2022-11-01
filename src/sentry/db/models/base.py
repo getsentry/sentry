@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Iterable, Mapping, Tuple, Type, cast
+from typing import Any, Callable, Iterable, Mapping, Tuple, Type, TypeVar, cast
 
 from django.apps.config import AppConfig
 from django.db import models
@@ -162,6 +162,9 @@ def get_model_if_available(app_config: AppConfig, model_name: str) -> Type[model
     return model
 
 
+ModelClass = TypeVar("ModelClass")
+
+
 class ModelSiloLimit(SiloLimit):
     def __init__(
         self,
@@ -199,7 +202,7 @@ class ModelSiloLimit(SiloLimit):
 
         return handle
 
-    def __call__(self, model_class: Any) -> type:
+    def __call__(self, model_class: ModelClass) -> Type[ModelClass]:
         if not (isinstance(model_class, type) and issubclass(model_class, BaseModel)):
             raise TypeError("`@ModelSiloLimit ` must decorate a Model class")
         assert isinstance(model_class.objects, BaseManager)
