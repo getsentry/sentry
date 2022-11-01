@@ -2888,5 +2888,5 @@ SENTRY_SLICING_LOGICAL_PARTITION_COUNT = 256
 # to a slice ID
 SENTRY_SLICING_CONFIG: Mapping[str, Mapping[Tuple[int, int], int]] = {}
 
-# Show sessin replay banner on login page
+# Show session replay banner on login page
 SHOW_SESSION_REPLAY_BANNER = False
