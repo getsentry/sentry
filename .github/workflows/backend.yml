@@ -187,7 +187,7 @@ jobs:
     runs-on: ubuntu-20.04
     timeout-minutes: 3
     steps:
-      - uses: getsentry/action-github-app-token@38a3ce582e170ddfe8789f509597c6944f2292a9  # v1
+      - uses: getsentry/action-github-app-token@97c9e23528286821f97fba885c1b1123284b29cc  # v2.0.0
         id: token
         continue-on-error: true
         with:
@@ -219,7 +219,7 @@ jobs:
     runs-on: ubuntu-20.04
     timeout-minutes: 10
     steps:
-      - uses: getsentry/action-github-app-token@38a3ce582e170ddfe8789f509597c6944f2292a9  # v1
+      - uses: getsentry/action-github-app-token@97c9e23528286821f97fba885c1b1123284b29cc  # v2.0.0
         id: token
         continue-on-error: true
         with:

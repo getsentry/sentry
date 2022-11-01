@@ -39,7 +39,7 @@ jobs:
       - name: Fetch getsentry token
         if: steps.org.outputs.result == 'true'
         id: getsentry
-        uses: getsentry/action-github-app-token@38a3ce582e170ddfe8789f509597c6944f2292a9  # v1
+        uses: getsentry/action-github-app-token@97c9e23528286821f97fba885c1b1123284b29cc  # v2.0.0
         with:
           app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
