@@ -2,9 +2,24 @@ import {useCallback, useEffect} from 'react';
 
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 
-type SyncedLocalStorageEvent = CustomEvent<{key: string; value: any}>;
+type SyncedLocalStorageEvent<S> = CustomEvent<{key: string; value: S}>;
 
-const SET_VALUE_EVENT_NAME = 'synced-local-storage';
+const SYNCED_STORAGE_EVENT = 'synced-local-storage';
+
+function isCustomEvent(event: Event): event is CustomEvent {
+  return 'detail' in event;
+}
+
+function isSyncedLocalStorageEvent<S>(
+  event: Event,
+  key: string
+): event is SyncedLocalStorageEvent<S> {
+  return (
+    isCustomEvent(event) &&
+    event.type === SYNCED_STORAGE_EVENT &&
+    event.detail.key === key
+  );
+}
 
 /**
  * Same as `useLocalStorageState`, but notifies and reacts to state changes.
@@ -23,7 +38,7 @@ export function useSyncedLocalStorageState<S>(
 
       // We use a custom event to notify all consumers of this hook
       window.dispatchEvent(
-        new CustomEvent(SET_VALUE_EVENT_NAME, {detail: {key, value: newValue}})
+        new CustomEvent(SYNCED_STORAGE_EVENT, {detail: {key, value: newValue}})
       );
     },
     [key, setValue]
@@ -31,17 +46,15 @@ export function useSyncedLocalStorageState<S>(
 
   useEffect(() => {
     const handleNewSyncedLocalStorageEvent = (event: Event) => {
-      const eventDetail = (event as SyncedLocalStorageEvent).detail;
-
-      if (eventDetail && eventDetail.key === key) {
-        setValue(eventDetail.value);
+      if (isSyncedLocalStorageEvent<S>(event, key)) {
+        setValue(event.detail.value);
       }
     };
 
-    window.addEventListener(SET_VALUE_EVENT_NAME, handleNewSyncedLocalStorageEvent);
+    window.addEventListener(SYNCED_STORAGE_EVENT, handleNewSyncedLocalStorageEvent);
 
     return () => {
-      window.removeEventListener(SET_VALUE_EVENT_NAME, handleNewSyncedLocalStorageEvent);
+      window.removeEventListener(SYNCED_STORAGE_EVENT, handleNewSyncedLocalStorageEvent);
     };
   }, [key, setValue, value]);
 
