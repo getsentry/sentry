@@ -141,8 +141,6 @@ from sentry.utils.performance_issues.performance_detection import (
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
 
 if TYPE_CHECKING:
-    from rediscluster import RedisCluster
-
     from sentry.eventstore.models import Event
 
 logger = logging.getLogger("sentry.events")
@@ -2391,7 +2389,7 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
 
 
 @metrics.wraps("performance.performance_issue.should_create_group")
-def should_create_group(client: RedisCluster, grouphash: str) -> bool:
+def should_create_group(client: any, grouphash: str) -> bool:
     times_seen = client.incr(f"grouphash:{grouphash}")
     metrics.incr(
         "performance.performance_issue.grouphash_counted",
