@@ -71,3 +71,10 @@ export const CONFIRMATION_MESSAGE = (
     </p>
   </div>
 );
+
+export const NOTIFICATION_FEATURE_MAP: Partial<Record<NotificationSettingsType, string>> =
+  {
+    quota: 'slack-overage-notifications',
+    activeRelease: 'active-release-monitor-alpha',
+    spikeProtection: 'spike-projections',
+  };
