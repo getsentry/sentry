@@ -47,6 +47,8 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
+        with:
+          token: ${{ steps.token.outputs.token }}
 
       - name: Internal github app token
         id: token
@@ -110,9 +112,7 @@ jobs:
       # If working tree is dirty, commit and update if we have a token
       - name: Commit any eslint fixed files
         if: steps.token.outcome == 'success' && github.ref != 'refs/heads/master'
-        uses: getsentry/action-github-commit@1761f891f036c3efc813b2ba963b121120c1587a  # main
-        with:
-          github-token: ${{ steps.token.outputs.token }}
+        uses: stefanzweifel/git-auto-commit-action@0049e3fa4059ca715255fbbcb7dea4516f02ce0a # v4.15.3
 
       - name: tsc
         id: tsc

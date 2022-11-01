@@ -194,6 +194,8 @@ jobs:
           app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
+        with:
+          token: ${{ steps.token.outputs.token }}
       - uses: actions/setup-python@13ae5bb136fac2878aff31522b9efb785519f984  # v4.3.0
         with:
           python-version: 3.8.13
@@ -207,10 +209,9 @@ jobs:
           fi
       - name: apply any requirements changes
         if: steps.token.outcome == 'success' && github.ref != 'refs/heads/master' && always()
-        uses: getsentry/action-github-commit@1761f891f036c3efc813b2ba963b121120c1587a  # main
+        uses: stefanzweifel/git-auto-commit-action@0049e3fa4059ca715255fbbcb7dea4516f02ce0a # v4.15.3
         with:
-          github-token: ${{ steps.token.outputs.token }}
-          message: ':snowflake: re-freeze requirements'
+          commit_message: ':snowflake: re-freeze requirements'
 
   lint:
     if: needs.files-changed.outputs.backend == 'true'
@@ -227,6 +228,8 @@ jobs:
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
 
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
+        with:
+          token: ${{ steps.token.outputs.token }}
 
       - uses: getsentry/paths-filter@4512585405083f25c027a35db413c2b3b9006d50  # v2.11.1
         id: files
@@ -273,9 +276,7 @@ jobs:
 
       - name: Apply any pre-commit fixed files
         if: steps.token.outcome == 'success' && github.ref != 'refs/heads/master' && always()
-        uses: getsentry/action-github-commit@1761f891f036c3efc813b2ba963b121120c1587a  # main
-        with:
-          github-token: ${{ steps.token.outputs.token }}
+        uses: stefanzweifel/git-auto-commit-action@0049e3fa4059ca715255fbbcb7dea4516f02ce0a # v4.15.3
 
   migration:
     if: needs.files-changed.outputs.migration_lockfile == 'true'
