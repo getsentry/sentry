@@ -329,7 +329,7 @@ describe('Quick Context', function () {
         expect(await screen.findByText(/4/i)).toBeInTheDocument();
         expect(screen.getByText(/commits/i)).toBeInTheDocument();
         expect(screen.getAllByText(/by/i)).toHaveLength(2);
-        expect(screen.getByText(/you and 1 other author/i)).toBeInTheDocument();
+        expect(screen.getByText(/you and 1 other/i)).toBeInTheDocument();
         expect(screen.getByText(/KN/i)).toBeInTheDocument();
         expect(screen.getByText(/VN/i)).toBeInTheDocument();
       });
