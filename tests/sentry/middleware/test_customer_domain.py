@@ -317,31 +317,30 @@ class End2EndTest(APITestCase):
                 follow=True,
             )
             assert response.status_code == 200
-            assert response.redirect_chain == [
-                ("http://testserver/api/0/albertos-apples/?querystring=value", 302)
-            ]
+            assert response.redirect_chain == []
             assert response.data == {
                 "organization_slug": "albertos-apples",
-                "subdomain": None,
-                "activeorg": None,
+                "subdomain": "albertos-apples",
+                "activeorg": "albertos-apples",
             }
-            assert "activeorg" not in self.client.session
+            assert "activeorg" in self.client.session
+            assert self.client.session["activeorg"] == "albertos-apples"
 
             # POST request
             response = self.client.post(
                 reverse("org-events-endpoint", kwargs={"organization_slug": "albertos-apples"}),
                 data={"querystring": "value"},
-                HTTP_HOST="albertos-apples.testserver",
+                SERVER_NAME="albertos-apples.testserver",
             )
-            assert response.status_code == 400
+            assert response.status_code == 200
 
-            # PUT request (not-supported)
+            # # PUT request (not-supported)
             response = self.client.put(
                 reverse("org-events-endpoint", kwargs={"organization_slug": "albertos-apples"}),
                 data={"querystring": "value"},
-                HTTP_HOST="albertos-apples.testserver",
+                SERVER_NAME="albertos-apples.testserver",
             )
-            assert response.status_code == 400
+            assert response.status_code == 405
 
     def test_with_middleware_and_is_staff(self):
         self.create_organization(name="albertos-apples")
