@@ -7,7 +7,6 @@ import JsonForm from 'sentry/components/forms/jsonForm';
 import FormModel from 'sentry/components/forms/model';
 import {FieldObject} from 'sentry/components/forms/types';
 import Link from 'sentry/components/links/link';
-import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
@@ -15,6 +14,7 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import withOrganizations from 'sentry/utils/withOrganizations';
 import {
   CONFIRMATION_MESSAGE,
+  NOTIFICATION_FEATURE_MAP,
   NOTIFICATION_SETTINGS_PATHNAMES,
   NOTIFICATION_SETTINGS_TYPES,
   NotificationSettingsObject,
@@ -96,22 +96,14 @@ class NotificationSettings extends AsyncComponent<Props, State> {
   };
 
   get notificationSettingsType() {
-    // filter out quotas if the feature flag isn't set
-    const hasSlackOverage = this.props.organizations.some(org =>
-      org.features?.includes('slack-overage-notifications')
-    );
-    const hasActiveRelease = this.props.organizations.some(org =>
-      org.features?.includes('active-release-monitor-alpha')
-    );
-
+    // filter out notification settings if the feature flag isn't set
     return NOTIFICATION_SETTINGS_TYPES.filter(type => {
-      if (type === 'quota' && !hasSlackOverage) {
-        return false;
+      const notificationFlag = NOTIFICATION_FEATURE_MAP[type];
+      if (notificationFlag) {
+        return this.props.organizations.some(org =>
+          org.features?.includes(notificationFlag)
+        );
       }
-      if (type === 'activeRelease' && !hasActiveRelease) {
-        return false;
-      }
-
       return true;
     });
   }
@@ -153,12 +145,6 @@ class NotificationSettings extends AsyncComponent<Props, State> {
               >
                 Fine tune
               </Link>
-              {notificationType === 'spikeProtection' && (
-                <Fragment>
-                  &nbsp;
-                  <QuestionTooltip position="top" title="Feature coming soon" size="xs" />
-                </Fragment>
-              )}
             </p>
           </Fragment>
         ),

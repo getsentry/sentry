@@ -113,7 +113,6 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
       ['never', t('Off')],
     ],
     help: t('Notifications about spikes on a per project basis.'),
-    disabled: true,
   },
   personalActivityNotifications: {
     name: 'personalActivityNotifications',
