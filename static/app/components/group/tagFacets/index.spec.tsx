@@ -9,7 +9,7 @@ import {
 import {Event} from 'sentry/types/event';
 
 const {organization} = initializeOrg();
-describe('TagDistributionMeter', function () {
+describe('Tag Facets', function () {
   let tagsMock;
 
   beforeEach(function () {
@@ -94,7 +94,7 @@ describe('TagDistributionMeter', function () {
     expect(screen.getByText('os')).toBeInTheDocument();
     expect(screen.getByText('device')).toBeInTheDocument();
     expect(screen.getByText('release')).toBeInTheDocument();
-    expect(screen.getByText('67%')).toBeInTheDocument();
+    expect(screen.getByText('66%')).toBeInTheDocument();
     expect(screen.getByText('Android 12')).toBeInTheDocument();
     expect(screen.getByText('33%')).toBeInTheDocument();
     expect(screen.getByText('iOS 16.0')).toBeInTheDocument();
@@ -102,43 +102,18 @@ describe('TagDistributionMeter', function () {
     userEvent.click(screen.getByText('device'));
     expect(screen.getByText('11%')).toBeInTheDocument();
     expect(screen.getByText('iPhone15')).toBeInTheDocument();
-    expect(screen.getByText('16%')).toBeInTheDocument();
+    expect(screen.getByText('15%')).toBeInTheDocument();
     expect(screen.getByText('Android Phone')).toBeInTheDocument();
-    expect(screen.getByText('21%')).toBeInTheDocument();
+    expect(screen.getByText('20%')).toBeInTheDocument();
     expect(screen.getByText('iPhone12')).toBeInTheDocument();
-    expect(screen.getByText('24%')).toBeInTheDocument();
+    expect(screen.getByText('23%')).toBeInTheDocument();
     expect(screen.getByText('iPhone11')).toBeInTheDocument();
-    expect(screen.queryByText('29%')).not.toBeInTheDocument();
-    expect(screen.queryByText('iPhone10')).not.toBeInTheDocument();
+    expect(screen.getByText('28%')).toBeInTheDocument();
+    expect(screen.getByText('iPhone10')).toBeInTheDocument();
 
     userEvent.click(screen.getByText('release'));
     expect(screen.getByText('100%')).toBeInTheDocument();
     expect(screen.getByText('org.mozilla.ios.Fennec@106.0')).toBeInTheDocument();
-  });
-
-  it('shows more device tag values when Show more is clicked', async function () {
-    render(<TagFacets environments={[]} groupId="1" tagKeys={MOBILE_TAGS} />, {
-      organization,
-    });
-    await waitFor(() => {
-      expect(tagsMock).toHaveBeenCalled();
-    });
-
-    userEvent.click(screen.getByText('device'));
-    expect(screen.getByText('11%')).toBeInTheDocument();
-    expect(screen.getByText('iPhone15')).toBeInTheDocument();
-    expect(screen.getByText('16%')).toBeInTheDocument();
-    expect(screen.getByText('Android Phone')).toBeInTheDocument();
-    expect(screen.getByText('21%')).toBeInTheDocument();
-    expect(screen.getByText('iPhone12')).toBeInTheDocument();
-    expect(screen.getByText('24%')).toBeInTheDocument();
-    expect(screen.getByText('iPhone11')).toBeInTheDocument();
-    expect(screen.queryByText('29%')).not.toBeInTheDocument();
-    expect(screen.queryByText('iPhone10')).not.toBeInTheDocument();
-
-    userEvent.click(screen.getByText('Show more'));
-    expect(screen.getByText('29%')).toBeInTheDocument();
-    expect(screen.getByText('iPhone10')).toBeInTheDocument();
   });
 
   it('shows tooltip', async function () {
