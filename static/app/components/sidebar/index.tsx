@@ -309,7 +309,7 @@ function Sidebar({location, organization}: Props) {
   );
 
   return (
-    <SidebarWrapper collapsed={collapsed}>
+    <SidebarWrapper aria-label={t('Primary Navigation')} collapsed={collapsed}>
       <SidebarSectionGroupPrimary>
         <SidebarSection>
           <SidebarDropdown
