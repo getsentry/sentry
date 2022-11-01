@@ -30,7 +30,38 @@
 
   <link href="{% frontend_app_asset_url "sentry" "entrypoints/sentry.css" %}" rel="stylesheet"/>
 
-  {% block css %}{% endblock %}
+  {% block css %}
+    {% if show_session_replay_banner %}
+    <style type="text/css">
+      .alert-banner {
+        background: rgb(255, 219, 74);
+        padding-top: 0.75rem;
+        padding-bottom: 0.75rem;
+        display: flex;
+        justify-content: center;
+        border-radius: 4px;
+        margin-bottom: 4px;
+      }
+      .alert-message {
+        margin-left: 1rem;
+        margin-right: 1rem;
+        line-height: 1.5;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        text-align: left;
+        flex-grow: 1;
+        font-size: 16px;
+        font-family: Rubik;
+      }
+      @media only screen and (max-width: 1025px) {
+        .alert-banner {
+          display: none;
+        }
+      }
+    </style>
+    {% endif %}
+  {% endblock %}
 
   <title>{% block title %}Sentry{% endblock %}</title>
 
@@ -72,31 +103,6 @@
 </head>
 
 
-{% if show_session_replay_banner %}
-  <style type="text/css">
-    .alert-banner {
-      background: rgb(255, 219, 74);
-      padding-top: 0.75rem;
-      padding-bottom: 0.75rem;
-      display: flex;
-      justify-content: center;
-      border-radius: 4px;
-      margin-bottom: 4px;
-    }
-    .alert-message {
-      margin-left: 1rem;
-      margin-right: 1rem;
-      line-height: 1.5;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      text-align: left;
-      flex-grow: 1;
-      font-size: 16px;
-      font-family: Rubik;
-    }
-  </style>
-{% endif %}
 
 <body class="{% block wrapperclass %}{% endblock %}">
   {% block body %}
