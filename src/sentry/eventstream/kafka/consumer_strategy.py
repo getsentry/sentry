@@ -46,8 +46,8 @@ def dispatch_post_process_group_task(
         is_new,
         is_regression,
         is_new_group_environment,
-        queue,
         primary_hash,
+        queue,
         skip_consume,
         group_states,
     )
