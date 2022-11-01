@@ -7,6 +7,7 @@ import JsonForm from 'sentry/components/forms/jsonForm';
 import FormModel from 'sentry/components/forms/model';
 import {FieldObject} from 'sentry/components/forms/types';
 import Link from 'sentry/components/links/link';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
@@ -152,6 +153,12 @@ class NotificationSettings extends AsyncComponent<Props, State> {
               >
                 Fine tune
               </Link>
+              {notificationType === 'spikeProtection' && (
+                <Fragment>
+                  &nbsp;
+                  <QuestionTooltip position="top" title="Feature coming soon" size="xs" />
+                </Fragment>
+              )}
             </p>
           </Fragment>
         ),
