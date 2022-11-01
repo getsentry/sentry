@@ -39,7 +39,7 @@ from sentry.testutils.silo import region_silo_test
 from sentry.utils.audit import create_system_audit_entry
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationTest(TestCase):
     def test_slugify_on_new_orgs(self):
         org = Organization.objects.create(name="name", slug="---downtown_canada---")

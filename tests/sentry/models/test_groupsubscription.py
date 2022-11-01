@@ -6,7 +6,7 @@ from sentry.notifications.types import (
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
-from sentry.services.hybrid_cloud.user import APIUser
+from sentry.services.hybrid_cloud.user import user_service
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import ExternalProviders
@@ -96,7 +96,7 @@ class GetParticipantsTest(TestCase):
         self.user = self.create_user()
         self.create_member(user=self.user, organization=self.org, teams=[self.team])
         self.update_user_settings_always()
-        self.user = APIUser.from_orm(self.user)
+        self.user = user_service.serialize_user(self.user)
 
     def update_user_settings_always(self):
         NotificationSetting.objects.update_settings(
