@@ -38,6 +38,13 @@ export type SearchEventParameters = {
     search_type: string;
     query?: string;
   };
+  'search.saved_search_create': {
+    name: string;
+    query: string;
+    search_type: string;
+    sort: string;
+    visibility: string;
+  };
   'search.search_with_invalid': SearchEventBase;
   'search.searched': SearchEventBase & {search_source?: string};
   'search.shortcut_used': SearchEventBase & {
@@ -78,4 +85,5 @@ export const searchEventMap: Record<SearchEventKey, string | null> = {
   'projectselector.toggle': 'Project Selector: Toggle',
   'projectselector.multi_button_clicked': 'Project Selector: Multi Button Clicked',
   'search.pin': 'Search: Pin',
+  'search.saved_search_create': 'Search: Save Search Created',
 };
