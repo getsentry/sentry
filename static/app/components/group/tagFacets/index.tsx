@@ -1,4 +1,5 @@
 import {ReactNode, useEffect, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 
@@ -58,6 +59,8 @@ type State = {
   tagsData: Record<string, TagWithTopValues>;
 };
 
+const MAX_ITEMS = 5;
+
 export function TagFacets({
   groupId,
   tagKeys,
@@ -74,6 +77,7 @@ export function TagFacets({
   });
   const api = useApi();
   const organization = useOrganization();
+  const theme = useTheme();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -93,6 +97,15 @@ export function TagFacets({
     // Don't want to requery everytime state changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [api, JSON.stringify(environments), groupId, tagKeys]);
+
+  const breakdownBarColors = [
+    theme.purple400,
+    theme.red400,
+    theme.green400,
+    theme.yellow400,
+    theme.blue400,
+    theme.translucentGray100,
+  ];
 
   const availableTagKeys = tagKeys.filter(tagKey => !!state.tagsData[tagKey]);
   // Format tagsData if the component was given a tagFormatter
@@ -149,7 +162,8 @@ export function TagFacets({
           <BreakdownContainer>
             <TagBreakdown
               segments={segments}
-              maxItems={5}
+              maxItems={MAX_ITEMS}
+              colors={breakdownBarColors}
               selectedTag={state.selectedTag}
             />
           </BreakdownContainer>

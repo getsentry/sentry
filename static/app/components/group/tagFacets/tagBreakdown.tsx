@@ -1,4 +1,3 @@
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {TagSegment} from 'sentry/actionCreators/events';
@@ -11,22 +10,13 @@ import {formatPercentage} from 'sentry/utils/formatters';
 type TagData = TagSegment & {active?: boolean; tooltip?: string};
 
 type TagBreakdownProps = {
+  colors: string[];
   maxItems: number;
   segments: TagData[];
   selectedTag: string;
 };
 
-function TagBreakdown({segments, maxItems, selectedTag}: TagBreakdownProps) {
-  const theme = useTheme();
-  const colors = [
-    theme.purple400,
-    theme.red400,
-    theme.green400,
-    theme.yellow400,
-    theme.blue400,
-    theme.translucentGray100,
-  ];
-
+function TagBreakdown({segments, maxItems, selectedTag, colors}: TagBreakdownProps) {
   const sumPoints = (sum, point) => sum + point.count;
 
   const segmentsTotal = segments.reduce(sumPoints, 0);
