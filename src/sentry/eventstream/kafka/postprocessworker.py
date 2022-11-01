@@ -67,6 +67,7 @@ def _record_metrics(partition: int, task_kwargs: Mapping[str, Any]) -> None:
     """
     Records the number of messages processed per partition. Metric is flushed every second.
     """
+    global __metrics
     global __last_flush
     event_type = "transactions" if task_kwargs["group_id"] is None else "errors"
     __metrics[(partition, event_type)] += 1
@@ -75,7 +76,7 @@ def _record_metrics(partition: int, task_kwargs: Mapping[str, Any]) -> None:
     if current_time - __last_flush > __metric_record_freq_sec:
         with __lock:
             metrics_to_send = __metrics
-            __metrics.clear()
+            __metrics = defaultdict(int)
             __last_flush = current_time
         for ((partition, event_type), count) in metrics_to_send.items():
             metrics.incr(
