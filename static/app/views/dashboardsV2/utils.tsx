@@ -363,9 +363,9 @@ export function getNumEquations(possibleEquations: string[]) {
   return possibleEquations.filter(isEquation).length;
 }
 
+const DEFINED_MEASUREMENTS = new Set(Object.keys(getMeasurements()));
 export function isCustomMeasurement(field: string) {
-  const definedMeasurements = Object.keys(getMeasurements());
-  return isMeasurement(field) && !definedMeasurements.includes(field);
+  return !DEFINED_MEASUREMENTS.has(field) && isMeasurement(field);
 }
 
 export function isCustomMeasurementWidget(widget: Widget) {
