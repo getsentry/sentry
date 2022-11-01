@@ -48,17 +48,6 @@ const getFunctionTags = (fields: Readonly<Field[]>) =>
       ])
   );
 
-const getFieldTags = () =>
-  Object.fromEntries(
-    Object.keys(FIELD_TAGS).map(key => [
-      key,
-      {
-        ...FIELD_TAGS[key],
-        kind: FieldKind.FIELD,
-      },
-    ])
-  );
-
 const getMeasurementTags = (
   measurements: Parameters<
     React.ComponentProps<typeof Measurements>['children']
@@ -74,22 +63,29 @@ const getMeasurementTags = (
     ])
   );
 
-const getSpanTags = () => {
-  return Object.fromEntries(
-    SPAN_OP_BREAKDOWN_FIELDS.map(key => [key, {key, name: key, kind: FieldKind.METRICS}])
-  );
-};
+const COMPUTED_FIELD_TAGS = Object.fromEntries(
+  Object.keys(FIELD_TAGS).map(key => [
+    key,
+    {
+      ...FIELD_TAGS[key],
+      kind: FieldKind.FIELD,
+    },
+  ])
+);
 
-const getSemverTags = () =>
-  Object.fromEntries(
-    Object.keys(SEMVER_TAGS).map(key => [
-      key,
-      {
-        ...SEMVER_TAGS[key],
-        kind: FieldKind.FIELD,
-      },
-    ])
-  );
+const COMPUTER_SPAN_TAGS = Object.fromEntries(
+  SPAN_OP_BREAKDOWN_FIELDS.map(key => [key, {key, name: key, kind: FieldKind.METRICS}])
+);
+
+const COMPUTER_SEMVER_TAGS = Object.fromEntries(
+  Object.keys(SEMVER_TAGS).map(key => [
+    key,
+    {
+      ...SEMVER_TAGS[key],
+      kind: FieldKind.FIELD,
+    },
+  ])
+);
 
 export type SearchBarProps = Omit<React.ComponentProps<typeof SmartSearchBar>, 'tags'> & {
   organization: Organization;
@@ -181,10 +177,10 @@ function SearchBar(props: SearchBarProps) {
     }
 
     const functionTags = getFunctionTags(fields ?? []);
-    const fieldTags = getFieldTags();
     const measurementsWithKind = getMeasurementTags(measurements);
-    const spanTags = getSpanTags();
-    const semverTags = getSemverTags();
+    const fieldTags = COMPUTED_FIELD_TAGS;
+    const spanTags = COMPUTER_SPAN_TAGS;
+    const semverTags = COMPUTER_SEMVER_TAGS;
 
     const orgHasPerformanceView = organization.features.includes('performance-view');
 
