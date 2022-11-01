@@ -10,7 +10,7 @@ from snuba_sdk.function import Function
 from sentry.search.events.datasets.profiles import COLUMNS as PROFILE_COLUMNS
 from sentry.search.events.datasets.profiles import ProfilesDatasetConfig
 from sentry.search.events.fields import InvalidSearchQuery
-from sentry.snuba.profiles import ProfilesQueryBuilder
+from sentry.snuba.profiles import ProfilesQueryBuilder, ProfilesTimeseriesQueryBuilder
 from sentry.testutils.factories import Factories
 from sentry.utils.snuba import Dataset
 
@@ -39,13 +39,27 @@ def params():
     }
 
 
+def query_builder_fns(arg_name="query_builder_fn"):
+    return pytest.mark.parametrize(
+        arg_name,
+        [
+            pytest.param(ProfilesQueryBuilder, id="ProfilesQueryBuilder"),
+            pytest.param(
+                lambda **kwargs: ProfilesTimeseriesQueryBuilder(interval=60, **kwargs),
+                id="ProfilesTimeseriesQueryBuilder",
+            ),
+        ],
+    )
+
+
 @pytest.mark.parametrize(
     "field,resolved",
     [pytest.param(column.alias, column.column, id=column.alias) for column in PROFILE_COLUMNS],
 )
+@query_builder_fns()
 @pytest.mark.django_db
-def test_field_resolution(params, field, resolved):
-    builder = ProfilesQueryBuilder(
+def test_field_resolution(query_builder_fn, params, field, resolved):
+    builder = query_builder_fn(
         dataset=Dataset.Profiles,
         params=params,
         selected_columns=[field],
@@ -146,9 +160,10 @@ def test_field_resolution(params, field, resolved):
         ],
     ],
 )
+@query_builder_fns()
 @pytest.mark.django_db
-def test_aggregate_resolution(params, field, resolved):
-    builder = ProfilesQueryBuilder(
+def test_aggregate_resolution(query_builder_fn, params, field, resolved):
+    builder = query_builder_fn(
         dataset=Dataset.Profiles,
         params=params,
         selected_columns=[field],
@@ -210,10 +225,11 @@ def test_aggregate_resolution(params, field, resolved):
         ],
     ],
 )
+@query_builder_fns()
 @pytest.mark.django_db
-def test_invalid_field_resolution(params, field, message):
+def test_invalid_field_resolution(query_builder_fn, params, field, message):
     with pytest.raises(InvalidSearchQuery, match=message):
-        ProfilesQueryBuilder(
+        query_builder_fn(
             dataset=Dataset.Profiles,
             params=params,
             selected_columns=[field],
