@@ -14,6 +14,7 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import withOrganizations from 'sentry/utils/withOrganizations';
 import {
   CONFIRMATION_MESSAGE,
+  NOTIFICATION_SETTINGS_PATHNAMES,
   NOTIFICATION_SETTINGS_TYPES,
   NotificationSettingsObject,
   SELF_NOTIFICATION_SETTINGS_TYPES,
@@ -147,7 +148,7 @@ class NotificationSettings extends AsyncComponent<Props, State> {
               &nbsp;
               <Link
                 data-test-id="fine-tuning"
-                to={`/settings/account/notifications/${notificationType}`}
+                to={`/settings/account/notifications/${NOTIFICATION_SETTINGS_PATHNAMES[notificationType]}`}
               >
                 Fine tune
               </Link>
