@@ -621,7 +621,7 @@ def split_query_into_tokens(query: str) -> Sequence[str]:
                 if quote_enclosed:
                     quote_type = char
         if quote_enclosed and char == "\\" and next_char == quote_type:
-            if next_char:
+            if next_char is not None:
                 token += next_char
                 idx += 1
         idx += 1
