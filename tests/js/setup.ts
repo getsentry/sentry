@@ -15,6 +15,7 @@ import * as qs from 'query-string';
 // eslint-disable-next-line jest/no-mocks-import
 import type {Client} from 'sentry/__mocks__/api';
 import ConfigStore from 'sentry/stores/configStore';
+import type {useRouteContext} from 'sentry/utils/useRouteContext';
 
 import {makeLazyFixtures} from './sentry-test/loadFixtures';
 
@@ -69,6 +70,9 @@ jest.mock('sentry/utils/withOrganization');
 jest.mock('scroll-to-element', () => jest.fn());
 jest.mock('react-router', () => {
   const ReactRouter = jest.requireActual('react-router');
+  const React = jest.requireActual('react');
+  const _useRouteContext = jest.requireActual('sentry/utils/useRouteContext')
+    .useRouteContext as typeof useRouteContext;
   return {
     ...ReactRouter,
     browserHistory: {
@@ -76,7 +80,18 @@ jest.mock('react-router', () => {
       push: jest.fn(),
       replace: jest.fn(),
       listen: jest.fn(() => {}),
+      listenBefore: jest.fn(),
+      getCurrentLocation: jest.fn(() => ({pathname: '', query: {}})),
     },
+    withRouter: jest.fn(Component => {
+      return props => {
+        const routeCtx = _useRouteContext();
+        return React.createElement(Component, {
+          ...props,
+          ...routeCtx,
+        });
+      };
+    }),
   };
 });
 jest.mock('react-lazyload', () => {
