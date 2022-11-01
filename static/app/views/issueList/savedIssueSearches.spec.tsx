@@ -43,10 +43,10 @@ describe('SavedIssueSearches', function () {
   it('can select a saved search', function () {
     render(<SavedIssueSearches {...defaultProps} />);
 
-    userEvent.click(screen.getByText('Assigned to Me'));
+    userEvent.click(screen.getByRole('button', {name: 'Assigned to Me'}));
     expect(defaultProps.onSavedSearchSelect).toHaveBeenLastCalledWith(recommendedSearch);
 
-    userEvent.click(screen.getByText('Last 4 Hours'));
+    userEvent.click(screen.getByRole('button', {name: 'Last 4 Hours'}));
     expect(defaultProps.onSavedSearchSelect).toHaveBeenLastCalledWith(orgSearch);
   });
 

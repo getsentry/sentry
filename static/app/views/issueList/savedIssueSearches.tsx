@@ -23,7 +23,10 @@ interface SavedSearchItemProps {
 const SavedSearchItem = ({onSavedSearchSelect, savedSearch}: SavedSearchItemProps) => {
   return (
     <SearchListItem>
-      <StyledItemButton onClick={() => onSavedSearchSelect(savedSearch)}>
+      <StyledItemButton
+        aria-label={savedSearch.name}
+        onClick={() => onSavedSearchSelect(savedSearch)}
+      >
         <div>
           <SavedSearchItemTitle>{savedSearch.name}</SavedSearchItemTitle>
           <SavedSearchItemDescription>{savedSearch.query}</SavedSearchItemDescription>
