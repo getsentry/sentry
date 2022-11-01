@@ -138,15 +138,13 @@ def convert_category_value(
 ) -> List[int]:
     """Convert a value like 'error' or 'performance' to the GroupType value for issue lookup"""
     if features.has("organizations:performance-issues", projects[0].organization):
-        positive_results = []
+        results = []
         for category in value:
             group_category = getattr(GroupCategory, category.upper(), None)
             if not group_category:
                 raise InvalidSearchQuery(f"Invalid category value of '{category}'")
-            positive_results.extend(
-                [type.value for type in GROUP_CATEGORY_TO_TYPES.get(group_category, [])]
-            )
-        return positive_results
+            results.extend([type.value for type in GROUP_CATEGORY_TO_TYPES.get(group_category, [])])
+        return results
     return []
 
 
