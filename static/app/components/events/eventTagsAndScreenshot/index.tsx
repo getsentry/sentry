@@ -3,12 +3,17 @@ import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {DataSection} from 'sentry/components/events/styles';
+import Link from 'sentry/components/links/link';
+import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {EventAttachment} from 'sentry/types/group';
 import {objectIsEmpty} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {SCREENSHOT_TYPE} from 'sentry/views/organizationGroupDetails/groupEventAttachments/groupEventAttachmentsFilter';
+import {Tab, TabPaths} from 'sentry/views/organizationGroupDetails/types';
 
 import Modal, {modalCss} from './screenshot/modal';
+import {DataSection as ScreenshotDataSection} from './dataSection';
 import Screenshot from './screenshot';
 import Tags from './tags';
 import TagsHighlight from './tagsHighlight';
@@ -99,21 +104,61 @@ function EventTagsAndScreenshots({
     );
   }
 
+  const screenshotLink = (
+    <Link
+      to={{
+        pathname: `${location.pathname}${TabPaths[Tab.ATTACHMENTS]}`,
+        query: {...location.query, types: SCREENSHOT_TYPE},
+      }}
+    />
+  );
+
   return (
     <Wrapper showScreenshot={showScreenshot} showTags={showTags}>
       {showScreenshot && (
-        <ScreenshotWrapper>
-          <Screenshot
-            organization={organization}
-            eventId={event.id}
-            projectSlug={projectSlug}
-            screenshot={screenshot}
-            onDelete={onDeleteScreenshot}
-            openVisualizationModal={handleOpenVisualizationModal}
-          />
-        </ScreenshotWrapper>
+        <div>
+          <ScreenshotWrapper>
+            <ScreenshotDataSection
+              title={
+                screenshots.length > 1
+                  ? tct('[current] of [total] [link:screenshots]', {
+                      current: screenshotInFocus + 1,
+                      total: screenshots.length,
+                      link: screenshotLink,
+                    })
+                  : tct('[link:Screenshots]', {
+                      link: screenshotLink,
+                    })
+              }
+              description={t(
+                'This image was captured around the time that the event occurred.'
+              )}
+            >
+              <Screenshot
+                organization={organization}
+                eventId={event.id}
+                projectSlug={projectSlug}
+                screenshot={screenshot}
+                onDelete={onDeleteScreenshot}
+                openVisualizationModal={handleOpenVisualizationModal}
+              />
+            </ScreenshotDataSection>
+          </ScreenshotWrapper>
+          {screenshots.length > 1 && (
+            <Container>
+              {screenshots.map((s, index) => {
+                return (
+                  <IconUpdate
+                    key={`${index}-${s.name}`}
+                    inFocus={screenshotInFocus === index}
+                    onClick={() => setScreenshotInFoucs(index)}
+                  />
+                );
+              })}
+            </Container>
+          )}
+        </div>
       )}
-      {showScreenshot && <IconUpdate inFocus />}
       {showScreenshot && (showTags || hasEventContext) && <VerticalDivider />}
       <TagWrapper hasEventContext={hasEventContext}>
         {hasEventContext && (
@@ -195,11 +240,17 @@ const TagsHighlightWrapper = styled('div')`
 const IconUpdate = styled('div')<{
   inFocus: boolean;
 }>`
-  display: inline-block;
   width: 6px;
   height: 6px;
+  cursor: pointer;
 
-  margin-right: ${space(0.75)};
   border-radius: 5px;
   background-color: ${p => (p.inFocus ? p.theme.gray300 : p.theme.gray100)};
+`;
+
+const Container = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
 `;
