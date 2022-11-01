@@ -96,7 +96,7 @@ class ApiOrganization:
     member: Optional[ApiOrganizationMember] = None
     name: str = ""
 
-    # Represents the full set of teams and proejcts associated with the org.
+    # Represents the full set of teams and projects associated with the org.
     teams: List[ApiTeam] = field(default_factory=list)
     projects: List[ApiProject] = field(default_factory=list)
 
@@ -244,7 +244,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
         try:
             org = Organization.objects.get(id)
-        except Organization.NotFound:
+        except Organization.DoesNotExist:
             return None
 
         return self._serialize_organization(org, membership)

@@ -45,7 +45,6 @@ from sentry.models import (
     Organization,
     OrganizationAccessRequest,
     OrganizationAvatar,
-    OrganizationMemberTeam,
     OrganizationOnboardingTask,
     OrganizationOption,
     OrganizationStatus,
@@ -513,17 +512,7 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
         return team_list
 
     def _team_memberships(self, access: Access) -> List[Team]:
-        if access.api_member is None:
-            return []
-
-        return [
-            omt.team
-            for omt in OrganizationMemberTeam.objects.filter(
-                organizationmember_id=access.api_member.id,
-                is_active=True,
-                team__status=TeamStatus.VISIBLE,
-            ).select_related("team")
-        ]
+        return list(Team.objects.filter(id__in=[t.id for t in access.api_team_members]))
 
     def serialize(  # type: ignore
         self, obj: Organization, attrs: Mapping[str, Any], user: User, access: Access
