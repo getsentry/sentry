@@ -145,7 +145,7 @@ jobs:
         run: echo "webpack-path=.webpack_cache" >> "$GITHUB_OUTPUT"
 
       - name: webpack cache
-        uses: actions/cache@56046cbc4743437ac40542086317b1561d7705f8  # v3.0.8
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7  # v3.0.11
         with:
           path: ${{ steps.config.outputs.webpack-path }}
           key: ${{ runner.os }}-v2-webpack-cache-${{ hashFiles('webpack.config.ts') }}
@@ -222,7 +222,7 @@ jobs:
           chartcuterie: true
 
       - name: yarn cache
-        uses: actions/cache@56046cbc4743437ac40542086317b1561d7705f8  # v3.0.8
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7  # v3.0.11
         with:
           path: ${{ steps.setup.outputs.yarn-cache-dir }}
           key: ${{ runner.os }}-v2-yarn-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
