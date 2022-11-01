@@ -605,6 +605,7 @@ CELERY_IMPORTS = (
     "sentry.release_health.tasks",
     "sentry.utils.suspect_resolutions.get_suspect_resolutions",
     "sentry.utils.suspect_resolutions_releases.get_suspect_resolutions_releases",
+    "sentry.tasks.derive_code_mappings",
 )
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
@@ -1032,6 +1033,8 @@ SENTRY_FEATURES = {
     "organizations:rule-page": False,
     # Enable incidents feature
     "organizations:incidents": False,
+    # Enable issue alert incompatible rule check
+    "organizations:issue-alert-incompatible-rules": False,
     # Enable issue alert previews
     "organizations:issue-alert-preview": False,
     # Enable issue alert test notifications
@@ -1149,6 +1152,8 @@ SENTRY_FEATURES = {
     "organizations:performance-onboarding-checklist": False,
     # Enable transaction name only search
     "organizations:performance-transaction-name-only-search": False,
+    # Enable transaction name only search on indexed
+    "organizations:performance-transaction-name-only-search-indexed": False,
     # Re-enable histograms for Metrics Enhanced Performance Views
     "organizations:performance-mep-reintroduce-histograms": False,
     # Enable showing INP web vital in default views
@@ -2882,3 +2887,6 @@ SENTRY_SLICING_LOGICAL_PARTITION_COUNT = 256
 # For each Sliceable, the range [0, SENTRY_SLICING_LOGICAL_PARTITION_COUNT) must be mapped
 # to a slice ID
 SENTRY_SLICING_CONFIG: Mapping[str, Mapping[Tuple[int, int], int]] = {}
+
+# Flag if we are in SaaS mode
+SENTRY_IS_SAAS = False

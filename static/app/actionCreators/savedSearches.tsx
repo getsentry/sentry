@@ -30,17 +30,6 @@ export function fetchSavedSearches(api: Client, orgSlug: string): Promise<SavedS
   return promise;
 }
 
-export function fetchProjectSavedSearches(
-  api: Client,
-  orgSlug: string,
-  projectId: string
-): Promise<SavedSearch[]> {
-  const url = `/projects/${orgSlug}/${projectId}/searches/`;
-  return api.requestPromise(url, {
-    method: 'GET',
-  });
-}
-
 const getRecentSearchUrl = (orgSlug: string): string =>
   `/organizations/${orgSlug}/recent-searches/`;
 

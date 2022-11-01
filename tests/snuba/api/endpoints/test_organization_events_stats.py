@@ -904,6 +904,26 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             [{"count": None}],
         ]
 
+    @mock.patch("sentry.search.events.builder.raw_snql_query")
+    def test_profiles_dataset_simple(self, mock_snql_query):
+        mock_snql_query.side_effect = [{"meta": {}, "data": []}]
+
+        query = {
+            "yAxis": [
+                "count()",
+                "p75()",
+                "p95()",
+                "p99()",
+                "p75(profile.duration)",
+                "p95(profile.duration)",
+                "p99(profile.duration)",
+            ],
+            "project": [self.project.id],
+            "dataset": "profiles",
+        }
+        response = self.do_request(query, features={"organizations:profiling": True})
+        assert response.status_code == 200, response.content
+
 
 @region_silo_test
 class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
