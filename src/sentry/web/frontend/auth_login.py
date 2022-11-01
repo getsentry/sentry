@@ -225,7 +225,6 @@ class AuthLoginView(BaseView):
                         user_id=request.user.id,
                         slug=organization.slug,
                         only_visible=False,
-                        allow_stale=False,
                     )
                     if organization.member and request.user and not is_active_superuser(request):
                         auth.set_active_org(request, organization.slug)

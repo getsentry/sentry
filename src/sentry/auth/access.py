@@ -318,7 +318,7 @@ class OrganizationMemberAccess(Access):
         permissions: Iterable[str],
     ) -> None:
         requires_sso, sso_is_valid = _sso_params(member)
-        has_global_access = bool(org.allow_joinleave) or roles.get(member.role).is_global
+        has_global_access = bool(org.flags.allow_joinleave) or roles.get(member.role).is_global
 
         super().__init__(
             sso_is_valid=sso_is_valid,
@@ -433,26 +433,29 @@ def from_request(
 ) -> Access:
     is_superuser = is_active_superuser(request)
 
+    if isinstance(organization, Organization):
+        organization = organization_service.get_organization_by_id(
+            id=organization.id, user_id=request.user.id
+        )
+
     if not organization:
         return from_user(request.user, organization=None, scopes=scopes, is_superuser=is_superuser)
 
     if getattr(request.user, "is_sentry_app", False):
-        org = organization_service.get_organization_by_id(id=organization.id)
-        return _from_sentry_app(request.user, organization=org)
+        return _from_sentry_app(request.user, organization=organization)
 
     if is_superuser:
-        member = None
-        # we special case superuser so that if they're a member of the org
-        # they must still follow SSO checks, but they gain global access
-        try:
-            member = get_cached_organization_member(request.user.id, organization.id)
-        except OrganizationMember.DoesNotExist:
+        member = organization.member
+        if member is None:
             requires_sso, sso_is_valid = False, True
         else:
             requires_sso, sso_is_valid = _sso_params(member)
 
         return OrganizationGlobalAccess(
             organization=organization,
+            api_member=member,
+            api_team_members=member.teams,
+            api_projects=member.projects,
             member=member,
             scopes=scopes if scopes is not None else settings.SENTRY_SCOPES,
             sso_is_valid=sso_is_valid,
@@ -503,7 +506,7 @@ def from_user(
         return organizationless(user.id, is_superuser)
 
     lookup = organization_service.get_organization_by_slug(
-        user_id=user.id, slug=organization.slug, only_visible=False, allow_stale=False
+        user_id=user.id, slug=organization.slug, only_visible=False
     )
 
     return _from_user(user, lookup.member, lookup, scopes=scopes, is_superuser=is_superuser)
@@ -534,7 +537,6 @@ def from_member(
         user_id=member.user_id,
         slug=member.organization.slug,
         only_visible=False,
-        allow_stale=False,
     )
     if lookup:
         member = lookup.member
@@ -563,7 +565,7 @@ def from_auth(auth, organization: Organization) -> Access:
     if is_system_auth(auth):
         return SystemAccess()
 
-    org = organization_service.get_organization_by_id(id=organization.id)
+    org = organization_service.get_organization_by_id(id=organization.id, user_id=None)
     return _from_auth(auth, org)
 
 

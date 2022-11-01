@@ -7,7 +7,9 @@ from rest_framework.response import Response
 
 from sentry.auth.helper import AuthHelper
 from sentry.constants import WARN_SESSION_EXPIRED
-from sentry.models import AuthProvider, Organization, OrganizationStatus
+from sentry.models import AuthProvider, Organization
+from sentry.services.hybrid_cloud.organization import ApiOrganization, organization_service
+from sentry.testutils.silo import exempt_from_silo_limits
 from sentry.utils.auth import initiate_login
 from sentry.web.frontend.auth_login import AuthLoginView
 
@@ -16,11 +18,18 @@ class AuthOrganizationLoginView(AuthLoginView):
     def respond_login(self, request: Request, context, *args, **kwargs) -> Response:
         return self.respond("sentry/organization-login.html", context)
 
-    def handle_sso(self, request: Request, organization, auth_provider):
+    def handle_sso(self, request: Request, organization: ApiOrganization, auth_provider):
         if request.method == "POST":
+            try:
+                # TODO: This will need to go after pipeline refactor
+                with exempt_from_silo_limits():
+                    org = Organization.objects.get(organization.id)
+            except Organization.NotFound:
+                return self.redirect(reverse("sentry-login"))
+
             helper = AuthHelper(
                 request=request,
-                organization=organization,
+                organization=org,
                 auth_provider=auth_provider,
                 flow=AuthHelper.FLOW_LOGIN,
             )
@@ -48,12 +57,10 @@ class AuthOrganizationLoginView(AuthLoginView):
     @never_cache
     @transaction.atomic
     def handle(self, request: Request, organization_slug) -> Response:
-        try:
-            organization = Organization.objects.get(slug=organization_slug)
-        except Organization.DoesNotExist:
-            return self.redirect(reverse("sentry-login"))
-
-        if organization.status != OrganizationStatus.VISIBLE:
+        organization = organization_service.get_organization_by_slug(
+            user_id=request.user.id, slug=organization_slug, only_visible=True
+        )
+        if organization is None:
             return self.redirect(reverse("sentry-login"))
 
         request.session.set_test_cookie()
@@ -65,7 +72,7 @@ class AuthOrganizationLoginView(AuthLoginView):
             initiate_login(request, next_uri)
 
         try:
-            auth_provider = AuthProvider.objects.get(organization=organization)
+            auth_provider = AuthProvider.objects.get(organization_id=organization.id)
         except AuthProvider.DoesNotExist:
             auth_provider = None
 
@@ -74,7 +81,7 @@ class AuthOrganizationLoginView(AuthLoginView):
             messages.add_message(request, messages.WARNING, WARN_SESSION_EXPIRED)
 
         if not auth_provider:
-            response = self.handle_basic_auth(request, organization=organization)
+            response = self.handle_basic_auth(request, organization_id=organization.id)
         else:
             response = self.handle_sso(request, organization, auth_provider)
 

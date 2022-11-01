@@ -120,7 +120,7 @@ class OrganizationMixin:
         if organization_slug is not None:
             if is_active_superuser(request):
                 active_organization = organization_service.get_organization_by_slug(
-                    user_id=None, slug=organization_slug, only_visible=True, allow_stale=True
+                    user_id=None, slug=organization_slug, only_visible=True
                 )
         return active_organization
 
