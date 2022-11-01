@@ -78,14 +78,14 @@ function PlatformPicker({
 
   const logSearch = useMemo(
     () =>
-      debounce((search, platformList) => {
+      debounce((search: string, num_results: number) => {
         if (!search) {
           return;
         }
 
         trackAdvancedAnalyticsEvent('growth.platformpicker_search', {
-          search: search.toLowerCase(),
-          num_results: platformList.length,
+          search,
+          num_results,
           source,
           organization: organization ?? null,
         });
@@ -94,11 +94,7 @@ function PlatformPicker({
   );
 
   useEffect(() => {
-    if (!filter) {
-      return;
-    }
-
-    logSearch(filter, getPlatformList(category));
+    logSearch(filter.toLowerCase(), getPlatformList(category).length);
   }, [filter, logSearch, category, getPlatformList]);
 
   return (
