@@ -14,6 +14,9 @@ import MetricsCompatibilitySumsQuery, {
 
 import {createDefinedContext} from './utils';
 
+const UNPARAM_THRESHOLD = 0.01;
+const NULL_THRESHOLD = 0.01;
+
 export interface MetricDataSwitcherOutcome {
   forceTransactionsOnly: boolean;
   compatibleProjects?: number[];
@@ -120,10 +123,9 @@ function getMetricsOutcome(
   const successOutcome: MetricDataSwitcherOutcome = {
     forceTransactionsOnly: false,
   };
-
-  if (organization.features.includes('organizations:performance-mep-bannerless-ui')) {
-    return successOutcome;
-  }
+  const isOnFallbackThresolds = organization.features.includes(
+    'performance-mep-bannerless-ui'
+  );
 
   if (!dataCounts) {
     return fallbackOutcome;
@@ -142,7 +144,7 @@ function getMetricsOutcome(
     return fallbackOutcome;
   }
 
-  if (checkIncompatibleData(dataCounts)) {
+  if (checkIncompatibleData(dataCounts, isOnFallbackThresolds)) {
     return {
       shouldWarnIncompatibleSDK: true,
       forceTransactionsOnly: true,
@@ -158,7 +160,7 @@ function getMetricsOutcome(
     };
   }
 
-  if (checkIfPartialOtherData(dataCounts)) {
+  if (checkIfPartialOtherData(dataCounts, isOnFallbackThresolds)) {
     return {
       shouldNotifyUnnamedTransactions: true,
       compatibleProjects,
@@ -180,8 +182,15 @@ function checkNoDataFallback(dataCounts: MergedMetricsData) {
 /**
  * Fallback and warn if incompatible data found (old specific SDKs).
  */
-function checkIncompatibleData(dataCounts: MergedMetricsData) {
+function checkIncompatibleData(
+  dataCounts: MergedMetricsData,
+  isOnFallbackThresolds: boolean
+) {
   const counts = normalizeCounts(dataCounts);
+  if (isOnFallbackThresolds) {
+    const ratio = counts.nullCount / counts.metricsCount;
+    return ratio > NULL_THRESHOLD;
+  }
   return counts.nullCount > 0;
 }
 
@@ -196,8 +205,15 @@ function checkIfAllOtherData(dataCounts: MergedMetricsData) {
 /**
  * Show metrics but warn about unnamed transactions.
  */
-function checkIfPartialOtherData(dataCounts: MergedMetricsData) {
+function checkIfPartialOtherData(
+  dataCounts: MergedMetricsData,
+  isOnFallbackThresolds: boolean
+) {
   const counts = normalizeCounts(dataCounts);
+  if (isOnFallbackThresolds) {
+    const ratio = counts.unparamCount / counts.metricsCount;
+    return ratio > UNPARAM_THRESHOLD;
+  }
   return counts.unparamCount > 0;
 }
 
