@@ -15,7 +15,7 @@ function TagBreakdown({points, maxItems}) {
     theme.green400,
     theme.yellow400,
     theme.blue400,
-    theme.gray200,
+    theme.translucentGray100,
   ];
 
   const sumPoints = (sum, point) => sum + point.count;
@@ -45,7 +45,7 @@ function TagBreakdown({points, maxItems}) {
       {!!(maxItems && otherTotal) && (
         <BreakdownRow key={t('Other')}>
           <LegendIcon color={colors[colors.length - 1]} />
-          {t('Other')}
+          <OtherLabel>{t('Other')}</OtherLabel>
           <Percent>
             {formatPercentage(Math.floor(percent(otherTotal, pointsTotal)) / 100, 0)}
           </Percent>
@@ -64,11 +64,13 @@ const LegendIcon = styled('div')<{color: string}>`
   background-color: ${p => p.color};
 `;
 
+const OtherLabel = styled('div')`
+  color: ${p => p.theme.gray300};
+`;
+
 const Percent = styled('div')`
-  font-weight: bold;
   font-variant-numeric: tabular-nums;
-  padding-left: ${space(0.5)};
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.gray300};
 `;
 
 const BreakdownRow = styled('div')`
