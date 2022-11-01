@@ -6,6 +6,7 @@ from snuba_sdk.aliased_expression import AliasedExpression
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op, Or
 from snuba_sdk.function import Function
+from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry.search.events.datasets.profiles import COLUMNS as PROFILE_COLUMNS
 from sentry.search.events.datasets.profiles import ProfilesDatasetConfig
@@ -23,7 +24,8 @@ today = now.replace(hour=0, minute=0, second=0, microsecond=0)
 def params():
     organization = Factories.create_organization()
     team = Factories.create_team(organization=organization)
-    project = Factories.create_project(organization=organization, teams=[team])
+    project1 = Factories.create_project(organization=organization, teams=[team])
+    project2 = Factories.create_project(organization=organization, teams=[team])
 
     user = Factories.create_user()
     Factories.create_team_membership(team=team, user=user)
@@ -31,8 +33,8 @@ def params():
     return {
         "start": now - timedelta(days=7),
         "end": now - timedelta(seconds=1),
-        "project_id": [project.id],
-        "project_objects": [project],
+        "project_id": [project1.id, project2.id],
+        "project_objects": [project1, project2],
         "organization_id": organization.id,
         "user_id": user.id,
         "team_id": [team.id],
@@ -503,7 +505,7 @@ def test_where_resolution_project_slug(params, field):
         selected_columns=["count()"],
         query=f"{field}:{project.slug}",
     )
-    assert Condition(Column("project_id"), Op.EQ, project.id), builder.condition
+    assert Condition(Column("project_id"), Op.EQ, project.id) in builder.where
 
     builder = ProfilesQueryBuilder(
         dataset=Dataset.Profiles,
@@ -511,7 +513,35 @@ def test_where_resolution_project_slug(params, field):
         selected_columns=["count()"],
         query=f"!{field}:{project.slug}",
     )
-    assert Condition(Column("project_id"), Op.NEQ, project.id), builder.condition
+    assert Condition(Column("project_id"), Op.NEQ, project.id) in builder.where
+
+
+@pytest.mark.parametrize("field", [pytest.param("project"), pytest.param("project.name")])
+@pytest.mark.parametrize("direction", [pytest.param("", id="asc"), pytest.param("-", id="desc")])
+@pytest.mark.django_db
+def test_order_by_resolution_project_slug(params, field, direction):
+    builder = ProfilesQueryBuilder(
+        dataset=Dataset.Profiles,
+        params=params,
+        selected_columns=[field, "count()"],
+        orderby=f"{direction}{field}",
+    )
+
+    assert (
+        OrderBy(
+            Function(
+                "transform",
+                [
+                    Column("project_id"),
+                    [project.id for project in params["project_objects"]],
+                    [project.slug for project in params["project_objects"]],
+                    "",
+                ],
+            ),
+            Direction.ASC if direction == "" else Direction.DESC,
+        )
+        in builder.orderby
+    )
 
 
 @pytest.mark.parametrize(

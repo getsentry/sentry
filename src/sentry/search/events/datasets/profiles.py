@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Callable, Mapping, Optional, Union
 
-from snuba_sdk import OrderBy
+from snuba_sdk import Direction, OrderBy
 
 from sentry.api.event_search import SearchFilter
 from sentry.search.events.constants import PROJECT_ALIAS, PROJECT_NAME_ALIAS
@@ -313,7 +313,33 @@ class ProfilesDatasetConfig(DatasetConfig):  # type: ignore
 
     @property
     def orderby_converter(self) -> Mapping[str, OrderBy]:
-        return {}
+        return {
+            PROJECT_ALIAS: self._project_slug_orderby_converter,
+            PROJECT_NAME_ALIAS: self._project_slug_orderby_converter,
+        }
+
+    def _project_slug_orderby_converter(self, direction: Direction) -> OrderBy:
+        projects = self.builder.params["project_objects"]
+
+        # Try to reduce the size of the transform by using any existing conditions on projects
+        # Do not optimize projects list if conditions contain OR operator
+        if not self.builder.has_or_condition and len(self.builder.projects_to_filter) > 0:
+            projects = [
+                project for project in projects if project.id in self.builder.projects_to_filter
+            ]
+
+        return OrderBy(
+            Function(
+                "transform",
+                [
+                    self.builder.column("project.id"),
+                    [project.id for project in projects],
+                    [project.slug for project in projects],
+                    "",
+                ],
+            ),
+            direction,
+        )
 
     def resolve_column(self, column: str) -> str:
         try:
