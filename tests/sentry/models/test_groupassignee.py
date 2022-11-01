@@ -12,7 +12,7 @@ from sentry.models import (
     Integration,
     OrganizationIntegration,
 )
-from sentry.services.hybrid_cloud.user import APIUser
+from sentry.services.hybrid_cloud.user import user_service
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
@@ -154,7 +154,7 @@ class GroupAssigneeTestCase(TestCase):
                 GroupAssignee.objects.assign(self.group, self.user)
 
                 mock_sync_assignee_outbound.assert_called_with(
-                    external_issue, APIUser.from_orm(self.user), assign=True
+                    external_issue, user_service.serialize_user(self.user), assign=True
                 )
 
                 assert GroupAssignee.objects.filter(

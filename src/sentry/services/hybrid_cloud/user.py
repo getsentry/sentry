@@ -82,11 +82,11 @@ class UserService(InterfaceWithLifecycle):
         if type(resp) is APIUser:
             return resp
         if type(resp) is User:
-            return self._serialize_user(resp)
+            return self.serialize_user(resp)
         return list(map(lambda x: self._to_api(x), resp))
 
     @classmethod
-    def _serialize_user(cls, user: User) -> APIUser:
+    def serialize_user(cls, user: User) -> APIUser:
         args = {
             field.name: getattr(user, field.name)
             for field in fields(APIUser)
