@@ -226,24 +226,19 @@ describe('Performance > Web Vitals', function () {
   });
 
   describe('reset view', function () {
-    it('disables button on default view', async function () {
+    it('disables button on default view', function () {
       const {organization, router, routerContext} = initialize();
 
-      const wrapper = mountWithTheme(
+      render(
         <WrappedComponent
           organization={organization}
           location={router.location}
           router={router}
         />,
-        routerContext
+        {context: routerContext}
       );
 
-      await tick();
-      wrapper.update();
-
-      expect(
-        wrapper.find('Button[data-test-id="reset-view"]').prop('disabled')
-      ).toBeTruthy();
+      expect(screen.getByRole('button', {name: 'Reset View'})).toBeDisabled();
     });
 
     it('enables button on left zoom', async function () {
