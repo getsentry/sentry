@@ -81,6 +81,8 @@ class NotificationSetting(Model):
             (NotificationSettingTypes.QUOTA_TRANSACTIONS, "quotaTransactions"),
             (NotificationSettingTypes.QUOTA_ATTACHMENTS, "quotaAttacments"),
             (NotificationSettingTypes.QUOTA_WARNINGS, "quotaWarnings"),
+            (NotificationSettingTypes.QUOTA_SPEND_ALLOCATIONS, "quotaSpendAllocations"),
+            (NotificationSettingTypes.SPIKE_PROTECTION, "spikeProtection"),
         ),
         null=False,
     )

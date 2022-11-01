@@ -17,6 +17,7 @@ import {
   METRIC_SEARCH_SETTING_PARAM,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/performanceEventViewContext';
+import useDisableRouteAnalytics from 'sentry/utils/routeAnalytics/useDisableRouteAnalytics';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -48,6 +49,8 @@ function PerformanceContent({selection, location, demoMode, router}: Props) {
   const {projects} = useProjects();
   const mounted = useRef(false);
   const previousDateTime = usePrevious(selection.datetime);
+  // TODO: remove the trackAdvancedAnalyticsEvent call and use useRouteAnalyticsParams instead
+  useDisableRouteAnalytics();
 
   const [state, setState] = useState<State>({error: undefined});
   const withStaticFilters = canUseMetricsData(organization);

@@ -85,10 +85,12 @@ interface FrameStackTableProps {
   recursion: 'collapsed' | null;
   referenceNode: FlamegraphFrame;
   tree: FlamegraphFrame[];
+  expanded?: boolean;
 }
 
 export function FrameStackTable({
   tree,
+  expanded,
   referenceNode,
   canvasPoolManager,
   getFrameColor,
@@ -178,6 +180,7 @@ export function FrameStackTable({
     clickedGhostRowRef,
     hoveredGhostRowRef,
   } = useVirtualizedTree({
+    expanded,
     skipFunction: recursion === 'collapsed' ? skipRecursiveNodes : undefined,
     sortFunction,
     renderRow,
