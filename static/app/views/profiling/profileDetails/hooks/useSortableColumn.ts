@@ -41,11 +41,7 @@ export function useSortableColumns<T extends string>(options: {
       }
 
       const direction =
-        currentSort.key !== column
-          ? 'desc'
-          : currentSort.order === 'desc'
-          ? 'asc'
-          : 'desc';
+        currentSort.key === column && currentSort.order === 'desc' ? 'asc' : 'desc';
 
       return () =>
         createLocationDescriptor(`${direction === 'desc' ? '-' : ''}${column}`);
