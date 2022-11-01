@@ -190,24 +190,19 @@ describe('Performance > Web Vitals', function () {
     });
   });
 
-  it('renders the correct bread crumbs', async function () {
+  it('renders the correct bread crumbs', function () {
     const {organization, router, routerContext} = initialize();
 
-    const wrapper = mountWithTheme(
+    render(
       <WrappedComponent
         organization={organization}
         location={router.location}
         router={router}
       />,
-      routerContext
+      {context: routerContext}
     );
 
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('Breadcrumb').text()).toEqual(
-      expect.stringContaining('Web Vitals')
-    );
+    expect(screen.getByRole('navigation')).toHaveTextContent('PerformanceWeb Vitals');
   });
 
   it('renders all vitals cards correctly', async function () {
