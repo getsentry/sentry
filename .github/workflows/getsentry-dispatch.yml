@@ -2,8 +2,6 @@
 name: getsentry dispatcher
 
 on:
-  # DO NOT SUBMIT
-  pull_request:
   # XXX: We are using `pull_request_target` instead of `pull_request` because we want
   # this to run on forks.  It allows forks to access secrets safely by
   # only running workflows from the main branch. Prefer to use `pull_request` when possible.
