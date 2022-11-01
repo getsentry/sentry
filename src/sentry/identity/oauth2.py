@@ -297,8 +297,8 @@ class OAuth2CallbackView(PipelineView):
                 "error_description": f"Ensure that {url} has a valid SSL certificate",
             }
         except ConnectionError:
-            logger.info("identity.oauth2.json-error", extra={"url": self.access_token_url})
             url = self.access_token_url
+            logger.info("identity.oauth2.connection-error", extra={"url": url})
             return {
                 "error": "Could not connect to host or service",
                 "error_description": f"Ensure that {url} is open to connections",
