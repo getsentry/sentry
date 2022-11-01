@@ -6,13 +6,14 @@ import {AriaTabListProps} from '@react-aria/tabs';
 import {Item} from '@react-stately/collections';
 import {TabListProps, TabListState} from '@react-stately/tabs';
 import {ItemProps, Orientation} from '@react-types/shared';
+import {LocationDescriptor} from 'history';
 
 import {TabList} from './tabList';
 import {TabPanels} from './tabPanels';
 import {tabsShouldForwardProp} from './utils';
 
 const _Item = Item as (
-  props: ItemProps<any> & {disabled?: boolean; hidden?: boolean; to?: string}
+  props: ItemProps<any> & {disabled?: boolean; hidden?: boolean; to?: LocationDescriptor}
 ) => JSX.Element;
 export {_Item as Item, TabList, TabPanels};
 
