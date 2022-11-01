@@ -59,6 +59,25 @@ describe('useVirtualizedTree', () => {
     expect(results.result.current.items).toEqual([]);
   });
 
+  it('expands tree', () => {
+    const mockScrollContainer = makeScrollContainerMock({height: 100});
+
+    const tree = [chain('child', 5)];
+
+    const {result} = reactHooks.renderHook(useVirtualizedTree, {
+      initialProps: {
+        expanded: true,
+        rowHeight: 10,
+        scrollContainer: mockScrollContainer,
+        overscroll: 0,
+        tree,
+        renderRow: () => <div />,
+      },
+    });
+
+    expect(result.current.items.length).toBe(5);
+  });
+
   it('shows first 10 items', () => {
     const mockScrollContainer = makeScrollContainerMock({height: 100});
 

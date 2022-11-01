@@ -44,7 +44,7 @@ describe('VirtualizedTree', () => {
       root.children = [child1];
       child1.children = [child2];
 
-      const tree = VirtualizedTree.fromRoots([root], node => {
+      const tree = VirtualizedTree.fromRoots([root], false, node => {
         return node.node.id === 'child1';
       });
 
