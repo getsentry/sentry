@@ -128,7 +128,7 @@ class ProfileNumericColumn(NumericColumn):  # type: ignore
             return Kind.NUMBER.value
 
 
-class ProfilesDatasetConfig(DatasetConfig):  # type: ignore
+class ProfilesDatasetConfig(DatasetConfig):
     non_nullable_keys = {
         "organization.id",
         "project.id",

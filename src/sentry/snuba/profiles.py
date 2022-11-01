@@ -38,6 +38,7 @@ def query(
         dataset=Dataset.Profiles,
         params=params,
         query=query,
+        snuba_params=snuba_params,
         selected_columns=selected_columns,
         orderby=orderby,
         auto_fields=auto_fields,
@@ -103,7 +104,7 @@ class ProfilesQueryBuilderProtocol(Protocol):
         ...
 
     @property
-    def params(self) -> ParamsType:
+    def params(self) -> SnubaParams:
         ...
 
     def column(self, name: str) -> Column:
