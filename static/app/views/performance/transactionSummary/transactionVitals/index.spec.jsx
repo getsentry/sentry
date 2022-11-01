@@ -2,7 +2,7 @@ import {browserHistory} from 'react-router';
 
 import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -299,7 +299,7 @@ describe('Performance > Web Vitals', function () {
       expect(screen.getByRole('button', {name: 'Reset View'})).toBeEnabled();
     });
 
-    it('resets view properly', async function () {
+    it('resets view properly', function () {
       const {organization, router, routerContext} = initialize({
         query: {
           fidStart: '20',
@@ -307,19 +307,17 @@ describe('Performance > Web Vitals', function () {
         },
       });
 
-      const wrapper = mountWithTheme(
+      render(
         <WrappedComponent
           organization={organization}
           location={router.location}
           router={router}
         />,
-        routerContext
+        {context: routerContext}
       );
 
-      await tick();
-      wrapper.update();
+      userEvent.click(screen.getByRole('button', {name: 'Reset View'}));
 
-      wrapper.find('Button[data-test-id="reset-view"]').simulate('click');
       expect(browserHistory.push).toHaveBeenCalledWith({
         query: expect.not.objectContaining(
           ZOOM_KEYS.reduce((obj, key) => {
