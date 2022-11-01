@@ -42,6 +42,7 @@
     "strict": true,
     "strictBindCallApply": false,
     "useUnknownInCatchVariables": false,
+    "noErrorTruncation": true,
 
     // We do not configure these, but are left here for documentation purposes
     //
