@@ -4,6 +4,7 @@ import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
+import Access from 'sentry/components/acl/access';
 import Button from 'sentry/components/button';
 import FeatureBadge from 'sentry/components/featureBadge';
 import Link from 'sentry/components/links/link';
@@ -18,6 +19,7 @@ import {t} from 'sentry/locale';
 import {PageHeader} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
@@ -52,6 +54,12 @@ class Monitors extends AsyncView<Props, State> {
     return `Monitors - ${this.props.params.orgId}`;
   }
 
+  componentDidMount() {
+    trackAdvancedAnalyticsEvent('monitors.page_viewed', {
+      organization: this.props.organization.id,
+    });
+  }
+
   handleSearch = (query: string) => {
     const {location, router} = this.props;
     router.push({
@@ -74,12 +82,22 @@ class Monitors extends AsyncView<Props, State> {
             <div>
               {t('Monitors')} <FeatureBadge type="beta" />
             </div>
-            <Button
-              to={`/organizations/${organization.slug}/monitors/create/`}
-              priority="primary"
-            >
-              {t('New Monitor')}
-            </Button>
+            <Access organization={organization} access={['project:write']}>
+              {({hasAccess}) => (
+                <Button
+                  to={`/organizations/${organization.slug}/monitors/create/`}
+                  priority="primary"
+                  size="sm"
+                  disabled={!hasAccess}
+                  tooltipProps={{
+                    disabled: hasAccess,
+                  }}
+                  title={t('You must be an organization admin to create a new monitor')}
+                >
+                  {t('New Monitor')}
+                </Button>
+              )}
+            </Access>
           </HeaderTitle>
         </PageHeader>
         <Filters>

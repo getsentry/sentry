@@ -6,9 +6,15 @@ on:
       - master
   pull_request:
 
+# Cancel in progress workflows on pull_requests.
+# https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
 # hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
 env:
-  SEGMENT_DOWNLOAD_TIMEOUT_MIN: 3
+  SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
 
 jobs:
   files-changed:
@@ -18,16 +24,16 @@ jobs:
     # Map a step output to a job output
     outputs:
       eslint_config: ${{ steps.changes.outputs.eslint_config }}
-      frontend: ${{ steps.changes.outputs.frontend }}
+      frontend: ${{ steps.changes.outputs.frontend_all }}
       frontend_components_modified_lintable: ${{ steps.changes.outputs.frontend_components_modified_lintable }}
       frontend_components_modified_lintable_files: ${{ steps.changes.outputs.frontend_components_modified_lintable_files }}
       frontend_modified_lintable_files: ${{ steps.changes.outputs.frontend_modified_lintable_files }}
       yarn_lockfile: ${{ steps.changes.outputs.yarn_lockfile }}
     steps:
-      - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
 
       - name: Check for frontend file changes
-        uses: getsentry/paths-filter@66f7f1844185eb7fb6738ea4ea59d74bb99199e5  # v2
+        uses: getsentry/paths-filter@4512585405083f25c027a35db413c2b3b9006d50  # v2.11.1
         id: changes
         with:
           token: ${{ github.token }}
@@ -40,17 +46,17 @@ jobs:
     name: typescript and lint
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
 
       - name: Internal github app token
         id: token
-        uses: getsentry/action-github-app-token@38a3ce582e170ddfe8789f509597c6944f2292a9  # v1
+        uses: getsentry/action-github-app-token@97c9e23528286821f97fba885c1b1123284b29cc  # v2.0.0
         continue-on-error: true
         with:
           app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
 
-      - uses: ./.github/actions/setup-volta
+      - uses: getsentry/action-setup-volta@54775a59c41065f54ecc76d1dd5f2cdc7a1550cb  # v1.1.0
 
       - name: Install dependencies
         id: dependencies
@@ -66,7 +72,7 @@ jobs:
       - name: eslint logic
         id: eslint
         if: (github.ref == 'refs/heads/master' || needs.files-changed.outputs.eslint_config == 'true' || needs.files-changed.outputs.yarn_lockfile == 'true')
-        run: echo "::set-output name=all-files::true"
+        run: echo "all-files=true" >> "$GITHUB_OUTPUT"
 
       # Lint entire frontend if:
       # - this is on main branch
@@ -113,7 +119,7 @@ jobs:
         if: steps.dependencies.outcome == 'success'
         run: |
           set -o pipefail
-          yarn tsc -p config/tsconfig.build.json --diagnostics --generateTrace /tmp/trace | tee /tmp/typescript-monitor.log
+          yarn tsc -p config/tsconfig.ci.json --diagnostics --generateTrace /tmp/trace | tee /tmp/typescript-monitor.log
 
       - name: monitor-tsc
         continue-on-error: true
@@ -135,14 +141,14 @@ jobs:
     needs: files-changed
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
 
-      - uses: ./.github/actions/setup-volta
+      - uses: getsentry/action-setup-volta@54775a59c41065f54ecc76d1dd5f2cdc7a1550cb  # v1.1.0
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
-      - uses: getsentry/size-limit-action@3f9e584f47175f7f2ac742569ac16b7a8c05ad82  # v4
+      - uses: getsentry/size-limit-action@7be9865310d295ad211da9a8464332288d60d837 # v5
         env:
           SENTRY_INSTRUMENTATION: 1
           SENTRY_WEBPACK_WEBHOOK_SECRET: ${{ secrets.SENTRY_WEBPACK_WEBHOOK_SECRET }}

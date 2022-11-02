@@ -6,6 +6,7 @@ import uniq from 'lodash/uniq';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import EventContexts from 'sentry/components/events/contexts';
 import EventContextSummary from 'sentry/components/events/contextSummary';
@@ -13,7 +14,6 @@ import EventDevice from 'sentry/components/events/device';
 import EventErrors, {Error} from 'sentry/components/events/errors';
 import EventAttachments from 'sentry/components/events/eventAttachments';
 import EventCause from 'sentry/components/events/eventCause';
-import EventCauseEmpty from 'sentry/components/events/eventCauseEmpty';
 import EventDataSection from 'sentry/components/events/eventDataSection';
 import EventExtraData from 'sentry/components/events/eventExtraData';
 import {EventSdk} from 'sentry/components/events/eventSdk';
@@ -34,6 +34,7 @@ import {
   ExceptionValue,
   Group,
   IssueAttachment,
+  IssueCategory,
   Organization,
   Project,
   SharedViewOrganization,
@@ -48,10 +49,11 @@ import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import {projectProcessingIssuesMessages} from 'sentry/views/settings/project/projectProcessingIssues';
 
+import {CommitRow} from '../commitRow';
+
 import findBestThread from './interfaces/threads/threadSelector/findBestThread';
 import getThreadException from './interfaces/threads/threadSelector/getThreadException';
 import EventEntry from './eventEntry';
-import EventReplay from './eventReplay';
 import EventTagsAndScreenshot from './eventTagsAndScreenshot';
 
 const MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH =
@@ -100,7 +102,6 @@ type Props = Pick<React.ComponentProps<typeof EventEntry>, 'route' | 'router'> &
   event?: Event;
   group?: Group;
   isShare?: boolean;
-  showExampleCommit?: boolean;
   showTagSummary?: boolean;
 };
 
@@ -115,7 +116,6 @@ const EventEntries = ({
   router,
   route,
   isShare = false,
-  showExampleCommit = false,
   showTagSummary = true,
 }: Props) => {
   const [isLoading, setIsLoading] = useState(true);
@@ -127,7 +127,7 @@ const EventEntries = ({
   const orgFeatures = organization?.features ?? [];
 
   const hasEventAttachmentsFeature = orgFeatures.includes('event-attachments');
-  const replayId = event?.tags?.find(({key}) => key === 'replayId')?.value;
+  const hasReplay = Boolean(event?.tags?.find(({key}) => key === 'replayId')?.value);
 
   const recordIssueError = useCallback(() => {
     if (!event || !event.errors || !(event.errors.length > 0)) {
@@ -338,13 +338,14 @@ const EventEntries = ({
           proGuardErrors={proGuardErrors}
         />
       )}
-      {!isShare &&
-        isNotSharedOrganization(organization) &&
-        (showExampleCommit ? (
-          <EventCauseEmpty event={event} organization={organization} project={project} />
-        ) : (
-          <EventCause project={project} event={event} group={group} />
-        ))}
+      {!isShare && isNotSharedOrganization(organization) && (
+        <EventCause
+          project={project}
+          eventId={event.id}
+          group={group}
+          commitRow={CommitRow}
+        />
+      )}
       {event.userReport && group && (
         <StyledEventUserFeedback
           report={event.userReport}
@@ -367,7 +368,10 @@ const EventEntries = ({
           />
         ) : (
           (!!(event.tags ?? []).length || hasContext) && (
-            <StyledEventDataSection title={t('Tags')} type="tags">
+            <StyledEventDataSection
+              title={<GuideAnchor target="tags">{t('Tags')}</GuideAnchor>}
+              type="tags"
+            >
               {hasContext && <EventContextSummary event={event} />}
               <EventTags
                 event={event}
@@ -385,6 +389,7 @@ const EventEntries = ({
         organization={organization}
         route={route}
         router={router}
+        isShare={isShare}
       />
       {hasContext && <EventContexts group={group} event={event} />}
       {event && !objectIsEmpty(event.context) && <EventExtraData event={event} />}
@@ -410,25 +415,67 @@ const EventEntries = ({
         <EventGroupingInfo
           projectId={projectSlug}
           event={event}
-          showGroupingConfig={orgFeatures.includes('set-grouping-config')}
+          showGroupingConfig={
+            orgFeatures.includes('set-grouping-config') && 'groupingConfig' in event
+          }
         />
       )}
-      {!isShare && (
-        <MiniReplayView
+      {!isShare && !hasReplay && hasEventAttachmentsFeature && (
+        <RRWebIntegration
           event={event}
-          orgFeatures={orgFeatures}
-          orgSlug={orgSlug}
-          projectSlug={projectSlug}
-          replayId={replayId}
+          orgId={orgSlug}
+          projectId={projectSlug}
+          renderer={children => (
+            <StyledReplayEventDataSection type="context-replay" title={t('Replay')}>
+              {children}
+            </StyledReplayEventDataSection>
+          )}
         />
       )}
     </div>
   );
 };
 
+function injectResourcesEntry(definedEvent: Event) {
+  const entries = definedEvent.entries;
+  let adjustedEntries: Entry[] = [];
+
+  // This check is to ensure we are not injecting multiple Resources entries
+  const resourcesIndex = entries.findIndex(entry => entry.type === EntryType.RESOURCES);
+  if (resourcesIndex === -1) {
+    const spansIndex = entries.findIndex(entry => entry.type === EntryType.SPANS);
+    const breadcrumbsIndex = entries.findIndex(
+      entry => entry.type === EntryType.BREADCRUMBS
+    );
+
+    // We want the Resources section to appear after Breadcrumbs.
+    // If Breadcrumbs are included on this event, we will inject this entry right after it.
+    // Otherwise, we inject it after the Spans entry.
+    const resourcesEntry: Entry = {type: EntryType.RESOURCES, data: null};
+    if (breadcrumbsIndex > -1) {
+      adjustedEntries = [
+        ...entries.slice(0, breadcrumbsIndex + 1),
+        resourcesEntry,
+        ...entries.slice(breadcrumbsIndex + 1, entries.length),
+      ];
+    } else if (spansIndex > -1) {
+      adjustedEntries = [
+        ...entries.slice(0, spansIndex + 1),
+        resourcesEntry,
+        ...entries.slice(spansIndex + 1, entries.length),
+      ];
+    }
+  }
+
+  if (adjustedEntries.length > 0) {
+    definedEvent.entries = adjustedEntries;
+  }
+}
+
 function Entries({
   definedEvent,
   projectSlug,
+  isShare,
   group,
   organization,
   route,
@@ -436,16 +483,22 @@ function Entries({
 }: {
   definedEvent: Event;
   projectSlug: string;
+  isShare?: boolean;
 } & Pick<Props, 'group' | 'organization' | 'route' | 'router'>) {
-  const entries = definedEvent.entries;
-
-  if (!Array.isArray(entries)) {
+  if (!Array.isArray(definedEvent.entries)) {
     return null;
+  }
+
+  if (
+    group?.issueCategory === IssueCategory.PERFORMANCE &&
+    organization.features?.includes('performance-issues')
+  ) {
+    injectResourcesEntry(definedEvent);
   }
 
   return (
     <Fragment>
-      {(entries as Array<Entry>).map((entry, entryIdx) => (
+      {(definedEvent.entries as Array<Entry>).map((entry, entryIdx) => (
         <ErrorBoundary
           key={`entry-${entryIdx}`}
           customComponent={
@@ -462,51 +515,12 @@ function Entries({
             entry={entry}
             route={route}
             router={router}
+            isShare={isShare}
           />
         </ErrorBoundary>
       ))}
     </Fragment>
   );
-}
-
-type MiniReplayViewProps = {
-  event: Event;
-  orgFeatures: string[];
-  orgSlug: string;
-  projectSlug: string;
-  replayId: undefined | string;
-};
-
-function MiniReplayView({
-  event,
-  orgFeatures,
-  orgSlug,
-  projectSlug,
-  replayId,
-}: MiniReplayViewProps) {
-  const hasEventAttachmentsFeature = orgFeatures.includes('event-attachments');
-  const hasSessionReplayFeature = orgFeatures.includes('session-replay-ui');
-
-  if (replayId && hasSessionReplayFeature) {
-    return (
-      <EventReplay replayId={replayId} orgSlug={orgSlug} projectSlug={projectSlug} />
-    );
-  }
-  if (hasEventAttachmentsFeature) {
-    return (
-      <RRWebIntegration
-        event={event}
-        orgId={orgSlug}
-        projectId={projectSlug}
-        renderer={children => (
-          <StyledReplayEventDataSection type="context-replay" title={t('Replay')}>
-            {children}
-          </StyledReplayEventDataSection>
-        )}
-      />
-    );
-  }
-  return null;
 }
 
 const StyledEventDataSection = styled(EventDataSection)`
@@ -522,28 +536,15 @@ const LatestEventNotAvailable = styled('div')`
   padding: ${space(2)} ${space(4)};
 `;
 
-const ErrorContainer = styled('div')`
-  /*
-  Remove border on adjacent context summary box.
-  Once that component uses emotion this will be harder.
-  */
-  & + .context-summary {
-    border-top: none;
-  }
-`;
-
 const BorderlessEventEntries = styled(EventEntries)`
-  & ${/* sc-selector */ DataSection} {
+  & ${DataSection} {
     margin-left: 0 !important;
     margin-right: 0 !important;
     padding: ${space(3)} 0 0 0;
   }
-  & ${/* sc-selector */ DataSection}:first-child {
+  & ${DataSection}:first-child {
     padding-top: 0;
     border-top: 0;
-  }
-  & ${/* sc-selector */ ErrorContainer} {
-    margin-bottom: ${space(2)};
   }
 `;
 

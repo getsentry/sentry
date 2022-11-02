@@ -1,23 +1,25 @@
 import {Fragment} from 'react';
 
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import GlobalModal from 'sentry/components/globalModal';
-import DataScrubbing from 'sentry/views/settings/components/dataScrubbing';
+import {DataScrubbing} from 'sentry/views/settings/components/dataScrubbing';
 
 const relayPiiConfig = JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig());
 
 describe('Data Scrubbing', function () {
   describe('Organization level', function () {
-    const organization = TestStubs.Organization();
+    const {organization} = initializeOrg();
     const additionalContext = 'These rules can be configured for each project.';
+    const endpoint = `organization/${organization.slug}/`;
 
     it('default render', function () {
       render(
         <DataScrubbing
           additionalContext={additionalContext}
-          endpoint={`organization/${organization.slug}/`}
+          endpoint={endpoint}
           relayPiiConfig={relayPiiConfig}
           organization={organization}
           onSubmitSuccess={jest.fn()}
@@ -31,7 +33,7 @@ describe('Data Scrubbing', function () {
       expect(
         screen.getByText(
           textWithMarkupMatcher(
-            `${additionalContext} The new rules will only apply to upcoming events.  For more details, see full documentation on data scrubbing.`
+            `${additionalContext} The new rules will only apply to upcoming events. For more details, see full documentation on data scrubbing.`
           )
         )
       ).toBeInTheDocument();
@@ -54,11 +56,24 @@ describe('Data Scrubbing', function () {
       expect(screen.getByRole('button', {name: 'Add Rule'})).toBeEnabled();
     });
 
+    it('render empty state', function () {
+      render(
+        <DataScrubbing
+          endpoint={endpoint}
+          relayPiiConfig={undefined}
+          organization={organization}
+          onSubmitSuccess={jest.fn()}
+        />
+      );
+
+      expect(screen.getByText('You have no data scrubbing rules')).toBeInTheDocument();
+    });
+
     it('render disabled actions', function () {
       render(
         <DataScrubbing
           additionalContext={additionalContext}
-          endpoint={`organization/${organization.slug}/`}
+          endpoint={endpoint}
           relayPiiConfig={relayPiiConfig}
           organization={organization}
           onSubmitSuccess={jest.fn()}
@@ -82,7 +97,7 @@ describe('Data Scrubbing', function () {
 
   describe('Project level', function () {
     it('default render', function () {
-      const organization = TestStubs.Organization();
+      const {organization, project} = initializeOrg();
 
       render(
         <DataScrubbing
@@ -90,7 +105,7 @@ describe('Data Scrubbing', function () {
           relayPiiConfig={relayPiiConfig}
           organization={organization}
           onSubmitSuccess={jest.fn()}
-          projectId="foo"
+          project={project}
         />
       );
 
@@ -101,7 +116,13 @@ describe('Data Scrubbing', function () {
     });
 
     it('OrganizationRules has content', function () {
-      const organization = TestStubs.Organization({relayPiiConfig});
+      const {organization, project} = initializeOrg({
+        ...initializeOrg(),
+        organization: {
+          ...initializeOrg().organization,
+          relayPiiConfig,
+        },
+      });
 
       render(
         <DataScrubbing
@@ -109,8 +130,9 @@ describe('Data Scrubbing', function () {
           relayPiiConfig={relayPiiConfig}
           organization={organization}
           onSubmitSuccess={jest.fn()}
-          projectId="foo"
-        />
+          project={project}
+        />,
+        {organization}
       );
 
       // Organization Rules
@@ -118,14 +140,14 @@ describe('Data Scrubbing', function () {
     });
 
     it('Delete rule successfully', async function () {
-      const organization = TestStubs.Organization();
+      const {organization, project} = initializeOrg();
 
       render(
         <Fragment>
           <GlobalModal />
           <DataScrubbing
             endpoint={`/projects/${organization.slug}/foo/`}
-            projectId="foo"
+            project={project}
             relayPiiConfig={relayPiiConfig}
             disabled={false}
             organization={organization}
@@ -142,14 +164,14 @@ describe('Data Scrubbing', function () {
     });
 
     it('Open Add Rule Modal', async function () {
-      const organization = TestStubs.Organization();
+      const {organization, project} = initializeOrg();
 
       render(
         <Fragment>
           <GlobalModal />
           <DataScrubbing
             endpoint={`/projects/${organization.slug}/foo/`}
-            projectId="foo"
+            project={project}
             relayPiiConfig={relayPiiConfig}
             disabled={false}
             organization={organization}
@@ -165,28 +187,32 @@ describe('Data Scrubbing', function () {
       ).toBeInTheDocument();
     });
 
-    it('Open Edit Rule Modal', async function () {
-      const organization = TestStubs.Organization();
+    it('Open Edit Rule Modal', function () {
+      const {organization, router, project} = initializeOrg();
 
       render(
         <Fragment>
           <GlobalModal />
           <DataScrubbing
             endpoint={`/projects/${organization.slug}/foo/`}
-            projectId="foo"
+            project={project}
             relayPiiConfig={relayPiiConfig}
             disabled={false}
             organization={organization}
             onSubmitSuccess={jest.fn()}
           />
-        </Fragment>
+        </Fragment>,
+        {router}
       );
 
       userEvent.click(screen.getAllByRole('button', {name: 'Edit Rule'})[0]);
 
-      expect(
-        await screen.findByText('Edit an advanced data scrubbing rule')
-      ).toBeInTheDocument();
+      // Verify the router to open the modal was called
+      expect(router.push).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pathname: `/settings/${organization.slug}/projects/${project.slug}/security-and-privacy/advanced-data-scrubbing/0/`,
+        })
+      );
     });
   });
 });

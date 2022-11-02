@@ -1,7 +1,7 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import ProjectActions from 'sentry/actions/projectActions';
-import TeamActions from 'sentry/actions/teamActions';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import TeamStore from 'sentry/stores/teamStore';
 import withTeamsForUser from 'sentry/utils/withTeamsForUser';
 
 describe('withUserTeams HoC', function () {
@@ -24,8 +24,8 @@ describe('withUserTeams HoC', function () {
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
-    jest.spyOn(ProjectActions, 'loadProjects');
-    jest.spyOn(TeamActions, 'loadTeams');
+    jest.spyOn(ProjectsStore, 'loadInitialData');
+    jest.spyOn(TeamStore, 'loadInitialData');
   });
 
   it('forwards errors', async function () {

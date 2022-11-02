@@ -546,7 +546,8 @@ class ColumnEditCollection extends Component<Props, State> {
     const title = canAdd
       ? undefined
       : t(
-          `Sorry, you've reached the maximum number of columns (${MAX_COL_COUNT}). Delete columns to add more.`
+          `Sorry, you've reached the maximum number of columns (%d). Delete columns to add more.`,
+          MAX_COL_COUNT
         );
 
     const singleColumn = columns.length === 1;
@@ -691,7 +692,7 @@ const DragPlaceholder = styled('div')`
   margin: 0 ${space(3)} ${space(1)} ${space(3)};
   border: 2px dashed ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  height: 41px;
+  height: ${p => p.theme.form.md.height}px;
 `;
 
 const Heading = styled('div')<{gridColumns: number}>`
@@ -708,8 +709,6 @@ const StyledSectionHeading = styled(SectionHeading)`
 `;
 
 const AliasInput = styled(Input)`
-  /* Match the height of the select boxes */
-  height: 40px;
   min-width: 50px;
 `;
 
@@ -728,11 +727,11 @@ const AliasField = styled('div')<{singleColumn: boolean}>`
 
 const RemoveButton = styled(Button)`
   margin-left: ${space(1)};
-  height: 40px;
+  height: ${p => p.theme.form.md.height}px;
 `;
 
 const DragAndReorderButton = styled(Button)`
-  height: 40px;
+  height: ${p => p.theme.form.md.height}px;
 `;
 
 export default ColumnEditCollection;

@@ -2,6 +2,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
+import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {DashboardFilterKeys} from 'sentry/views/dashboardsV2/types';
 import {DashboardsMEPContext} from 'sentry/views/dashboardsV2/widgetCard/dashboardsMEPContext';
 import WidgetQueries, {
@@ -9,9 +10,12 @@ import WidgetQueries, {
 } from 'sentry/views/dashboardsV2/widgetCard/widgetQueries';
 
 describe('Dashboards > WidgetQueries', function () {
-  const initialData = initializeOrg({
-    organization: TestStubs.Organization(),
-  });
+  const initialData = initializeOrg();
+
+  const renderWithProviders = component =>
+    render(
+      <MEPSettingProvider forceTransactions={false}>{component}</MEPSettingProvider>
+    );
 
   const multipleQueryWidget = {
     title: 'Errors',
@@ -92,7 +96,7 @@ describe('Dashboards > WidgetQueries', function () {
       body: [],
       match: [MockApiClient.matchQuery({query: 'event.type:default'})],
     });
-    render(
+    renderWithProviders(
       <WidgetQueries
         api={api}
         widget={multipleQueryWidget}
@@ -114,7 +118,7 @@ describe('Dashboards > WidgetQueries', function () {
       url: '/organizations/org-slug/events-stats/',
       body: [],
     });
-    render(
+    renderWithProviders(
       <WidgetQueries
         api={api}
         widget={singleQueryWidget}
@@ -142,7 +146,7 @@ describe('Dashboards > WidgetQueries', function () {
       url: '/organizations/org-slug/eventsv2/',
       body: [],
     });
-    render(
+    renderWithProviders(
       <WidgetQueries
         api={api}
         widget={tableWidget}
@@ -179,7 +183,7 @@ describe('Dashboards > WidgetQueries', function () {
     });
 
     let error = '';
-    render(
+    renderWithProviders(
       <WidgetQueries
         api={api}
         widget={multipleQueryWidget}
@@ -214,7 +218,7 @@ describe('Dashboards > WidgetQueries', function () {
         period: '90d',
       },
     };
-    render(
+    renderWithProviders(
       <WidgetQueries
         api={api}
         widget={widget}
@@ -248,7 +252,7 @@ describe('Dashboards > WidgetQueries', function () {
     });
     const widget = {...singleQueryWidget, interval: '1m'};
 
-    render(
+    renderWithProviders(
       <WidgetQueries
         api={api}
         widget={widget}
@@ -280,7 +284,7 @@ describe('Dashboards > WidgetQueries', function () {
     });
 
     let childProps = undefined;
-    render(
+    renderWithProviders(
       <WidgetQueries
         api={api}
         widget={tableWidget}
@@ -357,7 +361,7 @@ describe('Dashboards > WidgetQueries', function () {
     };
 
     let childProps = undefined;
-    render(
+    renderWithProviders(
       <WidgetQueries
         api={api}
         widget={widget}
@@ -391,7 +395,7 @@ describe('Dashboards > WidgetQueries', function () {
     });
 
     let childProps = undefined;
-    render(
+    renderWithProviders(
       <WidgetQueries
         api={api}
         widget={{
@@ -450,7 +454,7 @@ describe('Dashboards > WidgetQueries', function () {
     });
 
     let childProps = undefined;
-    render(
+    renderWithProviders(
       <WidgetQueries
         api={api}
         widget={{
@@ -540,7 +544,7 @@ describe('Dashboards > WidgetQueries', function () {
     };
 
     let childProps = undefined;
-    render(
+    renderWithProviders(
       <WidgetQueries
         api={api}
         widget={widget}
@@ -574,7 +578,7 @@ describe('Dashboards > WidgetQueries', function () {
       // Should be ignored for bars.
       interval: '5m',
     };
-    render(
+    renderWithProviders(
       <WidgetQueries
         api={api}
         widget={barWidget}
@@ -637,7 +641,7 @@ describe('Dashboards > WidgetQueries', function () {
       interval: '5m',
     };
     const child = jest.fn(() => <div data-test-id="child" />);
-    render(
+    renderWithProviders(
       <WidgetQueries
         api={api}
         widget={barWidget}
@@ -671,7 +675,7 @@ describe('Dashboards > WidgetQueries', function () {
       displayType: 'area',
       interval: '5m',
     };
-    render(
+    renderWithProviders(
       <WidgetQueries
         api={api}
         widget={areaWidget}
@@ -707,7 +711,7 @@ describe('Dashboards > WidgetQueries', function () {
       interval: '5m',
     };
     let childProps;
-    const {rerender} = render(
+    const {rerender} = renderWithProviders(
       <WidgetQueries
         api={api}
         widget={lineWidget}
@@ -726,29 +730,31 @@ describe('Dashboards > WidgetQueries', function () {
 
     // Simulate a re-render with a new query alias
     rerender(
-      <WidgetQueries
-        api={api}
-        widget={{
-          ...lineWidget,
-          queries: [
-            {
-              conditions: 'event.type:error',
-              fields: ['count()'],
-              aggregates: ['count()'],
-              columns: [],
-              name: 'this query alias changed',
-              orderby: '',
-            },
-          ],
-        }}
-        organization={initialData.organization}
-        selection={selection}
-      >
-        {props => {
-          childProps = props;
-          return <div data-test-id="child" />;
-        }}
-      </WidgetQueries>
+      <MEPSettingProvider forceTransactions={false}>
+        <WidgetQueries
+          api={api}
+          widget={{
+            ...lineWidget,
+            queries: [
+              {
+                conditions: 'event.type:error',
+                fields: ['count()'],
+                aggregates: ['count()'],
+                columns: [],
+                name: 'this query alias changed',
+                orderby: '',
+              },
+            ],
+          }}
+          organization={initialData.organization}
+          selection={selection}
+        >
+          {props => {
+            childProps = props;
+            return <div data-test-id="child" />;
+          }}
+        </WidgetQueries>
+      </MEPSettingProvider>
     );
 
     // Did not re-query
@@ -886,7 +892,7 @@ describe('Dashboards > WidgetQueries', function () {
 
     const children = jest.fn(() => <div />);
 
-    render(
+    renderWithProviders(
       <DashboardsMEPContext.Provider
         value={{
           isMetricsData: undefined,
@@ -932,7 +938,7 @@ describe('Dashboards > WidgetQueries', function () {
 
     const children = jest.fn(() => <div />);
 
-    render(
+    renderWithProviders(
       <DashboardsMEPContext.Provider
         value={{
           isMetricsData: undefined,
@@ -989,7 +995,7 @@ describe('Dashboards > WidgetQueries', function () {
         },
       ],
     };
-    render(
+    renderWithProviders(
       <WidgetQueries
         api={api}
         widget={areaWidget}

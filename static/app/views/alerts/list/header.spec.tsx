@@ -27,11 +27,6 @@ describe('AlertHeader', () => {
     ProjectsStore.loadInitialData([project]);
   });
 
-  afterEach(() => {
-    PageFiltersStore.teardown();
-    ProjectsStore.teardown();
-  });
-
   it('should pass global selection project to create alert button', () => {
     render(<AlertHeader activeTab="stream" router={TestStubs.router()} />, {
       context: routerContext,

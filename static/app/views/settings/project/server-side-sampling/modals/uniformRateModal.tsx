@@ -7,7 +7,6 @@ import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {NumberField} from 'sentry/components/forms';
-import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -21,13 +20,12 @@ import {t, tct} from 'sentry/locale';
 import ModalStore from 'sentry/stores/modalStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
-import {Project} from 'sentry/types';
+import {Outcome, Project} from 'sentry/types';
 import {SamplingRule, UniformModalsSubmit} from 'sentry/types/sampling';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {formatPercentage} from 'sentry/utils/formatters';
 import useApi from 'sentry/utils/useApi';
-import {Outcome} from 'sentry/views/organizationStats/types';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {
@@ -43,6 +41,7 @@ import {projectStatsToSeries} from '../utils/projectStatsToSeries';
 import {useProjectStats} from '../utils/useProjectStats';
 import {useRecommendedSdkUpgrades} from '../utils/useRecommendedSdkUpgrades';
 
+import {AffectOtherProjectsTransactionsAlert} from './affectOtherProjectsTransactionsAlert';
 import {RecommendedStepsModal, RecommendedStepsModalProps} from './recommendedStepsModal';
 import {SpecifyClientRateModal} from './specifyClientRateModal';
 import {UniformRateChart} from './uniformRateChart';
@@ -87,7 +86,9 @@ export function UniformRateModal({
     undefined
   );
   const [activeStep, setActiveStep] = useState<Step | undefined>(undefined);
-  const [selectedStrategy, setSelectedStrategy] = useState<Strategy>(Strategy.CURRENT);
+  const [selectedStrategy, setSelectedStrategy] = useState<Strategy>(
+    Strategy.RECOMMENDED
+  );
 
   const modalStore = useLegacyStore(ModalStore);
 
@@ -364,11 +365,11 @@ export function UniformRateModal({
       <Body>
         <TextBlock>
           {tct(
-            'Set a server-side sample rate for all transactions using our suggestion as a starting point. To accurately monitor overall performance, we also suggest changing your client(SDK) sample rate to allow more metrics to be processed. [learnMoreLink: Learn more about quota management].',
+            'Set a server-side sample rate for all transactions using our suggestion as a starting point. To improve the accuracy of your performance metrics, we also suggest increasing your client(SDK) sample rate to allow more transactions to be processed. [learnMoreLink: Learn more about quota management].',
             {
               learnMoreLink: (
                 <ExternalLink
-                  href={`${SERVER_SIDE_SAMPLING_DOC_LINK}getting-started/#2-set-a-uniform-sampling-rate`}
+                  href={`${SERVER_SIDE_SAMPLING_DOC_LINK}getting-started/#2-set-a-uniform-sample-rate`}
                 />
               ),
             }
@@ -554,34 +555,11 @@ export function UniformRateModal({
             </Alert>
           )}
 
-          {!isProjectIncompatible && affectedProjects.length > 0 && (
-            <Alert
-              data-test-id="affected-sdk-alert"
-              type="info"
-              showIcon
-              trailingItems={
-                <Button
-                  href={`${SERVER_SIDE_SAMPLING_DOC_LINK}#traces--propagation-of-sampling-decisions`}
-                  priority="link"
-                  borderless
-                  external
-                >
-                  {t('Learn More')}
-                </Button>
-              }
-            >
-              {t('This rate will affect the transactions for the following projects:')}
-              <Projects>
-                {affectedProjects.map(affectedProject => (
-                  <ProjectBadge
-                    key={affectedProject.id}
-                    project={affectedProject}
-                    avatarSize={16}
-                  />
-                ))}
-              </Projects>
-            </Alert>
-          )}
+          <AffectOtherProjectsTransactionsAlert
+            affectedProjects={affectedProjects}
+            projectSlug={project.slug}
+            isProjectIncompatible={isProjectIncompatible}
+          />
         </Fragment>
       </Body>
       <Footer>
@@ -615,9 +593,9 @@ export function UniformRateModal({
               }
               title={
                 isProjectIncompatible
-                  ? t('Your project is currently incompatible with Server-Side Sampling.')
+                  ? t('Your project is currently incompatible with Dynamic Sampling.')
                   : isWithoutTransactions
-                  ? t('You need at least one transaction to set up Server-Side Sampling.')
+                  ? t('You need at least one transaction to set up Dynamic Sampling.')
                   : selectedStrategy === Strategy.CURRENT
                   ? t('Current sampling values selected')
                   : !isValid
@@ -704,7 +682,7 @@ const RefreshRatesColumn = styled('div')`
   display: inline-flex;
 `;
 
-const Projects = styled('div')`
+export const Projects = styled('div')`
   display: flex;
   flex-wrap: wrap;
   gap: ${space(1.5)};

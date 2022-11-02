@@ -16,6 +16,7 @@ __all__ = (
     "IntegrationTestCase",
     "SnubaTestCase",
     "BaseMetricsTestCase",
+    "BaseMetricsLayerTestCase",
     "BaseIncidentsTest",
     "IntegrationRepositoryTestCase",
     "ReleaseCommitPatchTest",
@@ -26,23 +27,26 @@ __all__ = (
     "MetricsEnhancedPerformanceTestCase",
     "MetricsAPIBaseTestCase",
     "OrganizationMetricMetaIntegrationTestCase",
+    "ReplaysAcceptanceTestCase",
     "ReplaysSnubaTestCase",
 )
 
 import hashlib
 import inspect
-import os
 import os.path
 import time
 from contextlib import contextmanager
-from datetime import datetime
-from typing import Dict, List, Optional, Union
+from datetime import datetime, timedelta
+from io import BytesIO
+from typing import Dict, List, Optional, Sequence, Union
 from unittest import mock
 from unittest.mock import patch
 from urllib.parse import urlencode
 from uuid import uuid4
+from zlib import compress
 
 import pytest
+import pytz
 import requests
 from click.testing import CliRunner
 from django.conf import settings
@@ -63,6 +67,8 @@ from pkg_resources import iter_entry_points
 from rest_framework import status
 from rest_framework.test import APITestCase as BaseAPITestCase
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
+from snuba_sdk import Granularity, Limit, Offset
+from snuba_sdk.conditions import ConditionGroup
 
 from sentry import auth, eventstore
 from sentry.auth.authenticators import TotpInterface
@@ -75,6 +81,7 @@ from sentry.auth.superuser import COOKIE_SALT as SU_COOKIE_SALT
 from sentry.auth.superuser import COOKIE_SECURE as SU_COOKIE_SECURE
 from sentry.auth.superuser import ORG_ID as SU_ORG_ID
 from sentry.auth.superuser import Superuser
+from sentry.event_manager import EventManager
 from sentry.eventstream.snuba import SnubaEventStream
 from sentry.mail import mail_adapter
 from sentry.models import AuthProvider as AuthProviderModel
@@ -87,6 +94,7 @@ from sentry.models import (
     DashboardWidgetQuery,
     DeletedOrganization,
     Deploy,
+    File,
     GroupMeta,
     Identity,
     IdentityProvider,
@@ -102,6 +110,7 @@ from sentry.models import (
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.plugins.base import plugins
+from sentry.replays.models import ReplayRecordingSegment
 from sentry.search.events.constants import (
     METRIC_FRUSTRATED_TAG_VALUE,
     METRIC_SATISFACTION_TAG_KEY,
@@ -113,16 +122,20 @@ from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.tagstore.snuba import SnubaTagStorage
 from sentry.testutils.factories import get_fixture_path
-from sentry.testutils.helpers.datetime import iso_format
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.slack import install_slack
 from sentry.types.integrations import ExternalProviders
+from sentry.types.issues import GroupType
 from sentry.utils import json
 from sentry.utils.auth import SsoSession
+from sentry.utils.json import dumps_htmlsafe
 from sentry.utils.pytest.selenium import Browser
 from sentry.utils.retries import TimedRetryPolicy
+from sentry.utils.samples import load_data
 from sentry.utils.snuba import _snuba_pool
 
-from ..snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
+from ..snuba.metrics import MetricField, MetricGroupByField, MetricsQuery, OrderBy, get_date_range
+from ..snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI, parse_mri
 from . import assert_status_code
 from .factories import Factories
 from .fixtures import Fixtures
@@ -134,6 +147,7 @@ from .helpers import (
     override_options,
     parse_queries,
 )
+from .silo import exempt_from_silo_limits
 from .skips import requires_snuba
 
 DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36"
@@ -233,7 +247,8 @@ class BaseTestCase(Fixtures, Exam):
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
         request = self.make_request()
-        login(request, user)
+        with exempt_from_silo_limits():
+            login(request, user)
         request.user = user
 
         if organization_ids is None:
@@ -450,6 +465,31 @@ class TestCase(BaseTestCase, TestCase):
 
 class TransactionTestCase(BaseTestCase, TransactionTestCase):
     pass
+
+
+class PerformanceIssueTestCase(BaseTestCase):
+    def create_performance_issue(self):
+        event_data = load_data(
+            "transaction-n-plus-one",
+            timestamp=before_now(minutes=10),
+            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE.value}-group1"],
+        )
+        perf_event_manager = EventManager(event_data)
+        perf_event_manager.normalize()
+        with override_options(
+            {
+                "performance.issues.all.problem-creation": 1.0,
+                "performance.issues.all.problem-detection": 1.0,
+                "performance.issues.n_plus_one_db.problem-creation": 1.0,
+            }
+        ), self.feature(
+            [
+                "organizations:performance-issues-ingest",
+                "projects:performance-suspect-spans-ingestion",
+            ]
+        ):
+            event = perf_event_manager.save(self.project.id)
+        return event.for_group(event.groups[0])
 
 
 class APITestCase(BaseTestCase, BaseAPITestCase):
@@ -916,9 +956,17 @@ class SnubaTestCase(BaseTestCase):
     def store_event(self, *args, **kwargs):
         with mock.patch("sentry.eventstream.insert", self.snuba_eventstream.insert):
             stored_event = Factories.store_event(*args, **kwargs)
+
+            # Error groups
             stored_group = stored_event.group
             if stored_group is not None:
                 self.store_group(stored_group)
+
+            # Performance groups
+            stored_groups = stored_event.groups
+            if stored_groups is not None:
+                for group in stored_groups:
+                    self.store_group(group)
             return stored_event
 
     def wait_for_event_count(self, project_id, total, attempts=2):
@@ -949,7 +997,7 @@ class SnubaTestCase(BaseTestCase):
     def bulk_store_sessions(self, sessions):
         assert (
             requests.post(
-                settings.SENTRY_SNUBA + "/tests/sessions/insert", data=json.dumps(sessions)
+                settings.SENTRY_SNUBA + "/tests/entities/sessions/insert", data=json.dumps(sessions)
             ).status_code
             == 200
         )
@@ -988,7 +1036,8 @@ class SnubaTestCase(BaseTestCase):
         data = [self.__wrap_group(group)]
         assert (
             requests.post(
-                settings.SENTRY_SNUBA + "/tests/groupedmessage/insert", data=json.dumps(data)
+                settings.SENTRY_SNUBA + "/tests/entities/groupedmessage/insert",
+                data=json.dumps(data),
             ).status_code
             == 200
         )
@@ -997,7 +1046,7 @@ class SnubaTestCase(BaseTestCase):
         data = [self.__wrap_group(group)]
         assert (
             requests.post(
-                settings.SENTRY_SNUBA + "/tests/outcomes/insert", data=json.dumps(data)
+                settings.SENTRY_SNUBA + "/tests/entities/outcomes/insert", data=json.dumps(data)
             ).status_code
             == 200
         )
@@ -1065,7 +1114,7 @@ class SnubaTestCase(BaseTestCase):
 
         assert (
             requests.post(
-                settings.SENTRY_SNUBA + "/tests/events/insert", data=json.dumps(events)
+                settings.SENTRY_SNUBA + "/tests/entities/events/insert", data=json.dumps(events)
             ).status_code
             == 200
         )
@@ -1215,6 +1264,175 @@ class BaseMetricsTestCase(SnubaTestCase):
         )
 
 
+class BaseMetricsLayerTestCase(BaseMetricsTestCase):
+    ENTITY_SHORTHANDS = {
+        "c": "counter",
+        "s": "set",
+        "d": "distribution",
+        "g": "gauge",
+    }
+
+    @property
+    def now(self):
+        """
+        Returns the current time instance that will be used throughout the tests of the metrics layer.
+
+        This method has to be implemented in all the children classes because it serves as a way to standardize
+        access to time.
+        """
+        raise NotImplementedError
+
+    def _extract_entity_from_mri(self, mri_string: str) -> Optional[str]:
+        """
+        Extracts the entity name from the MRI given a map of shorthands used to represent that entity in the MRI.
+        """
+        if (parsed_mri := parse_mri(mri_string)) is not None:
+            return self.ENTITY_SHORTHANDS[parsed_mri.entity]
+
+    def _store_metric(
+        self,
+        name: str,
+        tags: Dict[str, str],
+        value: int,
+        use_case_id: UseCaseKey,
+        type: Optional[str] = None,
+        org_id: Optional[int] = None,
+        project_id: Optional[int] = None,
+        days_before_now: int = 0,
+        hours_before_now: int = 0,
+        minutes_before_now: int = 0,
+        seconds_before_now: int = 0,
+    ):
+        # We subtract one second in order to account for right non-inclusivity in the query. If we wouldn't do this
+        # some data won't be returned (this applies only if we use self.now() in the "end" bound of the query).
+        #
+        # Use SENTRY_SNUBA_INFO=true while running queries in tests to know more about how data is actually queried
+        # at the clickhouse level.
+        #
+        # The solution proposed aims at solving the problem of flaky tests that occurred during CI at specific times.
+        self.store_metric(
+            org_id=self.organization.id if org_id is None else org_id,
+            project_id=self.project.id if project_id is None else project_id,
+            type=self._extract_entity_from_mri(name) if type is None else type,
+            name=name,
+            tags=tags,
+            timestamp=(
+                self.now
+                - timedelta(
+                    days=days_before_now,
+                    hours=hours_before_now,
+                    minutes=minutes_before_now,
+                    # We subtract 1 second -(+1) in order to account for right non-inclusivity in the queries.
+                    #
+                    # E.g.: if we save at 10:00:00, and we have as "end" of the query that time, we must store our
+                    # value with a timestamp less than 10:00:00 so that irrespectively of the bucket we will have
+                    # the value in the query result set. This is because when we save 10:00:00 - 1 second in the db it
+                    # will be saved under different granularities as (09:59:59, 09:59:00, 09:00:00) and these are the
+                    # actual timestamps that will be compared to the bounds "start" and "end".
+                    # Supposing we store 09:59:59, and we have "start"=09:00:00 and "end"=10:00:00, and we want to query
+                    # by granularity (60 = minutes) then we look at entries with timestamp = 09:59:00 which is
+                    # >= "start" and < "end" thus all these records will be returned.
+                    # Of course this - 1 second "trick" is just to abstract away this complexity, but it can also be
+                    # avoided by being more mindful when it comes to using the "end" bound, however because we would
+                    # like our tests to be deterministic we would like to settle on this approach. This - 1 can also
+                    # be avoided by choosing specific frozen times depending on granularities and stored data but
+                    # as previously mentioned we would like to standardize the time we choose unless there are specific
+                    # cases.
+                    seconds=seconds_before_now + 1,
+                )
+            ).timestamp(),
+            value=value,
+            use_case_id=use_case_id,
+        )
+
+    def store_performance_metric(
+        self,
+        name: str,
+        tags: Dict[str, str],
+        value: int,
+        type: Optional[str] = None,
+        org_id: Optional[int] = None,
+        project_id: Optional[int] = None,
+        days_before_now: int = 0,
+        hours_before_now: int = 0,
+        minutes_before_now: int = 0,
+        seconds_before_now: int = 0,
+    ):
+        self._store_metric(
+            type=type,
+            name=name,
+            tags=tags,
+            value=value,
+            org_id=org_id,
+            project_id=project_id,
+            use_case_id=UseCaseKey.PERFORMANCE,
+            days_before_now=days_before_now,
+            hours_before_now=hours_before_now,
+            minutes_before_now=minutes_before_now,
+            seconds_before_now=seconds_before_now,
+        )
+
+    def store_release_health_metric(
+        self,
+        name: str,
+        tags: Dict[str, str],
+        value: int,
+        type: Optional[str] = None,
+        org_id: Optional[int] = None,
+        project_id: Optional[int] = None,
+        days_before_now: int = 0,
+        hours_before_now: int = 0,
+        minutes_before_now: int = 0,
+        seconds_before_now: int = 0,
+    ):
+        self._store_metric(
+            type=type,
+            name=name,
+            tags=tags,
+            value=value,
+            org_id=org_id,
+            project_id=project_id,
+            use_case_id=UseCaseKey.RELEASE_HEALTH,
+            days_before_now=days_before_now,
+            hours_before_now=hours_before_now,
+            minutes_before_now=minutes_before_now,
+            seconds_before_now=seconds_before_now,
+        )
+
+    def build_metrics_query(
+        self,
+        select: Sequence[MetricField],
+        where: Optional[ConditionGroup] = None,
+        groupby: Optional[Sequence[MetricGroupByField]] = None,
+        orderby: Optional[Sequence[OrderBy]] = None,
+        limit: Optional[Limit] = None,
+        offset: Optional[Offset] = None,
+        include_totals: bool = True,
+        include_series: bool = True,
+        before_now: str = None,
+        granularity: str = None,
+    ):
+        (start, end, granularity_in_seconds) = get_date_range(
+            {"statsPeriod": before_now, "interval": granularity}
+        )
+
+        return MetricsQuery(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            select=select,
+            start=start,
+            end=end,
+            granularity=Granularity(granularity=granularity_in_seconds),
+            where=where,
+            groupby=groupby,
+            orderby=orderby,
+            limit=limit,
+            offset=offset,
+            include_totals=include_totals,
+            include_series=include_series,
+        )
+
+
 class MetricsEnhancedPerformanceTestCase(BaseMetricsTestCase, TestCase):
     TYPE_MAP = {
         "metrics_distributions": "distribution",
@@ -1337,7 +1555,7 @@ class OutcomesSnubaTest(TestCase):
 
         assert (
             requests.post(
-                settings.SENTRY_SNUBA + "/tests/outcomes/insert", data=json.dumps(outcomes)
+                settings.SENTRY_SNUBA + "/tests/entities/outcomes/insert", data=json.dumps(outcomes)
             ).status_code
             == 200
         )
@@ -1351,8 +1569,49 @@ class ReplaysSnubaTestCase(TestCase):
         assert requests.post(settings.SENTRY_SNUBA + "/tests/replays/drop").status_code == 200
 
     def store_replays(self, replay):
-        response = requests.post(settings.SENTRY_SNUBA + "/tests/replays/insert", json=[replay])
+        response = requests.post(
+            settings.SENTRY_SNUBA + "/tests/entities/replays/insert", json=[replay]
+        )
         assert response.status_code == 200
+
+
+# AcceptanceTestCase and TestCase are mutually exclusive base classses
+class ReplaysAcceptanceTestCase(AcceptanceTestCase, SnubaTestCase):
+    def setUp(self):
+        self.now = datetime.utcnow().replace(tzinfo=pytz.utc)
+        super().setUp()
+        self.drop_replays()
+        patcher = patch("django.utils.timezone.now", return_value=self.now)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def drop_replays(self):
+        assert requests.post(settings.SENTRY_SNUBA + "/tests/replays/drop").status_code == 200
+
+    def store_replays(self, replays):
+        assert (
+            len(replays) >= 2
+        ), "You need to store at least 2 replay events for the replay to be considered valid"
+        response = requests.post(
+            settings.SENTRY_SNUBA + "/tests/entities/replays/insert", json=replays
+        )
+        assert response.status_code == 200
+
+    def store_replay_segments(
+        self,
+        replay_id: str,
+        project_id: str,
+        segment_id: int,
+        segment,
+    ):
+        f = File.objects.create(name="rr:{segment_id}", type="replay.recording")
+        f.putfile(BytesIO(compress(dumps_htmlsafe(segment).encode())))
+        ReplayRecordingSegment.objects.create(
+            replay_id=replay_id,
+            project_id=project_id,
+            segment_id=segment_id,
+            file_id=f.id,
+        )
 
 
 class IntegrationRepositoryTestCase(APITestCase):
@@ -1802,7 +2061,7 @@ class MSTeamsActivityNotificationTest(ActivityTestCase):
 
 @apply_feature_flag_on_cls("organizations:metrics")
 @pytest.mark.usefixtures("reset_snuba")
-class MetricsAPIBaseTestCase(BaseMetricsTestCase, APITestCase):
+class MetricsAPIBaseTestCase(BaseMetricsLayerTestCase, APITestCase):
     ...
 
 

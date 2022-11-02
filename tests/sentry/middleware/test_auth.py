@@ -1,16 +1,31 @@
 import base64
+from typing import cast
 
-from django.test import RequestFactory
+from django.test import RequestFactory, override_settings
+from django.utils import timezone
 from exam import fixture
+from freezegun import freeze_time
 
 from sentry.middleware.auth import AuthenticationMiddleware
 from sentry.models import ApiKey, ApiToken, UserIP
+from sentry.region_to_control.producer import (
+    MockRegionToControlMessageService,
+    region_to_control_message_service,
+)
+from sentry.silo import SiloMode
 from sentry.testutils import TestCase
 from sentry.utils.auth import login
 
 
 class AuthenticationMiddlewareTestCase(TestCase):
     middleware = fixture(AuthenticationMiddleware)
+
+    def setUp(self):
+        from django.core.cache import cache
+
+        cache.clear()
+        yield
+        cache.clear()
 
     @fixture
     def request(self):
@@ -30,6 +45,36 @@ class AuthenticationMiddlewareTestCase(TestCase):
         assert request.user == self.user
         assert "_nonce" not in request.session
         assert UserIP.objects.filter(user=self.user, ip_address="127.0.0.1").exists()
+
+    def test_process_request_user_in_region_mode(self):
+        request = self.request
+        assert login(request, self.user)
+
+        with override_settings(SILO_MODE=SiloMode.REGION), freeze_time("2000-01-01"):
+            self.middleware.process_request(request)
+
+            # User is still authenticated,
+            assert request.user.is_authenticated
+            assert request.user == self.user
+
+            cast(
+                MockRegionToControlMessageService, region_to_control_message_service
+            ).mock.write_region_to_control_message.assert_called_with(
+                dict(
+                    user_ip_event=dict(
+                        user_id=self.user.id,
+                        ip_address="127.0.0.1",
+                        last_seen=timezone.now(),
+                        country_code=None,
+                        region_code=None,
+                    ),
+                    audit_log_event=None,
+                ),
+                False,
+            )
+
+        # But no ip logging occurs.
+        assert not UserIP.objects.filter(user=self.user, ip_address="127.0.0.1").exists()
 
     def test_process_request_good_nonce(self):
         request = self.request

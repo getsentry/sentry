@@ -5,7 +5,7 @@ import {getTraceDateTimeRange} from 'sentry/components/events/interfaces/spans/u
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {OrganizationSummary} from 'sentry/types';
 import {Event, EventTransaction} from 'sentry/types/event';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
 import {
@@ -314,10 +314,8 @@ export function isTraceFullDetailed(transaction): transaction is TraceFullDetail
 }
 
 function handleProjectMeta(organization: OrganizationSummary, projects: number) {
-  trackAnalyticsEvent({
-    eventKey: 'quick_trace.connected_services',
-    eventName: 'Quick Trace: Connected Services',
-    organization_id: parseInt(organization.id, 10),
+  trackAdvancedAnalyticsEvent('quick_trace.connected_services', {
+    organization: organization.id,
     projects,
   });
 }

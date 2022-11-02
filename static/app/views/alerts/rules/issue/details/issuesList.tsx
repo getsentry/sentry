@@ -18,6 +18,7 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 
 type GroupHistory = {
   count: number;
+  eventId: string;
   group: Group;
   lastTriggered: string;
 };
@@ -101,7 +102,7 @@ class AlertRuleIssuesList extends AsyncComponent<Props, State> {
             t('Last Triggered'),
           ]}
         >
-          {groupHistory?.map(({group: issue, count, lastTriggered}) => {
+          {groupHistory?.map(({group: issue, count, lastTriggered, eventId}) => {
             const message = getMessage(issue);
             const {title} = getTitle(issue);
 
@@ -110,8 +111,13 @@ class AlertRuleIssuesList extends AsyncComponent<Props, State> {
                 <TitleWrapper>
                   <Link
                     to={{
-                      pathname: `/organizations/${organization.slug}/issues/${issue.id}/`,
-                      query: rule.environment ? {environment: rule.environment} : {},
+                      pathname:
+                        `/organizations/${organization.slug}/issues/${issue.id}/` +
+                        (eventId ? `events/${eventId}` : ''),
+                      query: {
+                        referrer: 'alert-rule-issue-list',
+                        ...(rule.environment ? {environment: rule.environment} : {}),
+                      },
                     }}
                   >
                     {title}:

@@ -18,12 +18,13 @@ import ConfigStore from 'sentry/stores/configStore';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {Theme} from 'sentry/utils/theme';
+import useApi from 'sentry/utils/useApi';
 import withLatestContext from 'sentry/utils/withLatestContext';
 import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
 
 const LINKS = {
   DOCUMENTATION: 'https://docs.sentry.io/',
-  DOCUMENTATION_PLATFORMS: 'https://docs.sentry.io/clients/',
+  DOCUMENTATION_PLATFORMS: 'https://docs.sentry.io/platforms/',
   DOCUMENTATION_QUICKSTART: 'https://docs.sentry.io/platform-redirect/?next=/',
   DOCUMENTATION_CLI: 'https://docs.sentry.io/product/cli/',
   DOCUMENTATION_API: 'https://docs.sentry.io/api/',
@@ -41,17 +42,19 @@ interface SettingsIndexProps extends RouteComponentProps<{}, {}> {
 }
 
 function SettingsIndex({organization, ...props}: SettingsIndexProps) {
+  const api = useApi();
+
   useEffect(() => {
     // if there is no org in context, SidebarDropdown uses an org from `withLatestContext`
     // (which queries the org index endpoint instead of org details)
     // and does not have `access` info
     if (organization && typeof organization.access === 'undefined') {
-      fetchOrganizationDetails(organization.slug, {
+      fetchOrganizationDetails(api, organization.slug, {
         setActive: true,
         loadProjects: true,
       });
     }
-  }, [organization]);
+  }, [api, organization]);
 
   const user = ConfigStore.get('user');
   const isSelfHosted = ConfigStore.get('isSelfHosted');

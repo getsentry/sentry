@@ -8,8 +8,8 @@ import pytest
 import pytz
 from django.core import mail
 from django.utils import timezone
+from freezegun import freeze_time
 
-from sentry import tsdb
 from sentry.cache import default_cache
 from sentry.constants import DataCategory
 from sentry.models import GroupStatus, Project, UserOption
@@ -41,7 +41,7 @@ from sentry.tasks.reports import (
 )
 from sentry.testutils.cases import OutcomesSnubaTest, SnubaTestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
-from sentry.testutils.helpers.datetime import iso_format
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
 from sentry.utils.outcomes import Outcome
 
@@ -210,28 +210,25 @@ def test_calendar_range():
 
 
 class ReportTestCase(OutcomesSnubaTest, SnubaTestCase):
+    @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
     def test_integration(self):
         Project.objects.all().delete()
 
-        now = datetime(2016, 9, 12, tzinfo=pytz.utc)
+        now = datetime.now().replace(tzinfo=pytz.utc)
 
         project = self.create_project(
             organization=self.organization, teams=[self.team], date_added=now - timedelta(days=90)
         )
-
-        tsdb.incr(tsdb.models.project, project.id, now - timedelta(days=1))
+        self.store_event(
+            data={
+                "timestamp": iso_format(before_now(days=1)),
+            },
+            project_id=project.id,
+        )
 
         member_set = set(project.teams.first().member_set.all())
 
-        with self.tasks(), mock.patch.object(
-            tsdb, "get_earliest_timestamp"
-        ) as get_earliest_timestamp:
-            # Ensure ``get_earliest_timestamp`` is relative to the fixed
-            # "current" timestamp -- this prevents filtering out data points
-            # that would be considered expired relative to the *actual* current
-            # timestamp.
-            get_earliest_timestamp.return_value = to_timestamp(now - timedelta(days=60))
-
+        with self.tasks():
             prepare_reports(timestamp=to_timestamp(now))
             assert len(mail.outbox) == len(member_set) == 1
 

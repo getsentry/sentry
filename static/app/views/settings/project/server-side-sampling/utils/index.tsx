@@ -8,7 +8,7 @@ import {defined} from 'sentry/utils';
 import {projectStatsToSampleRates} from './projectStatsToSampleRates';
 
 export const SERVER_SIDE_SAMPLING_DOC_LINK =
-  'https://docs.sentry.io/product/data-management-settings/server-side-sampling/';
+  'https://docs.sentry.io/product/data-management-settings/dynamic-sampling/dsla/';
 
 export function getInnerNameLabel(name: SamplingInnerName) {
   switch (name) {

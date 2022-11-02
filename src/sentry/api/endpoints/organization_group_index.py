@@ -6,6 +6,7 @@ from django.utils import timezone
 from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import start_span
 
 from sentry import features, search
 from sentry.api.base import region_silo_endpoint
@@ -161,20 +162,21 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
     def _search(
         self, request: Request, organization, projects, environments, extra_query_kwargs=None
     ):
-        query_kwargs = build_query_params_from_request(
-            request, organization, projects, environments
-        )
-        if extra_query_kwargs is not None:
-            assert "environment" not in extra_query_kwargs
-            query_kwargs.update(extra_query_kwargs)
+        with start_span(op="_search"):
+            query_kwargs = build_query_params_from_request(
+                request, organization, projects, environments
+            )
+            if extra_query_kwargs is not None:
+                assert "environment" not in extra_query_kwargs
+                query_kwargs.update(extra_query_kwargs)
 
-        query_kwargs["environments"] = environments if environments else None
-        if query_kwargs["sort_by"] == "inbox":
-            query_kwargs.pop("sort_by")
-            result = inbox_search(**query_kwargs)
-        else:
-            result = search.query(**query_kwargs)
-        return result, query_kwargs
+            query_kwargs["environments"] = environments if environments else None
+            if query_kwargs["sort_by"] == "inbox":
+                query_kwargs.pop("sort_by")
+                result = inbox_search(**query_kwargs)
+            else:
+                result = search.query(**query_kwargs)
+            return result, query_kwargs
 
     @track_slo_response("workflow")
     def get(self, request: Request, organization) -> Response:

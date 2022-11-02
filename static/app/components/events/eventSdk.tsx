@@ -2,6 +2,7 @@ import EventDataSection from 'sentry/components/events/eventDataSection';
 import {t} from 'sentry/locale';
 import {Event} from 'sentry/types/event';
 
+import KeyValueList from './interfaces/keyValueList';
 import {AnnotatedText} from './meta/annotatedText';
 
 type Props = {
@@ -12,11 +13,12 @@ type Props = {
 export function EventSdk({sdk, meta}: Props) {
   return (
     <EventDataSection type="sdk" title={t('SDK')}>
-      <table className="table key-value">
-        <tbody>
-          <tr key="name">
-            <td className="key">{t('Name')}</td>
-            <td className="value">
+      <KeyValueList
+        data={[
+          {
+            key: 'name',
+            subject: t('Name'),
+            value: (
               <pre className="val-string">
                 {meta?.name?.[''] ? (
                   <AnnotatedText value={sdk.name} meta={meta?.name?.['']} />
@@ -24,11 +26,12 @@ export function EventSdk({sdk, meta}: Props) {
                   sdk.name
                 )}
               </pre>
-            </td>
-          </tr>
-          <tr key="version">
-            <td className="key">{t('Version')}</td>
-            <td className="value">
+            ),
+          },
+          {
+            key: 'version',
+            subject: t('Version'),
+            value: (
               <pre className="val-string">
                 {meta?.version?.[''] ? (
                   <AnnotatedText value={sdk.version} meta={meta?.version?.['']} />
@@ -36,10 +39,10 @@ export function EventSdk({sdk, meta}: Props) {
                   sdk.version
                 )}
               </pre>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+            ),
+          },
+        ]}
+      />
     </EventDataSection>
   );
 }

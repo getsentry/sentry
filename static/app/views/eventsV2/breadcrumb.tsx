@@ -1,4 +1,5 @@
 import {Location} from 'history';
+import omit from 'lodash/omit';
 
 import Breadcrumbs, {Crumb} from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
@@ -12,15 +13,22 @@ type Props = {
   location: Location;
   organization: Organization;
   event?: Event;
+  isHomepage?: boolean;
 };
 
-function DiscoverBreadcrumb({eventView, event, organization, location}: Props) {
+function DiscoverBreadcrumb({
+  eventView,
+  event,
+  organization,
+  location,
+  isHomepage,
+}: Props) {
   const crumbs: Crumb[] = [];
   const discoverTarget = organization.features.includes('discover-query')
     ? {
         pathname: getDiscoverLandingUrl(organization),
         query: {
-          ...location.query,
+          ...omit(location.query, 'homepage'),
           ...eventView.generateBlankQueryStringObject(),
           ...eventView.getPageFiltersQuery(),
         },
@@ -28,13 +36,24 @@ function DiscoverBreadcrumb({eventView, event, organization, location}: Props) {
     : null;
 
   crumbs.push({
-    to: discoverTarget,
+    to:
+      organization.features.includes('discover-query-builder-as-landing-page') &&
+      isHomepage &&
+      eventView
+        ? eventView.getResultsViewUrlTarget(organization.slug, isHomepage)
+        : discoverTarget,
     label: t('Discover'),
   });
 
-  if (eventView && eventView.isValid()) {
+  if (!isHomepage && eventView && eventView.isValid()) {
+    if (organization.features.includes('discover-query-builder-as-landing-page')) {
+      crumbs.push({
+        to: `/organizations/${organization.slug}/discover/queries/`,
+        label: t('Saved Queries'),
+      });
+    }
     crumbs.push({
-      to: eventView.getResultsViewUrlTarget(organization.slug),
+      to: eventView.getResultsViewUrlTarget(organization.slug, isHomepage),
       label: eventView.name || '',
     });
   }

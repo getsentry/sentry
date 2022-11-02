@@ -22,7 +22,9 @@ const defaultOrgFeatures = [
 ];
 
 // Mocking worldMapChart to avoid act warnings
-jest.mock('sentry/components/charts/worldMapChart');
+jest.mock('sentry/components/charts/worldMapChart', () => ({
+  WorldMapChart: () => null,
+}));
 
 function mockDashboard(dashboard: Partial<DashboardDetails>): DashboardDetails {
   return {
@@ -236,6 +238,27 @@ describe('WidgetBuilder', function () {
       url: '/organizations/org-slug/tags/is/values/',
       method: 'GET',
       body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/metrics-compatibility/',
+      method: 'GET',
+      body: {
+        incompatible_projects: [],
+        compatible_projects: [1],
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/metrics-compatibility-sums/',
+      method: 'GET',
+      body: {
+        sum: {
+          metrics: 988803,
+          metrics_null: 0,
+          metrics_unparam: 132,
+        },
+      },
     });
 
     TagStore.reset();
@@ -585,12 +608,12 @@ describe('WidgetBuilder', function () {
 
       expect(
         screen.getByRole('radio', {
-          name: 'Select Errors and Transactions',
+          name: 'Errors and Transactions',
         })
       ).toBeEnabled();
       expect(
         screen.getByRole('radio', {
-          name: 'Select Issues (States, Assignment, Time, etc.)',
+          name: 'Issues (States, Assignment, Time, etc.)',
         })
       ).toBeDisabled();
     });
@@ -681,12 +704,12 @@ describe('WidgetBuilder', function () {
       userEvent.click(screen.getByText('Line Chart'));
       expect(
         screen.getByRole('radio', {
-          name: 'Select Errors and Transactions',
+          name: 'Errors and Transactions',
         })
       ).toBeEnabled();
       expect(
         screen.getByRole('radio', {
-          name: 'Select Issues (States, Assignment, Time, etc.)',
+          name: 'Issues (States, Assignment, Time, etc.)',
         })
       ).toBeDisabled();
     });
@@ -871,6 +894,8 @@ describe('WidgetBuilder', function () {
             ...defaultOrgFeatures,
             'discover-frontend-use-events-endpoint',
             'dashboards-mep',
+            'server-side-sampling',
+            'mep-rollout-flag',
           ],
         });
 
@@ -922,6 +947,8 @@ describe('WidgetBuilder', function () {
             ...defaultOrgFeatures,
             'discover-frontend-use-events-endpoint',
             'dashboards-mep',
+            'server-side-sampling',
+            'mep-rollout-flag',
           ],
         });
 

@@ -1,20 +1,51 @@
 from django.urls import reverse
+from freezegun import freeze_time
 
-from sentry import tsdb
+from sentry.constants import DataCategory
 from sentry.testutils import APITestCase
+from sentry.testutils.cases import OutcomesSnubaTest
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import region_silo_test
+from sentry.utils.outcomes import Outcome
 
 
 @region_silo_test
-class ProjectStatsTest(APITestCase):
+@freeze_time(before_now(days=1).replace(minute=10))
+class ProjectStatsTest(APITestCase, OutcomesSnubaTest):
     def test_simple(self):
         self.login_as(user=self.user)
 
         project1 = self.create_project(name="foo")
         project2 = self.create_project(name="bar")
 
-        tsdb.incr(tsdb.models.project_total_received, project1.id, count=3)
-        tsdb.incr(tsdb.models.project_total_received, project2.id, count=5)
+        project_key1 = self.create_project_key(project=project1)
+        self.store_outcomes(
+            {
+                "org_id": project1.organization.id,
+                "timestamp": before_now(minutes=1),
+                "project_id": project1.id,
+                "key_id": project_key1.id,
+                "outcome": Outcome.ACCEPTED,
+                "reason": "none",
+                "category": DataCategory.ERROR,
+                "quantity": 3,
+            },
+            1,
+        )
+        project_key2 = self.create_project_key(project=project2)
+        self.store_outcomes(
+            {
+                "org_id": project2.organization.id,
+                "timestamp": before_now(minutes=1),
+                "project_id": project2.id,
+                "key_id": project_key2.id,
+                "outcome": Outcome.ACCEPTED,
+                "reason": "none",
+                "category": DataCategory.ERROR,
+                "quantity": 5,
+            },
+            1,
+        )
 
         url = reverse(
             "sentry-api-0-project-stats",
@@ -31,7 +62,7 @@ class ProjectStatsTest(APITestCase):
     def test_get_error_message_stats(self):
         self.login_as(user=self.user)
 
-        project1 = self.create_project(name="foo")
+        project = self.create_project(name="foo")
 
         STAT_OPTS = {
             "ip-address": 1,
@@ -43,52 +74,28 @@ class ProjectStatsTest(APITestCase):
             "web-crawlers": 7,
             "invalid-csp": 8,
         }
-
-        tsdb.incr(
-            tsdb.models.project_total_received_ip_address,
-            project1.id,
-            count=STAT_OPTS["ip-address"],
-        )
-        tsdb.incr(
-            tsdb.models.project_total_received_release_version,
-            project1.id,
-            count=STAT_OPTS["release-version"],
-        )
-        tsdb.incr(
-            tsdb.models.project_total_received_error_message,
-            project1.id,
-            count=STAT_OPTS["error-message"],
-        )
-        tsdb.incr(
-            tsdb.models.project_total_received_browser_extensions,
-            project1.id,
-            count=STAT_OPTS["browser-extensions"],
-        )
-        tsdb.incr(
-            tsdb.models.project_total_received_legacy_browsers,
-            project1.id,
-            count=STAT_OPTS["legacy-browsers"],
-        )
-        tsdb.incr(
-            tsdb.models.project_total_received_localhost, project1.id, count=STAT_OPTS["localhost"]
-        )
-        tsdb.incr(
-            tsdb.models.project_total_received_web_crawlers,
-            project1.id,
-            count=STAT_OPTS["web-crawlers"],
-        )
-        tsdb.incr(
-            tsdb.models.project_total_received_invalid_csp,
-            project1.id,
-            count=STAT_OPTS["invalid-csp"],
-        )
+        project_key = self.create_project_key(project=project)
+        for reason, count in STAT_OPTS.items():
+            self.store_outcomes(
+                {
+                    "org_id": project.organization.id,
+                    "timestamp": before_now(minutes=1),
+                    "project_id": project.id,
+                    "key_id": project_key.id,
+                    "outcome": Outcome.FILTERED,
+                    "reason": reason,
+                    "category": DataCategory.ERROR,
+                    "quantity": count,
+                },
+                1,
+            )
 
         url = reverse(
             "sentry-api-0-project-stats",
-            kwargs={"organization_slug": project1.organization.slug, "project_slug": project1.slug},
+            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
         )
         for stat in STAT_OPTS.keys():
             response = self.client.get(url, {"stat": stat}, format="json")
             assert response.status_code == 200, response.content
             assert len(response.data) == 24
-            assert response.data[-1][1] == STAT_OPTS[stat], response.data
+            assert response.data[-1][1] == STAT_OPTS[stat], (stat, response.data)

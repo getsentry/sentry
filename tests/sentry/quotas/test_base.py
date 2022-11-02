@@ -84,6 +84,10 @@ class QuotaTest(TestCase):
         ), self.options({"system.rate-limit": 10}):
             assert self.backend.get_organization_quota(org) == (10, 60)
 
+    def test_get_blended_sample_rate(self):
+        org = self.create_organization()
+        assert self.backend.get_blended_sample_rate(org) is None
+
 
 @pytest.mark.parametrize(
     "obj,json",

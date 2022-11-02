@@ -17,7 +17,7 @@ from django.utils.http import urlencode
 from django.utils.translation import ugettext_lazy as _
 
 from bitfield import BitField
-from sentry import features, projectoptions
+from sentry import projectoptions
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.db.mixin import PendingDeletionMixin, delete_pending_deletion_option
 from sentry.db.models import (
@@ -25,7 +25,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_model,
+    region_silo_only_model,
     sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
@@ -102,7 +102,7 @@ class ProjectManager(BaseManager):
         return sorted(project_list, key=lambda x: x.name.lower())
 
 
-@region_silo_model
+@region_silo_only_model
 class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
     from sentry.models.projectteam import ProjectTeam
 
@@ -140,6 +140,7 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
             ("has_alert_filters", "This Project has filters"),
             ("has_sessions", "This Project has sessions"),
             ("has_profiles", "This Project has sent profiles"),
+            ("has_replays", "This Project has sent replays"),
         ),
         default=10,
         null=True,
@@ -182,9 +183,7 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
                     max_length=50,
                 )
 
-        if SENTRY_USE_SNOWFLAKE or features.has(
-            "organizations:enable-snowflake-id", self.organization
-        ):
+        if SENTRY_USE_SNOWFLAKE:
             snowflake_redis_key = "project_snowflake_key"
             self.save_with_snowflake_id(
                 snowflake_redis_key, lambda: super(Project, self).save(*args, **kwargs)

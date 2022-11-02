@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import {CreateProject} from 'sentry/views/projectInstall/createProject';
@@ -20,61 +20,57 @@ describe('CreateProject', function () {
     },
   };
 
+  beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: `/projects/testOrg/rule-conditions/`,
+      body: {},
+      // Not required for these tests
+      statusCode: 500,
+    });
+  });
+
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
+  });
+
   it('should block if you have access to no teams', function () {
-    const props = {
-      ...baseProps,
-    };
+    const wrapper = render(<CreateProject {...baseProps} />, {
+      context: TestStubs.routerContext([{organization: {id: '1', slug: 'testOrg'}}]),
+    });
 
-    const wrapper = mountWithTheme(
-      <CreateProject {...props} />,
-      TestStubs.routerContext([{organization: {id: '1', slug: 'testOrg'}}])
-    );
-
-    expect(wrapper).toSnapshot();
+    expect(wrapper.container).toSnapshot();
   });
 
   it('can create a new team', function () {
-    const props = {
-      ...baseProps,
-    };
+    render(<CreateProject {...baseProps} />, {
+      context: TestStubs.routerContext([{organization: {id: '1', slug: 'testOrg'}}]),
+    });
 
-    const wrapper = mountWithTheme(
-      <CreateProject {...props} />,
-      TestStubs.routerContext([{organization: {id: '1', slug: 'testOrg'}}])
-    );
-
-    wrapper.find('TeamSelectInput Button button').simulate('click');
+    userEvent.click(screen.getByRole('button', {name: 'Create a team'}));
     expect(openCreateTeamModal).toHaveBeenCalled();
   });
 
   it('should fill in project name if its empty when platform is chosen', function () {
-    const props = {
-      ...baseProps,
-    };
-
-    const wrapper = mountWithTheme(
-      <CreateProject {...props} teams={[teamWithAccess]} />,
-      TestStubs.routerContext([
+    const wrapper = render(<CreateProject {...baseProps} teams={[teamWithAccess]} />, {
+      context: TestStubs.routerContext([
         {organization: {id: '1', slug: 'testOrg'}, location: {query: {}}},
-      ])
-    );
+      ]),
+    });
 
-    let node = wrapper.find('PlatformCard').first();
-    node.simulate('click');
-    expect(wrapper.find('ProjectNameInput input').props().value).toBe('iOS');
+    userEvent.click(screen.getByTestId('platform-apple-ios'));
+    expect(screen.getByPlaceholderText('project-name')).toHaveValue('apple-ios');
 
-    node = wrapper.find('PlatformCard').last();
-    node.simulate('click');
-    expect(wrapper.find('ProjectNameInput input').props().value).toBe('Rails');
+    userEvent.click(screen.getByTestId('platform-ruby-rails'));
+    expect(screen.getByPlaceholderText('project-name')).toHaveValue('ruby-rails');
 
     // but not replace it when project name is something else:
-    wrapper.setState({projectName: 'another'});
+    userEvent.clear(screen.getByPlaceholderText('project-name'));
+    userEvent.type(screen.getByPlaceholderText('project-name'), 'another');
 
-    node = wrapper.find('PlatformCard').first();
-    node.simulate('click');
-    expect(wrapper.find('ProjectNameInput input').props().value).toBe('another');
+    userEvent.click(screen.getByTestId('platform-apple-ios'));
+    expect(screen.getByPlaceholderText('project-name')).toHaveValue('another');
 
-    expect(wrapper).toSnapshot();
+    expect(wrapper.container).toSnapshot();
   });
 
   it('should fill in platform name if its provided by url', function () {
@@ -83,14 +79,13 @@ describe('CreateProject', function () {
       location: {query: {platform: 'ruby-rails'}},
     };
 
-    const wrapper = mountWithTheme(
-      <CreateProject {...props} teams={[teamWithAccess]} />,
-      TestStubs.routerContext([{organization: {id: '1', slug: 'testOrg'}}])
-    );
+    const wrapper = render(<CreateProject {...props} teams={[teamWithAccess]} />, {
+      context: TestStubs.routerContext([{organization: {id: '1', slug: 'testOrg'}}]),
+    });
 
-    expect(wrapper.find('ProjectNameInput input').props().value).toBe('Rails');
+    expect(screen.getByPlaceholderText('project-name')).toHaveValue('Rails');
 
-    expect(wrapper).toSnapshot();
+    expect(wrapper.container).toSnapshot();
   });
 
   it('should fill in category name if its provided by url', function () {
@@ -99,41 +94,35 @@ describe('CreateProject', function () {
       location: {query: {category: 'mobile'}},
     };
 
-    const wrapper = mountWithTheme(
-      <CreateProject {...props} teams={[teamWithAccess]} />,
-      TestStubs.routerContext([{organization: {id: '1', slug: 'testOrg'}}])
-    );
+    render(<CreateProject {...props} teams={[teamWithAccess]} />, {
+      context: TestStubs.routerContext([{organization: {id: '1', slug: 'testOrg'}}]),
+    });
 
-    expect(wrapper.find('PlatformPicker').state('category')).toBe('mobile');
+    expect(screen.getByTestId('platform-apple-ios')).toBeInTheDocument();
+    expect(screen.queryByTestId('platform-ruby-rails')).not.toBeInTheDocument();
   });
 
   it('should deal with incorrect platform name if its provided by url', function () {
-    const props = {
-      ...baseProps,
-    };
-
-    const wrapper = mountWithTheme(
-      <CreateProject {...props} teams={[teamWithAccess]} />,
-      TestStubs.routerContext([
+    const wrapper = render(<CreateProject {...baseProps} teams={[teamWithAccess]} />, {
+      context: TestStubs.routerContext([
         {
           organization: {id: '1', slug: 'testOrg'},
           location: {query: {platform: 'XrubyROOLs'}},
         },
-      ])
-    );
+      ]),
+    });
 
-    expect(wrapper.find('ProjectNameInput input').props().value).toBe('');
+    expect(screen.getByPlaceholderText('project-name')).toHaveValue('');
 
-    expect(wrapper).toSnapshot();
+    expect(wrapper.container).toSnapshot();
   });
 
   describe('Issue Alerts Options', () => {
-    let props = {};
+    const props = {
+      ...baseProps,
+      teams: [teamWithAccess],
+    };
     beforeEach(() => {
-      props = {
-        ...baseProps,
-      };
-      props.teams = [teamWithAccess];
       MockApiClient.addMockResponse({
         url: `/projects/${props.organization.slug}/rule-conditions/`,
         body: TestStubs.MOCK_RESP_VERBOSE,
@@ -145,57 +134,37 @@ describe('CreateProject', function () {
     });
 
     it('should enabled the submit button if and only if all the required information has been filled', () => {
-      const wrapper = mountWithTheme(
-        <CreateProject {...props} />,
-        TestStubs.routerContext([
+      render(<CreateProject {...props} />, {
+        context: TestStubs.routerContext([
           {
             location: {query: {}},
           },
-        ])
-      );
+        ]),
+      });
 
-      const expectSubmitButtonToBeDisabled = isDisabled => {
-        expect(
-          wrapper.find('Button[data-test-id="create-project"]').props().disabled
-        ).toBe(isDisabled);
-      };
+      const createProjectButton = screen.getByTestId('create-project');
 
-      wrapper
-        .find('SelectControl[data-test-id="metric-select-control"]')
-        .closest('RadioLineItem')
-        .find('Radio input')
-        .simulate('change');
-      expectSubmitButtonToBeDisabled(true);
+      userEvent.click(screen.getByText(/When there are more than/));
+      expect(createProjectButton).toBeDisabled();
 
-      wrapper
-        .find('input[data-test-id="range-input"]')
-        .first()
-        .simulate('change', {target: {value: '2'}});
-      expectSubmitButtonToBeDisabled(true);
+      userEvent.paste(screen.getByTestId('range-input'), '2', {skipClick: true});
+      expect(screen.getByTestId('range-input')).toHaveValue(2);
+      expect(createProjectButton).toBeDisabled();
 
-      wrapper.find('PlatformCard').first().simulate('click');
-      expectSubmitButtonToBeDisabled(false);
+      userEvent.click(screen.getByTestId('platform-apple-ios'));
+      expect(createProjectButton).toBeEnabled();
 
-      wrapper
-        .find('input[data-test-id="range-input"]')
-        .first()
-        .simulate('change', {target: {value: ''}});
-      expectSubmitButtonToBeDisabled(true);
+      userEvent.clear(screen.getByTestId('range-input'));
+      expect(createProjectButton).toBeEnabled();
 
-      wrapper
-        .find('input[data-test-id="range-input"]')
-        .first()
-        .simulate('change', {target: {value: '2712'}});
-      expectSubmitButtonToBeDisabled(false);
+      userEvent.paste(screen.getByTestId('range-input'), '2712', {skipClick: true});
+      expect(createProjectButton).toBeEnabled();
 
-      wrapper
-        .find('input[data-test-id="range-input"]')
-        .first()
-        .simulate('change', {target: {value: ''}});
-      expectSubmitButtonToBeDisabled(true);
+      fireEvent.change(screen.getByTestId('range-input'), {target: {value: ''}});
+      expect(createProjectButton).toBeDisabled();
 
-      wrapper.find('Radio input').first().simulate('change');
-      expectSubmitButtonToBeDisabled(false);
+      userEvent.click(screen.getByText("I'll create my own alerts later"));
+      expect(createProjectButton).toBeEnabled();
     });
   });
 });

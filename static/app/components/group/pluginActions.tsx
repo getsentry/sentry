@@ -46,9 +46,9 @@ class PluginActions extends Component<Props, State> {
     this.loadPlugin(this.props.plugin);
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps: Props) {
-    if (this.props.plugin.id !== nextProps.plugin.id) {
-      this.loadPlugin(nextProps.plugin);
+  componentDidUpdate(prevProps: Props) {
+    if (this.props.plugin.id !== prevProps.plugin.id) {
+      this.loadPlugin(this.props.plugin);
     }
   }
 

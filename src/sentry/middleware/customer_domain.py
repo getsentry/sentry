@@ -4,9 +4,8 @@ from typing import Callable
 
 from django.conf import settings
 from django.contrib.auth import logout
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponseRedirect
 from django.urls import resolve, reverse
-from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -77,6 +76,8 @@ class CustomerDomainMiddleware:
         self.get_response = get_response
 
     def __call__(self, request: Request) -> Response:
+        if not getattr(settings, "SENTRY_USE_CUSTOMER_DOMAINS", False):
+            return self.get_response(request)
         if not hasattr(request, "subdomain"):
             return self.get_response(request)
         subdomain = request.subdomain
@@ -94,17 +95,6 @@ class CustomerDomainMiddleware:
             logout_view = reverse("sentry-logout")
             redirect_url = f"{url_prefix}{logout_view}"
             return HttpResponseRedirect(redirect_url)
-
-        user = getattr(request, "user", None)
-        if user and user.is_authenticated and not user.is_staff:
-            # Kick user to sentry.io if they are not a Sentry staff
-            url_prefix = options.get("system.url-prefix")
-            qs = _query_string(request)
-            redirect_url = f"{url_prefix}{request.path}{qs}"
-            if request.method == "GET":
-                return HttpResponseRedirect(redirect_url)
-            else:
-                return HttpResponse(status=status.HTTP_400_BAD_REQUEST)
 
         activeorg = _resolve_activeorg(request)
         if not activeorg:

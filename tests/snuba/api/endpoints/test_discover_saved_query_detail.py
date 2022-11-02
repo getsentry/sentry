@@ -98,6 +98,25 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 403, response.content
 
+    def test_get_homepage_query(self):
+        query = {"fields": ["event_id"], "query": "event.type:error", "limit": 10, "version": 2}
+        model = DiscoverSavedQuery.objects.create(
+            organization=self.org,
+            created_by=self.user,
+            name="v2 query",
+            query=query,
+            is_homepage=True,
+        )
+
+        model.set_projects(self.project_ids)
+        with self.feature(self.feature_name):
+            url = reverse(
+                "sentry-api-0-discover-saved-query-detail", args=[self.org.slug, model.id]
+            )
+            response = self.client.get(url)
+
+        assert response.status_code == 404, response.content
+
     def test_put(self):
         with self.feature(self.feature_name):
             url = reverse(
@@ -124,6 +143,29 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
         assert response.data["fields"] == []
         assert response.data["conditions"] == []
         assert response.data["limit"] == 20
+
+    def test_put_with_interval(self):
+        with self.feature(self.feature_name):
+            url = reverse(
+                "sentry-api-0-discover-saved-query-detail", args=[self.org.slug, self.query_id]
+            )
+
+            response = self.client.put(
+                url,
+                {
+                    "name": "New query",
+                    "projects": self.project_ids,
+                    "fields": ["transaction", "count()"],
+                    "range": "24h",
+                    "interval": "10m",
+                    "version": 2,
+                    "orderby": "-count",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        assert response.data["fields"] == ["transaction", "count()"]
+        assert response.data["interval"] == "10m"
 
     def test_put_query_without_access(self):
         with self.feature(self.feature_name):
@@ -180,6 +222,28 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
 
             assert response.status_code == 400
             assert "No Projects found, join a Team" == response.data["detail"]
+
+    def test_put_homepage_query(self):
+        query = {"fields": ["event_id"], "query": "event.type:error", "limit": 10, "version": 2}
+        model = DiscoverSavedQuery.objects.create(
+            organization=self.org,
+            created_by=self.user,
+            name="v2 query",
+            query=query,
+            is_homepage=True,
+        )
+
+        model.set_projects(self.project_ids)
+        with self.feature(self.feature_name):
+            url = reverse(
+                "sentry-api-0-discover-saved-query-detail",
+                args=[self.org.slug, model.id],
+            )
+            response = self.client.put(
+                url, {"name": "New query", "projects": [], "range": "24h", "fields": []}
+            )
+
+        assert response.status_code == 404, response.content
 
     def test_put_org_without_access(self):
         with self.feature(self.feature_name):
@@ -239,6 +303,26 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
             response = self.client.delete(url)
 
         assert response.status_code == 403, response.content
+
+    def test_delete_homepage_query(self):
+        query = {"fields": ["event_id"], "query": "event.type:error", "limit": 10, "version": 2}
+        model = DiscoverSavedQuery.objects.create(
+            organization=self.org,
+            created_by=self.user,
+            name="v2 query",
+            query=query,
+            is_homepage=True,
+        )
+
+        model.set_projects(self.project_ids)
+        with self.feature(self.feature_name):
+            url = reverse(
+                "sentry-api-0-discover-saved-query-detail",
+                args=[self.org.slug, model.id],
+            )
+            response = self.client.delete(url)
+
+        assert response.status_code == 404, response.content
 
 
 @region_silo_test

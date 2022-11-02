@@ -141,7 +141,7 @@ class ChartZoom extends Component<Props> {
     //
     // Parent container can use this to change into a loading state before
     // URL parameters are changed
-    callIfFunction(onZoom, {
+    onZoom?.({
       period,
       start: startFormatted,
       end: endFormatted,
@@ -184,7 +184,7 @@ class ChartZoom extends Component<Props> {
    * Enable zoom immediately instead of having to toggle to zoom
    */
   handleChartReady = chart => {
-    callIfFunction(this.props.onChartReady, chart);
+    this.props.onChartReady?.(chart);
   };
 
   /**
@@ -202,7 +202,7 @@ class ChartZoom extends Component<Props> {
     // reset history
     this.history = [];
 
-    callIfFunction(this.props.onRestore, evt, chart);
+    this.props.onRestore?.(evt, chart);
   };
 
   handleDataZoom = (evt, chart) => {
@@ -227,7 +227,7 @@ class ChartZoom extends Component<Props> {
       this.setPeriod({period: null, start, end}, true);
     }
 
-    callIfFunction(this.props.onDataZoom, evt, chart);
+    this.props.onDataZoom?.(evt, chart);
   };
 
   /**

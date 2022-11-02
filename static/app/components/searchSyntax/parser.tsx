@@ -2,6 +2,7 @@ import moment from 'moment';
 import {LocationRange} from 'pegjs';
 
 import {t} from 'sentry/locale';
+import {TagCollection} from 'sentry/types';
 import {
   isMeasurement,
   isSpanOperationBreakdownField,
@@ -45,6 +46,7 @@ export enum Token {
   ValueIso8601Date = 'valueIso8601Date',
   ValueRelativeDate = 'valueRelativeDate',
   ValueDuration = 'valueDuration',
+  ValueSize = 'valueSize',
   ValuePercentage = 'valuePercentage',
   ValueBoolean = 'valueBoolean',
   ValueNumber = 'valueNumber',
@@ -85,10 +87,12 @@ export enum FilterType {
   SpecificDate = 'specificDate',
   RelativeDate = 'relativeDate',
   Duration = 'duration',
+  Size = 'size',
   Numeric = 'numeric',
   NumericIn = 'numericIn',
   Boolean = 'boolean',
   AggregateDuration = 'aggregateDuration',
+  AggregateSize = 'aggregateSize',
   AggregatePercentage = 'aggregatePercentage',
   AggregateNumeric = 'aggregateNumeric',
   AggregateDate = 'aggregateDate',
@@ -171,6 +175,12 @@ export const filterTypeConfig = {
     validValues: [Token.ValueDuration],
     canNegate: true,
   },
+  [FilterType.Size]: {
+    validKeys: [Token.KeySimple],
+    validOps: allOperators,
+    validValues: [Token.ValueSize],
+    canNegate: true,
+  },
   [FilterType.Numeric]: {
     validKeys: [Token.KeySimple],
     validOps: allOperators,
@@ -193,6 +203,12 @@ export const filterTypeConfig = {
     validKeys: [Token.KeyAggregate],
     validOps: allOperators,
     validValues: [Token.ValueDuration],
+    canNegate: true,
+  },
+  [FilterType.AggregateSize]: {
+    validKeys: [Token.KeyAggregate],
+    validOps: allOperators,
+    validValues: [Token.ValueSize],
     canNegate: true,
   },
   [FilterType.AggregateNumeric]: {
@@ -331,6 +347,7 @@ export class TokenConverter {
       this.config.durationKeys.has(key) ||
       isSpanOperationBreakdownField(key) ||
       measurementType(key) === 'duration',
+    isSize: (key: string) => this.config.sizeKeys.has(key),
   };
 
   /**
@@ -473,6 +490,36 @@ export class TokenConverter {
     unit,
   });
 
+  tokenValueSize = (
+    value: string,
+    unit:
+      | 'bit'
+      | 'nb'
+      | 'bytes'
+      | 'kb'
+      | 'mb'
+      | 'gb'
+      | 'tb'
+      | 'pb'
+      | 'eb'
+      | 'zb'
+      | 'yb'
+      | 'kib'
+      | 'mib'
+      | 'gib'
+      | 'tib'
+      | 'pib'
+      | 'eib'
+      | 'zib'
+      | 'yib'
+  ) => ({
+    ...this.defaultTokenFields,
+
+    type: Token.ValueSize as const,
+    value: Number(value),
+    unit,
+  });
+
   tokenValuePercentage = (value: string) => ({
     ...this.defaultTokenFields,
     type: Token.ValuePercentage as const,
@@ -534,7 +581,8 @@ export class TokenConverter {
     const keyName = getKeyName(key);
     const aggregateKey = key as ReturnType<TokenConverter['tokenKeyAggregate']>;
 
-    const {isNumeric, isDuration, isBoolean, isDate, isPercentage} = this.keyValidation;
+    const {isNumeric, isDuration, isBoolean, isDate, isPercentage, isSize} =
+      this.keyValidation;
 
     const checkAggregate = (check: (s: string) => boolean) =>
       aggregateKey.args?.args.some(arg => check(arg?.value?.value ?? ''));
@@ -546,6 +594,9 @@ export class TokenConverter {
 
       case FilterType.Duration:
         return isDuration(keyName);
+
+      case FilterType.Size:
+        return isSize(keyName);
 
       case FilterType.Boolean:
         return isBoolean(keyName);
@@ -607,6 +658,14 @@ export class TokenConverter {
    * Validates text filters which may have failed predication
    */
   checkInvalidTextFilter = (key: TextFilter['key'], value: TextFilter['value']) => {
+    if (
+      this.config.validateKeys &&
+      this.config.supportedTags &&
+      !this.config.supportedTags[key.text]
+    ) {
+      return {reason: t('Invalid key. "%s" is not a supported search key.', key.text)};
+    }
+
     // Explicit tag keys will always be treated as text filters
     if (key.type === Token.KeyExplicitTag) {
       return this.checkInvalidTextValue(value);
@@ -641,6 +700,13 @@ export class TokenConverter {
       return {
         reason: t('Invalid boolean. Expected true, 1, false, or 0.'),
         expectedType: [FilterType.Boolean],
+      };
+    }
+
+    if (this.keyValidation.isSize(keyName)) {
+      return {
+        reason: t('Invalid file size. Expected number followed by file size unit suffix'),
+        expectedType: [FilterType.Size],
       };
     }
 
@@ -752,9 +818,21 @@ export type SearchConfig = {
    */
   percentageKeys: Set<string>;
   /**
+   * Keys considered valid for size filter types
+   */
+  sizeKeys: Set<string>;
+  /**
    * Text filter keys we allow to have operators
    */
   textOperatorKeys: Set<string>;
+  /**
+   * If validateKeys is set to true, tag keys that don't exist in supportedTags will be consider invalid
+   */
+  supportedTags?: TagCollection;
+  /**
+   * If set to true, tag keys that don't exist in supportedTags will be consider invalid
+   */
+  validateKeys?: boolean;
 };
 
 const defaultConfig: SearchConfig = {
@@ -794,6 +872,7 @@ const defaultConfig: SearchConfig = {
     'stack.in_app',
     'team_key_transaction',
   ]),
+  sizeKeys: new Set([]),
   allowBoolean: true,
 };
 
@@ -808,9 +887,26 @@ const options = {
  * Parse a search query into a ParseResult. Failing to parse the search query
  * will result in null.
  */
-export function parseSearch(query: string): ParseResult | null {
+export function parseSearch(
+  query: string,
+  additionalConfig?: Partial<SearchConfig>
+): ParseResult | null {
+  // Merge additionalConfig with defaultConfig
+  const config = additionalConfig
+    ? {
+        ...additionalConfig,
+        ...Object.keys(defaultConfig).reduce((configAccumulator, key) => {
+          configAccumulator[key] =
+            typeof defaultConfig[key] === 'object'
+              ? new Set([...defaultConfig[key], ...(additionalConfig[key] ?? [])])
+              : defaultConfig[key];
+          return configAccumulator;
+        }, {}),
+      }
+    : defaultConfig;
+
   try {
-    return grammar.parse(query, options);
+    return grammar.parse(query, {...options, config});
   } catch (e) {
     // TODO(epurkhiser): Should we capture these errors somewhere?
   }

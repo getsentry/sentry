@@ -28,7 +28,6 @@ export type SavedSearch = {
   dateCreated: string;
   id: string;
   isGlobal: boolean;
-  isOrgCustom: boolean;
   isPinned: boolean;
   name: string;
   query: string;
@@ -40,6 +39,7 @@ export enum SavedSearchType {
   ISSUE = 0,
   EVENT = 1,
   SESSION = 2,
+  REPLAY = 3,
 }
 
 export enum IssueCategory {
@@ -49,7 +49,7 @@ export enum IssueCategory {
 
 export enum IssueType {
   ERROR = 'error',
-  PERFORMANCE_N_PLUS_ONE = 'performance_n_plus_one',
+  PERFORMANCE_N_PLUS_ONE_DB_QUERIES = 'performance_n_plus_one_db_queries',
 }
 
 type CapabilityInfo = {
@@ -62,6 +62,10 @@ type CapabilityInfo = {
  * issues work the same.
  */
 export type IssueCategoryCapabilities = {
+  /**
+   * Are codeowner features enabled for this issue
+   */
+  codeowners: CapabilityInfo;
   /**
    * Can the issue be deleted
    */
@@ -98,7 +102,7 @@ export type IssueAttachment = {
 };
 
 // endpoint: /api/0/projects/:orgSlug/:projSlug/events/:eventId/attachments/
-export type EventAttachment = Omit<IssueAttachment, 'event_id'>;
+export type EventAttachment = IssueAttachment;
 
 /**
  * Issue Tags
@@ -145,6 +149,7 @@ type Topvalue = {
   value: string;
   // Might not actually exist.
   query?: string;
+  readable?: string;
 };
 
 export type TagWithTopValues = {
@@ -173,7 +178,11 @@ export type InboxDetails = {
   reason?: number;
 };
 
-export type SuggestedOwnerReason = 'suspectCommit' | 'ownershipRule' | 'releaseCommit';
+export type SuggestedOwnerReason =
+  | 'suspectCommit'
+  | 'ownershipRule'
+  | 'codeowners'
+  | 'releaseCommit';
 
 // Received from the backend to denote suggested owners of an issue
 export type SuggestedOwner = {
@@ -183,13 +192,16 @@ export type SuggestedOwner = {
 };
 
 export type IssueOwnership = {
-  autoAssignment: boolean;
+  autoAssignment:
+    | 'Auto Assign to Suspect Commits'
+    | 'Auto Assign to Issue Owner'
+    | 'Turn off Auto-Assignment';
   codeownersAutoSync: boolean;
-  dateCreated: string;
+  dateCreated: string | null;
   fallthrough: boolean;
   isActive: boolean;
-  lastUpdated: string;
-  raw: string;
+  lastUpdated: string | null;
+  raw: string | null;
 };
 
 export enum GroupActivityType {
@@ -600,6 +612,7 @@ export type KeyValueListData = {
   key: string;
   subject: string;
   actionButton?: React.ReactNode;
+  isContextData?: boolean;
   meta?: Meta;
   subjectDataTestId?: string;
   subjectIcon?: React.ReactNode;

@@ -5,8 +5,8 @@ import {
   updateEnvironments,
   updateProjects,
 } from 'sentry/actionCreators/pageFilters';
-import PageFiltersActions from 'sentry/actions/pageFiltersActions';
 import * as PageFilterPersistence from 'sentry/components/organizations/pageFilters/persistence';
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import localStorage from 'sentry/utils/localStorage';
 
 jest.mock('sentry/utils/localStorage');
@@ -16,9 +16,9 @@ describe('PageFilters ActionCreators', function () {
 
   beforeEach(function () {
     localStorage.getItem.mockClear();
-    jest.spyOn(PageFiltersActions, 'updateProjects');
-    jest.spyOn(PageFiltersActions, 'initializeUrlState').mockImplementation();
-    PageFiltersActions.updateProjects.mockClear();
+    jest.spyOn(PageFiltersStore, 'updateProjects');
+    jest.spyOn(PageFiltersStore, 'onInitializeUrlState').mockImplementation();
+    PageFiltersStore.updateProjects.mockClear();
   });
 
   describe('initializeUrlState', function () {
@@ -55,7 +55,7 @@ describe('PageFilters ActionCreators', function () {
       expect(localStorage.getItem).toHaveBeenCalledWith(
         `global-selection:${organization.slug}`
       );
-      expect(PageFiltersActions.initializeUrlState).toHaveBeenCalledWith(
+      expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
         expect.objectContaining({
           environments: [],
           projects: [1],
@@ -94,7 +94,7 @@ describe('PageFilters ActionCreators', function () {
         pathname: '/mock-pathname/',
         router,
       });
-      expect(PageFiltersActions.initializeUrlState).toHaveBeenCalledWith(
+      expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
         expect.objectContaining({
           datetime: {
             start: null,
@@ -121,7 +121,7 @@ describe('PageFilters ActionCreators', function () {
         },
         router,
       });
-      expect(PageFiltersActions.initializeUrlState).toHaveBeenCalledWith(
+      expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
         expect.objectContaining({
           datetime: {
             start: null,
@@ -200,7 +200,7 @@ describe('PageFilters ActionCreators', function () {
         router,
       });
 
-      expect(PageFiltersActions.initializeUrlState).toHaveBeenCalledWith(
+      expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
         {
           datetime: {
             start: null,
@@ -295,12 +295,12 @@ describe('PageFilters ActionCreators', function () {
   describe('updateProjects()', function () {
     it('updates', function () {
       updateProjects([1, 2]);
-      expect(PageFiltersActions.updateProjects).toHaveBeenCalledWith([1, 2], undefined);
+      expect(PageFiltersStore.updateProjects).toHaveBeenCalledWith([1, 2], null);
     });
 
     it('does not update invalid projects', function () {
       updateProjects(['1']);
-      expect(PageFiltersActions.updateProjects).not.toHaveBeenCalled();
+      expect(PageFiltersStore.updateProjects).not.toHaveBeenCalled();
     });
 
     it('updates history when queries are different', function () {
@@ -501,7 +501,7 @@ describe('PageFilters ActionCreators', function () {
   });
 
   describe('revertToPinnedFilters()', function () {
-    it('reverts all filters that are desynced from localStorage', async function () {
+    it('reverts all filters that are desynced from localStorage', function () {
       const router = TestStubs.router({
         location: {
           pathname: '/test/',
@@ -523,7 +523,7 @@ describe('PageFilters ActionCreators', function () {
           pinnedFilters: new Set(['projects', 'environments', 'datetime']),
         });
 
-      PageFiltersActions.initializeUrlState({
+      PageFiltersStore.onInitializeUrlState({
         projects: ['2'],
         environments: ['prod'],
         datetime: {
@@ -533,11 +533,9 @@ describe('PageFilters ActionCreators', function () {
           utc: null,
         },
       });
-      PageFiltersActions.updateDesyncedFilters(
+      PageFiltersStore.updateDesyncedFilters(
         new Set(['projects', 'environments', 'datetime'])
       );
-      // Tick for PageFiltersActions
-      await tick();
 
       revertToPinnedFilters('org-slug', router);
 

@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -19,51 +18,116 @@ import TagPanel from 'sentry/views/replays/detail/tagPanel';
 
 const MIN_VIDEO_WIDTH = {px: 325};
 const MIN_CONTENT_WIDTH = {px: 325};
+const MIN_SIDEBAR_WIDTH = {px: 325};
 const MIN_VIDEO_HEIGHT = {px: 200};
 const MIN_CONTENT_HEIGHT = {px: 200};
-const MIN_CRUMBS_HEIGHT = {px: 200};
 
 type Props = {
   layout?: LayoutKey;
-  showCrumbs?: boolean;
-  showTimeline?: boolean;
-  showVideo?: boolean;
 };
 
-function ReplayLayout({
-  layout = LayoutKey.topbar,
-  showCrumbs = true,
-  showTimeline = true,
-  showVideo = true,
-}: Props) {
+function ReplayLayout({layout = LayoutKey.topbar}: Props) {
   const {ref: fullscreenRef, toggle: toggleFullscreen} = useFullscreen();
 
-  const timeline = showTimeline ? (
+  const timeline = (
     <ErrorBoundary mini>
       <ReplayTimeline />
     </ErrorBoundary>
-  ) : null;
+  );
 
-  const video = showVideo ? (
+  const video = (
     <VideoSection ref={fullscreenRef}>
       <ErrorBoundary mini>
         <ReplayView toggleFullscreen={toggleFullscreen} />
       </ErrorBoundary>
     </VideoSection>
-  ) : null;
+  );
 
-  const crumbs = showCrumbs ? (
-    <ErrorBoundary mini>
-      <Breadcrumbs />
-    </ErrorBoundary>
-  ) : null;
+  if (layout === 'video_only') {
+    return (
+      <BodyContent>
+        {timeline}
+        {video}
+      </BodyContent>
+    );
+  }
 
-  const content = (
+  const focusArea = (
     <ErrorBoundary mini>
-      <FluidPanel title={<FocusTabs />}>
+      <FluidPanel title={<SmallMarginFocusTabs />}>
         <FocusArea />
       </FluidPanel>
     </ErrorBoundary>
+  );
+
+  if (layout === 'no_video') {
+    return (
+      <BodyContent>
+        {timeline}
+        <SplitPanel
+          key={layout}
+          left={{
+            content: focusArea,
+            default: '75%',
+            min: MIN_CONTENT_WIDTH,
+          }}
+          right={{
+            content: <SideCrumbsTags />,
+            min: MIN_SIDEBAR_WIDTH,
+          }}
+        />
+      </BodyContent>
+    );
+  }
+
+  if (layout === 'top') {
+    const mainSplit = (
+      <SplitPanel
+        key={layout + '_main'}
+        top={{
+          content: video,
+          default: '50%',
+          min: MIN_VIDEO_HEIGHT,
+        }}
+        bottom={{
+          content: focusArea,
+          min: MIN_CONTENT_HEIGHT,
+        }}
+      />
+    );
+
+    return (
+      <BodyContent>
+        {timeline}
+        <SplitPanel
+          key={layout}
+          left={{
+            content: mainSplit,
+            default: '75%',
+            min: MIN_CONTENT_WIDTH,
+          }}
+          right={{
+            content: <SideCrumbsTags />,
+            min: MIN_SIDEBAR_WIDTH,
+          }}
+        />
+      </BodyContent>
+    );
+  }
+
+  const sideVideoCrumbs = (
+    <SplitPanel
+      key={layout}
+      top={{
+        content: video,
+        default: '50%',
+        min: MIN_CONTENT_WIDTH,
+      }}
+      bottom={{
+        content: <SideCrumbsTags />,
+        min: MIN_SIDEBAR_WIDTH,
+      }}
+    />
   );
 
   if (layout === 'sidebar_right') {
@@ -73,13 +137,13 @@ function ReplayLayout({
         <SplitPanel
           key={layout}
           left={{
-            content,
+            content: focusArea,
             default: '60%',
             min: MIN_CONTENT_WIDTH,
           }}
           right={{
-            content: <SidebarContent video={video} crumbs={crumbs} />,
-            min: MIN_VIDEO_WIDTH,
+            content: sideVideoCrumbs,
+            min: MIN_SIDEBAR_WIDTH,
           }}
         />
       </BodyContent>
@@ -93,11 +157,11 @@ function ReplayLayout({
         <SplitPanel
           key={layout}
           left={{
-            content: <SidebarContent video={video} crumbs={crumbs} />,
-            min: MIN_VIDEO_WIDTH,
+            content: sideVideoCrumbs,
+            min: MIN_SIDEBAR_WIDTH,
           }}
           right={{
-            content,
+            content: focusArea,
             default: '60%',
             min: MIN_CONTENT_WIDTH,
           }}
@@ -107,6 +171,12 @@ function ReplayLayout({
   }
 
   // layout === 'topbar' or default
+  const crumbsWithTitle = (
+    <ErrorBoundary mini>
+      <Breadcrumbs showTitle />
+    </ErrorBoundary>
+  );
+
   return (
     <BodyContent>
       {timeline}
@@ -121,7 +191,7 @@ function ReplayLayout({
                 min: MIN_VIDEO_WIDTH,
               }}
               right={{
-                content: crumbs,
+                content: crumbsWithTitle,
               }}
             />
           ),
@@ -129,7 +199,7 @@ function ReplayLayout({
           min: MIN_VIDEO_HEIGHT,
         }}
         bottom={{
-          content,
+          content: focusArea,
           default: '60%',
           min: MIN_CONTENT_HEIGHT,
         }}
@@ -138,37 +208,23 @@ function ReplayLayout({
   );
 }
 
-function SidebarContent({video, crumbs}) {
-  const {getParamValue} = useUrlParams('t_side', 'video');
+function SideCrumbsTags() {
+  const {getParamValue} = useUrlParams('t_side', 'crumbs');
+  const sideTabs = <SmallMarginSideTabs />;
   if (getParamValue() === 'tags') {
     return (
-      <FluidPanel title={<SideTabs />}>
+      <FluidPanel title={sideTabs}>
         <TagPanel />
       </FluidPanel>
     );
   }
-  if (video && crumbs) {
-    return (
-      <FluidPanel title={<SideTabs />}>
-        <SplitPanel
-          top={{
-            content: video,
-            default: '55%',
-            min: MIN_VIDEO_HEIGHT,
-          }}
-          bottom={{
-            content: crumbs,
-            min: MIN_CRUMBS_HEIGHT,
-          }}
-        />
-      </FluidPanel>
-    );
-  }
+
   return (
-    <Fragment>
-      {video}
-      {crumbs}
-    </Fragment>
+    <FluidPanel title={sideTabs}>
+      <ErrorBoundary mini>
+        <Breadcrumbs showTitle={false} />
+      </ErrorBoundary>
+    </FluidPanel>
   );
 }
 
@@ -182,11 +238,22 @@ const BodyContent = styled('main')`
   padding: ${space(2)};
 `;
 
+const SmallMarginFocusTabs = styled(FocusTabs)`
+  margin-bottom: ${space(1)};
+`;
+const SmallMarginSideTabs = styled(SideTabs)`
+  margin-bottom: ${space(1)};
+`;
+
 const VideoSection = styled(FluidHeight)`
   height: 100%;
 
   background: ${p => p.theme.background};
   gap: ${space(1)};
+
+  :fullscreen {
+    padding: ${space(1)};
+  }
 `;
 
 export default ReplayLayout;

@@ -5,7 +5,7 @@ import Exception from 'sentry/components/events/interfaces/exception';
 import ExceptionV2 from 'sentry/components/events/interfaces/exceptionV2';
 import {Generic} from 'sentry/components/events/interfaces/generic';
 import {Message} from 'sentry/components/events/interfaces/message';
-import {SpanEvidenceSection} from 'sentry/components/events/interfaces/performance';
+import {SpanEvidenceSection} from 'sentry/components/events/interfaces/performance/spanEvidence';
 import {Request} from 'sentry/components/events/interfaces/request';
 import Spans from 'sentry/components/events/interfaces/spans';
 import StackTrace from 'sentry/components/events/interfaces/stackTrace';
@@ -22,12 +22,16 @@ import {
 } from 'sentry/types';
 import {Entry, EntryType, Event, EventTransaction} from 'sentry/types/event';
 
+import {Resources} from './interfaces/performance/resources';
+import {getResourceDescription, getResourceLinks} from './interfaces/performance/utils';
+
 type Props = Pick<React.ComponentProps<typeof Breadcrumbs>, 'route' | 'router'> & {
   entry: Entry;
   event: Event;
   organization: SharedViewOrganization | Organization;
   projectSlug: Project['slug'];
   group?: Group;
+  isShare?: boolean;
 };
 
 function EventEntry({
@@ -36,6 +40,7 @@ function EventEntry({
   event,
   organization,
   group,
+  isShare,
   route,
   router,
 }: Props) {
@@ -118,6 +123,8 @@ function EventEntry({
           event={event}
           router={router}
           route={route}
+          isShare={isShare}
+          projectSlug={projectSlug}
         />
       );
     }
@@ -151,6 +158,11 @@ function EventEntry({
         />
       );
     case EntryType.SPANS:
+      // XXX: We currently do not show spans in the share view,
+      if (isShare) {
+        return null;
+      }
+
       if (
         group?.issueCategory === IssueCategory.PERFORMANCE &&
         organization?.features?.includes('performance-issues')
@@ -167,6 +179,17 @@ function EventEntry({
         <Spans
           event={event as EventTransaction}
           organization={organization as Organization}
+        />
+      );
+    case EntryType.RESOURCES:
+      if (!group || !group.issueType) {
+        return null;
+      }
+
+      return (
+        <Resources
+          description={getResourceDescription(group.issueType)}
+          links={getResourceLinks(group.issueType, event.platform)}
         />
       );
     default:

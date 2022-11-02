@@ -110,7 +110,7 @@ export class Flamegraph {
     let idx = 0;
 
     const openFrame = (node: CallTreeNode, value: number) => {
-      const parent = lastOfArray(stack);
+      const parent = lastOfArray(stack) ?? this.root;
 
       const frame: FlamegraphFrame = {
         key: idx,
@@ -182,7 +182,7 @@ export class Flamegraph {
     let idx = 0;
 
     const openFrame = (node: CallTreeNode, value: number) => {
-      const parent = lastOfArray(stack);
+      const parent = lastOfArray(stack) ?? this.root;
       const frame: FlamegraphFrame = {
         key: idx,
         frame: node.frame,
@@ -240,6 +240,35 @@ export class Flamegraph {
     }
     visit(profile.appendOrderTree, 0);
     return frames;
+  }
+
+  findAllMatchingFrames(
+    frameOrName: FlamegraphFrame | string,
+    packageName?: string
+  ): FlamegraphFrame[] {
+    const matches: FlamegraphFrame[] = [];
+
+    if (typeof frameOrName === 'string') {
+      for (let i = 0; i < this.frames.length; i++) {
+        if (
+          this.frames[i].frame.name === frameOrName &&
+          this.frames[i].frame.image === packageName
+        ) {
+          matches.push(this.frames[i]);
+        }
+      }
+    } else {
+      for (let i = 0; i < this.frames.length; i++) {
+        if (
+          this.frames[i].frame.name === frameOrName.node.frame.name &&
+          this.frames[i].frame.image === frameOrName.node.frame.image
+        ) {
+          matches.push(this.frames[i]);
+        }
+      }
+    }
+
+    return matches;
   }
 
   setConfigSpace(configSpace: Rect): Flamegraph {

@@ -19,4 +19,5 @@ class EventAttachmentSerializer(Serializer):
             "sha1": file.checksum,
             "dateCreated": file.timestamp,
             "type": obj.type,
+            "event_id": obj.event_id,
         }

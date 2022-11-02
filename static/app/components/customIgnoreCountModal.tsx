@@ -3,8 +3,8 @@ import {Component, Fragment} from 'react';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import InputField from 'sentry/components/forms/inputField';
-import SelectField from 'sentry/components/forms/selectField';
+import NumberField from 'sentry/components/forms/fields/numberField';
+import SelectField from 'sentry/components/forms/fields/selectField';
 import {t} from 'sentry/locale';
 import {ResolutionStatusDetails, SelectValue} from 'sentry/types';
 
@@ -14,7 +14,6 @@ type WindowNames = 'ignoreWindow' | 'ignoreUserWindow';
 type Props = ModalRenderProps & {
   countLabel: string;
   countName: CountNames;
-  isPerformanceIssue: boolean;
   label: string;
   onSelected: (statusDetails: ResolutionStatusDetails) => void;
   windowName: WindowNames;
@@ -49,22 +48,9 @@ class CustomIgnoreCountModal extends Component<Props, State> {
   };
 
   render() {
-    const {
-      Header,
-      Footer,
-      Body,
-      countLabel,
-      label,
-      closeModal,
-      windowOptions,
-      isPerformanceIssue,
-    } = this.props;
+    const {Header, Footer, Body, countLabel, label, closeModal, windowOptions} =
+      this.props;
     const {count, window} = this.state;
-
-    // TODO: Revert this when this option becomes available for Performance Issues
-    const helpSubtext = isPerformanceIssue
-      ? t('This option is currently not available for Performance issues.')
-      : t('(Optional) If supplied, this rule will apply as a rate of change.');
 
     return (
       <Fragment>
@@ -72,13 +58,12 @@ class CustomIgnoreCountModal extends Component<Props, State> {
           <h4>{label}</h4>
         </Header>
         <Body>
-          <InputField
+          <NumberField
             inline={false}
             flexibleControlStateSize
             stacked
             label={countLabel}
             name="count"
-            type="number"
             value={count}
             onChange={val => this.handleChange('count' as 'count', Number(val))}
             required
@@ -95,8 +80,7 @@ class CustomIgnoreCountModal extends Component<Props, State> {
             options={windowOptions}
             placeholder={t('e.g. per hour')}
             allowClear
-            help={helpSubtext}
-            disabled={isPerformanceIssue}
+            help={t('(Optional) If supplied, this rule will apply as a rate of change.')}
           />
         </Body>
         <Footer>

@@ -4,12 +4,12 @@ import usePrevious from 'sentry/utils/usePrevious';
 
 describe('usePrevious', () => {
   it('stores initial value', () => {
-    const {result} = reactHooks.renderHook(() => usePrevious('Initial Value'));
+    const {result} = reactHooks.renderHook(usePrevious, {initialProps: 'Initial Value'});
     expect(result.current).toBe('Initial Value');
   });
 
   it('provides initial value', () => {
-    const {result} = reactHooks.renderHook(value => usePrevious(value), {
+    const {result} = reactHooks.renderHook(usePrevious, {
       initialProps: 'Initial Value',
     });
 
@@ -17,12 +17,9 @@ describe('usePrevious', () => {
   });
 
   it('provides previous value', () => {
-    const {result, rerender} = reactHooks.renderHook(
-      (value: string | undefined) => usePrevious(value),
-      {
-        initialProps: undefined,
-      }
-    );
+    const {result, rerender} = reactHooks.renderHook(usePrevious<string | undefined>, {
+      initialProps: undefined,
+    });
 
     rerender('New Value');
     // We did not pass anything under initialProps

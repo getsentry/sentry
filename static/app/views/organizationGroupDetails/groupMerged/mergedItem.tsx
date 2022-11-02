@@ -5,6 +5,7 @@ import Checkbox from 'sentry/components/checkbox';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import Tooltip from 'sentry/components/tooltip';
 import {IconChevron} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import GroupingStore, {Fingerprint} from 'sentry/stores/groupingStore';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -12,6 +13,7 @@ import {Organization} from 'sentry/types';
 type Props = {
   fingerprint: Fingerprint;
   organization: Organization;
+  totalFingerprint: number;
 };
 
 type State = {
@@ -92,23 +94,32 @@ class MergedItem extends Component<Props, State> {
   }
 
   render() {
-    const {fingerprint, organization} = this.props;
+    const {fingerprint, organization, totalFingerprint} = this.props;
     const {latestEvent, id, label} = fingerprint;
     const {collapsed, busy, checked} = this.state;
-    const checkboxDisabled = busy;
+    const checkboxDisabled = busy || totalFingerprint === 1;
 
     // `latestEvent` can be null if last event w/ fingerprint is not within retention period
     return (
       <MergedGroup busy={busy}>
         <Controls expanded={!collapsed}>
           <ActionWrapper onClick={this.handleToggle}>
-            <Checkbox
-              id={id}
-              value={id}
-              checked={checked}
-              disabled={checkboxDisabled}
-              onChange={this.handleCheckClick}
-            />
+            <Tooltip
+              disabled={!checkboxDisabled}
+              title={
+                checkboxDisabled && totalFingerprint === 1
+                  ? t('To check, the list must contain 2 or more items')
+                  : undefined
+              }
+            >
+              <Checkbox
+                id={id}
+                value={id}
+                checked={checked}
+                disabled={checkboxDisabled}
+                onChange={this.handleCheckClick}
+              />
+            </Tooltip>
 
             <FingerprintLabel onClick={this.handleLabelClick} htmlFor={id}>
               {this.renderFingerprint(id, label)}
@@ -131,6 +142,7 @@ class MergedItem extends Component<Props, State> {
                   organization={organization}
                   hideIcons
                   hideLevel
+                  source="merged-item"
                 />
               </EventDetails>
             )}
@@ -179,7 +191,7 @@ const Controls = styled('div')<{expanded: boolean}>`
 const FingerprintLabel = styled('label')`
   font-family: ${p => p.theme.text.familyMono};
 
-  ${/* sc-selector */ Controls} & {
+  ${Controls} & {
     font-weight: 400;
     margin: 0;
   }

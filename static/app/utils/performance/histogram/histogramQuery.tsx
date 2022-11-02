@@ -6,7 +6,6 @@ import GenericDiscoverQuery, {
   GenericChildrenProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {DataFilter, HistogramData} from 'sentry/utils/performance/histogram/types';
-import withApi from 'sentry/utils/withApi';
 
 type Histograms = Record<string, HistogramData>;
 
@@ -96,4 +95,4 @@ function HistogramQuery(props: Props) {
   );
 }
 
-export default withApi(HistogramQuery);
+export default HistogramQuery;

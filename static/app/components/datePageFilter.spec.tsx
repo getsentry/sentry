@@ -39,11 +39,6 @@ describe('DatePageFilter', function () {
     );
   });
 
-  afterEach(() => {
-    PageFiltersStore.teardown();
-    OrganizationStore.teardown();
-  });
-
   it('can change period', async function () {
     render(<DatePageFilter />, {
       context: routerContext,
@@ -67,7 +62,12 @@ describe('DatePageFilter', function () {
       desyncedFilters: new Set(),
       pinnedFilters: new Set(),
       selection: {
-        datetime: {period: '30d'},
+        datetime: {
+          period: '30d',
+          end: undefined,
+          start: undefined,
+          utc: null,
+        },
         environments: [],
         projects: [],
       },

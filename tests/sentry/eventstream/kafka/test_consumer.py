@@ -630,7 +630,9 @@ def kafka_message_payload():
             "is_new": False,
             "is_regression": None,
             "is_new_group_environment": False,
+            "queue": "post_process_errors",
             "skip_consume": False,
+            "group_states": None,
         },
     ]
 
@@ -669,7 +671,9 @@ class BatchedConsumerTest(TestCase):
         self.override_settings_cm.__exit__(None, None, None)
         self.admin_client.delete_topics([self.events_topic, self.commit_log_topic])
 
-    @patch("sentry.eventstream.kafka.postprocessworker.dispatch_post_process_group_task")
+    @patch(
+        "sentry.eventstream.kafka.postprocessworker.dispatch_post_process_group_task", autospec=True
+    )
     def test_post_process_forwarder_batch_consumer(self, dispatch_post_process_group_task):
         consumer_group = f"consumer-{uuid.uuid1().hex}"
         synchronize_commit_group = f"sync-consumer-{uuid.uuid1().hex}"
@@ -680,9 +684,8 @@ class BatchedConsumerTest(TestCase):
 
         eventstream = KafkaEventStream()
         consumer = eventstream._build_consumer(
-            entity="all",
             consumer_group=consumer_group,
-            topic=None,
+            topic=self.events_topic,
             commit_log_topic=self.commit_log_topic,
             synchronize_commit_group=synchronize_commit_group,
             commit_batch_size=1,
@@ -718,5 +721,65 @@ class BatchedConsumerTest(TestCase):
             primary_hash="311ee66a5b8e697929804ceb1c456ffe",
             is_new=False,
             is_regression=None,
+            queue="post_process_errors",
             is_new_group_environment=False,
+            group_states=None,
         )
+
+    @patch(
+        "sentry.eventstream.kafka.consumer_strategy.dispatch_post_process_group_task", autospec=True
+    )
+    def test_post_process_forwarder_streaming_consumer(self, dispatch_post_process_group_task):
+        consumer_group = f"consumer-{uuid.uuid1().hex}"
+        synchronize_commit_group = f"sync-consumer-{uuid.uuid1().hex}"
+
+        events_producer = self._get_producer("default")
+        commit_log_producer = self._get_producer("default")
+        message = json.dumps(kafka_message_payload()).encode()
+
+        eventstream = KafkaEventStream()
+        consumer = eventstream._build_streaming_consumer(
+            consumer_group=consumer_group,
+            topic=self.events_topic,
+            commit_log_topic=self.commit_log_topic,
+            synchronize_commit_group=synchronize_commit_group,
+            commit_batch_size=1,
+            commit_batch_timeout_ms=100,
+            concurrency=1,
+            initial_offset_reset="earliest",
+            strict_offset_reset=None,
+        )
+
+        # produce message to the events topic
+        events_producer.produce(self.events_topic, message)
+        assert events_producer.flush(5) == 0, "events producer did not successfully flush queue"
+
+        # Move the committed offset forward for our synchronizing group.
+        commit_log_producer.produce(
+            self.commit_log_topic,
+            key=f"{self.events_topic}:0:{synchronize_commit_group}".encode(),
+            value=f"{1}".encode(),
+        )
+        assert (
+            commit_log_producer.flush(5) == 0
+        ), "snuba-commit-log producer did not successfully flush queue"
+
+        # Run the loop for sometime
+        for _ in range(3):
+            consumer._run_once()
+            time.sleep(1)
+
+        # Verify that the task gets called once
+        dispatch_post_process_group_task.assert_called_once_with(
+            event_id="fe0ee9a2bc3b415497bad68aaf70dc7f",
+            project_id=1,
+            group_id=43,
+            primary_hash="311ee66a5b8e697929804ceb1c456ffe",
+            is_new=False,
+            is_regression=None,
+            queue="post_process_errors",
+            is_new_group_environment=False,
+            group_states=None,
+        )
+
+        consumer.signal_shutdown()

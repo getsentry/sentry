@@ -1,19 +1,12 @@
 import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {openEditOwnershipRules, openModal} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
-import FeatureBadge from 'sentry/components/featureBadge';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -80,7 +73,7 @@ tags.sku_class:enterprise #enterprise`;
 
   getDetail() {
     return tct(
-      `Automatically assign issues and send alerts to the right people based on issue properties. [link:Learn more].`,
+      `Auto-assign issues to users and teams. To learn more, [link:read the docs].`,
       {
         link: (
           <ExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/" />
@@ -122,25 +115,6 @@ tags.sku_class:enterprise #enterprise`;
     this.setState({
       codeowners: [...codeowners.slice(0, index), data, ...codeowners.slice(index + 1)],
     });
-  };
-
-  handleAddCodeOwnerRequest = async () => {
-    const {organization, project} = this.props;
-    try {
-      addLoadingMessage(t('Requesting\u2026'));
-      await this.api.requestPromise(
-        `/projects/${organization.slug}/${project.slug}/codeowners-request/`,
-        {
-          method: 'POST',
-          data: {},
-        }
-      );
-
-      addSuccessMessage(t('Request Sent'));
-    } catch (err) {
-      addErrorMessage(t('Unable to send request'));
-      Sentry.captureException(err);
-    }
   };
 
   renderCodeOwnerErrors = () => {
@@ -290,18 +264,9 @@ tags.sku_class:enterprise #enterprise`;
                         priority="primary"
                         data-test-id="add-codeowner-button"
                       >
-                        {t('Add CODEOWNERS File')}
+                        {t('Add CODEOWNERS')}
                       </CodeOwnerButton>
-                    ) : (
-                      <CodeOwnerButton
-                        onClick={this.handleAddCodeOwnerRequest}
-                        size="sm"
-                        priority="primary"
-                        data-test-id="add-codeowner-request-button"
-                      >
-                        {t('Request to Add CODEOWNERS File')}
-                      </CodeOwnerButton>
-                    )
+                    ) : null
                   }
                 </Access>
               </Feature>
@@ -366,9 +331,19 @@ tags.sku_class:enterprise #enterprise`;
                   fields: [
                     {
                       name: 'autoAssignment',
-                      type: 'boolean',
-                      label: t('Automatically assign issues'),
-                      help: t('Assign issues when a new event matches the rules above.'),
+                      type: 'choice',
+                      label: t('Prioritize Auto Assignment'),
+                      help: t(
+                        "When there's a conflict between suspect commit and ownership rules."
+                      ),
+                      choices: [
+                        [
+                          'Auto Assign to Suspect Commits',
+                          t('Auto-assign to suspect commits'),
+                        ],
+                        ['Auto Assign to Issue Owner', t('Auto-assign to issue owner')],
+                        ['Turn off Auto-Assignment', t('Turn off auto-assignment')],
+                      ],
                       disabled,
                     },
                     {
@@ -385,23 +360,9 @@ tags.sku_class:enterprise #enterprise`;
                     {
                       name: 'codeownersAutoSync',
                       type: 'boolean',
-                      label: tct(
-                        `Automatically sync changes from CODEOWNERS file to Code Owners [badge]`,
-                        {
-                          badge: (
-                            <FeatureBadge
-                              type="new"
-                              title={
-                                !(this.state.codeowners || []).length
-                                  ? 'Setup Code Owners to use this feature.'
-                                  : undefined
-                              }
-                            />
-                          ),
-                        }
-                      ),
+                      label: t('Sync changes from CODEOWNERS'),
                       help: t(
-                        'Sentry will watch for CODEOWNERS file changes during a Release and then update Code Owners.'
+                        'We’ll update any changes you make to your CODEOWNERS files during a release.'
                       ),
                       disabled: disabled || !(this.state.codeowners || []).length,
                     },

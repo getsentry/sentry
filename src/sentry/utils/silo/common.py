@@ -83,7 +83,7 @@ def apply_decorators(
         # decorator, or such.
         new_code = re.sub(
             (
-                r"(?:\n@((?:control|region|pending)_silo_(?:model|endpoint|test)))?"
+                r"(?:\n@((?:control|region|all|pending)_silo_(?:model|endpoint|test)))?"
                 rf"\n(class\s+{class_name}\()"
             ),
             replace,

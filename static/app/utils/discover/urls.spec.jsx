@@ -10,4 +10,11 @@ describe('getDiscoverLandingUrl', function () {
     const org = TestStubs.Organization({features: ['discover-basic']});
     expect(getDiscoverLandingUrl(org)).toBe('/organizations/org-slug/discover/results/');
   });
+
+  it('navigates to the results URL with the discover-query-builder-as-landing-page feature', function () {
+    const org = TestStubs.Organization({
+      features: ['discover-query', 'discover-query-builder-as-landing-page'],
+    });
+    expect(getDiscoverLandingUrl(org)).toBe('/organizations/org-slug/discover/homepage/');
+  });
 });

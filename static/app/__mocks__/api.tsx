@@ -56,6 +56,18 @@ function compareRecord(want: Record<string, any>, check: Record<string, any>): b
   return true;
 }
 
+afterEach(() => {
+  // if any errors are caught we console.error them
+  const errors = Object.values(Client.errors);
+  if (errors.length > 0) {
+    for (const err of errors) {
+      // eslint-disable-next-line no-console
+      console.error(err);
+    }
+    Client.errors = {};
+  }
+});
+
 class Client implements ApiNamespace.Client {
   static mockResponses: MockResponse[] = [];
 
@@ -200,33 +212,31 @@ class Client implements ApiNamespace.Client {
     });
   }
 
-  // XXX(ts): We type the return type for requestPromise and request as `any`. Typically these woul
+  static errors: Record<string, Error> = {};
 
+  // XXX(ts): We type the return type for requestPromise and request as `any`. Typically these woul
   request(url: string, options: Readonly<ApiNamespace.RequestOptions> = {}): any {
     const [response, mock] = Client.findMockResponse(url, options) || [
       undefined,
       undefined,
     ];
-
     if (!response || !mock) {
+      const methodAndUrl = `${options.method || 'GET'} ${url}`;
       // Endpoints need to be mocked
-      const err = new Error(
-        `No mocked response found for request: ${options.method || 'GET'} ${url}`
-      );
+      const err = new Error(`No mocked response found for request: ${methodAndUrl}`);
 
       // Mutate stack to drop frames since test file so that we know where in the test
       // this needs to be mocked
       const lines = err.stack?.split('\n');
-      const startIndex = lines?.findIndex(line => line.includes('tests/js/spec'));
+      const startIndex = lines?.findIndex(line => line.includes('.spec.'));
       err.stack = ['\n', lines?.[0], ...(lines?.slice(startIndex) ?? [])].join('\n');
 
       // Throwing an error here does not do what we want it to do....
       // Because we are mocking an API client, we generally catch errors to show
       // user-friendly error messages, this means in tests this error gets gobbled
-      // up and developer frustration ensues. Use `setTimeout` to get around this
-      setTimeout(() => {
-        throw err;
-      });
+      // up and developer frustration ensues.
+      // We track the errors on a static member and warn afterEach test.
+      Client.errors[methodAndUrl] = err;
     } else {
       // has mocked response
 

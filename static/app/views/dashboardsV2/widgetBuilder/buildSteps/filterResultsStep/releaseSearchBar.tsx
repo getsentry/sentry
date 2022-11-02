@@ -51,15 +51,14 @@ export function ReleaseSearchBar({
       return Promise.resolve(SESSION_STATUSES);
     }
     const projectIdStrings = projectIds?.map(String);
-    return fetchTagValues(
+    return fetchTagValues({
       api,
       orgSlug,
-      tag.key,
-      searchQuery,
-      projectIdStrings,
-      undefined,
-      true
-    ).then(
+      tagKey: tag.key,
+      search: searchQuery,
+      projectIds: projectIdStrings,
+      includeTransactions: true,
+    }).then(
       tagValues => (tagValues as TagValue[]).map(({value}) => value),
       () => {
         throw new Error('Unable to fetch tag values');
@@ -94,6 +93,7 @@ export function ReleaseSearchBar({
           query={widgetQuery.conditions}
           savedSearchType={SavedSearchType.SESSION}
           hasRecentSearches
+          highlightUnsupportedTags
         />
       )}
     </ClassNames>

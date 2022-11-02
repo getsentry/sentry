@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import classNames from 'classnames';
 import moment from 'moment';
 
 import AvatarList from 'sentry/components/avatar/avatarList';
@@ -45,10 +44,7 @@ const SeenByList = ({
 
   // Note className="seen-by" is required for responsive design
   return (
-    <SeenByWrapper
-      iconPosition={iconPosition}
-      className={classNames('seen-by', className)}
-    >
+    <SeenByWrapper iconPosition={iconPosition} className={className}>
       <AvatarList
         users={displayUsers}
         avatarSize={avatarSize}
@@ -72,8 +68,6 @@ const SeenByList = ({
 
 const SeenByWrapper = styled('div')<{iconPosition: Props['iconPosition']}>`
   display: flex;
-  margin-top: 15px;
-  float: right;
   ${p => (p.iconPosition === 'left' ? 'flex-direction: row-reverse' : '')};
 `;
 

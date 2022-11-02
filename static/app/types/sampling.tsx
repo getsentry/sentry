@@ -102,24 +102,21 @@ export type SamplingRule = {
 
 export type SamplingDistribution = {
   endTimestamp: string | null;
-  null_sample_rate_percentage: null | number;
-  project_breakdown:
+  parentProjectBreakdown:
+    | null
+    | {
+        percentage: number;
+        project: string;
+        projectId: number;
+      }[];
+  projectBreakdown:
     | null
     | {
         'count()': number;
         project: string;
-        project_id: number;
+        projectId: number;
       }[];
-  sample_rate_distributions: null | {
-    avg: null | number;
-    max: null | number;
-    min: null | number;
-    p50: null | number;
-    p90: null | number;
-    p95: null | number;
-    p99: null | number;
-  };
-  sample_size: number;
+  sampleSize: number;
   startTimestamp: string | null;
 };
 
@@ -146,3 +143,14 @@ export type UniformModalsSubmit = (props: {
   recommendedSampleRate?: boolean;
   rule?: SamplingRule;
 }) => void;
+
+export enum DynamicSamplingBiasType {
+  BOOST_ENVIRONMENTS = 'boostEnvironments',
+  BOOST_LATEST_RELEASES = 'boostLatestRelease',
+  IGNORE_HEALTH_CHECKS = 'ignoreHealthChecks',
+}
+
+export type DynamicSamplingBias = {
+  active: boolean;
+  id: DynamicSamplingBiasType;
+};

@@ -28,7 +28,6 @@ const globals = {
 // modules that are not compiled with the sentry bundle.
 const SentryApp = {
   // The following components are used in sentry-plugins.
-  Form: require('sentry/components/deprecatedforms/form').default,
   FormState: require('sentry/components/forms/state').default,
   LoadingIndicator: require('sentry/components/loadingIndicator').default,
   plugins: {
@@ -46,6 +45,9 @@ const SentryApp = {
   Modal: require('sentry/actionCreators/modal'),
   getModalPortal: require('sentry/utils/getModalPortal').default,
   Client: require('sentry/api').Client,
+  IconArrow: require('sentry/icons/iconArrow').IconArrow,
+  IconClose: require('sentry/icons/iconClose').IconClose,
+  IconCheckmark: require('sentry/icons/iconCheckmark').IconCheckmark,
 };
 
 globals.SentryApp = SentryApp;

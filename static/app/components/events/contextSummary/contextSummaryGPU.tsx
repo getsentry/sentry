@@ -4,17 +4,13 @@ import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Event, Meta} from 'sentry/types';
+import {Meta} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
 import ContextSummaryNoSummary from './contextSummaryNoSummary';
-import generateClassName from './generateClassName';
 import Item from './item';
-
-type Props = {
-  data: Data;
-  meta: NonNullable<Event['_meta']>['gpu'];
-};
+import {ContextItemProps} from './types';
+import {generateIconName} from './utils';
 
 type Data = {
   name: string;
@@ -26,6 +22,8 @@ type VersionElement = {
   value: string;
   meta?: Meta;
 };
+
+type Props = ContextItemProps<Data, 'gpu'>;
 
 export function ContextSummaryGPU({data, meta}: Props) {
   if (Object.keys(data).length === 0) {
@@ -50,10 +48,7 @@ export function ContextSummaryGPU({data, meta}: Props) {
   const versionElement = getVersionElement();
 
   return (
-    <Item
-      className={generateClassName(data.vendor_name ? data.vendor_name : data.name)}
-      icon={<span className="context-item-icon" />}
-    >
+    <Item icon={generateIconName(data.vendor_name ? data.vendor_name : data.name)}>
       <h3>
         <AnnotatedText value={data.name} meta={meta.name?.['']} />
       </h3>

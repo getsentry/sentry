@@ -4,7 +4,6 @@ import GenericDiscoverQuery, {
   DiscoverQueryProps,
   GenericChildrenProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
-import withApi from 'sentry/utils/withApi';
 
 /**
  * An individual row in a Segment explorer result
@@ -83,4 +82,4 @@ function TagKeyHistogramQuery(props: QueryProps) {
   );
 }
 
-export default withApi(TagKeyHistogramQuery);
+export default TagKeyHistogramQuery;

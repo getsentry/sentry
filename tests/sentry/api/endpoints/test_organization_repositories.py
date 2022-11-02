@@ -184,7 +184,7 @@ class OrganizationRepositoriesCreateTest(APITestCase):
 
         assert response.status_code == 201, (response.status_code, response.content)
 
-    def test_no_access(self):
+    def test_member_ok(self):
         org = self.create_organization(owner=self.user, name="baz")
         team = self.create_team(name="people", organization=org)
 
@@ -197,7 +197,7 @@ class OrganizationRepositoriesCreateTest(APITestCase):
             url = reverse("sentry-api-0-organization-repositories", args=[org.slug])
             response = self.client.post(url, data={"provider": "dummy", "name": "getsentry/sentry"})
 
-        assert response.status_code == 403, (response.status_code, response.content)
+        assert response.status_code == 201, (response.status_code, response.content)
 
 
 @region_silo_test

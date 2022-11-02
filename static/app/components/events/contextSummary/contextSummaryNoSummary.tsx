@@ -5,7 +5,7 @@ type Props = {
 };
 
 const ContextSummaryNoSummary = ({title}: Props) => (
-  <Item icon={<span className="context-item-icon" />}>
+  <Item>
     <h3 data-test-id="no-summary-title">{title}</h3>
   </Item>
 );

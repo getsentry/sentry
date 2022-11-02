@@ -31,7 +31,7 @@ type State = {
 type VariantData = [string, React.ReactNode][];
 
 function addFingerprintInfo(data: VariantData, variant: EventGroupVariant) {
-  if (variant.matched_rule) {
+  if ('matched_rule' in variant) {
     data.push([
       t('Fingerprint rule'),
       <TextWithQuestionTooltip key="type">
@@ -44,10 +44,10 @@ function addFingerprintInfo(data: VariantData, variant: EventGroupVariant) {
       </TextWithQuestionTooltip>,
     ]);
   }
-  if (variant.values) {
+  if ('values' in variant) {
     data.push([t('Fingerprint values'), variant.values]);
   }
-  if (variant.client_values) {
+  if ('client_values' in variant) {
     data.push([
       t('Client fingerprint values'),
       <TextWithQuestionTooltip key="type">
@@ -161,6 +161,30 @@ class GroupVariant extends Component<Props, State> {
           data.push([t('Grouping Config'), variant.config.id]);
         }
         break;
+      case EventGroupVariantType.PERFORMANCE_PROBLEM:
+        data.push([
+          t('Type'),
+          <TextWithQuestionTooltip key="type">
+            {variant.type}
+            <QuestionTooltip
+              size="xs"
+              position="top"
+              title={t(
+                'Uses the evidence from performance issue detection to generate a fingerprint.'
+              )}
+            />
+          </TextWithQuestionTooltip>,
+        ]);
+
+        data.push(['Performance Issue Type', variant.key]);
+        data.push(['Span Operation', variant.evidence.op]);
+        data.push(['Parent Span Hashes', variant.evidence.parent_span_hashes]);
+        data.push(['Source Span Hashes', variant.evidence.cause_span_hashes]);
+        data.push([
+          'Offender Span Hashes',
+          [...new Set(variant.evidence.offender_span_hashes)],
+        ]);
+        break;
       default:
         break;
     }
@@ -188,7 +212,7 @@ class GroupVariant extends Component<Props, State> {
     if (isContributing) {
       title = t('Contributing variant');
     } else {
-      const hint = variant.component?.hint;
+      const hint = 'component' in variant ? variant.component?.hint : undefined;
       if (hint) {
         title = t('Non-contributing variant: %s', hint);
       } else {

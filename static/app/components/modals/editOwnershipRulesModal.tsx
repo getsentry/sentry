@@ -14,7 +14,9 @@ type Props = ModalRenderProps & EditOwnershipRulesModalOptions;
 const EditOwnershipRulesModal = ({Body, Header, onSave, ...props}: Props) => {
   return (
     <Fragment>
-      <Header closeButton>{t('Edit Ownership Rules')}</Header>
+      <Header closeButton>
+        <h4>{t('Edit Ownership Rules')}</h4>
+      </Header>
       <Body>
         <OwnershipModal {...props} onSave={onSave} />
       </Body>

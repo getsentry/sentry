@@ -28,6 +28,7 @@ FEATURE_NAMES = [
     "organizations:discover-basic",
     "organizations:discover-query",
     "organizations:dashboards-basic",
+    "organizations:global-views",
 ]
 
 EDIT_FEATURE = ["organizations:dashboards-edit"]
@@ -39,100 +40,6 @@ WIDGET_LIBRARY_FEATURE = ["organizations:widget-library"]
 
 @region_silo_test
 class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
-    def setUp(self):
-        super().setUp()
-        min_ago = iso_format(before_now(minutes=1))
-        self.store_event(
-            data={"event_id": "a" * 32, "message": "oh no", "timestamp": min_ago},
-            project_id=self.project.id,
-        )
-        self.dashboard = Dashboard.objects.create(
-            title="Dashboard 1", created_by=self.user, organization=self.organization
-        )
-        self.existing_widget = DashboardWidget.objects.create(
-            dashboard=self.dashboard,
-            order=0,
-            title="Existing Widget",
-            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
-            widget_type=DashboardWidgetTypes.DISCOVER,
-            interval="1d",
-        )
-        DashboardWidgetQuery.objects.create(
-            widget=self.existing_widget,
-            fields=["count()"],
-            columns=[],
-            aggregates=["count()"],
-            order=0,
-        )
-        self.page = DashboardDetailPage(
-            self.browser, self.client, organization=self.organization, dashboard=self.dashboard
-        )
-        self.login_as(self.user)
-
-    def test_view_dashboard(self):
-        with self.feature(FEATURE_NAMES):
-            self.page.visit_default_overview()
-            self.browser.snapshot("dashboards - default overview")
-
-    def test_view_dashboard_with_manager(self):
-        with self.feature(FEATURE_NAMES + EDIT_FEATURE):
-            self.page.visit_default_overview()
-            self.browser.snapshot("dashboards - default overview manager")
-
-    def test_edit_dashboard(self):
-        with self.feature(FEATURE_NAMES + EDIT_FEATURE):
-            self.page.visit_default_overview()
-            self.page.enter_edit_state()
-            self.browser.snapshot("dashboards - edit state")
-
-    def test_add_widget(self):
-        with self.feature(FEATURE_NAMES + EDIT_FEATURE):
-            self.page.visit_default_overview()
-            self.page.enter_edit_state()
-
-            # Add a widget
-            self.page.click_dashboard_add_widget_button()
-            self.browser.snapshot("dashboards - add widget")
-
-    def test_edit_widget(self):
-        with self.feature(FEATURE_NAMES + EDIT_FEATURE):
-            self.page.visit_default_overview()
-            self.page.enter_edit_state()
-
-            # Edit the first widget.
-            button = self.browser.element(EDIT_WIDGET_BUTTON)
-            button.click()
-            self.browser.snapshot("dashboards - edit widget")
-
-    def test_duplicate_widget_in_view_mode(self):
-        with self.feature(FEATURE_NAMES + EDIT_FEATURE):
-            self.page.visit_dashboard_detail()
-
-            self.browser.element('[aria-label="Widget actions"]').click()
-            self.browser.element('[data-test-id="duplicate-widget"]').click()
-            self.page.wait_until_loaded()
-
-            self.browser.element('[aria-label="Widget actions"]').click()
-            self.browser.element('[data-test-id="duplicate-widget"]').click()
-            self.page.wait_until_loaded()
-
-            self.browser.snapshot("dashboard widget - duplicate")
-
-    def test_delete_widget_in_view_mode(self):
-        with self.feature(FEATURE_NAMES + EDIT_FEATURE):
-            self.page.visit_dashboard_detail()
-
-            self.browser.element('[aria-label="Widget actions"]').click()
-            self.browser.element('[data-test-id="delete-widget"]').click()
-            self.browser.element('[data-test-id="confirm-button"]').click()
-
-            self.page.wait_until_loaded()
-
-            self.browser.snapshot("dashboard widget - delete")
-
-
-@region_silo_test
-class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
         min_ago = iso_format(before_now(minutes=1))
@@ -295,9 +202,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             title_input = self.browser.element(WIDGET_TITLE_FIELD)
             title_input.clear()
             title_input.send_keys(widget_title)
-            self.browser.element(
-                '[aria-label="Select Issues (States, Assignment, Time, etc.)"]'
-            ).click()
+            self.browser.element('[aria-label="Issues (States, Assignment, Time, etc.)"]').click()
             button = self.browser.element('[aria-label="Add Widget"]')
             button.click()
 

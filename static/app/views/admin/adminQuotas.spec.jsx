@@ -20,6 +20,11 @@ describe('AdminQuotas', function () {
     });
 
     it('renders', function () {
+      MockApiClient.addMockResponse({
+        url: '/internal/stats/',
+        body: [],
+      });
+
       const wrapper = render(<AdminQuotas params={{}} />);
       expect(wrapper.container).toSnapshot();
     });

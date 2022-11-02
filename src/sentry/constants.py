@@ -5,7 +5,7 @@ web-server
 
 import logging
 import os.path
-from collections import OrderedDict, namedtuple
+from collections import namedtuple
 from datetime import timedelta
 from typing import Dict, List, Optional, Sequence, Tuple, cast
 
@@ -40,18 +40,18 @@ COMMIT_RANGE_DELIMITER = ".."
 # semver constants
 SEMVER_FAKE_PACKAGE = "__sentry_fake__"
 
-SORT_OPTIONS = OrderedDict(
-    (
-        ("priority", _("Priority")),
-        ("date", _("Last Seen")),
-        ("new", _("First Seen")),
-        ("freq", _("Frequency")),
-    )
-)
+SORT_OPTIONS = {
+    "priority": _("Priority"),
+    "date": _("Last Seen"),
+    "new": _("First Seen"),
+    "freq": _("Frequency"),
+}
 
-SEARCH_SORT_OPTIONS = OrderedDict(
-    (("score", _("Score")), ("date", _("Last Seen")), ("new", _("First Seen")))
-)
+SEARCH_SORT_OPTIONS = {
+    "score": _("Score"),
+    "date": _("Last Seen"),
+    "new": _("First Seen"),
+}
 
 # XXX: Deprecated: use GroupStatus instead
 STATUS_UNRESOLVED = 0
@@ -105,6 +105,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "demo",
         "docs",
         "enterprise",
+        "events",
         "ext",
         "extension",
         "extensions",
@@ -236,6 +237,7 @@ _SENTRY_RULES = (
     "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter",
     "sentry.rules.filters.assigned_to.AssignedToFilter",
     "sentry.rules.filters.latest_release.LatestReleaseFilter",
+    "sentry.rules.filters.issue_category.IssueCategoryFilter",
     # The following filters are duplicates of their respective conditions and are conditionally shown if the user has issue alert-filters
     "sentry.rules.filters.event_attribute.EventAttributeFilter",
     "sentry.rules.filters.tagged_event.TaggedEventFilter",
@@ -291,6 +293,7 @@ KNOWN_DIF_FORMATS: Dict[str, str] = {
     "application/x-bcsymbolmap": "bcsymbolmap",
     "application/x-debugid-map": "uuidmap",
     "application/x-il2cpp-json": "il2cpp",
+    "application/x-portable-pdb": "portablepdb",
 }
 
 NATIVE_UNKNOWN_STRING = "<unknown>"

@@ -1,7 +1,7 @@
 import pytest
 
 from sentry.exceptions import InvalidSearchQuery
-from sentry.utils.profiling import parse_profile_filters
+from sentry.profiles.utils import parse_profile_filters
 
 
 @pytest.mark.parametrize(

@@ -2,7 +2,7 @@ import {createFilter} from 'react-select';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import {Field} from 'sentry/components/forms/type';
+import {Field} from 'sentry/components/forms/types';
 import platforms from 'sentry/data/platforms';
 import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -122,10 +122,9 @@ export const fields: Record<string, Field> = {
     },
     saveOnBlur: false,
     saveMessage: tct(
-      '[Caution]: Enabling auto resolve will immediately resolve anything that has ' +
-        'not been seen within this period of time. There is no undo!',
+      '[strong:Caution]: Enabling auto resolve will immediately resolve anything that has not been seen within this period of time. There is no undo!',
       {
-        Caution: <strong>Caution</strong>,
+        strong: <strong />,
       }
     ),
     saveMessageAlertType: 'warning',

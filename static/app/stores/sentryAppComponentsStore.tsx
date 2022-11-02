@@ -5,7 +5,6 @@ import {SentryAppComponent} from 'sentry/types';
 export interface SentryAppComponentsStoreDefinition extends StoreDefinition {
   get: (uuid: string) => SentryAppComponent | undefined;
   getAll: () => SentryAppComponent[];
-  getComponentByType: (type: string | undefined) => SentryAppComponent[];
   getInitialState: () => SentryAppComponent[];
   loadComponents: (items: SentryAppComponent[]) => void;
 }
@@ -14,6 +13,9 @@ const storeConfig: SentryAppComponentsStoreDefinition = {
   items: [],
 
   init() {
+    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
+    // listeners due to their leaky nature in tests.
+
     this.items = [];
   },
 
@@ -33,14 +35,6 @@ const storeConfig: SentryAppComponentsStoreDefinition = {
 
   getAll() {
     return this.items;
-  },
-
-  getComponentByType(type: string | undefined) {
-    if (!type) {
-      return this.getAll();
-    }
-    const items: SentryAppComponent[] = this.items;
-    return items.filter(item => item.type === type);
   },
 };
 

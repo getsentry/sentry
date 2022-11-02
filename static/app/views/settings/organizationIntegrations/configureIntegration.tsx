@@ -75,8 +75,9 @@ class ConfigureIntegration extends AsyncView<Props, State> {
       organization,
       params: {orgId, providerKey},
     } = this.props;
-    // This page should not be accessible by members
-    if (!organization.access.includes('org:integrations')) {
+    // This page should not be accessible by members (unless its github or gitlab)
+    const allowMemberConfiguration = ['github', 'gitlab'].includes(providerKey);
+    if (!allowMemberConfiguration && !organization.access.includes('org:integrations')) {
       router.push({
         pathname: `/settings/${orgId}/integrations/${providerKey}/`,
       });

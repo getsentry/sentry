@@ -5,11 +5,9 @@ import GenericDiscoverQuery, {
   DiscoverQueryProps,
   GenericChildrenProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
-import useApi from 'sentry/utils/useApi';
 
 export interface MetricsCompatibilityData {
   compatible_projects?: number[];
-  dynamic_sampling_projects?: number[];
 }
 
 type QueryProps = Omit<DiscoverQueryProps, 'eventView' | 'api'> & {
@@ -30,13 +28,11 @@ function getRequestPayload({
 }
 
 export default function MetricsCompatibilityQuery({children, ...props}: QueryProps) {
-  const api = useApi();
   return (
     <GenericDiscoverQuery<MetricsCompatibilityData, {}>
       route="metrics-compatibility-sums"
       getRequestPayload={getRequestPayload}
       {...props}
-      api={api}
     >
       {({tableData, ...rest}) => {
         return children({

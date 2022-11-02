@@ -6,6 +6,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {IconSentry} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
 import getDynamicText from 'sentry/utils/getDynamicText';
 
@@ -14,35 +15,33 @@ type Props = {
 };
 
 function BaseFooter({className}: Props) {
-  const config = ConfigStore.getConfig();
+  const {isSelfHosted, version, privacyUrl, termsUrl, demoMode} =
+    useLegacyStore(ConfigStore);
+
   return (
     <footer className={className}>
       <LeftLinks>
-        {config.isSelfHosted && (
+        {isSelfHosted && (
           <Fragment>
             {'Sentry '}
             {getDynamicText({
               fixed: 'Acceptance Test',
-              value: config.version.current,
+              value: version.current,
             })}
             <Build>
               {getDynamicText({
                 fixed: 'test',
-                value: config.version.build.substring(0, 7),
+                value: version.build.substring(0, 7),
               })}
             </Build>
           </Fragment>
         )}
-        {config.privacyUrl && (
-          <FooterLink href={config.privacyUrl}>{t('Privacy Policy')}</FooterLink>
-        )}
-        {config.termsUrl && (
-          <FooterLink href={config.termsUrl}>{t('Terms of Use')}</FooterLink>
-        )}
+        {privacyUrl && <FooterLink href={privacyUrl}>{t('Privacy Policy')}</FooterLink>}
+        {termsUrl && <FooterLink href={termsUrl}>{t('Terms of Use')}</FooterLink>}
       </LeftLinks>
       <LogoLink />
       <RightLinks>
-        {!config.isSelfHosted && (
+        {!isSelfHosted && (
           <FooterLink href="https://status.sentry.io/">{t('Service Status')}</FooterLink>
         )}
         <FooterLink href="/api/">{t('API')}</FooterLink>
@@ -50,7 +49,7 @@ function BaseFooter({className}: Props) {
         <FooterLink href="https://github.com/getsentry/sentry">
           {t('Contribute')}
         </FooterLink>
-        {config.isSelfHosted && !config.demoMode && (
+        {isSelfHosted && !demoMode && (
           <FooterLink href="/out/">{t('Migrate to SaaS')}</FooterLink>
         )}
       </RightLinks>

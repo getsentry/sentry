@@ -1,5 +1,5 @@
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 
 import ActionLink from 'sentry/components/actions/actionLink';
 import IgnoreActions from 'sentry/components/actions/ignore';
@@ -9,10 +9,8 @@ import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import space from 'sentry/styles/space';
 import {
   BaseGroup,
-  IssueCategory,
   IssueCategoryCapabilities,
   Project,
   ResolutionStatus,
@@ -24,7 +22,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 import ResolveActions from './resolveActions';
 import ReviewAction from './reviewAction';
-import IssueListSortOptions from './sortOptions';
 import {ConfirmAction, getConfirm, getLabel} from './utils';
 
 type Props = {
@@ -35,11 +32,9 @@ type Props = {
   onDelete: () => void;
   onMerge: () => void;
   onShouldConfirm: (action: ConfirmAction) => boolean;
-  onSortChange: (sort: string) => void;
   onUpdate: (data?: any) => void;
   query: string;
   queryCount: number;
-  sort: string;
   selectedProjectSlug?: string;
 };
 
@@ -55,8 +50,6 @@ function ActionSet({
   onDelete,
   onMerge,
   selectedProjectSlug,
-  sort,
-  onSortChange,
 }: Props) {
   const organization = useOrganization();
   const numIssues = issues.size;
@@ -112,13 +105,6 @@ function ActionSet({
   const theme = useTheme();
   const nestMergeAndReview = useMedia(`(max-width: ${theme.breakpoints.xlarge})`);
 
-  // If at least one Performance Issue is selected, some of the ignore dropdown options must be disabled.
-  const issueCategory: IssueCategory = selectedIssues.some(
-    issue => issue?.issueCategory === IssueCategory.PERFORMANCE
-  )
-    ? IssueCategory.PERFORMANCE
-    : IssueCategory.ERROR;
-
   const menuItems: MenuItemProps[] = [
     {
       key: 'merge',
@@ -130,7 +116,7 @@ function ActionSet({
         openConfirmModal({
           bypass: !onShouldConfirm(ConfirmAction.MERGE),
           onConfirm: onMerge,
-          message: confirm(ConfirmAction.MERGE, false),
+          message: confirm({action: ConfirmAction.MERGE, canBeUndone: false}),
           confirmText: label('merge'),
         });
       },
@@ -150,7 +136,7 @@ function ActionSet({
         openConfirmModal({
           bypass: !onShouldConfirm(ConfirmAction.BOOKMARK),
           onConfirm: () => onUpdate({isBookmarked: true}),
-          message: confirm(ConfirmAction.BOOKMARK, false),
+          message: confirm({action: ConfirmAction.BOOKMARK, canBeUndone: false}),
           confirmText: label('bookmark'),
         });
       },
@@ -163,7 +149,11 @@ function ActionSet({
         openConfirmModal({
           bypass: !onShouldConfirm(ConfirmAction.UNBOOKMARK),
           onConfirm: () => onUpdate({isBookmarked: false}),
-          message: confirm('remove', false, ' from your bookmarks'),
+          message: confirm({
+            action: ConfirmAction.UNBOOKMARK,
+            canBeUndone: false,
+            append: ' from your bookmarks',
+          }),
           confirmText: label('remove', ' from your bookmarks'),
         });
       },
@@ -176,7 +166,7 @@ function ActionSet({
         openConfirmModal({
           bypass: !onShouldConfirm(ConfirmAction.UNRESOLVE),
           onConfirm: () => onUpdate({status: ResolutionStatus.UNRESOLVED}),
-          message: confirm(ConfirmAction.UNRESOLVE, true),
+          message: confirm({action: ConfirmAction.UNRESOLVE, canBeUndone: true}),
           confirmText: label('unresolve'),
         });
       },
@@ -192,7 +182,7 @@ function ActionSet({
           bypass: !onShouldConfirm(ConfirmAction.DELETE),
           onConfirm: onDelete,
           priority: 'danger',
-          message: confirm(ConfirmAction.DELETE, false),
+          message: confirm({action: ConfirmAction.DELETE, canBeUndone: false}),
           confirmText: label('delete'),
         });
       },
@@ -200,7 +190,7 @@ function ActionSet({
   ];
 
   return (
-    <Wrapper>
+    <Fragment>
       {selectedProjectSlug ? (
         <Projects orgId={organization.slug} slugs={[selectedProjectSlug]}>
           {({projects, initiallyLoaded, fetchError}) => {
@@ -236,8 +226,6 @@ function ActionSet({
           orgSlug={organization.slug}
           params={{
             hasReleases: false,
-            latestRelease: null,
-            projectId: null,
             confirm,
             label,
           }}
@@ -247,9 +235,8 @@ function ActionSet({
       <IgnoreActions
         onUpdate={onUpdate}
         shouldConfirm={onShouldConfirm(ConfirmAction.IGNORE)}
-        confirmMessage={confirm(ConfirmAction.IGNORE, true)}
+        confirmMessage={() => confirm({action: ConfirmAction.IGNORE, canBeUndone: true})}
         confirmLabel={label('ignore')}
-        issueCategory={issueCategory}
         disabled={ignoreDisabled}
       />
       {!nestMergeAndReview && (
@@ -262,7 +249,7 @@ function ActionSet({
           disabled={mergeDisabled}
           onAction={onMerge}
           shouldConfirm={onShouldConfirm(ConfirmAction.MERGE)}
-          message={confirm(ConfirmAction.MERGE, false)}
+          message={confirm({action: ConfirmAction.MERGE, canBeUndone: false})}
           confirmLabel={label('merge')}
           title={makeMergeTooltip()}
         >
@@ -280,8 +267,7 @@ function ActionSet({
         }}
         isDisabled={!anySelected}
       />
-      <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
-    </Wrapper>
+    </Fragment>
   );
 }
 
@@ -301,19 +287,3 @@ function isActionSupported(
 }
 
 export default ActionSet;
-
-const Wrapper = styled('div')`
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    width: 66.66%;
-  }
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
-    width: 50%;
-  }
-  flex: 1;
-  margin: 0 ${space(1)};
-  display: grid;
-  gap: ${space(0.5)};
-  grid-auto-flow: column;
-  justify-content: flex-start;
-  white-space: nowrap;
-`;

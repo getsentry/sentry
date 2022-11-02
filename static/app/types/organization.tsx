@@ -90,12 +90,13 @@ export interface MemberRole {
   desc: string;
   id: string;
   name: string;
-  allowed?: boolean;
+  allowed?: boolean; // Deprecated: use isAllowed
+  isAllowed?: boolean;
+  isRetired?: boolean;
 }
 export interface OrgRole extends MemberRole {
   minimumTeamRole: string;
   isGlobal?: boolean;
-  isRetired?: boolean;
   is_global?: boolean; // Deprecated: use isGlobal
 }
 export interface TeamRole extends MemberRole {
@@ -186,30 +187,24 @@ export type SavedQueryVersions = 1 | 2;
 
 export interface NewQuery {
   fields: Readonly<string[]>;
-  id: string | undefined;
   name: string;
-  // GlobalSelectionHeader
   projects: Readonly<number[]>;
-
   version: SavedQueryVersions;
   createdBy?: User;
   display?: string;
   end?: string;
   environment?: Readonly<string[]>;
-
   expired?: boolean;
+  id?: string;
+  interval?: string;
   orderby?: string;
-  // Query and Table
   query?: string;
   range?: string;
   start?: string;
-
   teams?: Readonly<('myteams' | number)[]>;
   topEvents?: string;
   utc?: boolean | string;
   widths?: Readonly<string[]>;
-
-  // Graph
   yAxis?: string[];
 }
 

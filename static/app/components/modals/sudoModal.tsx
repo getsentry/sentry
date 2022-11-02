@@ -8,8 +8,8 @@ import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
+import SecretField from 'sentry/components/forms/fields/secretField';
 import Form from 'sentry/components/forms/form';
-import InputField from 'sentry/components/forms/inputField';
 import Hook from 'sentry/components/hook';
 import U2fContainer from 'sentry/components/u2f/u2fContainer';
 import {ErrorCodes} from 'sentry/constants/superuserAccessErrors';
@@ -218,7 +218,7 @@ class SudoModal extends Component<Props, State> {
           </StyledTextBlock>
           {error && (
             <StyledAlert type="error" showIcon>
-              {t(errorType)}
+              {errorType}
             </StyledAlert>
           )}
           {isSuperuser ? (
@@ -272,7 +272,7 @@ class SudoModal extends Component<Props, State> {
 
         {error && (
           <StyledAlert type="error" showIcon>
-            {t(errorType)}
+            {errorType}
           </StyledAlert>
         )}
 
@@ -287,8 +287,7 @@ class SudoModal extends Component<Props, State> {
           resetOnError
         >
           {user.hasPasswordAuth && (
-            <StyledInputField
-              type="password"
+            <StyledSecretField
               inline={false}
               label={t('Password')}
               name="password"
@@ -326,7 +325,7 @@ const StyledTextBlock = styled(TextBlock)`
   margin-bottom: ${space(1)};
 `;
 
-const StyledInputField = styled(InputField)`
+const StyledSecretField = styled(SecretField)`
   padding-left: 0;
 `;
 

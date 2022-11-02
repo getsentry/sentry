@@ -1,8 +1,7 @@
-import {Component, useState} from 'react';
+import {useState} from 'react';
 import {action} from '@storybook/addon-actions';
 
 import Note from 'sentry/components/activity/note';
-import SentryTypes from 'sentry/sentryTypes';
 import ConfigStore from 'sentry/stores/configStore';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -24,7 +23,7 @@ ProjectsStore.loadInitialData([
   {
     id: '2',
     slug: 'project-slug',
-    name: 'Project Name',
+    name: 'project-slug',
     hasAccess: true,
     isMember: true,
     isBookmarked: false,
@@ -50,26 +49,6 @@ MemberListStore.loadInitialData([
   },
 ]);
 
-const organization = {
-  id: '1',
-  slug: 'org-slug',
-  access: ['project:releases'],
-};
-
-class OrganizationContext extends Component {
-  static childContextTypes = {
-    organization: SentryTypes.Organization,
-  };
-
-  getChildContext() {
-    return {organization};
-  }
-
-  render() {
-    return this.props.children;
-  }
-}
-
 export default {
   title: 'Views/Activity/Activity Note',
   component: Note,
@@ -79,23 +58,21 @@ export const Default = () => {
   const [text, setText] = useState(activity.data.text);
 
   return (
-    <OrganizationContext>
-      <Note
-        showTime
-        authorName={user.name}
-        user={user}
-        text={text}
-        modelId={activity.id}
-        dateCreated={activity.dateCreated}
-        projectSlugs={['project-slug']}
-        minHeight={200}
-        onUpdate={(...props) => {
-          action('Updated item', props);
-          setText(props[0].text);
-        }}
-        onDelete={action('Deleted item')}
-      />
-    </OrganizationContext>
+    <Note
+      showTime
+      authorName={user.name}
+      user={user}
+      text={text}
+      modelId={activity.id}
+      dateCreated={activity.dateCreated}
+      projectSlugs={['project-slug']}
+      minHeight={200}
+      onUpdate={(...props) => {
+        action('Updated item', props);
+        setText(props[0].text);
+      }}
+      onDelete={action('Deleted item')}
+    />
   );
 };
 

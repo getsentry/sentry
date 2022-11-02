@@ -1,5 +1,5 @@
 import logging
-from collections import OrderedDict, defaultdict
+from collections import defaultdict
 from functools import reduce
 from typing import Any, Mapping, Optional, Tuple
 
@@ -279,7 +279,7 @@ def collect_group_environment_data(events):
     Find the first release for a each group and environment pair from a
     date-descending sorted list of events.
     """
-    results = OrderedDict()
+    results = {}
     for event in events:
         results[(event.group_id, get_environment_name(event))] = event.get_tag("sentry:release")
     return results
@@ -300,7 +300,7 @@ def repair_group_environment_data(caches, project, events):
 
 
 def collect_tag_data(events):
-    results = OrderedDict()
+    results = {}
 
     for event in events:
         environment = get_environment_name(event)
@@ -323,7 +323,7 @@ def get_environment_name(event):
 
 
 def collect_release_data(caches, project, events):
-    results = OrderedDict()
+    results = {}
 
     for event in events:
         release = event.get_tag("sentry:release")

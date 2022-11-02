@@ -99,6 +99,7 @@ SAMPLED_TASKS = {
     "sentry.tasks.app_store_connect.dsym_download": settings.SENTRY_APPCONNECT_APM_SAMPLING,
     "sentry.tasks.app_store_connect.refresh_all_builds": settings.SENTRY_APPCONNECT_APM_SAMPLING,
     "sentry.tasks.process_suspect_commits": settings.SENTRY_SUSPECT_COMMITS_APM_SAMPLING,
+    "sentry.tasks.process_commit_context": settings.SENTRY_SUSPECT_COMMITS_APM_SAMPLING,
     "sentry.tasks.post_process.post_process_group": settings.SENTRY_POST_PROCESS_GROUP_APM_SAMPLING,
     "sentry.tasks.reprocessing2.handle_remaining_events": settings.SENTRY_REPROCESSING_APM_SAMPLING,
     "sentry.tasks.reprocessing2.reprocess_group": settings.SENTRY_REPROCESSING_APM_SAMPLING,
@@ -106,10 +107,16 @@ SAMPLED_TASKS = {
     "sentry.tasks.relay.build_project_config": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
     "sentry.tasks.relay.invalidate_project_config": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
     # This is the parent task of the next two tasks.
-    "sentry.tasks.reports.prepare_reports": settings.SAMPLED_DEFAULT_RATE,
+    "sentry.tasks.reports.prepare_reports": 1.0,
     "sentry.tasks.reports.prepare_organization_report": 0.1,
     "sentry.tasks.reports.deliver_organization_user_report": 0.01,
     "sentry.tasks.process_buffer.process_incr": 0.01,
+    "sentry.replays.tasks.delete_recording_segments": settings.SAMPLED_DEFAULT_RATE,
+    "sentry.tasks.weekly_reports.schedule_organizations": 1.0,
+    "sentry.tasks.weekly_reports.prepare_organization_report": 0.1,
+    "sentry.profiles.task.process_profile": 0.01,
+    "sentry.tasks.derive_code_mappings.process_organizations": settings.SAMPLED_DEFAULT_RATE,
+    "sentry.tasks.derive_code_mappings.derive_code_mappings": settings.SAMPLED_DEFAULT_RATE,
 }
 
 if settings.ADDITIONAL_SAMPLED_TASKS:
@@ -309,6 +316,14 @@ def configure_sdk():
     else:
         experimental_transport = None
 
+    if settings.SENTRY_PROFILING_ENABLED:
+        sdk_options.setdefault("_experiments", {}).update(
+            {
+                "profiles_sample_rate": settings.SENTRY_PROFILES_SAMPLE_RATE,
+                "profiler_mode": settings.SENTRY_PROFILER_MODE,
+            }
+        )
+
     class MultiplexingTransport(sentry_sdk.transport.Transport):
         def capture_envelope(self, envelope):
             # Temporarily capture envelope counts to compare to ingested
@@ -374,6 +389,9 @@ def configure_sdk():
                     )
 
     sentry_sdk.init(
+        # set back the upstream_dsn popped above since we need a default dsn on the client
+        # for dynamic sampling context public_key population
+        dsn=upstream_dsn,
         transport=MultiplexingTransport(),
         integrations=[
             DjangoAtomicIntegration(),
@@ -386,6 +404,9 @@ def configure_sdk():
         ],
         **sdk_options,
     )
+
+    if settings.SENTRY_PROFILING_ENABLED:
+        sentry_sdk.set_tag("sentry.profiler", settings.SENTRY_PROFILER_MODE)
 
 
 class RavenShim:

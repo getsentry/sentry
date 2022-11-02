@@ -1,11 +1,9 @@
 import isEqual from 'lodash/isEqual';
 import {createStore} from 'reflux';
 
-import PageFiltersActions from 'sentry/actions/pageFiltersActions';
 import {getDefaultSelection} from 'sentry/components/organizations/pageFilters/utils';
 import {PageFilters, PinnedPageFilter} from 'sentry/types';
 import {isEqualWithDates} from 'sentry/utils/isEqualWithDates';
-import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 import {CommonStoreDefinition} from './types';
 
@@ -52,7 +50,7 @@ interface PageFiltersStoreDefinition
   reset(selection?: PageFilters): void;
   updateDateTime(datetime: PageFilters['datetime']): void;
   updateDesyncedFilters(filters: Set<PinnedPageFilter>): void;
-  updateEnvironments(environments: string[]): void;
+  updateEnvironments(environments: string[] | null): void;
   updateProjects(projects: PageFilters['projects'], environments: null | string[]): void;
 }
 
@@ -61,28 +59,12 @@ const storeConfig: PageFiltersStoreDefinition = {
   pinnedFilters: new Set(),
   desyncedFilters: new Set(),
   hasInitialState: false,
-  unsubscribeListeners: [],
 
   init() {
-    this.reset(this.selection);
+    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
+    // listeners due to their leaky nature in tests.
 
-    this.unsubscribeListeners.push(this.listenTo(PageFiltersActions.reset, this.onReset));
-    this.unsubscribeListeners.push(
-      this.listenTo(PageFiltersActions.initializeUrlState, this.onInitializeUrlState)
-    );
-    this.unsubscribeListeners.push(
-      this.listenTo(PageFiltersActions.updateProjects, this.updateProjects)
-    );
-    this.unsubscribeListeners.push(
-      this.listenTo(PageFiltersActions.updateDateTime, this.updateDateTime)
-    );
-    this.unsubscribeListeners.push(
-      this.listenTo(PageFiltersActions.updateEnvironments, this.updateEnvironments)
-    );
-    this.unsubscribeListeners.push(
-      this.listenTo(PageFiltersActions.updateDesyncedFilters, this.updateDesyncedFilters)
-    );
-    this.unsubscribeListeners.push(this.listenTo(PageFiltersActions.pin, this.pin));
+    this.reset(this.selection);
   },
 
   reset(selection) {
@@ -169,6 +151,5 @@ const storeConfig: PageFiltersStoreDefinition = {
   },
 };
 
-const PageFiltersStore = createStore(makeSafeRefluxStore(storeConfig));
-
+const PageFiltersStore = createStore(storeConfig);
 export default PageFiltersStore;

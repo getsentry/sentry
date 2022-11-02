@@ -1,7 +1,6 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {SamplingInnerName} from 'sentry/types/sampling';
 import {TagValueAutocomplete} from 'sentry/views/settings/project/server-side-sampling/modals/specificConditionsModal/tagValueAutocomplete';
 
 describe('TagValueAutocomplete', function () {
@@ -23,12 +22,12 @@ describe('TagValueAutocomplete', function () {
   it('correctly offers new value option', async function () {
     render(
       <TagValueAutocomplete
-        category={SamplingInnerName.TRACE_ENVIRONMENT}
         onChange={() => {}}
         orgSlug="org-slug"
         projectId="1"
         tagKey="environment"
         value=""
+        ariaLabel="Search or add an environment"
       />
     );
 
@@ -72,12 +71,12 @@ describe('TagValueAutocomplete', function () {
   it('displays the counts of tag values', async function () {
     render(
       <TagValueAutocomplete
-        category={SamplingInnerName.TRACE_ENVIRONMENT}
         onChange={() => {}}
         orgSlug="org-slug"
         projectId="1"
         tagKey="environment"
         value=""
+        ariaLabel="Search or add an environment"
       />
     );
 
@@ -96,5 +95,25 @@ describe('TagValueAutocomplete', function () {
     // Assert the filtered out value count is not there anymore
     expect(await screen.findByText(199)).toBeInTheDocument();
     expect(screen.queryByText(97)).not.toBeInTheDocument();
+  });
+
+  it('accepts prependOptions', async function () {
+    render(
+      <TagValueAutocomplete
+        onChange={() => {}}
+        orgSlug="org-slug"
+        projectId="1"
+        tagKey="environment"
+        value=""
+        ariaLabel="Search or add an environment"
+        prependOptions={[{value: 'prepended', label: 'Prepended'}]}
+      />
+    );
+
+    // Open the select
+    userEvent.click(screen.getByLabelText('Search or add an environment'));
+
+    // Assert the custom prepended options are there
+    expect(await screen.findByText('Prepended')).toBeInTheDocument();
   });
 });

@@ -129,6 +129,7 @@ const StyledHeaderItem = styled('div', {
 const Content = styled('div')`
   display: flex;
   flex: 1;
+  width: 0;
   white-space: nowrap;
   overflow: hidden;
   margin-right: ${space(1.5)};
@@ -176,7 +177,7 @@ const StyledChevron = styled(IconChevron, {shouldForwardProp: isPropValid})<{
   color: ${getColor};
 `;
 
-export const SettingsIconLink = styled(Link)`
+const SettingsIconLink = styled(Link)`
   color: ${p => p.theme.gray300};
   align-items: center;
   display: inline-flex;

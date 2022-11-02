@@ -1,13 +1,16 @@
 import {Component} from 'react';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organizations';
+import {Client} from 'sentry/api';
 import SentryTypes from 'sentry/sentryTypes';
 import {Organization} from 'sentry/types';
+import withApi from 'sentry/utils/withApi';
 import withLatestContext from 'sentry/utils/withLatestContext';
 import AccountSettingsNavigation from 'sentry/views/settings/account/accountSettingsNavigation';
 import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
 
 type Props = React.ComponentProps<typeof SettingsLayout> & {
+  api: Client;
   organization: Organization;
 };
 
@@ -23,7 +26,7 @@ class AccountSettingsLayout extends Component<Props> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    const {organization} = this.props;
+    const {api, organization} = this.props;
     if (prevProps.organization === organization) {
       return;
     }
@@ -32,7 +35,7 @@ class AccountSettingsLayout extends Component<Props> {
     // (which queries the org index endpoint instead of org details)
     // and does not have `access` info
     if (organization && typeof organization.access === 'undefined') {
-      fetchOrganizationDetails(organization.slug, {
+      fetchOrganizationDetails(api, organization.slug, {
         setActive: true,
         loadProjects: true,
       });
@@ -53,4 +56,4 @@ class AccountSettingsLayout extends Component<Props> {
   }
 }
 
-export default withLatestContext(AccountSettingsLayout);
+export default withLatestContext(withApi(AccountSettingsLayout));

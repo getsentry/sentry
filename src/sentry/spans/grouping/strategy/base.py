@@ -1,6 +1,6 @@
 import re
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Optional, Sequence, TypedDict
+from typing import Any, Callable, Dict, Optional, Sequence, TypedDict, Union
 from urllib.parse import urlparse
 
 from sentry.spans.grouping.utils import Hash, parse_fingerprint_var
@@ -84,9 +84,11 @@ class SpanGroupingStrategy:
         return span_group
 
 
-def span_op(op_name: str) -> Callable[[CallableStrategy], CallableStrategy]:
+def span_op(op_name: Union[str, Sequence[str]]) -> Callable[[CallableStrategy], CallableStrategy]:
+    permitted_ops = [op_name] if isinstance(op_name, str) else op_name
+
     def wrapped(fn: CallableStrategy) -> CallableStrategy:
-        return lambda span: fn(span) if span.get("op") == op_name else None
+        return lambda span: fn(span) if span.get("op") in permitted_ops else None
 
     return wrapped
 
@@ -102,16 +104,32 @@ def raw_description_strategy(span: Span) -> Sequence[str]:
 IN_CONDITION_PATTERN = re.compile(r" IN \(%s(\s*,\s*%s)*\)")
 
 
-@span_op("db")
+@span_op(["db", "db.query", "db.sql.query", "db.sql.active_record"])
 def normalized_db_span_in_condition_strategy(span: Span) -> Optional[Sequence[str]]:
-    """For a `db` span, the `IN` condition contains the same same number of elements
-    on the right hand side as the raw query. This results in identical queries that
-    have different number of elements on the right hand side to be seen as different
-    spans. We want these spans to be seen as similar spans, so we normalize the right
-    hand side of `IN` conditions to `(%s) to use in the fingerprint.
-    """
+    """For a `db` query span, the `IN` condition contains the same number of
+    elements on the right hand side as the raw query. This results in identical
+    queries that have different number of elements on the right hand side to be
+    seen as different spans. We want these spans to be seen as similar spans,
+    so we normalize the right hand side of `IN` conditions to `(%s) to use in
+    the fingerprint."""
     description = span.get("description") or ""
     cleaned, count = IN_CONDITION_PATTERN.subn(" IN (%s)", description)
+    if count == 0:
+        return None
+    return [cleaned]
+
+
+# Catches sequences like (?, ?, ?), ($1, $2, $3), and (%s, %s, %s)
+LOOSE_IN_CONDITION_PATTERN = re.compile(r" IN \(((%s|\$?\d+|\?)(\s*,\s*(%s|\$?\d+|\?))*)\)", re.I)
+
+
+@span_op(["db", "db.query", "db.sql.query", "db.sql.active_record"])
+def loose_normalized_db_span_in_condition_strategy(span: Span) -> Optional[Sequence[str]]:
+    """This is identical to the above
+    `normalized_db_span_in_condition_strategy` but it uses a looser regular
+    expression that catches database spans that come from Laravel and Rails"""
+    description = span.get("description") or ""
+    cleaned, count = LOOSE_IN_CONDITION_PATTERN.subn(" IN (%s)", description)
     if count == 0:
         return None
     return [cleaned]

@@ -36,6 +36,7 @@ export enum FieldKey {
   ERROR_TYPE = 'error.type',
   ERROR_UNHANDLED = 'error.unhandled',
   ERROR_VALUE = 'error.value',
+  ERROR_RECEIVED = 'error.received',
   EVENT_TIMESTAMP = 'event.timestamp',
   EVENT_TYPE = 'event.type',
   FIRST_RELEASE = 'firstRelease',
@@ -68,6 +69,7 @@ export enum FieldKey {
   RELEASE_PACKAGE = 'release.package',
   RELEASE_STAGE = 'release.stage',
   RELEASE_VERSION = 'release.version',
+  REPLAY_ID = 'replayId',
   SDK_NAME = 'sdk.name',
   SDK_VERSION = 'sdk.version',
   STACK_ABS_PATH = 'stack.abs_path',
@@ -432,13 +434,13 @@ export const SPAN_OP_FIELDS: Record<SpanOpBreakdown, FieldDefinition> = {
   },
 };
 
-type AllFieldKeys =
+type AllEventFieldKeys =
   | keyof typeof AGGREGATION_FIELDS
   | keyof typeof MEASUREMENT_FIELDS
   | keyof typeof SPAN_OP_FIELDS
   | FieldKey;
 
-const FIELD_DEFINITIONS: Record<AllFieldKeys, FieldDefinition> = {
+const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
   ...AGGREGATION_FIELDS,
   ...MEASUREMENT_FIELDS,
   ...SPAN_OP_FIELDS,
@@ -564,6 +566,11 @@ const FIELD_DEFINITIONS: Record<AllFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+  [FieldKey.ERROR_RECEIVED]: {
+    desc: t('The datetime that the error was received'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.DATE,
+  },
   [FieldKey.EVENT_TIMESTAMP]: {
     desc: t('Date and time of the event'),
     kind: FieldKind.FIELD,
@@ -626,14 +633,14 @@ const FIELD_DEFINITIONS: Record<AllFieldKeys, FieldDefinition> = {
     valueType: FieldValueType.STRING,
   },
   [FieldKey.ISSUE_CATEGORY]: {
-    desc: t('The category of issue'),
+    desc: t('Category of issue (error or performance)'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
     keywords: ['error', 'performance'],
     featureFlag: 'performance-issues',
   },
   [FieldKey.ISSUE_TYPE]: {
-    desc: t('The type of issue'),
+    desc: t('Type of problem the issue represents (i.e. N+1 Query)'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
     featureFlag: 'performance-issues',
@@ -724,6 +731,11 @@ const FIELD_DEFINITIONS: Record<AllFieldKeys, FieldDefinition> = {
   [FieldKey.RELEASE_VERSION]: {
     desc: t('An abbreviated version number of the build'),
     kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.REPLAY_ID]: {
+    desc: t('The ID of an associated Session Replay'),
+    kind: FieldKind.TAG,
     valueType: FieldValueType.STRING,
   },
   [FieldKey.SDK_NAME]: {
@@ -977,6 +989,7 @@ export const DISCOVER_FIELDS = [
   FieldKey.SDK_VERSION,
   FieldKey.HTTP_METHOD,
   FieldKey.HTTP_REFERER,
+  FieldKey.HTTP_STATUS_CODE,
   FieldKey.HTTP_URL,
   FieldKey.OS_BUILD,
   FieldKey.OS_KERNEL_VERSION,
@@ -999,6 +1012,7 @@ export const DISCOVER_FIELDS = [
   FieldKey.ERROR_MECHANISM,
   FieldKey.ERROR_HANDLED,
   FieldKey.ERROR_UNHANDLED,
+  FieldKey.ERROR_RECEIVED,
   FieldKey.LEVEL,
   FieldKey.STACK_ABS_PATH,
   FieldKey.STACK_FILENAME,
@@ -1033,6 +1047,128 @@ export const DISCOVER_FIELDS = [
   SpanOpBreakdown.SpansUi,
 ];
 
-export const getFieldDefinition = (key: string): FieldDefinition | null => {
-  return FIELD_DEFINITIONS[key] ?? null;
+enum ReplayFieldKey {
+  BROWSER_NAME = 'browser.name',
+  BROWSER_VERSION = 'browser.version',
+  COUNT_ERRORS = 'countErrors',
+  COUNT_SEGMENTS = 'countSegments',
+  // COUNT_URLS = 'countUrls',
+  DEVICE_MODEL = 'device.model',
+  DURATION = 'duration',
+  // ERROR_IDS = 'errorIds',
+  // LONGEST_TRANSACTION = 'longestTransaction',
+  OS_NAME = 'os.name',
+  OS_VERSION = 'os.version',
+  RELEASES = 'releases',
+  // TRACE_IDS = 'traceIds',
+  URLS = 'urls',
+  USER_IP_ADDRESS = 'user.ipAddress',
+  USER_NAME = 'user.name',
+}
+
+export const REPLAY_FIELDS = [
+  ReplayFieldKey.BROWSER_NAME,
+  ReplayFieldKey.BROWSER_VERSION,
+  ReplayFieldKey.COUNT_ERRORS,
+  ReplayFieldKey.COUNT_SEGMENTS,
+  FieldKey.DEVICE_BRAND,
+  FieldKey.DEVICE_FAMILY,
+  ReplayFieldKey.DEVICE_MODEL,
+  FieldKey.DEVICE_NAME,
+  FieldKey.DIST,
+  ReplayFieldKey.DURATION,
+  FieldKey.ID,
+  ReplayFieldKey.OS_NAME,
+  ReplayFieldKey.OS_VERSION,
+  FieldKey.PLATFORM,
+  ReplayFieldKey.RELEASES,
+  FieldKey.SDK_NAME,
+  FieldKey.SDK_VERSION,
+  ReplayFieldKey.URLS,
+  FieldKey.USER_EMAIL,
+  FieldKey.USER_ID,
+  ReplayFieldKey.USER_IP_ADDRESS,
+  ReplayFieldKey.USER_NAME,
+];
+
+const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
+  [ReplayFieldKey.BROWSER_NAME]: {
+    desc: t('Name of the brower'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayFieldKey.BROWSER_VERSION]: {
+    desc: t('Version number of the Browser'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayFieldKey.COUNT_ERRORS]: {
+    desc: t('Number of errors in the replay'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.INTEGER,
+  },
+  [ReplayFieldKey.COUNT_SEGMENTS]: {
+    desc: t('Number of segments in the replay'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.INTEGER,
+  },
+  [ReplayFieldKey.DEVICE_MODEL]: {
+    desc: t('Model of device'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayFieldKey.DURATION]: {
+    desc: t('Duration of the replay, in seconds'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.DURATION,
+  },
+  [ReplayFieldKey.OS_NAME]: {
+    desc: t('Name of the Operating System'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayFieldKey.OS_VERSION]: {
+    desc: t('Version number of the Operating System'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayFieldKey.RELEASES]: {
+    desc: t('Releases this Replay spans across'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayFieldKey.URLS]: {
+    desc: t('List of urls that were visited within the Replay'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayFieldKey.USER_IP_ADDRESS]: {
+    desc: t('IP Address of the user'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayFieldKey.USER_NAME]: {
+    desc: t('Name of the user'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+};
+
+export const getFieldDefinition = (
+  key: string,
+  type: 'event' | 'replay' = 'event'
+): FieldDefinition | null => {
+  switch (type) {
+    case 'replay':
+      if (key in REPLAY_FIELD_DEFINITIONS) {
+        return REPLAY_FIELD_DEFINITIONS[key];
+      }
+      if (REPLAY_FIELDS.includes(key as FieldKey)) {
+        return EVENT_FIELD_DEFINITIONS[key];
+      }
+      return null;
+    case 'event':
+    default:
+      return EVENT_FIELD_DEFINITIONS[key] ?? null;
+  }
 };

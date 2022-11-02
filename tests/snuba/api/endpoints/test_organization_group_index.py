@@ -460,7 +460,12 @@ class GroupListTest(APITestCase, SnubaTestCase):
     def test_perf_issue(self):
         perf_group = self.create_group(type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value)
         self.login_as(user=self.user)
-        with self.feature("organizations:issue-search-allow-postgres-only-search"):
+        with self.feature(
+            [
+                "organizations:issue-search-allow-postgres-only-search",
+                "organizations:performance-issues",
+            ]
+        ):
             response = self.get_success_response(query="issue.category:performance")
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(perf_group.id)
@@ -1637,20 +1642,29 @@ class GroupListTest(APITestCase, SnubaTestCase):
             type=GroupOwnerType.OWNERSHIP_RULE.value,
             team=self.team,
         )
+        GroupOwner.objects.create(
+            group=event.group,
+            project=event.project,
+            organization=event.project.organization,
+            type=GroupOwnerType.CODEOWNERS.value,
+            team=self.team,
+        )
         response = self.get_response(sort_by="date", limit=10, query=query, expand="owners")
         assert response.status_code == 200
         assert len(response.data) == 1
         assert int(response.data[0]["id"]) == event.group.id
         assert response.data[0]["owners"] is not None
-        assert len(response.data[0]["owners"]) == 2
+        assert len(response.data[0]["owners"]) == 3
         assert response.data[0]["owners"][0]["owner"] == f"user:{self.user.id}"
         assert response.data[0]["owners"][1]["owner"] == f"team:{self.team.id}"
+        assert response.data[0]["owners"][2]["owner"] == f"team:{self.team.id}"
         assert (
             response.data[0]["owners"][0]["type"] == GROUP_OWNER_TYPE[GroupOwnerType.SUSPECT_COMMIT]
         )
         assert (
             response.data[0]["owners"][1]["type"] == GROUP_OWNER_TYPE[GroupOwnerType.OWNERSHIP_RULE]
         )
+        assert response.data[0]["owners"][2]["type"] == GROUP_OWNER_TYPE[GroupOwnerType.CODEOWNERS]
 
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_ratelimit(self):
@@ -3406,7 +3420,8 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         # if query is '' it defaults to is:unresolved
-        response = self.get_response(qs_params={"query": ""})
+        with self.feature("organizations:performance-issues"):
+            response = self.get_response(qs_params={"query": ""})
         assert response.status_code == 400
 
         for group in groups:

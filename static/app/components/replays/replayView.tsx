@@ -11,13 +11,12 @@ import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 type Props = {
   toggleFullscreen: () => void;
-  showAddressBar?: boolean;
 };
 
-function ReplayView({toggleFullscreen, showAddressBar = true}: Props) {
+function ReplayView({toggleFullscreen}: Props) {
   return (
     <Fragment>
-      {showAddressBar && <ReplayCurrentUrl />}
+      <ReplayCurrentUrl />
       <PlayerContainer>
         <Panel>
           <ReplayPlayer />
@@ -31,6 +30,8 @@ function ReplayView({toggleFullscreen, showAddressBar = true}: Props) {
   );
 }
 
+// Adjust the bottom spacing so that <PlayerScrubber> does not overflow outside
+// of <FluidHeight>
 const PlayerContainer = styled(FluidHeight)`
   padding-bottom: ${space(1)};
   margin-bottom: -${space(1)};

@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -34,6 +34,7 @@ interface Props {
   location: Location;
   onAddSearchConditions: () => void;
   onQueryChange: (queryIndex: number, newQuery: WidgetQuery) => void;
+  onQueryConditionChange: (isQueryConditionValid: boolean) => void;
   onQueryRemove: (queryIndex: number) => void;
   organization: Organization;
   queries: WidgetQuery[];
@@ -57,7 +58,10 @@ export function FilterResultsStep({
   queryErrors,
   widgetType,
   selection,
+  onQueryConditionChange,
 }: Props) {
+  const [queryConditionValidity, setQueryConditionValidity] = useState<boolean[]>([]);
+
   const handleSearch = useCallback(
     (queryIndex: number) => {
       return (field: string) => {
@@ -74,7 +78,10 @@ export function FilterResultsStep({
 
   const handleClose = useCallback(
     (queryIndex: number) => {
-      return (field: string) => {
+      return (field: string, {validSearch}: {validSearch: boolean}) => {
+        queryConditionValidity[queryIndex] = validSearch;
+        setQueryConditionValidity(queryConditionValidity);
+        onQueryConditionChange(!queryConditionValidity.some(validity => !validity));
         const newQuery: WidgetQuery = {
           ...queries[queryIndex],
           conditions: field,
@@ -82,8 +89,15 @@ export function FilterResultsStep({
         onQueryChange(queryIndex, newQuery);
       };
     },
-    [onQueryChange, queries]
+    [onQueryChange, onQueryConditionChange, queryConditionValidity, queries]
   );
+
+  const handleRemove = (queryIndex: number) => () => {
+    queryConditionValidity.splice(queryIndex, 1);
+    setQueryConditionValidity(queryConditionValidity);
+    onQueryConditionChange(!queryConditionValidity.some(validity => !validity));
+    onQueryRemove(queryIndex);
+  };
 
   const datasetConfig = getDatasetConfig(widgetType);
 
@@ -93,9 +107,11 @@ export function FilterResultsStep({
       description={
         canAddSearchConditions
           ? t(
-              'This is how you filter down your search. You can add multiple queries to compare data for each overlay.'
+              'Projects, environments, and date range have been preselected at the dashboard level. Filter down your search here. You can add multiple queries to compare data for each overlay.'
             )
-          : t('This is how you filter down your search.')
+          : t(
+              'Projects, environments, and date range have been preselected at the dashboard level. Filter down your search here.'
+            )
       }
     >
       <Feature features={['dashboards-top-level-filter']}>
@@ -155,7 +171,7 @@ export function FilterResultsStep({
                   <Button
                     size="zero"
                     borderless
-                    onClick={() => onQueryRemove(queryIndex)}
+                    onClick={handleRemove(queryIndex)}
                     icon={<IconDelete />}
                     title={t('Remove query')}
                     aria-label={t('Remove query')}

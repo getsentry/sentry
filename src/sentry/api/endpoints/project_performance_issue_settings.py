@@ -75,3 +75,10 @@ class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
         project.update_option(SETTINGS_PROJECT_OPTION_KEY, {**performance_issue_settings, **data})
 
         return Response(data)
+
+    def delete(self, request: Request, project) -> Response:
+        if not self.has_feature(project, request):
+            return self.respond(status=status.HTTP_404_NOT_FOUND)
+
+        project.delete_option(SETTINGS_PROJECT_OPTION_KEY)
+        return Response(status=status.HTTP_204_NO_CONTENT)

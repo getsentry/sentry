@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {Client} from 'sentry/api';
+import AttachmentUrl from 'sentry/components/attachmentUrl';
 import ImageViewer from 'sentry/components/events/attachmentViewers/imageViewer';
 import JsonViewer from 'sentry/components/events/attachmentViewers/jsonViewer';
 import LogFileViewer from 'sentry/components/events/attachmentViewers/logFileViewer';
@@ -14,7 +15,6 @@ import {PanelTable} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import {IssueAttachment} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import AttachmentUrl from 'sentry/utils/attachmentUrl';
 import withApi from 'sentry/utils/withApi';
 
 import EventAttachmentsCrashReportsNotice from './eventAttachmentsCrashReportsNotice';
@@ -78,7 +78,7 @@ class EventAttachments extends Component<Props, State> {
         <AttachmentComponent
           orgId={this.props.orgId}
           projectId={this.props.projectId}
-          event={this.props.event}
+          eventId={this.props.event.id}
           attachment={attachment}
         />
       </AttachmentPreviewWrapper>

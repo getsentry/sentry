@@ -5,12 +5,12 @@ import {IconGrabbable} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import useMouseTracking from 'sentry/utils/replays/hooks/useMouseTracking';
 import useSplitPanelTracking from 'sentry/utils/replays/hooks/useSplitPanelTracking';
-import useTimeout from 'sentry/utils/replays/hooks/useTimeout';
+import useTimeout from 'sentry/utils/useTimeout';
 
 const BAR_THICKNESS = 16;
 const HALF_BAR = BAR_THICKNESS / 2;
 
-const MOUSE_RELEASE_TIMEOUT_MS = 200;
+const MOUSE_RELEASE_TIMEOUT_MS = 750;
 
 type CSSValuePX = `${number}px`;
 type CSSValuePct = `${number}%`;
@@ -113,12 +113,13 @@ function SplitPanel(props: Props) {
     slideDirection: 'left' in props ? 'leftright' : 'updown',
   });
 
+  const onTimeout = useCallback(() => {
+    setIsMousedown(false);
+    logEndPosition(sizeCSSRef.current);
+  }, [logEndPosition]);
   const {start: startMouseIdleTimer, cancel: cancelMouseIdleTimer} = useTimeout({
     timeMs: MOUSE_RELEASE_TIMEOUT_MS,
-    onTimeout: useCallback(() => {
-      setIsMousedown(false);
-      logEndPosition(sizeCSSRef.current);
-    }, [logEndPosition]),
+    onTimeout,
   });
 
   const handleMouseDown = useCallback(() => {

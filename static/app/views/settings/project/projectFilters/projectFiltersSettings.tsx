@@ -1,13 +1,18 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
+import iconAndroid from 'sentry-logos/logo-android.svg';
+import iconIe from 'sentry-logos/logo-ie.svg';
+import iconOpera from 'sentry-logos/logo-opera.svg';
+import iconSafari from 'sentry-logos/logo-safari.svg';
 
-import ProjectActions from 'sentry/actions/projectActions';
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import AsyncComponent from 'sentry/components/asyncComponent';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
-import Form from 'sentry/components/forms/form';
+import Form, {FormProps} from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import {
@@ -21,46 +26,48 @@ import Switch from 'sentry/components/switchButton';
 import filterGroups, {customFilterFields} from 'sentry/data/forms/inboundFilters';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 
 const LEGACY_BROWSER_SUBFILTERS = {
   ie_pre_9: {
-    icon: 'internet-explorer',
+    icon: iconIe,
     helpText: 'Version 8 and lower',
     title: 'Internet Explorer',
   },
   ie9: {
-    icon: 'internet-explorer',
+    icon: iconIe,
     helpText: 'Version 9',
     title: 'Internet Explorer',
   },
   ie10: {
-    icon: 'internet-explorer',
+    icon: iconIe,
     helpText: 'Version 10',
     title: 'Internet Explorer',
   },
   ie11: {
-    icon: 'internet-explorer',
+    icon: iconIe,
     helpText: 'Version 11',
     title: 'Internet Explorer',
   },
   safari_pre_6: {
-    icon: 'safari',
+    icon: iconSafari,
     helpText: 'Version 5 and lower',
     title: 'Safari',
   },
   opera_pre_15: {
-    icon: 'opera',
+    icon: iconOpera,
     helpText: 'Version 14 and lower',
     title: 'Opera',
   },
   opera_mini_pre_8: {
-    icon: 'opera',
+    icon: iconOpera,
     helpText: 'Version 8 and lower',
     title: 'Opera Mini',
   },
   android_pre_4: {
-    icon: 'android',
+    icon: iconAndroid,
     helpText: 'Version 3 and lower',
     title: 'Android',
   },
@@ -137,12 +144,24 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
         {!disabled && (
           <BulkFilter>
             <BulkFilterLabel>{t('Filter')}:</BulkFilterLabel>
-            <BulkFilterItem onClick={this.handleToggleSubfilters.bind(this, true)}>
-              {t('All')}
-            </BulkFilterItem>
-            <BulkFilterItem onClick={this.handleToggleSubfilters.bind(this, false)}>
-              {t('None')}
-            </BulkFilterItem>
+            <ButtonBar gap={1}>
+              <Button
+                type="button"
+                priority="link"
+                borderless
+                onClick={this.handleToggleSubfilters.bind(this, true)}
+              >
+                {t('All')}
+              </Button>
+              <Button
+                type="button"
+                priority="link"
+                borderless
+                onClick={this.handleToggleSubfilters.bind(this, false)}
+              >
+                {t('None')}
+              </Button>
+            </ButtonBar>
           </BulkFilter>
         )}
 
@@ -150,25 +169,21 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
           {LEGACY_BROWSER_KEYS.map(key => {
             const subfilter = LEGACY_BROWSER_SUBFILTERS[key];
             return (
-              <FilterGridItemWrapper key={key}>
-                <FilterGridItem>
-                  <FilterItem>
-                    <FilterGridIcon className={`icon-${subfilter.icon}`} />
-                    <div>
-                      <FilterTitle>{subfilter.title}</FilterTitle>
-                      <FilterDescription>{subfilter.helpText}</FilterDescription>
-                    </div>
-                  </FilterItem>
-
-                  <Switch
-                    isActive={this.state.subfilters.has(key)}
-                    isDisabled={disabled}
-                    css={{flexShrink: 0, marginLeft: 6}}
-                    toggle={this.handleToggleSubfilters.bind(this, key)}
-                    size="lg"
-                  />
-                </FilterGridItem>
-              </FilterGridItemWrapper>
+              <FilterGridItem key={key}>
+                <FilterGridIcon src={subfilter.icon} />
+                <div>
+                  <FilterTitle>{subfilter.title}</FilterTitle>
+                  <FilterDescription>{subfilter.helpText}</FilterDescription>
+                </div>
+                <Switch
+                  aria-label={`${subfilter.title} ${subfilter.helpText}`}
+                  isActive={this.state.subfilters.has(key)}
+                  isDisabled={disabled}
+                  css={{flexShrink: 0, marginLeft: 6}}
+                  toggle={this.handleToggleSubfilters.bind(this, key)}
+                  size="lg"
+                />
+              </FilterGridItem>
             );
           })}
         </FilterGrid>
@@ -223,7 +238,7 @@ class ProjectFiltersSettings extends AsyncComponent<Props, State> {
 
   handleSubmit = (response: Project) => {
     // This will update our project context
-    ProjectActions.updateSuccess(response);
+    ProjectsStore.onUpdateSuccess(response);
   };
 
   renderDisabledCustomFilters = p => (
@@ -242,6 +257,7 @@ class ProjectFiltersSettings extends AsyncComponent<Props, State> {
       <Feature
         features={['projects:custom-inbound-filters']}
         hookName="feature-disabled:custom-inbound-filters"
+        project={this.props.project}
         renderDisabled={({children, ...props}) => {
           if (typeof children === 'function') {
             return children({...props, renderDisabled: this.renderDisabledCustomFilters});
@@ -371,78 +387,51 @@ class ProjectFiltersSettings extends AsyncComponent<Props, State> {
 export default ProjectFiltersSettings;
 
 // TODO(ts): Understand why styled is not correctly inheriting props here
-const NestedForm = styled(Form)<Form['props']>`
+const NestedForm = styled(Form)<FormProps>`
   flex: 1;
 `;
 
 const FilterGrid = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: ${space(1.5)};
+  margin-top: ${space(2)};
 `;
 
 const FilterGridItem = styled('div')`
-  display: flex;
+  display: grid;
+  grid-template-columns: max-content 1fr max-content;
+  gap: ${space(1)};
   align-items: center;
   background: ${p => p.theme.backgroundSecondary};
-  border-radius: 3px;
-  flex: 1;
-  padding: 12px;
-  height: 100%;
+  border-radius: ${p => p.theme.borderRadius};
+  padding: ${space(1.5)};
 `;
 
-// We want this wrapper to maining 30% width
-const FilterGridItemWrapper = styled('div')`
-  padding: 12px;
-  width: 50%;
-`;
-
-const FilterItem = styled('div')`
-  display: flex;
-  flex: 1;
-  align-items: center;
-`;
-
-const FilterGridIcon = styled('div')`
+const FilterGridIcon = styled('img')`
   width: 38px;
   height: 38px;
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: 38px 38px;
-  margin-right: 6px;
-  flex-shrink: 0;
 `;
 
 const FilterTitle = styled('div')`
-  font-size: 14px;
+  font-size: ${p => p.theme.fontSizeMedium};
   font-weight: bold;
-  line-height: 1;
   white-space: nowrap;
 `;
 
 const FilterDescription = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: 12px;
-  line-height: 1;
+  font-size: ${p => p.theme.fontSizeSmall};
   white-space: nowrap;
 `;
 
 const BulkFilter = styled('div')`
-  text-align: right;
-  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
 `;
 
 const BulkFilterLabel = styled('span')`
   font-weight: bold;
-  margin-right: 6px;
-`;
-
-const BulkFilterItem = styled('a')`
-  border-right: 1px solid #f1f2f3;
-  margin-right: 6px;
-  padding-right: 6px;
-
-  &:last-child {
-    border-right: none;
-    margin-right: 0;
-  }
+  margin-right: ${space(0.75)};
 `;

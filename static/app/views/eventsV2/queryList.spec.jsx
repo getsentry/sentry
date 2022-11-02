@@ -3,6 +3,7 @@ import {browserHistory} from 'react-router';
 
 import {selectDropdownMenuItem} from 'sentry-test/dropdownMenu';
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {triggerPress} from 'sentry-test/utils';
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
@@ -11,16 +12,30 @@ import {DashboardWidgetSource, DisplayType} from 'sentry/views/dashboardsV2/type
 import QueryList from 'sentry/views/eventsV2/queryList';
 
 jest.mock('sentry/actionCreators/modal');
+jest.mock('sentry/components/charts/eventsRequest');
 
 describe('EventsV2 > QueryList', function () {
-  let location, savedQueries, organization, deleteMock, duplicateMock, queryChangeMock;
+  let location,
+    savedQueries,
+    organization,
+    deleteMock,
+    duplicateMock,
+    queryChangeMock,
+    updateHomepageMock,
+    wrapper;
 
   beforeAll(async function () {
     await import('sentry/components/modals/widgetBuilder/addToDashboardModal');
   });
 
   beforeEach(function () {
-    organization = TestStubs.Organization();
+    organization = TestStubs.Organization({
+      features: [
+        'discover-basic',
+        'discover-query',
+        'discover-query-builder-as-landing-page',
+      ],
+    });
     savedQueries = [
       TestStubs.DiscoverSavedQuery(),
       TestStubs.DiscoverSavedQuery({name: 'saved query 2', id: '2'}),
@@ -49,6 +64,12 @@ describe('EventsV2 > QueryList', function () {
       },
     });
 
+    updateHomepageMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/discover/homepage/',
+      method: 'PUT',
+      statusCode: 204,
+    });
+
     location = {
       pathname: '/organizations/org-slug/discover/queries/',
       query: {cursor: '0:1:1', statsPeriod: '14d'},
@@ -58,10 +79,12 @@ describe('EventsV2 > QueryList', function () {
 
   afterEach(() => {
     jest.clearAllMocks();
+    wrapper && wrapper.unmount();
+    wrapper = null;
   });
 
   it('renders an empty list', function () {
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <QueryList
         organization={organization}
         savedQueries={[]}
@@ -78,7 +101,7 @@ describe('EventsV2 > QueryList', function () {
   });
 
   it('renders pre-built queries and saved ones', function () {
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <QueryList
         organization={organization}
         savedQueries={savedQueries}
@@ -88,13 +111,14 @@ describe('EventsV2 > QueryList', function () {
         location={location}
       />
     );
+
     const content = wrapper.find('QueryCard');
     // pre built + saved queries
     expect(content).toHaveLength(5);
   });
 
   it('can duplicate and trigger change callback', async function () {
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <QueryList
         organization={organization}
         savedQueries={savedQueries}
@@ -117,7 +141,7 @@ describe('EventsV2 > QueryList', function () {
   });
 
   it('can delete and trigger change callback', async function () {
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <QueryList
         organization={organization}
         savedQueries={savedQueries}
@@ -140,7 +164,7 @@ describe('EventsV2 > QueryList', function () {
   });
 
   it('returns short url location for saved query', function () {
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <QueryList
         organization={organization}
         savedQueries={savedQueries}
@@ -159,7 +183,7 @@ describe('EventsV2 > QueryList', function () {
   });
 
   it('can redirect on last query deletion', async function () {
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <QueryList
         organization={organization}
         savedQueries={savedQueries.slice(1)}
@@ -189,7 +213,7 @@ describe('EventsV2 > QueryList', function () {
     const featuredOrganization = TestStubs.Organization({
       features: ['dashboards-edit'],
     });
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <QueryList
         organization={featuredOrganization}
         savedQueries={savedQueries.slice(1)}
@@ -217,7 +241,7 @@ describe('EventsV2 > QueryList', function () {
   });
 
   it('only renders Delete Query and Duplicate Query in context menu', async function () {
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <QueryList
         organization={organization}
         savedQueries={savedQueries.slice(1)}
@@ -238,9 +262,10 @@ describe('EventsV2 > QueryList', function () {
     card = wrapper.find('QueryCard').last();
     const menuItems = card.find('MenuItemWrap');
 
-    expect(menuItems.length).toEqual(2);
-    expect(menuItems.at(0).text()).toEqual('Duplicate Query');
-    expect(menuItems.at(1).text()).toEqual('Delete Query');
+    expect(menuItems.length).toEqual(3);
+    expect(menuItems.at(0).text()).toEqual('Set as Default');
+    expect(menuItems.at(1).text()).toEqual('Duplicate Query');
+    expect(menuItems.at(2).text()).toEqual('Delete Query');
   });
 
   it('passes yAxis from the savedQuery to MiniGraph', function () {
@@ -252,7 +277,7 @@ describe('EventsV2 > QueryList', function () {
       ...savedQueries.slice(1)[0],
       yAxis,
     };
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <QueryList
         organization={featuredOrganization}
         savedQueries={[savedQueryWithMultiYAxis]}
@@ -266,12 +291,33 @@ describe('EventsV2 > QueryList', function () {
     expect(miniGraph.props().yAxis).toEqual(['count()', 'failure_count()']);
   });
 
+  it('Set as Default updates the homepage query', function () {
+    render(
+      <QueryList
+        organization={organization}
+        savedQueries={savedQueries.slice(1)}
+        pageLinks=""
+        onQueryChange={queryChangeMock}
+        location={location}
+      />
+    );
+
+    userEvent.click(screen.getByTestId('menu-trigger'));
+    userEvent.click(screen.getByText('Set as Default'));
+    expect(updateHomepageMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/discover/homepage/',
+      expect.objectContaining({
+        data: expect.objectContaining({fields: ['test'], range: '14d'}),
+      })
+    );
+  });
+
   describe('Add to Dashboard modal', () => {
     it('opens a modal with the correct params for Top 5 chart', async function () {
       const featuredOrganization = TestStubs.Organization({
         features: ['dashboards-edit'],
       });
-      const wrapper = mountWithTheme(
+      wrapper = mountWithTheme(
         <QueryList
           organization={featuredOrganization}
           savedQueries={[
@@ -341,7 +387,7 @@ describe('EventsV2 > QueryList', function () {
       const featuredOrganization = TestStubs.Organization({
         features: ['dashboards-edit'],
       });
-      const wrapper = mountWithTheme(
+      wrapper = mountWithTheme(
         <QueryList
           organization={featuredOrganization}
           savedQueries={[

@@ -6,19 +6,18 @@ import * as Sentry from '@sentry/react';
 import {PlatformIcon} from 'platformicons';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
-import ProjectActions from 'sentry/actions/projectActions';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
-import TeamSelector from 'sentry/components/forms/teamSelector';
 import Input from 'sentry/components/input';
 import PageHeading from 'sentry/components/pageHeading';
 import PlatformPicker from 'sentry/components/platformPicker';
+import TeamSelector from 'sentry/components/teamSelector';
 import categoryList from 'sentry/data/platformCategories';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
 import {Organization, Team} from 'sentry/types';
-import {logExperiment} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import getPlatformName from 'sentry/utils/getPlatformName';
 import slugify from 'sentry/utils/slugify';
@@ -26,8 +25,6 @@ import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withTeams from 'sentry/utils/withTeams';
 import IssueAlertOptions from 'sentry/views/projectInstall/issueAlertOptions';
-
-import {PRESET_AGGREGATES} from '../alerts/rules/metric/presets';
 
 const getCategoryName = (category?: string) =>
   categoryList.find(({id}) => id === category)?.id;
@@ -75,10 +72,6 @@ class CreateProject extends Component<Props, State> {
 
   componentDidMount() {
     trackAdvancedAnalyticsEvent('project_creation_page.viewed', {
-      organization: this.props.organization,
-    });
-    logExperiment({
-      key: 'MetricAlertOnProjectCreationExperiment',
       organization: this.props.organization,
     });
   }
@@ -181,7 +174,6 @@ class CreateProject extends Component<Props, State> {
       actionMatch,
       frequency,
       defaultRules,
-      metricAlertPresets,
     } = dataFragment || {};
 
     this.setState({inFlight: true});
@@ -221,53 +213,8 @@ class CreateProject extends Component<Props, State> {
         );
         ruleId = ruleData.id;
       }
-      if (
-        !!organization.experiments.MetricAlertOnProjectCreationExperiment &&
-        metricAlertPresets &&
-        metricAlertPresets.length > 0
-      ) {
-        const presets = PRESET_AGGREGATES.filter(aggregate =>
-          metricAlertPresets.includes(aggregate.id)
-        );
-        const teamObj = this.props.teams.find(aTeam => aTeam.slug === team);
-        await Promise.all([
-          presets.map(preset => {
-            const context = preset.makeUnqueriedContext(
-              {
-                ...projectData,
-                teams: teamObj ? [teamObj] : [],
-              },
-              organization
-            );
-
-            return api.requestPromise(
-              `/projects/${organization.slug}/${projectData.slug}/alert-rules/?referrer=create_project`,
-              {
-                method: 'POST',
-                data: {
-                  aggregate: context.aggregate,
-                  comparisonDelta: context.comparisonDelta,
-                  dataset: context.dataset,
-                  eventTypes: context.eventTypes,
-                  name: context.name,
-                  owner: null,
-                  projectId: projectData.id,
-                  projects: [projectData.slug],
-                  query: '',
-                  resolveThreshold: null,
-                  thresholdPeriod: 1,
-                  thresholdType: context.thresholdType,
-                  timeWindow: context.timeWindow,
-                  triggers: context.triggers,
-                },
-              }
-            );
-          }),
-        ]);
-      }
       trackAdvancedAnalyticsEvent('project_creation_page.created', {
         organization,
-        metric_alerts: (metricAlertPresets || []).join(','),
         issue_alert: defaultRules
           ? 'Default'
           : shouldCreateCustomRule
@@ -277,7 +224,8 @@ class CreateProject extends Component<Props, State> {
         rule_id: ruleId || '',
       });
 
-      ProjectActions.createSuccess(projectData);
+      ProjectsStore.onCreateSuccess(projectData, organization.slug);
+
       const platformKey = platform || 'other';
       const nextUrl = `/${organization.slug}/${projectData.slug}/getting-started/${platformKey}/`;
       browserHistory.push(nextUrl);
@@ -301,14 +249,23 @@ class CreateProject extends Component<Props, State> {
     }
   };
 
-  setPlatform = (platformId: PlatformName | null) =>
-    this.setState(({projectName, platform}: State) => ({
-      platform: platformId,
-      projectName:
-        !projectName || (platform && getPlatformName(platform) === projectName)
-          ? getPlatformName(platformId) || ''
-          : projectName,
-    }));
+  setPlatform = (platformKey: PlatformName | null) => {
+    if (!platformKey) {
+      this.setState({platform: null, projectName: ''});
+      return;
+    }
+
+    this.setState(({projectName, platform}) => {
+      // Avoid replacing project name when the user already modified it
+      const userModifiedName = projectName && projectName !== platform;
+      const newName = userModifiedName ? projectName : platformKey;
+
+      return {
+        platform: platformKey,
+        projectName: slugify(newName),
+      };
+    });
+  };
 
   render() {
     const {platform, error} = this.state;

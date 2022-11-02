@@ -59,6 +59,10 @@ export type FormOptions = {
    * Should the form save on blur?
    */
   saveOnBlur?: boolean;
+  /**
+   * Custom transformer function used before the API request
+   */
+  transformData?: (data: Record<string, any>, instance: FormModel) => Record<string, any>;
 };
 
 class FormModel {
@@ -129,7 +133,6 @@ class FormModel {
       setValue: action,
       validateField: action,
       updateShowSaveState: action,
-      updateShowReturnButtonState: action,
       undo: action,
       saveForm: action,
       saveField: action,
@@ -214,7 +217,7 @@ class FormModel {
    * Set form options
    */
   setFormOptions(options: FormOptions) {
-    this.options = options || {};
+    this.options = {...this.options, ...options} || {};
   }
 
   /**
@@ -287,11 +290,8 @@ class FormModel {
   }
 
   getTransformedValue(id: string) {
-    const fieldDescriptor = this.fieldDescriptor.get(id);
-    const transformer =
-      fieldDescriptor && typeof fieldDescriptor.getValue === 'function'
-        ? fieldDescriptor.getValue
-        : null;
+    const getValue = this.getDescriptor(id, 'getValue');
+    const transformer = typeof getValue === 'function' ? getValue : null;
     const value = this.getValue(id);
 
     return transformer ? transformer(value) : value;
@@ -310,12 +310,14 @@ class FormModel {
   getTransformedData() {
     const form = this.getData();
 
-    return Object.keys(form)
+    const data = Object.keys(form)
       .map(id => [id, this.getTransformedValue(id)])
-      .reduce((acc, [id, value]) => {
+      .reduce<Record<string, any>>((acc, [id, value]) => {
         acc[id] = value;
         return acc;
       }, {});
+
+    return this.options.transformData ? this.options.transformData(data, this) : data;
   }
 
   getError(id: string) {
@@ -363,14 +365,12 @@ class FormModel {
    * if quiet is true, we skip callbacks, validations
    */
   setValue(id: string, value: FieldValue, {quiet}: {quiet?: boolean} = {}) {
-    const fieldDescriptor = this.fieldDescriptor.get(id);
-    let finalValue = value;
-
-    if (fieldDescriptor && typeof fieldDescriptor.transformInput === 'function') {
-      finalValue = fieldDescriptor.transformInput(value);
-    }
+    const transformInput = this.getDescriptor(id, 'transformInput');
+    const finalValue =
+      typeof transformInput === 'function' ? transformInput(value) : value;
 
     this.fields.set(id, finalValue);
+
     if (quiet) {
       return;
     }
@@ -381,7 +381,6 @@ class FormModel {
 
     this.validateField(id);
     this.updateShowSaveState(id, finalValue);
-    this.updateShowReturnButtonState(id, finalValue);
   }
 
   validateField(id: string) {
@@ -419,21 +418,6 @@ class FormModel {
     }
 
     this.setFieldState(id, 'showSave', isValueChanged);
-  }
-
-  updateShowReturnButtonState(id: string, value: FieldValue) {
-    const isValueChanged = value !== this.initialData[id];
-    const shouldShowReturnButton = this.getDescriptor(id, 'showReturnButton');
-
-    if (!shouldShowReturnButton) {
-      return;
-    }
-    // Only update state if state has changed
-    if (this.getFieldState(id, 'showReturnButton') === isValueChanged) {
-      return;
-    }
-
-    this.setFieldState(id, 'showReturnButton', isValueChanged);
   }
 
   /**
@@ -563,14 +547,13 @@ class FormModel {
     // Save field + value
     this.setSaving(id, true);
 
-    const fieldDescriptor = this.fieldDescriptor.get(id);
+    const getData = this.getDescriptor(id, 'getData');
 
     // Check if field needs to handle transforming request object
-    const getData =
-      typeof fieldDescriptor.getData === 'function' ? fieldDescriptor.getData : a => a;
+    const getDataFn = typeof getData === 'function' ? getData : a => a;
 
     const request = this.doApiRequest({
-      data: getData(
+      data: getDataFn(
         {[id]: this.getTransformedValue(id)},
         {model: this, id, form: this.getData()}
       ),

@@ -139,7 +139,6 @@ describe('Modals -> WidgetViewerModal', function () {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    PageFiltersStore.teardown();
   });
 
   describe('Discover Widgets', function () {
@@ -1033,7 +1032,14 @@ describe('Modals -> WidgetViewerModal', function () {
         it('always queries geo.country_code in the table chart', async function () {
           const eventsv2Mock = mockEventsv2();
           mockEventsGeo();
-          await renderModal({initialData, widget: mockWidget});
+          // Getting the following console.error from worldMapChart
+          // "Warning: Can't perform a React state update on an unmounted component. This is a no-op, but it indicates a memory leak in your application. To fix, cancel all subscriptions and asynchronous tasks in a useEffect cleanup function."
+          // Ignoring it
+          jest.spyOn(console, 'error').mockImplementation();
+          await act(async () => {
+            renderModal({initialData, widget: mockWidget});
+            await tick();
+          });
           expect(eventsv2Mock).toHaveBeenCalledWith(
             '/organizations/org-slug/eventsv2/',
             expect.objectContaining({

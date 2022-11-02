@@ -1,7 +1,7 @@
 {
   "files.exclude": {
     "*.egg-info": true,
-    "*.log": true,
+    "*.log": false,
     "**/*.js.map": true,
     "**/*.min.js": true,
     "**/*.pyc": true,
@@ -20,6 +20,10 @@
     "*.jsx": "javascriptreact"
   },
 
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": true
+  },
+
   "[javascript]": {
     "editor.formatOnSave": true,
     "editor.tabSize": 2
@@ -29,6 +33,12 @@
     "editor.formatOnSave": true,
     "editor.tabSize": 2
   },
+  // Exclude Specific Files from Auto-Imports
+  "typescript.preferences.autoImportFileExcludePatterns": [
+    "**/node_modules/@storybook/theming/*",
+    "**/node_modules/@storybook/addons/*",
+    "**/node_modules/@testing-library/*"
+  ],
 
   "[typescriptreact]": {
     "editor.formatOnSave": true,

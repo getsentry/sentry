@@ -1,6 +1,6 @@
-import {mountGlobalModal} from 'sentry-test/modal';
 import {
   render,
+  renderGlobalModal,
   screen,
   userEvent,
   waitFor,
@@ -94,7 +94,7 @@ describe('Organization Developer Settings', function () {
       expect(deleteButton).toHaveAttribute('aria-disabled', 'false');
 
       userEvent.click(deleteButton);
-      await mountGlobalModal();
+      renderGlobalModal();
       const dialog = await screen.findByRole('dialog');
       expect(dialog).toBeInTheDocument();
 
@@ -126,7 +126,7 @@ describe('Organization Developer Settings', function () {
       expect(publishButton).toHaveAttribute('aria-disabled', 'false');
       userEvent.click(publishButton);
 
-      await mountGlobalModal();
+      renderGlobalModal();
       const dialog = await screen.findByRole('dialog');
       expect(dialog).toBeInTheDocument();
       const questionnaire = [
@@ -147,7 +147,7 @@ describe('Organization Developer Settings', function () {
       ];
 
       for (const {question, answer} of questionnaire) {
-        const element = within(dialog).getByLabelText(question);
+        const element = within(dialog).getByRole('textbox', {name: question});
         userEvent.paste(element, answer);
       }
 

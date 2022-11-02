@@ -247,6 +247,8 @@ class OAuth2LoginView(PipelineView):
         redirect_uri = f"{self.get_authorize_url()}?{urlencode(params)}"
 
         pipeline.bind_state("state", state)
+        if request.subdomain:
+            pipeline.bind_state("subdomain", request.subdomain)
 
         return self.redirect(redirect_uri)
 
@@ -293,6 +295,13 @@ class OAuth2CallbackView(PipelineView):
             return {
                 "error": "Could not verify SSL certificate",
                 "error_description": f"Ensure that {url} has a valid SSL certificate",
+            }
+        except ConnectionError:
+            url = self.access_token_url
+            logger.info("identity.oauth2.connection-error", extra={"url": url})
+            return {
+                "error": "Could not connect to host or service",
+                "error_description": f"Ensure that {url} is open to connections",
             }
         except json.JSONDecodeError:
             logger.info("identity.oauth2.json-error", extra={"url": self.access_token_url})

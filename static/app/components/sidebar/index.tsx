@@ -91,6 +91,14 @@ function Sidebar({location, organization}: Props) {
     return () => bcl.remove('body-sidebar');
   }, [bcl]);
 
+  useEffect(() => {
+    Object.values(SidebarPanelKey).forEach(key => {
+      if (location?.hash === `#sidebar-${key}`) {
+        togglePanel(key);
+      }
+    });
+  }, [location?.hash]);
+
   // Add sidebar collapse classname to body
   useEffect(() => {
     if (collapsed) {
@@ -136,7 +144,7 @@ function Sidebar({location, organization}: Props) {
       {...sidebarItemProps}
       icon={<IconIssues size="md" />}
       label={<GuideAnchor target="issues">{t('Issues')}</GuideAnchor>}
-      to={`/organizations/${organization.slug}/issues/`}
+      to={`/organizations/${organization.slug}/issues/?referrer=sidebar`}
       id="issues"
     />
   );
@@ -301,7 +309,7 @@ function Sidebar({location, organization}: Props) {
   );
 
   return (
-    <SidebarWrapper collapsed={collapsed}>
+    <SidebarWrapper aria-label={t('Primary Navigation')} collapsed={collapsed}>
       <SidebarSectionGroupPrimary>
         <SidebarSection>
           <SidebarDropdown
@@ -399,7 +407,7 @@ function Sidebar({location, organization}: Props) {
                 id="collapse"
                 data-test-id="sidebar-collapse"
                 {...sidebarItemProps}
-                icon={<StyledIconChevron collapsed={collapsed} />}
+                icon={<IconChevron direction={collapsed ? 'right' : 'left'} size="sm" />}
                 label={collapsed ? t('Expand') : t('Collapse')}
                 onClick={toggleCollapse}
               />
@@ -519,23 +527,6 @@ const SidebarSection = styled(SidebarSectionGroup)<{
     display: none;
   }
 `;
-
-const ExpandedIcon = css`
-  transition: 0.3s transform ease;
-  transform: rotate(270deg);
-`;
-const CollapsedIcon = css`
-  transform: rotate(90deg);
-`;
-const StyledIconChevron = styled(({collapsed, ...props}) => (
-  <IconChevron
-    direction="left"
-    size="md"
-    isCircled
-    css={[ExpandedIcon, collapsed && CollapsedIcon]}
-    {...props}
-  />
-))``;
 
 const SidebarCollapseItem = styled(SidebarItem)`
   @media (max-width: ${p => p.theme.breakpoints.medium}) {

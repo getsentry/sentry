@@ -145,6 +145,14 @@ def get_rollup_from_request(
     interval = parse_stats_period(request.GET.get("interval", default_interval))
     if interval is None:
         interval = timedelta(hours=1)
+    validate_interval(interval, error, date_range, top_events)
+
+    return int(interval.total_seconds())
+
+
+def validate_interval(
+    interval: timedelta, error: Exception, date_range: timedelta, top_events: int
+) -> None:
     if interval.total_seconds() <= 0:
         raise error.__class__("Interval cannot result in a zero duration.")
 
@@ -153,7 +161,6 @@ def get_rollup_from_request(
 
     if date_range.total_seconds() / interval.total_seconds() > max_rollup_points:
         raise error
-    return int(interval.total_seconds())
 
 
 def outside_retention_with_modified_start(

@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
@@ -18,63 +18,63 @@ type Props = {
   project: Project;
 };
 
-export default class RepositoryProjectPathConfigRow extends Component<Props> {
-  render() {
-    const {pathConfig, project, onEdit, onDelete} = this.props;
-
-    return (
-      <Access access={['org:integrations']}>
-        {({hasAccess}) => (
-          <Fragment>
-            <NameRepoColumn>
-              <ProjectRepoHolder>
-                <RepoName>{pathConfig.repoName}</RepoName>
-                <ProjectAndBranch>
-                  <IdBadge
-                    project={project}
-                    avatarSize={14}
-                    displayName={project.slug}
-                    avatarProps={{consistentWidth: true}}
-                  />
-                  <BranchWrapper>&nbsp;|&nbsp;{pathConfig.defaultBranch}</BranchWrapper>
-                </ProjectAndBranch>
-              </ProjectRepoHolder>
-            </NameRepoColumn>
-            <OutputPathColumn>{pathConfig.sourceRoot}</OutputPathColumn>
-            <InputPathColumn>{pathConfig.stackRoot}</InputPathColumn>
-            <ButtonColumn>
-              <Tooltip
-                title={t(
-                  'You must be an organization owner, manager or admin to edit or remove a code mapping.'
-                )}
-                disabled={hasAccess}
+export default function RepositoryProjectPathConfigRow({
+  pathConfig,
+  project,
+  onEdit,
+  onDelete,
+}: Props) {
+  return (
+    <Fragment>
+      <NameRepoColumn>
+        <ProjectRepoHolder>
+          <RepoName>{pathConfig.repoName}</RepoName>
+          <ProjectAndBranch>
+            <IdBadge
+              project={project}
+              avatarSize={14}
+              displayName={project.slug}
+              avatarProps={{consistentWidth: true}}
+            />
+            <BranchWrapper>&nbsp;|&nbsp;{pathConfig.defaultBranch}</BranchWrapper>
+          </ProjectAndBranch>
+        </ProjectRepoHolder>
+      </NameRepoColumn>
+      <OutputPathColumn>{pathConfig.sourceRoot}</OutputPathColumn>
+      <InputPathColumn>{pathConfig.stackRoot}</InputPathColumn>
+      <ButtonWrapper>
+        <Button
+          size="sm"
+          icon={<IconEdit size="sm" />}
+          aria-label={t('edit')}
+          onClick={() => onEdit(pathConfig)}
+        />
+        <Access access={['org:integrations']}>
+          {({hasAccess}) => (
+            <Tooltip
+              title={t(
+                'You must be an organization owner, manager or admin to remove a code mapping.'
+              )}
+              disabled={hasAccess}
+            >
+              <Confirm
+                onConfirm={() => onDelete(pathConfig)}
+                message={t('Are you sure you want to remove this code mapping?')}
+                disabled={!hasAccess}
               >
-                <StyledButton
+                <Button
                   size="sm"
-                  icon={<IconEdit size="sm" />}
-                  aria-label={t('edit')}
+                  icon={<IconDelete size="sm" />}
+                  aria-label={t('delete')}
                   disabled={!hasAccess}
-                  onClick={() => onEdit(pathConfig)}
                 />
-                <Confirm
-                  disabled={!hasAccess}
-                  onConfirm={() => onDelete(pathConfig)}
-                  message={t('Are you sure you want to remove this code mapping?')}
-                >
-                  <StyledButton
-                    size="sm"
-                    icon={<IconDelete size="sm" />}
-                    aria-label={t('delete')}
-                    disabled={!hasAccess}
-                  />
-                </Confirm>
-              </Tooltip>
-            </ButtonColumn>
-          </Fragment>
-        )}
-      </Access>
-    );
-  }
+              </Confirm>
+            </Tooltip>
+          )}
+        </Access>
+      </ButtonWrapper>
+    </Fragment>
+  );
 }
 
 const ProjectRepoHolder = styled('div')`
@@ -84,10 +84,6 @@ const ProjectRepoHolder = styled('div')`
 
 const RepoName = styled(`span`)`
   padding-bottom: ${space(1)};
-`;
-
-const StyledButton = styled(Button)`
-  margin: ${space(0.5)};
 `;
 
 const ProjectAndBranch = styled('div')`
@@ -119,7 +115,7 @@ export const InputPathColumn = styled(Column)`
   grid-area: input-path;
 `;
 
-export const ButtonColumn = styled(Column)`
-  grid-area: button;
-  text-align: right;
+export const ButtonWrapper = styled(Column)`
+  display: flex;
+  gap: ${space(1)};
 `;

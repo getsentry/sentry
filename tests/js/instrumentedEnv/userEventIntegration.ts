@@ -1,4 +1,4 @@
-import {Hub} from '@sentry/hub';
+import {Hub} from '@sentry/core';
 import {fill, isThenable, loadModule} from '@sentry/utils';
 
 export function instrumentUserEvent(getCurrentHub: () => Hub): void {

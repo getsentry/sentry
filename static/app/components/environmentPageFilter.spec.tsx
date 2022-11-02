@@ -44,11 +44,6 @@ describe('EnvironmentPageFilter', function () {
     );
   });
 
-  afterEach(() => {
-    OrganizationStore.teardown();
-    ProjectsStore.teardown();
-  });
-
   it('can pick environment', function () {
     render(<EnvironmentPageFilter />, {
       context: routerContext,

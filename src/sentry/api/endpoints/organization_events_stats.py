@@ -11,7 +11,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventsV2EndpointBase
 from sentry.constants import MAX_TOP_EVENTS
 from sentry.models import Organization
-from sentry.snuba import discover, metrics_enhanced_performance
+from sentry.snuba import discover, metrics_enhanced_performance, metrics_performance
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import SnubaTSResult
 
@@ -82,6 +82,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
             "organizations:dashboards-mep",
             "organizations:mep-rollout-flag",
             "organizations:performance-dry-run-mep",
+            "organizations:use-metrics-layer",
         ]
         batch_features = features.batch_has(
             feature_names,
@@ -154,12 +155,21 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                     )
                 )
             )
+
+            use_profiles = features.has(
+                "organizations:profiling",
+                organization=organization,
+                actor=request.user,
+            )
+
             performance_dry_run_mep = batch_features.get(
                 "organizations:performance-dry-run-mep", False
             )
+            use_metrics_layer = batch_features.get("organizations:use-metrics-layer", False)
 
-            dataset = self.get_dataset(request) if use_metrics else discover
-            metrics_enhanced = dataset != discover
+            use_custom_dataset = use_metrics or use_profiles
+            dataset = self.get_dataset(request) if use_custom_dataset else discover
+            metrics_enhanced = dataset in {metrics_performance, metrics_enhanced_performance}
 
             allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
             sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
@@ -197,6 +207,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                 "zerofill_results": zerofill_results,
                 "comparison_delta": comparison_delta,
                 "allow_metric_aggregates": allow_metric_aggregates,
+                "has_metrics": use_metrics,
+                "use_metrics_layer": use_metrics_layer,
             }
             if not metrics_enhanced and performance_dry_run_mep:
                 sentry_sdk.set_tag("query.mep_compatible", False)

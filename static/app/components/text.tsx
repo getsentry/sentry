@@ -7,7 +7,7 @@ import textStyles from 'sentry/styles/text';
 const Text = styled('div')`
   ${textStyles};
 
-  ${/* sc-selector */ Panel} & {
+  ${Panel} & {
     padding-left: ${space(2)};
     padding-right: ${space(2)};
 

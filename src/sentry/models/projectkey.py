@@ -4,7 +4,7 @@ from uuid import uuid4
 
 import petname
 from django.conf import settings
-from django.db import models, transaction
+from django.db import ProgrammingError, models, transaction
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
@@ -17,7 +17,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     JSONField,
     Model,
-    region_silo_model,
+    region_silo_only_model,
     sane_repr,
 )
 from sentry.tasks.relay import schedule_invalidate_project_config
@@ -60,7 +60,7 @@ class ProjectKeyManager(BaseManager):
         )
 
 
-@region_silo_model
+@region_silo_only_model
 class ProjectKey(Model):
     __include_in_export__ = True
 
@@ -246,7 +246,16 @@ class ProjectKey(Model):
         if not endpoint:
             endpoint = options.get("system.url-prefix")
 
-        if features.has("organizations:org-subdomains", self.project.organization):
+        has_org_subdomain = False
+        try:
+            has_org_subdomain = features.has(
+                "organizations:org-subdomains", self.project.organization
+            )
+        except ProgrammingError:
+            # This happens during migration generation for the organization model.
+            pass
+
+        if has_org_subdomain:
             urlparts = urlparse(endpoint)
             if urlparts.scheme and urlparts.netloc:
                 endpoint = "{}://{}.{}{}".format(

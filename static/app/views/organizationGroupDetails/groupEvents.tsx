@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {Component, Fragment} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
@@ -6,6 +6,7 @@ import pick from 'lodash/pick';
 import {Client} from 'sentry/api';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
+import EventSearchBar from 'sentry/components/events/searchBar';
 import EventsTable from 'sentry/components/eventsTable/eventsTable';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
@@ -15,11 +16,13 @@ import {Panel, PanelBody} from 'sentry/components/panels';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Group, Organization} from 'sentry/types';
+import {Group, IssueCategory, Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import parseApiError from 'sentry/utils/parseApiError';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
+
+import AllEventsTable from './allEventsTable';
 
 type Props = {
   api: Client;
@@ -33,19 +36,27 @@ type State = {
   loading: boolean;
   pageLinks: string;
   query: string;
+  renderNewAllEventsTab: boolean;
 };
+
+const excludedTags = ['environment', 'issue', 'issue.id', 'performance.issue_ids'];
 
 class GroupEvents extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
 
     const queryParams = this.props.location.query;
+    const renderNewAllEventsTab =
+      !!this.props.group.id &&
+      this.props.organization.features.includes('performance-issues-all-events-tab');
+
     this.state = {
       eventList: [],
       loading: true,
       error: false,
       pageLinks: '',
       query: queryParams.query || '',
+      renderNewAllEventsTab,
     };
   }
 
@@ -89,24 +100,26 @@ class GroupEvents extends Component<Props, State> {
       query: this.state.query,
     };
 
-    this.props.api.request(`/issues/${this.props.params.groupId}/events/`, {
-      query,
-      method: 'GET',
-      success: (data, _, resp) => {
-        this.setState({
-          eventList: data,
-          error: false,
-          loading: false,
-          pageLinks: resp?.getResponseHeader('Link') ?? '',
-        });
-      },
-      error: err => {
-        this.setState({
-          error: parseApiError(err),
-          loading: false,
-        });
-      },
-    });
+    if (!this.state.renderNewAllEventsTab) {
+      this.props.api.request(`/issues/${this.props.params.groupId}/events/`, {
+        query,
+        method: 'GET',
+        success: (data, _, resp) => {
+          this.setState({
+            eventList: data,
+            error: false,
+            loading: false,
+            pageLinks: resp?.getResponseHeader('Link') ?? '',
+          });
+        },
+        error: err => {
+          this.setState({
+            error: parseApiError(err),
+            loading: false,
+          });
+        },
+      });
+    }
   };
 
   renderNoQueryResults() {
@@ -125,8 +138,47 @@ class GroupEvents extends Component<Props, State> {
     );
   }
 
+  renderNewAllEventsTab() {
+    return (
+      <AllEventsTable
+        issueId={this.props.group.id}
+        isPerfIssue={this.props.group.issueCategory === IssueCategory.PERFORMANCE}
+        location={this.props.location}
+        organization={this.props.organization}
+        projectId={this.props.group.project.slug}
+        totalEventCount={this.props.group.count}
+        excludedTags={excludedTags}
+      />
+    );
+  }
+
+  renderSearchBar() {
+    const {renderNewAllEventsTab: renderPerfIssueEvents} = this.state;
+
+    if (renderPerfIssueEvents) {
+      return (
+        <EventSearchBar
+          organization={this.props.organization}
+          defaultQuery=""
+          onSearch={this.handleSearch}
+          excludedTags={excludedTags}
+          query={this.state.query}
+          hasRecentSearches={false}
+        />
+      );
+    }
+    return (
+      <SearchBar
+        defaultQuery=""
+        placeholder={t('Search events by id, message, or tags')}
+        query={this.state.query}
+        onSearch={this.handleSearch}
+      />
+    );
+  }
+
   renderResults() {
-    const {group, params} = this.props;
+    const {group, params, organization} = this.props;
     const tagList = group.tags.filter(tag => tag.key !== 'user') || [];
 
     return (
@@ -136,13 +188,19 @@ class GroupEvents extends Component<Props, State> {
         orgId={params.orgId}
         projectId={group.project.slug}
         groupId={params.groupId}
+        orgFeatures={organization.features}
       />
     );
   }
 
   renderBody() {
+    const {renderNewAllEventsTab} = this.state;
+
     let body: React.ReactNode;
 
+    if (renderNewAllEventsTab) {
+      return this.renderNewAllEventsTab();
+    }
     if (this.state.loading) {
       body = <LoadingIndicator />;
     } else if (this.state.error) {
@@ -155,7 +213,14 @@ class GroupEvents extends Component<Props, State> {
       body = this.renderEmpty();
     }
 
-    return body;
+    return (
+      <Fragment>
+        <Panel className="event-list">
+          <PanelBody>{body}</PanelBody>
+        </Panel>
+        <Pagination pageLinks={this.state.pageLinks} />
+      </Fragment>
+    );
   }
 
   render() {
@@ -165,18 +230,9 @@ class GroupEvents extends Component<Props, State> {
           <Wrapper>
             <FilterSection>
               <EnvironmentPageFilter />
-              <SearchBar
-                defaultQuery=""
-                placeholder={t('Search events by id, message, or tags')}
-                query={this.state.query}
-                onSearch={this.handleSearch}
-              />
+              {this.renderSearchBar()}
             </FilterSection>
-
-            <Panel className="event-list">
-              <PanelBody>{this.renderBody()}</PanelBody>
-            </Panel>
-            <Pagination pageLinks={this.state.pageLinks} />
+            {this.renderBody()}
           </Wrapper>
         </Layout.Main>
       </Layout.Body>

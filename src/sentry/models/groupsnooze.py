@@ -10,14 +10,15 @@ from sentry.db.models import (
     FlexibleForeignKey,
     JSONField,
     Model,
-    region_silo_model,
+    region_silo_only_model,
     sane_repr,
 )
+from sentry.issues.constants import ISSUE_TSDB_GROUP_MODELS, ISSUE_TSDB_USER_GROUP_MODELS
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 
 
-@region_silo_model
+@region_silo_only_model
 class GroupSnooze(Model):
     """
     A snooze marks an issue as ignored until a condition is hit.
@@ -92,9 +93,13 @@ class GroupSnooze(Model):
         end = timezone.now()
         start = end - timedelta(minutes=self.window)
 
-        rate = tsdb.get_sums(model=tsdb.models.group, keys=[self.group_id], start=start, end=end)[
-            self.group_id
-        ]
+        rate = tsdb.get_sums(
+            model=ISSUE_TSDB_GROUP_MODELS[self.group.issue_category],
+            keys=[self.group_id],
+            start=start,
+            end=end,
+        )[self.group_id]
+
         if rate >= self.count:
             return False
 
@@ -109,7 +114,10 @@ class GroupSnooze(Model):
         start = end - timedelta(minutes=self.user_window)
 
         rate = tsdb.get_distinct_counts_totals(
-            model=tsdb.models.users_affected_by_group, keys=[self.group_id], start=start, end=end
+            model=ISSUE_TSDB_USER_GROUP_MODELS[self.group.issue_category],
+            keys=[self.group_id],
+            start=start,
+            end=end,
         )[self.group_id]
 
         if rate >= self.user_count:

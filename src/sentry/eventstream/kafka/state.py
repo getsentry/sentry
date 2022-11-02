@@ -1,6 +1,7 @@
 import logging
 import threading
 from collections import defaultdict, namedtuple
+from typing import Callable, MutableMapping, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -70,12 +71,25 @@ class SynchronizedPartitionStateManager:
         ),
     }
 
-    def __init__(self, callback):
-        self.partitions = defaultdict(lambda: (None, Offsets(None, None)))
+    def __init__(
+        self,
+        callback: Callable[
+            [
+                str,
+                int,
+                Tuple[Optional[str], Offsets],
+                Tuple[Optional[str], Offsets],
+            ],
+            None,
+        ],
+    ):
+        self.partitions: MutableMapping[
+            Tuple[str, int], Tuple[Optional[str], Offsets]
+        ] = defaultdict(lambda: (None, Offsets(None, None)))
         self.callback = callback
         self.__lock = threading.RLock()
 
-    def get_state_from_offsets(self, offsets):
+    def get_state_from_offsets(self, offsets: Offsets) -> str:
         """
         Derive the partition state by comparing local and remote offsets.
         """
@@ -89,7 +103,7 @@ class SynchronizedPartitionStateManager:
             else:  # local == remote
                 return SynchronizedPartitionState.SYNCHRONIZED
 
-    def set_local_offset(self, topic, partition, local_offset):
+    def set_local_offset(self, topic: str, partition: int, local_offset: int) -> None:
         """
         Update the local offset for a topic and partition.
 
@@ -134,7 +148,7 @@ class SynchronizedPartitionStateManager:
                     (updated_state, updated_offsets),
                 )
 
-    def set_remote_offset(self, topic, partition, remote_offset):
+    def set_remote_offset(self, topic: str, partition: int, remote_offset: int) -> None:
         """
         Update the remote offset for a topic and partition.
 
@@ -171,7 +185,7 @@ class SynchronizedPartitionStateManager:
                     (updated_state, updated_offsets),
                 )
 
-    def validate_local_message(self, topic, partition, offset):
+    def validate_local_message(self, topic: str, partition: int, offset: int) -> None:
         """
         Check if a message should be consumed by the local consumer.
 

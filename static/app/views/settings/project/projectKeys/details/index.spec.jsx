@@ -1,14 +1,17 @@
 import * as PropTypes from 'prop-types';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {mountGlobalModal} from 'sentry-test/modal';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
 
 import ProjectKeyDetails from 'sentry/views/settings/project/projectKeys/details';
 
 describe('ProjectKeyDetails', function () {
   let org;
   let project;
-  let wrapper;
   let deleteMock;
   let statsMock;
   let putMock;
@@ -71,7 +74,16 @@ describe('ProjectKeyDetails', function () {
       method: 'DELETE',
     });
 
-    wrapper = mountWithTheme(
+    const context = {
+      context: {
+        project: TestStubs.Project(),
+      },
+      childContextTypes: {
+        project: PropTypes.object,
+      },
+    };
+
+    render(
       <ProjectKeyDetails
         routes={[]}
         params={{
@@ -80,27 +92,19 @@ describe('ProjectKeyDetails', function () {
           projectId: project.slug,
         }}
       />,
-      {
-        context: {
-          project: TestStubs.Project(),
-        },
-        childContextTypes: {
-          project: PropTypes.object,
-        },
-      }
+      {context}
     );
   });
 
   it('has stats box', function () {
-    expect(wrapper.find('KeyStats')).toHaveLength(1);
+    expect(screen.getByText('Key Details')).toBeInTheDocument();
     expect(statsMock).toHaveBeenCalled();
   });
 
   it('changes name', function () {
-    wrapper
-      .find('input[name="name"]')
-      .simulate('change', {target: {value: 'New Name'}})
-      .simulate('blur');
+    userEvent.clear(screen.getByRole('textbox', {name: 'Name'}));
+    userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'New Name');
+    userEvent.tab();
 
     expect(putMock).toHaveBeenCalledWith(
       `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0].id}/`,
@@ -113,7 +117,7 @@ describe('ProjectKeyDetails', function () {
   });
 
   it('disable and enables key', function () {
-    wrapper.find('Switch[name="isActive"]').simulate('click');
+    userEvent.click(screen.getByRole('checkbox', {name: 'Enabled'}));
 
     expect(putMock).toHaveBeenCalledWith(
       `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0].id}/`,
@@ -122,7 +126,7 @@ describe('ProjectKeyDetails', function () {
       })
     );
 
-    wrapper.find('Switch[name="isActive"]').simulate('click');
+    userEvent.click(screen.getByRole('checkbox', {name: 'Enabled'}));
 
     expect(putMock).toHaveBeenCalledWith(
       `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0].id}/`,
@@ -132,13 +136,11 @@ describe('ProjectKeyDetails', function () {
     );
   });
 
-  it('revokes a key', async function () {
-    wrapper
-      .find('Button[priority="danger"]')
-      .simulate('click', {preventDefault: () => {}});
+  it('revokes a key', function () {
+    userEvent.click(screen.getByRole('button', {name: 'Revoke Key'}));
 
-    const modal = await mountGlobalModal();
-    modal.find('Button[priority="danger"]').simulate('click');
+    renderGlobalModal();
+    userEvent.click(screen.getByTestId('confirm-button'));
 
     expect(deleteMock).toHaveBeenCalled();
   });

@@ -2,6 +2,7 @@
 import {
   filterTypeConfig,
   interchangeableFilterOperators,
+  SearchConfig,
   TermOperator,
   Token,
   TokenResult,
@@ -28,6 +29,7 @@ import {
 } from './types';
 import {TagCollection} from 'sentry/types';
 import {FieldKind, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
+import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 
 export function addSpace(query = '') {
   if (query.length !== 0 && query[query.length - 1] !== ' ') {
@@ -169,9 +171,10 @@ export function createSearchGroups(
   type: ItemType,
   maxSearchItems?: number,
   queryCharsLeft?: number,
-  isDefaultState?: boolean
+  isDefaultState?: boolean,
+  fieldDefinitionGetter: typeof getFieldDefinition = getFieldDefinition
 ) {
-  const fieldDefinition = getFieldDefinition(tagName);
+  const fieldDefinition = fieldDefinitionGetter(tagName);
 
   const activeSearchItem = 0;
   const {searchItems: filteredSearchItems, recentSearchItems: filteredRecentSearchItems} =
@@ -384,15 +387,19 @@ const getItemTitle = (key: string, kind: FieldKind) => {
  * For example, "device.arch" and "device.name" will be grouped together as children of "device", a non-interactive parent.
  * The parent will become interactive if there exists a key "device".
  */
-export const getTagItemsFromKeys = (tagKeys: string[], supportedTags: TagCollection) => {
+export const getTagItemsFromKeys = (
+  tagKeys: string[],
+  supportedTags: TagCollection,
+  fieldDefinitionGetter: typeof getFieldDefinition = getFieldDefinition
+) => {
   return [...tagKeys].reduce<SearchItem[]>((groups, key) => {
     const keyWithColon = `${key}:`;
     const sections = key.split('.');
 
     const definition =
       supportedTags[key]?.kind === FieldKind.FUNCTION
-        ? getFieldDefinition(key.split('(')[0])
-        : getFieldDefinition(key);
+        ? fieldDefinitionGetter(key.split('(')[0])
+        : fieldDefinitionGetter(key);
     const kind = supportedTags[key]?.kind ?? definition?.kind ?? FieldKind.FIELD;
 
     const item: SearchItem = {
@@ -489,11 +496,15 @@ export const getSearchGroupWithItemMarkedActive = (
 /**
  * Filter tag keys based on the query and the key, description, and associated keywords of each tag.
  */
-export const filterKeysFromQuery = (tagKeys: string[], searchTerm: string): string[] =>
+export const filterKeysFromQuery = (
+  tagKeys: string[],
+  searchTerm: string,
+  fieldDefinitionGetter: typeof getFieldDefinition = getFieldDefinition
+): string[] =>
   tagKeys
     .flatMap(key => {
       const keyWithoutFunctionPart = key.replaceAll(/\(.*\)/g, '');
-      const definition = getFieldDefinition(keyWithoutFunctionPart);
+      const definition = fieldDefinitionGetter(keyWithoutFunctionPart);
       const lowerCasedSearchTerm = searchTerm.toLocaleLowerCase();
 
       const combinedKeywords = [
@@ -586,4 +597,40 @@ export const getDateTagAutocompleteGroups = (tagName: string): AutocompleteGroup
       type: ItemType.TAG_VALUE,
     },
   ];
+};
+
+export const getSearchConfigFromCustomPerformanceMetrics = (
+  customPerformanceMetrics?: CustomMeasurementCollection
+): Partial<SearchConfig> => {
+  const searchConfigMap: Record<string, string[]> = {
+    sizeKeys: [],
+    durationKeys: [],
+    percentageKeys: [],
+    numericKeys: [],
+  };
+  if (customPerformanceMetrics) {
+    Object.keys(customPerformanceMetrics).forEach(metricName => {
+      const {fieldType} = customPerformanceMetrics[metricName];
+      switch (fieldType) {
+        case 'size':
+          searchConfigMap.sizeKeys.push(metricName);
+          break;
+        case 'duration':
+          searchConfigMap.durationKeys.push(metricName);
+          break;
+        case 'percentage':
+          searchConfigMap.percentageKeys.push(metricName);
+          break;
+        default:
+          searchConfigMap.numericKeys.push(metricName);
+      }
+    });
+  }
+  const searchConfig = {
+    sizeKeys: new Set(searchConfigMap.sizeKeys),
+    durationKeys: new Set(searchConfigMap.durationKeys),
+    percentageKeys: new Set(searchConfigMap.percentageKeys),
+    numericKeys: new Set(searchConfigMap.numericKeys),
+  };
+  return searchConfig;
 };

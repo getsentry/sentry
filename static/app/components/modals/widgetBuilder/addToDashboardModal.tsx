@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {useEffect, useState} from 'react';
 import {InjectedRouter} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -13,11 +13,13 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import SelectControl from 'sentry/components/forms/selectControl';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {DateString, Organization, PageFilters, SelectValue} from 'sentry/types';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
+import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
+import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import useApi from 'sentry/utils/useApi';
 import {
   DashboardDetails,
@@ -27,12 +29,15 @@ import {
   Widget,
 } from 'sentry/views/dashboardsV2/types';
 import {
+  eventViewFromWidget,
   getDashboardFiltersFromURL,
   getSavedFiltersAsPageFilters,
   getSavedPageFilters,
 } from 'sentry/views/dashboardsV2/utils';
 import {NEW_DASHBOARD_ID} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
+import {OrganizationContext} from 'sentry/views/organizationContext';
+import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
 type WidgetAsQueryParams = Query & {
   defaultTableColumns: string[];
@@ -175,7 +180,7 @@ function AddToDashboardModal({
   const canSubmit = selectedDashboardId !== null;
 
   return (
-    <Fragment>
+    <OrganizationContext.Provider value={organization}>
       <Header closeButton>
         <h4>{t('Add to Dashboard')}</h4>
       </Header>
@@ -218,27 +223,47 @@ function AddToDashboardModal({
               )
             : t('This is a preview of how the widget will appear in your dashboard.')}
         </Wrapper>
-        <WidgetCard
-          api={api}
-          organization={organization}
-          currentWidgetDragging={false}
-          isEditing={false}
-          isSorting={false}
-          widgetLimitReached={false}
-          selection={
-            organization.features.includes('dashboards-top-level-filter') &&
-            selectedDashboard
-              ? getSavedFiltersAsPageFilters(selectedDashboard)
-              : selection
-          }
-          dashboardFilters={
-            organization.features.includes('dashboards-top-level-filter')
-              ? getDashboardFiltersFromURL(location) ?? selectedDashboard?.filters
-              : {}
-          }
-          widget={widget}
-          showStoredAlert
-        />
+        <MetricsCardinalityProvider organization={organization} location={location}>
+          <MetricsDataSwitcher
+            organization={organization}
+            eventView={eventViewFromWidget(
+              widget.title,
+              widget.queries[0],
+              selection,
+              widget.displayType
+            )}
+            location={location}
+            hideLoadingIndicator
+          >
+            {metricsDataSide => (
+              <MEPSettingProvider
+                location={location}
+                forceTransactions={metricsDataSide.forceTransactionsOnly}
+              >
+                <WidgetCard
+                  organization={organization}
+                  currentWidgetDragging={false}
+                  isEditing={false}
+                  isSorting={false}
+                  widgetLimitReached={false}
+                  selection={
+                    organization.features.includes('dashboards-top-level-filter') &&
+                    selectedDashboard
+                      ? getSavedFiltersAsPageFilters(selectedDashboard)
+                      : selection
+                  }
+                  dashboardFilters={
+                    organization.features.includes('dashboards-top-level-filter')
+                      ? getDashboardFiltersFromURL(location) ?? selectedDashboard?.filters
+                      : {}
+                  }
+                  widget={widget}
+                  showStoredAlert
+                />
+              </MEPSettingProvider>
+            )}
+          </MetricsDataSwitcher>
+        </MetricsCardinalityProvider>
       </Body>
 
       <Footer>
@@ -260,7 +285,7 @@ function AddToDashboardModal({
           </Button>
         </StyledButtonBar>
       </Footer>
-    </Fragment>
+    </OrganizationContext.Provider>
   );
 }
 

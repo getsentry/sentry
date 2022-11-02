@@ -44,7 +44,10 @@ export type ParsedFunction = {
   name: string;
 };
 
-type ValidateColumnValueFunction = ({name: string, dataType: ColumnType}) => boolean;
+type ValidateColumnValueFunction = (data: {
+  dataType: ColumnType;
+  name: string;
+}) => boolean;
 
 export type ValidateColumnTypes =
   | ColumnType[]
@@ -186,7 +189,7 @@ export const AGGREGATIONS = {
       },
     ],
     isSortable: true,
-    multiPlotType: 'line',
+    multiPlotType: 'area',
   },
   [AggregationKey.CountMiserable]: {
     ...getDocsAndOutputType(AggregationKey.CountMiserable),
@@ -568,7 +571,7 @@ export const SEMVER_TAGS = {
  * Some tag keys should never be formatted as `tag[...]`
  * when used as a filter because they are predefined.
  */
-const EXCLUDED_TAG_KEYS = new Set(['release']);
+const EXCLUDED_TAG_KEYS = new Set(['release', 'user']);
 
 export function formatTagKey(key: string): string {
   // Some tags may be normalized from context, but not all of them are.
@@ -630,8 +633,7 @@ export const MEASUREMENT_PATTERN = /^measurements\.([a-zA-Z0-9-_.]+)$/;
 export const SPAN_OP_BREAKDOWN_PATTERN = /^spans\.([a-zA-Z0-9-_.]+)$/;
 
 export function isMeasurement(field: string): boolean {
-  const results = field.match(MEASUREMENT_PATTERN);
-  return !!results;
+  return MEASUREMENT_PATTERN.test(field);
 }
 
 export function measurementType(field: string): MeasurementType {
@@ -685,7 +687,7 @@ export function parseArguments(functionText: string, columnText: string): string
     (functionText !== 'to_other' &&
       functionText !== 'count_if' &&
       functionText !== 'spans_histogram') ||
-    columnText.length === 0
+    columnText?.length === 0
   ) {
     return columnText ? columnText.split(',').map(result => result.trim()) : [];
   }
@@ -865,7 +867,7 @@ export function generateFieldAsString(value: QueryFieldValue): string {
   }
 
   if (value.kind === 'equation') {
-    return `${EQUATION_PREFIX}${value.field}`;
+    return `${EQUATION_PREFIX}${value.field.trim()}`;
   }
 
   const aggregation = value.function[0];

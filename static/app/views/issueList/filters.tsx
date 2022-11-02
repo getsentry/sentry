@@ -1,38 +1,38 @@
+// eslint-disable-next-line no-restricted-imports
+import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
+import {
+  makePinSearchAction,
+  makeSaveSearchAction,
+} from 'sentry/components/smartSearchBar/actions';
 import space from 'sentry/styles/space';
-import {Organization, SavedSearch, TagCollection} from 'sentry/types';
+import {Organization, SavedSearch} from 'sentry/types';
 
 import IssueListSearchBar from './searchBar';
-import {TagValueLoader} from './types';
 
-type Props = {
-  isSearchDisabled: boolean;
+interface Props extends WithRouterProps {
   onSearch: (query: string) => void;
-  onSidebarToggle: (event: React.MouseEvent) => void;
   organization: Organization;
   query: string;
-  savedSearch: SavedSearch;
+  savedSearch: SavedSearch | null;
   sort: string;
-  tagValueLoader: TagValueLoader;
-  tags: TagCollection;
-};
+}
 
 function IssueListFilters({
   organization,
   savedSearch,
   query,
-  isSearchDisabled,
   sort,
-  onSidebarToggle,
   onSearch,
-  tagValueLoader,
-  tags,
+  location,
 }: Props) {
+  const pinnedSearch = savedSearch?.isPinned ? savedSearch : undefined;
+
   return (
     <SearchContainer>
       <PageFilterBar>
@@ -41,16 +41,20 @@ function IssueListFilters({
         <DatePageFilter alignDropdown="left" />
       </PageFilterBar>
       <IssueListSearchBar
+        searchSource="main_search"
         organization={organization}
         query={query || ''}
-        sort={sort}
         onSearch={onSearch}
-        disabled={isSearchDisabled}
-        excludeEnvironment
-        supportedTags={tags}
-        tagValueLoader={tagValueLoader}
-        savedSearch={savedSearch}
-        onSidebarToggle={onSidebarToggle}
+        excludedTags={['environment']}
+        actionBarItems={[
+          ...(!organization.features.includes('issue-list-saved-searches-v2')
+            ? [makePinSearchAction({sort, pinnedSearch, location})]
+            : []),
+          makeSaveSearchAction({
+            sort,
+            disabled: !organization.access.includes('org:write'),
+          }),
+        ]}
       />
     </SearchContainer>
   );
@@ -68,4 +72,4 @@ const SearchContainer = styled('div')`
   }
 `;
 
-export default IssueListFilters;
+export default withRouter(IssueListFilters);

@@ -16,6 +16,7 @@ from sentry.search.events.constants import (
     SEARCH_MAP,
     SEMVER_ALIAS,
     SEMVER_BUILD_ALIAS,
+    SIZE_UNITS,
     TAG_KEY_RE,
     TEAM_KEY_TRANSACTION_ALIAS,
 )
@@ -166,7 +167,7 @@ tz_format   = ~r"[+-]\d{2}:\d{2}"
 iso_8601_date_format = date_format time_format? ("Z" / tz_format)? &end_value
 rel_date_format      = ~r"[+-][0-9]+[wdhm]" &end_value
 duration_format      = numeric ("ms"/"s"/"min"/"m"/"hr"/"h"/"day"/"d"/"wk"/"w") &end_value
-size_format          = numeric ("bit"/"nb"/"bytes"/"kb"/"mb"/"gb"/"tb"/"pb"/"eb"/"zb"/"yb") &end_value
+size_format          = numeric ("bit"/"nb"/"bytes"/"kb"/"mb"/"gb"/"tb"/"pb"/"eb"/"zb"/"yb"/"kib"/"mib"/"gib"/"tib"/"pib"/"eib"/"zib"/"yib") &end_value
 percentage_format    = numeric "%"
 
 # NOTE: the order in which these operators are listed matters because for
@@ -505,14 +506,25 @@ class SearchVisitor(NodeVisitor):
         return lookup
 
     def is_numeric_key(self, key):
-        return key in self.config.numeric_keys or is_measurement(key) or is_span_op_breakdown(key)
+        return (
+            key in self.config.numeric_keys
+            or is_measurement(key)
+            or is_span_op_breakdown(key)
+            or self.builder.get_field_type(key) == "number"
+            or self.is_duration_key(key)
+        )
 
     def is_duration_key(self, key):
+        duration_types = [*DURATION_UNITS, "duration"]
         return (
             key in self.config.duration_keys
             or is_duration_measurement(key)
             or is_span_op_breakdown(key)
+            or self.builder.get_field_type(key) in duration_types
         )
+
+    def is_size_key(self, key):
+        return self.builder.get_field_type(key) in SIZE_UNITS
 
     def is_date_key(self, key):
         return key in self.config.date_keys
@@ -652,7 +664,6 @@ class SearchVisitor(NodeVisitor):
             operator = handle_negation(negation, operator)
         else:
             operator = get_operator_value(operator)
-
         if self.is_duration_key(search_key.name):
             try:
                 search_value = parse_duration(*search_value)
@@ -672,12 +683,12 @@ class SearchVisitor(NodeVisitor):
     def visit_size_filter(self, node, children):
         (negation, search_key, _, operator, search_value) = children
         # The only size keys we have are custom measurements right now
-        if is_measurement(search_key.name):
+        if self.is_size_key(search_key.name):
             operator = handle_negation(negation, operator)
         else:
             operator = get_operator_value(operator)
 
-        if is_measurement(search_key.name):
+        if self.is_size_key(search_key.name):
             try:
                 search_value = parse_size(*search_value)
             except InvalidQuery as exc:
@@ -695,7 +706,9 @@ class SearchVisitor(NodeVisitor):
 
         # Numeric and boolean filters overlap on 1 and 0 values.
         if self.is_numeric_key(search_key.name):
-            return self._handle_numeric_filter(search_key, "=", [search_value.text, ""])
+            return self._handle_numeric_filter(
+                search_key, "!=" if negated else "=", [search_value.text, ""]
+            )
 
         if self.is_boolean_key(search_key.name):
             if search_value.text.lower() in ("true", "1"):
@@ -1111,6 +1124,7 @@ default_config = SearchConfig(
         "timestamp",
         "timestamp.to_hour",
         "timestamp.to_day",
+        "error.received",
     },
     boolean_keys={
         "error.handled",

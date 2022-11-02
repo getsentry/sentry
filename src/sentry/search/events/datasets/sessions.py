@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 from typing import Callable, Mapping, Optional
 
-from snuba_sdk import Function
+from snuba_sdk import Function, OrderBy
 
 from sentry.api.event_search import SearchFilter
-from sentry.search.events.builder import QueryBuilder
+from sentry.search.events import builder
 from sentry.search.events.constants import (
     RELEASE_ALIAS,
     RELEASE_STAGE_ALIAS,
@@ -13,17 +15,14 @@ from sentry.search.events.constants import (
 )
 from sentry.search.events.datasets import filter_aliases
 from sentry.search.events.datasets.base import DatasetConfig
-from sentry.search.events.datasets.semver_and_stage_aliases import (
-    SemverAndStageFilterConverterMixin,
-)
 from sentry.search.events.fields import SessionColumnArg, SnQLFunction
 from sentry.search.events.types import SelectType, WhereType
 
 
-class SessionsDatasetConfig(DatasetConfig, SemverAndStageFilterConverterMixin):
+class SessionsDatasetConfig(DatasetConfig):
     non_nullable_keys = {"project", "project_id", "environment", "release"}
 
-    def __init__(self, builder: QueryBuilder):
+    def __init__(self, builder: builder.QueryBuilder):
         self.builder = builder
 
     @property
@@ -73,5 +72,21 @@ class SessionsDatasetConfig(DatasetConfig, SemverAndStageFilterConverterMixin):
             ]
         }
 
+    @property
+    def orderby_converter(self) -> Mapping[str, OrderBy]:
+        return {}
+
     def _release_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         return filter_aliases.release_filter_converter(self.builder, search_filter)
+
+    def _release_stage_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        return filter_aliases.release_stage_filter_converter(self.builder, search_filter)
+
+    def _semver_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        return filter_aliases.semver_filter_converter(self.builder, search_filter)
+
+    def _semver_package_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        return filter_aliases.semver_package_filter_converter(self.builder, search_filter)
+
+    def _semver_build_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        return filter_aliases.semver_build_filter_converter(self.builder, search_filter)

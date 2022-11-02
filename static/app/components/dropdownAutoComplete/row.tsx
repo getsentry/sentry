@@ -7,9 +7,11 @@ import space from 'sentry/styles/space';
 import {Item} from './types';
 
 type ItemSize = 'zero' | 'small';
-type AutoCompleteChildrenArgs<T> = Parameters<AutoComplete<T>['props']['children']>[0];
+type AutoCompleteChildrenArgs<T extends Item> = Parameters<
+  AutoComplete<T>['props']['children']
+>[0];
 
-type Props<T> = Pick<
+type Props<T extends Item> = Pick<
   AutoCompleteChildrenArgs<T>,
   'getItemProps' | 'registerVisibleItem' | 'inputValue'
 > &
@@ -27,10 +29,6 @@ type Props<T> = Pick<
      */
     style?: React.CSSProperties;
   };
-
-function scrollIntoView(element: HTMLDivElement) {
-  element?.scrollIntoView?.({block: 'nearest'});
-}
 
 function Row<T extends Item>({
   item,
@@ -64,7 +62,6 @@ function Row<T extends Item>({
       disabled={item.disabled}
       isHighlighted={isHighlighted}
       style={style}
-      ref={isHighlighted ? scrollIntoView : undefined}
       {...itemProps}
     >
       {typeof item.label === 'function' ? item.label({inputValue}) : item.label}

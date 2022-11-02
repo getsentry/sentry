@@ -70,6 +70,10 @@ for cmd in map(
         "sentry.runner.commands.upgrade.upgrade",
         "sentry.runner.commands.permissions.permissions",
         "sentry.runner.commands.devservices.devservices",
+        "sentry.runner.commands.performance.performance",
+        "sentry.runner.commands.performance.detect",
+        "sentry.runner.commands.spans.spans",
+        "sentry.runner.commands.spans.write_hashes",
     ),
 ):
     cli.add_command(cmd)

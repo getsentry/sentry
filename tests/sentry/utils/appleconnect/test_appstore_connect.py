@@ -20,11 +20,10 @@ from sentry.utils.appleconnect import appstore_connect
 
 
 class TestListBuilds:
-    # mypy just can't cope with this function:
-    # - The request fixture type is private: _pytest.fixtures.FixtureRequest.
-    # - mypy has no idea that `pytest.skip()` raises and exception and terminates control flow.
     @pytest.fixture(scope="session", params=["live", "responses"])
-    def api_credentials(self, request) -> appstore_connect.AppConnectCredentials:  # type: ignore
+    def api_credentials(
+        self, request: pytest.FixtureRequest
+    ) -> appstore_connect.AppConnectCredentials:
         """An App Store Connect API key in the form of AppConnectCredentials.
 
         If ``apikey.json`` is present in the current directory it will load the credentials

@@ -1,27 +1,23 @@
 // eslint-disable-next-line no-restricted-imports
-import {browserHistory, withRouter, WithRouterProps} from 'react-router';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {pinSearch, unpinSearch} from 'sentry/actionCreators/savedSearches';
-import Access from 'sentry/components/acl/access';
 import Button from 'sentry/components/button';
-import MenuItem from 'sentry/components/menuItem';
+import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import CreateSavedSearchModal from 'sentry/components/modals/createSavedSearchModal';
-import {IconAdd, IconPin, IconSliders} from 'sentry/icons';
+import {IconAdd, IconPin} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {SavedSearch, SavedSearchType} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {useLocation} from 'sentry/utils/useLocation';
 
-import SmartSearchBar from './index';
+import type {ActionBarItem, ActionProps} from './index';
 import {removeSpace} from './utils';
 
-type SmartSearchBarProps = React.ComponentProps<typeof SmartSearchBar>;
-
-type ActionItem = NonNullable<SmartSearchBarProps['actionBarItems']>[number];
-type ActionProps = React.ComponentProps<ActionItem['Action']>;
-
 type PinSearchActionOpts = {
+  location: ReturnType<typeof useLocation>;
   /**
    * The current issue sort
    */
@@ -35,19 +31,13 @@ type PinSearchActionOpts = {
 /**
  * The Pin Search action toggles the current as a pinned search
  */
-export function makePinSearchAction({pinnedSearch, sort}: PinSearchActionOpts) {
-  const PinSearchAction = ({
-    menuItemVariant,
-    savedSearchType,
-    organization,
-    api,
-    query,
-    location,
-  }: ActionProps & WithRouterProps) => {
-    const onTogglePinnedSearch = async (evt: React.MouseEvent) => {
-      evt.preventDefault();
-      evt.stopPropagation();
-
+export function makePinSearchAction({
+  pinnedSearch,
+  sort,
+  location,
+}: PinSearchActionOpts): ActionBarItem {
+  const makeAction = ({api, organization, query, savedSearchType}: ActionProps) => {
+    const onTogglePinnedSearch = async () => {
       if (savedSearchType === undefined) {
         return;
       }
@@ -67,6 +57,7 @@ export function makePinSearchAction({pinnedSearch, sort}: PinSearchActionOpts) {
             ...location,
             pathname: `/organizations/${organization.slug}/issues/`,
             query: {
+              referrer: 'search-bar',
               ...currentQuery,
               query: pinnedSearch.query,
               sort: pinnedSearch.sort,
@@ -91,38 +82,45 @@ export function makePinSearchAction({pinnedSearch, sort}: PinSearchActionOpts) {
       browserHistory.push({
         ...location,
         pathname: `/organizations/${organization.slug}/issues/searches/${resp.id}/`,
-        query: currentQuery,
+        query: {referrer: 'search-bar', ...currentQuery},
       });
     };
 
-    const pinTooltip = pinnedSearch ? t('Unpin this search') : t('Pin this search');
+    const pinSearchMenuItem: MenuItemProps = {
+      onAction: onTogglePinnedSearch,
+      label: pinnedSearch ? t('Unpin Search') : t('Pin Search'),
+      key: 'pinSearch',
+    };
 
-    return menuItemVariant ? (
-      <MenuItem
-        withBorder
-        data-test-id="pin-icon"
-        icon={<IconPin isSolid={!!pinnedSearch} size="xs" />}
-        onClick={onTogglePinnedSearch}
-      >
-        {pinnedSearch ? t('Unpin Search') : t('Pin Search')}
-      </MenuItem>
-    ) : (
-      <ActionButton
-        title={pinTooltip}
-        disabled={!query}
-        aria-label={pinTooltip}
-        onClick={onTogglePinnedSearch}
-        isActive={!!pinnedSearch}
-        data-test-id="pin-icon"
-        icon={<IconPin isSolid={!!pinnedSearch} size="xs" />}
-      />
-    );
+    const PinSearchActionButton = () => {
+      const pinTooltip = pinnedSearch ? t('Unpin this search') : t('Pin this search');
+
+      return (
+        <ActionButton
+          title={pinTooltip}
+          disabled={!query}
+          aria-label={pinTooltip}
+          onClick={e => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            onTogglePinnedSearch();
+          }}
+          isActive={!!pinnedSearch}
+          data-test-id="pin-icon"
+          icon={<IconPin isSolid={!!pinnedSearch} size="xs" />}
+        />
+      );
+    };
+
+    return {Button: PinSearchActionButton, menuItem: pinSearchMenuItem};
   };
 
-  return {key: 'pinSearch', Action: withRouter(PinSearchAction)};
+  return {key: 'pinSearch', makeAction};
 }
 
 type SaveSearchActionOpts = {
+  disabled: boolean;
   /**
    * The current issue sort
    */
@@ -133,77 +131,55 @@ type SaveSearchActionOpts = {
  * The Save Search action triggers the create saved search modal from the
  * current query.
  */
-export function makeSaveSearchAction({sort}: SaveSearchActionOpts) {
-  const SavedSearchAction = ({menuItemVariant, query, organization}: ActionProps) => {
-    const onClick = () =>
+export function makeSaveSearchAction({
+  sort,
+  disabled,
+}: SaveSearchActionOpts): ActionBarItem {
+  const makeAction = ({query, organization}: ActionProps) => {
+    const onSaveSearch = () => {
+      trackAdvancedAnalyticsEvent('search.saved_search_open_create_modal', {
+        organization,
+      });
       openModal(deps => (
         <CreateSavedSearchModal {...deps} {...{organization, query, sort}} />
       ));
+    };
 
-    return (
-      <Access organization={organization} access={['org:write']}>
-        {({hasAccess}) => {
-          const title = hasAccess
-            ? t('Add to organization saved searches')
-            : t('You do not have permission to create a saved search');
+    const title = disabled
+      ? t('You do not have permission to create a saved search')
+      : t('Add to organization saved searches');
 
-          return menuItemVariant ? (
-            <MenuItem
-              onClick={onClick}
-              disabled={!hasAccess}
-              icon={<IconAdd size="xs" />}
-              title={!hasAccess ? title : undefined}
-              withBorder
-            >
-              {t('Create Saved Search')}
-            </MenuItem>
-          ) : (
-            <ActionButton
-              onClick={onClick}
-              disabled={!hasAccess}
-              icon={<IconAdd size="xs" />}
-              title={title}
-              aria-label={title}
-              data-test-id="save-current-search"
-            />
-          );
-        }}
-      </Access>
-    );
-  };
+    const menuItem: MenuItemProps = {
+      disabled,
+      onAction: onSaveSearch,
+      label: t('Create Saved Search'),
+      key: 'saveSearch',
+      details: disabled ? title : undefined,
+    };
 
-  return {key: 'saveSearch', Action: SavedSearchAction};
-}
-
-type SearchBuilderActionOpts = {
-  onSidebarToggle: React.MouseEventHandler;
-};
-
-/**
- * The Search Builder action toggles the Issue Stream search builder
- */
-export function makeSearchBuilderAction({onSidebarToggle}: SearchBuilderActionOpts) {
-  const SearchBuilderAction = ({menuItemVariant}: ActionProps) =>
-    menuItemVariant ? (
-      <MenuItem withBorder icon={<IconSliders size="xs" />} onClick={onSidebarToggle}>
-        {t('Toggle sidebar')}
-      </MenuItem>
-    ) : (
+    const SaveSearchActionButton = () => (
       <ActionButton
-        title={t('Toggle search builder')}
-        tooltipProps={{containerDisplayMode: 'inline-flex'}}
-        aria-label={t('Toggle search builder')}
-        onClick={onSidebarToggle}
-        icon={<IconSliders size="xs" />}
+        onClick={onSaveSearch}
+        disabled={disabled}
+        icon={<IconAdd size="xs" />}
+        title={title}
+        aria-label={title}
+        data-test-id="save-current-search"
       />
     );
 
-  return {key: 'searchBuilder', Action: SearchBuilderAction};
+    return {Button: SaveSearchActionButton, menuItem};
+  };
+
+  return {key: 'saveSearch', makeAction};
 }
 
 export const ActionButton = styled(Button)<{isActive?: boolean}>`
   color: ${p => (p.isActive ? p.theme.blue300 : p.theme.gray300)};
   width: 18px;
+  height: 18px;
+  padding: 2px;
+  min-height: auto;
 
   &,
   &:hover,

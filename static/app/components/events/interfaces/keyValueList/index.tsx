@@ -42,7 +42,16 @@ function KeyValueList({
             subjectIcon,
             subjectDataTestId,
             actionButton,
+            isContextData: valueIsContextData,
           }) => {
+            const valueProps = {
+              isContextData: valueIsContextData || isContextData,
+              meta,
+              subjectIcon,
+              value,
+              raw,
+            };
+
             return (
               <tr key={`${key}.${value}`}>
                 <TableSubject className="key" wide={longKeys}>
@@ -52,23 +61,11 @@ function KeyValueList({
                   <Tablevalue>
                     {actionButton ? (
                       <ValueWithButtonContainer>
-                        <Value
-                          isContextData={isContextData}
-                          meta={meta}
-                          subjectIcon={subjectIcon}
-                          value={value}
-                          raw={raw}
-                        />
+                        <Value {...valueProps} />
                         <ActionButtonWrapper>{actionButton}</ActionButtonWrapper>
                       </ValueWithButtonContainer>
                     ) : (
-                      <Value
-                        isContextData={isContextData}
-                        meta={meta}
-                        subjectIcon={subjectIcon}
-                        value={value}
-                        raw={raw}
-                      />
+                      <Value {...valueProps} />
                     )}
                   </Tablevalue>
                 </td>

@@ -9,6 +9,45 @@ import {getDefaultLayout} from 'sentry/views/replays/detail/layout/utils';
 
 export enum LayoutKey {
   /**
+   * ### Top
+   *┌────────────────────┐
+   *│ Timeline           │
+   *├───────────┬────────┤
+   *│ Video     > Crumbs │
+   *│           >        │
+   *├^^^^^^^^^^^>        |
+   *│ Details   >        │
+   *│           >        │
+   *└───────────┴────────┘
+   */
+  top = 'top',
+  /**
+   * ### Top
+   *┌────────────────────┐
+   *│ Timeline           │
+   *├───────────┬────────┤
+   *│ Details   > Crumbs │
+   *│           >        │
+   *│           >        |
+   *│           >        │
+   *│           >        │
+   *└───────────┴────────┘
+   */
+  no_video = 'no_video',
+  /**
+   * ### Video Only
+   *┌────────────────────┐
+   *│ Timeline           │
+   *├────────────────────┤
+   *│                    │
+   *│                    |
+   *│       Video        │
+   *│                    │
+   *│                    │
+   *└────────────────────┘
+   */
+  video_only = 'video_only',
+  /**
    * ### Topbar
    *┌────────────────────┐
    *│ Timeline           │
@@ -30,7 +69,7 @@ export enum LayoutKey {
    * │        >          │
    * │^^^^^^^ >          |
    * │ Crumbs >          │
-   * │        >          │
+   * │ Tabs   >          │
    * └────────┴──────────┘
    */
   sidebar_left = 'sidebar_left',
@@ -43,7 +82,7 @@ export enum LayoutKey {
    * │          >        │
    * │          >^^^^^^^^┤
    * │          > Crumbs │
-   * │          >        │
+   * │          > Tabs   │
    * └──────────┴────────┘
    */
   sidebar_right = 'sidebar_right',

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
 import FieldRequiredBadge from 'sentry/components/forms/field/fieldRequiredBadge';
-import TextareaField from 'sentry/components/forms/textareaField';
+import TextareaField from 'sentry/components/forms/fields/textareaField';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -12,7 +12,7 @@ import {SamplingInnerName} from 'sentry/types/sampling';
 import {getInnerNameLabel} from '../../utils';
 
 import {TagValueAutocomplete, TagValueAutocompleteProps} from './tagValueAutocomplete';
-import {getMatchFieldPlaceholder, getTagKey} from './utils';
+import {getMatchFieldAriaLabel, getMatchFieldPlaceholder, getTagKey} from './utils';
 
 export type Condition = {
   category: SamplingInnerName;
@@ -50,12 +50,18 @@ export function Conditions({conditions, orgSlug, projectId, onDelete, onChange}:
             <CenterCell>
               {isAutoCompleteField ? (
                 <TagValueAutocomplete
-                  category={category}
                   tagKey={getTagKey(condition)}
                   orgSlug={orgSlug}
                   projectId={projectId}
                   value={match}
                   onChange={value => onChange(index, 'match', value)}
+                  placeholder={getMatchFieldPlaceholder(category)}
+                  ariaLabel={getMatchFieldAriaLabel(category)}
+                  prependOptions={
+                    category === SamplingInnerName.TRACE_RELEASE
+                      ? [{value: 'latest', label: t('Latest Release(s)')}]
+                      : []
+                  }
                 />
               ) : (
                 <StyledTextareaField

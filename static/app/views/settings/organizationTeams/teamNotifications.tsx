@@ -6,7 +6,7 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import TextField from 'sentry/components/forms/textField';
+import TextField from 'sentry/components/forms/fields/textField';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import Tooltip from 'sentry/components/tooltip';
@@ -134,6 +134,7 @@ class TeamNotificationSettings extends AsyncView<Props, State> {
               </NotDisabledSubText>
             </div>
           }
+          labelText={t('Unlink this channel in slack with `/slack unlink team`')}
           name="externalName"
           value={externalTeam.externalName}
         />

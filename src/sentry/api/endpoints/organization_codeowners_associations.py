@@ -2,19 +2,18 @@ from rest_framework import status
 from rest_framework.request import Request
 
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.bases.organization import (
+    OrganizationEndpoint,
+    OrganizationIntegrationsLoosePermission,
+)
 from sentry.api.validators.project_codeowners import validate_codeowners_associations
 from sentry.constants import ObjectStatus
 from sentry.models import Organization, Project, ProjectCodeOwners
 
 
-class OrganizationCodeOwnersAssociationsPermission(OrganizationPermission):
-    scope_map = {"GET": ["org:integrations"]}
-
-
 @region_silo_endpoint
 class OrganizationCodeOwnersAssociationsEndpoint(OrganizationEndpoint):
-    permission_classes = (OrganizationCodeOwnersAssociationsPermission,)
+    permission_classes = (OrganizationIntegrationsLoosePermission,)
 
     def get(self, request: Request, organization: Organization):
         """

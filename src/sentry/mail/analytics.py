@@ -10,6 +10,8 @@ class EmailNotificationSent(analytics.Event):
         analytics.Attribute("project_id", required=False),
         analytics.Attribute("category"),
         analytics.Attribute("actor_id"),
+        analytics.Attribute("user_id", required=False),
+        analytics.Attribute("group_id", required=False),
     )
 
 

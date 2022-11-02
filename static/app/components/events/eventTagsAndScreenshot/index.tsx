@@ -1,9 +1,13 @@
 import styled from '@emotion/styled';
 
+import {openModal} from 'sentry/actionCreators/modal';
 import {DataSection} from 'sentry/components/events/styles';
 import space from 'sentry/styles/space';
+import {EventAttachment} from 'sentry/types/group';
 import {objectIsEmpty} from 'sentry/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
+import Modal, {modalCss} from './screenshot/modal';
 import Screenshot from './screenshot';
 import Tags from './tags';
 import TagsHighlight from './tagsHighlight';
@@ -46,16 +50,55 @@ function EventTagsAndScreenshots({
   const hasEventContext = hasContext && !objectIsEmpty(event.contexts);
   const showTags = !!tags.length || hasContext;
 
+  function handleOpenVisualizationModal(
+    eventAttachment: EventAttachment,
+    downloadUrl: string
+  ) {
+    trackAdvancedAnalyticsEvent('issue_details.issue_tab.screenshot_modal_opened', {
+      organization,
+    });
+    function handleDelete() {
+      trackAdvancedAnalyticsEvent('issue_details.issue_tab.screenshot_modal_deleted', {
+        organization,
+      });
+      onDeleteScreenshot(eventAttachment.id);
+    }
+
+    openModal(
+      modalProps => (
+        <Modal
+          {...modalProps}
+          event={event}
+          orgSlug={organization.slug}
+          projectSlug={projectSlug}
+          eventAttachment={eventAttachment}
+          downloadUrl={downloadUrl}
+          onDelete={handleDelete}
+          onDownload={() =>
+            trackAdvancedAnalyticsEvent(
+              'issue_details.issue_tab.screenshot_modal_download',
+              {
+                organization,
+              }
+            )
+          }
+        />
+      ),
+      {modalCss}
+    );
+  }
+
   return (
     <Wrapper showScreenshot={showScreenshot} showTags={showTags}>
       {showScreenshot && (
         <ScreenshotWrapper>
           <Screenshot
             organization={organization}
-            event={event}
+            eventId={event.id}
             projectSlug={projectSlug}
             screenshot={screenshot}
             onDelete={onDeleteScreenshot}
+            openVisualizationModal={handleOpenVisualizationModal}
           />
         </ScreenshotWrapper>
       )}

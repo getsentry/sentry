@@ -1,18 +1,15 @@
 import {t} from 'sentry/locale';
 
-import {ProjectId, Rule} from '../types';
+import {Rule} from '../types';
 
 import ModalManager from './modalManager';
 
-type ModalManagerProps<T extends ProjectId> = ModalManager<T>['props'];
-type Props<T extends ProjectId> = Omit<
-  ModalManagerProps<T>,
-  'title' | 'initialValues' | 'onGetNewRules'
->;
+type ModalManagerProps = ModalManager['props'];
+type Props = Omit<ModalManagerProps, 'title' | 'initialValues' | 'onGetNewRules'>;
 
-const Add = <T extends ProjectId = undefined>({savedRules, ...props}: Props<T>) => {
+const Add = ({savedRules, ...props}: Props) => {
   const handleGetNewRules = (
-    values: Parameters<ModalManagerProps<T>['onGetNewRules']>[0]
+    values: Parameters<ModalManagerProps['onGetNewRules']>[0]
   ) => {
     return [...savedRules, {...values, id: savedRules.length}] as Array<Rule>;
   };

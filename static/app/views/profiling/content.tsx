@@ -85,8 +85,14 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
   const {selection} = usePageFilters();
   const cursor = decodeScalar(location.query.cursor);
   const query = decodeScalar(location.query.query, '');
+  const transactionsSort = decodeScalar(location.query.sort, '-count()');
   const profileFilters = useProfileFilters({query: '', selection});
-  const transactions = useProfileTransactions({cursor, query, selection});
+  const transactions = useProfileTransactions({
+    cursor,
+    query,
+    selection,
+    sort: transactionsSort,
+  });
   const {projects} = useProjects();
 
   useEffect(() => {
@@ -112,9 +118,9 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
   // Open the modal on demand
   const onSetupProfilingClick = useCallback(() => {
     openModal(props => {
-      return <ProfilingOnboardingModal {...props} />;
+      return <ProfilingOnboardingModal {...props} organization={organization} />;
     });
-  }, []);
+  }, [organization]);
 
   const shouldShowProfilingOnboardingPanel = useMemo((): boolean => {
     if (transactions.type !== 'resolved') {
@@ -135,7 +141,27 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
             <Layout.Header>
               <StyledLayoutHeaderContent>
                 <StyledHeading>{t('Profiling')}</StyledHeading>
-                <Button onClick={onSetupProfilingClick}>Set Up Profiling</Button>
+                <HeadingActions>
+                  <Button size="sm" onClick={onSetupProfilingClick}>
+                    {t('Set Up Profiling')}
+                  </Button>
+                  <Button
+                    size="sm"
+                    priority="primary"
+                    href="https://discord.gg/zrMjKA4Vnz"
+                    external
+                    onClick={() => {
+                      trackAdvancedAnalyticsEvent(
+                        'profiling_views.visit_discord_channel',
+                        {
+                          organization,
+                        }
+                      );
+                    }}
+                  >
+                    {t('Join Discord')}
+                  </Button>
+                </HeadingActions>
               </StyledLayoutHeaderContent>
             </Layout.Header>
             <Layout.Body>
@@ -158,7 +184,7 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
                 </ActionBar>
                 {shouldShowProfilingOnboardingPanel ? (
                   <ProfilingOnboardingPanel>
-                    <Button href="https://docs.sentry.io/" external>
+                    <Button href="https://docs.sentry.io/product/profiling/" external>
                       {t('Read Docs')}
                     </Button>
                     <Button onClick={onSetupProfilingClick} priority="primary">
@@ -175,6 +201,7 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
                           : null
                       }
                       isLoading={transactions.type === 'loading'}
+                      sort={transactionsSort}
                       transactions={
                         transactions.type === 'resolved'
                           ? transactions.data.transactions
@@ -207,6 +234,15 @@ const StyledLayoutHeaderContent = styled(Layout.HeaderContent)`
   display: flex;
   justify-content: space-between;
   flex-direction: row;
+`;
+
+const HeadingActions = styled('div')`
+  display: flex;
+  align-items: center;
+
+  button:not(:last-child) {
+    margin-right: ${space(1)};
+  }
 `;
 
 const StyledHeading = styled(PageHeading)`

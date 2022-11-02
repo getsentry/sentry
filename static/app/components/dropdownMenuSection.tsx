@@ -44,7 +44,7 @@ const Heading = styled('span')`
   margin: ${space(1)} ${space(1.5)} ${space(0.5)};
   padding-right: ${space(1)};
 
-  ${/* sc-selector */ MenuSectionWrap}:first-of-type & {
+  ${MenuSectionWrap}:first-of-type & {
     margin-top: ${space(0.5)};
   }
 `;

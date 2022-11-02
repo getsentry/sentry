@@ -1,4 +1,4 @@
-import {GeneralSelectValue} from 'sentry/components/forms/selectControl';
+import {GeneralSelectValue} from 'sentry/components/forms/controls/selectControl';
 
 type IconGroupName =
   | 'product'
@@ -323,7 +323,7 @@ export const icons: IconData[] = [
   {
     id: 'link',
     groups: ['action'],
-    keywords: ['hyperlink', 'anchor'],
+    keywords: ['hyperlink'],
   },
   {
     id: 'attachment',
@@ -515,19 +515,19 @@ export const icons: IconData[] = [
     keywords: ['feature', 'promotion', 'fresh', 'new'],
   },
   {
-    id: 'bell',
+    id: 'subscribed',
     groups: ['action'],
-    keywords: ['alert', 'notification', 'ring'],
+    keywords: ['alert', 'notification', 'subscribe', 'bell', 'ring'],
+  },
+  {
+    id: 'unsubscribed',
+    groups: ['action'],
+    keywords: ['alert', 'notification', 'subscribe', 'bell', 'ring'],
   },
   {
     id: 'siren',
     groups: ['product'],
     keywords: ['alert', 'important', 'warning'],
-  },
-  {
-    id: 'anchor',
-    groups: ['action'],
-    keywords: [],
   },
   {
     id: 'circle',

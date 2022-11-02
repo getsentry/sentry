@@ -348,10 +348,20 @@ def cron(**options):
     help="Position in the commit log topic to begin reading from when no prior offset has been recorded.",
 )
 @click.option(
+    "--no-strict-offset-reset",
+    is_flag=True,
+    help="Forces the kafka consumer auto offset reset.",
+)
+# TODO: Remove this option once we have fully cut over to the streaming consumer
+@click.option(
+    "--use-streaming-consumer",
+    is_flag=True,
+    help="Switches to the new streaming consumer implementation.",
+)
+@click.option(
     "--entity",
-    default="all",
-    type=click.Choice(["all", "errors", "transactions"]),
-    help="The type of entity to process (all, errors, transactions).",
+    type=click.Choice(["errors", "transactions"]),
+    help="The type of entity to process (errors, transactions).",
 )
 @log_options()
 @configuration
@@ -370,6 +380,8 @@ def post_process_forwarder(**options):
             commit_batch_timeout_ms=options["commit_batch_timeout_ms"],
             concurrency=options["concurrency"],
             initial_offset_reset=options["initial_offset_reset"],
+            strict_offset_reset=not options["no_strict_offset_reset"],
+            use_streaming_consumer=bool(options["use_streaming_consumer"]),
         )
     except ForwarderNotRequired:
         sys.stdout.write(
@@ -551,6 +563,30 @@ def ingest_consumer(consumer_types, all_consumer_types, **options):
         get_ingest_consumer(consumer_types=consumer_types, executor=executor, **options).run()
 
 
+@run.command("region-to-control-consumer")
+@log_options()
+@click.option(
+    "region_name",
+    "--region-name",
+    required=True,
+    help="Regional name to run the consumer for",
+)
+@batching_kafka_options("region-to-control-consumer")
+@configuration
+def region_to_control_consumer(region_name, **kafka_options):
+    """
+    Runs a "region -> consumer" task.
+
+    Processes specific even datums like UserIP that are produced in region silos but updated in control silos.
+    see region_to_control module
+    """
+    from sentry.region_to_control.consumer import get_region_to_control_consumer
+    from sentry.utils import metrics
+
+    with metrics.global_tags(region_name=region_name):
+        get_region_to_control_consumer(**kafka_options).run()
+
+
 @run.command("ingest-metrics-consumer-2")
 @log_options()
 @click.option("--topic", default="ingest-metrics", help="Topic to get metrics data from.")
@@ -610,15 +646,16 @@ def metrics_streaming_consumer(**options):
 @click.option("max_parallel_batch_size", "--max-parallel-batch-size", type=int, default=50)
 @click.option("max_parallel_batch_time", "--max-parallel-batch-time-ms", type=int, default=10000)
 def metrics_parallel_consumer(**options):
-    import sentry_sdk
-
-    from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_ingest_config
+    from sentry.sentry_metrics.configuration import (
+        IndexerStorage,
+        UseCaseKey,
+        get_ingest_config,
+        initialize_global_consumer_state,
+    )
     from sentry.sentry_metrics.consumers.indexer.parallel import get_parallel_metrics_consumer
-    from sentry.utils.metrics import global_tags
 
     use_case = UseCaseKey(options["ingest_profile"])
     db_backend = IndexerStorage(options["indexer_db"])
-    sentry_sdk.set_tag("sentry_metrics.use_case_key", use_case.value)
     ingest_config = get_ingest_config(use_case, db_backend)
 
     streamer = get_parallel_metrics_consumer(indexer_profile=ingest_config, **options)
@@ -629,8 +666,19 @@ def metrics_parallel_consumer(**options):
     signal.signal(signal.SIGINT, handler)
     signal.signal(signal.SIGTERM, handler)
 
-    with global_tags(_all_threads=True, pipeline=ingest_config.internal_metrics_tag):
-        streamer.run()
+    initialize_global_consumer_state(ingest_config)
+    streamer.run()
+
+
+@run.command("billing-metrics-consumer")
+@log_options()
+@batching_kafka_options("billing-metrics-consumer")
+@configuration
+def metrics_billing_consumer(**options):
+    from sentry.ingest.billing_metrics_consumer import get_metrics_billing_consumer
+
+    consumer = get_metrics_billing_consumer(**options)
+    consumer.run()
 
 
 @run.command("ingest-profiles")

@@ -138,18 +138,7 @@ const Context = ({
 export default withOrganization(Context);
 
 const StyledClippedBox = styled(ClippedBox)`
-  margin-left: 0;
-  margin-right: 0;
-  &:first-of-type {
-    margin-top: 0;
-  }
-  :first-child {
-    margin-top: -${space(3)};
-  }
-  > *:first-child {
-    padding-top: 0;
-    border-top: none;
-  }
+  padding: 0;
 `;
 
 const StyledIconFlag = styled(IconFlag)`

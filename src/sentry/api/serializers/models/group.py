@@ -873,7 +873,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
                 environment_ids=self.environment_ids,
             ),
             error_issue_list,
-            self.start or self.end or self.conditions,
+            bool(self.start or self.end or self.conditions),
             self.environment_ids,
         )
 
@@ -889,7 +889,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
                 environment_ids=self.environment_ids,
             ),
             perf_issue_list,
-            self.start or self.end or self.conditions,
+            bool(self.start or self.end or self.conditions),
             self.environment_ids,
         )
 

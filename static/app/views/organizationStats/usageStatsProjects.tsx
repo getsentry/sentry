@@ -11,10 +11,10 @@ import SearchBar from 'sentry/components/searchBar';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {DataCategory, Organization, Project} from 'sentry/types';
+import {DataCategory, Organization, Outcome, Project} from 'sentry/types';
 import withProjects from 'sentry/utils/withProjects';
 
-import {Outcome, UsageSeries} from './types';
+import {UsageSeries} from './types';
 import UsageTable, {CellProject, CellStat, TableStat} from './usageTable';
 
 type Props = {
@@ -408,8 +408,7 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
             onSearch={this.handleSearch}
           />
         </Container>
-
-        <Container>
+        <Container data-test-id="usage-stats-table">
           <UsageTable
             isLoading={loading || loadingProjects}
             isError={error}

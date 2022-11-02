@@ -18,7 +18,7 @@ from sentry.utils.client_state import get_client_state_key, get_redis_client
 
 
 # TODO(dcramer): need tests for SSO behavior and single org behavior
-@control_silo_test
+# @control_silo_test(stable=True)
 class AuthLoginTest(TestCase):
     @fixture
     def path(self):
@@ -98,9 +98,18 @@ class AuthLoginTest(TestCase):
         resp = self.client.post(
             self.path,
             {"username": user.username, "password": "admin", "op": "login"},
+            follow=True,
         )
-        assert resp.url == "/auth/2fa/"
-        assert resp.status_code == 302
+        assert resp.status_code == 200
+        assert resp.redirect_chain == [(reverse("sentry-2fa-dialog"), 302)]
+
+        with mock.patch("sentry.auth.authenticators.TotpInterface.validate_otp", return_value=True):
+            resp = self.client.post(reverse("sentry-2fa-dialog"), {"otp": "something"}, follow=True)
+            assert resp.status_code == 200
+            assert resp.redirect_chain == [
+                (reverse("sentry-login"), 302),
+                ("/organizations/baz/issues/", 302),
+            ]
 
     def test_registration_disabled(self):
         options.set("auth.allow-registration", True)
@@ -396,6 +405,9 @@ def provision_middleware():
 
 
 @control_silo_test
+@override_settings(
+    SENTRY_USE_CUSTOMER_DOMAINS=True,
+)
 class AuthLoginCustomerDomainTest(TestCase):
     @fixture
     def path(self):
@@ -413,7 +425,7 @@ class AuthLoginCustomerDomainTest(TestCase):
         )
         assert resp.status_code == 200
         assert resp.redirect_chain == [
-            (reverse("sentry-login"), 302),
+            (f"http://albertos-apples.testserver{reverse('sentry-login')}", 302),
             ("http://testserver/organizations/new/", 302),
         ]
 
@@ -430,7 +442,7 @@ class AuthLoginCustomerDomainTest(TestCase):
         )
         assert resp.status_code == 200
         assert resp.redirect_chain == [
-            (reverse("sentry-login"), 302),
+            (f"http://albertos-apples.testserver{reverse('sentry-login')}", 302),
             ("/organizations/albertos-apples/issues/", 302),
         ]
 
@@ -451,7 +463,7 @@ class AuthLoginCustomerDomainTest(TestCase):
 
             assert resp.status_code == 200
             assert resp.redirect_chain == [
-                (reverse("sentry-login"), 302),
+                (f"http://invalid.testserver{reverse('sentry-login')}", 302),
                 ("http://albertos-apples.testserver/auth/login/", 302),
                 ("/organizations/albertos-apples/issues/", 302),
             ]
@@ -474,9 +486,7 @@ class AuthLoginCustomerDomainTest(TestCase):
             )
             assert resp.status_code == 200
             assert resp.redirect_chain == [
-                (reverse("sentry-login"), 302),
-                # Non-sentry staff should be kicked out of using customer domain
-                ("http://testserver/auth/login/", 302),
+                (f"http://albertos-apples.testserver{reverse('sentry-login')}", 302),
                 ("/organizations/albertos-apples/issues/", 302),
             ]
 
@@ -497,7 +507,7 @@ class AuthLoginCustomerDomainTest(TestCase):
 
             assert resp.status_code == 200
             assert resp.redirect_chain == [
-                (reverse("sentry-login"), 302),
+                (f"http://albertos-apples.testserver{reverse('sentry-login')}", 302),
                 (f"/organizations/{self.organization.slug}/issues/", 302),
                 ("/organizations/albertos-apples/issues/", 302),
                 ("/auth/login/albertos-apples/", 302),
@@ -519,6 +529,6 @@ class AuthLoginCustomerDomainTest(TestCase):
 
             assert resp.status_code == 200
             assert resp.redirect_chain == [
-                (reverse("sentry-login"), 302),
+                (f"http://albertos-apples.testserver{reverse('sentry-login')}", 302),
                 ("http://testserver/organizations/new/", 302),
             ]

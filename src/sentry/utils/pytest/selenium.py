@@ -509,6 +509,15 @@ def browser(request, live_server):
 
     browser.set_emulated_media([{"name": "prefers-reduced-motion", "value": "reduce"}])
 
+    # XXX: We explicitly set an extra garbage cookie, just so like in
+    # production, there are more than one cookies set.
+    #
+    # This is the outcome of an incident where the acceptance tests failed to
+    # capture an issue where cookie lookup in the frontend failed, but did NOT
+    # fail in the acceptance tests because the code worked fine when
+    # document.cookie only had one cookie in it.
+    browser.save_cookie("acceptance_test_cookie", "1")
+
     if hasattr(request, "cls"):
         request.cls.browser = browser
     request.node.browser = browser

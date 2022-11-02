@@ -6,6 +6,7 @@ import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import Button from 'sentry/components/button';
 import DateTime from 'sentry/components/dateTime';
+import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -104,6 +105,10 @@ export function ProfileDetails(props: ProfileDetailsProps) {
 
   const {onMouseDown} = useResizableDrawer(resizableOptions);
 
+  const organization = organizations.find(
+    o => o.id === String(props.profileGroup.metadata.organizationID)
+  );
+
   return (
     <ProfileDetailsBar ref={detailsBarRef} layout={flamegraphPreferences.layout}>
       <ProfilingDetailsFrameTabs>
@@ -160,31 +165,38 @@ export function ProfileDetails(props: ProfileDetailsProps) {
             const value = props.profileGroup.metadata[key];
 
             if (key === 'organizationID') {
-              const org = organizations.find(o => o.id === String(value));
-              if (org) {
+              if (organization) {
                 return (
                   <DetailsRow key={key}>
                     <strong>{label}:</strong>
-                    <span>
-                      <OrganizationAvatar size={12} organization={org} /> {org.name}
-                    </span>
+                    <Link to={`/organizations/${organization.slug}/projects/`}>
+                      <span>
+                        <OrganizationAvatar size={12} organization={organization} />{' '}
+                        {organization.name}
+                      </span>
+                    </Link>
                   </DetailsRow>
                 );
               }
             }
             if (key === 'projectID') {
               const project = projects.find(p => p.id === String(value));
-              if (project) {
+              if (project && organization) {
                 return (
                   <DetailsRow key={key}>
                     <strong>{label}:</strong>
-                    <FlexRow>
-                      <ProjectAvatar project={project} size={12} /> {project.name}
-                    </FlexRow>
+                    <Link
+                      to={`/organizations/${organization.slug}/projects/${project.slug}/?project=${project.id}`}
+                    >
+                      <FlexRow>
+                        <ProjectAvatar project={project} size={12} /> {project.slug}
+                      </FlexRow>
+                    </Link>
                   </DetailsRow>
                 );
               }
             }
+
             return (
               <DetailsRow key={key}>
                 <strong>{label}:</strong>

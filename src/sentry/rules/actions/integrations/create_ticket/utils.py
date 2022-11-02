@@ -6,7 +6,7 @@ from typing import Callable, Sequence
 from rest_framework.response import Response
 
 from sentry.constants import ObjectStatus
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import GroupEvent
 from sentry.integrations import IntegrationInstallation
 from sentry.models import ExternalIssue, GroupLink, Integration
 from sentry.types.rules import RuleFuture
@@ -17,7 +17,7 @@ logger = logging.getLogger("sentry.rules")
 def create_link(
     integration: Integration,
     installation: IntegrationInstallation,
-    event: Event,
+    event: GroupEvent,
     response: Response,
 ) -> None:
     """
@@ -49,7 +49,7 @@ def create_link(
 
 
 def build_description(
-    event: Event,
+    event: GroupEvent,
     rule_id: int,
     installation: IntegrationInstallation,
     generate_footer: Callable[[str], str],
@@ -66,7 +66,7 @@ def build_description(
     return description
 
 
-def create_issue(event: Event, futures: Sequence[RuleFuture]) -> None:
+def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
     """Create an issue for a given event"""
     organization = event.group.project.organization
 

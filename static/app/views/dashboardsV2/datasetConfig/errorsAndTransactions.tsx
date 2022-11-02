@@ -15,6 +15,7 @@ import {
   TagCollection,
 } from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
+import {defined} from 'sentry/utils';
 import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import {MetaType} from 'sentry/utils/discover/eventView';
@@ -45,10 +46,16 @@ import {
 } from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
+import {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValue, FieldValueKind} from 'sentry/views/eventsV2/table/types';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+import {
+  createUnnamedTransactionsDiscoverTarget,
+  DiscoverQueryPageSource,
+  UNPARAMETERIZED_TRANSACTION,
+} from 'sentry/views/performance/utils';
 
 import {DisplayType, Widget, WidgetQuery} from '../types';
 import {
@@ -76,7 +83,7 @@ const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   orderby: '-count()',
 };
 
-type SeriesWithOrdering = [order: number, series: Series];
+export type SeriesWithOrdering = [order: number, series: Series];
 
 export const ErrorsAndTransactionsConfig: DatasetConfig<
   EventsStats | MultiSeriesEventsStats,
@@ -110,7 +117,8 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
     pageFilters: PageFilters,
     limit?: number,
     cursor?: string,
-    referrer?: string
+    referrer?: string,
+    mepSetting?: MEPState | null
   ) => {
     const shouldUseEvents = organization.features.includes(
       'discover-frontend-use-events-endpoint'
@@ -126,7 +134,8 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
       pageFilters,
       limit,
       cursor,
-      referrer
+      referrer,
+      mepSetting
     );
   },
   getSeriesRequest: getEventsSeriesRequest,
@@ -457,6 +466,27 @@ export function getCustomEventsFieldRenderer(
     return renderTraceAsLinkable;
   }
 
+  // When title or transaction are << unparameterized >>, link out to discover showing unparameterized transactions
+  if (['title', 'transaction'].includes(field)) {
+    return (data, baggage) => {
+      if (data[field] === UNPARAMETERIZED_TRANSACTION) {
+        return (
+          <Container>
+            <Link
+              to={createUnnamedTransactionsDiscoverTarget({
+                location: baggage.location,
+                organization: baggage.organization,
+                source: DiscoverQueryPageSource.DISCOVER,
+              })}
+            >
+              {data[field]}
+            </Link>
+          </Container>
+        );
+      }
+      return getFieldRenderer(field, meta, isAlias)(data, baggage);
+    };
+  }
   return getFieldRenderer(field, meta, isAlias);
 }
 
@@ -468,11 +498,14 @@ function getEventsRequest(
   pageFilters: PageFilters,
   limit?: number,
   cursor?: string,
-  referrer?: string
+  referrer?: string,
+  mepSetting?: MEPState | null
 ) {
   const isMEPEnabled =
-    organization.features.includes('dashboards-mep') ||
-    organization.features.includes('mep-rollout-flag');
+    (organization.features.includes('dashboards-mep') ||
+      organization.features.includes('mep-rollout-flag')) &&
+    defined(mepSetting) &&
+    mepSetting !== MEPState.transactionsOnly;
 
   const eventView = eventViewFromWidget('', query, pageFilters);
 
@@ -500,14 +533,19 @@ function getEventsSeriesRequest(
   queryIndex: number,
   organization: Organization,
   pageFilters: PageFilters,
-  referrer?: string
+  referrer?: string,
+  mepSetting?: MEPState | null
 ) {
   const widgetQuery = widget.queries[queryIndex];
   const {displayType, limit} = widget;
   const {environments, projects} = pageFilters;
   const {start, end, period: statsPeriod} = pageFilters.datetime;
   const interval = getWidgetInterval(displayType, {start, end, period: statsPeriod});
-  const isMEPEnabled = organization.features.includes('dashboards-mep');
+  const isMEPEnabled =
+    (organization.features.includes('dashboards-mep') ||
+      organization.features.includes('mep-rollout-flag')) &&
+    defined(mepSetting) &&
+    mepSetting !== MEPState.transactionsOnly;
   let requestData;
   if (displayType === DisplayType.TOP_N) {
     requestData = {

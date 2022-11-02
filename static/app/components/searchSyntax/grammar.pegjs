@@ -46,10 +46,12 @@ filter
   / specific_date_filter
   / rel_date_filter
   / duration_filter
+  / size_filter
   / boolean_filter
   / numeric_in_filter
   / numeric_filter
   / aggregate_duration_filter
+  / aggregate_size_filter
   / aggregate_numeric_filter
   / aggregate_percentage_filter
   / aggregate_date_filter
@@ -91,6 +93,14 @@ duration_filter
       return tc.tokenFilter(FilterType.Duration, key, value, op, !!negation);
     }
 
+// filter for file size
+size_filter
+  = negation:negation? key:search_key sep op:operator? value:size_format &{
+      return tc.predicateFilter(FilterType.Size, key)
+    } {
+      return tc.tokenFilter(FilterType.Size, key, value, op, !!negation);
+    }
+
 // boolean comparison filter
 boolean_filter
   = negation:negation? key:search_key sep value:boolean_value &{
@@ -121,6 +131,14 @@ aggregate_duration_filter
       return tc.predicateFilter(FilterType.AggregateDuration, key)
   } {
       return tc.tokenFilter(FilterType.AggregateDuration, key, value, op, !!negation);
+    }
+
+// aggregate file size filter
+aggregate_size_filter
+  = negation:negation? key:aggregate_key sep op:operator? value:size_format &{
+      return tc.predicateFilter(FilterType.AggregateSize, key)
+  } {
+      return tc.tokenFilter(FilterType.AggregateSize, key, value, op, !!negation);
     }
 
 // aggregate percentage filter
@@ -330,6 +348,13 @@ duration_format
     unit:("ms"/"s"/"min"/"m"/"hr"/"h"/"day"/"d"/"wk"/"w")
     &end_value {
       return tc.tokenValueDuration(value, unit);
+    }
+
+size_format
+  = value:numeric
+    unit:("bit"/"nb"/"bytes"/"kb"/"mb"/"gb"/"tb"/"pb"/"eb"/"zb"/"yb"/"kib"/"mib"/"gib"/"tib"/"pib"/"eib"/"zib"/"yib")
+    &end_value {
+      return tc.tokenValueSize(value, unit);
     }
 
 percentage_format

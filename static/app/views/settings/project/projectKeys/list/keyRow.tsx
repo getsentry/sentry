@@ -1,4 +1,3 @@
-import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -26,85 +25,67 @@ type Props = {
   projectId: string;
 } & Pick<RouteComponentProps<{}, {}>, 'routes' | 'location' | 'params'>;
 
-class KeyRow extends Component<Props> {
-  handleRemove = () => {
-    const {data, onRemove} = this.props;
-    onRemove(data);
-  };
+function KeyRow({data, onRemove, onToggle, access, routes, location, params}: Props) {
+  const handleEnable = () => onToggle(true, data);
+  const handleDisable = () => onToggle(false, data);
 
-  handleEnable = () => {
-    const {onToggle, data} = this.props;
-    onToggle(true, data);
-  };
+  const editUrl = recreateRoute(`${data.id}/`, {routes, params, location});
+  const controlActive = access.has('project:write');
 
-  handleDisable = () => {
-    const {onToggle, data} = this.props;
-    onToggle(false, data);
-  };
-
-  render() {
-    const {access, data, routes, location, params} = this.props;
-    const editUrl = recreateRoute(`${data.id}/`, {routes, params, location});
-    const controlActive = access.has('project:write');
-
-    const controls = [
-      <Button key="edit" to={editUrl} size="sm">
-        {t('Configure')}
-      </Button>,
-      <Button
-        key="toggle"
-        size="sm"
-        onClick={data.isActive ? this.handleDisable : this.handleEnable}
-        disabled={!controlActive}
-      >
-        {data.isActive ? t('Disable') : t('Enable')}
-      </Button>,
-      <Confirm
-        key="remove"
-        priority="danger"
-        disabled={!controlActive}
-        onConfirm={this.handleRemove}
-        confirmText={t('Remove Key')}
-        message={t(
-          'Are you sure you want to remove this key? This action is irreversible.'
-        )}
-      >
-        <Button
-          size="sm"
-          disabled={!controlActive}
-          icon={<IconDelete />}
-          aria-label={t('Delete')}
-        />
-      </Confirm>,
-    ];
-
-    return (
-      <Panel>
-        <PanelHeader hasButtons>
-          <Title disabled={!data.isActive}>
-            <PanelHeaderLink to={editUrl}>{data.label}</PanelHeaderLink>
-            {!data.isActive && (
-              <small>
-                {' \u2014  '}
-                {t('Disabled')}
-              </small>
+  return (
+    <Panel>
+      <PanelHeader hasButtons>
+        <Title disabled={!data.isActive}>
+          <PanelHeaderLink to={editUrl}>{data.label}</PanelHeaderLink>
+          {!data.isActive && (
+            <small>
+              {' \u2014  '}
+              {t('Disabled')}
+            </small>
+          )}
+        </Title>
+        <Controls>
+          <Button to={editUrl} size="sm">
+            {t('Configure')}
+          </Button>
+          <Confirm
+            onConfirm={data.isActive ? handleDisable : handleEnable}
+            confirmText={data.isActive ? t('Disable Key') : t('Enable Key')}
+            message={
+              data.isActive
+                ? t('Are you sure you want to disable this key?')
+                : t('Are you sure you want to enable this key?')
+            }
+          >
+            <Button size="sm" disabled={!controlActive}>
+              {data.isActive ? t('Disable') : t('Enable')}
+            </Button>
+          </Confirm>
+          <Confirm
+            priority="danger"
+            onConfirm={() => onRemove(data)}
+            confirmText={t('Remove Key')}
+            message={t(
+              'Are you sure you want to remove this key? This action is irreversible.'
             )}
-          </Title>
-          <Controls>
-            {controls.map((c, n) => (
-              <span key={n}> {c}</span>
-            ))}
-          </Controls>
-        </PanelHeader>
+          >
+            <Button
+              size="sm"
+              disabled={!controlActive}
+              icon={<IconDelete />}
+              aria-label={t('Delete')}
+            />
+          </Confirm>
+        </Controls>
+      </PanelHeader>
 
-        <StyledClippedBox clipHeight={300} defaultClipped btnText={t('Expand')}>
-          <StyledPanelBody disabled={!data.isActive}>
-            <ProjectKeyCredentials projectId={`${data.projectId}`} data={data} />
-          </StyledPanelBody>
-        </StyledClippedBox>
-      </Panel>
-    );
-  }
+      <StyledClippedBox clipHeight={300} defaultClipped btnText={t('Expand')}>
+        <StyledPanelBody disabled={!data.isActive}>
+          <ProjectKeyCredentials projectId={`${data.projectId}`} data={data} />
+        </StyledPanelBody>
+      </StyledClippedBox>
+    </Panel>
+  );
 }
 
 export default KeyRow;

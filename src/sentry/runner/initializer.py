@@ -202,6 +202,15 @@ def bootstrap_options(settings: Any, config: str | None = None) -> None:
     # these will be validated later after bootstrapping
     for k, v in options.items():
         settings.SENTRY_OPTIONS[k] = v
+        # If SENTRY_URL_PREFIX is used in config, show deprecation warning and
+        # set the newer SENTRY_OPTIONS['system.url-prefix']. Needs to be here
+        # to check from the config file directly before the django setup is done.
+        # TODO: delete when SENTRY_URL_PREFIX is removed
+        if k == "SENTRY_URL_PREFIX":
+            warnings.warn(
+                DeprecatedSettingWarning("SENTRY_URL_PREFIX", "SENTRY_OPTIONS['system.url-prefix']")
+            )
+            settings.SENTRY_OPTIONS["system.url-prefix"] = v
 
     # Now go back through all of SENTRY_OPTIONS and promote
     # back into settings. This catches the case when values are defined
@@ -381,8 +390,6 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
 
     setup_services(validate=not skip_service_validation)
 
-    configure_arroyo()
-
     from django.utils import timezone
 
     from sentry.app import env
@@ -390,20 +397,6 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
 
     env.data["config"] = get_sentry_conf()
     env.data["start_date"] = timezone.now()
-
-
-def configure_arroyo() -> None:
-    # Arroyo is configured in such a central place because
-    #
-    # 1) it doesn't harm any process that doesn't use arroyo
-    # 2) we want arroyo to be fully configured in subprocesses of the multiprocessing consumer
-    from arroyo import configure_metrics
-
-    from sentry.sentry_metrics.metrics_wrapper import MetricsWrapper
-    from sentry.utils.metrics import backend
-
-    metrics_wrapper = MetricsWrapper(backend, "sentry_metrics.indexer")
-    configure_metrics(metrics_wrapper)
 
 
 def setup_services(validate: bool = True) -> None:
@@ -565,7 +558,6 @@ def apply_legacy_settings(settings: Any) -> None:
 
     for old, new in (
         ("SENTRY_ADMIN_EMAIL", "system.admin-email"),
-        ("SENTRY_URL_PREFIX", "system.url-prefix"),
         ("SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE", "system.rate-limit"),
         ("SENTRY_ENABLE_EMAIL_REPLIES", "mail.enable-replies"),
         ("SENTRY_SMTP_HOSTNAME", "mail.reply-hostname"),

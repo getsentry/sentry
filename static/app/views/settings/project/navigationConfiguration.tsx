@@ -1,6 +1,3 @@
-import styled from '@emotion/styled';
-
-import FeatureBadge from 'sentry/components/featureBadge';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {NavigationSection} from 'sentry/views/settings/types';
@@ -71,16 +68,24 @@ export default function getConfiguration({
           ),
         },
         {
-          path: `${pathPrefix}/server-side-sampling/`,
-          title: t('Server-Side Sampling'),
-          show: () =>
-            !!organization?.features?.includes('server-side-sampling') &&
-            !!organization?.features?.includes('server-side-sampling-ui'),
+          path: `${pathPrefix}/dynamic-sampling/`,
+          title: t('Dynamic Sampling'),
+          show: () => {
+            const orgFeatures = organization?.features ?? [];
+            if (
+              orgFeatures.includes('server-side-sampling') &&
+              (orgFeatures.includes('dynamic-sampling-deprecated') ||
+                orgFeatures.includes('dynamic-sampling'))
+            ) {
+              return true;
+            }
+
+            return false;
+          },
           description: t(
             "Per-Project basis solution to configure sampling rules within Sentry's UI"
           ),
-          // hack to make the badge fit next to Server-Side Sampling
-          badge: () => <NarrowFeatureBadge type="beta" />,
+          badge: () => 'beta',
         },
         {
           path: `${pathPrefix}/security-and-privacy/`,
@@ -175,7 +180,3 @@ export default function getConfiguration({
     },
   ];
 }
-
-const NarrowFeatureBadge = styled(FeatureBadge)`
-  max-width: 25px;
-`;

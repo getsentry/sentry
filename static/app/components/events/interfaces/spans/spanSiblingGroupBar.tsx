@@ -7,6 +7,8 @@ import {
 } from 'sentry/components/performance/waterfall/treeConnector';
 import {t} from 'sentry/locale';
 import {EventTransaction} from 'sentry/types/event';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import {SpanGroupBar} from './spanGroupBar';
 import SpanRectangle from './spanRectangle';
@@ -26,6 +28,7 @@ type Props = {
   event: Readonly<EventTransaction>;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   generateContentSpanBarRef: () => (instance: HTMLDivElement | null) => void;
+  isEmbeddedSpanTree: boolean;
   isLastSibling: boolean;
   occurrence: number;
   onWheel: (deltaX: number) => void;
@@ -49,7 +52,10 @@ export default function SpanSiblingGroupBar(props: Props) {
     toggleSiblingSpanGroup,
     onWheel,
     generateContentSpanBarRef,
+    isEmbeddedSpanTree,
   } = props;
+
+  const organization = useOrganization();
 
   function renderGroupSpansTitle(): React.ReactNode {
     if (spanGrouping.length === 0) {
@@ -135,7 +141,14 @@ export default function SpanSiblingGroupBar(props: Props) {
       treeDepth={props.treeDepth}
       spanNumber={spanNumber}
       generateBounds={generateBounds}
-      toggleSpanGroup={() => toggleSiblingSpanGroup?.(spanGrouping[0].span, occurrence)}
+      toggleSpanGroup={() => {
+        toggleSiblingSpanGroup?.(spanGrouping[0].span, occurrence);
+        isEmbeddedSpanTree &&
+          trackAdvancedAnalyticsEvent(
+            'issue_details.performance.autogrouped_siblings_toggle',
+            {organization}
+          );
+      }}
       renderSpanTreeConnector={renderSpanTreeConnector}
       renderGroupSpansTitle={renderGroupSpansTitle}
       renderSpanRectangles={renderSpanRectangles}

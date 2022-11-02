@@ -6,6 +6,7 @@ import isEqual from 'lodash/isEqual';
 import * as qs from 'query-string';
 
 import {Client} from 'sentry/api';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Button, {ButtonLabel} from 'sentry/components/button';
 import ButtonBar, {ButtonGrid} from 'sentry/components/buttonBar';
 import GroupList from 'sentry/components/issues/groupList';
@@ -391,23 +392,29 @@ class ReleaseIssues extends Component<Props, State> {
     return (
       <Fragment>
         <ControlsWrapper>
-          <StyledButtonBar active={issuesType} merged>
-            {issuesTypes.map(({value, label, issueCount}) => (
-              <Button
-                key={value}
-                barId={value}
-                size="xs"
-                onClick={() => this.handleIssuesTypeSelection(value)}
-                data-test-id={`filter-${value}`}
-              >
-                {label}
-                <QueryCount count={issueCount} max={99} hideParens hideIfEmpty={false} />
-              </Button>
-            ))}
-          </StyledButtonBar>
+          <GuideAnchor target="release_states">
+            <StyledButtonBar active={issuesType} merged>
+              {issuesTypes.map(({value, label, issueCount}) => (
+                <Button
+                  key={value}
+                  barId={value}
+                  size="xs"
+                  onClick={() => this.handleIssuesTypeSelection(value)}
+                >
+                  {label}
+                  <QueryCount
+                    count={issueCount}
+                    max={99}
+                    hideParens
+                    hideIfEmpty={false}
+                  />
+                </Button>
+              ))}
+            </StyledButtonBar>
+          </GuideAnchor>
 
           <OpenInButtonBar gap={1}>
-            <Button to={this.getIssuesUrl()} size="xs" data-test-id="issues-button">
+            <Button to={this.getIssuesUrl()} size="xs">
               {t('Open in Issues')}
             </Button>
 
@@ -427,6 +434,7 @@ class ReleaseIssues extends Component<Props, State> {
             renderEmptyMessage={this.renderEmptyMessage}
             withPagination={false}
             onFetchSuccess={this.handleFetchSuccess}
+            source="release"
           />
         </div>
       </Fragment>

@@ -447,7 +447,8 @@ describe('Sentry Application Details', function () {
       await tick();
       wrapper.update();
 
-      expect(wrapper.find('div FieldErrorReason').text()).toEqual(
+      // Error message is displayed in a tooltip
+      expect(wrapper.find('TooltipContent').text()).toEqual(
         "Requested permission of member:admin exceeds requester's permission. Please contact an administrator to make the requested change."
       );
     });

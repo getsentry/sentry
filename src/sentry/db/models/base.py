@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Iterable, Mapping, Tuple, cast
+from typing import Any, Callable, Iterable, Mapping, Tuple, Type, TypeVar, cast
 
+from django.apps.config import AppConfig
 from django.db import models
 from django.db.models import signals
 from django.utils import timezone
@@ -17,8 +18,10 @@ __all__ = (
     "Model",
     "DefaultFieldsModel",
     "sane_repr",
-    "control_silo_model",
-    "region_silo_model",
+    "get_model_if_available",
+    "control_silo_with_replication_model",
+    "control_silo_only_model",
+    "region_silo_only_model",
 )
 
 
@@ -142,6 +145,26 @@ signals.post_save.connect(__model_post_save)
 signals.class_prepared.connect(__model_class_prepared)
 
 
+def get_model_if_available(app_config: AppConfig, model_name: str) -> Type[models.Model] | None:
+    """Get a named model class if it exists and is available in this silo mode."""
+    try:
+        model = app_config.get_model(model_name)
+    except LookupError:
+        return None
+    assert isinstance(model, type) and issubclass(model, models.Model)
+
+    silo_limit = getattr(model._meta, "silo_limit", None)  # type: ignore
+    if silo_limit is not None:
+        assert isinstance(silo_limit, ModelSiloLimit)
+        if not silo_limit.is_available():
+            return None
+
+    return model
+
+
+ModelClass = TypeVar("ModelClass")
+
+
 class ModelSiloLimit(SiloLimit):
     def __init__(
         self,
@@ -179,7 +202,7 @@ class ModelSiloLimit(SiloLimit):
 
         return handle
 
-    def __call__(self, model_class: Any) -> type:
+    def __call__(self, model_class: ModelClass) -> Type[ModelClass]:
         if not (isinstance(model_class, type) and issubclass(model_class, BaseModel)):
             raise TypeError("`@ModelSiloLimit ` must decorate a Model class")
         assert isinstance(model_class.objects, BaseManager)
@@ -199,12 +222,11 @@ class ModelSiloLimit(SiloLimit):
                 # trigger hooks in Django's ModelBase metaclass a second time.
                 setattr(model_class, model_attr_name, override)
 
-        # For internal tooling only. Having any production logic depend on this is
-        # strongly discouraged.
-        model_class._meta.__silo_limit = self
+        model_class._meta.silo_limit = self
 
         return model_class
 
 
-control_silo_model = ModelSiloLimit(SiloMode.CONTROL, read_only=SiloMode.REGION)
-region_silo_model = ModelSiloLimit(SiloMode.REGION)
+control_silo_with_replication_model = ModelSiloLimit(SiloMode.CONTROL, read_only=SiloMode.REGION)
+control_silo_only_model = ModelSiloLimit(SiloMode.CONTROL)
+region_silo_only_model = ModelSiloLimit(SiloMode.REGION)

@@ -19,6 +19,7 @@ import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {onRenderCallback} from 'sentry/utils/performanceForSentry';
 import useApi from 'sentry/utils/useApi';
+import {useColorscheme} from 'sentry/utils/useColorscheme';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 
 import SystemAlerts from './systemAlerts';
@@ -34,6 +35,8 @@ const NewsletterConsent = lazy(() => import('sentry/views/newsletterConsent'));
  * App is the root level container for all uathenticated routes.
  */
 function App({children}: Props) {
+  useColorscheme();
+
   const api = useApi();
   const config = useLegacyStore(ConfigStore);
 

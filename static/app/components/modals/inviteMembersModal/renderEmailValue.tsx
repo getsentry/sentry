@@ -1,4 +1,8 @@
-import {components as selectComponents, MultiValueProps} from 'react-select';
+import {
+  components as selectComponents,
+  MultiValueProps,
+  OptionTypeBase,
+} from 'react-select';
 import styled from '@emotion/styled';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -8,7 +12,7 @@ import space from 'sentry/styles/space';
 
 import {InviteStatus} from './types';
 
-function renderEmailValue<Option>(
+function renderEmailValue<Option extends OptionTypeBase>(
   status: InviteStatus[string],
   valueProps: MultiValueProps<Option>
 ) {

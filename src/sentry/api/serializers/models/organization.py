@@ -20,6 +20,7 @@ from sentry.api.serializers.models.role import (
 )
 from sentry.api.serializers.models.team import TeamSerializerResponse
 from sentry.api.utils import generate_organization_url, generate_region_url
+from sentry.app import env
 from sentry.auth.access import Access
 from sentry.constants import (
     ACCOUNT_RATE_LIMIT_DEFAULT,
@@ -41,6 +42,7 @@ from sentry.constants import (
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models import (
     ApiKey,
+    AuthProvider,
     Organization,
     OrganizationAccessRequest,
     OrganizationAvatar,
@@ -53,6 +55,7 @@ from sentry.models import (
     TeamStatus,
 )
 from sentry.models.user import User
+from sentry.utils.http import is_using_customer_domain
 
 _ORGANIZATION_SCOPE_PREFIX = "organizations:"
 
@@ -159,6 +162,7 @@ class OrganizationSerializerResponse(TypedDict):
     avatar: Any  # TODO replace with Avatar
     features: Any  # TODO
     links: _Links
+    hasAuthProvider: bool
 
 
 @register(Organization)
@@ -170,9 +174,15 @@ class OrganizationSerializer(Serializer):  # type: ignore
             a.organization_id: a
             for a in OrganizationAvatar.objects.filter(organization__in=item_list)
         }
+        auth_providers = {
+            a.organization_id: a for a in AuthProvider.objects.filter(organization__in=item_list)
+        }
         data: MutableMapping[Organization, MutableMapping[str, Any]] = {}
         for item in item_list:
-            data[item] = {"avatar": avatars.get(item.id)}
+            data[item] = {
+                "avatar": avatars.get(item.id),
+                "auth_provider": auth_providers.get(item.id, None),
+            }
         return data
 
     def serialize(
@@ -238,9 +248,15 @@ class OrganizationSerializer(Serializer):  # type: ignore
             feature_list.add("open-membership")
         if not getattr(obj.flags, "disable_shared_issues"):
             feature_list.add("shared-issues")
+        request = env.request
+        if request and is_using_customer_domain(request):
+            # If the current request is using a customer domain, then we activate the feature for this organization.
+            feature_list.add("customer-domains")
 
         if "server-side-sampling" not in feature_list and "mep-rollout-flag" in feature_list:
             feature_list.remove("mep-rollout-flag")
+
+        has_auth_provider = attrs.get("auth_provider", None) is not None
 
         return {
             "id": str(obj.id),
@@ -260,6 +276,7 @@ class OrganizationSerializer(Serializer):  # type: ignore
                 "organizationUrl": generate_organization_url(obj.slug),
                 "regionUrl": generate_region_url(),
             },
+            "hasAuthProvider": has_auth_provider,
         }
 
 

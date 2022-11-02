@@ -22,7 +22,7 @@ from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 from tests.sentry.api.serializers.test_alert_rule import BaseAlertRuleSerializerTest
 
-pytestmark = [pytest.mark.sentry_metrics, pytest.mark.broken_under_tags_values_as_strings]
+pytestmark = [pytest.mark.sentry_metrics]
 
 
 class AlertRuleListEndpointTest(APITestCase):

@@ -13,7 +13,7 @@ describe('Login', function () {
       body: {},
     });
 
-    render(<Login />);
+    render(<Login params={{}} />);
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
   });
@@ -24,7 +24,7 @@ describe('Login', function () {
       statusCode: 500,
     });
 
-    render(<Login />);
+    render(<Login params={{}} />);
 
     expect(
       await screen.findByText('Unable to load authentication configuration')
@@ -37,7 +37,7 @@ describe('Login', function () {
       body: {canRegister: false},
     });
 
-    render(<Login />);
+    render(<Login params={{}} />);
 
     expect(await screen.findByText('Lost your password?')).toBeInTheDocument();
     expect(screen.queryByText('Register')).not.toBeInTheDocument();
@@ -49,7 +49,7 @@ describe('Login', function () {
       body: {canRegister: true},
     });
 
-    render(<Login />);
+    render(<Login params={{}} />);
 
     expect(await screen.findByRole('link', {name: 'Register'})).toBeInTheDocument();
   });
@@ -60,7 +60,7 @@ describe('Login', function () {
       body: {canRegister: true},
     });
 
-    render(<Login />);
+    render(<Login params={{}} />);
 
     // Default tab is login
     expect(await screen.findByPlaceholderText('username or email')).toBeInTheDocument();

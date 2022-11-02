@@ -11,6 +11,9 @@ from sentry.testutils import APITestCase, TestCase
 from sentry.web.frontend.auth_logout import AuthLogoutView
 
 
+@override_settings(
+    SENTRY_USE_CUSTOMER_DOMAINS=True,
+)
 class CustomerDomainMiddlewareTest(TestCase):
     def test_sets_active_organization_if_exists(self):
         self.create_organization(name="test")
@@ -22,6 +25,19 @@ class CustomerDomainMiddlewareTest(TestCase):
 
         assert request.session == {"activeorg": "test"}
         assert response == request
+
+    def test_noop_if_customer_domain_is_off(self):
+
+        with self.settings(SENTRY_USE_CUSTOMER_DOMAINS=False):
+            self.create_organization(name="test")
+
+            request = RequestFactory().get("/")
+            request.subdomain = "test"
+            request.session = {"activeorg": "albertos-apples"}
+            response = CustomerDomainMiddleware(lambda request: request)(request)
+
+            assert request.session == {"activeorg": "albertos-apples"}
+            assert response == request
 
     def test_recycles_last_active_org(self):
         self.create_organization(name="test")
@@ -166,6 +182,7 @@ def provision_middleware():
 @override_settings(
     ROOT_URLCONF=__name__,
     SENTRY_SELF_HOSTED=False,
+    SENTRY_USE_CUSTOMER_DOMAINS=True,
 )
 class End2EndTest(APITestCase):
     def setUp(self):
@@ -300,31 +317,30 @@ class End2EndTest(APITestCase):
                 follow=True,
             )
             assert response.status_code == 200
-            assert response.redirect_chain == [
-                ("http://testserver/api/0/albertos-apples/?querystring=value", 302)
-            ]
+            assert response.redirect_chain == []
             assert response.data == {
                 "organization_slug": "albertos-apples",
-                "subdomain": None,
-                "activeorg": None,
+                "subdomain": "albertos-apples",
+                "activeorg": "albertos-apples",
             }
-            assert "activeorg" not in self.client.session
+            assert "activeorg" in self.client.session
+            assert self.client.session["activeorg"] == "albertos-apples"
 
             # POST request
             response = self.client.post(
                 reverse("org-events-endpoint", kwargs={"organization_slug": "albertos-apples"}),
                 data={"querystring": "value"},
-                HTTP_HOST="albertos-apples.testserver",
+                SERVER_NAME="albertos-apples.testserver",
             )
-            assert response.status_code == 400
+            assert response.status_code == 200
 
-            # PUT request (not-supported)
+            # # PUT request (not-supported)
             response = self.client.put(
                 reverse("org-events-endpoint", kwargs={"organization_slug": "albertos-apples"}),
                 data={"querystring": "value"},
-                HTTP_HOST="albertos-apples.testserver",
+                SERVER_NAME="albertos-apples.testserver",
             )
-            assert response.status_code == 400
+            assert response.status_code == 405
 
     def test_with_middleware_and_is_staff(self):
         self.create_organization(name="albertos-apples")

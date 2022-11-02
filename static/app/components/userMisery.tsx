@@ -56,9 +56,16 @@ function UserMisery(props: Props) {
       userMisery: userMisery.toFixed(3),
     });
   }
+
   return (
     <Tooltip title={title} containerDisplayMode="block">
-      <ScoreBar size={barHeight} score={score} palette={palette} radius={0} />
+      <ScoreBar
+        size={barHeight}
+        score={score}
+        palette={palette}
+        radius={0}
+        data-test-id={`score-bar-${score}`}
+      />
     </Tooltip>
   );
 }

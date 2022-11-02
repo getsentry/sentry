@@ -14,7 +14,12 @@ export function GitHubIntegrationProvider(params = {}) {
     },
     metadata: {
       description: '*markdown* formatted _description_',
-      features: [{description: '*markdown* feature description'}],
+      features: [
+        {
+          description: '*markdown* feature description',
+          featureGate: 'integrations-commits',
+        },
+      ],
       author: 'Morty',
       noun: 'Installation',
       issue_url: 'http://example.com/integration_issue_url',

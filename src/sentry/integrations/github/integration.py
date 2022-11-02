@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from datetime import datetime
 from typing import Any, Mapping, Sequence
 
 from django.utils.text import slugify
@@ -18,12 +19,14 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.mixins import RepositoryMixin
+from sentry.integrations.mixins.commit_context import CommitContextMixin
 from sentry.models import Integration, Organization, OrganizationIntegration, Repository
 from sentry.pipeline import Pipeline, PipelineView
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.tasks.integrations import migrate_repo
 from sentry.utils import jwt
+from sentry.utils.json import JSONData
 from sentry.web.helpers import render_to_response
 
 from .client import GitHubAppsClient, GitHubClientMixin
@@ -93,18 +96,32 @@ def build_repository_query(metadata: Mapping[str, Any], name: str, query: str) -
     return f"{account_type}:{name} {query}".encode()
 
 
-class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMixin):  # type: ignore
+# Github App docs and list of available endpoints
+# https://docs.github.com/en/rest/apps/installations
+# https://docs.github.com/en/rest/overview/endpoints-available-for-github-apps
+class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMixin, CommitContextMixin):  # type: ignore
     repo_search = True
     codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
     def get_client(self) -> GitHubClientMixin:
         return GitHubAppsClient(integration=self.model)
 
-    def get_repositories(self, query: str | None = None) -> Sequence[Mapping[str, Any]]:
+    def get_trees_for_org(self) -> JSONData:
+        return self.get_client().get_trees_for_org(self.model.name)
+
+    def get_repositories(
+        self, query: str | None = None, fetch_max_pages: bool = False
+    ) -> Sequence[Mapping[str, Any]]:
+        """
+        This fetches all repositories accessible to a Github App
+        https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
+
+        per_page: The number of results per page (max 100; default 30).
+        """
         if not query:
             return [
                 {"name": i["name"], "identifier": i["full_name"]}
-                for i in self.get_client().get_repositories()
+                for i in self.get_client().get_repositories(fetch_max_pages)
             ]
 
         full_query = build_repository_query(self.model.metadata, self.model.name, query)
@@ -164,6 +181,40 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         except ApiError:
             return False
         return True
+
+    def get_commit_context(
+        self, repo: Repository, filepath: str, ref: str, event_frame: Mapping[str, Any]
+    ) -> Mapping[str, str] | None:
+        lineno = event_frame.get("lineno", 0)
+        if not lineno:
+            return None
+        blame_range = self.get_blame_for_file(repo, filepath, ref, lineno)
+
+        try:
+            commit = max(
+                (
+                    blame
+                    for blame in blame_range
+                    if blame.get("startingLine", 0) <= lineno <= blame.get("endingLine", 0)
+                ),
+                key=lambda blame: datetime.strptime(
+                    blame.get("commit", {}).get("committedDate"), "%Y-%m-%dT%H:%M:%SZ"
+                ),
+            )
+        except (ValueError, IndexError):
+            return None
+
+        commitInfo = commit.get("commit")
+        if not commitInfo:
+            return None
+        else:
+            return {
+                "commitId": commitInfo.get("oid"),
+                "committedDate": commitInfo.get("committedDate"),
+                "commitMessage": commitInfo.get("message"),
+                "commitAuthorName": commitInfo.get("author", {}).get("name"),
+                "commitAuthorEmail": commitInfo.get("author", {}).get("email"),
+            }
 
 
 class GitHubIntegrationProvider(IntegrationProvider):  # type: ignore
@@ -270,15 +321,17 @@ class GitHubInstallationRedirect(PipelineView):
             pipeline.bind_state("reinstall_id", request.GET["reinstall_id"])
 
         if "installation_id" in request.GET:
-            organization = self.get_active_organization(request)
+            self.determine_active_organization(request)
 
-            # We want to wait until the scheduled deletions finish or else the
-            # post install to migrate repos do not work.
-            integration_pending_deletion_exists = OrganizationIntegration.objects.filter(
-                integration__provider=GitHubIntegrationProvider.key,
-                organization=organization,
-                status=ObjectStatus.PENDING_DELETION,
-            ).exists()
+            integration_pending_deletion_exists = False
+            if self.active_organization:
+                # We want to wait until the scheduled deletions finish or else the
+                # post install to migrate repos do not work.
+                integration_pending_deletion_exists = OrganizationIntegration.objects.filter(
+                    integration__provider=GitHubIntegrationProvider.key,
+                    organization_id=self.active_organization.id,
+                    status=ObjectStatus.PENDING_DELETION,
+                ).exists()
 
             if integration_pending_deletion_exists:
                 return render_to_response(

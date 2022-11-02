@@ -15,8 +15,10 @@ from django.urls import resolve, reverse
 from django.utils.http import is_safe_url
 from rest_framework.request import Request
 
-from sentry.models import Authenticator, User
+from sentry.models import Authenticator, Organization, User
+from sentry.services.hybrid_cloud import ApiOrganization
 from sentry.utils import metrics
+from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger("sentry.auth")
 
@@ -138,18 +140,18 @@ def initiate_login(request, next_url=None):
         request.session["_next"] = next_url
 
 
-def get_org_redirect_url(request, active_organization):
+def get_org_redirect_url(request, active_organization: Optional[ApiOrganization]):
     from sentry import features
 
     # TODO(dcramer): deal with case when the user cannot create orgs
     if active_organization:
-        return active_organization.get_url()
+        return Organization.get_url(active_organization.slug)
     if not features.has("organizations:create"):
         return "/auth/login/"
     return "/organizations/new/"
 
 
-def get_login_redirect(request, default=None):
+def _get_login_redirect(request, default=None):
     if default is None:
         default = get_login_url()
 
@@ -172,6 +174,17 @@ def get_login_redirect(request, default=None):
         login_url = default
 
     return login_url
+
+
+def get_login_redirect(request, default=None):
+    from sentry.api.utils import generate_organization_url
+
+    login_redirect = _get_login_redirect(request, default)
+    url_prefix = None
+    if hasattr(request, "subdomain") and request.subdomain:
+        url_prefix = generate_organization_url(request.subdomain)
+        return absolute_uri(login_redirect, url_prefix=url_prefix)
+    return login_redirect
 
 
 def is_valid_redirect(url: str, allowed_hosts: Optional[Container] = None) -> bool:

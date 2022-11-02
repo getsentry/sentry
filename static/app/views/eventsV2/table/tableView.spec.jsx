@@ -2,7 +2,7 @@ import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
@@ -391,5 +391,54 @@ describe('TableView > CellActions', function () {
     );
     expect(screen.getByText('222.3 KiB')).toBeInTheDocument();
     expect(screen.getByText('444.3 KB')).toBeInTheDocument();
+  });
+
+  it('shows events with value less than selected custom performance metric', function () {
+    const orgWithFeature = TestStubs.Organization({
+      features: ['discover-frontend-use-events-endpoint'],
+      projects: [TestStubs.Project()],
+    });
+    render(
+      <TableView
+        organization={orgWithFeature}
+        location={location}
+        eventView={EventView.fromLocation({
+          ...location,
+          query: {
+            ...location.query,
+            field: ['title', 'p99(measurements.custom.kilobyte)'],
+          },
+        })}
+        isLoading={false}
+        projects={initialData.organization.projects}
+        tableData={{
+          data: [
+            {
+              title: '/random/transaction/name',
+              'p99(measurements.custom.kilobyte)': 444.3,
+            },
+          ],
+          meta: {
+            title: 'string',
+            'p99(measurements.custom.kilobyte)': 'size',
+            units: {
+              title: null,
+              'p99(measurements.custom.kilobyte)': 'kilobyte',
+            },
+          },
+        }}
+        onChangeShowTags={onChangeShowTags}
+      />
+    );
+    userEvent.hover(screen.getByText('444.3 KB'));
+    const buttons = screen.getAllByRole('button');
+    userEvent.click(buttons[buttons.length - 1]);
+    userEvent.click(screen.getByText('Show values less than'));
+    expect(browserHistory.push).toHaveBeenCalledWith({
+      pathname: location.pathname,
+      query: expect.objectContaining({
+        query: 'p99(measurements.custom.kilobyte):<444300',
+      }),
+    });
   });
 });

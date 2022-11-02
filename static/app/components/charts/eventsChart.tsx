@@ -4,6 +4,7 @@ import {withTheme} from '@emotion/react';
 import type {
   EChartsOption,
   LegendComponentOption,
+  LineSeriesOption,
   XAXisComponentOption,
   YAXisComponentOption,
 } from 'echarts';
@@ -66,6 +67,7 @@ type ChartProps = {
   timeseriesData: Series[];
   yAxis: string;
   zoomRenderProps: ZoomRenderProps;
+  additionalSeries?: LineSeriesOption[];
   chartComponent?: ChartComponent;
   chartOptions?: Omit<EChartsOption, 'xAxis' | 'yAxis'> & {
     xAxis?: XAXisComponentOption;
@@ -126,7 +128,8 @@ class Chart extends React.Component<ChartProps, State> {
       isEqual(this.props.timeseriesData, nextProps.timeseriesData) &&
       isEqual(this.props.releaseSeries, nextProps.releaseSeries) &&
       isEqual(this.props.previousTimeseriesData, nextProps.previousTimeseriesData) &&
-      isEqual(this.props.tableData, nextProps.tableData)
+      isEqual(this.props.tableData, nextProps.tableData) &&
+      isEqual(this.props.additionalSeries, nextProps.additionalSeries)
     ) {
       return false;
     }
@@ -202,6 +205,7 @@ class Chart extends React.Component<ChartProps, State> {
       tableData,
       fromDiscover,
       timeseriesResultsTypes,
+      additionalSeries,
       ...props
     } = this.props;
     const {seriesSelection} = this.state;
@@ -227,6 +231,7 @@ class Chart extends React.Component<ChartProps, State> {
     const data = [
       ...(currentSeriesNames.length > 0 ? currentSeriesNames : [t('Current')]),
       ...(previousSeriesNames.length > 0 ? previousSeriesNames : [t('Previous')]),
+      ...(additionalSeries ? additionalSeries.map(series => series.name as string) : []),
     ];
 
     const releasesLegend = t('Releases');
@@ -300,7 +305,11 @@ class Chart extends React.Component<ChartProps, State> {
         trigger: 'axis' as const,
         truncate: 80,
         valueFormatter: (value: number, label?: string) => {
-          const aggregateName = label?.split(':').pop()?.trim();
+          const aggregateName = label
+            ?.replace(/^previous /, '')
+            .split(':')
+            .pop()
+            ?.trim();
           if (aggregateName) {
             return timeseriesResultsTypes
               ? tooltipFormatter(value, timeseriesResultsTypes[aggregateName])
@@ -345,6 +354,7 @@ class Chart extends React.Component<ChartProps, State> {
         series={series}
         previousPeriod={previousSeries ? previousSeries : undefined}
         height={height}
+        additionalSeries={additionalSeries}
       />
     );
   }
@@ -380,6 +390,7 @@ export type EventsChartProps = {
    * The aggregate/metric to plot.
    */
   yAxis: string | string[];
+  additionalSeries?: LineSeriesOption[];
   /**
    * Markup for optional chart header
    */
@@ -415,6 +426,10 @@ export type EventsChartProps = {
    */
   interval?: string;
   /**
+   * Whether or not the request for processed baseline data has been resolved/terminated
+   */
+  loadingAdditionalSeries?: boolean;
+  /**
    * Order condition when showing topEvents
    */
   orderby?: string;
@@ -432,6 +447,7 @@ export type EventsChartProps = {
    */
   referrer?: string;
   releaseQueryExtra?: Query;
+  reloadingAdditionalSeries?: boolean;
   /**
    * Override the interval calculation and show daily results.
    */
@@ -530,6 +546,9 @@ class EventsChart extends React.Component<EventsChartProps> {
       height,
       withoutZerofill,
       fromDiscover,
+      additionalSeries,
+      loadingAdditionalSeries,
+      reloadingAdditionalSeries,
       ...props
     } = this.props;
 
@@ -577,17 +596,17 @@ class EventsChart extends React.Component<EventsChartProps> {
       return (
         <TransitionChart
           loading={loading}
-          reloading={reloading}
+          reloading={reloading || !!reloadingAdditionalSeries}
           height={height ? `${height}px` : undefined}
         >
-          <TransparentLoadingMask visible={reloading} />
+          <TransparentLoadingMask visible={reloading || !!reloadingAdditionalSeries} />
 
           {React.isValidElement(chartHeader) && chartHeader}
 
           <ThemedChart
             zoomRenderProps={zoomRenderProps}
-            loading={loading}
-            reloading={reloading}
+            loading={loading || !!loadingAdditionalSeries}
+            reloading={reloading || !!reloadingAdditionalSeries}
             showLegend={showLegend}
             minutesThresholdToDisplaySeconds={minutesThresholdToDisplaySeconds}
             releaseSeries={releaseSeries || []}
@@ -596,6 +615,7 @@ class EventsChart extends React.Component<EventsChartProps> {
             currentSeriesNames={currentSeriesNames}
             previousSeriesNames={previousSeriesNames}
             seriesTransformer={seriesTransformer}
+            additionalSeries={additionalSeries}
             previousSeriesTransformer={previousSeriesTransformer}
             stacked={this.isStacked()}
             yAxis={yAxisArray[0]}

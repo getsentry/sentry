@@ -25,6 +25,7 @@ from sentry.web.frontend.home import HomeView
 from sentry.web.frontend.idp_email_verification import AccountConfirmationView
 from sentry.web.frontend.js_sdk_loader import JavaScriptSdkLoader
 from sentry.web.frontend.mailgun_inbound_webhook import MailgunInboundWebhookView
+from sentry.web.frontend.newest_performance_issue import NewestPerformanceIssueView
 from sentry.web.frontend.oauth_authorize import OAuthAuthorizeView
 from sentry.web.frontend.oauth_token import OAuthTokenView
 from sentry.web.frontend.organization_auth_settings import OrganizationAuthSettingsView
@@ -554,6 +555,11 @@ urlpatterns += [
                     r"^(?P<organization_slug>[^/]+)/disabled-member/$",
                     DisabledMemberView.as_view(),
                     name="sentry-organization-disabled-member",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^/]+)/newest-performance-issue/$",
+                    NewestPerformanceIssueView.as_view(),
+                    name="sentry-organization-newest-performance-issue",
                 ),
                 # need to force these to React and ensure organization_slug is captured
                 url(

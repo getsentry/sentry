@@ -168,7 +168,7 @@ export const tracing = [
   'react-native-tracing',
 ] as const;
 
-export const performance: PlatformKey[] = [
+export const performance = [
   'javascript',
   'javascript-ember',
   'javascript-react',
@@ -253,6 +253,20 @@ export const releaseHealth: PlatformKey[] = [
   'native-crashpad',
   'native-breakpad',
   'native-qt',
+];
+
+export const replayPlatforms: PlatformKey[] = [
+  'javascript',
+  'javascript-react',
+  'javascript-angular',
+  'javascript-angularjs',
+  'javascript-backbone',
+  'javascript-ember',
+  'javascript-gatsby',
+  'javascript-vue',
+  'javascript-nextjs',
+  'javascript-remix',
+  'javascript-svelte',
 ];
 
 /**

@@ -64,6 +64,12 @@ export const CHART_OPTIONS_DATACATEGORY: CategoryOption[] = [
     disabled: false,
     yAxisMinInterval: 0.5 * GIGABYTE,
   },
+  {
+    label: DATA_CATEGORY_NAMES[DataCategory.PROFILES],
+    value: DataCategory.PROFILES,
+    disabled: false,
+    yAxisMinInterval: 100,
+  },
 ];
 
 export enum ChartDataTransform {
@@ -130,6 +136,11 @@ type Props = DefaultProps & {
    * Usage data to draw on chart
    */
   usageStats: ChartStats;
+
+  /**
+   * Override chart colors for each outcome
+   */
+  categoryColors?: string[];
 
   /**
    * Additional data to draw on the chart alongside usage
@@ -394,7 +405,7 @@ export class UsageChart extends Component<Props, State> {
   }
 
   renderChart() {
-    const {theme, title, isLoading, isError, errors} = this.props;
+    const {categoryColors, theme, title, isLoading, isError, errors} = this.props;
     if (isLoading) {
       return (
         <Placeholder height="200px">
@@ -407,7 +418,7 @@ export class UsageChart extends Component<Props, State> {
       return (
         <Placeholder height="200px">
           <IconWarning size={theme.fontSizeExtraLarge} />
-          <ErrorMessages>
+          <ErrorMessages data-test-id="error-messages">
             {errors &&
               Object.keys(errors).map(k => <span key={k}>{errors[k]?.message}</span>)}
           </ErrorMessages>
@@ -423,13 +434,15 @@ export class UsageChart extends Component<Props, State> {
       yAxisFormatter,
     } = this.chartMetadata;
 
+    const colors = categoryColors?.length ? categoryColors : this.chartColors;
+
     return (
       <Fragment>
         <HeaderTitleLegend>{title || t('Current Usage Period')}</HeaderTitleLegend>
         {getDynamicText({
           value: (
             <BaseChart
-              colors={this.chartColors}
+              colors={colors}
               grid={{bottom: '3px', left: '0px', right: '10px', top: '40px'}}
               xAxis={xAxis({
                 show: true,

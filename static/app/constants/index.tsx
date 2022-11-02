@@ -185,6 +185,8 @@ export const AVATAR_URL_MAP = {
 
 export const MENU_CLOSE_DELAY = 200;
 
+export const SLOW_TOOLTIP_DELAY = 1000;
+
 export const MAX_PICKABLE_DAYS = 90;
 
 export const DEFAULT_STATS_PERIOD = '14d';
@@ -214,7 +216,7 @@ export const DATA_CATEGORY_NAMES = {
   [DataCategory.ERRORS]: t('Errors'),
   [DataCategory.TRANSACTIONS]: t('Transactions'),
   [DataCategory.ATTACHMENTS]: t('Attachments'),
-  [DataCategory.TRANSACTIONS_PROCESSED]: t('Processed Transactions'),
+  [DataCategory.PROFILES]: t('Profiles'),
 };
 
 // Special Search characters

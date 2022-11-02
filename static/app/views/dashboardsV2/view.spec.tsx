@@ -28,6 +28,13 @@ describe('Dashboards > ViewEditDashboard', function () {
         statsPeriod: '7d',
       },
     };
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${initialData.organization.slug}/dashboards/1/visit/`,
+      statusCode: 200,
+      method: 'POST',
+    });
+
     render(
       <ViewEditDashboard
         location={TestStubs.location(location)}

@@ -3,11 +3,13 @@ from unittest import mock
 from django.urls import reverse
 
 from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.helpers import apply_feature_flag_on_cls
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 
 
 @region_silo_test
+@apply_feature_flag_on_cls("organizations:javascript-console-error-tag")
 class OrganizationTagsTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

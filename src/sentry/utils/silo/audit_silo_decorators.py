@@ -34,7 +34,7 @@ def _create_model_table(app_label):
     for model_class in django.apps.apps.get_models():
         if model_class._meta.app_label != app_label:
             continue
-        limit = getattr(model_class._meta, "_ModelSiloLimit__silo_limit", None)
+        limit = getattr(model_class._meta, "silo_limit", None)
         key = (limit.modes, limit.read_only) if limit else None
         table[key].append(model_class)
     return table
@@ -57,7 +57,7 @@ def _create_endpoint_table(app_label):
     for endpoint_class in get_endpoint_classes():
         if not endpoint_class.__module__.startswith(app_label):
             continue
-        limit = getattr(endpoint_class, "__silo_limit", None)
+        limit = getattr(endpoint_class, "silo_limit", None)
         key = frozenset(limit.modes if limit else ())
         table[key].append(endpoint_class)
 

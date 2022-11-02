@@ -8,7 +8,7 @@ from operator import attrgetter
 from random import randrange
 from typing import Any, Callable, Iterable, Mapping, MutableMapping, Sequence
 
-import lxml
+import lxml.html
 import toronado
 from django.core.mail import EmailMultiAlternatives
 from django.utils.encoding import force_text
@@ -110,7 +110,7 @@ class MessageBuilder:
 
     def __render_html_body(self) -> str | None:
         if self.html_template:
-            html_body = render_to_string(self.html_template, self.context)
+            html_body: str | None = render_to_string(self.html_template, self.context)
         else:
             html_body = self._html_body
 

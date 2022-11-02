@@ -16,14 +16,14 @@ export default function ServerSideSamplingContainer({project}: Props) {
 
   return (
     <Feature
-      features={['server-side-sampling', 'server-side-sampling-ui']}
+      features={['server-side-sampling', 'dynamic-sampling-deprecated']}
       organization={organization}
       renderDisabled={() => (
         <FeatureDisabled
           alert={PanelAlert}
           features={[
             'organization:server-side-sampling',
-            'organization:server-side-sampling-ui',
+            'organization:dynamic-sampling-deprecated',
           ]}
           featureName={t('Server-Side Sampling')}
         />

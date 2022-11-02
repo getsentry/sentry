@@ -19,10 +19,15 @@ import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {
+  normalizeDateTimeParams,
+  normalizeDateTimeString,
+} from 'sentry/components/organizations/pageFilters/parse';
+import {CursorHandler} from 'sentry/components/pagination';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
@@ -41,6 +46,7 @@ import {
   MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES,
 } from 'sentry/utils/discover/types';
 import localStorage from 'sentry/utils/localStorage';
+import marked from 'sentry/utils/marked';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
@@ -50,7 +56,7 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 import {addRoutePerformanceContext} from '../performance/utils';
 
 import {DEFAULT_EVENT_VIEW} from './data';
-import ResultsChart from './resultsChart';
+import {MetricsBaselineContainer} from './metricsBaselineContainer';
 import ResultsHeader from './resultsHeader';
 import Table from './table';
 import Tags from './tags';
@@ -63,6 +69,8 @@ type Props = {
   organization: Organization;
   router: InjectedRouter;
   selection: PageFilters;
+  setSavedQuery: (savedQuery?: SavedQuery) => void;
+  isHomepage?: boolean;
   savedQuery?: SavedQuery;
 };
 
@@ -73,6 +81,7 @@ type State = {
   eventView: EventView;
   needConfirmation: boolean;
   showTags: boolean;
+  tips: string[];
   totalValues: null | number;
   savedQuery?: SavedQuery;
   showMetricsAlert?: boolean;
@@ -98,16 +107,13 @@ function getYAxis(location: Location, eventView: EventView, savedQuery?: SavedQu
     : [eventView.getYAxis()];
 }
 
-class Results extends Component<Props, State> {
+export class Results extends Component<Props, State> {
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
-    if (nextProps.savedQuery || !nextProps.loading) {
-      const eventView = EventView.fromSavedQueryOrLocation(
-        nextProps.savedQuery,
-        nextProps.location
-      );
-      return {...prevState, eventView, savedQuery: nextProps.savedQuery};
-    }
-    return prevState;
+    const eventView = EventView.fromSavedQueryOrLocation(
+      nextProps.savedQuery,
+      nextProps.location
+    );
+    return {...prevState, eventView, savedQuery: nextProps.savedQuery};
   }
 
   state: State = {
@@ -121,10 +127,11 @@ class Results extends Component<Props, State> {
     showTags: readShowTagsState(),
     needConfirmation: false,
     confirmedQuery: false,
+    tips: [],
   };
 
   componentDidMount() {
-    const {organization, selection, location} = this.props;
+    const {organization, selection, location, isHomepage} = this.props;
     if (location.query.fromMetric) {
       this.setState({showMetricsAlert: true});
       browserHistory.replace({
@@ -143,7 +150,7 @@ class Results extends Component<Props, State> {
     addRoutePerformanceContext(selection);
     this.checkEventView();
     this.canLoadEvents();
-    if (defined(location.query.id)) {
+    if (!isHomepage && defined(location.query.id)) {
       updateSavedQueryVisit(organization.slug, location.query.id);
     }
   }
@@ -290,20 +297,42 @@ class Results extends Component<Props, State> {
     }
 
     // If the view is not valid, redirect to a known valid state.
-    const {location, organization, selection} = this.props;
-    const nextEventView = EventView.fromNewQueryWithLocation(
-      DEFAULT_EVENT_VIEW,
-      location
-    );
+    const {location, organization, selection, isHomepage, savedQuery} = this.props;
+    const query = isHomepage && savedQuery ? omit(savedQuery, 'id') : DEFAULT_EVENT_VIEW;
+    const nextEventView = EventView.fromNewQueryWithLocation(query, location);
     if (nextEventView.project.length === 0 && selection.projects) {
       nextEventView.project = selection.projects;
+    }
+    if (selection.datetime) {
+      const {period, utc, start, end} = selection.datetime;
+      nextEventView.statsPeriod = period ?? undefined;
+      nextEventView.utc = utc?.toString();
+      nextEventView.start = normalizeDateTimeString(start);
+      nextEventView.end = normalizeDateTimeString(end);
     }
     if (location.query?.query) {
       nextEventView.query = decodeScalar(location.query.query, '');
     }
 
-    browserHistory.replace(nextEventView.getResultsViewUrlTarget(organization.slug));
+    if (isHomepage && !this.state.savedQuery) {
+      this.setState({savedQuery, eventView: nextEventView});
+    }
+    browserHistory.replace(
+      nextEventView.getResultsViewUrlTarget(organization.slug, isHomepage)
+    );
   }
+
+  handleCursor: CursorHandler = (cursor, path, query, _direction) => {
+    const {router} = this.props;
+    router.push({
+      pathname: path,
+      query: {...query, cursor},
+    });
+    // Treat pagination like the user already confirmed the query
+    if (!this.state.needConfirmation) {
+      this.handleConfirmed();
+    }
+  };
 
   handleChangeShowTags = () => {
     const {organization} = this.props;
@@ -391,6 +420,27 @@ class Results extends Component<Props, State> {
     }
   };
 
+  handleIntervalChange = (value: string | undefined) => {
+    const {router, location} = this.props;
+
+    const newQuery = {
+      ...location.query,
+      interval: value,
+    };
+
+    if (location.query.interval !== value) {
+      router.push({
+        pathname: location.pathname,
+        query: newQuery,
+      });
+
+      // Treat display changing like the user already confirmed the query
+      if (!this.state.needConfirmation) {
+        this.handleConfirmed();
+      }
+    }
+  };
+
   handleTopEventsChange = (value: string) => {
     const {router, location} = this.props;
 
@@ -438,10 +488,10 @@ class Results extends Component<Props, State> {
   }
 
   generateTagUrl = (key: string, value: string) => {
-    const {organization} = this.props;
+    const {organization, isHomepage} = this.props;
     const {eventView} = this.state;
 
-    const url = eventView.getResultsViewUrlTarget(organization.slug);
+    const url = eventView.getResultsViewUrlTarget(organization.slug, isHomepage);
     url.query = generateQueryWithTag(url.query, {
       key: formatTagKey(key),
       value,
@@ -465,7 +515,11 @@ class Results extends Component<Props, State> {
   };
 
   renderMetricsFallbackBanner() {
-    if (this.state.showMetricsAlert) {
+    const {organization} = this.props;
+    if (
+      !organization.features.includes('performance-mep-bannerless-ui') &&
+      this.state.showMetricsAlert
+    ) {
       return (
         <Alert type="info" showIcon>
           {t(
@@ -491,8 +545,21 @@ class Results extends Component<Props, State> {
     return null;
   }
 
+  renderTips() {
+    const {tips} = this.state;
+    if (tips) {
+      return tips.map((tip, index) => (
+        <Alert type="info" showIcon key={`tip-${index}`}>
+          <TipContainer dangerouslySetInnerHTML={{__html: marked(tip)}} />
+        </Alert>
+      ));
+    }
+    return null;
+  }
+
   render() {
-    const {organization, location, router, selection} = this.props;
+    const {organization, location, router, selection, api, setSavedQuery, isHomepage} =
+      this.props;
     const {
       eventView,
       error,
@@ -509,17 +576,23 @@ class Results extends Component<Props, State> {
     const title = this.getDocumentTitle();
     const yAxisArray = getYAxis(location, eventView, savedQuery);
 
+    if (!eventView.isValid()) {
+      return <LoadingIndicator />;
+    }
+
     return (
       <SentryDocumentTitle title={title} orgSlug={organization.slug}>
         <StyledPageContent>
           <NoProjectMessage organization={organization}>
             <ResultsHeader
+              setSavedQuery={setSavedQuery}
               errorCode={errorCode}
               organization={organization}
               location={location}
               eventView={eventView}
               yAxis={yAxisArray}
               router={router}
+              isHomepage={isHomepage}
             />
             <Layout.Body>
               <CustomMeasurementsProvider
@@ -529,6 +602,7 @@ class Results extends Component<Props, State> {
                 <Top fullWidth>
                   {this.renderMetricsFallbackBanner()}
                   {this.renderError(error)}
+                  {this.renderTips()}
                   <StyledPageFilterBar condensed>
                     <ProjectPageFilter />
                     <EnvironmentPageFilter />
@@ -552,7 +626,8 @@ class Results extends Component<Props, State> {
                     organization={organization}
                     location={location}
                   >
-                    <ResultsChart
+                    <MetricsBaselineContainer
+                      api={api}
                       router={router}
                       organization={organization}
                       eventView={eventView}
@@ -560,6 +635,7 @@ class Results extends Component<Props, State> {
                       onAxisChange={this.handleYAxisChange}
                       onDisplayChange={this.handleDisplayChange}
                       onTopEventsChange={this.handleTopEventsChange}
+                      onIntervalChange={this.handleIntervalChange}
                       total={totalValues}
                       confirmedQuery={confirmedQuery}
                       yAxis={yAxisArray}
@@ -576,6 +652,9 @@ class Results extends Component<Props, State> {
                     onChangeShowTags={this.handleChangeShowTags}
                     showTags={showTags}
                     confirmedQuery={confirmedQuery}
+                    onCursor={this.handleCursor}
+                    isHomepage={isHomepage}
+                    setTips={(tips: string[]) => this.setState({tips})}
                   />
                 </Layout.Main>
                 {showTags ? this.renderTagsTable() : null}
@@ -628,32 +707,46 @@ const Top = styled(Layout.Main)`
   flex-grow: 0;
 `;
 
+const TipContainer = styled('span')`
+  > p {
+    margin: 0;
+  }
+`;
+
 type SavedQueryState = AsyncComponent['state'] & {
   savedQuery?: SavedQuery | null;
 };
 
 class SavedQueryAPI extends AsyncComponent<Props, SavedQueryState> {
+  shouldReload = true;
+
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization, location} = this.props;
+
+    const endpoints: ReturnType<AsyncComponent['getEndpoints']> = [];
     if (location.query.id) {
-      return [
-        [
-          'savedQuery',
-          `/organizations/${organization.slug}/discover/saved/${location.query.id}/`,
-        ],
-      ];
+      endpoints.push([
+        'savedQuery',
+        `/organizations/${organization.slug}/discover/saved/${location.query.id}/`,
+      ]);
+      return endpoints;
     }
-    return [];
+    return endpoints;
   }
 
-  renderLoading() {
-    return this.renderBody();
-  }
+  setSavedQuery = (newSavedQuery?: SavedQuery) => {
+    this.setState({savedQuery: newSavedQuery});
+  };
 
   renderBody(): React.ReactNode {
     const {savedQuery, loading} = this.state;
     return (
-      <Results {...this.props} savedQuery={savedQuery ?? undefined} loading={loading} />
+      <Results
+        {...this.props}
+        savedQuery={savedQuery ?? undefined}
+        loading={loading}
+        setSavedQuery={this.setSavedQuery}
+      />
     );
   }
 }

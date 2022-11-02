@@ -268,6 +268,13 @@ class CategoryMatch(FrameFieldMatch):
 
 
 class ExceptionFieldMatch(FrameMatch):
+    def matches_frame(self, frames, idx, platform, exception_data, cache):
+        match_frame = None
+        rv = self._positive_frame_match(match_frame, platform, exception_data, cache)
+        if self.negated:
+            rv = not rv
+        return rv
+
     def _positive_frame_match(self, frame_data, platform, exception_data, cache):
         field = get_path(exception_data, *self.field_path) or "<unknown>"
         return cached(cache, glob_match, field, self._encoded_pattern)

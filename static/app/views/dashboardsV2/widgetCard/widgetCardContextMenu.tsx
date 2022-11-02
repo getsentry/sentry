@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {openDashboardWidgetQuerySelectorModal} from 'sentry/actionCreators/modal';
-import Feature from 'sentry/components/acl/feature';
 import Button from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
 import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
@@ -18,6 +17,10 @@ import {Series} from 'sentry/types/echarts';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {AggregationOutputType} from 'sentry/utils/discover/fields';
+import {
+  MEPConsumer,
+  MEPState,
+} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {getWidgetDiscoverUrl, getWidgetIssueUrl} from 'sentry/views/dashboardsV2/utils';
 
 import {Widget, WidgetType} from '../types';
@@ -89,55 +92,63 @@ function WidgetCardContextMenu({
     return (
       <WidgetViewerContext.Consumer>
         {({setData}) => (
-          <ContextWrapper>
-            <Feature organization={organization} features={['dashboards-mep']}>
-              {isMetricsData === false && (
-                <SampledTag
-                  tooltipText={t('This widget is only applicable to indexed events.')}
-                >
-                  {t('Indexed')}
-                </SampledTag>
-              )}
-            </Feature>
-            <StyledDropdownMenuControl
-              items={[
-                {
-                  key: 'preview',
-                  label: t(
-                    'This is a preview only. To edit, you must add this dashboard.'
-                  ),
-                },
-              ]}
-              triggerProps={{
-                'aria-label': t('Widget actions'),
-                size: 'xs',
-                borderless: true,
-                showChevron: false,
-                icon: <IconEllipsis direction="down" size="sm" />,
-              }}
-              placement="bottom right"
-              disabledKeys={[...disabledKeys, 'preview']}
-            />
-            {showWidgetViewerButton && (
-              <OpenWidgetViewerButton
-                aria-label={t('Open Widget Viewer')}
-                priority="link"
-                size="zero"
-                icon={<IconExpand size="xs" />}
-                onClick={() => {
-                  (seriesData || tableData) &&
-                    setData({
-                      seriesData,
-                      tableData,
-                      pageLinks,
-                      totalIssuesCount,
-                      seriesResultsType,
-                    });
-                  openWidgetViewerPath(index);
-                }}
-              />
+          <MEPConsumer>
+            {metricSettingContext => (
+              <ContextWrapper>
+                {!organization.features.includes('performance-mep-bannerless-ui') &&
+                  (organization.features.includes('dashboards-mep') ||
+                    organization.features.includes('mep-rollout-flag')) &&
+                  isMetricsData === false &&
+                  metricSettingContext &&
+                  metricSettingContext.metricSettingState !==
+                    MEPState.transactionsOnly && (
+                    <SampledTag
+                      tooltipText={t('This widget is only applicable to indexed events.')}
+                    >
+                      {t('Indexed')}
+                    </SampledTag>
+                  )}
+                <StyledDropdownMenuControl
+                  items={[
+                    {
+                      key: 'preview',
+                      label: t(
+                        'This is a preview only. To edit, you must add this dashboard.'
+                      ),
+                    },
+                  ]}
+                  triggerProps={{
+                    'aria-label': t('Widget actions'),
+                    size: 'xs',
+                    borderless: true,
+                    showChevron: false,
+                    icon: <IconEllipsis direction="down" size="sm" />,
+                  }}
+                  position="bottom-end"
+                  disabledKeys={[...disabledKeys, 'preview']}
+                />
+                {showWidgetViewerButton && (
+                  <OpenWidgetViewerButton
+                    aria-label={t('Open Widget Viewer')}
+                    priority="link"
+                    size="zero"
+                    icon={<IconExpand size="xs" />}
+                    onClick={() => {
+                      (seriesData || tableData) &&
+                        setData({
+                          seriesData,
+                          tableData,
+                          pageLinks,
+                          totalIssuesCount,
+                          seriesResultsType,
+                        });
+                      openWidgetViewerPath(index);
+                    }}
+                  />
+                )}
+              </ContextWrapper>
             )}
-          </ContextWrapper>
+          </MEPConsumer>
         )}
       </WidgetViewerContext.Consumer>
     );
@@ -224,47 +235,54 @@ function WidgetCardContextMenu({
   return (
     <WidgetViewerContext.Consumer>
       {({setData}) => (
-        <ContextWrapper>
-          <Feature organization={organization} features={['dashboards-mep']}>
-            {isMetricsData === false && (
-              <SampledTag
-                tooltipText={t('This widget is only applicable to indexed events.')}
-              >
-                {t('Indexed')}
-              </SampledTag>
-            )}
-          </Feature>
-          <StyledDropdownMenuControl
-            items={menuOptions}
-            triggerProps={{
-              'aria-label': t('Widget actions'),
-              size: 'xs',
-              borderless: true,
-              showChevron: false,
-              icon: <IconEllipsis direction="down" size="sm" />,
-            }}
-            placement="bottom right"
-            disabledKeys={[...disabledKeys]}
-          />
-          {showWidgetViewerButton && (
-            <OpenWidgetViewerButton
-              aria-label={t('Open Widget Viewer')}
-              priority="link"
-              size="zero"
-              icon={<IconExpand size="xs" />}
-              onClick={() => {
-                setData({
-                  seriesData,
-                  tableData,
-                  pageLinks,
-                  totalIssuesCount,
-                  seriesResultsType,
-                });
-                openWidgetViewerPath(widget.id ?? index);
-              }}
-            />
+        <MEPConsumer>
+          {metricSettingContext => (
+            <ContextWrapper>
+              {!organization.features.includes('performance-mep-bannerless-ui') &&
+                (organization.features.includes('dashboards-mep') ||
+                  organization.features.includes('mep-rollout-flag')) &&
+                isMetricsData === false &&
+                metricSettingContext &&
+                metricSettingContext.metricSettingState !== MEPState.transactionsOnly && (
+                  <SampledTag
+                    tooltipText={t('This widget is only applicable to indexed events.')}
+                  >
+                    {t('Indexed')}
+                  </SampledTag>
+                )}
+              <StyledDropdownMenuControl
+                items={menuOptions}
+                triggerProps={{
+                  'aria-label': t('Widget actions'),
+                  size: 'xs',
+                  borderless: true,
+                  showChevron: false,
+                  icon: <IconEllipsis direction="down" size="sm" />,
+                }}
+                position="bottom-end"
+                disabledKeys={[...disabledKeys]}
+              />
+              {showWidgetViewerButton && (
+                <OpenWidgetViewerButton
+                  aria-label={t('Open Widget Viewer')}
+                  priority="link"
+                  size="zero"
+                  icon={<IconExpand size="xs" />}
+                  onClick={() => {
+                    setData({
+                      seriesData,
+                      tableData,
+                      pageLinks,
+                      totalIssuesCount,
+                      seriesResultsType,
+                    });
+                    openWidgetViewerPath(widget.id ?? index);
+                  }}
+                />
+              )}
+            </ContextWrapper>
           )}
-        </ContextWrapper>
+        </MEPConsumer>
       )}
     </WidgetViewerContext.Consumer>
   );

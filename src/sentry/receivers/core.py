@@ -10,6 +10,7 @@ from django.db.utils import OperationalError, ProgrammingError
 from packaging.version import parse as parse_version
 
 from sentry import options
+from sentry.db.models import get_model_if_available
 from sentry.models import Organization, OrganizationMember, Project, ProjectKey, Team, User
 from sentry.signals import project_created
 
@@ -38,9 +39,7 @@ def create_default_projects(app_config, verbosity=2, **kwargs):
     if app_config and app_config.name != "sentry":
         return
 
-    try:
-        app_config.get_model("Project")
-    except LookupError:
+    if not get_model_if_available(app_config, "Project"):
         return
 
     create_default_project(

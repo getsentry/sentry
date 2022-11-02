@@ -50,12 +50,10 @@ from sentry.utils.snuba import (
 __all__ = (
     "PaginationResult",
     "InvalidSearchQuery",
-    "transform_results",
     "query",
     "timeseries_query",
     "top_events_timeseries",
     "get_facets",
-    "transform_data",
     "zerofill",
     "histogram_query",
     "check_multihistogram_fields",
@@ -126,70 +124,6 @@ def zerofill(data, start, end, rollup, orderby):
     return rv
 
 
-def transform_results(results, query_builder, translated_columns, snuba_filter) -> EventsResponse:
-    results = transform_data(results, translated_columns, snuba_filter)
-    results["meta"] = transform_meta(results, query_builder)
-    return results
-
-
-def transform_meta(results: EventsResponse, query_builder: QueryBuilder) -> Dict[str, str]:
-    meta: Dict[str, str] = {
-        value["name"]: get_json_meta_type(value["name"], value.get("type"), query_builder)
-        for value in results["meta"]
-    }
-    # Ensure all columns in the result have types.
-    if results["data"]:
-        for key in results["data"][0]:
-            if key not in meta:
-                meta[key] = "string"
-    return meta
-
-
-def transform_data(result, translated_columns, snuba_filter) -> EventsResponse:
-    """
-    Transform internal names back to the public schema ones.
-
-    When getting timeseries results via rollup, this function will
-    zerofill the output results.
-    """
-    final_result: EventsResponse = {"data": result["data"], "meta": result["meta"]}
-    for col in final_result["meta"]:
-        # Translate back column names that were converted to snuba format
-        col["name"] = translated_columns.get(col["name"], col["name"])
-
-    def get_row(row):
-        transformed = {}
-        for key, value in row.items():
-            if isinstance(value, float):
-                # 0 for nan, and none for inf were chosen arbitrarily, nan and inf are invalid json
-                # so needed to pick something valid to use instead
-                if math.isnan(value):
-                    value = 0
-                elif math.isinf(value):
-                    value = None
-            transformed[translated_columns.get(key, key)] = value
-
-        return transformed
-
-    final_result["data"] = [get_row(row) for row in final_result["data"]]
-
-    if snuba_filter and snuba_filter.rollup and snuba_filter.rollup > 0:
-        rollup = snuba_filter.rollup
-        with sentry_sdk.start_span(
-            op="discover.discover", description="transform_results.zerofill"
-        ) as span:
-            span.set_data("result_count", len(final_result.get("data", [])))
-            final_result["data"] = zerofill(
-                final_result["data"],
-                snuba_filter.start,
-                snuba_filter.end,
-                rollup,
-                snuba_filter.orderby,
-            )
-
-    return final_result
-
-
 def transform_tips(tips):
     return {
         "query": random.choice(list(tips["query"])) if tips["query"] else None,
@@ -215,6 +149,8 @@ def query(
     functions_acl=None,
     transform_alias_to_input_format=False,
     sample=None,
+    has_metrics=False,
+    use_metrics_layer=False,
 ) -> EventsResponse:
     """
     High-level API for doing arbitrary user queries against events.
@@ -265,33 +201,13 @@ def query(
         offset=offset,
         equation_config={"auto_add": include_equation_fields},
         sample_rate=sample,
+        has_metrics=has_metrics,
+        transform_alias_to_input_format=transform_alias_to_input_format,
     )
     if conditions is not None:
         builder.add_conditions(conditions)
-    result = builder.run_query(referrer)
-    with sentry_sdk.start_span(
-        op="discover.discover", description="query.transform_results"
-    ) as span:
-        span.set_data("result_count", len(result.get("data", [])))
-        translated_columns = {}
-        if transform_alias_to_input_format:
-            translated_columns = {
-                column: function_details.field
-                for column, function_details in builder.function_alias_map.items()
-            }
-            builder.function_alias_map = {
-                translated_columns.get(column): function_details
-                for column, function_details in builder.function_alias_map.items()
-            }
-            for index, equation in enumerate(equations):
-                translated_columns[f"equation[{index}]"] = f"equation|{equation}"
-        result = transform_results(
-            result,
-            builder,
-            translated_columns,
-            None,
-        )
-        result["tips"] = transform_tips(builder.tips)
+    result = builder.process_results(builder.run_query(referrer))
+    result["meta"]["tips"] = transform_tips(builder.tips)
     return result
 
 
@@ -305,6 +221,8 @@ def timeseries_query(
     comparison_delta: Optional[timedelta] = None,
     functions_acl: Optional[Sequence[str]] = None,
     allow_metric_aggregates=False,
+    has_metrics=False,
+    use_metrics_layer=False,
 ):
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -339,6 +257,7 @@ def timeseries_query(
             selected_columns=columns,
             equations=equations,
             functions_acl=functions_acl,
+            has_metrics=has_metrics,
         )
         query_list = [base_builder]
         if comparison_delta:
@@ -391,8 +310,12 @@ def timeseries_query(
         {
             "data": result["data"],
             "meta": {
-                value["name"]: get_json_meta_type(value["name"], value.get("type"), base_builder)
-                for value in result["meta"]
+                "fields": {
+                    value["name"]: get_json_meta_type(
+                        value["name"], value.get("type"), base_builder
+                    )
+                    for value in result["meta"]
+                }
             },
         },
         params["start"],
@@ -531,7 +454,7 @@ def top_events_timeseries(
         op="discover.discover", description="top_events.transform_results"
     ) as span:
         span.set_data("result_count", len(result.get("data", [])))
-        result = transform_results(result, top_events_builder, {}, None)
+        result = top_events_builder.process_results(result)
 
         issues = {}
         if "issue" in selected_columns:
@@ -717,7 +640,8 @@ def get_facets(
             )
 
     # Need to cast tuple values to str since the value might be None
-    return sorted(results, key=lambda result: (str(result.key), str(result.value)))
+    # Reverse sort the count so the highest values show up first
+    return sorted(results, key=lambda result: (str(result.key), -result.count, str(result.value)))
 
 
 def spans_histogram_query(
@@ -735,6 +659,7 @@ def spans_histogram_query(
     limit_by=None,
     extra_condition=None,
     normalize_results=True,
+    use_metrics_layer=False,
 ):
     """
     API for generating histograms for span exclusive time.
@@ -905,6 +830,7 @@ def histogram_query(
     histogram_rows=None,
     extra_conditions=None,
     normalize_results=True,
+    use_metrics_layer=False,
 ):
     """
     API for generating histograms for numeric columns.
@@ -989,8 +915,7 @@ def histogram_query(
     )
     if extra_conditions is not None:
         builder.add_conditions(extra_conditions)
-    results = builder.run_query(referrer)
-    results["meta"] = transform_meta(results, builder)
+    results = builder.process_results(builder.run_query(referrer))
 
     if not normalize_results:
         return results

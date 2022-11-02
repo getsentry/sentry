@@ -421,6 +421,12 @@ describe('updateQuery()', function () {
     expect(results.formatString()).toEqual('b:2 !a:3');
     updateQuery(results, Actions.EXCLUDE, columnB, '4');
     expect(results.formatString()).toEqual('!a:3 !b:4');
+    results.addFilterValues('!a', ['*dontescapeme*'], false);
+    expect(results.formatString()).toEqual('!a:3 !b:4 !a:*dontescapeme*');
+    updateQuery(results, Actions.EXCLUDE, columnA, '*escapeme*');
+    expect(results.formatString()).toEqual(
+      '!b:4 !a:3 !a:*dontescapeme* !a:"\\*escapeme\\*"'
+    );
     updateQuery(results, Actions.ADD, columnA, '5');
     expect(results.formatString()).toEqual('!b:4 a:5');
     updateQuery(results, Actions.ADD, columnB, '6');

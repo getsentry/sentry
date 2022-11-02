@@ -23,7 +23,7 @@ class ReactPageViewTest(TestCase):
         resp = self.client.get(path)
 
         assert resp.status_code == 200
-        self.assertTemplateUsed(resp, "sentry/bases/react.html")
+        self.assertTemplateUsed(resp, "sentry/base-react.html")
         assert resp.context["request"]
 
     def test_redirects_user_to_auth_without_membership(self):
@@ -55,7 +55,7 @@ class ReactPageViewTest(TestCase):
         resp = self.client.get(path)
 
         assert resp.status_code == 200
-        self.assertTemplateUsed(resp, "sentry/bases/react.html")
+        self.assertTemplateUsed(resp, "sentry/base-react.html")
         assert resp.context["request"]
 
     def test_inactive_superuser_bypasses_server_auth(self):
@@ -70,7 +70,7 @@ class ReactPageViewTest(TestCase):
         resp = self.client.get(path)
 
         assert resp.status_code == 200
-        self.assertTemplateUsed(resp, "sentry/bases/react.html")
+        self.assertTemplateUsed(resp, "sentry/base-react.html")
         assert resp.context["request"]
 
     def test_org_subpages_capture_slug(self):

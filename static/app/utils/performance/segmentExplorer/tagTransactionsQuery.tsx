@@ -1,8 +1,8 @@
 import {MetaType} from 'sentry/utils/discover/eventView';
 import GenericDiscoverQuery, {
   DiscoverQueryProps,
+  GenericChildrenProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
-import withApi from 'sentry/utils/withApi';
 
 export type TableDataRow = {
   [key: string]: React.ReactText;
@@ -15,6 +15,7 @@ export type TableData = {
 };
 
 type QueryProps = DiscoverQueryProps & {
+  children: (props: GenericChildrenProps<TableData>) => React.ReactNode;
   query: string;
 };
 
@@ -32,4 +33,4 @@ function TagTransactionsQuery(props: QueryProps) {
   );
 }
 
-export default withApi(TagTransactionsQuery);
+export default TagTransactionsQuery;

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import functools
 import logging
 from typing import Callable, Mapping, Optional, Union
 
@@ -8,12 +9,14 @@ from arroyo.processing import StreamProcessor
 from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
 from arroyo.processing.strategies import ProcessingStrategyFactory
-from arroyo.processing.strategies.streaming.transform import ParallelTransformStep
+from arroyo.processing.strategies.transform import ParallelTransformStep
 from arroyo.types import Message, Partition, Position, Topic
 from django.conf import settings
 
-from sentry.runner import configure
-from sentry.sentry_metrics.configuration import MetricsIngestConfiguration
+from sentry.sentry_metrics.configuration import (
+    MetricsIngestConfiguration,
+    initialize_sentry_and_global_consumer_state,
+)
 from sentry.sentry_metrics.consumers.indexer.common import BatchMessages, MessageBatch, get_config
 from sentry.sentry_metrics.consumers.indexer.multiprocess import SimpleProduceStep
 from sentry.sentry_metrics.consumers.indexer.processing import MessageProcessor
@@ -130,12 +133,14 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             output_block_size=self.__output_block_size,
             # It is absolutely crucial that we pass a function reference here
             # where the function lives in a module that does not depend on
-            # Django settings. `sentry.runner` fulfills that requirement, but
-            # if you were to create a wrapper function in this module that
-            # calls configure(), and pass that function here, it would attempt
-            # to pull in a bunch of modules that try to read django settings at
+            # Django settings. `sentry.sentry_metrics.configuration` fulfills
+            # that requirement, but if you were to create a wrapper function in
+            # this module, and pass that function here, it would attempt to
+            # pull in a bunch of modules that try to read django settings at
             # import time
-            initializer=configure,
+            initializer=functools.partial(
+                initialize_sentry_and_global_consumer_state, self.__config
+            ),
         )
 
         strategy = BatchMessages(

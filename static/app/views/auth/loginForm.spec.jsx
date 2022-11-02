@@ -1,46 +1,35 @@
 import {browserHistory} from 'react-router';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
 import LoginForm from 'sentry/views/auth/loginForm';
 
-function doLogin(wrapper, apiRequest) {
-  wrapper.find('#id-username').simulate('change', {target: {value: 'test@test.com'}});
-  wrapper.find('#id-password').simulate('change', {target: {value: '12345pass'}});
-
-  wrapper.find('form').simulate('submit');
-
-  expect(apiRequest).toHaveBeenCalledWith(
-    '/auth/login/',
-    expect.objectContaining({
-      data: {username: 'test@test.com', password: '12345pass'},
-    })
-  );
+function doLogin() {
+  userEvent.type(screen.getByRole('textbox', {name: 'Account'}), 'test@test.com');
+  userEvent.type(screen.getByRole('textbox', {name: 'Password'}), '12345pass');
+  userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 }
 
 describe('LoginForm', function () {
   const api = new MockApiClient();
 
   it('handles errors', async function () {
-    const mockRequest = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/auth/login/',
       method: 'POST',
       statusCode: 400,
       body: {
-        detail: 'Bad username password',
+        detail: 'Login attempt failed',
+        errors: {__all__: 'Bad username password'},
       },
     });
 
     const authConfig = {};
+    render(<LoginForm api={api} authConfig={authConfig} />);
+    doLogin();
 
-    const wrapper = mountWithTheme(<LoginForm api={api} authConfig={authConfig} />);
-    doLogin(wrapper, mockRequest);
-
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('.alert').exists()).toBe(true);
+    expect(await screen.findByText('Bad username password')).toBeInTheDocument();
   });
 
   it('handles success', async function () {
@@ -60,13 +49,17 @@ describe('LoginForm', function () {
     });
 
     const authConfig = {};
-    const wrapper = mountWithTheme(<LoginForm api={api} authConfig={authConfig} />);
+    render(<LoginForm api={api} authConfig={authConfig} />);
+    doLogin();
 
-    doLogin(wrapper, mockRequest);
+    expect(mockRequest).toHaveBeenCalledWith(
+      '/auth/login/',
+      expect.objectContaining({
+        data: {username: 'test@test.com', password: '12345pass'},
+      })
+    );
 
-    await tick();
-
-    expect(ConfigStore.get('user')).toEqual(userObject);
+    await waitFor(() => expect(ConfigStore.get('user')).toEqual(userObject));
     expect(browserHistory.push).toHaveBeenCalledWith({pathname: '/next/'});
   });
 
@@ -76,10 +69,9 @@ describe('LoginForm', function () {
       githubLoginLink: '/githubLogin',
     };
 
-    const wrapper = mountWithTheme(<LoginForm api={api} authConfig={authConfig} />);
+    render(<LoginForm api={api} authConfig={authConfig} />);
 
-    expect(wrapper.find('ProviderWrapper Button').map(b => b.props().href)).toEqual(
-      expect.arrayContaining(['/vstsLogin', '/githubLogin'])
-    );
+    expect(screen.getByText('Sign in with GitHub')).toBeInTheDocument();
+    expect(screen.getByText('Sign in with Azure DevOps')).toBeInTheDocument();
   });
 });

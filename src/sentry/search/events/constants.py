@@ -128,6 +128,7 @@ ARRAY_FIELDS = {
     "error.mechanism",
     "error.type",
     "error.value",
+    "performance.issue_ids",
     "stack.abs_path",
     "stack.colno",
     "stack.filename",
@@ -292,5 +293,4 @@ METRIC_FUNCTION_LIST_BY_TYPE = {
         "user_misery",
         "count_unique",
     ],
-    "generic_counter": [],
 }

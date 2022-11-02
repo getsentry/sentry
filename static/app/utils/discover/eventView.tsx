@@ -11,9 +11,16 @@ import {EventQuery} from 'sentry/actionCreators/events';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {DEFAULT_PER_PAGE} from 'sentry/constants';
-import {URL_PARAM} from 'sentry/constants/pageFilters';
+import {ALL_ACCESS_PROJECTS, URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import {NewQuery, PageFilters, SavedQuery, SelectValue, User} from 'sentry/types';
+import {
+  NewQuery,
+  PageFilters,
+  Project,
+  SavedQuery,
+  SelectValue,
+  User,
+} from 'sentry/types';
 import {
   aggregateOutputType,
   Column,
@@ -181,15 +188,13 @@ export const fromSorts = (sorts: string | string[] | undefined): Array<Sort> => 
   }, []);
 };
 
-const decodeSorts = (location: Location): Array<Sort> => {
+export const decodeSorts = (location: Location): Array<Sort> => {
   const {query} = location;
 
   if (!query || !query.sort) {
     return [];
   }
-
   const sorts = decodeList(query.sort);
-
   return fromSorts(sorts);
 };
 
@@ -321,19 +326,20 @@ class EventView {
 
     // only include sort keys that are included in the fields
     let equations = 0;
-    const sortKeys = fields
-      .map(field => {
-        if (field.field && isEquation(field.field)) {
-          const sortKey = getSortKeyFromField(
-            {field: `equation[${equations}]`},
-            undefined
-          );
-          equations += 1;
-          return sortKey;
+    const sortKeys: string[] = [];
+    fields.forEach(field => {
+      if (field.field && isEquation(field.field)) {
+        const sortKey = getSortKeyFromField({field: `equation[${equations}]`}, undefined);
+        equations += 1;
+        if (sortKey) {
+          sortKeys.push(sortKey);
         }
-        return getSortKeyFromField(field, undefined);
-      })
-      .filter((sortKey): sortKey is string => !!sortKey);
+      }
+      const sortKey = getSortKeyFromField(field, undefined);
+      if (sortKey) {
+        sortKeys.push(sortKey);
+      }
+    });
 
     const sort = sorts.find(currentSort => sortKeys.includes(currentSort.field));
     sorts = sort ? [sort] : [];
@@ -457,6 +463,7 @@ class EventView {
       yAxis: Array.isArray(saved.yAxis) ? saved.yAxis[0] : saved.yAxis,
       display: saved.display,
       topEvents: saved.topEvents ? saved.topEvents.toString() : undefined,
+      interval: saved.interval,
       createdBy: saved.createdBy,
       expired: saved.expired,
       additionalConditions: new MutableSearch([]),
@@ -498,7 +505,7 @@ class EventView {
           saved.topEvents ||
           TOP_N
         ).toString(),
-        interval: decodeScalar(location.query.interval),
+        interval: decodeScalar(location.query.interval) || saved.interval,
         createdBy: saved.createdBy,
         expired: saved.expired,
         additionalConditions: new MutableSearch([]),
@@ -518,7 +525,7 @@ class EventView {
     return EventView.fromLocation(location);
   }
 
-  isEqualTo(other: EventView): boolean {
+  isEqualTo(other: EventView, omitList: string[] = []): boolean {
     const defaults = {
       id: undefined,
       name: undefined,
@@ -528,11 +535,12 @@ class EventView {
       sorts: undefined,
       project: undefined,
       environment: undefined,
+      interval: undefined,
       yAxis: 'count()',
       display: DisplayModes.DEFAULT,
       topEvents: '5',
     };
-    const keys = Object.keys(defaults);
+    const keys = Object.keys(defaults).filter(key => !omitList.includes(key));
     for (const key of keys) {
       const currentValue = this[key] ?? defaults[key];
       const otherValue = other[key] ?? defaults[key];
@@ -582,6 +590,7 @@ class EventView {
       yAxis: this.yAxis ? [this.yAxis] : undefined,
       display: this.display,
       topEvents: this.topEvents,
+      interval: this.interval,
     };
 
     if (!newQuery.query) {
@@ -1162,9 +1171,13 @@ class EventView {
     return eventQuery;
   }
 
-  getResultsViewUrlTarget(slug: string): {pathname: string; query: Query} {
+  getResultsViewUrlTarget(
+    slug: string,
+    isHomepage: boolean = false
+  ): {pathname: string; query: Query} {
+    const target = isHomepage ? 'homepage' : 'results';
     return {
-      pathname: `/organizations/${slug}/discover/results/`,
+      pathname: `/organizations/${slug}/discover/${target}/`,
       query: this.generateQueryStringObject(),
     };
   }
@@ -1382,6 +1395,28 @@ class EventView {
       }
     });
     return conditions.formatString();
+  }
+
+  /**
+   * Eventview usually just holds onto a project id for selected projects.
+   * Sometimes we need to iterate over the related project objects, this will give you the full projects if the Projects list is passed in.
+   * Also covers the 'My Projects' case which is sometimes missed, tries using the 'isMember' property of projects to pick the right list.
+   */
+  getFullSelectedProjects(fullProjectList: Project[]) {
+    const selectedProjectIds = this.project;
+    const isMyProjects = selectedProjectIds.length === 0;
+    if (isMyProjects) {
+      return fullProjectList.filter(p => p.isMember);
+    }
+    const isAllProjects =
+      selectedProjectIds.length === 1 && selectedProjectIds[0] === ALL_ACCESS_PROJECTS;
+    if (isAllProjects) {
+      return fullProjectList;
+    }
+
+    const projectMap = Object.fromEntries(fullProjectList.map(p => [String(p.id), p]));
+
+    return selectedProjectIds.map(id => projectMap[String(id)]);
   }
 }
 

@@ -224,7 +224,7 @@ function ReleaseAdoption({
   });
 
   const adoptionStage = release.adoptionStages?.[project.slug]?.stage;
-  const adoptionStageLabel = ADOPTION_STAGE_LABELS[adoptionStage];
+  const adoptionStageLabel = adoptionStage ? ADOPTION_STAGE_LABELS[adoptionStage] : null;
   const multipleEnvironments = environment.length === 0 || environment.length > 1;
 
   return (

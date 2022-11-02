@@ -260,11 +260,11 @@ class ProjectCardContainer extends Component<ContainerProps, ContainerState> {
 
   listeners = [
     ProjectsStatsStore.listen(itemsBySlug => {
-      this.onProjectStoreUpdate(itemsBySlug);
+      this.onProjectStatsStoreUpdate(itemsBySlug);
     }, undefined),
   ];
 
-  onProjectStoreUpdate(itemsBySlug: typeof ProjectsStatsStore['itemsBySlug']) {
+  onProjectStatsStoreUpdate(itemsBySlug: typeof ProjectsStatsStore['itemsBySlug']) {
     const {project} = this.props;
 
     // Don't update state if we already have stats

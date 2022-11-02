@@ -4,14 +4,17 @@ import debounce from 'lodash/debounce';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import Count from 'sentry/components/count';
-import SelectField from 'sentry/components/forms/selectField';
-import {t} from 'sentry/locale';
-import {Organization, Project, TagValue as IssueTagValue} from 'sentry/types';
-import {SamplingInnerName} from 'sentry/types/sampling';
+import SelectField from 'sentry/components/forms/fields/selectField';
+import {
+  Organization,
+  Project,
+  SelectValue,
+  TagValue as IssueTagValue,
+} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 
 import {TruncatedLabel} from './truncatedLabel';
-import {formatCreateTagLabel, getMatchFieldPlaceholder} from './utils';
+import {formatCreateTagLabel} from './utils';
 
 type TagValue = Pick<
   IssueTagValue,
@@ -19,10 +22,12 @@ type TagValue = Pick<
 >;
 
 export interface TagValueAutocompleteProps {
-  category: SamplingInnerName.TRACE_ENVIRONMENT | SamplingInnerName.TRACE_RELEASE;
   onChange: (value: string) => void;
   orgSlug: Organization['slug'];
   projectId: Project['id'];
+  ariaLabel?: string;
+  placeholder?: string;
+  prependOptions?: SelectValue<string>[];
   tagKey?: string;
   value?: string;
 }
@@ -30,23 +35,14 @@ export interface TagValueAutocompleteProps {
 function TagValueAutocomplete({
   orgSlug,
   projectId,
-  category,
   onChange,
   value,
   tagKey,
+  placeholder,
+  ariaLabel,
+  prependOptions = [],
 }: TagValueAutocompleteProps) {
   const api = useApi();
-
-  function getAriaLabel() {
-    switch (category) {
-      case SamplingInnerName.TRACE_RELEASE:
-        return t('Search or add a release');
-      case SamplingInnerName.TRACE_ENVIRONMENT:
-        return t('Search or add an environment');
-      default:
-        return undefined;
-    }
-  }
 
   const debouncedFetchValues = debounce(async (inputValue, resolve) => {
     if (!tagKey) {
@@ -54,17 +50,15 @@ function TagValueAutocomplete({
     }
 
     return resolve(
-      await fetchTagValues(
+      await fetchTagValues({
         api,
         orgSlug,
         tagKey,
-        inputValue,
-        [projectId],
-        null,
-        true,
-        undefined,
-        '-count'
-      )
+        search: inputValue,
+        projectIds: [projectId],
+        includeTransactions: true,
+        sort: '-count',
+      })
     );
   }, 250);
 
@@ -78,6 +72,7 @@ function TagValueAutocomplete({
       ? value
           .split('\n')
           .filter(v => !response.some(tagValue => tagValue.value === v))
+          .filter(v => !prependOptions.some(option => option.value === v))
           .map(v => ({
             value: v,
             name: v,
@@ -88,11 +83,13 @@ function TagValueAutocomplete({
           }))
       : [];
 
-    return [...response, ...createdOptions].map(tagValue => ({
+    const options = [...response, ...createdOptions].map(tagValue => ({
       value: tagValue.value,
       label: <TruncatedLabel value={tagValue.value} />,
       trailingItems: <StyledCount value={tagValue.count} />,
     }));
+
+    return [...prependOptions, ...options];
   };
 
   return (
@@ -101,7 +98,7 @@ function TagValueAutocomplete({
       // The key is used as a way to force a reload of the options:
       // https://github.com/JedWatson/react-select/issues/1879#issuecomment-316871520
       key={tagKey}
-      aria-label={getAriaLabel()}
+      aria-label={ariaLabel}
       value={value ? value?.split('\n').map(v => ({value: v, label: v})) : []}
       onChange={newValue => {
         onChange(newValue?.join('\n'));
@@ -131,7 +128,7 @@ function TagValueAutocomplete({
         );
       }}
       filterOption={(option, filterText) => option.data.value.indexOf(filterText) > -1}
-      placeholder={getMatchFieldPlaceholder(category)}
+      placeholder={placeholder}
       inline={false}
       multiple
       hideControlState

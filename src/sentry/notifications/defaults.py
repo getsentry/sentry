@@ -19,6 +19,8 @@ NOTIFICATION_SETTINGS_ALL_SOMETIMES = {
     NotificationSettingTypes.QUOTA_TRANSACTIONS: NotificationSettingOptionValues.ALWAYS,
     NotificationSettingTypes.QUOTA_ATTACHMENTS: NotificationSettingOptionValues.ALWAYS,
     NotificationSettingTypes.QUOTA_WARNINGS: NotificationSettingOptionValues.ALWAYS,
+    NotificationSettingTypes.QUOTA_SPEND_ALLOCATIONS: NotificationSettingOptionValues.ALWAYS,
+    NotificationSettingTypes.SPIKE_PROTECTION: NotificationSettingOptionValues.ALWAYS,
 }
 
 
@@ -33,6 +35,8 @@ NOTIFICATION_SETTINGS_DEFAULT_OFF = {
     NotificationSettingTypes.QUOTA_TRANSACTIONS: NotificationSettingOptionValues.NEVER,
     NotificationSettingTypes.QUOTA_ATTACHMENTS: NotificationSettingOptionValues.NEVER,
     NotificationSettingTypes.QUOTA_WARNINGS: NotificationSettingOptionValues.NEVER,
+    NotificationSettingTypes.QUOTA_SPEND_ALLOCATIONS: NotificationSettingOptionValues.NEVER,
+    NotificationSettingTypes.SPIKE_PROTECTION: NotificationSettingOptionValues.NEVER,
 }
 
 

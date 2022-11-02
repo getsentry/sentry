@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import contextlib
 import os
 import signal
 import subprocess
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Generator, Literal, overload
 
 import click
 import requests
@@ -21,40 +22,63 @@ RAW_SOCKET_HACK_PATH = os.path.expanduser(
 if os.path.exists(RAW_SOCKET_HACK_PATH):
     os.environ["DOCKER_HOST"] = "unix://" + RAW_SOCKET_HACK_PATH
 
+# assigned as a constant so mypy's "unreachable" detection doesn't fail on linux
+# https://github.com/python/mypy/issues/12286
+DARWIN = sys.platform == "darwin"
 
-def get_docker_client() -> docker.DockerClient:
+
+@contextlib.contextmanager
+def get_docker_client() -> Generator[docker.DockerClient, None, None]:
     import docker
 
-    client = docker.from_env()
-    try:
-        client.ping()
-        return client
-    except (requests.exceptions.ConnectionError, docker.errors.APIError):
-        click.echo("Attempting to start docker...")
-        if sys.platform == "darwin":
-            subprocess.check_call(
-                ("open", "-a", "/Applications/Docker.app", "--args", "--unattended")
-            )
-        else:
-            click.echo("Unable to start docker.")
-            raise click.ClickException("Make sure docker is running.")
+    with contextlib.closing(docker.from_env()) as client:
+        try:
+            client.ping()
+        except (requests.exceptions.ConnectionError, docker.errors.APIError):
+            click.echo("Attempting to start docker...")
+            if DARWIN:
+                subprocess.check_call(
+                    ("open", "-a", "/Applications/Docker.app", "--args", "--unattended")
+                )
+            else:
+                click.echo("Unable to start docker.")
+                raise click.ClickException("Make sure docker is running.")
 
-        max_wait = 60
-        timeout = time.monotonic() + max_wait
+            max_wait = 60
+            timeout = time.monotonic() + max_wait
 
-        click.echo(f"Waiting for docker to be ready.... (timeout in {max_wait}s)")
-        while time.monotonic() < timeout:
-            time.sleep(1)
-            try:
-                client.ping()
-                return client
-            except (requests.exceptions.ConnectionError, docker.errors.APIError):
-                continue
+            click.echo(f"Waiting for docker to be ready.... (timeout in {max_wait}s)")
+            while time.monotonic() < timeout:
+                time.sleep(1)
+                try:
+                    client.ping()
+                except (requests.exceptions.ConnectionError, docker.errors.APIError):
+                    continue
+                else:
+                    break
+            else:
+                raise click.ClickException("Failed to start docker.")
 
-        raise click.ClickException("Failed to start docker.")
+        yield client
 
 
-def get_or_create(client, thing, name):
+@overload
+def get_or_create(
+    client: docker.DockerClient, thing: Literal["network"], name: str
+) -> docker.modlels.networks.Network:
+    ...
+
+
+@overload
+def get_or_create(
+    client: docker.DockerClient, thing: Literal["volume"], name: str
+) -> docker.models.volumes.Volume:
+    ...
+
+
+def get_or_create(
+    client: docker.DockerClient, thing: Literal["network", "volume"], name: str
+) -> docker.models.networks.Network | docker.models.volumes.Volume:
     from docker.errors import NotFound
 
     try:
@@ -64,7 +88,7 @@ def get_or_create(client, thing, name):
         return getattr(client, thing + "s").create(name)
 
 
-def retryable_pull(client, image, max_attempts=5):
+def retryable_pull(client: docker.DockerClient, image: str, max_attempts: int = 5) -> None:
     from docker.errors import ImageNotFound
 
     current_attempt = 0
@@ -84,7 +108,7 @@ def retryable_pull(client, image, max_attempts=5):
         break
 
 
-def ensure_interface(ports):
+def ensure_interface(ports: dict[str, int | tuple[str, int]]) -> dict[str, tuple[str, int]]:
     # If there is no interface specified, make sure the
     # default interface is 127.0.0.1
     rv = {}
@@ -96,15 +120,12 @@ def ensure_interface(ports):
 
 
 @click.group()
-@click.pass_context
-def devservices(ctx):
+def devservices() -> None:
     """
     Manage dependent development services required for Sentry.
 
     Do not use in production!
     """
-    ctx.obj["client"] = get_docker_client()
-
     # Disable backend validation so no devservices commands depend on like,
     # redis to be already running.
     os.environ["SENTRY_SKIP_BACKEND_VALIDATION"] = "1"
@@ -114,8 +135,7 @@ def devservices(ctx):
 @click.option("--project", default="sentry")
 @click.option("--fast", is_flag=True, default=False, help="Never pull and reuse containers.")
 @click.argument("service", nargs=1)
-@click.pass_context
-def attach(ctx, project, fast, service):
+def attach(project: str, fast: bool, service: str) -> None:
     """
     Run a single devservice in the foreground.
 
@@ -134,29 +154,30 @@ def attach(ctx, project, fast, service):
     if service not in containers:
         raise click.ClickException(f"Service `{service}` is not known or not enabled.")
 
-    container = _start_service(
-        ctx.obj["client"],
-        service,
-        containers,
-        project,
-        fast=fast,
-        always_start=True,
-    )
+    with get_docker_client() as docker_client:
+        container = _start_service(
+            docker_client,
+            service,
+            containers,
+            project,
+            fast=fast,
+            always_start=True,
+        )
 
-    def exit_handler(*_):
-        try:
-            click.echo(f"Stopping {service}")
-            container.stop()
-            click.echo(f"Removing {service}")
-            container.remove()
-        except KeyboardInterrupt:
-            pass
+        def exit_handler(*_: Any) -> None:
+            try:
+                click.echo(f"Stopping {service}")
+                container.stop()
+                click.echo(f"Removing {service}")
+                container.remove()
+            except KeyboardInterrupt:
+                pass
 
-    signal.signal(signal.SIGINT, exit_handler)
-    signal.signal(signal.SIGTERM, exit_handler)
+        signal.signal(signal.SIGINT, exit_handler)
+        signal.signal(signal.SIGTERM, exit_handler)
 
-    for line in container.logs(stream=True, since=int(time.time() - 20)):
-        click.echo(line, nl=False)
+        for line in container.logs(stream=True, since=int(time.time() - 20)):
+            click.echo(line, nl=False)
 
 
 @devservices.command()
@@ -167,8 +188,13 @@ def attach(ctx, project, fast, service):
 @click.option(
     "--skip-only-if", is_flag=True, default=False, help="Skip 'only_if' checks for services"
 )
-@click.pass_context
-def up(ctx, services, project, exclude, fast, skip_only_if):
+def up(
+    services: list[str],
+    project: str,
+    exclude: list[str],
+    fast: bool,
+    skip_only_if: bool,
+) -> None:
     """
     Run/update all devservices in the background.
 
@@ -216,37 +242,40 @@ def up(ctx, services, project, exclude, fast, skip_only_if):
             fg="red",
         )
 
-    get_or_create(ctx.obj["client"], "network", project)
+    with get_docker_client() as docker_client:
+        get_or_create(docker_client, "network", project)
 
-    with ThreadPoolExecutor(max_workers=len(selected_services)) as executor:
-        futures = []
-        for name in selected_services:
-            futures.append(
-                executor.submit(
-                    _start_service,
-                    ctx.obj["client"],
-                    name,
-                    containers,
-                    project,
-                    fast=fast,
+        with ThreadPoolExecutor(max_workers=len(selected_services)) as executor:
+            futures = []
+            for name in selected_services:
+                futures.append(
+                    executor.submit(
+                        _start_service,
+                        docker_client,
+                        name,
+                        containers,
+                        project,
+                        fast=fast,
+                    )
                 )
-            )
-        for future in as_completed(futures):
-            # If there was an exception, reraising it here to the main thread
-            # will not terminate the whole python process. We'd like to report
-            # on this exception and stop as fast as possible, so terminate
-            # ourselves. I believe (without verification) that the OS is now
-            # free to cleanup these threads, but not sure if they'll remain running
-            # in the background. What matters most is that we regain control
-            # of the terminal.
-            e = future.exception()
-            if e:
-                click.echo(e)
-                me = os.getpid()
-                os.kill(me, signal.SIGTERM)
+            for future in as_completed(futures):
+                # If there was an exception, reraising it here to the main thread
+                # will not terminate the whole python process. We'd like to report
+                # on this exception and stop as fast as possible, so terminate
+                # ourselves. I believe (without verification) that the OS is now
+                # free to cleanup these threads, but not sure if they'll remain running
+                # in the background. What matters most is that we regain control
+                # of the terminal.
+                e = future.exception()
+                if e:
+                    click.echo(e)
+                    me = os.getpid()
+                    os.kill(me, signal.SIGTERM)
 
 
-def _prepare_containers(project, skip_only_if=False, silent=False):
+def _prepare_containers(
+    project: str, skip_only_if: bool = False, silent: bool = False
+) -> dict[str, Any]:
     from django.conf import settings
 
     from sentry import options as sentry_options
@@ -279,7 +308,38 @@ def _prepare_containers(project, skip_only_if=False, silent=False):
     return containers
 
 
-def _start_service(client, name, containers, project, fast=False, always_start=False):
+@overload
+def _start_service(
+    client: docker.DockerClient,
+    name: str,
+    containers: dict[str, Any],
+    project: str,
+    fast: bool = False,
+    always_start: Literal[True] = ...,
+) -> docker.models.containers.Container:
+    ...
+
+
+@overload
+def _start_service(
+    client: docker.DockerClient,
+    name: str,
+    containers: dict[str, Any],
+    project: str,
+    fast: bool = False,
+    always_start: bool = False,
+) -> docker.models.containers.Container | None:
+    ...
+
+
+def _start_service(
+    client: docker.DockerClient,
+    name: str,
+    containers: dict[str, Any],
+    project: str,
+    fast: bool = False,
+    always_start: bool = False,
+) -> docker.models.containers.Container | None:
     from django.conf import settings
 
     from docker.errors import NotFound
@@ -381,8 +441,7 @@ def _start_service(client, name, containers, project, fast=False, always_start=F
 @devservices.command()
 @click.option("--project", default="sentry")
 @click.argument("service", nargs=-1)
-@click.pass_context
-def down(ctx, project, service):
+def down(project: str, service: list[str]) -> None:
     """
     Shut down services without deleting their underlying containers and data.
     Useful if you want to temporarily relieve resources on your computer.
@@ -392,7 +451,7 @@ def down(ctx, project, service):
     """
     # TODO: make more like devservices rm
 
-    def _down(container):
+    def _down(container: docker.models.containers.Container) -> None:
         click.secho(f"> Stopping '{container.name}' container", fg="red")
         container.stop()
         click.secho(f"> Stopped '{container.name}' container", fg="red")
@@ -400,37 +459,37 @@ def down(ctx, project, service):
     containers = []
     prefix = f"{project}_"
 
-    for container in ctx.obj["client"].containers.list(all=True):
-        if not container.name.startswith(prefix):
-            continue
-        if service and not container.name[len(prefix) :] in service:
-            continue
-        containers.append(container)
+    with get_docker_client() as docker_client:
+        for container in docker_client.containers.list(all=True):
+            if not container.name.startswith(prefix):
+                continue
+            if service and not container.name[len(prefix) :] in service:
+                continue
+            containers.append(container)
 
-    with ThreadPoolExecutor(max_workers=len(containers)) as executor:
-        futures = []
-        for container in containers:
-            futures.append(executor.submit(_down, container))
-        for future in as_completed(futures):
-            # If there was an exception, reraising it here to the main thread
-            # will not terminate the whole python process. We'd like to report
-            # on this exception and stop as fast as possible, so terminate
-            # ourselves. I believe (without verification) that the OS is now
-            # free to cleanup these threads, but not sure if they'll remain running
-            # in the background. What matters most is that we regain control
-            # of the terminal.
-            e = future.exception()
-            if e:
-                click.echo(e)
-                me = os.getpid()
-                os.kill(me, signal.SIGTERM)
+        with ThreadPoolExecutor(max_workers=len(containers)) as executor:
+            futures = []
+            for container in containers:
+                futures.append(executor.submit(_down, container))
+            for future in as_completed(futures):
+                # If there was an exception, reraising it here to the main thread
+                # will not terminate the whole python process. We'd like to report
+                # on this exception and stop as fast as possible, so terminate
+                # ourselves. I believe (without verification) that the OS is now
+                # free to cleanup these threads, but not sure if they'll remain running
+                # in the background. What matters most is that we regain control
+                # of the terminal.
+                e = future.exception()
+                if e:
+                    click.echo(e)
+                    me = os.getpid()
+                    os.kill(me, signal.SIGTERM)
 
 
 @devservices.command()
 @click.option("--project", default="sentry")
 @click.argument("services", nargs=-1)
-@click.pass_context
-def rm(ctx, project, services):
+def rm(project: str, services: list[str]) -> None:
     """
     Shut down and delete all services and associated data.
     Useful if you'd like to start with a fresh slate.
@@ -473,39 +532,40 @@ Are you sure you want to continue?"""
         abort=True,
     )
 
-    volume_to_service = {}
-    for service_name, container_options in containers.items():
-        try:
-            container = ctx.obj["client"].containers.get(container_options["name"])
-        except NotFound:
-            click.secho(
-                "> WARNING: non-existent container '%s'" % container_options["name"],
-                err=True,
-                fg="yellow",
-            )
-            continue
+    with get_docker_client() as docker_client:
+        volume_to_service = {}
+        for service_name, container_options in containers.items():
+            try:
+                container = docker_client.containers.get(container_options["name"])
+            except NotFound:
+                click.secho(
+                    "> WARNING: non-existent container '%s'" % container_options["name"],
+                    err=True,
+                    fg="yellow",
+                )
+                continue
 
-        click.secho("> Stopping '%s' container" % container_options["name"], err=True, fg="red")
-        container.stop()
-        click.secho("> Removing '%s' container" % container_options["name"], err=True, fg="red")
-        container.remove()
-        for volume in container_options.get("volumes") or ():
-            volume_to_service[volume] = service_name
+            click.secho("> Stopping '%s' container" % container_options["name"], err=True, fg="red")
+            container.stop()
+            click.secho("> Removing '%s' container" % container_options["name"], err=True, fg="red")
+            container.remove()
+            for volume in container_options.get("volumes") or ():
+                volume_to_service[volume] = service_name
 
-    prefix = project + "_"
+        prefix = project + "_"
 
-    for volume in ctx.obj["client"].volumes.list():
-        if volume.name.startswith(prefix):
-            local_name = volume.name[len(prefix) :]
-            if not services or volume_to_service.get(local_name) in services:
-                click.secho("> Removing '%s' volume" % volume.name, err=True, fg="red")
-                volume.remove()
+        for volume in docker_client.volumes.list():
+            if volume.name.startswith(prefix):
+                local_name = volume.name[len(prefix) :]
+                if not services or volume_to_service.get(local_name) in services:
+                    click.secho("> Removing '%s' volume" % volume.name, err=True, fg="red")
+                    volume.remove()
 
-    if not services:
-        try:
-            network = ctx.obj["client"].networks.get(project)
-        except NotFound:
-            pass
-        else:
-            click.secho("> Removing '%s' network" % network.name, err=True, fg="red")
-            network.remove()
+        if not services:
+            try:
+                network = docker_client.networks.get(project)
+            except NotFound:
+                pass
+            else:
+                click.secho("> Removing '%s' network" % network.name, err=True, fg="red")
+                network.remove()

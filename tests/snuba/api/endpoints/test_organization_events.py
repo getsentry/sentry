@@ -24,6 +24,7 @@ from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_not_arm64
+from sentry.types.issues import GroupType
 from sentry.utils import json
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import QueryExecutionError, QueryIllegalTypeOfArgument, RateLimitExceeded
@@ -492,6 +493,109 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["data"] == [
             {"project.name": self.project.slug, "id": "a" * 32, "count()": 1}
         ]
+
+    def test_performance_issue_ids_filter(self):
+        data = load_data(
+            platform="transaction",
+            timestamp=before_now(minutes=10),
+            start_timestamp=before_now(minutes=11),
+            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
+        )
+        event = self.store_event(data=data, project_id=self.project.id)
+
+        query = {
+            "field": ["count()"],
+            "statsPeriod": "2h",
+            "query": f"project:{self.project.slug} performance.issue_ids:{event.groups[0].id}",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data["data"][0]["count()"] == 1
+
+    def test_has_performance_issue_ids(self):
+        data = load_data(
+            platform="transaction",
+            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
+        )
+        self.store_event(data=data, project_id=self.project.id)
+
+        query = {
+            "field": ["count()"],
+            "statsPeriod": "1h",
+            "query": "has:performance.issue_ids",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data["data"][0]["count()"] == 1
+
+        query = {
+            "field": ["count()"],
+            "statsPeriod": "1h",
+            "query": "!has:performance.issue_ids",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data["data"][0]["count()"] == 0
+
+    def test_performance_issue_ids_undefined(self):
+        query = {
+            "field": ["count()"],
+            "statsPeriod": "2h",
+            "query": "performance.issue_ids:undefined",
+            "project": [self.project.id],
+        }
+        response = self.do_request(query)
+        assert response.status_code == 400, response.content
+
+    def test_performance_issue_ids_array_with_undefined(self):
+        query = {
+            "field": ["count()"],
+            "statsPeriod": "2h",
+            "query": "performance.issue_ids:[1,2,3,undefined]",
+            "project": [self.project.id],
+        }
+        response = self.do_request(query)
+        assert response.status_code == 400, response.content
+
+    def test_performance_short_group_id(self):
+        project = self.create_project(name="foo bar")
+        data = load_data(
+            "transaction",
+            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
+        )
+        event = self.store_event(data=data, project_id=project.id)
+
+        query = {
+            "field": ["count()"],
+            "statsPeriod": "1h",
+            "query": f"project:{project.slug} issue:{event.groups[0].qualified_short_id}",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data["data"][0]["count()"] == 1
+
+    def test_multiple_performance_short_group_ids_filter(self):
+        project = self.create_project(name="foo bar")
+        data1 = load_data(
+            "transaction",
+            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
+        )
+        event1 = self.store_event(data=data1, project_id=project.id)
+
+        data2 = load_data(
+            "transaction",
+            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group2"],
+        )
+        event2 = self.store_event(data=data2, project_id=project.id)
+
+        query = {
+            "field": ["count()"],
+            "statsPeriod": "1h",
+            "query": f"project:{project.slug} issue:[{event1.groups[0].qualified_short_id},{event2.groups[0].qualified_short_id}]",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data["data"][0]["count()"] == 2
 
     def test_event_id_with_in_search(self):
         self.store_event(
@@ -5181,3 +5285,102 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         }
         response = self.do_request(query)
         assert response.status_code == 200, response.content
+
+    @mock.patch("sentry.search.events.builder.raw_snql_query")
+    def test_profiles_dataset_simple(self, mock_snql_query):
+        mock_snql_query.side_effect = [
+            {
+                "data": [
+                    {
+                        "project": self.project.id,
+                        "transaction": "foo",
+                        "last_seen": "2022-10-20T16:41:22+00:00",
+                        "latest_event": "a" * 32,
+                        "count": 1,
+                        "count_unique_transaction": 1,
+                        "percentile_profile_duration_0_25": 1,
+                        "p50_profile_duration": 1,
+                        "p75_profile_duration": 1,
+                        "p95_profile_duration": 1,
+                        "p99_profile_duration": 1,
+                        "p100_profile_duration": 1,
+                        "min_profile_duration": 1,
+                        "max_profile_duration": 1,
+                        "avg_profile_duration": 1,
+                        "sum_profile_duration": 1,
+                    },
+                ],
+                "meta": [
+                    {
+                        "name": "project",
+                        "type": "UInt64",
+                    },
+                    {
+                        "name": "transaction",
+                        "type": "LowCardinality(String)",
+                    },
+                    {
+                        "name": "last_seen",
+                        "type": "DateTime",
+                    },
+                    {
+                        "name": "latest_event",
+                        "type": "String",
+                    },
+                    {
+                        "name": "count",
+                        "type": "UInt64",
+                    },
+                    {
+                        "name": "count_unique_transaction",
+                        "type": "UInt64",
+                    },
+                    {
+                        "name": "percentile_profile_duration_0_25",
+                        "type": "Float64",
+                    },
+                    *[
+                        {
+                            "name": f"{fn}_profile_duration",
+                            "type": "Float64",
+                        }
+                        for fn in ["p50", "p75", "p95", "p99", "p100", "min", "max", "avg", "sum"]
+                    ],
+                ],
+            },
+        ]
+
+        fields = [
+            "project",
+            "transaction",
+            "last_seen()",
+            "latest_event()",
+            "count()",
+            "count_unique(transaction)",
+            "percentile(profile.duration, 0.25)",
+            "p50(profile.duration)",
+            "p75(profile.duration)",
+            "p95(profile.duration)",
+            "p99(profile.duration)",
+            "p100(profile.duration)",
+            "min(profile.duration)",
+            "max(profile.duration)",
+            "avg(profile.duration)",
+            "sum(profile.duration)",
+        ]
+
+        query = {
+            "field": fields,
+            "project": [self.project.id],
+            "dataset": "profiles",
+        }
+        response = self.do_request(query, features={"organizations:profiling": True})
+        assert response.status_code == 200, response.content
+
+        # making sure the response keys are in the form we expect and not aliased
+        data_keys = {key for row in response.data["data"] for key in row}
+        field_keys = {key for key in response.data["meta"]["fields"]}
+        unit_keys = {key for key in response.data["meta"]["units"]}
+        assert set(fields) == data_keys
+        assert set(fields) == field_keys
+        assert set(fields) == unit_keys

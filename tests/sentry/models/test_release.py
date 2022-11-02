@@ -1,3 +1,4 @@
+from unittest.mock import call as mock_call
 from unittest.mock import patch
 
 import pytest
@@ -28,6 +29,7 @@ from sentry.models import (
     ReleaseHeadCommit,
     ReleaseProject,
     ReleaseProjectEnvironment,
+    ReleaseProjectModelManager,
     ReleaseStatus,
     Repository,
     add_group_to_inbox,
@@ -35,6 +37,7 @@ from sentry.models import (
 )
 from sentry.search.events.filter import parse_semver
 from sentry.testutils import SetRefsTestCase, TestCase
+from sentry.testutils.helpers import Feature
 from sentry.utils.strings import truncatechars
 
 
@@ -674,6 +677,9 @@ class SetRefsTest(SetRefsTestCase):
 
         assert len(mock_fetch_commit.method_calls) == 0
 
+    def test_invalid_version_none_value(self):
+        assert not Release.is_valid_version(None)
+
     def test_invalid_version(self):
         cases = ["", "latest", ".", "..", "\t", "\n", "  "]
 
@@ -1299,3 +1305,65 @@ class ClearCommitsTestCase(TestCase):
         assert Commit.objects.filter(
             id=commit2.id, organization_id=org.id, repository_id=repo.id
         ).exists()
+
+
+from sentry.testutils import TransactionTestCase
+
+
+class ReleaseProjectManagerTestCase(TransactionTestCase):
+    def test_custom_manger(self):
+        self.assertIsInstance(ReleaseProject.objects, ReleaseProjectModelManager)
+
+    def test_post_save_signal_runs_if_dynamic_sampling_is_disabled(self):
+        self.project = self.create_project(name="foo")
+        self.datetime_now = timezone.now()
+
+        self.release = Release.objects.create(
+            organization_id=self.project.organization_id, version="42"
+        )
+        with patch("sentry.models.release.schedule_invalidate_project_config") as mock_task:
+            self.release.add_project(self.project)
+            assert mock_task.mock_calls == []
+
+    def test_post_save_signal_runs_if_dynamic_sampling_is_enabled(self):
+        with Feature(
+            {
+                "organizations:server-side-sampling": True,
+                "organizations:dynamic-sampling-deprecated": True,
+            }
+        ):
+            self.project = self.create_project(name="foo")
+
+            self.project.update_option(
+                "sentry:dynamic_sampling",
+                {
+                    "rules": [
+                        {
+                            "sampleRate": 0.7,
+                            "type": "trace",
+                            "active": True,
+                            "condition": {
+                                "op": "and",
+                                "inner": [
+                                    {
+                                        "op": "glob",
+                                        "name": "trace.release",
+                                        "value": ["latest"],
+                                    }
+                                ],
+                            },
+                            "id": 0,
+                        },
+                    ]
+                },
+            )
+            self.datetime_now = timezone.now()
+
+            self.release = Release.objects.create(
+                organization_id=self.project.organization_id, version="42"
+            )
+            with patch("sentry.models.release.schedule_invalidate_project_config") as mock_task:
+                self.release.add_project(self.project)
+                assert mock_task.mock_calls == [
+                    mock_call(project_id=self.project.id, trigger="releaseproject.post_save")
+                ]

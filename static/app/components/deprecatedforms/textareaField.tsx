@@ -4,6 +4,11 @@ type State = InputField['state'] & {
   value?: string;
 };
 
+// XXX: This is ONLY used in GenericField. If we can delete that this can go.
+
+/**
+ * @deprecated Do not use this
+ */
 export default class TextareaField extends InputField<InputField['props'], State> {
   getField() {
     return (

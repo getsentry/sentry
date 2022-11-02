@@ -63,19 +63,29 @@ export function useContextMenu({container}: UseContextMenuOptions) {
     };
   }, [itemProps, wrapSetOpen]);
 
-  const getMenuItemProps = useCallback(() => {
-    const menuItemProps = itemProps.getItemProps();
+  const getMenuItemProps = useCallback(
+    ({onClick}: {onClick?: () => void} = {}) => {
+      const menuItemProps = itemProps.getItemProps();
 
-    return {
-      ...menuItemProps,
-      onKeyDown: (evt: React.KeyboardEvent) => {
-        if (evt.key === 'Escape') {
-          wrapSetOpen(false);
-        }
-        menuItemProps.onKeyDown(evt);
-      },
-    };
-  }, [itemProps, wrapSetOpen]);
+      return {
+        ...menuItemProps,
+        onClick: (evt: React.MouseEvent) => {
+          evt.preventDefault();
+          onClick?.();
+        },
+        onKeyDown: (evt: React.KeyboardEvent) => {
+          if (evt.key === 'Escape') {
+            wrapSetOpen(false);
+          }
+          if (evt.key === 'Enter') {
+            onClick?.();
+          }
+          menuItemProps.onKeyDown(evt);
+        },
+      };
+    },
+    [itemProps, wrapSetOpen]
+  );
 
   const handleContextMenu = useCallback(
     (evt: React.MouseEvent) => {

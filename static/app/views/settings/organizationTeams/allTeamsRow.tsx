@@ -4,13 +4,13 @@ import styled from '@emotion/styled';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organizations';
 import {joinTeam, leaveTeam} from 'sentry/actionCreators/teams';
-import TeamActions from 'sentry/actions/teamActions';
 import {Client} from 'sentry/api';
 import Button from 'sentry/components/button';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
 import {PanelItem} from 'sentry/components/panels';
 import {t, tct, tn} from 'sentry/locale';
+import TeamStore from 'sentry/stores/teamStore';
 import space from 'sentry/styles/space';
 import {Organization, Team} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
@@ -35,9 +35,9 @@ class AllTeamsRow extends Component<Props, State> {
   };
 
   reloadProjects() {
-    const {organization} = this.props;
+    const {api, organization} = this.props;
     // After a change in teams has happened, refresh the project store
-    fetchOrganizationDetails(organization.slug, {
+    fetchOrganizationDetails(api, organization.slug, {
       loadProjects: true,
     });
   }
@@ -57,7 +57,7 @@ class AllTeamsRow extends Component<Props, State> {
       });
 
       // Update team so that `isPending` is true
-      TeamActions.updateSuccess(team.slug, {
+      TeamStore.onUpdateSuccess(team.slug, {
         ...team,
         isPending: true,
       });

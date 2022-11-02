@@ -9,7 +9,7 @@ import sentry
 from sentry.digests.backends.base import Backend
 from sentry.digests.backends.redis import RedisBackend
 from sentry.digests.notifications import event_to_record
-from sentry.models import Rule
+from sentry.models import ProjectOwnership, Rule
 from sentry.tasks.digests import deliver_digest
 from sentry.testutils import TestCase
 from sentry.testutils.cases import SlackActivityNotificationTest
@@ -47,6 +47,7 @@ class DigestNotificationTest(TestCase):
         super().setUp()
         self.rule = Rule.objects.create(project=self.project, label="Test Rule", data={})
         self.key = f"mail:p:{self.project.id}"
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         for i in range(USER_COUNT - 1):
             self.create_member(
                 organization=self.organization,
@@ -76,6 +77,7 @@ class DigestSlackNotification(SlackActivityNotificationTest):
         Test that with digests enabled, but Slack notification settings
         (and not email settings), we send a Slack notification
         """
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         backend = RedisBackend()
         digests.digest = backend.digest
         digests.enabled.return_value = True

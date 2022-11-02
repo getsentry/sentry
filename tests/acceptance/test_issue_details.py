@@ -162,7 +162,7 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
     def test_activity_page(self):
         event = self.create_sample_event(platform="python")
         self.page.visit_issue(self.org.slug, event.group.id)
-        self.page.go_to_subtab("Activity")
+        self.page.go_to_subtab("activity")
 
         self.browser.wait_until_test_id("activity-item")
         self.browser.blur()

@@ -4,7 +4,7 @@ import {Location} from 'history';
 
 import {EventQuery} from 'sentry/actionCreators/events';
 import {Client} from 'sentry/api';
-import Pagination from 'sentry/components/pagination';
+import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {metric, trackAnalyticsEvent} from 'sentry/utils/analytics';
@@ -27,16 +27,20 @@ type TableProps = {
   eventView: EventView;
   location: Location;
   onChangeShowTags: () => void;
+  onCursor: CursorHandler;
   organization: Organization;
   setError: (msg: string, code: number) => void;
   showTags: boolean;
   title: string;
+  isHomepage?: boolean;
+  setTips?: (tips: string[]) => void;
 };
 
 type TableState = {
   error: null | string;
   isLoading: boolean;
   pageLinks: null | string;
+  prevView: null | EventView;
   tableData: TableData | null | undefined;
   tableFetchID: symbol | undefined;
 };
@@ -57,6 +61,7 @@ class Table extends PureComponent<TableProps, TableState> {
 
     pageLinks: null,
     tableData: null,
+    prevView: null,
   };
 
   componentDidMount() {
@@ -69,11 +74,22 @@ class Table extends PureComponent<TableProps, TableState> {
     if (
       (!this.state.isLoading && this.shouldRefetchData(prevProps)) ||
       (prevProps.eventView.isValid() === false && this.props.eventView.isValid()) ||
-      prevProps.confirmedQuery !== this.props.confirmedQuery
+      (prevProps.confirmedQuery !== this.props.confirmedQuery && this.didViewChange())
     ) {
       this.fetchData();
     }
   }
+
+  didViewChange = (): boolean => {
+    const {prevView} = this.state;
+    const thisAPIPayload = this.props.eventView.getEventsAPIPayload(this.props.location);
+    if (prevView === null) {
+      return true;
+    }
+    const otherAPIPayload = prevView.getEventsAPIPayload(this.props.location);
+
+    return !isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
+  };
 
   shouldRefetchData = (prevProps: TableProps): boolean => {
     const thisAPIPayload = this.props.eventView.getEventsAPIPayload(this.props.location);
@@ -83,11 +99,13 @@ class Table extends PureComponent<TableProps, TableState> {
   };
 
   fetchData = () => {
-    const {eventView, organization, location, setError, confirmedQuery} = this.props;
+    const {eventView, organization, location, setError, confirmedQuery, setTips} =
+      this.props;
 
     if (!eventView.isValid() || !confirmedQuery) {
       return;
     }
+    this.setState({prevView: eventView});
 
     // note: If the eventView has no aggregates, the endpoint will automatically add the event id in
     // the API payload response
@@ -146,6 +164,16 @@ class Table extends PureComponent<TableProps, TableState> {
           pageLinks: resp ? resp.getResponseHeader('Link') : prevState.pageLinks,
           tableData,
         }));
+
+        const tips: string[] = [];
+        const {query, columns} = tableData?.meta?.tips ?? {};
+        if (query) {
+          tips.push(query);
+        }
+        if (columns) {
+          tips.push(columns);
+        }
+        setTips?.(tips);
       })
       .catch(err => {
         metric.measure({
@@ -179,7 +207,7 @@ class Table extends PureComponent<TableProps, TableState> {
   };
 
   render() {
-    const {eventView} = this.props;
+    const {eventView, onCursor} = this.props;
     const {pageLinks, tableData, isLoading, error} = this.state;
 
     const isFirstPage = pageLinks
@@ -211,7 +239,7 @@ class Table extends PureComponent<TableProps, TableState> {
             );
           }}
         </Measurements>
-        <Pagination pageLinks={pageLinks} />
+        <Pagination pageLinks={pageLinks} onCursor={onCursor} />
       </Container>
     );
   }

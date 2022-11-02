@@ -1,6 +1,7 @@
 import {useEffect} from 'react';
 
 import {DeepPartial} from 'sentry/types/utils';
+import {defined} from 'sentry/utils';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Rect} from 'sentry/utils/profiling/gl/utils';
@@ -16,14 +17,14 @@ import {
   FlamegraphStateValueContext,
 } from './flamegraphContext';
 
-type Candidate = {
+type FlamegraphCandidate = {
   score: number;
   threadId: number | null;
 };
 
 function scoreFlamegraph(
   flamegraph: Flamegraph,
-  focusFrame: FlamegraphProfiles['focusFrame']
+  focusFrame: FlamegraphProfiles['highlightFrame']
 ): number {
   if (focusFrame === null) {
     return 0;
@@ -49,6 +50,12 @@ function scoreFlamegraph(
   return score;
 }
 
+function isValidHighlightFrame(
+  frame: Partial<FlamegraphProfiles['highlightFrame']> | null | undefined
+): frame is NonNullable<FlamegraphProfiles['highlightFrame']> {
+  return !!frame && typeof frame.name === 'string';
+}
+
 interface FlamegraphStateProviderProps {
   children: React.ReactNode;
   initialState?: DeepPartial<FlamegraphState>;
@@ -62,14 +69,14 @@ export function FlamegraphStateProvider(
     flamegraphStateReducer,
     {
       profiles: {
-        focusFrame:
-          props.initialState?.profiles?.focusFrame?.name &&
-          props.initialState?.profiles?.focusFrame?.package
-            ? {
-                name: props.initialState.profiles.focusFrame.name,
-                package: props.initialState.profiles.focusFrame.package,
-              }
-            : DEFAULT_FLAMEGRAPH_STATE.profiles.focusFrame,
+        highlightFrame: isValidHighlightFrame(
+          props.initialState?.profiles?.highlightFrame
+        )
+          ? (props.initialState?.profiles
+              ?.highlightFrame as FlamegraphProfiles['highlightFrame'])
+          : isValidHighlightFrame(DEFAULT_FLAMEGRAPH_STATE.profiles.highlightFrame)
+          ? DEFAULT_FLAMEGRAPH_STATE.profiles.highlightFrame
+          : null,
         selectedRoot: null,
         threadId:
           props.initialState?.profiles?.threadId ??
@@ -104,13 +111,9 @@ export function FlamegraphStateProvider(
   );
 
   useEffect(() => {
-    if (state.profiles.threadId === null && profileGroup.type === 'resolved') {
-      /**
-       * When a focus frame is specified, we need to override the active thread.
-       * We look at each thread and pick the one that scores the highest.
-       */
-      if (state.profiles.focusFrame !== undefined) {
-        const candidate = profileGroup.data.profiles.reduce(
+    if (state.profiles.threadId === null) {
+      if (state.profiles.highlightFrame && profileGroup.type === 'resolved') {
+        const candidate = profileGroup.data.profiles.reduce<FlamegraphCandidate>(
           (prevCandidate, profile) => {
             const flamegraph = new Flamegraph(profile, profile.threadId, {
               inverted: false,
@@ -118,7 +121,7 @@ export function FlamegraphStateProvider(
               configSpace: undefined,
             });
 
-            const score = scoreFlamegraph(flamegraph, state.profiles.focusFrame);
+            const score = scoreFlamegraph(flamegraph, state.profiles.highlightFrame);
 
             return score <= prevCandidate.score
               ? prevCandidate
@@ -127,20 +130,23 @@ export function FlamegraphStateProvider(
                   threadId: profile.threadId,
                 };
           },
-          {score: 0, threadId: null} as Candidate
+          {score: 0, threadId: null}
         );
 
-        if (candidate.threadId !== null) {
+        if (typeof candidate.threadId === 'number') {
           dispatch({type: 'set thread id', payload: candidate.threadId});
           return;
         }
       }
 
-      if (typeof profileGroup.data.activeProfileIndex === 'number') {
+      if (
+        profileGroup.type === 'resolved' &&
+        typeof profileGroup.data.activeProfileIndex === 'number'
+      ) {
         const threadID =
           profileGroup.data.profiles[profileGroup.data.activeProfileIndex].threadId;
 
-        if (threadID) {
+        if (defined(threadID)) {
           dispatch({
             type: 'set thread id',
             payload: threadID,
@@ -148,7 +154,13 @@ export function FlamegraphStateProvider(
         }
       }
     }
-  }, [props.initialState?.profiles?.threadId, profileGroup, state, dispatch]);
+  }, [
+    props.initialState?.profiles?.threadId,
+    profileGroup,
+    state,
+    dispatch,
+    state.profiles.highlightFrame,
+  ]);
 
   return (
     <FlamegraphStateValueContext.Provider value={[state, {nextState, previousState}]}>

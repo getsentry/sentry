@@ -20,7 +20,6 @@ import StreamGroup, {
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {Group} from 'sentry/types';
-import {callIfFunction} from 'sentry/utils/callIfFunction';
 import withApi from 'sentry/utils/withApi';
 import {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {RELATED_ISSUES_BOOLEAN_QUERY_ERROR} from 'sentry/views/alerts/rules/metric/details/relatedIssuesNotAvailable';
@@ -54,7 +53,9 @@ type Props = WithRouterProps & {
   queryFilterDescription?: string;
   queryParams?: Record<string, number | string | string[] | undefined | null>;
   renderEmptyMessage?: () => React.ReactNode;
-  renderErrorMessage?: ({detail: string}, retry: () => void) => React.ReactNode;
+  renderErrorMessage?: (props: {detail: string}, retry: () => void) => React.ReactNode;
+  // where the group list is rendered
+  source?: string;
 } & Partial<typeof defaultProps>;
 
 type State = {
@@ -108,7 +109,7 @@ class GroupList extends Component<Props, State> {
 
   componentWillUnmount() {
     GroupStore.reset();
-    callIfFunction(this.listener);
+    this.listener?.();
   }
 
   listener = GroupStore.listen(() => this.onGroupChange(), undefined);
@@ -235,6 +236,7 @@ class GroupList extends Component<Props, State> {
       queryParams,
       queryFilterDescription,
       narrowGroups,
+      source,
     } = this.props;
     const {loading, error, errorData, groups, memberList, pageLinks} = this.state;
 
@@ -293,6 +295,7 @@ class GroupList extends Component<Props, State> {
                   statsPeriod={statsPeriod}
                   queryFilterDescription={queryFilterDescription}
                   narrowGroups={narrowGroups}
+                  source={source}
                 />
               );
             })}

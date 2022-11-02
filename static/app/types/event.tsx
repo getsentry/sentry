@@ -33,26 +33,74 @@ export type EventGroupingConfig = {
   strategies: string[];
 };
 
+export type VariantEvidence = {
+  desc: string;
+  fingerprint: string;
+  cause_span_hashes?: string[];
+  offender_span_hashes?: string[];
+  op?: string;
+  parent_span_hashes?: string[];
+};
+
 type EventGroupVariantKey = 'custom-fingerprint' | 'app' | 'default' | 'system';
 
 export enum EventGroupVariantType {
+  CHECKSUM = 'checksum',
+  FALLBACK = 'fallback',
   CUSTOM_FINGERPRINT = 'custom-fingerprint',
   COMPONENT = 'component',
   SALTED_COMPONENT = 'salted-component',
+  PERFORMANCE_PROBLEM = 'performance-problem',
 }
 
-export type EventGroupVariant = {
+interface BaseVariant {
   description: string | null;
   hash: string | null;
   hashMismatch: boolean;
-  key: EventGroupVariantKey;
-  type: EventGroupVariantType;
+  key: string;
+  type: string;
+}
+
+interface FallbackVariant extends BaseVariant {
+  type: EventGroupVariantType.FALLBACK;
+}
+
+interface ChecksumVariant extends BaseVariant {
+  type: EventGroupVariantType.CHECKSUM;
+}
+
+interface HasComponentGrouping {
   client_values?: Array<string>;
   component?: EventGroupComponent;
   config?: EventGroupingConfig;
   matched_rule?: string;
   values?: Array<string>;
-};
+}
+
+interface ComponentVariant extends BaseVariant, HasComponentGrouping {
+  type: EventGroupVariantType.COMPONENT;
+}
+
+interface CustomFingerprintVariant extends BaseVariant, HasComponentGrouping {
+  type: EventGroupVariantType.CUSTOM_FINGERPRINT;
+}
+
+interface SaltedComponentVariant extends BaseVariant, HasComponentGrouping {
+  type: EventGroupVariantType.SALTED_COMPONENT;
+}
+
+interface PerformanceProblemVariant extends BaseVariant {
+  evidence: VariantEvidence;
+  type: EventGroupVariantType.PERFORMANCE_PROBLEM;
+}
+
+export type EventGroupVariant =
+  | FallbackVariant
+  | ChecksumVariant
+  | ComponentVariant
+  | SaltedComponentVariant
+  | CustomFingerprintVariant
+  | PerformanceProblemVariant;
 
 export type EventGroupInfo = Record<EventGroupVariantKey, EventGroupVariant>;
 
@@ -209,8 +257,7 @@ export enum EntryType {
   THREADS = 'threads',
   DEBUGMETA = 'debugmeta',
   SPANS = 'spans',
-  SPANTREE = 'spantree',
-  PERFORMANCE = 'performance',
+  RESOURCES = 'resources',
 }
 
 type EntryDebugMeta = {
@@ -246,7 +293,7 @@ type EntryStacktrace = {
 
 type EntrySpans = {
   data: any;
-  type: EntryType.SPANS; // data is not used
+  type: EntryType.SPANS;
 };
 
 type EntryMessage = {
@@ -291,6 +338,11 @@ type EntryGeneric = {
   type: EntryType.EXPECTCT | EntryType.EXPECTSTAPLE | EntryType.HPKP;
 };
 
+type EntryResources = {
+  data: any; // Data is unused here
+  type: EntryType.RESOURCES;
+};
+
 export type Entry =
   | EntryDebugMeta
   | EntryBreadcrumbs
@@ -302,7 +354,8 @@ export type Entry =
   | EntryRequest
   | EntryTemplate
   | EntryCsp
-  | EntryGeneric;
+  | EntryGeneric
+  | EntryResources;
 
 // Contexts
 type RuntimeContext = {
@@ -331,6 +384,7 @@ type OSContext = {
 type EventContexts = {
   client_os?: OSContext;
   device?: DeviceContext;
+  feedback?: Record<string, any>;
   os?: OSContext;
   // TODO (udameli): add better types here
   // once perf issue data shape is more clear
@@ -368,10 +422,6 @@ interface EventBase {
   errors: any[];
   eventID: string;
   fingerprints: string[];
-  groupingConfig: {
-    enhancements: string;
-    id: string;
-  };
   id: string;
   location: string | null;
   message: string;
@@ -393,6 +443,10 @@ interface EventBase {
   device?: Record<string, any>;
   endTimestamp?: number;
   groupID?: string;
+  groupingConfig?: {
+    enhancements: string;
+    id: string;
+  };
   issueCategory?: IssueCategory;
   latestEventID?: string | null;
   measurements?: Record<string, Measurement>;

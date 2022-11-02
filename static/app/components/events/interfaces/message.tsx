@@ -13,45 +13,43 @@ type Props = {
   event: Event;
 };
 
+function renderParams(params: Props['data']['params'], meta: any) {
+  if (!params || objectIsEmpty(params)) {
+    return null;
+  }
+
+  // NB: Always render params, regardless of whether they appear in the
+  // formatted string due to structured logging frameworks, like Serilog. They
+  // only format some parameters into the formatted string, but we want to
+  // display all of them.
+
+  if (Array.isArray(params)) {
+    const arrayData = params.map((value, i) => {
+      const key = `#${i}`;
+      return {
+        key,
+        value,
+        subject: key,
+        meta: meta?.data?.params?.[i]?.[''],
+      };
+    });
+
+    return <KeyValueList data={arrayData} isSorted={false} isContextData />;
+  }
+
+  const objectData = Object.entries(params).map(([key, value]) => ({
+    key,
+    value,
+    subject: key,
+    meta: meta?.data?.params?.[key]?.[''],
+  }));
+
+  return <KeyValueList data={objectData} isSorted={false} isContextData />;
+}
+
 export function Message({data, event}: Props) {
   const entryIndex = event.entries.findIndex(entry => entry.type === EntryType.MESSAGE);
   const meta = event?._meta?.entries?.[entryIndex] ?? {};
-
-  function renderParams() {
-    const params = data?.params;
-
-    if (!params || objectIsEmpty(params)) {
-      return null;
-    }
-
-    // NB: Always render params, regardless of whether they appear in the
-    // formatted string due to structured logging frameworks, like Serilog. They
-    // only format some parameters into the formatted string, but we want to
-    // display all of them.
-
-    if (Array.isArray(params)) {
-      const arrayData = params.map((value, i) => {
-        const key = `#${i}`;
-        return {
-          key,
-          value,
-          subject: key,
-          meta: meta?.data?.params?.[i]?.[''],
-        };
-      });
-
-      return <KeyValueList data={arrayData} isSorted={false} isContextData />;
-    }
-
-    const objectData = Object.entries(params).map(([key, value]) => ({
-      key,
-      value,
-      subject: key,
-      meta: meta?.data?.params?.[key]?.[''],
-    }));
-
-    return <KeyValueList data={objectData} isSorted={false} isContextData />;
-  }
 
   return (
     <EventDataSection type="message" title={t('Message')}>
@@ -60,7 +58,7 @@ export function Message({data, event}: Props) {
       ) : (
         <pre className="plain">{data.formatted}</pre>
       )}
-      {renderParams()}
+      {renderParams(data.params, meta)}
     </EventDataSection>
   );
 }

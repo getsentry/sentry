@@ -70,6 +70,7 @@ type ReplayAttachment = {
 interface Result extends Pick<State, 'fetchError' | 'fetching'> {
   onRetry: () => void;
   replay: ReplayReader | null;
+  replayRecord: ReplayRecord | undefined;
 }
 
 export function mapRRWebAttachments(unsortedReplayAttachments): ReplayAttachment {
@@ -170,31 +171,48 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
         return [];
       }
 
-      const response = await api.requestPromise(`/organizations/${orgSlug}/events/`, {
-        query: {
-          field: ['id', 'error.value', 'timestamp', 'error.type', 'issue.id'],
-          projects: [-1],
-          start: replayRecord.startedAt.toISOString(),
-          end: replayRecord.finishedAt.toISOString(),
-          query: `id:[${String(replayRecord.errorIds)}]`,
-          referrer: 'api.replay.details-page',
-        },
-      });
+      // Clone the `finishedAt` time and bump it up one second because finishedAt
+      // has the `ms` portion truncated, while replays-events-meta operates on
+      // timestamps with `ms` attached. So finishedAt could be at time `12:00:00.000Z`
+      // while the event is saved with `12:00:00.450Z`.
+      const finishedAtClone = new Date(replayRecord.finishedAt);
+      finishedAtClone.setSeconds(finishedAtClone.getSeconds() + 1);
+
+      const response = await api.requestPromise(
+        `/organizations/${orgSlug}/replays-events-meta/`,
+        {
+          query: {
+            start: replayRecord.startedAt.toISOString(),
+            end: finishedAtClone.toISOString(),
+            query: `id:[${String(replayRecord.errorIds)}]`,
+          },
+        }
+      );
       return response.data;
     },
     [api, orgSlug]
   );
 
+  const fetchReplayAndErrors = useCallback(async (): Promise<[ReplayRecord, any]> => {
+    const fetchedRecord = await fetchReplay();
+    const mappedRecord = mapResponseToReplayRecord(fetchedRecord);
+    setState(prev => ({
+      ...prev,
+      replayRecord: mappedRecord,
+    }));
+    const fetchedErrors = await fetchErrors(mappedRecord);
+    return [mappedRecord, fetchedErrors];
+  }, [fetchReplay, fetchErrors]);
+
   const loadEvents = useCallback(async () => {
     setState(INITIAL_STATE);
 
     try {
-      const [record, attachments] = await Promise.all([
-        fetchReplay(),
+      const [replayAndErrors, attachments] = await Promise.all([
+        fetchReplayAndErrors(),
         fetchAllRRwebEvents(),
       ]);
-      const replayRecord = mapResponseToReplayRecord(record);
-      const errors = await fetchErrors(replayRecord);
+      const [replayRecord, errors] = replayAndErrors;
 
       setState(prev => ({
         ...prev,
@@ -214,7 +232,7 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
         fetching: false,
       });
     }
-  }, [fetchReplay, fetchAllRRwebEvents, fetchErrors]);
+  }, [fetchReplayAndErrors, fetchAllRRwebEvents]);
 
   useEffect(() => {
     loadEvents();
@@ -241,6 +259,7 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
     fetching: state.fetching,
     onRetry: loadEvents,
     replay,
+    replayRecord: state.replayRecord,
   };
 }
 

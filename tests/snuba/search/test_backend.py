@@ -9,7 +9,6 @@ from django.utils import timezone
 
 from sentry import options
 from sentry.api.issue_search import convert_query_values, issue_search_config, parse_search_query
-from sentry.event_manager import _pull_out_data
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import (
     Environment,
@@ -33,7 +32,7 @@ from sentry.testutils import SnubaTestCase, TestCase, xfail_if_not_postgres
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.faux import Any
 from sentry.types.issues import GroupType
-from sentry.utils.snuba import SENTRY_SNUBA_MAP, Dataset, SnubaError
+from sentry.utils.snuba import SENTRY_SNUBA_MAP, Dataset, SnubaError, get_snuba_column_name
 
 
 def date_to_query_format(date):
@@ -416,6 +415,15 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         with pytest.raises(InvalidSearchQuery):
             with self.feature("organizations:performance-issues"):
                 self.make_query(search_filter_query="issue.category:hellboy")
+
+    def test_not_perf_category(self):
+        with self.feature("organizations:performance-issues"):
+            results = self.make_query(search_filter_query="issue.category:error foo")
+        assert set(results) == {self.group1}
+
+        with self.feature("organizations:performance-issues"):
+            not_results = self.make_query(search_filter_query="!issue.category:performance foo")
+        assert set(not_results) == {self.group1}
 
     def test_type(self):
         with self.feature("organizations:performance-issues"):
@@ -1269,7 +1277,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         )
         assert set(results) == set()
 
-    @mock.patch("sentry.utils.snuba.raw_query")
+    @mock.patch("sentry.search.snuba.executors.bulk_raw_query")
     def test_snuba_not_called_optimization(self, query_mock):
         assert self.make_query(search_filter_query="status:unresolved").results == [self.group1]
         assert not query_mock.called
@@ -1283,11 +1291,12 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         )
         assert query_mock.called
 
-    @mock.patch("sentry.utils.snuba.raw_query")
-    def test_optimized_aggregates(self, query_mock):
+    @mock.patch("sentry.issues.search.SnubaQueryParams")
+    @mock.patch("sentry.search.snuba.executors.bulk_raw_query")
+    def test_optimized_aggregates(self, bulk_raw_query_mock, snuba_query_params_mock):
         # TODO this test is annoyingly fragile and breaks in hard-to-see ways
         # any time anything about the snuba query changes
-        query_mock.return_value = {"data": [], "totals": {"total": 0}}
+        bulk_raw_query_mock.return_value = [{"data": [], "totals": {"total": 0}}]
 
         DEFAULT_LIMIT = 100
         chunk_growth = options.get("snuba.search.chunk-growth-rate")
@@ -1306,7 +1315,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             "groupby": ["group_id"],
             "conditions": [
                 [["positionCaseInsensitive", ["message", "'foo'"]], "!=", 0],
-                ["type", "=", "transaction"],
+                ["type", "!=", "transaction"],
             ],
             "selected_columns": [],
             "limit": limit,
@@ -1314,20 +1323,21 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             "totals": True,
             "turbo": False,
             "sample": 1,
+            "condition_resolver": get_snuba_column_name,
         }
 
         self.make_query(search_filter_query="status:unresolved")
-        assert not query_mock.called
+        assert not snuba_query_params_mock.called
 
         self.make_query(
             search_filter_query="last_seen:>=%s foo" % date_to_query_format(timezone.now()),
             sort_by="date",
         )
-        query_mock.call_args[1]["aggregations"].sort()
-        assert query_mock.call_args == mock.call(
+        assert snuba_query_params_mock.called
+        snuba_query_params_mock.call_args[1]["aggregations"].sort()
+        assert snuba_query_params_mock.call_args == mock.call(
             orderby=["-last_seen", "group_id"],
             aggregations=[
-                ["arrayJoin", ["group_ids"], "group_id"],
                 ["multiply(toUInt64(max(timestamp)), 1000)", "", "last_seen"],
                 ["uniq", "group_id", "total"],
             ],
@@ -1336,11 +1346,10 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         )
 
         self.make_query(search_filter_query="foo", sort_by="priority")
-        query_mock.call_args[1]["aggregations"].sort()
-        assert query_mock.call_args == mock.call(
+        snuba_query_params_mock.call_args[1]["aggregations"].sort()
+        assert snuba_query_params_mock.call_args == mock.call(
             orderby=["-priority", "group_id"],
             aggregations=[
-                ["arrayJoin", ["group_ids"], "group_id"],
                 ["count()", "", "times_seen"],
                 ["multiply(toUInt64(max(timestamp)), 1000)", "", "last_seen"],
                 ["toUInt64(plus(multiply(log(times_seen), 600), last_seen))", "", "priority"],
@@ -1351,11 +1360,10 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         )
 
         self.make_query(search_filter_query="times_seen:5 foo", sort_by="freq")
-        query_mock.call_args[1]["aggregations"].sort()
-        assert query_mock.call_args == mock.call(
+        snuba_query_params_mock.call_args[1]["aggregations"].sort()
+        assert snuba_query_params_mock.call_args == mock.call(
             orderby=["-times_seen", "group_id"],
             aggregations=[
-                ["arrayJoin", ["group_ids"], "group_id"],
                 ["count()", "", "times_seen"],
                 ["uniq", "group_id", "total"],
             ],
@@ -1364,17 +1372,48 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         )
 
         self.make_query(search_filter_query="foo", sort_by="user")
-        query_mock.call_args[1]["aggregations"].sort()
-        assert query_mock.call_args == mock.call(
+        snuba_query_params_mock.call_args[1]["aggregations"].sort()
+        assert snuba_query_params_mock.call_args == mock.call(
             orderby=["-user_count", "group_id"],
             aggregations=[
-                ["arrayJoin", ["group_ids"], "group_id"],
                 ["uniq", "group_id", "total"],
                 ["uniq", "tags[sentry:user]", "user_count"],
             ],
             having=[],
             **common_args,
         )
+
+    @mock.patch("sentry.search.snuba.executors.bulk_raw_query")
+    def test_reduce_bulk_results_none_total(self, bulk_raw_query_mock):
+        bulk_raw_query_mock.return_value = [
+            {"data": [], "totals": {"total": None}},
+            {"data": [], "totals": {"total": None}},
+        ]
+
+        assert (
+            self.make_query(
+                search_filter_query="last_seen:>%s" % date_to_query_format(timezone.now()),
+                sort_by="date",
+            ).results
+            == []
+        )
+        assert bulk_raw_query_mock.called
+
+    @mock.patch("sentry.search.snuba.executors.bulk_raw_query")
+    def test_reduce_bulk_results_none_data(self, bulk_raw_query_mock):
+        bulk_raw_query_mock.return_value = [
+            {"data": None, "totals": {"total": 0}},
+            {"data": None, "totals": {"total": 0}},
+        ]
+
+        assert (
+            self.make_query(
+                search_filter_query="last_seen:>%s" % date_to_query_format(timezone.now()),
+                sort_by="date",
+            ).results
+            == []
+        )
+        assert bulk_raw_query_mock.called
 
     def test_pre_and_post_filtering(self):
         prev_max_pre = options.get("snuba.search.max-pre-snuba-candidates")
@@ -2082,43 +2121,31 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
             "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
         }
 
-        injected_group = None
-
-        def hack_pull_out_data(jobs, projects):
-            _pull_out_data(jobs, projects)
-            for job in jobs:
-                job["event"].groups = [injected_group]
-            return jobs, projects
-
-        injected_group = self.perf_group_1 = self.create_group(
-            type=GroupType.PERFORMANCE_SLOW_SPAN.value
+        transaction_event_1 = self.store_event(
+            data={
+                **transaction_event_data,
+                "event_id": "a" * 32,
+                "timestamp": iso_format(before_now(minutes=1)),
+                "start_timestamp": iso_format(before_now(minutes=1)),
+                "tags": {"my_tag": 1},
+                "fingerprint": [f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group1"],
+            },
+            project_id=self.project.id,
         )
-        with mock.patch("sentry.event_manager._pull_out_data", hack_pull_out_data):
-            self.store_event(
-                data={
-                    **transaction_event_data,
-                    "event_id": "a" * 32,
-                    "timestamp": iso_format(before_now(minutes=1)),
-                    "start_timestamp": iso_format(before_now(minutes=1)),
-                    "tags": {"my_tag": 1},
-                },
-                project_id=self.project.id,
-            )
+        self.perf_group_1 = transaction_event_1.groups[0]
 
-        injected_group = self.perf_group_2 = self.create_group(
-            type=GroupType.PERFORMANCE_SLOW_SPAN.value
+        transaction_event_2 = self.store_event(
+            data={
+                **transaction_event_data,
+                "event_id": "a" * 32,
+                "timestamp": iso_format(before_now(minutes=2)),
+                "start_timestamp": iso_format(before_now(minutes=2)),
+                "tags": {"my_tag": 1},
+                "fingerprint": [f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group2"],
+            },
+            project_id=self.project.id,
         )
-        with mock.patch("sentry.event_manager._pull_out_data", hack_pull_out_data):
-            self.store_event(
-                data={
-                    **transaction_event_data,
-                    "event_id": "a" * 32,
-                    "timestamp": iso_format(before_now(minutes=2)),
-                    "start_timestamp": iso_format(before_now(minutes=2)),
-                    "tags": {"my_tag": 1},
-                },
-                project_id=self.project.id,
-            )
+        self.perf_group_2 = transaction_event_2.groups[0]
 
         error_event_data = {
             "timestamp": iso_format(self.base_datetime - timedelta(days=20)),
@@ -2159,9 +2186,36 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
             results = self.make_query(search_filter_query="issue.category:performance my_tag:1")
         assert list(results) == [self.perf_group_1, self.perf_group_2]
 
+        with self.feature("organizations:performance-issues"):
+            results = self.make_query(
+                search_filter_query="issue.type:[performance_n_plus_one, performance_slow_span] my_tag:1"
+            )
+        assert list(results) == [self.perf_group_1, self.perf_group_2]
+
     def test_error_performance_query(self):
         with self.feature("organizations:performance-issues"):
             results = self.make_query(search_filter_query="my_tag:1")
+        assert list(results) == [
+            self.perf_group_1,
+            self.perf_group_2,
+            self.error_group_2,
+            self.error_group_1,
+        ]
+        with self.feature("organizations:performance-issues"):
+            results = self.make_query(
+                search_filter_query="issue.category:[performance, error] my_tag:1"
+            )
+        assert list(results) == [
+            self.perf_group_1,
+            self.perf_group_2,
+            self.error_group_2,
+            self.error_group_1,
+        ]
+
+        with self.feature("organizations:performance-issues"):
+            results = self.make_query(
+                search_filter_query="issue.type:[performance_slow_span, error] my_tag:1"
+            )
         assert list(results) == [
             self.perf_group_1,
             self.perf_group_2,

@@ -20,11 +20,11 @@ from sentry.api.endpoints.project_transaction_threshold_override import (
 )
 from sentry.data_export.endpoints.data_export import DataExportEndpoint
 from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
+from sentry.discover.endpoints.discover_homepage_query import DiscoverHomepageQueryEndpoint
 from sentry.discover.endpoints.discover_key_transactions import (
     KeyTransactionEndpoint,
     KeyTransactionListEndpoint,
 )
-from sentry.discover.endpoints.discover_query import DiscoverQueryEndpoint
 from sentry.discover.endpoints.discover_saved_queries import DiscoverSavedQueriesEndpoint
 from sentry.discover.endpoints.discover_saved_query_detail import (
     DiscoverSavedQueryDetailEndpoint,
@@ -64,6 +64,9 @@ from sentry.incidents.endpoints.project_alert_rule_index import (
 )
 from sentry.incidents.endpoints.project_alert_rule_task_details import (
     ProjectAlertRuleTaskDetailsEndpoint,
+)
+from sentry.replays.endpoints.organization_replay_events_meta import (
+    OrganizationReplayEventsMetaEndpoint,
 )
 from sentry.replays.endpoints.organization_replay_index import OrganizationReplayIndexEndpoint
 from sentry.replays.endpoints.project_replay_details import ProjectReplayDetailsEndpoint
@@ -113,7 +116,6 @@ from .endpoints.codeowners import (
     ExternalUserEndpoint,
     ProjectCodeOwnersDetailsEndpoint,
     ProjectCodeOwnersEndpoint,
-    ProjectCodeOwnersRequestEndpoint,
 )
 from .endpoints.data_scrubbing_selector_suggestions import DataScrubbingSelectorSuggestionsEndpoint
 from .endpoints.debug_files import (
@@ -251,7 +253,6 @@ from .endpoints.organization_events_has_measurements import (
 from .endpoints.organization_events_histogram import OrganizationEventsHistogramEndpoint
 from .endpoints.organization_events_meta import (
     OrganizationEventsMetaEndpoint,
-    OrganizationEventsMetricsCompatiblity,
     OrganizationEventsRelatedIssuesEndpoint,
 )
 from .endpoints.organization_events_span_ops import OrganizationEventsSpanOpsEndpoint
@@ -362,7 +363,6 @@ from .endpoints.organization_user_issues_search import OrganizationUserIssuesSea
 from .endpoints.organization_user_reports import OrganizationUserReportsEndpoint
 from .endpoints.organization_user_teams import OrganizationUserTeamsEndpoint
 from .endpoints.organization_users import OrganizationUsersEndpoint
-from .endpoints.organization_vitals_overview import OrganizationVitalsOverviewEndpoint
 from .endpoints.project_agnostic_rule_conditions import ProjectAgnosticRuleConditionsEndpoint
 from .endpoints.project_app_store_connect_credentials import (
     AppStoreConnectAppsEndpoint,
@@ -419,12 +419,12 @@ from .endpoints.project_releases import ProjectReleasesEndpoint
 from .endpoints.project_releases_token import ProjectReleasesTokenEndpoint
 from .endpoints.project_repo_path_parsing import ProjectRepoPathParsingEndpoint
 from .endpoints.project_reprocessing import ProjectReprocessingEndpoint
+from .endpoints.project_rule_actions import ProjectRuleActionsEndpoint
 from .endpoints.project_rule_details import ProjectRuleDetailsEndpoint
+from .endpoints.project_rule_preview import ProjectRulePreviewEndpoint
 from .endpoints.project_rule_task_details import ProjectRuleTaskDetailsEndpoint
 from .endpoints.project_rules import ProjectRulesEndpoint
 from .endpoints.project_rules_configuration import ProjectRulesConfigurationEndpoint
-from .endpoints.project_search_details import ProjectSearchDetailsEndpoint
-from .endpoints.project_searches import ProjectSearchesEndpoint
 from .endpoints.project_servicehook_details import ProjectServiceHookDetailsEndpoint
 from .endpoints.project_servicehook_stats import ProjectServiceHookStatsEndpoint
 from .endpoints.project_servicehooks import ProjectServiceHooksEndpoint
@@ -958,9 +958,9 @@ urlpatterns = [
                 ),
                 # Discover
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/discover/query/$",
-                    DiscoverQueryEndpoint.as_view(),
-                    name="sentry-api-0-discover-query",
+                    r"^(?P<organization_slug>[^\/]+)/discover/homepage/$",
+                    DiscoverHomepageQueryEndpoint.as_view(),
+                    name="sentry-api-0-discover-homepage-query",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/discover/saved/$",
@@ -1162,11 +1162,6 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/events-meta/$",
                     OrganizationEventsMetaEndpoint.as_view(),
                     name="sentry-api-0-organization-events-meta",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/events-metrics-compatibility/$",
-                    OrganizationEventsMetricsCompatiblity.as_view(),
-                    name="sentry-api-0-organization-events-metrics-compatibility",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/metrics-compatibility/$",
@@ -1564,6 +1559,11 @@ urlpatterns = [
                     name="sentry-api-0-organization-replay-index",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/replays-events-meta/$",
+                    OrganizationReplayEventsMetaEndpoint.as_view(),
+                    name="sentry-api-0-organization-replay-events-meta",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/functions/$",
                     OrganizationSentryFunctionEndpoint.as_view(),
                     name="sentry-api-0-organization-sentry-functions",
@@ -1671,11 +1671,6 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^/]+)/client-state/(?P<category>[^\/]+)/$",
                     ClientStateEndpoint.as_view(),
                     name="sentry-api-0-organization-client-state",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^/]+)/vitals-overview/$",
-                    OrganizationVitalsOverviewEndpoint.as_view(),
-                    name="sentry-api-0-organization-vitals-overview",
                 ),
             ]
         ),
@@ -2084,6 +2079,16 @@ urlpatterns = [
                     name="sentry-api-0-project-rule-details",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/preview$",
+                    ProjectRulePreviewEndpoint.as_view(),
+                    name="sentry-api-0-project-rule-preview",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rule-actions/$",
+                    ProjectRuleActionsEndpoint.as_view(),
+                    name="sentry-api-0-project-rule-actions",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/(?P<rule_id>[^\/]+)/group-history/$",
                     ProjectRuleGroupHistoryIndexEndpoint.as_view(),
                     name="sentry-api-0-project-rule-group-history-index",
@@ -2097,16 +2102,6 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rule-task/(?P<task_uuid>[^\/]+)/$",
                     ProjectRuleTaskDetailsEndpoint.as_view(),
                     name="sentry-api-0-project-rule-task-details",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/searches/$",
-                    ProjectSearchesEndpoint.as_view(),
-                    name="sentry-api-0-project-searches",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/searches/(?P<search_id>[^\/]+)/$",
-                    ProjectSearchDetailsEndpoint.as_view(),
-                    name="sentry-api-0-project-search-details",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/stats/$",
@@ -2197,11 +2192,6 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/codeowners/(?P<codeowners_id>[^\/]+)/$",
                     ProjectCodeOwnersDetailsEndpoint.as_view(),
                     name="sentry-api-0-project-codeowners-details",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/codeowners-request/$",
-                    ProjectCodeOwnersRequestEndpoint.as_view(),
-                    name="getsentry-api-0-project-codeowners-request",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/transaction-threshold/configure/$",

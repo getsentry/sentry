@@ -13,7 +13,6 @@ import {
   getTraceRequestPayload,
   makeEventView,
 } from 'sentry/utils/performance/quickTrace/utils';
-import withApi from 'sentry/utils/withApi';
 
 type AdditionalQueryProps = {
   eventId: string;
@@ -86,4 +85,4 @@ function TraceLiteQuery({
   );
 }
 
-export default withApi(TraceLiteQuery);
+export default TraceLiteQuery;

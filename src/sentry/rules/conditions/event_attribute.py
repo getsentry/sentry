@@ -2,7 +2,7 @@ from typing import Any, Sequence
 
 from django import forms
 
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import GroupEvent
 from sentry.rules import MATCH_CHOICES, EventState, MatchType
 from sentry.rules.conditions.base import EventCondition
 
@@ -11,6 +11,8 @@ ATTR_CHOICES = [
     "platform",
     "environment",
     "type",
+    "error.handled",
+    "error.unhandled",
     "exception.type",
     "exception.value",
     "user.id",
@@ -19,6 +21,7 @@ ATTR_CHOICES = [
     "user.ip_address",
     "http.method",
     "http.url",
+    "http.status_code",
     "sdk.name",
     "stacktrace.code",
     "stacktrace.module",
@@ -63,7 +66,7 @@ class EventAttributeCondition(EventCondition):
         "value": {"type": "string", "placeholder": "value"},
     }
 
-    def _get_attribute_values(self, event: Event, attr: str) -> Sequence[str]:
+    def _get_attribute_values(self, event: GroupEvent, attr: str) -> Sequence[str]:
         # TODO(dcramer): we should validate attributes (when we can) before
         path = attr.split(".")
 
@@ -107,16 +110,35 @@ class EventAttributeCondition(EventCondition):
 
             return [getattr(e, path[1]) for e in event.interfaces["exception"].values]
 
+        elif path[0] == "error":
+            if path[1] not in ("handled", "unhandled"):
+                return []
+
+            # Flip "handled" to "unhandled"
+            negate = path[1] == "unhandled"
+
+            return [
+                e.mechanism.handled != negate
+                for e in event.interfaces["exception"].values
+                if e.mechanism is not None and getattr(e.mechanism, "handled") is not None
+            ]
+
         elif path[0] == "user":
             if path[1] in ("id", "ip_address", "email", "username"):
                 return [getattr(event.interfaces["user"], path[1])]
             return [getattr(event.interfaces["user"].data, path[1])]
 
         elif path[0] == "http":
-            if path[1] not in ("url", "method"):
-                return []
+            if path[1] in ("url", "method"):
+                return [getattr(event.interfaces["request"], path[1])]
+            elif path[1] in ("status_code"):
+                contexts = event.data["contexts"]
+                response = contexts.get("response")
+                if response is None:
+                    response = []
+                return [response.get(path[1])]
 
-            return [getattr(event.interfaces["request"], path[1])]
+            return []
 
         elif path[0] == "sdk":
             if path[1] != "name":
@@ -154,7 +176,7 @@ class EventAttributeCondition(EventCondition):
         }
         return self.label.format(**data)
 
-    def passes(self, event: Event, state: EventState, **kwargs: Any) -> bool:
+    def passes(self, event: GroupEvent, state: EventState, **kwargs: Any) -> bool:
         attr = self.get_option("attribute")
         match = self.get_option("match")
         value = self.get_option("value")
