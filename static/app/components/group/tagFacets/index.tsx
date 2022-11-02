@@ -88,7 +88,14 @@ export function TagFacets({
           environment: environments.map(env => env.name),
         },
       });
-      setState({...state, tagsData: keyBy(data, 'key'), loading: false});
+      const tagsData = keyBy(data, 'key');
+      setState({
+        ...state,
+        tagsData,
+        loading: false,
+        selectedTag:
+          Object.keys(tagsData).length > 0 ? Object.keys(tagsData)[0] : state.selectedTag,
+      });
     };
     setState({...state, loading: true});
     fetchData().catch(() => {
