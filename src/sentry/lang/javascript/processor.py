@@ -41,7 +41,6 @@ from .cache import SourceCache, SourceMapCache
 
 __all__ = ["JavaScriptStacktraceProcessor"]
 
-
 # number of surrounding lines (on each side) to fetch
 LINES_OF_CONTEXT = 5
 BASE64_SOURCEMAP_PREAMBLE = "data:application/json;base64,"
@@ -78,6 +77,8 @@ CACHE_CONTROL_MIN = 60
 MAX_RESOURCE_FETCHES = 100
 
 CACHE_MAX_VALUE_SIZE = settings.SENTRY_CACHE_MAX_VALUE_SIZE
+
+FETCH_FILE_WHITELIST = options.get("fetchfile.whitelist")
 
 logger = logging.getLogger(__name__)
 
@@ -640,6 +641,23 @@ def fetch_release_artifact(url, release, dist):
     return result
 
 
+def should_fetch_file(url):
+    """
+    Return the result of whether url is matched the fetch file whitelist.
+    To avoid CSRF.
+    """
+    should_fetch = True
+    if FETCH_FILE_WHITELIST is not None and isinstance(FETCH_FILE_WHITELIST, str):
+        should_fetch = False
+        whitelist = FETCH_FILE_WHITELIST.split(',')
+        hs = urlsplit(url).hostname
+        for i in whitelist:
+            if hs.lower().find(i) > -1:
+                should_fetch = True
+                break
+    return should_fetch
+
+
 def fetch_file(url, project=None, release=None, dist=None, allow_scraping=True):
     """
     Pull down a URL, returning a UrlResult object.
@@ -698,28 +716,36 @@ def fetch_file(url, project=None, release=None, dist=None, allow_scraping=True):
                 headers[token_header] = token
 
         with metrics.timer("sourcemaps.fetch"):
-            with sentry_sdk.start_span(op="JavaScriptStacktraceProcessor.fetch_file.http"):
-                result = http.fetch_file(url, headers=headers, verify_ssl=verify_ssl)
-            with sentry_sdk.start_span(
-                op="JavaScriptStacktraceProcessor.fetch_file.compress_for_cache"
-            ):
-                z_body = zlib.compress(result.body)
-            cache.set(
-                cache_key,
-                (url, result.headers, z_body, result.status, result.encoding),
-                get_max_age(result.headers),
-            )
+            if should_fetch_file(url):
+                with sentry_sdk.start_span(op="JavaScriptStacktraceProcessor.fetch_file.http"):
+                    result = http.fetch_file(url, headers=headers, verify_ssl=verify_ssl)
+                with sentry_sdk.start_span(
+                        op="JavaScriptStacktraceProcessor.fetch_file.compress_for_cache"
+                ):
+                    z_body = zlib.compress(result.body)
+                cache.set(
+                    cache_key,
+                    (url, result.headers, z_body, result.status, result.encoding),
+                    get_max_age(result.headers),
+                )
 
-            # since the cache.set above can fail we can end up in a situation
-            # where the file is too large for the cache. In that case we abort
-            # the fetch and cache a failure and lock the domain for future
-            # http fetches.
-            if cache.get(cache_key) is None:
+                # since the cache.set above can fail we can end up in a situation
+                # where the file is too large for the cache. In that case we abort
+                # the fetch and cache a failure and lock the domain for future
+                # http fetches.
+                if cache.get(cache_key) is None:
+                    error = {
+                        "type": EventError.TOO_LARGE_FOR_CACHE,
+                        "url": http.expose_url(url),
+                    }
+                    http.lock_domain(url, error=error)
+                    raise http.CannotFetch(error)
+            # we don't lock the domain here, for dynamically changing the whitelist for future.
+            else:
                 error = {
-                    "type": EventError.TOO_LARGE_FOR_CACHE,
+                    "type": EventError.FETCH_FILE_NOT_IN_WHITELIST,
                     "url": http.expose_url(url),
                 }
-                http.lock_domain(url, error=error)
                 raise http.CannotFetch(error)
 
     # If we did not get a 200 OK we just raise a cannot fetch here.

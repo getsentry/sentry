@@ -21,6 +21,7 @@ class EventError:
     FETCH_TOO_LARGE = "fetch_too_large"
     FETCH_TIMEOUT = "fetch_timeout"
     TOO_LARGE_FOR_CACHE = "too_large_for_cache"
+    FETCH_FILE_NOT_IN_WHITELIST = "fetch_file_not_in_whitelist"
 
     # Processing: JavaScript
     JS_GENERIC_FETCH_ERROR = "js_generic_fetch_error"  # deprecated in favor of FETCH_GENERIC_ERROR

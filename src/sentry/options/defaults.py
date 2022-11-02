@@ -143,6 +143,11 @@ register("beacon.anonymous", type=Bool, flags=FLAG_REQUIRED)
 register("filestore.backend", default="filesystem", flags=FLAG_NOSTORE)
 register("filestore.options", default={"location": "/tmp/sentry-files"}, flags=FLAG_NOSTORE)
 
+# Fetchfile whitelist when Allow JavaScript Source Fetching is enabled. Meant to be used in extreme
+# situation where it may cause CSRF security problem. With the configuration, only the file of reliable
+# host will be fetched.
+register("fetchfile.whitelist", default=None, flags=FLAG_NOSTORE)
+
 # Symbol server
 register("symbolserver.enabled", default=False, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register(
