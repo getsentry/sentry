@@ -34,7 +34,9 @@ def derive_code_mappings(
     dry_run=False,
 ) -> None:
     """
-    Derive code mappings for an organization and save the derived code mappings.
+    Derive code mappings for a project given data from a recent event.
+
+    This task is queued at most once per hour per project, based on the ingested events.
     """
     organization: Organization = Organization.objects.get(id=organization_id)
     set_tag("organization.slug", organization.slug)
@@ -62,7 +64,7 @@ def derive_code_mappings(
 
 def identify_stacktrace_paths(data: NodeData) -> List[str]:
     """
-    Get the stacktrace_paths from the stacktrace for the latest event for an issue.
+    Get the stacktrace_paths from the event data.
     """
     if data["platform"] != "python":
         return []
