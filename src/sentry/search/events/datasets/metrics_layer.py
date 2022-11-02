@@ -7,8 +7,7 @@ from snuba_sdk import AliasedExpression, Column, Condition, Function, Op
 
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
-from sentry.search.events import constants, fields
-from sentry.search.events.builder import MetricsQueryBuilder
+from sentry.search.events import builder, constants, fields
 from sentry.search.events.datasets import field_aliases, filter_aliases
 from sentry.search.events.datasets.metrics import MetricsDatasetConfig
 from sentry.search.events.types import SelectType, WhereType
@@ -17,7 +16,7 @@ from sentry.utils.numbers import format_grouped_length
 
 
 class MetricsLayerDatasetConfig(MetricsDatasetConfig):
-    def __init__(self, builder: MetricsQueryBuilder):
+    def __init__(self, builder: builder.MetricsQueryBuilder):
         self.builder = builder
 
     @property
@@ -400,7 +399,13 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                     ),
                     default_result_type="percentage",
                 ),
-                # TODO: histogram
+                fields.MetricsFunction(
+                    "histogram",
+                    required_args=[fields.MetricArg("column")],
+                    snql_metric_layer=self._resolve_histogram_function,
+                    default_result_type="number",
+                    private=True,
+                ),
             ]
         }
 
@@ -602,5 +607,27 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
         return Function(
             "count_web_vitals",
             [Column(constants.METRICS_MAP.get(column, column)), quality],
+            alias,
+        )
+
+    def _resolve_histogram_function(
+        self,
+        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: Optional[str] = None,
+    ) -> SelectType:
+        """zoom_params is based on running metrics zoom_histogram function that adds conditions based on min, max,
+        buckets"""
+        min_bin = getattr(self.builder, "min_bin", None)
+        max_bin = getattr(self.builder, "max_bin", None)
+        num_buckets = getattr(self.builder, "num_buckets", 250)
+        self.builder.histogram_aliases.append(alias)
+        return Function(
+            "histogram",
+            [
+                Column(constants.METRICS_MAP.get(args["column"], args["column"])),
+                min_bin,
+                max_bin,
+                num_buckets,
+            ],
             alias,
         )

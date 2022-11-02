@@ -196,6 +196,7 @@ def histogram_query(
     histogram_rows=None,
     extra_conditions=None,
     normalize_results=True,
+    use_metrics_layer=True,
 ):
     """
     API for generating histograms for numeric columns.
@@ -246,6 +247,7 @@ def histogram_query(
         selected_columns=[f"histogram({field})" for field in fields],
         orderby=order_by,
         limitby=limit_by,
+        use_metrics_layer=use_metrics_layer,
     )
     if extra_conditions is not None:
         builder.add_conditions(extra_conditions)

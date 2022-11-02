@@ -56,6 +56,9 @@ class OrganizationEventsHistogramEndpoint(OrganizationEventsV2EndpointBase):
         use_metrics = features.has(
             "organizations:performance-use-metrics", organization=organization, actor=request.user
         )
+        use_metrics_layer = features.has(
+            "organizations:use-metrics-layer", organization=organization, actor=request.user
+        )
         dataset = self.get_dataset(request) if use_metrics else discover
         metrics_enhanced = dataset != discover
 
@@ -77,6 +80,7 @@ class OrganizationEventsHistogramEndpoint(OrganizationEventsV2EndpointBase):
                         max_value=data.get("max"),
                         data_filter=data.get("dataFilter"),
                         referrer="api.organization-events-histogram",
+                        use_metrics_layer=use_metrics_layer,
                     )
 
                 return Response(results)

@@ -6,7 +6,7 @@ from freezegun import freeze_time
 from sentry_relay.processing import validate_sampling_configuration
 
 from sentry.dynamic_sampling.latest_release_booster import get_redis_client_for_ds
-from sentry.dynamic_sampling.rules_generator import generate_rules
+from sentry.dynamic_sampling.rules_generator import HEALTH_CHECK_GLOBS, generate_rules
 from sentry.testutils import TestCase
 from sentry.utils import json
 
@@ -77,6 +77,23 @@ def test_generate_rules_return_uniform_rules_and_env_rule(get_blended_sample_rat
             "id": 1001,
         },
         {
+            "sampleRate": 0.02,
+            "type": "transaction",
+            "condition": {
+                "op": "or",
+                "inner": [
+                    {
+                        "op": "glob",
+                        "name": "event.transaction",
+                        "value": HEALTH_CHECK_GLOBS,
+                        "options": {"ignoreCase": True},
+                    }
+                ],
+            },
+            "active": True,
+            "id": 1002,
+        },
+        {
             "active": True,
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
@@ -110,7 +127,11 @@ def test_generate_rules_return_uniform_rule_with_100_rate_and_without_env_rule(
 class LatestReleaseTest(TestCase):
     def setUp(self):
         self.project.update_option(
-            "sentry:dynamic_sampling_biases", [{"id": "boostEnvironments", "active": False}]
+            "sentry:dynamic_sampling_biases",
+            [
+                {"id": "boostEnvironments", "active": False},
+                {"id": "ignoreHealthChecks", "active": False},
+            ],
         )
         self.redis_client = get_redis_client_for_ds()
 

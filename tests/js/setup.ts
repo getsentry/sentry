@@ -76,6 +76,8 @@ jest.mock('react-router', () => {
       push: jest.fn(),
       replace: jest.fn(),
       listen: jest.fn(() => {}),
+      listenBefore: jest.fn(),
+      getCurrentLocation: jest.fn(() => ({pathname: '', query: {}})),
     },
   };
 });
