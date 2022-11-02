@@ -11,7 +11,11 @@ import TransactionThresholdModal, {
 
 const stubEl = props => <div>{props.children}</div>;
 
-function mountModal(eventView, organization, onApply) {
+function mountModal(
+  eventView: EventView,
+  organization: Organization,
+  onApply: React.ComponentProps<typeof TransactionThresholdModal>['onApply']
+) {
   render(
     <TransactionThresholdModal
       Header={stubEl as ModalRenderProps['Header']}
