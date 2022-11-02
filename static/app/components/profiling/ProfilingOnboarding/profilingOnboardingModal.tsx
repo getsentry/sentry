@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/react';
 import {PlatformIcon} from 'platformicons';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import Badge from 'sentry/components/badge';
+import Alert from 'sentry/components/alert';
 import Button, {ButtonPropsWithoutAriaLabel} from 'sentry/components/button';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {SelectField} from 'sentry/components/forms';
@@ -208,6 +208,11 @@ function SelectProjectStep({
                 onChange={setProject}
               />
             </div>
+            {project?.platform === 'node' ? (
+              <StyledAlert type="warning" showIcon>
+                {t('Sentry profiling is still in alpha')}
+              </StyledAlert>
+            ) : null}
           </li>
           {project?.platform === 'android' ? (
             <AndroidInstallSteps
@@ -400,14 +405,7 @@ function NodeInstallSteps({
         <SetupPerformanceMonitoringStep href="https://docs.sentry.io/platforms/node/performance/" />
       </li>
       <li>
-        <StepTitle>
-          {t('Set Up Profiling')} <Badge type="alpha">{t('Alpha')}</Badge>
-        </StepTitle>
-        <p>
-          {t(
-            'A word of caution - profiling for Node.js is in alpha stages of development and there may be unknown bugs (yes, we recognize the irony).'
-          )}
-        </p>
+        <StepTitle>{t('Set Up Profiling')}</StepTitle>
         {publicDSN.type === 'loading' ? (
           <LoadingIndicator />
         ) : (
@@ -416,6 +414,7 @@ function NodeInstallSteps({
 import '@sentry/tracing';
 // Import order matters - @sentry/profiling-node must be imported after @sentry/tracing
 import { ProfilingIntegration } from '@sentry/profiling-node';
+import Alert from 'sentry/components/alert';
 
 Sentry.init({
   dsn: '${dsn}',
@@ -536,6 +535,14 @@ function IOSInstallSteps({
   );
 }
 
+// We need to space margin right because the input rendered
+// above does not fill full width (ghost element on the right with 36px width)
+const StyledAlert = styled(Alert)`
+  margin-top: ${space(2)};
+  margin-right: 36px;
+  margin-bottom: 0;
+`;
+
 const StyledList = styled(List)`
   position: relative;
 
@@ -565,10 +572,40 @@ function NodeSendDebugFilesInstruction({
   return (
     <ModalBody>
       <ModalHeader>
-        <h3>
-          {t('Set Up Profiling')} <Badge />
-        </h3>
+        <h3>{t('Set Up Profiling')}</h3>
       </ModalHeader>
+      <p>
+        {t(`Integrate your project's source maps with Sentry.`)}{' '}
+        <ExternalLink href="https://docs.sentry.io/platforms/javascript/sourcemaps/">
+          {t('Learn more about source map files.')}
+        </ExternalLink>
+      </p>
+      <OptionsContainer>
+        <OptionTitleContainer>
+          <OptionTitle>{t('Option 1')}</OptionTitle> <Tag>{t('Recommended')}</Tag>
+        </OptionTitleContainer>
+        <OptionTitleContainer>
+          <OptionTitle>{t('Option 2')}</OptionTitle>
+        </OptionTitleContainer>
+      </OptionsContainer>
+      <OptionsContainer>
+        <Option>
+          <ExternalOptionTitle href="https://docs.sentry.io/platforms/javascript/sourcemaps/uploading/cli/">
+            {t('Sentry CLI')}
+            <IconOpen />
+          </ExternalOptionTitle>
+          <p>{t('Upload source map files using our cli.')}</p>
+        </Option>
+        <Option>
+          <ExternalOptionTitle href="https://docs.sentry.io/platforms/javascript/sourcemaps/uploading/webpack/">
+            {t('Sentry Webpack Plugin')}
+            <IconOpen />
+          </ExternalOptionTitle>
+          <p>
+            {t('Automatically upload your source map files using our webpack plugin.')}
+          </p>
+        </Option>
+      </OptionsContainer>
       <ModalFooter>
         <ModalActions>
           <DocsLink />
