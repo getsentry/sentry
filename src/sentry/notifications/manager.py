@@ -27,7 +27,7 @@ from sentry.types.integrations import ExternalProviders
 from sentry.utils.sdk import configure_scope
 
 if TYPE_CHECKING:
-    from sentry.models import BaseUser, NotificationSetting, Organization, Project, Team, User
+    from sentry.models import NotificationSetting, Organization, Project, Team, User
     from sentry.services.hybrid_cloud.user import APIUser
 
 REMOVE_SETTING_BATCH_SIZE = 1000
@@ -250,7 +250,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         parent: Organization | Project,
         recipients: Iterable[Team | User | APIUser],
     ) -> QuerySet:
-        from sentry.models import Team
+        from sentry.models import BaseUser, Team
 
         """
         Find all of a project/organization's notification settings for a list of
