@@ -108,7 +108,7 @@ class SavedSearch(Model):
 
     @property
     def is_pinned(self):
-        return self.owner is not None and self.organization is not None
+        return self.visibility == Visibility.OWNER_PINNED
 
     __repr__ = sane_repr("project_id", "name")
 
