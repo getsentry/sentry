@@ -615,6 +615,11 @@ def process_code_mappings(job: PostProcessJob) -> None:
         ):
             return
 
+        if killswitch_matches_context(
+            "post_process.derive-code-mappings",
+            {"project_id": project.id},
+        ):
+            return
         derive_code_mappings.delay(project.organization_id, project.id, event.data)
 
     except Exception:

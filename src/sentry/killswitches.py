@@ -163,6 +163,17 @@ ALL_KILLSWITCH_OPTIONS = {
             "project_id": "A project ID to filter events by.",
         },
     ),
+    "post_process.derive-code-mappings": KillswitchInfo(
+        description="""
+        Prevent deriving code mappings for a project.
+
+        In cases where the derive-code-mapppings query load is too high, the added load
+        can cause other queries to be rate limitedd or slow down post_process tasks.
+        """,
+        fields={
+            "project_id": "A project ID to filter events by.",
+        },
+    ),
     "reprocessing2.drop-delete-old-primary-hash": KillswitchInfo(
         description="""
         Drop per-event messages emitted from delete_old_primary_hash. This message is currently lacking batching, and for the time being we should be able to drop it on a whim.
