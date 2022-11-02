@@ -186,7 +186,7 @@ def _get_mq_dict_params_from_where(query_where):
                     mq_dict["start"] = condition.rhs
                 elif condition.op == Op.LT:
                     mq_dict["end"] = condition.rhs
-            elif condition.lhs.name == "tags[environment]":
+            elif condition.lhs.name in ["tags[environment]", "tags[transaction]"]:
                 where.append(condition)
             else:
                 raise MQBQueryTransformationException(f"Unsupported column for where {condition}")
