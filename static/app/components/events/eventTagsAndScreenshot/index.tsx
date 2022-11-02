@@ -119,6 +119,7 @@ function EventTagsAndScreenshots({
         <div>
           <ScreenshotWrapper>
             <ScreenshotDataSection
+              data-test-id="screenshot-data-section"
               title={
                 screenshots.length > 1
                   ? tct('[current] of [total] [link:screenshots]', {
@@ -150,6 +151,9 @@ function EventTagsAndScreenshots({
                 return (
                   <IconEllipse
                     key={`${index}-${s.name}`}
+                    role="button"
+                    aria-label={tct('View [screenshotName]', {screenshotName: s.name})}
+                    data-test-id={`screenshot-icon-${index}`}
                     inFocus={screenshotInFocus === index}
                     onClick={() => setScreenshotInFoucs(index)}
                   />

@@ -286,7 +286,9 @@ describe('EventTagsAndScreenshot', function () {
       expect(screen.queryByText('Tags')).not.toBeInTheDocument();
 
       // Screenshot Container
-      expect(screen.getByText('Screenshot')).toBeInTheDocument();
+      expect(screen.getByTestId('screenshot-data-section')?.textContent).toContain(
+        'Screenshots'
+      );
       expect(screen.getByText('View screenshot')).toBeInTheDocument();
       expect(screen.getByTestId('image-viewer')).toHaveAttribute(
         'src',
@@ -332,12 +334,16 @@ describe('EventTagsAndScreenshot', function () {
       );
 
       // Screenshot Container
-      expect(screen.getByText('Screenshot')).toBeInTheDocument();
       expect(screen.getByText('View screenshot')).toBeInTheDocument();
       expect(screen.getByTestId('image-viewer')).toHaveAttribute(
         'src',
         `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${attachments[1].id}/?download`
       );
+
+      expect(screen.getByTestId('screenshot-data-section')?.textContent).toContain(
+        'Screenshots'
+      );
+      expect(screen.queryByTestId('screenshot-icon-1')).not.toBeInTheDocument();
 
       // Tags Container
       expect(screen.getByText('Tags')).toBeInTheDocument();
@@ -349,6 +355,56 @@ describe('EventTagsAndScreenshot', function () {
       expect(tagsContainer.getAllByRole('listitem')).toHaveLength(tags.length);
 
       expect(container).toSnapshot();
+    });
+
+    it('renders multiple screenshots correctly', function () {
+      const moreAttachments = [
+        ...attachments,
+        {
+          id: '1765467047',
+          name: 'screenshot-2.jpg',
+          headers: {'Content-Type': 'image/jpeg'},
+          mimetype: 'image/jpeg',
+          size: 239154,
+          sha1: '657eae9c13474518a6d0175bd4ab6bb4f81bf40d',
+          dateCreated: '2021-08-31T15:14:53.130940Z',
+          type: 'event.attachment',
+          event_id: 'bbf4c61ddaa7d8b2dbbede0f3b482cd9beb9434d',
+        },
+      ];
+      render(
+        <EventTagsAndScreenshot
+          event={{...event, tags, contexts}}
+          organization={organization}
+          projectId={project.slug}
+          location={router.location}
+          attachments={moreAttachments}
+          onDeleteScreenshot={() => jest.fn()}
+          hasContext
+        />
+      );
+
+      expect(screen.getByTestId('screenshot-data-section')?.textContent).toContain(
+        '1 of 2 screenshots'
+      );
+
+      expect(screen.getByText('View screenshot')).toBeInTheDocument();
+      expect(screen.getByTestId('image-viewer')).toHaveAttribute(
+        'src',
+        `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${moreAttachments[1].id}/?download`
+      );
+
+      screen.getByTestId('screenshot-icon-1').click();
+
+      expect(screen.getByTestId('screenshot-data-section')?.textContent).toContain(
+        '2 of 2 screenshots'
+      );
+
+      expect(screen.getByText('View screenshot')).toBeInTheDocument();
+      expect(screen.getByTestId('image-viewer')).toHaveAttribute(
+        'src',
+        `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${moreAttachments[2].id}/?download`
+      );
     });
 
     it('has context and attachments only', function () {
@@ -365,7 +421,9 @@ describe('EventTagsAndScreenshot', function () {
       );
 
       // Screenshot Container
-      expect(screen.getByText('Screenshot')).toBeInTheDocument();
+      expect(screen.getByTestId('screenshot-data-section')?.textContent).toContain(
+        'Screenshots'
+      );
       expect(screen.getByText('View screenshot')).toBeInTheDocument();
       expect(screen.getByTestId('image-viewer')).toHaveAttribute(
         'src',
@@ -398,7 +456,9 @@ describe('EventTagsAndScreenshot', function () {
       );
 
       // Screenshot Container
-      expect(screen.getByText('Screenshot')).toBeInTheDocument();
+      expect(screen.getByTestId('screenshot-data-section')?.textContent).toContain(
+        'Screenshots'
+      );
       expect(screen.getByText('View screenshot')).toBeInTheDocument();
       expect(screen.getByTestId('image-viewer')).toHaveAttribute(
         'src',
