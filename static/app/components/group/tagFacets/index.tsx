@@ -20,6 +20,7 @@ import ButtonBar from '../../buttonBar';
 import TagBreakdown from './tagBreakdown';
 
 export const MOBILE_TAGS = ['os', 'device', 'release'];
+
 export function MOBILE_TAGS_FORMATTER(tagsData: Record<string, TagWithTopValues>) {
   // For "release" tag keys, format the release tag value to be more readable (ie removing version prefix)
   const transformedTagsData = {};
@@ -31,6 +32,16 @@ export function MOBILE_TAGS_FORMATTER(tagsData: Record<string, TagWithTopValues>
           return {
             ...topValue,
             name: formatVersion(topValue.name),
+          };
+        }),
+      };
+    } else if (tagKey === 'device') {
+      transformedTagsData[tagKey] = {
+        ...tagsData[tagKey],
+        topValues: tagsData[tagKey].topValues.map(topValue => {
+          return {
+            ...topValue,
+            name: topValue.readable ?? topValue.name,
           };
         }),
       };
@@ -86,6 +97,7 @@ export function TagFacets({
         query: {
           key: tagKeys,
           environment: environments.map(env => env.name),
+          readable: true,
         },
       });
       setState({...state, tagsData: keyBy(data, 'key'), loading: false});
