@@ -24,7 +24,7 @@ from sentry.search.events.builder import (
 from sentry.search.events.types import HistogramParams
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.utils import resolve_tag_key, resolve_tag_value
+from sentry.sentry_metrics.utils import resolve_tag_value
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase, TestCase
 from sentry.utils.snuba import Dataset, QueryOutsideRetentionError
 
@@ -1112,9 +1112,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         transaction_name = resolve_tag_value(
             UseCaseKey.PERFORMANCE, self.organization.id, "foo_transaction"
         )
-        transaction = Column(
-            resolve_tag_key(UseCaseKey.PERFORMANCE, self.organization.id, "transaction")
-        )
+        transaction = self.build_transaction_transform("transaction")
         self.assertCountEqual(
             query.where,
             [
@@ -1137,9 +1135,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         transaction_name2 = resolve_tag_value(
             UseCaseKey.PERFORMANCE, self.organization.id, "bar_transaction"
         )
-        transaction = Column(
-            resolve_tag_key(UseCaseKey.PERFORMANCE, self.organization.id, "transaction")
-        )
+        transaction = self.build_transaction_transform("transaction")
         self.assertCountEqual(
             query.where,
             [
@@ -2402,9 +2398,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             UseCaseKey.PERFORMANCE, self.organization.id, "bar_transaction"
         )
 
-        transaction = Column(
-            resolve_tag_key(UseCaseKey.PERFORMANCE, self.organization.id, "transaction")
-        )
+        transaction = self.build_transaction_transform("transaction")
         self.assertCountEqual(
             query.where,
             [
