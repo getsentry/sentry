@@ -4,12 +4,15 @@ import signal
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from multiprocessing import cpu_count
+from typing import Optional
 
 import click
 
 from sentry.bgtasks.api import managed_bgtasks
 from sentry.ingest.types import ConsumerType
 from sentry.runner.decorators import configuration, log_options
+from sentry.sentry_metrics.consumers.indexer.routing_producer import MessageRouter
+from sentry.sentry_metrics.consumers.indexer.slicing_router import SlicingRouter
 
 DEFAULT_BLOCK_SIZE = int(32 * 1e6)
 
@@ -615,6 +618,12 @@ def metrics_streaming_consumer(**options):
     db_backend = IndexerStorage(options["indexer_db"])
     sentry_sdk.set_tag("sentry_metrics.use_case_key", use_case.value)
     ingest_config = get_ingest_config(use_case, db_backend)
+    slicing_router: Optional[MessageRouter] = None
+    if ingest_config.is_output_sliced:
+        slicing_router = SlicingRouter(
+            sliceable="generic_metrics_sets",
+            logical_output_topic=ingest_config.output_topic,
+        )
 
     streamer = get_streaming_metrics_consumer(indexer_profile=ingest_config, **options)
 
@@ -625,7 +634,11 @@ def metrics_streaming_consumer(**options):
     signal.signal(signal.SIGTERM, handler)
 
     with global_tags(_all_threads=True, pipeline=ingest_config.internal_metrics_tag):
-        streamer.run()
+        try:
+            streamer.run()
+        finally:
+            if ingest_config.is_output_sliced and slicing_router is not None:
+                slicing_router.shutdown(timeout=5.0)
 
 
 @run.command("ingest-metrics-parallel-consumer")
@@ -657,6 +670,12 @@ def metrics_parallel_consumer(**options):
     use_case = UseCaseKey(options["ingest_profile"])
     db_backend = IndexerStorage(options["indexer_db"])
     ingest_config = get_ingest_config(use_case, db_backend)
+    slicing_router: Optional[MessageRouter] = None
+    if ingest_config.is_output_sliced:
+        slicing_router = SlicingRouter(
+            sliceable="generic_metrics_sets",
+            logical_output_topic=ingest_config.output_topic,
+        )
 
     streamer = get_parallel_metrics_consumer(indexer_profile=ingest_config, **options)
 
@@ -667,7 +686,11 @@ def metrics_parallel_consumer(**options):
     signal.signal(signal.SIGTERM, handler)
 
     initialize_global_consumer_state(ingest_config)
-    streamer.run()
+    try:
+        streamer.run()
+    finally:
+        if ingest_config.is_output_sliced and slicing_router is not None:
+            slicing_router.shutdown(timeout=5.0)
 
 
 @run.command("billing-metrics-consumer")
