@@ -73,7 +73,8 @@ class OrganizationOnboardingTaskManager(BaseManager):
 
 class AbstractOnboardingTask(Model):
     """
-    An abstract onboarding task that can be subclassed
+    An abstract onboarding task that can be subclassed. This abstract model exists so that the Sandbox can create a subclass
+    which allows for the creation of tasks that are unique to users instead of organizations.
     """
 
     __include_in_export__ = False
@@ -97,12 +98,8 @@ class AbstractOnboardingTask(Model):
     project = FlexibleForeignKey("sentry.Project", db_constraint=False, null=True)
     data = JSONField()  # INVITE_MEMBER { invited_member: user.id }
 
-    objects = OrganizationOnboardingTaskManager()
-
     class Meta:
         abstract = True
-
-    __repr__ = sane_repr("organization", "task")
 
 
 @region_silo_only_model
