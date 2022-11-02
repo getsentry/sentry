@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import partition from 'lodash/partition';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, SavedSearch} from 'sentry/types';
 
@@ -59,16 +59,16 @@ const SavedIssueSearches = ({
     );
   }
 
-  const [recommendedSavedSearches, orgSavedSearches] = partition(
-    savedSearches,
-    item => item.isGlobal
+  const orgSavedSearches = savedSearches.filter(
+    search => !search.isGlobal && !search.isPinned
   );
+  const recommendedSavedSearches = savedSearches.filter(search => search.isGlobal);
 
   return (
     <StyledSidebar>
       {orgSavedSearches.length > 0 && (
         <Fragment>
-          <Heading>Saved Searches</Heading>
+          <Heading>{t('Saved Searches')}</Heading>
           <SearchesContainer>
             {orgSavedSearches.map(item => (
               <SavedSearchItem
@@ -82,7 +82,7 @@ const SavedIssueSearches = ({
       )}
       {recommendedSavedSearches.length > 0 && (
         <Fragment>
-          <Heading>Recommended</Heading>
+          <Heading>{t('Recommended')}</Heading>
           <SearchesContainer>
             {recommendedSavedSearches.map(item => (
               <SavedSearchItem

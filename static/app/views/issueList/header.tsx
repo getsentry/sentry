@@ -99,7 +99,7 @@ function IssueListHeader({
               icon={<IconStar size="sm" isSolid={isSavedSearchesOpen} />}
               onClick={() => onToggleSavedSearches(!isSavedSearchesOpen)}
             >
-              Saved Searches
+              {t('Saved Searches')}
             </Button>
           )}
           <Button
