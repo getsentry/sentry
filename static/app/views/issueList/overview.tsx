@@ -1270,6 +1270,7 @@ class IssueListOverview extends Component<Props, State> {
           <SavedIssueSearches
             {...{savedSearches, savedSearch, savedSearchLoading, organization}}
             isOpen={isSavedSearchesOpen}
+            onSavedSearchDelete={this.onSavedSearchDelete}
             onSavedSearchSelect={this.onSavedSearchSelect}
           />
         </StyledBody>
