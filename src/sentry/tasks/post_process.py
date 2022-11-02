@@ -9,7 +9,6 @@ from django.conf import settings
 from sentry import features
 from sentry.exceptions import PluginError
 from sentry.killswitches import killswitch_matches_context
-from sentry.services.hybrid_cloud.user import APIUser
 from sentry.signals import event_processed, issue_unignored, transaction_processed
 from sentry.tasks.base import instrumented_task
 from sentry.types.activity import ActivityType
@@ -26,6 +25,7 @@ from sentry.utils.services import build_instance_from_options
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event, GroupEvent
     from sentry.eventstream.base import GroupState, GroupStates
+    from sentry.services.hybrid_cloud.user import APIUser
 
 logger = logging.getLogger("sentry")
 
