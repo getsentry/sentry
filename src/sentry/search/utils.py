@@ -4,26 +4,13 @@ from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    FrozenSet,
-    Optional,
-    Sequence,
-    Set,
-    Tuple,
-    TypedDict,
-    Union,
-    cast,
-)
+from typing import TYPE_CHECKING, Any, Callable, FrozenSet, Optional, Sequence, Set, Tuple, Union
 
 from django.db import DataError, connections, router
 from django.utils import timezone
 
 if TYPE_CHECKING:
     from sentry.api.event_search import SearchFilter
-    from typing_extensions import NotRequired
 
 from sentry.models import (
     KEYWORD_MAP,
@@ -630,31 +617,33 @@ def split_query_into_tokens(query: str) -> Sequence[str]:
     return tokens
 
 
-class ParsedQueryValues(TypedDict, total=False):
-    tags: dict[str, Union[str, list[str], Any]]
-    query: str
-    unassigned: NotRequired[bool]
-    for_review: NotRequired[bool]
-    linked: NotRequired[bool]
-    status: NotRequired[int]
-    assigned_to: NotRequired[Optional[Union[User, Team]]]
-    assigned_or_suggested: NotRequired[Optional[Union[User, Team]]]
-    bookmarked_by: NotRequired[User]
-    subscribed_by: NotRequired[User]
-    first_release: NotRequired[Sequence[str]]
-
-    age_from: NotRequired[Union[datetime, bool]]
-    age_to: NotRequired[Union[datetime, bool]]
-    last_seen_from: NotRequired[Union[datetime, bool]]
-    last_seen_to: NotRequired[Union[datetime, bool]]
-    date_from: NotRequired[Union[datetime, bool]]
-    date_to: NotRequired[Union[datetime, bool]]
-    times_seen: NotRequired[Union[int, float]]
-
-
 def parse_query(
     projects: Sequence[Project], query: str, user: User, environments: Sequence[Environment]
-) -> ParsedQueryValues:
+) -> dict[str, Any]:
+    """| Parses the query string and returns a dict of structured query term values:
+    | Required:
+    | - tags: dict[str, Union[str, list[str], Any]]: dictionary of tag key-values 'user.id:123'
+    | - query: str: the general query portion of the query string
+    | Optional:
+    | - unassigned: bool: 'is:unassigned'
+    | - for_review: bool: 'is:for_review'
+    | - linked: bool: 'is:linked'
+    | - status: int: 'is:<resolved,unresolved,ignored,muted,reprocessing>'
+    | - assigned_to: Optional[Union[User, Team]]: 'assigned:<user or team>'
+    | - assigned_or_suggested: Optional[Union[User, Team]]: 'assigned_or_suggested:<user or team>'
+    | - bookmarked_by: User: 'bookmarks:<user>'
+    | - subscribed_by: User: 'subscribed:<user>'
+    | - first_release: Sequence[str]: '<first-release/firstRelease>:1.2.3'
+    | - age_from: Union[datetime, bool]: '<age/firstSeen>:-1h'
+    | - age_to: Union[datetime, bool]: '<age/firstSeen>:+1h'
+    | - last_seen_from: Union[datetime, bool]: 'last_seen/lastSeen:-1h'
+    | - last_seen_to: Union[datetime, bool]: 'last_seen/lastSeen:+1h'
+    | - date_from: Union[datetime, bool]: 'event.timestamp:-24h'
+    | - date_to: Union[datetime, bool]: 'event.timestamp:+0m'
+    | - times_seen: Union[int, float]: 'timesSeen:>100'
+
+    :returns: A dict of parsed values from the query.
+    """
     # TODO(dcramer): handle query being wrapped in quotes
     tokens = tokenize_query(query)
 
@@ -723,8 +712,7 @@ def parse_query(
                 results["tags"][key] = value
 
     results["query"] = " ".join(results["query"])
-
-    return cast(ParsedQueryValues, results)
+    return results
 
 
 def convert_user_tag_to_query(key: str, value: str) -> Optional[str]:
