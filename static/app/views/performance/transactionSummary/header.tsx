@@ -63,10 +63,10 @@ function TransactionHeader({
 
   const project = projects.find(p => p.id === projectId);
 
-  const hasSuspectSpansView = organization.features?.includes(
+  const hasSuspectSpansView = organization.features.includes(
     'performance-suspect-spans-view'
   );
-  const hasAnomalyDetection = organization.features?.includes(
+  const hasAnomalyDetection = organization.features.includes(
     'performance-anomaly-detection-ui'
   );
 
