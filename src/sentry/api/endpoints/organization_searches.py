@@ -8,7 +8,7 @@ from sentry import analytics
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationSearchPermission
 from sentry.api.serializers import serialize
-from sentry.models.savedsearch import SavedSearch, SortOptions
+from sentry.models.savedsearch import SavedSearch, SortOptions, Visibility
 from sentry.models.search_common import SearchType
 
 
@@ -72,6 +72,11 @@ class OrganizationSearchesEndpoint(OrganizationEndpoint):
                     name=result["name"],
                     query=result["query"],
                     sort=result["sort"],
+                    # NOTE: We have not yet exposed the API for setting the
+                    # visibility of a saved search, but we don't want to use
+                    # the model default of 'owner'. Existing is to be visible
+                    # to the organization.
+                    visibility=Visibility.ORGANIZATION,
                 )
                 analytics.record(
                     "organization_saved_search.created",

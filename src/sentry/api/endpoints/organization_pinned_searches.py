@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPinnedSearchPermission
 from sentry.api.serializers import serialize
-from sentry.models import SavedSearch, SortOptions
+from sentry.models.savedsearch import SavedSearch, SortOptions, Visibility
 from sentry.models.search_common import SearchType
 
 PINNED_SEARCH_NAME = "My Pinned Search"
@@ -42,6 +42,7 @@ class OrganizationPinnedSearchEndpoint(OrganizationEndpoint):
             name=PINNED_SEARCH_NAME,
             owner=request.user,
             type=result["type"],
+            visibility=Visibility.OWNER_PINNED,
             values={"query": result["query"], "sort": result["sort"]},
         )
         pinned_search = SavedSearch.objects.get(
