@@ -4,7 +4,7 @@ from snuba_sdk import Column, Function
 
 from sentry import options
 from sentry.api.utils import InvalidParams
-from sentry.search.events.datasets.base import CommonSNQLResolver
+from sentry.search.events.datasets.base import resolve_project_threshold_config
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import (
     resolve_tag_key,
@@ -577,11 +577,14 @@ def transform_null_to_unparameterized_snql(org_id, tag_key, alias=None):
 
 
 def _resolve_project_threshold_config(project_ids, org_id):
-    return CommonSNQLResolver(
+    return resolve_project_threshold_config(
         tag_value_resolver=lambda use_case_id, org_id, value: resolve_tag_value(
             use_case_id, org_id, value
         ),
         column_name_resolver=lambda use_case_id, org_id, value: resolve_tag_key(
             use_case_id, org_id, value
         ),
-    ).resolve_project_threshold_config(project_ids, org_id, UseCaseKey.PERFORMANCE)
+        project_ids=project_ids,
+        org_id=org_id,
+        use_case_id=UseCaseKey.PERFORMANCE,
+    )
