@@ -5,6 +5,7 @@ import {
   renderGlobalModal,
   screen,
   userEvent,
+  waitFor,
   waitForElementToBeRemoved,
   within,
 } from 'sentry-test/reactTestingLibrary';
@@ -17,58 +18,81 @@ describe('SavedIssueSearches', function () {
   });
 
   const recommendedSearch = TestStubs.Search({
+    id: 'global-search',
     isGlobal: true,
     name: 'Assigned to Me',
     query: 'is:unresolved assigned:me',
   });
 
   const orgSearch = TestStubs.Search({
+    id: 'org-search',
     isGlobal: false,
+    name: 'Last 4 Hours',
+    query: 'age:-4h',
+  });
+
+  const pinnedSearch = TestStubs.Search({
+    id: 'pinned-search',
+    isGlobal: false,
+    isPinned: true,
     name: 'Last 4 Hours',
     query: 'age:-4h',
   });
 
   const defaultProps: ComponentProps<typeof SavedIssueSearches> = {
     isOpen: true,
-    savedSearches: [recommendedSearch, orgSearch],
-    savedSearch: null,
-    savedSearchLoading: false,
     organization,
     onSavedSearchSelect: jest.fn(),
-    onSavedSearchDelete: jest.fn(),
     query: 'is:unresolved',
     sort: 'date',
   };
 
   beforeEach(() => {
+    MockApiClient.clearMockResponses();
     jest.restoreAllMocks();
   });
 
-  it('displays saved searches with correct text and in correct sections', function () {
+  it('displays saved searches with correct text and in correct sections', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/searches/',
+      body: [recommendedSearch, orgSearch, pinnedSearch],
+    });
+
     const {container} = render(<SavedIssueSearches {...defaultProps} />);
+
+    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
     expect(container).toSnapshot();
   });
 
-  it('hides saves searches by default past first 5', function () {
-    render(
-      <SavedIssueSearches
-        {...defaultProps}
-        savedSearches={[...new Array(6)].map((_, i) => ({
-          ...orgSearch,
-          name: 'Test Search',
-          id: i,
-        }))}
-      />
-    );
+  it('hides saves searches by default past first 5', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/searches/',
+      body: [...new Array(6)].map((_, i) => ({
+        ...orgSearch,
+        name: 'Test Search',
+        id: i,
+      })),
+    });
+
+    render(<SavedIssueSearches {...defaultProps} />);
+
+    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
     expect(screen.getAllByText('Test Search')).toHaveLength(5);
     userEvent.click(screen.getByRole('button', {name: /show all 6 saved searches/i}));
     expect(screen.getAllByText('Test Search')).toHaveLength(6);
   });
 
-  it('can select a saved search', function () {
+  it('can select a saved search', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/searches/',
+      body: [recommendedSearch, orgSearch, pinnedSearch],
+    });
+
     render(<SavedIssueSearches {...defaultProps} />);
+
+    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
     userEvent.click(screen.getByRole('button', {name: 'Assigned to Me'}));
     expect(defaultProps.onSavedSearchSelect).toHaveBeenLastCalledWith(recommendedSearch);
@@ -77,23 +101,47 @@ describe('SavedIssueSearches', function () {
     expect(defaultProps.onSavedSearchSelect).toHaveBeenLastCalledWith(orgSearch);
   });
 
-  it('does not show header when there are no org saved searches', function () {
-    render(<SavedIssueSearches {...defaultProps} savedSearches={[recommendedSearch]} />);
+  it('does not show header when there are no org saved searches', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/searches/',
+      body: [recommendedSearch],
+    });
 
-    expect(screen.queryByText(/saved searches/i)).not.toBeInTheDocument();
+    render(<SavedIssueSearches {...defaultProps} />);
+
+    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+
+    expect(screen.getByText("You don't have any saved searches.")).toBeInTheDocument();
   });
 
-  it('does not show overflow menu for recommended searches', function () {
-    render(<SavedIssueSearches {...defaultProps} savedSearches={[recommendedSearch]} />);
+  it('does not show overflow menu for recommended searches', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/searches/',
+      body: [recommendedSearch],
+    });
+    render(<SavedIssueSearches {...defaultProps} />);
+
+    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
     expect(
       screen.queryByRole('button', {name: /saved search options/i})
     ).not.toBeInTheDocument();
   });
 
-  it('can delete an org saved search with correct permissions', function () {
+  it('can delete an org saved search with correct permissions', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/searches/',
+      body: [recommendedSearch, orgSearch, pinnedSearch],
+    });
+    const deleteMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/searches/org-search/',
+      method: 'DELETE',
+    });
+
     render(<SavedIssueSearches {...defaultProps} />);
     renderGlobalModal();
+
+    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
     userEvent.click(screen.getByRole('button', {name: /saved search options/i}));
     userEvent.click(screen.getByRole('menuitemradio', {name: /delete/i}));
@@ -104,11 +152,18 @@ describe('SavedIssueSearches', function () {
 
     userEvent.click(within(modal).getByRole('button', {name: /confirm/i}));
 
-    expect(defaultProps.onSavedSearchDelete).toHaveBeenCalledTimes(1);
-    expect(defaultProps.onSavedSearchDelete).toHaveBeenLastCalledWith(orgSearch);
+    await waitFor(() => {
+      expect(deleteMock).toHaveBeenCalledTimes(1);
+      expect(screen.queryByText(orgSearch.name)).not.toBeInTheDocument();
+    });
   });
 
-  it('cannot delete a saved search without correct permissions', function () {
+  it('cannot delete a saved search without correct permissions', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/searches/',
+      body: [recommendedSearch, orgSearch, pinnedSearch],
+    });
+
     render(
       <SavedIssueSearches
         {...defaultProps}
@@ -119,6 +174,8 @@ describe('SavedIssueSearches', function () {
       />
     );
 
+    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+
     userEvent.click(screen.getByRole('button', {name: /saved search options/i}));
 
     expect(
@@ -127,6 +184,11 @@ describe('SavedIssueSearches', function () {
   });
 
   it('can create a new saved search', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/searches/',
+      body: [recommendedSearch],
+    });
+
     const mockSave = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/searches/',
       method: 'POST',
@@ -135,6 +197,8 @@ describe('SavedIssueSearches', function () {
 
     render(<SavedIssueSearches {...defaultProps} />);
     renderGlobalModal();
+
+    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
     userEvent.click(screen.getByRole('button', {name: /create a new saved search/i}));
 
@@ -147,15 +211,17 @@ describe('SavedIssueSearches', function () {
 
     userEvent.click(within(modal).getByRole('button', {name: /save/i}));
 
-    expect(mockSave).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        data: expect.objectContaining({
-          name: 'new saved search',
-          query: 'is:unresolved',
-        }),
-      })
-    );
+    await waitFor(() => {
+      expect(mockSave).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            name: 'new saved search',
+            query: 'is:unresolved',
+          }),
+        })
+      );
+    });
 
     // Modal should close
     await waitForElementToBeRemoved(() => screen.getByRole('dialog'));
