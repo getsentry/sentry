@@ -161,7 +161,7 @@ async function fetchEventsWithReplay({
     const [data] = await doDiscoverQuery<TableData>(
       api,
       `/organizations/${organization.slug}/events/`,
-      eventView.getEventsAPIPayload(location)
+      eventView.getEventsAPIPayload(location, '', true)
     );
 
     return data.data;

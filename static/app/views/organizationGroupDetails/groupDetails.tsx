@@ -448,7 +448,7 @@ class GroupDetails extends Component<Props, State> {
       const [data] = await doDiscoverQuery<TableData>(
         api,
         `/organizations/${organization.slug}/events/`,
-        eventView.getEventsAPIPayload(location)
+        eventView.getEventsAPIPayload(location, '', true)
       );
 
       const replayIds = data.data.map(record => String(record.replayId));

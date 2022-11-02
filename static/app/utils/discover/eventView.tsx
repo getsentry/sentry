@@ -1121,7 +1121,8 @@ class EventView {
   // Takes an EventView instance and converts it into the format required for the events API
   getEventsAPIPayload(
     location: Location,
-    forceAppendRawQueryString?: string
+    forceAppendRawQueryString?: string,
+    noPageLimit?: boolean
   ): EventQuery & LocationQuery {
     // pick only the query strings that we care about
     const picked = pickRelevantLocationQueryStrings(location);
@@ -1159,6 +1160,10 @@ class EventView {
         query: queryString,
       }
     ) as EventQuery & LocationQuery;
+
+    if (noPageLimit) {
+      delete eventQuery.per_page;
+    }
 
     if (eventQuery.team && !eventQuery.team.length) {
       delete eventQuery.team;
