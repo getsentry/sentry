@@ -251,7 +251,6 @@ const StyledHovercard = styled(Hovercard)`
 const StyledIconInfo = styled(IconInfo)<{ishovering: number}>`
   color: ${p => (p.ishovering ? p.theme.gray300 : p.theme.gray200)};
   min-width: max-content;
-  max-height: max-content;
 `;
 
 const HoverWrapper = styled('div')`
