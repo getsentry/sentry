@@ -1,10 +1,13 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Callable, Mapping, Optional, Union
+from typing import Callable, Mapping, Optional, Union
 
 from snuba_sdk import Direction, OrderBy
 
 from sentry.api.event_search import SearchFilter
+from sentry.search.events import builder
 from sentry.search.events.constants import PROJECT_ALIAS, PROJECT_NAME_ALIAS
 from sentry.search.events.datasets import field_aliases, filter_aliases
 from sentry.search.events.datasets.base import DatasetConfig
@@ -150,7 +153,7 @@ class ProfilesDatasetConfig(DatasetConfig):  # type: ignore
         "project_id",
     }
 
-    def __init__(self, builder: Any):
+    def __init__(self, builder: builder.QueryBuilder):
         self.builder = builder
 
     @property

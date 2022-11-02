@@ -15,7 +15,7 @@ from sentry.models.transaction_threshold import (
     ProjectTransactionThreshold,
     ProjectTransactionThresholdOverride,
 )
-from sentry.search.events.builder import QueryBuilder
+from sentry.search.events import builder
 from sentry.search.events.constants import (
     DEFAULT_PROJECT_THRESHOLD,
     DEFAULT_PROJECT_THRESHOLD_METRIC,
@@ -86,7 +86,7 @@ class DiscoverDatasetConfig(DatasetConfig):
     }
     non_nullable_keys = {"event.type"}
 
-    def __init__(self, builder: QueryBuilder):
+    def __init__(self, builder: builder.QueryBuilder):
         self.builder = builder
 
     @property
