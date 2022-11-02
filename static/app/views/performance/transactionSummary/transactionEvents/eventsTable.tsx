@@ -179,13 +179,12 @@ class EventsTable extends Component<Props, State> {
       const {issueId} = this.props;
       const isIssue: boolean = !!issueId;
       let target: LocationDescriptor = {};
+      // TODO: set referrer properly
       if (isIssue && field === 'id') {
         target.pathname = `/organizations/${organization.slug}/issues/${issueId}/events/${dataRow.id}/`;
-        target.search = '?referrer=events-table';
       } else {
         const generateLink = field === 'id' ? generateTransactionLink : generateTraceLink;
         target = generateLink(transactionName)(organization, dataRow, location.query);
-        // TODO: add referrer
       }
 
       return (
@@ -444,7 +443,10 @@ class EventsTable extends Component<Props, State> {
             const parsedPageLinks = parseLinkHeader(pageLinks);
             const cursor = parsedPageLinks?.next?.cursor;
             const shouldFetchAttachments: boolean =
-              !!this.props.issueId && !!cursor && this.state.lastFetchedCursor !== cursor; // Only fetch on issue details page
+              organization.features.includes('event-attachments') &&
+              !!this.props.issueId &&
+              !!cursor &&
+              this.state.lastFetchedCursor !== cursor; // Only fetch on issue details page
             let currentEvent = cursor?.split(':')[1] ?? 0;
             if (!parsedPageLinks?.next?.results && totalEventCount) {
               currentEvent = totalEventCount;

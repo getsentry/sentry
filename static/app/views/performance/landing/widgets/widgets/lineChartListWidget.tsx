@@ -22,6 +22,7 @@ import withApi from 'sentry/utils/withApi';
 import _DurationChart from 'sentry/views/performance/charts/chart';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {
+  createUnnamedTransactionsDiscoverTarget,
   getPerformanceDuration,
   UNPARAMETERIZED_TRANSACTION,
 } from 'sentry/views/performance/utils';
@@ -269,13 +270,19 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                   additionalQuery.display = 'latency';
                 }
 
-                const transactionTarget = transactionSummaryRouteWithQuery({
-                  orgSlug: props.organization.slug,
-                  projectID: listItem['project.id'] as string,
-                  transaction,
-                  query: props.eventView.getPageFiltersQuery(),
-                  additionalQuery,
-                });
+                const isUnparameterizedRow = transaction === UNPARAMETERIZED_TRANSACTION;
+                const transactionTarget = isUnparameterizedRow
+                  ? createUnnamedTransactionsDiscoverTarget({
+                      organization,
+                      location: props.location,
+                    })
+                  : transactionSummaryRouteWithQuery({
+                      orgSlug: props.organization.slug,
+                      projectID: listItem['project.id'] as string,
+                      transaction,
+                      query: props.eventView.getPageFiltersQuery(),
+                      additionalQuery,
+                    });
 
                 const fieldString = useEvents ? field : getAggregateAlias(field);
 

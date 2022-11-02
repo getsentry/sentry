@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {browserHistory} from 'react-router';
+import {browserHistory, Link} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import partial from 'lodash/partial';
@@ -39,6 +39,10 @@ import {formatFloat, formatPercentage} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import Projects from 'sentry/utils/projects';
 import {
+  ContextType,
+  QuickContextHoverWrapper,
+} from 'sentry/views/eventsV2/table/quickContext';
+import {
   filterToLocationQuery,
   SpanOperationBreakdownFilter,
   stringToFilter,
@@ -54,6 +58,7 @@ import {
   FieldShortId,
   FlexContainer,
   NumberContainer,
+  OverflowFieldShortId,
   OverflowLink,
   UserIcon,
   VersionContainer,
@@ -475,9 +480,15 @@ const SPECIAL_FIELDS: SpecialFields = {
 
       return (
         <Container>
-          <OverflowLink to={target} aria-label={issueID}>
-            <FieldShortId shortId={`${data.issue}`} />
-          </OverflowLink>
+          {organization.features.includes('discover-quick-context') ? (
+            <QuickContextHoverWrapper dataRow={data} contextType={ContextType.ISSUE}>
+              <StyledLink to={target} aria-label={issueID}>
+                <OverflowFieldShortId shortId={`${data.issue}`} />
+              </StyledLink>
+            </QuickContextHoverWrapper>
+          ) : (
+            <OverflowFieldShortId shortId={`${data.issue}`} />
+          )}
         </Container>
       );
     },
@@ -878,6 +889,10 @@ const RectangleRelativeOpsBreakdown = styled(RowRectangle)`
 
 const OtherRelativeOpsBreakdown = styled(RectangleRelativeOpsBreakdown)`
   background-color: ${p => p.theme.gray100};
+`;
+
+const StyledLink = styled(Link)`
+  max-width: 100%;
 `;
 
 /**

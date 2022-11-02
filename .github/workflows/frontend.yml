@@ -50,7 +50,7 @@ jobs:
 
       - name: Internal github app token
         id: token
-        uses: getsentry/action-github-app-token@38a3ce582e170ddfe8789f509597c6944f2292a9  # v1
+        uses: getsentry/action-github-app-token@97c9e23528286821f97fba885c1b1123284b29cc  # v2.0.0
         continue-on-error: true
         with:
           app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
@@ -148,7 +148,7 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
-      - uses: getsentry/size-limit-action@3f9e584f47175f7f2ac742569ac16b7a8c05ad82  # v4
+      - uses: getsentry/size-limit-action@7be9865310d295ad211da9a8464332288d60d837 # v5
         env:
           SENTRY_INSTRUMENTATION: 1
           SENTRY_WEBPACK_WEBHOOK_SECRET: ${{ secrets.SENTRY_WEBPACK_WEBHOOK_SECRET }}
