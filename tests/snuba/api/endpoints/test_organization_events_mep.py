@@ -404,6 +404,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                         "user_misery()",
                         "failure_rate()",
                     ],
+                    "orderby": "tpm()",
                     "query": "event.type:transaction",
                     "dataset": dataset,
                     "per_page": 50,
