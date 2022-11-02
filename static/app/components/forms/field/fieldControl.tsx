@@ -12,7 +12,6 @@ type FieldControlProps = Pick<
   | 'controlState'
   | 'disabled'
   | 'disabledReason'
-  | 'errorState'
   | 'flexibleControlStateSize'
   | 'hideControlState'
   | 'inline'
@@ -25,7 +24,6 @@ const FieldControl = ({
   alignRight,
   disabled,
   disabledReason,
-  errorState,
   controlState,
   children,
   hideControlState,
@@ -47,8 +45,6 @@ const FieldControl = ({
         </FieldControlState>
       )}
     </FieldControlWrapper>
-
-    {!hideControlState && errorState}
   </FieldControlErrorWrapper>
 );
 
