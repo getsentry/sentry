@@ -222,6 +222,7 @@ def timeseries_query(
     functions_acl: Optional[Sequence[str]] = None,
     allow_metric_aggregates=False,
     has_metrics=False,
+    use_metrics_layer=False,
 ):
     """
     High-level API for doing arbitrary user timeseries queries against events.

@@ -1,4 +1,3 @@
-from django.db.models import Q
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -34,35 +33,22 @@ class OrganizationPinnedSearchEndpoint(OrganizationEndpoint):
     def put(self, request: Request, organization) -> Response:
         serializer = OrganizationSearchSerializer(data=request.data)
 
-        if serializer.is_valid():
-            result = serializer.validated_data
-            SavedSearch.objects.create_or_update(
-                organization=organization,
-                name=PINNED_SEARCH_NAME,
-                owner=request.user,
-                type=result["type"],
-                values={"query": result["query"], "sort": result["sort"]},
-            )
-            pinned_search = SavedSearch.objects.get(
-                organization=organization, owner=request.user, type=result["type"]
-            )
-            try:
-                # If we pinned an existing search, return the details about that
-                # search.
-                existing_search = SavedSearch.objects.filter(
-                    Q(organization=organization, owner__isnull=True) | Q(is_global=True),
-                    type=result["type"],
-                    query=result["query"],
-                    sort=result["sort"],
-                )[:1].get()
-            except SavedSearch.DoesNotExist:
-                pass
-            else:
-                pinned_search = existing_search
-                existing_search.is_pinned = True
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
 
-            return Response(serialize(pinned_search, request.user), status=201)
-        return Response(serializer.errors, status=400)
+        result = serializer.validated_data
+        SavedSearch.objects.create_or_update(
+            organization=organization,
+            name=PINNED_SEARCH_NAME,
+            owner=request.user,
+            type=result["type"],
+            values={"query": result["query"], "sort": result["sort"]},
+        )
+        pinned_search = SavedSearch.objects.get(
+            organization=organization, owner=request.user, type=result["type"]
+        )
+
+        return Response(serialize(pinned_search, request.user), status=201)
 
     def delete(self, request: Request, organization) -> Response:
         try:
