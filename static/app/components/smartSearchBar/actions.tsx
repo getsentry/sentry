@@ -136,10 +136,14 @@ export function makeSaveSearchAction({
   disabled,
 }: SaveSearchActionOpts): ActionBarItem {
   const makeAction = ({query, organization}: ActionProps) => {
-    const onSaveSearch = () =>
+    const onSaveSearch = () => {
+      trackAdvancedAnalyticsEvent('search.saved_search_open_create_modal', {
+        organization,
+      });
       openModal(deps => (
         <CreateSavedSearchModal {...deps} {...{organization, query, sort}} />
       ));
+    };
 
     const title = disabled
       ? t('You do not have permission to create a saved search')

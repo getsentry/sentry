@@ -9,6 +9,7 @@ import FormField from 'sentry/components/forms/formField';
 import {OnSubmitCallback} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useApi from 'sentry/utils/useApi';
 import IssueListSearchBar from 'sentry/views/issueList/searchBar';
 import {getSortLabel, IssueSortOptions} from 'sentry/views/issueList/utils';
@@ -71,6 +72,15 @@ function CreateSavedSearchModal({
     setError(null);
 
     addLoadingMessage(t('Saving Changes'));
+
+    trackAdvancedAnalyticsEvent('search.saved_search_create', {
+      name: data.name,
+      organization,
+      query: data.query,
+      search_type: 'issues',
+      sort: data.sort,
+      visibility: 'organization',
+    });
 
     try {
       await createSavedSearch(
