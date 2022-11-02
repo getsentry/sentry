@@ -4,14 +4,7 @@ from snuba_sdk import Column, Function
 
 from sentry import options
 from sentry.api.utils import InvalidParams
-from sentry.exceptions import InvalidSearchQuery
-from sentry.models import (
-    TRANSACTION_METRICS,
-    ProjectTransactionThreshold,
-    ProjectTransactionThresholdOverride,
-)
-from sentry.search.events import constants
-from sentry.search.events.types import SelectType
+from sentry.search.events.datasets.base import CommonSNQLResolver
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import (
     resolve_tag_key,
@@ -583,158 +576,12 @@ def transform_null_to_unparameterized_snql(org_id, tag_key, alias=None):
     )
 
 
-# TODO: this function is currently here because of simplicity, we would like to try and sync with DND team to let
-#  them own it and we will base our APDEX implementation on top of it. Currently the issue is that there is another
-#  implementation of this function in [src/sentry/search/events/datasets/discover.py#L1039-L1039] and we want to
-#  avoid having one missed in case of a logic update in the other.
 def _resolve_project_threshold_config(project_ids, org_id):
-    project_threshold_configs = (
-        ProjectTransactionThreshold.objects.filter(
-            organization_id=org_id,
-            project_id__in=project_ids,
-        )
-        .order_by("project_id")
-        .values_list("project_id", "metric")
-    )
-
-    transaction_threshold_configs = (
-        ProjectTransactionThresholdOverride.objects.filter(
-            organization_id=org_id,
-            project_id__in=project_ids,
-        )
-        .order_by("project_id")
-        .values_list("transaction", "project_id", "metric")
-    )
-
-    num_project_thresholds = project_threshold_configs.count()
-    num_transaction_thresholds = transaction_threshold_configs.count()
-
-    if (
-        num_project_thresholds + num_transaction_thresholds
-        > constants.MAX_QUERYABLE_TRANSACTION_THRESHOLDS
-    ):
-        raise InvalidSearchQuery(
-            f"Exceeded {constants.MAX_QUERYABLE_TRANSACTION_THRESHOLDS} configured transaction thresholds limit, try with fewer Projects."
-        )
-
-    # Arrays need to have toUint64 casting because clickhouse will define the type as the narrowest possible type
-    # that can store listed argument types, which means the comparison will fail because of mismatched types
-    project_thresholds = {}
-    project_threshold_config_keys = []
-    project_threshold_config_values = []
-    for project_id, metric in project_threshold_configs:
-        metric = TRANSACTION_METRICS[metric]
-        if metric == constants.DEFAULT_PROJECT_THRESHOLD_METRIC:
-            # small optimization, if the configuration is equal to the default,
-            # we can skip it in the final query
-            continue
-
-        project_thresholds[project_id] = metric
-        project_threshold_config_keys.append(Function("toUInt64", [project_id]))
-        project_threshold_config_values.append(metric)
-
-    project_threshold_override_config_keys = []
-    project_threshold_override_config_values = []
-    for transaction, project_id, metric in transaction_threshold_configs:
-        metric = TRANSACTION_METRICS[metric]
-        if project_id in project_thresholds and metric == project_thresholds[project_id][0]:
-            # small optimization, if the configuration is equal to the project
-            # configs, we can skip it in the final query
-            continue
-
-        elif (
-            project_id not in project_thresholds
-            and metric == constants.DEFAULT_PROJECT_THRESHOLD_METRIC
-        ):
-            # small optimization, if the configuration is equal to the default
-            # and no project configs were set, we can skip it in the final query
-            continue
-
-        transaction_id = resolve_tag_value(UseCaseKey.PERFORMANCE, org_id, transaction)
-        # Don't add to the config if we can't resolve it
-        if transaction_id is None:
-            continue
-        project_threshold_override_config_keys.append(
-            (
-                Function("toUInt64", [project_id]),
-                transaction_id
-                if options.get("sentry-metrics.performance.tags-values-are-strings")
-                else Function("toUInt64", [transaction_id]),
-            )
-        )
-        project_threshold_override_config_values.append(metric)
-
-    project_threshold_config_index: SelectType = Function(
-        "indexOf",
-        [
-            project_threshold_config_keys,
-            Column(name="project_id"),
-        ],
-        constants.PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS,
-    )
-
-    project_threshold_override_config_index: SelectType = Function(
-        "indexOf",
-        [
-            project_threshold_override_config_keys,
-            (
-                Column(name="project_id"),
-                Column(name=resolve_tag_key(UseCaseKey.PERFORMANCE, org_id, "transaction")),
-            ),
-        ],
-        constants.PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS,
-    )
-
-    def _project_threshold_config(alias=None):
-        if project_threshold_config_keys and project_threshold_config_values:
-            return Function(
-                "if",
-                [
-                    Function(
-                        "equals",
-                        [
-                            project_threshold_config_index,
-                            0,
-                        ],
-                    ),
-                    constants.DEFAULT_PROJECT_THRESHOLD_METRIC,
-                    Function(
-                        "arrayElement",
-                        [
-                            project_threshold_config_values,
-                            project_threshold_config_index,
-                        ],
-                    ),
-                ],
-                alias,
-            )
-
-        return Function(
-            "toString",
-            [constants.DEFAULT_PROJECT_THRESHOLD_METRIC],
-        )
-
-    if project_threshold_override_config_keys and project_threshold_override_config_values:
-        return Function(
-            "if",
-            [
-                Function(
-                    "equals",
-                    [
-                        project_threshold_override_config_index,
-                        0,
-                    ],
-                ),
-                _project_threshold_config(),
-                Function(
-                    "arrayElement",
-                    [
-                        project_threshold_override_config_values,
-                        project_threshold_override_config_index,
-                    ],
-                ),
-            ],
-            constants.PROJECT_THRESHOLD_CONFIG_ALIAS,
-        )
-
-    return _project_threshold_config(constants.PROJECT_THRESHOLD_CONFIG_ALIAS)
+    return CommonSNQLResolver(
+        tag_value_resolver=lambda use_case_id, org_id, value: resolve_tag_value(
+            use_case_id, org_id, value
+        ),
+        column_name_resolver=lambda use_case_id, org_id, value: resolve_tag_key(
+            use_case_id, org_id, value
+        ),
+    ).resolve_project_threshold_config(project_ids, org_id, UseCaseKey.PERFORMANCE)
