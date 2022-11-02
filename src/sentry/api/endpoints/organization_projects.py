@@ -72,6 +72,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                         "firstTransactionEvent": True,
                         "hasSessions": True,
                         "hasProfiles": True,
+                        "hasReplays": True,
                         "latestRelease": None,
                         "hasUserReports": False,
                     }
