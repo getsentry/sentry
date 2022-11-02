@@ -17,6 +17,8 @@ const strictRulesNotCi = {
   ],
 };
 
+// const config = require('eslint-config-sentry-app');
+
 module.exports = {
   extends: [isRelaxed ? 'sentry-app' : 'sentry-app/strict'],
   globals: {
@@ -41,6 +43,24 @@ module.exports = {
     {
       files: ['*.ts', '*.tsx'],
       rules: {},
+    },
+    {
+      files: ['*.spec.ts', '*.spec.tsx'],
+      rules: {
+        // 'no-restricted-imports': [
+        //   'error',
+        //   {
+        //     ...config.rules['no-restricted-imports'][1],
+        //     patterns: [
+        //       {
+        //         group: ['*.spec*'],
+        //         message:
+        //           "Don't import from another test file as it will cause test to run twice. Move exported members to a dedicated test util file instead and then import.",
+        //       },
+        //     ],
+        //   },
+        // ],
+      },
     },
   ],
 };
