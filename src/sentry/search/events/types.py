@@ -16,7 +16,7 @@ from sentry.models import Environment, Organization, Project, Team, User
 
 WhereType = Union[Condition, BooleanCondition]
 # Replaced by SnubaParams
-ParamsType = Mapping[str, Union[List[int], int, str, datetime]]
+ParamsType = Mapping[str, Union[Sequence[int], int, str, datetime]]
 SelectType = Union[AliasedExpression, Column, Function, CurriedFunction]
 
 NormalizedArg = Optional[Union[str, float]]
