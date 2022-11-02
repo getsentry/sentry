@@ -40,6 +40,7 @@ class FrameFilename:
                 self.file_name = self.file_and_dir_path
         else:
             self.root = ""
+            self.dir_path = ""
             self.file_and_dir_path = self.full_path
             self.file_name = self.full_path
 
