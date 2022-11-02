@@ -1,5 +1,4 @@
 from datetime import timedelta
-from urllib.parse import parse_qsl
 
 from django.db.models import F
 from django.urls import reverse
@@ -27,14 +26,17 @@ class AcceptInviteTest(TestCase):
         self.organization.update(flags=F("flags").bitor(Organization.flags.require_2fa))
         assert self.organization.flags.require_2fa.is_set
 
-    def _assert_pending_invite_cookie_set(self, response, om):
-        invite_link = om.get_invite_link()
-        invite_data = dict(parse_qsl(response.client.cookies["pending-invite"].value))
+    def _assert_pending_invite_details_in_session(self, response, om):
+        session_invite_token = response.client.session["invite_token"]
+        session_invite_member_id = response.client.session["invite_member_id"]
+        assert om.token == session_invite_token
+        assert om.id == session_invite_member_id
 
-        assert invite_data.get("url") in invite_link
-
-    def _assert_pending_invite_cookie_not_set(self, response):
-        self.assertNotIn("pending-invite", response.client.cookies)
+    def _assert_pending_invite_details_not_in_session(self, response):
+        session_invite_token = response.client.session.get("invite_token", None)
+        session_invite_member_id = response.client.session.get("invite_member_id", None)
+        assert session_invite_token is None
+        assert session_invite_member_id is None
 
     def _enroll_user_in_2fa(self):
         interface = TotpInterface()
@@ -111,7 +113,7 @@ class AcceptInviteTest(TestCase):
         assert resp.status_code == 200
         assert resp.data["needs2fa"]
 
-        self._assert_pending_invite_cookie_set(resp, om)
+        self._assert_pending_invite_details_in_session(resp, om)
 
     def test_user_has_2fa(self):
         self._require_2fa_for_organization()
@@ -128,7 +130,7 @@ class AcceptInviteTest(TestCase):
         assert resp.status_code == 200
         assert not resp.data["needs2fa"]
 
-        self._assert_pending_invite_cookie_not_set(resp)
+        self._assert_pending_invite_details_not_in_session(resp)
 
     def test_user_can_use_sso(self):
         AuthProvider.objects.create(organization=self.organization, provider="google")
@@ -249,7 +251,7 @@ class AcceptInviteTest(TestCase):
         )
         assert resp.status_code == 204
 
-        self._assert_pending_invite_cookie_not_set(resp)
+        self._assert_pending_invite_details_not_in_session(resp)
 
         om = OrganizationMember.objects.get(id=om.id)
         assert om.email is None
@@ -291,7 +293,7 @@ class AcceptInviteTest(TestCase):
             reverse("sentry-api-0-accept-organization-invite", args=[om.id, om.token])
         )
         assert resp.status_code == 200
-        self._assert_pending_invite_cookie_set(resp, om)
+        self._assert_pending_invite_details_in_session(resp, om)
 
         self._enroll_user_in_2fa()
         resp = self.client.post(
@@ -300,4 +302,4 @@ class AcceptInviteTest(TestCase):
         assert resp.status_code == 204
 
         # value set to empty string on deletion
-        assert not resp.client.cookies["pending-invite"].value
+        self._assert_pending_invite_details_not_in_session(resp)

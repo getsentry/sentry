@@ -281,7 +281,7 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
 
         # If there is a pending organization invite accept after the
         # authenticator has been configured.
-        invite_helper = ApiInviteHelper.from_cookie(request=request, instance=self, logger=logger)
+        invite_helper = ApiInviteHelper.from_session(request=request, instance=self, logger=logger)
 
         if invite_helper and invite_helper.valid_request:
             invite_helper.accept_invite()

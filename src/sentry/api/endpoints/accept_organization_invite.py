@@ -43,7 +43,6 @@ class AcceptOrganizationInvite(Endpoint):
 
         # Keep track of the invite details in the request session
         request.session["invite_email"] = organization_member.email
-        add_invite_details_to_session(request, organization_member.id, organization_member.token)
 
         try:
             auth_provider = AuthProvider.objects.get(organization=organization)
@@ -67,6 +66,9 @@ class AcceptOrganizationInvite(Endpoint):
         # Allow users to register an account when accepting an invite
         if not helper.user_authenticated:
             request.session["can_register"] = True
+            add_invite_details_to_session(
+                request, organization_member.id, organization_member.token
+            )
 
             # When SSO is required do *not* set a next_url to return to accept
             # invite. The invite will be accepted after SSO is completed.
@@ -82,11 +84,19 @@ class AcceptOrganizationInvite(Endpoint):
         # to come back to the accept invite page since 2FA will *not* be
         # required if SSO is required.
         if auth_provider is not None:
+            add_invite_details_to_session(
+                request, organization_member.id, organization_member.token
+            )
+
             provider = auth_provider.get_provider()
             data["ssoProvider"] = provider.name
 
         onboarding_steps = helper.get_onboarding_steps()
         data.update(onboarding_steps)
+        if any(onboarding_steps.values()):
+            add_invite_details_to_session(
+                request, organization_member.id, organization_member.token
+            )
 
         response.data = data
 

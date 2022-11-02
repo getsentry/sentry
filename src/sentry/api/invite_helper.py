@@ -16,9 +16,6 @@ from sentry.signals import member_joined
 from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry
 
-INVITE_COOKIE = "pending-invite"
-COOKIE_MAX_AGE = 60 * 60 * 24 * 7  # 7 days
-
 
 def add_invite_details_to_session(request: Request, member_id: int, token: str):
     """Add member ID and token to the request session
@@ -34,8 +31,16 @@ def add_invite_details_to_session(request: Request, member_id: int, token: str):
 
 def remove_invite_details_from_session(request):
     """Deletes invite details from the request session"""
-    del request.session["invite_member_id"]
-    del request.session["invite_token"]
+    try:
+        del request.session["invite_member_id"]
+        del request.session["invite_token"]
+    except KeyError:
+        # we sometimes attempt to delete the invite values twice depending
+        # on the current state of the user:
+        #   1) when they have 2FA
+        #   2) when they are already authenticated
+        #   3) when they already have an account
+        pass
 
 
 def get_invite_details(request) -> Tuple[str, int]:
@@ -45,11 +50,11 @@ def get_invite_details(request) -> Tuple[str, int]:
 
 class ApiInviteHelper:
     @classmethod
-    def from_cookie_or_email(cls, request, organization, email, instance=None, logger=None):
+    def from_session_or_email(cls, request, organization, email, instance=None, logger=None):
         """
         Initializes the ApiInviteHelper by locating the pending organization
-        member via the currently set pending invite cookie, or via the passed
-        email if no cookie is currently set.
+        member via the currently set pending invite details in the session, or
+        via the passed email if no cookie is currently set.
         """
         invite_token, invite_member_id = get_invite_details(request)
 
@@ -70,7 +75,7 @@ class ApiInviteHelper:
         )
 
     @classmethod
-    def from_cookie(cls, request, instance=None, logger=None):
+    def from_session(cls, request, instance=None, logger=None):
         invite_token, invite_member_id = get_invite_details(request)
 
         if not invite_token:
