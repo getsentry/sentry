@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 from typing import Callable, Mapping, Optional
 
 from snuba_sdk import Function, OrderBy
 
 from sentry.api.event_search import SearchFilter
-from sentry.search.events.builder import QueryBuilder
+from sentry.search.events import builder
 from sentry.search.events.constants import (
     RELEASE_ALIAS,
     RELEASE_STAGE_ALIAS,
@@ -20,7 +22,7 @@ from sentry.search.events.types import SelectType, WhereType
 class SessionsDatasetConfig(DatasetConfig):
     non_nullable_keys = {"project", "project_id", "environment", "release"}
 
-    def __init__(self, builder: QueryBuilder):
+    def __init__(self, builder: builder.QueryBuilder):
         self.builder = builder
 
     @property

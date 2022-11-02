@@ -13,8 +13,7 @@ from sentry.models.transaction_threshold import (
     ProjectTransactionThreshold,
     ProjectTransactionThresholdOverride,
 )
-from sentry.search.events import constants, fields
-from sentry.search.events.builder import MetricsQueryBuilder
+from sentry.search.events import builder, constants, fields
 from sentry.search.events.datasets import field_aliases, filter_aliases
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.types import SelectType, WhereType
@@ -24,7 +23,7 @@ from sentry.utils.numbers import format_grouped_length
 class MetricsDatasetConfig(DatasetConfig):
     missing_function_error = IncompatibleMetricsQuery
 
-    def __init__(self, builder: MetricsQueryBuilder):
+    def __init__(self, builder: builder.MetricsQueryBuilder):
         self.builder = builder
 
     @property
