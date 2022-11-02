@@ -106,6 +106,10 @@ declare global {
     csrfCookieName?: string;
     sentryEmbedCallback?: ((embed: any) => void) | null;
     /**
+     * The domain of which the superuser cookie is set onto.
+     */
+    superUserCookieDomain?: string;
+    /**
      * The superuser cookie used on the backend
      */
     superUserCookieName?: string;
@@ -148,6 +152,7 @@ export interface Config {
     whitelistUrls: string[];
   };
   singleOrganization: boolean;
+  superUserCookieDomain: string | null;
   superUserCookieName: string;
   supportEmail: string;
   termsUrl: string | null;
