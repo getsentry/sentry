@@ -102,20 +102,20 @@ class Access(abc.ABC):
     scopes: FrozenSet[str] = frozenset()
     permissions: FrozenSet[str] = frozenset()
 
-    member: OrganizationMember | None = None
+    _member: OrganizationMember | None = None
 
     @property
     def role(self) -> str | None:
-        return self.member.role if self.member else None
+        return self._member.role if self._member else None
 
     @cached_property
     def _team_memberships(self) -> Mapping[Team, OrganizationMemberTeam]:
-        if self.member is None:
+        if self._member is None:
             return {}
         return {
             omt.team: omt
             for omt in OrganizationMemberTeam.objects.filter(
-                organizationmember=self.member, is_active=True, team__status=TeamStatus.VISIBLE
+                organizationmember=self._member, is_active=True, team__status=TeamStatus.VISIBLE
             ).select_related("team")
         }
 
@@ -242,15 +242,15 @@ class Access(abc.ABC):
         if any(self.has_scope(scope) for scope in scopes):
             return True
 
-        if self.member and features.has("organizations:team-roles", self.member.organization):
+        if self._member and features.has("organizations:team-roles", self._member.organization):
             with sentry_sdk.start_span(op="check_access_for_all_project_teams") as span:
                 memberships = [
                     self._team_memberships[team]
                     for team in project.teams.all()
                     if team in self._team_memberships
                 ]
-                span.set_tag("organization", self.member.organization.id)
-                span.set_tag("organization.slug", self.member.organization.slug)
+                span.set_tag("organization", self._member.organization.id)
+                span.set_tag("organization.slug", self._member.organization.slug)
                 span.set_data("membership_count", len(memberships))
 
             for membership in memberships:
@@ -279,7 +279,7 @@ class OrganizationMemberAccess(Access):
         )
 
         super().__init__(
-            member=member,
+            _member=member,
             sso_is_valid=sso_is_valid,
             requires_sso=requires_sso,
             has_global_access=has_global_access,
@@ -290,14 +290,14 @@ class OrganizationMemberAccess(Access):
     def has_team_access(self, team: Team) -> bool:
         if team.status != TeamStatus.VISIBLE:
             return False
-        if self.has_global_access and self.member.organization.id == team.organization_id:
+        if self.has_global_access and self._member.organization.id == team.organization_id:
             return True
         return team in self.teams
 
     def has_project_access(self, project: Project) -> bool:
         if project.status != ProjectStatus.VISIBLE:
             return False
-        if self.has_global_access and self.member.organization.id == project.organization_id:
+        if self.has_global_access and self._member.organization.id == project.organization_id:
             return True
         return project in self.projects
 
@@ -398,7 +398,7 @@ def from_request(
 
         return OrganizationGlobalAccess(
             organization=organization,
-            member=member,
+            _member=member,
             scopes=scopes if scopes is not None else settings.SENTRY_SCOPES,
             sso_is_valid=sso_is_valid,
             requires_sso=requires_sso,
