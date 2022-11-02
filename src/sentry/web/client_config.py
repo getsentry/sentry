@@ -13,7 +13,7 @@ from sentry.auth import superuser
 from sentry.auth.access import get_cached_organization_member
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import Organization, OrganizationMember
-from sentry.services.hybrid_cloud import ProjectKeyRole, project_key_service
+from sentry.services.hybrid_cloud.project_key import ProjectKeyRole, project_key_service
 from sentry.utils import auth
 from sentry.utils.assets import get_frontend_app_asset_url
 from sentry.utils.email import is_smtp_enabled
@@ -202,6 +202,7 @@ def get_client_config(request=None):
         "userIdentity": user_identity,
         "csrfCookieName": settings.CSRF_COOKIE_NAME,
         "superUserCookieName": superuser.COOKIE_NAME,
+        "superUserCookieDomain": superuser.COOKIE_DOMAIN,
         "sentryConfig": {
             "dsn": public_dsn,
             # XXX: In the world of frontend / backend deploys being separated,
