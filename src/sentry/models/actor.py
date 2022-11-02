@@ -90,10 +90,6 @@ class Actor(Model):
         # essentially forwards request to ActorTuple.get_actor_identifier
         return self.get_actor_tuple().get_actor_identifier()
 
-    #
-    # @classmethod
-    # def resolve_many(cls, actors: Sequence[Actor]) -> List[Union[""]]:
-
 
 class ActorTuple(namedtuple("Actor", "id type")):
     """
