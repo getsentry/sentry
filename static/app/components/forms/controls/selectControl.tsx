@@ -370,12 +370,28 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
         color: theme.subText,
         marginBottom: 0,
         padding: `${space(0.5)} ${space(1.5)}`,
+        ':empty': {
+          display: 'none',
+        },
       }),
       group: provided => ({
         ...provided,
         paddingTop: 0,
         ':last-of-type': {
           paddingBottom: 0,
+        },
+        ':not(:last-of-type)': {
+          position: 'relative',
+          marginBottom: space(1),
+        },
+        // Add divider between sections
+        ':not(:last-of-type)::after': {
+          content: '""',
+          position: 'absolute',
+          left: space(1.5),
+          right: space(1.5),
+          bottom: 0,
+          borderBottom: `solid 1px ${theme.innerBorder}`,
         },
       }),
     }),
