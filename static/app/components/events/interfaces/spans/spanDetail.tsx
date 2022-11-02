@@ -6,7 +6,6 @@ import map from 'lodash/map';
 import omit from 'lodash/omit';
 
 import {Client} from 'sentry/api';
-import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import Clipboard from 'sentry/components/clipboard';
@@ -447,19 +446,15 @@ class SpanDetail extends Component<Props, State> {
                   ? String(span.same_process_as_parent)
                   : null}
               </Row>
-              <Feature
-                organization={organization}
-                features={['organizations:performance-suspect-spans-view']}
-              >
-                <Row title="Span Group">
-                  {defined(span.hash) ? String(span.hash) : null}
-                </Row>
-                <Row title="Span Self Time">
-                  {defined(span.exclusive_time)
-                    ? `${Number(span.exclusive_time.toFixed(3)).toLocaleString()}ms`
-                    : null}
-                </Row>
-              </Feature>
+
+              <Row title="Span Group">
+                {defined(span.hash) ? String(span.hash) : null}
+              </Row>
+              <Row title="Span Self Time">
+                {defined(span.exclusive_time)
+                  ? `${Number(span.exclusive_time.toFixed(3)).toLocaleString()}ms`
+                  : null}
+              </Row>
               <Tags span={span} />
               {allZeroSizes && (
                 <TextTr>
