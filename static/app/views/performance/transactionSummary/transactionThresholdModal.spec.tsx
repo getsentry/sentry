@@ -18,10 +18,11 @@ function mountModal(
 ) {
   render(
     <TransactionThresholdModal
-      Header={stubEl as ModalRenderProps['Header']}
-      Footer={stubEl as ModalRenderProps['Footer']}
-      Body={stubEl as ModalRenderProps['Body']}
-      CloseButton={stubEl as ModalRenderProps['CloseButton']}
+     Body={ModalBody}
+      closeModal={jest.fn()}
+      CloseButton={makeCloseButton(jest.fn())}
+      Header={makeClosableHeader(jest.fn())}
+      Footer={ModalFooter}
       eventView={eventView}
       organization={organization}
       transactionName="transaction/threshold"
