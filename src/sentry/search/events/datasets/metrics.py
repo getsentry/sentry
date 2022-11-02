@@ -2,22 +2,16 @@ from __future__ import annotations
 
 from typing import Callable, Mapping, Optional, Union
 
-import sentry_sdk
 from django.utils.functional import cached_property
 from snuba_sdk import Column, Condition, Function, Op, OrderBy
 
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
-from sentry.models.transaction_threshold import (
-    TRANSACTION_METRICS,
-    ProjectTransactionThreshold,
-    ProjectTransactionThresholdOverride,
-)
 from sentry.search.events import builder, constants, fields
 from sentry.search.events.datasets import field_aliases, filter_aliases
 from sentry.search.events.datasets.base import DatasetConfig
+from sentry.search.events.datasets.function_aliases import resolve_project_threshold_config
 from sentry.search.events.types import SelectType, WhereType
-from sentry.utils.numbers import format_grouped_length
 
 
 class MetricsDatasetConfig(DatasetConfig):
@@ -665,167 +659,16 @@ class MetricsDatasetConfig(DatasetConfig):
 
     @cached_property
     def _resolve_project_threshold_config(self) -> SelectType:
-        org_id = self.builder.params.get("organization_id")
-        project_ids = self.builder.params.get("project_id")
-
-        project_threshold_configs = (
-            ProjectTransactionThreshold.objects.filter(
-                organization_id=org_id,
-                project_id__in=project_ids,
-            )
-            .order_by("project_id")
-            .values_list("project_id", "metric")
+        return resolve_project_threshold_config(
+            tag_value_resolver=lambda _use_case_id, _org_id, value: self.builder.resolve_tag_value(
+                value
+            ),
+            column_name_resolver=lambda _use_case_id, _org_id, value: self.builder.resolve_column_name(
+                value
+            ),
+            project_ids=self.builder.params.get("project_id"),
+            org_id=self.builder.params.get("organization_id"),
         )
-
-        transaction_threshold_configs = (
-            ProjectTransactionThresholdOverride.objects.filter(
-                organization_id=org_id,
-                project_id__in=project_ids,
-            )
-            .order_by("project_id")
-            .values_list("transaction", "project_id", "metric")
-        )
-
-        num_project_thresholds = project_threshold_configs.count()
-        sentry_sdk.set_tag("project_threshold.count", num_project_thresholds)
-        sentry_sdk.set_tag(
-            "project_threshold.count.grouped",
-            format_grouped_length(num_project_thresholds, [10, 100, 250, 500]),
-        )
-
-        num_transaction_thresholds = transaction_threshold_configs.count()
-        sentry_sdk.set_tag("txn_threshold.count", num_transaction_thresholds)
-        sentry_sdk.set_tag(
-            "txn_threshold.count.grouped",
-            format_grouped_length(num_transaction_thresholds, [10, 100, 250, 500]),
-        )
-
-        if (
-            num_project_thresholds + num_transaction_thresholds
-            > constants.MAX_QUERYABLE_TRANSACTION_THRESHOLDS
-        ):
-            raise InvalidSearchQuery(
-                f"Exceeded {constants.MAX_QUERYABLE_TRANSACTION_THRESHOLDS} configured transaction thresholds limit, try with fewer Projects."
-            )
-
-        # Arrays need to have toUint64 casting because clickhouse will define the type as the narrowest possible type
-        # that can store listed argument types, which means the comparison will fail because of mismatched types
-        project_thresholds = {}
-        project_threshold_config_keys = []
-        project_threshold_config_values = []
-        for project_id, metric in project_threshold_configs:
-            metric = TRANSACTION_METRICS[metric]
-            if metric == constants.DEFAULT_PROJECT_THRESHOLD_METRIC:
-                # small optimization, if the configuration is equal to the default,
-                # we can skip it in the final query
-                continue
-
-            project_thresholds[project_id] = metric
-            project_threshold_config_keys.append(Function("toUInt64", [project_id]))
-            project_threshold_config_values.append(metric)
-
-        project_threshold_override_config_keys = []
-        project_threshold_override_config_values = []
-        for transaction, project_id, metric in transaction_threshold_configs:
-            metric = TRANSACTION_METRICS[metric]
-            if project_id in project_thresholds and metric == project_thresholds[project_id][0]:
-                # small optimization, if the configuration is equal to the project
-                # configs, we can skip it in the final query
-                continue
-
-            elif (
-                project_id not in project_thresholds
-                and metric == constants.DEFAULT_PROJECT_THRESHOLD_METRIC
-            ):
-                # small optimization, if the configuration is equal to the default
-                # and no project configs were set, we can skip it in the final query
-                continue
-
-            transaction_id = self.builder.resolve_tag_value(transaction)
-            # Don't add to the config if we can't resolve it
-            if transaction_id is None:
-                continue
-            project_threshold_override_config_keys.append(
-                (
-                    Function("toUInt64", [project_id]),
-                    transaction_id
-                    if self.builder.tag_values_are_strings
-                    else Function("toUInt64", [transaction_id]),
-                )
-            )
-            project_threshold_override_config_values.append(metric)
-
-        project_threshold_config_index: SelectType = Function(
-            "indexOf",
-            [
-                project_threshold_config_keys,
-                self.builder.column("project_id"),
-            ],
-            constants.PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS,
-        )
-
-        project_threshold_override_config_index: SelectType = Function(
-            "indexOf",
-            [
-                project_threshold_override_config_keys,
-                (self.builder.column("project_id"), self.builder.column("transaction")),
-            ],
-            constants.PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS,
-        )
-
-        def _project_threshold_config(alias: Optional[str] = None) -> SelectType:
-            if project_threshold_config_keys and project_threshold_config_values:
-                return Function(
-                    "if",
-                    [
-                        Function(
-                            "equals",
-                            [
-                                project_threshold_config_index,
-                                0,
-                            ],
-                        ),
-                        constants.DEFAULT_PROJECT_THRESHOLD_METRIC,
-                        Function(
-                            "arrayElement",
-                            [
-                                project_threshold_config_values,
-                                project_threshold_config_index,
-                            ],
-                        ),
-                    ],
-                    alias,
-                )
-
-            return Function(
-                "toString",
-                [constants.DEFAULT_PROJECT_THRESHOLD_METRIC],
-            )
-
-        if project_threshold_override_config_keys and project_threshold_override_config_values:
-            return Function(
-                "if",
-                [
-                    Function(
-                        "equals",
-                        [
-                            project_threshold_override_config_index,
-                            0,
-                        ],
-                    ),
-                    _project_threshold_config(),
-                    Function(
-                        "arrayElement",
-                        [
-                            project_threshold_override_config_values,
-                            project_threshold_override_config_index,
-                        ],
-                    ),
-                ],
-                constants.PROJECT_THRESHOLD_CONFIG_ALIAS,
-            )
-
-        return _project_threshold_config(constants.PROJECT_THRESHOLD_CONFIG_ALIAS)
 
     def _project_threshold_multi_if_function(self) -> SelectType:
         """Accessed by `_resolve_apdex_function` and `_resolve_count_miserable_function`,

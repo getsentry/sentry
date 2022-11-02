@@ -1905,11 +1905,3 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     @pytest.mark.xfail(reason="Having not supported")
     def test_having_condition(self):
         super().test_having_condition()
-
-    @pytest.mark.xfail(reason="Metrics layer failing to support ordering by apdex")
-    def test_apdex_project_threshold(self):
-        super().test_apdex_project_threshold()
-
-    @pytest.mark.xfail(reason="Metrics layer failing to support ordering by apdex")
-    def test_apdex_transaction_threshold(self):
-        super().test_apdex_transaction_threshold()

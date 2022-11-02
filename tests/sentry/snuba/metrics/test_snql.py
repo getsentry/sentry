@@ -3,7 +3,8 @@ from snuba_sdk import Column, Function
 
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.utils import resolve_tag_key, resolve_tag_value
+from sentry.sentry_metrics.utils import resolve_tag_key, resolve_tag_value, resolve_weak
+from sentry.snuba.metrics import TransactionMRI
 from sentry.snuba.metrics.fields.snql import (
     abnormal_sessions,
     abnormal_users,
@@ -40,7 +41,13 @@ pytestmark = pytest.mark.sentry_metrics
 class DerivedMetricSnQLTestCase(TestCase):
     def setUp(self):
         self.org_id = 666
-        self.metric_ids = [0, 1, 2]
+        self.metric_ids = []
+        for metric_name in [
+            TransactionMRI.MEASUREMENTS_LCP.value,
+            TransactionMRI.DURATION.value,
+        ]:
+            self.metric_ids += [indexer.record(UseCaseKey.PERFORMANCE, self.org_id, metric_name)]
+
         indexer.bulk_record(
             use_case_id=UseCaseKey.RELEASE_HEALTH,
             org_strings={
@@ -172,18 +179,42 @@ class DerivedMetricSnQLTestCase(TestCase):
             [
                 Column("value"),
                 Function(
-                    "in",
+                    "equals",
                     [
-                        Column(name="metric_id"),
-                        list(self.metric_ids),
+                        Column("metric_id"),
+                        Function(
+                            "multiIf",
+                            [
+                                Function(
+                                    "equals",
+                                    [
+                                        Function(
+                                            function="toString",
+                                            parameters=["duration"],
+                                        ),
+                                        "lcp",
+                                    ],
+                                ),
+                                resolve_weak(
+                                    UseCaseKey.PERFORMANCE,
+                                    self.org_id,
+                                    TransactionMRI.MEASUREMENTS_LCP.value,
+                                ),
+                                resolve_weak(
+                                    UseCaseKey.PERFORMANCE,
+                                    self.org_id,
+                                    TransactionMRI.DURATION.value,
+                                ),
+                            ],
+                        ),
                     ],
-                    alias=None,
                 ),
             ],
-            alias="transactions.all",
+            "transactions.all",
         )
         assert (
-            all_transactions(self.org_id, self.metric_ids, "transactions.all") == expected_all_txs
+            all_transactions([self.project.id], self.org_id, self.metric_ids, "transactions.all")
+            == expected_all_txs
         )
 
         expected_failed_txs = Function(
@@ -277,9 +308,8 @@ class DerivedMetricSnQLTestCase(TestCase):
         )
 
     def test_dist_count_aggregation_on_tx_satisfaction(self):
-
         assert satisfaction_count_transaction(
-            self.org_id, self.metric_ids, "transaction.satisfied"
+            [self.project.id], self.org_id, self.metric_ids, "transaction.satisfied"
         ) == Function(
             "countIf",
             [
@@ -290,8 +320,39 @@ class DerivedMetricSnQLTestCase(TestCase):
                         Function(
                             "equals",
                             [
+                                Column("metric_id"),
+                                Function(
+                                    "multiIf",
+                                    [
+                                        Function(
+                                            "equals",
+                                            [
+                                                Function(
+                                                    function="toString",
+                                                    parameters=["duration"],
+                                                ),
+                                                "lcp",
+                                            ],
+                                        ),
+                                        resolve_weak(
+                                            UseCaseKey.PERFORMANCE,
+                                            self.org_id,
+                                            TransactionMRI.MEASUREMENTS_LCP.value,
+                                        ),
+                                        resolve_weak(
+                                            UseCaseKey.PERFORMANCE,
+                                            self.org_id,
+                                            TransactionMRI.DURATION.value,
+                                        ),
+                                    ],
+                                ),
+                            ],
+                        ),
+                        Function(
+                            "equals",
+                            [
                                 Column(
-                                    resolve_tag_key(
+                                    name=resolve_tag_key(
                                         UseCaseKey.PERFORMANCE,
                                         self.org_id,
                                         TransactionTagsKey.TRANSACTION_SATISFACTION.value,
@@ -304,13 +365,6 @@ class DerivedMetricSnQLTestCase(TestCase):
                                 ),
                             ],
                         ),
-                        Function(
-                            "in",
-                            [
-                                Column("metric_id"),
-                                list(self.metric_ids),
-                            ],
-                        ),
                     ],
                 ),
             ],
@@ -318,7 +372,7 @@ class DerivedMetricSnQLTestCase(TestCase):
         )
 
         assert tolerated_count_transaction(
-            self.org_id, self.metric_ids, alias="transaction.tolerated"
+            [self.project.id], self.org_id, self.metric_ids, "transaction.tolerated"
         ) == Function(
             "countIf",
             [
@@ -329,8 +383,39 @@ class DerivedMetricSnQLTestCase(TestCase):
                         Function(
                             "equals",
                             [
+                                Column("metric_id"),
+                                Function(
+                                    "multiIf",
+                                    [
+                                        Function(
+                                            "equals",
+                                            [
+                                                Function(
+                                                    function="toString",
+                                                    parameters=["duration"],
+                                                ),
+                                                "lcp",
+                                            ],
+                                        ),
+                                        resolve_weak(
+                                            UseCaseKey.PERFORMANCE,
+                                            self.org_id,
+                                            TransactionMRI.MEASUREMENTS_LCP.value,
+                                        ),
+                                        resolve_weak(
+                                            UseCaseKey.PERFORMANCE,
+                                            self.org_id,
+                                            TransactionMRI.DURATION.value,
+                                        ),
+                                    ],
+                                ),
+                            ],
+                        ),
+                        Function(
+                            "equals",
+                            [
                                 Column(
-                                    resolve_tag_key(
+                                    name=resolve_tag_key(
                                         UseCaseKey.PERFORMANCE,
                                         self.org_id,
                                         TransactionTagsKey.TRANSACTION_SATISFACTION.value,
@@ -343,17 +428,10 @@ class DerivedMetricSnQLTestCase(TestCase):
                                 ),
                             ],
                         ),
-                        Function(
-                            "in",
-                            [
-                                Column("metric_id"),
-                                list(self.metric_ids),
-                            ],
-                        ),
                     ],
                 ),
             ],
-            alias="transaction.tolerated",
+            "transaction.tolerated",
         )
 
     def test_complement_in_sql(self):
@@ -385,7 +463,7 @@ class DerivedMetricSnQLTestCase(TestCase):
     def test_division_in_snql(self):
         alias = "transactions.failure_rate"
         failed = failure_count_transaction(self.org_id, self.metric_ids, "transactions.failed")
-        all = all_transactions(self.org_id, self.metric_ids, "transactions.all")
+        all = all_transactions([self.project.id], self.org_id, self.metric_ids, "transactions.all")
 
         assert division_float(failed, all, alias=alias) == Function(
             "divide",

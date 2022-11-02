@@ -59,6 +59,7 @@ def get_entity_of_metric_mocked(_, metric_mri, use_case_id):
         SessionMRI.ERROR.value: EntityKey.MetricsSets,
         TransactionMRI.DURATION.value: EntityKey.MetricsDistributions,
         TransactionMRI.USER.value: EntityKey.MetricsSets,
+        TransactionMRI.MEASUREMENTS_LCP.value: EntityKey.MetricsDistributions,
     }[metric_mri]
 
 
