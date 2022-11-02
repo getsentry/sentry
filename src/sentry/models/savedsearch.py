@@ -55,21 +55,11 @@ class SavedSearch(Model):
     # by the user. A user may only have one pinned search epr (org, type)
     owner = FlexibleForeignKey("sentry.User", null=True)
 
-    # Deprecated fields
-    #
-    # Prior to Sentry 10 we created "is_default" saved searches for EVERY new
-    # project. Back then searches were associated to project_id. These fields
-    # are not queried on or in use anywhere, after creating a migration to
-    # remove old rows, we should remove these.
-    project = FlexibleForeignKey("sentry.Project", null=True)
-    is_default = models.BooleanField(default=False)
-
     class Meta:
         app_label = "sentry"
         db_table = "sentry_savedsearch"
         unique_together = (
-            ("project", "name"),
-            # Each user can have one default search per org
+            # Each user can have one pinned search per org
             ("organization", "owner", "type"),
         )
         constraints = [
@@ -94,10 +84,6 @@ class SavedSearch(Model):
     @is_pinned.setter
     def is_pinned(self, value):
         self._is_pinned = value
-
-    @property
-    def is_org_custom_search(self):
-        return self.owner is None and self.organization is not None
 
     __repr__ = sane_repr("project_id", "name")
 
