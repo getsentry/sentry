@@ -40,7 +40,6 @@ class ProjectDeletionTask(ModelDeletionTask):
             ReplayRecordingSegment,
             models.RepositoryProjectPathConfig,
             models.SavedSearchUserDefault,
-            models.SavedSearch,
             models.ServiceHookProject,
             models.ServiceHook,
             models.UserReport,
