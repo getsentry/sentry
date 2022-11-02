@@ -23,8 +23,7 @@ import * as parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import IssueListWithStores, {IssueListOverview} from 'sentry/views/issueList/overview';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
-// Mock <IssueListSidebar> and <IssueListActions>
-jest.mock('sentry/views/issueList/sidebar', () => jest.fn(() => null));
+// Mock <IssueListActions>
 jest.mock('sentry/views/issueList/actions', () => jest.fn(() => null));
 jest.mock('sentry/components/stream/group', () => jest.fn(() => null));
 jest.mock('sentry/views/issueList/noGroupsHandler/congratsRobots', () =>
@@ -304,7 +303,6 @@ describe('IssueList', function () {
             name: 'Org Custom',
             isPinned: true,
             isGlobal: false,
-            isOrgCustom: true,
             query: 'is:resolved',
           }),
         ],
@@ -340,7 +338,6 @@ describe('IssueList', function () {
             name: 'My Pinned Search',
             isPinned: true,
             isGlobal: false,
-            isOrgCustom: false,
             query: 'is:resolved',
           }),
         ],
@@ -458,7 +455,6 @@ describe('IssueList', function () {
             name: 'My Pinned Search',
             isPinned: true,
             isGlobal: false,
-            isOrgCustom: false,
             query: 'is:resolved',
           }),
         ],
@@ -523,7 +519,6 @@ describe('IssueList', function () {
             name: 'Pinned search',
             isPinned: true,
             isGlobal: false,
-            isOrgCustom: true,
             query: 'is:resolved',
           }),
         ],
