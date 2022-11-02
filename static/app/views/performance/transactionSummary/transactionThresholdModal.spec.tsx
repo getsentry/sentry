@@ -1,6 +1,6 @@
 import selectEvent from 'react-select-event';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {
   makeClosableHeader,
@@ -58,7 +58,7 @@ describe('TransactionThresholdModal', function () {
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
-    act(() => ProjectsStore.loadInitialData([project]));
+    ProjectsStore.loadInitialData([project]);
     postTransactionThresholdMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/project-transaction-threshold-override/',
       method: 'POST',
