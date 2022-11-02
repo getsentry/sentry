@@ -205,6 +205,29 @@ class ClientConfigViewTest(TestCase):
         assert data["lastOrganization"] is None
         assert "activeorg" not in self.client.session
 
+    def test_superuser_cookie_domain(self):
+        # Cannot set the superuser cookie domain using override_settings().
+        # So we set them and restore them manually.
+        old_super_cookie_domain = superuser.COOKIE_DOMAIN
+        superuser.COOKIE_DOMAIN = ".testserver"
+
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        assert resp["Content-Type"] == "application/json"
+        data = json.loads(resp.content)
+        assert data["superUserCookieDomain"] == ".testserver"
+
+        superuser.COOKIE_DOMAIN = None
+
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        assert resp["Content-Type"] == "application/json"
+        data = json.loads(resp.content)
+        assert data["superUserCookieDomain"] is None
+
+        # Restore values
+        superuser.COOKIE_DOMAIN = old_super_cookie_domain
+
     def test_links_unauthenticated(self):
         resp = self.client.get(self.path)
         assert resp.status_code == 200
