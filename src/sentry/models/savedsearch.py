@@ -77,13 +77,7 @@ class SavedSearch(Model):
 
     @property
     def is_pinned(self):
-        if hasattr(self, "_is_pinned"):
-            return self._is_pinned
         return self.owner is not None and self.organization is not None
-
-    @is_pinned.setter
-    def is_pinned(self, value):
-        self._is_pinned = value
 
     __repr__ = sane_repr("project_id", "name")
 
