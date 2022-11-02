@@ -2,14 +2,18 @@ import selectEvent from 'react-select-event';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {
+  makeClosableHeader,
+  makeCloseButton,
+  ModalBody,
+  ModalFooter,
+} from 'sentry/components/globalModal/components';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import TransactionThresholdModal, {
   TransactionThresholdMetric,
 } from 'sentry/views/performance/transactionSummary/transactionThresholdModal';
-
-const stubEl = props => <div>{props.children}</div>;
 
 function mountModal(
   eventView: EventView,
@@ -18,7 +22,7 @@ function mountModal(
 ) {
   render(
     <TransactionThresholdModal
-     Body={ModalBody}
+      Body={ModalBody}
       closeModal={jest.fn()}
       CloseButton={makeCloseButton(jest.fn())}
       Header={makeClosableHeader(jest.fn())}
@@ -29,7 +33,6 @@ function mountModal(
       transactionThreshold={400}
       transactionThresholdMetric={TransactionThresholdMetric.LARGEST_CONTENTFUL_PAINT}
       onApply={onApply}
-      closeModal={() => void 0}
     />
   );
 }
