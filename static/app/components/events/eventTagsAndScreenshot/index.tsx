@@ -20,6 +20,15 @@ import TagsHighlight from './tagsHighlight';
 
 type ScreenshotProps = React.ComponentProps<typeof Screenshot>;
 
+const SCREENSHOT_NAMES = [
+  'screenshot.jpg',
+  'screenshot.png',
+  'screenshot-1.jpg',
+  'screenshot-1.png',
+  'screenshot-2.jpg',
+  'screenshot-2.png',
+];
+
 type Props = Omit<
   React.ComponentProps<typeof Tags>,
   'projectSlug' | 'hasEventContext'
@@ -43,16 +52,7 @@ function EventTagsAndScreenshots({
 }: Props) {
   const {tags = []} = event;
 
-  const screenshots = attachments.filter(({name}) =>
-    [
-      'screenshot.jpg',
-      'screenshot.png',
-      'screenshot-1.jpg',
-      'screenshot-1.png',
-      'screenshot-2.jpg',
-      'screenshot-2.png',
-    ].includes(name)
-  );
+  const screenshots = attachments.filter(({name}) => SCREENSHOT_NAMES.includes(name));
 
   const [screenshotInFocus, setScreenshotInFoucs] = useState<number>(0);
 
