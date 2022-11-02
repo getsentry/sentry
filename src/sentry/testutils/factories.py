@@ -47,6 +47,7 @@ from sentry.mediators import (
 from sentry.models import (
     Activity,
     Actor,
+    BaseUser,
     Commit,
     CommitAuthor,
     CommitFileChange,
@@ -1288,7 +1289,7 @@ class Factories:
     @staticmethod
     @exempt_from_silo_limits()
     def create_identity(
-        user: User, identity_provider: IdentityProvider, external_id: str, **kwargs: Any
+        user: BaseUser, identity_provider: IdentityProvider, external_id: str, **kwargs: Any
     ) -> Identity:
         return Identity.objects.create(
             external_id=external_id,

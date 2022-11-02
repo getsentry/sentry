@@ -11,7 +11,7 @@ from sentry.models import (
     OrganizationMember,
     OrganizationMemberTeam,
 )
-from sentry.models.user import User
+from sentry.models.user import BaseUser
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
@@ -376,7 +376,7 @@ class Fixtures:
         self,
         organization: "Organization",
         external_id: str = "TXXXXXXX1",
-        user: User = None,
+        user: BaseUser = None,
         identity_external_id: str = "UXXXXXXX1",
         **kwargs: Any,
     ):
