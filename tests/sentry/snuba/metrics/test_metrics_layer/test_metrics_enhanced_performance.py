@@ -1532,6 +1532,62 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             },
         ]
 
+    def test_limit_when_not_passed_and_interval_is_provided(self):
+        day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
+        metrics_query = MetricsQuery(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            select=[
+                MetricField(
+                    op="rate",
+                    metric_mri=TransactionMRI.DURATION.value,
+                    params={"numerator": 3600, "denominator": 60},
+                ),
+                MetricField(
+                    op="count",
+                    metric_mri=TransactionMRI.DURATION.value,
+                ),
+            ],
+            start=day_ago + timedelta(minutes=30),
+            end=day_ago + timedelta(hours=6, minutes=30),
+            granularity=Granularity(granularity=60),
+            offset=Offset(offset=0),
+            include_series=True,
+            interval=3600,
+        )
+        assert metrics_query.limit.limit == 1666
+
+    def test_high_limit_provided_not_raise_exception_when_high_interval_provided(self):
+        # Each of these denotes how many events to create in each hour
+        day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
+
+        metrics_query_dict = {
+            "org_id": self.organization.id,
+            "project_ids": [self.project.id],
+            "select": [
+                MetricField(
+                    op="rate",
+                    metric_mri=TransactionMRI.DURATION.value,
+                    params={"numerator": 3600, "denominator": 60},
+                ),
+                MetricField(
+                    op="count",
+                    metric_mri=TransactionMRI.DURATION.value,
+                ),
+            ],
+            "start": day_ago + timedelta(minutes=30),
+            "end": day_ago + timedelta(hours=6, minutes=30),
+            "granularity": Granularity(granularity=60),
+            "offset": Offset(offset=0),
+            "limit": Limit(limit=50),
+            "include_series": True,
+        }
+        with pytest.raises(InvalidParams):
+            MetricsQuery(**metrics_query_dict)
+
+        mq = MetricsQuery(**metrics_query_dict, interval=3600)
+        assert mq.limit.limit == 50
+
 
 class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
     METRIC_STRINGS = [
