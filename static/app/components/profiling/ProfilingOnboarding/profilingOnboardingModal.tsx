@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react';
 import {PlatformIcon} from 'platformicons';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import Badge from 'sentry/components/badge';
 import Button, {ButtonPropsWithoutAriaLabel} from 'sentry/components/button';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {SelectField} from 'sentry/components/forms';
@@ -13,6 +14,7 @@ import Link from 'sentry/components/links/link';
 import List from 'sentry/components/list';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Tag from 'sentry/components/tag';
+import type {PlatformKey} from 'sentry/data/platformCategories';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -93,12 +95,12 @@ function asSelectOption(
   };
 }
 
-const platformToInstructionsMapping: Record<
-  string,
-  React.ComponentType<OnboardingStepProps>
+const platformToInstructionsMapping: Partial<
+  Record<PlatformKey, React.ComponentType<OnboardingStepProps>>
 > = {
   android: AndroidSendDebugFilesInstruction,
   'apple-ios': IOSSendDebugFilesInstruction,
+  node: NodeSendDebugFilesInstruction,
 };
 
 // Splits a list of projects into supported and unsuported list
@@ -185,7 +187,6 @@ function SelectProjectStep({
   }, [projects]);
 
   const sdkUpdates = useProjectSdkUpdates({organization, projectId: project?.id ?? null});
-
   const publicDSN = usePublicDSN({organization, project});
 
   return (
@@ -218,6 +219,13 @@ function SelectProjectStep({
           ) : null}
           {project?.platform === 'apple-ios' ? (
             <IOSInstallSteps
+              sdkUpdates={sdkUpdates}
+              project={project}
+              organization={organization}
+              publicDSN={publicDSN}
+            />
+          ) : project?.platform === 'node' ? (
+            <NodeInstallSteps
               sdkUpdates={sdkUpdates}
               project={project}
               organization={organization}
@@ -360,6 +368,68 @@ interface InstallStepsProps {
   sdkUpdates: RequestState<ProjectSdkUpdates | null>;
 }
 
+function NodeInstallSteps({
+  project,
+  sdkUpdates,
+  organization,
+  publicDSN,
+}: InstallStepsProps) {
+  const hasSdkUpdates = sdkUpdates.type === 'resolved' && sdkUpdates.data !== null;
+  const requiresSdkUpdates =
+    hasSdkUpdates && sdkUpdates.data?.sdkVersion
+      ? semverCompare(sdkUpdates.data.sdkVersion, '7.0.0') < 0
+      : false;
+
+  const dsn =
+    publicDSN.type === 'resolved' && publicDSN.data !== null ? publicDSN.data : '...';
+
+  return (
+    <Fragment>
+      {hasSdkUpdates && requiresSdkUpdates && (
+        <li>
+          <StepTitle>{t('Update your projects SDK version')}</StepTitle>
+          <ProjectSdkUpdate
+            minSdkVersion="7.0.0 (@sentry/node)"
+            project={project}
+            sdkUpdates={sdkUpdates.data!}
+            organization={organization}
+          />
+        </li>
+      )}
+      <li>
+        <SetupPerformanceMonitoringStep href="https://docs.sentry.io/platforms/node/performance/" />
+      </li>
+      <li>
+        <StepTitle>
+          {t('Set Up Profiling')} <Badge type="alpha">{t('Alpha')}</Badge>
+        </StepTitle>
+        <p>
+          {t(
+            'A word of caution - profiling for Node.js is in alpha stages of development and there may be unknown bugs (yes, we recognize the irony).'
+          )}
+        </p>
+        {publicDSN.type === 'loading' ? (
+          <LoadingIndicator />
+        ) : (
+          <CodeSnippet language="javascript" filename="index.js">
+            {`import * as Sentry from '@sentry/node';
+import '@sentry/tracing';
+// Import order matters - @sentry/profiling-node must be imported after @sentry/tracing
+import { ProfilingIntegration } from '@sentry/profiling-node';
+
+Sentry.init({
+  dsn: '${dsn}',
+  tracesSampleRate: 1,
+  profilesSampleRate: 1, // Set profiling sampling rate.
+  integrations: [new ProfilingIntegration()]
+});`}
+          </CodeSnippet>
+        )}
+      </li>
+    </Fragment>
+  );
+}
+
 function AndroidInstallSteps({
   project,
   sdkUpdates,
@@ -379,6 +449,7 @@ function AndroidInstallSteps({
 
   const dsn =
     publicDSN.type === 'resolved' && publicDSN.data !== null ? publicDSN.data : '...';
+
   return (
     <Fragment>
       {hasSdkUpdates && requiresSdkUpdates && (
@@ -482,6 +553,39 @@ const StyledSelectField = styled(SelectField)`
     padding-left: 0;
   }
 `;
+
+function NodeSendDebugFilesInstruction({
+  Body: ModalBody,
+  Header: ModalHeader,
+  Footer: ModalFooter,
+  closeModal,
+  toStep,
+  step,
+}: OnboardingStepProps) {
+  return (
+    <ModalBody>
+      <ModalHeader>
+        <h3>
+          {t('Set Up Profiling')} <Badge />
+        </h3>
+      </ModalHeader>
+      <ModalFooter>
+        <ModalActions>
+          <DocsLink />
+          <div>
+            <StepIndicator>{t('Step 2 of 2')}</StepIndicator>
+            {step.previous ? (
+              <PreviousStepButton onClick={() => toStep(step.previous)} />
+            ) : null}
+            <Button priority="primary" onClick={closeModal}>
+              {t('Done')}
+            </Button>
+          </div>
+        </ModalActions>
+      </ModalFooter>
+    </ModalBody>
+  );
+}
 
 function AndroidSendDebugFilesInstruction({
   Body: ModalBody,
