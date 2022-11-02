@@ -202,6 +202,7 @@ def get_client_config(request=None):
         "userIdentity": user_identity,
         "csrfCookieName": settings.CSRF_COOKIE_NAME,
         "superUserCookieName": superuser.COOKIE_NAME,
+        "superUserCookieDomain": superuser.COOKIE_DOMAIN,
         "sentryConfig": {
             "dsn": public_dsn,
             # XXX: In the world of frontend / backend deploys being separated,
