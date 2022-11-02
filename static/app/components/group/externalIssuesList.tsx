@@ -12,7 +12,7 @@ import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
 import ExternalIssueStore from 'sentry/stores/externalIssueStore';
 import SentryAppInstallationStore from 'sentry/stores/sentryAppInstallationsStore';
-import {
+import type {
   Group,
   GroupIntegration,
   Organization,
@@ -21,7 +21,7 @@ import {
   SentryAppComponent,
   SentryAppInstallation,
 } from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
 import withOrganization from 'sentry/utils/withOrganization';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
 
