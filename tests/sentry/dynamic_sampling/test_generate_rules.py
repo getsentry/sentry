@@ -78,7 +78,7 @@ def test_generate_rules_return_uniform_rules_and_env_rule(get_blended_sample_rat
         },
         {
             "sampleRate": 0.02,
-            "type": "trace",
+            "type": "transaction",
             "condition": {
                 "op": "or",
                 "inner": [

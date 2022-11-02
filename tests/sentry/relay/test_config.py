@@ -61,7 +61,7 @@ DEFAULT_ENVIRONMENT_RULE = {
 
 DEFAULT_IGNORE_HEALTHCHECKS_RULE = {
     "sampleRate": 0.02,
-    "type": "trace",
+    "type": "transaction",
     "condition": {
         "op": "or",
         "inner": [
@@ -509,7 +509,7 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
             },
             {
                 "sampleRate": 0.02,
-                "type": "trace",
+                "type": "transaction",
                 "condition": {
                     "op": "or",
                     "inner": [
