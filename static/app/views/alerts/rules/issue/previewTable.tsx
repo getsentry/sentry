@@ -80,18 +80,27 @@ const PreviewTable = ({
     return tct(`Showing [pageIssues] of [issueCount] issues`, {pageIssues, issueCount});
   };
 
-  return (
-    <Fragment>
-      <Panel>
-        <GroupListHeader withChart={false} />
-        <PanelBody>{renderBody()}</PanelBody>
-      </Panel>
+  const renderPagination = () => {
+    if (error) {
+      return null;
+    }
+    return (
       <StyledPagination
         pageLinks={pageLinks}
         onCursor={onCursor}
         caption={renderCaption()}
         disabled={loading}
       />
+    );
+  };
+
+  return (
+    <Fragment>
+      <Panel>
+        <GroupListHeader withChart={false} />
+        <PanelBody>{renderBody()}</PanelBody>
+      </Panel>
+      {renderPagination()}
     </Fragment>
   );
 };
