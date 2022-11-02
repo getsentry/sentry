@@ -188,7 +188,7 @@ def debounce_update_release_health_data(organization, project_ids):
                 continue
 
             # Ignore versions that were saved with an empty string before validation was added
-            if version == "":
+            if not Release.is_valid_version(version):
                 continue
 
             # We might have never observed the release.  This for instance can
