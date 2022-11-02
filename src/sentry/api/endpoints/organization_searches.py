@@ -8,7 +8,7 @@ from sentry import analytics
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationSearchPermission
 from sentry.api.serializers import serialize
-from sentry.models.savedsearch import SavedSearch, SortOptions
+from sentry.models.savedsearch import SavedSearch, SortOptions, Visibility
 from sentry.models.search_common import SearchType
 
 
@@ -48,28 +48,8 @@ class OrganizationSearchesEndpoint(OrganizationEndpoint):
                 order_by=["-has_owner", "name__upper"],
             )
         )
-        results = []
-        if saved_searches:
-            pinned_search = None
-            # If the saved search has an owner then it's the user's pinned
-            # search. The user can only have one pinned search.
-            results.append(saved_searches[0])
-            if saved_searches[0].is_pinned:
-                pinned_search = saved_searches[0]
-            for saved_search in saved_searches[1:]:
-                # If a search has the same query and sort as the pinned search we
-                # want to use that search as the pinned search
-                if (
-                    pinned_search
-                    and saved_search.query == pinned_search.query
-                    and saved_search.sort == pinned_search.sort
-                ):
-                    saved_search.is_pinned = True
-                    results[0] = saved_search
-                else:
-                    results.append(saved_search)
 
-        return Response(serialize(results, request.user))
+        return Response(serialize(saved_searches, request.user))
 
     def post(self, request: Request, organization) -> Response:
         serializer = OrganizationSearchSerializer(data=request.data)
@@ -92,6 +72,11 @@ class OrganizationSearchesEndpoint(OrganizationEndpoint):
                     name=result["name"],
                     query=result["query"],
                     sort=result["sort"],
+                    # NOTE: We have not yet exposed the API for setting the
+                    # visibility of a saved search, but we don't want to use
+                    # the model default of 'owner'. Existing is to be visible
+                    # to the organization.
+                    visibility=Visibility.ORGANIZATION,
                 )
                 analytics.record(
                     "organization_saved_search.created",

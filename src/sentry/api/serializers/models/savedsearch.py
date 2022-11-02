@@ -11,8 +11,8 @@ class SavedSearchSerializer(Serializer):
             "name": obj.name,
             "query": obj.query,
             "sort": obj.sort,
+            "visibility": obj.visibility,
             "dateCreated": obj.date_added,
             "isGlobal": obj.is_global,
             "isPinned": obj.is_pinned,
-            "isOrgCustom": obj.is_org_custom_search,
         }

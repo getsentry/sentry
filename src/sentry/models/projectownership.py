@@ -305,7 +305,8 @@ def process_resource_change(instance, change, **kwargs):
         READ_CACHE_DURATION,
     )
     autoassignment_types = ProjectOwnership._get_autoassignment_types(instance)
-    GroupOwner.invalidate_autoassigned_owner_cache(instance.project_id, autoassignment_types)
+    if len(autoassignment_types) > 0:
+        GroupOwner.invalidate_autoassigned_owner_cache(instance.project_id, autoassignment_types)
 
 
 # Signals update the cached reads used in post_processing
