@@ -1,8 +1,10 @@
 """Recording segment part cache manager."""
-from typing import Generator
+from typing import Any, Dict, Generator
 
 from django.conf import settings
 
+from sentry.cache import default_cache
+from sentry.cache.base import BaseCache
 from sentry.utils import metrics
 from sentry.utils.imports import import_string
 
@@ -50,6 +52,25 @@ class RecordingSegmentParts:
         part = RecordingSegmentCache(self.prefix)
         for i in range(self.num_parts):
             del part[i]
+
+
+def default(**options: Dict[str, Any]) -> BaseCache:
+    """The default path for non-configured instances.
+
+    To ease first time setup, we default to whatever the cache backend is configured as. If you're
+    handling a large amount of replays you should consider setting up an isolated cache provider.
+
+    To override the default configuration you need to provide the string path of a function or
+    class as the `SENTRY_REPLAYS_CACHE` value and optionally provide keyword arguments on the
+    `SENTRY_REPLAYS_CACHE_OPTIONS` value.
+
+    For reference, this cache will store binary blobs of data up to 1MB in size.  This data is
+    ephemeral and will be deleted as soon as the ingestion pipeline finishes processing a replay
+    recording segment. You can determine the average size of the chunks being cached by running
+    queries against the ReplayRecordingSegment model with the File model joined. The File model has
+    a size attribute.
+    """
+    return default_cache
 
 
 replay_cache = import_string(settings.SENTRY_REPLAYS_CACHE)(**settings.SENTRY_REPLAYS_CACHE_OPTIONS)

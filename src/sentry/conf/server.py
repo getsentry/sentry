@@ -1425,17 +1425,8 @@ SENTRY_ATTACHMENTS = "sentry.attachments.default.DefaultAttachmentCache"
 SENTRY_ATTACHMENTS_OPTIONS = {}
 
 # Replays blob cache backend.
-#
-# To ease first time setup, we default to whatever the cache backend is configured as. If you're
-# handling a large amount of replays you should consider setting up an isolated cache provider.
-#
-# For reference, this cache will store binary blobs of data up to 1MB in size.  This data is
-# ephemeral and will be deleted as soon as the ingestion pipeline finishes processing a replay
-# recording segment. You can determine the average size of the chunks being cached by running
-# queries against the ReplayRecordingSegment model with the File model joined. The File model has
-# a size attribute.
-SENTRY_REPLAYS_CACHE: str = SENTRY_CACHE
-SENTRY_REPLAYS_CACHE_OPTIONS: Dict[str, Any] = SENTRY_CACHE_OPTIONS
+SENTRY_REPLAYS_CACHE: str = "sentry.replays.cache.default"
+SENTRY_REPLAYS_CACHE_OPTIONS: Dict[str, Any] = {}
 
 # Events blobs processing backend
 SENTRY_EVENT_PROCESSING_STORE = "sentry.eventstore.processing.default.DefaultEventProcessingStore"
