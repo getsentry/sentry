@@ -11,6 +11,7 @@ from sentry.notifications.types import (
 from sentry.notifications.utils.participants import get_owners, get_release_committers, get_send_to
 from sentry.ownership import grammar
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
+from sentry.services.hybrid_cloud.user import APIUser, UserService
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
@@ -409,11 +410,14 @@ class GetOwnersCase(TestCase):
         )
 
     def assert_recipients(
-        self, expected: Iterable[Union[Team, User]], received: Iterable[Union[Team, User]]
+        self, expected: Iterable[Union[Team, User]], received: Iterable[Union[Team, APIUser]]
     ) -> None:
         assert len(expected) == len(received)
         for recipient in expected:
-            assert recipient in received
+            if isinstance(recipient, User):
+                assert UserService.serialize_user(recipient) in received
+            else:
+                assert recipient in received
 
     # If no event to match, we assume fallthrough is enabled
     def test_get_owners_no_event(self):

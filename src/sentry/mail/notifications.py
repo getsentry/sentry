@@ -7,10 +7,11 @@ import sentry_sdk
 from django.utils.encoding import force_text
 
 from sentry import options
-from sentry.models import BaseUser, Project, ProjectOption, Team, User
+from sentry.models import BaseUser, Project, ProjectOption, Team
 from sentry.notifications.notifications.active_release import ActiveReleaseIssueNotification
 from sentry.notifications.notifications.base import BaseNotification, ProjectNotification
 from sentry.notifications.notify import register_notification_provider
+from sentry.services.hybrid_cloud.user import APIUser
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.email import MessageBuilder, group_id_to_email
@@ -72,14 +73,14 @@ def get_unsubscribe_link(
     return signed_link
 
 
-def log_message(notification: BaseNotification, recipient: Team | User) -> None:
+def log_message(notification: BaseNotification, recipient: Team | APIUser) -> None:
     extra = notification.get_log_params(recipient)
     logger.info("mail.adapter.notify.mail_user", extra={**extra})
 
 
 def get_context(
     notification: BaseNotification,
-    recipient: Team | User,
+    recipient: Team | APIUser,
     shared_context: Mapping[str, Any],
     extra_context: Mapping[str, Any],
 ) -> Mapping[str, Any]:
@@ -107,7 +108,7 @@ def get_context(
 @register_notification_provider(ExternalProviders.EMAIL)
 def send_notification_as_email(
     notification: BaseNotification,
-    recipients: Iterable[Team | User],
+    recipients: Iterable[Team | APIUser],
     shared_context: Mapping[str, Any],
     extra_context_by_actor_id: Mapping[int, Mapping[str, Any]] | None,
 ) -> None:
@@ -137,7 +138,7 @@ def send_notification_as_email(
 
 def get_builder_args(
     notification: BaseNotification,
-    recipient: User,
+    recipient: APIUser,
     shared_context: Mapping[str, Any] | None = None,
     extra_context_by_actor_id: Mapping[int, Mapping[str, Any]] | None = None,
 ) -> Mapping[str, Any]:

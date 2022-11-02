@@ -28,7 +28,7 @@ class GroupAssigneeManager(BaseManager):
     def assign(
         self,
         group: Group,
-        assigned_to: Team | User | APIUser,
+        assigned_to: Team | APIUser | APIUser,
         acting_user: User | None = None,
         create_only: bool = False,
         extra: Dict[str, str] | None = None,

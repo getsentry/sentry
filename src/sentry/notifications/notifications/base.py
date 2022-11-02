@@ -11,6 +11,7 @@ from sentry.db.models import Model
 from sentry.models import BaseUser, Environment, NotificationSetting, Team, User
 from sentry.notifications.types import NotificationSettingTypes, get_notification_setting_type_name
 from sentry.notifications.utils.actions import MessageAction
+from sentry.services.hybrid_cloud.user import APIUser
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
@@ -85,7 +86,7 @@ class BaseNotification(abc.ABC):
         pass
 
     def get_recipient_context(
-        self, recipient: Team | User, extra_context: Mapping[str, Any]
+        self, recipient: Team | APIUser, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
         # Basically a noop.
         return {**extra_context}
@@ -112,7 +113,7 @@ class BaseNotification(abc.ABC):
     def get_unsubscribe_key(self) -> tuple[str, int, str | None] | None:
         return None
 
-    def get_log_params(self, recipient: Team | User) -> Mapping[str, Any]:
+    def get_log_params(self, recipient: Team | APIUser) -> Mapping[str, Any]:
         group = getattr(self, "group", None)
         params = {
             "organization_id": self.organization.id,
@@ -123,7 +124,7 @@ class BaseNotification(abc.ABC):
             params["user_id"] = recipient.id
         return params
 
-    def get_custom_analytics_params(self, recipient: Team | User) -> Mapping[str, Any]:
+    def get_custom_analytics_params(self, recipient: Team | APIUser) -> Mapping[str, Any]:
         """
         Returns a mapping of params used to record the event associated with self.analytics_event.
         By default, use the log params.
@@ -211,7 +212,7 @@ class BaseNotification(abc.ABC):
 
         return notification_providers()
 
-    def get_participants(self) -> Mapping[ExternalProviders, Iterable[Team | User]]:
+    def get_participants(self) -> Mapping[ExternalProviders, Iterable[Team | APIUser]]:
         # need a notification_setting_type to call this function
         if not self.notification_setting_type:
             raise NotImplementedError

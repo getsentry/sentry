@@ -104,9 +104,13 @@ class BaseUser:
     Implements functionality shared by User and APIUser for the purposes of hybrid cloud compatibility
     """
 
-    def class_name(self):
-        """Necessary for integrations that introspect on user objects"""
-        return "User"
+    id: int
+    pk: int
+    actor_id: int
+    email: str
+
+    def get_display_name(self) -> str:
+        return ""
 
 
 @control_silo_only_model

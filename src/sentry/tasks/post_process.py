@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Mapping, Optional, Sequence, Tuple, TypedDict, Union
+from typing import TYPE_CHECKING, List, Mapping, Optional, Sequence, Tuple, TypedDict, Union
 
 import sentry_sdk
 from django.conf import settings
@@ -9,6 +9,7 @@ from django.conf import settings
 from sentry import features
 from sentry.exceptions import PluginError
 from sentry.killswitches import killswitch_matches_context
+from sentry.services.hybrid_cloud.user import APIUser
 from sentry.signals import event_processed, issue_unignored, transaction_processed
 from sentry.tasks.base import instrumented_task
 from sentry.types.activity import ActivityType
@@ -201,6 +202,7 @@ def handle_group_owners(project, group, issue_owners):
                 type__in=[GroupOwnerType.OWNERSHIP_RULE.value, GroupOwnerType.CODEOWNERS.value],
             )
             new_owners = {}
+            owners: Union[List[APIUser], List[Team]]
             for rule, owners, source in issue_owners:
                 for owner in owners:
                     # Can potentially have multiple rules pointing to the same owner

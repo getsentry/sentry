@@ -1,7 +1,9 @@
 from abc import abstractmethod
 from dataclasses import dataclass, fields
-from typing import Iterable, List, Optional, Sequence, Union
+from typing import Any, Iterable, List, Optional, Sequence, Union
 
+from sentry.api.serializers import serialize
+from sentry.models import Project
 from sentry.models.group import Group
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.user import BaseUser, User
@@ -13,7 +15,7 @@ from sentry.services.hybrid_cloud import (
 from sentry.silo import SiloMode
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, eq=True)
 class APIUser(BaseUser):
     id: int = -1
     pk: int = -1
@@ -44,7 +46,12 @@ class UserService(InterfaceWithLifecycle):
         pass
 
     @abstractmethod
-    def get_many(self, user_ids: Iterable[int], is_active=True) -> List[APIUser]:
+    def get_from_project(self, project_id: int) -> List[Group]:
+        """Get all users associated with a project identifier"""
+        pass
+
+    @abstractmethod
+    def get_many(self, user_ids: Iterable[int], is_active: Optional[bool] = True) -> List[APIUser]:
         """
         This method returns User objects given an iterable of IDs
         :param user_ids:
@@ -75,8 +82,21 @@ class UserService(InterfaceWithLifecycle):
         else:
             return None
 
+    # NOTE: In the future if this becomes RPC, we can avoid the double serialization problem by using a special type
+    # with its own json serialization that allows pass through (ie, a string type that does not serialize into a string,
+    # but rather validates itself as valid json and renders 'as is'.   Like "unescaped json text".
+    @abstractmethod
+    def serialize_users(self, user_ids: List[int]) -> List[Any]:
+        """
+        It is crucial that the returned order matches the user_ids passed in so that no introspection is required
+        to match the serialized user and the original user_id.
+        :param user_ids:
+        :return:
+        """
+        pass
+
     # TODO: Extract to base service?
-    def _to_api(self, resp: Union[Sequence[User], Optional[User]]) -> APIUser:
+    def _to_api(self, resp: Union[Sequence[User], Optional[User]]) -> Union[APIUser, List[APIUser]]:
         if resp is None:
             return None
         if type(resp) is APIUser:
@@ -105,19 +125,29 @@ class DatabaseBackedUserService(UserService):
             )
         )
 
+    def serialize_users(self, user_ids: List[int]) -> List[Any]:
+        result: List[Any] = []
+        for user in User.objects.filter(id__in=user_ids):
+            result.append(serialize(user))
+        return result
+
     def get_from_group(self, group: Group) -> List[APIUser]:
-        group_memberships = OrganizationMember.objects.filter(
+        group_memberships: Sequence[int] = OrganizationMember.objects.filter(
             organization=group.organization,
             teams__in=group.project.teams.all(),
         ).values_list("user_id", flat=True)
-        return self._to_api(self.get_many(set(group_memberships)))
+        return self.get_many(set(group_memberships))
 
-    def get_many(self, user_ids: Iterable[int], is_active=True) -> List[APIUser]:
-
+    def get_many(self, user_ids: Iterable[int], is_active: Optional[bool] = True) -> List[APIUser]:
         query = User.objects.filter(id__in=user_ids)
         if is_active is not None:
             query = query.filter(is_active=is_active)
         return self._to_api(query)
+
+    def get_from_project(self, project_id: int) -> List[APIUser]:
+        return self.get_many(
+            Project.objects.get(project_id).member_set.values_list("user_id", flat=True)
+        )
 
     def get_by_actor_id(self, actor_id: int) -> Optional[APIUser]:
         return self._to_api(User.objects.get(actor_id=actor_id))

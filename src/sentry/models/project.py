@@ -338,6 +338,7 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
         rules = Rule.objects.filter(owner_id__isnull=False, project=self)
         for rule in list(chain(alert_rules, rules)):
             actor = rule.owner
+            is_member = False
             if actor.type == ACTOR_TYPES["user"]:
                 is_member = organization.member_set.filter(user_id=actor.resolve().id).exists()
             if actor.type == ACTOR_TYPES["team"]:

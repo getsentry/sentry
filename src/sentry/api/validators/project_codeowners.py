@@ -13,6 +13,7 @@ from sentry.models import (
     actor_type_to_string,
 )
 from sentry.ownership.grammar import parse_code_owners
+from sentry.services.hybrid_cloud.user import APIUser
 from sentry.types.integrations import ExternalProviders
 
 
@@ -58,7 +59,7 @@ def validate_codeowners_associations(
     for external_actor in external_actors:
         type = actor_type_to_string(external_actor.actor.type)
         if type == "user":
-            user = external_actor.actor.resolve()
+            user: APIUser = external_actor.actor.resolve()
             organization_members_ids = OrganizationMember.objects.filter(
                 user_id=user.id, organization_id=project.organization_id
             ).values_list("id", flat=True)
@@ -70,7 +71,7 @@ def validate_codeowners_associations(
             if project in projects:
                 users_dict[external_actor.external_name] = user.email
             else:
-                users_without_access.append(f"{user.get_display_name()}")
+                users_without_access.append(f"{user.display_name}")
         elif type == "team":
             team = external_actor.actor.resolve()
             # make sure the sentry team has access to the project

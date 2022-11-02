@@ -1,6 +1,11 @@
+from __future__ import annotations
+
+from typing import Sequence
+
 from rest_framework import serializers
 
 from sentry.models import ActorTuple, BaseUser, Team, User
+from sentry.services.hybrid_cloud.user import APIUser
 
 
 def extract_user_ids_from_mentions(organization_id, mentions):
@@ -11,7 +16,7 @@ def extract_user_ids_from_mentions(organization_id, mentions):
     is all user ids from explicitly mentioned teams, excluding any already
     mentioned users.
     """
-    actors = ActorTuple.resolve_many(mentions)
+    actors: Sequence[APIUser | Team] = ActorTuple.resolve_many(mentions)
     actor_mentions = separate_resolved_actors(actors)
 
     mentioned_team_users = list(
@@ -33,7 +38,7 @@ def separate_actors(actors):
     return {"users": users, "teams": teams}
 
 
-def separate_resolved_actors(actors):
+def separate_resolved_actors(actors: Sequence[APIUser | Team]):
     users = [actor for actor in actors if isinstance(actor, BaseUser)]
     teams = [actor for actor in actors if isinstance(actor, Team)]
 

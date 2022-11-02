@@ -4,7 +4,8 @@ from abc import ABCMeta, abstractmethod
 from typing import TYPE_CHECKING, Iterable, MutableMapping
 
 from sentry import roles
-from sentry.models import OrganizationMember
+from sentry.models import BaseUser, OrganizationMember
+from sentry.services.hybrid_cloud.user import APIUser
 
 if TYPE_CHECKING:
     from sentry.models import Organization, User
@@ -16,11 +17,14 @@ class RoleBasedRecipientStrategy(metaclass=ABCMeta):
     def __init__(self, organization: Organization):
         self.organization = organization
 
-    def get_member(self, user: User) -> OrganizationMember:
+    def get_member(self, user: APIUser) -> OrganizationMember:
         # cache the result
+        if not isinstance(user, BaseUser):
+            # The original code did a relation lookup via the user, which would be a DoesNotExist if it were, say, a team.
+            raise OrganizationMember.DoesNotExist()
         if user.id not in self.member_by_user_id:
             self.member_by_user_id[user.id] = OrganizationMember.objects.get(
-                user=user, organization=self.organization
+                user_id=user.id, organization=self.organization
             )
         return self.member_by_user_id[user.id]
 
@@ -32,13 +36,13 @@ class RoleBasedRecipientStrategy(metaclass=ABCMeta):
 
     def determine_recipients(
         self,
-    ) -> Iterable[User]:
+    ) -> Iterable[APIUser]:
         members = self.determine_member_recipients()
         # store the members in our cache
         for member in members:
             self.set_member_in_cache(member)
         # convert members to users
-        user_map: Iterable[User] = map(lambda member: member.user, members)
+        user_map: Iterable[APIUser] = map(lambda member: member.user, members)
         # convert to list from an interterator
         return list(user_map)
 

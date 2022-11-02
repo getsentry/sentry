@@ -8,12 +8,13 @@ from django.db.models import F
 from sentry.constants import ObjectStatus
 from sentry.models import BaseUser, ExternalActor, Identity, Integration, Organization, Team, User
 from sentry.notifications.notifications.base import BaseNotification
+from sentry.services.hybrid_cloud.user import APIUser
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 
 
 def get_context(
     notification: BaseNotification,
-    recipient: Team | User,
+    recipient: Team | APIUser,
     shared_context: Mapping[str, Any],
     extra_context: Mapping[str, Any],
 ) -> Mapping[str, Any]:

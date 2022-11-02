@@ -20,7 +20,7 @@ option_scope_error = "this is not a supported use case, scope to project OR orga
 class UserOptionManager(OptionManager["User"]):
     def _make_key(
         self,
-        user: User,
+        user: User | APIUser,
         project: Project | None = None,
         organization: Organization | None = None,
     ) -> str:

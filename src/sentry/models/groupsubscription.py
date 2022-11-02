@@ -18,6 +18,7 @@ from sentry.notifications.helpers import (
     where_should_be_participating,
 )
 from sentry.notifications.types import GroupSubscriptionReason, NotificationSettingTypes
+from sentry.services.hybrid_cloud.user import APIUser
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
@@ -28,7 +29,7 @@ class GroupSubscriptionManager(BaseManager):  # type: ignore
     def subscribe(
         self,
         group: "Group",
-        user: "User",
+        user: "APIUser",
         reason: int = GroupSubscriptionReason.unknown,
     ) -> bool:
         """
@@ -51,12 +52,12 @@ class GroupSubscriptionManager(BaseManager):  # type: ignore
     def subscribe_actor(
         self,
         group: "Group",
-        actor: Union["Team", "User"],
+        actor: Union["Team", "APIUser"],
         reason: int = GroupSubscriptionReason.unknown,
     ) -> Optional[bool]:
-        from sentry.models import BaseUser, Team
+        from sentry.models import Team
 
-        if isinstance(actor, BaseUser):
+        if isinstance(actor, APIUser):
             return self.subscribe(group, actor, reason)
         if isinstance(actor, Team):
             # subscribe the members of the team
@@ -109,7 +110,9 @@ class GroupSubscriptionManager(BaseManager):  # type: ignore
                     raise e
         return False
 
-    def get_participants(self, group: "Group") -> Mapping[ExternalProviders, Mapping["User", int]]:
+    def get_participants(
+        self, group: "Group"
+    ) -> Mapping[ExternalProviders, Mapping["APIUser", int]]:
         """
         Identify all users who are participating with a given issue.
         :param group: Group object
@@ -133,7 +136,9 @@ class GroupSubscriptionManager(BaseManager):  # type: ignore
             notification_settings, all_possible_users
         )
 
-        result: MutableMapping[ExternalProviders, MutableMapping["User", int]] = defaultdict(dict)
+        result: MutableMapping[ExternalProviders, MutableMapping["APIUser", int]] = defaultdict(
+            dict
+        )
         for user in all_possible_users:
             subscription_option = subscriptions_by_user_id.get(user.id)
             providers = where_should_be_participating(

@@ -9,11 +9,12 @@ from sentry.db.models.fields import FlexibleForeignKey, JSONField
 from sentry.models import ActorTuple
 from sentry.models.groupowner import OwnerRuleType
 from sentry.ownership.grammar import Rule, load_schema, resolve_actors
+from sentry.services.hybrid_cloud.user import APIUser
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 
 if TYPE_CHECKING:
-    from sentry.models import Team, User
+    from sentry.models import Team
 
 READ_CACHE_DURATION = 3600
 
@@ -159,7 +160,7 @@ class ProjectOwnership(Model):
     ) -> Sequence[
         Tuple[
             "Rule",
-            Sequence[Union["Team", "User"]],
+            Sequence[Union["Team", "APIUser"]],
             Union[OwnerRuleType.OWNERSHIP_RULE.value, OwnerRuleType.CODEOWNERS.value],
         ]
     ]:
