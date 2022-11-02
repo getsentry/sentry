@@ -166,7 +166,7 @@ class AuthLoginView(BaseView):
             request.session.pop("invite_email", None)
 
             # Attempt to directly accept any pending invites
-            invite_helper = ApiInviteHelper.from_cookie(request=request, instance=self)
+            invite_helper = ApiInviteHelper.from_session(request=request, instance=self)
 
             # In single org mode, associate the user to the only organization.
             #
