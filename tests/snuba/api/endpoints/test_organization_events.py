@@ -5285,3 +5285,32 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         }
         response = self.do_request(query)
         assert response.status_code == 200, response.content
+
+    @mock.patch("sentry.search.events.builder.raw_snql_query")
+    def test_profiles_dataset_simple(self, mock_snql_query):
+        mock_snql_query.side_effect = [{"meta": {}, "data": []}]
+
+        query = {
+            "field": [
+                "project",
+                "transaction",
+                "last_seen()",
+                "latest_event()",
+                "count()",
+                "count_unique(transaction)",
+                "percentile(profile.duration, 0.25)",
+                "p50(profile.duration)",
+                "p75(profile.duration)",
+                "p95(profile.duration)",
+                "p99(profile.duration)",
+                "p100(profile.duration)",
+                "min(profile.duration)",
+                "max(profile.duration)",
+                "avg(profile.duration)",
+                "sum(profile.duration)",
+            ],
+            "project": [self.project.id],
+            "dataset": "profiles",
+        }
+        response = self.do_request(query, features={"organizations:profiling": True})
+        assert response.status_code == 200, response.content

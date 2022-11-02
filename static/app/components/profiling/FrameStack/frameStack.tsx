@@ -228,6 +228,7 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
 
       <FrameStackTable
         {...props}
+        expanded={tab === 'call order'}
         recursion={recursion}
         flamegraph={props.flamegraph}
         referenceNode={props.referenceNode}

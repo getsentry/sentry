@@ -38,7 +38,7 @@ class AddColWithDefaultTest(BaseSafeMigrationTest):
     def test(self):
         with pytest.raises(
             UnsafeOperationException,
-            match="Adding TestTable.field as column with a default is unsafe.",
+            match="Adding TestTable.field as column with a default is safe, but you need to take additional steps.",
         ):
             self.run_migration()
 
@@ -51,7 +51,7 @@ class AddColWithNotNullDefaultTest(BaseSafeMigrationTest):
     def test(self):
         with pytest.raises(
             UnsafeOperationException,
-            match="Adding TestTable.field as column with a default is unsafe.",
+            match="Adding TestTable.field as column with a default is safe, but you need to take additional steps.",
         ):
             self.run_migration()
 

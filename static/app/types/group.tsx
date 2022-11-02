@@ -28,7 +28,6 @@ export type SavedSearch = {
   dateCreated: string;
   id: string;
   isGlobal: boolean;
-  isOrgCustom: boolean;
   isPinned: boolean;
   name: string;
   query: string;
@@ -40,6 +39,7 @@ export enum SavedSearchType {
   ISSUE = 0,
   EVENT = 1,
   SESSION = 2,
+  REPLAY = 3,
 }
 
 export enum IssueCategory {
@@ -149,6 +149,7 @@ type Topvalue = {
   value: string;
   // Might not actually exist.
   query?: string;
+  readable?: string;
 };
 
 export type TagWithTopValues = {

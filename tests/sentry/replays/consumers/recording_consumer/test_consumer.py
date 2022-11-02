@@ -89,6 +89,7 @@ class TestRecordingsConsumerEndToEnd(TransactionTestCase):
             organization_id=self.organization.id,
             project_id=self.project.id,
             platform=self.project.platform,
+            user_id=self.organization.default_owner_id,
         )
 
     def test_duplicate_segment_flow(self):

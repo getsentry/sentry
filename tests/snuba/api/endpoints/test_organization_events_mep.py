@@ -84,7 +84,8 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
         assert response.status_code == 400, response.content
         assert (
-            response.data["detail"] == "dataset must be one of: discover, metricsEnhanced, metrics"
+            response.data["detail"]
+            == "dataset must be one of: discover, metricsEnhanced, metrics, profiles"
         )
 
     def test_out_of_retention(self):
@@ -1947,17 +1948,3 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     @pytest.mark.xfail(reason="Having not supported")
     def test_having_condition(self):
         super().test_having_condition()
-
-    @pytest.mark.xfail(
-        reason="Metrics layer doesn't allow sorting by transform_null_to_unparameterized"
-    )
-    def test_unparam_filter(self):
-        super().test_unparam_filter()
-
-    @pytest.mark.xfail(reason="Metrics layer failing to support ordering by apdex")
-    def test_apdex_project_threshold(self):
-        super().test_apdex_project_threshold()
-
-    @pytest.mark.xfail(reason="Metrics layer failing to support ordering by apdex")
-    def test_apdex_transaction_threshold(self):
-        super().test_apdex_transaction_threshold()

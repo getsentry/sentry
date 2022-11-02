@@ -1,102 +1,15 @@
 import QuestionTooltip from 'sentry/components/questionTooltip';
 
-import ControlState, {ControlStateProps} from './controlState';
-import FieldControl, {FieldControlProps} from './fieldControl';
+import ControlState from './controlState';
+import FieldControl from './fieldControl';
 import FieldDescription from './fieldDescription';
 import FieldErrorReason from './fieldErrorReason';
 import FieldHelp from './fieldHelp';
 import FieldLabel from './fieldLabel';
 import FieldQuestion from './fieldQuestion';
 import FieldRequiredBadge from './fieldRequiredBadge';
-import FieldWrapper, {FieldWrapperProps} from './fieldWrapper';
-
-interface InheritedFieldWrapperProps
-  extends Pick<
-    FieldWrapperProps,
-    'inline' | 'stacked' | 'highlighted' | 'hasControlState'
-  > {}
-
-interface InheritedFieldControlProps
-  extends Omit<
-    FieldControlProps,
-    'children' | 'disabled' | 'className' | 'help' | 'errorState'
-  > {}
-
-interface InheritedControlStateProps
-  extends Omit<ControlStateProps, 'children' | 'error'> {}
-
-export interface FieldProps
-  extends InheritedFieldControlProps,
-    InheritedFieldWrapperProps,
-    InheritedControlStateProps {
-  // TODO(TS): Do we need this?
-  /**
-   * The control to render. May be given a function to render with resolved
-   * props.
-   */
-  children?: React.ReactNode | ((props: ChildRenderProps) => React.ReactNode);
-  /**
-   * The classname of the field
-   */
-  className?: string;
-  /**
-   * The classname of the field control
-   */
-  controlClassName?: string;
-  /**
-   * Should field be disabled?
-   */
-  disabled?: boolean | ((props: FieldProps) => boolean);
-  /**
-   * Error message to display for the field
-   */
-  error?: string;
-  /**
-   * Help or description of the field
-   */
-  help?: React.ReactNode | React.ReactElement | ((props: FieldProps) => React.ReactNode);
-  /**
-   * Should the label be rendered for the field?
-   */
-  hideLabel?: boolean;
-  /**
-   * The control's `id` property
-   */
-  id?: string;
-  /**
-   * User-facing field name
-   */
-  label?: React.ReactNode;
-  /**
-   * May be used to give the field an aria-label when the field's label is a
-   * react node.
-   */
-  labelText?: string;
-  /**
-   * Show "required" indicator
-   */
-  required?: boolean;
-  /**
-   * Displays the help element in the tooltip
-   */
-  showHelpInTooltip?: boolean;
-  /**
-   * Additional inline styles for the field
-   */
-  style?: React.CSSProperties;
-  validate?: Function;
-  /**
-   * Should field be visible
-   */
-  visible?: boolean | ((props: FieldProps) => boolean);
-}
-
-interface ChildRenderProps extends Omit<FieldProps, 'className' | 'disabled'> {
-  controlState: React.ReactNode;
-  errorState: React.ReactNode | null;
-  help: React.ReactNode;
-  disabled?: boolean;
-}
+import FieldWrapper from './fieldWrapper';
+import {FieldGroupProps} from './types';
 
 /**
  * A component to render a Field (i.e. label + help + form "control"),
@@ -106,68 +19,65 @@ interface ChildRenderProps extends Omit<FieldProps, 'className' | 'disabled'> {
  */
 function Field({
   className,
-  alignRight = false,
-  inline = true,
   disabled = false,
-  required = false,
+  inline = true,
   visible = true,
-  showHelpInTooltip = false,
-  ...props
-}: FieldProps) {
-  const otherProps = {
-    alignRight,
+  ...rest
+}: FieldGroupProps) {
+  const props = {
     inline,
     disabled,
-    required,
     visible,
-    showHelpInTooltip,
-    ...props,
+    ...rest,
   };
 
-  const isVisible = typeof visible === 'function' ? visible(otherProps) : visible;
-  const isDisabled = typeof disabled === 'function' ? disabled(otherProps) : disabled;
+  const {
+    alignRight,
+    children,
+    controlClassName,
+    disabledReason,
+    error,
+    flexibleControlStateSize,
+    help,
+    hideLabel,
+    highlighted,
+    id,
+    isSaved,
+    isSaving,
+    label,
+    labelText,
+    required,
+    showHelpInTooltip,
+    stacked,
+    style,
+  } = props;
+
+  const isVisible = typeof visible === 'function' ? visible(props) : visible;
+  const isDisabled = typeof disabled === 'function' ? disabled(props) : disabled;
 
   if (!isVisible) {
     return null;
   }
 
-  const {
-    controlClassName,
-    highlighted,
-    disabledReason,
-    error,
-    flexibleControlStateSize,
-    help,
-    id,
-    isSaving,
-    isSaved,
-    label,
-    labelText,
-    hideLabel,
-    stacked,
-    children,
-    style,
-  } = otherProps;
-
-  const helpElement = typeof help === 'function' ? help(otherProps) : help;
+  const helpElement = typeof help === 'function' ? help(props) : help;
   const shouldRenderLabel = !hideLabel && !!label;
 
   const controlProps = {
-    className: controlClassName,
     inline,
     alignRight,
-    disabled: isDisabled,
     disabledReason,
     flexibleControlStateSize,
-    help: helpElement,
+    controlState: <ControlState error={!!error} isSaving={isSaving} isSaved={isSaved} />,
     errorState: error ? <FieldErrorReason>{error}</FieldErrorReason> : null,
-    controlState: <ControlState error={error} isSaving={isSaving} isSaved={isSaved} />,
+    className: controlClassName,
+    disabled: isDisabled,
+    help: helpElement,
   };
 
   // See comments in prop types
   const control =
     typeof children === 'function' ? (
-      children({...otherProps, ...controlProps})
+      children({...props, ...controlProps})
     ) : (
       <FieldControl {...controlProps}>{children}</FieldControl>
     );

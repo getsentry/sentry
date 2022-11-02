@@ -4,7 +4,7 @@ import {
   initializeData as _initializeData,
   initializeDataSettings,
 } from 'sentry-test/performance/initializePerformanceData';
-import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -162,8 +162,9 @@ describe('Performance > Transaction Summary > Transaction Events > Index', () =>
     const data = initializeData();
 
     render(<WrappedComponent data={data} />, {context: data.routerContext});
-    const percentileContainer = await screen.findByRole('presentation');
-    const percentileButton = await within(percentileContainer).findByRole('button');
+    const percentileButton = await screen.findByRole('button', {
+      name: /percentile p100/i,
+    });
 
     userEvent.click(percentileButton);
 

@@ -6,6 +6,7 @@ import {
 } from 'sentry/actionCreators/savedSearches';
 import {Client} from 'sentry/api';
 import SavedSearchesStore from 'sentry/stores/savedSearchesStore';
+import {SavedSearchType} from 'sentry/types';
 
 describe('SavedSearchesStore', function () {
   let api;
@@ -89,7 +90,7 @@ describe('SavedSearchesStore', function () {
       expect.objectContaining({
         id: '123',
         isPinned: true,
-        type: 0,
+        type: SavedSearchType.ISSUE,
         query: 'level:info',
         name: 'My Pinned Search',
         sort: 'freq',
@@ -106,7 +107,7 @@ describe('SavedSearchesStore', function () {
         {
           id: null,
           isPinned: true,
-          type: 0,
+          type: SavedSearchType.ISSUE,
           query: 'assigned:me',
           sort: 'date',
         },
@@ -119,14 +120,12 @@ describe('SavedSearchesStore', function () {
       method: 'PUT',
       body: {
         id: '1',
-        isDefault: false,
         isGlobal: true,
-        isOrgCustom: false,
         isPinned: true,
         query: 'is:unresolved',
         sort: 'date',
         name: 'Unresolved Issues',
-        type: 0,
+        type: SavedSearchType.ISSUE,
       },
     });
 
@@ -141,11 +140,9 @@ describe('SavedSearchesStore', function () {
     expect(SavedSearchesStore.get().savedSearches[1]).toEqual(
       expect.objectContaining({
         id: '1',
-        isDefault: false,
         isGlobal: true,
-        isOrgCustom: false,
         isPinned: true,
-        type: 0,
+        type: SavedSearchType.ISSUE,
         name: 'Unresolved Issues',
         query: 'is:unresolved',
         sort: 'date',
@@ -169,14 +166,12 @@ describe('SavedSearchesStore', function () {
       method: 'PUT',
       body: {
         id: '1',
-        isDefault: false,
         isGlobal: true,
-        isOrgCustom: false,
         isPinned: true,
         query: 'is:unresolved',
         sort: 'date',
         name: 'Unresolved Issues',
-        type: 0,
+        type: SavedSearchType.ISSUE,
       },
     });
     await fetchSavedSearches(api, 'org-1', {});
@@ -192,7 +187,7 @@ describe('SavedSearchesStore', function () {
       expect.objectContaining({
         id: '2',
         isPinned: false,
-        type: 0,
+        type: SavedSearchType.ISSUE,
         name: 'Needs Triage',
         query: 'is:unresolved is:unassigned',
         sort: 'date',
@@ -202,11 +197,9 @@ describe('SavedSearchesStore', function () {
     expect(SavedSearchesStore.get().savedSearches[1]).toEqual(
       expect.objectContaining({
         id: '1',
-        isDefault: false,
         isGlobal: true,
-        isOrgCustom: false,
         isPinned: true,
-        type: 0,
+        type: SavedSearchType.ISSUE,
         name: 'Unresolved Issues',
         query: 'is:unresolved',
         sort: 'date',
@@ -214,7 +207,7 @@ describe('SavedSearchesStore', function () {
     );
   });
 
-  it('unpins a user custom search (not global, and not org custom)', async function () {
+  it('unpins a user custom search', async function () {
     const searches = TestStubs.Searches();
 
     Client.addMockResponse({
@@ -223,7 +216,7 @@ describe('SavedSearchesStore', function () {
         {
           id: null,
           isPinned: true,
-          type: 0,
+          type: SavedSearchType.ISSUE,
           query: 'assigned:me',
           sort: 'date',
         },
@@ -244,7 +237,7 @@ describe('SavedSearchesStore', function () {
       expect.objectContaining({
         id: '2',
         isPinned: false,
-        type: 0,
+        type: SavedSearchType.ISSUE,
         name: 'Needs Triage',
         query: 'is:unresolved is:unassigned',
         sort: 'date',
@@ -255,88 +248,7 @@ describe('SavedSearchesStore', function () {
       expect.objectContaining({
         id: '1',
         isPinned: false,
-        type: 0,
-        name: 'Unresolved Issues',
-        query: 'is:unresolved',
-        sort: 'date',
-      })
-    );
-  });
-
-  it('unpins an existing global saved search', async function () {
-    const searches = TestStubs.Searches();
-
-    Client.addMockResponse({
-      url: '/organizations/org-1/searches/',
-      body: [{...searches[0], isPinned: true}, searches[1]],
-    });
-    await fetchSavedSearches(api, 'org-1', {});
-    await tick();
-
-    unpinSearch(api, 'org-1', 0, searches[0]);
-    await tick();
-    await tick();
-
-    expect(SavedSearchesStore.get().savedSearches).toHaveLength(2);
-
-    expect(SavedSearchesStore.get().savedSearches[0]).toEqual(
-      expect.objectContaining({
-        id: '2',
-        isPinned: false,
-        type: 0,
-        name: 'Needs Triage',
-        query: 'is:unresolved is:unassigned',
-        sort: 'date',
-      })
-    );
-
-    expect(SavedSearchesStore.get().savedSearches[1]).toEqual(
-      expect.objectContaining({
-        id: '1',
-        isPinned: false,
-        type: 0,
-        name: 'Unresolved Issues',
-        query: 'is:unresolved',
-        sort: 'date',
-      })
-    );
-  });
-
-  it('unpins an existing org saved search', async function () {
-    const searches = TestStubs.Searches();
-
-    Client.addMockResponse({
-      url: '/organizations/org-1/searches/',
-      body: [
-        {...searches[0], isOrgCustom: true, isGlobal: false, isPinned: true},
-        searches[1],
-      ],
-    });
-    await fetchSavedSearches(api, 'org-1', {});
-    await tick();
-
-    unpinSearch(api, 'org-1', 0, searches[0]);
-    await tick();
-    await tick();
-
-    expect(SavedSearchesStore.get().savedSearches).toHaveLength(2);
-
-    expect(SavedSearchesStore.get().savedSearches[0]).toEqual(
-      expect.objectContaining({
-        id: '2',
-        isPinned: false,
-        type: 0,
-        name: 'Needs Triage',
-        query: 'is:unresolved is:unassigned',
-        sort: 'date',
-      })
-    );
-
-    expect(SavedSearchesStore.get().savedSearches[1]).toEqual(
-      expect.objectContaining({
-        id: '1',
-        isPinned: false,
-        type: 0,
+        type: SavedSearchType.ISSUE,
         name: 'Unresolved Issues',
         query: 'is:unresolved',
         sort: 'date',
