@@ -62,7 +62,7 @@ def generate_environment_rule() -> BaseRule:
 def generate_healthcheck_rule(sample_rate: float) -> BaseRule:
     return {
         "sampleRate": sample_rate / HEALTH_CHECK_DROPPING_FACTOR,
-        "type": "trace",
+        "type": "transaction",
         "condition": {
             "op": "or",
             "inner": [
