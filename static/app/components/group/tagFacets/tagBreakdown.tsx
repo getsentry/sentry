@@ -95,7 +95,7 @@ const Container = styled('div')`
 `;
 
 const TagLabel = styled('div')<{active?: boolean}>`
-  padding: 0 4px;
+  padding: 0 ${space(0.5)};
 
   ${p =>
     p.active &&
