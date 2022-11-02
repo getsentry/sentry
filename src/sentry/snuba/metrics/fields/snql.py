@@ -4,7 +4,7 @@ from snuba_sdk import Column, Function
 
 from sentry import options
 from sentry.api.utils import InvalidParams
-from sentry.search.events.datasets.base import project_threshold_config_resolver_factory
+from sentry.search.events.datasets.function_aliases import project_threshold_config_resolver_factory
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import (
     resolve_tag_key,

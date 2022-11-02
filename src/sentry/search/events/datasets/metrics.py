@@ -10,10 +10,8 @@ from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events import constants, fields
 from sentry.search.events.builder import MetricsQueryBuilder
 from sentry.search.events.datasets import field_aliases, filter_aliases
-from sentry.search.events.datasets.base import (
-    DatasetConfig,
-    project_threshold_config_resolver_factory,
-)
+from sentry.search.events.datasets.base import DatasetConfig
+from sentry.search.events.datasets.function_aliases import project_threshold_config_resolver_factory
 from sentry.search.events.types import SelectType, WhereType
 
 
