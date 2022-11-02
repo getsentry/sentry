@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
 import {pluckUniqueValues} from '../utils';
 
@@ -60,6 +60,28 @@ export function useColumnFilters<
       return acc;
     }, {} as ColumnFilters<K>);
   }, [data, columns]);
+
+  // we need to validate that the initial state contain valid values
+  // if they do not we need to filter those out and update filters
+  // we only want this to run once
+  const didRun = useRef(false);
+  useEffect(() => {
+    if (didRun.current || data.length === 0) {
+      return;
+    }
+
+    setFilters(currentFilters => {
+      return Object.entries(currentFilters).reduce((acc, entry) => {
+        const [filterKey, filterValues] = entry as [string, any[] | undefined];
+        const possibleValues = columnFilters[filterKey].values;
+        const validValues = filterValues?.filter(v => possibleValues.includes(v));
+        acc[filterKey] =
+          Array.isArray(validValues) && validValues.length > 0 ? validValues : undefined;
+        return acc;
+      }, {});
+    });
+    didRun.current = true;
+  }, [data.length, columnFilters, filters]);
 
   const filterPredicate = useCallback(
     (row: T) => {

@@ -35,6 +35,7 @@ export function useQuerystringState({key, initialState}: UseQuerystringStateOpti
   const setQueryStringState = useCallback(
     (nextState: string | string[] | undefined) => {
       browserHistory.replace(createLocationDescriptor(nextState));
+      setState(nextState);
     },
     [createLocationDescriptor]
   );
@@ -52,8 +53,6 @@ export function useQuerystringState({key, initialState}: UseQuerystringStateOpti
         delete nextLocation.query[key];
         return;
       }
-
-      setState(nextLocation.query[key]);
     });
 
     return removeListener;
