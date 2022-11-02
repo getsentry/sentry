@@ -91,19 +91,19 @@ class DatabaseBackedOrganizationService(OrganizationService):
         self, *, user_id: Optional[int], slug: str, only_visible: bool, allow_stale: bool
     ) -> Optional[ApiOrganization]:
         user_memberships: List[OrganizationMember] = []
-        if user_id is not None:
-            try:
-                user_memberships = [
-                    OrganizationMember.objects.get(organization_id=id, user_id=user_id)
-                ]
-            except OrganizationMember.DoesNotExist:
-                pass
-
         try:
             if allow_stale:
                 org = Organization.objects.get_from_cache(slug=slug)
             else:
                 org = Organization.objects.get(slug=slug)
+
+            if user_id is not None:
+                try:
+                    user_memberships = [
+                        OrganizationMember.objects.get(organization_id=org.id, user_id=user_id)
+                    ]
+                except OrganizationMember.DoesNotExist:
+                    pass
 
             if only_visible and org.status != OrganizationStatus.VISIBLE:
                 raise Organization.DoesNotExist
