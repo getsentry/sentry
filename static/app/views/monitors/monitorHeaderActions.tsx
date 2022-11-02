@@ -25,7 +25,7 @@ type Props = {
 };
 
 const DISABLED_TOOLTIP_TEXT = t(
-  'You must be an organization admin to perform this action'
+  'These settings can only be edited by users with the organization owner, manager, or admin role.'
 );
 
 const MonitorHeaderActions = ({monitor, orgId, onUpdate}: Props) => {
