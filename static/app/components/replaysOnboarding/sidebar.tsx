@@ -69,7 +69,7 @@ function ReplaysOnboardingSidebar(props: CommonSidebarProps) {
     >
       <TopRightBackgroundImage src={HighlightTopRightPattern} />
       <TaskList>
-        <Heading>{t('Replay Sessions')}</Heading>
+        <Heading>{t('Getting Started with Replays')}</Heading>
         <DropdownMenuControl
           items={items}
           triggerLabel={
