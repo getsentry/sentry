@@ -40,7 +40,7 @@ const StyledShortId = styled('div')`
   justify-content: flex-end;
 `;
 
-const StyledAutoSelectText = styled(AutoSelectText)`
+export const StyledAutoSelectText = styled(AutoSelectText)`
   min-width: 0;
 
   a & {
