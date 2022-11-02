@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import TYPE_CHECKING
 
 from django.conf import settings
 from django.db import models
@@ -9,9 +10,21 @@ from sentry.db.models import FlexibleForeignKey, Model, control_silo_only_model,
 from sentry.utils.http import absolute_uri
 from sentry.utils.security import get_secure_token
 
+if TYPE_CHECKING:
+    from sentry.services.hybrid_cloud.lostpasswordhash import APILostPasswordHash
+
+
+class BaseLostPasswordHash:
+    def get_absolute_url(self, mode="recover"):
+        url_key = "sentry-account-recover-confirm"
+        if mode == "set_password":
+            url_key = "sentry-account-set-password-confirm"
+
+        return absolute_uri(reverse(url_key, args=[self.user_id, self.hash]))
+
 
 @control_silo_only_model
-class LostPasswordHash(Model):
+class LostPasswordHash(Model, BaseLostPasswordHash):
     __include_in_export__ = False
 
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, unique=True)
@@ -34,13 +47,6 @@ class LostPasswordHash(Model):
 
     def is_valid(self):
         return self.date_added > timezone.now() - timedelta(hours=48)
-
-    def get_absolute_url(self, mode="recover"):
-        url_key = "sentry-account-recover-confirm"
-        if mode == "set_password":
-            url_key = "sentry-account-set-password-confirm"
-
-        return absolute_uri(reverse(url_key, args=[self.user.id, self.hash]))
 
     def send_email(self, request, mode="recover"):
         from sentry import options
@@ -67,17 +73,8 @@ class LostPasswordHash(Model):
         msg.send_async([self.user.email])
 
     @classmethod
-    def for_user(cls, user):
-        # NOTE(mattrobenolt): Some security people suggest we invalidate
-        # existing password hashes, but this opens up the possibility
-        # of a DoS vector where then password resets are continually
-        # requested, thus preventing someone from actually resetting
-        # their password.
-        # See: https://github.com/getsentry/sentry/pull/17299
-        password_hash, created = cls.objects.get_or_create(user=user)
-        if not password_hash.is_valid():
-            password_hash.date_added = timezone.now()
-            password_hash.set_hash()
-            password_hash.save()
+    def for_user(cls, user) -> "APILostPasswordHash":
+        from sentry.services.hybrid_cloud.lostpasswordhash import lost_password_hash_service
 
+        password_hash = lost_password_hash_service.get_or_create(user.id)
         return password_hash
