@@ -250,6 +250,13 @@ class BaseGroupSidebar extends Component<Props, State> {
           </PageFiltersContainer>
         )}
 
+        <Feature organization={organization} features={['issue-details-owners']}>
+          <OwnedBy group={group} project={project} organization={organization} />
+          <AssignedTo group={group} projectId={project.id} onAssign={this.trackAssign} />
+        </Feature>
+
+        {event && <SuggestedOwners project={project} group={group} event={event} />}
+
         <Feature
           organization={organization}
           features={['issue-details-tag-improvements']}
@@ -261,21 +268,14 @@ class BaseGroupSidebar extends Component<Props, State> {
               tagKeys={MOBILE_TAGS}
               event={event}
               title={
-                <Fragment>
-                  {t('Mobile Tag Breakdown')} <FeatureBadge type="alpha" />
-                </Fragment>
+                <div>
+                  {t('Tag Summary')} <FeatureBadge type="alpha" />
+                </div>
               }
               tagFormatter={MOBILE_TAGS_FORMATTER}
             />
           )}
         </Feature>
-
-        <Feature organization={organization} features={['issue-details-owners']}>
-          <OwnedBy group={group} project={project} organization={organization} />
-          <AssignedTo group={group} projectId={project.id} onAssign={this.trackAssign} />
-        </Feature>
-
-        {event && <SuggestedOwners project={project} group={group} event={event} />}
 
         <GroupReleaseStats
           organization={organization}
@@ -298,47 +298,50 @@ class BaseGroupSidebar extends Component<Props, State> {
 
         {this.renderPluginIssue()}
 
-        <SidebarSection.Wrap>
-          <SidebarSection.Title>{t('Tag Summary')}</SidebarSection.Title>
-          <SidebarSection.Content>
-            {!tagsWithTopValues ? (
-              <TagPlaceholders>
-                <Placeholder height="40px" />
-                <Placeholder height="40px" />
-                <Placeholder height="40px" />
-                <Placeholder height="40px" />
-              </TagPlaceholders>
-            ) : (
-              group.tags.map(tag => {
-                const tagWithTopValues = tagsWithTopValues[tag.key];
-                const topValues = tagWithTopValues ? tagWithTopValues.topValues : [];
-                const topValuesTotal = tagWithTopValues
-                  ? tagWithTopValues.totalValues
-                  : 0;
+        {(!organization.features.includes('issue-details-tag-improvements') ||
+          !isMobilePlatform(project.platform)) && (
+          <SidebarSection.Wrap>
+            <SidebarSection.Title>{t('Tag Summary')}</SidebarSection.Title>
+            <SidebarSection.Content>
+              {!tagsWithTopValues ? (
+                <TagPlaceholders>
+                  <Placeholder height="40px" />
+                  <Placeholder height="40px" />
+                  <Placeholder height="40px" />
+                  <Placeholder height="40px" />
+                </TagPlaceholders>
+              ) : (
+                group.tags.map(tag => {
+                  const tagWithTopValues = tagsWithTopValues[tag.key];
+                  const topValues = tagWithTopValues ? tagWithTopValues.topValues : [];
+                  const topValuesTotal = tagWithTopValues
+                    ? tagWithTopValues.totalValues
+                    : 0;
 
-                return (
-                  <GroupTagDistributionMeter
-                    key={tag.key}
-                    tag={tag.key}
-                    totalValues={topValuesTotal}
-                    topValues={topValues}
-                    name={tag.name}
-                    organization={organization}
-                    projectId={projectId}
-                    group={group}
-                  />
-                );
-              })
-            )}
-            {group.tags.length === 0 && (
-              <p data-test-id="no-tags">
-                {environments.length
-                  ? t('No tags found in the selected environments')
-                  : t('No tags found')}
-              </p>
-            )}
-          </SidebarSection.Content>
-        </SidebarSection.Wrap>
+                  return (
+                    <GroupTagDistributionMeter
+                      key={tag.key}
+                      tag={tag.key}
+                      totalValues={topValuesTotal}
+                      topValues={topValues}
+                      name={tag.name}
+                      organization={organization}
+                      projectId={projectId}
+                      group={group}
+                    />
+                  );
+                })
+              )}
+              {group.tags.length === 0 && (
+                <p data-test-id="no-tags">
+                  {environments.length
+                    ? t('No tags found in the selected environments')
+                    : t('No tags found')}
+                </p>
+              )}
+            </SidebarSection.Content>
+          </SidebarSection.Wrap>
+        )}
 
         {this.renderParticipantData()}
         {hasIssueActionsV2 && this.renderSeenByList()}
