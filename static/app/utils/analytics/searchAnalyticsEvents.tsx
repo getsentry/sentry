@@ -45,6 +45,7 @@ export type SearchEventParameters = {
     sort: string;
     visibility: string;
   };
+  'search.saved_search_open_create_modal': OpenEvent;
   'search.search_with_invalid': SearchEventBase;
   'search.searched': SearchEventBase & {search_source?: string};
   'search.shortcut_used': SearchEventBase & {
@@ -85,5 +86,6 @@ export const searchEventMap: Record<SearchEventKey, string | null> = {
   'projectselector.toggle': 'Project Selector: Toggle',
   'projectselector.multi_button_clicked': 'Project Selector: Multi Button Clicked',
   'search.pin': 'Search: Pin',
-  'search.saved_search_create': 'Search: Save Search Created',
+  'search.saved_search_create': 'Search: Saved Search Created',
+  'search.saved_search_open_create_modal': 'Search: Saved Search Modal Opened',
 };
