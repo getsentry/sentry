@@ -421,6 +421,40 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
     assert dynamic_sampling == {
         "rules": [
             {
+                "sampleRate": 1,
+                "type": "trace",
+                "condition": {
+                    "op": "or",
+                    "inner": [
+                        {
+                            "op": "glob",
+                            "name": "trace.environment",
+                            "value": ["*dev*", "*test*"],
+                            "options": {"ignoreCase": True},
+                        }
+                    ],
+                },
+                "active": True,
+                "id": 1001,
+            },
+            {
+                "sampleRate": 0.02,
+                "type": "transaction",
+                "condition": {
+                    "op": "or",
+                    "inner": [
+                        {
+                            "op": "glob",
+                            "name": "event.transaction",
+                            "value": HEALTH_CHECK_GLOBS,
+                            "options": {"ignoreCase": True},
+                        }
+                    ],
+                },
+                "active": True,
+                "id": 1002,
+            },
+            {
                 "sampleRate": 0.5,
                 "type": "trace",
                 "active": True,
@@ -489,40 +523,6 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                     "start": "2022-10-21 18:50:25+00:00",
                     "end": "2022-10-21 19:50:25+00:00",
                 },
-            },
-            {
-                "sampleRate": 1,
-                "type": "trace",
-                "condition": {
-                    "op": "or",
-                    "inner": [
-                        {
-                            "op": "glob",
-                            "name": "trace.environment",
-                            "value": ["*dev*", "*test*"],
-                            "options": {"ignoreCase": True},
-                        }
-                    ],
-                },
-                "active": True,
-                "id": 1001,
-            },
-            {
-                "sampleRate": 0.02,
-                "type": "transaction",
-                "condition": {
-                    "op": "or",
-                    "inner": [
-                        {
-                            "op": "glob",
-                            "name": "event.transaction",
-                            "value": HEALTH_CHECK_GLOBS,
-                            "options": {"ignoreCase": True},
-                        }
-                    ],
-                },
-                "active": True,
-                "id": 1002,
             },
             {
                 "sampleRate": 0.1,
