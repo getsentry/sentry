@@ -19,6 +19,7 @@ import {
 } from 'sentry/types';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import EventWaiter from 'sentry/utils/eventWaiter';
+import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import withApi from 'sentry/utils/withApi';
 import {OnboardingState} from 'sentry/views/onboarding/types';
 
@@ -209,7 +210,7 @@ export function getOnboardingTasks({
       requisites: [OnboardingTaskKey.FIRST_PROJECT],
       actionType: 'action',
       action: ({router}) => {
-        if (!organization.features?.includes('performance-onboarding-checklist')) {
+        if (!organization.features.includes('performance-onboarding-checklist')) {
           window.open(
             'https://docs.sentry.io/product/performance/getting-started/',
             '_blank'
@@ -272,6 +273,33 @@ export function getOnboardingTasks({
       location:
         'https://docs.sentry.io/platform-redirect/?next=/enriching-events/identify-user/',
       display: true,
+    },
+    {
+      task: OnboardingTaskKey.SESSION_REPLAY,
+      title: t('Enable replay sessions'),
+      description: t(
+        'Get to the root cause of an error or latency issue faster by seeing all the technical details related to that issue in one visual replay of your web application.'
+      ),
+      skippable: true,
+      requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
+      actionType: 'app',
+      location: `/organizations/${organization.slug}/replays/#replay-sidequest`,
+      display:
+        organization.features.includes('session-replay-ui') &&
+        Boolean(projects?.some(projectSupportsReplay)),
+      SupplementComponent: withApi(({api, task, onCompleteTask}: FirstEventWaiterProps) =>
+        !!projects?.length && task.requisiteTasks.length === 0 && !task.completionSeen ? (
+          <EventWaiter
+            api={api}
+            organization={organization}
+            project={projects[0]}
+            eventType="replay"
+            onIssueReceived={() => !taskIsDone(task) && onCompleteTask()}
+          >
+            {() => <EventWaitingIndicator text={t('Waiting for session')} />}
+          </EventWaiter>
+        ) : null
+      ),
     },
     {
       task: OnboardingTaskKey.RELEASE_TRACKING,
@@ -343,7 +371,7 @@ export function getOnboardingTasks({
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_TRANSACTION],
       actionType: 'app',
       location: getMetricAlertUrl({projects, organization, onboardingState}),
-      display: organization.features?.includes('incidents'),
+      display: organization.features.includes('incidents'),
     },
     {
       task: OnboardingTaskKey.USER_SELECTED_PROJECTS,
@@ -390,12 +418,14 @@ const PulsingIndicator = styled('div')`
   margin-right: ${space(1)};
 `;
 
-const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) => (
-  <div {...p}>
-    <PulsingIndicator />
-    {t('Waiting for event')}
-  </div>
-))`
+const EventWaitingIndicator = styled(
+  (p: React.HTMLAttributes<HTMLDivElement> & {text?: string}) => (
+    <div {...p}>
+      <PulsingIndicator />
+      {p.text || t('Waiting for event')}
+    </div>
+  )
+)`
   display: flex;
   align-items: center;
   flex-grow: 1;
