@@ -20,7 +20,6 @@ import {
 } from 'sentry/actionCreators/savedSearches';
 import {fetchTagValues, loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
-import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
@@ -31,6 +30,7 @@ import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {PageContent} from 'sentry/styles/organization';
+import space from 'sentry/styles/space';
 import {
   BaseGroup,
   Group,
@@ -1187,8 +1187,8 @@ class IssueListOverview extends Component<Props, State> {
           savedSearch={savedSearch}
           selectedProjectIds={selection.projects}
         />
-        <Layout.Body>
-          <Layout.Main fullWidth>
+        <StyledBody>
+          <StyledMain>
             <IssueListFilters
               organization={organization}
               query={query}
@@ -1247,8 +1247,8 @@ class IssueListOverview extends Component<Props, State> {
               onCursor={this.onCursorChange}
               paginationAnalyticsEvent={this.paginationAnalyticsEvent}
             />
-          </Layout.Main>
-        </Layout.Body>
+          </StyledMain>
+        </StyledBody>
       </StyledPageContent>
     );
   }
@@ -1263,6 +1263,31 @@ export default withRouteAnalytics(
 );
 
 export {IssueListOverview};
+
+const StyledBody = styled('div')`
+  background-color: ${p => p.theme.background};
+
+  display: flex;
+  flex-direction: column-reverse;
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    flex: 1;
+    display: grid;
+    grid-template-rows: 1fr;
+    grid-template-columns: 1fr auto;
+    gap: 0;
+    padding: 0;
+  }
+`;
+
+const StyledMain = styled('section')`
+  padding: ${space(2)};
+  overflow: hidden;
+
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    padding: ${space(3)} ${space(4)};
+  }
+`;
 
 const StyledPagination = styled(Pagination)`
   margin-top: 0;
