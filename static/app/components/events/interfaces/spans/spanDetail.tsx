@@ -446,7 +446,6 @@ class SpanDetail extends Component<Props, State> {
                   ? String(span.same_process_as_parent)
                   : null}
               </Row>
-
               <Row title="Span Group">
                 {defined(span.hash) ? String(span.hash) : null}
               </Row>
