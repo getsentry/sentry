@@ -624,3 +624,11 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         }
         assert meta == response.data["p99(measurements.custom)"]["meta"]
         assert meta == response.data["p99(measurements.another.custom)"]["meta"]
+
+
+class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
+    OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest
+):
+    def setUp(self):
+        super().setUp()
+        self.features["organizations:use-metrics-layer"] = True

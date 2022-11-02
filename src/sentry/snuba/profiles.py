@@ -59,6 +59,7 @@ def timeseries_query(
     functions_acl: Optional[List[str]] = None,
     allow_metric_aggregates: bool = False,
     has_metrics: bool = False,
+    use_metrics_layer: bool = False,
 ) -> Any:
     builder = ProfilesTimeseriesQueryBuilder(
         dataset=Dataset.Profiles,
