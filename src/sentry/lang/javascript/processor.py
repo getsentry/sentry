@@ -887,19 +887,36 @@ def is_valid_frame(frame):
     return frame is not None and frame.get("lineno") is not None
 
 
-def get_function_for_token(frame, token):
+def get_function_for_token(frame, token, previous_frame=None):
     """
-    Get function name for a given frame, based on the looked up token.
-    Return tokens name if we have a usable value from symbolic or we have no initial function name at all,
-    otherwise, fallback to frames current function name.
+    Get function name for a given frame based on the token resolved by symbolic.
+    It tries following paths in order:
+    - return token function name if we have a usable value (filtered through `USELESS_FN_NAMES` list),
+    - return mapped name of the caller (previous frame) token if it had,
+    - return token function name, including filtered values if it mapped to anything in the first place,
+    - return current frames function name as a fallback
     """
 
     frame_function_name = frame.get("function")
     token_function_name = token.function_name
 
-    if token_function_name not in USELESS_FN_NAMES or not frame_function_name:
+    # Try to use the function name we got from sourcemap-cache, filtering useless names.
+    if token_function_name not in USELESS_FN_NAMES:
         return token_function_name
 
+    # If not found, ask the callsite (previous token) for function name if possible.
+    if previous_frame is not None:
+        # `preprocess_frame` is supposed to make sure that `data` is present,
+        # but better safe than sorry.
+        last_token = (previous_frame.get("data") or {}).get("token")
+        if last_token:
+            return last_token.name
+
+    # If there was no minified name at all, return even useless, filtered one from the original token.
+    if not frame_function_name:
+        return token_function_name
+
+    # Otherwise fallback to the old, minified name.
     return frame_function_name
 
 
@@ -1524,6 +1541,9 @@ class JavaScriptSmCacheStacktraceProcessor(JavaScriptStacktraceProcessor):
                     }
                 )
 
+            # persist the token so that we can find it later
+            processable_frame.data["token"] = token
+
             # Store original data in annotation
             new_frame["data"] = dict(frame.get("data") or {}, sourcemap=sourcemap_label)
 
@@ -1556,7 +1576,9 @@ class JavaScriptSmCacheStacktraceProcessor(JavaScriptStacktraceProcessor):
                 # The tokens are 1-indexed.
                 new_frame["lineno"] = token.line
                 new_frame["colno"] = token.col
-                new_frame["function"] = get_function_for_token(new_frame, token)
+                new_frame["function"] = get_function_for_token(
+                    new_frame, token, processable_frame.previous_frame
+                )
 
                 filename = token.src
                 # special case webpack support
