@@ -10,7 +10,7 @@ from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events import builder, constants, fields
 from sentry.search.events.datasets import field_aliases, filter_aliases
 from sentry.search.events.datasets.base import DatasetConfig
-from sentry.search.events.datasets.function_aliases import project_threshold_config_resolver_factory
+from sentry.search.events.datasets.function_aliases import resolve_project_threshold_config
 from sentry.search.events.types import SelectType, WhereType
 
 
@@ -659,16 +659,13 @@ class MetricsDatasetConfig(DatasetConfig):
 
     @cached_property
     def _resolve_project_threshold_config(self) -> SelectType:
-        resolver = project_threshold_config_resolver_factory(
+        return resolve_project_threshold_config(
             tag_value_resolver=lambda _use_case_id, _org_id, value: self.builder.resolve_tag_value(
                 value
             ),
             column_name_resolver=lambda _use_case_id, _org_id, value: self.builder.resolve_column_name(
                 value
             ),
-        )
-
-        return resolver(
             project_ids=self.builder.params.get("project_id"),
             org_id=self.builder.params.get("organization_id"),
         )
