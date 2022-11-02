@@ -595,6 +595,32 @@ def process_rules(job: PostProcessJob) -> None:
     return
 
 
+def process_code_mappings(job: PostProcessJob) -> None:
+    if job["is_reprocessed"]:
+        return
+
+    from sentry.tasks.derive_code_mappings import derive_code_mappings
+
+    try:
+        event = job["event"]
+        project = event.project
+
+        cache_key = f"code-mappings:{project.id}"
+        project_queued = cache.get(cache_key)
+        if project_queued is None:
+            cache.set(cache_key, True, 3600)
+
+        if project_queued or not features.has(
+            "organizations:derive-code-mappings", event.project.organization
+        ):
+            return
+
+        derive_code_mappings.delay(project.organization_id, project.id, event.data)
+
+    except Exception:
+        logger.exception("Failed to set auto-assignment")
+
+
 def process_commits(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
@@ -777,6 +803,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         process_service_hooks,
         process_resource_change_bounds,
         process_plugins,
+        process_code_mappings,
         process_similarity,
         update_existing_attachments,
         fire_error_processed,
