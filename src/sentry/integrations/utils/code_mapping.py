@@ -128,7 +128,7 @@ class CodeMappingTreesHelper:
     def _get_code_mapping_source_path(self, src_file: str, frame_filename: FrameFilename) -> str:
         """Generate the source path of a code mapping
         e.g. src/sentry/identity/oauth2.py -> src/sentry
-        e.g. ssl.py -> raise NotImplemented
+        e.g. ssl.py -> raise NotImplementedError
         """
         if frame_filename.dir_path != "":
             return src_file.rsplit(frame_filename.dir_path)[0].rstrip("/")

@@ -147,9 +147,7 @@ class TestDerivedCodeMappings(TestCase):
             "sentry/identity/oauth2.py",
         ]
         code_mappings = self.code_mapping_helper.generate_code_mappings(stacktraces)
-        # Asserting lists with different order of elements would fail, thus, checking indexes
-        assert code_mappings[0] == self.expected_code_mappings[1]
-        assert code_mappings[1] == self.expected_code_mappings[0]
+        assert sorted(code_mappings) == sorted(self.expected_code_mappings)
 
     def test_more_than_one_repo_match(self):
         # XXX: There's a chance that we could infer package names but that is risky
