@@ -10,7 +10,7 @@ import Link from 'sentry/components/links/link';
 import QueryCount from 'sentry/components/queryCount';
 import Tooltip from 'sentry/components/tooltip';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
-import {IconPause, IconPlay} from 'sentry/icons';
+import {IconPause, IconPlay, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, SavedSearch} from 'sentry/types';
@@ -23,7 +23,9 @@ import {getTabs, IssueSortOptions, Query, QueryCounts, TAB_MAX_COUNT} from './ut
 
 type Props = {
   displayReprocessingTab: boolean;
+  isSavedSearchesOpen: boolean;
   onRealtimeChange: (realtime: boolean) => void;
+  onToggleSavedSearches: (isOpen: boolean) => void;
   organization: Organization;
   query: string;
   queryCounts: QueryCounts;
@@ -46,7 +48,9 @@ function IssueListHeader({
   onSavedSearchSelect,
   onSavedSearchDelete,
   savedSearch,
+  onToggleSavedSearches,
   savedSearchList,
+  isSavedSearchesOpen,
   router,
   displayReprocessingTab,
   selectedProjectIds,
@@ -89,6 +93,15 @@ function IssueListHeader({
       <Layout.HeaderActions>
         <ButtonBar gap={1}>
           <IssueListSetAsDefault {...{sort, query, savedSearch, organization}} />
+          {organization.features.includes('issue-list-saved-searches-v2') && (
+            <Button
+              size="sm"
+              icon={<IconStar size="sm" isSolid={isSavedSearchesOpen} />}
+              onClick={() => onToggleSavedSearches(!isSavedSearchesOpen)}
+            >
+              {t('Saved Searches')}
+            </Button>
+          )}
           <Button
             size="sm"
             data-test-id="real-time"
