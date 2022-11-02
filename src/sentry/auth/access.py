@@ -120,21 +120,31 @@ class Access(abc.ABC):
         }
 
     @cached_property
-    def teams(self) -> FrozenSet[Team]:
-        """Return the set of teams in which the user has actual membership."""
-        return frozenset(self._team_memberships.keys())
+    def visible_team_ids(self) -> FrozenSet[int]:
+        """Return IDs for all teams in which we display the user's membership.
+
+        The object may have access to more teams than these, if it represents
+        administrator or superuser permissions.
+        """
+        return frozenset(team.id for team in self._team_memberships.keys())
 
     @cached_property
-    def projects(self) -> FrozenSet[Project]:
-        """Return the set of projects to which the user has access via actual team membership."""
+    def visible_project_ids(self) -> FrozenSet[int]:
+        """Return IDs for all projects to which we display the user's access.
 
-        teams = self.teams
+        The object may have access to more projects than these, if it represents
+        administrator or superuser permissions.
+        """
+
+        teams = self._team_memberships.keys()
         if not teams:
             return frozenset()
 
         with sentry_sdk.start_span(op="get_project_access_in_teams") as span:
             projects = frozenset(
-                Project.objects.filter(status=ProjectStatus.VISIBLE, teams__in=teams).distinct()
+                Project.objects.filter(status=ProjectStatus.VISIBLE, teams__in=teams)
+                .distinct()
+                .values_list("id", flat=True)
             )
             span.set_data("Project Count", len(projects))
             span.set_data("Team Count", len(teams))
@@ -192,7 +202,7 @@ class Access(abc.ABC):
         return False
 
     def has_team_membership(self, team: Team) -> bool:
-        return team in self.teams
+        return team.id in self.visible_team_ids
 
     def get_team_role(self, team: Team) -> TeamRole | None:
         team_member = self._team_memberships.get(team)
@@ -219,7 +229,7 @@ class Access(abc.ABC):
 
         >>> access.has_project_membership(project)
         """
-        return project in self.projects
+        return project.id in self.visible_project_ids
 
     def has_project_scope(self, project: Project, scope: str) -> bool:
         """
@@ -292,14 +302,14 @@ class OrganizationMemberAccess(Access):
             return False
         if self.has_global_access and self._member.organization.id == team.organization_id:
             return True
-        return team in self.teams
+        return team.id in self.visible_team_ids
 
     def has_project_access(self, project: Project) -> bool:
         if project.status != ProjectStatus.VISIBLE:
             return False
         if self.has_global_access and self._member.organization.id == project.organization_id:
             return True
-        return project in self.projects
+        return project.id in self.visible_project_ids
 
 
 class OrganizationGlobalAccess(Access):
@@ -324,15 +334,19 @@ class OrganizationGlobalMembership(OrganizationGlobalAccess):
     """Access to all an organization's teams and projects with simulated membership."""
 
     @cached_property
-    def teams(self) -> FrozenSet[Team]:
+    def visible_team_ids(self) -> FrozenSet[int]:
         return frozenset(
-            Team.objects.filter(organization=self._organization, status=TeamStatus.VISIBLE)
+            Team.objects.filter(
+                organization=self._organization, status=TeamStatus.VISIBLE
+            ).values_list("id", flat=True)
         )
 
     @cached_property
-    def projects(self) -> FrozenSet[Project]:
+    def visible_project_ids(self) -> FrozenSet[int]:
         return frozenset(
-            Project.objects.filter(organization=self._organization, status=ProjectStatus.VISIBLE)
+            Project.objects.filter(
+                organization=self._organization, status=ProjectStatus.VISIBLE
+            ).values_list("id", flat=True)
         )
 
     def has_team_membership(self, team: Team) -> bool:
