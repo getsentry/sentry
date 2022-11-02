@@ -178,6 +178,7 @@ apply-migrations() {
 }
 
 create-user() {
+    echo "--> Creating a superuser account"
     if [[ -n "${GITHUB_ACTIONS+x}" ]]; then
         sentry createuser --superuser --email foo@tbd.com --no-password --no-input
     else
