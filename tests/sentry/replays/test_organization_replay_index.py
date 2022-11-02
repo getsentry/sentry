@@ -94,6 +94,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 # count_errors=3,
                 count_errors=1,
                 tags={"test": ["hello", "world"], "other": ["hello"]},
+                activity=4,
             )
             assert_expected_response(response_data["data"][0], expected_response)
 
