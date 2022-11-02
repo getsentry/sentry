@@ -115,7 +115,7 @@ def convert_first_release_value(
 ) -> List[str]:
     # TODO: This will make N queries. This should be ok, we don't typically have large
     # lists of versions here, but we can look into batching it if needed.
-    releases = set()
+    releases: Set[str] = set()
     for version in value:
         releases.update(parse_release(version, projects, environments))
     return list(releases)
