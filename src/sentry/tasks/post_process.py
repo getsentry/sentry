@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import logging
+from datetime import timedelta
 from typing import TYPE_CHECKING, Mapping, Optional, Sequence, Tuple, TypedDict, Union
 
 import sentry_sdk
 from django.conf import settings
+from django.utils import timezone
 
 from sentry import features
 from sentry.exceptions import PluginError
@@ -609,6 +611,9 @@ def process_code_mappings(job: PostProcessJob) -> None:
         project_queued = cache.get(cache_key)
         if project_queued is None:
             cache.set(cache_key, True, 3600)
+            logger.info(
+                f"derive_code_mappings: Events from {project.id} will not have code mapping derivation until {timezone.now() + timedelta(hours=1)}"
+            )
 
         if project_queued or not features.has(
             "organizations:derive-code-mappings", event.project.organization
