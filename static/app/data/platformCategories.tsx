@@ -255,6 +255,20 @@ export const releaseHealth: PlatformKey[] = [
   'native-qt',
 ];
 
+export const replayPlatforms: PlatformKey[] = [
+  'javascript',
+  'javascript-react',
+  'javascript-angular',
+  'javascript-angularjs',
+  'javascript-backbone',
+  'javascript-ember',
+  'javascript-gatsby',
+  'javascript-vue',
+  'javascript-nextjs',
+  'javascript-remix',
+  'javascript-svelte',
+];
+
 /**
  * Additional aliases used for filtering in the platform picker
  */

@@ -64,7 +64,15 @@ function TransactionEvents(props: Props) {
 }
 
 function EventsContentWrapper(props: ChildProps) {
-  const {location, organization, eventView, transactionName, setError} = props;
+  const {
+    location,
+    organization,
+    eventView,
+    transactionName,
+    setError,
+    projectId,
+    projects,
+  } = props;
   const eventsDisplayFilterName = decodeEventsDisplayFilterFromLocation(location);
   const spanOperationBreakdownFilter = decodeFilterFromLocation(location);
   const webVital = getWebVital(location);
@@ -199,6 +207,8 @@ function EventsContentWrapper(props: ChildProps) {
                   eventsDisplayFilterName={eventsDisplayFilterName}
                   onChangeEventsDisplayFilter={onChangeEventsDisplayFilter}
                   percentileValues={percentiles}
+                  projectId={projectId}
+                  projects={projects}
                   webVital={webVital}
                   setError={setError}
                 />

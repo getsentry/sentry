@@ -17,6 +17,7 @@ import {tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Group, Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
+import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = WithRouterProps<{orgId: string}> & {
@@ -50,7 +51,9 @@ function EventOrGroupExtraDetails({
   } = data as Group;
 
   const issuesPath = `/organizations/${params.orgId}/issues/`;
-  const isReplayEnabled = organization.features.includes('session-replay-ui');
+
+  const showReplayCount =
+    organization.features.includes('session-replay-ui') && projectSupportsReplay(project);
 
   return (
     <GroupExtra>
@@ -84,7 +87,7 @@ function EventOrGroupExtraDetails({
           <span>{numComments}</span>
         </CommentsLink>
       )}
-      {isReplayEnabled && <ReplayCount groupId={id} orgId={params.orgId} />}
+      {showReplayCount && <ReplayCount groupId={id} orgId={params.orgId} />}
       {logger && (
         <LoggerAnnotation>
           <GlobalSelectionLink

@@ -30,6 +30,7 @@ import {Event, Group, IssueCategory, Organization, Project, User} from 'sentry/t
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {getMessage} from 'sentry/utils/events';
+import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 
@@ -155,7 +156,8 @@ function GroupHeader({
     const hasGroupingTreeUI = organizationFeatures.has('grouping-tree-ui');
     const hasSimilarView = projectFeatures.has('similarity-view');
     const hasEventAttachments = organizationFeatures.has('event-attachments');
-    const hasSessionReplay = organizationFeatures.has('session-replay-ui');
+    const hasSessionReplay =
+      organizationFeatures.has('session-replay-ui') && projectSupportsReplay(project);
 
     const analyticsData = event
       ? event.tags

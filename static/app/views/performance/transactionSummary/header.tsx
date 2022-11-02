@@ -23,6 +23,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {MetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import HasMeasurementsQuery from 'sentry/utils/performance/vitals/hasMeasurementsQuery';
+import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import useApi from 'sentry/utils/useApi';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 
@@ -70,13 +71,15 @@ function TransactionHeader({
 
   const project = projects.find(p => p.id === projectId);
 
-  const hasSuspectSpansView = organization.features?.includes(
+  const hasSuspectSpansView = organization.features.includes(
     'performance-suspect-spans-view'
   );
-  const hasAnomalyDetection = organization.features?.includes(
+  const hasAnomalyDetection = organization.features.includes(
     'performance-anomaly-detection-ui'
   );
-  const hasSessionReplay = organization.features?.includes('session-replay-ui');
+
+  const hasSessionReplay =
+    organization.features.includes('session-replay-ui') && projectSupportsReplay(project);
 
   const getWebVitals = useCallback(
     (hasMeasurements: boolean) => {
