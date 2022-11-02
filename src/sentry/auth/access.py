@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 __all__ = ["from_user", "from_member", "DEFAULT"]
 
 import abc
 from dataclasses import dataclass
 from functools import cached_property
-from typing import Collection, FrozenSet, Iterable, Mapping, Optional, Tuple
+from typing import Collection, FrozenSet, Iterable, Mapping, Tuple
 
 import sentry_sdk
 from django.conf import settings
@@ -100,10 +102,10 @@ class Access(abc.ABC):
     scopes: FrozenSet[str] = frozenset()
     permissions: FrozenSet[str] = frozenset()
 
-    member: Optional[OrganizationMember] = None
+    member: OrganizationMember | None = None
 
     @property
-    def role(self) -> Optional[str]:
+    def role(self) -> str | None:
         return self.member.role if self.member else None
 
     @cached_property
@@ -155,7 +157,7 @@ class Access(abc.ABC):
         """
         return scope in self.scopes
 
-    def get_organization_role(self) -> Optional[OrganizationRole]:
+    def get_organization_role(self) -> OrganizationRole | None:
         return self.role and organization_roles.get(self.role)
 
     @abc.abstractmethod
@@ -192,7 +194,7 @@ class Access(abc.ABC):
     def has_team_membership(self, team: Team) -> bool:
         return team in self.teams
 
-    def get_team_role(self, team: Team) -> Optional[TeamRole]:
+    def get_team_role(self, team: Team) -> TeamRole | None:
         team_member = self._team_memberships.get(team)
         return team_member and team_member.get_team_role()
 
@@ -371,7 +373,7 @@ class NoAccess(OrganizationlessAccess):
 
 
 def from_request(
-    request, organization: Organization = None, scopes: Optional[Iterable[str]] = None
+    request, organization: Organization = None, scopes: Iterable[str] | None = None
 ) -> Access:
     is_superuser = is_active_superuser(request)
 
@@ -410,7 +412,7 @@ def from_request(
 
 
 # only used internally
-def _from_sentry_app(user, organization: Optional[Organization] = None) -> Access:
+def _from_sentry_app(user, organization: Organization | None = None) -> Access:
     if not organization:
         return NoAccess()
 
@@ -429,8 +431,8 @@ def _from_sentry_app(user, organization: Optional[Organization] = None) -> Acces
 
 def from_user(
     user,
-    organization: Optional[Organization] = None,
-    scopes: Optional[Iterable[str]] = None,
+    organization: Organization | None = None,
+    scopes: Iterable[str] | None = None,
     is_superuser: bool = False,
 ) -> Access:
     if not user or user.is_anonymous or not user.is_active:
@@ -457,7 +459,7 @@ def from_user(
 
 def from_member(
     member: OrganizationMember,
-    scopes: Optional[Iterable[str]] = None,
+    scopes: Iterable[str] | None = None,
     is_superuser: bool = False,
 ) -> Access:
     if scopes is not None:
