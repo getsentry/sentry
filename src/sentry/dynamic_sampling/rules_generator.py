@@ -148,9 +148,6 @@ def generate_rules(project: Project) -> List[Union[BaseRule, ReleaseRule]]:
             enabled_biases = DynamicSamplingFeatureMultiplexer.get_enabled_user_biases(
                 project.get_option("sentry:dynamic_sampling_biases", None)
             )
-            # Latest releases
-            if RuleType.BOOST_LATEST_RELEASES_RULE.value in enabled_biases:
-                rules += generate_boost_release_rules(project.id, sample_rate)
 
             # Environments boost
             if RuleType.BOOST_ENVIRONMENTS_RULE.value in enabled_biases:
@@ -159,6 +156,11 @@ def generate_rules(project: Project) -> List[Union[BaseRule, ReleaseRule]]:
             # Add Ignore health check rule
             if RuleType.IGNORE_HEALTHCHECKS_RULE.value in enabled_biases:
                 rules.append(generate_healthcheck_rule(sample_rate))
+
+            # Latest releases
+            if RuleType.BOOST_LATEST_RELEASES_RULE.value in enabled_biases:
+                rules += generate_boost_release_rules(project.id, sample_rate)
+
         rules.append(generate_uniform_rule(sample_rate))
 
     return rules

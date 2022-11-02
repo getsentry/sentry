@@ -148,7 +148,7 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
-      - uses: getsentry/size-limit-action@3f9e584f47175f7f2ac742569ac16b7a8c05ad82 # v4
+      - uses: getsentry/size-limit-action@7be9865310d295ad211da9a8464332288d60d837 # v5
         env:
           SENTRY_INSTRUMENTATION: 1
           SENTRY_WEBPACK_WEBHOOK_SECRET: ${{ secrets.SENTRY_WEBPACK_WEBHOOK_SECRET }}
