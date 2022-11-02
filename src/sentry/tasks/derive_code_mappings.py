@@ -28,7 +28,6 @@ logger = logging.getLogger("sentry.tasks.derive_code_mappings")
     max_retries=0,  # if we don't backfill it this time, we'll get it the next time
 )
 def derive_code_mappings(
-    organization_id: int,
     project_id: int,
     data: NodeData,
     dry_run=False,
@@ -38,7 +37,8 @@ def derive_code_mappings(
 
     This task is queued at most once per hour per project, based on the ingested events.
     """
-    organization: Organization = Organization.objects.get(id=organization_id)
+    project = Project.objects.get(id=project_id)
+    organization: Organization = Organization.objects.get(id=project.organization_id)
     set_tag("organization.slug", organization.slug)
     # When you look at the performance page the user is a default column
     set_user({"username": organization.slug})
@@ -55,10 +55,7 @@ def derive_code_mappings(
     trees_helper = CodeMappingTreesHelper(trees)
     code_mappings = trees_helper.generate_code_mappings(stacktrace_paths)
     set_project_codemappings(
-        code_mappings,
-        organization_integration,
-        organization_id,
-        project_id,
+        code_mappings, organization_integration, organization.id, project, dry_run
     )
 
 
@@ -72,7 +69,11 @@ def identify_stacktrace_paths(data: NodeData) -> List[str]:
     stacktrace_paths = set()
     for stacktrace in stacktraces:
         try:
-            paths = {frame["filename"] for frame in stacktrace["frames"] if frame["in_app"]}
+            paths = set()
+            for frame in stacktrace["frames"]:
+                in_app = frame.get("in_app") or False
+                if in_app:
+                    paths.add(frame["filename"])
             stacktrace_paths.update(paths)
         except Exception:
             logger.exception("Error getting filenames for project {project.slug}")
@@ -120,13 +121,13 @@ def set_project_codemappings(
     code_mappings: List[CodeMapping],
     organization_integration: OrganizationIntegration,
     organization_id: int,
-    project_id: int,
+    project: Project,
+    dry_run: bool,
 ) -> None:
     """
     Given a list of code mappings, create a new repository project path
     config for each mapping.
     """
-    project = Project.objects.get(id=project_id)
     for code_mapping in code_mappings:
         repository, _ = Repository.objects.get_or_create(
             name=code_mapping.repo.name,
