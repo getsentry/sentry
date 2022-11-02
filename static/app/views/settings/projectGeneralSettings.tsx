@@ -13,6 +13,7 @@ import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import {FieldValue} from 'sentry/components/forms/model';
+import Hook from 'sentry/components/hook';
 import {removePageFiltersStorage} from 'sentry/components/organizations/pageFilters/persistence';
 import {Panel, PanelAlert, PanelHeader} from 'sentry/components/panels';
 import {fields} from 'sentry/data/forms/projectGeneralSettings';
@@ -239,31 +240,40 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
     };
     const team = project.teams.length ? project.teams?.[0] : undefined;
 
+    /*
+    HACK: The <Form /> component applies its props to its children meaning the hooked component
+          would need to conform to the form settings applied in a separate repository. This is
+          not feasible to maintain and may introduce compatability errors if something changes
+          in either repository. For that reason, the Form component is split in two, since the
+          fields do not depend on one another, allowing for the Hook to manage it's own state.
+    */
+    const formProps = {
+      saveOnBlur: true,
+      allowUndo: true,
+      initialData: {
+        ...project,
+        team,
+      },
+      apiMethod: 'PUT' as const,
+      apiEndpoint: endpoint,
+      onSubmitSuccess: resp => {
+        this.setState({data: resp});
+        if (projectId !== resp.slug) {
+          changeProjectSlug(projectId, resp.slug);
+          // Container will redirect after stores get updated with new slug
+          this.props.onChangeSlug(resp.slug);
+        }
+        // This will update our project context
+        ProjectsStore.onUpdateSuccess(resp);
+      },
+    };
+
     return (
       <div>
         <SettingsPageHeader title={t('Project Settings')} />
         <PermissionAlert />
 
-        <Form
-          saveOnBlur
-          allowUndo
-          initialData={{
-            ...project,
-            team,
-          }}
-          apiMethod="PUT"
-          apiEndpoint={endpoint}
-          onSubmitSuccess={resp => {
-            this.setState({data: resp});
-            if (projectId !== resp.slug) {
-              changeProjectSlug(projectId, resp.slug);
-              // Container will redirect after stores get updated with new slug
-              this.props.onChangeSlug(resp.slug);
-            }
-            // This will update our project context
-            ProjectsStore.onUpdateSuccess(resp);
-          }}
-        >
+        <Form {...formProps}>
           <JsonForm
             {...jsonFormProps}
             title={t('Project Details')}
@@ -275,7 +285,9 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
             title={t('Email')}
             fields={[fields.subjectPrefix]}
           />
-
+        </Form>
+        <Hook name="spend-visibility:project-settings-field" project={project} />
+        <Form {...formProps}>
           <JsonForm
             {...jsonFormProps}
             title={t('Event Settings')}
