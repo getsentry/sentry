@@ -113,7 +113,7 @@ describe('queryClient', function () {
 
   describe('useMutation', function () {
     it('can do a simple mutation', async function () {
-      const mock = MockApiClient.addMockResponse({
+      const requestMock = MockApiClient.addMockResponse({
         url: '/some/test/path/',
         method: 'POST',
         body: {value: 5},
@@ -139,7 +139,7 @@ describe('queryClient', function () {
 
       expect(await screen.findByText('5')).toBeInTheDocument();
 
-      expect(mock).toHaveBeenCalledWith('/some/test/path/', expect.anything());
+      expect(requestMock).toHaveBeenCalledWith('/some/test/path/', expect.anything());
     });
 
     it('can mutate with a custom mutation function', async function () {
