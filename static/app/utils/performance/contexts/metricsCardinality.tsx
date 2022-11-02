@@ -1,7 +1,9 @@
-import {Fragment, ReactNode} from 'react';
+import {ComponentProps, Fragment, ReactNode, useEffect} from 'react';
 import {Location} from 'history';
+import {stubFalse} from 'lodash';
 
 import {Organization} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {parsePeriodToHours} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -44,6 +46,7 @@ export const MetricsCardinalityProvider = (props: {
   children: ReactNode;
   location: Location;
   organization: Organization;
+  sendOutcomeAnalytics?: boolean;
 }) => {
   const isUsingMetrics = canUseMetricsData(props.organization);
 
@@ -76,33 +79,70 @@ export const MetricsCardinalityProvider = (props: {
       <MetricsCompatibilityQuery eventView={_eventView} {...baseDiscoverProps}>
         {compatabilityResult => (
           <MetricsCompatibilitySumsQuery eventView={_eventView} {...baseDiscoverProps}>
-            {sumsResult => (
-              <_Provider
-                value={{
-                  isLoading: compatabilityResult.isLoading || sumsResult.isLoading,
-                  outcome:
-                    compatabilityResult.isLoading || sumsResult.isLoading
-                      ? undefined
-                      : getMetricsOutcome(
-                          compatabilityResult.tableData && sumsResult.tableData
-                            ? {
-                                ...compatabilityResult.tableData,
-                                ...sumsResult.tableData,
-                              }
-                            : null,
-                          !!compatabilityResult.error && !!sumsResult.error,
-                          props.organization
-                        ),
-                }}
-              >
-                {props.children}
-              </_Provider>
-            )}
+            {sumsResult => {
+              const isLoading = compatabilityResult.isLoading || sumsResult.isLoading;
+              const outcome =
+                compatabilityResult.isLoading || sumsResult.isLoading
+                  ? undefined
+                  : getMetricsOutcome(
+                      compatabilityResult.tableData && sumsResult.tableData
+                        ? {
+                            ...compatabilityResult.tableData,
+                            ...sumsResult.tableData,
+                          }
+                        : null,
+                      !!compatabilityResult.error && !!sumsResult.error,
+                      props.organization
+                    );
+
+              return (
+                <Provider
+                  sendOutcomeAnalytics={props.sendOutcomeAnalytics}
+                  organization={props.organization}
+                  value={{
+                    isLoading,
+                    outcome,
+                  }}
+                >
+                  {props.children}
+                </Provider>
+              );
+            }}
           </MetricsCompatibilitySumsQuery>
         )}
       </MetricsCompatibilityQuery>
     </Fragment>
   );
+};
+
+const Provider = (
+  props: ComponentProps<typeof _Provider> & {
+    organization: Organization;
+    sendOutcomeAnalytics?: boolean;
+  }
+) => {
+  const fallbackFromNull = props.value.outcome?.shouldWarnIncompatibleSDK ?? false;
+  const fallbackFromUnparam =
+    props.value.outcome?.shouldNotifyUnnamedTransactions ?? false;
+  const isOnMetrics = !props.value.outcome?.forceTransactionsOnly;
+  useEffect(() => {
+    if (!props.value.isLoading && props.sendOutcomeAnalytics) {
+      trackAdvancedAnalyticsEvent('performance_views.mep.metrics_outcome', {
+        organization: props.organization,
+        is_on_metrics: isOnMetrics,
+        fallback_from_null: fallbackFromNull,
+        fallback_from_unparam: fallbackFromUnparam,
+      });
+    }
+  }, [
+    props.organization,
+    props.value.isLoading,
+    isOnMetrics,
+    fallbackFromUnparam,
+    fallbackFromNull,
+    props.sendOutcomeAnalytics,
+  ]);
+  return <_Provider {...props}>{props.children}</_Provider>;
 };
 
 export const MetricsCardinalityConsumer = _Context.Consumer;
