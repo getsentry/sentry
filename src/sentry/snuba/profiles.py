@@ -38,6 +38,7 @@ def query(
         auto_fields=auto_fields,
         auto_aggregations=auto_aggregations,
         use_aggregate_conditions=use_aggregate_conditions,
+        transform_alias_to_input_format=transform_alias_to_input_format,
         functions_acl=functions_acl,
         limit=limit,
         offset=offset,
