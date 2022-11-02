@@ -104,7 +104,7 @@ const defaultRule: UnsavedIssueAlertRule = {
   conditions: [],
   filters: [],
   name: '',
-  frequency: 30,
+  frequency: 60 * 24,
   environment: ALL_ENVIRONMENTS_KEY,
 };
 
@@ -880,13 +880,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     const ownerId = rule?.owner?.split(':')[1];
 
     return (
-      <StyledField
-        extraMargin
-        label={null}
-        help={null}
-        disabled={disabled}
-        flexibleControlStateSize
-      >
+      <StyledField label={null} help={null} disabled={disabled} flexibleControlStateSize>
         <TeamSelector
           value={this.getTeamId()}
           project={project}
@@ -1188,7 +1182,9 @@ class IssueRuleEditor extends AsyncView<Props, State> {
               >
                 <List symbol="colored-numeric">
                   {loading && <SemiTransparentLoadingMask data-test-id="loading-mask" />}
-                  <StyledListItem>{t('Add alert settings')}</StyledListItem>
+                  <StyledListItem>
+                    {t('Select an environment and project')}
+                  </StyledListItem>
                   <SettingsContainer>
                     {this.renderEnvironmentSelect(disabled)}
                     {this.renderProjectSelect(disabled)}
@@ -1400,7 +1396,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                                     rule?.actions.length === 0
                                   }
                                 >
-                                  {t('Test Notifications')}
+                                  {t('Send Test Notification')}
                                 </Button>
                               </TestButtonWrapper>
                             </Feature>
@@ -1427,9 +1423,19 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                     </StyledListItem>
                     {this.renderPreviewTable()}
                   </Feature>
-                  <StyledListItem>{t('Establish ownership')}</StyledListItem>
-                  {this.renderRuleName(disabled)}
-                  {this.renderTeamSelect(disabled)}
+                  <StyledListItem>
+                    {t('Add a name and owner')}
+                    <StyledFieldHelp>
+                      {t(
+                        'This name will show up in notifications and the owner will give permissions to your whole team to edit and view this alert.'
+                      )}
+                    </StyledFieldHelp>
+                  </StyledListItem>
+
+                  <StyledFieldWrapper>
+                    {this.renderRuleName(disabled)}
+                    {this.renderTeamSelect(disabled)}
+                  </StyledFieldWrapper>
                 </List>
               </StyledForm>
             </Main>
@@ -1554,11 +1560,7 @@ const SettingsContainer = styled('div')`
   gap: ${space(1)};
 `;
 
-const StyledField = styled(Field)<{extraMargin?: boolean}>`
-  :last-child {
-    padding-bottom: ${space(2)};
-  }
-
+const StyledField = styled(Field)`
   border-bottom: none;
   padding: 0;
 
@@ -1566,8 +1568,16 @@ const StyledField = styled(Field)<{extraMargin?: boolean}>`
     padding: 0;
     width: 100%;
   }
+  margin-bottom: ${space(1)};
+`;
 
-  margin-bottom: ${p => `${p.extraMargin ? '60px' : space(1)}`};
+const StyledFieldWrapper = styled('div')`
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: ${space(1)};
+  }
+  margin-bottom: 60px;
 `;
 
 const Main = styled(Layout.Main)`

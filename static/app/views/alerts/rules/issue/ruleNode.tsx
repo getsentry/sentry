@@ -456,7 +456,7 @@ function RuleNode({
     return (
       <MarginlessAlert type="error" showIcon>
         {t(
-          'This condition conflicts with other condition(s) above. Please select a different condition'
+          'This condition conflicts with other condition(s) above. Please select a different condition.'
         )}
       </MarginlessAlert>
     );
