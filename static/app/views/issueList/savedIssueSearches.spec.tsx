@@ -1,6 +1,12 @@
 import {ComponentProps} from 'react';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
 
@@ -28,6 +34,7 @@ describe('SavedIssueSearches', function () {
     savedSearchLoading: false,
     organization,
     onSavedSearchSelect: jest.fn(),
+    onSavedSearchDelete: jest.fn(),
   };
 
   beforeEach(() => {
@@ -54,5 +61,48 @@ describe('SavedIssueSearches', function () {
     render(<SavedIssueSearches {...defaultProps} savedSearches={[recommendedSearch]} />);
 
     expect(screen.queryByText(/saved searches/i)).not.toBeInTheDocument();
+  });
+
+  it('does not show overflow menu for recommended searches', function () {
+    render(<SavedIssueSearches {...defaultProps} savedSearches={[recommendedSearch]} />);
+
+    expect(
+      screen.queryByRole('button', {name: /saved search options/i})
+    ).not.toBeInTheDocument();
+  });
+
+  it('can delete an org saved search with correct permissions', function () {
+    render(<SavedIssueSearches {...defaultProps} />);
+    renderGlobalModal();
+
+    userEvent.click(screen.getByRole('button', {name: /saved search options/i}));
+    userEvent.click(screen.getByRole('menuitemradio', {name: /delete/i}));
+
+    const modal = screen.getByRole('dialog');
+
+    expect(within(modal).getByText(/are you sure/i)).toBeInTheDocument();
+
+    userEvent.click(within(modal).getByRole('button', {name: /confirm/i}));
+
+    expect(defaultProps.onSavedSearchDelete).toHaveBeenCalledTimes(1);
+    expect(defaultProps.onSavedSearchDelete).toHaveBeenLastCalledWith(orgSearch);
+  });
+
+  it('cannot delete a saved search without correct permissions', function () {
+    render(
+      <SavedIssueSearches
+        {...defaultProps}
+        organization={{
+          ...organization,
+          access: organization.access.filter(access => access !== 'org:write'),
+        }}
+      />
+    );
+
+    userEvent.click(screen.getByRole('button', {name: /saved search options/i}));
+
+    expect(
+      screen.getByText('You do not have permission to delete this search.')
+    ).toBeInTheDocument();
   });
 });
