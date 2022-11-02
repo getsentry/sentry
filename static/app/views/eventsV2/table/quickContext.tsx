@@ -1,4 +1,4 @@
-import {Fragment, useRef, useState} from 'react';
+import {Fragment, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {RequestOptions} from 'sentry/api';
@@ -168,6 +168,14 @@ export function QuickContextHoverWrapper(props: ContextProps) {
   const [data, setData] = useState<Group | null>(null);
   const delayOpenTimeoutRef = useRef<number | undefined>(undefined);
 
+  useEffect(() => {
+    return () => {
+      // Prevents conflicts in GroupStore usage as we navigate to issue details page
+      // using the shortId link.
+      GroupStore.reset();
+    };
+  }, []);
+
   const handleHoverState = () => {
     setisHovering(prevState => !prevState);
   };
@@ -250,6 +258,7 @@ const StyledHovercard = styled(Hovercard)`
 
 const StyledIconInfo = styled(IconInfo)<{ishovering: number}>`
   color: ${p => (p.ishovering ? p.theme.gray300 : p.theme.gray200)};
+  cursor: default;
 `;
 
 const HoverWrapper = styled('div')`
