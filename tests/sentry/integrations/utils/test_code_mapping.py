@@ -94,9 +94,7 @@ class TestDerivedCodeMappings(TestCase):
 
         # We should not derive a code mapping since we do not yet
         # support stackframes for non-packaged files
-        assert (
-            cmh.generate_code_mappings(repo_full_name=self.foo_repo.name, frame_filename=ff) == []
-        )
+        assert cmh.generate_code_mappings([file_name]) == []
 
         # Make sure that we raise an error if we hit the code path
         assert not cmh._potential_match(file_name, ff)
@@ -128,6 +126,10 @@ class TestDerivedCodeMappings(TestCase):
                 source_path="src/sentry_plugins",
             )
         ]
+
+    def test_no_stacktraces_to_process(self):
+        code_mappings = self.code_mapping_helper.generate_code_mappings([])
+        assert code_mappings == []
 
     def test_more_than_one_match_works_when_code_mapping_excludes_other_match(self):
         stacktraces = [
