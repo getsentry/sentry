@@ -541,6 +541,17 @@ class ProjectOwnershipTestCase(TestCase):
             self.project.id, {"stacktrace": {"frames": [frame]}}
         ) == ([ActorTuple(self.team.id, Team)], [rule])
 
+    def test_saves_without_either_auto_assignment_option(self):
+        # Project has group for autoassigned_owner_cache
+        self.group = self.create_group(project=self.project)
+        # Turn off all autoassignment
+        ProjectOwnership.objects.create(
+            project_id=self.project.id,
+            suspect_committer_auto_assignment=False,
+            auto_assignment=False,
+        )
+        assert ProjectOwnership.get_owners(self.project.id, {}) == (ProjectOwnership.Everyone, None)
+
 
 class ResolveActorsTestCase(TestCase):
     def test_no_actors(self):
