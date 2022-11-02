@@ -225,4 +225,40 @@ describe('Tag Facets', function () {
     expect(screen.getByText('100%')).toBeInTheDocument();
     expect(screen.queryByText('Other')).not.toBeInTheDocument();
   });
+
+  it('renders readable device name when available', async () => {
+    tagsMock = MockApiClient.addMockResponse({
+      url: '/issues/1/tags/',
+      body: {
+        device: {
+          key: 'device',
+          topValues: [
+            {
+              name: 'abcdef123456',
+              readable: 'Galaxy S22',
+              count: 2,
+            },
+          ],
+        },
+      },
+    });
+    render(
+      <TagFacets
+        environments={[]}
+        groupId="1"
+        tagKeys={MOBILE_TAGS}
+        tagFormatter={MOBILE_TAGS_FORMATTER}
+      />,
+      {
+        organization,
+      }
+    );
+    await waitFor(() => {
+      expect(tagsMock).toHaveBeenCalled();
+    });
+
+    userEvent.click(screen.getByText('device'));
+    expect(screen.getByText('Galaxy S22')).toBeInTheDocument();
+    expect(screen.getByText('100%')).toBeInTheDocument();
+  });
 });
