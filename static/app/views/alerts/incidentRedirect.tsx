@@ -5,8 +5,6 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useApi from 'sentry/utils/useApi';
 
 import {fetchIncident} from './utils/apiCalls';
@@ -22,17 +20,12 @@ type Props = {
 function IncidentRedirect({organization, params}: Props) {
   const api = useApi();
   const [hasError, setHasError] = useState(false);
-  useRouteAnalyticsEventNames('alert_details.viewed', 'Alert Details: Viewed');
-  useRouteAnalyticsParams({alert_id: parseInt(params.alertId, 10)});
 
   const track = useCallback(() => {
-    // TODO: remove once we set this flag to true for everyone
-    if (!organization.features.includes('auto-capture-page-load-analytics')) {
-      trackAdvancedAnalyticsEvent('alert_details.viewed', {
-        organization,
-        alert_id: parseInt(params.alertId, 10),
-      });
-    }
+    trackAdvancedAnalyticsEvent('alert_details.viewed', {
+      organization,
+      alert_id: parseInt(params.alertId, 10),
+    });
   }, [organization, params.alertId]);
 
   const fetchData = useCallback(async () => {
