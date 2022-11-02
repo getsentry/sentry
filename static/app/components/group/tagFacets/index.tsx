@@ -89,12 +89,14 @@ export function TagFacets({
         },
       });
       const tagsData = keyBy(data, 'key');
+      const defaultSelectedTag = tagKeys.find(tagKey =>
+        Object.keys(tagsData).includes(tagKey)
+      );
       setState({
         ...state,
         tagsData,
         loading: false,
-        selectedTag:
-          Object.keys(tagsData).length > 0 ? Object.keys(tagsData)[0] : state.selectedTag,
+        selectedTag: defaultSelectedTag ?? state.selectedTag,
       });
     };
     setState({...state, loading: true});
