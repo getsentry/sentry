@@ -1,6 +1,5 @@
 import {ComponentProps, Fragment, ReactNode, useEffect} from 'react';
 import {Location} from 'history';
-import {stubFalse} from 'lodash';
 
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
