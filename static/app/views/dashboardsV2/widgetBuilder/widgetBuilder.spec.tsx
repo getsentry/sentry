@@ -2,11 +2,11 @@ import selectEvent from 'react-select-event';
 import {urlEncode} from '@sentry/utils';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountGlobalModal} from 'sentry-test/modal';
 import {
   act,
   fireEvent,
   render,
+  renderGlobalModal,
   screen,
   userEvent,
   waitFor,
@@ -1021,7 +1021,7 @@ describe('WidgetBuilder', function () {
 
       userEvent.click(await screen.findByText('Delete'));
 
-      await mountGlobalModal();
+      renderGlobalModal();
       userEvent.click(await screen.findByText('Confirm'));
 
       await waitFor(() => {
