@@ -20,7 +20,6 @@ from sentry.utils.samples import load_data
 class OrganizationEventsSpansEndpointTestBase(APITestCase, SnubaTestCase):
     FEATURES = [
         "organizations:global-views",
-        "organizations:performance-suspect-spans-view",
     ]
 
     def setUp(self):
