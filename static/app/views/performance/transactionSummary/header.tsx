@@ -239,9 +239,13 @@ function TransactionHeader({
               </Item>
               <Item key={Tab.Replays} textValue={t('Replays')} hidden={!hasSessionReplay}>
                 {t('Replays')}
-                {defined(replaysCount) && !Number.isNaN(replaysCount) ? (
-                  <Badge text={replaysCount} />
-                ) : null}
+                <Badge
+                  text={
+                    defined(replaysCount) && !Number.isNaN(replaysCount)
+                      ? replaysCount
+                      : null
+                  }
+                />
                 <ReplaysFeatureBadge noTooltip />
               </Item>
             </TabList>
