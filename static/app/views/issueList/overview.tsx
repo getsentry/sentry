@@ -955,7 +955,7 @@ class IssueListOverview extends Component<Props, State> {
       id: savedSearch.id ? parseInt(savedSearch.id, 10) : -1,
       is_global: savedSearch.isGlobal,
       query: savedSearch.query,
-      visibility: 'organization',
+      visibility: savedSearch.visibility,
     });
     this.setState({issuesLoading: true}, () => this.transitionTo(undefined, savedSearch));
   };
