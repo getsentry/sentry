@@ -85,14 +85,6 @@ class OrgLevelOrganizationSearchesListTest(APITestCase):
         )
         included.append(pinned_query)
         self.check_results(included)
-        # Check a pinned query that uses an existing query correctly filters
-        # the existing query
-        to_be_pinned = included.pop()
-        to_be_pinned.is_pinned = True
-        pinned_query.query = to_be_pinned.query
-        pinned_query.save()
-        included[0] = to_be_pinned
-        self.check_results(included)
 
 
 @region_silo_test

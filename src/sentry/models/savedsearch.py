@@ -30,6 +30,26 @@ class SortOptions:
         )
 
 
+class Visibility:
+    ORGANIZATION = "organization"
+    OWNER = "owner"
+    OWNER_PINNED = "owner_pinned"
+
+    @classmethod
+    def as_choices(cls, include_pinned):
+        # Note that the pinned value may not always be a visibility we want to
+        # expose. The pinned search API explicitly will set this visibility,
+        # but the saved search API should not allow it to be set
+        choices = [
+            (cls.ORGANIZATION, _("Organization")),
+            (cls.OWNER, _("Only for me")),
+        ]
+        if include_pinned:
+            choices.append((cls.OWNER_PINNED, _("My Pinned Search")))
+
+        return choices
+
+
 @region_silo_only_model
 class SavedSearch(Model):
     """
@@ -53,7 +73,18 @@ class SavedSearch(Model):
     # XXX(epurkhiser): This is different from "creator". Owner is a misnomer
     # for this column, as this actually indicates that the search is "pinned"
     # by the user. A user may only have one pinned search epr (org, type)
+    #
+    # XXX(epurkhiser): Once the visibility column is correctly in use this
+    # column will be used essentially as "created_by"
     owner = FlexibleForeignKey("sentry.User", null=True)
+
+    # Defines who can see the saved search
+    #
+    # NOTE: `owner_pinned` has special behavior in that the saved search will
+    # not appear in the user saved search list
+    visibility = models.CharField(
+        max_length=16, default=Visibility.OWNER, choices=Visibility.as_choices(include_pinned=True)
+    )
 
     class Meta:
         app_label = "sentry"
@@ -77,13 +108,7 @@ class SavedSearch(Model):
 
     @property
     def is_pinned(self):
-        if hasattr(self, "_is_pinned"):
-            return self._is_pinned
         return self.owner is not None and self.organization is not None
-
-    @is_pinned.setter
-    def is_pinned(self, value):
-        self._is_pinned = value
 
     __repr__ = sane_repr("project_id", "name")
 

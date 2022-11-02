@@ -404,6 +404,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                         "user_misery()",
                         "failure_rate()",
                     ],
+                    "orderby": "tpm()",
                     "query": "event.type:transaction",
                     "dataset": dataset,
                     "per_page": 50,
@@ -1773,6 +1774,49 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["p50(transaction.duration)"] == 1.5
+
+    def test_unparam_filter(self):
+        self.store_transaction_metric(
+            1,
+            # Transaction: unparam
+            tags={
+                "transaction": "<< unparameterized >>",
+            },
+            timestamp=self.min_ago,
+        )
+
+        self.store_transaction_metric(
+            2,
+            # Transaction:null
+            tags={},
+            timestamp=self.min_ago,
+        )
+
+        self.store_transaction_metric(
+            3,
+            tags={
+                "transaction": "foo_transaction",
+            },
+            timestamp=self.min_ago,
+        )
+
+        query = {
+            "project": [self.project.id],
+            "field": [
+                "transaction",
+                "count()",
+            ],
+            "query": 'transaction:"<< unparameterized >>"',
+            "statsPeriod": "24h",
+            "dataset": "metrics",
+            "per_page": 50,
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["transaction"] == "<< unparameterized >>"
+        assert response.data["data"][0]["count()"] == 2
 
     def test_custom_measurements_without_function(self):
         self.store_transaction_metric(
