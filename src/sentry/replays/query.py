@@ -242,6 +242,7 @@ def make_select_statement() -> List[Union[Column, Function]]:
             parameters=[Function("groupArray", parameters=[Column("is_archived")])],
             alias="isArchived",
         ),
+        _activity_score(),
     ]
 
 
@@ -325,6 +326,7 @@ class ReplayQueryConfig(QueryConfig):
     duration = Number()
     count_errors = Number(name="countErrors")
     count_segments = Number(name="countSegments")
+    activity = Number()
 
     # String filters.
     replay_id = String(field_alias="id")
@@ -392,4 +394,61 @@ def _strip_uuid_dashes(
         "replaceAll",
         parameters=[Function("toString", parameters=[input_value]), "-", ""],
         alias=alias or input_name if aliased else None,
+    )
+
+
+def _activity_score():
+    #  taken from frontend calculation:
+    #  score = (countErrors * 25 + pagesVisited * 5 ) / 10;
+    #  score = Math.floor(Math.min(10, Math.max(1, score)));
+
+    error_weight = Function(
+        "multiply",
+        parameters=[Column("countErrors"), 25],
+    )
+    pages_visited_weight = Function(
+        "multiply",
+        parameters=[
+            Function(
+                "length",
+                parameters=[Column("urls_sorted")],
+            ),
+            5,
+        ],
+    )
+
+    combined_weight = Function(
+        "plus",
+        parameters=[
+            error_weight,
+            pages_visited_weight,
+        ],
+    )
+
+    combined_weight_normalized = Function(
+        "intDivOrZero",
+        parameters=[
+            combined_weight,
+            10,
+        ],
+    )
+
+    return Function(
+        "floor",
+        parameters=[
+            Function(
+                "greatest",
+                parameters=[
+                    1,
+                    Function(
+                        "least",
+                        parameters=[
+                            10,
+                            combined_weight_normalized,
+                        ],
+                    ),
+                ],
+            )
+        ],
+        alias="activity",
     )
