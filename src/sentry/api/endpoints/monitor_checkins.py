@@ -1,3 +1,5 @@
+import logging
+
 from django.db import transaction
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -10,6 +12,8 @@ from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorStatus, ProjectKey
+
+logger = logging.getLogger("sentry.monitors")
 
 
 class CheckInSerializer(serializers.Serializer):
@@ -76,6 +80,13 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
                 status=getattr(CheckInStatus, result["status"].upper()),
             )
             if checkin.status == CheckInStatus.ERROR and monitor.status != MonitorStatus.DISABLED:
+                logger.info(
+                    "monitor.error-checkin",
+                    extra={
+                        "monitor_id": monitor.id,
+                        "project_id": project.id,
+                    },
+                )
                 if not monitor.mark_failed(last_checkin=checkin.date_added):
                     if isinstance(request.auth, ProjectKey):
                         return self.respond(status=200)
