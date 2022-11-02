@@ -72,10 +72,10 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
                     team__organization=organization, member__user__is_active=True
                 ).select_related("team", "member__user")
             )
-        elif request.access.has_scope("team:write") and request.access.teams:
+        elif request.access.has_scope("team:write") and request.access.visible_team_ids:
             access_requests = list(
                 OrganizationAccessRequest.objects.filter(
-                    member__user__is_active=True, team__in=request.access.teams
+                    member__user__is_active=True, team__id__in=request.access.visible_team_ids
                 ).select_related("team", "member__user")
             )
         else:

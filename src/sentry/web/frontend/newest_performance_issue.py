@@ -10,19 +10,18 @@ from sentry.models.project import Project, ProjectStatus
 from .react_page import ReactPageView
 
 
-def get_projects(request, organization):
+def _get_project_ids(request, organization):
     if is_active_superuser(request):
-        return list(
-            Project.objects.filter(status=ProjectStatus.VISIBLE, organization_id=organization.id)
-        )
+        return Project.objects.filter(
+            status=ProjectStatus.VISIBLE, organization_id=organization.id
+        ).values_list("id", flat=True)
     else:
-        return request.access.projects
+        return request.access.visible_project_ids
 
 
 class NewestPerformanceIssueView(ReactPageView):
     def handle(self, request: Request, organization, **kwargs) -> Response:
-        projects = get_projects(request, organization)
-        project_ids = [project.id for project in projects]
+        project_ids = _get_project_ids(request, organization)
 
         group = (
             Group.objects.filter(
