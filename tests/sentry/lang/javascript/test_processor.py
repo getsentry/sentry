@@ -1105,27 +1105,36 @@ class GenerateModuleTest(unittest.TestCase):
 
 class GetFunctionForTokenTest(unittest.TestCase):
     # There is no point in pulling down `SourceMapCacheToken` and creating a constructor for it.
-    def get_token(self, name):
+    def get_token(self, fn_name, token_name=None):
         class Token:
-            def __init__(self, name):
-                self.function_name = name
+            def __init__(self, fn_name, token_name):
+                self.name = token_name
+                self.function_name = fn_name
 
-        return Token(name)
+        return Token(fn_name, token_name)
 
     def test_valid_name(self):
         frame = {"function": "original"}
         token = self.get_token("lookedup")
         assert get_function_for_token(frame, token) == "lookedup"
 
-    def test_useless_name(self):
-        frame = {"function": "original"}
-        token = self.get_token("__webpack_require__")
-        assert get_function_for_token(frame, token) == "original"
-
-    def test_useless_name_but_no_original(self):
+    def test_fallback_to_previous_frames_token_if_useless_name(self):
+        previous_frame = {"data": {"token": self.get_token("previous_fn", "previous_name")}}
         frame = {"function": None}
         token = self.get_token("__webpack_require__")
-        assert get_function_for_token(frame, token) == "__webpack_require__"
+        assert get_function_for_token(frame, token, previous_frame) == "previous_name"
+
+    def test_fallback_to_useless_name(self):
+        previous_frame = {"data": {"token": None}}
+        frame = {"function": None}
+        token = self.get_token("__webpack_require__")
+        assert get_function_for_token(frame, token, previous_frame) == "__webpack_require__"
+
+    def test_fallback_to_original_name(self):
+        previous_frame = {"data": {"token": None}}
+        frame = {"function": "original"}
+        token = self.get_token("__webpack_require__")
+        assert get_function_for_token(frame, token, previous_frame) == "original"
 
 
 class FetchSourcemapTest(TestCase):
