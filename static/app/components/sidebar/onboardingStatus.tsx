@@ -10,6 +10,7 @@ import ProgressRing, {
   RingText,
 } from 'sentry/components/progressRing';
 import {t, tct} from 'sentry/locale';
+import HookStore from 'sentry/stores/hookStore';
 import space from 'sentry/styles/space';
 import {OnboardingTaskStatus, Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -22,6 +23,17 @@ import {CommonSidebarProps, SidebarPanelKey} from './types';
 type Props = CommonSidebarProps & {
   org: Organization;
   projects: Project[];
+};
+
+/**
+ * This is used to determine if we show the sidebar or not.
+ * The Sandbox will set this hook to implement custom logic not based
+ * on a feature flag.
+ */
+export const shouldShowSidebar = (organization: Organization) => {
+  const defaultHook = () => organization.features?.includes('onboarding');
+  const featureHook = HookStore.get('onboarding:show-sidebar')[0] || defaultHook;
+  return featureHook(organization);
 };
 
 const isDone = (task: OnboardingTaskStatus) =>
@@ -47,7 +59,7 @@ function OnboardingStatus({
   };
   const [onboardingState] = usePersistedOnboardingState();
 
-  if (!org.features?.includes('onboarding')) {
+  if (!shouldShowSidebar(org)) {
     return null;
   }
 

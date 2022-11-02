@@ -24,9 +24,7 @@ class OrgLevelOrganizationSearchesListTest(APITestCase):
         # extra rows to be created, so remove them to keep this test working
         SavedSearch.objects.filter(is_global=True).delete()
 
-        team = self.create_team(members=[self.user])
         SavedSearch.objects.create(
-            project=self.create_project(teams=[team], name="foo"),
             name="foo",
             query="some test",
             sort=SortOptions.DATE,

@@ -1,11 +1,7 @@
 from datetime import datetime
-from typing import Any, List, Optional, Protocol
+from typing import Any, List, Optional
 
-from snuba_sdk.column import Column
-from snuba_sdk.conditions import Condition, Op
-
-from sentry.search.events.builder import QueryBuilder, TimeseriesQueryBuilder
-from sentry.search.events.datasets.profiles import ProfilesDatasetConfig
+from sentry.search.events.builder import ProfilesQueryBuilder, ProfilesTimeseriesQueryBuilder
 from sentry.search.events.fields import InvalidSearchQuery, get_json_meta_type
 from sentry.search.events.types import ParamsType, SnubaParams, WhereType
 from sentry.snuba.discover import transform_tips, zerofill
