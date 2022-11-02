@@ -347,8 +347,8 @@ def get_latest_release(
 ) -> Sequence[str]:
     if organization_id is None:
         project = projects[0]
-        if hasattr(project, "organization_id"):
-            organization_id = project.organization_id  # type: ignore[union-attr]
+        if isinstance(project, Project):
+            organization_id = project.organization_id
         else:
             return []
 
