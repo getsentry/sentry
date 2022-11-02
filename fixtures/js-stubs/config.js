@@ -44,6 +44,11 @@ export function Config(params = {}) {
     apmSampling: 1,
     dsn_requests: '',
     demoMode: false,
+    customerDomain: {
+      subdomain: 'foobar',
+      organizationUrl: 'https://foobar.sentry.io',
+      sentryUrl: 'https://sentry.io',
+    },
     links: {
       sentryUrl: 'https://sentry.io',
       organizationUrl: 'https://foobar.sentry.io',
