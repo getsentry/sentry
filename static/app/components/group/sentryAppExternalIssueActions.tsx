@@ -134,26 +134,26 @@ class SentryAppExternalIssueActions extends Component<Props, State> {
               provider: sentryAppComponent.sentryApp.name,
             })}
             disabled={!disabled}
+            skipWrapper
           >
             <StyledIntegrationLink
               onClick={e => (disabled ? e.preventDefault() : this.doOpenModal())}
-              href={url}
+              href={disabled ? undefined : url}
               disabled={disabled}
             >
               {displayName}
             </StyledIntegrationLink>
           </Tooltip>
         </IssueLink>
-        <StyledIcon
-          disabled={disabled}
-          onClick={() => !disabled && this.onAddRemoveClick()}
-        >
-          {externalIssue ? (
-            <IconClose aria-label={t('Remove')} />
-          ) : (
-            <IconAdd aria-label={t('Add')} />
-          )}
-        </StyledIcon>
+        {!disabled && (
+          <StyledIcon onClick={() => !disabled && this.onAddRemoveClick()}>
+            {externalIssue ? (
+              <IconClose aria-label={t('Remove')} />
+            ) : (
+              <IconAdd aria-label={t('Add')} />
+            )}
+          </StyledIcon>
+        )}
       </IssueLinkContainer>
     );
   }
@@ -175,6 +175,7 @@ const IssueLink = styled('div')`
 
 const StyledIntegrationLink = styled(IntegrationLink)<{disabled?: boolean}>`
   color: ${({disabled, theme}) => (disabled ? theme.disabled : theme.textColor)};
+  ${p => p.disabled && 'cursor: not-allowed;'}
 `;
 
 const IssueLinkContainer = styled('div')`
@@ -185,8 +186,8 @@ const IssueLinkContainer = styled('div')`
   margin-bottom: 16px;
 `;
 
-const StyledIcon = styled('span')<{disabled?: boolean}>`
-  color: ${({disabled, theme}) => (disabled ? theme.disabled : theme.textColor)};
+const StyledIcon = styled('span')`
+  color: ${p => p.theme.textColor};
   cursor: pointer;
 `;
 

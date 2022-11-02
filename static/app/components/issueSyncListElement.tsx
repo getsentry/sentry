@@ -133,7 +133,7 @@ export const IntegrationLink = styled('a')<{disabled?: boolean}>`
   margin-left: ${space(1)};
   color: ${p => p.theme.textColor};
   cursor: pointer;
-  line-height: 1;
+  line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
