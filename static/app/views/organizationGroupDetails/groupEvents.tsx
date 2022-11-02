@@ -39,7 +39,7 @@ type State = {
   renderNewAllEventsTab: boolean;
 };
 
-const excludedTags = ['environment', 'issue', 'issue.id', 'performance.issues_ids'];
+const excludedTags = ['environment', 'issue', 'issue.id', 'performance.issue_ids'];
 
 class GroupEvents extends Component<Props, State> {
   constructor(props: Props) {

@@ -104,7 +104,7 @@ const defaultRule: UnsavedIssueAlertRule = {
   conditions: [],
   filters: [],
   name: '',
-  frequency: 30,
+  frequency: 60 * 24,
   environment: ALL_ENVIRONMENTS_KEY,
 };
 
@@ -144,6 +144,8 @@ type State = AsyncView['state'] & {
     [key: string]: string[];
   };
   environments: Environment[] | null;
+  incompatibleCondition: number | null;
+  incompatibleFilter: number | null;
   issueCount: number;
   loadingPreview: boolean;
   previewCursor: string | null | undefined;
@@ -184,8 +186,13 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     if (prevState.previewCursor !== this.state.previewCursor) {
       this.fetchPreview();
     } else if (this.isRuleStateChange(prevState)) {
-      this.setState({loadingPreview: true});
+      this.setState({
+        loadingPreview: true,
+        incompatibleCondition: null,
+        incompatibleFilter: null,
+      });
       this.fetchPreviewDebounced();
+      this.checkIncompatibleRule();
     }
     if (prevState.project.id === this.state.project.id) {
       return;
@@ -237,6 +244,8 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       previewPage: 0,
       loadingPreview: false,
       sendingNotification: false,
+      incompatibleCondition: null,
+      incompatibleFilter: null,
     };
 
     const projectTeamIds = new Set(project.teams.map(({id}) => id));
@@ -404,6 +413,60 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   fetchPreviewDebounced = debounce(() => {
     this.fetchPreview(true);
   }, 1000);
+
+  // As more incompatible combinations are added, we will need a more generic way to check for incompatibility.
+  checkIncompatibleRule = debounce(() => {
+    const {rule} = this.state;
+    if (
+      !rule ||
+      !this.props.organization.features.includes('issue-alert-incompatible-rules')
+    ) {
+      return;
+    }
+
+    const {conditions, filters} = rule;
+    // Check for more than one 'issue state change' condition
+    // or 'FirstSeenEventCondition' + 'EventFrequencyCondition'
+    if (rule.actionMatch === 'all') {
+      let firstSeen = 0;
+      let regression = 0;
+      let reappeared = 0;
+      let eventFrequency = 0;
+      for (let i = 0; i < conditions.length; i++) {
+        const id = conditions[i].id;
+        if (id.endsWith('FirstSeenEventCondition')) {
+          firstSeen = 1;
+        } else if (id.endsWith('RegressionEventCondition')) {
+          regression = 1;
+        } else if (id.endsWith('ReappearedEventCondition')) {
+          reappeared = 1;
+        } else if (id.endsWith('EventFrequencyCondition') && conditions[i].value >= 1) {
+          eventFrequency = 1;
+        }
+        if (firstSeen + regression + reappeared > 1 || firstSeen + eventFrequency > 1) {
+          this.setState({incompatibleCondition: i});
+          return;
+        }
+      }
+    }
+    // Check for 'FirstSeenEventCondition' and 'IssueOccurrencesFilter'
+    const firstSeen = conditions.some(condition =>
+      condition.id.endsWith('FirstSeenEventCondition')
+    );
+    if (
+      firstSeen &&
+      (rule.actionMatch === 'all' || conditions.length === 1) &&
+      (rule.filterMatch === 'all' || (rule.filterMatch === 'any' && filters.length === 1))
+    ) {
+      for (let i = 0; i < filters.length; i++) {
+        const id = filters[i].id;
+        if (id.endsWith('IssueOccurrencesFilter') && filters[i].value > 1) {
+          this.setState({incompatibleFilter: i});
+          return;
+        }
+      }
+    }
+  }, 500);
 
   onPreviewCursor: CursorHandler = (cursor, _1, _2, direction) => {
     this.setState({
@@ -817,13 +880,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     const ownerId = rule?.owner?.split(':')[1];
 
     return (
-      <StyledField
-        extraMargin
-        label={null}
-        help={null}
-        disabled={disabled}
-        flexibleControlStateSize
-      >
+      <StyledField label={null} help={null} disabled={disabled} flexibleControlStateSize>
         <TeamSelector
           value={this.getTeamId()}
           project={project}
@@ -1064,8 +1121,16 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
   renderBody() {
     const {organization} = this.props;
-    const {project, rule, detailedError, loading, ownership, sendingNotification} =
-      this.state;
+    const {
+      project,
+      rule,
+      detailedError,
+      loading,
+      ownership,
+      sendingNotification,
+      incompatibleCondition,
+      incompatibleFilter,
+    } = this.state;
     const {actions, filters, conditions, frequency} = rule || {};
 
     const environment =
@@ -1092,7 +1157,11 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                   frequency: `${frequency}`,
                   projectId: project.id,
                 }}
-                submitDisabled={disabled}
+                submitDisabled={
+                  disabled ||
+                  incompatibleCondition !== null ||
+                  incompatibleFilter !== null
+                }
                 submitLabel={t('Save Rule')}
                 extraButton={
                   isSavedAlertRule(rule) ? (
@@ -1113,7 +1182,9 @@ class IssueRuleEditor extends AsyncView<Props, State> {
               >
                 <List symbol="colored-numeric">
                   {loading && <SemiTransparentLoadingMask data-test-id="loading-mask" />}
-                  <StyledListItem>{t('Add alert settings')}</StyledListItem>
+                  <StyledListItem>
+                    {t('Select an environment and project')}
+                  </StyledListItem>
                   <SettingsContainer>
                     {this.renderEnvironmentSelect(disabled)}
                     {this.renderProjectSelect(disabled)}
@@ -1196,6 +1267,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                                   </StyledAlert>
                                 )
                               }
+                              incompatibleRule={incompatibleCondition}
                             />
                           </StepContent>
                         </StepContainer>
@@ -1266,6 +1338,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                                   </StyledAlert>
                                 )
                               }
+                              incompatibleRule={incompatibleFilter}
                             />
                           </StepContent>
                         </StepContainer>
@@ -1323,7 +1396,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                                     rule?.actions.length === 0
                                   }
                                 >
-                                  {t('Test Notifications')}
+                                  {t('Send Test Notification')}
                                 </Button>
                               </TestButtonWrapper>
                             </Feature>
@@ -1350,9 +1423,19 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                     </StyledListItem>
                     {this.renderPreviewTable()}
                   </Feature>
-                  <StyledListItem>{t('Establish ownership')}</StyledListItem>
-                  {this.renderRuleName(disabled)}
-                  {this.renderTeamSelect(disabled)}
+                  <StyledListItem>
+                    {t('Add a name and owner')}
+                    <StyledFieldHelp>
+                      {t(
+                        'This name will show up in notifications and the owner will give permissions to your whole team to edit and view this alert.'
+                      )}
+                    </StyledFieldHelp>
+                  </StyledListItem>
+
+                  <StyledFieldWrapper>
+                    {this.renderRuleName(disabled)}
+                    {this.renderTeamSelect(disabled)}
+                  </StyledFieldWrapper>
                 </List>
               </StyledForm>
             </Main>
@@ -1477,11 +1560,7 @@ const SettingsContainer = styled('div')`
   gap: ${space(1)};
 `;
 
-const StyledField = styled(Field)<{extraMargin?: boolean}>`
-  :last-child {
-    padding-bottom: ${space(2)};
-  }
-
+const StyledField = styled(Field)`
   border-bottom: none;
   padding: 0;
 
@@ -1489,8 +1568,16 @@ const StyledField = styled(Field)<{extraMargin?: boolean}>`
     padding: 0;
     width: 100%;
   }
+  margin-bottom: ${space(1)};
+`;
 
-  margin-bottom: ${p => `${p.extraMargin ? '60px' : space(1)}`};
+const StyledFieldWrapper = styled('div')`
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: ${space(1)};
+  }
+  margin-bottom: 60px;
 `;
 
 const Main = styled(Layout.Main)`

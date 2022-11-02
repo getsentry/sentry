@@ -29,7 +29,6 @@ import {
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
 import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
-import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import withProjects from 'sentry/utils/withProjects';
@@ -60,7 +59,6 @@ import {
 import TransactionSummaryCharts from './charts';
 import RelatedIssues from './relatedIssues';
 import SidebarCharts from './sidebarCharts';
-import SidebarMEPCharts from './sidebarMEPCharts';
 import StatusBreakdown from './statusBreakdown';
 import SuspectSpans from './suspectSpans';
 import {TagExplorer} from './tagExplorer';
@@ -223,53 +221,51 @@ function SummaryContent({
 
   let transactionsListEventView = eventView.clone();
 
-  if (organization.features.includes('performance-ops-breakdown')) {
-    // update search conditions
+  // update search conditions
 
-    const spanOperationBreakdownConditions = filterToSearchConditions(
-      spanOperationBreakdownFilter,
-      location
-    );
+  const spanOperationBreakdownConditions = filterToSearchConditions(
+    spanOperationBreakdownFilter,
+    location
+  );
 
-    if (spanOperationBreakdownConditions) {
-      eventView = eventView.clone();
-      eventView.query = `${eventView.query} ${spanOperationBreakdownConditions}`.trim();
-      transactionsListEventView = eventView.clone();
-    }
-
-    // update header titles of transactions list
-
-    const operationDurationTableTitle =
-      spanOperationBreakdownFilter === SpanOperationBreakdownFilter.None
-        ? t('operation duration')
-        : `${spanOperationBreakdownFilter} duration`;
-
-    // add ops breakdown duration column as the 3rd column
-    transactionsListTitles.splice(2, 0, operationDurationTableTitle);
-
-    // span_ops_breakdown.relative is a preserved name and a marker for the associated
-    // field renderer to be used to generate the relative ops breakdown
-    let durationField = SPAN_OP_RELATIVE_BREAKDOWN_FIELD;
-
-    if (spanOperationBreakdownFilter !== SpanOperationBreakdownFilter.None) {
-      durationField = filterToField(spanOperationBreakdownFilter)!;
-    }
-
-    const fields = [...transactionsListEventView.fields];
-
-    // add ops breakdown duration column as the 3rd column
-    fields.splice(2, 0, {field: durationField});
-
-    if (spanOperationBreakdownFilter === SpanOperationBreakdownFilter.None) {
-      fields.push(
-        ...SPAN_OP_BREAKDOWN_FIELDS.map(field => {
-          return {field};
-        })
-      );
-    }
-
-    transactionsListEventView.fields = fields;
+  if (spanOperationBreakdownConditions) {
+    eventView = eventView.clone();
+    eventView.query = `${eventView.query} ${spanOperationBreakdownConditions}`.trim();
+    transactionsListEventView = eventView.clone();
   }
+
+  // update header titles of transactions list
+
+  const operationDurationTableTitle =
+    spanOperationBreakdownFilter === SpanOperationBreakdownFilter.None
+      ? t('operation duration')
+      : `${spanOperationBreakdownFilter} duration`;
+
+  // add ops breakdown duration column as the 3rd column
+  transactionsListTitles.splice(2, 0, operationDurationTableTitle);
+
+  // span_ops_breakdown.relative is a preserved name and a marker for the associated
+  // field renderer to be used to generate the relative ops breakdown
+  let durationField = SPAN_OP_RELATIVE_BREAKDOWN_FIELD;
+
+  if (spanOperationBreakdownFilter !== SpanOperationBreakdownFilter.None) {
+    durationField = filterToField(spanOperationBreakdownFilter)!;
+  }
+
+  const fields = [...transactionsListEventView.fields];
+
+  // add ops breakdown duration column as the 3rd column
+  fields.splice(2, 0, {field: durationField});
+
+  if (spanOperationBreakdownFilter === SpanOperationBreakdownFilter.None) {
+    fields.push(
+      ...SPAN_OP_BREAKDOWN_FIELDS.map(field => {
+        return {field};
+      })
+    );
+  }
+
+  transactionsListEventView.fields = fields;
 
   const openAllEventsProps = {
     generatePerformanceTransactionEventsView: () => {
@@ -282,8 +278,6 @@ function SummaryContent({
     },
     handleOpenAllEventsClick: handleAllEventsViewClick,
   };
-
-  const isUsingMetrics = canUseMetricsData(organization);
 
   return (
     <Fragment>
@@ -377,20 +371,6 @@ function SummaryContent({
         />
       </Layout.Main>
       <Layout.Side>
-        {(isUsingMetrics ?? null) && (
-          <Fragment>
-            <SidebarMEPCharts
-              organization={organization}
-              isLoading={isLoading}
-              error={error}
-              totals={totalValues}
-              eventView={eventView}
-              transactionName={transactionName}
-              isShowingMetricsEventCount
-            />
-            <SidebarSpacer />
-          </Fragment>
-        )}
         <UserStats
           organization={organization}
           location={location}
@@ -409,25 +389,14 @@ function SummaryContent({
           />
         )}
         <SidebarSpacer />
-        {isUsingMetrics ? (
-          <SidebarMEPCharts
-            organization={organization}
-            isLoading={isLoading}
-            error={error}
-            totals={totalValues}
-            eventView={eventView}
-            transactionName={transactionName}
-          />
-        ) : (
-          <SidebarCharts
-            organization={organization}
-            isLoading={isLoading}
-            error={error}
-            totals={totalValues}
-            eventView={eventView}
-            transactionName={transactionName}
-          />
-        )}
+        <SidebarCharts
+          organization={organization}
+          isLoading={isLoading}
+          error={error}
+          totals={totalValues}
+          eventView={eventView}
+          transactionName={transactionName}
+        />
         <SidebarSpacer />
         <Tags
           generateUrl={generateTagUrl}
