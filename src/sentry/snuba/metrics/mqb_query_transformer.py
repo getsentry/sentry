@@ -254,7 +254,6 @@ def tranform_mqb_query_to_metrics_query(query: Query) -> MetricsQuery:
         "granularity": query.granularity if query.granularity is not None else Granularity(3600),
         "orderby": _transform_orderby(query.orderby),
         "interval": interval,
-        "ignore_limit": True,
         **_get_mq_dict_params_from_where(query.where),
     }
     return MetricsQuery(**mq_dict)
