@@ -71,13 +71,45 @@ class OrganizationOnboardingTaskManager(BaseManager):
         return False
 
 
-@region_silo_only_model
-class OrganizationOnboardingTask(Model):
+class AbstractOnboardingTask(Model):
     """
-    Onboarding tasks walk new Sentry orgs through basic features of Sentry.
+    An abstract onboarding task that can be subclassed
     """
 
     __include_in_export__ = False
+
+    STATUS_CHOICES = (
+        (OnboardingTaskStatus.COMPLETE, "complete"),
+        (OnboardingTaskStatus.PENDING, "pending"),
+        (OnboardingTaskStatus.SKIPPED, "skipped"),
+    )
+
+    STATUS_KEY_MAP = dict(STATUS_CHOICES)
+    STATUS_LOOKUP_BY_KEY = {v: k for k, v in STATUS_CHOICES}
+
+    organization = FlexibleForeignKey("sentry.Organization")
+    user = FlexibleForeignKey(
+        settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL
+    )  # user that completed
+    status = BoundedPositiveIntegerField(choices=[(k, str(v)) for k, v in STATUS_CHOICES])
+    completion_seen = models.DateTimeField(null=True)
+    date_completed = models.DateTimeField(default=timezone.now)
+    project = FlexibleForeignKey("sentry.Project", db_constraint=False, null=True)
+    data = JSONField()  # INVITE_MEMBER { invited_member: user.id }
+
+    objects = OrganizationOnboardingTaskManager()
+
+    class Meta:
+        abstract = True
+
+    __repr__ = sane_repr("organization", "task")
+
+
+@region_silo_only_model
+class OrganizationOnboardingTask(AbstractOnboardingTask):
+    """
+    Onboarding tasks walk new Sentry orgs through basic features of Sentry.
+    """
 
     TASK_CHOICES = (
         (OnboardingTask.FIRST_PROJECT, "create_project"),
@@ -95,19 +127,12 @@ class OrganizationOnboardingTask(Model):
         (OnboardingTask.INTEGRATIONS, "setup_integrations"),
     )
 
-    STATUS_CHOICES = (
-        (OnboardingTaskStatus.COMPLETE, "complete"),
-        (OnboardingTaskStatus.PENDING, "pending"),
-        (OnboardingTaskStatus.SKIPPED, "skipped"),
-    )
-
     # Used in the API to map IDs to string keys. This keeps things
     # a bit more maintainable on the frontend.
     TASK_KEY_MAP = dict(TASK_CHOICES)
     TASK_LOOKUP_BY_KEY = {v: k for k, v in TASK_CHOICES}
 
-    STATUS_KEY_MAP = dict(STATUS_CHOICES)
-    STATUS_LOOKUP_BY_KEY = {v: k for k, v in STATUS_CHOICES}
+    task = BoundedPositiveIntegerField(choices=[(k, str(v)) for k, v in TASK_CHOICES])
 
     # Tasks which must be completed for the onboarding to be considered
     # complete.
@@ -143,17 +168,6 @@ class OrganizationOnboardingTask(Model):
             OnboardingTask.INTEGRATIONS,
         ]
     )
-
-    organization = FlexibleForeignKey("sentry.Organization")
-    user = FlexibleForeignKey(
-        settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL
-    )  # user that completed
-    task = BoundedPositiveIntegerField(choices=[(k, str(v)) for k, v in TASK_CHOICES])
-    status = BoundedPositiveIntegerField(choices=[(k, str(v)) for k, v in STATUS_CHOICES])
-    completion_seen = models.DateTimeField(null=True)
-    date_completed = models.DateTimeField(default=timezone.now)
-    project = FlexibleForeignKey("sentry.Project", db_constraint=False, null=True)
-    data = JSONField()  # INVITE_MEMBER { invited_member: user.id }
 
     objects = OrganizationOnboardingTaskManager()
 
