@@ -19,8 +19,6 @@ type Props = ModalRenderProps & {orgSlug: Organization['slug'] | null; tour: str
 
 export default function DemoEndingModal({tour, closeModal, CloseButton, orgSlug}: Props) {
   const api = useApi();
-
-  // const {router} = useRouteContext();
   const navigate = useNavigate();
 
   let cardTitle = '',
@@ -102,7 +100,6 @@ export default function DemoEndingModal({tour, closeModal, CloseButton, orgSlug}
             closeModal();
           }
         }}
-        aria-label={t('Close')}
         icon={<IconClose size="xs" />}
       />
       <ModalHeader>
