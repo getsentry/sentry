@@ -125,11 +125,14 @@ export function SpecificConditionsModal({
       return;
     }
 
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     switch (error.type) {
       case 'sampleRate':
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         setData({...data, errors: {...errors, sampleRate: error.message}});
         break;
       default:
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         addErrorMessage(error.message);
     }
   }
@@ -254,10 +257,12 @@ export function SpecificConditionsModal({
     value: Condition[T]
   ) {
     const newConditions = [...conditions];
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     newConditions[index][field] = value;
 
     // If custom tag key changes, reset the value
     if (field === 'category') {
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       newConditions[index].match = '';
 
       trackAdvancedAnalyticsEvent('sampling.settings.modal.specific.rule.condition_add', {

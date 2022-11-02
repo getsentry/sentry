@@ -17,6 +17,7 @@ export function hasFirstBucketsEmpty(
     const series = group.series[quantityField];
 
     for (let i = 0; i < numberOfLeadingEmptyBuckets; i++) {
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       groupAcc += series[i];
     }
 

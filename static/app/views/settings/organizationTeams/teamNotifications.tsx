@@ -124,6 +124,7 @@ class TeamNotificationSettings extends AsyncView<Props, State> {
             <div>
               <NotDisabledText>
                 {toTitleCase(externalTeam.provider)}:
+                {/* @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'. */}
                 {integrationsById[externalTeam.integrationId].name}
               </NotDisabledText>
               <NotDisabledSubText>

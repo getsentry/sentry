@@ -92,7 +92,9 @@ const Span = styled('li')<{startPct: number; widthPct: number}>`
   min-width: 1px;
   width: ${p => p.widthPct * 100}%;
   height: 100%;
-  background: ${p => p.theme.charts.colors[0]};
+  background: ${p =>
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
+    p.theme.charts.colors[0]};
   border-radius: 2px;
   pointer-events: auto;
 `;

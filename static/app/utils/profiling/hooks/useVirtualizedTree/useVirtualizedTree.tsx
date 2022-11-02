@@ -214,6 +214,7 @@ function findVisibleItems<T extends TreeLike>({
         key: indexPointer,
         ref: null,
         styles: {position: 'absolute', top: elementTop},
+        // @ts-expect-error TS(2322) FIXME: Type 'VirtualizedTreeNode<T> | undefined' is not a... Remove this comment to see the full error message
         item: items[indexPointer],
       };
 
@@ -651,6 +652,7 @@ export function useVirtualizedTree<T extends TreeLike>(
       }
 
       if (event.key === 'Enter') {
+        // @ts-expect-error TS(2345) FIXME: Argument of type 'VirtualizedTreeNode<T> | undefin... Remove this comment to see the full error message
         handleExpandTreeNode(tree.flattened[latestStateRef.current.tabIndexKey], {
           expandChildren: true,
         });
@@ -692,16 +694,20 @@ export function useVirtualizedTree<T extends TreeLike>(
             return;
           }
 
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           dispatch({type: 'set tab index key', payload: items[nextIndex].key});
           updateGhostRow({
             ref: clickedGhostRowRef,
+            // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
             tabIndexKey: items[nextIndex].key,
             scrollTop: latestStateRef.current.scrollTop,
             rowHeight: props.rowHeight,
             interaction: 'active',
             theme,
           });
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           items[nextIndex].ref?.focus({preventScroll: true});
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           items[nextIndex].ref?.scrollIntoView({block: 'nearest'});
         }
       }
@@ -737,16 +743,20 @@ export function useVirtualizedTree<T extends TreeLike>(
             return;
           }
 
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           dispatch({type: 'set tab index key', payload: items[nextIndex].key});
           updateGhostRow({
             ref: clickedGhostRowRef,
+            // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
             tabIndexKey: items[nextIndex].key,
             scrollTop: latestStateRef.current.scrollTop,
             rowHeight: props.rowHeight,
             interaction: 'active',
             theme,
           });
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           items[nextIndex].ref?.focus({preventScroll: true});
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           items[nextIndex].ref?.scrollIntoView({block: 'nearest'});
         }
       }
@@ -842,10 +852,13 @@ export function useVirtualizedTree<T extends TreeLike>(
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
       renderered.push(
+        // @ts-expect-error TS(2345) FIXME: Argument of type 'VisibleItem<T> | undefined' is n... Remove this comment to see the full error message
         renderRow(item, {
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           handleRowClick: handleRowClick(item.key),
           handleExpandTreeNode,
           handleRowKeyDown,
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           handleRowMouseEnter: handleRowMouseEnter(item.key),
           tabIndexKey: state.tabIndexKey,
         })

@@ -78,6 +78,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
       showIcon: true,
     }));
 
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     if (!provider.canAdd && metadata.aspects.externalInstall) {
       alerts.push({
         type: 'warning',
@@ -97,6 +98,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
   }
 
   get metadata() {
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     return this.provider.metadata;
   }
 
@@ -115,6 +117,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
   }
 
   get integrationName() {
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     return this.provider.name;
   }
 
@@ -191,6 +194,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
   renderTopButton(disabledFromFeatures: boolean, userHasAccess: boolean) {
     const {organization} = this.props;
     const provider = this.provider;
+    // @ts-expect-error TS(2339) FIXME: Property 'metadata' does not exist on type 'Integr... Remove this comment to see the full error message
     const {metadata} = provider;
 
     const size = 'sm' as const;
@@ -209,9 +213,11 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
       return this.renderRequestIntegrationButton();
     }
 
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     if (provider.canAdd) {
       return (
         <AddIntegrationButton
+          // @ts-expect-error TS(2322) FIXME: Type 'IntegrationProvider | undefined' is not assi... Remove this comment to see the full error message
           provider={provider}
           onAddIntegration={this.onInstall}
           analyticsParams={{
@@ -263,6 +269,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
             <PanelItem key={integration.id}>
               <InstalledIntegration
                 organization={organization}
+                // @ts-expect-error TS(2769) FIXME: No overload matches this call.
                 provider={provider}
                 integration={integration}
                 onRemove={this.onRemove}

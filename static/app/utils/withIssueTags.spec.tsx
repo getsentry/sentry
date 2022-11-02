@@ -16,6 +16,7 @@ const MyComponent = (props: MyComponentProps) => {
       {'mechanism: ' + props.tags?.mechanism?.values?.join(', ')}
       {'bookmarks: ' + props.tags?.bookmarks?.values?.join(', ')}
       {'assigned: ' + props.tags?.assigned?.values?.join(', ')}
+      {/* @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'. */}
       {'stack filename: ' + props.tags?.['stack.filename'].name}
     </div>
   );

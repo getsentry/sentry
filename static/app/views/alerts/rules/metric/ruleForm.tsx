@@ -416,8 +416,11 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     const criticalTrigger = triggers[criticalTriggerIndex];
     const warningTrigger = triggers[warningTriggerIndex];
 
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     const isEmptyWarningThreshold = isEmpty(warningTrigger.alertThreshold);
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     const warningThreshold = warningTrigger.alertThreshold ?? 0;
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     const criticalThreshold = criticalTrigger.alertThreshold ?? 0;
 
     const hasError =

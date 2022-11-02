@@ -12,11 +12,13 @@ function toFlattenedList(tree: VirtualizedTree<any>): VirtualizedTreeNode<any>[]
     list.push(node);
 
     for (let i = 0; i < node.children.length; i++) {
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'VirtualizedTreeNode<any> | undef... Remove this comment to see the full error message
       visit(node.children[i]);
     }
   }
 
   for (let i = 0; i < tree.roots.length; i++) {
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'VirtualizedTreeNode<any> | undef... Remove this comment to see the full error message
     visit(tree.roots[i]);
   }
 
@@ -31,6 +33,7 @@ describe('VirtualizedTree', () => {
       root.children = [child1];
 
       const tree = VirtualizedTree.fromRoots([root]);
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'VirtualizedTreeNode<any> | undef... Remove this comment to see the full error message
       tree.expandNode(tree.roots[0], true, {expandChildren: true});
 
       expect(tree.flattened).toHaveLength(2);
@@ -48,6 +51,7 @@ describe('VirtualizedTree', () => {
         return node.node.id === 'child1';
       });
 
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'VirtualizedTreeNode<any> | undef... Remove this comment to see the full error message
       tree.expandNode(tree.roots[0], true, {expandChildren: true});
       expect(tree.flattened).toHaveLength(2);
 
@@ -62,6 +66,7 @@ describe('VirtualizedTree', () => {
       root.children = [child1];
 
       const tree = VirtualizedTree.fromRoots([root]);
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'VirtualizedTreeNode<any> | undef... Remove this comment to see the full error message
       const addedNodes = tree.expandNode(tree.roots[0], true);
 
       expect(addedNodes.length).toBe(1);
@@ -78,9 +83,11 @@ describe('VirtualizedTree', () => {
       const tree = VirtualizedTree.fromRoots([root]);
 
       // Expand all
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'VirtualizedTreeNode<any> | undef... Remove this comment to see the full error message
       tree.expandNode(tree.roots[0], true, {expandChildren: true});
 
       // Close root
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'VirtualizedTreeNode<any> | undef... Remove this comment to see the full error message
       const removedNodes = tree.expandNode(tree.roots[0], false);
       expect(removedNodes.length).toBe(1);
 
@@ -97,6 +104,7 @@ describe('VirtualizedTree', () => {
       root.children = [child1];
       const tree = VirtualizedTree.fromRoots([root]);
 
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       tree.roots[0].setExpanded(false);
 
       expect(VirtualizedTree.toExpandedList(tree.roots).map(i => i.node.id)).toEqual([

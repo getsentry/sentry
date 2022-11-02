@@ -18,8 +18,11 @@ export function createSentrySampleProfileFrameIndex(
 
     frameIndex[i] = new Frame({
       key: i,
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       name: frame.function ?? 'unknown',
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       line: frame.lineno,
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       column: frame.colno,
     });
   }
@@ -176,17 +179,23 @@ function indexNodeToParents(
   // Begin in each root node
   for (let i = 0; i < roots.length; i++) {
     // If the root is a leaf node, push it to the leafs array
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     if (!roots[i].children?.length) {
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'FlamegraphFrame | undefined' is ... Remove this comment to see the full error message
       leafs.push(roots[i]);
     }
 
     // Init the map for the root in case we havent yet
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     if (!map[roots[i].key]) {
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       map[roots[i].key] = [];
     }
 
     // descend down to each child and index them
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     for (let j = 0; j < roots[i].children.length; j++) {
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       indexNode(roots[i].children[j], roots[i]);
     }
   }

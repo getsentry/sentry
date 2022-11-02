@@ -91,6 +91,7 @@ class ReleasesAdoptionChart extends Component<Props> {
       response?.groups.map(group => group.by.release as string) ?? [];
     if (response?.groups && response.groups.length > 50) {
       releases = response!.groups
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         .sort((a, b) => b.totals['sum(session)'] - a.totals['sum(session)'])
         .slice(0, 50)
         .map(group => group.by.release as string);
@@ -170,10 +171,13 @@ class ReleasesAdoptionChart extends Component<Props> {
             return null;
           }
 
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           const numDataPoints = releasesSeries[0].data.length;
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           const xAxisData = releasesSeries[0].data.map(point => point.name);
           const hideLastPoint =
             releasesSeries.findIndex(
+              // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
               series => series.data[numDataPoints - 1].value > 0
             ) === -1;
 
@@ -254,6 +258,7 @@ class ReleasesAdoptionChart extends Component<Props> {
                               series[0].dataIndex === numDataPoints - 1
                                 ? moment(response?.end)
                                 : moment(timestamp).add(
+                                    // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
                                     parseInt(periodObj.period, 10),
                                     periodObj.periodLength as StatsPeriodType
                                   )

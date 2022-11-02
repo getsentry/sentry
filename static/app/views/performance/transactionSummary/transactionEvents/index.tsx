@@ -82,6 +82,7 @@ function EventsContentWrapper(props: ChildProps) {
     const filteredEventView = eventView?.clone();
     if (filteredEventView && filter?.query) {
       const query = new MutableSearch(filteredEventView.query);
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
       filter.query.forEach(item => query.setFilterValues(item[0], [item[1]]));
       filteredEventView.query = query.formatString();
     }

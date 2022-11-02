@@ -38,6 +38,7 @@ export function filterFlamegraphTree(
 
       // enqueue children
       for (let i = 0; i < node.children.length; i++) {
+        // @ts-expect-error TS(2345) FIXME: Argument of type 'FlamegraphFrame | undefined' is ... Remove this comment to see the full error message
         stack.push(node.children[node.children.length - i - 1]);
       }
     }

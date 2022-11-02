@@ -93,6 +93,7 @@ export function getErrorMessage(
 
   const responseErrors = errorResponse.dynamicSampling?.rules[currentRuleIndex] ?? {};
 
+  // @ts-expect-error TS(2488) FIXME: Type '[string, number | boolean | SamplingConditio... Remove this comment to see the full error message
   const [type, _value] = Object.entries(responseErrors)[0];
 
   if (type === 'sampleRate') {

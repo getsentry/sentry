@@ -92,6 +92,7 @@ function Breadcrumbs({
 
   function renderRow({index, key, parent, style}: ListRowProps) {
     const breadcrumb = breadcrumbs[index];
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     const isLastItem = breadcrumbs[breadcrumbs.length - 1].id === breadcrumb.id;
     const {height} = style;
     return (
@@ -109,6 +110,7 @@ function Breadcrumbs({
             onLoad={measure}
             organization={organization}
             searchTerm={searchTerm}
+            // @ts-expect-error TS(2322) FIXME: Type 'Crumb | undefined' is not assignable to type... Remove this comment to see the full error message
             breadcrumb={breadcrumb}
             meta={event._meta?.entries?.[entryIndex]?.data?.values?.[index]}
             event={event}

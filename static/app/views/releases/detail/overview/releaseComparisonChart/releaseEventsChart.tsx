@@ -167,6 +167,7 @@ function ReleaseEventsChart({
           query={getQuery()}
           yAxis={getYAxis()}
           field={getField()}
+          // @ts-expect-error TS(2769) FIXME: No overload matches this call.
           colors={getColors()}
           api={api}
           router={router}

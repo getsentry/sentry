@@ -6,6 +6,7 @@ function getException(
   exceptionDataValues: ExceptionValue[],
   thread: Thread
 ) {
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   if (exceptionDataValues.length === 1 && !exceptionDataValues[0].stacktrace) {
     return {
       ...exceptionData,
@@ -52,6 +53,7 @@ function getThreadException(
   );
 
   if (matchedStacktraceAndExceptionThread) {
+    // @ts-expect-error TS(2322) FIXME: Type '{ values: { stacktrace: StacktraceType | nul... Remove this comment to see the full error message
     return getException(exceptionData, exceptionDataValues, thread);
   }
 
@@ -61,6 +63,7 @@ function getThreadException(
     ) &&
     thread.crashed
   ) {
+    // @ts-expect-error TS(2322) FIXME: Type '{ values: { stacktrace: StacktraceType | nul... Remove this comment to see the full error message
     return getException(exceptionData, exceptionDataValues, thread);
   }
 

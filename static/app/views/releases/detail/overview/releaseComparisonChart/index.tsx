@@ -909,6 +909,7 @@ function ReleaseComparisonChart({
 
   if (!chart) {
     chart = charts[0];
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     activeChart = charts[0].type;
   }
 

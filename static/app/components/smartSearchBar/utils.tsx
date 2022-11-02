@@ -398,7 +398,8 @@ export const getTagItemsFromKeys = (
 
     const definition =
       supportedTags[key]?.kind === FieldKind.FUNCTION
-        ? fieldDefinitionGetter(key.split('(')[0])
+        ? // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
+          fieldDefinitionGetter(key.split('(')[0])
         : fieldDefinitionGetter(key);
     const kind = supportedTags[key]?.kind ?? definition?.kind ?? FieldKind.FIELD;
 
@@ -610,18 +611,23 @@ export const getSearchConfigFromCustomPerformanceMetrics = (
   };
   if (customPerformanceMetrics) {
     Object.keys(customPerformanceMetrics).forEach(metricName => {
+      // @ts-expect-error TS(2339) FIXME: Property 'fieldType' does not exist on type 'Custo... Remove this comment to see the full error message
       const {fieldType} = customPerformanceMetrics[metricName];
       switch (fieldType) {
         case 'size':
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           searchConfigMap.sizeKeys.push(metricName);
           break;
         case 'duration':
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           searchConfigMap.durationKeys.push(metricName);
           break;
         case 'percentage':
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           searchConfigMap.percentageKeys.push(metricName);
           break;
         default:
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           searchConfigMap.numericKeys.push(metricName);
       }
     });

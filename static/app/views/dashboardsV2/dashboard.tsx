@@ -372,7 +372,9 @@ class Dashboard extends Component<Props, State> {
     const {dashboard, onUpdate} = this.props;
     const isNotAddButton = ({i}) => i !== ADD_WIDGET_BUTTON_DRAG_ID;
     const newLayouts = {
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       [DESKTOP]: allLayouts[DESKTOP].filter(isNotAddButton),
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       [MOBILE]: allLayouts[MOBILE].filter(isNotAddButton),
     };
 
@@ -442,6 +444,7 @@ class Dashboard extends Component<Props, State> {
         isMobile: true,
         layouts: {
           ...layouts,
+          // @ts-expect-error TS(2345) FIXME: Argument of type 'Layout[] | undefined' is not ass... Remove this comment to see the full error message
           [MOBILE]: getMobileLayout(layouts[DESKTOP], widgets),
         },
       });
@@ -454,6 +457,7 @@ class Dashboard extends Component<Props, State> {
     const {isMobile, layouts} = this.state;
     let position: Position = BOTTOM_MOBILE_VIEW_POSITION;
     if (!isMobile) {
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'Layout[] | undefined' is not ass... Remove this comment to see the full error message
       const columnDepths = calculateColumnDepths(layouts[DESKTOP]);
       const [nextPosition] = getNextAvailablePosition(columnDepths, 1);
       position = nextPosition;
@@ -479,6 +483,7 @@ class Dashboard extends Component<Props, State> {
       return true;
     });
 
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'Layout[] | undefined' is not ass... Remove this comment to see the full error message
     const columnDepths = calculateColumnDepths(layouts[DESKTOP]);
     const widgetsWithLayout = assignDefaultLayout(widgets, columnDepths);
 

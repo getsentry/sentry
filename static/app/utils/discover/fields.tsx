@@ -234,6 +234,7 @@ export const AGGREGATIONS = {
         kind: 'dropdown',
         options: CONDITIONS_ARGUMENTS,
         dataType: 'string',
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         defaultValue: CONDITIONS_ARGUMENTS[0].value,
         required: true,
       },
@@ -266,6 +267,7 @@ export const AGGREGATIONS = {
         kind: 'dropdown',
         options: WEB_VITALS_QUALITY,
         dataType: 'string',
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         defaultValue: WEB_VITALS_QUALITY[0].value,
         required: true,
       },
@@ -648,6 +650,7 @@ export function measurementType(field: string): MeasurementType {
 export function getMeasurementSlug(field: string): string | null {
   const results = field.match(MEASUREMENT_PATTERN);
   if (results && results.length >= 2) {
+    // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
     return results[1];
   }
   return null;
@@ -662,6 +665,7 @@ export function getAggregateArg(field: string): string | null {
   const result = parseFunction(field);
 
   if (result && result.arguments.length > 0) {
+    // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
     return result.arguments[0];
   }
 
@@ -672,7 +676,9 @@ export function parseFunction(field: string): ParsedFunction | null {
   const results = field.match(AGGREGATE_PATTERN);
   if (results && results.length === 3) {
     return {
+      // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
       name: results[1],
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
       arguments: parseArguments(results[1], results[2]),
     };
   }
@@ -767,6 +773,7 @@ export function getEquationAliasIndex(field: string): number {
   const results = field.match(EQUATION_ALIAS_PATTERN);
 
   if (results && results.length === 2) {
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
     return parseInt(results[1], 10);
   }
   return -1;
@@ -1191,6 +1198,7 @@ export function isLegalYAxisType(match: ColumnType | MetricsType) {
 export function getSpanOperationName(field: string): string | null {
   const results = field.match(SPAN_OP_BREAKDOWN_PATTERN);
   if (results && results.length >= 2) {
+    // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
     return results[1];
   }
   return null;

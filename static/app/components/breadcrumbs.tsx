@@ -88,7 +88,9 @@ const Breadcrumbs = ({crumbs, linkLastItem = false, ...props}: Props) => {
 
   if (!linkLastItem) {
     const lastCrumb = crumbs[crumbs.length - 1];
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'Crumb | CrumbDropdown | undefine... Remove this comment to see the full error message
     if (!isCrumbDropdown(lastCrumb)) {
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       lastCrumb.to = null;
     }
   }

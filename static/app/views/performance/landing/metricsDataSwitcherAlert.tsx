@@ -68,11 +68,13 @@ export function MetricsDataSwitcherAlert(
     }
 
     const platform = platforms[0];
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
     if (UNSUPPORTED_TRANSACTION_NAME_DOCS.includes(platform)) {
       return null;
     }
 
     const supportedPlatform = SUPPORTED_TRANSACTION_NAME_DOCS.find(platformBase =>
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       platform.includes(platformBase)
     );
 

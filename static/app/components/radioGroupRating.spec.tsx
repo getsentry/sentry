@@ -44,9 +44,11 @@ describe('RadioGroupRating', function () {
     Object.keys(options).forEach((key, index) => {
       expect(screen.getByText(index + 1)).toBeInTheDocument();
       expect(
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         screen.getByLabelText(`Select option ${options[key].label}`)
       ).toBeInTheDocument();
 
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       const description = options[key].description;
       if (description) {
         expect(screen.getByText(description)).toBeInTheDocument();
@@ -54,6 +56,7 @@ describe('RadioGroupRating', function () {
     });
 
     // Click on the first option
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     userEvent.click(screen.getByLabelText(`Select option ${options[0].label}`));
     expect(handleChange).toHaveBeenCalledWith('0');
   });

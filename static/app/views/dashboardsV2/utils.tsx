@@ -120,6 +120,7 @@ export function constructWidgetFromQuery(query?: Query): Widget | undefined {
       const {columns, aggregates} = getColumnsAndAggregates(queryFields);
       queryConditions.forEach((condition, index) => {
         queries.push({
+          // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
           name: queryNames[index],
           conditions: condition,
           fields: queryFields,
@@ -225,6 +226,7 @@ export function getWidgetDiscoverUrl(
 ) {
   const eventView = eventViewFromWidget(
     widget.title,
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'WidgetQuery | undefined' is not ... Remove this comment to see the full error message
     widget.queries[index],
     selection,
     widget.displayType
@@ -235,6 +237,7 @@ export function getWidgetDiscoverUrl(
   const yAxisOptions = eventView.getYAxisOptions().map(({value}) => value);
   discoverLocation.query.yAxis = [
     ...new Set(
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       widget.queries[0].aggregates.filter(aggregate => yAxisOptions.includes(aggregate))
     ),
   ].slice(0, 3);
@@ -250,8 +253,10 @@ export function getWidgetDiscoverUrl(
     case DisplayType.TOP_N:
       discoverLocation.query.display = DisplayModes.TOP5;
       // Last field is used as the yAxis
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       const aggregates = widget.queries[0].aggregates;
       discoverLocation.query.yAxis = aggregates[aggregates.length - 1];
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
       if (aggregates.slice(0, -1).includes(aggregates[aggregates.length - 1])) {
         discoverLocation.query.field = aggregates.slice(0, -1);
       }
@@ -263,9 +268,12 @@ export function getWidgetDiscoverUrl(
   // Equation fields need to have their terms explicitly selected as columns in the discover table
   const fields = discoverLocation.query.field;
   const query = widget.queries[0];
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   const queryFields = defined(query.fields)
-    ? query.fields
-    : [...query.columns, ...query.aggregates];
+    ? // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
+      query.fields
+    : // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
+      [...query.columns, ...query.aggregates];
   const equationFields = getFieldsFromEquations(queryFields);
   // Updates fields by adding any individual terms from equation fields as a column
   equationFields.forEach(term => {

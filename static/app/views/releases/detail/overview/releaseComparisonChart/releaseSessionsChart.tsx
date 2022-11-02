@@ -638,6 +638,7 @@ class ReleaseSessionsChart extends Component<Props> {
           {zoomRenderProps => (
             <Chart
               legend={legend}
+              // @ts-expect-error TS(2322) FIXME: Type '(Series | { seriesName: string; connectNulls... Remove this comment to see the full error message
               series={[...(series ?? []), ...(markLines ?? [])]}
               previousPeriod={previousSeries ?? []}
               {...zoomRenderProps}
@@ -650,6 +651,7 @@ class ReleaseSessionsChart extends Component<Props> {
               minutesThresholdToDisplaySeconds={MINUTES_THRESHOLD_TO_DISPLAY_SECONDS}
               yAxis={this.getYAxis()}
               tooltip={{valueFormatter: this.formatTooltipValue}}
+              // @ts-expect-error TS(2322) FIXME: Type '(string | undefined)[] | undefined' is not a... Remove this comment to see the full error message
               colors={this.getColors()}
               transformSinglePointToBar
               height={240}

@@ -15,13 +15,17 @@ export class SentrySampledProfile extends Profile {
     frameIndex: ReturnType<typeof createSentrySampleProfileFrameIndex>
   ): Profile {
     const {samples, stacks, thread_metadata = {}} = sampledProfile.profile;
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     const startedAt = parseInt(samples[0].elapsed_since_start_ns, 10);
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     const endedAt = parseInt(samples[samples.length - 1].elapsed_since_start_ns, 10);
     if (Number.isNaN(startedAt) || Number.isNaN(endedAt)) {
       throw TypeError('startedAt or endedAt is NaN');
     }
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     const threadId = parseInt(samples[0].thread_id, 10);
     const threadName = `thread: ${
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       thread_metadata[samples[0].thread_id]?.name || threadId
     }`;
     const profileTransactionName = sampledProfile.transactions?.[0]?.name;
@@ -40,10 +44,13 @@ export class SentrySampledProfile extends Profile {
 
     for (let i = 0; i < samples.length; i++) {
       const sample = samples[i];
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       const stack = stacks[sample.stack_id];
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       const sampleWeight = parseInt(sample.elapsed_since_start_ns, 10);
 
       profile.appendSampleWithWeight(
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         stack.map(n => {
           if (!frameIndex[n]) {
             throw new Error(`Could not resolve frame ${n} in frame index`);
@@ -81,6 +88,7 @@ export class SentrySampledProfile extends Profile {
         node = last;
       } else {
         const parent = node;
+        // @ts-expect-error TS(2345) FIXME: Argument of type 'Frame | undefined' is not assign... Remove this comment to see the full error message
         node = new CallTreeNode(frame, node);
         parent.children.push(node);
       }
@@ -92,9 +100,12 @@ export class SentrySampledProfile extends Profile {
       // We check the stack in a top-down order to find the first recursive frame.
       let start = framesInStack.length - 1;
       while (start >= 0) {
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         if (framesInStack[start].frame === node.frame) {
           // The recursion edge is bidirectional
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           framesInStack[start].setRecursiveThroughNode(node);
+          // @ts-expect-error TS(2345) FIXME: Argument of type 'CallTreeNode | undefined' is not... Remove this comment to see the full error message
           node.setRecursiveThroughNode(framesInStack[start]);
           break;
         }

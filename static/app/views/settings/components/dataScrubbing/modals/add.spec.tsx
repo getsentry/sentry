@@ -51,6 +51,7 @@ describe('Add Modal', function () {
     // Method Field
     expect(screen.getByText('Method')).toBeInTheDocument();
 
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
     userEvent.hover(screen.getAllByTestId('more-information')[0]);
     expect(await screen.findByText('What to do')).toBeInTheDocument();
 
@@ -66,6 +67,7 @@ describe('Add Modal', function () {
     // Type Field
     expect(screen.getByText('Data Type')).toBeInTheDocument();
 
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
     userEvent.hover(screen.getAllByTestId('more-information')[1]);
     expect(
       await screen.findByText(
@@ -90,6 +92,7 @@ describe('Add Modal', function () {
     // Source Field
     screen.getByRole('textbox', {name: 'Source'});
 
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
     userEvent.hover(screen.getAllByTestId('more-information')[2]);
 
     expect(
@@ -131,6 +134,7 @@ describe('Add Modal', function () {
 
     expect(screen.getByPlaceholderText('[Filtered]')).toBeInTheDocument();
 
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
     userEvent.hover(screen.getAllByTestId('more-information')[1]);
 
     expect(
@@ -167,6 +171,7 @@ describe('Add Modal', function () {
 
     expect(screen.getByPlaceholderText('[a-zA-Z0-9]+')).toBeInTheDocument();
 
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
     userEvent.hover(screen.getAllByTestId('more-information')[2]);
 
     expect(

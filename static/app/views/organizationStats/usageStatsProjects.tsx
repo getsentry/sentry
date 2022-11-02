@@ -327,25 +327,31 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
         const {outcome, project: projectId} = group.by;
         // Backend enum is singlar. Frontend enum is plural.
 
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         if (!projectSet.has(projectId.toString())) {
           return;
         }
 
+        // @ts-expect-error TS(2538) FIXME: Type 'undefined' cannot be used as an index type.
         if (!stats[projectId]) {
+          // @ts-expect-error TS(2538) FIXME: Type 'undefined' cannot be used as an index type.
           stats[projectId] = {...baseStat};
         }
 
         if (outcome !== Outcome.CLIENT_DISCARD) {
+          // @ts-expect-error TS(2538) FIXME: Type 'undefined' cannot be used as an index type.
           stats[projectId].total += group.totals['sum(quantity)'];
         }
 
         if (outcome === Outcome.ACCEPTED || outcome === Outcome.FILTERED) {
+          // @ts-expect-error TS(2538) FIXME: Type 'undefined' cannot be used as an index type.
           stats[projectId][outcome] += group.totals['sum(quantity)'];
         } else if (
           outcome === Outcome.RATE_LIMITED ||
           outcome === Outcome.INVALID ||
           outcome === Outcome.DROPPED
         ) {
+          // @ts-expect-error TS(2538) FIXME: Type 'undefined' cannot be used as an index type.
           stats[projectId][SortBy.DROPPED] += group.totals['sum(quantity)'];
         }
       });

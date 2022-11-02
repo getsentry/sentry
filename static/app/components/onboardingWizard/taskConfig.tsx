@@ -54,6 +54,7 @@ function getIssueAlertUrl({projects, organization}: Options) {
   // pick the first project with events if we have that, otherwise just pick the first project
   const firstProjectWithEvents = projects.find(project => !!project.firstEvent);
   const project = firstProjectWithEvents ?? projects[0];
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   return `/organizations/${organization.slug}/alerts/${project.slug}/wizard/`;
 }
 
@@ -66,6 +67,7 @@ function getMetricAlertUrl({projects, organization}: Options) {
     project => !!project.firstTransactionEvent
   );
   const project = firstProjectWithEvents ?? projects[0];
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   return `/organizations/${organization.slug}/alerts/${project.slug}/wizard/?alert_option=trans_duration`;
 }
 
@@ -103,6 +105,7 @@ export function getOnboardingTasks({
           <EventWaiter
             api={api}
             organization={organization}
+            // @ts-expect-error TS(2322) FIXME: Type 'Project | undefined' is not assignable to ty... Remove this comment to see the full error message
             project={projects[0]}
             eventType="error"
             onIssueReceived={() => !taskIsDone(task) && onCompleteTask()}
@@ -183,14 +186,20 @@ export function getOnboardingTasks({
 
         if (projectsForOnboarding.length) {
           navigateTo(
-            `/organizations/${organization.slug}/performance/?project=${projectsForOnboarding[0].id}#performance-sidequest`,
+            `/organizations/${organization.slug}/performance/?project=${
+              // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
+              projectsForOnboarding[0].id
+            }#performance-sidequest`,
             router
           );
           return;
         }
 
         navigateTo(
-          `/organizations/${organization.slug}/performance/?project=${projectsWithoutFirstTransactionEvent[0].id}#performance-sidequest`,
+          `/organizations/${organization.slug}/performance/?project=${
+            // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
+            projectsWithoutFirstTransactionEvent[0].id
+          }#performance-sidequest`,
           router
         );
       },
@@ -200,6 +209,7 @@ export function getOnboardingTasks({
           <EventWaiter
             api={api}
             organization={organization}
+            // @ts-expect-error TS(2322) FIXME: Type 'Project | undefined' is not assignable to ty... Remove this comment to see the full error message
             project={projects[0]}
             eventType="transaction"
             onIssueReceived={() => !taskIsDone(task) && onCompleteTask()}

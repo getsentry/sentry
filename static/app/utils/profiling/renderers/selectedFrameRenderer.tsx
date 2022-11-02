@@ -23,6 +23,7 @@ class SelectedFrameRenderer {
     context.lineWidth = style.BORDER_WIDTH;
 
     for (let i = 0; i < frames.length; i++) {
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       const frameInPhysicalSpace = frames[i].transformRect(configViewToPhysicalSpace);
 
       // We draw the border in the center of the flamegraph, so we need to increase

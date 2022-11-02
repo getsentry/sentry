@@ -105,6 +105,7 @@ function Event({
     if (crumbs.length === 1) {
       const crumb = crumbs[0];
 
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       switch (crumb.type) {
         case 'navigation':
         case 'debug':

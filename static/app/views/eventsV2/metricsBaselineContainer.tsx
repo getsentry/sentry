@@ -183,6 +183,7 @@ export function MetricsBaselineContainer({
 
           seriesWithOrdering = Object.keys(response).map((seriesName: string) => {
             const prefixedName = `processed events: ${seriesName}`;
+            // @ts-expect-error TS(2322) FIXME: Type 'EventsStats | undefined' is not assignable t... Remove this comment to see the full error message
             const seriesData: EventsStats = response[seriesName];
             return [
               seriesData.order || 0,
@@ -199,6 +200,7 @@ export function MetricsBaselineContainer({
                 name: series.seriesName,
                 data: series.data.map(({name, value}) => [name, value]),
                 stack:
+                  // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
                   aggregateMultiPlotType(yAxis[order]) === 'area'
                     ? 'processed'
                     : undefined,
@@ -218,6 +220,7 @@ export function MetricsBaselineContainer({
         } else {
           const field = yAxis[0];
           const prefixedName = `processed events: ${field}`;
+          // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
           const transformed = transformSeries(response, prefixedName, field);
           additionalSeries.push(
             LineSeries({

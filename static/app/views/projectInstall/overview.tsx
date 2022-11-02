@@ -72,6 +72,7 @@ class ProjectInstallOverview extends AsyncComponent<Props, State> {
           <DsnInfo>
             <DsnContainer>
               <strong>{t('DSN')}</strong>
+              {/* @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'. */}
               <DsnValue>{keyList?.[0].dsn.public}</DsnValue>
             </DsnContainer>
 

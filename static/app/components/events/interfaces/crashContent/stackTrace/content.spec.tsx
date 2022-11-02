@@ -81,6 +81,7 @@ describe('StackTrace', function () {
     const frameTitles = screen.getAllByTestId('title');
 
     // collapse the expanded frame (by default)
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
     userEvent.click(frameTitles[0]);
 
     // all frames are now collapsed
@@ -88,7 +89,9 @@ describe('StackTrace', function () {
     expect(screen.getAllByTestId('toggle-button-collapsed')).toHaveLength(5);
 
     // expand penultimate and last frame
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
     userEvent.click(frameTitles[frameTitles.length - 2]);
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
     userEvent.click(frameTitles[frameTitles.length - 1]);
 
     // two frames are now collapsed
@@ -119,7 +122,9 @@ describe('StackTrace', function () {
     const collapsedToggleButtons = screen.getAllByTestId('toggle-button-collapsed');
 
     // expand penultimate and last frame
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
     userEvent.click(collapsedToggleButtons[collapsedToggleButtons.length - 2]);
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
     userEvent.click(collapsedToggleButtons[collapsedToggleButtons.length - 1]);
 
     // two frames are now collapsed
@@ -149,6 +154,7 @@ describe('StackTrace', function () {
       };
 
       renderedComponent({
+        // @ts-expect-error TS(2322) FIXME: Type '{ hasSystemFrames: boolean; frames: { inApp:... Remove this comment to see the full error message
         data: newData,
         event: {...event, entries: [{...event.entries[0], stacktrace: newData.frames}]},
         includeSystemFrames: false,
@@ -180,6 +186,7 @@ describe('StackTrace', function () {
       };
 
       renderedComponent({
+        // @ts-expect-error TS(2322) FIXME: Type '{ hasSystemFrames: boolean; registers: {}; f... Remove this comment to see the full error message
         data: newData,
         event: {...event, entries: [{...event.entries[0], stacktrace: newData.frames}]},
         includeSystemFrames: false,
@@ -213,6 +220,7 @@ describe('StackTrace', function () {
       };
 
       renderedComponent({
+        // @ts-expect-error TS(2322) FIXME: Type '{ hasSystemFrames: boolean; frames: { inApp:... Remove this comment to see the full error message
         data: newData,
         event: {...event, entries: [{...event.entries[0], stacktrace: newData.frames}]},
         includeSystemFrames: false,

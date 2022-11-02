@@ -25,6 +25,7 @@ export function getCount(
   groups: SessionApiResponse['groups'] = [],
   field: SessionFieldWithOperation
 ) {
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   return groups.reduce((acc, group) => acc + group.totals[field], 0);
 }
 
@@ -33,6 +34,7 @@ export function getCountAtIndex(
   field: SessionFieldWithOperation,
   index: number
 ) {
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   return groups.reduce((acc, group) => acc + group.series[field][index], 0);
 }
 
@@ -67,6 +69,7 @@ export function getSeriesSum(
   const groupSeries = groups.map(group => group.series[field]);
 
   groupSeries.forEach(series => {
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     series.forEach((dataPoint, idx) => (dataPointsSums[idx] += dataPoint));
   });
 
@@ -132,11 +135,13 @@ export function getSessionStatusRateSeries(
   return compact(
     intervals.map((interval, i) => {
       const intervalTotalSessions = groups.reduce(
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         (acc, group) => acc + group.series[field][i],
         0
       );
 
       const intervalStatusSessions =
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         groups.find(group => group.by['session.status'] === status)?.series[field][i] ??
         0;
 
@@ -166,6 +171,7 @@ export function getSessionP50Series(
   return compact(
     intervals.map((interval, i) => {
       const meanValue = mean(
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         groups.map(group => group.series[field][i]).filter(v => !!v)
       );
 
@@ -214,6 +220,7 @@ export function getCountSeries(
 ): SeriesDataUnit[] {
   return intervals.map((interval, index) => ({
     name: interval,
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     value: group?.series[field][index] ?? 0,
   }));
 }
@@ -350,6 +357,7 @@ export function filterSessionsInTimeWindow(
     const totals = {};
     Object.keys(group.series).forEach(field => {
       totals[field] = 0;
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       series[field] = group.series[field].filter((value, index) => {
         const isBetween = filteredIndexes.includes(index);
         if (isBetween) {

@@ -222,19 +222,26 @@ function removeNodesAtLevel(html: string, level: number) {
       for (let i = 0; i < collection.length; i++) {
         const child = collection[i];
 
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         if (child.nodeName === 'STYLE') {
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           child.textContent = '/* Inline CSS */';
         }
 
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         if (child.nodeName === 'svg') {
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           child.innerHTML = '<!-- SVG -->';
         }
 
         if (max <= current) {
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           if (child.childElementCount > 0) {
+            // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
             child.innerHTML = `<!-- ${child.childElementCount} descendents -->`;
           }
         } else {
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           removeChildLevel(max, child.children, current + 1);
         }
       }

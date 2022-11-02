@@ -53,6 +53,7 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
 
   state: State = {
     category: this.props.defaultCategory ?? PLATFORM_CATEGORIES[0].id,
+    // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
     filter: this.props.noAutoFilter ? '' : (this.props.platform || '').split('-')[0],
   };
 

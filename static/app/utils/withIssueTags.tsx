@@ -40,6 +40,7 @@ function withIssueTags<Props extends WithIssueTagsProps>(
     });
 
     const setAssigned = useCallback((newState: Partial<WrappedComponentState>) => {
+      // @ts-expect-error TS(2345) FIXME: Argument of type '(oldState: WrappedComponentState... Remove this comment to see the full error message
       setState(oldState => {
         const usernames: string[] = newState.users
           ? newState.users.map(getUsername)

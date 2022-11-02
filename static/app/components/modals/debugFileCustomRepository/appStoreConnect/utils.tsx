@@ -74,7 +74,9 @@ export function getAppStoreErrorMessage(
       const field = Object.keys(fieldErrorMessage)[0];
 
       const errorMessages: string[] = errorResponse[serverSideField].map(errorMessage => {
+        // @ts-expect-error TS(2538) FIXME: Type 'undefined' cannot be used as an index type.
         if (fieldErrorMessage[field][errorMessage]) {
+          // @ts-expect-error TS(2538) FIXME: Type 'undefined' cannot be used as an index type.
           return fieldErrorMessage[field][errorMessage];
         }
 
@@ -92,6 +94,7 @@ export function getAppStoreErrorMessage(
       });
 
       // the UI only displays one error message at a time
+      // @ts-expect-error TS(2464) FIXME: A computed property name must be of type 'string',... Remove this comment to see the full error message
       return {...acc, [field]: errorMessages[0]};
     },
     {}

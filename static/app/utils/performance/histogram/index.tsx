@@ -42,7 +42,8 @@ class Histogram extends Component<Props> {
 
     const dataFilter = location.query.dataFilter
       ? decodeScalar(location.query.dataFilter)
-      : FILTER_OPTIONS[0].value;
+      : // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
+        FILTER_OPTIONS[0].value;
     return FILTER_OPTIONS.find(item => item.value === dataFilter) || FILTER_OPTIONS[0];
   }
 
@@ -66,6 +67,7 @@ class Histogram extends Component<Props> {
       handleFilterChange: this.handleFilterChange,
       filterOptions: FILTER_OPTIONS,
     };
+    // @ts-expect-error TS(2345) FIXME: Argument of type '{ isZoomed: boolean; handleReset... Remove this comment to see the full error message
     return this.props.children(childrenProps);
   }
 }

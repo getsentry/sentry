@@ -53,15 +53,17 @@ function MetricAlertActivity({organization, incident}: MetricAlertActivityProps)
   const triggeredActivity = criticalActivity.length
     ? criticalActivity[0]
     : warningActivity[0];
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   const currentTrigger = getTriggerName(triggeredActivity.value);
 
   const nextActivity = activities.find(
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     ({previousValue}) => previousValue === triggeredActivity.value
   );
 
-  const activityDuration = (
-    nextActivity ? moment(nextActivity.dateCreated) : moment()
-  ).diff(moment(triggeredActivity.dateCreated), 'milliseconds');
+  const activityDuration = (nextActivity ? moment(nextActivity.dateCreated) : moment())
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
+    .diff(moment(triggeredActivity.dateCreated), 'milliseconds');
 
   const threshold =
     activityDuration !== null &&

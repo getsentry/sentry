@@ -117,6 +117,7 @@ function Chart({
             formatter(value: number) {
               return axisLabelFormatter(
                 value,
+                // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
                 aggregateOutputType(data[0].seriesName),
                 undefined,
                 durationUnit
@@ -136,6 +137,7 @@ function Chart({
             formatter(value: number) {
               return axisLabelFormatter(
                 value,
+                // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
                 aggregateOutputType(data[0].seriesName),
                 undefined,
                 durationUnit
@@ -153,6 +155,7 @@ function Chart({
             formatter(value: number) {
               return axisLabelFormatter(
                 value,
+                // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
                 aggregateOutputType(data[1].seriesName),
                 undefined,
                 durationUnit
@@ -200,6 +203,7 @@ function Chart({
       valueFormatter: (value, seriesName) => {
         return tooltipFormatter(
           value,
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           aggregateOutputType(data && data.length ? data[0].seriesName : seriesName)
         );
       },

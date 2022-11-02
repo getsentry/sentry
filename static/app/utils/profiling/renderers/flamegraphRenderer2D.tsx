@@ -8,7 +8,9 @@ import {Rect} from 'sentry/utils/profiling/gl/utils';
 
 // Convert color component from 0-1 to 0-255 range
 function colorComponentsToRgba(color: number[]): string {
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   return `rgba(${Math.floor(color[0] * 255)}, ${Math.floor(color[1] * 255)}, ${Math.floor(
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     color[2] * 255
   )}, ${color[3] ?? 1})`;
 }
@@ -95,6 +97,7 @@ export class FlamegraphRenderer2d {
       );
 
       for (let i = 0; i < frame.children.length; i++) {
+        // @ts-expect-error TS(2345) FIXME: Argument of type 'FlamegraphFrame | undefined' is ... Remove this comment to see the full error message
         queue.push(frame.children[i]);
       }
     }

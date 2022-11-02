@@ -157,6 +157,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       const fieldAliases = widget.queries[i]?.fieldAliases ?? [];
       const eventView = eventViewFromWidget(
         widget.title,
+        // @ts-expect-error TS(2345) FIXME: Argument of type 'WidgetQuery | undefined' is not ... Remove this comment to see the full error message
         widget.queries[0],
         selection,
         widget.displayType
@@ -212,8 +213,10 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       const field = fields[0];
 
       // Change tableMeta for the field from integer to string since we will be rendering with toLocaleString
+      // @ts-expect-error TS(2538) FIXME: Type 'undefined' cannot be used as an index type.
       const shouldExpandInteger = !!expandNumbers && tableMeta[field] === 'integer';
       if (shouldExpandInteger) {
+        // @ts-expect-error TS(2538) FIXME: Type 'undefined' cannot be used as an index type.
         tableMeta[field] = 'string';
       }
 
@@ -226,6 +229,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
 
       const unit = tableMeta.units?.[field];
       const rendered = fieldRenderer(
+        // @ts-expect-error TS(2345) FIXME: Argument of type 'TableDataRow | { [x: string]: st... Remove this comment to see the full error message
         shouldExpandInteger ? {[field]: dataRow[field].toLocaleString()} : dataRow,
         {location, organization, unit}
       );
@@ -262,6 +266,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
 
   chartComponent(chartProps): React.ReactNode {
     const {widget} = this.props;
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     const stacked = widget.queries[0]?.columns.length > 0;
 
     switch (widget.displayType) {
@@ -425,6 +430,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
                 new Set(Object.values(timeseriesResultsTypes)).size === 1
                   ? timeseriesResultsTypes[axisLabel]
                   : 'number';
+              // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
               return axisLabelFormatterUsingAggregateOutputType(value, outputType);
             }
             return axisLabelFormatter(value, aggregateOutputType(axisLabel));

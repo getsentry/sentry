@@ -36,6 +36,7 @@ export class JSSelfProfile extends Profile {
       );
     }
 
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     const startedAt = profile.samples[0].timestamp;
     const endedAt = lastOfArray(profile.samples).timestamp;
 
@@ -54,8 +55,10 @@ export class JSSelfProfile extends Profile {
     jsSelfProfile.appendSample(
       resolveJSSelfProfilingStack(
         profile,
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         profile.samples[0].stackId,
         frameIndex,
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         profile.samples[0].marker
       ),
       0
@@ -67,25 +70,32 @@ export class JSSelfProfile extends Profile {
       // When gc is triggered, the stack may be indicated as empty. In that case, the thread was not idle
       // and we should append gc to the top of the previous stack.
       // https://github.com/WICG/js-self-profiling/issues/59
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       if (profile.samples[i].marker === 'gc') {
         jsSelfProfile.appendSample(
           resolveJSSelfProfilingStack(
             profile,
             // use the previous sample
+            // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
             profile.samples[i - 1].stackId,
             frameIndex,
+            // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
             profile.samples[i].marker
           ),
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           profile.samples[i].timestamp - profile.samples[i - 1].timestamp
         );
       } else {
         jsSelfProfile.appendSample(
           resolveJSSelfProfilingStack(
             profile,
+            // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
             profile.samples[i].stackId,
             frameIndex,
+            // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
             profile.samples[i].marker
           ),
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           profile.samples[i].timestamp - profile.samples[i - 1].timestamp
         );
       }
@@ -119,9 +129,12 @@ export class JSSelfProfile extends Profile {
       let stackHeight = framesInStack.length - 1;
 
       while (stackHeight >= 0) {
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         if (framesInStack[stackHeight].frame === node.frame) {
           // The recursion edge is bidirectional
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           framesInStack[stackHeight].setRecursiveThroughNode(node);
+          // @ts-expect-error TS(2345) FIXME: Argument of type 'CallTreeNode | undefined' is not... Remove this comment to see the full error message
           node.setRecursiveThroughNode(framesInStack[stackHeight]);
           break;
         }

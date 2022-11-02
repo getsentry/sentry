@@ -115,9 +115,11 @@ function Onboarding(props: Props) {
   const goNextStep = (step: StepDescriptor) => {
     const currentStepIndex = onboardingSteps.findIndex(s => s.id === step.id);
     const nextStep = onboardingSteps[currentStepIndex + 1];
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     if (step.cornerVariant !== nextStep.cornerVariant) {
       cornerVariantControl.start('none');
     }
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     browserHistory.push(`/onboarding/${props.params.orgId}/${nextStep.id}/`);
   };
 
@@ -162,6 +164,7 @@ function Onboarding(props: Props) {
   };
 
   if (!stepObj || stepIndex === -1) {
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     return <Redirect to={`/onboarding/${organization.slug}/${onboardingSteps[0].id}/`} />;
   }
   return (
@@ -173,6 +176,7 @@ function Onboarding(props: Props) {
           <StyledStepper
             numSteps={onboardingSteps.length}
             currentStepIndex={stepIndex}
+            // @ts-expect-error TS(2345) FIXME: Argument of type 'StepDescriptor | undefined' is n... Remove this comment to see the full error message
             onClick={i => goToStep(onboardingSteps[i])}
           />
         )}

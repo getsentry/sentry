@@ -372,6 +372,7 @@ function Sidebar({location, organization}: Props) {
 
           <SidebarSection>
             {HookStore.get('sidebar:bottom-items').length > 0 &&
+              // @ts-expect-error TS(2722) FIXME: Cannot invoke an object which is possibly 'undefin... Remove this comment to see the full error message
               HookStore.get('sidebar:bottom-items')[0]({
                 orientation,
                 collapsed,

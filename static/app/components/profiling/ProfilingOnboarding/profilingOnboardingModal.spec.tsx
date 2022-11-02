@@ -19,6 +19,7 @@ function selectProject(project: Project) {
     throw new Error(`Selected project requires a name, received ${project.slug}`);
   }
 
+  // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
   userEvent.click(screen.getAllByRole('textbox')[0]);
   userEvent.click(screen.getByText(project.slug));
 }
@@ -71,11 +72,13 @@ describe('ProfilingOnboarding', function () {
     selectProject(project);
     await act(async () => {
       await screen.findByText(/options\.dsn/);
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
       userEvent.click(screen.getAllByText('Next')[0]);
     });
     expect(screen.getByText(/Step 2 of 2/i)).toBeInTheDocument();
 
     act(() => {
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
       userEvent.click(screen.getAllByText('Back')[0]);
     });
     expect(screen.getByText(/Select a Project/i)).toBeInTheDocument();
@@ -99,6 +102,7 @@ describe('ProfilingOnboarding', function () {
       <ProfilingOnboardingModal organization={organization} {...MockRenderModalProps} />
     );
     selectProject(TestStubs.Project({name: 'javascript'}));
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
     userEvent.click(screen.getAllByText('Next')[0]);
 
     expect(screen.getByRole('button', {name: /Next/i})).toBeDisabled();

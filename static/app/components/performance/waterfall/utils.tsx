@@ -230,12 +230,17 @@ const getLetterIndex = (letter: string): number => {
   return index === -1 ? 0 : index;
 };
 
+// @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
 const colorsAsArray = Object.keys(CHART_PALETTE).map(key => CHART_PALETTE[17][key]);
 
 export const barColors = {
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   default: CHART_PALETTE[17][4],
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   transaction: CHART_PALETTE[17][8],
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   http: CHART_PALETTE[17][10],
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   db: CHART_PALETTE[17][17],
 };
 
@@ -244,6 +249,7 @@ export const pickBarColor = (input: string | undefined): string => {
   // That way colors stay consistent between transactions.
 
   if (!input || input.length < 3) {
+    // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
     return CHART_PALETTE[17][4];
   }
 

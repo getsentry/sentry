@@ -57,6 +57,7 @@ describe('NotificationSettings', function () {
       ...SELF_NOTIFICATION_SETTINGS_TYPES,
     ].forEach(field => {
       expect(
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         screen.getByText(String(NOTIFICATION_SETTING_FIELDS[field].label))
       ).toBeInTheDocument();
     });
@@ -97,6 +98,7 @@ describe('NotificationSettings', function () {
       ...SELF_NOTIFICATION_SETTINGS_TYPES,
     ].forEach(field => {
       expect(
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         screen.getByText(String(NOTIFICATION_SETTING_FIELDS[field].label))
       ).toBeInTheDocument();
     });
@@ -139,6 +141,7 @@ describe('NotificationSettings', function () {
         return;
       }
       expect(
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         screen.getByText(String(NOTIFICATION_SETTING_FIELDS[field].label))
       ).toBeInTheDocument();
     });

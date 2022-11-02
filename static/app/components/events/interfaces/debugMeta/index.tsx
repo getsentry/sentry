@@ -179,6 +179,7 @@ class DebugMetaWithRouter extends PureComponent<Props, State> {
       const needle = parseAddress(searchTerm);
       if (needle > 0 && image.image_addr !== '0x0') {
         const [startAddress, endAddress] = getImageRange(image as any); // TODO(PRISCILA): remove any
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         return needle >= startAddress && needle < endAddress;
       }
     }
@@ -324,6 +325,7 @@ class DebugMetaWithRouter extends PureComponent<Props, State> {
     const filteredImages = [...usedImages, ...unusedImages];
 
     const filterOptions = this.getFilterOptions(filteredImages);
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     const defaultFilterSelections = (filterOptions[0].options ?? []).filter(
       opt => opt.value !== ImageStatus.UNUSED
     );
@@ -436,6 +438,7 @@ class DebugMetaWithRouter extends PureComponent<Props, State> {
       >
         <DebugImage
           style={style}
+          // @ts-expect-error TS(2322) FIXME: Type '(Image & { status: ImageStatus; }) | undefin... Remove this comment to see the full error message
           image={images[index]}
           onOpenImageDetailsModal={this.handleOpenImageDetailsModal}
         />

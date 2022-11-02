@@ -438,6 +438,7 @@ class ApiSource extends Component<Props, State> {
         sentryApps,
         docIntegrations,
       ]),
+      // @ts-expect-error TS(2322) FIXME: Type 'Promise<Result | null> | undefined' is not a... Remove this comment to see the full error message
       this.getDirectResults([shortIdLookup, eventIdLookup]),
     ]);
 
@@ -493,7 +494,9 @@ class ApiSource extends Component<Props, State> {
 
     const directResults = (
       await Promise.all([
+        // @ts-expect-error TS(2345) FIXME: Argument of type 'Promise<any> | undefined' is not... Remove this comment to see the full error message
         createShortIdLookupResult(shortIdLookup),
+        // @ts-expect-error TS(2345) FIXME: Argument of type 'Promise<any> | undefined' is not... Remove this comment to see the full error message
         createEventIdLookupResult(eventIdLookup),
       ])
     ).filter(defined);

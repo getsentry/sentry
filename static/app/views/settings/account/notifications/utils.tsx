@@ -31,6 +31,7 @@ export const groupByOrganization = (
   >((acc, project) => {
     const orgSlug = project.organization.slug;
     if (acc.hasOwnProperty(orgSlug)) {
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       acc[orgSlug].projects.push(project);
     } else {
       acc[orgSlug] = {
@@ -68,6 +69,7 @@ export const getChoiceString = (choices: string[][], key: string): string => {
     throw new Error(`Could not find ${key}`);
   }
 
+  // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
   return found[1];
 };
 
@@ -177,7 +179,8 @@ export const getCurrentDefault = (
 ): string => {
   const providersList = getCurrentProviders(notificationType, notificationSettings);
   return providersList.length
-    ? getUserDefaultValues(notificationType, notificationSettings)[providersList[0]]
+    ? // @ts-expect-error TS(2538) FIXME: Type 'undefined' cannot be used as an index type.
+      getUserDefaultValues(notificationType, notificationSettings)[providersList[0]]
     : 'never';
 };
 
@@ -261,6 +264,7 @@ export const getParentData = (
   return Object.fromEntries(
     parents.map(parent => [
       parent.id,
+      // @ts-expect-error TS(2538) FIXME: Type 'undefined' cannot be used as an index type.
       getParentValues(notificationType, notificationSettings, parent.id)[provider],
     ])
   );
@@ -304,6 +308,7 @@ export const getStateToPutForProvider = (
 
   return {
     [notificationType]: Object.fromEntries(
+      // @ts-expect-error TS(2769) FIXME: No overload matches this call.
       Object.entries(notificationSettings[notificationType]).map(
         ([scopeType, scopeTypeData]) => [
           scopeType,
@@ -351,6 +356,7 @@ export const getStateToPutForDefault = (
   };
 
   if (newValue === 'never') {
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     updatedNotificationSettings[notificationType][getParentKey(notificationType)] =
       Object.fromEntries(
         parentIds.map(parentId => [
@@ -360,6 +366,7 @@ export const getStateToPutForDefault = (
       );
   }
 
+  // @ts-expect-error TS(2322) FIXME: Type '{ [x: string]: { user: { me: { [k: string]: ... Remove this comment to see the full error message
   return updatedNotificationSettings;
 };
 
@@ -375,6 +382,7 @@ export const getStateToPutForParent = (
   const providerList = getCurrentProviders(notificationType, notificationSettings);
   const newValue = Object.values(changedData)[0];
 
+  // @ts-expect-error TS(2322) FIXME: Type '{ [x: string]: { [x: string]: { [x: string]:... Remove this comment to see the full error message
   return {
     [notificationType]: {
       [getParentKey(notificationType)]: {
@@ -400,6 +408,7 @@ export const getParentField = (
 ): FieldObject => {
   const defaultFields = NOTIFICATION_SETTING_FIELDS[notificationType];
 
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   let choices = defaultFields.choices;
   if (Array.isArray(choices)) {
     choices = choices.concat([

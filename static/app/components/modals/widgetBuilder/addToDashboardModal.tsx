@@ -148,7 +148,9 @@ function AddToDashboardModal({
       return;
     }
 
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     let orderby = widget.queries[0].orderby;
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     if (!(DisplayType.AREA && widget.queries[0].columns.length)) {
       orderby = ''; // Clear orderby if its not a top n visualization.
     }
@@ -166,6 +168,7 @@ function AddToDashboardModal({
         widgets: [...selectedDashboard.widgets, newWidget],
       };
 
+      // @ts-expect-error TS(2345) FIXME: Argument of type '{ widgets: { title: string; quer... Remove this comment to see the full error message
       await updateDashboard(api, organization.slug, newDashboard);
 
       closeModal();
@@ -228,6 +231,7 @@ function AddToDashboardModal({
             organization={organization}
             eventView={eventViewFromWidget(
               widget.title,
+              // @ts-expect-error TS(2345) FIXME: Argument of type 'WidgetQuery | undefined' is not ... Remove this comment to see the full error message
               widget.queries[0],
               selection,
               widget.displayType

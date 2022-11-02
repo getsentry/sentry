@@ -174,6 +174,7 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
   setEmails(emails: string[], index: number) {
     this.setState(state => {
       const pendingInvites = [...state.pendingInvites];
+      // @ts-expect-error TS(2322) FIXME: Type '{ emails: Set<string>; role?: string | undef... Remove this comment to see the full error message
       pendingInvites[index] = {...pendingInvites[index], emails: new Set(emails)};
 
       return {pendingInvites};
@@ -183,6 +184,7 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
   setTeams(teams: string[], index: number) {
     this.setState(state => {
       const pendingInvites = [...state.pendingInvites];
+      // @ts-expect-error TS(2322) FIXME: Type '{ teams: Set<string>; emails?: Set<string> |... Remove this comment to see the full error message
       pendingInvites[index] = {...pendingInvites[index], teams: new Set(teams)};
 
       return {pendingInvites};
@@ -192,6 +194,7 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
   setRole(role: string, index: number) {
     this.setState(state => {
       const pendingInvites = [...state.pendingInvites];
+      // @ts-expect-error TS(2322) FIXME: Type '{ role: string; emails?: Set<string> | undef... Remove this comment to see the full error message
       pendingInvites[index] = {...pendingInvites[index], role};
 
       return {pendingInvites};

@@ -9,6 +9,7 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 const DEFAULT_ENDPOINT = 'https://sentry.example.com/api/security-report/';
 
 export function getSecurityDsn(keyList: ProjectKey[]) {
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   const endpoint = keyList.length ? keyList[0].dsn.security : DEFAULT_ENDPOINT;
   return getDynamicText({
     value: endpoint,

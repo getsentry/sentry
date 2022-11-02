@@ -30,6 +30,7 @@ function assertImmutability(baseNode: FlamegraphFrame, newNode: FlamegraphFrame)
       map.set(n.key, n);
 
       for (let i = 0; i < n.children.length; i++) {
+        // @ts-expect-error TS(2345) FIXME: Argument of type 'FlamegraphFrame | undefined' is ... Remove this comment to see the full error message
         stack.push(n.children[i]);
       }
     }
@@ -80,6 +81,7 @@ describe('filterFlamegraphTree', () => {
 
     const result = filterFlamegraphTree([root], skipFn);
     expect(result).toEqual([{...child1, parent: null}]);
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'FlamegraphFrame | undefined' is ... Remove this comment to see the full error message
     assertImmutability(root, result[0]);
   });
 
@@ -108,6 +110,7 @@ describe('filterFlamegraphTree', () => {
     const result = filterFlamegraphTree([root], skipFn);
     expect(result[0].children.map(c => c.key)).toEqual([1, 2]);
 
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'FlamegraphFrame | undefined' is ... Remove this comment to see the full error message
     assertImmutability(root, result[0]);
   });
 
@@ -141,6 +144,7 @@ describe('filterFlamegraphTree', () => {
     expect(result[0].key).toBe(0);
     expect(result[0].children[0].key).toBe(2);
 
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'FlamegraphFrame | undefined' is ... Remove this comment to see the full error message
     assertImmutability(root, result[0]);
   });
 
@@ -175,6 +179,7 @@ describe('filterFlamegraphTree', () => {
     expect(result[0].children[0].key).toBe(1);
     expect(result[0].children[0].children[0].key).toBe(2);
 
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'FlamegraphFrame | undefined' is ... Remove this comment to see the full error message
     assertImmutability(root, result[0]);
   });
 
@@ -215,6 +220,7 @@ describe('filterFlamegraphTree', () => {
     expect(result[0].children[0].children[0].key).toBe(3);
     expect(result[0].children[0].children[1].key).toBe(2);
 
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'FlamegraphFrame | undefined' is ... Remove this comment to see the full error message
     assertImmutability(root, result[0]);
   });
 });

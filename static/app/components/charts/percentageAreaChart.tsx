@@ -40,8 +40,10 @@ export default class PercentageAreaChart extends Component<Props> {
     const {series, getDataItemName, getValue} = this.props;
 
     const totalsArray: [string | number, number][] = series.length
-      ? series[0].data.map(({name}, i) => [
+      ? // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
+        series[0].data.map(({name}, i) => [
           name,
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           series.reduce((sum, {data}) => sum + data[i].value, 0),
         ])
       : [];

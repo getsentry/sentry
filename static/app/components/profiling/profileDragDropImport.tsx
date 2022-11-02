@@ -28,6 +28,7 @@ function ProfileDragDropImport({
       evt.preventDefault();
       evt.stopPropagation();
 
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       const file = evt.dataTransfer.items[0].getAsFile();
 
       if (file) {

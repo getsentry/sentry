@@ -798,8 +798,10 @@ class EventView {
         // their old widths.
         const existing = newEventView.fields[i];
         const width =
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           existing.field === field && existing.width !== undefined
-            ? existing.width
+            ? // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
+              existing.width
             : COL_WIDTH_UNDEFINED;
         return {field, width};
       });
@@ -867,6 +869,7 @@ class EventView {
     const columnToBeUpdated = this.fields[columnIndex];
     const fieldAsString = generateFieldAsString(updatedColumn);
 
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     const updateField = columnToBeUpdated.field !== fieldAsString;
     if (!updateField) {
       return this;
@@ -890,6 +893,7 @@ class EventView {
     // if the updated column is one of the sorted columns, we may need to remove
     // it from the list of sorts
     const needleSortIndex = this.sorts.findIndex(sort =>
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'Field | undefined' is not assign... Remove this comment to see the full error message
       isSortEqualToField(sort, columnToBeUpdated, tableMeta)
     );
 
@@ -897,6 +901,7 @@ class EventView {
       const needleSort = this.sorts[needleSortIndex];
 
       const numOfColumns = this.fields.reduce((sum, currentField) => {
+        // @ts-expect-error TS(2345) FIXME: Argument of type 'Sort | undefined' is not assigna... Remove this comment to see the full error message
         if (isSortEqualToField(needleSort, currentField, tableMeta)) {
           return sum + 1;
         }
@@ -912,6 +917,7 @@ class EventView {
           const sort = fieldToSort(updatedField, tableMeta)!;
 
           // preserve the sort kind
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           sort.kind = needleSort.kind;
 
           const sorts = [...newEventView.sorts];
@@ -932,6 +938,7 @@ class EventView {
           const sort = fieldToSort(updatedField, tableMeta)!;
 
           // preserve the sort kind
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           sort.kind = needleSort.kind;
 
           newEventView.sorts = [sort];
@@ -941,6 +948,7 @@ class EventView {
           );
           if (sortableFieldIndex >= 0) {
             const fieldToBeSorted = newEventView.fields[sortableFieldIndex];
+            // @ts-expect-error TS(2345) FIXME: Argument of type 'Field | undefined' is not assign... Remove this comment to see the full error message
             const sort = fieldToSort(fieldToBeSorted, tableMeta)!;
             newEventView.sorts = [sort];
           }
@@ -972,6 +980,7 @@ class EventView {
     // To ensure a well formed table results.
     const hasAutoIndex = fields.find(field => field.width === COL_WIDTH_UNDEFINED);
     if (!hasAutoIndex) {
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       newEventView.fields[0].width = COL_WIDTH_UNDEFINED;
     }
 
@@ -979,6 +988,7 @@ class EventView {
     // it from the list of sorts
     const columnToBeDeleted = this.fields[columnIndex];
     const needleSortIndex = this.sorts.findIndex(sort =>
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'Field | undefined' is not assign... Remove this comment to see the full error message
       isSortEqualToField(sort, columnToBeDeleted, tableMeta)
     );
 
@@ -986,6 +996,7 @@ class EventView {
       const needleSort = this.sorts[needleSortIndex];
 
       const numOfColumns = this.fields.reduce((sum, field) => {
+        // @ts-expect-error TS(2345) FIXME: Argument of type 'Sort | undefined' is not assigna... Remove this comment to see the full error message
         if (isSortEqualToField(needleSort, field, tableMeta)) {
           return sum + 1;
         }
@@ -1008,6 +1019,7 @@ class EventView {
 
           if (sortableFieldIndex >= 0) {
             const fieldToBeSorted = newEventView.fields[sortableFieldIndex];
+            // @ts-expect-error TS(2345) FIXME: Argument of type 'Field | undefined' is not assign... Remove this comment to see the full error message
             const sort = fieldToSort(fieldToBeSorted, tableMeta)!;
             newEventView.sorts = [sort];
           }
@@ -1134,7 +1146,8 @@ class EventView {
         ? undefined
         : this.sorts.length > 1
         ? encodeSorts(this.sorts)
-        : encodeSort(this.sorts[0]);
+        : // @ts-expect-error TS(2345) FIXME: Argument of type 'Sort | undefined' is not assigna... Remove this comment to see the full error message
+          encodeSort(this.sorts[0]);
     const fields = this.getFields();
     const team = this.team.map(proj => String(proj));
     const project = this.project.map(proj => String(proj));
@@ -1257,10 +1270,12 @@ class EventView {
       const sorts = [...newEventView.sorts];
       sorts[needleIndex] = kind
         ? setSortOrder(
+            // @ts-expect-error TS(2345) FIXME: Argument of type '{ field?: string | undefined; ki... Remove this comment to see the full error message
             {...currentSort, ...(useFunctionFormat ? {field: field.field} : {})},
             kind
           )
-        : reverseSort({
+        : // @ts-expect-error TS(2345) FIXME: Argument of type '{ field?: string | undefined; ki... Remove this comment to see the full error message
+          reverseSort({
             ...currentSort,
             ...(useFunctionFormat ? {field: field.field} : {}),
           });
@@ -1304,6 +1319,7 @@ class EventView {
     const yAxisOptions = this.getYAxisOptions();
 
     const yAxis = this.yAxis;
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     const defaultOption = yAxisOptions[0].value;
 
     if (!yAxis) {

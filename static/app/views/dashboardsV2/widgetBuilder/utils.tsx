@@ -170,8 +170,10 @@ export function normalizeQueries({
 
     const queryOrderBy =
       widgetType === WidgetType.RELEASE
-        ? stripDerivedMetricsPrefix(queries[0].orderby)
-        : queries[0].orderby;
+        ? // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
+          stripDerivedMetricsPrefix(queries[0].orderby)
+        : // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
+          queries[0].orderby;
     const rawOrderBy = trimStart(queryOrderBy, '-');
 
     const resetOrderBy =
@@ -189,9 +191,12 @@ export function normalizeQueries({
       (!resetOrderBy && trimStart(queryOrderBy, '-')) ||
       (widgetType === WidgetType.ISSUE
         ? queryOrderBy ?? IssueSortOptions.DATE
-        : generateOrderOptions({
+        : // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
+          generateOrderOptions({
             widgetType: widgetType ?? WidgetType.DISCOVER,
+            // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
             columns: queries[0].columns,
+            // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
             aggregates: queries[0].aggregates,
           })[0].value);
 
@@ -238,6 +243,7 @@ export function normalizeQueries({
   if (isTimeseriesChart) {
     // For timeseries widget, all queries must share identical set of fields.
 
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     const referenceAggregates = [...queries[0].aggregates];
 
     queryLoop: for (const query of queries) {

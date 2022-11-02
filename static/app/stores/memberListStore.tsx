@@ -43,6 +43,7 @@ const storeConfig: MemberListStoreDefinition = {
 
     id = '' + id;
     for (let i = 0; i < this.state.length; i++) {
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       if (this.state[i].id === id) {
         return this.state[i];
       }

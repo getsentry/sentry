@@ -260,6 +260,7 @@ class GroupDetails extends Component<Props, State> {
       currentTab = Tab.TAGS;
     } else {
       currentTab =
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         Object.values(Tab).find(tab => currentRoute.path === TabPaths[tab]) ??
         Tab.DETAILS;
     }
@@ -713,6 +714,7 @@ class GroupDetails extends Component<Props, State> {
               <StyledLoadingError message={t('Error loading the specified project')} />
             ) : (
               // TODO(ts): Update renderContent function to deal with empty group
+              // @ts-expect-error TS(2345) FIXME: Argument of type 'AvatarProject | Project | undefi... Remove this comment to see the full error message
               this.renderContent(projects[0], group!)
             )
           ) : (

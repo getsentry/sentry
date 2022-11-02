@@ -251,18 +251,24 @@ export class Flamegraph {
     if (typeof frameOrName === 'string') {
       for (let i = 0; i < this.frames.length; i++) {
         if (
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           this.frames[i].frame.name === frameOrName &&
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           this.frames[i].frame.image === packageName
         ) {
+          // @ts-expect-error TS(2345) FIXME: Argument of type 'FlamegraphFrame | undefined' is ... Remove this comment to see the full error message
           matches.push(this.frames[i]);
         }
       }
     } else {
       for (let i = 0; i < this.frames.length; i++) {
         if (
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           this.frames[i].frame.name === frameOrName.node.frame.name &&
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           this.frames[i].frame.image === frameOrName.node.frame.image
         ) {
+          // @ts-expect-error TS(2345) FIXME: Argument of type 'FlamegraphFrame | undefined' is ... Remove this comment to see the full error message
           matches.push(this.frames[i]);
         }
       }

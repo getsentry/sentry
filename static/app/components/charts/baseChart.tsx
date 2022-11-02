@@ -365,6 +365,7 @@ function BaseChartUnwrapped({
     resolveColors ||
     (series.length ? theme.charts.getColorPalette(series.length) : theme.charts.colors);
   const previousPeriodColors =
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'string[] | undefined' is not ass... Remove this comment to see the full error message
     previousPeriod && previousPeriod.length > 1 ? lightenHexToRgb(color) : undefined;
 
   const transformedSeries =
@@ -468,8 +469,10 @@ function BaseChartUnwrapped({
     : [XAxis(defaultAxesProps), XAxis(defaultAxesProps)];
 
   const seriesData =
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     Array.isArray(series?.[0]?.data) && series[0].data.length > 1
-      ? series[0].data
+      ? // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
+        series[0].data
       : undefined;
   const bucketSize = seriesData ? seriesData[1][0] - seriesData[0][0] : undefined;
 

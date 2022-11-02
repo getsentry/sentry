@@ -765,9 +765,11 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
         widget={{
           ...singleQueryWidget,
           queries: [
+            // @ts-expect-error TS(2769) FIXME: No overload matches this call.
             {
               ...singleQueryWidget.queries[0],
               name: 'New Legend Alias',
+              // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
               fields: [...singleQueryWidget.queries[0].fields, ''],
             },
           ],

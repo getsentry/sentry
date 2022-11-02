@@ -25,6 +25,7 @@ function getCurrentUrl(
   ) as BreadcrumbTypeNavigation[];
 
   const initialUrl = replayRecord.urls[0];
+  // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
   const origin = parseUrl(initialUrl)?.origin || initialUrl;
 
   const mostRecentNavigation = last(

@@ -58,6 +58,7 @@ export default function CreateProjectsFooter({
         platforms
           .filter(platform => !persistedOnboardingState.platformToProjectIdMap[platform])
           .map(platform =>
+            // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
             createProject(api, organization.slug, teams[0].slug, platform, platform, {
               defaultRules: false,
             })

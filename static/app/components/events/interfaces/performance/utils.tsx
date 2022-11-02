@@ -93,7 +93,9 @@ export function getSpanInfoFromTransactionEvent(
   }
   const spansById = keyBy(spans, 'span_id');
 
+  // @ts-expect-error TS(2538) FIXME: Type 'undefined' cannot be used as an index type.
   const parentSpan = spansById[event.perfProblem.parentSpanIds[0]];
+  // @ts-expect-error TS(2538) FIXME: Type 'undefined' cannot be used as an index type.
   const repeatingSpan = spansById[event.perfProblem.offenderSpanIds[0]];
 
   const affectedSpanIds = [parentSpan.span_id, ...event.perfProblem.offenderSpanIds];

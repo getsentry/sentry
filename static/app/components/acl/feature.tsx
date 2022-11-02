@@ -132,10 +132,12 @@ class Feature extends Component<Props> {
     }
 
     if (shouldMatchOnlyProject) {
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
       return project.includes(shouldMatchOnlyProject[1]);
     }
 
     if (shouldMatchOnlyOrg) {
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
       return organization.includes(shouldMatchOnlyOrg[1]);
     }
 
@@ -173,6 +175,7 @@ class Feature extends Component<Props> {
       const hooks = HookStore.get(hookName);
 
       if (hooks.length > 0) {
+        // @ts-expect-error TS(2322) FIXME: Type 'FeatureDisabledHook | undefined' is not assi... Remove this comment to see the full error message
         customDisabledRender = hooks[0];
       }
     }
@@ -184,6 +187,7 @@ class Feature extends Component<Props> {
     };
 
     if (!hasFeature && customDisabledRender !== false) {
+      // @ts-expect-error TS(2349) FIXME: This expression is not callable.
       return customDisabledRender({children, ...renderProps});
     }
 

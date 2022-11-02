@@ -132,12 +132,14 @@ class Settings extends AsyncView<Props, State> {
           <JsonForm
             disabled={!canEditRule}
             title={t('Email Settings')}
+            // @ts-expect-error TS(2322) FIXME: Type 'Field | undefined' is not assignable to type... Remove this comment to see the full error message
             fields={[fields.subjectTemplate]}
           />
 
           <JsonForm
             title={t('Digests')}
             disabled={!canEditRule}
+            // @ts-expect-error TS(2322) FIXME: Type 'Field | undefined' is not assignable to type... Remove this comment to see the full error message
             fields={[fields.digestsMinDelay, fields.digestsMaxDelay]}
             renderHeader={() => (
               <PanelAlert type="info">

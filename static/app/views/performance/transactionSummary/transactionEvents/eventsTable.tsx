@@ -458,6 +458,7 @@ class EventsTable extends Component<Props, State> {
                   })
                 : undefined;
             if (shouldFetchAttachments) {
+              // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
               fetchAttachments(tableData, cursor);
             }
             joinCustomData(tableData);

@@ -79,6 +79,7 @@ export function DraggableRuleList({
             index={index}
             renderItem={renderItem}
             disabled={
+              // @ts-expect-error TS(2345) FIXME: Argument of type '{ id: number; active?: boolean |... Remove this comment to see the full error message
               disabled || isUniformRule({...items[index], id: Number(items[index].id)})
             }
             wrapperStyle={wrapperStyle}

@@ -329,6 +329,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                     undefined &&
                   nextSelectedProject.teams.length
                 ) {
+                  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
                   model.setValue('owner', `team:${nextSelectedProject.teams[0].id}`);
                 }
                 onChange(value, {});

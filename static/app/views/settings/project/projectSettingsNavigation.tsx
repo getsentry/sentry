@@ -16,6 +16,7 @@ const ProjectSettingsNavigation = ({organization, project}: Props) => {
 
   const debugFilesNeedsReview = appStoreConnectContext
     ? Object.keys(appStoreConnectContext).some(
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         key => appStoreConnectContext[key].credentials.status === 'invalid'
       )
     : false;

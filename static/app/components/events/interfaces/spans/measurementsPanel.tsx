@@ -40,6 +40,7 @@ function MeasurementsPanel(props: Props) {
     >
       {Array.from(measurements.values()).map(verticalMark => {
         const mark = Object.values(verticalMark.marks)[0];
+        // @ts-expect-error TS(2339) FIXME: Property 'timestamp' does not exist on type '{ fai... Remove this comment to see the full error message
         const {timestamp} = mark;
         const bounds = getMeasurementBounds(timestamp, generateBounds);
 
@@ -51,6 +52,7 @@ function MeasurementsPanel(props: Props) {
 
         const vitalLabels: VitalLabel[] = Object.keys(verticalMark.marks).map(name => ({
           vital: WEB_VITAL_DETAILS[`measurements.${name}`],
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           isPoorValue: verticalMark.marks[name].failedThreshold,
         }));
 
@@ -68,6 +70,7 @@ function MeasurementsPanel(props: Props) {
           <LabelContainer
             key={String(timestamp)}
             left={toPercent(bounds.left || 0)}
+            // @ts-expect-error TS(2769) FIXME: No overload matches this call.
             vitalLabel={vitalLabels[0]}
           />
         );

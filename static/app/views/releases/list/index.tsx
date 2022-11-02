@@ -482,6 +482,7 @@ class ReleasesList extends AsyncView<Props, State> {
 
               {releases.map((release, index) => (
                 <ReleaseCard
+                  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
                   key={`${release.version}-${release.projects[0].slug}`}
                   activeDisplay={activeDisplay}
                   release={release}

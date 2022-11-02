@@ -96,6 +96,7 @@ function QueryResultSaver<T extends WidgetDataConstraint>(
 
   useEffect(() => {
     const isMetricsData =
+      // @ts-expect-error TS(2538) FIXME: Type 'undefined' cannot be used as an index type.
       results?.seriesAdditionalInfo?.[props.queryProps.fields[0]]?.isMetricsData ??
       results?.histograms?.meta?.isMetricsData ??
       results?.tableData?.meta?.isMetricsData;

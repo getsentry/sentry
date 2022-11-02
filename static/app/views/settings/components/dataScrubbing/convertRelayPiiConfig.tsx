@@ -14,6 +14,7 @@ export function convertRelayPiiConfig(relayPiiConfig?: string): Rule[] {
   const convertedRules: Array<Rule> = [];
 
   for (const application in applications) {
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     for (const rule of applications[application]) {
       const resolvedRule = rules[rule];
       const id = convertedRules.length;

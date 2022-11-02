@@ -248,6 +248,7 @@ class Table extends Component<Props, State> {
       : undefined;
     if (tableMeta) {
       Object.keys(tableMeta).forEach(key => {
+        // @ts-expect-error TS(2322) FIXME: Type '"string" | "number" | "boolean" | "size" | "... Remove this comment to see the full error message
         aggregateAliasTableMeta![getAggregateAlias(key)] = tableMeta[key];
       });
     }

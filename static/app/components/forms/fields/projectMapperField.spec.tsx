@@ -73,6 +73,7 @@ describe('ProjectMapperField', () => {
         ]}
       />
     );
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
     userEvent.click(screen.getAllByLabelText('Delete')[0]);
 
     expect(defaultProps.onBlur).toHaveBeenCalledWith([[24, 1]], []);

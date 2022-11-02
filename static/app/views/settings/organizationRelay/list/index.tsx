@@ -40,6 +40,7 @@ const List = ({
   return (
     <div>
       {Object.keys(relaysByPublicKey).map(relayByPublicKey => {
+        // @ts-expect-error TS(2339) FIXME: Property 'name' does not exist on type '{ activiti... Remove this comment to see the full error message
         const {name, description, created, activities} =
           relaysByPublicKey[relayByPublicKey];
         return (

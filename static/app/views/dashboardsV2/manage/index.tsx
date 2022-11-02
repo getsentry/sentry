@@ -74,6 +74,7 @@ class ManageDashboards extends AsyncView<Props, State> {
         {
           query: {
             ...pick(location.query, ['cursor', 'query']),
+            // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
             sort: this.getActiveSort().value,
             per_page: '9',
           },
@@ -170,6 +171,7 @@ class ManageDashboards extends AsyncView<Props, State> {
         />
         <CompactSelect
           triggerProps={{prefix: t('Sort By')}}
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           value={activeSort.value}
           options={SORT_OPTIONS}
           onChange={opt => this.handleSortChange(opt.value)}

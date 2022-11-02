@@ -174,6 +174,7 @@ describe('EventTagsAndScreenshot', function () {
       expect(contextItems).toHaveLength(Object.keys(contexts).length);
 
       // Context Item 1
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
       const contextItem1 = within(contextItems[0]);
       expect(contextItem1.getByRole('heading')).toHaveTextContent(user.email);
       expect(contextItem1.getByTestId('context-sub-title')).toHaveTextContent(
@@ -181,6 +182,7 @@ describe('EventTagsAndScreenshot', function () {
       );
 
       // Context Item 2
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
       const contextItem2 = within(contextItems[1]);
       expect(contextItem2.getByRole('heading')).toHaveTextContent(contexts.os.name);
       expect(contextItem2.getByTestId('context-sub-title')).toHaveTextContent(
@@ -188,6 +190,7 @@ describe('EventTagsAndScreenshot', function () {
       );
 
       // Context Item 3
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
       const contextItem3 = within(contextItems[2]);
       expect(contextItem3.getByRole('heading')).toHaveTextContent(
         deviceNameMapper(contexts.device.model)?.trim() ?? ''
@@ -290,7 +293,12 @@ describe('EventTagsAndScreenshot', function () {
       expect(screen.getByText('View screenshot')).toBeInTheDocument();
       expect(screen.getByTestId('image-viewer')).toHaveAttribute(
         'src',
-        `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${attachments[1].id}/?download`
+        `/api/0/projects/${organization.slug}/${project.slug}/events/${
+          event.id
+        }/attachments/${
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
+          attachments[1].id
+        }/?download`
       );
 
       // Display help text when hovering question element
@@ -336,7 +344,12 @@ describe('EventTagsAndScreenshot', function () {
       expect(screen.getByText('View screenshot')).toBeInTheDocument();
       expect(screen.getByTestId('image-viewer')).toHaveAttribute(
         'src',
-        `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${attachments[1].id}/?download`
+        `/api/0/projects/${organization.slug}/${project.slug}/events/${
+          event.id
+        }/attachments/${
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
+          attachments[1].id
+        }/?download`
       );
 
       // Tags Container
@@ -369,7 +382,12 @@ describe('EventTagsAndScreenshot', function () {
       expect(screen.getByText('View screenshot')).toBeInTheDocument();
       expect(screen.getByTestId('image-viewer')).toHaveAttribute(
         'src',
-        `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${attachments[1].id}/?download`
+        `/api/0/projects/${organization.slug}/${project.slug}/events/${
+          event.id
+        }/attachments/${
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
+          attachments[1].id
+        }/?download`
       );
 
       // Tags Container
@@ -402,7 +420,12 @@ describe('EventTagsAndScreenshot', function () {
       expect(screen.getByText('View screenshot')).toBeInTheDocument();
       expect(screen.getByTestId('image-viewer')).toHaveAttribute(
         'src',
-        `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${attachments[1].id}/?download`
+        `/api/0/projects/${organization.slug}/${project.slug}/events/${
+          event.id
+        }/attachments/${
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
+          attachments[1].id
+        }/?download`
       );
 
       // Tags Container

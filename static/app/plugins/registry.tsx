@@ -33,6 +33,7 @@ export default class Registry {
         }
       }
       console.info(
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         '[plugins] Loaded ' + data.id + ' as {' + this.plugins[data.id].name + '}'
       );
       callback(this.get(data));

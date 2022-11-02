@@ -256,6 +256,7 @@ const storeConfig: GuideStoreDefinition = {
       guideOptions.length > 0
         ? {
             ...guideOptions[0],
+            // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
             steps: guideOptions[0].steps.filter(
               step =>
                 anchors.has(step.target) ||
@@ -264,6 +265,7 @@ const storeConfig: GuideStoreDefinition = {
           }
         : null;
 
+    // @ts-expect-error TS(2345) FIXME: Argument of type '{ steps: GuideStep[]; guide?: st... Remove this comment to see the full error message
     this.updatePrevGuide(nextGuide);
     this.state.currentStep =
       this.state.currentGuide &&
@@ -271,8 +273,10 @@ const storeConfig: GuideStoreDefinition = {
       this.state.currentGuide.guide === nextGuide.guide
         ? this.state.currentStep
         : 0;
+    // @ts-expect-error TS(2322) FIXME: Type '{ steps: GuideStep[]; guide?: string | undef... Remove this comment to see the full error message
     this.state.currentGuide = nextGuide;
     this.trigger(this.state);
+    // @ts-expect-error TS(2345) FIXME: Argument of type '{ steps: GuideStep[]; guide?: st... Remove this comment to see the full error message
     HookStore.get('callback:on-guide-update').map(cb => cb(nextGuide, {dismissed}));
   },
 };

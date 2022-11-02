@@ -22,8 +22,10 @@ import {AlertRuleStatus, Incident, IncidentStats} from '../types';
  * Gets start and end date query parameters from stats
  */
 export function getStartEndFromStats(stats: IncidentStats) {
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   const start = getUtcDateString(stats.eventStats.data[0][0] * 1000);
   const end = getUtcDateString(
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     stats.eventStats.data[stats.eventStats.data.length - 1][0] * 1000
   );
 
@@ -107,13 +109,17 @@ export function getQueryDatasource(
       return null;
     }
 
+    // @ts-expect-error TS(2769) FIXME: No overload matches this call.
     return {source: Datasource.ERROR_DEFAULT, query: query.replace(match[0], '').trim()};
   }
 
   match = query.match(/(^|\s)event\.type:(error|default|transaction)/i);
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   if (match && Datasource[match[2].toUpperCase()]) {
     return {
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       source: Datasource[match[2].toUpperCase()],
+      // @ts-expect-error TS(2769) FIXME: No overload matches this call.
       query: query.replace(match[0], '').trim(),
     };
   }

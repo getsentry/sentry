@@ -287,11 +287,17 @@ function FlamegraphZoomViewMinimap({
         const [m00, m01, m02, m10, m11, m12] = physicalToConfig;
 
         const configDelta = vec2.transformMat3(vec2.create(), physicalDelta, [
+          // @ts-expect-error TS(2322) FIXME: Type 'number | undefined' is not assignable to typ... Remove this comment to see the full error message
           m00,
+          // @ts-expect-error TS(2322) FIXME: Type 'number | undefined' is not assignable to typ... Remove this comment to see the full error message
           m01,
+          // @ts-expect-error TS(2322) FIXME: Type 'number | undefined' is not assignable to typ... Remove this comment to see the full error message
           m02,
+          // @ts-expect-error TS(2322) FIXME: Type 'number | undefined' is not assignable to typ... Remove this comment to see the full error message
           m10,
+          // @ts-expect-error TS(2322) FIXME: Type 'number | undefined' is not assignable to typ... Remove this comment to see the full error message
           m11,
+          // @ts-expect-error TS(2322) FIXME: Type 'number | undefined' is not assignable to typ... Remove this comment to see the full error message
           m12,
           0,
           0,

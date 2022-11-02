@@ -71,6 +71,7 @@ export const WIDGET_DEFINITIONS: ({
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.DURATION_DISTRIBUTION),
     fields: ['transaction.duration'],
     dataType: GenericPerformanceWidgetDataType.histogram,
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     chartColor: WIDGET_PALETTE[5],
   },
   [PerformanceWidgetSetting.LCP_HISTOGRAM]: {
@@ -78,6 +79,7 @@ export const WIDGET_DEFINITIONS: ({
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.DURATION_DISTRIBUTION),
     fields: ['measurements.lcp'],
     dataType: GenericPerformanceWidgetDataType.histogram,
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     chartColor: WIDGET_PALETTE[5],
   },
   [PerformanceWidgetSetting.FCP_HISTOGRAM]: {
@@ -85,6 +87,7 @@ export const WIDGET_DEFINITIONS: ({
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.DURATION_DISTRIBUTION),
     fields: ['measurements.fcp'],
     dataType: GenericPerformanceWidgetDataType.histogram,
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     chartColor: WIDGET_PALETTE[5],
   },
   [PerformanceWidgetSetting.FID_HISTOGRAM]: {
@@ -92,6 +95,7 @@ export const WIDGET_DEFINITIONS: ({
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.DURATION_DISTRIBUTION),
     fields: ['measurements.fid'],
     dataType: GenericPerformanceWidgetDataType.histogram,
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     chartColor: WIDGET_PALETTE[5],
   },
   [PerformanceWidgetSetting.WORST_LCP_VITALS]: {
@@ -139,6 +143,7 @@ export const WIDGET_DEFINITIONS: ({
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.TPM),
     fields: ['tpm()'],
     dataType: GenericPerformanceWidgetDataType.area,
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     chartColor: WIDGET_PALETTE[1],
     allowsOpenInDiscover: true,
   },
@@ -147,6 +152,7 @@ export const WIDGET_DEFINITIONS: ({
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX),
     fields: ['apdex()'],
     dataType: GenericPerformanceWidgetDataType.area,
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     chartColor: WIDGET_PALETTE[4],
     allowsOpenInDiscover: true,
   },
@@ -155,6 +161,7 @@ export const WIDGET_DEFINITIONS: ({
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.P50),
     fields: ['p50(transaction.duration)'],
     dataType: GenericPerformanceWidgetDataType.area,
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     chartColor: WIDGET_PALETTE[3],
     allowsOpenInDiscover: true,
   },
@@ -163,6 +170,7 @@ export const WIDGET_DEFINITIONS: ({
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.P75),
     fields: ['p75(transaction.duration)'],
     dataType: GenericPerformanceWidgetDataType.area,
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     chartColor: WIDGET_PALETTE[3],
     allowsOpenInDiscover: true,
   },
@@ -171,6 +179,7 @@ export const WIDGET_DEFINITIONS: ({
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.P95),
     fields: ['p95(transaction.duration)'],
     dataType: GenericPerformanceWidgetDataType.area,
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     chartColor: WIDGET_PALETTE[3],
     allowsOpenInDiscover: true,
   },
@@ -179,6 +188,7 @@ export const WIDGET_DEFINITIONS: ({
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.P99),
     fields: ['p99(transaction.duration)'],
     dataType: GenericPerformanceWidgetDataType.area,
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     chartColor: WIDGET_PALETTE[3],
     allowsOpenInDiscover: true,
   },
@@ -187,6 +197,7 @@ export const WIDGET_DEFINITIONS: ({
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.P75),
     fields: ['p75(measurements.lcp)'],
     dataType: GenericPerformanceWidgetDataType.area,
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     chartColor: WIDGET_PALETTE[1],
     allowsOpenInDiscover: true,
   },
@@ -195,6 +206,7 @@ export const WIDGET_DEFINITIONS: ({
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.FAILURE_RATE),
     fields: ['failure_rate()'],
     dataType: GenericPerformanceWidgetDataType.area,
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     chartColor: WIDGET_PALETTE[2],
     allowsOpenInDiscover: true,
   },
@@ -203,6 +215,7 @@ export const WIDGET_DEFINITIONS: ({
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.USER_MISERY),
     fields: [`user_misery()`],
     dataType: GenericPerformanceWidgetDataType.area,
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     chartColor: WIDGET_PALETTE[0],
     allowsOpenInDiscover: true,
   },
@@ -211,6 +224,7 @@ export const WIDGET_DEFINITIONS: ({
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.APP_START_COLD),
     fields: ['p75(measurements.app_start_cold)'],
     dataType: GenericPerformanceWidgetDataType.area,
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     chartColor: WIDGET_PALETTE[4],
     allowsOpenInDiscover: true,
   },
@@ -219,6 +233,7 @@ export const WIDGET_DEFINITIONS: ({
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.APP_START_WARM),
     fields: ['p75(measurements.app_start_warm)'],
     dataType: GenericPerformanceWidgetDataType.area,
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     chartColor: WIDGET_PALETTE[3],
     allowsOpenInDiscover: true,
   },
@@ -227,6 +242,7 @@ export const WIDGET_DEFINITIONS: ({
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.SLOW_FRAMES),
     fields: ['p75(measurements.frames_slow_rate)'],
     dataType: GenericPerformanceWidgetDataType.area,
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     chartColor: WIDGET_PALETTE[0],
     allowsOpenInDiscover: true,
   },
@@ -235,6 +251,7 @@ export const WIDGET_DEFINITIONS: ({
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.FROZEN_FRAMES),
     fields: ['p75(measurements.frames_frozen_rate)'],
     dataType: GenericPerformanceWidgetDataType.area,
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     chartColor: WIDGET_PALETTE[5],
     allowsOpenInDiscover: true,
   },
@@ -243,6 +260,7 @@ export const WIDGET_DEFINITIONS: ({
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.MOST_ERRORS),
     fields: [`failure_count()`],
     dataType: GenericPerformanceWidgetDataType.line_list,
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     chartColor: WIDGET_PALETTE[0],
   },
   [PerformanceWidgetSetting.MOST_RELATED_ISSUES]: {
@@ -250,6 +268,7 @@ export const WIDGET_DEFINITIONS: ({
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.MOST_ISSUES),
     fields: [`count()`],
     dataType: GenericPerformanceWidgetDataType.line_list,
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     chartColor: WIDGET_PALETTE[0],
   },
   [PerformanceWidgetSetting.SLOW_HTTP_OPS]: {
@@ -257,6 +276,7 @@ export const WIDGET_DEFINITIONS: ({
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.SLOW_HTTP_SPANS),
     fields: [`p75(spans.http)`],
     dataType: GenericPerformanceWidgetDataType.line_list,
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     chartColor: WIDGET_PALETTE[0],
   },
   [PerformanceWidgetSetting.SLOW_BROWSER_OPS]: {
@@ -264,6 +284,7 @@ export const WIDGET_DEFINITIONS: ({
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.SLOW_HTTP_SPANS),
     fields: [`p75(spans.browser)`],
     dataType: GenericPerformanceWidgetDataType.line_list,
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     chartColor: WIDGET_PALETTE[0],
   },
   [PerformanceWidgetSetting.SLOW_RESOURCE_OPS]: {
@@ -271,6 +292,7 @@ export const WIDGET_DEFINITIONS: ({
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.SLOW_HTTP_SPANS),
     fields: [`p75(spans.resource)`],
     dataType: GenericPerformanceWidgetDataType.line_list,
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     chartColor: WIDGET_PALETTE[0],
   },
   [PerformanceWidgetSetting.SLOW_DB_OPS]: {
@@ -278,6 +300,7 @@ export const WIDGET_DEFINITIONS: ({
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.SLOW_HTTP_SPANS),
     fields: [`p75(spans.db)`],
     dataType: GenericPerformanceWidgetDataType.line_list,
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     chartColor: WIDGET_PALETTE[0],
   },
   [PerformanceWidgetSetting.MOST_SLOW_FRAMES]: {
@@ -285,6 +308,7 @@ export const WIDGET_DEFINITIONS: ({
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.SLOW_FRAMES),
     fields: ['avg(measurements.frames_slow)'],
     dataType: GenericPerformanceWidgetDataType.line_list,
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     chartColor: WIDGET_PALETTE[0],
   },
   [PerformanceWidgetSetting.MOST_FROZEN_FRAMES]: {
@@ -292,6 +316,7 @@ export const WIDGET_DEFINITIONS: ({
     titleTooltip: getTermHelp(organization, PERFORMANCE_TERM.FROZEN_FRAMES),
     fields: ['avg(measurements.frames_frozen)'],
     dataType: GenericPerformanceWidgetDataType.line_list,
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     chartColor: WIDGET_PALETTE[0],
   },
   [PerformanceWidgetSetting.MOST_IMPROVED]: {

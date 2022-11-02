@@ -66,6 +66,7 @@ class UsageStatsPerMin extends AsyncComponent<Props, State> {
         return count;
       }
 
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       count += group.series['sum(quantity)'][lastMin];
       return count;
     }, 0);

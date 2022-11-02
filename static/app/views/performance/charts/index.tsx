@@ -81,6 +81,7 @@ class Container extends Component<Props> {
           showLoading={false}
           query={apiPayload.query}
           includePrevious={false}
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           yAxis={axisOptions.map(opt => opt.value)}
           partial
         >
@@ -97,12 +98,15 @@ class Container extends Component<Props> {
               <Fragment>
                 <DoubleHeaderContainer>
                   {axisOptions.map((option, i) => (
+                    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
                     <div key={`${option.label}:${i}`}>
                       <HeaderTitle>
+                        {/* @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'. */}
                         {option.label}
                         <QuestionTooltip
                           position="top"
                           size="sm"
+                          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
                           title={option.tooltip}
                         />
                       </HeaderTitle>
@@ -133,7 +137,9 @@ class Container extends Component<Props> {
         </EventsRequest>
         <Footer
           api={api}
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           leftAxis={axisOptions[0].value}
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           rightAxis={axisOptions[1].value}
           organization={organization}
           eventView={eventView}

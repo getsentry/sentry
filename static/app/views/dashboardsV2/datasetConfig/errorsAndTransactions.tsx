@@ -365,6 +365,7 @@ function transformEventsResponseToSeries(
     } else {
       seriesWithOrdering = Object.keys(data).map((seriesName: string) => {
         const prefixedName = queryAlias ? `${queryAlias} : ${seriesName}` : seriesName;
+        // @ts-expect-error TS(2322) FIXME: Type 'EventsStats | undefined' is not assignable t... Remove this comment to see the full error message
         const seriesData: EventsStats = data[seriesName];
         return [
           seriesData.order || 0,
@@ -381,6 +382,7 @@ function transformEventsResponseToSeries(
   } else {
     const field = widgetQuery.aggregates[0];
     const prefixedName = queryAlias ? `${queryAlias} : ${field}` : field;
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
     const transformed = transformSeries(data, prefixedName, field);
     output.push(transformed);
   }
@@ -398,9 +400,11 @@ function getSeriesResultType(
   // Need to use getAggregateAlias since events-stats still uses aggregate alias format
   if (isMultiSeriesStats(data)) {
     Object.keys(data).forEach(
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       key => (resultTypes[key] = data[key].meta?.fields[getAggregateAlias(key)])
     );
   } else {
+    // @ts-expect-error TS(2538) FIXME: Type 'undefined' cannot be used as an index type.
     resultTypes[field] = data.meta?.fields[getAggregateAlias(field)];
   }
   return resultTypes;
@@ -556,17 +560,22 @@ function getEventsSeriesRequest(
       project: projects,
       environment: environments,
       period: statsPeriod,
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       query: widgetQuery.conditions,
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       yAxis: widgetQuery.aggregates[widgetQuery.aggregates.length - 1],
       includePrevious: false,
       referrer,
       partial: true,
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       field: [...widgetQuery.columns, ...widgetQuery.aggregates],
       queryExtras: getDashboardsMEPQueryParams(isMEPEnabled),
       includeAllArgs: true,
       topEvents: TOP_N,
     };
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     if (widgetQuery.orderby) {
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       requestData.orderby = widgetQuery.orderby;
     }
   } else {
@@ -578,8 +587,11 @@ function getEventsSeriesRequest(
       project: projects,
       environment: environments,
       period: statsPeriod,
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       query: widgetQuery.conditions,
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       yAxis: widgetQuery.aggregates,
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       orderby: widgetQuery.orderby,
       includePrevious: false,
       referrer,
@@ -587,15 +599,19 @@ function getEventsSeriesRequest(
       queryExtras: getDashboardsMEPQueryParams(isMEPEnabled),
       includeAllArgs: true,
     };
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     if (widgetQuery.columns?.length !== 0) {
       requestData.topEvents = limit ?? TOP_N;
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       requestData.field = [...widgetQuery.columns, ...widgetQuery.aggregates];
 
       // Compare field and orderby as aliases to ensure requestData has
       // the orderby selected
       // If the orderby is an equation alias, do not inject it
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       const orderby = trimStart(widgetQuery.orderby, '-');
       if (
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         widgetQuery.orderby &&
         !isEquationAlias(orderby) &&
         !requestData.field.includes(orderby)
@@ -606,18 +622,25 @@ function getEventsSeriesRequest(
       // The "Other" series is only included when there is one
       // y-axis and one widgetQuery
       requestData.excludeOther =
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         widgetQuery.aggregates.length !== 1 || widget.queries.length !== 1;
 
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       if (isEquation(trimStart(widgetQuery.orderby, '-'))) {
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         const nextEquationIndex = getNumEquations(widgetQuery.aggregates);
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         const isDescending = widgetQuery.orderby.startsWith('-');
         const prefix = isDescending ? '-' : '';
 
         // Construct the alias form of the equation and inject it into the request
         requestData.orderby = `${prefix}equation[${nextEquationIndex}]`;
         requestData.field = [
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           ...widgetQuery.columns,
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           ...widgetQuery.aggregates,
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           trimStart(widgetQuery.orderby, '-'),
         ];
       }

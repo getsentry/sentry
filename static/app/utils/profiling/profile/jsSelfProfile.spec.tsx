@@ -248,6 +248,7 @@ describe('jsSelfProfile', () => {
     );
 
     expect(
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       firstCallee(firstCallee(firstCallee(profile.appendOrderTree))).isRecursive()
     ).toBe(true);
   });

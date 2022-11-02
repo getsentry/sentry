@@ -134,10 +134,12 @@ function TransactionSummaryCharts({
   let display = decodeScalar(location.query.display, DisplayModes.DURATION);
   let trendFunction = decodeScalar(
     location.query.trendFunction,
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     TREND_FUNCTIONS_OPTIONS[0].value
   ) as TrendFunctionField;
   let trendColumn = decodeScalar(
     location.query.trendColumn,
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     TREND_PARAMETERS_OPTIONS[0].value
   );
 

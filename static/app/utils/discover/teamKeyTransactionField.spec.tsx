@@ -195,6 +195,7 @@ describe('TeamKeyTransactionField', function () {
 
     expect(teamOneCheckbox).not.toBeChecked();
 
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
     userEvent.click(teamOneCheckbox);
     expect(postTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
     await waitFor(() => {
@@ -251,6 +252,7 @@ describe('TeamKeyTransactionField', function () {
 
     expect(teamOneCheckbox).toBeChecked();
 
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
     userEvent.click(teamOneCheckbox);
     expect(deleteTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
     await waitFor(() => {
@@ -309,6 +311,7 @@ describe('TeamKeyTransactionField', function () {
       screen.getAllByRole('checkbox');
 
     expect(allTeamsCheckbox).not.toBeChecked();
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
     userEvent.click(allTeamsCheckbox);
 
     expect(postTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
@@ -370,6 +373,7 @@ describe('TeamKeyTransactionField', function () {
       screen.getAllByRole('checkbox');
 
     expect(allTeamsCheckbox).toBeChecked();
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
     userEvent.click(allTeamsCheckbox);
 
     expect(deleteTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);

@@ -340,9 +340,13 @@ const generateAliases = (colors: BaseColors) => ({
 });
 
 const dataCategory = {
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   [DataCategory.ERRORS]: CHART_PALETTE[4][3],
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   [DataCategory.TRANSACTIONS]: CHART_PALETTE[4][2],
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   [DataCategory.ATTACHMENTS]: CHART_PALETTE[4][1],
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   [DataCategory.DEFAULT]: CHART_PALETTE[4][0],
 };
 
@@ -350,8 +354,11 @@ const dataCategory = {
  * Default colors for data usage outcomes
  */
 const outcome = {
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   [Outcome.ACCEPTED]: CHART_PALETTE[0][0],
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   [Outcome.FILTERED]: CHART_PALETTE[1][1],
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   [Outcome.DROPPED]: CHART_PALETTE[5][3],
 };
 

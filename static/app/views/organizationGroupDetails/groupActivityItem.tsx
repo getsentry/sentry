@@ -185,6 +185,7 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
               break: <br />,
               release: (
                 <Version
+                  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
                   version={deployedReleases[0].version}
                   projectId={projectId}
                   tooltipRawVersion
@@ -209,6 +210,7 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
               break: <br />,
               release: (
                 <Version
+                  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
                   version={deployedReleases[0].version}
                   projectId={projectId}
                   tooltipRawVersion

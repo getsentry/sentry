@@ -154,7 +154,9 @@ class SuggestedOwnerHovercard extends Component<Props, State> {
                             <CommitLink
                               inline
                               showIcon={false}
+                              // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
                               commitId={commits[0].id}
+                              // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
                               repository={commits[0].repository}
                             />
                           ),

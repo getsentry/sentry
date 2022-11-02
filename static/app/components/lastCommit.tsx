@@ -31,7 +31,9 @@ function LastCommit({commit, className}: Props) {
     }
 
     const firstLine = message.split(/\n/)[0];
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     if (firstLine.length > 100) {
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       let truncated = firstLine.substr(0, 90);
       const words = truncated.split(/ /);
       // try to not have ellipsis mid-word

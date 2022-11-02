@@ -67,6 +67,7 @@ const Context = ({
     ? frame.context
     : frame.context.filter(l => l[0] === frame.lineNo);
 
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   const startLineNo = hasContextSource ? frame.context[0][0] : undefined;
 
   return (

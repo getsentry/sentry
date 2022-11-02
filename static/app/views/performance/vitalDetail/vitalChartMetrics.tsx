@@ -103,6 +103,7 @@ function VitalChartMetrics({
               seriesName: field,
               data: response.intervals.map((intervalValue, intervalIndex) => ({
                 name: moment(intervalValue).valueOf(),
+                // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
                 value: group.series ? group.series[field][intervalIndex] : 0,
               })),
             })) as Series[] | undefined;

@@ -44,6 +44,7 @@ const OrganizationAuthList = ({organization, providerList, activeProvider}: Prop
     if (PROVIDER_POPULARITY[a.key] === PROVIDER_POPULARITY[b.key]) {
       return 0;
     }
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     return PROVIDER_POPULARITY[a.key] > PROVIDER_POPULARITY[b.key] ? 1 : -1;
   });
 

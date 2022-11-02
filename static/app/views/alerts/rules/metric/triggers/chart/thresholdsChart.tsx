@@ -364,9 +364,11 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
             ? seriesParamsOrParam
             : [seriesParamsOrParam];
 
-          const pointY = (
-            seriesParams.length > 1 ? seriesParams[0].data[1] : undefined
-          ) as number | undefined;
+          const pointY =
+            // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
+            (seriesParams.length > 1 ? seriesParams[0].data[1] : undefined) as
+              | number
+              | undefined;
 
           const comparisonSeries =
             seriesParams.length > 1
@@ -405,6 +407,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
         max: this.state.yAxisMax ?? undefined,
         axisLabel: {
           formatter: (value: number) =>
+            // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
             alertAxisFormatter(value, data[0].seriesName, aggregate),
         },
       },

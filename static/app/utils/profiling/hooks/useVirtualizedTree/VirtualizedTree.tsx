@@ -52,6 +52,7 @@ export class VirtualizedTree<T extends TreeLike> {
     }
 
     for (let i = 0; i < items.length; i++) {
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'T | undefined' is not assignable... Remove this comment to see the full error message
       toTreeNode(items[i], null, roots, 0);
     }
 
@@ -72,11 +73,13 @@ export class VirtualizedTree<T extends TreeLike> {
       }
 
       for (let i = 0; i < node.children.length; i++) {
+        // @ts-expect-error TS(2345) FIXME: Argument of type 'VirtualizedTreeNode<T> | undefin... Remove this comment to see the full error message
         visit(node.children[i]);
       }
     }
 
     for (let i = 0; i < nodes.length; i++) {
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'VirtualizedTreeNode<T> | undefin... Remove this comment to see the full error message
       visit(nodes[i]);
     }
 
@@ -117,12 +120,14 @@ export class VirtualizedTree<T extends TreeLike> {
     function visit(node: VirtualizedTreeNode<T>) {
       const sortedChildren = node.children.sort(sortFn);
       for (let i = 0; i < sortedChildren.length; i++) {
+        // @ts-expect-error TS(2345) FIXME: Argument of type 'VirtualizedTreeNode<T> | undefin... Remove this comment to see the full error message
         visit(sortedChildren[i]);
       }
     }
 
     const sortedRoots = this.roots.sort(sortFn);
     for (let i = 0; i < sortedRoots.length; i++) {
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'VirtualizedTreeNode<T> | undefin... Remove this comment to see the full error message
       visit(sortedRoots[i]);
     }
 
@@ -138,11 +143,13 @@ export class VirtualizedTree<T extends TreeLike> {
       }
 
       for (let i = 0; i < node.children.length; i++) {
+        // @ts-expect-error TS(2345) FIXME: Argument of type 'VirtualizedTreeNode<T> | undefin... Remove this comment to see the full error message
         visit(node.children[i]);
       }
     }
 
     for (let i = 0; i < this.roots.length; i++) {
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'VirtualizedTreeNode<T> | undefin... Remove this comment to see the full error message
       visit(this.roots[i]);
     }
 

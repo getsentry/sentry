@@ -360,7 +360,9 @@ class ReleasesDetailContainer extends AsyncComponent<
     return (
       <PageFiltersContainer
         shouldForceProject={projects.length === 1}
+        // @ts-expect-error TS(2769) FIXME: No overload matches this call.
         forceProject={
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           projects.length === 1 ? {...projects[0], id: String(projects[0].id)} : undefined
         }
         specificProjectSlugs={projects.map(p => p.slug)}

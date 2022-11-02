@@ -90,15 +90,19 @@ class EventChart extends Component<Props, State> {
     const sRejected: Record<string, number> = {};
     const aReceived = [0, 0]; // received, points
 
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     rawData['events.total'].forEach((point, idx) => {
       const dReceived = point[1];
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       const dRejected = rawData['events.dropped'][idx]?.[1];
       const ts = point[0];
       if (sReceived[ts] === undefined) {
         sReceived[ts] = dReceived;
+        // @ts-expect-error TS(2322) FIXME: Type 'number | undefined' is not assignable to typ... Remove this comment to see the full error message
         sRejected[ts] = dRejected;
       } else {
         sReceived[ts] += dReceived;
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         sRejected[ts] += dRejected;
       }
       if (dReceived > 0) {
@@ -115,6 +119,7 @@ class EventChart extends Component<Props, State> {
         })),
         accepted: Object.keys(sReceived).map(ts =>
           // total number of events accepted (received - rejected)
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           ({name: parseInt(ts, 10) * 1000, value: sReceived[ts] - sRejected[ts]})
         ),
       },
@@ -151,6 +156,7 @@ class EventChart extends Component<Props, State> {
     const colors = series.map(({color}) => color);
     return (
       <MiniBarChart
+        // @ts-expect-error TS(2322) FIXME: Type '{ seriesName: string; data: SeriesDataUnit[]... Remove this comment to see the full error message
         series={series}
         colors={colors}
         height={110}

@@ -747,6 +747,7 @@ export function getSortField(
   }
 
   const fieldType = tableMeta[field];
+  // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
   if (FIELD_FORMATTERS.hasOwnProperty(fieldType)) {
     return FIELD_FORMATTERS[fieldType as keyof typeof FIELD_FORMATTERS].isSortable
       ? field
@@ -910,7 +911,9 @@ export function getFieldRenderer(
     }
   }
 
+  // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
   if (FIELD_FORMATTERS.hasOwnProperty(fieldType)) {
+    // @ts-expect-error TS(2538) FIXME: Type 'undefined' cannot be used as an index type.
     return partial(FIELD_FORMATTERS[fieldType].renderFunc, fieldName);
   }
   return partial(FIELD_FORMATTERS.string.renderFunc, fieldName);
@@ -938,7 +941,9 @@ export function getFieldFormatter(
   const fieldName = isAlias ? getAggregateAlias(field) : field;
   const fieldType = meta[fieldName];
 
+  // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
   if (FIELD_FORMATTERS.hasOwnProperty(fieldType)) {
+    // @ts-expect-error TS(2538) FIXME: Type 'undefined' cannot be used as an index type.
     return partial(FIELD_FORMATTERS[fieldType].renderFunc, fieldName);
   }
   return partial(FIELD_FORMATTERS.string.renderFunc, fieldName);

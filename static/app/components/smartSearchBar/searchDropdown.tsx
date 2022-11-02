@@ -21,6 +21,7 @@ import {getSearchConfigFromCustomPerformanceMetrics} from './utils';
 
 const getDropdownItemKey = (item: SearchItem) =>
   `${item.value || item.desc || item.title}-${
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'SearchItem | undefined' is not a... Remove this comment to see the full error message
     item.children && item.children.length > 0 ? getDropdownItemKey(item.children[0]) : ''
   }`;
 
@@ -199,7 +200,8 @@ const ItemTitle = ({item, searchSubstring, isChild}: ItemTitleProps) => {
   if (searchSubstring) {
     const idx =
       restWords.length === 0
-        ? fullWord.toLowerCase().indexOf(searchSubstring.split('.')[0])
+        ? // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
+          fullWord.toLowerCase().indexOf(searchSubstring.split('.')[0])
         : fullWord.toLowerCase().indexOf(searchSubstring);
 
     // Below is the logic to make the current query bold inside the result.
@@ -208,13 +210,17 @@ const ItemTitle = ({item, searchSubstring, isChild}: ItemTitleProps) => {
         <SearchItemTitleWrapper hasSingleField={hasSingleField}>
           {!isFirstWordHidden && (
             <FirstWordWrapper>
+              {/* @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'. */}
               {firstWord.slice(0, idx)}
+              {/* @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'. */}
               <strong>{firstWord.slice(idx, idx + searchSubstring.length)}</strong>
+              {/* @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'. */}
               {firstWord.slice(idx + searchSubstring.length)}
             </FirstWordWrapper>
           )}
           {combinedRestWords && (
             <HighlightedRestOfWords
+              // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
               firstWord={firstWord}
               isFirstWordHidden={isFirstWordHidden}
               searchSubstring={searchSubstring}

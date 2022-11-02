@@ -373,6 +373,7 @@ function generateAdditionalConditions(
           ? `tags[${column.field}]`
           : column.field;
 
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         const tagValue = dataRow.tags[tagIndex].value;
         conditions[key] = tagValue;
       }
@@ -391,6 +392,7 @@ export function usesTransactionsDataset(eventView: EventView, yAxisValue: string
   const parsedQuery = new MutableSearch(eventView.query);
   for (let index = 0; index < yAxisValue.length; index++) {
     const yAxis = yAxisValue[index];
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
     const aggregateArg = getAggregateArg(yAxis) ?? '';
     if (isMeasurement(aggregateArg) || aggregateArg === 'transaction.duration') {
       usesTransactions = true;
@@ -441,11 +443,14 @@ function generateExpandedConditions(
     }
 
     if (key === 'project.id') {
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
       eventView.project = [...eventView.project, parseInt(value, 10)];
       continue;
     }
     if (key === 'environment') {
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
       if (!eventView.environment.includes(value)) {
+        // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
         eventView.environment = [...eventView.environment, value];
       }
       continue;
@@ -456,6 +461,7 @@ function generateExpandedConditions(
       continue;
     }
 
+    // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
     parsedQuery.setFilterValues(key, [value]);
   }
 
@@ -494,7 +500,9 @@ export function generateFieldOptions({
   // function names. Having a mapping makes finding the value objects easier
   // later as well.
   functions.forEach(func => {
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     const ellipsis = aggregations[func].parameters.length ? '\u2026' : '';
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     const parameters = aggregations[func].parameters.map(param => {
       const overrides = AGGREGATIONS[func].getFieldOverrides;
       if (typeof overrides === 'undefined') {
@@ -628,7 +636,9 @@ export function eventViewToWidgetQuery({
     let orderbyFunction = '';
     const aggregateFields = [...queryYAxis, ...aggregates];
     for (let i = 0; i < aggregateFields.length; i++) {
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
       if (sort.field === getAggregateAlias(aggregateFields[i])) {
+        // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
         orderbyFunction = aggregateFields[i];
         break;
       }

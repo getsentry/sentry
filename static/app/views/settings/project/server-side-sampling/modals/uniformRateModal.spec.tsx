@@ -95,6 +95,7 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
     expect(screen.queryByTestId('invalid-server-rate')).not.toBeInTheDocument(); // Server input warning is not visible
 
     // Enter invalid client-side sample rate
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
     userEvent.clear(screen.getAllByRole('spinbutton')[0]);
     userEvent.hover(screen.getByTestId('invalid-client-rate')); // Client input warning is visible
     expect(await screen.findByText('Set a value between 0 and 100')).toBeInTheDocument();
@@ -105,6 +106,7 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
     expect(await screen.findByText('Sample rate is not valid')).toBeInTheDocument();
 
     // Enter valid custom client-sample rate
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
     userEvent.type(screen.getAllByRole('spinbutton')[0], '20{enter}');
     expect(screen.queryByText('Suggested')).not.toBeInTheDocument();
     expect(screen.getAllByRole('spinbutton')[0]).toHaveValue(20); // Custom client-side sample rate
@@ -112,11 +114,13 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
     expect(screen.getByLabelText('Reset to suggested values')).toBeInTheDocument();
 
     // Enter invalid server-side sample rate
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
     userEvent.clear(screen.getAllByRole('spinbutton')[1]);
     userEvent.hover(screen.getByTestId('invalid-server-rate')); // Server input warning is visible
     expect(await screen.findByText('Set a value between 0 and 100')).toBeInTheDocument();
 
     // Enter a server-side sample rate higher than the client-side rate
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
     userEvent.type(screen.getAllByRole('spinbutton')[1], '30{enter}');
     userEvent.hover(screen.getByTestId('invalid-server-rate')); // Server input warning is visible
     expect(

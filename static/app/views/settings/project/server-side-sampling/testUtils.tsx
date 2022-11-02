@@ -123,7 +123,9 @@ export const mockedSamplingSdkVersions: SamplingSdkVersion[] = [
 export const recommendedSdkUpgrades: RecommendedSdkUpgrade[] = [
   {
     project: mockedProjects[1],
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     latestSDKName: mockedSamplingSdkVersions[1].latestSDKName,
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     latestSDKVersion: mockedSamplingSdkVersions[1].latestSDKVersion,
   },
 ];

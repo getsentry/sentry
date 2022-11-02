@@ -118,6 +118,7 @@ class SessionsRequest extends Component<Props, State> {
 
       this.setState({
         reloading: false,
+        // @ts-expect-error TS(2322) FIXME: Type '{ start: string | undefined; end: string | u... Remove this comment to see the full error message
         response: shouldFilterSessionsInTimeWindow
           ? filterSessionsInTimeWindow(
               response,

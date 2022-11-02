@@ -83,6 +83,7 @@ export function stringifyQueryList(query: string | [key: string, value: string][
       const [key, value] = kv;
       if (value !== null) {
         if (Array.isArray(queryObj[key])) {
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           queryObj[key].push(value);
         } else {
           queryObj[key] = [value];
@@ -190,8 +191,11 @@ export function parseAssembly(assembly: string | null) {
 
   if (pieces.length === 4) {
     name = pieces[0];
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     version = pieces[1].split('Version=')[1];
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     culture = pieces[2].split('Culture=')[1];
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     publicKeyToken = pieces[3].split('PublicKeyToken=')[1];
   }
 
@@ -204,6 +208,7 @@ export function stackTracePlatformIcon(platform: PlatformType, frames: Frame[]) 
   );
 
   if (fileExtensions.length === 1) {
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
     const newPlatform = fileExtensionToPlatform(fileExtensions[0]);
 
     return newPlatform ?? platform;

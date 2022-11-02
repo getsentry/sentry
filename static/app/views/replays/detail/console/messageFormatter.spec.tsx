@@ -103,36 +103,42 @@ const breadcrumbs: Extract<Crumb, BreadcrumbTypeDefault>[] = [
 
 describe('MessageFormatter', () => {
   it('Should print console message with placeholders correctly', () => {
+    // @ts-expect-error TS(2322) FIXME: Type 'DefaultCrumb | undefined' is not assignable ... Remove this comment to see the full error message
     render(<MessageFormatter breadcrumb={breadcrumbs[0]} />);
 
     expect(screen.getByText('This is a test')).toBeInTheDocument();
   });
 
   it('Should print console message with objects correctly', () => {
+    // @ts-expect-error TS(2322) FIXME: Type 'DefaultCrumb | undefined' is not assignable ... Remove this comment to see the full error message
     render(<MessageFormatter breadcrumb={breadcrumbs[1]} />);
 
     expect(screen.getByText('test 1 false {}')).toBeInTheDocument();
   });
 
   it('Should print console message correctly when it is an Error object', () => {
+    // @ts-expect-error TS(2322) FIXME: Type 'DefaultCrumb | undefined' is not assignable ... Remove this comment to see the full error message
     render(<MessageFormatter breadcrumb={breadcrumbs[2]} />);
 
     expect(screen.getByText('Error: this is my error message')).toBeInTheDocument();
   });
 
   it('Should print empty object in case there is no message prop', () => {
+    // @ts-expect-error TS(2322) FIXME: Type 'DefaultCrumb | undefined' is not assignable ... Remove this comment to see the full error message
     render(<MessageFormatter breadcrumb={breadcrumbs[3]} />);
 
     expect(screen.getByText('{}')).toBeInTheDocument();
   });
 
   it('Should ignore the "%c" placheholder and print the console message correctly', () => {
+    // @ts-expect-error TS(2322) FIXME: Type 'DefaultCrumb | undefined' is not assignable ... Remove this comment to see the full error message
     render(<MessageFormatter breadcrumb={breadcrumbs[4]} />);
 
     expect(screen.getByText('prev state {"cart":[]}')).toBeInTheDocument();
   });
 
   it('Should print arrays correctly', () => {
+    // @ts-expect-error TS(2322) FIXME: Type 'DefaultCrumb | undefined' is not assignable ... Remove this comment to see the full error message
     render(<MessageFormatter breadcrumb={breadcrumbs[5]} />);
 
     expect(screen.getByText('test ["foo","bar"]')).toBeInTheDocument();

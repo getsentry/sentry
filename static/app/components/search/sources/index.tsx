@@ -52,6 +52,7 @@ class SearchSources extends Component<Props> {
     }
     const Source = sources[idx];
     return (
+      // @ts-expect-error TS(2604) FIXME: JSX element type 'Source' does not have any constr... Remove this comment to see the full error message
       <Source {...this.props}>
         {(args: SourceResult) => {
           // Mutate the array instead of pushing because we don't know how often

@@ -181,13 +181,16 @@ class AccountNotificationFineTuning extends AsyncView<Props, State> {
 
     const isProject = isGroupedByProject(fineTuneType);
     const field = ACCOUNT_NOTIFICATION_FIELDS[fineTuneType];
+    // @ts-expect-error TS(2339) FIXME: Property 'title' does not exist on type 'FineTuneF... Remove this comment to see the full error message
     const {title, description} = field;
 
+    // @ts-expect-error TS(2488) FIXME: Type '[string, string, any?, any?] | [] | undefine... Remove this comment to see the full error message
     const [stateKey, url] = isProject ? this.getEndpoints()[2] : [];
     const hasProjects = !!projects?.length;
 
     if (fineTuneType === 'email') {
       // Fetch verified email addresses
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       field.options = this.emailChoices.map(({email}) => ({value: email, label: email}));
     }
 
@@ -212,6 +215,7 @@ class AccountNotificationFineTuning extends AsyncView<Props, State> {
             >
               <JsonForm
                 title={`Default ${title}`}
+                // @ts-expect-error TS(2322) FIXME: Type 'Field | undefined' is not assignable to type... Remove this comment to see the full error message
                 fields={[fields[field.defaultFieldName]]}
               />
             </Form>
@@ -237,6 +241,7 @@ class AccountNotificationFineTuning extends AsyncView<Props, State> {
               initialData={fineTuneData}
             >
               {isProject && hasProjects && (
+                // @ts-expect-error TS(2322) FIXME: Type 'FineTuneField | undefined' is not assignable... Remove this comment to see the full error message
                 <AccountNotificationsByProject projects={projects!} field={field} />
               )}
 
@@ -245,6 +250,7 @@ class AccountNotificationFineTuning extends AsyncView<Props, State> {
               )}
 
               {!isProject && (
+                // @ts-expect-error TS(2769) FIXME: No overload matches this call.
                 <AccountNotificationsByOrganizationContainer field={field} />
               )}
             </Form>

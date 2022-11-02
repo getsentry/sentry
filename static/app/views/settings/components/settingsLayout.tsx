@@ -35,6 +35,7 @@ function SettingsLayout(props: Props) {
     const bodyElement = document.getElementsByTagName('body')[0];
 
     window.scrollTo?.(0, 0);
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     bodyElement.classList[visible ? 'add' : 'remove']('scroll-lock');
 
     setMobileNavVisible(visible);

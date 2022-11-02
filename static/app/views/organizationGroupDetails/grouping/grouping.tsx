@@ -192,10 +192,12 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
     }
 
     if (groupingLevels.length > 1) {
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       setActiveGroupingLevel(groupingLevels[1].id);
       return;
     }
 
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     setActiveGroupingLevel(groupingLevels[0].id);
   }
 

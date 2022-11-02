@@ -98,11 +98,14 @@ function getIntervalLine(
   intervalRatio: number,
   transaction?: NormalizedTrendsTransaction
 ): LineChartSeries[] {
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   if (!transaction || !series.length || !series[0].data || !series[0].data.length) {
     return [];
   }
 
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   const seriesStart = parseInt(series[0].data[0].name as string, 10);
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   const seriesEnd = parseInt(series[0].data.slice(-1)[0].name as string, 10);
 
   if (seriesEnd < seriesStart) {

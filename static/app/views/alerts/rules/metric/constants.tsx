@@ -189,6 +189,7 @@ export function createRuleFromEventView(eventView: EventView): UnsavedMetricRule
     ...datasetAndEventtypes,
     query: parsedQuery?.query ?? eventView.query,
     aggregate,
+    // @ts-expect-error TS(2322) FIXME: Type 'string | null | undefined' is not assignable... Remove this comment to see the full error message
     environment: eventView.environment.length ? eventView.environment[0] : null,
   };
 }

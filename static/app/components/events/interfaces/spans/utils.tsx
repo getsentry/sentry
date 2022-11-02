@@ -532,6 +532,7 @@ function hasFailedThreshold(marks: Measurements): boolean {
   );
 
   return records.some(record => {
+    // @ts-expect-error TS(2339) FIXME: Property 'value' does not exist on type '{ failedT... Remove this comment to see the full error message
     const {value} = marks[record.slug];
     if (typeof value === 'number' && typeof record.poorThreshold === 'number') {
       return value >= record.poorThreshold;
@@ -566,6 +567,7 @@ export function getMeasurements(
       return {
         name,
         // Time timestamp is in seconds, but the measurement value is given in ms so convert it here
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         timestamp: startTimestamp + associatedMeasurement.value / 1000,
         value: associatedMeasurement ? associatedMeasurement.value : undefined,
       };
@@ -752,7 +754,9 @@ export function getSpanGroupTimestamps(spanGroup: EnhancedSpan[]) {
       };
     },
     {
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       startTimestamp: spanGroup[0].span.start_timestamp,
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       endTimestamp: spanGroup[0].span.timestamp,
     }
   );
@@ -929,21 +933,27 @@ export function getFormattedTimeRangeWithLeadingAndTrailingZero(
 
   const newTimestamps = startStrings.reduce(
     (acc, startString, index) => {
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       if (startString.length > endStrings[index].length) {
         acc.start.push(startString);
         acc.end.push(
           index === 0
-            ? endStrings[index].padStart(startString.length, '0')
-            : endStrings[index].padEnd(startString.length, '0')
+            ? // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
+              endStrings[index].padStart(startString.length, '0')
+            : // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
+              endStrings[index].padEnd(startString.length, '0')
         );
         return acc;
       }
 
       acc.start.push(
         index === 0
-          ? startString.padStart(endStrings[index].length, '0')
-          : startString.padEnd(endStrings[index].length, '0')
+          ? // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
+            startString.padStart(endStrings[index].length, '0')
+          : // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
+            startString.padEnd(endStrings[index].length, '0')
       );
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
       acc.end.push(endStrings[index]);
       return acc;
     },

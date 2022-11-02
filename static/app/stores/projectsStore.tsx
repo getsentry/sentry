@@ -114,6 +114,7 @@ const storeConfig: ProjectsStoreDefinition = {
 
     // Assign stats into projects
     entries.forEach(([projectId, stats]) => {
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       this.itemsById[projectId].stats = stats;
     });
 

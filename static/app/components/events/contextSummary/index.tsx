@@ -104,6 +104,7 @@ function ContextSummary({event}: Props) {
       data,
       unknownTitle,
       omitUnknownVersion,
+      // @ts-expect-error TS(2538) FIXME: Type 'undefined' cannot be used as an index type.
       meta: event._meta?.contexts?.[key] ?? {},
     };
 

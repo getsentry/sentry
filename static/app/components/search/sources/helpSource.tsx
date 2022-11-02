@@ -115,7 +115,9 @@ function mapSearchResults(results: SearchResult[]) {
 
     // The first element should indicate the section.
     if (sectionItems.length > 0) {
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       sectionItems[0].item.sectionHeading = section.name;
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       sectionItems[0].item.sectionCount = sectionItems.length;
 
       items.push(...sectionItems);

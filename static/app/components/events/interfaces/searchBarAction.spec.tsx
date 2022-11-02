@@ -119,6 +119,7 @@ describe('SearchBarAction', () => {
     const typeOptions = options[0];
     render(
       <SearchBarAction
+        // @ts-expect-error TS(2322) FIXME: Type '(GeneralSelectValue & { options?: GeneralSel... Remove this comment to see the full error message
         filterOptions={[typeOptions]}
         onFilterChange={handleFilter}
         onChange={() => null}
@@ -145,6 +146,7 @@ describe('SearchBarAction', () => {
     const httpRequestItem = screen.getByText('HTTP request');
     userEvent.click(httpRequestItem);
 
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     const httpRequestOption = (typeOptions.options ?? []).find(
       opt => opt.label === 'HTTP request'
     );
@@ -155,6 +157,7 @@ describe('SearchBarAction', () => {
     const levelOptions = options[1];
     render(
       <SearchBarAction
+        // @ts-expect-error TS(2322) FIXME: Type '(GeneralSelectValue & { options?: GeneralSel... Remove this comment to see the full error message
         filterOptions={[levelOptions]}
         onFilterChange={handleFilter}
         onChange={() => null}
@@ -178,6 +181,7 @@ describe('SearchBarAction', () => {
     const infoItem = screen.getByText('info');
     userEvent.click(infoItem);
 
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     const infoOption = (levelOptions.options ?? []).find(opt => opt.label === 'info');
     expect(handleFilter).toHaveBeenCalledWith([infoOption]);
   });

@@ -219,7 +219,8 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
                 <Control>
                   <SelectControl
                     {...(perItemMapping
-                      ? mappedSelectors[itemKey][fieldKey]
+                      ? // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
+                        mappedSelectors[itemKey][fieldKey]
                       : mappedSelectors[fieldKey])}
                     height={30}
                     disabled={disabled}

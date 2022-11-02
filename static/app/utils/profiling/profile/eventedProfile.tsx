@@ -126,9 +126,12 @@ export class EventedProfile extends Profile {
       // We check the stack in a top-down order to find the first recursive frame.
       let start = this.appendOrderStack.length - 1;
       while (start >= 0) {
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         if (this.appendOrderStack[start].frame === node.frame) {
           // The recursion edge is bidirectional
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           this.appendOrderStack[start].setRecursiveThroughNode(node);
+          // @ts-expect-error TS(2345) FIXME: Argument of type 'CallTreeNode | undefined' is not... Remove this comment to see the full error message
           node.setRecursiveThroughNode(this.appendOrderStack[start]);
           break;
         }

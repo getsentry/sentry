@@ -69,14 +69,18 @@ function AssigneeSelector({noDropdown, ...props}: AssigneeSelectorProps) {
             <div>
               {tct('Suggestion: [name]', {
                 name:
+                  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
                   suggestedActors[0].type === 'team'
-                    ? `#${suggestedActors[0].name}`
-                    : suggestedActors[0].name,
+                    ? // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
+                      `#${suggestedActors[0].name}`
+                    : // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
+                      suggestedActors[0].name,
               })}
               {suggestedActors.length > 1 &&
                 tn(' + %s other', ' + %s others', suggestedActors.length - 1)}
             </div>
             <TooltipSubtext>
+              {/* @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'. */}
               {suggestedReasons[suggestedActors[0].suggestedReason]}
             </TooltipSubtext>
           </TooltipWrapper>

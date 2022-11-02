@@ -37,6 +37,7 @@ function getColor(identifier: string | undefined): Color {
   }
 
   const id = hashIdentifier(identifier);
+  // @ts-expect-error TS(2322) FIXME: Type '"#4674ca" | "#315cac" | "#57be8c" | "#3fa372... Remove this comment to see the full error message
   return COLORS[id % COLORS.length];
 }
 
@@ -46,10 +47,13 @@ function getInitials(displayName: string | undefined) {
   );
   // Use Array.from as slicing and substring() work on ucs2 segments which
   // results in only getting half of any 4+ byte character.
+  // @ts-expect-error TS(2769) FIXME: No overload matches this call.
   let initials = Array.from(names[0])[0];
   if (names.length > 1) {
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     initials += Array.from(names[names.length - 1])[0];
   }
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   return initials.toUpperCase();
 }
 

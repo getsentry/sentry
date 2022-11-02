@@ -107,6 +107,7 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
 
     const matches = [...query.substring(0, currentPosition).matchAll(/\s|^/g)];
     const match = matches[matches.length - 1];
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     const startOfTerm = match[0] === '' ? 0 : (match.index || 0) + 1;
 
     const cursorOffset = query.slice(currentPosition).search(/\s|$/);
@@ -148,6 +149,7 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
         continue;
       }
 
+      // @ts-expect-error TS(2322) FIXME: Type 'DropdownOption | undefined' is not assignabl... Remove this comment to see the full error message
       return group.options[selection];
     }
 
@@ -182,6 +184,7 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
       }
       // This is modifying the `active` value of the references so make sure to
       // use `newOptionGroups` at the end.
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       flattenedOptions[newSelection].active = true;
 
       this.setState({

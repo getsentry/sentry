@@ -58,6 +58,7 @@ function EnvironmentPageFilter({
     value,
   }) => {
     const environmentsToShow =
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       value[0]?.length + value[1]?.length <= maxTitleLength - 2
         ? value.slice(0, 2)
         : value.slice(0, 1);

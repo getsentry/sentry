@@ -18,6 +18,7 @@ export function transformMetricsResponseToSeries(
           .join('')}`,
         data: response.intervals.map((interval, index) => ({
           name: interval,
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           value: group.series ? group.series[field][index] ?? 0 : 0,
         })),
       }));

@@ -173,6 +173,7 @@ class ReleaseSeries extends Component<Props, State> {
         if (pageLinks) {
           const paginationObject = parseLinkHeader(pageLinks);
           hasMore = paginationObject?.next?.results ?? false;
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           conditions.cursor = paginationObject.next.cursor;
         } else {
           hasMore = false;

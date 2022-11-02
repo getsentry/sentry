@@ -83,6 +83,7 @@ describe('JsonForm', function () {
     const jsonFormFields = [fields.name, fields.platform];
 
     it('default', function () {
+      // @ts-expect-error TS(2322) FIXME: Type '((CustomType & BaseField) | ({ type: "select... Remove this comment to see the full error message
       const {container} = render(<JsonForm fields={jsonFormFields} />);
       expect(container).toSnapshot();
     });
@@ -93,6 +94,7 @@ describe('JsonForm', function () {
       try {
         render(
           <JsonForm
+            // @ts-expect-error TS(2322) FIXME: Type '{ visible: ({ test }: any) => boolean; } | {... Remove this comment to see the full error message
             fields={[{...jsonFormFields[0], visible: ({test}) => !!test.email}]}
           />
         );
@@ -105,6 +107,7 @@ describe('JsonForm', function () {
 
     it('should NOT hide panel, if at least one field has visible set to true - no visible prop', function () {
       // slug and platform have no visible prop, that means they will be always visible
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       render(<JsonForm title={accountDetailsFields[0].title} fields={jsonFormFields} />);
 
       expect(screen.getByText('Account Details')).toBeInTheDocument();
@@ -115,7 +118,9 @@ describe('JsonForm', function () {
       // slug and platform have no visible prop, that means they will be always visible
       render(
         <JsonForm
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           title={accountDetailsFields[0].title}
+          // @ts-expect-error TS(2322) FIXME: Type '({ visible: true; } | { visible: true; Compo... Remove this comment to see the full error message
           fields={jsonFormFields.map(field => ({...field, visible: true}))}
         />
       );
@@ -128,7 +133,9 @@ describe('JsonForm', function () {
       // slug and platform have no visible prop, that means they will be always visible
       render(
         <JsonForm
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           title={accountDetailsFields[0].title}
+          // @ts-expect-error TS(2322) FIXME: Type '({ visible: () => true; } | { visible: () =>... Remove this comment to see the full error message
           fields={jsonFormFields.map(field => ({...field, visible: () => true}))}
         />
       );
@@ -141,7 +148,9 @@ describe('JsonForm', function () {
       // slug and platform have no visible prop, that means they will be always visible
       render(
         <JsonForm
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           title={accountDetailsFields[0].title}
+          // @ts-expect-error TS(2322) FIXME: Type '({ visible: false; } | { visible: false; Com... Remove this comment to see the full error message
           fields={jsonFormFields.map(field => ({...field, visible: false}))}
         />
       );
@@ -153,7 +162,9 @@ describe('JsonForm', function () {
       // slug and platform have no visible prop, that means they will be always visible
       render(
         <JsonForm
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           title={accountDetailsFields[0].title}
+          // @ts-expect-error TS(2322) FIXME: Type '({ visible: () => false; } | { visible: () =... Remove this comment to see the full error message
           fields={jsonFormFields.map(field => ({...field, visible: () => false}))}
         />
       );

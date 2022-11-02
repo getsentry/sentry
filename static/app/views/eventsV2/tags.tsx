@@ -105,7 +105,8 @@ class Tags extends Component<Props, State> {
     // endpoint and the totals endpoint
     const maxTotalValues =
       segments.length > 0
-        ? Math.max(Number(totalValues), segments[0].count)
+        ? // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
+          Math.max(Number(totalValues), segments[0].count)
         : totalValues;
     return (
       <TagDistributionMeter

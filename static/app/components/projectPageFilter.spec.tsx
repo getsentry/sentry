@@ -58,12 +58,14 @@ describe('ProjectPageFilter', function () {
 
     // Click the first project's checkbox
     const projectOptions = screen.getAllByTestId('checkbox-fancy');
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
     userEvent.click(projectOptions[0]);
 
     // Confirm the selection changed the visible text
     expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
 
     // Close the dropdown
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
     userEvent.click(screen.getAllByText('project-2')[0]);
 
     // Verify we were redirected

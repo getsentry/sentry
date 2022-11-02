@@ -217,6 +217,7 @@ export function formatAbbreviatedNumber(number: number | string) {
 
   let lookup: typeof numberFormats[number];
 
+  // @ts-expect-error TS(2322) FIXME: Type 'readonly [1000000000, "b"] | readonly [10000... Remove this comment to see the full error message
   // eslint-disable-next-line no-cond-assign
   for (let i = 0; (lookup = numberFormats[i]); i++) {
     const [suffixNum, suffix] = lookup;

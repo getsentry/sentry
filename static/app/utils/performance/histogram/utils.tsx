@@ -7,6 +7,7 @@ export function getBucketWidth(data: HistogramData) {
   // We can assume that all buckets are of equal width, use the first two
   // buckets to get the width. The value of each histogram function indicates
   // the beginning of the bucket.
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   return data.length >= 2 ? data[1].bin - data[0].bin : 0;
 }
 

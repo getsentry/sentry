@@ -50,12 +50,17 @@ export function IssueWidgetCard({
   }
 
   const query = widget.queries[0];
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   const queryFields = defined(query.fields)
-    ? query.fields
-    : [...query.columns, ...query.aggregates];
+    ? // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
+      query.fields
+    : // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
+      [...query.columns, ...query.aggregates];
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   const fieldAliases = query.fieldAliases ?? [];
   const eventView = eventViewFromWidget(
     widget.title,
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'WidgetQuery | undefined' is not ... Remove this comment to see the full error message
     widget.queries[0],
     selection,
     widget.displayType

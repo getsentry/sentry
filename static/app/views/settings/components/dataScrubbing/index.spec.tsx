@@ -156,6 +156,7 @@ describe('Data Scrubbing', function () {
         </Fragment>
       );
 
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
       userEvent.click(screen.getAllByLabelText('Delete Rule')[0]);
 
       expect(
@@ -205,6 +206,7 @@ describe('Data Scrubbing', function () {
         {router}
       );
 
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
       userEvent.click(screen.getAllByRole('button', {name: 'Edit Rule'})[0]);
 
       // Verify the router to open the modal was called

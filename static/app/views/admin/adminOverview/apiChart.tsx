@@ -98,16 +98,19 @@ class ApiChart extends Component<Props, State> {
     return [
       {
         seriesName: '2xx',
+        // @ts-expect-error TS(2345) FIXME: Argument of type 'TimeseriesValue[] | undefined' i... Remove this comment to see the full error message
         data: this.processRawSeries(rawData['client-api.all-versions.responses.2xx']),
         color: theme.green200,
       },
       {
         seriesName: '4xx',
+        // @ts-expect-error TS(2345) FIXME: Argument of type 'TimeseriesValue[] | undefined' i... Remove this comment to see the full error message
         data: this.processRawSeries(rawData['client-api.all-versions.responses.4xx']),
         color: theme.blue300,
       },
       {
         seriesName: '5xx',
+        // @ts-expect-error TS(2345) FIXME: Argument of type 'TimeseriesValue[] | undefined' i... Remove this comment to see the full error message
         data: this.processRawSeries(rawData['client-api.all-versions.responses.5xx']),
         color: theme.red200,
       },

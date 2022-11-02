@@ -226,6 +226,7 @@ export function generateSampleSpan(
     data: {},
   };
 
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   event.entries[0].data.push(span);
   return span;
 }

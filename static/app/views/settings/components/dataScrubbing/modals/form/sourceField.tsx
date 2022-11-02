@@ -157,11 +157,13 @@ class SourceField extends Component<Props, State> {
     ) {
       // returns filtered binaries
       return this.getFilteredSuggestions(
+        // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
         lastFieldValue?.value,
         SourceSuggestionType.BINARY
       );
     }
 
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
     return this.getFilteredSuggestions(lastFieldValue?.value, lastFieldValue?.type);
   }
 
@@ -183,18 +185,23 @@ class SourceField extends Component<Props, State> {
         continue;
       }
 
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       if (value.includes('!') && !!value.split('!')[1]) {
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         const valueAfterUnaryOperator = value.split('!')[1];
         const selector = this.getAllSuggestions().find(
           s => s.value === valueAfterUnaryOperator
         );
         if (!selector) {
           fieldValues.push([
+            // @ts-expect-error TS(2322) FIXME: Type 'SourceSuggestion | undefined' is not assigna... Remove this comment to see the full error message
             unarySuggestions[0],
+            // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
             {type: SourceSuggestionType.STRING, value: valueAfterUnaryOperator},
           ]);
           continue;
         }
+        // @ts-expect-error TS(2322) FIXME: Type 'SourceSuggestion | undefined' is not assigna... Remove this comment to see the full error message
         fieldValues.push([unarySuggestions[0], selector]);
         continue;
       }
@@ -205,6 +212,7 @@ class SourceField extends Component<Props, State> {
         continue;
       }
 
+      // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
       fieldValues.push({type: SourceSuggestionType.STRING, value});
     }
 
@@ -220,6 +228,7 @@ class SourceField extends Component<Props, State> {
   scrollToSuggestion() {
     const {activeSuggestion, hideCaret} = this.state;
 
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     this.suggestionList?.current?.children[activeSuggestion].scrollIntoView({
       behavior: 'smooth',
       block: 'nearest',
@@ -246,6 +255,7 @@ class SourceField extends Component<Props, State> {
         }
         continue;
       }
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       newValue.push(fieldValue.value);
     }
 
@@ -263,6 +273,7 @@ class SourceField extends Component<Props, State> {
     }
 
     if (Array.isArray(lastFieldValue)) {
+      // @ts-expect-error TS(2322) FIXME: Type 'SourceSuggestion | undefined' is not assigna... Remove this comment to see the full error message
       fieldValues[fieldValues.length - 1] = [lastFieldValue[0], suggestion];
       return fieldValues;
     }
@@ -353,6 +364,7 @@ class SourceField extends Component<Props, State> {
     }
 
     if (keyCode === 13) {
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'SourceSuggestion | undefined' is... Remove this comment to see the full error message
       this.handleClickSuggestionItem(suggestions[activeSuggestion]);
       return;
     }

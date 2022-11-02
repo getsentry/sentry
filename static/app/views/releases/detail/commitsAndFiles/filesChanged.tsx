@@ -107,6 +107,7 @@ class FilesChanged extends AsyncView<Props, State> {
       <Fragment>
         {reposToRender.map(repoName => {
           const repoData = filesByRepository[repoName];
+          // @ts-expect-error TS(2769) FIXME: No overload matches this call.
           const files = Object.keys(repoData);
           const fileCount = files.length;
           return (
@@ -117,6 +118,7 @@ class FilesChanged extends AsyncView<Props, State> {
               </PanelHeader>
               <PanelBody>
                 {files.map(filename => {
+                  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
                   const {authors} = repoData[filename];
                   return (
                     <StyledFileChange

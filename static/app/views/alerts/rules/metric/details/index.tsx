@@ -125,6 +125,7 @@ class MetricAlertDetails extends Component<Props, State> {
     const timeOption =
       TIME_OPTIONS.find(item => item.value === period) ?? TIME_OPTIONS[1];
     const start = getUtcDateString(
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       moment(moment.utc().diff(TIME_WINDOWS[timeOption.value]))
     );
     const end = getUtcDateString(moment.utc());
@@ -134,7 +135,9 @@ class MetricAlertDetails extends Component<Props, State> {
       end,
       period,
       usingPeriod: true,
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       label: timeOption.label as string,
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       display: timeOption.label as string,
     };
   }

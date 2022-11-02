@@ -58,16 +58,20 @@ describe('TraceDetailsContent', () => {
 
       const errorList = await screen.findByTestId('trace-view-errors');
       expect(
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         await within(errorList).findByText(SAMPLE_ERROR_DATA.data[0].title)
       ).toBeInTheDocument();
       expect(
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         await within(errorList).findByText(SAMPLE_ERROR_DATA.data[1].title)
       ).toBeInTheDocument();
 
       expect(
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         await within(errorList).findByText(SAMPLE_ERROR_DATA.data[0].level)
       ).toBeInTheDocument();
       expect(
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         await within(errorList).findByText(SAMPLE_ERROR_DATA.data[1].level)
       ).toBeInTheDocument();
     });

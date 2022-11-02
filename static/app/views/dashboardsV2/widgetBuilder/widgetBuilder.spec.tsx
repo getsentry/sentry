@@ -478,6 +478,7 @@ describe('WidgetBuilder', function () {
       // EditableText and chart title
       expect(customWidgetLabels).toHaveLength(2);
 
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
       userEvent.click(customWidgetLabels[0]);
       userEvent.clear(screen.getByRole('textbox', {name: 'Widget title'}));
       userEvent.paste(
@@ -548,6 +549,7 @@ describe('WidgetBuilder', function () {
       const countFields = screen.getAllByText('count()');
       expect(countFields).toHaveLength(3);
 
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
       await selectEvent.select(countFields[1], ['last_seen()']);
 
       userEvent.click(screen.getByText('Add Widget'));
@@ -671,6 +673,7 @@ describe('WidgetBuilder', function () {
       // EditableText and chart title
       expect(customWidgetLabels).toHaveLength(2);
 
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
       userEvent.click(customWidgetLabels[0]);
       userEvent.clear(screen.getByRole('textbox', {name: 'Widget title'}));
 
@@ -795,6 +798,7 @@ describe('WidgetBuilder', function () {
       const customWidgetLabels = screen.getAllByText(widget.title);
       // EditableText and chart title
       expect(customWidgetLabels).toHaveLength(2);
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
       userEvent.click(customWidgetLabels[0]);
 
       userEvent.clear(screen.getByRole('textbox', {name: 'Widget title'}));
@@ -1160,6 +1164,7 @@ describe('WidgetBuilder', function () {
 
       // Triggering the onBlur of the new field should not error
       userEvent.click(
+        // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
         screen.getAllByPlaceholderText('Search for events, users, tags, and more')[1]
       );
       userEvent.keyboard('{esc}');
@@ -1229,6 +1234,7 @@ describe('WidgetBuilder', function () {
       await selectEvent.select(screen.getByText('Select group'), /project/);
 
       // Change the y-axis
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
       await selectEvent.select(screen.getAllByText('count()')[0], 'eps()');
 
       await waitFor(() => {
@@ -1360,6 +1366,7 @@ describe('WidgetBuilder', function () {
       expect(customWidgetLabels).toHaveLength(2);
 
       // Change title text
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
       userEvent.click(customWidgetLabels[0]);
       userEvent.clear(screen.getByRole('textbox', {name: 'Widget title'}));
       userEvent.paste(
@@ -1572,6 +1579,7 @@ describe('WidgetBuilder', function () {
 
       userEvent.click(screen.getByLabelText('Add a Column'));
 
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
       userEvent.paste(screen.getAllByPlaceholderText('Alias')[1], 'Second Alias');
 
       userEvent.click(screen.getByText('Add Widget'));
@@ -1593,7 +1601,9 @@ describe('WidgetBuilder', function () {
       });
 
       userEvent.click(screen.getByText('Add an Equation'));
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
       userEvent.paste(screen.getAllByPlaceholderText('Alias')[1], 'This should persist');
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
       userEvent.type(screen.getAllByPlaceholderText('Alias')[0], 'A');
 
       expect(await screen.findByText('This should persist')).toBeInTheDocument();
@@ -1605,10 +1615,12 @@ describe('WidgetBuilder', function () {
       });
 
       userEvent.click(screen.getByText('Add an Equation'));
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
       userEvent.paste(screen.getAllByPlaceholderText('Alias')[1], 'This should persist');
 
       // 1 for the table, 1 for the the column selector, 1 for the sort
       await waitFor(() => expect(screen.getAllByText('count()')).toHaveLength(3));
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
       await selectEvent.select(screen.getAllByText('count()')[1], /count_unique/);
 
       expect(screen.getByText('This should persist')).toBeInTheDocument();
@@ -1622,6 +1634,7 @@ describe('WidgetBuilder', function () {
       userEvent.click(await screen.findByText('Table'));
       userEvent.click(screen.getByText('Line Chart'));
       await selectEvent.select(screen.getByText('Select group'), 'project');
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
       await selectEvent.select(screen.getAllByText('count()')[1], 'count_unique(…)');
 
       MockApiClient.clearMockResponses();
@@ -1686,6 +1699,7 @@ describe('WidgetBuilder', function () {
         // Confirm modal doesn't open because no changes were made
         expect(mockModal).not.toHaveBeenCalled();
 
+        // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
         userEvent.click(screen.getAllByLabelText('Remove this Y-Axis')[0]);
         userEvent.click(screen.getByText('High Throughput Transactions'));
 
@@ -1727,6 +1741,7 @@ describe('WidgetBuilder', function () {
         });
 
         await selectEvent.select(await screen.findByText('Select group'), 'project');
+        // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
         userEvent.click(screen.getAllByText('count()')[0], undefined, {skipHover: true});
         userEvent.click(screen.getByText(/count_unique/), undefined, {skipHover: true});
 
@@ -1782,6 +1797,7 @@ describe('WidgetBuilder', function () {
         userEvent.click(await screen.findByText('Add Group'));
         expect(screen.getAllByLabelText('Remove group')).toHaveLength(2);
 
+        // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
         userEvent.click(screen.getAllByLabelText('Remove group')[1]);
         await waitFor(() =>
           expect(screen.queryByLabelText('Remove group')).not.toBeInTheDocument()

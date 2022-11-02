@@ -76,6 +76,7 @@ class PieChart extends Component<Props> {
       .reduce(
         (acc, [name, value]) => ({
           ...acc,
+          // @ts-expect-error TS(2464) FIXME: A computed property name must be of type 'string',... Remove this comment to see the full error message
           [name]: value,
         }),
         {}
@@ -94,6 +95,7 @@ class PieChart extends Component<Props> {
 
     // Note, we only take the first series unit!
     const [firstSeries] = series;
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'PieChartSeries | undefined' is n... Remove this comment to see the full error message
     const seriesPercentages = this.getSeriesPercentages(firstSeries);
 
     return (
@@ -108,6 +110,7 @@ class PieChart extends Component<Props> {
           if (
             !this.isInitialSelected ||
             !name ||
+            // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
             firstSeries.data[this.selected].name === name
           ) {
             return;
@@ -159,7 +162,9 @@ class PieChart extends Component<Props> {
         }}
         series={[
           PieSeries({
+            // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
             name: firstSeries.seriesName,
+            // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
             data: firstSeries.data,
             avoidLabelOverlap: false,
             label: {

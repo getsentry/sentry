@@ -57,6 +57,7 @@ class CreateProject extends Component<Props, State> {
     const {query} = location;
     const accessTeams = teams.filter((team: Team) => team.hasAccess);
 
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     const team = query.team || (accessTeams.length && accessTeams[0].slug);
     const platform = getPlatformName(query.platform) ? query.platform : '';
 

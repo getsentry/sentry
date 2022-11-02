@@ -116,11 +116,15 @@ class _Table extends Component<Props, State> {
               transactionName={transactionName}
               eventView={eventView}
               project={projectID}
+              // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
               transactionThreshold={project_threshold[1]}
+              // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
               transactionThresholdMetric={project_threshold[0]}
               onApply={(threshold, metric) => {
                 if (
+                  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
                   threshold !== project_threshold[1] ||
+                  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
                   metric !== project_threshold[0]
                 ) {
                   this.setState({
@@ -302,6 +306,7 @@ class _Table extends Component<Props, State> {
     const aggregateAliasTableMeta: MetaType = {};
     if (tableMeta) {
       Object.keys(tableMeta).forEach(key => {
+        // @ts-expect-error TS(2322) FIXME: Type '"string" | "number" | "boolean" | "size" | "... Remove this comment to see the full error message
         aggregateAliasTableMeta[getAggregateAlias(key)] = tableMeta[key];
       });
     }

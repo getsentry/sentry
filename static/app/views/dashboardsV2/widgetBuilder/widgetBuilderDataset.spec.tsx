@@ -404,6 +404,7 @@ describe('WidgetBuilder', function () {
       expect(screen.getByText('High to low')).toBeInTheDocument();
 
       // Selector "sortBy"
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
       userEvent.click(screen.getAllByText('crash_free_rate(session)')[1]);
 
       // release exists in sort by selector
@@ -724,7 +725,9 @@ describe('WidgetBuilder', function () {
       expect(screen.getAllByLabelText('Remove column')).toHaveLength(2);
       expect(screen.getAllByLabelText('Drag to reorder')).toHaveLength(3);
 
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
       userEvent.click(screen.getAllByLabelText('Remove column')[1]);
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
       userEvent.click(screen.getAllByLabelText('Remove column')[0]);
 
       expect(screen.getByText('issue')).toBeInTheDocument();
@@ -776,6 +779,7 @@ describe('WidgetBuilder', function () {
 
       userEvent.click(screen.getByText('Issues (States, Assignment, Time, etc.)'));
 
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
       userEvent.paste(screen.getAllByPlaceholderText('Alias')[0], 'First Alias');
 
       userEvent.click(screen.getByText('Add Widget'));
@@ -827,6 +831,7 @@ describe('WidgetBuilder', function () {
         const countFields = screen.getAllByText('count()');
         expect(countFields).toHaveLength(3);
 
+        // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
         await selectEvent.select(countFields[1], ['p99(…)']);
         await selectEvent.select(screen.getByText('transaction.duration'), [
           'measurements.custom.measurement',
@@ -1033,12 +1038,14 @@ describe('WidgetBuilder', function () {
 
         expect(await screen.findAllByText('Custom Widget')).toHaveLength(2);
 
+        // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
         await selectEvent.select(screen.getAllByText('count()')[1], ['p99(…)']);
         userEvent.click(screen.getByText('transaction.duration'));
         screen.getByText('measurements.custom.measurement');
         expect(
           screen.queryByText('measurements.another.custom.measurement')
         ).not.toBeInTheDocument();
+        // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
         await selectEvent.select(screen.getAllByText('p99(…)')[0], ['p95(…)']);
         userEvent.click(screen.getByText('transaction.duration'));
         screen.getByText('measurements.another.custom.measurement');
@@ -1260,6 +1267,7 @@ describe('WidgetBuilder', function () {
           orgFeatures: [...defaultOrgFeatures, 'discover-frontend-use-events-endpoint'],
         });
         await screen.findByText('transaction');
+        // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
         userEvent.click(screen.getAllByText('count()')[1]);
         expect(screen.getByText('measurements.custom.measurement')).toBeInTheDocument();
       });
@@ -1302,6 +1310,7 @@ describe('WidgetBuilder', function () {
           await screen.findByText('p99(measurements.custom.measurement)')
         ).toBeInTheDocument();
         // Delete p99(measurements.custom.measurement) column
+        // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
         userEvent.click(screen.getAllByLabelText('Remove column')[0]);
         expect(
           screen.queryByText('p99(measurements.custom.measurement)')

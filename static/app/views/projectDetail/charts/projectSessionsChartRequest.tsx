@@ -125,8 +125,10 @@ class ProjectSessionsChartRequest extends Component<Props, State> {
 
       const {timeseriesData, previousTimeseriesData, totalSessions} =
         displayMode === DisplayModes.SESSIONS
-          ? this.transformSessionCountData(filteredResponse)
-          : this.transformData(filteredResponse, {
+          ? // @ts-expect-error TS(2345) FIXME: Argument of type '{ start: string | undefined; end... Remove this comment to see the full error message
+            this.transformSessionCountData(filteredResponse)
+          : // @ts-expect-error TS(2345) FIXME: Argument of type '{ start: string | undefined; end... Remove this comment to see the full error message
+            this.transformData(filteredResponse, {
               fetchedWithPrevious: shouldFetchWithPrevious,
             });
 
@@ -136,6 +138,7 @@ class ProjectSessionsChartRequest extends Component<Props, State> {
 
       this.setState({
         reloading: false,
+        // @ts-expect-error TS(2322) FIXME: Type 'Series[] | { data: SeriesDataUnit[]; seriesN... Remove this comment to see the full error message
         timeseriesData,
         previousTimeseriesData,
         totalSessions,
@@ -211,6 +214,7 @@ class ProjectSessionsChartRequest extends Component<Props, State> {
     const totalSessions = responseData.groups.reduce(
       (acc, group) =>
         acc +
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         group.series[field]
           .slice(fetchedWithPrevious ? dataMiddleIndex : 0)
           .reduce((value, groupAcc) => groupAcc + value, 0),
@@ -221,6 +225,7 @@ class ProjectSessionsChartRequest extends Component<Props, State> {
       ? responseData.groups.reduce(
           (acc, group) =>
             acc +
+            // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
             group.series[field]
               .slice(0, dataMiddleIndex)
               .reduce((value, groupAcc) => groupAcc + value, 0),
@@ -239,11 +244,13 @@ class ProjectSessionsChartRequest extends Component<Props, State> {
             const totalIntervalSessions = responseData.groups.reduce(
               (acc, group) =>
                 acc +
+                // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
                 group.series[field].slice(fetchedWithPrevious ? dataMiddleIndex : 0)[i],
               0
             );
 
             const intervalCrashedSessions =
+              // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
               responseData.groups
                 .find(group => group.by['session.status'] === 'crashed')
                 ?.series[field].slice(fetchedWithPrevious ? dataMiddleIndex : 0)[i] ?? 0;
@@ -271,11 +278,13 @@ class ProjectSessionsChartRequest extends Component<Props, State> {
           seriesName: t('Previous Period'),
           data: responseData.intervals.slice(0, dataMiddleIndex).map((_interval, i) => {
             const totalIntervalSessions = responseData.groups.reduce(
+              // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
               (acc, group) => acc + group.series[field].slice(0, dataMiddleIndex)[i],
               0
             );
 
             const intervalCrashedSessions =
+              // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
               responseData.groups
                 .find(group => group.by['session.status'] === 'crashed')
                 ?.series[field].slice(0, dataMiddleIndex)[i] ?? 0;

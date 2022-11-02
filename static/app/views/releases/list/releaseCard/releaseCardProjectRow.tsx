@@ -101,6 +101,7 @@ function ReleaseCardProjectRow({
   const adoptionStage =
     showReleaseAdoptionStages &&
     adoptionStages?.[project.slug] &&
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     adoptionStages?.[project.slug].stage;
 
   const adoptionStageLabel =

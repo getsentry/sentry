@@ -55,7 +55,9 @@ export function GroupBySelector({fieldOptions, columns = [], onChange}: Props) {
 
   const hasOnlySingleColumnWithValue =
     columns.length === 1 &&
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     columns[0].kind === FieldValueKind.FIELD &&
+    // @ts-expect-error TS(2339) FIXME: Property 'field' does not exist on type 'QueryFiel... Remove this comment to see the full error message
     columns[0]?.field !== '';
 
   const canDrag = columns.length > 1;
@@ -67,12 +69,15 @@ export function GroupBySelector({fieldOptions, columns = [], onChange}: Props) {
       (acc, key) => {
         const value = fieldOptions[key];
         const optionInColumnsIndex = columnFieldsAsString.findIndex(
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           column => column === value.value.meta.name
         );
         if (optionInColumnsIndex === -1) {
+          // @ts-expect-error TS(2322) FIXME: Type 'SelectValue<FieldValue> | undefined' is not ... Remove this comment to see the full error message
           acc.filteredFieldOptions[key] = value;
           return acc;
         }
+        // @ts-expect-error TS(2322) FIXME: Type '{ [x: string]: SelectValue<FieldValue> | und... Remove this comment to see the full error message
         acc.columnsAsFieldOptions[optionInColumnsIndex] = {[key]: value};
         return acc;
       },
@@ -131,6 +136,7 @@ export function GroupBySelector({fieldOptions, columns = [], onChange}: Props) {
                 {columns.map((column, index) => (
                   <SortableQueryField
                     key={items[index]}
+                    // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
                     dragId={items[index]}
                     value={column}
                     fieldOptions={{
@@ -149,6 +155,7 @@ export function GroupBySelector({fieldOptions, columns = [], onChange}: Props) {
               {activeId ? (
                 <Ghost>
                   <QueryField
+                    // @ts-expect-error TS(2322) FIXME: Type 'QueryFieldValue | undefined' is not assignab... Remove this comment to see the full error message
                     value={columns[Number(activeId)]}
                     fieldOptions={{
                       ...filteredFieldOptions,

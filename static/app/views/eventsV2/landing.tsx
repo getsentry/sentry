@@ -122,6 +122,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
       cursor,
       query: `version:2 name:"${searchQuery}"`,
       per_page: perPage.toString(),
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       sortBy: this.getActiveSort().value,
     };
     if (!cursor) {
@@ -219,6 +220,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
         </PrebuiltSwitch>
         <CompactSelect
           triggerProps={{prefix: t('Sort By')}}
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           value={activeSort.value}
           options={SORT_OPTIONS}
           onChange={opt => this.handleSortChange(opt.value)}

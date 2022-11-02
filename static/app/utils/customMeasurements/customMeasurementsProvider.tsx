@@ -74,8 +74,11 @@ export function CustomMeasurementsProvider({
             acc[customMeasurement] = {
               key: customMeasurement,
               name: customMeasurement,
+              // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
               functions: response[customMeasurement].functions,
+              // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
               unit: response[customMeasurement].unit,
+              // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
               fieldType: getFieldTypeFromUnit(response[customMeasurement].unit),
             };
             return acc;

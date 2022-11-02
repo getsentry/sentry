@@ -71,8 +71,10 @@ export function setDateToTime(
   const date = new Date(+dateObj);
 
   if (local) {
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'number | undefined' is not assig... Remove this comment to see the full error message
     date.setHours(hours, minutes);
   } else {
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'number | undefined' is not assig... Remove this comment to see the full error message
     date.setUTCHours(hours, minutes);
   }
 
@@ -173,6 +175,7 @@ export function intervalToMilliseconds(interval: string): number {
     h: 60 * 60,
     m: 60,
   };
+  // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
   return parseInt(value, 10) * multipliers[unit] * 1000;
 }
 
@@ -189,6 +192,7 @@ export function parsePeriodToHours(str: string): number {
 
   const {period, periodLength} = result;
 
+  // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
   const periodNumber = parseInt(period, 10);
 
   switch (periodLength) {

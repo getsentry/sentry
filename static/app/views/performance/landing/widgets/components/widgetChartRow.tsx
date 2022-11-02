@@ -29,11 +29,10 @@ function getInitialChartSettings(
   performanceType: PROJECT_PERFORMANCE_TYPE,
   allowedCharts: PerformanceWidgetSetting[]
 ) {
-  return new Array(chartCount)
-    .fill(0)
-    .map((_, index) =>
-      getChartSetting(index, chartHeight, performanceType, allowedCharts[index])
-    );
+  return new Array(chartCount).fill(0).map((_, index) =>
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'PerformanceWidgetSetting | undef... Remove this comment to see the full error message
+    getChartSetting(index, chartHeight, performanceType, allowedCharts[index])
+  );
 }
 
 const ChartRow = (props: ChartRowProps) => {
@@ -59,6 +58,7 @@ const ChartRow = (props: ChartRowProps) => {
           index={index}
           chartHeight={chartHeight}
           chartColor={palette[index]}
+          // @ts-expect-error TS(2769) FIXME: No overload matches this call.
           defaultChartSetting={allowedCharts[index]}
           rowChartSettings={chartSettings}
           setRowChartSettings={setChartSettings}

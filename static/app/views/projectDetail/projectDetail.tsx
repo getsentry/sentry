@@ -302,6 +302,7 @@ class ProjectDetail extends AsyncView<Props, State> {
                     <ProjectIssues
                       organization={organization}
                       location={location}
+                      // @ts-expect-error TS(2322) FIXME: Type 'number | undefined' is not assignable to typ... Remove this comment to see the full error message
                       projectId={selection.projects[0]}
                       query={query}
                       api={this.api}

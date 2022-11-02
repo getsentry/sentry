@@ -81,10 +81,12 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
 
   const listQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
     () => ({
+      // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
       fields: field,
       component: provided => {
         const eventView = provided.eventView.clone();
 
+        // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
         eventView.sorts = [{kind: 'desc', field}];
         if (props.chartSetting === PerformanceWidgetSetting.MOST_RELATED_ISSUES) {
           eventView.fields = [
@@ -92,6 +94,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             {field: 'transaction'},
             {field: 'title'},
             {field: 'project.id'},
+            // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
             {field},
           ];
           eventView.additionalConditions.setFilterValues('event.type', ['error']);
@@ -116,9 +119,11 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           ];
         } else {
           // Most related errors
+          // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
           eventView.fields = [{field: 'transaction'}, {field: 'project.id'}, {field}];
         }
         // Don't retrieve list items with 0 in the field.
+        // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
         eventView.additionalConditions.setFilterValues(field, ['>0']);
         return (
           <DiscoverQuery
@@ -140,6 +145,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
   );
 
   const chartQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
+    // @ts-expect-error TS(2345) FIXME: Argument of type '() => { enabled: (widgetData: Da... Remove this comment to see the full error message
     () => {
       return {
         enabled: widgetData => {
@@ -152,6 +158,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             return null;
           }
           eventView.additionalConditions.setFilterValues('transaction', [
+            // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
             provided.widgetData.list.data[selectedListIndex].transaction as string,
           ]);
           if (props.chartSetting === PerformanceWidgetSetting.MOST_RELATED_ISSUES) {
@@ -162,9 +169,11 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
               {field: 'issue'},
               {field: 'issue.id'},
               {field: 'transaction'},
+              // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
               {field},
             ];
             eventView.additionalConditions.setFilterValues('issue', [
+              // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
               provided.widgetData.list.data[selectedListIndex].issue as string,
             ]);
             eventView.additionalConditions.setFilterValues('event.type', ['error']);
@@ -181,6 +190,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             mutableSearch.removeFilter('transaction.duration');
             eventView.query = mutableSearch.formatString();
           } else {
+            // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
             eventView.fields = [{field: 'transaction'}, {field}];
           }
           return (
@@ -190,6 +200,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
               includePrevious
               includeTransformedData
               partial
+              // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
               currentSeriesNames={[field]}
               query={eventView.getQueryWithAdditionalConditions()}
               interval={getInterval(
@@ -277,15 +288,18 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                   additionalQuery,
                 });
 
+                // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
                 const fieldString = useEvents ? field : getAggregateAlias(field);
 
                 const valueMap = {
                   [PerformanceWidgetSetting.MOST_RELATED_ERRORS]: listItem.failure_count,
                   [PerformanceWidgetSetting.MOST_RELATED_ISSUES]: listItem.issue,
+                  // @ts-expect-error TS(2538) FIXME: Type 'undefined' cannot be used as an index type.
                   slowest: getPerformanceDuration(listItem[fieldString] as number),
                 };
                 const rightValue =
                   valueMap[isSlowestType ? 'slowest' : props.chartSetting] ??
+                  // @ts-expect-error TS(2538) FIXME: Type 'undefined' cannot be used as an index type.
                   listItem[fieldString];
 
                 switch (props.chartSetting) {
@@ -308,6 +322,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                           <ListClose
                             setSelectListIndex={setSelectListIndex}
                             onClick={() =>
+                              // @ts-expect-error TS(2345) FIXME: Argument of type 'ReactText | undefined' is not as... Remove this comment to see the full error message
                               excludeTransaction(listItem.transaction, props)
                             }
                           />
@@ -329,6 +344,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                           <ListClose
                             setSelectListIndex={setSelectListIndex}
                             onClick={() =>
+                              // @ts-expect-error TS(2345) FIXME: Argument of type 'ReactText | undefined' is not as... Remove this comment to see the full error message
                               excludeTransaction(listItem.transaction, props)
                             }
                           />
@@ -349,6 +365,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                             <ListClose
                               setSelectListIndex={setSelectListIndex}
                               onClick={() =>
+                                // @ts-expect-error TS(2345) FIXME: Argument of type 'ReactText | undefined' is not as... Remove this comment to see the full error message
                                 excludeTransaction(listItem.transaction, props)
                               }
                             />
@@ -366,6 +383,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                           <ListClose
                             setSelectListIndex={setSelectListIndex}
                             onClick={() =>
+                              // @ts-expect-error TS(2345) FIXME: Argument of type 'ReactText | undefined' is not as... Remove this comment to see the full error message
                               excludeTransaction(listItem.transaction, props)
                             }
                           />

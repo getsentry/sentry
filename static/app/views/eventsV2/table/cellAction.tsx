@@ -49,6 +49,7 @@ export function updateQuery(
   if (Array.isArray(value)) {
     value = [...new Set(value)];
     if (value.length === 1) {
+      // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
       value = value[0];
     }
   }
@@ -180,6 +181,7 @@ function makeCellActions({
       <ActionItem
         key="add-to-filter"
         data-test-id="add-to-filter"
+        // @ts-expect-error TS(2345) FIXME: Argument of type 'ReactText | undefined' is not as... Remove this comment to see the full error message
         onClick={() => handleCellAction(Actions.ADD, value)}
       >
         {t('Add to filter')}
@@ -192,6 +194,7 @@ function makeCellActions({
         <ActionItem
           key="exclude-from-filter"
           data-test-id="exclude-from-filter"
+          // @ts-expect-error TS(2345) FIXME: Argument of type 'ReactText | undefined' is not as... Remove this comment to see the full error message
           onClick={() => handleCellAction(Actions.EXCLUDE, value)}
         >
           {t('Exclude from filter')}
@@ -209,6 +212,7 @@ function makeCellActions({
       <ActionItem
         key="show-values-greater-than"
         data-test-id="show-values-greater-than"
+        // @ts-expect-error TS(2345) FIXME: Argument of type 'ReactText | undefined' is not as... Remove this comment to see the full error message
         onClick={() => handleCellAction(Actions.SHOW_GREATER_THAN, value)}
       >
         {t('Show values greater than')}
@@ -220,6 +224,7 @@ function makeCellActions({
       <ActionItem
         key="show-values-less-than"
         data-test-id="show-values-less-than"
+        // @ts-expect-error TS(2345) FIXME: Argument of type 'ReactText | undefined' is not as... Remove this comment to see the full error message
         onClick={() => handleCellAction(Actions.SHOW_LESS_THAN, value)}
       >
         {t('Show values less than')}
@@ -233,6 +238,7 @@ function makeCellActions({
       <ActionItem
         key="transaction-summary"
         data-test-id="transaction-summary"
+        // @ts-expect-error TS(2345) FIXME: Argument of type 'ReactText | undefined' is not as... Remove this comment to see the full error message
         onClick={() => handleCellAction(Actions.TRANSACTION, value)}
       >
         {t('Go to summary')}
@@ -246,6 +252,7 @@ function makeCellActions({
       <ActionItem
         key="release"
         data-test-id="release"
+        // @ts-expect-error TS(2345) FIXME: Argument of type 'ReactText | undefined' is not as... Remove this comment to see the full error message
         onClick={() => handleCellAction(Actions.RELEASE, value)}
       >
         {t('Go to release')}
@@ -259,6 +266,7 @@ function makeCellActions({
       <ActionItem
         key="drilldown"
         data-test-id="per-cell-drilldown"
+        // @ts-expect-error TS(2345) FIXME: Argument of type 'ReactText | undefined' is not as... Remove this comment to see the full error message
         onClick={() => handleCellAction(Actions.DRILLDOWN, value)}
       >
         {t('View Stacks')}
@@ -276,6 +284,7 @@ function makeCellActions({
       <ActionItem
         key="edit_threshold"
         data-test-id="edit-threshold"
+        // @ts-expect-error TS(2345) FIXME: Argument of type 'ReactText | undefined' is not as... Remove this comment to see the full error message
         onClick={() => handleCellAction(Actions.EDIT_THRESHOLD, value)}
       >
         {tct('Edit threshold ([threshold]ms)', {

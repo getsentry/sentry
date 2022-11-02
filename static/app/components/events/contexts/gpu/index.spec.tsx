@@ -49,6 +49,7 @@ describe('gpu event context', function () {
     });
 
     expect(screen.getByText('API Type')).toBeInTheDocument(); // subject
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
     userEvent.hover(screen.getAllByText(/redacted/)[0]);
     expect(
       await screen.findByText(
@@ -59,6 +60,7 @@ describe('gpu event context', function () {
     ).toBeInTheDocument(); // tooltip description
 
     expect(screen.getByText('Name')).toBeInTheDocument(); // subject
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
     userEvent.hover(screen.getAllByText(/redacted/)[1]);
     expect(
       await screen.findByText(

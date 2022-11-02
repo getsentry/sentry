@@ -349,6 +349,7 @@ describe('TraceView', () => {
       expect(screen.queryAllByText('group me')).toHaveLength(2);
 
       const firstGroup = screen.queryAllByText('Autogrouped — http —')[0];
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
       userEvent.click(firstGroup);
       expect(await screen.findAllByText('group me')).toHaveLength(6);
 
@@ -357,6 +358,7 @@ describe('TraceView', () => {
       expect(await screen.findAllByText('group me')).toHaveLength(10);
 
       const firstRegroup = screen.queryAllByText('Regroup')[0];
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
       userEvent.click(firstRegroup);
       expect(await screen.findAllByText('group me')).toHaveLength(6);
 

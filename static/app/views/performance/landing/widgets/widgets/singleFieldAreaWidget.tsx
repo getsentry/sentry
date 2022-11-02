@@ -43,6 +43,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
 
   const chartQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
     () => ({
+      // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
       fields: props.fields[0],
       component: provided => (
         <QueryBatchNode batchProperty="yAxis" transform={unmergeIntoIndividualResults}>
@@ -54,7 +55,9 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
               includePrevious
               includeTransformedData
               partial
+              // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
               currentSeriesNames={[field]}
+              // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
               previousSeriesNames={[getPreviousSeriesName(field)]}
               query={provided.eventView.getQueryWithAdditionalConditions()}
               interval={getInterval(
@@ -80,6 +83,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
 
   const overallQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
     () => ({
+      // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
       fields: field,
       component: provided => {
         const eventView = provided.eventView.clone();

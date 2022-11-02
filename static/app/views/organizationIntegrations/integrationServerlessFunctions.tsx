@@ -62,6 +62,7 @@ class IntegrationServerlessFunctions extends AsyncComponent<Props, State> {
       ...serverlessFunctions[index],
       ...serverlessFunctionUpdate,
     };
+    // @ts-expect-error TS(2322) FIXME: Type '{ enabled?: boolean | undefined; name?: stri... Remove this comment to see the full error message
     serverlessFunctions[index] = serverlessFunction;
     this.setState({serverlessFunctions});
   };

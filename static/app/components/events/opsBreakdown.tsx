@@ -375,6 +375,7 @@ function mergeInterval(intervals: TimeWindowSpan[]): TimeWindowSpan[] {
     }
 
     const lastInterval = merged[merged.length - 1];
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     const lastIntervalEnd = lastInterval[1];
 
     const [currentIntervalStart, currentIntervalEnd] = currentInterval;
@@ -390,6 +391,7 @@ function mergeInterval(intervals: TimeWindowSpan[]): TimeWindowSpan[] {
 
     // invariant: lastIntervalStart <= currentIntervalStart
 
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     lastInterval[1] = Math.max(lastIntervalEnd, currentIntervalEnd);
   }
 

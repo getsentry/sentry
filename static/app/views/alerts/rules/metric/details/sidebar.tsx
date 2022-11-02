@@ -84,6 +84,7 @@ export default class Sidebar extends PureComponent<Props> {
             threshold,
             comparisonType: thresholdTypeText,
             timeWindow: this.getTimeWindow(),
+            // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
             comparisonDelta: (
               COMPARISON_DELTA_OPTIONS.find(
                 ({value}) => value === rule.comparisonDelta

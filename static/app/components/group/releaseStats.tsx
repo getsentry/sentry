@@ -40,7 +40,8 @@ const GroupReleaseStats = ({
     environments.length > 1
       ? t('selected environments')
       : environments.length === 1
-      ? environments[0].displayName
+      ? // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
+        environments[0].displayName
       : undefined;
 
   const projectId = project.id;

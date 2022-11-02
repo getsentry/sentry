@@ -102,11 +102,14 @@ function getRuleChangeSeries(
   data: AreaChartSeries[]
 ): LineSeriesOption[] {
   const {dateModified} = rule;
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   if (!data.length || !data[0].data.length || !dateModified) {
     return [];
   }
 
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   const seriesData = data[0].data;
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   const seriesStart = new Date(seriesData[0].name).getTime();
   const ruleChanged = new Date(dateModified).getTime();
 
@@ -371,6 +374,7 @@ class MetricChart extends PureComponent<Props, State> {
                         };
                         const endTime = formatTooltipDate(
                           moment(pointX).add(
+                            // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
                             parseInt(period, 10),
                             periodLength as StatsPeriodType
                           ),

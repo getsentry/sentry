@@ -91,6 +91,7 @@ export function WidgetCardChartContainer({
                 : null}
               <LoadingScreen loading={loading} />
               <IssueWidgetCard
+                // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
                 transformedResults={tableResults?.[0].data ?? []}
                 loading={loading}
                 errorMessage={errorMessage}

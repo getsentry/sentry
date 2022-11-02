@@ -932,7 +932,8 @@ export function joinQuery(
   return (
     (leadingSpace ? ' ' : '') +
     (parsedTerms.length === 1
-      ? parsedTerms[0].text
+      ? // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
+        parsedTerms[0].text
       : parsedTerms.map(p => p.text).join(additionalSpaceBetween ? ' ' : ''))
   );
 }

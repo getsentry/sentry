@@ -198,6 +198,7 @@ class ResultGrid extends Component<Props, State> {
     this.setState(
       {
         query: queryParams.query ?? '',
+        // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
         sortBy: queryParams.sortBy ?? this.props.defaultSort,
         filters: {...queryParams},
         pageLinks: null,
@@ -352,6 +353,7 @@ class ResultGrid extends Component<Props, State> {
             <Filter
               key={filterKey}
               queryKey={filterKey}
+              // @ts-expect-error TS(2769) FIXME: No overload matches this call.
               value={this.state.filters[filterKey]}
               path={path ?? ''}
               location={location}

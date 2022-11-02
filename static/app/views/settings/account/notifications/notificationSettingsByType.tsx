@@ -310,6 +310,7 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
 
     return organizations.filter(organization => {
       const externalID = integrationExternalIDsByOrganizationID[organization.id];
+      // @ts-expect-error TS(2538) FIXME: Type 'undefined' cannot be used as an index type.
       const identity = identitiesByExternalId[externalID];
       return identity === undefined || identity === null;
     });
@@ -322,6 +323,7 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
       'slack'
     );
     const unlinkedOrgs = this.getUnlinkedOrgs();
+    // @ts-expect-error TS(2339) FIXME: Property 'title' does not exist on type 'FineTuneF... Remove this comment to see the full error message
     const {title, description} = ACCOUNT_NOTIFICATION_FIELDS[notificationType];
     return (
       <Fragment>

@@ -30,6 +30,7 @@ const SamplingModal = (props: Props) => {
     ['false', t('Always show sampled data')],
   ];
 
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   const [choice, setChoice] = useState(choices[isMEPEnabled ? 0 : 1][0]);
 
   return (

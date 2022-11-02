@@ -124,10 +124,12 @@ export class Profile {
       }
 
       prevStack = prevStack.concat(toOpen);
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       value += this.weights[sampleIndex++];
     }
 
     for (let i = prevStack.length - 1; i >= 0; i--) {
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'CallTreeNode | undefined' is not... Remove this comment to see the full error message
       closeFrame(prevStack[i], value);
     }
   }

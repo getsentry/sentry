@@ -75,6 +75,7 @@ describe('useVirtualizedTree', () => {
     });
 
     reactHooks.act(() => {
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'VirtualizedTreeNode<any> | undef... Remove this comment to see the full error message
       result.current.handleExpandTreeNode(result.current.tree.roots[0], {
         expandChildren: true,
       });
@@ -102,6 +103,7 @@ describe('useVirtualizedTree', () => {
     });
 
     reactHooks.act(() => {
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'VirtualizedTreeNode<any> | undef... Remove this comment to see the full error message
       result.current.handleExpandTreeNode(result.current.tree.roots[0], {
         expandChildren: true,
       });
@@ -133,6 +135,7 @@ describe('useVirtualizedTree', () => {
     });
 
     reactHooks.act(() => {
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'VirtualizedTreeNode<any> | undef... Remove this comment to see the full error message
       result.current.handleExpandTreeNode(result.current.tree.roots[0], {
         expandChildren: true,
       });
@@ -164,6 +167,7 @@ describe('useVirtualizedTree', () => {
     });
 
     reactHooks.act(() => {
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'VirtualizedTreeNode<any> | undef... Remove this comment to see the full error message
       result.current.handleExpandTreeNode(result.current.tree.roots[0], {
         expandChildren: true,
       });
@@ -193,6 +197,7 @@ describe('useVirtualizedTree', () => {
     });
 
     reactHooks.act(() => {
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'VirtualizedTreeNode<any> | undef... Remove this comment to see the full error message
       result.current.handleExpandTreeNode(result.current.tree.roots[0], {
         expandChildren: true,
       });
@@ -212,6 +217,7 @@ describe('useVirtualizedTree', () => {
 
     // Last item should be different
     expect(result.current.items[result.current.items.length - 1].key).toBe(
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       stableKeys[stableKeys.length - 1] + 1
     );
   });

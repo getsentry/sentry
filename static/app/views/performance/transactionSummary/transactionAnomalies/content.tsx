@@ -78,6 +78,7 @@ const transformAnomalyData = (
 
   data.push({
     seriesName: 'tpm()',
+    // @ts-expect-error TS(2339) FIXME: Property 'count' does not exist on type '{ count: ... Remove this comment to see the full error message
     data: resultData.y.data.map(([name, [{count}]]) => ({
       name,
       value: count,
@@ -85,6 +86,7 @@ const transformAnomalyData = (
   });
   data.push({
     seriesName: 'tpm() lower bound',
+    // @ts-expect-error TS(2339) FIXME: Property 'count' does not exist on type '{ count: ... Remove this comment to see the full error message
     data: resultData.yhat_lower.data.map(([name, [{count}]]) => ({
       name,
       value: count,
@@ -92,6 +94,7 @@ const transformAnomalyData = (
   });
   data.push({
     seriesName: 'tpm() upper bound',
+    // @ts-expect-error TS(2339) FIXME: Property 'count' does not exist on type '{ count: ... Remove this comment to see the full error message
     data: resultData.yhat_upper.data.map(([name, [{count}]]) => ({
       name,
       value: count,
@@ -191,6 +194,7 @@ type DataType = {
 
 function Anomalies(props: AnomaliesSectionProps) {
   const height = 250;
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   const chartColor = theme.charts.colors[0];
 
   const chart = useMemo<QueryDefinition<DataType, WidgetDataResult>>(() => {

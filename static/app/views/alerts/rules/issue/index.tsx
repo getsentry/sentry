@@ -653,6 +653,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       const clonedState = cloneDeep(prevState);
 
       // Set initial configuration, but also set
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       const id = (clonedState.rule as IssueAlertRule)[type][idx].id;
       const newRule = {
         ...this.getInitialValue(type, id),
@@ -1002,6 +1003,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                     undefined &&
                   nextSelectedProject.teams.length
                 ) {
+                  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
                   this.handleOwnerChange({value: nextSelectedProject.teams[0].id});
                 }
 
@@ -1192,6 +1194,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                               error={
                                 this.hasError('conditions') && (
                                   <StyledAlert type="error">
+                                    {/* @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'. */}
                                     {detailedError?.conditions[0]}
                                   </StyledAlert>
                                 )
@@ -1262,6 +1265,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                               error={
                                 this.hasError('filters') && (
                                   <StyledAlert type="error">
+                                    {/* @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'. */}
                                     {detailedError?.filters[0]}
                                   </StyledAlert>
                                 )
@@ -1304,6 +1308,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                               error={
                                 this.hasError('actions') && (
                                   <StyledAlert type="error">
+                                    {/* @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'. */}
                                     {detailedError?.actions[0]}
                                   </StyledAlert>
                                 )

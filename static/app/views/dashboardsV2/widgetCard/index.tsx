@@ -245,6 +245,7 @@ class WidgetCard extends Component<Props, State> {
           ? [query.aggregates[query.aggregates.length - 1]]
           : [],
       }));
+      // @ts-expect-error TS(2322) FIXME: Type '{ aggregates: (string | undefined)[]; column... Remove this comment to see the full error message
       widget.queries = queries;
       widget.limit = DEFAULT_RESULTS_LIMIT;
     }

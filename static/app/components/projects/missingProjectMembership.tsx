@@ -134,6 +134,7 @@ class MissingProjectMembership extends Component<Props, State> {
     const teamAccess = [
       {
         label: t('Request Access'),
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         options: this.getTeamsForAccess()[0].map(request => ({
           value: request,
           label: `#${request}`,
@@ -141,6 +142,7 @@ class MissingProjectMembership extends Component<Props, State> {
       },
       {
         label: t('Pending Requests'),
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         options: this.getTeamsForAccess()[1].map(pending =>
           this.getPendingTeamOption(pending)
         ),

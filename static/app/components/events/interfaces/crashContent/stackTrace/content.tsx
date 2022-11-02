@@ -70,6 +70,7 @@ class Content extends Component<Props, State> {
     const lastFrame = frames[frames.length - 1];
     const penultimateFrame = frames[frames.length - 2];
 
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     return penultimateFrame.inApp && !lastFrame.inApp;
   }
 
@@ -204,6 +205,7 @@ class Content extends Component<Props, State> {
         nRepeats++;
       }
 
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'Frame | undefined' is not assign... Remove this comment to see the full error message
       if (this.frameIsVisible(frame, nextFrame) && !repeatedFrame) {
         const image = this.findImageForAddress(frame.instructionAddr, frame.addrMode);
 
@@ -247,6 +249,7 @@ class Content extends Component<Props, State> {
 
     if (frames.length > 0 && data.registers) {
       const lastFrame = frames.length - 1;
+      // @ts-expect-error TS(2769) FIXME: No overload matches this call.
       frames[lastFrame] = cloneElement(frames[lastFrame], {
         registers: data.registers,
       });

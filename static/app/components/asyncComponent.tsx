@@ -368,6 +368,7 @@ class AsyncComponent<
     const urlOrDefault = url || (firstEndpoint && firstEndpoint[1]);
     return (
       <AsyncComponentSearchInput
+        // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
         url={urlOrDefault}
         {...props}
         api={this.api}

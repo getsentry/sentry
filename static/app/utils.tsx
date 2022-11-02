@@ -85,9 +85,11 @@ export function sortArray<T>(arr: Array<T>, score_fn: (entry: T) => string): Arr
       b_score = score_fn(b);
 
     for (let i = 0; i < a_score.length; i++) {
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       if (a_score[i] > b_score[i]) {
         return 1;
       }
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       if (a_score[i] < b_score[i]) {
         return -1;
       }

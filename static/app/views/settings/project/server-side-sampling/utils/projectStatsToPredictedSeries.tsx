@@ -46,13 +46,16 @@ export function projectStatsToPredictedSeries(
       projectStats.groups.forEach(group => {
         switch (group.by.outcome) {
           case Outcome.ACCEPTED:
+            // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
             result.indexedAndProcessed += group.series[quantityField][index];
             break;
           case Outcome.CLIENT_DISCARD:
+            // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
             result.discarded += group.series[quantityField][index];
             break;
           case Outcome.FILTERED:
             if (String(group.by.reason).startsWith('Sampled')) {
+              // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
               result.processed += group.series[quantityField][index];
             }
             break;

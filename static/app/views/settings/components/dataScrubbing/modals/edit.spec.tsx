@@ -38,6 +38,7 @@ async function renderComponent() {
       endpoint={endpoint}
       orgSlug={organizationSlug}
       onSubmitSuccess={successfullySaved}
+      // @ts-expect-error TS(2322) FIXME: Type 'Rule | undefined' is not assignable to type ... Remove this comment to see the full error message
       rule={rule}
     />
   ));
@@ -85,6 +86,7 @@ describe('Edit Modal', () => {
     );
     expect(placeholderField.find('Tooltip').prop('title')).toEqual(placeholderFieldHelp);
 
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     if (rule.method === MethodType.REPLACE) {
       const placeholderInput = placeholderField.find('input');
       expect(placeholderInput.prop('value')).toEqual(rule.placeholder);
@@ -116,6 +118,7 @@ describe('Edit Modal', () => {
     expect(regexField.find('QuestionTooltip').prop('title')).toEqual(regexFieldHelp);
     expect(regexField.find('Tooltip').prop('title')).toEqual(regexFieldHelp);
 
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     if (rule.type === RuleType.PATTERN) {
       const regexFieldInput = regexField.find('input');
       expect(regexFieldInput.prop('value')).toEqual(rule.pattern);
@@ -182,6 +185,7 @@ describe('Edit Modal', () => {
     // Source Field
     const sourceField = wrapper.find('[data-test-id="source-field"]');
     const sourceFieldInput = sourceField.find('input');
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     sourceFieldInput.simulate('change', {target: {value: valueSuggestions[2].value}});
 
     // Save rule

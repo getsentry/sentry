@@ -51,6 +51,7 @@ export function resolveJSSelfProfilingStack(
       return callStack;
     }
 
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'Frame | undefined' is not assign... Remove this comment to see the full error message
     callStack.unshift(frameIndex[stack.frameId]);
 
     if (stack.parentId !== undefined) {

@@ -80,6 +80,7 @@ export function DataScrubbing({
       modalProps => (
         <Edit
           {...modalProps}
+          // @ts-expect-error TS(2322) FIXME: Type 'Rule | undefined' is not assignable to type ... Remove this comment to see the full error message
           rule={rules[routeContext.params.scrubbingId]}
           projectId={project?.id}
           savedRules={rules}

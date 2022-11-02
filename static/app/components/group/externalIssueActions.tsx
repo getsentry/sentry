@@ -45,6 +45,7 @@ const ExternalIssueActions = ({configurations, group, onChange}: Props) => {
     // Currently we do not support a case where there is multiple external issues.
     // For example, we shouldn't have more than 1 jira ticket created for an issue for each jira configuration.
     const issue = externalIssues[0];
+    // @ts-expect-error TS(2339) FIXME: Property 'id' does not exist on type 'IntegrationE... Remove this comment to see the full error message
     const {id} = issue;
     const endpoint = `/groups/${group.id}/integrations/${integration.id}/?externalIssue=${id}`;
 
@@ -75,18 +76,26 @@ const ExternalIssueActions = ({configurations, group, onChange}: Props) => {
         const issue = externalIssues[0];
         return (
           <IssueSyncListElement
+            // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
             key={issue.id}
+            // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
             externalIssueLink={issue.url}
+            // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
             externalIssueId={issue.id}
+            // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
             externalIssueKey={issue.key}
+            // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
             externalIssueDisplayName={issue.displayName}
             onClose={() => deleteIssue(config)}
             integrationType={provider.key}
             hoverCardHeader={t('%s Integration', provider.name)}
             hoverCardBody={
               <div>
+                {/* @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'. */}
                 <IssueTitle>{issue.title}</IssueTitle>
+                {/* @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'. */}
                 {issue.description && (
+                  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
                   <IssueDescription>{issue.description}</IssueDescription>
                 )}
               </div>
@@ -97,7 +106,9 @@ const ExternalIssueActions = ({configurations, group, onChange}: Props) => {
 
       {unlinked.length > 0 && (
         <IssueSyncListElement
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           integrationType={unlinked[0].provider.key}
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           hoverCardHeader={t('%s Integration', unlinked[0].provider.name)}
           hoverCardBody={
             <Container>
@@ -108,6 +119,7 @@ const ExternalIssueActions = ({configurations, group, onChange}: Props) => {
               ))}
             </Container>
           }
+          // @ts-expect-error TS(2345) FIXME: Argument of type 'GroupIntegration | undefined' is... Remove this comment to see the full error message
           onOpen={unlinked.length === 1 ? () => doOpenModal(unlinked[0]) : undefined}
         />
       )}

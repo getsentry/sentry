@@ -15,6 +15,7 @@ export function deviceNameMapper(model: string | undefined): string | null {
 
   const [identifier, ...rest] = model.split(' ');
 
+  // @ts-expect-error TS(2538) FIXME: Type 'undefined' cannot be used as an index type.
   const modelName = iOSDeviceMapping[identifier];
   return modelName === undefined ? model : `${modelName} ${rest.join(' ')}`;
 }

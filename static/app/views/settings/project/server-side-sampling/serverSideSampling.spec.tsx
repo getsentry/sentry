@@ -252,13 +252,16 @@ describe('Server-Side Sampling', function () {
     // Assert that project breakdown is there (avoids 'act' warnings)
     expect(await screen.findByText(samplingBreakdownTitle)).toBeInTheDocument();
 
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
     userEvent.click(screen.getAllByLabelText('Actions')[0]);
     expect(screen.getByRole('menuitemradio', {name: 'Delete'})).toHaveAttribute(
       'aria-disabled',
       'false'
     );
 
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
     userEvent.click(screen.getAllByLabelText('Actions')[0]);
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
     userEvent.click(screen.getAllByLabelText('Actions')[1]);
     expect(screen.getByRole('menuitemradio', {name: 'Delete'})).toHaveAttribute(
       'aria-disabled',
@@ -602,9 +605,11 @@ describe('Server-Side Sampling', function () {
     const samplingUniformRule = screen.getAllByTestId('sampling-rule')[1];
 
     expect(
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
       within(samplingUniformRule).getByRole('button', {name: 'Drag Rule'})
     ).toHaveAttribute('aria-disabled', 'true');
 
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
     userEvent.hover(within(samplingUniformRule).getByLabelText('Drag Rule'));
 
     expect(

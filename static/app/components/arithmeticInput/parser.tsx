@@ -54,6 +54,7 @@ export class TokenConverter {
 
   tokenTerm = (maybeFactor: Expression, remainingAdds: Array<Operation>): Expression => {
     if (remainingAdds.length > 0) {
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       remainingAdds[0].lhs = maybeFactor;
       return flatten(remainingAdds);
     }
@@ -75,6 +76,7 @@ export class TokenConverter {
   };
 
   tokenFactor = (primary: Expression, remaining: Array<Operation>): Operation => {
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     remaining[0].lhs = primary;
     return flatten(remaining);
   };

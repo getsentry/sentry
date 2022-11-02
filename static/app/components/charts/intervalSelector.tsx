@@ -124,10 +124,13 @@ function formatHoursToInterval(hours: number): [number, IntervalUnits] {
 function getIntervalOption(rangeHours: number): IntervalOption {
   for (const index in INTERVAL_OPTIONS) {
     const currentOption = INTERVAL_OPTIONS[index];
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     if (currentOption.rangeStart <= rangeHours) {
+      // @ts-expect-error TS(2322) FIXME: Type 'IntervalOption | undefined' is not assignabl... Remove this comment to see the full error message
       return currentOption;
     }
   }
+  // @ts-expect-error TS(2322) FIXME: Type 'IntervalOption | undefined' is not assignabl... Remove this comment to see the full error message
   return INTERVAL_OPTIONS[0];
 }
 
@@ -196,6 +199,7 @@ export default function IntervalSelector({
         makeItem(
           amount,
           unit,
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           SUPPORTED_RELATIVE_PERIOD_UNITS[unit].label,
           results.length + 1
         )

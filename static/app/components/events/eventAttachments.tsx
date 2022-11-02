@@ -107,6 +107,7 @@ class EventAttachments extends Component<Props, State> {
 
     const lastAttachmentPreviewed =
       attachments.length > 0 &&
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'IssueAttachment | undefined' is ... Remove this comment to see the full error message
       this.attachmentPreviewIsOpen(attachments[attachments.length - 1]);
 
     return (

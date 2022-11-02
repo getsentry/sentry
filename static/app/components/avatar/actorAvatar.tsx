@@ -40,6 +40,7 @@ function ActorAvatar({size = 24, hasTooltip = true, actor, ...props}: Props) {
       <Teams ids={[actor.id]}>
         {({initiallyLoaded, teams}) =>
           initiallyLoaded ? (
+            // @ts-expect-error TS(2322) FIXME: Type 'Team | undefined' is not assignable to type ... Remove this comment to see the full error message
             <TeamAvatar team={teams[0]} {...otherProps} />
           ) : (
             <LoadingIndicator mini />

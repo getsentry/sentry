@@ -44,6 +44,7 @@ export function redirectToRemainingOrganization({
 
   // Let's be smart and select the best org to redirect to
   const firstRemainingOrg = allOrgs[0];
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   browserHistory.push(`/${firstRemainingOrg.slug}/`);
 
   // Remove org from SidebarDropdown

@@ -19,6 +19,7 @@ export function transformEventsRequestToVitals<T extends WidgetDataConstraint>(
     ...results,
     isLoading: results.loading || results.reloading,
     isErrored: results.errored,
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     hasData: defined(data) && !!data.length && !!data[0].data.length,
     data,
 

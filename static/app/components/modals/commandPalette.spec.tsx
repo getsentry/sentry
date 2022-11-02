@@ -118,6 +118,7 @@ describe('Command Palette Modal', function () {
     expect(badges[0]).toHaveTextContent('billy-org Dashboard');
     expect(badges[1]).toHaveTextContent('billy-org Settings');
 
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
     userEvent.click(badges[0]);
 
     expect(navigateTo).toHaveBeenCalledWith('/billy-org/', expect.anything(), undefined);

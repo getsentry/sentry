@@ -234,6 +234,7 @@ class MiniGraph extends Component<Props> {
               ? display
               : this.getChartType({
                   showDaily,
+                  // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
                   yAxis: Array.isArray(yAxis) ? yAxis[0] : yAxis,
                   timeseriesData: allSeries,
                 });

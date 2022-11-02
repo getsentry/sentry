@@ -21,6 +21,7 @@ const initializeData = () => {
 describe('SuspectSpansTable', () => {
   it('should not calculate frequency percentages above 100%', async () => {
     const initialData = initializeData();
+    // @ts-expect-error TS(2345) FIXME: Argument of type '{ op: string; group: string; des... Remove this comment to see the full error message
     const suspectSpan = makeSuspectSpan(SAMPLE_SPANS[0]);
     suspectSpan.frequency = 120;
 

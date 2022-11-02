@@ -56,9 +56,11 @@ describe('EnvironmentPageFilter', function () {
 
     // Click the first environment's checkbox
     const envOptions = screen.getAllByTestId('checkbox-fancy');
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
     userEvent.click(envOptions[0]);
 
     // Close the dropdown
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
     userEvent.click(screen.getAllByText('prod')[0]);
 
     // Verify we were redirected

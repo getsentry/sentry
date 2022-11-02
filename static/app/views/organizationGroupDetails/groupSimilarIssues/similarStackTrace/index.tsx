@@ -145,6 +145,7 @@ class SimilarStackTrace extends Component<Props, State> {
     GroupingStore.onMerge({
       params,
       query,
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       projectId: firstIssue.issue.project.slug,
     });
   };

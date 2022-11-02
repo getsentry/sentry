@@ -135,6 +135,7 @@ export function useContextMenu({container}: UseContextMenuOptions) {
     }
 
     const resizeObserver = new window.ResizeObserver(entries => {
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       const contentRect = entries[0].contentRect;
       setMenuCoordinates(new Rect(0, 0, contentRect.width, contentRect.height));
     });
@@ -153,6 +154,7 @@ export function useContextMenu({container}: UseContextMenuOptions) {
     }
 
     const resizeObserver = new window.ResizeObserver(entries => {
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       const contentRect = entries[0].contentRect;
       setContainerCoordinates(new Rect(0, 0, contentRect.width, contentRect.height));
     });

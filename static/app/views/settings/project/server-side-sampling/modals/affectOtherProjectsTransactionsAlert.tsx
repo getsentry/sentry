@@ -25,6 +25,7 @@ export function AffectOtherProjectsTransactionsAlert({
   if (
     affectedProjects.length === 0 ||
     isProjectIncompatible ||
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     (affectedProjects.length === 1 && affectedProjects[0].slug === projectSlug)
   ) {
     return null;

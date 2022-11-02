@@ -13,6 +13,7 @@ const ContextLine = function ({line, isActive, children, className}: Props) {
   let lineWs = '';
   let lineCode = '';
   if (typeof line[1] === 'string') {
+    // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
     [, lineWs, lineCode] = line[1].match(/^(\s*)(.*?)$/m)!;
   }
   const Component = !children ? Fragment : Context;

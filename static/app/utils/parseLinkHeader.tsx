@@ -16,6 +16,7 @@ export default function parseLinkHeader(header: string | null): Result {
       );
     const hasResults = match![3] === 'true' ? true : match![3] === 'false' ? false : null;
 
+    // @ts-expect-error TS(2538) FIXME: Type 'undefined' cannot be used as an index type.
     links[match![2]] = {
       href: match![1],
       results: hasResults,

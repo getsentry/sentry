@@ -19,6 +19,7 @@ function UpdateAlert({Wrapper, project, className}: Props) {
     !project ||
     !appStoreConnectContext ||
     !Object.keys(appStoreConnectContext).some(
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       key => !!appStoreConnectContext[key].updateAlertMessage
     )
   ) {
@@ -28,6 +29,7 @@ function UpdateAlert({Wrapper, project, className}: Props) {
   const notices = (
     <Notices className={className}>
       {Object.keys(appStoreConnectContext).map(key => {
+        // @ts-expect-error TS(2339) FIXME: Property 'updateAlertMessage' does not exist on ty... Remove this comment to see the full error message
         const {updateAlertMessage} = appStoreConnectContext[key];
         if (!updateAlertMessage) {
           return null;

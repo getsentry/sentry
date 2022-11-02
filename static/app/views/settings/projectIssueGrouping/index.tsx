@@ -91,12 +91,14 @@ class ProjectIssueGrouping extends AsyncView<Props, State> {
           <JsonForm
             {...jsonFormProps}
             title={t('Fingerprint Rules')}
+            // @ts-expect-error TS(2322) FIXME: Type 'Field | undefined' is not assignable to type... Remove this comment to see the full error message
             fields={[fields.fingerprintingRules]}
           />
 
           <JsonForm
             {...jsonFormProps}
             title={t('Stack Trace Rules')}
+            // @ts-expect-error TS(2322) FIXME: Type 'Field | undefined' is not assignable to type... Remove this comment to see the full error message
             fields={[fields.groupingEnhancements]}
           />
 
@@ -105,8 +107,11 @@ class ProjectIssueGrouping extends AsyncView<Props, State> {
               {...jsonFormProps}
               title={t('Change defaults')}
               fields={[
+                // @ts-expect-error TS(2322) FIXME: Type 'Field | undefined' is not assignable to type... Remove this comment to see the full error message
                 fields.groupingConfig,
+                // @ts-expect-error TS(2322) FIXME: Type 'Field | undefined' is not assignable to type... Remove this comment to see the full error message
                 fields.secondaryGroupingConfig,
+                // @ts-expect-error TS(2322) FIXME: Type 'Field | undefined' is not assignable to type... Remove this comment to see the full error message
                 fields.secondaryGroupingExpiry,
               ]}
             />
@@ -115,6 +120,7 @@ class ProjectIssueGrouping extends AsyncView<Props, State> {
           <JsonForm
             {...jsonFormProps}
             title={t('Automatic Grouping Updates')}
+            // @ts-expect-error TS(2322) FIXME: Type 'Field | undefined' is not assignable to type... Remove this comment to see the full error message
             fields={[fields.groupingAutoUpdate]}
           />
 

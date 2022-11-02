@@ -86,8 +86,10 @@ export function WidgetLibrary({
             <CardHoverWrapper
               selected={selectedWidgetId === widget.id}
               key={widget.title}
+              // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
               onClick={getLibrarySelectionHandler(newWidget, iconColor)}
             >
+              {/* @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message */}
               <Card widget={newWidget} iconColor={iconColor} />
             </CardHoverWrapper>
           );

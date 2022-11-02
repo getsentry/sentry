@@ -105,6 +105,7 @@ function CompositeSelect<OptionType extends GeneralSelectValue = GeneralSelectVa
 
       // If the section allows multiple selection, then add the value to the
       // list of selected values
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       if (parentSection.multiple) {
         if (!newValues[parentSectionIndex]) {
           newValues[parentSectionIndex] = [];
@@ -132,6 +133,7 @@ function CompositeSelect<OptionType extends GeneralSelectValue = GeneralSelectVa
 
       // Trigger the onChange callback for sections whose values have changed.
       if (!valueIsEqual(values[i], newValues[i])) {
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         sections[i].onChange?.(newValues[i]);
       }
     });

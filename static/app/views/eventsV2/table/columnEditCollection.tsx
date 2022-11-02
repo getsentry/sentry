@@ -107,7 +107,9 @@ class ColumnEditCollection extends Component<Props, State> {
     const error = new Map();
     for (let i = 0; i < columns.length; i += 1) {
       const column = columns[i];
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       if (column.kind === 'equation') {
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         const result = parseArithmetic(column.field);
         if (result.error) {
           error.set(i, result.error);
@@ -173,8 +175,10 @@ class ColumnEditCollection extends Component<Props, State> {
 
   updateEquationFields = (newColumns: Column[], index: number, updatedColumn: Column) => {
     const oldColumn = newColumns[index];
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'QueryFieldValue | undefined' is ... Remove this comment to see the full error message
     const existingColumn = generateFieldAsString(newColumns[index]);
     const updatedColumnString = generateFieldAsString(updatedColumn);
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'QueryFieldValue | undefined' is ... Remove this comment to see the full error message
     if (!isLegalEquationColumn(updatedColumn) || hasDuplicate(newColumns, oldColumn)) {
       return;
     }
@@ -182,7 +186,9 @@ class ColumnEditCollection extends Component<Props, State> {
     for (let i = 0; i < newColumns.length; i++) {
       const newColumn = newColumns[i];
 
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       if (newColumn.kind === 'equation') {
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         const result = parseArithmetic(newColumn.field);
         let newEquation = '';
         // Track where to continue from, not reconstructing from result so we don't have to worry
@@ -191,6 +197,7 @@ class ColumnEditCollection extends Component<Props, State> {
 
         // the parser separates fields & functions, so we only need to check one
         const fields =
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           oldColumn.kind === 'function' ? result.tc.functions : result.tc.fields;
 
         // for each field, add the text before it, then the new function and update index
@@ -198,6 +205,7 @@ class ColumnEditCollection extends Component<Props, State> {
         for (const field of fields) {
           if (field.term === existingColumn && lastIndex !== field.location.end.offset) {
             newEquation +=
+              // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
               newColumn.field.substring(lastIndex, field.location.start.offset) +
               updatedColumnString;
             lastIndex = field.location.end.offset;
@@ -206,10 +214,12 @@ class ColumnEditCollection extends Component<Props, State> {
 
         // Add whatever remains to be added from the equation, if existing field wasn't found
         // add the entire equation
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         newEquation += newColumn.field.substring(lastIndex);
         newColumns[i] = {
           kind: 'equation',
           field: newEquation,
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           alias: newColumns[i].alias,
         };
       }
@@ -323,7 +333,9 @@ class ColumnEditCollection extends Component<Props, State> {
     return (
       issueFieldColumnCount <= 1 &&
       source === WidgetType.ISSUE &&
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       column.kind === 'field' &&
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       column.field === FieldKey.ISSUE
     );
   };
@@ -337,6 +349,7 @@ class ColumnEditCollection extends Component<Props, State> {
     return (
       aggregateCount <= 1 &&
       source === WidgetType.RELEASE &&
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       column.kind === FieldValueKind.FUNCTION
     );
   };
@@ -364,6 +377,7 @@ class ColumnEditCollection extends Component<Props, State> {
     // Reorder columns and trigger change.
     const newColumns = [...this.props.columns];
     const removed = newColumns.splice(sourceIndex, 1);
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'QueryFieldValue | undefined' is ... Remove this comment to see the full error message
     newColumns.splice(targetIndex, 0, removed[0]);
     this.checkColumnErrors(newColumns);
     this.props.onChange(newColumns);
@@ -398,6 +412,7 @@ class ColumnEditCollection extends Component<Props, State> {
     };
     const ghost = (
       <Ghost ref={this.dragGhostRef} style={style}>
+        {/* @ts-expect-error TS(2345) FIXME: Argument of type 'QueryFieldValue | undefined' is ... Remove this comment to see the full error message */}
         {this.renderItem(col, index, {
           singleColumn,
           isGhost: true,

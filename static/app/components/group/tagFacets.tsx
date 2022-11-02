@@ -24,6 +24,7 @@ export function MOBILE_TAGS_FORMATTER(tagsData: Record<string, TagWithTopValues>
     if (tagKey === 'release') {
       transformedTagsData[tagKey] = {
         ...tagsData[tagKey],
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         topValues: tagsData[tagKey].topValues.map(topValue => {
           return {
             ...topValue,
@@ -69,6 +70,7 @@ export function TagFacets({
 }: Props) {
   const [state, setState] = useState<State>({
     tagsData: {},
+    // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
     selectedTag: tagKeys.length > 0 ? tagKeys[0] : '',
     loading: true,
     showMore: false,

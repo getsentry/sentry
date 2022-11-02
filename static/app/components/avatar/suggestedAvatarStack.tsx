@@ -22,6 +22,7 @@ const SuggestedAvatarStack = ({owners, tooltip, tooltipOptions, ...props}: Props
         <Avatar
           {...props}
           suggested
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           round={firstSuggestion.type === 'user'}
           actor={owner}
           key={i}
@@ -32,6 +33,7 @@ const SuggestedAvatarStack = ({owners, tooltip, tooltipOptions, ...props}: Props
       <Avatar
         {...props}
         suggested
+        // @ts-expect-error TS(2322) FIXME: Type 'Actor | undefined' is not assignable to type... Remove this comment to see the full error message
         actor={firstSuggestion}
         index={numAvatars - 1}
         tooltip={tooltip}

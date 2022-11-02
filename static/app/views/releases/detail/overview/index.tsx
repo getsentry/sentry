@@ -716,6 +716,7 @@ function getTransactionsListSort(location: Location): {
     TransactionsListOption.FAILURE_COUNT
   );
   const selectedSort = sortOptions.find(opt => opt.value === urlParam) || sortOptions[0];
+  // @ts-expect-error TS(2322) FIXME: Type 'DropdownOption | undefined' is not assignabl... Remove this comment to see the full error message
   return {selectedSort, sortOptions};
 }
 

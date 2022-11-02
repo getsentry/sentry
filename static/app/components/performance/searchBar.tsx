@@ -89,11 +89,13 @@ function SearchBar(props: SearchBarProps) {
       isDropdownOpen &&
       transactionCount > 0
     ) {
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       const currentHighlightedItem = searchResults[0].children[highlightedItemIndex];
       const nextHighlightedItemIndex =
         (highlightedItemIndex + transactionCount + (key === 'ArrowUp' ? -1 : 1)) %
         transactionCount;
       setHighlightedItemIndex(nextHighlightedItemIndex);
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       const nextHighlightedItem = searchResults[0].children[nextHighlightedItemIndex];
 
       let newSearchResults = searchResults;
@@ -119,6 +121,7 @@ function SearchBar(props: SearchBarProps) {
 
     if (key === 'Enter') {
       event.preventDefault();
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       const currentItem = searchResults[0].children[highlightedItemIndex];
       if (!currentItem?.value) {
         return;

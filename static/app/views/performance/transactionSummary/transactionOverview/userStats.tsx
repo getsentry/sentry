@@ -47,10 +47,12 @@ function UserStats({
   let userMisery = error !== null ? <div>{'\u2014'}</div> : <Placeholder height="34px" />;
 
   if (!isLoading && error === null && totals) {
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     const threshold: number | undefined = totals.project_threshold_config[1];
     const miserableUsers: number | undefined = useAggregateAlias
       ? totals.count_miserable_user
       : totals['count_miserable_user()'];
+    // @ts-expect-error TS(2322) FIXME: Type 'number | undefined' is not assignable to typ... Remove this comment to see the full error message
     const userMiseryScore: number = useAggregateAlias
       ? totals.user_misery
       : totals['user_misery()'];

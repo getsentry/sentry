@@ -280,6 +280,7 @@ class TriggersChart extends PureComponent<Props, State> {
                 value: timePeriod,
                 disabled: isLoading || isReloading,
               }))}
+              // @ts-expect-error TS(2322) FIXME: Type 'import("/Users/ryan/code/sentry/static/app/v... Remove this comment to see the full error message
               selected={period}
               onChange={this.handleStatsPeriodChange}
               title={t('Display')}

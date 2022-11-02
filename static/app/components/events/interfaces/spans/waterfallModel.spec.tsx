@@ -662,11 +662,13 @@ describe('WaterfallModel', () => {
 
     expected[1] = {
       type: 'out_of_view',
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       span: fullWaterfall[1].span,
     } as EnhancedProcessedSpanType;
 
     expected[4] = {
       type: 'out_of_view',
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       span: fullWaterfall[4].span,
     } as EnhancedProcessedSpanType;
 
@@ -680,50 +682,62 @@ describe('WaterfallModel', () => {
     });
 
     assert(
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       fullWaterfall[10].type === 'span_group_chain' &&
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         fullWaterfall[10].spanNestedGrouping
     );
     expected = [
       {
         type: 'filtered_out',
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         span: fullWaterfall[0].span,
       },
       {
         type: 'out_of_view',
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         span: fullWaterfall[1].span,
       },
       fullWaterfall[2],
       fullWaterfall[3],
       {
         type: 'filtered_out',
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         span: fullWaterfall[4].span,
       },
       {
         type: 'filtered_out',
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         span: fullWaterfall[5].span,
       },
       {
         type: 'filtered_out',
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         span: fullWaterfall[6].span,
       },
       {
         type: 'filtered_out',
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         span: fullWaterfall[7].span,
       },
       {
         type: 'filtered_out',
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         span: fullWaterfall[9].span,
       },
       {
         type: 'filtered_out',
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         span: fullWaterfall[10].spanNestedGrouping[0].span,
       },
       {
         type: 'filtered_out',
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         span: fullWaterfall[10].spanNestedGrouping[1].span,
       },
       {
         type: 'filtered_out',
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         span: fullWaterfall[11].span,
       },
     ] as EnhancedProcessedSpanType[];
@@ -740,6 +754,7 @@ describe('WaterfallModel', () => {
       viewEnd: 0.65,
     });
 
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     expected[1].type = 'filtered_out';
 
     expect(spans).toEqual(expected);
@@ -808,6 +823,7 @@ describe('WaterfallModel', () => {
       ...event,
       entries: [
         {
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           data: [event.entries[0].data[0]],
           type: EntryType.SPANS,
         },
@@ -842,9 +858,12 @@ describe('WaterfallModel', () => {
       entries: [
         {
           data: [
+            // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
             event.entries[0].data[0],
             {
+              // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
               ...event.entries[0].data[0],
+              // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
               parent_span_id: event.entries[0].data[0].span_id,
               span_id: 'foo',
             },
@@ -878,7 +897,9 @@ describe('WaterfallModel', () => {
       {
         ...fullWaterfall[1],
         span: {
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           ...fullWaterfall[1].span,
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           parent_span_id: event.entries[0].data[0].span_id,
           span_id: 'foo',
         },
@@ -896,13 +917,17 @@ describe('WaterfallModel', () => {
       entries: [
         {
           data: [
+            // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
             event.entries[0].data[0],
             {
+              // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
               ...event.entries[0].data[0],
+              // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
               parent_span_id: event.entries[0].data[0].span_id,
               span_id: 'foo',
             },
             {
+              // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
               ...event.entries[0].data[0],
               parent_span_id: 'foo',
               span_id: 'bar',
@@ -922,6 +947,7 @@ describe('WaterfallModel', () => {
     // expect 1 or more spans are grouped
     expect(spans).toHaveLength(3);
 
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     assert(fullWaterfall[1].type === 'span');
     const collapsedWaterfallExpected = [
       {
@@ -932,8 +958,10 @@ describe('WaterfallModel', () => {
       {
         type: 'span_group_chain',
         treeDepth: 1,
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         continuingTreeDepths: fullWaterfall[1].continuingTreeDepths,
         span: {
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           ...fullWaterfall[1].span,
           parent_span_id: 'foo',
           span_id: 'bar',
@@ -948,7 +976,9 @@ describe('WaterfallModel', () => {
           {
             ...fullWaterfall[1],
             span: {
+              // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
               ...fullWaterfall[1].span,
+              // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
               parent_span_id: event.entries[0].data[0].span_id,
               span_id: 'foo',
             },
@@ -963,6 +993,7 @@ describe('WaterfallModel', () => {
       {
         ...fullWaterfall[1],
         span: {
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           ...fullWaterfall[1].span,
           parent_span_id: 'foo',
           span_id: 'bar',
@@ -977,7 +1008,9 @@ describe('WaterfallModel', () => {
     expect(spans).toEqual(collapsedWaterfallExpected);
 
     // Expand span group
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     assert(spans[1].type === 'span' && spans[1].toggleNestedSpanGroup);
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     spans[1].toggleNestedSpanGroup();
 
     spans = waterfallModel.getWaterfall({
@@ -1005,7 +1038,9 @@ describe('WaterfallModel', () => {
       {
         ...fullWaterfall[1],
         span: {
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           ...fullWaterfall[1].span,
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           parent_span_id: event.entries[0].data[0].span_id,
           span_id: 'foo',
         },
@@ -1017,6 +1052,7 @@ describe('WaterfallModel', () => {
       {
         ...fullWaterfall[1],
         span: {
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           ...fullWaterfall[1].span,
           parent_span_id: 'foo',
           span_id: 'bar',
@@ -1029,7 +1065,9 @@ describe('WaterfallModel', () => {
     ]);
 
     // Collapse span group
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     assert(spans[1].type === 'span' && spans[1].toggleNestedSpanGroup);
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     spans[1].toggleNestedSpanGroup();
 
     spans = waterfallModel.getWaterfall({

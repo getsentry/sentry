@@ -213,6 +213,7 @@ type InteractionsChartProps = {
 const InteractionsChart = ({data}: InteractionsChartProps) => {
   const elementInteractionsSeries: LineChartSeries[] = Object.keys(data).map(
     (key: string) => {
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       const seriesData = data[key].map(point => ({
         value: point[1],
         name: point[0] * 1000,

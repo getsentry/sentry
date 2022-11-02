@@ -162,7 +162,10 @@ describe('Source', function () {
 
     // everywhere
     expect(suggestions[0]).toHaveTextContent(
-      `${valueSuggestions[0].value}(${valueSuggestions[0].description})`
+      `${
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
+        valueSuggestions[0].value
+      }(${valueSuggestions[0].description})`
     );
   });
 
@@ -182,6 +185,7 @@ describe('Source', function () {
 
     const suggestions = screen.getAllByRole('listitem');
 
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
     userEvent.click(suggestions[1]);
 
     expect(handleOnChange).toHaveBeenCalledWith('foo && password');

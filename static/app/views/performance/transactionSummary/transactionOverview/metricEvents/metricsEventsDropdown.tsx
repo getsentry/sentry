@@ -64,7 +64,9 @@ function InnerDropdown() {
 
   return (
     <CompactSelect
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       triggerProps={{prefix: currentOption.prefix}}
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       value={currentOption.value}
       options={options}
       onChange={opt => mepSetting.setMetricSettingState(opt.value)}

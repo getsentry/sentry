@@ -100,8 +100,11 @@ const getFields = ({
   if (authenticator.id === 'sms') {
     // Ideally we would have greater flexibility when rendering footer
     return [
+      // @ts-expect-error TS(2322) FIXME: Type '{ disabled: boolean; } | { disabled: boolean... Remove this comment to see the full error message
       {...form[0], disabled: sendingCode || hasSentCode},
+      // @ts-expect-error TS(2322) FIXME: Type '{ required: boolean; } | { required: boolean... Remove this comment to see the full error message
       ...(hasSentCode ? [{...form[1], required: true}] : []),
+      // @ts-expect-error TS(2322) FIXME: Type '(() => Element) | { required: boolean; } | {... Remove this comment to see the full error message
       () => (
         <Actions key="sms-footer">
           <ButtonBar gap={1}>

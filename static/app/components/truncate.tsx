@@ -82,7 +82,8 @@ class Truncate extends Component<Props, State> {
       } else if (trimRegex && !leftTrim) {
         const matches = slicedValue.match(trimRegex);
         let lastIndex = matches
-          ? slicedValue.lastIndexOf(matches[matches.length - 1]) + 1
+          ? // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
+            slicedValue.lastIndexOf(matches[matches.length - 1]) + 1
           : slicedValue.length;
         if (lastIndex <= minLength) {
           lastIndex = slicedValue.length;

@@ -145,6 +145,7 @@ class TransactionDetail extends Component<Props> {
             key={measurement}
             title={WEB_VITAL_DETAILS[`measurements.${measurement}`]?.name}
           >
+            {/* @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'. */}
             {`${Number(measurements[measurement].value.toFixed(3)).toLocaleString()}ms`}
           </Row>
         ))}

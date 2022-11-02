@@ -122,6 +122,7 @@ class TeamIssuesBreakdown extends AsyncComponent<Props, State> {
         }
 
         for (const key of keys) {
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           projectTotals[projectId][key] += counts[key];
         }
 
@@ -129,9 +130,12 @@ class TeamIssuesBreakdown extends AsyncComponent<Props, State> {
           allReviewedByDay[projectId] = {};
         }
 
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         if (allReviewedByDay[projectId][bucket] === undefined) {
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           allReviewedByDay[projectId][bucket] = counts.total;
         } else {
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           allReviewedByDay[projectId][bucket] += counts.total;
         }
       }
@@ -144,6 +148,7 @@ class TeamIssuesBreakdown extends AsyncComponent<Props, State> {
     const allSeries = Object.keys(allReviewedByDay).map(
       (projectId, idx): BarChartSeries => ({
         seriesName: ProjectsStore.getById(projectId)?.slug ?? projectId,
+        // @ts-expect-error TS(2345) FIXME: Argument of type 'Record<string, number> | undefin... Remove this comment to see the full error message
         data: sortSeriesByDay(convertDayValueObjectToSeries(allReviewedByDay[projectId])),
         animationDuration: 500,
         animationDelay: idx * 500,
@@ -200,9 +205,11 @@ class TeamIssuesBreakdown extends AsyncComponent<Props, State> {
                       </ProjectBadgeContainer>
                       {statuses.map(action => (
                         <AlignRight key={action}>
+                          {/* @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'. */}
                           {projectTotals[projectId][action]}
                         </AlignRight>
                       ))}
+                      {/* @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'. */}
                       <AlignRight>{projectTotals[projectId].total}</AlignRight>
                     </Fragment>
                   );

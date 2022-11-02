@@ -98,6 +98,7 @@ class OrganizationMembersWrapper extends AsyncView<Props, State> {
       const inviteRequests = [...state.inviteRequests];
       const inviteIndex = inviteRequests.findIndex(request => request.id === id);
 
+      // @ts-expect-error TS(2322) FIXME: Type '{ dateCreated?: string | undefined; email?: ... Remove this comment to see the full error message
       inviteRequests[inviteIndex] = {...inviteRequests[inviteIndex], ...data};
 
       return {inviteRequests};

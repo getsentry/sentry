@@ -197,6 +197,7 @@ class ChartZoom extends Component<Props> {
       return;
     }
 
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'Period | undefined' is not assig... Remove this comment to see the full error message
     this.setPeriod(this.history[0]);
 
     // reset history

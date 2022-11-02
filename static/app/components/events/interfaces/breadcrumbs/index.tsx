@@ -134,13 +134,17 @@ function BreadcrumbsContainer({
     for (const index in crumbs) {
       const breadcrumb = crumbs[index];
       const foundFilterType = filterTypes.findIndex(
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         f => f.value === `type-${breadcrumb.type}`
       );
 
       if (foundFilterType === -1) {
         filterTypes.push({
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           value: `type-${breadcrumb.type}`,
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           leadingItems: <Type type={breadcrumb.type} color={breadcrumb.color} />,
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           label: breadcrumb.description,
           levels: breadcrumb?.level ? [breadcrumb.level] : [],
         });
@@ -149,8 +153,10 @@ function BreadcrumbsContainer({
 
       if (
         breadcrumb?.level &&
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         !filterTypes[foundFilterType].levels?.includes(breadcrumb.level)
       ) {
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         filterTypes[foundFilterType].levels?.push(breadcrumb.level);
       }
     }
@@ -162,7 +168,9 @@ function BreadcrumbsContainer({
     const filterLevels: FilterOptions = [];
 
     for (const indexType in types) {
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       for (const indexLevel in types[indexType].levels) {
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         const level = types[indexType].levels?.[indexLevel];
 
         if (filterLevels.some(f => f.value === `level-${level}`)) {

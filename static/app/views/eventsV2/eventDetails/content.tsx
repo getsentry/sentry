@@ -191,6 +191,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
               {hasProfilingFeature && event.type === 'transaction' && (
                 <TransactionToProfileButton
                   orgId={organization.slug}
+                  // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
                   projectId={this.projectId}
                   transactionId={event.eventID}
                 />
@@ -218,6 +219,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
               meta={metaResults?.meta ?? null}
               event={event}
               organization={organization}
+              // @ts-expect-error TS(2769) FIXME: No overload matches this call.
               projectId={this.projectId}
               location={location}
               errorDest="discover"
@@ -225,6 +227,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
             />
           </Layout.Main>
           <Layout.Main fullWidth={!isSidebarVisible}>
+            {/* @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message */}
             <Projects orgId={organization.slug} slugs={[this.projectId]}>
               {({projects, initiallyLoaded}) =>
                 initiallyLoaded ? (

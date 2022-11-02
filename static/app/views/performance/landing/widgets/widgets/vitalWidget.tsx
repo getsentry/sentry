@@ -101,6 +101,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
   const pageError = usePageError();
 
   const {fieldsList, vitalFields, sortField} = transformFieldsWithStops({
+    // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
     field,
     fields: props.fields,
     vitalStops: props.chartDefinition.vitalStops,
@@ -109,6 +110,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
   const Queries = {
     list: useMemo<QueryDefinition<DataType, WidgetDataResult>>(
       () => ({
+        // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
         fields: sortField,
         component: provided => {
           const _eventView = provided.eventView.clone();
@@ -117,6 +119,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
             field: propField,
           }));
 
+          // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
           _eventView.sorts = [{kind: 'desc', field: sortField}];
           if (canUseMetricsData(organization)) {
             _eventView.additionalConditions.setFilterValues('!transaction', [
@@ -167,6 +170,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
             <EventsRequest
               {...pick(provided, eventsRequestQueryProps)}
               limit={1}
+              // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
               currentSeriesNames={[sortField]}
               includePrevious={false}
               partial={false}
@@ -217,8 +221,10 @@ export function VitalWidget(props: PerformanceWidgetProps) {
         const vital = settingToVital[props.chartSetting];
 
         const data = {
+          // @ts-expect-error TS(2464) FIXME: A computed property name must be of type 'string',... Remove this comment to see the full error message
           [settingToVital[props.chartSetting]]: getVitalDataForListItem(
             listItem,
+            // @ts-expect-error TS(2345) FIXME: Argument of type 'WebVital | undefined' is not ass... Remove this comment to see the full error message
             vital,
             !useEvents
           ),
@@ -228,6 +234,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
           <Subtitle>
             <VitalBar
               isLoading={provided.widgetData.list?.isLoading}
+              // @ts-expect-error TS(2322) FIXME: Type 'WebVital | undefined' is not assignable to t... Remove this comment to see the full error message
               vital={settingToVital[props.chartSetting]}
               data={data}
               showBar={false}
@@ -243,6 +250,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
         const target = vitalDetailRouteWithQuery({
           orgSlug: organization.slug,
           query: eventView.generateQueryStringObject(),
+          // @ts-expect-error TS(2322) FIXME: Type 'import("/Users/ryan/code/sentry/static/app/u... Remove this comment to see the full error message
           vitalName: vital,
           projectID: decodeList(location.query.project),
         });
@@ -270,6 +278,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
             <_VitalChart
               {...provided.widgetData.chart}
               {...provided}
+              // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
               field={field}
               vitalFields={vitalFields}
               grid={provided.grid}
@@ -296,13 +305,16 @@ export function VitalWidget(props: PerformanceWidgetProps) {
                 const target = vitalDetailRouteWithQuery({
                   orgSlug: organization.slug,
                   query: _eventView.generateQueryStringObject(),
+                  // @ts-expect-error TS(2322) FIXME: Type 'import("/Users/ryan/code/sentry/static/app/u... Remove this comment to see the full error message
                   vitalName: vital,
                   projectID: decodeList(location.query.project),
                 });
 
                 const data = {
+                  // @ts-expect-error TS(2464) FIXME: A computed property name must be of type 'string',... Remove this comment to see the full error message
                   [settingToVital[props.chartSetting]]: getVitalDataForListItem(
                     listItem,
+                    // @ts-expect-error TS(2345) FIXME: Argument of type 'WebVital | undefined' is not ass... Remove this comment to see the full error message
                     vital,
                     !useEvents
                   ),
@@ -316,6 +328,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
                     <VitalBarCell>
                       <VitalBar
                         isLoading={provided.widgetData.list?.isLoading}
+                        // @ts-expect-error TS(2322) FIXME: Type 'WebVital | undefined' is not assignable to t... Remove this comment to see the full error message
                         vital={settingToVital[props.chartSetting]}
                         data={data}
                         showBar
@@ -328,6 +341,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
                     {!props.withStaticFilters && (
                       <ListClose
                         setSelectListIndex={setSelectListIndex}
+                        // @ts-expect-error TS(2345) FIXME: Argument of type 'ReactText | undefined' is not as... Remove this comment to see the full error message
                         onClick={() => excludeTransaction(listItem.transaction, props)}
                       />
                     )}

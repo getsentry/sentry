@@ -53,11 +53,14 @@ export function SortByStep({
 
   if (datasetConfig.disableSortOptions) {
     ({disableSort, disableSortDirection, disableSortReason} =
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'WidgetQuery | undefined' is not ... Remove this comment to see the full error message
       datasetConfig.disableSortOptions(queries[0]));
   }
 
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   const orderBy = queries[0].orderby;
   const strippedOrderBy = trimStart(orderBy, '-');
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   const maxLimit = getResultsLimit(queries.length, queries[0].aggregates.length);
 
   const isTimeseriesChart = [
@@ -113,10 +116,12 @@ export function SortByStep({
           <SortBySelectors
             displayType={displayType}
             widgetType={widgetType}
+            // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
             hasGroupBy={isTimeseriesChart && !!queries[0].columns.length}
             disableSortReason={disableSortReason}
             disableSort={disableSort}
             disableSortDirection={disableSortDirection}
+            // @ts-expect-error TS(2322) FIXME: Type 'WidgetQuery | undefined' is not assignable t... Remove this comment to see the full error message
             widgetQuery={queries[0]}
             values={{
               sortDirection:

@@ -56,6 +56,7 @@ function queriesToMap(collectedQueries: Record<symbol, BatchQueryDefinition>) {
   keys.forEach(key => {
     const query = collectedQueries[key];
     mergeMap[mergeKey(query)] = mergeMap[mergeKey(query)] || [];
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     mergeMap[mergeKey(query)].push(query);
     delete collectedQueries[key];
   });
@@ -82,7 +83,9 @@ function _handleUnmergeableQueries(mergeMap: MergeMap) {
     // Using async forEach to ensure calls start in parallel.
     const mergeList = mergeMap[k];
 
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     if (mergeList.length === 1) {
+      // @ts-expect-error TS(2488) FIXME: Type 'BatchQueryDefinition[] | undefined' must hav... Remove this comment to see the full error message
       const [queryDefinition] = mergeList;
       queriesSent++;
       _handleUnmergeableQuery(queryDefinition);
@@ -97,6 +100,7 @@ function _handleMergeableQueries(mergeMap: MergeMap) {
   Object.keys(mergeMap).forEach(async k => {
     const mergeList = mergeMap[k];
 
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     if (mergeList.length <= 1) {
       return;
     }
@@ -108,6 +112,7 @@ function _handleMergeableQueries(mergeMap: MergeMap) {
 
     const batchValues: string[] = [];
 
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     mergeList.forEach(q => {
       const batchFieldValue = q.requestQueryObject.query[batchProperty];
       if (Array.isArray(batchFieldValue)) {
@@ -136,6 +141,7 @@ function _handleMergeableQueries(mergeMap: MergeMap) {
     try {
       const result = await requestPromise;
       // Unmerge back into individual results
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       mergeList.forEach(queryDefinition => {
         queryDefinition.resolve(
           (queryDefinition.transform || identity)(result, queryDefinition)
@@ -143,6 +149,7 @@ function _handleMergeableQueries(mergeMap: MergeMap) {
       });
     } catch (e) {
       // On error fail all requests relying on this merged query (for now)
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       mergeList.forEach(q => q.reject(e));
     }
   });

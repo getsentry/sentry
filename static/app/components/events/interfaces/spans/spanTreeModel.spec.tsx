@@ -443,11 +443,15 @@ describe('SpanTreeModel', () => {
       }
     );
 
+    // @ts-expect-error TS(2322) FIXME: Type '{} | { span: SpanType; type: "root_span"; co... Remove this comment to see the full error message
     fullWaterfallExpected[0] = {
       ...fullWaterfallExpected[0],
     };
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     assert(fullWaterfallExpected[0].type === 'span');
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     fullWaterfallExpected[0].numOfSpanChildren += 1;
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     fullWaterfallExpected[0].showEmbeddedChildren = true;
 
     expect(spans).toEqual(fullWaterfallExpected);
@@ -551,6 +555,7 @@ describe('SpanTreeModel', () => {
     };
 
     for (let i = 0; i < 5; i++) {
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       event2.entries[0].data.push(spanTemplate);
     }
 
@@ -592,6 +597,7 @@ describe('SpanTreeModel', () => {
     expect(spans[1].type).toEqual('span_group_siblings');
 
     // If statement here is required to avoid TS linting issues
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     if (spans[1].type === 'span_group_siblings') {
       expect(spans[1].spanSiblingGrouping!.length).toEqual(5);
     }
@@ -628,6 +634,7 @@ describe('SpanTreeModel', () => {
     };
 
     for (let i = 0; i < 4; i++) {
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       event2.entries[0].data.push(spanTemplate);
     }
 
@@ -719,13 +726,16 @@ describe('SpanTreeModel', () => {
     };
 
     for (let i = 0; i < 7; i++) {
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       event2.entries[0].data.push(groupableSpanTemplate);
     }
 
     // This span should not get grouped with the others
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     event2.entries[0].data.push(normalSpanTemplate);
 
     for (let i = 0; i < 5; i++) {
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       event2.entries[0].data.push(groupableSpanTemplate);
     }
 

@@ -113,9 +113,13 @@ class FlamegraphRenderer {
     for (let index = 0; index < length; index++) {
       const frame = this.frames[index];
 
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       const x1 = frame.start;
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       const x2 = frame.end;
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       const y1 = frame.depth;
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       const y2 = frame.depth + 1;
 
       // top left -> top right -> bottom left ->
@@ -379,11 +383,13 @@ class FlamegraphRenderer {
 
       // Descend into the rest of the children
       for (let i = 0; i < frame.children.length; i++) {
+        // @ts-expect-error TS(2345) FIXME: Argument of type 'FlamegraphFrame | undefined' is ... Remove this comment to see the full error message
         findHoveredNode(frame.children[i], depth + 1);
       }
     };
 
     for (let i = 0; i < this.roots.length; i++) {
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'FlamegraphFrame | undefined' is ... Remove this comment to see the full error message
       findHoveredNode(this.roots[i], 0);
     }
 
@@ -443,10 +449,12 @@ class FlamegraphRenderer {
     // This is an optimization to avoid setting uniform1i for each draw call when user is not searching
     if (searchResults.size > 0) {
       for (let i = 0; i < length; i++) {
+        // @ts-expect-error TS(2322) FIXME: Type 'FlamegraphFrame | undefined' is not assignab... Remove this comment to see the full error message
         frame = this.frames[i];
         const vertexOffset = i * VERTICES;
         this.gl.uniform1i(
           this.uniforms.u_is_search_result,
+          // @ts-expect-error TS(2345) FIXME: Argument of type 'FlamegraphFrame | null' is not a... Remove this comment to see the full error message
           searchResults.has(getFlamegraphFrameSearchId(frame)) ? 1 : 0
         );
         this.gl.drawArrays(this.gl.TRIANGLES, vertexOffset, VERTICES);

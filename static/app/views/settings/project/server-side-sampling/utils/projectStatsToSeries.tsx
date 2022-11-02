@@ -41,14 +41,18 @@ export function projectStatsToSeries(
     projectStats.groups.forEach(group => {
       switch (group.by.outcome) {
         case Outcome.ACCEPTED:
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           seriesData.indexedAndProcessed[index].value +=
+            // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
             group.series[quantityField][index];
           break;
         case Outcome.CLIENT_DISCARD:
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           seriesData.discarded[index].value += group.series[quantityField][index];
           break;
         case Outcome.FILTERED:
           if (String(group.by.reason).startsWith('Sampled')) {
+            // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
             seriesData.processed[index].value += group.series[quantityField][index];
           }
           break;
@@ -63,6 +67,7 @@ export function projectStatsToSeries(
     // calculate the discard client (SDK) bucket according to the specified client rate
     seriesData.discarded = seriesData.discarded.map((bucket, index) => {
       const totalHitServer =
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         seriesData.indexedAndProcessed[index].value + seriesData.processed[index].value;
 
       return {

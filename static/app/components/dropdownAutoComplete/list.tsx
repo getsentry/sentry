@@ -82,6 +82,7 @@ const List = ({
             onScroll={onScroll}
             rowCount={items.length}
             rowHeight={({index}) =>
+              // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
               items[index].groupLabel && virtualizedLabelHeight
                 ? virtualizedLabelHeight
                 : virtualizedHeight
@@ -90,7 +91,9 @@ const List = ({
               <Row
                 key={key}
                 style={style}
+                // @ts-expect-error TS(2322) FIXME: Type '({ index: number; label: ReactNode | ((value... Remove this comment to see the full error message
                 item={items[index]}
+                // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
                 isHighlighted={items[index].index === highlightedIndex}
                 {...rowProps}
               />

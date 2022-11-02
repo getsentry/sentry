@@ -59,6 +59,7 @@ class CommitAuthorBreakdown extends AsyncComponent<Props, State> {
         const email = commit.author?.email ?? 'unknown';
 
         if (authorCommitsAccumulator.hasOwnProperty(email)) {
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           authorCommitsAccumulator[email].commitCount += 1;
         } else {
           authorCommitsAccumulator[email] = {

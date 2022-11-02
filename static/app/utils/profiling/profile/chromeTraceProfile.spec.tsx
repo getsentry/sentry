@@ -64,6 +64,7 @@ describe('parseTypescriptChromeTraceArrayFormat', () => {
 
   it('marks process name', () => {
     expect(
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       parseTypescriptChromeTraceArrayFormat(
         [
           {
@@ -92,6 +93,7 @@ describe('parseTypescriptChromeTraceArrayFormat', () => {
 
   it('marks thread name', () => {
     expect(
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       parseTypescriptChromeTraceArrayFormat(
         [
           {

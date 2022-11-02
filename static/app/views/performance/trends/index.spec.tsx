@@ -121,6 +121,7 @@ function _initializeData(
     newSettings.selectedProject = selectedProject.id;
   }
 
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   newSettings.selectedProject = settings.selectedProject ?? newSettings.projects[0].id;
   const data = initializeData(newSettings);
 
@@ -136,6 +137,7 @@ function _initializeData(
   PageFiltersStore.updateDateTime(defaultTrendsSelectionDate);
   if (!options?.selectedProjectId) {
     PageFiltersStore.updateProjects(
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       settings.selectedProject ? [Number(newSettings.projects[0].id)] : [],
       []
     );
@@ -325,6 +327,7 @@ describe('Performance > Trends', function () {
     expect(transactions).toHaveLength(2);
     const firstTransaction = transactions[0];
 
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
     const summaryLink = within(firstTransaction).getByTestId('item-transaction-name');
 
     expect(summaryLink.closest('a')).toHaveAttribute(
@@ -349,6 +352,7 @@ describe('Performance > Trends', function () {
     expect(transactions).toHaveLength(2);
     const firstTransaction = transactions[0];
 
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
     const menuActions = within(firstTransaction).getAllByTestId('menu-action');
     expect(menuActions).toHaveLength(3);
 
@@ -405,6 +409,7 @@ describe('Performance > Trends', function () {
     expect(transactions).toHaveLength(2);
     const firstTransaction = transactions[0];
 
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
     const menuActions = within(firstTransaction).getAllByTestId('menu-action');
     expect(menuActions).toHaveLength(3);
 
@@ -435,6 +440,7 @@ describe('Performance > Trends', function () {
     expect(transactions).toHaveLength(2);
     const firstTransaction = transactions[0];
 
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
     const menuActions = within(firstTransaction).getAllByTestId('menu-action');
     expect(menuActions).toHaveLength(3);
 

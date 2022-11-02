@@ -108,7 +108,9 @@ class BarChartZoom extends Component<Props> {
     if (startValue !== null && endValue !== null) {
       const {buckets, location, paramStart, paramEnd, minZoomWidth, onHistoryPush} =
         this.props;
+      // @ts-expect-error TS(2339) FIXME: Property 'start' does not exist on type 'BarChartB... Remove this comment to see the full error message
       const {start} = buckets[startValue];
+      // @ts-expect-error TS(2339) FIXME: Property 'end' does not exist on type 'BarChartBuc... Remove this comment to see the full error message
       const {end} = buckets[endValue];
 
       if (minZoomWidth === undefined || end - start > minZoomWidth) {

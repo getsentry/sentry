@@ -46,6 +46,7 @@ const getFuseMatches = ({value, indices}: Match): MatchResult => {
 
   indices.forEach(([start, end]) => {
     // Unhighlighted string before the match
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     const stringBeforeMatch = value.substring(prev[1] + 1, start);
 
     // Only add to result if non-empty string
@@ -67,6 +68,7 @@ const getFuseMatches = ({value, indices}: Match): MatchResult => {
   });
 
   // The rest of the string starting from the last match index
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   const restOfString = value.substring(prev[1] + 1, strLength);
   // Only add to result if non-empty string
   if (restOfString) {

@@ -62,7 +62,9 @@ export default function SpanSiblingGroupBar(props: Props) {
       return '';
     }
 
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     const operation = spanGrouping[0].span.op;
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     const description = spanGrouping[0].span.description;
 
     if (!description || !operation) {
@@ -122,6 +124,7 @@ export default function SpanSiblingGroupBar(props: Props) {
           <SpanRectangle
             key={index}
             spanGrouping={spanGrouping}
+            // @ts-expect-error TS(2322) FIXME: Type 'EnhancedSpan | undefined' is not assignable ... Remove this comment to see the full error message
             bounds={getSpanGroupBounds([spanGrouping[index]], generateBounds)}
           />
         ))}
@@ -142,6 +145,7 @@ export default function SpanSiblingGroupBar(props: Props) {
       spanNumber={spanNumber}
       generateBounds={generateBounds}
       toggleSpanGroup={() => {
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         toggleSiblingSpanGroup?.(spanGrouping[0].span, occurrence);
         isEmbeddedSpanTree &&
           trackAdvancedAnalyticsEvent(

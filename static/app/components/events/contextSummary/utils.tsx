@@ -64,6 +64,7 @@ export function generateIconName(
     return 'google';
   }
 
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   const formattedName = name
     .split(/\d/)[0]
     .toLowerCase()
@@ -73,6 +74,7 @@ export function generateIconName(
 
   if (formattedName === 'edge' && version) {
     const majorVersion = version.split('.')[0];
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     const isLegacyEdge = majorVersion >= '12' && majorVersion <= '18';
 
     return isLegacyEdge ? 'legacy-edge' : 'edge';

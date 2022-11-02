@@ -15,6 +15,7 @@ export function getPointerPosition(
 ): number {
   const actual = isReactEvent(event) ? event.nativeEvent : event;
   if (window.TouchEvent && actual instanceof TouchEvent) {
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     return actual.targetTouches[0][property];
   }
   if (actual instanceof MouseEvent) {

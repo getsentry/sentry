@@ -214,11 +214,16 @@ export function flattenSpans(rawSpans: ReplaySpan[]): FlattenedSpanRange[] {
   for (const span of restSpans) {
     let overlap = false;
     for (const fspan of flatSpans) {
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'FlattenedSpanRange | undefined' ... Remove this comment to see the full error message
       if (doesOverlap(fspan, span)) {
         overlap = true;
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         fspan.spanCount += 1;
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         fspan.startTimestamp = Math.min(fspan.startTimestamp, span.startTimestamp);
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         fspan.endTimestamp = Math.max(fspan.endTimestamp, span.endTimestamp);
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         fspan.duration = fspan.endTimestamp - fspan.startTimestamp;
         break;
       }
@@ -227,6 +232,7 @@ export function flattenSpans(rawSpans: ReplaySpan[]): FlattenedSpanRange[] {
       flatSpans.push(span);
     }
   }
+  // @ts-expect-error TS(2322) FIXME: Type '(FlattenedSpanRange | undefined)[]' is not a... Remove this comment to see the full error message
   return flatSpans;
 }
 

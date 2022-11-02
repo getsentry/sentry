@@ -168,10 +168,14 @@ class ModalContents extends Component<ContentsProps, ContentsState> {
           aria-label={t('Close tour')}
         />
         <TourContent>
+          {/* @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'. */}
           {step.image}
+          {/* @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'. */}
           <TourHeader>{step.title}</TourHeader>
+          {/* @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'. */}
           {step.body}
           <TourButtonBar gap={1}>
+            {/* @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'. */}
             {step.actions && step.actions}
             {hasNext && (
               <Button priority="primary" onClick={this.handleAdvance}>

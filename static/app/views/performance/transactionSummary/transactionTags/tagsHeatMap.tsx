@@ -133,6 +133,7 @@ const TagsHeatMap = (
   const tagData =
     tableData && tableData.tags && tableData.tags.data ? tableData.tags.data : undefined;
 
+  // @ts-expect-error TS(2345) FIXME: Argument of type 'TableDataRow | undefined' is not... Remove this comment to see the full error message
   const rowKey = histogramData && findRowKey(histogramData[0]);
 
   // Reverse since e-charts takes the axis labels in the opposite order.
@@ -156,6 +157,7 @@ const TagsHeatMap = (
 
   _data?.sort((a, b) => {
     const i = b[0] === a[0] ? 1 : 0;
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     return b[i] - a[i];
   });
 
@@ -253,7 +255,10 @@ const TagsHeatMap = (
     if (histogramBucketInfo && histogramData) {
       const row = histogramData[bucket.dataIndex];
       const currentBucketStart = parseInt(
-        `${row[histogramBucketInfo.histogramField]}`,
+        `${
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
+          row[histogramBucketInfo.histogramField]
+        }`,
         10
       );
       const currentBucketEnd = currentBucketStart + histogramBucketInfo.bucketSize;
@@ -391,6 +396,7 @@ const TagsHeatMap = (
       </PositionWrapper>
     );
 
+  // @ts-expect-error TS(2345) FIXME: Argument of type 'TableDataRow | undefined' is not... Remove this comment to see the full error message
   const histogramBucketInfo = histogramData && parseHistogramBucketInfo(histogramData[0]);
 
   return (

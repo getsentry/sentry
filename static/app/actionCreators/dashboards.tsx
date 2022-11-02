@@ -25,6 +25,7 @@ export function fetchDashboards(api: Client, orgSlug: string) {
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
+      // @ts-expect-error TS(2538) FIXME: Type 'undefined' cannot be used as an index type.
       addErrorMessage(errors[Object.keys(errors)[0]]);
     } else {
       addErrorMessage(t('Unable to fetch dashboards'));
@@ -70,6 +71,7 @@ export function createDashboard(
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
+      // @ts-expect-error TS(2538) FIXME: Type 'undefined' cannot be used as an index type.
       addErrorMessage(errors[Object.keys(errors)[0]]);
     } else {
       addErrorMessage(t('Unable to create dashboard'));
@@ -111,6 +113,7 @@ export function fetchDashboard(
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
+      // @ts-expect-error TS(2538) FIXME: Type 'undefined' cannot be used as an index type.
       addErrorMessage(errors[Object.keys(errors)[0]]);
     } else {
       addErrorMessage(t('Unable to load dashboard'));
@@ -154,6 +157,7 @@ export function updateDashboard(
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
+      // @ts-expect-error TS(2538) FIXME: Type 'undefined' cannot be used as an index type.
       addErrorMessage(errors[Object.keys(errors)[0]]);
     } else {
       addErrorMessage(t('Unable to update dashboard'));
@@ -180,6 +184,7 @@ export function deleteDashboard(
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
+      // @ts-expect-error TS(2538) FIXME: Type 'undefined' cannot be used as an index type.
       addErrorMessage(errors[Object.keys(errors)[0]]);
     } else {
       addErrorMessage(t('Unable to delete dashboard'));

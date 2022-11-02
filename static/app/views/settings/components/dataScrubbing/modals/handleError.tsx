@@ -16,6 +16,7 @@ type ResponseError = {
 };
 
 function handleError(error: ResponseError): Error {
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   const errorMessage = error.responseJSON?.relayPiiConfig[0];
 
   if (!errorMessage) {

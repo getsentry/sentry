@@ -131,6 +131,7 @@ describe('Dashboards > WidgetCard', function () {
       <WidgetCard
         api={api}
         organization={organization}
+        // @ts-expect-error TS(2322) FIXME: Type 'WidgetQuery | undefined' is not assignable t... Remove this comment to see the full error message
         widget={{...multipleQueryWidget, queries: [multipleQueryWidget.queries[0]]}}
         selection={selection}
         isEditing={false}
@@ -162,6 +163,7 @@ describe('Dashboards > WidgetCard', function () {
           ...multipleQueryWidget,
           displayType: DisplayType.WORLD_MAP,
           queries: [
+            // @ts-expect-error TS(2322) FIXME: Type '{ fields: string[]; aggregates: string[]; co... Remove this comment to see the full error message
             {
               ...multipleQueryWidget.queries[0],
               fields: ['count()'],
@@ -199,6 +201,7 @@ describe('Dashboards > WidgetCard', function () {
         widget={{
           ...multipleQueryWidget,
           queries: [
+            // @ts-expect-error TS(2322) FIXME: Type '{ fields: string[]; columns: never[]; aggreg... Remove this comment to see the full error message
             {
               ...multipleQueryWidget.queries[0],
               fields: [
@@ -241,6 +244,7 @@ describe('Dashboards > WidgetCard', function () {
           ...multipleQueryWidget,
           displayType: DisplayType.TOP_N,
           queries: [
+            // @ts-expect-error TS(2322) FIXME: Type '{ fields: string[]; columns: string[]; aggre... Remove this comment to see the full error message
             {
               ...multipleQueryWidget.queries[0],
               fields: ['transaction', 'count()'],
@@ -279,6 +283,7 @@ describe('Dashboards > WidgetCard', function () {
           ...multipleQueryWidget,
           displayType: DisplayType.LINE,
           queries: [
+            // @ts-expect-error TS(2322) FIXME: Type '{ conditions: string; fields: never[]; colum... Remove this comment to see the full error message
             {
               ...multipleQueryWidget.queries[0],
               conditions: '',
@@ -318,6 +323,7 @@ describe('Dashboards > WidgetCard', function () {
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.WORLD_MAP,
+          // @ts-expect-error TS(2322) FIXME: Type '{ fields: string[]; aggregates?: string[] | ... Remove this comment to see the full error message
           queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
         }}
         selection={selection}
@@ -348,6 +354,7 @@ describe('Dashboards > WidgetCard', function () {
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.WORLD_MAP,
+          // @ts-expect-error TS(2322) FIXME: Type '{ fields: string[]; aggregates?: string[] | ... Remove this comment to see the full error message
           queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
         }}
         selection={selection}
@@ -378,6 +385,7 @@ describe('Dashboards > WidgetCard', function () {
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.WORLD_MAP,
+          // @ts-expect-error TS(2322) FIXME: Type '{ fields: string[]; aggregates?: string[] | ... Remove this comment to see the full error message
           queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
         }}
         selection={selection}
@@ -408,6 +416,7 @@ describe('Dashboards > WidgetCard', function () {
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.WORLD_MAP,
+          // @ts-expect-error TS(2322) FIXME: Type '{ fields: string[]; aggregates?: string[] | ... Remove this comment to see the full error message
           queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
         }}
         selection={selection}
@@ -445,6 +454,7 @@ describe('Dashboards > WidgetCard', function () {
           widget={{
             ...multipleQueryWidget,
             displayType: DisplayType.TABLE,
+            // @ts-expect-error TS(2322) FIXME: Type '{ fields: string[]; aggregates?: string[] | ... Remove this comment to see the full error message
             queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
           }}
           selection={selection}
@@ -482,6 +492,7 @@ describe('Dashboards > WidgetCard', function () {
           widget={{
             ...multipleQueryWidget,
             displayType: DisplayType.TABLE,
+            // @ts-expect-error TS(2322) FIXME: Type '{ fields: string[]; aggregates?: string[] | ... Remove this comment to see the full error message
             queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
           }}
           selection={selection}
@@ -638,6 +649,7 @@ describe('Dashboards > WidgetCard', function () {
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.TABLE,
+          // @ts-expect-error TS(2322) FIXME: Type '{ aggregates?: string[] | undefined; columns... Remove this comment to see the full error message
           queries: [{...multipleQueryWidget.queries[0]}],
         }}
         selection={selection}
@@ -683,6 +695,7 @@ describe('Dashboards > WidgetCard', function () {
             widget={{
               ...multipleQueryWidget,
               displayType: DisplayType.TABLE,
+              // @ts-expect-error TS(2322) FIXME: Type '{ fields: string[]; aggregates?: string[] | ... Remove this comment to see the full error message
               queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
             }}
             selection={selection}
@@ -720,6 +733,7 @@ describe('Dashboards > WidgetCard', function () {
             widget={{
               ...multipleQueryWidget,
               displayType: DisplayType.TABLE,
+              // @ts-expect-error TS(2322) FIXME: Type '{ fields: string[]; aggregates?: string[] | ... Remove this comment to see the full error message
               queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
             }}
             selection={selection}
@@ -809,6 +823,7 @@ describe('Dashboards > WidgetCard', function () {
           widget={{
             ...multipleQueryWidget,
             displayType: DisplayType.TABLE,
+            // @ts-expect-error TS(2322) FIXME: Type '{ aggregates?: string[] | undefined; columns... Remove this comment to see the full error message
             queries: [{...multipleQueryWidget.queries[0]}],
           }}
           selection={selection}

@@ -126,6 +126,7 @@ class ProjectVelocityScoreCard extends AsyncComponent<Props, State> {
     const hasOlderReleases = await fetchAnyReleaseExistence(
       this.api,
       organization.slug,
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'number | undefined' is not assig... Remove this comment to see the full error message
       selection.projects[0]
     );
 

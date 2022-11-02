@@ -138,6 +138,7 @@ export function UniformRateModal({
 
   const isWithoutTransactions =
     projectStats30d.data?.groups.reduce(
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       (acc, group) => acc + group.totals['sum(quantity)'],
       0
     ) === 0;

@@ -302,6 +302,7 @@ export class IntegrationListDirectory extends AsyncComponent<
     const selectedCategory = Array.isArray(category) ? category[0] : category || '';
     const searchInput = Array.isArray(search) ? search[0] : search || '';
 
+    // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
     return {searchInput, selectedCategory};
   };
 

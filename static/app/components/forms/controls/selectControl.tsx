@@ -34,6 +34,7 @@ function isGroupedOptions<OptionType extends OptionTypeBase>(
   if (!maybe || maybe.length === 0) {
     return false;
   }
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   return (maybe as GroupedOptionsType<OptionType>)[0].options !== undefined;
 }
 

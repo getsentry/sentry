@@ -135,7 +135,9 @@ async function fetchTeams(
   const pageLinks = resp?.getResponseHeader('Link');
   if (pageLinks) {
     const paginationObject = parseLinkHeader(pageLinks);
+    // @ts-expect-error TS(2322) FIXME: Type 'boolean | null | undefined' is not assignabl... Remove this comment to see the full error message
     hasMore = paginationObject?.next?.results;
+    // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
     nextCursor = paginationObject?.next?.cursor;
   }
 

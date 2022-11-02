@@ -27,6 +27,7 @@ function SentryFunctionEnvironmentVariables(props: Props) {
     while (newEnvVariables.length <= pos) {
       newEnvVariables.push({name: '', value: ''});
     }
+    // @ts-expect-error TS(2322) FIXME: Type '{ name: string; value?: string | undefined; ... Remove this comment to see the full error message
     newEnvVariables[pos] = {...newEnvVariables[pos], name: value};
     setEnvVariables(newEnvVariables);
   };
@@ -36,6 +37,7 @@ function SentryFunctionEnvironmentVariables(props: Props) {
     while (newEnvVariables.length <= pos) {
       newEnvVariables.push({name: '', value: ''});
     }
+    // @ts-expect-error TS(2322) FIXME: Type '{ value: string; name?: string | undefined; ... Remove this comment to see the full error message
     newEnvVariables[pos] = {...newEnvVariables[pos], value};
     setEnvVariables(newEnvVariables);
   };

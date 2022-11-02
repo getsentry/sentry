@@ -101,6 +101,7 @@ describe('EventedProfile', () => {
     expect(openSpy).toHaveBeenCalledTimes(2);
     expect(closeSpy).toHaveBeenCalledTimes(2);
 
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'CallTreeNode | undefined' is not... Remove this comment to see the full error message
     const root = firstCallee(profile.appendOrderStack[0]);
 
     expect(root.totalWeight).toEqual(4);
@@ -158,6 +159,7 @@ describe('EventedProfile', () => {
     );
 
     expect(
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       firstCallee(firstCallee(firstCallee(profile.appendOrderTree))).isRecursive()
     ).toBe(true);
   });

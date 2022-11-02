@@ -98,6 +98,7 @@ const storeConfig: ProjectsStatsStoreDefinition = {
     return this.itemsBySlug;
   },
 
+  // @ts-expect-error TS(2322) FIXME: Type '(slug: string) => Project | undefined' is no... Remove this comment to see the full error message
   getBySlug(slug) {
     return this.itemsBySlug[slug];
   },

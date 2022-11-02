@@ -228,6 +228,7 @@ export default function TraceView({
       const isLastTransaction = index === traces.length - 1;
       const hasChildren = trace.children.length > 0;
       const isNextChildOrphaned =
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         !isLastTransaction && traces[index + 1].parent_span_id !== null;
 
       const result = renderTransaction(trace, {

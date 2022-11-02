@@ -430,6 +430,7 @@ class FormModel {
     }
 
     this.snapshots.shift();
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'Snapshot | undefined' is not ass... Remove this comment to see the full error message
     this.fields.replace(this.snapshots[0]);
 
     return true;

@@ -162,6 +162,7 @@ function CustomRepositories({
     newRepositories.splice(index, 1);
     persistData({
       updatedItems: newRepositories as CustomRepo[],
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       refresh: repositories[index].type === CustomRepoType.APP_STORE_CONNECT,
     });
   }

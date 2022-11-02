@@ -106,7 +106,8 @@ function SidebarCharts({
           error={error}
           value={
             totals
-              ? formatFloat(useAggregateAlias ? totals.apdex : totals['apdex()'], 4)
+              ? // @ts-expect-error TS(2345) FIXME: Argument of type 'number | undefined' is not assig... Remove this comment to see the full error message
+                formatFloat(useAggregateAlias ? totals.apdex : totals['apdex()'], 4)
               : null
           }
         />
@@ -128,6 +129,7 @@ function SidebarCharts({
           value={
             totals
               ? formatPercentage(
+                  // @ts-expect-error TS(2345) FIXME: Argument of type 'number | undefined' is not assig... Remove this comment to see the full error message
                   useAggregateAlias ? totals.failure_rate : totals['failure_rate()']
                 )
               : null
@@ -151,6 +153,7 @@ function SidebarCharts({
           value={
             totals
               ? tct('[tpm] tpm', {
+                  // @ts-expect-error TS(2345) FIXME: Argument of type 'number | undefined' is not assig... Remove this comment to see the full error message
                   tpm: formatFloat(useAggregateAlias ? totals.tpm : totals['tpm()'], 4),
                 })
               : null
@@ -340,6 +343,7 @@ function SidebarChartsContainer({
     utc,
     isGroupedByDate: true,
     showTimeInTooltip: true,
+    // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
     colors: [colors[0], colors[1], colors[2]],
     tooltip: {
       trigger: 'axis',

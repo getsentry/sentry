@@ -105,6 +105,7 @@ class ProjectCharts extends Component<Props, State> {
       .map(urlKey => {
         return decodeScalar(
           location.query[urlKey],
+          // @ts-expect-error TS(2345) FIXME: Argument of type 'import("/Users/ryan/code/sentry/... Remove this comment to see the full error message
           this.defaultDisplayModes[visibleCharts.findIndex(value => value === urlKey)]
         );
       });
@@ -303,6 +304,7 @@ class ProjectCharts extends Component<Props, State> {
                   router={router}
                   organization={organization}
                   onTotalValuesChange={this.handleTotalValuesChange}
+                  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
                   colors={[CHART_PALETTE[0][0], theme.purple200]}
                 />
               )}
@@ -441,6 +443,7 @@ class ProjectCharts extends Component<Props, State> {
               <InlineContainer>
                 <OptionSelector
                   title={t('Display')}
+                  // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
                   selected={displayMode}
                   options={this.displayModes}
                   onChange={this.handleDisplayModeChange}

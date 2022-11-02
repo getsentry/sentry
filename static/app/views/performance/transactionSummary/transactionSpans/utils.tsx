@@ -112,6 +112,7 @@ export function getSuspectSpanSortFromLocation(
 }
 
 export function getSuspectSpanSortFromEventView(eventView: EventView): SpanSortOption {
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   const sort = eventView.sorts.length ? eventView.sorts[0].field : DEFAULT_SORT;
   return getSuspectSpanSort(sort);
 }

@@ -94,6 +94,7 @@ export class TransactionEventBuilder {
     span.trace_id = this.TRACE_ID;
     span.parent_span_id = parentSpanId ?? this.ROOT_SPAN_ID;
 
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     this.#event.entries[0].data.push(span);
 
     switch (mSpan.problemSpan) {

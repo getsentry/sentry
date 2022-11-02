@@ -322,11 +322,14 @@ function EventNodeSelector({
     const hoverText = errors.length ? (
       t('View the error for this Transaction')
     ) : (
+      // @ts-expect-error TS(2322) FIXME: Type 'QuickTraceEvent | undefined' is not assignab... Remove this comment to see the full error message
       <SingleEventHoverText event={events[0]} />
     );
     const target = errors.length
-      ? generateSingleErrorTarget(errors[0], organization, location, errorDest)
+      ? // @ts-expect-error TS(2345) FIXME: Argument of type 'TraceError | undefined' is not a... Remove this comment to see the full error message
+        generateSingleErrorTarget(errors[0], organization, location, errorDest)
       : generateSingleTransactionTarget(
+          // @ts-expect-error TS(2345) FIXME: Argument of type 'QuickTraceEvent | undefined' is ... Remove this comment to see the full error message
           events[0],
           organization,
           location,

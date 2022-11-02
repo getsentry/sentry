@@ -117,6 +117,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     return (
       <Fragment>
         {isSampleTransaction && (
+          // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
           <FinishSetupAlert organization={organization} projectId={this.projectId} />
         )}
         {this.renderContent(event)}
@@ -189,6 +190,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                       {hasProfilingFeature && (
                         <TransactionToProfileButton
                           orgId={organization.slug}
+                          // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
                           projectId={this.projectId}
                           transactionId={event.eventID}
                         />
@@ -204,6 +206,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                         meta={metaResults?.meta ?? null}
                         event={event}
                         organization={organization}
+                        // @ts-expect-error TS(2769) FIXME: No overload matches this call.
                         projectId={this.projectId}
                         location={location}
                         errorDest="issue"
@@ -212,6 +215,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                     </Layout.Main>
                   )}
                   <Layout.Main fullWidth={!isSidebarVisible}>
+                    {/* @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message */}
                     <Projects orgId={organization.slug} slugs={[this.projectId]}>
                       {({projects: _projects}) => (
                         <SpanEntryContext.Provider
@@ -249,6 +253,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                           <EventMetadata
                             event={event}
                             organization={organization}
+                            // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
                             projectId={this.projectId}
                           />
                           <RootSpanStatus event={event} />

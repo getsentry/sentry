@@ -41,6 +41,7 @@ type PermissionLevelResources = {
  */
 const permissionLevel = (scope: string): number => {
   const permission = scope.split(':')[1];
+  // @ts-expect-error TS(2538) FIXME: Type 'undefined' cannot be used as an index type.
   return PERMISSION_LEVELS[permission];
 };
 
@@ -92,6 +93,7 @@ function toResourcePermissions(scopes: string[]): Permissions {
   topScopes(filteredScopes).forEach((scope: string | undefined) => {
     if (scope) {
       const [resource, permission] = scope.split(':');
+      // @ts-expect-error TS(2538) FIXME: Type 'undefined' cannot be used as an index type.
       permissions[HUMAN_RESOURCE_NAMES[resource]] = permission;
     }
   });

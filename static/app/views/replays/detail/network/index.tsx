@@ -277,7 +277,8 @@ function NetworkList({replayRecord, networkSpans}: Props) {
         <div key={key} style={style}>
           {rowIndex === 0
             ? columns[columnIndex]
-            : getNetworkColumnValue(network, columnIndex)}
+            : // @ts-expect-error TS(2345) FIXME: Argument of type 'NetworkSpan | undefined' is not ... Remove this comment to see the full error message
+              getNetworkColumnValue(network, columnIndex)}
         </div>
       </CellMeasurer>
     );

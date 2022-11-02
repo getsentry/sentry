@@ -49,13 +49,18 @@ function submitRules(api: Client, endpoint: string, rules: Array<Rule>) {
   for (let i = 0; i < rules.length; i++) {
     const rule = rules[i];
     const ruleId = String(i);
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'Rule | undefined' is not assigna... Remove this comment to see the full error message
     submitFormatRules[ruleId] = getSubmitFormatRule(rule);
 
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     if (!applications[rule.source]) {
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       applications[rule.source] = [];
     }
 
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     if (!applications[rule.source].includes(ruleId)) {
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       applications[rule.source].push(ruleId);
     }
   }

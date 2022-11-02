@@ -334,6 +334,7 @@ class Chart extends React.Component<ChartProps, State> {
                 new Set(Object.values(timeseriesResultsTypes)).size === 1
                   ? timeseriesResultsTypes[yAxis]
                   : 'number';
+              // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
               return axisLabelFormatterUsingAggregateOutputType(value, outputType);
             }
             return axisLabelFormatter(value, aggregateOutputType(yAxis));
@@ -618,6 +619,7 @@ class EventsChart extends React.Component<EventsChartProps> {
             additionalSeries={additionalSeries}
             previousSeriesTransformer={previousSeriesTransformer}
             stacked={this.isStacked()}
+            // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
             yAxis={yAxisArray[0]}
             showDaily={showDaily}
             colors={colors}

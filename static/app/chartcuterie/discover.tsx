@@ -344,6 +344,7 @@ discoverCharts.push({
       const previousPeriod = LineSeries({
         name: t('previous %s', data.seriesName),
         data: previous.map(([_, countsForTimestamp], i) => [
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           current[i][0] * 1000,
           countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
         ]),

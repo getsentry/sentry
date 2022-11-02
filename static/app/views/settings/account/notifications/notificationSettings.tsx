@@ -143,6 +143,7 @@ class NotificationSettings extends AsyncComponent<Props, State> {
         help: (
           <Fragment>
             <p>
+              {/* @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'. */}
               {NOTIFICATION_SETTING_FIELDS[notificationType].help}
               &nbsp;
               <Link

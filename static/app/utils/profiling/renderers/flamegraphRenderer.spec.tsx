@@ -131,7 +131,9 @@ describe('flamegraphRenderer', () => {
     expect(
       renderer.getColorForFrame({
         key: 20,
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         frame: flamegraph.frames[0].frame,
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         node: flamegraph.frames[0].node,
         parent: null,
         children: [],

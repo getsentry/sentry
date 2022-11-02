@@ -13,6 +13,7 @@ export function generateIssueWidgetFieldOptions(
   fieldKeys.forEach(field => {
     fieldOptions[`field:${field}`] = {
       label: field,
+      // @ts-expect-error TS(2322) FIXME: Type '{ kind: FieldValueKind.FIELD; meta: { name: ... Remove this comment to see the full error message
       value: {
         kind: FieldValueKind.FIELD,
         meta: {

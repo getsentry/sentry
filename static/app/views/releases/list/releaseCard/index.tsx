@@ -27,12 +27,14 @@ import ReleaseCardStatsPeriod from './releaseCardStatsPeriod';
 function getReleaseProjectId(release: Release, selection: PageFilters) {
   // if a release has only one project
   if (release.projects.length === 1) {
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     return release.projects[0].id;
   }
 
   // if only one project is selected in global header and release has it (second condition will prevent false positives like -1)
   if (
     selection.projects.length === 1 &&
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'number | undefined' is not assig... Remove this comment to see the full error message
     release.projects.map(p => p.id).includes(selection.projects[0])
   ) {
     return selection.projects[0];

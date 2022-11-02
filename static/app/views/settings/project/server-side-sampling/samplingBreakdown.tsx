@@ -85,6 +85,7 @@ export function SamplingBreakdown({orgSlug}: Props) {
         ) : (
           <Fragment>
             <ColorBar
+              // @ts-expect-error TS(2322) FIXME: Type '{ color: string | undefined; percent: number... Remove this comment to see the full error message
               colorStops={projectsWithPercentages.map(({project, percentage}, index) => ({
                 color: theme.charts.getColorPalette(projectsWithPercentages.length)[
                   index

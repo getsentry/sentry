@@ -121,6 +121,7 @@ export default class InstallWizard extends AsyncView<Props, State> {
     return (
       <ApiForm
         apiMethod="PUT"
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         apiEndpoint={this.getEndpoints()[0][1]}
         submitLabel={t('Continue')}
         initialData={this.getInitialData()}

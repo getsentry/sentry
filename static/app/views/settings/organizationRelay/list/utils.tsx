@@ -14,7 +14,9 @@ export function getRelaysByPublicKey(
       relaysByPublicKey[publicKey] = {name, description, created, activities: []};
     }
 
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     if (!relaysByPublicKey[publicKey].activities.length) {
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       relaysByPublicKey[publicKey].activities = relayActivities.filter(
         activity => activity.publicKey === publicKey
       );

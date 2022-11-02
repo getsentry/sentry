@@ -177,6 +177,7 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
     }
 
     const totalSessions = data.groups.reduce(
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       (acc, group) => acc + group.totals[field],
       0
     );

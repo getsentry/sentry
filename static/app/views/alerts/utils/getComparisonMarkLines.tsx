@@ -31,8 +31,10 @@ export const getComparisonMarkLines = (
 
     if (triggers.some(({alertThreshold}) => typeof alertThreshold === 'number')) {
       const lastPointLimit =
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         (baseData[changeData.length - 1].name as number) - timeWindow * MINUTE;
       changeData.forEach(({name, value: comparisonValue}, idx) => {
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         const baseValue = baseData[idx].value;
         const comparisonPercentage =
           comparisonValue === 0
@@ -44,6 +46,7 @@ export const getComparisonMarkLines = (
         if (
           idx === 0 ||
           idx === changeData.length - 1 ||
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           status !== changeStatuses[changeStatuses.length - 1].status
         ) {
           changeStatuses.push({name, status});
@@ -70,6 +73,7 @@ export const getComparisonMarkLines = (
               {coord: [name, 0]},
               {
                 coord: [
+                  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
                   Math.min(changeStatuses[idx + 1].name as number, lastPointLimit),
                   0,
                 ],

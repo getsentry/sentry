@@ -38,6 +38,7 @@ function ValueComponent(
   props: MultiValueProps<SelectOption>,
   inviteStatus: Props['inviteStatus']
 ) {
+  // @ts-expect-error TS(2345) FIXME: Argument of type '{ sent: boolean; error?: string ... Remove this comment to see the full error message
   return renderEmailValue(inviteStatus[props.data.value], props);
 }
 

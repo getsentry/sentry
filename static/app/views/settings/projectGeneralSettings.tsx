@@ -267,18 +267,21 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
           <JsonForm
             {...jsonFormProps}
             title={t('Project Details')}
+            // @ts-expect-error TS(2322) FIXME: Type 'Field | undefined' is not assignable to type... Remove this comment to see the full error message
             fields={[fields.name, fields.platform]}
           />
 
           <JsonForm
             {...jsonFormProps}
             title={t('Email')}
+            // @ts-expect-error TS(2322) FIXME: Type 'Field | undefined' is not assignable to type... Remove this comment to see the full error message
             fields={[fields.subjectPrefix]}
           />
 
           <JsonForm
             {...jsonFormProps}
             title={t('Event Settings')}
+            // @ts-expect-error TS(2322) FIXME: Type 'Field | undefined' is not assignable to type... Remove this comment to see the full error message
             fields={[fields.resolveAge]}
           />
 
@@ -286,10 +289,15 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
             {...jsonFormProps}
             title={t('Client Security')}
             fields={[
+              // @ts-expect-error TS(2322) FIXME: Type 'Field | undefined' is not assignable to type... Remove this comment to see the full error message
               fields.allowedDomains,
+              // @ts-expect-error TS(2322) FIXME: Type 'Field | undefined' is not assignable to type... Remove this comment to see the full error message
               fields.scrapeJavaScript,
+              // @ts-expect-error TS(2322) FIXME: Type 'Field | undefined' is not assignable to type... Remove this comment to see the full error message
               fields.securityToken,
+              // @ts-expect-error TS(2322) FIXME: Type 'Field | undefined' is not assignable to type... Remove this comment to see the full error message
               fields.securityTokenHeader,
+              // @ts-expect-error TS(2322) FIXME: Type 'Field | undefined' is not assignable to type... Remove this comment to see the full error message
               fields.verifySSL,
             ]}
             renderHeader={() => (

@@ -52,6 +52,7 @@ function TagDistributionMeter({
     }
 
     const largestSegment = segments[0];
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     const pct = percent(largestSegment.count, totalValues);
     const pctLabel = Math.floor(pct);
     const renderLabel = () => {
@@ -60,6 +61,7 @@ function TagDistributionMeter({
           return (
             <Label>
               <Version
+                // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
                 version={largestSegment.name}
                 anchor={false}
                 tooltipRawVersion
@@ -69,6 +71,7 @@ function TagDistributionMeter({
             </Label>
           );
         default:
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           return <Label>{largestSegment.name || t('n/a')}</Label>;
       }
     };

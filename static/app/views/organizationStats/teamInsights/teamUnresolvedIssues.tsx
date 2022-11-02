@@ -200,23 +200,29 @@ class TeamUnresolvedIssues extends AsyncComponent<Props, State> {
                         <ProjectBadge avatarSize={18} project={project} />
                       </ProjectBadgeContainer>
 
+                      {/* @ts-expect-error TS(2339) FIXME: Property 'periodAvg' does not exist on type '{}'. */}
                       <ScoreWrapper>{totals.periodAvg}</ScoreWrapper>
+                      {/* @ts-expect-error TS(2339) FIXME: Property 'today' does not exist on type '{}'. */}
                       <ScoreWrapper>{totals.today}</ScoreWrapper>
                       <ScoreWrapper>
                         <SubText
                           color={
+                            // @ts-expect-error TS(2339) FIXME: Property 'percentChange' does not exist on type '{... Remove this comment to see the full error message
                             totals.percentChange === 0
                               ? 'gray300'
-                              : totals.percentChange > 0
+                              : // @ts-expect-error TS(2339) FIXME: Property 'percentChange' does not exist on type '{... Remove this comment to see the full error message
+                              totals.percentChange > 0
                               ? 'red300'
                               : 'green300'
                           }
                         >
                           {formatPercentage(
+                            // @ts-expect-error TS(2339) FIXME: Property 'percentChange' does not exist on type '{... Remove this comment to see the full error message
                             Number.isNaN(totals.percentChange) ? 0 : totals.percentChange,
                             0
                           )}
                           <PaddedIconArrow
+                            // @ts-expect-error TS(2339) FIXME: Property 'percentChange' does not exist on type '{... Remove this comment to see the full error message
                             direction={totals.percentChange > 0 ? 'up' : 'down'}
                             size="xs"
                           />

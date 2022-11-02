@@ -92,6 +92,7 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
     const errorKey = `missing_external_${type}s`;
     const unassociatedMappings = Object.values(associationMappings).reduce(
       (map, {errors}) => {
+        // @ts-expect-error TS(2488) FIXME: Type 'string | undefined' must have a '[Symbol.ite... Remove this comment to see the full error message
         return new Set<string>([...map, ...errors[errorKey]]);
       },
       new Set<string>()

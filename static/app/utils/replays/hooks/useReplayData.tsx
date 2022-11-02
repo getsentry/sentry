@@ -155,6 +155,7 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
       });
       segmentRanges.push(data);
       const links = parseLinkHeader(resp?.getResponseHeader('Link') ?? '');
+      // @ts-expect-error TS(2322) FIXME: Type 'ParsedHeader | undefined' is not assignable ... Remove this comment to see the full error message
       next = links.next;
     }
 

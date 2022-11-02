@@ -429,6 +429,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     }
 
     const entry = entries[0];
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     const {width} = entry.contentRect;
     const actionCount = this.props.actionBarItems?.length ?? 0;
 
@@ -502,10 +503,12 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     if (this.searchInput.current && filterTokens.length > 0) {
       this.searchInput.current.focus();
 
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       let offset = filterTokens[0].location.end.offset;
       if (token) {
         const tokenIndex = filterTokens.findIndex(tok => tok === token);
         if (tokenIndex !== -1 && tokenIndex + 1 < filterTokens.length) {
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           offset = filterTokens[tokenIndex + 1].location.end.offset;
         }
       }
@@ -774,10 +777,12 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
 
       // Clear previous selection
       const prevItem = flatSearchItems[currIndex];
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'SearchItem | undefined' is not a... Remove this comment to see the full error message
       searchGroups = getSearchGroupWithItemMarkedActive(searchGroups, prevItem, false);
 
       // Set new selection
       const activeItem = flatSearchItems[nextActiveSearchItem];
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'SearchItem | undefined' is not a... Remove this comment to see the full error message
       searchGroups = getSearchGroupWithItemMarkedActive(searchGroups, activeItem, true);
 
       this.setState({searchGroups, activeSearchItem: nextActiveSearchItem});
@@ -870,6 +875,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     if (isSelectingDropdownItems) {
       searchGroups = getSearchGroupWithItemMarkedActive(
         searchGroups,
+        // @ts-expect-error TS(2345) FIXME: Argument of type 'SearchItem | undefined' is not a... Remove this comment to see the full error message
         flatSearchItems[activeSearchItem],
         false
       );
@@ -1015,12 +1021,14 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     const innerStart = cursorPosition - cursorToken.location.start.offset;
 
     let tokenStart = innerStart;
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
     while (tokenStart > 0 && !LIMITER_CHARS.includes(cursorToken.text[tokenStart - 1])) {
       tokenStart--;
     }
     let tokenEnd = innerStart;
     while (
       tokenEnd < cursorToken.text.length &&
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
       !LIMITER_CHARS.includes(cursorToken.text[tokenEnd])
     ) {
       tokenEnd++;

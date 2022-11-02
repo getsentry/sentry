@@ -276,6 +276,7 @@ class ProjectCardContainer extends Component<ContainerProps, ContainerState> {
     }
 
     this.setState({
+      // @ts-expect-error TS(2322) FIXME: Type 'Project | undefined' is not assignable to ty... Remove this comment to see the full error message
       projectDetails: itemsBySlug[project.slug],
     });
   }

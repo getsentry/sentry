@@ -103,10 +103,12 @@ class GridRenderer {
     for (let i = 0; i < intervals.length; i++) {
       // Compute the x position of our interval from config space to physical
       const physicalIntervalPosition = Math.round(
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         intervals[i] * configViewToPhysicalSpace[0] + configViewToPhysicalSpace[6]
       );
 
       // Format the label text
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'number | undefined' is not assig... Remove this comment to see the full error message
       const labelText = this.formatter(intervals[i]);
 
       context.fillStyle = this.theme.COLORS.LABEL_FONT_COLOR;

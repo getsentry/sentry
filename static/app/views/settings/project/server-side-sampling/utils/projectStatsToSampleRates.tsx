@@ -66,17 +66,23 @@ export function projectStatsToSampleRates(stats: SeriesApi | undefined): {
   safeSampleRates.sort((a, z) => a - z);
 
   let trueSampleRate = trueSampleRates[Math.floor(trueSampleRates.length / 2)];
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   if (trueSampleRate > COMMON_SAMPLE_RATES[0]) {
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'number | undefined' is not assig... Remove this comment to see the full error message
     trueSampleRate = findClosestNumber(trueSampleRate, COMMON_SAMPLE_RATES);
   }
 
   let maxSafeSampleRate = safeSampleRates[0];
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   if (maxSafeSampleRate > COMMON_SAMPLE_RATES[0]) {
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'number | undefined' is not assig... Remove this comment to see the full error message
     maxSafeSampleRate = findClosestNumber(maxSafeSampleRate, COMMON_SAMPLE_RATES);
   }
 
   return {
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'number | undefined' is not assig... Remove this comment to see the full error message
     trueSampleRate: round(trueSampleRate, 4),
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'number | undefined' is not assig... Remove this comment to see the full error message
     maxSafeSampleRate: round(maxSafeSampleRate, 4),
     hoursOverLimit,
   };

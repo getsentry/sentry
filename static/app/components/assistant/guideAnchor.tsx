@@ -156,6 +156,7 @@ class BaseGuideAnchor extends Component<Props, State> {
         onClick={this.handleDismiss}
         priority="link"
       >
+        {/* @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'. */}
         {currentStep.dismissText || t('Dismiss')}
       </DismissButton>
     );
@@ -163,7 +164,9 @@ class BaseGuideAnchor extends Component<Props, State> {
     return (
       <GuideContainer data-test-id="guide-container">
         <GuideContent>
+          {/* @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'. */}
           {currentStep.title && <GuideTitle>{currentStep.title}</GuideTitle>}
+          {/* @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'. */}
           <GuideDescription>{currentStep.description}</GuideDescription>
         </GuideContent>
         <GuideAction>
@@ -176,9 +179,11 @@ class BaseGuideAnchor extends Component<Props, State> {
                   to={to}
                   onClick={this.handleFinish}
                 >
+                  {/* @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'. */}
                   {currentStep.nextText ||
                     (hasManySteps ? t('Enough Already') : t('Got It'))}
                 </StyledButton>
+                {/* @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'. */}
                 {currentStep.hasNextGuide && dismissButton}
               </Fragment>
             ) : (
@@ -189,8 +194,10 @@ class BaseGuideAnchor extends Component<Props, State> {
                   onClick={this.handleNextStep}
                   to={to}
                 >
+                  {/* @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'. */}
                   {currentStep.nextText || t('Next')}
                 </StyledButton>
+                {/* @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'. */}
                 {!currentStep.cantDismiss && dismissButton}
               </Fragment>
             )}

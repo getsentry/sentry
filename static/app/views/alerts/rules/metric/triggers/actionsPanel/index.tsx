@@ -129,6 +129,7 @@ class ActionsPanel extends PureComponent<Props> {
     value: string
   ) {
     const {triggers, onChange} = this.props;
+    // @ts-expect-error TS(2339) FIXME: Property 'actions' does not exist on type 'Trigger... Remove this comment to see the full error message
     const {actions} = triggers[triggerIndex];
     const newAction = {
       ...actions[index],
@@ -140,6 +141,7 @@ class ActionsPanel extends PureComponent<Props> {
 
   conditionallyRenderHelpfulBanner(triggerIndex: number, index: number) {
     const {triggers} = this.props;
+    // @ts-expect-error TS(2339) FIXME: Property 'actions' does not exist on type 'Trigger... Remove this comment to see the full error message
     const {actions} = triggers[triggerIndex];
     const newAction = {...actions[index]};
     if (newAction.type !== 'slack') {
@@ -182,6 +184,7 @@ class ActionsPanel extends PureComponent<Props> {
 
   handleDeleteAction = (triggerIndex: number, index: number) => {
     const {triggers, onChange} = this.props;
+    // @ts-expect-error TS(2339) FIXME: Property 'actions' does not exist on type 'Trigger... Remove this comment to see the full error message
     const {actions} = triggers[triggerIndex];
 
     onChange(triggerIndex, triggers, removeAtArrayIndex(actions, index));
@@ -194,9 +197,12 @@ class ActionsPanel extends PureComponent<Props> {
   ) => {
     const {triggers, onChange} = this.props;
     // Convert saved action to unsaved by removing id
+    // @ts-expect-error TS(2339) FIXME: Property 'id' does not exist on type 'Action | und... Remove this comment to see the full error message
     const {id: _, ...action} = triggers[triggerIndex].actions[index];
     action.unsavedId = uniqueId();
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     triggers[value.value].actions.push(action);
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     onChange(value.value, triggers, triggers[value.value].actions);
     this.handleDeleteAction(triggerIndex, index);
   };
@@ -207,6 +213,7 @@ class ActionsPanel extends PureComponent<Props> {
     value: SelectValue<ActionType>
   ) => {
     const {triggers, onChange, availableActions} = this.props;
+    // @ts-expect-error TS(2339) FIXME: Property 'actions' does not exist on type 'Trigger... Remove this comment to see the full error message
     const {actions} = triggers[triggerIndex];
     const actionConfig = availableActions?.find(
       availableAction => getActionUniqueKey(availableAction) === value.value
@@ -229,6 +236,7 @@ class ActionsPanel extends PureComponent<Props> {
     value: SelectValue<keyof typeof TargetLabel>
   ) => {
     const {triggers, onChange} = this.props;
+    // @ts-expect-error TS(2339) FIXME: Property 'actions' does not exist on type 'Trigger... Remove this comment to see the full error message
     const {actions} = triggers[triggerIndex];
     const newAction = {
       ...actions[index],
@@ -250,6 +258,7 @@ class ActionsPanel extends PureComponent<Props> {
     formData: {[key: string]: string}
   ): void => {
     const {triggers, onChange} = this.props;
+    // @ts-expect-error TS(2339) FIXME: Property 'actions' does not exist on type 'Trigger... Remove this comment to see the full error message
     const {actions} = triggers[triggerIndex];
     const newAction = {
       ...actions[actionIndex],
@@ -312,6 +321,7 @@ class ActionsPanel extends PureComponent<Props> {
         {loading && <LoadingIndicator />}
         {actions.map(({action, actionIdx, triggerIndex, availableAction}) => {
           const actionDisabled =
+            // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
             triggers[triggerIndex].actions[actionIdx]?.disabled || disabled;
           return (
             <div key={action.id ?? action.unsavedId}>
@@ -385,6 +395,7 @@ class ActionsPanel extends PureComponent<Props> {
                                   actionIdx
                                 )}
                                 resetValues={
+                                  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
                                   triggers[triggerIndex].actions[actionIdx] || {}
                                 }
                               />

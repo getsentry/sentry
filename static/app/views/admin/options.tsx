@@ -324,6 +324,7 @@ const disabledReasons = {
 };
 
 export function getOption(option: string): Field {
+  // @ts-expect-error TS(2322) FIXME: Type 'Field | undefined' is not assignable to type... Remove this comment to see the full error message
   return definitionsMap[option];
 }
 
@@ -368,6 +369,7 @@ export function getForm(fieldMap: Record<string, Field>) {
 
     for (const option of optionsForSection(section)) {
       if (fieldMap[option.key]) {
+        // @ts-expect-error TS(2345) FIXME: Argument of type 'Field | undefined' is not assign... Remove this comment to see the full error message
         set.push(fieldMap[option.key]);
       }
     }

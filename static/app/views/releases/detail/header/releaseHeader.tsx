@@ -81,6 +81,7 @@ const ReleaseHeader = ({
       return activeTab.to;
     }
 
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     return tabs[0].to; // default to 'Overview'
   };
 

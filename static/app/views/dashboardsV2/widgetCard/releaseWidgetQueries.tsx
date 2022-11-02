@@ -71,10 +71,14 @@ function getReleasesQuery(releases: Release[]): {
 } {
   let releaseCondition = '';
   const releasesArray: string[] = [];
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   releaseCondition += 'release:[' + releases[0].version;
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   releasesArray.push(releases[0].version);
   for (let i = 1; i < releases.length; i++) {
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     releaseCondition += ',' + releases[i].version;
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     releasesArray.push(releases[i].version);
   }
   releaseCondition += ']';
@@ -158,6 +162,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
 
   componentDidMount() {
     this._isMounted = true;
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'WidgetQuery | undefined' is not ... Remove this comment to see the full error message
     if (requiresCustomReleaseSorting(this.props.widget.queries[0])) {
       this.fetchReleases();
       return;
@@ -281,15 +286,20 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     const {releases} = this.state;
     const widget = cloneDeep(initialWidget);
 
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'WidgetQuery | undefined' is not ... Remove this comment to see the full error message
     const isCustomReleaseSorting = requiresCustomReleaseSorting(widget.queries[0]);
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     const isDescending = widget.queries[0].orderby.startsWith('-');
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     const useSessionAPI = widget.queries[0].columns.includes('session.status');
 
     let releaseCondition = '';
     const releasesArray: string[] = [];
     if (isCustomReleaseSorting) {
       if (releases && releases.length === 1) {
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         releaseCondition += `release:${releases[0].version}`;
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         releasesArray.push(releases[0].version);
       }
       if (releases && releases.length > 1) {
@@ -317,11 +327,14 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     const {widget} = this.props;
     const {releases} = this.state;
 
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     const isDescending = widget.queries[0].orderby.startsWith('-');
 
     const releasesArray: string[] = [];
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'WidgetQuery | undefined' is not ... Remove this comment to see the full error message
     if (requiresCustomReleaseSorting(widget.queries[0])) {
       if (releases && releases.length === 1) {
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         releasesArray.push(releases[0].version);
       }
       if (releases && releases.length > 1) {
@@ -372,6 +385,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
         limit={this.limit}
         onDataFetched={onDataFetched}
         loading={
+          // @ts-expect-error TS(2345) FIXME: Argument of type 'WidgetQuery | undefined' is not ... Remove this comment to see the full error message
           requiresCustomReleaseSorting(widget.queries[0])
             ? !this.state.releases
             : undefined

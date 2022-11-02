@@ -164,7 +164,8 @@ function Content({affectedEvents, allEvents, errored, loading}: ContentProps) {
             value,
             aggregateOutputType(
               affectedEvents && affectedEvents.length
-                ? affectedEvents[0].seriesName
+                ? // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
+                  affectedEvents[0].seriesName
                 : seriesName
             )
           );

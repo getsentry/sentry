@@ -335,6 +335,7 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
       <Fragment>
         {Array.from(measurements.values()).map(verticalMark => {
           const mark = Object.values(verticalMark.marks)[0];
+          // @ts-expect-error TS(2339) FIXME: Property 'timestamp' does not exist on type '{ fai... Remove this comment to see the full error message
           const {timestamp} = mark;
           const bounds = getMeasurementBounds(timestamp, generateBounds);
 
@@ -849,7 +850,9 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
                 toggleEmbeddedChildren({
                   orgSlug: organization.slug,
                   eventSlug: generateEventSlug({
+                    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
                     id: transaction.event_id,
+                    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
                     project: transaction.project_slug,
                   }),
                 });

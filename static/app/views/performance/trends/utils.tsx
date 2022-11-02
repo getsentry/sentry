@@ -144,6 +144,7 @@ export function getCurrentTrendFunction(
   const trendFunctionField =
     _trendFunctionField ?? decodeScalar(location?.query?.trendFunction);
   const trendFunction = TRENDS_FUNCTIONS.find(({field}) => field === trendFunctionField);
+  // @ts-expect-error TS(2322) FIXME: Type 'TrendFunction | undefined' is not assignable... Remove this comment to see the full error message
   return trendFunction || TRENDS_FUNCTIONS[0];
 }
 

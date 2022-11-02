@@ -60,6 +60,7 @@ export function ColumnFields({
         <ColumnCollectionEdit
           columns={fields.slice(0, fields.length - 1)}
           onChange={newColumns => {
+            // @ts-expect-error TS(2322) FIXME: Type 'QueryFieldValue | undefined' is not assignab... Remove this comment to see the full error message
             onChange([...newColumns, fields[fields.length - 1]]);
           }}
           fieldOptions={fieldOptions}

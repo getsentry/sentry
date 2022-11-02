@@ -45,6 +45,7 @@ export function getGroupReleaseChartMarkers(
 ): BarChartSeries['markPoint'] {
   const markers: Marker[] = [];
   // Get the timestamp of the first point.
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   const firstGraphTime = stats[0][0] * 1000;
 
   const firstSeenX = new Date(firstSeen ?? 0).getTime();
@@ -65,8 +66,10 @@ export function getGroupReleaseChartMarkers(
     let bucketStart: number | undefined;
     if (firstBucket > 0) {
       // The size of the data interval in ms
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       const halfBucketSize = ((stats[1][0] - stats[0][0]) * 1000) / 2;
       // Display the marker in front of the first bucket
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       bucketStart = stats[firstBucket - 1][0] * 1000 - halfBucketSize;
     }
 
@@ -154,6 +157,7 @@ function GroupReleaseChart(props: Props) {
 
   series.push({
     seriesName: t('Events in %s', environmentLabel),
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     data: environmentStats[statsPeriod].map(point => ({
       name: point[0] * 1000,
       value: point[1],
@@ -163,6 +167,7 @@ function GroupReleaseChart(props: Props) {
   if (release && releaseStats) {
     series.push({
       seriesName: t('Events in release %s', formatVersion(release.version)),
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       data: releaseStats[statsPeriod].map(point => ({
         name: point[0] * 1000,
         value: point[1],
@@ -172,7 +177,9 @@ function GroupReleaseChart(props: Props) {
 
   const totalSeries =
     environment && environmentStats ? environmentStats[statsPeriod] : stats;
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   const totalEvents = totalSeries.reduce((acc, current) => acc + current[1], 0);
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   series[0].markPoint = getGroupReleaseChartMarkers(theme, stats, firstSeen, lastSeen);
 
   return (

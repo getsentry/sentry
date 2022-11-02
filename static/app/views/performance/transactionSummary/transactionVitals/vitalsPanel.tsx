@@ -131,6 +131,7 @@ class VitalsPanel extends Component<Props> {
                       error,
                       data,
                       histogram,
+                      // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
                       [colors[index]],
                       parseBound(start, precision),
                       parseBound(end, precision),

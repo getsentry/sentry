@@ -68,6 +68,7 @@ class IssueListSidebar extends Component<Props, State> {
     const parsedResult: TokenResult<Token.Filter>[] = (
       parseSearch(`${tag.key}:${value}`) ?? []
     ).filter((p): p is TokenResult<Token.Filter> => p.type === Token.Filter);
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     if (parsedResult.length !== 1 || parsedResult[0].type !== Token.Filter) {
       return;
     }

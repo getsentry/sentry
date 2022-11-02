@@ -254,6 +254,7 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
   renderSingleOrgView() {
     const {organizations, sentryApp} = this.state;
     // pull the name out of organizations since state.organization won't be loaded initially
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     const organizationName = organizations[0].name;
     return (
       <div>

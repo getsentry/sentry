@@ -119,6 +119,7 @@ type EventVitalProps = Props & {
 };
 
 function EventVital({event, name, vital}: EventVitalProps) {
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   const value = event.measurements?.[name].value ?? null;
   if (value === null || !vital) {
     return null;

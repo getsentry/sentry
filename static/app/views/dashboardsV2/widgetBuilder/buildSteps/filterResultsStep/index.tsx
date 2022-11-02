@@ -65,6 +65,7 @@ export function FilterResultsStep({
   const handleSearch = useCallback(
     (queryIndex: number) => {
       return (field: string) => {
+        // @ts-expect-error TS(2322) FIXME: Type '{ conditions: string; aggregates?: string[] ... Remove this comment to see the full error message
         const newQuery: WidgetQuery = {
           ...queries[queryIndex],
           conditions: field,
@@ -82,6 +83,7 @@ export function FilterResultsStep({
         queryConditionValidity[queryIndex] = validSearch;
         setQueryConditionValidity(queryConditionValidity);
         onQueryConditionChange(!queryConditionValidity.some(validity => !validity));
+        // @ts-expect-error TS(2322) FIXME: Type '{ conditions: string; aggregates?: string[] ... Remove this comment to see the full error message
         const newQuery: WidgetQuery = {
           ...queries[queryIndex],
           conditions: field,
@@ -159,6 +161,7 @@ export function FilterResultsStep({
                     value={query.name}
                     placeholder={t('Legend Alias')}
                     onChange={event => {
+                      // @ts-expect-error TS(2322) FIXME: Type '{ name: string; aggregates?: string[] | unde... Remove this comment to see the full error message
                       const newQuery: WidgetQuery = {
                         ...queries[queryIndex],
                         name: event.target.value,

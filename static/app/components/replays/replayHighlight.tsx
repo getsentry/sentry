@@ -6,6 +6,7 @@ interface Props {
   replay: undefined | Pick<ReplayListRecord, 'countErrors' | 'duration' | 'urls'>;
 }
 
+// @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
 const palette = new Array(10).fill([CHART_PALETTE[0][0]]);
 
 function ReplayHighlight({replay}: Props) {

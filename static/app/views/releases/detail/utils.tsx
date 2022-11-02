@@ -37,7 +37,9 @@ export function getFilesByRepository(fileList: CommitFile[]) {
       filesByRepository[repoName] = {};
     }
 
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     if (!filesByRepository[repoName].hasOwnProperty(filename)) {
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       filesByRepository[repoName][filename] = {
         authors: {},
         types: new Set(),
@@ -45,9 +47,11 @@ export function getFilesByRepository(fileList: CommitFile[]) {
     }
 
     if (author.email) {
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       filesByRepository[repoName][filename].authors[author.email] = author;
     }
 
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     filesByRepository[repoName][filename].types.add(type);
 
     return filesByRepository;

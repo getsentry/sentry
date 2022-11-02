@@ -54,13 +54,16 @@ export function findNearestBucketIndex(
 ): number | null {
   const width = getBucketWidth(chartData);
   // it's possible that the data is not available yet or the x axis is out of range
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   if (!chartData.length || xAxis >= chartData[chartData.length - 1].bin + width) {
     return null;
   }
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   if (xAxis < chartData[0].bin) {
     return -1;
   }
 
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   return Math.floor((xAxis - chartData[0].bin) / width);
 }
 
@@ -82,9 +85,12 @@ export function getRefRect(chartData: HistogramData): Rectangle | null {
     for (let j = i + 1; j < chartData.length; j++) {
       const data2 = chartData[j];
 
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       if (data1.bin !== data2.bin && data1.count !== data2.count) {
         return {
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           point1: {x: i, y: Math.min(data1.count, data2.count)},
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           point2: {x: j, y: Math.max(data1.count, data2.count)},
         };
       }
@@ -109,6 +115,7 @@ export function asPixelRect(chartRef: ECharts, dataRect: Rectangle): Rectangle |
     dataRect.point1.y,
   ]);
 
+  // @ts-expect-error TS(2345) FIXME: Argument of type 'number | undefined' is not assig... Remove this comment to see the full error message
   if (isNaN(point1?.[0]) || isNaN(point1?.[1])) {
     return null;
   }
@@ -118,12 +125,15 @@ export function asPixelRect(chartRef: ECharts, dataRect: Rectangle): Rectangle |
     dataRect.point2.y,
   ]);
 
+  // @ts-expect-error TS(2345) FIXME: Argument of type 'number | undefined' is not assig... Remove this comment to see the full error message
   if (isNaN(point2?.[0]) || isNaN(point2?.[1])) {
     return null;
   }
 
   return {
+    // @ts-expect-error TS(2322) FIXME: Type 'number | undefined' is not assignable to typ... Remove this comment to see the full error message
     point1: {x: point1[0], y: point1[1]},
+    // @ts-expect-error TS(2322) FIXME: Type 'number | undefined' is not assignable to typ... Remove this comment to see the full error message
     point2: {x: point2[0], y: point2[1]},
   };
 }

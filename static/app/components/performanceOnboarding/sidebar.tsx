@@ -70,6 +70,7 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
       // Among the project selection, find a project that has performance onboarding docs support, and has not sent
       // a first transaction event.
       const maybeProject = projectSelection.find(project =>
+        // @ts-expect-error TS(2345) FIXME: Argument of type 'Project | undefined' is not assi... Remove this comment to see the full error message
         projectsForOnboarding.includes(project)
       );
       if (maybeProject) {
@@ -79,6 +80,7 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
 
       // Among the project selection, find a project that has not sent a first transaction event
       const maybeProjectFallback = projectSelection.find(project =>
+        // @ts-expect-error TS(2345) FIXME: Argument of type 'Project | undefined' is not assi... Remove this comment to see the full error message
         projectsWithoutFirstTransactionEvent.includes(project)
       );
       if (maybeProjectFallback) {

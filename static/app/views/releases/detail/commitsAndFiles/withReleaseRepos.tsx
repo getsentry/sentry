@@ -81,6 +81,7 @@ function withReleaseRepos<P extends DependentProps>(
 
       if (!activeCommitRepo) {
         this.setState({
+          // @ts-expect-error TS(2322) FIXME: Type 'Repository | null' is not assignable to type... Remove this comment to see the full error message
           activeReleaseRepo: releaseRepos[0] ?? null,
         });
         return;

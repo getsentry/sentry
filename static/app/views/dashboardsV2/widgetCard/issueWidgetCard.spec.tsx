@@ -201,6 +201,7 @@ describe('Dashboards > IssueWidgetCard', function () {
         widget={{
           ...widget,
           queries: [
+            // @ts-expect-error TS(2322) FIXME: Type '{ fields: string[]; aggregates?: string[] | ... Remove this comment to see the full error message
             {
               ...widget.queries[0],
               fields: ['issue', 'assignee', 'title', 'lifetimeEvents', 'lifetimeUsers'],

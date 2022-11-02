@@ -259,13 +259,17 @@ function WidgetViewerModal(props: Props) {
     ...cloneDeep({...widget, queries: [sortedQueries[selectedQueryIndex]]}),
     displayType: DisplayType.TABLE,
   };
+  // @ts-expect-error TS(2339) FIXME: Property 'aggregates' does not exist on type 'Widg... Remove this comment to see the full error message
   const {aggregates, columns} = tableWidget.queries[0];
+  // @ts-expect-error TS(2339) FIXME: Property 'orderby' does not exist on type 'WidgetQ... Remove this comment to see the full error message
   const {orderby} = widget.queries[0];
   const order = orderby.startsWith('-');
   const rawOrderby = trimStart(orderby, '-');
 
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   const fields = defined(tableWidget.queries[0].fields)
-    ? tableWidget.queries[0].fields
+    ? // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
+      tableWidget.queries[0].fields
     : [...columns, ...aggregates];
 
   // Some Discover Widgets (Line, Area, Bar) allow the user to specify an orderby
@@ -282,13 +286,17 @@ function WidgetViewerModal(props: Props) {
     [tableWidget, primaryWidget].forEach(aggregatesAndColumns => {
       if (isAggregateField(rawOrderby) || isEquation(rawOrderby)) {
         aggregatesAndColumns.queries.forEach(query => {
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           if (!query.aggregates.includes(rawOrderby)) {
+            // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
             query.aggregates.push(rawOrderby);
           }
         });
       } else {
         aggregatesAndColumns.queries.forEach(query => {
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           if (!query.columns.includes(rawOrderby)) {
+            // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
             query.columns.push(rawOrderby);
           }
         });
@@ -298,7 +306,9 @@ function WidgetViewerModal(props: Props) {
 
   // Need to set the orderby of the eventsv2 query to equation[index] format
   // since eventsv2 does not accept the raw equation as a valid sort payload
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   if (isEquation(rawOrderby) && tableWidget.queries[0].orderby === orderby) {
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     tableWidget.queries[0].orderby = `${order ? '-' : ''}equation[${
       getNumEquations(fields) - 1
     }]`;
@@ -348,7 +358,9 @@ function WidgetViewerModal(props: Props) {
     switch (widget.widgetType) {
       case WidgetType.DISCOVER:
         if (fields.length === 1) {
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           tableWidget.queries[0].orderby =
+            // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
             tableWidget.queries[0].orderby || `-${fields[0]}`;
         }
         fields.unshift('title');
@@ -365,6 +377,7 @@ function WidgetViewerModal(props: Props) {
 
   const eventView = eventViewFromWidget(
     tableWidget.title,
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'WidgetQuery | undefined' is not ... Remove this comment to see the full error message
     tableWidget.queries[0],
     modalTableSelection,
     tableWidget.displayType
@@ -379,6 +392,7 @@ function WidgetViewerModal(props: Props) {
   const columnSortBy = eventView.getSorts();
   columnOrder = columnOrder.map((column, index) => ({
     ...column,
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
     width: parseInt(widths[index], 10) || -1,
   }));
 
@@ -467,6 +481,7 @@ function WidgetViewerModal(props: Props) {
           grid={{
             renderHeadCell: renderDiscoverGridHeaderCell({
               ...props,
+              // @ts-expect-error TS(2322) FIXME: Type '{ displayType: DisplayType; queries: (Widget... Remove this comment to see the full error message
               widget: tableWidget,
               tableData: tableResults?.[0],
               onHeaderClick: () => {
@@ -538,6 +553,7 @@ function WidgetViewerModal(props: Props) {
               location,
               organization,
               selection,
+              // @ts-expect-error TS(2322) FIXME: Type '{ displayType: DisplayType; queries: (Widget... Remove this comment to see the full error message
               widget: tableWidget,
               onHeaderClick: () => {
                 setChartUnmodified(false);
@@ -547,6 +563,7 @@ function WidgetViewerModal(props: Props) {
               location,
               organization,
               selection,
+              // @ts-expect-error TS(2322) FIXME: Type '{ displayType: DisplayType; queries: (Widget... Remove this comment to see the full error message
               widget: tableWidget,
             }),
             onResizeColumn,
@@ -608,6 +625,7 @@ function WidgetViewerModal(props: Props) {
           grid={{
             renderHeadCell: renderReleaseGridHeaderCell({
               ...props,
+              // @ts-expect-error TS(2322) FIXME: Type '{ displayType: DisplayType; queries: (Widget... Remove this comment to see the full error message
               widget: tableWidget,
               tableData: tableResults?.[0],
               onHeaderClick: () => {
@@ -628,6 +646,7 @@ function WidgetViewerModal(props: Props) {
           }}
           location={location}
         />
+        {/* @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'. */}
         {!tableWidget.queries[0].orderby.match(/^-?release$/) &&
           (links?.previous?.results || links?.next?.results) && (
             <Pagination
@@ -715,6 +734,7 @@ function WidgetViewerModal(props: Props) {
           <IssueWidgetQueries
             api={api}
             organization={organization}
+            // @ts-expect-error TS(2322) FIXME: Type '{ displayType: DisplayType; queries: (Widget... Remove this comment to see the full error message
             widget={tableWidget}
             selection={modalTableSelection}
             limit={
@@ -739,6 +759,7 @@ function WidgetViewerModal(props: Props) {
           <ReleaseWidgetQueries
             api={api}
             organization={organization}
+            // @ts-expect-error TS(2769) FIXME: No overload matches this call.
             widget={tableWidget}
             selection={modalTableSelection}
             limit={
@@ -766,6 +787,7 @@ function WidgetViewerModal(props: Props) {
           <WidgetQueries
             api={api}
             organization={organization}
+            // @ts-expect-error TS(2322) FIXME: Type '{ displayType: DisplayType; queries: (Widget... Remove this comment to see the full error message
             widget={tableWidget}
             selection={modalTableSelection}
             limit={
@@ -856,6 +878,7 @@ function WidgetViewerModal(props: Props) {
             )}
           </Alert>
         )}
+        {/* @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'. */}
         {(widget.queries.length > 1 || widget.queries[0].conditions) && (
           <QueryContainer>
             <SelectControl
@@ -895,9 +918,11 @@ function WidgetViewerModal(props: Props) {
                         padding: `0 ${space(0.5)}`,
                       })}
                     >
+                      {/* @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'. */}
                       {queryOptions[selectedQueryIndex].getHighlightedQuery({
                         display: 'block',
                       }) ??
+                        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
                         (queryOptions[selectedQueryIndex].label || (
                           <EmptyQueryContainer>{EMPTY_QUERY_NAME}</EmptyQueryContainer>
                         ))}
@@ -1042,6 +1067,7 @@ function OpenButton({
     default:
       openLabel = t('Open in Discover');
       path = getWidgetDiscoverUrl(
+        // @ts-expect-error TS(2322) FIXME: Type 'WidgetQuery | undefined' is not assignable t... Remove this comment to see the full error message
         {...widget, queries: [widget.queries[selectedQueryIndex]]},
         selection,
         organization,

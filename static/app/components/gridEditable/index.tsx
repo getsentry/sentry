@@ -164,6 +164,7 @@ class GridEditable<
 
   clearWindowLifecycleEvents() {
     Object.keys(this.resizeWindowLifecycleEvents).forEach(e => {
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       this.resizeWindowLifecycleEvents[e].forEach(c => window.removeEventListener(e, c));
       this.resizeWindowLifecycleEvents[e] = [];
     });
@@ -173,6 +174,7 @@ class GridEditable<
     e.stopPropagation();
 
     const nextColumnOrder = [...this.props.columnOrder];
+    // @ts-expect-error TS(2322) FIXME: Type '{ width: number; key?: ColumnKey | undefined... Remove this comment to see the full error message
     nextColumnOrder[i] = {
       ...nextColumnOrder[i],
       width: COL_WIDTH_UNDEFINED,
@@ -181,6 +183,7 @@ class GridEditable<
 
     const onResizeColumn = this.props.grid.onResizeColumn;
     if (onResizeColumn) {
+      // @ts-expect-error TS(2345) FIXME: Argument of type '{ width: number; key?: ColumnKey... Remove this comment to see the full error message
       onResizeColumn(i, {
         ...nextColumnOrder[i],
         width: COL_WIDTH_UNDEFINED,
@@ -210,9 +213,11 @@ class GridEditable<
     };
 
     window.addEventListener('mousemove', this.onResizeMouseMove);
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     this.resizeWindowLifecycleEvents.mousemove.push(this.onResizeMouseMove);
 
     window.addEventListener('mouseup', this.onResizeMouseUp);
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     this.resizeWindowLifecycleEvents.mouseup.push(this.onResizeMouseUp);
   };
 
@@ -224,6 +229,7 @@ class GridEditable<
       const {columnOrder} = this.props;
       const widthChange = e.clientX - metadata.cursorX;
 
+      // @ts-expect-error TS(2345) FIXME: Argument of type '{ width: number; key?: ColumnKey... Remove this comment to see the full error message
       onResizeColumn(metadata.columnIndex, {
         ...columnOrder[metadata.columnIndex],
         width: metadata.columnWidth + widthChange,
@@ -252,6 +258,7 @@ class GridEditable<
     const widthChange = e.clientX - metadata.cursorX;
 
     const nextColumnOrder = [...this.props.columnOrder];
+    // @ts-expect-error TS(2322) FIXME: Type '{ width: number; key?: ColumnKey | undefined... Remove this comment to see the full error message
     nextColumnOrder[metadata.columnIndex] = {
       ...nextColumnOrder[metadata.columnIndex],
       width: Math.max(metadata.columnWidth + widthChange, 0),

@@ -104,6 +104,7 @@ class ResultsChart extends Component<ResultsChartProps> {
     const isPrevious = display === DisplayModes.PREVIOUS;
     const referrer = `api.discover.${display}-chart`;
     const topEvents = eventView.topEvents ? parseInt(eventView.topEvents, 10) : TOP_N;
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
     const aggregateParam = getAggregateArg(yAxisValue[0]) || '';
     const customPerformanceMetricFieldType = isCustomMeasurement(aggregateParam)
       ? customMeasurements

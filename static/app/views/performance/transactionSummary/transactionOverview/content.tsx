@@ -310,6 +310,7 @@ function SummaryContent({
           organization={organization}
           location={location}
           eventView={eventView}
+          // @ts-expect-error TS(2322) FIXME: Type 'number | null | undefined' is not assignable... Remove this comment to see the full error message
           totalValues={totalCount}
           currentFilter={spanOperationBreakdownFilter}
           withoutZerofill={hasPerformanceChartInterpolation}
@@ -429,6 +430,7 @@ function SummaryContent({
         <SidebarSpacer />
         <Tags
           generateUrl={generateTagUrl}
+          // @ts-expect-error TS(2322) FIXME: Type 'number | null | undefined' is not assignable... Remove this comment to see the full error message
           totalValues={totalCount}
           eventView={eventView}
           organization={organization}
@@ -510,6 +512,7 @@ function getTransactionsListSort(
     TransactionFilterOptions.SLOW
   );
   const selectedSort = sortOptions.find(opt => opt.value === urlParam) || sortOptions[0];
+  // @ts-expect-error TS(2322) FIXME: Type 'DropdownOption | undefined' is not assignabl... Remove this comment to see the full error message
   return {selected: selectedSort, options: sortOptions};
 }
 

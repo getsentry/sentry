@@ -70,8 +70,11 @@ export function parseHistogramBucketInfo(row: {[key: string]: React.ReactText}) 
   const parts = field.split('_');
   return {
     histogramField: field,
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
     bucketSize: parseInt(parts[parts.length - 3], 10),
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
     offset: parseInt(parts[parts.length - 2], 10),
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
     multiplier: parseInt(parts[parts.length - 1], 10),
   };
 }

@@ -146,6 +146,7 @@ class ContextPickerModal extends Component<Props> {
       this.onFinishTimeout =
         onFinish(
           replaceRouterParams(nextPath, {
+            // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
             orgId: organizations[0].slug,
           })
         ) ?? undefined;
@@ -155,6 +156,7 @@ class ContextPickerModal extends Component<Props> {
     // Use latest org or if only 1 org, use that
     let org = latestOrg;
     if (!org && organizations.length === 1) {
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       org = organizations[0].slug;
     }
 
@@ -162,7 +164,9 @@ class ContextPickerModal extends Component<Props> {
       onFinish(
         replaceRouterParams(nextPath, {
           orgId: org,
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           projectId: projects[0].slug,
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           project: this.props.projects.find(p => p.slug === projects[0].slug)?.id,
         })
       ) ?? undefined;
@@ -270,6 +274,7 @@ class ContextPickerModal extends Component<Props> {
     const projectOptions = [
       {
         label: t('My Projects'),
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         options: memberProjects.map(p => ({
           value: p.slug,
           label: p.slug,
@@ -278,6 +283,7 @@ class ContextPickerModal extends Component<Props> {
       },
       {
         label: t('All Projects'),
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         options: nonMemberProjects.map(p => ({
           value: p.slug,
           label: p.slug,
@@ -322,6 +328,7 @@ class ContextPickerModal extends Component<Props> {
     const options = [
       {
         label: tct('[providerName] Configurations', {
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           providerName: integrationConfigs[0].provider.name,
         }),
         options: integrationConfigs.map(config => ({

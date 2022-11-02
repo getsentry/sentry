@@ -67,11 +67,13 @@ class Triggers extends Component<Props> {
   handleAddAction = (triggerIndex: number, action: Action) => {
     const {onChange, triggers} = this.props;
     const trigger = triggers[triggerIndex];
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     const actions = [...trigger.actions, action];
     const updatedTriggers = replaceAtArrayIndex(triggers, triggerIndex, {
       ...trigger,
       actions,
     });
+    // @ts-expect-error TS(2345) FIXME: Argument of type '{ actions: Action[]; label?: Ale... Remove this comment to see the full error message
     onChange(updatedTriggers, triggerIndex, {actions});
   };
 
@@ -86,6 +88,7 @@ class Triggers extends Component<Props> {
       ...trigger,
       actions,
     });
+    // @ts-expect-error TS(2345) FIXME: Argument of type '{ actions: Action[]; label?: Ale... Remove this comment to see the full error message
     onChange(updatedTriggers, triggerIndex, {actions});
   };
 

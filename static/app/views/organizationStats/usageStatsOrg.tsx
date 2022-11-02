@@ -256,20 +256,25 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
         }
 
         if (outcome !== Outcome.CLIENT_DISCARD) {
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           count.total += group.totals['sum(quantity)'];
         }
 
+        // @ts-expect-error TS(2538) FIXME: Type 'undefined' cannot be used as an index type.
         count[outcome] += group.totals['sum(quantity)'];
 
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         group.series['sum(quantity)'].forEach((stat, i) => {
           switch (outcome) {
             case Outcome.ACCEPTED:
             case Outcome.FILTERED:
+              // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
               usageStats[i][outcome] += stat;
               return;
             case Outcome.DROPPED:
             case Outcome.RATE_LIMITED:
             case Outcome.INVALID:
+              // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
               usageStats[i].dropped.total += stat;
               // TODO: add client discards to dropped?
               return;

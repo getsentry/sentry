@@ -263,6 +263,7 @@ class ConfigureIntegration extends AsyncView<Props, State> {
           <Alert type="info">
             {instructions?.length === 1 ? (
               <span
+                // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
                 dangerouslySetInnerHTML={{__html: singleLineRenderer(instructions[0])}}
               />
             ) : (

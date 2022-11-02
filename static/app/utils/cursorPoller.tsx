@@ -90,6 +90,7 @@ class CursorPoller {
 
         const linksHeader = resp?.getResponseHeader('Link') ?? null;
         const links = parseLinkHeader(linksHeader);
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         this.setEndpoint(links.previous.href);
 
         this.options.success(data, linksHeader);

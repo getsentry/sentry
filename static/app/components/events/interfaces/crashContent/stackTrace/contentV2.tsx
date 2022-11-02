@@ -225,6 +225,7 @@ function Content({
 
     if (convertedFrames.length > 0 && registers) {
       const lastFrame = convertedFrames.length - 1;
+      // @ts-expect-error TS(2769) FIXME: No overload matches this call.
       convertedFrames[lastFrame] = cloneElement(convertedFrames[lastFrame], {
         registers,
       });

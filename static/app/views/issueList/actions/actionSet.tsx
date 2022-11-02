@@ -202,12 +202,15 @@ function ActionSet({
                 anySelected={anySelected}
                 orgSlug={organization.slug}
                 params={{
+                  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
                   hasReleases: selectedProject.hasOwnProperty('features')
                     ? (selectedProject as Project).features.includes('releases')
                     : false,
+                  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
                   latestRelease: selectedProject.hasOwnProperty('latestRelease')
                     ? (selectedProject as Project).latestRelease
                     : undefined,
+                  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
                   projectId: selectedProject.slug,
                   confirm,
                   label,

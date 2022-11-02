@@ -213,6 +213,7 @@ function SelectProjectStep({
               sdkUpdates={sdkUpdates}
               project={project}
               organization={organization}
+              // @ts-expect-error TS(2322) FIXME: Type 'InitialState | LoadingState | ErroredState |... Remove this comment to see the full error message
               publicDSN={publicDSN}
             />
           ) : null}
@@ -221,6 +222,7 @@ function SelectProjectStep({
               sdkUpdates={sdkUpdates}
               project={project}
               organization={organization}
+              // @ts-expect-error TS(2322) FIXME: Type 'InitialState | LoadingState | ErroredState |... Remove this comment to see the full error message
               publicDSN={publicDSN}
             />
           ) : null}

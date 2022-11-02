@@ -174,9 +174,13 @@ class SpanDetail extends Component<Props, State> {
     const childTransaction = childTransactions[0];
 
     const transactionResult: TransactionResult = {
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       'project.name': childTransaction.project_slug,
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       transaction: childTransaction.transaction,
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       'trace.span': childTransaction.span_id,
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       id: childTransaction.event_id,
     };
 
@@ -198,6 +202,7 @@ class SpanDetail extends Component<Props, State> {
             orgSlug: organization.slug,
             transaction: transactionResult.transaction,
             query: omit(location.query, Object.values(PAGE_URL_PARAM)),
+            // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
             projectID: String(childTransaction.project_id),
           });
 

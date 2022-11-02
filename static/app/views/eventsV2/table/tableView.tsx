@@ -226,6 +226,7 @@ class TableView extends Component<TableViewProps & WithRouterProps> {
 
     const title = (
       <StyledTooltip title={titleText}>
+        {/* @ts-expect-error TS(2769) FIXME: No overload matches this call. */}
         <Truncate value={titleText} maxLength={60} expandable={false} />
       </StyledTooltip>
     );

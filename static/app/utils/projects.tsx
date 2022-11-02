@@ -520,7 +520,9 @@ async function fetchProjects(
     const paginationObject = parseLinkHeader(pageLinks);
     hasMore =
       paginationObject &&
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       (paginationObject.next.results || paginationObject.previous.results);
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     nextCursor = paginationObject.next.cursor;
   }
 

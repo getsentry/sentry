@@ -183,6 +183,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       this.setState(prevState => {
         const timeseriesResults = widget.queries.reduce((acc: Series[], query, index) => {
           return acc.concat(
+            // @ts-expect-error TS(2345) FIXME: Argument of type 'SeriesResponse | undefined' is n... Remove this comment to see the full error message
             config.transformSeries!(prevState.rawResults![index], query, organization)
           );
         }, []);
@@ -271,6 +272,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       // Cast so we can add the title.
       const transformedData = config.transformTable(
         data,
+        // @ts-expect-error TS(2345) FIXME: Argument of type 'WidgetQuery | undefined' is not ... Remove this comment to see the full error message
         widget.queries[0],
         organization,
         selection
@@ -331,6 +333,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       rawResultsClone[requestIndex] = data;
       const transformedResult = config.transformSeries!(
         data,
+        // @ts-expect-error TS(2345) FIXME: Argument of type 'WidgetQuery | undefined' is not ... Remove this comment to see the full error message
         widget.queries[requestIndex],
         organization
       );
@@ -349,7 +352,9 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
     // Get series result type
     // Only used by custom measurements in errorsAndTransactions at the moment
     const timeseriesResultsTypes = config.getSeriesResultType?.(
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       responses[0][0],
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'WidgetQuery | undefined' is not ... Remove this comment to see the full error message
       widget.queries[0]
     );
 

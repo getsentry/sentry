@@ -62,6 +62,7 @@ export class MutableSearch {
       if (token.startsWith('(')) {
         const parenMatch = token.match(/^\(+/g);
         if (parenMatch) {
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           parenMatch[0].split('').map(paren => this.addOp(paren));
           token = token.replace(/^\(+/g, '');
         }
@@ -91,6 +92,7 @@ export class MutableSearch {
       if (token.endsWith(')') && !token.includes('(')) {
         const parenMatch = token.match(/\)+$/g);
         if (parenMatch) {
+          // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
           trailingParen = parenMatch[0];
           token = token.replace(/\)+$/g, '');
         }
@@ -137,6 +139,7 @@ export class MutableSearch {
 
   addStringFilter(filter: string, shouldEscape = true) {
     const [key, value] = parseFilter(filter);
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
     this.addFilterValues(key, [value], shouldEscape);
     return this;
   }
@@ -196,6 +199,7 @@ export class MutableSearch {
           const token = this.tokens[i];
           const prev = this.tokens[i - 1];
           const next = this.tokens[i + 1];
+          // @ts-expect-error TS(2345) FIXME: Argument of type 'Token | undefined' is not assign... Remove this comment to see the full error message
           if (isOp(token) && isBooleanOp(token.value)) {
             if (prev === undefined || isOp(prev) || next === undefined || isOp(next)) {
               // Want to avoid removing `(term) OR (term)` and `term OR (term)`
@@ -235,6 +239,7 @@ export class MutableSearch {
 
       for (let i = 0; i < this.tokens.length; i++) {
         const token = this.tokens[i];
+        // @ts-expect-error TS(2345) FIXME: Argument of type 'Token | undefined' is not assign... Remove this comment to see the full error message
         if (!isOp(token) || token.value !== '(') {
           continue;
         }
@@ -242,17 +247,20 @@ export class MutableSearch {
         let alreadySeen = false;
         for (let j = i + 1; j < this.tokens.length; j++) {
           const nextToken = this.tokens[j];
+          // @ts-expect-error TS(2345) FIXME: Argument of type 'Token | undefined' is not assign... Remove this comment to see the full error message
           if (isOp(nextToken) && nextToken.value === '(') {
             // Continue down to the nested parens. We can skip i forward since we know
             // everything between i and j is NOT an open paren.
             i = j - 1;
             break;
+            // @ts-expect-error TS(2345) FIXME: Argument of type 'Token | undefined' is not assign... Remove this comment to see the full error message
           } else if (!isOp(nextToken)) {
             if (alreadySeen) {
               // This has more than one term, no need to delete
               break;
             }
             alreadySeen = true;
+            // @ts-expect-error TS(2345) FIXME: Argument of type 'Token | undefined' is not assign... Remove this comment to see the full error message
           } else if (isOp(nextToken) && nextToken.value === ')') {
             // We found another paren with zero or one terms inside. Delete the pair.
             parensToDelete = [i, j];
@@ -339,18 +347,23 @@ function splitSearchIntoTokens(query: string) {
     const nextChar = queryChars.length - 1 > idx ? queryChars[idx + 1] : null;
     token += char;
 
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
     if (nextChar !== null && !isSpace(char) && isSpace(nextChar)) {
+      // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
       endOfPrevWord = char;
     }
 
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
     if (isSpace(char) && !quoteEnclosed && endOfPrevWord !== ':' && !isSpace(token)) {
       tokens.push(token.trim());
       token = '';
     }
 
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
     if (["'", '"'].includes(char) && (!quoteEnclosed || quoteType === char)) {
       quoteEnclosed = !quoteEnclosed;
       if (quoteEnclosed) {
+        // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
         quoteType = char;
       }
     }

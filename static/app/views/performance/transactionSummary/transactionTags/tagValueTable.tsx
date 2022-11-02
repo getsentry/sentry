@@ -106,6 +106,7 @@ export class TagValueTable extends Component<Props, State> {
     columns: TagsTableColumn[]
   ) => {
     return (column: TableColumn<TagsTableColumnKeys>, index: number): React.ReactNode =>
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'TagsTableColumn | undefined' is ... Remove this comment to see the full error message
       this.renderHeadCell(sortedEventView, tableMeta, column, columns[index]);
   };
 

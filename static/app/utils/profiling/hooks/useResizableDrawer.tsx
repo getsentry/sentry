@@ -60,11 +60,13 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
             Math.max(
               options.min[0],
               dimensionsRef.current[0] +
+                // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
                 distance[0] * (options.direction === 'horizontal-ltr' ? -1 : 1)
             )
           ),
           // Round to 1px precision
           Math.round(
+            // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
             Math.max(options.min[1] ?? 0, dimensionsRef.current[1] + distance[1])
           ),
         ];

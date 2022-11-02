@@ -42,6 +42,7 @@ describe('recreateRoute', function () {
     );
 
     expect(
+      // @ts-expect-error TS(2345) FIXME: Argument of type '{ path: string; childRoutes: nev... Remove this comment to see the full error message
       recreateRoute(projectRoutes[5], {routes: projectRoutes, location, params})
     ).toBe('/settings/org-slug/project-slug/alerts/');
   });

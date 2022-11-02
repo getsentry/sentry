@@ -113,6 +113,7 @@ function Task(props: Props) {
     <Tooltip
       containerDisplayMode="block"
       title={tct('[requisite] before completing this task', {
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         requisite: task.requisiteTasks[0].title,
       })}
     >

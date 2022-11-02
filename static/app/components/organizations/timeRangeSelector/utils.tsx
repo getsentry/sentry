@@ -61,6 +61,7 @@ const parseStatsPeriodString = (statsPeriodString: string) => {
     throw new Error('Invalid stats period');
   }
 
+  // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
   const value = parseInt(result[1], 10);
   const unit = result[2] as RelativePeriodUnit;
 
@@ -86,6 +87,7 @@ export function parseStatsPeriod(
 ): {end: string; start: string} {
   const {value, unit} = parseStatsPeriodString(statsPeriod);
 
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   const momentUnit = SUPPORTED_RELATIVE_PERIOD_UNITS[unit].momentUnit;
 
   const format = outputFormat === null ? undefined : outputFormat;
@@ -118,6 +120,7 @@ export function getRelativeSummary(
 
     const {value, unit} = parseStatsPeriodString(relative);
 
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     return SUPPORTED_RELATIVE_PERIOD_UNITS[unit].label(value);
   } catch {
     return 'Invalid period';
@@ -154,6 +157,7 @@ function timePeriodIsWithinLimit<T extends RelativeUnitsMapping>({
     return true;
   }
 
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   const daysMultiplier = supportedPeriods[unit].convertToDaysMultiplier;
 
   return daysMultiplier * amount <= maxDays;
@@ -208,6 +212,7 @@ export const _timeRangeAutoCompleteFilter = function <T extends RelativeUnitsMap
         })
       )
       .map((unit, index) =>
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         makeItem(userSuppliedAmount, unit, supportedPeriods[unit].label, index)
       );
   }
@@ -219,6 +224,7 @@ export const _timeRangeAutoCompleteFilter = function <T extends RelativeUnitsMap
         return unit === userSuppliedUnits;
       }
 
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       return supportedPeriods[unit].searchKey.startsWith(userSuppliedUnits);
     });
 
@@ -235,6 +241,7 @@ export const _timeRangeAutoCompleteFilter = function <T extends RelativeUnitsMap
         makeItem(
           userSuppliedAmount,
           matchingUnit,
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           supportedPeriods[matchingUnit].label,
           0
         ),

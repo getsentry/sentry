@@ -51,9 +51,12 @@ export function trimSlug(slug: string, maxLength: number = 20) {
   // from the middle.
   const debt = getLength(words) - maxLength;
   const toTrimFromLeftWord = Math.ceil(debt / 2);
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   const leftWordLength = Math.max(words[0].length - toTrimFromLeftWord, 3);
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   const leftWord = words[0].slice(0, leftWordLength);
   const rightWordLength = maxLength - leftWord.length;
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   const rightWord = words[1].slice(-rightWordLength);
 
   return `${leftWord}\u2026${rightWord}`;

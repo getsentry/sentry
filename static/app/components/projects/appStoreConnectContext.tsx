@@ -124,6 +124,7 @@ const Provider = ({children, project, organization}: ProviderProps) => {
                       name: appStoreConnectSymbolSources[key].name,
                       link: `/settings/${organization.slug}/projects/${project.slug}/debug-symbols/?customRepository=${key}`,
                     },
+                    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
                     appStoreConnect.credentials
                   ),
                 },

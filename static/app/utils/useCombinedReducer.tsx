@@ -37,6 +37,7 @@ export function makeCombinedReducers<M extends ReducersObject>(
     const nextState = {} as ReducersState<M>;
 
     for (const key of keys) {
+      // @ts-expect-error TS(2722) FIXME: Cannot invoke an object which is possibly 'undefin... Remove this comment to see the full error message
       nextState[key] = reducers[key](state[key], action);
     }
 

@@ -119,6 +119,7 @@ class Content extends AsyncComponent<Props, State> {
 
     return (
       <Chart
+        // @ts-expect-error TS(2322) FIXME: Type '{ seriesName: string; data: { value: number ... Remove this comment to see the full error message
         series={transformData(
           chartData.data,
           !organization.features.includes('performance-frontend-use-events-endpoint')

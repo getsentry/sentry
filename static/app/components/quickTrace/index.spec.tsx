@@ -415,6 +415,7 @@ describe('Quick Trace', function () {
         makeTransactionHref('p4', 'e4', 't4', '4'),
         makeTransactionHref('p5', 'e5', 't5', '5'),
       ].forEach((target, i) => {
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         const linkNode = nodes[i].children[0];
         if (target) {
           expect(linkNode).toHaveAttribute('href', target);

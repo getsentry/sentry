@@ -99,6 +99,7 @@ function Modal({
         return;
       }
       setCurrentAttachmentIndex(newAttachmentIndex);
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'IssueAttachment | undefined' is ... Remove this comment to see the full error message
       setCurrentAttachment(memoizedAttachments[newAttachmentIndex]);
     }
   };

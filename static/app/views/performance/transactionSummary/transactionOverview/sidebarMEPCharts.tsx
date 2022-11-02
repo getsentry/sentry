@@ -218,7 +218,8 @@ function ChartLabels({
           error={error}
           value={
             totals
-              ? formatFloat(useAggregateAlias ? totals.apdex : totals['apdex()'], 4)
+              ? // @ts-expect-error TS(2345) FIXME: Argument of type 'number | undefined' is not assig... Remove this comment to see the full error message
+                formatFloat(useAggregateAlias ? totals.apdex : totals['apdex()'], 4)
               : null
           }
         />
@@ -240,6 +241,7 @@ function ChartLabels({
           value={
             totals
               ? formatPercentage(
+                  // @ts-expect-error TS(2345) FIXME: Argument of type 'number | undefined' is not assig... Remove this comment to see the full error message
                   useAggregateAlias ? totals.failure_rate : totals['failure_rate()']
                 )
               : null
@@ -319,6 +321,7 @@ function getSideChartsOptions({
       utc,
       isGroupedByDate: true,
       showTimeInTooltip: true,
+      // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
       colors: [colors[0], theme.gray300],
       tooltip: {
         trigger: 'axis',
@@ -385,6 +388,7 @@ function getSideChartsOptions({
     utc,
     isGroupedByDate: true,
     showTimeInTooltip: true,
+    // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
     colors: [colors[1], colors[2]],
     tooltip: {
       trigger: 'axis',
@@ -414,6 +418,7 @@ function trimLeadingTrailingZeroCounts(series: Series | undefined) {
 
   if (
     series.data[series.data.length - 1] &&
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     series.data[series.data.length - 1].value === 0
   ) {
     series.data.pop();
@@ -576,6 +581,7 @@ function SidebarChartsContainer({
                       metricSeries[0] = {...metricsCountSeries, ...trimmed};
                     }
                   }
+                  // @ts-expect-error TS(2345) FIXME: Argument of type '{ yAxisIndex: number; xAxisIndex... Remove this comment to see the full error message
                   series.push(metricsCountSeries);
                 }
               }

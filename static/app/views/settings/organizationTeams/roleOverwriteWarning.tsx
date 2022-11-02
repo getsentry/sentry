@@ -60,6 +60,7 @@ export function getOverwriteString(props: Props) {
     {
       selfNoun: isSelf ? 'Your' : "This user's",
       selfPronoun: isSelf ? 'you' : 'them',
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
       article: 'AEIOU'.includes(orgRoleObj.name[0]) ? 'an' : 'a',
       orgRole: <strong>{orgRoleObj.name}</strong>,
       teamRole: <strong>{teamRoleObj.name}</strong>,

@@ -150,6 +150,7 @@ export function findRangeOfMultiSeries(series: Series[], legend?: LegendComponen
     let maxSeries;
     series.forEach(({seriesName, data}, idx) => {
       if (legend?.selected?.[seriesName] !== false && data.length) {
+        // @ts-expect-error TS(2322) FIXME: Type 'Series | undefined' is not assignable to typ... Remove this comment to see the full error message
         minSeries = series[idx];
         maxSeries ??= series[idx];
       }

@@ -142,6 +142,7 @@ function ProjectPageFilter({
     // Show 2 projects only if the combined string does not exceed maxTitleLength.
     // Otherwise show only 1 project.
     const projectsToShow =
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       selectedProjects[0]?.slug?.length + selectedProjects[1]?.slug?.length <=
       maxTitleLength - 2
         ? selectedProjects.slice(0, 2)

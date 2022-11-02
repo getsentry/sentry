@@ -28,12 +28,14 @@ function getReadableDesyncedFilterList(desyncedFilters: Set<PinnedPageFilter>) {
   const filters = [...desyncedFilters];
 
   if (filters.length === 1) {
+    // @ts-expect-error TS(2538) FIXME: Type 'undefined' cannot be used as an index type.
     return `${filterNameMap[filters[0]]} filter`;
   }
 
   return `${filters
     .slice(0, -1)
     .map(value => filterNameMap[value])
+    // @ts-expect-error TS(2538) FIXME: Type 'undefined' cannot be used as an index type.
     .join(', ')} and ${filterNameMap[filters[filters.length - 1]]} filters`;
 }
 

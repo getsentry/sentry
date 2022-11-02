@@ -64,6 +64,7 @@ export default class AdminSettings extends AsyncView<{}, State> {
       } else {
         initialData[key] = option.value;
       }
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'Field | {}' is not assignable to... Remove this comment to see the full error message
       fields[key] = getOptionField(key, option.field);
     }
 

@@ -87,6 +87,7 @@ describe('getNextReplayEvent', () => {
   it('should return the next crumb when the the list is not sorted', () => {
     const [one, two, three, four, five] = createCrumbs();
     const results = getNextReplayEvent({
+      // @ts-expect-error TS(2322) FIXME: Type 'Crumb | undefined' is not assignable to type... Remove this comment to see the full error message
       items: [one, four, five, three, two],
       targetTimestampMs: START_TIMESTAMP_SEC * 1000 + CURRENT_TIME_MS,
     });
@@ -151,6 +152,7 @@ describe('getPrevReplayEvent', () => {
   it('should return the previous crumb when the list is not sorted', () => {
     const [one, two, three, four, five] = createCrumbs();
     const results = getPrevReplayEvent({
+      // @ts-expect-error TS(2322) FIXME: Type 'Crumb | undefined' is not assignable to type... Remove this comment to see the full error message
       items: [one, four, five, three, two],
       targetTimestampMs: START_TIMESTAMP_SEC * 1000 + CURRENT_TIME_MS,
     });

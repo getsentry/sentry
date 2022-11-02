@@ -23,12 +23,14 @@ function GroupChart({
   height = 24,
   showMarkLine = false,
 }: Props) {
+  // @ts-expect-error TS(2322) FIXME: Type 'TimeseriesValue[] | undefined' is not assign... Remove this comment to see the full error message
   const stats: TimeseriesValue[] = statsPeriod
     ? data.filtered
       ? data.filtered.stats[statsPeriod]
       : data.stats[statsPeriod]
     : [];
 
+  // @ts-expect-error TS(2322) FIXME: Type 'TimeseriesValue[] | null | undefined' is not... Remove this comment to see the full error message
   const secondaryStats: TimeseriesValue[] | null =
     statsPeriod && data.filtered ? data.stats[statsPeriod] : null;
 

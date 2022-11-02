@@ -34,6 +34,7 @@ class ArrayValue extends Component<Props, State> {
             .map((item, i) => (
               <ArrayItem key={`${i}:${item}`}>{nullableValue(item)}</ArrayItem>
             ))}
+        {/* @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message */}
         <ArrayItem>{nullableValue(value.slice(-1)[0])}</ArrayItem>
         {value.length > 1 ? (
           <ButtonContainer>

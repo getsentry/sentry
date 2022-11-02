@@ -129,6 +129,7 @@ export function PerformanceLanding(props: Props) {
 
   const derivedQuery = getTransactionSearchQuery(location, eventView.query);
 
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   const ViewComponent = fieldToViewMap[landingDisplay.field];
 
   let pageFilters: React.ReactNode = (
@@ -156,6 +157,7 @@ export function PerformanceLanding(props: Props) {
     <StyledPageContent data-test-id="performance-landing-v3">
       <PageErrorProvider>
         <Tabs
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           value={landingDisplay.field}
           onChange={field =>
             handleLandingDisplayChange(field, location, projects, organization, eventView)
@@ -190,6 +192,7 @@ export function PerformanceLanding(props: Props) {
           <Layout.Body data-test-id="performance-landing-body">
             <Layout.Main fullWidth>
               <TabPanels>
+                {/* @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'. */}
                 <Item key={landingDisplay.field}>
                   <MetricsCardinalityProvider
                     organization={organization}
@@ -249,6 +252,7 @@ export function PerformanceLanding(props: Props) {
                                               metricSettingState ?? undefined
                                             );
                                           }}
+                                          // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
                                           query={searchQuery}
                                         />
                                       ) : (

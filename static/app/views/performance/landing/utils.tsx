@@ -104,6 +104,7 @@ export function getCurrentLandingDisplay(
     return display;
   }
 
+  // @ts-expect-error TS(2322) FIXME: Type '{ label: string; field: LandingDisplayField;... Remove this comment to see the full error message
   return getDefaultDisplayForPlatform(projects, eventView);
 }
 

@@ -231,6 +231,7 @@ function getFormatter({
                 `<div><span class="tooltip-label tooltip-label-indent"><strong>${
                   subLabel.label
                 }</strong></span> ${valueFormatter(
+                  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
                   subLabel.data[s.dataIndex].value
                 )}</div>`
               );

@@ -256,10 +256,14 @@ class SpanTreeModel {
       // we will need to reconstruct the tree depth information. This is only neccessary
       // when the span group chain is hidden/collapsed.
       if (spanNestedGrouping.length === 1) {
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         const treeDepthEntry = isOrphanSpan(spanNestedGrouping[0].span)
-          ? ({type: 'orphan', depth: spanNestedGrouping[0].treeDepth} as OrphanTreeDepth)
-          : spanNestedGrouping[0].treeDepth;
+          ? // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
+            ({type: 'orphan', depth: spanNestedGrouping[0].treeDepth} as OrphanTreeDepth)
+          : // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
+            spanNestedGrouping[0].treeDepth;
 
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         if (!spanNestedGrouping[0].isLastSibling) {
           continuingTreeDepths = [...continuingTreeDepths, treeDepthEntry];
         }
@@ -354,16 +358,22 @@ class SpanTreeModel {
 
         // We want to group siblings only if they share the same op and description, and if they have no children
         if (
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           prevSpanModel.span.op === currSpanModel.span.op &&
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           prevSpanModel.span.description === currSpanModel.span.description &&
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           currSpanModel.children.length === 0
         ) {
           currentGroup.push(currSpanModel);
         } else {
+          // @ts-expect-error TS(2345) FIXME: Argument of type 'SpanTreeModel | undefined' is no... Remove this comment to see the full error message
           addGroupToMap(prevSpanModel, currentGroup);
 
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           if (currSpanModel.children.length) {
             currentGroup = [currSpanModel];
+            // @ts-expect-error TS(2322) FIXME: Type '(SpanTreeModel | undefined)[]' is not assign... Remove this comment to see the full error message
             groupedDescendants.push({group: currentGroup});
             currentGroup = [];
           } else {
@@ -374,6 +384,7 @@ class SpanTreeModel {
         prevSpanModel = currSpanModel;
       }
 
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'SpanTreeModel | undefined' is no... Remove this comment to see the full error message
       addGroupToMap(prevSpanModel, currentGroup);
     } else if (descendantsSource.length >= 1) {
       groupedDescendants.push({group: descendantsSource});
@@ -432,6 +443,7 @@ class SpanTreeModel {
           return acc;
         }
 
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         const key = getSiblingGroupKey(group[0].span, occurrence);
         if (this.expandedSiblingGroups.has(key)) {
           // This check is needed here, since it is possible that a user could be filtering for a specific span ID.
@@ -482,6 +494,7 @@ class SpanTreeModel {
         // if the spans are filtered or out of bounds here
 
         if (
+          // @ts-expect-error TS(2345) FIXME: Argument of type 'SpanTreeModel | undefined' is no... Remove this comment to see the full error message
           this.isSpanFilteredOut(props, group[0]) ||
           groupShouldBeHidden(group, focusedSpanIds)
         ) {
@@ -495,7 +508,9 @@ class SpanTreeModel {
         }
 
         const bounds = generateBounds({
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           startTimestamp: group[0].span.start_timestamp,
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           endTimestamp: group[group.length - 1].span.timestamp,
         });
 
@@ -548,6 +563,7 @@ class SpanTreeModel {
         };
 
         acc.previousSiblingEndTimestamp =
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           wrappedSiblings[wrappedSiblings.length - 1].span.timestamp;
 
         acc.descendants.push(groupedSiblingsSpan);
@@ -636,6 +652,7 @@ class SpanTreeModel {
       spanNestedGrouping.length === 1
     ) {
       if (!isNestedSpanGroupExpanded) {
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         const parentSpan = spanNestedGrouping[0].span;
         const parentSpanBounds = generateBounds({
           startTimestamp: parentSpan.start_timestamp,
@@ -643,6 +660,7 @@ class SpanTreeModel {
         });
         const isParentSpanOutOfView = !parentSpanBounds.isSpanVisibleInView;
         if (!isParentSpanOutOfView) {
+          // @ts-expect-error TS(2322) FIXME: Type 'EnhancedSpan | undefined' is not assignable ... Remove this comment to see the full error message
           return [spanNestedGrouping[0], wrappedSpan, ...descendants];
         }
       }

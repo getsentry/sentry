@@ -307,10 +307,12 @@ const storeConfig: GroupingStoreDefinition = {
           const {childId, childLabel, eventCount, lastSeen, latestEvent} = item;
 
           if (eventCount) {
+            // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
             newItem.eventCount += eventCount;
           }
 
           if (childId) {
+            // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
             newItem.children.push({
               childId,
               childLabel,
@@ -336,9 +338,12 @@ const storeConfig: GroupingStoreDefinition = {
             // v1 layout: '<interface>:...'
             const [interfaceName] = String(scoreKey).split(':');
 
+            // @ts-expect-error TS(2538) FIXME: Type 'undefined' cannot be used as an index type.
             if (!acc[interfaceName]) {
+              // @ts-expect-error TS(2538) FIXME: Type 'undefined' cannot be used as an index type.
               acc[interfaceName] = [];
             }
+            // @ts-expect-error TS(2538) FIXME: Type 'undefined' cannot be used as an index type.
             acc[interfaceName].push([scoreKey, score]);
 
             return acc;
@@ -440,6 +445,7 @@ const storeConfig: GroupingStoreDefinition = {
     }
 
     // Update "checked" state for row
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
     this.setStateForId(this.unmergeState, fingerprint, {
       checked,
     });

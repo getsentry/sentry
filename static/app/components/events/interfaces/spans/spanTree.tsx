@@ -93,6 +93,7 @@ class SpanTree extends Component<PropType> {
     const showHiddenSpansMessage = !isCurrentSpanHidden && numOfSpansOutOfViewAbove > 0;
 
     if (showHiddenSpansMessage) {
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       firstHiddenSpanId = getSpanID(outOfViewSpansAbove[0].span);
       messages.push(
         <span key={`spans-out-of-view-${firstHiddenSpanId}`}>
@@ -106,6 +107,7 @@ class SpanTree extends Component<PropType> {
       !isCurrentSpanFilteredOut && numOfFilteredSpansAbove > 0;
 
     if (showFilteredSpansMessage) {
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       firstHiddenSpanId = getSpanID(filteredSpansAbove[0].span);
       if (!isCurrentSpanHidden) {
         if (numOfFilteredSpansAbove === 1) {

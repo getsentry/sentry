@@ -205,11 +205,17 @@ class ReleasesRequest extends Component<Props, State> {
 
       this.setState({
         loading: false,
+        // @ts-expect-error TS(2322) FIXME: Type 'SessionApiResponse | undefined' is not assig... Remove this comment to see the full error message
         statusCountByReleaseInPeriod,
+        // @ts-expect-error TS(2322) FIXME: Type 'SessionApiResponse | undefined' is not assig... Remove this comment to see the full error message
         totalCountByReleaseIn24h,
+        // @ts-expect-error TS(2322) FIXME: Type 'SessionApiResponse | undefined' is not assig... Remove this comment to see the full error message
         totalCountByProjectIn24h,
+        // @ts-expect-error TS(2322) FIXME: Type 'SessionApiResponse | undefined' is not assig... Remove this comment to see the full error message
         statusCountByProjectInPeriod,
+        // @ts-expect-error TS(2322) FIXME: Type 'SessionApiResponse | undefined' is not assig... Remove this comment to see the full error message
         totalCountByReleaseInPeriod,
+        // @ts-expect-error TS(2322) FIXME: Type 'SessionApiResponse | undefined' is not assig... Remove this comment to see the full error message
         totalCountByProjectInPeriod,
       });
     } catch (error) {
@@ -362,6 +368,7 @@ class ReleasesRequest extends Component<Props, State> {
 
     const totalCount = statusCountByReleaseInPeriod?.groups
       .filter(({by}) => by.release === version && by.project === project)
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       ?.reduce((acc, group) => acc + group.totals[field], 0);
 
     const crashedCount = this.getCrashCount(version, project, display);
@@ -379,9 +386,12 @@ class ReleasesRequest extends Component<Props, State> {
     const {totalCountByReleaseIn24h} = this.state;
     const field = sessionDisplayToField(display);
 
-    return totalCountByReleaseIn24h?.groups
-      .filter(({by}) => by.release === version && by.project === project)
-      ?.reduce((acc, group) => acc + group.totals[field], 0);
+    return (
+      totalCountByReleaseIn24h?.groups
+        .filter(({by}) => by.release === version && by.project === project)
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
+        ?.reduce((acc, group) => acc + group.totals[field], 0)
+    );
   };
 
   getPeriodCountByRelease = (
@@ -392,27 +402,36 @@ class ReleasesRequest extends Component<Props, State> {
     const {totalCountByReleaseInPeriod} = this.state;
     const field = sessionDisplayToField(display);
 
-    return totalCountByReleaseInPeriod?.groups
-      .filter(({by}) => by.release === version && by.project === project)
-      ?.reduce((acc, group) => acc + group.totals[field], 0);
+    return (
+      totalCountByReleaseInPeriod?.groups
+        .filter(({by}) => by.release === version && by.project === project)
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
+        ?.reduce((acc, group) => acc + group.totals[field], 0)
+    );
   };
 
   get24hCountByProject = (project: number, display: ReleasesDisplayOption) => {
     const {totalCountByProjectIn24h} = this.state;
     const field = sessionDisplayToField(display);
 
-    return totalCountByProjectIn24h?.groups
-      .filter(({by}) => by.project === project)
-      ?.reduce((acc, group) => acc + group.totals[field], 0);
+    return (
+      totalCountByProjectIn24h?.groups
+        .filter(({by}) => by.project === project)
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
+        ?.reduce((acc, group) => acc + group.totals[field], 0)
+    );
   };
 
   getPeriodCountByProject = (project: number, display: ReleasesDisplayOption) => {
     const {totalCountByProjectInPeriod} = this.state;
     const field = sessionDisplayToField(display);
 
-    return totalCountByProjectInPeriod?.groups
-      .filter(({by}) => by.project === project)
-      ?.reduce((acc, group) => acc + group.totals[field], 0);
+    return (
+      totalCountByProjectInPeriod?.groups
+        .filter(({by}) => by.project === project)
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
+        ?.reduce((acc, group) => acc + group.totals[field], 0)
+    );
   };
 
   getTimeSeries = (version: string, project: number, display: ReleasesDisplayOption) => {

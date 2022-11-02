@@ -142,6 +142,7 @@ export function getNextAvailablePosition(
   // we get the top-most available spot
   for (let currDepth = 0; currDepth <= maxColumnDepth; currDepth++) {
     for (let start = 0; start <= columnDepths.length - DEFAULT_WIDGET_WIDTH; start++) {
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       if (columnDepths[start] > currDepth) {
         // There are potentially widgets in the way here, so skip
         continue;

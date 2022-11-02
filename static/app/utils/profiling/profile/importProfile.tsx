@@ -156,13 +156,17 @@ function importSentrySampledProfile(
 
   for (let i = 0; i < input.profile.samples.length; i++) {
     const sample = input.profile.samples[i];
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     if (!samplesByThread[sample.thread_id]) {
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       samplesByThread[sample.thread_id] = [];
     }
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     samplesByThread[sample.thread_id].push(sample);
   }
 
   for (const key in samplesByThread) {
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     samplesByThread[key].sort(
       (a, b) =>
         parseInt(a.elapsed_since_start_ns, 10) - parseInt(b.elapsed_since_start_ns, 10)
@@ -176,6 +180,7 @@ function importSentrySampledProfile(
       ...input,
       profile: {
         ...input.profile,
+        // @ts-expect-error TS(2322) FIXME: Type 'SentrySampledProfileSample[] | undefined' is... Remove this comment to see the full error message
         samples: samplesByThread[key],
       },
     };
@@ -210,6 +215,7 @@ function importSentrySampledProfile(
       deviceOSName: input.os.name,
       deviceOSVersion: input.os.version,
       durationNS: parseInt(
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         input.profile.samples[input.profile.samples.length - 1].elapsed_since_start_ns,
         10
       ),

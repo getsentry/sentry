@@ -104,7 +104,8 @@ class TeamReleases extends AsyncComponent<Props, State> {
       dataset === 'week' ? weekReleases?.last_week_totals : periodReleases?.project_avgs;
 
     const count = releasesPeriod?.[projectId]
-      ? Math.ceil(releasesPeriod?.[projectId])
+      ? // @ts-expect-error TS(2345) FIXME: Argument of type 'number | undefined' is not assig... Remove this comment to see the full error message
+        Math.ceil(releasesPeriod?.[projectId])
       : 0;
 
     return count;

@@ -263,6 +263,7 @@ export class TagExplorer extends Component<Props> {
     columns: TagColumn[]
   ) => {
     return (column: TableColumn<ColumnKeys>, index: number): React.ReactNode =>
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'TagColumn | undefined' is not as... Remove this comment to see the full error message
       this.renderHeadCell(sortedEventView, tableMeta, column, columns[index]);
   };
 

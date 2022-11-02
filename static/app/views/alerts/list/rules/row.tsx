@@ -226,6 +226,7 @@ function RuleListRow({
       priority: 'danger',
       onAction: () => {
         openConfirmModal({
+          // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
           onConfirm: () => onDelete(slug, rule),
           header: t('Delete Alert Rule?'),
           message: tct(
@@ -242,6 +243,7 @@ function RuleListRow({
   function handleOwnerChange({value}: {value: string}) {
     const ownerValue = value && `team:${value}`;
     setAssignee(ownerValue);
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
     onOwnerChange(slug, rule, ownerValue);
   }
 
@@ -259,6 +261,7 @@ function RuleListRow({
   };
 
   const projectRow = projects.filter(project => project.slug === slug);
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   const projectRowTeams = projectRow[0].teams;
   const filteredProjectTeams = projectRowTeams?.filter(projTeam => {
     return userTeams.has(projTeam.id);
@@ -291,6 +294,7 @@ function RuleListRow({
 
   const avatarElement = assigneeTeamActor ? (
     <ActorAvatar
+      // @ts-expect-error TS(2322) FIXME: Type '{ type: "team" | "user"; id: string | undefi... Remove this comment to see the full error message
       actor={assigneeTeamActor}
       className="avatar"
       size={24}
@@ -341,6 +345,7 @@ function RuleListRow({
         <ProjectBadgeContainer>
           <ProjectBadge
             avatarSize={18}
+            // @ts-expect-error TS(2322) FIXME: Type 'Project | { slug: string | undefined; } | un... Remove this comment to see the full error message
             project={!projectsLoaded ? {slug} : getProject(slug, projects)}
           />
         </ProjectBadgeContainer>

@@ -18,6 +18,7 @@ const getSupportedTags = (supportedTags: TagCollection) =>
         ...supportedTags[key],
         kind:
           getFieldDefinition(key)?.kind ??
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           (supportedTags[key].predefined ? FieldKind.FIELD : FieldKind.TAG),
       },
     ])
@@ -77,6 +78,7 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
       onGetTagValues={getTagValues}
       excludedTags={EXCLUDED_TAGS}
       maxMenuHeight={500}
+      // @ts-expect-error TS(2322) FIXME: Type '{ [k: string]: { kind: FieldKind; key?: stri... Remove this comment to see the full error message
       supportedTags={getSupportedTags(tags)}
       {...props}
     />

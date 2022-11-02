@@ -62,8 +62,10 @@ class TransactionsTable extends PureComponent<Props> {
 
     const headers = tableTitles.map((title, index) => {
       const column = columnOrder[index];
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       const align: Alignments = fieldAlignment(column.name, column.type, tableMeta);
 
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       if (column.key === 'span_ops_breakdown.relative') {
         return (
           <HeadCellContainer key={index}>
@@ -150,6 +152,7 @@ class TransactionsTable extends PureComponent<Props> {
         );
       }
 
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
       const isNumeric = ['integer', 'number', 'duration'].includes(fieldType);
       const key = `${rowIndex}:${column.key}:${index}`;
       rendered = isNumeric ? (

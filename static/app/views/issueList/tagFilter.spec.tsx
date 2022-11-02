@@ -65,6 +65,7 @@ describe('IssueListTagFilter', function () {
 
     // selects menu option
     const menuOptionFoo = allFoo[1];
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
     userEvent.click(menuOptionFoo);
 
     expect(selectMock).toHaveBeenCalledWith(tag, 'foo');

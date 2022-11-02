@@ -43,6 +43,7 @@ function scoreFlamegraph(
     }
 
     for (let i = 0; i < frame.children.length; i++) {
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'FlamegraphFrame | undefined' is ... Remove this comment to see the full error message
       frames.push(frame.children[i]);
     }
   }
@@ -144,6 +145,7 @@ export function FlamegraphStateProvider(
         typeof profileGroup.data.activeProfileIndex === 'number'
       ) {
         const threadID =
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           profileGroup.data.profiles[profileGroup.data.activeProfileIndex].threadId;
 
         if (defined(threadID)) {

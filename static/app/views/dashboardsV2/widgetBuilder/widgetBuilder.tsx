@@ -228,7 +228,8 @@ function WidgetBuilder({
           orderby:
             defaultWidgetQuery.orderby ||
             (datasetConfig.getTableSortOptions
-              ? datasetConfig.getTableSortOptions(organization, defaultWidgetQuery)[0]
+              ? // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
+                datasetConfig.getTableSortOptions(organization, defaultWidgetQuery)[0]
                   .value
               : ''),
         },
@@ -238,9 +239,11 @@ function WidgetBuilder({
         ![DisplayType.TABLE, DisplayType.TOP_N].includes(defaultState.displayType) &&
         !(
           getIsTimeseriesChart(defaultState.displayType) &&
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           defaultState.queries[0].columns.length
         )
       ) {
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         defaultState.queries[0].orderby = '';
       }
     } else {
@@ -276,15 +279,20 @@ function WidgetBuilder({
       const widgetFromDashboard = filteredDashboardWidgets[widgetIndexNum];
 
       let queries;
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       let newDisplayType = widgetFromDashboard.displayType;
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       let newLimit = widgetFromDashboard.limit;
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       if (widgetFromDashboard.displayType === DisplayType.TOP_N) {
         newLimit = DEFAULT_RESULTS_LIMIT;
         newDisplayType = DisplayType.AREA;
 
         queries = normalizeQueries({
           displayType: newDisplayType,
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           queries: widgetFromDashboard.queries,
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           widgetType: widgetFromDashboard.widgetType ?? WidgetType.DISCOVER,
         }).map(query => ({
           ...query,
@@ -296,27 +304,35 @@ function WidgetBuilder({
       } else {
         queries = normalizeQueries({
           displayType: newDisplayType,
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           queries: widgetFromDashboard.queries,
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           widgetType: widgetFromDashboard.widgetType ?? WidgetType.DISCOVER,
         });
       }
 
       setState({
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         title: widgetFromDashboard.title,
         displayType: newDisplayType,
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         interval: widgetFromDashboard.interval,
         queries,
         errors: undefined,
         loading: false,
         userHasModified: false,
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         dataSet: widgetFromDashboard.widgetType
-          ? WIDGET_TYPE_TO_DATA_SET[widgetFromDashboard.widgetType]
+          ? // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
+            WIDGET_TYPE_TO_DATA_SET[widgetFromDashboard.widgetType]
           : DataSet.EVENTS,
         limit: newLimit,
         prebuiltWidgetId: null,
         queryConditionsValid: true,
       });
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       setDataSetConfig(getDatasetConfig(widgetFromDashboard.widgetType));
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'Widget | undefined' is not assig... Remove this comment to see the full error message
       setWidgetToBeUpdated(widgetFromDashboard);
     }
     // This should only run once on mount
@@ -441,6 +457,7 @@ function WidgetBuilder({
 
       if (
         getIsTimeseriesChart(newDisplayType) &&
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         normalized[0].columns.filter(column => !!column).length
       ) {
         // If a limit already exists (i.e. going between timeseries) then keep it,
@@ -448,6 +465,7 @@ function WidgetBuilder({
         newState.limit =
           prevState.limit ??
           Math.min(
+            // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
             getResultsLimit(normalized.length, normalized[0].columns.length),
             DEFAULT_RESULTS_LIMIT
           );
@@ -542,9 +560,13 @@ function WidgetBuilder({
       const newState = cloneDeep(prevState);
       const config = getDatasetConfig(DATA_SET_TO_WIDGET_TYPE[prevState.dataSet]);
       const query = cloneDeep(config.defaultWidgetQuery);
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       query.fields = prevState.queries[0].fields;
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       query.aggregates = prevState.queries[0].aggregates;
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       query.columns = prevState.queries[0].columns;
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       query.orderby = prevState.queries[0].orderby;
       newState.queries.push(query);
       return newState;
@@ -574,12 +596,17 @@ function WidgetBuilder({
       const newState = cloneDeep(state);
       let newQuery = cloneDeep(newState.queries[0]);
 
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       newQuery.fields = fieldStrings;
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       newQuery.aggregates = splitFields.aggregates;
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       newQuery.columns = splitFields.columns;
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       newQuery.fieldAliases = splitFields.fieldAliases;
 
       if (datasetConfig.handleColumnFieldChangeOverride) {
+        // @ts-expect-error TS(2345) FIXME: Argument of type 'WidgetQuery | undefined' is not ... Remove this comment to see the full error message
         newQuery = datasetConfig.handleColumnFieldChangeOverride(newQuery);
       }
 
@@ -593,12 +620,14 @@ function WidgetBuilder({
           )
         ) {
           newQuery = datasetConfig.handleOrderByReset(
+            // @ts-expect-error TS(2345) FIXME: Argument of type 'WidgetQuery | undefined' is not ... Remove this comment to see the full error message
             newQuery,
             fieldStrings.filter(
               fieldString => !['transaction', 'title'].includes(fieldString)
             )
           );
         } else {
+          // @ts-expect-error TS(2345) FIXME: Argument of type 'WidgetQuery | undefined' is not ... Remove this comment to see the full error message
           newQuery = datasetConfig.handleOrderByReset(newQuery, fieldStrings);
         }
       }
@@ -642,6 +671,7 @@ function WidgetBuilder({
     set(newState, 'queries', newQueries);
     set(newState, 'userHasModified', true);
 
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     const groupByFields = newState.queries[0].columns.filter(
       field => !(field === 'equation|')
     );
@@ -653,6 +683,7 @@ function WidgetBuilder({
         'limit',
         Math.min(
           newState.limit ?? DEFAULT_RESULTS_LIMIT,
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           getResultsLimit(newQueries.length, newQueries[0].aggregates.length)
         )
       );
@@ -684,6 +715,7 @@ function WidgetBuilder({
         if (!orderOptions.length) {
           newQuery.orderby = '';
         } else {
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           orderOption = orderOptions[0].value;
           newQuery.orderby = `-${orderOption}`;
         }
@@ -694,6 +726,7 @@ function WidgetBuilder({
     set(newState, 'userHasModified', true);
     set(newState, 'queries', newQueries);
 
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     const groupByFields = newState.queries[0].columns.filter(
       field => !(field === 'equation|')
     );
@@ -706,6 +739,7 @@ function WidgetBuilder({
         'limit',
         Math.min(
           newState.limit ?? DEFAULT_RESULTS_LIMIT,
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           getResultsLimit(newQueries.length, newQueries[0].aggregates.length)
         )
       );
@@ -837,9 +871,12 @@ function WidgetBuilder({
       queryNames: [],
       queryConditions: [],
       queryFields: [
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         ...widgetData.queries[0].columns,
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         ...widgetData.queries[0].aggregates,
       ],
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       queryOrderby: widgetData.queries[0].orderby,
     };
 
@@ -914,6 +951,7 @@ function WidgetBuilder({
 
   // Tabular visualizations will always have only one query and that query cannot be deleted,
   // so we will always have the first query available to get data from.
+  // @ts-expect-error TS(2339) FIXME: Property 'columns' does not exist on type 'WidgetQ... Remove this comment to see the full error message
   const {columns, aggregates, fields, fieldAliases = []} = state.queries[0];
 
   const explodedColumns = useMemo(() => {

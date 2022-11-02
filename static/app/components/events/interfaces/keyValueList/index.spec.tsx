@@ -14,10 +14,12 @@ describe('KeyValueList', function () {
     const rows = screen.getAllByRole('row');
     expect(rows).toHaveLength(2);
 
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
     const firstColumn = within(rows[0]).getAllByRole('cell');
     expect(firstColumn[0]).toHaveTextContent('a');
     expect(firstColumn[1]).toHaveTextContent('x');
 
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
     const secondColumn = within(rows[1]).getAllByRole('cell');
     expect(secondColumn[0]).toHaveTextContent('b');
     expect(secondColumn[1]).toHaveTextContent('y');
@@ -33,10 +35,12 @@ describe('KeyValueList', function () {
 
     const rows = screen.getAllByRole('row');
 
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
     const firstColumn = within(rows[0]).getAllByRole('cell');
     expect(firstColumn[0]).toHaveTextContent('a');
     expect(firstColumn[1]).toHaveTextContent('x');
 
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
     const secondColumn = within(rows[1]).getAllByRole('cell');
     expect(secondColumn[0]).toHaveTextContent('b');
     expect(secondColumn[1]).toHaveTextContent('y');
@@ -52,10 +56,12 @@ describe('KeyValueList', function () {
 
     const rows = screen.getAllByRole('row');
 
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
     const firstColumn = within(rows[0]).getAllByRole('cell');
     expect(firstColumn[0]).toHaveTextContent('a');
     expect(firstColumn[1]).toHaveTextContent(''); // empty string
 
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
     const secondColumn = within(rows[1]).getAllByRole('cell');
     expect(secondColumn[0]).toHaveTextContent('b');
     expect(secondColumn[1]).toHaveTextContent('y');
@@ -72,9 +78,11 @@ describe('KeyValueList', function () {
     const rows = screen.getAllByRole('row');
 
     // Ignore values, more interested in if keys rendered + are sorted
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
     const firstColumn = within(rows[0]).getAllByRole('cell');
     expect(firstColumn[0]).toHaveTextContent('a');
 
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
     const secondColumn = within(rows[1]).getAllByRole('cell');
     expect(secondColumn[0]).toHaveTextContent('b');
   });

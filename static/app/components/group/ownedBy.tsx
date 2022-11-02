@@ -36,6 +36,7 @@ function OwnedBy({group, project, organization}: OwnedByProps) {
       if (member) {
         currentOwner = {
           type: 'user',
+          // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
           id,
           name: member.name,
         };
@@ -46,6 +47,7 @@ function OwnedBy({group, project, organization}: OwnedByProps) {
       if (team) {
         currentOwner = {
           type: 'team',
+          // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
           id,
           name: team.slug,
         };

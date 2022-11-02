@@ -170,9 +170,12 @@ export function getMetricAlertChartOption({
   const series: AreaChartSeries[] = [...timeseriesData];
   const areaSeries: AreaChartSeries[] = [];
   // Ensure series data appears below incident/mark lines
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   series[0].z = 1;
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   series[0].color = CHART_PALETTE[0][0];
 
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   const dataArr = timeseriesData[0].data;
   const maxSeriesValue = dataArr.reduce(
     (currMax, coord) => Math.max(currMax, coord.value),
@@ -193,7 +196,9 @@ export function getMetricAlertChartOption({
         ) / ALERT_CHART_MIN_MAX_BUFFER
       )
     : 0;
+  // @ts-expect-error TS(2769) FIXME: No overload matches this call.
   const firstPoint = new Date(dataArr[0]?.name).getTime();
+  // @ts-expect-error TS(2769) FIXME: No overload matches this call.
   const lastPoint = new Date(dataArr[dataArr.length - 1]?.name).getTime();
   const totalDuration = lastPoint - firstPoint;
   let criticalDuration = 0;
@@ -245,6 +250,7 @@ export function getMetricAlertChartOption({
             incidentColor,
             incidentStartDate,
             incidentStartValue,
+            // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
             series[0].seriesName,
             rule.aggregate,
             handleIncidentClick
@@ -252,8 +258,10 @@ export function getMetricAlertChartOption({
         );
         const areaStart = Math.max(new Date(incident.dateStarted).getTime(), firstPoint);
         const areaEnd = Math.min(
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           statusChanges.length && statusChanges[0].dateCreated
-            ? new Date(statusChanges[0].dateCreated).getTime() - timeWindowMs
+            ? // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
+              new Date(statusChanges[0].dateCreated).getTime() - timeWindowMs
             : new Date(incidentEnd).getTime(),
           lastPoint
         );
@@ -278,7 +286,8 @@ export function getMetricAlertChartOption({
           const statusAreaEnd = Math.min(
             idx === statusChanges.length - 1
               ? new Date(incidentEnd).getTime()
-              : new Date(statusChanges[idx + 1].dateCreated).getTime() - timeWindowMs,
+              : // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
+                new Date(statusChanges[idx + 1].dateCreated).getTime() - timeWindowMs,
             lastPoint
           );
           const statusAreaColor =
@@ -349,6 +358,7 @@ export function getMetricAlertChartOption({
   const yAxis: YAXisComponentOption = {
     axisLabel: {
       formatter: (value: number) =>
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         alertAxisFormatter(value, timeseriesData[0].seriesName, rule.aggregate),
     },
     max: isCrashFreeAlert(rule.dataset)

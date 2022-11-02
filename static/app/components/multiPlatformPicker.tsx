@@ -85,6 +85,7 @@ function PlatformPicker(props: PlatformPickerProps) {
     props.defaultCategory ?? PLATFORM_CATEGORIES[0].id
   );
   const [filter, setFilter] = useState<string>(
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
     props.noAutoFilter ? '' : (props.platforms[0] || '').split('-')[0]
   );
 

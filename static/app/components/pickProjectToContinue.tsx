@@ -47,6 +47,7 @@ function PickProjectToContinue({
 
   // if the project in URL is missing, but this release belongs to only one project, redirect there
   if (projects.length === 1) {
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     router.replace(path + projects[0].id);
     return null;
   }

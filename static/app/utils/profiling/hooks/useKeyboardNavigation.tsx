@@ -76,6 +76,7 @@ export function useKeyboardNavigation() {
           if (tabIndex === idx) {
             node?.focus();
           }
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           items[idx].node = node;
         }
       },

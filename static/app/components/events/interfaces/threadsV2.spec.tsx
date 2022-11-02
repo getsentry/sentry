@@ -195,6 +195,7 @@ describe('ThreadsV2', function () {
       };
 
       const props: React.ComponentProps<typeof ThreadsV2> = {
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         data: event.entries[1].data as React.ComponentProps<typeof ThreadsV2>['data'],
         event,
         groupingCurrentLevel: 0,
@@ -253,6 +254,7 @@ describe('ThreadsV2', function () {
         render(<ThreadsV2 {...props} />, {organization: org});
 
         expect(
+          // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
           within(screen.getAllByTestId('stack-trace-frame')[0]).getByText(
             'sentry/controllers/welcome_controller.rb'
           )
@@ -272,6 +274,7 @@ describe('ThreadsV2', function () {
 
         // Last frame is the first on the list
         expect(
+          // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
           within(screen.getAllByTestId('stack-trace-frame')[0]).getByText(
             'puma (3.12.6) lib/puma/server.rb'
           )
@@ -283,6 +286,7 @@ describe('ThreadsV2', function () {
 
         // First frame is the first on the list
         expect(
+          // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
           within(screen.getAllByTestId('stack-trace-frame')[0]).getByText(
             'sentry/controllers/welcome_controller.rb'
           )
@@ -855,6 +859,7 @@ describe('ThreadsV2', function () {
       };
 
       const props: React.ComponentProps<typeof ThreadsV2> = {
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         data: event.entries[1].data as React.ComponentProps<typeof ThreadsV2>['data'],
         event,
         groupingCurrentLevel: 0,
@@ -912,6 +917,7 @@ describe('ThreadsV2', function () {
         render(<ThreadsV2 {...props} />, {organization: org});
 
         expect(
+          // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
           within(screen.getAllByTestId('stack-trace-frame')[0]).getByText(
             '-[SentryClient crash]'
           )
@@ -937,6 +943,7 @@ describe('ThreadsV2', function () {
 
         // Last frame is the first on the list
         expect(
+          // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
           within(screen.getAllByTestId('stack-trace-frame')[0]).getByText('UIKit')
         ).toBeInTheDocument();
 
@@ -946,6 +953,7 @@ describe('ThreadsV2', function () {
 
         // First frame is the first on the list
         expect(
+          // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
           within(screen.getAllByTestId('stack-trace-frame')[0]).getByText(
             '-[SentryClient crash]'
           )
@@ -981,6 +989,7 @@ describe('ThreadsV2', function () {
 
         // Function name is not verbose
         expect(
+          // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
           within(screen.getAllByTestId('stack-trace-frame')[1]).getByText(
             'ViewController.causeCrash'
           )
@@ -991,6 +1000,7 @@ describe('ThreadsV2', function () {
 
         // Function name is now verbose
         expect(
+          // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
           within(screen.getAllByTestId('stack-trace-frame')[1]).getByText(
             'ViewController.causeCrash(Any) -> ()'
           )
@@ -998,6 +1008,7 @@ describe('ThreadsV2', function () {
 
         // Address is not absolute
         expect(
+          // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
           within(screen.getAllByTestId('stack-trace-frame')[1]).getByText('+0x085ac')
         ).toBeInTheDocument();
 
@@ -1006,6 +1017,7 @@ describe('ThreadsV2', function () {
 
         // Address is now absolute
         expect(
+          // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
           within(screen.getAllByTestId('stack-trace-frame')[1]).getByText('0x10008c5ac')
         ).toBeInTheDocument();
 

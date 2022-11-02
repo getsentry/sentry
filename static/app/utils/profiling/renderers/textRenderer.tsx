@@ -36,9 +36,11 @@ class TextRenderer {
 
   measureAndCacheText(text: string): TextMetrics {
     if (this.textCache[text]) {
+      // @ts-expect-error TS(2322) FIXME: Type 'TextMetrics | undefined' is not assignable t... Remove this comment to see the full error message
       return this.textCache[text];
     }
     this.textCache[text] = this.context.measureText(text);
+    // @ts-expect-error TS(2322) FIXME: Type 'TextMetrics | undefined' is not assignable t... Remove this comment to see the full error message
     return this.textCache[text];
   }
 
@@ -119,6 +121,7 @@ class TextRenderer {
       }
 
       for (let i = 0; i < frame.children.length; i++) {
+        // @ts-expect-error TS(2345) FIXME: Argument of type 'FlamegraphFrame | undefined' is ... Remove this comment to see the full error message
         frames.push(frame.children[i]);
       }
 

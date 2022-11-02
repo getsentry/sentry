@@ -110,7 +110,9 @@ function getLabelIntervalLongPeriod(dataPeriod: number, numBars: number) {
   const daysBetweenTicks = [1, 2, 7, 7];
 
   for (let i = 0; i < daysBetweenLabels.length && numLabels > MAX_NUMBER_OF_LABELS; i++) {
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     numLabels = numTicks / daysBetweenLabels[i];
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     numTicks = days / daysBetweenTicks[i];
   }
 

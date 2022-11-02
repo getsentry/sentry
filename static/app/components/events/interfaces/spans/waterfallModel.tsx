@@ -265,7 +265,9 @@ class WaterfallModel {
         };
       },
       {
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         traceStartTimestamp: this.traceBounds[0].traceStartTimestamp,
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         traceEndTimestamp: this.traceBounds[0].traceEndTimestamp,
       }
     );

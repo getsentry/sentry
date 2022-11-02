@@ -57,6 +57,7 @@ const storeConfig: AlertStoreDefinition = {
         // Remove any objects that have passed their mute duration.
         const now = Math.floor(new Date().valueOf() / 1000);
         for (const key in expirations) {
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           if (expirations.hasOwnProperty(key) && expirations[key] < now) {
             delete expirations[key];
           }

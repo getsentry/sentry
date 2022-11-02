@@ -178,6 +178,7 @@ describe('EventExtraData', function () {
 
     expect(await screen.findAllByText(/redacted/)).toHaveLength(10);
 
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
     userEvent.hover(screen.getAllByText(/redacted/)[0]);
 
     expect(

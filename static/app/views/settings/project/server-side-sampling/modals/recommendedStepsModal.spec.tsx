@@ -64,7 +64,10 @@ describe('Server-Side Sampling - Recommended Steps Modal', function () {
     expect(
       screen.getByText(
         textWithMarkupMatcher(
-          `This project is on ${mockedSamplingSdkVersions[1].latestSDKName}@v${mockedSamplingSdkVersions[1].latestSDKVersion}`
+          `This project is on ${
+            // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
+            mockedSamplingSdkVersions[1].latestSDKName
+          }@v${mockedSamplingSdkVersions[1].latestSDKVersion}`
         )
       )
     ).toBeInTheDocument();

@@ -73,6 +73,7 @@ const TeamRoleSelect = (props: {
   ) {
     return (
       <RoleName>
+        {/* @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'. */}
         {teamRole.name}
         <IconWrapper>
           <RoleOverwriteIcon
@@ -89,6 +90,7 @@ const TeamRoleSelect = (props: {
     <RoleSelectWrapper>
       <RoleSelectControl
         roles={teamRoleList}
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         value={teamRole.id}
         onChange={option => updateMemberRole(member, option.value)}
         disableUnallowed

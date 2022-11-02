@@ -67,6 +67,7 @@ const enumerateIconVariants = (iconData: ExtendedIconData[]): ExtendedIconData[]
 const addIconNames = (iconData: IconData[]): ExtendedIconData[] =>
   iconData.map(icon => {
     const nameString = icon.id.split('-')[0];
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     const name = nameString.charAt(0).toUpperCase() + nameString.slice(1);
     return {...icon, name};
   });

@@ -185,6 +185,7 @@ class IssueListOverview extends Component<Props, State> {
 
   componentDidMount() {
     this._poller = new CursorPoller({
+      // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
       linkPreviousHref: parseLinkHeader(this.state.pageLinks)?.previous?.href,
       success: this.onRealtimePoll,
     });
@@ -708,6 +709,7 @@ class IssueListOverview extends Component<Props, State> {
 
     // Only resume polling if we're on the first page of results
     const links = parseLinkHeader(this.state.pageLinks);
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     if (links && !links.previous.results && this.state.realtimeActive) {
       this._poller.setEndpoint(links?.previous?.href);
       this._poller.enable();
@@ -891,6 +893,7 @@ class IssueListOverview extends Component<Props, State> {
     }
 
     const links = parseLinkHeader(this.state.pageLinks);
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     return links && !links.previous.results && !links.next.results;
   }
 

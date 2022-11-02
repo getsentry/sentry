@@ -41,6 +41,7 @@ export function GenericPerformanceWidget<T extends WidgetDataConstraint>(
       const _widgetData = widgetDataRef.current;
       const newWidgetData = {..._widgetData, [dataKey]: result};
       widgetDataRef.current = newWidgetData;
+      // @ts-expect-error TS(2345) FIXME: Argument of type '{ [x: string]: {}; }' is not ass... Remove this comment to see the full error message
       setWidgetData({[props.chartSetting]: newWidgetData});
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -52,6 +53,7 @@ export function GenericPerformanceWidget<T extends WidgetDataConstraint>(
       const newWidgetData = {..._widgetData};
       delete newWidgetData[dataKey];
       widgetDataRef.current = newWidgetData;
+      // @ts-expect-error TS(2345) FIXME: Argument of type '{ [x: string]: {}; }' is not ass... Remove this comment to see the full error message
       setWidgetData({[props.chartSetting]: newWidgetData});
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -73,6 +75,7 @@ export function GenericPerformanceWidget<T extends WidgetDataConstraint>(
       <MEPDataProvider chartSetting={props.chartSetting}>
         <QueryHandler
           eventView={props.eventView}
+          // @ts-expect-error TS(2322) FIXME: Type '{}' is not assignable to type 'T'.
           widgetData={widgetData}
           setWidgetDataForKey={setWidgetDataForKey}
           removeWidgetDataForKey={removeWidgetDataForKey}
@@ -80,6 +83,7 @@ export function GenericPerformanceWidget<T extends WidgetDataConstraint>(
           queries={queries}
           api={api}
         />
+        {/* @ts-expect-error TS(2322) FIXME: Type '{ totalHeight: number; widgetData: {}; setWi... Remove this comment to see the full error message */}
         <_DataDisplay<T> {...props} {...widgetProps} totalHeight={totalHeight} />
       </MEPDataProvider>
     </Fragment>

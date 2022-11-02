@@ -402,6 +402,7 @@ describe('Server-Side Sampling - Specific Conditions Modal', function () {
       expect(screen.queryByTestId('multivalue')).not.toBeInTheDocument();
     });
 
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
     userEvent.click(screen.getAllByLabelText('Delete Condition')[0]);
 
     // Click on the release condition option

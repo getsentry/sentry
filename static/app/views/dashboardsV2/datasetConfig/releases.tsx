@@ -194,8 +194,10 @@ function getReleasesSeriesRequest(
   const {datetime} = pageFilters;
   const {start, end, period} = datetime;
 
+  // @ts-expect-error TS(2345) FIXME: Argument of type 'WidgetQuery | undefined' is not ... Remove this comment to see the full error message
   const isCustomReleaseSorting = requiresCustomReleaseSorting(query);
 
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   const includeTotals = query.columns.length > 0 ? 1 : 0;
   const interval = getWidgetInterval(
     displayType,
@@ -209,6 +211,7 @@ function getReleasesSeriesRequest(
     1,
     includeTotals,
     api,
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'WidgetQuery | undefined' is not ... Remove this comment to see the full error message
     query,
     organization,
     pageFilters,

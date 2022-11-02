@@ -34,6 +34,7 @@ export class VirtualizedTreeNode<T> {
 
       if (next.expanded) {
         for (let i = 0; i < next.children.length; i++) {
+          // @ts-expect-error TS(2345) FIXME: Argument of type 'VirtualizedTreeNode<T> | undefin... Remove this comment to see the full error message
           queue.push(next.children[i]);
         }
       }
@@ -73,11 +74,13 @@ export class VirtualizedTreeNode<T> {
       }
 
       for (let i = 0; i < node.children.length; i++) {
+        // @ts-expect-error TS(2345) FIXME: Argument of type 'VirtualizedTreeNode<T> | undefin... Remove this comment to see the full error message
         visit(node.children[i]);
       }
     }
 
     for (let i = 0; i < this.children.length; i++) {
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'VirtualizedTreeNode<T> | undefin... Remove this comment to see the full error message
       visit(this.children[i]);
     }
 

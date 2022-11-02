@@ -603,10 +603,15 @@ export function ServerSideSampling({project}: Props) {
                 const itemsRule = items[itemsRuleIndex];
 
                 const currentRule = {
+                  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
                   active: itemsRule.active,
+                  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
                   condition: itemsRule.condition,
+                  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
                   sampleRate: itemsRule.sampleRate,
+                  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
                   type: itemsRule.type,
+                  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
                   id: Number(itemsRule.id),
                 };
 
@@ -614,6 +619,7 @@ export function ServerSideSampling({project}: Props) {
                   <RulesPanelLayout isContent>
                     <Rule
                       operator={
+                        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
                         itemsRule.id === items[0].id
                           ? SamplingRuleOperator.IF
                           : isUniformRule(currentRule)

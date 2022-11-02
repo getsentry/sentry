@@ -63,6 +63,7 @@ class ProjectFiltersChart extends Component<Props, State> {
   formatData(rawData: RawStats) {
     const seriesWithData: Set<string> = new Set();
     const transformed = Object.keys(STAT_OPS).map(stat => ({
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       data: rawData[stat].map(([timestamp, value]) => {
         if (value > 0) {
           seriesWithData.add(STAT_OPS[stat].title);
@@ -100,6 +101,7 @@ class ProjectFiltersChart extends Component<Props, State> {
       .then(results => {
         const rawStatsData: RawStats = {};
         for (let i = 0; i < statOptions.length; i++) {
+          // @ts-expect-error TS(2538) FIXME: Type 'undefined' cannot be used as an index type.
           rawStatsData[statOptions[i]] = results[i];
         }
 

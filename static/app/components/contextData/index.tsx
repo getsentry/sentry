@@ -149,11 +149,13 @@ function walk({
         <span className="val-dict-col">{': '}</span>
         <span className="val-dict-value">
           {walk({
+            // @ts-expect-error TS(2538) FIXME: Type 'undefined' cannot be used as an index type.
             value: value[key],
             depth: depth + 1,
             preserveQuotes,
             withAnnotatedText,
             jsonConsts,
+            // @ts-expect-error TS(2538) FIXME: Type 'undefined' cannot be used as an index type.
             meta: meta?.[key]?.[''] ?? meta?.[key] ?? meta?.[''] ?? meta,
           })}
           {i < keys.length - 1 ? <span className="val-dict-sep">{', '}</span> : null}

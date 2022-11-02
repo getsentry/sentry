@@ -67,7 +67,9 @@ export function HistogramWidget(props: PerformanceWidgetProps) {
               isLoading={false}
               isErrored={false}
               onFilterChange={onFilterChange}
+              // @ts-expect-error TS(2322) FIXME: Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
               field={props.fields[0]}
+              // @ts-expect-error TS(2538) FIXME: Type 'undefined' cannot be used as an index type.
               chartData={provided.widgetData.chart?.data?.[props.fields[0]]}
               disableXAxis
               disableZoom

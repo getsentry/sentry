@@ -82,6 +82,7 @@ describe('EnvironmentSelector', function () {
     renderSelector();
     await clickMenu();
 
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'HTMLElement | undefined' is not ... Remove this comment to see the full error message
     userEvent.click(screen.queryAllByRole('checkbox')[0]);
     expect(onUpdate).not.toHaveBeenCalled();
 

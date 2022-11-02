@@ -228,6 +228,7 @@ export function initializeUrlState({
     if (projects && projects.length > 0) {
       // If there is a list of projects from URL params, select first project
       // from that list
+      // @ts-expect-error TS(2322) FIXME: Type '(number | undefined)[]' is not assignable to... Remove this comment to see the full error message
       newProject = typeof projects === 'string' ? [Number(projects)] : [projects[0]];
     } else {
       // When we have finished loading the organization into the props,  i.e.

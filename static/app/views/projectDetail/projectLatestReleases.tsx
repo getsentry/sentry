@@ -116,6 +116,7 @@ class ProjectLatestReleases extends AsyncComponent<Props, State> {
       org_id: parseInt(organization.id, 10),
       project_id: projectId && parseInt(projectId, 10),
       step_id: index,
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       step_title: RELEASES_TOUR_STEPS[index].title,
     });
   };

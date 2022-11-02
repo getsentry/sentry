@@ -66,6 +66,7 @@ function AlertListRow({incident, projectsLoaded, projects, organization}: Props)
         )}
       </NoWrapNumeric>
 
+      {/* @ts-expect-error TS(2322) FIXME: Type 'Project | { slug: string | undefined; } | un... Remove this comment to see the full error message */}
       <ProjectBadge avatarSize={18} project={!projectsLoaded ? {slug} : project} />
       <NoWrapNumeric>#{incident.id}</NoWrapNumeric>
 

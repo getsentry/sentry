@@ -251,6 +251,7 @@ export const processTableResults = (tableResults?: TableDataWithTitle[]) => {
 
   const tableResult = tableResults[0];
 
+  // @ts-expect-error TS(2339) FIXME: Property 'data' does not exist on type 'TableDataW... Remove this comment to see the full error message
   const {data} = tableResult;
 
   if (!data || !data.length) {
@@ -266,6 +267,7 @@ export const processTableResults = (tableResults?: TableDataWithTitle[]) => {
   }
 
   return {
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     title: tableResult.title ?? '',
     data: data.map(row => {
       return {

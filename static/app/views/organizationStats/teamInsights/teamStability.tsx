@@ -159,9 +159,11 @@ class TeamStability extends AsyncComponent<Props, State> {
     sumSessions.forEach((s, idx) => (sumSessionsWeeklyTotals[Math.floor(idx / 7)] += s));
 
     const data = countSeriesWeeklyTotals.map((value, idx) => ({
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       name: countSeries[idx * 7].name,
       value: sumSessionsWeeklyTotals[idx]
-        ? formatFloat((value / sumSessionsWeeklyTotals[idx]) * 100, 2)
+        ? // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
+          formatFloat((value / sumSessionsWeeklyTotals[idx]) * 100, 2)
         : 0,
     }));
 

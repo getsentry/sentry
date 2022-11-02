@@ -34,6 +34,7 @@ export class SampledProfile extends Profile {
       const weight = sampledProfile.weights[i];
 
       profile.appendSampleWithWeight(
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         stack.map(n => {
           if (!frameIndex[n]) {
             throw new Error(`Could not resolve frame ${n} in frame index`);
@@ -78,9 +79,12 @@ export class SampledProfile extends Profile {
       // We check the stack in a top-down order to find the first recursive frame.
       let start = framesInStack.length - 1;
       while (start >= 0) {
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         if (framesInStack[start].frame === node.frame) {
           // The recursion edge is bidirectional
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           framesInStack[start].setRecursiveThroughNode(node);
+          // @ts-expect-error TS(2345) FIXME: Argument of type 'CallTreeNode | undefined' is not... Remove this comment to see the full error message
           node.setRecursiveThroughNode(framesInStack[start]);
           break;
         }

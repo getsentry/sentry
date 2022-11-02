@@ -124,6 +124,7 @@ describe('ExceptionStacktraceContent', function () {
     render(
       <ExceptionStacktraceContent
         {...props}
+        // @ts-expect-error TS(2322) FIXME: Type '{ inApp: true; } | { inApp: true; function: ... Remove this comment to see the full error message
         stacktrace={{...stacktrace, frames: [{...frames[0], inApp: true}, frames[1]]}}
       />
     );
@@ -150,6 +151,7 @@ describe('ExceptionStacktraceContent', function () {
     render(
       <ExceptionStacktraceContent
         {...props}
+        // @ts-expect-error TS(2322) FIXME: Type '{ inApp: true; } | { inApp: true; function: ... Remove this comment to see the full error message
         stacktrace={{...stacktrace, frames: [{...frames[0], inApp: true}, frames[1]]}}
         chainedException
       />

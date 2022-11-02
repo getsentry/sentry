@@ -188,6 +188,7 @@ const storeConfig: GroupStoreDefinition = {
     if (this.statuses[id] === undefined) {
       this.statuses[id] = {};
     }
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     this.statuses[id][status] = true;
   },
 
@@ -195,6 +196,7 @@ const storeConfig: GroupStoreDefinition = {
     if (this.statuses[id] === undefined) {
       return;
     }
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     this.statuses[id][status] = false;
   },
 
@@ -209,6 +211,7 @@ const storeConfig: GroupStoreDefinition = {
     }
 
     for (let i = 0; i < group.activity.length; i++) {
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       if (group.activity[i].id === id) {
         return i;
       }
@@ -249,6 +252,7 @@ const storeConfig: GroupStoreDefinition = {
     // Here, we want to merge the new `data` being passed in
     // into the existing `data` object. This effectively
     // allows passing in an object of only changes.
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     group.activity[index].data = Object.assign(group.activity[index].data, data);
     this.updateItems([group.id]);
   },
@@ -266,6 +270,7 @@ const storeConfig: GroupStoreDefinition = {
 
     const activity = group.activity.splice(index, 1);
 
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     if (activity[0].type === 'note') {
       group.numComments--;
     }
@@ -300,6 +305,7 @@ const storeConfig: GroupStoreDefinition = {
         ? item
         : {
             ...item,
+            // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
             ...pendingById[item.id].reduce((a, change) => ({...a, ...change.data}), {}),
           }
     );

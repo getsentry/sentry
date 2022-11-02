@@ -49,6 +49,7 @@ const GroupReplays = ({group, replayIds}: Props) => {
         isFetching={isFetching}
         replays={replays}
         showProjectColumn={false}
+        // @ts-expect-error TS(2322) FIXME: Type 'Sort | undefined' is not assignable to type ... Remove this comment to see the full error message
         sort={eventView.sorts[0]}
         fetchError={fetchError}
       />

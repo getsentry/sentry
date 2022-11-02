@@ -40,31 +40,38 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
   }
 
   get description() {
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     return this.plugin.description || '';
   }
 
   get author() {
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     return this.plugin.author?.name;
   }
 
   get resourceLinks() {
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     return this.plugin.resourceLinks || [];
   }
 
   get installationStatus() {
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     return this.plugin.projectList.length > 0 ? 'Installed' : 'Not Installed';
   }
 
   get integrationName() {
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     return `${this.plugin.name}${this.plugin.isHidden ? ' (Legacy)' : ''}`;
   }
 
   get featureData() {
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     return this.plugin.featureDescriptions;
   }
 
   handleResetConfiguration = (projectId: string) => {
     // make a copy of our project list
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     const projectList = this.plugin.projectList.slice();
     // find the index of the project
     const index = projectList.findIndex(item => item.projectId === projectId);
@@ -76,12 +83,14 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
     projectList.splice(index, 1);
     // update state
     this.setState({
+      // @ts-expect-error TS(2322) FIXME: Type '{ projectList: PluginProjectItem[]; assets?:... Remove this comment to see the full error message
       plugins: [{...this.state.plugins[0], projectList}],
     });
   };
 
   handlePluginEnableStatus = (projectId: string, enable: boolean = true) => {
     // make a copy of our project list
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     const projectList = this.plugin.projectList.slice();
     // find the index of the project
     const index = projectList.findIndex(item => item.projectId === projectId);
@@ -91,6 +100,7 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
     }
 
     // update item in array
+    // @ts-expect-error TS(2322) FIXME: Type '{ enabled: boolean; configured?: boolean | u... Remove this comment to see the full error message
     projectList[index] = {
       ...projectList[index],
       enabled: enable,
@@ -98,6 +108,7 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
 
     // update state
     this.setState({
+      // @ts-expect-error TS(2322) FIXME: Type '{ projectList: PluginProjectItem[]; assets?:... Remove this comment to see the full error message
       plugins: [{...this.state.plugins[0], projectList}],
     });
   };
@@ -110,6 +121,7 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
       modalProps => (
         <ContextPickerModal
           {...modalProps}
+          // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
           nextPath={`/settings/${organization.slug}/projects/:projectId/plugins/${plugin.id}/`}
           needProject
           needOrg={false}
@@ -153,15 +165,19 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
     const plugin = this.plugin;
     const {organization} = this.props;
 
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     if (plugin.projectList.length) {
       return (
         <Fragment>
+          {/* @ts-expect-error TS(2769) FIXME: No overload matches this call. */}
           <PluginDeprecationAlert organization={organization} plugin={plugin} />
           <div>
+            {/* @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'. */}
             {plugin.projectList.map((projectItem: PluginProjectItem) => (
               <InstalledPlugin
                 key={projectItem.projectId}
                 organization={organization}
+                // @ts-expect-error TS(2322) FIXME: Type 'PluginWithProjectList | undefined' is not as... Remove this comment to see the full error message
                 plugin={plugin}
                 projectItem={projectItem}
                 onResetConfiguration={this.handleResetConfiguration}

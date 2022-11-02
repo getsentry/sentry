@@ -398,6 +398,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
       seriesName: seriesName ?? 'Previous',
       data: this.calculateTotalsPerTimestamp(
         previous,
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         (_timestamp, _countArray, i) => current[i][0] * 1000
       ),
       stack: 'previous',
@@ -545,6 +546,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
             seriesName: string,
             index: number
           ): [number, Series, Series | null, AdditionalSeriesInfo] => {
+            // @ts-expect-error TS(2322) FIXME: Type 'EventsStats | undefined' is not assignable t... Remove this comment to see the full error message
             const seriesData: EventsStats = timeseriesData[seriesName];
             const processedData = this.processData(
               seriesData,
@@ -561,6 +563,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
             }
             return [
               seriesData.order || 0,
+              // @ts-expect-error TS(2322) FIXME: Type 'Series | undefined' is not assignable to typ... Remove this comment to see the full error message
               processedData.data[0],
               processedData.previousData,
               {isMetricsData: processedData.isMetricsData},
@@ -570,6 +573,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
         .sort((a, b) => a[0] - b[0]);
       const timeseriesResultsTypes: Record<string, AggregationOutputType> = {};
       Object.keys(timeseriesData).forEach(key => {
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         const fieldsMeta = timeseriesData[key].meta?.fields[getAggregateAlias(key)];
         if (fieldsMeta) {
           timeseriesResultsTypes[key] = fieldsMeta;

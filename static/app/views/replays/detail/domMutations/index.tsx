@@ -73,6 +73,7 @@ function DomMutations({replay}: Props) {
 
   const renderRow = ({index, key, style, parent}: ListRowProps) => {
     const mutation = items[index];
+    // @ts-expect-error TS(2339) FIXME: Property 'html' does not exist on type 'Extraction... Remove this comment to see the full error message
     const {html, crumb} = mutation;
     const {title} = getDetails(crumb);
 

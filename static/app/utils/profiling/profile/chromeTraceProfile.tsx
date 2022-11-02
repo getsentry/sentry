@@ -146,7 +146,9 @@ function buildProfile(
     throw new Error('Profile does not contain any frame events');
   }
 
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   const firstTimestamp = beginQueue[beginQueue.length - 1].ts;
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   const lastTimestamp = endQueue[0]?.ts ?? beginQueue[0].ts;
 
   if (typeof firstTimestamp !== 'number') {
@@ -201,20 +203,25 @@ function buildProfile(
           )}`
         );
       }
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'Event | undefined' is not assign... Remove this comment to see the full error message
       const topFrameInfo = createFrameInfoFromEvent(stack[stack.length - 1]);
 
       // We check frames with the same ts and look for a match. We do this because
       // chronological sort will not break ties on frames that end at the same time,
       // but may not be in the same order as they were opened.
       for (let i = endQueue.length - 2; i > 0; i--) {
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         if (endQueue[i].ts > endQueue[endQueue.length - 1].ts) {
           break;
         }
 
+        // @ts-expect-error TS(2345) FIXME: Argument of type 'Event | undefined' is not assign... Remove this comment to see the full error message
         const nextEndInfo = createFrameInfoFromEvent(endQueue[i]);
         if (topFrameInfo.key === nextEndInfo.key) {
           const tmp = endQueue[endQueue.length - 1];
+          // @ts-expect-error TS(2322) FIXME: Type 'Event | undefined' is not assignable to type... Remove this comment to see the full error message
           endQueue[endQueue.length - 1] = endQueue[i];
+          // @ts-expect-error TS(2322) FIXME: Type 'Event | undefined' is not assignable to type... Remove this comment to see the full error message
           endQueue[i] = tmp;
 
           frameInfo = nextEndInfo;
@@ -327,12 +334,14 @@ function collectEventsByProfile(input: ChromeTrace.ArrayFormat): {
   for (let i = 0; i < sorted.length; i++) {
     const event = sorted[i];
 
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'Event | ProfileEvent | undefined... Remove this comment to see the full error message
     if (isThreadmetaData(event)) {
       threadNames.set(`${event.pid}:${event.tid}`, event.args.name);
       continue;
     }
 
     // A profile entry will happen before we see any ProfileChunks, so the order here matters
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'Event | ProfileEvent | undefined... Remove this comment to see the full error message
     if (isProfileEvent(event)) {
       profileIdToProcessAndThreadIds.set(event.id, [event.pid, event.tid]);
 
@@ -357,6 +366,7 @@ function collectEventsByProfile(input: ChromeTrace.ArrayFormat): {
       continue;
     }
 
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'Event | undefined' is not assign... Remove this comment to see the full error message
     if (isProfileChunk(event)) {
       const profile = cpuProfiles.get(event.id);
 
@@ -404,13 +414,16 @@ function createFramesIndex(
   const frames: Map<number, ChromeTrace.ProfileNode> = new Map();
 
   for (let i = 0; i < profile.nodes.length; i++) {
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     frames.set(profile.nodes[i].id, {...profile.nodes[i]});
   }
 
   for (let i = 0; i < profile.nodes.length; i++) {
     const profileNode = profile.nodes[i];
 
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     if (typeof profileNode.parent === 'number') {
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       const parent = frames.get(profileNode.parent);
 
       if (parent === undefined) {
@@ -418,11 +431,14 @@ function createFramesIndex(
       }
     }
 
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     if (!profileNode.children) {
       continue;
     }
 
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     for (let j = 0; j < profileNode.children.length; j++) {
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       const child = frames.get(profileNode.children[j]);
 
       if (child === undefined) {
@@ -464,11 +480,13 @@ export function collapseSamples(profile: ChromeTrace.CpuProfile): {
   }
 
   if (profile.samples.length === 1 && profile.timeDeltas.length === 1) {
+    // @ts-expect-error TS(2322) FIXME: Type 'number | undefined' is not assignable to typ... Remove this comment to see the full error message
     return {samples: [profile.samples[0]], sampleTimes: [profile.timeDeltas[0]]};
   }
 
   // First delta is relative to profile start
   // https://github.com/v8/v8/blob/44bd8fd7/src/inspector/js_protocol.json#L1485
+  // @ts-expect-error TS(2322) FIXME: Type 'number | undefined' is not assignable to typ... Remove this comment to see the full error message
   let elapsed: number = profile.timeDeltas[0];
 
   // This is quite significantly changed from speedscope's implementation.
@@ -487,6 +505,7 @@ export function collapseSamples(profile: ChromeTrace.CpuProfile): {
       // Update the delta and advance j. In some cases, v8 reports deltas
       // as negative. We will just ignore these deltas and make sure that
       // we never go back in time when updating the delta.
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       delta = Math.max(delta + profile.timeDeltas[j + 1], delta);
       j++;
     }
@@ -496,19 +515,23 @@ export function collapseSamples(profile: ChromeTrace.CpuProfile): {
       // We skipped more than 1 element, so we should collapse the samples,
       // push the first element where we started with the elapsed time
       // and last element where we started with the elapsed time + delta
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'number | undefined' is not assig... Remove this comment to see the full error message
       samples.push(nodeId);
       sampleTimes.push(elapsed);
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'number | undefined' is not assig... Remove this comment to see the full error message
       samples.push(nodeId);
       sampleTimes.push(elapsed + delta);
       elapsed += delta;
       i = j;
     } else {
       // If we have not skipped samples, then we just push the sample and the delta to the list
+      // @ts-expect-error TS(2345) FIXME: Argument of type 'number | undefined' is not assig... Remove this comment to see the full error message
       samples.push(nodeId);
       sampleTimes.push(elapsed);
 
       // In some cases, v8 reports deltas as negative. We will just ignore
       // these deltas and make sure that we never go back in time when updating the delta.
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       elapsed = Math.max(elapsed + profile.timeDeltas[i + 1], elapsed);
     }
   }

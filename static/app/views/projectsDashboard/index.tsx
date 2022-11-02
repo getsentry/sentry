@@ -79,6 +79,7 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
   const favorites = projects.filter(project => project.isBookmarked);
 
   const showEmptyMessage = projects.length === 0 && favorites.length === 0;
+  // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
   const showResources = projects.length === 1 && !projects[0].firstEvent;
 
   function handleSearch(searchQuery: string) {

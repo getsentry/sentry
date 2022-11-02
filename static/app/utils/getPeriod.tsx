@@ -48,6 +48,7 @@ export function getPeriod(
     }
     const [, periodNumber, periodLength] = period.match(/([0-9]+)([mhdw])/)!;
 
+    // @ts-expect-error TS(2345) FIXME: Argument of type 'string | undefined' is not assig... Remove this comment to see the full error message
     return {statsPeriod: `${parseInt(periodNumber, 10) * 2}${periodLength}`};
   }
 

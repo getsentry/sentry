@@ -62,6 +62,7 @@ export const renderIssueGridHeaderCell =
       <SortLink
         align={align}
         title={<StyledTooltip title={column.name}>{column.name}</StyledTooltip>}
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         direction={widget.queries[0].orderby === sortField ? 'desc' : undefined}
         canSort={!!sortField}
         generateSortLink={() => ({
@@ -98,6 +99,7 @@ export const renderDiscoverGridHeaderCell =
     isMetricsData,
   }: Props) =>
   (column: TableColumn<keyof TableDataRow>, _columnIndex: number): React.ReactNode => {
+    // @ts-expect-error TS(2339) FIXME: Property 'orderby' does not exist on type 'WidgetQ... Remove this comment to see the full error message
     const {orderby} = widget.queries[0];
     // Need to convert orderby to aggregate alias because eventView still uses aggregate alias format
     const aggregateAliasOrderBy = `${
@@ -105,6 +107,7 @@ export const renderDiscoverGridHeaderCell =
     }${getAggregateAlias(trimStart(orderby, '-'))}`;
     const eventView = eventViewFromWidget(
       widget.title,
+      // @ts-expect-error TS(2345) FIXME: Argument of type '{ orderby: string; aggregates?: ... Remove this comment to see the full error message
       {...widget.queries[0], orderby: aggregateAliasOrderBy},
       selection,
       widget.displayType
@@ -271,6 +274,7 @@ export const renderReleaseGridHeaderCell =
   (column: TableColumn<keyof TableDataRow>, _columnIndex: number): React.ReactNode => {
     const tableMeta = tableData?.meta;
     const align = fieldAlignment(column.name, column.type, tableMeta);
+    // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
     const widgetOrderBy = widget.queries[0].orderby;
     const sort: Sort = {
       kind: widgetOrderBy.startsWith('-') ? 'desc' : 'asc',

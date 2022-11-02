@@ -400,6 +400,7 @@ export class AssigneeSelectorDropdown extends Component<
 
     const assignableTeams = this.assignableTeams();
     const memberList = this.memberList() ?? [];
+    // @ts-expect-error TS(2322) FIXME: Type '({ type: "user"; id: string | undefined; nam... Remove this comment to see the full error message
     const suggestedAssignees: Array<SuggestedAssignee | null> = suggestedOwners.map(
       owner => {
         // converts a backend suggested owner to a suggested assignee
@@ -505,6 +506,7 @@ export function putSessionUserFirst(members: User[] | undefined): User[] {
   arrangedMembers.push(...members.slice(0, sessionUserIndex));
   arrangedMembers.push(...members.slice(sessionUserIndex + 1));
 
+  // @ts-expect-error TS(2322) FIXME: Type '(User | undefined)[]' is not assignable to t... Remove this comment to see the full error message
   return arrangedMembers;
 }
 

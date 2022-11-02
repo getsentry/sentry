@@ -288,21 +288,25 @@ class QueryField extends Component<Props> {
 
     const fieldName = `field:${name}`;
     if (fieldOptions[fieldName]) {
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       return fieldOptions[fieldName].value;
     }
 
     const measurementName = `measurement:${name}`;
     if (fieldOptions[measurementName]) {
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       return fieldOptions[measurementName].value;
     }
 
     const spanOperationBreakdownName = `span_op_breakdown:${name}`;
     if (fieldOptions[spanOperationBreakdownName]) {
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       return fieldOptions[spanOperationBreakdownName].value;
     }
 
     const equationName = `equation:${name}`;
     if (fieldOptions[equationName]) {
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       return fieldOptions[equationName].value;
     }
 
@@ -312,6 +316,7 @@ class QueryField extends Component<Props> {
         : `tag:${name}`;
 
     if (fieldOptions[tagName]) {
+      // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
       return fieldOptions[tagName].value;
     }
 
@@ -351,6 +356,7 @@ class QueryField extends Component<Props> {
     if (fieldValue?.kind === 'function') {
       const funcName = `function:${fieldValue.function[0]}`;
       if (fieldOptions[funcName] !== undefined) {
+        // @ts-expect-error TS(2532) FIXME: Object is possibly 'undefined'.
         field = fieldOptions[funcName].value;
       }
     }
