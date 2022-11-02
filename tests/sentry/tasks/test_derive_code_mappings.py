@@ -65,17 +65,6 @@ class TestIdentfiyStacktracePaths(TestCase):
 
         assert sorted(stacktrace_paths) == []
 
-    def test_skips_non_in_app_frames(self):
-        data = deepcopy(self.test_data)
-        data["stacktrace"]["frames"][0]["in_app"] = False
-        event = self.store_event(data=data, project_id=self.project.id)
-
-        with self.tasks():
-            stacktrace_paths = identify_stacktrace_paths(event.data)
-        assert sorted(stacktrace_paths) == [
-            "sentry/models/release.py",
-        ]
-
     def test_handle_duplicate_filenames_in_stacktrace(self):
         data = deepcopy(self.test_data)
         data["stacktrace"]["frames"].append(self.test_data["stacktrace"]["frames"][0])

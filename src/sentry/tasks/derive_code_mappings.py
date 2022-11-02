@@ -67,11 +67,7 @@ def identify_stacktrace_paths(data: NodeData) -> List[str]:
     stacktrace_paths = set()
     for stacktrace in stacktraces:
         try:
-            paths = set()
-            for frame in stacktrace["frames"]:
-                in_app = frame.get("in_app") or False
-                if in_app:
-                    paths.add(frame["filename"])
+            paths = {frame["filename"] for frame in stacktrace["frames"]}
             stacktrace_paths.update(paths)
         except Exception:
             logger.exception("Error getting filenames for project {project.slug}")
