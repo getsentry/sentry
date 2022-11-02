@@ -10,7 +10,7 @@ import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import Field from 'sentry/components/forms/field';
 import TextField from 'sentry/components/forms/fields/textField';
-import Form from 'sentry/components/forms/form';
+import Form, {FormProps} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import {FieldValue} from 'sentry/components/forms/model';
 import Hook from 'sentry/components/hook';
@@ -247,7 +247,7 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
           in either repository. For that reason, the Form component is split in two, since the
           fields do not depend on one another, allowing for the Hook to manage it's own state.
     */
-    const formProps = {
+    const formProps: FormProps = {
       saveOnBlur: true,
       allowUndo: true,
       initialData: {
