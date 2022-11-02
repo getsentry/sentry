@@ -79,10 +79,12 @@ const SavedSearchItem = ({
           items={actions}
           size="sm"
           trigger={props => (
-            <OverflowMenuTrigger
+            <Button
               {...props}
               aria-label={t('Saved search options')}
+              borderless
               icon={<IconEllipsis size="sm" />}
+              size="sm"
             />
           )}
         />
@@ -201,12 +203,8 @@ const StyledItemButton = styled('button')<{hasMenu?: boolean}>`
   text-align: left;
   display: block;
 
-  padding: ${space(1)} ${p => (p.hasMenu ? '50px' : space(2))} ${space(1)} ${space(2)};
+  padding: ${space(1)} ${p => (p.hasMenu ? '60px' : space(2))} ${space(1)} ${space(2)};
   margin-top: 2px;
-
-  &:hover {
-    background: ${p => p.theme.hover};
-  }
 `;
 
 const SavedSearchItemTitle = styled('div')`
@@ -229,22 +227,6 @@ const OverflowMenu = styled(DropdownMenuControl)`
   position: absolute;
   top: 12px;
   right: ${space(1)};
-`;
-
-const OverflowMenuTrigger = styled(Button)<{isActive?: boolean}>`
-  border: 0;
-  height: 30px;
-  width: 30px;
-  background: ${p => (p.isActive ? p.theme.hover : 'none')};
-  color: ${p => p.theme.textColor};
-  box-shadow: none;
-  cursor: pointer;
-
-  &:hover,
-  &:focus {
-    background: ${p => p.theme.hover};
-    color: ${p => p.theme.textColor};
-  }
 `;
 
 export default SavedIssueSearches;
