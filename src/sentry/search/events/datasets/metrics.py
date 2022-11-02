@@ -7,8 +7,7 @@ from snuba_sdk import Column, Condition, Function, Op, OrderBy
 
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
-from sentry.search.events import constants, fields
-from sentry.search.events.builder import MetricsQueryBuilder
+from sentry.search.events import builder, constants, fields
 from sentry.search.events.datasets import field_aliases, filter_aliases
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.datasets.function_aliases import project_threshold_config_resolver_factory
@@ -18,7 +17,7 @@ from sentry.search.events.types import SelectType, WhereType
 class MetricsDatasetConfig(DatasetConfig):
     missing_function_error = IncompatibleMetricsQuery
 
-    def __init__(self, builder: MetricsQueryBuilder):
+    def __init__(self, builder: builder.MetricsQueryBuilder):
         self.builder = builder
 
     @property
