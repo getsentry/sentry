@@ -192,6 +192,7 @@ export function PerformanceLanding(props: Props) {
               <TabPanels>
                 <Item key={landingDisplay.field}>
                   <MetricsCardinalityProvider
+                    sendOutcomeAnalytics
                     organization={organization}
                     location={location}
                   >
