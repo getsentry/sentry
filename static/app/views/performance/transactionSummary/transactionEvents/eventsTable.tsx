@@ -443,7 +443,10 @@ class EventsTable extends Component<Props, State> {
             const parsedPageLinks = parseLinkHeader(pageLinks);
             const cursor = parsedPageLinks?.next?.cursor;
             const shouldFetchAttachments: boolean =
-              !!this.props.issueId && !!cursor && this.state.lastFetchedCursor !== cursor; // Only fetch on issue details page
+              organization.features.includes('event-attachments') &&
+              !!this.props.issueId &&
+              !!cursor &&
+              this.state.lastFetchedCursor !== cursor; // Only fetch on issue details page
             let currentEvent = cursor?.split(':')[1] ?? 0;
             if (!parsedPageLinks?.next?.results && totalEventCount) {
               currentEvent = totalEventCount;
