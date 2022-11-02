@@ -1,17 +1,23 @@
-import datetime
+import random
+import string
+from datetime import datetime, timedelta
 from unittest.mock import patch
 
-import pytest
 import pytz
 
 from fixtures.page_objects.issue_details import IssueDetailsPage
 from sentry import options
+from sentry.models import Group
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.utils import json
-from sentry.utils.samples import load_data
+
+FEATURES = {
+    "projects:performance-suspect-spans-ingestion": True,
+    "organizations:performance-issues": True,
+    "organizations:performance-issues-ingest": True,
+}
 
 
-@pytest.mark.skip(reason="PERF-1785: flaky: inconsistent snapshot")
 class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -29,28 +35,68 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase):
         self.page = IssueDetailsPage(self.browser, self.client)
         self.dismiss_assistant()
 
-    @patch("django.utils.timezone.now")
-    def test_with_one_performance_issue(self, mock_now):
-        event = load_data("transaction")
-
-        data = json.loads(
+    def create_sample_event(self, start_timestamp):
+        event = json.loads(
             self.load_fixture("events/performance_problems/n-plus-one-in-django-new-view.json")
         )
-        event.update({"spans": data["spans"]})
 
-        mock_now.return_value = datetime.datetime.fromtimestamp(event["start_timestamp"]).replace(
-            tzinfo=pytz.utc
-        )
+        for key in ["datetime", "location", "title"]:
+            del event[key]
 
-        with self.feature(
-            [
-                "projects:performance-suspect-spans-ingestion",
-                "organizations:performance-issues",
-                "organizations:performance-issues-ingest",
-            ]
-        ):
-            event = self.store_event(data=event, project_id=self.project.id)
+        event["contexts"] = {
+            "trace": {"trace_id": "530c14e044aa464db6ddb43660e6474f", "span_id": "139fcdb7c5534eb4"}
+        }
+
+        ms_delta = start_timestamp - event["start_timestamp"]
+
+        for item in [event, *event["spans"]]:
+            item["start_timestamp"] += ms_delta
+            item["timestamp"] += ms_delta
+
+        return event
+
+    def randomize_span_description(self, span):
+        return {
+            **span,
+            "description": "".join(random.choice(string.ascii_lowercase) for _ in range(10)),
+        }
+
+    @patch("django.utils.timezone.now")
+    def test_with_one_performance_issue(self, mock_now):
+        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc) - timedelta(minutes=5)
+        event_data = self.create_sample_event(mock_now.return_value.timestamp())
+
+        with self.feature(FEATURES):
+            event = self.store_event(data=event_data, project_id=self.project.id)
+
             self.page.visit_issue(self.org.slug, event.groups[0].id)
             self.browser.click('[aria-label="Show Details"]')
 
             self.browser.snapshot("performance issue details", desktop_only=True)
+
+    @patch("django.utils.timezone.now")
+    def test_multiple_events_with_one_cause_are_grouped(self, mock_now):
+        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc) - timedelta(minutes=5)
+        event_data = self.create_sample_event(mock_now.return_value.timestamp())
+
+        with self.feature(FEATURES):
+            [self.store_event(data=event_data, project_id=self.project.id) for _ in range(3)]
+
+            assert Group.objects.count() == 1
+
+    @patch("django.utils.timezone.now")
+    def test_multiple_events_with_multiple_causes_are_not_grouped(self, mock_now):
+        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc) - timedelta(minutes=5)
+
+        # Create identical events with different parent spans
+        for _ in range(3):
+            event_data = self.create_sample_event(mock_now.return_value.timestamp())
+            event_data["spans"] = [
+                self.randomize_span_description(span) if span["op"] == "django.view" else span
+                for span in event_data["spans"]
+            ]
+
+            with self.feature(FEATURES):
+                self.store_event(data=event_data, project_id=self.project.id)
+
+        assert Group.objects.count() == 3

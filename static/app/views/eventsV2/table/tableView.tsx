@@ -347,8 +347,6 @@ class TableView extends Component<TableViewProps & WithRouterProps> {
             column={column}
             dataRow={dataRow}
             handleCellAction={this.handleCellAction(dataRow, column)}
-            organization={organization}
-            showQuickContextMenu
           >
             {cell}
           </CellAction>
@@ -363,8 +361,6 @@ class TableView extends Component<TableViewProps & WithRouterProps> {
           column={column}
           dataRow={dataRow}
           handleCellAction={this.handleCellAction(dataRow, column)}
-          organization={organization}
-          showQuickContextMenu
         >
           {cell}
         </CellAction>
