@@ -20,6 +20,7 @@ from sentry.api.serializers.models.role import (
 )
 from sentry.api.serializers.models.team import TeamSerializerResponse
 from sentry.api.utils import generate_organization_url, generate_region_url
+from sentry.app import env
 from sentry.auth.access import Access
 from sentry.constants import (
     ACCOUNT_RATE_LIMIT_DEFAULT,
@@ -54,6 +55,7 @@ from sentry.models import (
     TeamStatus,
 )
 from sentry.models.user import User
+from sentry.utils.http import is_using_customer_domain
 
 _ORGANIZATION_SCOPE_PREFIX = "organizations:"
 
@@ -246,6 +248,10 @@ class OrganizationSerializer(Serializer):  # type: ignore
             feature_list.add("open-membership")
         if not getattr(obj.flags, "disable_shared_issues"):
             feature_list.add("shared-issues")
+        request = env.request
+        if request and is_using_customer_domain(request):
+            # If the current request is using a customer domain, then we activate the feature for this organization.
+            feature_list.add("customer-domains")
 
         if "server-side-sampling" not in feature_list and "mep-rollout-flag" in feature_list:
             feature_list.remove("mep-rollout-flag")
