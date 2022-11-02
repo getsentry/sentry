@@ -127,7 +127,7 @@ from sentry.tasks.process_buffer import buffer_incr
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.types.activity import ActivityType
 from sentry.types.issues import GroupCategory
-from sentry.utils import json, metrics
+from sentry.utils import json, metrics, redis
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.dates import to_datetime, to_timestamp
@@ -154,6 +154,7 @@ issue_rate_limiter = RedisSlidingWindowRateLimiter(
     **settings.SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS
 )
 PERFORMANCE_ISSUE_QUOTA = Quota(3600, 60, 5)
+GROUPHASH_IGNORE_LIMIT = 3
 
 
 @dataclass
@@ -2276,9 +2277,24 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
             ).select_related("group")
 
             new_grouphashes = set(group_hashes) - {hash.hash for hash in existing_grouphashes}
-            new_grouphashes_count = len(new_grouphashes)
 
             if new_grouphashes:
+                # temporary fix to limit group creation to grouphashes seen 3+ times in a 24-48 hour period
+                if settings.SENTRY_PERFORMANCE_ISSUES_REDUCE_NOISE:
+                    groups_to_create = new_grouphashes.copy()
+                    cluster_key = settings.SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS.get(
+                        "cluster", "default"
+                    )
+                    client = redis.redis_clusters.get(cluster_key)
+
+                    for new_grouphash in new_grouphashes:
+                        if not should_create_group(client, new_grouphash):
+                            groups_to_create.remove(new_grouphash)
+
+                    new_grouphashes = groups_to_create
+
+                new_grouphashes_count = len(new_grouphashes)
+
                 with metrics.timer("performance.performance_issue.check_write_limits"):
                     granted_quota = issue_rate_limiter.check_and_use_quotas(
                         [
@@ -2370,6 +2386,22 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
             job["event"].data["hashes"] = hashes
             for problem_hash in hashes:
                 EventPerformanceProblem(event, performance_problems_by_hash[problem_hash]).save()
+
+
+@metrics.wraps("performance.performance_issue.should_create_group")
+def should_create_group(client: Any, grouphash: str) -> bool:
+    times_seen = client.incr(f"grouphash:{grouphash}")
+    metrics.incr(
+        "performance.performance_issue.grouphash_counted",
+        tags={"times_seen": times_seen},
+        sample_rate=1.0,
+    )
+    if times_seen >= GROUPHASH_IGNORE_LIMIT:
+        client.delete(grouphash)
+        return True
+    else:
+        client.expire(grouphash, 60 * 60 * 24)  # 24 hour expiration from last seen
+        return False
 
 
 @metrics.wraps("event_manager.save_transaction_events")
