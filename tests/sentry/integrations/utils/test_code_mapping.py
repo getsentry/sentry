@@ -25,18 +25,18 @@ class TestDerivedCodeMappings(TestCase):
 
     def setUp(self):
         super().setUp()
-        foo_repo = Repo("Test-Organization/foo", "master")
-        bar_repo = Repo("Test-Organization/bar", "main")
+        self.foo_repo = Repo("Test-Organization/foo", "master")
+        self.bar_repo = Repo("Test-Organization/bar", "main")
         self.code_mapping_helper = CodeMappingTreesHelper(
             {
-                foo_repo.name: RepoTree(foo_repo, files=sentry_files),
-                bar_repo.name: RepoTree(bar_repo, files=["getsentry/web/urls.py"]),
+                self.foo_repo.name: RepoTree(self.foo_repo, files=sentry_files),
+                self.bar_repo.name: RepoTree(self.bar_repo, files=["getsentry/web/urls.py"]),
             }
         )
 
         self.expected_code_mappings = [
-            CodeMapping(foo_repo, "sentry", "src/sentry"),
-            CodeMapping(foo_repo, "sentry_plugins", "src/sentry_plugins"),
+            CodeMapping(self.foo_repo, "sentry", "src/sentry"),
+            CodeMapping(self.foo_repo, "sentry_plugins", "src/sentry_plugins"),
         ]
 
     def test_frame_filename_package_and_more_than_one_level(self):
@@ -69,6 +69,40 @@ class TestDerivedCodeMappings(TestCase):
             "getsentry": [FrameFilename("getsentry/billing/tax/manager.py")],
         }
 
+    def test_package_also_matches(self):
+        # We create a new tree helper in order to improve the understability of this test
+        cmh = CodeMappingTreesHelper(
+            {self.foo_repo.name: RepoTree(self.foo_repo, files=["apostello/views/base.py"])}
+        )
+        cm = cmh._generate_code_mapping_from_tree(
+            repo_full_name=self.foo_repo.name,
+            frame_filename=FrameFilename("raven/base.py"),
+        )
+        # We should not derive a code mapping since the package name does not match
+        assert cm == []
+
+    def test_no_support_for_toplevel_files(self):
+        file_name = "base.py"
+        ff = FrameFilename(file_name)
+        assert ff.root == ""
+        assert ff.dir_path == ""
+        assert ff.file_and_dir_path == file_name
+        # We create a new tree helper in order to improve the understability of this test
+        cmh = CodeMappingTreesHelper(
+            {self.foo_repo.name: RepoTree(self.foo_repo, files=[file_name])}
+        )
+
+        # We should not derive a code mapping since we do not yet
+        # support stackframes for non-packaged files
+        assert (
+            cmh.generate_code_mappings(repo_full_name=self.foo_repo.name, frame_filename=ff) == []
+        )
+
+        # Make sure that we raise an error if we hit the code path
+        assert not cmh._potential_match(file_name, ff)
+        with pytest.raises(NotImplementedError):
+            cmh._get_code_mapping_source_path(file_name, ff)
+
     def test_no_matches(self):
         stacktraces = [
             "getsentry/billing/tax/manager.py",
@@ -79,28 +113,31 @@ class TestDerivedCodeMappings(TestCase):
         code_mappings = self.code_mapping_helper.generate_code_mappings(stacktraces)
         assert code_mappings == []
 
-    def test_more_than_one_match_does_not_derive(self):
+    def test_more_than_one_match_does_derive(self):
         stacktraces = [
-            # More than one file matches for this, thus, no stack traces will be produced
+            # More than one file matches for this, however, the package name is taken into account
             # - "src/sentry_plugins/slack/client.py",
             # - "src/sentry/integrations/slack/client.py",
             "sentry_plugins/slack/client.py",
         ]
         code_mappings = self.code_mapping_helper.generate_code_mappings(stacktraces)
-        assert code_mappings == []
+        assert code_mappings == [
+            CodeMapping(
+                repo=self.foo_repo,
+                stacktrace_root="sentry_plugins",
+                source_path="src/sentry_plugins",
+            )
+        ]
 
     def test_more_than_one_match_works_when_code_mapping_excludes_other_match(self):
         stacktraces = [
             "sentry/identity/oauth2.py",
-            # This file matches two files in the repo, however, because we first
-            # derive the sentry code mapping we can exclude one of the files
             "sentry_plugins/slack/client.py",
         ]
         code_mappings = self.code_mapping_helper.generate_code_mappings(stacktraces)
         assert code_mappings == self.expected_code_mappings
 
     def test_more_than_one_match_works_with_different_order(self):
-        # We do *not* derive sentry_plugins because we don't derive sentry first
         stacktraces = [
             # This file matches twice files in the repo, however, the reprocessing
             # feature allows deriving both code mappings
@@ -108,8 +145,9 @@ class TestDerivedCodeMappings(TestCase):
             "sentry/identity/oauth2.py",
         ]
         code_mappings = self.code_mapping_helper.generate_code_mappings(stacktraces)
-        # Order matters, this is why we only derive one of the two code mappings
-        assert code_mappings == self.expected_code_mappings
+        # Asserting lists with different order of elements would fail, thus, checking indexes
+        assert code_mappings[0] == self.expected_code_mappings[1]
+        assert code_mappings[1] == self.expected_code_mappings[0]
 
     def test_more_than_one_repo_match(self):
         # XXX: There's a chance that we could infer package names but that is risky

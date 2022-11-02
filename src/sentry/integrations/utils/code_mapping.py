@@ -31,11 +31,12 @@ class FrameFilename:
         if stacktrace_frame_file_path.find("/") > -1:
             # XXX: This code assumes that all stack trace frames are part of a module
             self.root, self.file_and_dir_path = stacktrace_frame_file_path.split("/", 1)
-            # Does it have more than one level?
+
+            # Check that it does have at least a dir
             if self.file_and_dir_path.find("/") > -1:
                 self.dir_path, self.file_name = self.file_and_dir_path.rsplit("/", 1)
             else:
-                # A package name + a file (e.g. requests/models.py)
+                # A package name, a file but no dir (e.g. requests/models.py)
                 self.dir_path = ""
                 self.file_name = self.file_and_dir_path
         else:
@@ -124,6 +125,16 @@ class CodeMappingTreesHelper:
 
         return _code_mappings[0]
 
+    def _get_code_mapping_source_path(self, src_file: str, frame_filename: FrameFilename) -> str:
+        """Generate the source path of a code mapping
+        e.g. src/sentry/identity/oauth2.py -> src/sentry
+        e.g. ssl.py -> raise NotImplemented
+        """
+        if frame_filename.dir_path != "":
+            return src_file.rsplit(frame_filename.dir_path)[0].rstrip("/")
+        else:
+            raise NotImplementedError("We do not support top level files.")
+
     def _generate_code_mapping_from_tree(
         self,
         repo_full_name: str,
@@ -141,8 +152,9 @@ class CodeMappingTreesHelper:
                 CodeMapping(
                     repo=self.trees[repo_full_name].repo,
                     stacktrace_root=frame_filename.root,  # sentry
-                    # e.g. src/sentry/identity/oauth2.py -> src/sentry
-                    source_path=matched_files[0].rsplit(frame_filename.dir_path)[0].rstrip("/"),
+                    source_path=self._get_code_mapping_source_path(
+                        matched_files[0], frame_filename
+                    ),
                 )
             ]
             if len(matched_files) == 1
@@ -170,4 +182,15 @@ class CodeMappingTreesHelper:
         if self._matches_current_code_mappings(src_file, frame_filename):
             return False
 
-        return src_file.rfind(frame_filename.file_and_dir_path) > -1
+        match = False
+        # For instance:
+        #  src_file: "src/sentry/integrations/slack/client.py"
+        #  frame_filename.full_path: "sentry/integrations/slack/client.py"
+        split = src_file.split(frame_filename.file_and_dir_path)
+        if len(split) > 1:
+            # This is important because we only want stack frames to match when they
+            # include the exact package name
+            # e.g. raven/base.py stackframe should not match this source file: apostello/views/base.py
+            match = split[0].rfind(f"{frame_filename.root}/") > -1
+
+        return match
