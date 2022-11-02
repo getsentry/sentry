@@ -2853,6 +2853,8 @@ class ProfilesQueryBuilderMixin:
         return resolved
 
     def resolve_params(self: ProfilesQueryBuilderProtocol) -> List[WhereType]:
+        if self.params.organization is None:
+            raise InvalidSearchQuery("Organization is a required parameter")
         # not sure how to make mypy happy here as `super()`
         # refers to the other parent query builder class
         conditions: List[WhereType] = super().resolve_params()  # type: ignore
@@ -2863,7 +2865,7 @@ class ProfilesQueryBuilderMixin:
             Condition(
                 self.column("organization.id"),
                 Op.EQ,
-                self.params["organization_id"],
+                self.params.organization.id,
             )
         )
 
