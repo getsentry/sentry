@@ -15,7 +15,6 @@ from sentry.notifications.types import (
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
-from sentry.services.hybrid_cloud.user import APIUser
 from sentry.types.integrations import (
     EXTERNAL_PROVIDERS,
     ExternalProviders,
@@ -34,6 +33,7 @@ if TYPE_CHECKING:
         Team,
         User,
     )
+    from sentry.services.hybrid_cloud.user import APIUser
 
 
 def _get_notification_setting_default(

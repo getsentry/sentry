@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Mapping, Sequence
+from typing import TYPE_CHECKING, Any, Mapping, Sequence
 
 from django.db.models import Subquery
 
@@ -13,8 +13,10 @@ from sentry.models import (
     actor_type_to_string,
 )
 from sentry.ownership.grammar import parse_code_owners
-from sentry.services.hybrid_cloud.user import APIUser
 from sentry.types.integrations import ExternalProviders
+
+if TYPE_CHECKING:
+    from sentry.services.hybrid_cloud.user import APIUser
 
 
 def validate_association(

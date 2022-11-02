@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from datetime import timedelta
 from enum import IntEnum
-from typing import FrozenSet, Sequence
+from typing import TYPE_CHECKING, FrozenSet, Sequence
 
 from django.conf import settings
 from django.db import IntegrityError, models, router, transaction
@@ -31,10 +31,13 @@ from sentry.db.models.utils import slugify_instance
 from sentry.locks import locks
 from sentry.models.organizationmember import OrganizationMember
 from sentry.roles.manager import Role
-from sentry.services.hybrid_cloud.user import APIUser
 from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import SnowflakeIdMixin
+
+if TYPE_CHECKING:
+    from sentry.services.hybrid_cloud.user import APIUser
+
 
 SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
 

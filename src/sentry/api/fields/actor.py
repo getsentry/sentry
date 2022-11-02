@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from rest_framework import serializers
 
 from sentry.models import ActorTuple, OrganizationMember, Team, User
-from sentry.services.hybrid_cloud.user import APIUser
+
+if TYPE_CHECKING:
+    from sentry.services.hybrid_cloud.user import APIUser
 
 
 class ActorField(serializers.Field):

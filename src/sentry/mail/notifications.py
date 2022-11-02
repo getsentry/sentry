@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Iterable, Mapping, MutableMapping
+from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping
 
 import sentry_sdk
 from django.utils.encoding import force_text
@@ -11,13 +11,15 @@ from sentry.models import BaseUser, Project, ProjectOption, Team
 from sentry.notifications.notifications.active_release import ActiveReleaseIssueNotification
 from sentry.notifications.notifications.base import BaseNotification, ProjectNotification
 from sentry.notifications.notify import register_notification_provider
-from sentry.services.hybrid_cloud.user import APIUser
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.email import MessageBuilder, group_id_to_email
 from sentry.utils.linksign import generate_signed_link
 
 logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from sentry.services.hybrid_cloud.user import APIUser
 
 
 def get_headers(notification: BaseNotification) -> Mapping[str, Any]:

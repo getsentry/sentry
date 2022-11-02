@@ -33,7 +33,6 @@ from sentry.db.models import (
 from sentry.eventstore.models import GroupEvent
 from sentry.issues.query import apply_performance_conditions
 from sentry.models.grouphistory import record_group_history_from_activity_type
-from sentry.services.hybrid_cloud.user import APIUser
 from sentry.snuba.dataset import Dataset
 from sentry.types.activity import ActivityType
 from sentry.types.issues import GROUP_TYPE_TO_CATEGORY, GroupCategory, GroupType
@@ -43,6 +42,7 @@ from sentry.utils.strings import strip, truncatechars
 
 if TYPE_CHECKING:
     from sentry.models import Integration, Organization, Team
+    from sentry.services.hybrid_cloud.user import APIUser
 
 logger = logging.getLogger(__name__)
 
