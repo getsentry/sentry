@@ -74,7 +74,7 @@ def project_threshold_config_resolver_factory(
         use_case_id: Optional[UseCaseKey] = None,
     ) -> SelectType:
         """
-        Shared function that resolve the project threshold that is used by both snuba/metrics and search/events/datasets.
+        Shared function that resolves the project threshold configuration used by both snuba/metrics and search/events/datasets.
         """
 
         project_threshold_configs = (
