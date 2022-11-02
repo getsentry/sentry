@@ -30,7 +30,7 @@ class IssueOccurrencesFilter(EventFilter):
         issue_occurrences: int = event.group.times_seen_with_pending
         return bool(issue_occurrences >= value)
 
-    def passes_activity(self, condition_activity: ConditionActivity) -> bool:
+    def passes_activity(self, condition_activity: ConditionActivity, **kwargs) -> bool:
         try:
             value = int(self.get_option("value"))
         except (TypeError, ValueError):

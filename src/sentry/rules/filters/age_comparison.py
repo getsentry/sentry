@@ -89,7 +89,7 @@ class AgeComparisonFilter(EventFilter):
     def passes(self, event: GroupEvent, state: EventState) -> bool:
         return self._passes(event.group.first_seen, timezone.now())
 
-    def passes_activity(self, condition_activity: ConditionActivity) -> bool:
+    def passes_activity(self, condition_activity: ConditionActivity, **kwargs) -> bool:
         try:
             group = Group.objects.get_from_cache(id=condition_activity.group_id)
         except Group.DoesNotExist:

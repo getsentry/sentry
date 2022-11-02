@@ -9,6 +9,7 @@ from sentry.mail.forms.assigned_to import AssignedToForm
 from sentry.notifications.types import ASSIGNEE_CHOICES, AssigneeTargetType
 from sentry.rules import EventState
 from sentry.rules.filters.base import EventFilter
+from sentry.types.condition_activity import ConditionActivity
 from sentry.utils.cache import cache
 
 if TYPE_CHECKING:
@@ -48,6 +49,22 @@ class AssignedToFilter(EventFilter):
                     if assignee.user and assignee.user_id == target_id:
                         return True
             return False
+
+    def passes_activity(self, condition_activity: ConditionActivity, **kwargs) -> bool:
+        target_type = AssigneeTargetType(self.get_option("targetType"))
+        assignee = kwargs["assignee_status"][condition_activity.group_id]
+
+        if assignee is None:
+            return target_type == AssigneeTargetType.UNASSIGNED
+
+        target_id = str(self.get_option("targetIdentifier", None))
+
+        if target_type == AssigneeTargetType.TEAM:
+            return assignee["assigneeType"] == "team" and assignee["assignee"] == target_id
+        elif target_type == AssigneeTargetType.MEMBER:
+            return assignee["assigneeType"] == "user" and assignee["assignee"] == target_id
+
+        return False
 
     def get_form_instance(self) -> forms.Form:
         form: forms.Form = self.form_cls(self.project, self.data)

@@ -39,7 +39,7 @@ class IssueCategoryFilter(EventFilter):
     def passes(self, event: GroupEvent, state: EventState, **kwargs: Any) -> bool:
         return self._passes(event.group)
 
-    def passes_activity(self, condition_activity: ConditionActivity) -> bool:
+    def passes_activity(self, condition_activity: ConditionActivity, **kwargs) -> bool:
         try:
             group = Group.objects.get_from_cache(id=condition_activity.group_id)
         except Group.DoesNotExist:

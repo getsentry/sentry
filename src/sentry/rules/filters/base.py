@@ -12,5 +12,5 @@ class EventFilter(RuleBase, abc.ABC):
     def passes(self, event: GroupEvent, state: EventState) -> bool:
         pass
 
-    def passes_activity(self, condition_activity: ConditionActivity) -> bool:
+    def passes_activity(self, condition_activity: ConditionActivity, **kwargs) -> bool:
         raise NotImplementedError

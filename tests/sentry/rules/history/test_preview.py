@@ -43,6 +43,18 @@ class ProjectRulePreviewTest(TestCase):
         result = preview(self.project, conditions, [], "all", "all", 60)
         assert result.count() == expected
 
+    def _create_activities(self, activities, data):
+        group = Group.objects.create(project=self.project)
+        for i in range(len(activities)):
+            Activity.objects.create(
+                project=self.project,
+                group=group,
+                type=activities[i].value,
+                datetime=timezone.now() - timedelta(hours=len(activities) - i),
+                data=data[i],
+            )
+        return group
+
     def test_first_seen(self):
         hours = self._set_up_first_seen()
         self._test_preview(
@@ -162,6 +174,65 @@ class ProjectRulePreviewTest(TestCase):
         result = preview(self.project, conditions, filters, "all", "all", 0)
         assert all(group in result for group in errors)
         assert all(group not in result for group in n_plus_one)
+
+    def test_assigned_to(self):
+        conditions = [{"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"}]
+        unassigned_filter = [
+            {"id": "sentry.rules.filters.assigned_to.AssignedToFilter", "targetType": "Unassigned"}
+        ]
+        member_filter = [
+            {
+                "id": "sentry.rules.filters.assigned_to.AssignedToFilter",
+                "targetType": "Member",
+                "targetIdentifier": self.user.id,
+            }
+        ]
+        team_filter = [
+            {
+                "id": "sentry.rules.filters.assigned_to.AssignedToFilter",
+                "targetType": "Team",
+                "targetIdentifier": self.team.id,
+            }
+        ]
+        assigned_data = {
+            "assignee": self.user.id,
+            "assigneeEmail": self.user.email,
+            "assigneeType": "user",
+        }
+
+        # no assigning/unassigning
+        group = self._create_activities([ActivityType.SET_REGRESSION], [None])
+        result = preview(self.project, conditions, unassigned_filter, "all", "all", 0)
+        assert group in result
+        result = preview(self.project, conditions, member_filter, "all", "all", 0)
+        assert group not in result
+
+        # assign and then unassigned
+        group = self._create_activities(
+            [ActivityType.ASSIGNED, ActivityType.UNASSIGNED, ActivityType.SET_REGRESSION],
+            [assigned_data, None, None],
+        )
+        result = preview(self.project, conditions, unassigned_filter, "all", "all", 0)
+        assert group in result
+        result = preview(self.project, conditions, member_filter, "all", "all", 0)
+        assert group not in result
+
+        # assign member
+        group = self._create_activities(
+            [ActivityType.ASSIGNED, ActivityType.SET_REGRESSION], [assigned_data, None]
+        )
+        result = preview(self.project, conditions, member_filter, "all", "all", 0)
+        assert group in result
+        result = preview(self.project, conditions, unassigned_filter, "all", "all", 0)
+        assert group not in result
+
+        # assign team
+        team_assigned_data = {"assignee": self.team.id, "assigneeType": "team"}
+        group = self._create_activities(
+            [ActivityType.ASSIGNED, ActivityType.SET_REGRESSION], [team_assigned_data, None]
+        )
+        result = preview(self.project, conditions, team_filter, "all", "all", 0)
+        assert group in result
 
     def test_unsupported_conditions(self):
         self._set_up_first_seen()
