@@ -27,7 +27,7 @@ const recordAnalyticsFirstEvent = ({
  * will simply be boolean true. When no event has been received this will be
  * null. Otherwise it will be the group
  */
-type FirstIssue = null | true | Group;
+type FirstIssue = null | boolean | Group;
 
 export interface EventWaiterProps {
   api: Client;
