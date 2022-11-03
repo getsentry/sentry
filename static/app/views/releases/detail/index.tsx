@@ -260,7 +260,7 @@ class ReleasesDetailContainer extends AsyncComponent<
 
   componentDidMount() {
     this.removeGlobalDateTimeFromUrl();
-    this.props.setRouteAnalyticsParams({release: this.props.params.release});
+    this.props.setGetRouteAnalyticsParams(() => ({release: this.props.params.release}));
   }
 
   componentDidUpdate(
@@ -274,7 +274,6 @@ class ReleasesDetailContainer extends AsyncComponent<
       prevProps.params.release !== params.release ||
       prevProps.organization.slug !== organization.slug
     ) {
-      this.props.setRouteAnalyticsParams({release: this.props.params.release});
       super.componentDidUpdate(prevProps, prevState);
     }
   }
