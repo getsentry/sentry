@@ -416,6 +416,18 @@ class SystemAccess(Access):
     def has_project_access(self, project: Project) -> bool:
         return True
 
+    # The semantically correct behavior for accessible_(team|project)_ids would be to
+    # query for all teams or projects in the system, which we don't want to attempt.
+    # Code paths that may have SystemAccess must avoid looking at these properties.
+
+    @property
+    def accessible_team_ids(self) -> FrozenSet[int]:
+        raise Exception("Cannot list all accessible teams for SystemAccess")
+
+    @property
+    def accessible_project_ids(self) -> FrozenSet[int]:
+        raise Exception("Cannot list all accessible projects for SystemAccess")
+
 
 class NoAccess(OrganizationlessAccess):
     def __init__(self) -> None:
