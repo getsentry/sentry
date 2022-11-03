@@ -147,7 +147,7 @@ class GroupStatus:
 
 
 # Statuses that can be queried/searched for
-STATUS_QUERY_CHOICES = {
+STATUS_QUERY_CHOICES: Mapping[str, int] = {
     "resolved": GroupStatus.RESOLVED,
     "unresolved": GroupStatus.UNRESOLVED,
     "ignored": GroupStatus.IGNORED,

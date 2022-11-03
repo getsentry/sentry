@@ -30,6 +30,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
+import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import withProjects from 'sentry/utils/withProjects';
 import {Actions, updateQuery} from 'sentry/views/eventsV2/table/cellAction';
@@ -215,7 +216,12 @@ function SummaryContent({
     t('timestamp'),
   ];
 
-  if (organization.features.includes('session-replay-ui')) {
+  const project = projects.find(p => p.id === projectId);
+
+  if (
+    organization.features.includes('session-replay-ui') &&
+    projectSupportsReplay(project)
+  ) {
     transactionsListTitles.push(t('replay'));
   }
 
