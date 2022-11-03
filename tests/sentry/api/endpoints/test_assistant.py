@@ -88,3 +88,13 @@ class AssistantActivityUpdateTest(APITestCase):
         activity = AssistantActivity.objects.get(user=self.user, guide_id=self.guides[guide])
         assert activity.viewed_ts
         assert not activity.dismissed_ts
+
+    def test_restart(self):
+        guide = "issue_stream"
+        resp = self.get_response(guide=guide, status="viewed")
+        assert resp.status_code == 201
+
+        self.get_response(guide=guide, status="restart")
+        assert not AssistantActivity.objects.filter(
+            user=self.user, guide_id=self.guides[guide]
+        ).exists()

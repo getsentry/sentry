@@ -16,7 +16,7 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.http import get_server_hostname
 from sentry.models import AuthProvider, Organization, OrganizationMember, OrganizationStatus
-from sentry.services.hybrid_cloud import organization_service
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.signals import join_request_link_viewed, user_signup
 from sentry.utils import auth, json, metrics
 from sentry.utils.auth import (
@@ -262,7 +262,9 @@ class AuthLoginView(BaseView):
             "register_form": register_form,
             "CAN_REGISTER": can_register,
             "join_request_link": self.get_join_request_link(organization),
+            "show_session_replay_banner": settings.SHOW_SESSION_REPLAY_BANNER,
         }
+
         context.update(additional_context.run_callbacks(request))
         return self.respond_login(request, context, **kwargs)
 

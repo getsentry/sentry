@@ -41,6 +41,7 @@ def register_configuration(config_id: str, strategies: Sequence[CallableStrategy
 
 
 DEFAULT_CONFIG_ID = "default:2022-10-04"
+INCOMING_DEFAULT_CONFIG_ID = "default:2022-10-27"
 
 register_configuration(
     "default:2021-08-25",
@@ -53,6 +54,17 @@ register_configuration(
 
 register_configuration(
     "default:2022-10-04",
+    strategies=[
+        loose_normalized_db_span_in_condition_strategy,
+        remove_http_client_query_string_strategy,
+        remove_redis_command_arguments_strategy,
+    ],
+)
+
+# Currently just a duplicate of the previous config to calibrate metrics before
+# making strategy changes.
+register_configuration(
+    "default:2022-10-27",
     strategies=[
         loose_normalized_db_span_in_condition_strategy,
         remove_http_client_query_string_strategy,
