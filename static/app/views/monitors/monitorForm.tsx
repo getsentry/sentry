@@ -42,6 +42,7 @@ type Props = {
   projects: Project[];
   selection: PageFilters;
   monitor?: Monitor;
+  submitLabel?: string;
 };
 
 type TransformedData = {
@@ -103,7 +104,7 @@ class MonitorForm extends Component<Props> {
   }
 
   render() {
-    const {monitor} = this.props;
+    const {monitor, submitLabel} = this.props;
     const selectedProjectId = this.props.selection.projects[0];
     const selectedProject = selectedProjectId
       ? this.props.projects.find(p => p.id === selectedProjectId + '')
@@ -130,6 +131,7 @@ class MonitorForm extends Component<Props> {
                   }
             }
             onSubmitSuccess={this.props.onSubmitSuccess}
+            submitLabel={submitLabel}
           >
             <Panel>
               <PanelHeader>{t('Details')}</PanelHeader>
@@ -149,6 +151,7 @@ class MonitorForm extends Component<Props> {
                   options={this.props.projects
                     .filter(p => p.isMember)
                     .map(p => ({value: p.slug, label: p.slug}))}
+                  help={t('Associate your monitor with the appropriate project.')}
                   required
                 />
                 <TextField
@@ -238,6 +241,9 @@ class MonitorForm extends Component<Props> {
                               label={t('Frequency')}
                               disabled={!hasAccess}
                               placeholder="e.g. 1"
+                              help={t(
+                                'The amount of times you expect the cron job to run within the specified interval.'
+                              )}
                               required
                             />
                             <SelectField
@@ -245,6 +251,9 @@ class MonitorForm extends Component<Props> {
                               label={t('Interval')}
                               disabled={!hasAccess}
                               options={INTERVALS}
+                              help={t(
+                                'The interval on which the frequency will be applied. X times an (hour, day, week...)'
+                              )}
                               required
                             />
                             <NumberField
