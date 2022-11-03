@@ -8,7 +8,7 @@ import type {Event} from 'sentry/types/event';
 
 import {EventTags} from '../eventTags';
 
-import DataSection from './dataSection';
+import {DataSection} from './dataSection';
 
 type Props = {
   event: Event;
