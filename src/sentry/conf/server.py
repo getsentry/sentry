@@ -1136,18 +1136,12 @@ SENTRY_FEATURES = {
     "organizations:org-subdomains": False,
     # Enable project selection on the stats page
     "organizations:project-stats": False,
-    # Enable views for ops breakdown
-    "organizations:performance-ops-breakdown": False,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
     "organizations:performance-chart-interpolation": False,
-    # Enable views for suspect tags
-    "organizations:performance-suspect-spans-view": False,
     # Enable views for anomaly detection
     "organizations:performance-anomaly-detection-ui": False,
     # Enable histogram view in span details
     "organizations:performance-span-histogram-view": False,
-    # Enable autogrouping of sibling spans
-    "organizations:performance-autogroup-sibling-spans": False,
     # Enable performance on-boarding checklist
     "organizations:performance-onboarding-checklist": False,
     # Enable transaction name only search
@@ -1734,7 +1728,6 @@ SENTRY_ROLES = (
         "id": "manager",
         "name": "Manager",
         "desc": "Gains admin access on all teams as well as the ability to add and remove members.",
-        "is_global": True,
         "scopes": {
             "event:read",
             "event:write",
@@ -1755,6 +1748,7 @@ SENTRY_ROLES = (
             "alerts:read",
             "alerts:write",
         },
+        "is_global": True,
     },
     {
         "id": "owner",
@@ -1766,7 +1760,6 @@ SENTRY_ROLES = (
             billing and plan changes.
             """
         ),
-        "is_global": True,
         "scopes": {
             "org:read",
             "org:write",
@@ -1788,6 +1781,7 @@ SENTRY_ROLES = (
             "alerts:read",
             "alerts:write",
         },
+        "is_global": True,
     },
 )
 

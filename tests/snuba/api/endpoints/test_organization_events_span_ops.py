@@ -11,8 +11,6 @@ from sentry.utils.samples import load_data
 
 @region_silo_test
 class OrganizationEventsSpanOpsEndpointBase(APITestCase, SnubaTestCase):
-    FEATURES = ["organizations:performance-suspect-spans-view"]
-
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
@@ -82,14 +80,13 @@ class OrganizationEventsSpanOpsEndpointBase(APITestCase, SnubaTestCase):
     def test_basic(self):
         self.create_event()
 
-        with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={
-                    "project": self.project.id,
-                },
-                format="json",
-            )
+        response = self.client.get(
+            self.url,
+            data={
+                "project": self.project.id,
+            },
+            format="json",
+        )
 
         assert response.status_code == 200, response.content
         assert response.data == [
