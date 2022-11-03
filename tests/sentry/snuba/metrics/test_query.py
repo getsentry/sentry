@@ -1,8 +1,9 @@
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Sequence
 
 import pytest
+from freezegun import freeze_time
 from snuba_sdk import Direction, Granularity, Limit, Offset
 from snuba_sdk.conditions import ConditionGroup
 
@@ -25,7 +26,7 @@ class MetricsQueryBuilder:
     AVG_DURATION_METRIC = MetricField(op="avg", metric_mri=SessionMRI.DURATION.value)
 
     def __init__(self):
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         self.org_id: int = 1
         self.project_ids: Sequence[int] = [1, 2]
         self.select: Sequence[MetricField] = [self.AVG_DURATION_METRIC]
@@ -615,7 +616,7 @@ def test_ensure_interval_set_to_granularity_in_performance_queries():
     assert mq.interval == mq.granularity.granularity
 
 
-@pytest.mark.skip(reason="flaky test: TET-505")
+@freeze_time("2022-11-03 10:10:00")
 @pytest.mark.parametrize(
     "granularity, interval, expected_granularity",
     [
@@ -644,3 +645,18 @@ def test_ensure_granularity_is_less_than_interval(granularity, interval, expecte
     metrics_query_dict = metrics_query.to_metrics_query_dict()
     mq = MetricsQuery(**metrics_query_dict)
     assert mq.granularity.granularity == expected_granularity
+
+
+@freeze_time("2022-11-03 09:45:00")
+def test_ensure_intervals_len_0_results_in_error():
+    metrics_query = (
+        MetricsQueryBuilder()
+        .with_select([MetricField(op="p95", metric_mri=TransactionMRI.DURATION.value)])
+        .with_include_series(True)
+        .with_granularity(Granularity(86400))
+        .with_interval(7200)
+    )
+
+    with pytest.raises(InvalidParams):
+        metrics_query_dict = metrics_query.to_metrics_query_dict()
+        MetricsQuery(**metrics_query_dict)
