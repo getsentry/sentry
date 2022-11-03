@@ -72,6 +72,7 @@ def preview(
     assignee_status = {id: None for id in group_ids}
     assignee_activity = []
     if assigned_to_filter:
+        # retrieve assigned/unassigned activities that happened in the interval
         assignee_activity = list(
             Activity.objects.filter(
                 group__id__in=group_ids,
@@ -87,6 +88,7 @@ def preview(
     group_last_fire: Dict[str, datetime] = {}
     fired_group_ids = set()
     for event in activity:
+        # update assignee statuses for activities that happened between the previous event and current one
         update_assignee(assignee_status, assignee_activity, event.timestamp)
         try:
             passes = [f.passes_activity(event, **kwargs) for f in filter_objects]
