@@ -46,7 +46,10 @@ class OrganizationPinnedSearchEndpoint(OrganizationEndpoint):
             values={"query": result["query"], "sort": result["sort"]},
         )
         pinned_search = SavedSearch.objects.get(
-            organization=organization, owner=request.user, type=result["type"]
+            organization=organization,
+            owner=request.user,
+            type=result["type"],
+            visibility=Visibility.OWNER_PINNED,
         )
 
         return Response(serialize(pinned_search, request.user), status=201)
@@ -57,6 +60,9 @@ class OrganizationPinnedSearchEndpoint(OrganizationEndpoint):
         except ValueError as e:
             return Response({"detail": "Invalid input for `type`. Error: %s" % str(e)}, status=400)
         SavedSearch.objects.filter(
-            organization=organization, owner=request.user, type=search_type.value
+            organization=organization,
+            owner=request.user,
+            type=search_type.value,
+            visibility=Visibility.OWNER_PINNED,
         ).delete()
         return Response(status=204)
