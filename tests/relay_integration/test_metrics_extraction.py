@@ -15,7 +15,6 @@ class MetricsExtractionTest(RelayStoreHelper, TransactionTestCase):
         with Feature(
             {
                 "organizations:transaction-metrics-extraction": True,
-                "organizations:performance-ops-breakdown": True,
             }
         ):
             event_data = {
