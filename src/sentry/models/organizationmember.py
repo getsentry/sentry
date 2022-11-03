@@ -469,10 +469,17 @@ class OrganizationMember(Model):
         Return a list of org-level roles which that member could invite
         Must check if member member has member:admin first before checking
         """
+        if not features.has("organizations:team-roles", self.organization):
+            return [
+                r
+                for r in organization_roles.get_all()
+                if r.priority <= organization_roles.get(self.role).priority
+            ]
+
         return [
             r
             for r in organization_roles.get_all()
-            if r.priority <= organization_roles.get(self.role).priority
+            if r.priority <= organization_roles.get(self.role).priority and not r.is_retired
         ]
 
     def is_only_owner(self) -> bool:
