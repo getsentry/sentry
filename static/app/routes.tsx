@@ -991,7 +991,7 @@ function buildRoutes() {
         ) : null}
         <Route
           path="/organizations/:orgId/dashboards/"
-          component={make(() => import('sentry/views/dashboardsV2'))}
+          component={withDomainRedirect(make(() => import('sentry/views/dashboardsV2')))}
           key="org-dashboards"
         >
           <IndexRoute
@@ -1020,7 +1020,9 @@ function buildRoutes() {
         ) : null}
         <Route
           path="/organizations/:orgId/dashboards/new/"
-          component={make(() => import('sentry/views/dashboardsV2/create'))}
+          component={withDomainRedirect(
+            make(() => import('sentry/views/dashboardsV2/create'))
+          )}
           key="org-dashboards-new"
         >
           <Route
@@ -1050,7 +1052,9 @@ function buildRoutes() {
         ) : null}
         <Route
           path="/organizations/:orgId/dashboards/new/:templateId"
-          component={make(() => import('sentry/views/dashboardsV2/create'))}
+          component={withDomainRedirect(
+            make(() => import('sentry/views/dashboardsV2/create'))
+          )}
           key="org-dashboards-new-template"
         >
           <Route
@@ -1080,7 +1084,9 @@ function buildRoutes() {
         ) : null}
         <Route
           path="/organizations/:orgId/dashboard/:dashboardId/"
-          component={make(() => import('sentry/views/dashboardsV2/view'))}
+          component={withDomainRedirect(
+            make(() => import('sentry/views/dashboardsV2/view'))
+          )}
           key="org-dashboards-dashboard-id"
         >
           {dashboardWidgetRoutes}
