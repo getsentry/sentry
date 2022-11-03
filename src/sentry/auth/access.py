@@ -120,18 +120,39 @@ class Access(abc.ABC):
         }
 
     @cached_property
-    def enrolled_team_ids(self) -> FrozenSet[int]:
-        """Return the IDs of teams in which the user has actual membership."""
+    def team_ids_with_membership(self) -> FrozenSet[int]:
+        """Return the IDs of teams in which the user has actual membership.
+
+        This represents the set of all teams for which `has_team_membership` returns
+        true. Use that method where possible and use this property only when you need
+        to iterate or query for all such teams.
+
+        Compare to accessible_team_ids, which is equal to this property in the
+        typical case but represents a superset of IDs in case of superuser access.
+        """
         return frozenset(team.id for team in self._team_memberships.keys())
 
     @property
     def accessible_team_ids(self) -> FrozenSet[int]:
-        """Return the IDs of teams to which the user has access."""
-        return self.enrolled_team_ids
+        """Return the IDs of teams to which the user has access.
+
+        This represents the set of all teams for which `has_team_access` returns
+        true. Use that method where possible and use this property only when you need
+        to iterate or query for all such teams.
+        """
+        return self.team_ids_with_membership
 
     @cached_property
-    def enrolled_project_ids(self) -> FrozenSet[int]:
-        """Return the IDs of projects to which the user has access via actual team membership."""
+    def project_ids_with_team_membership(self) -> FrozenSet[int]:
+        """Return the IDs of projects to which the user has access via actual team membership.
+
+        This represents the set of all projects for which `has_project_membership`
+        returns true. Use that method where possible and use this property only when
+        you need to iterate or query for all such teams.
+
+        Compare to accessible_project_ids, which is equal to this property in the
+        typical case but represents a superset of IDs in case of superuser access.
+        """
 
         teams = self._team_memberships.keys()
         if not teams:
@@ -150,8 +171,13 @@ class Access(abc.ABC):
 
     @property
     def accessible_project_ids(self) -> FrozenSet[int]:
-        """Return the IDs of projects to which the user has access."""
-        return self.enrolled_project_ids
+        """Return the IDs of projects to which the user has access.
+
+        This represents the set of all teams for which `has_project_access` returns
+        true. Use that method where possible and use this property only when you need
+        to iterate or query for all such teams.
+        """
+        return self.project_ids_with_team_membership
 
     def has_permission(self, permission: str) -> bool:
         """
@@ -204,7 +230,7 @@ class Access(abc.ABC):
         return False
 
     def has_team_membership(self, team: Team) -> bool:
-        return team.id in self.enrolled_team_ids
+        return team.id in self.team_ids_with_membership
 
     def get_team_role(self, team: Team) -> TeamRole | None:
         team_member = self._team_memberships.get(team)
@@ -231,7 +257,7 @@ class Access(abc.ABC):
 
         >>> access.has_project_membership(project)
         """
-        return project.id in self.enrolled_project_ids
+        return project.id in self.project_ids_with_team_membership
 
     def has_project_scope(self, project: Project, scope: str) -> bool:
         """
@@ -304,14 +330,14 @@ class OrganizationMemberAccess(Access):
             return False
         if self.has_global_access and self._member.organization.id == team.organization_id:
             return True
-        return team.id in self.enrolled_team_ids
+        return team.id in self.team_ids_with_membership
 
     def has_project_access(self, project: Project) -> bool:
         if project.status != ProjectStatus.VISIBLE:
             return False
         if self.has_global_access and self._member.organization.id == project.organization_id:
             return True
-        return project.id in self.enrolled_project_ids
+        return project.id in self.project_ids_with_team_membership
 
 
 class OrganizationGlobalAccess(Access):
@@ -352,11 +378,11 @@ class OrganizationGlobalMembership(OrganizationGlobalAccess):
     """Access to all an organization's teams and projects with simulated membership."""
 
     @property
-    def enrolled_team_ids(self) -> FrozenSet[int]:
+    def team_ids_with_membership(self) -> FrozenSet[int]:
         return self.accessible_team_ids
 
     @property
-    def enrolled_project_ids(self) -> FrozenSet[int]:
+    def project_ids_with_team_membership(self) -> FrozenSet[int]:
         return self.accessible_project_ids
 
     def has_team_membership(self, team: Team) -> bool:
