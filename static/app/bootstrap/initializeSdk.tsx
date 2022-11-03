@@ -111,6 +111,15 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
     Sentry.setTag('sentry_version', window.__SENTRY__VERSION);
   }
 
+  const {customerDomain} = window.__initialData;
+
+  if (customerDomain) {
+    Sentry.setTag('isCustomerDomain', 'yes');
+    Sentry.setTag('customerDomain.organizationUrl', customerDomain.organizationUrl);
+    Sentry.setTag('customerDomain.sentryUrl', customerDomain.sentryUrl);
+    Sentry.setTag('customerDomain.subdomain', customerDomain.subdomain);
+  }
+
   LongTaskObserver.startPerformanceObserver();
   initializeMeasureAssetsTimeout();
 }
