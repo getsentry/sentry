@@ -19,7 +19,7 @@ class RoleBasedRecipientStrategy(metaclass=ABCMeta):
 
     def get_member(self, user: APIUser) -> OrganizationMember:
         # cache the result
-        if user.class_name() == "User":
+        if user.class_name() != "User":
             raise OrganizationMember.DoesNotExist()
         if user.id not in self.member_by_user_id:
             self.member_by_user_id[user.id] = OrganizationMember.objects.get(

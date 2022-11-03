@@ -8,7 +8,7 @@ from rest_framework import serializers
 from sentry.db.models import Model, region_silo_only_model
 
 if TYPE_CHECKING:
-    from sentry.models import Team, User
+    from sentry.models import Team
     from sentry.services.hybrid_cloud.user import APIUser, user_service
 
 ACTOR_TYPES = {"team": 0, "user": 1}
@@ -152,6 +152,8 @@ class ActorTuple(namedtuple("Actor", "id type")):
         :param actors:
         :return:
         """
+        from sentry.models import User
+
         if not actors:
             return []
 
