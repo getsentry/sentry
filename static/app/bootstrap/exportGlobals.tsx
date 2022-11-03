@@ -45,6 +45,8 @@ const SentryApp = {
   Modal: require('sentry/actionCreators/modal'),
   getModalPortal: require('sentry/utils/getModalPortal').default,
   Client: require('sentry/api').Client,
+  // This is used in the Email Modal in the Sandbox
+  IconArrow: require('sentry/icons/iconArrow').IconArrow,
   // These are required for the Sandbox to fetch the demo walkthrough tasks and hook them into the Sidebar Panel and Sidebar Status
   // They allow the Sandbox to replicate the functionality of getMergedTasks without relying on the organization's onboarding tasks
   OnboardingTask: require('sentry/types').OnboardingTask,
