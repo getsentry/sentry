@@ -431,6 +431,8 @@ class Actions extends Component<Props> {
                 key: 'mark-review',
                 label: t('Mark reviewed'),
                 disabled: !group.inbox || disabled,
+                details:
+                  !group.inbox || disabled ? t('Issue has been reviewed') : undefined,
                 onAction: () => this.onUpdate({inbox: false}),
               },
               {
