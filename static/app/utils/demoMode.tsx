@@ -38,7 +38,7 @@ export function isDemoWalkthrough(): boolean {
 }
 
 // Function to determine which tour has completed depending on the guide that is being passed in.
-export function getTour(guide: string): string {
+export function getTour(guide: string): string | undefined {
   switch (guide) {
     case 'sidebar_v2':
       return 'tabs';
@@ -49,6 +49,6 @@ export function getTour(guide: string): string {
     case 'transaction_details_v2':
       return 'performance';
     default:
-      return '';
+      return undefined;
   }
 }

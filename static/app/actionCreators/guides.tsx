@@ -63,8 +63,9 @@ export function recordFinish(
     },
   });
 
-  if (isDemoWalkthrough()) {
-    const tour = getTour(guide);
+  const tour = getTour(guide);
+
+  if (isDemoWalkthrough() && tour) {
     demoEndModal({tour, orgSlug});
   }
 
