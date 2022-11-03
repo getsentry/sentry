@@ -437,6 +437,7 @@ def test_validate_distribution_functions_in_orderby():
     MetricsQuery(**metrics_query_dict)
 
 
+@pytest.mark.django_db(True)
 def test_validate_where():
     query = "session.status:crashed"
     where = parse_query(query, [])
@@ -615,6 +616,7 @@ def test_ensure_interval_set_to_granularity_in_performance_queries():
     assert mq.interval == mq.granularity.granularity
 
 
+@pytest.mark.skip(reason="flaky test: TET-505")
 @pytest.mark.parametrize(
     "granularity, interval, expected_granularity",
     [

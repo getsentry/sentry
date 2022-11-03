@@ -8,10 +8,10 @@ from snuba_sdk.conditions import Condition, Op, Or
 from snuba_sdk.function import Function
 from snuba_sdk.orderby import Direction, OrderBy
 
+from sentry.search.events.builder import ProfilesQueryBuilder, ProfilesTimeseriesQueryBuilder
 from sentry.search.events.datasets.profiles import COLUMNS as PROFILE_COLUMNS
 from sentry.search.events.datasets.profiles import ProfilesDatasetConfig
 from sentry.search.events.fields import InvalidSearchQuery
-from sentry.snuba.profiles import ProfilesQueryBuilder, ProfilesTimeseriesQueryBuilder
 from sentry.testutils.factories import Factories
 from sentry.utils.snuba import Dataset
 

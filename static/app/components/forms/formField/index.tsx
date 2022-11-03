@@ -10,7 +10,6 @@ import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 
 import Field from '../field';
 import FieldControl from '../field/fieldControl';
-import FieldErrorReason from '../field/fieldErrorReason';
 import {FieldGroupProps} from '../field/types';
 import FormContext from '../formContext';
 import FormModel, {MockModel} from '../model';
@@ -326,26 +325,18 @@ class FormField extends Component<FormFieldProps> {
             flexibleControlStateSize={flexibleControlStateSize}
             {...props}
           >
-            {({alignRight, inline, disabled, disabledReason}) => (
+            {({alignRight, disabled, inline}) => (
               <FieldControl
-                disabled={disabled}
-                disabledReason={disabledReason}
                 inline={inline}
                 alignRight={alignRight}
                 flexibleControlStateSize={flexibleControlStateSize}
                 hideControlState={hideControlState}
-                controlState={<FormFieldControlState model={model} name={name} />}
-                errorState={
-                  <Observer>
-                    {() => {
-                      const error = this.getError();
-                      const shouldShowErrorMessage = error && !hideErrorMessage;
-                      if (!shouldShowErrorMessage) {
-                        return null;
-                      }
-                      return <FieldErrorReason>{error}</FieldErrorReason>;
-                    }}
-                  </Observer>
+                controlState={
+                  <FormFieldControlState
+                    model={model}
+                    name={name}
+                    hideErrorMessage={hideErrorMessage}
+                  />
                 }
               >
                 <Observer>

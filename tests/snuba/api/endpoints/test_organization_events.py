@@ -103,6 +103,30 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["project.name"] == self.project.slug
 
+    def test_environment_filter(self):
+        self.create_environment(self.project, name="production")
+        self.store_event(
+            data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.ten_mins_ago},
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "environment": "production",
+                "timestamp": self.ten_mins_ago,
+            },
+            project_id=self.project.id,
+        )
+
+        query = {
+            "field": ["id", "project.id"],
+            "project": [self.project.id],
+            "environment": ["staging", "production"],
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert len(response.data["data"]) == 2
+
     def test_performance_view_feature(self):
         self.store_event(
             data={"event_id": "a" * 32, "timestamp": self.ten_mins_ago, "fingerprint": ["group1"]},
@@ -5288,29 +5312,99 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
 
     @mock.patch("sentry.search.events.builder.raw_snql_query")
     def test_profiles_dataset_simple(self, mock_snql_query):
-        mock_snql_query.side_effect = [{"meta": {}, "data": []}]
+        mock_snql_query.side_effect = [
+            {
+                "data": [
+                    {
+                        "project": self.project.id,
+                        "transaction": "foo",
+                        "last_seen": "2022-10-20T16:41:22+00:00",
+                        "latest_event": "a" * 32,
+                        "count": 1,
+                        "count_unique_transaction": 1,
+                        "percentile_profile_duration_0_25": 1,
+                        "p50_profile_duration": 1,
+                        "p75_profile_duration": 1,
+                        "p95_profile_duration": 1,
+                        "p99_profile_duration": 1,
+                        "p100_profile_duration": 1,
+                        "min_profile_duration": 1,
+                        "max_profile_duration": 1,
+                        "avg_profile_duration": 1,
+                        "sum_profile_duration": 1,
+                    },
+                ],
+                "meta": [
+                    {
+                        "name": "project",
+                        "type": "UInt64",
+                    },
+                    {
+                        "name": "transaction",
+                        "type": "LowCardinality(String)",
+                    },
+                    {
+                        "name": "last_seen",
+                        "type": "DateTime",
+                    },
+                    {
+                        "name": "latest_event",
+                        "type": "String",
+                    },
+                    {
+                        "name": "count",
+                        "type": "UInt64",
+                    },
+                    {
+                        "name": "count_unique_transaction",
+                        "type": "UInt64",
+                    },
+                    {
+                        "name": "percentile_profile_duration_0_25",
+                        "type": "Float64",
+                    },
+                    *[
+                        {
+                            "name": f"{fn}_profile_duration",
+                            "type": "Float64",
+                        }
+                        for fn in ["p50", "p75", "p95", "p99", "p100", "min", "max", "avg", "sum"]
+                    ],
+                ],
+            },
+        ]
+
+        fields = [
+            "project",
+            "transaction",
+            "last_seen()",
+            "latest_event()",
+            "count()",
+            "count_unique(transaction)",
+            "percentile(profile.duration, 0.25)",
+            "p50(profile.duration)",
+            "p75(profile.duration)",
+            "p95(profile.duration)",
+            "p99(profile.duration)",
+            "p100(profile.duration)",
+            "min(profile.duration)",
+            "max(profile.duration)",
+            "avg(profile.duration)",
+            "sum(profile.duration)",
+        ]
 
         query = {
-            "field": [
-                "project",
-                "transaction",
-                "last_seen()",
-                "latest_event()",
-                "count()",
-                "count_unique(transaction)",
-                "percentile(profile.duration, 0.25)",
-                "p50(profile.duration)",
-                "p75(profile.duration)",
-                "p95(profile.duration)",
-                "p99(profile.duration)",
-                "p100(profile.duration)",
-                "min(profile.duration)",
-                "max(profile.duration)",
-                "avg(profile.duration)",
-                "sum(profile.duration)",
-            ],
+            "field": fields,
             "project": [self.project.id],
             "dataset": "profiles",
         }
         response = self.do_request(query, features={"organizations:profiling": True})
         assert response.status_code == 200, response.content
+
+        # making sure the response keys are in the form we expect and not aliased
+        data_keys = {key for row in response.data["data"] for key in row}
+        field_keys = {key for key in response.data["meta"]["fields"]}
+        unit_keys = {key for key in response.data["meta"]["units"]}
+        assert set(fields) == data_keys
+        assert set(fields) == field_keys
+        assert set(fields) == unit_keys
