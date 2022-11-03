@@ -90,7 +90,7 @@ jobs:
           JEST_TESTS=$(yarn -s jest --listTests --json) yarn test-ci --forceExit
 
       - name: Save HTML artifacts
-        uses: actions/upload-artifact@82c141cc518b40d92cc801eee768e7aafc9c2fa2  # v2
+        uses: actions/upload-artifact@83fd05a356d7e2593de66fc9913b3002723633cb  # v3.1.1
         with:
           retention-days: 14
           name: jest-html
@@ -103,7 +103,7 @@ jobs:
           css-path: src/sentry/static/sentry/dist/entrypoints/sentry.css
 
       - name: Save snapshots
-        uses: getsentry/action-visual-snapshot@e832d70549c14886ddc2ab809b436ba72e30e19b  # main
+        uses: getsentry/action-visual-snapshot@5811b6c34e1ec3b9fc30613d4b55ef740fec6086  # main
         with:
           save-only: true
           snapshot-path: .artifacts/visual-snapshots
@@ -145,7 +145,7 @@ jobs:
         run: echo "webpack-path=.webpack_cache" >> "$GITHUB_OUTPUT"
 
       - name: webpack cache
-        uses: actions/cache@56046cbc4743437ac40542086317b1561d7705f8  # v3.0.8
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7  # v3.0.11
         with:
           path: ${{ steps.config.outputs.webpack-path }}
           key: ${{ runner.os }}-v2-webpack-cache-${{ hashFiles('webpack.config.ts') }}
@@ -180,7 +180,7 @@ jobs:
           PYTEST_SNAPSHOTS_DIR: ${{ steps.setup.outputs.acceptance-dir }}
 
       - name: Save snapshots
-        uses: getsentry/action-visual-snapshot@e832d70549c14886ddc2ab809b436ba72e30e19b  # main
+        uses: getsentry/action-visual-snapshot@5811b6c34e1ec3b9fc30613d4b55ef740fec6086  # main
         with:
           save-only: true
           snapshot-path: .artifacts/visual-snapshots
@@ -222,7 +222,7 @@ jobs:
           chartcuterie: true
 
       - name: yarn cache
-        uses: actions/cache@56046cbc4743437ac40542086317b1561d7705f8  # v3.0.8
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7  # v3.0.11
         with:
           path: ${{ steps.setup.outputs.yarn-cache-dir }}
           key: ${{ runner.os }}-v2-yarn-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
@@ -243,7 +243,7 @@ jobs:
           PYTEST_SNAPSHOTS_DIR: ${{ steps.setup.outputs.acceptance-dir }}
 
       - name: Save snapshots
-        uses: getsentry/action-visual-snapshot@e832d70549c14886ddc2ab809b436ba72e30e19b  # main
+        uses: getsentry/action-visual-snapshot@5811b6c34e1ec3b9fc30613d4b55ef740fec6086  # main
         with:
           save-only: true
           snapshot-path: .artifacts/visual-snapshots
@@ -269,7 +269,7 @@ jobs:
           echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
 
       - name: Diff snapshots
-        uses: getsentry/action-visual-snapshot@e832d70549c14886ddc2ab809b436ba72e30e19b  # main
+        uses: getsentry/action-visual-snapshot@5811b6c34e1ec3b9fc30613d4b55ef740fec6086  # main
         # Run this step only if there are acceptance related code changes
         # Forks are handled in visual-diff.yml
         if: needs.files-changed.outputs.acceptance == 'true' && github.event.pull_request.head.repo.full_name == 'getsentry/sentry'

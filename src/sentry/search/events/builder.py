@@ -9,6 +9,7 @@ from typing import (
     Mapping,
     Match,
     Optional,
+    Protocol,
     Sequence,
     Set,
     Tuple,
@@ -70,6 +71,11 @@ from sentry.search.events.constants import (
     VALID_FIELD_PATTERN,
 )
 from sentry.search.events.datasets.base import DatasetConfig
+from sentry.search.events.datasets.discover import DiscoverDatasetConfig
+from sentry.search.events.datasets.metrics import MetricsDatasetConfig
+from sentry.search.events.datasets.metrics_layer import MetricsLayerDatasetConfig
+from sentry.search.events.datasets.profiles import ProfilesDatasetConfig
+from sentry.search.events.datasets.sessions import SessionsDatasetConfig
 from sentry.search.events.fields import (
     ColumnArg,
     FunctionDetails,
@@ -271,25 +277,15 @@ class QueryBuilder:
     ]:
         self.config: DatasetConfig
         if self.dataset in [Dataset.Discover, Dataset.Transactions, Dataset.Events]:
-            from sentry.search.events.datasets.discover import DiscoverDatasetConfig
-
             self.config = DiscoverDatasetConfig(self)
         elif self.dataset == Dataset.Sessions:
-            from sentry.search.events.datasets.sessions import SessionsDatasetConfig
-
             self.config = SessionsDatasetConfig(self)
         elif self.dataset in [Dataset.Metrics, Dataset.PerformanceMetrics]:
             if self.use_metrics_layer:
-                from sentry.search.events.datasets.metrics_layer import MetricsLayerDatasetConfig
-
                 self.config = MetricsLayerDatasetConfig(self)
             else:
-                from sentry.search.events.datasets.metrics import MetricsDatasetConfig
-
                 self.config = MetricsDatasetConfig(self)
         elif self.dataset == Dataset.Profiles:
-            from sentry.search.events.datasets.profiles import ProfilesDatasetConfig
-
             self.config = ProfilesDatasetConfig(self)
         else:
             raise NotImplementedError(f"Data Set configuration not found for {self.dataset}.")
@@ -2157,7 +2153,7 @@ class MetricsQueryBuilder(QueryBuilder):
         return self._indexer_cache[value]
 
     def resolve_tag_value(self, value: str) -> Optional[Union[int, str]]:
-        if self.is_performance and self.tag_values_are_strings:
+        if self.is_performance and self.tag_values_are_strings or self.use_metrics_layer:
             return value
         if self.dry_run:
             return -1
@@ -2686,6 +2682,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         functions_acl: Optional[List[str]] = None,
         dry_run: Optional[bool] = False,
         limit: Optional[int] = 10000,
+        use_metrics_layer: Optional[bool] = False,
     ):
         super().__init__(
             params=params,
@@ -2696,6 +2693,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
             auto_fields=False,
             functions_acl=functions_acl,
             dry_run=dry_run,
+            use_metrics_layer=use_metrics_layer,
         )
         if self.granularity.granularity > interval:
             for granularity in METRICS_GRANULARITIES:
@@ -2778,6 +2776,66 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         return queries
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
+        if self.use_metrics_layer:
+            from sentry.snuba.metrics.datasource import get_series
+            from sentry.snuba.metrics.mqb_query_transformer import (
+                tranform_mqb_query_to_metrics_query,
+            )
+
+            if self.is_performance:
+                use_case_id = UseCaseKey.PERFORMANCE
+            else:
+                use_case_id = UseCaseKey.RELEASE_HEALTH
+            prefix = "generic_" if self.dataset is Dataset.PerformanceMetrics else ""
+
+            snuba_query = Query(
+                match=Entity(f"{prefix}metrics_distributions", sample=self.sample_rate),
+                # Metrics doesn't support columns in the select, and instead expects them in the groupby
+                select=self.aggregates
+                + [
+                    # Team key transaction is a special case sigh
+                    col
+                    for col in self.columns
+                    if isinstance(col, Function) and col.function == "team_key_transaction"
+                ],
+                array_join=self.array_join,
+                where=self.where,
+                having=self.having,
+                groupby=self.groupby,
+                orderby=[],
+                granularity=self.granularity,
+            )
+            try:
+                metric_query = tranform_mqb_query_to_metrics_query(snuba_query)
+                metrics_data = get_series(
+                    projects=self.projects,
+                    metrics_query=metric_query,
+                    use_case_id=use_case_id,
+                    include_meta=True,
+                )
+            except Exception as err:
+                raise IncompatibleMetricsQuery(err)
+            metric_layer_result: Any = {
+                "data": [],
+                "meta": metrics_data["meta"],
+            }
+            # metric layer adds bucketed time automatically but doesn't remove it
+            for meta in metric_layer_result["meta"]:
+                if meta["name"] == "bucketed_time":
+                    meta["name"] = "time"
+            for index, interval in enumerate(metrics_data["intervals"]):
+                # the metric layer changes the intervals to datetime objects when we want the isoformat
+                data = {self.time_alias: interval.isoformat()}
+                # only need the first thing in groups since we don't groupby
+                for key, value_list in (
+                    metrics_data.get("groups", [{}])[0].get("series", {}).items()
+                ):
+                    data[key] = value_list[index]
+                metric_layer_result["data"].append(data)
+                for meta in metric_layer_result["meta"]:
+                    if meta["name"] not in data:
+                        data[meta["name"]] = self.get_default_value(meta["type"])
+            return metric_layer_result
         queries = self.get_snql_query()
         if self.dry_run:
             return {
@@ -2802,3 +2860,56 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
             "data": list(time_map.values()),
             "meta": [{"name": key, "type": value} for key, value in meta_dict.items()],
         }
+
+
+class ProfilesQueryBuilderProtocol(Protocol):
+    @property
+    def config(self) -> ProfilesDatasetConfig:
+        ...
+
+    @property
+    def params(self) -> ParamsType:
+        ...
+
+    def column(self, name: str) -> Column:
+        ...
+
+    def resolve_params(self) -> List[WhereType]:
+        ...
+
+
+class ProfilesQueryBuilderMixin:
+    def resolve_column_name(self: ProfilesQueryBuilderProtocol, col: str) -> str:
+        # giving resolved a type here convinces mypy that the type is str
+        resolved: str = self.config.resolve_column(col)
+        return resolved
+
+    def resolve_params(self: ProfilesQueryBuilderProtocol) -> List[WhereType]:
+        # not sure how to make mypy happy here as `super()`
+        # refers to the other parent query builder class
+        conditions: List[WhereType] = super().resolve_params()  # type: ignore
+
+        # the profiles dataset requires a condition
+        # on the organization_id in the query
+        conditions.append(
+            Condition(
+                self.column("organization.id"),
+                Op.EQ,
+                self.params["organization_id"],
+            )
+        )
+
+        return conditions
+
+    def get_field_type(self: ProfilesQueryBuilderProtocol, field: str) -> Optional[str]:
+        # giving resolved a type here convinces mypy that the type is str
+        resolved: Optional[str] = self.config.resolve_column_type(field)
+        return resolved
+
+
+class ProfilesQueryBuilder(ProfilesQueryBuilderMixin, QueryBuilder):
+    pass
+
+
+class ProfilesTimeseriesQueryBuilder(ProfilesQueryBuilderMixin, TimeseriesQueryBuilder):
+    pass
