@@ -2,15 +2,24 @@ from __future__ import annotations
 
 import functools
 from copy import deepcopy
-from typing import Any, Callable, Iterable, Mapping, Optional, Protocol, Sequence, Set, TypedDict
+from typing import Any, Callable, Mapping, Optional, Protocol, Sequence, Set, TypedDict
 
 from sentry import features
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.models import Environment, Organization
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
-from sentry.types.issues import GroupCategory
+from sentry.types.issues import GROUP_TYPE_TO_CATEGORY, GroupCategory, GroupType
 from sentry.utils import snuba
 from sentry.utils.snuba import SnubaQueryParams
+
+ALL_ISSUE_TYPES = {gt.value for gt in GroupType}
+
+
+class IntermediateSearchQueryPartial(Protocol):
+    def __call__(
+        self, selected_columns: Sequence[str], groupby: Sequence[str], having: Sequence[Any]
+    ) -> Mapping[str, Any]:
+        ...
 
 
 class SearchQueryPartial(Protocol):
@@ -24,11 +33,12 @@ class SearchQueryPartial(Protocol):
         ...
 
 
+GroupSearchFilterUpdater = Callable[[Sequence[SearchFilter]], Sequence[SearchFilter]]
+
 GroupSearchStrategy = Callable[
     [
-        Set[GroupCategory],
-        Sequence[Any],
         SearchQueryPartial,
+        Sequence[Any],
         int,
         Sequence[int],
         Optional[Sequence[Environment]],
@@ -42,52 +52,76 @@ class MergeableRow(TypedDict, total=False):
     group_id: int
 
 
+def group_categories_from(
+    search_filters: Optional[Sequence[SearchFilter]],
+) -> Set[GroupCategory]:
+    """Iterates over search_filters for any Group-specific filters
+
+    :returns: a set of GroupCategories if the list of search-filters targets a Group type or category, else
+                an empty set.
+    """
+    group_categories: Set[GroupCategory] = set()
+    # determine which dataset to fan-out to based on the search filter criteria provided
+    # if its unspecified, we have to query all datasources
+    for search_filter in search_filters or ():
+        if search_filter.key.name in ("issue.category", "issue.type"):
+            if search_filter.is_negation:
+                group_categories.update(
+                    GROUP_TYPE_TO_CATEGORY[GroupType(value)]
+                    for value in list(
+                        filter(
+                            lambda x: x not in ALL_ISSUE_TYPES,
+                            search_filter.value.raw_value,
+                        )
+                    )
+                )
+            else:
+                group_categories.update(
+                    GROUP_TYPE_TO_CATEGORY[GroupType(value)]
+                    for value in search_filter.value.raw_value
+                )
+
+    return group_categories
+
+
 def _query_params_for_error(
-    group_categories: Set[GroupCategory],
-    aggregations: Sequence[Any],
     query_partial: SearchQueryPartial,
+    aggregations: Sequence[Any],
     organization_id: int,
     project_ids: Sequence[int],
     environments: Optional[Sequence[Environment]],
     conditions: Sequence[Any],
 ) -> Optional[SnubaQueryParams]:
-    if not group_categories or GroupCategory.ERROR in group_categories:
-        error_conditions = _updated_conditions(
-            "event.type",
-            "!=",
-            "transaction",
-            organization_id,
-            project_ids,
-            environments,
-            conditions,
-        )
+    error_conditions = _updated_conditions(
+        "event.type",
+        "!=",
+        "transaction",
+        organization_id,
+        project_ids,
+        environments,
+        conditions,
+    )
 
-        params = query_partial(
-            dataset=snuba.Dataset.Discover,
-            conditions=error_conditions,
-            aggregations=aggregations,
-            condition_resolver=snuba.get_snuba_column_name,
-        )
+    params = query_partial(
+        dataset=snuba.Dataset.Discover,
+        conditions=error_conditions,
+        aggregations=aggregations,
+        condition_resolver=snuba.get_snuba_column_name,
+    )
 
-        return SnubaQueryParams(**params)
-    return None
+    return SnubaQueryParams(**params)
 
 
 def _query_params_for_perf(
-    group_categories: Set[GroupCategory],
-    aggregations: Sequence[Any],
     query_partial: SearchQueryPartial,
+    aggregations: Sequence[Any],
     organization_id: int,
     project_ids: Sequence[int],
     environments: Optional[Sequence[Environment]],
     conditions: Sequence[Any],
 ) -> Optional[SnubaQueryParams]:
     organization = Organization.objects.filter(id=organization_id).first()
-    if (
-        organization
-        and features.has("organizations:performance-issues", organization)
-        and (not group_categories or GroupCategory.PERFORMANCE in group_categories)
-    ):
+    if organization and features.has("organizations:performance-issues", organization):
         transaction_conditions = _updated_conditions(
             "event.type",
             "=",
@@ -114,20 +148,24 @@ def _query_params_for_perf(
     return None
 
 
+def _error_search_filter_updater(search_filters: Sequence[SearchFilter]) -> Sequence[SearchFilter]:
+    return search_filters
+
+
+def _perf_search_filter_updater(search_filters: Sequence[SearchFilter]) -> Sequence[SearchFilter]:
+    # need to remove this filter, so we query snuba and not postgres
+    return [sf for sf in search_filters if sf.key.name != "message"]
+
+
 SEARCH_STRATEGIES = {
     GroupCategory.ERROR: _query_params_for_error,
     GroupCategory.PERFORMANCE: _query_params_for_perf,
 }
 
-
-def search_strategies_for_categories(
-    group_categories: Iterable[GroupCategory],
-) -> Sequence[GroupSearchStrategy]:
-    return (
-        list(SEARCH_STRATEGIES.values())
-        if not group_categories
-        else [SEARCH_STRATEGIES[gc] for gc in group_categories]
-    )
+SEARCH_FILTER_UPDATERS = {
+    GroupCategory.ERROR: _error_search_filter_updater,
+    GroupCategory.PERFORMANCE: _perf_search_filter_updater,
+}
 
 
 def _updated_conditions(
