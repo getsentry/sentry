@@ -173,6 +173,8 @@ def test_loose_normalized_db_span_in_condition_strategy(
         ),
         ("SELECT * FROM table WHERE salary > 1e7", ["SELECT * FROM table WHERE salary > %s"]),
         ("SELECT * FROM table123 WHERE id = %s", None),
+        ("SELECT * FROM ta123ble WHERE id = %s", None),
+        ("SELECT * FROM `123table` WHERE id = %s", None),
         # parametrizes single-quoted strings
         ("SELECT * FROM table WHERE sku = 'foo'", ["SELECT * FROM table WHERE sku = %s"]),
         (
@@ -186,10 +188,31 @@ def test_loose_normalized_db_span_in_condition_strategy(
         ("SELECT * FROM table WHERE deleted = true", ["SELECT * FROM table WHERE deleted = %s"]),
         ("SELECT * FROM table WHERE deleted = false", ["SELECT * FROM table WHERE deleted = %s"]),
         ("SELECT * FROM table_true WHERE deleted = %s", None),
+        ("SELECT * FROM true_table WHERE deleted = %s", None),
+        ("SELECT * FROM tatrueble WHERE deleted = %s", None),
         # leaves nulls alone
         ("SELECT * FROM table WHERE deleted_at IS NULL", None),
-        # supports IN clauses
-        ("SELECT * FROM table WHERE id IN (1, 2, 3)", ["SELECT * FROM table WHERE id IN (%s)"]),
+        # supports all the cases loose_normalized_db_span_in_condition_strategy does
+        (
+            "SELECT count() FROM table WHERE id IN (%s, %s) AND id IN (%s, %s, %s)",
+            ["SELECT count() FROM table WHERE id IN (%s) AND id IN (%s)"],
+        ),
+        (
+            "SELECT count() FROM table WHERE id IN (100, 101, 102)",
+            ["SELECT count() FROM table WHERE id IN (%s)"],
+        ),
+        (
+            "select count() from table where id in (100, 101, 102)",
+            ["select count() from table where id IN (%s)"],
+        ),
+        (
+            "SELECT count() FROM table WHERE id IN ($1, $2, $3)",
+            ["SELECT count() FROM table WHERE id IN (%s)"],
+        ),
+        (
+            "SELECT count() FROM table WHERE id IN (?, ?, ?)",
+            ["SELECT count() FROM table WHERE id IN (%s)"],
+        ),
     ],
 )
 def test_parametrize_db_span_strategy(query: str, fingerprint: Optional[List[str]]) -> None:
