@@ -262,7 +262,9 @@ class AuthLoginView(BaseView):
             "register_form": register_form,
             "CAN_REGISTER": can_register,
             "join_request_link": self.get_join_request_link(organization),
+            "show_session_replay_banner": settings.SHOW_SESSION_REPLAY_BANNER,
         }
+
         context.update(additional_context.run_callbacks(request))
         return self.respond_login(request, context, **kwargs)
 

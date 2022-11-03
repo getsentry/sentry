@@ -1,6 +1,8 @@
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
+import FormField from 'sentry/components/forms/formField';
 
-import InputField, {InputFieldProps, OnEvent} from './inputField';
+// XXX(epurkhiser): This is wrong, it should not be inheriting these props
+import {InputFieldProps, OnEvent} from './inputField';
 
 type DisabledFunction = (props: Omit<RangeFieldProps, 'formatMessageValue'>) => boolean;
 type PlaceholderFunction = (props: any) => React.ReactNode;
@@ -54,9 +56,8 @@ function RangeField({
   };
 
   return (
-    <InputField
-      {...props}
-      field={({onChange: fieldOnChange, onBlur, value, ...fieldProps}) => (
+    <FormField {...props}>
+      {({children: _children, onChange: fieldOnChange, onBlur, value, ...fieldProps}) => (
         <RangeSlider
           {...fieldProps}
           value={value}
@@ -64,7 +65,7 @@ function RangeField({
           onChange={(val, event) => onChange(fieldOnChange, val, event)}
         />
       )}
-    />
+    </FormField>
   );
 }
 

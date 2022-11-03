@@ -54,7 +54,7 @@ class OrganizationRoleSelect extends Component<Props> {
                 <Label>
                   <Radio id={id} value={name} checked={id === roleSelected} readOnly />
                   <div style={{flex: 1, padding: '0 16px'}}>
-                    {name} {isRetired && t('(Deprecated)')}
+                    {name}
                     <TextBlock noMargin>
                       <div className="help-block">{desc}</div>
                     </TextBlock>
