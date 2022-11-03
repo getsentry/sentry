@@ -872,7 +872,7 @@ class SnubaResultConverter:
                     empty_values = len(self._intervals) * [default_null_value]
                     series = tag_data["series"].setdefault(alias, empty_values)
 
-                    if bucketed_time is not None:
+                    if bucketed_time is not None and bucketed_time in self._timestamp_index:
                         series_index = self._timestamp_index[bucketed_time]
                         if series[series_index] == default_null_value:
                             series[series_index] = cleaned_value

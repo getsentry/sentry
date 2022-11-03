@@ -383,6 +383,24 @@ describe('Performance > TransactionSummary', function () {
       url: '/organizations/org-slug/events-has-measurements/',
       body: {measurements: false},
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-spans-performance/',
+      body: [
+        {
+          op: 'ui.long-task',
+          group: 'c777169faad84eb4',
+          description: 'Main UI thread blocked',
+          frequency: 713,
+          count: 9040,
+          avgOccurrences: null,
+          sumExclusiveTime: 1743893.9822921753,
+          p50ExclusiveTime: null,
+          p75ExclusiveTime: 244.9998779296875,
+          p95ExclusiveTime: null,
+          p99ExclusiveTime: null,
+        },
+      ],
+    });
 
     jest.spyOn(MEPSetting, 'get').mockImplementation(() => MEPState.auto);
   });
@@ -428,7 +446,12 @@ describe('Performance > TransactionSummary', function () {
       expect(screen.getByRole('button', {name: 'Open in Issues'})).toBeInTheDocument();
 
       // Ensure transaction filter button exists
-      expect(screen.getByText('Filter').closest('button')).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: 'Filter Slow Transactions (p95)'})
+      ).toBeInTheDocument();
+
+      // Ensure ops breakdown filter exists
+      expect(screen.getByTestId('span-operation-breakdown-filter')).toBeInTheDocument();
 
       // Ensure create alert from discover is hidden without metric alert
       expect(
@@ -717,9 +740,7 @@ describe('Performance > TransactionSummary', function () {
         body: [],
       });
 
-      const {organization, router, routerContext} = initializeData({
-        features: ['performance-suspect-spans-view'],
-      });
+      const {organization, router, routerContext} = initializeData({});
 
       render(<TestComponent router={router} location={router.location} />, {
         context: routerContext,
@@ -835,7 +856,9 @@ describe('Performance > TransactionSummary', function () {
       expect(screen.getByRole('button', {name: 'Open in Issues'})).toBeInTheDocument();
 
       // Ensure transaction filter button exists
-      expect(screen.getByText('Filter').closest('button')).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: 'Filter Slow Transactions (p95)'})
+      ).toBeInTheDocument();
 
       // Ensure create alert from discover is hidden without metric alert
       expect(

@@ -3,18 +3,12 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import ControlState from './controlState';
 import FieldControl from './fieldControl';
 import FieldDescription from './fieldDescription';
-import FieldErrorReason from './fieldErrorReason';
 import FieldHelp from './fieldHelp';
 import FieldLabel from './fieldLabel';
 import FieldQuestion from './fieldQuestion';
 import FieldRequiredBadge from './fieldRequiredBadge';
 import FieldWrapper from './fieldWrapper';
 import {FieldGroupProps} from './types';
-
-/**
- * XXX: BC with getsentry
- */
-export type FieldProps = FieldGroupProps;
 
 /**
  * A component to render a Field (i.e. label + help + form "control"),
@@ -72,8 +66,7 @@ function Field({
     alignRight,
     disabledReason,
     flexibleControlStateSize,
-    controlState: <ControlState error={!!error} isSaving={isSaving} isSaved={isSaved} />,
-    errorState: error ? <FieldErrorReason>{error}</FieldErrorReason> : null,
+    controlState: <ControlState error={error} isSaving={isSaving} isSaved={isSaved} />,
     className: controlClassName,
     disabled: isDisabled,
     help: helpElement,

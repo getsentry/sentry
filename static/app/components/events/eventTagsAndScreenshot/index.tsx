@@ -1,18 +1,33 @@
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {DataSection} from 'sentry/components/events/styles';
+import Link from 'sentry/components/links/link';
+import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {EventAttachment} from 'sentry/types/group';
 import {objectIsEmpty} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {SCREENSHOT_TYPE} from 'sentry/views/organizationGroupDetails/groupEventAttachments/groupEventAttachmentsFilter';
+import {Tab, TabPaths} from 'sentry/views/organizationGroupDetails/types';
 
 import Modal, {modalCss} from './screenshot/modal';
+import {DataSection as ScreenshotDataSection} from './dataSection';
 import Screenshot from './screenshot';
 import Tags from './tags';
 import TagsHighlight from './tagsHighlight';
 
 type ScreenshotProps = React.ComponentProps<typeof Screenshot>;
+
+const SCREENSHOT_NAMES = [
+  'screenshot.jpg',
+  'screenshot.png',
+  'screenshot-1.jpg',
+  'screenshot-1.png',
+  'screenshot-2.jpg',
+  'screenshot-2.png',
+];
 
 type Props = Omit<
   React.ComponentProps<typeof Tags>,
@@ -37,15 +52,16 @@ function EventTagsAndScreenshots({
 }: Props) {
   const {tags = []} = event;
 
-  const screenshot = attachments.find(
-    ({name}) => name === 'screenshot.jpg' || name === 'screenshot.png'
-  );
+  const screenshots = attachments.filter(({name}) => SCREENSHOT_NAMES.includes(name));
 
-  if (!tags.length && !hasContext && (isShare || !screenshot)) {
+  const [screenshotInFocus, setScreenshotInFoucs] = useState<number>(0);
+
+  if (!tags.length && !hasContext && (isShare || !screenshots.length)) {
     return null;
   }
 
-  const showScreenshot = !isShare && !!screenshot;
+  const showScreenshot = !isShare && !!screenshots.length;
+  const screenshot = screenshots[screenshotInFocus];
   // Check for context bailout condition. No context is rendered if only user is provided
   const hasEventContext = hasContext && !objectIsEmpty(event.contexts);
   const showTags = !!tags.length || hasContext;
@@ -88,19 +104,64 @@ function EventTagsAndScreenshots({
     );
   }
 
+  const screenshotLink = (
+    <Link
+      to={{
+        pathname: `${location.pathname}${TabPaths[Tab.ATTACHMENTS]}`,
+        query: {...location.query, types: SCREENSHOT_TYPE},
+      }}
+    />
+  );
+
   return (
     <Wrapper showScreenshot={showScreenshot} showTags={showTags}>
       {showScreenshot && (
-        <ScreenshotWrapper>
-          <Screenshot
-            organization={organization}
-            eventId={event.id}
-            projectSlug={projectSlug}
-            screenshot={screenshot}
-            onDelete={onDeleteScreenshot}
-            openVisualizationModal={handleOpenVisualizationModal}
-          />
-        </ScreenshotWrapper>
+        <div>
+          <ScreenshotWrapper>
+            <ScreenshotDataSection
+              data-test-id="screenshot-data-section"
+              title={
+                screenshots.length > 1
+                  ? tct('[current] of [total] [link:screenshots]', {
+                      current: screenshotInFocus + 1,
+                      total: screenshots.length,
+                      link: screenshotLink,
+                    })
+                  : tct('[link:Screenshot]', {
+                      link: screenshotLink,
+                    })
+              }
+              description={t(
+                'This image was captured around the time that the event occurred.'
+              )}
+            >
+              <Screenshot
+                organization={organization}
+                eventId={event.id}
+                projectSlug={projectSlug}
+                screenshot={screenshot}
+                onDelete={onDeleteScreenshot}
+                openVisualizationModal={handleOpenVisualizationModal}
+              />
+            </ScreenshotDataSection>
+          </ScreenshotWrapper>
+          {screenshots.length > 1 && (
+            <Container>
+              {screenshots.map((s, index) => {
+                return (
+                  <IconEllipse
+                    key={`${index}-${s.name}`}
+                    role="button"
+                    aria-label={tct('View [screenshotName]', {screenshotName: s.name})}
+                    data-test-id={`screenshot-icon-${index}`}
+                    inFocus={screenshotInFocus === index}
+                    onClick={() => setScreenshotInFoucs(index)}
+                  />
+                );
+              })}
+            </Container>
+          )}
+        </div>
       )}
       {showScreenshot && (showTags || hasEventContext) && <VerticalDivider />}
       <TagWrapper hasEventContext={hasEventContext}>
@@ -178,4 +239,22 @@ const TagsHighlightWrapper = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     padding: 0 ${space(4)};
   }
+`;
+
+const IconEllipse = styled('div')<{
+  inFocus: boolean;
+}>`
+  width: 6px;
+  height: 6px;
+  cursor: pointer;
+
+  border-radius: 5px;
+  background-color: ${p => (p.inFocus ? p.theme.gray300 : p.theme.gray100)};
+`;
+
+const Container = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
 `;

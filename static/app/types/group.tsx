@@ -28,13 +28,19 @@ export type SavedSearch = {
   dateCreated: string;
   id: string;
   isGlobal: boolean;
-  isOrgCustom: boolean;
   isPinned: boolean;
   name: string;
   query: string;
   sort: string;
   type: SavedSearchType;
+  visibility: SavedSearchVisibility;
 };
+
+export enum SavedSearchVisibility {
+  Organization = 'organization',
+  Owner = 'owner',
+  OwnerPinned = 'owner_pinned',
+}
 
 export enum SavedSearchType {
   ISSUE = 0,
@@ -150,6 +156,7 @@ type Topvalue = {
   value: string;
   // Might not actually exist.
   query?: string;
+  readable?: string;
 };
 
 export type TagWithTopValues = {

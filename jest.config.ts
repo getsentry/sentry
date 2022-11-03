@@ -34,6 +34,12 @@ const optionalTags: {
   balancer: false,
 };
 
+if (!!JEST_TEST_BALANCER && !CI) {
+  throw new Error(
+    '[Operation only allowed in CI]: Jest test balancer should never be ran manually as you risk skewing the numbers - please trigger the automated github workflow at https://github.com/getsentry/sentry/actions/workflows/jest-balance.yml'
+  );
+}
+
 /**
  * In CI we may need to shard our jest tests so that we can parellize the test runs
  *
