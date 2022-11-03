@@ -277,7 +277,7 @@ def _get_project_config(project, full_config=True, project_keys=None):
             "drop": False,
         }
 
-        config["spanAttributes"] = project.get_option("sentry:span_attributes")
+    config["spanAttributes"] = project.get_option("sentry:span_attributes")
     with Hub.current.start_span(op="get_filter_settings"):
         config["filterSettings"] = get_filter_settings(project)
     with Hub.current.start_span(op="get_grouping_config_dict_for_project"):

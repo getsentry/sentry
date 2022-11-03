@@ -600,12 +600,7 @@ def test_project_config_with_span_attributes(default_project, insta_snapshot):
     # The span attributes config is not set with the flag turnd off
     cfg = get_project_config(default_project, full_config=True)
     cfg = cfg.to_dict()
-    assert "spanAttributes" not in cfg["config"]
-
-    cfg = get_project_config(default_project, full_config=True)
-
-    cfg = cfg.to_dict()
-    insta_snapshot(cfg["config"]["spanAttributes"])
+    assert "spanAttributes" in cfg["config"]
 
 
 @pytest.mark.django_db

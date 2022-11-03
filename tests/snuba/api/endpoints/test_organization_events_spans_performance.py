@@ -84,7 +84,7 @@ class OrganizationEventsSpansEndpointTestBase(APITestCase, SnubaTestCase):
                     "timestamp": iso_format(self.min_ago + timedelta(seconds=4)),
                     "op": "django.middleware",
                     "description": "middleware span",
-                    "hash": "cd" * 8,
+                    "hash": "2b9cbb96dbf59baa",
                     "exclusive_time": 3.0,
                 }
                 for x in ["b", "c"]
@@ -1434,7 +1434,6 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
                 "timestamp": iso_format(self.min_ago + timedelta(seconds=4)),
                 "op": "django.middleware",
                 "description": "middleware span",
-                "hash": "cd" * 8,
                 "exclusive_time": 5.0,
             }
             for x in ["b", "c"]
@@ -1447,7 +1446,6 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
                 "timestamp": iso_format(self.min_ago + timedelta(seconds=5)),
                 "op": "django.middleware",
                 "description": "middleware span",
-                "hash": "cd" * 8,
                 "exclusive_time": 3.0,
             }
             for x in ["d", "e", "f"]
@@ -1459,7 +1457,7 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
                 self.url,
                 data={
                     "project": self.project.id,
-                    "span": f"django.middleware:{'cd' * 8}",
+                    "span": f"django.middleware:2b9cbb96dbf59baa",
                     "min_exclusive_time": 2.0,
                     "max_exclusive_time": 4.0,
                 },
@@ -1471,7 +1469,7 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
         expected_result = [
             {
                 "op": "django.middleware",
-                "group": "cd" * 8,
+                "group": "2b9cbb96dbf59baa",
                 "examples": [
                     {
                         "id": event.event_id,
@@ -1687,7 +1685,7 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
                 "timestamp": iso_format(self.min_ago + timedelta(seconds=4)),
                 "op": "django.middleware",
                 "description": "middleware span",
-                "hash": "cd" * 8,
+                "hash": "2b9cbb96dbf59baa",
                 "exclusive_time": 5.0,
             }
             for x in ["b", "c"]
@@ -1700,7 +1698,7 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
                 "timestamp": iso_format(self.min_ago + timedelta(seconds=5)),
                 "op": "django.middleware",
                 "description": "middleware span",
-                "hash": "cd" * 8,
+                "hash": "2b9cbb96dbf59baa",
                 "exclusive_time": 3.0,
             }
             for x in ["d", "e", "f"]
@@ -1713,7 +1711,7 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
                 self.url,
                 data={
                     "project": self.project.id,
-                    "span": f"django.middleware:{'cd' * 8}",
+                    "span": f"django.middleware:2b9cbb96dbf59baa",
                     "min_exclusive_time": 2.0,
                     "max_exclusive_time": 4.0,
                     "per_page": 1,
