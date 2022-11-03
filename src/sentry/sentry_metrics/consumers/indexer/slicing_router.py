@@ -1,4 +1,3 @@
-from time import time
 from typing import MutableMapping, Optional
 
 from arroyo import Message, Topic
@@ -23,20 +22,20 @@ class SlicingRouter(MessageRouter):
     def __init__(
         self,
         sliceable: Sliceable,
-        logical_output_topic: str,
+        output_topic: str,
     ) -> None:
         self.__sliceable = sliceable
-        self.__logical_output_topic = logical_output_topic
+        self.__output_topic = output_topic
         self.__slice_to_producer: MutableMapping[int, MessageRoute] = {}
 
         if not is_sliced(self.__sliceable):
             self.__slice_to_producer[0] = MessageRoute(
                 producer=Producer(
                     kafka_config.get_kafka_producer_cluster_options(
-                        settings.KAFKA_TOPICS[self.__logical_output_topic]["cluster"]
+                        settings.KAFKA_TOPICS[self.__output_topic]["cluster"]
                     )
                 ),
-                topic=Topic(self.__logical_output_topic),
+                topic=Topic(self.__output_topic),
             )
             self.__slicing_enabled = False
         else:
@@ -77,11 +76,5 @@ class SlicingRouter(MessageRouter):
         return producer
 
     def shutdown(self, timeout: Optional[float] = None) -> None:
-        if not timeout:
-            timeout = 5.0
         for route in self.__slice_to_producer.values():
-            now = time()
             route.producer.flush(timeout=timeout)
-            timeout -= time() - now
-            if timeout <= 0:
-                break
