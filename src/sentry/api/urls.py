@@ -425,8 +425,6 @@ from .endpoints.project_rule_preview import ProjectRulePreviewEndpoint
 from .endpoints.project_rule_task_details import ProjectRuleTaskDetailsEndpoint
 from .endpoints.project_rules import ProjectRulesEndpoint
 from .endpoints.project_rules_configuration import ProjectRulesConfigurationEndpoint
-from .endpoints.project_search_details import ProjectSearchDetailsEndpoint
-from .endpoints.project_searches import ProjectSearchesEndpoint
 from .endpoints.project_servicehook_details import ProjectServiceHookDetailsEndpoint
 from .endpoints.project_servicehook_stats import ProjectServiceHookStatsEndpoint
 from .endpoints.project_servicehooks import ProjectServiceHooksEndpoint
@@ -2104,16 +2102,6 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rule-task/(?P<task_uuid>[^\/]+)/$",
                     ProjectRuleTaskDetailsEndpoint.as_view(),
                     name="sentry-api-0-project-rule-task-details",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/searches/$",
-                    ProjectSearchesEndpoint.as_view(),
-                    name="sentry-api-0-project-searches",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/searches/(?P<search_id>[^\/]+)/$",
-                    ProjectSearchDetailsEndpoint.as_view(),
-                    name="sentry-api-0-project-search-details",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/stats/$",

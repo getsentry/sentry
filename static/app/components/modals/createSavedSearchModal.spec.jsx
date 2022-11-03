@@ -27,6 +27,16 @@ describe('CreateSavedSearchModal', function () {
       method: 'POST',
       body: {id: '1', name: 'test', query: 'is:unresolved assigned:lyn@sentry.io'},
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      method: 'GET',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      method: 'POST',
+      body: [],
+    });
   });
 
   it('saves a search when query is not changed', async function () {
@@ -55,8 +65,8 @@ describe('CreateSavedSearchModal', function () {
     render(<CreateSavedSearchModal {...defaultProps} />);
 
     userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'new search name');
-    userEvent.clear(screen.getByRole('textbox', {name: 'Query'}));
-    userEvent.type(screen.getByRole('textbox', {name: 'Query'}), 'is:resolved');
+    userEvent.clear(screen.getByTestId('smart-search-input'));
+    userEvent.type(screen.getByTestId('smart-search-input'), 'is:resolved{enter}');
     await selectEvent.select(screen.getByText('Last Seen'), 'Priority');
     userEvent.click(screen.getByRole('button', {name: 'Save'}));
 

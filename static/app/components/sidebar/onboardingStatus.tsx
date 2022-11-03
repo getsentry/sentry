@@ -10,9 +10,11 @@ import ProgressRing, {
   RingText,
 } from 'sentry/components/progressRing';
 import {t, tct} from 'sentry/locale';
+import HookStore from 'sentry/stores/hookStore';
 import space from 'sentry/styles/space';
 import {OnboardingTaskStatus, Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import theme, {Theme} from 'sentry/utils/theme';
 import withProjects from 'sentry/utils/withProjects';
 import {usePersistedOnboardingState} from 'sentry/views/onboarding/utils';
@@ -22,6 +24,17 @@ import {CommonSidebarProps, SidebarPanelKey} from './types';
 type Props = CommonSidebarProps & {
   org: Organization;
   projects: Project[];
+};
+
+/**
+ * This is used to determine if we show the sidebar or not.
+ * The Sandbox will set this hook to implement custom logic not based
+ * on a feature flag.
+ */
+export const shouldShowSidebar = (organization: Organization) => {
+  const defaultHook = () => organization.features?.includes('onboarding');
+  const featureHook = HookStore.get('onboarding:show-sidebar')[0] || defaultHook;
+  return featureHook(organization);
 };
 
 const isDone = (task: OnboardingTaskStatus) =>
@@ -47,7 +60,7 @@ function OnboardingStatus({
   };
   const [onboardingState] = usePersistedOnboardingState();
 
-  if (!org.features?.includes('onboarding')) {
+  if (!shouldShowSidebar(org)) {
     return null;
   }
 
@@ -76,7 +89,9 @@ function OnboardingStatus({
     return null;
   }
 
-  const label = t('Quick Start');
+  const walkthrough = isDemoWalkthrough();
+  const label = walkthrough ? t('Guided Tours') : t('Quick Start');
+  const task = walkthrough ? 'tours' : 'tasks';
 
   return (
     <Fragment>
@@ -100,7 +115,7 @@ function OnboardingStatus({
           <div>
             <Heading>{label}</Heading>
             <Remaining>
-              {tct('[numberRemaining] Remaining tasks', {numberRemaining})}
+              {tct('[numberRemaining] Remaining [task]', {numberRemaining, task})}
               {pendingCompletionSeen && <PendingSeenIndicator />}
             </Remaining>
           </div>

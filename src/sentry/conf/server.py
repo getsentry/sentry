@@ -605,6 +605,7 @@ CELERY_IMPORTS = (
     "sentry.release_health.tasks",
     "sentry.utils.suspect_resolutions.get_suspect_resolutions",
     "sentry.utils.suspect_resolutions_releases.get_suspect_resolutions_releases",
+    "sentry.tasks.derive_code_mappings",
 )
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
@@ -962,6 +963,8 @@ SENTRY_FEATURES = {
     "organizations:active-release-notifications-enable": False,
     # Enables tagging javascript errors from the browser console.
     "organizations:javascript-console-error-tag": False,
+    # Enables automatically deriving of code mappings
+    "organizations:derive-code-mappings": False,
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
     # Use metrics as the dataset for crash free metric alerts
@@ -1030,6 +1033,8 @@ SENTRY_FEATURES = {
     "organizations:rule-page": False,
     # Enable incidents feature
     "organizations:incidents": False,
+    # Enable issue alert incompatible rule check
+    "organizations:issue-alert-incompatible-rules": False,
     # Enable issue alert previews
     "organizations:issue-alert-preview": False,
     # Enable issue alert test notifications
@@ -1135,8 +1140,6 @@ SENTRY_FEATURES = {
     "organizations:performance-ops-breakdown": False,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
     "organizations:performance-chart-interpolation": False,
-    # Enable views for suspect tags
-    "organizations:performance-suspect-spans-view": False,
     # Enable views for anomaly detection
     "organizations:performance-anomaly-detection-ui": False,
     # Enable histogram view in span details
@@ -1145,16 +1148,18 @@ SENTRY_FEATURES = {
     "organizations:performance-autogroup-sibling-spans": False,
     # Enable performance on-boarding checklist
     "organizations:performance-onboarding-checklist": False,
-    # Enable automatic horizontal scrolling on the span tree
-    "organizations:performance-span-tree-autoscroll": False,
     # Enable transaction name only search
     "organizations:performance-transaction-name-only-search": False,
+    # Enable transaction name only search on indexed
+    "organizations:performance-transaction-name-only-search-indexed": False,
     # Re-enable histograms for Metrics Enhanced Performance Views
     "organizations:performance-mep-reintroduce-histograms": False,
     # Enable showing INP web vital in default views
     "organizations:performance-vitals-inp": False,
     # Enable processing transactions in post_process_group
     "organizations:performance-issues-post-process-group": False,
+    # Enable internal view for bannerless MEP view
+    "organizations:performance-mep-bannerless-ui": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable populating suggested assignees with release committers
@@ -1232,8 +1237,6 @@ SENTRY_FEATURES = {
     # Enable functionality for attaching  minidumps to events and displaying
     # then in the group UI.
     "projects:minidump": True,
-    # Enable ingestion for suspect spans
-    "projects:performance-suspect-spans-ingestion": False,
     # Enable functionality for project plugins.
     "projects:plugins": True,
     # Enable alternative version of group creation that is supposed to be less racy.
@@ -2866,6 +2869,7 @@ SILO_MODE_UNSTABLE_TESTS = bool(os.environ.get("SENTRY_SILO_MODE_UNSTABLE_TESTS"
 DISALLOWED_CUSTOMER_DOMAINS = []
 
 SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS = {}
+SENTRY_PERFORMANCE_ISSUES_REDUCE_NOISE = False
 
 SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
 SENTRY_REGION_CONFIG: Iterable[Region] = ()
@@ -2880,3 +2884,6 @@ SENTRY_SLICING_LOGICAL_PARTITION_COUNT = 256
 # For each Sliceable, the range [0, SENTRY_SLICING_LOGICAL_PARTITION_COUNT) must be mapped
 # to a slice ID
 SENTRY_SLICING_CONFIG: Mapping[str, Mapping[Tuple[int, int], int]] = {}
+
+# Show session replay banner on login page
+SHOW_SESSION_REPLAY_BANNER = False

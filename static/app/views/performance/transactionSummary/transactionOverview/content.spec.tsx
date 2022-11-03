@@ -111,6 +111,24 @@ describe('Transaction Summary Content', function () {
       url: '/organizations/org-slug/events-has-measurements/',
       body: {measurements: false},
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-spans-performance/',
+      body: [
+        {
+          op: 'ui.long-task',
+          group: 'c777169faad84eb4',
+          description: 'Main UI thread blocked',
+          frequency: 713,
+          count: 9040,
+          avgOccurrences: null,
+          sumExclusiveTime: 1743893.9822921753,
+          p50ExclusiveTime: null,
+          p75ExclusiveTime: 244.9998779296875,
+          p95ExclusiveTime: null,
+          p99ExclusiveTime: null,
+        },
+      ],
+    });
   });
 
   afterEach(function () {

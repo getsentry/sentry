@@ -14,7 +14,11 @@ export class VirtualizedTree<T extends TreeLike> {
   // Rebuilds the tree
   static fromRoots<T extends TreeLike>(
     items: T[],
+    expanded?: boolean,
     skipFn: (n: VirtualizedTreeNode<T>) => boolean = () => false,
+    // If we are selecting a sub-root of the tree and the user
+    // has previously expended some of the children, we use this
+    // to carry-them over and preserver their state.
     expandedNodes?: Set<T>
   ): VirtualizedTree<T> {
     const roots: VirtualizedTreeNode<T>[] = [];
@@ -25,11 +29,13 @@ export class VirtualizedTree<T extends TreeLike> {
       collection: VirtualizedTreeNode<T>[] | null,
       depth: number
     ) {
+      const shouldUseExpandedSet = expandedNodes && expandedNodes.size > 0;
+
       const treeNode = new VirtualizedTreeNode<T>(
         node,
         parent,
         depth,
-        expandedNodes ? expandedNodes.has(node) : false
+        shouldUseExpandedSet ? expandedNodes.has(node) : expanded
       );
 
       // We cannot skip root nodes, so we check that the parent is not null.
