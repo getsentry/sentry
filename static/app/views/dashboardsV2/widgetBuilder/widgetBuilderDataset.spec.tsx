@@ -272,14 +272,14 @@ describe('WidgetBuilder', function () {
 
   describe('Release Widgets', function () {
     it('shows the Release Health dataset', async function () {
-      renderTestComponent({});
+      renderTestComponent();
 
       expect(await screen.findByText('Errors and Transactions')).toBeInTheDocument();
       expect(screen.getByText('Releases (Sessions, Crash rates)')).toBeInTheDocument();
     });
 
     it('maintains the selected dataset when display type is changed', async function () {
-      renderTestComponent({});
+      renderTestComponent();
 
       expect(
         await screen.findByText('Releases (Sessions, Crash rates)')
@@ -295,7 +295,7 @@ describe('WidgetBuilder', function () {
     });
 
     it('displays releases tags', async function () {
-      renderTestComponent({});
+      renderTestComponent();
 
       expect(
         await screen.findByText('Releases (Sessions, Crash rates)')
@@ -318,7 +318,7 @@ describe('WidgetBuilder', function () {
     });
 
     it('does not display tags as params', async function () {
-      renderTestComponent({});
+      renderTestComponent();
 
       expect(
         await screen.findByText('Releases (Sessions, Crash rates)')
@@ -336,7 +336,7 @@ describe('WidgetBuilder', function () {
     });
 
     it('does not allow sort by when session.status is selected', async function () {
-      renderTestComponent({});
+      renderTestComponent();
 
       expect(
         await screen.findByText('Releases (Sessions, Crash rates)')
@@ -356,7 +356,7 @@ describe('WidgetBuilder', function () {
 
     it('does not allow sort on tags except release', async function () {
       jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
-      renderTestComponent({});
+      renderTestComponent();
 
       expect(
         await screen.findByText('Releases (Sessions, Crash rates)')
@@ -389,7 +389,7 @@ describe('WidgetBuilder', function () {
 
     it('makes the appropriate sessions call', async function () {
       jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
-      renderTestComponent({});
+      renderTestComponent();
 
       expect(
         await screen.findByText('Releases (Sessions, Crash rates)')
@@ -419,7 +419,7 @@ describe('WidgetBuilder', function () {
 
     it('calls the session endpoint with the right limit', async function () {
       jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
-      renderTestComponent({});
+      renderTestComponent();
 
       expect(
         await screen.findByText('Releases (Sessions, Crash rates)')
@@ -455,7 +455,7 @@ describe('WidgetBuilder', function () {
 
     it('calls sessions api when session.status is selected as a groupby', async function () {
       jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
-      renderTestComponent({});
+      renderTestComponent();
 
       expect(
         await screen.findByText('Releases (Sessions, Crash rates)')
@@ -488,7 +488,7 @@ describe('WidgetBuilder', function () {
     });
 
     it('displays the correct options for area chart', async function () {
-      renderTestComponent({});
+      renderTestComponent();
 
       expect(
         await screen.findByText('Releases (Sessions, Crash rates)')
@@ -512,7 +512,7 @@ describe('WidgetBuilder', function () {
 
     it('sets widgetType to release', async function () {
       jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
-      renderTestComponent({});
+      renderTestComponent();
 
       userEvent.click(await screen.findByText('Releases (Sessions, Crash rates)'));
 
@@ -582,7 +582,7 @@ describe('WidgetBuilder', function () {
     });
 
     it('renders with a release search bar', async function () {
-      renderTestComponent({});
+      renderTestComponent();
 
       userEvent.type(
         await screen.findByPlaceholderText('Search for events, users, tags, and more'),
@@ -606,7 +606,7 @@ describe('WidgetBuilder', function () {
 
     it('adds a function when the only column chosen in a table is a tag', async function () {
       jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
-      renderTestComponent({});
+      renderTestComponent();
 
       userEvent.click(await screen.findByText('Releases (Sessions, Crash rates)'));
 
