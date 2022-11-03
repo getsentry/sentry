@@ -46,6 +46,7 @@ const SentryApp = {
   getModalPortal: require('sentry/utils/getModalPortal').default,
   Client: require('sentry/api').Client,
   // These are required for the Sandbox to fetch the demo walkthrough tasks and hook them into the Sidebar Panel and Sidebar Status
+  // They allow the Sandbox to replicate the functionality of getMergedTasks without relying on the organization's onboarding tasks
   OnboardingTask: require('sentry/types').OnboardingTask,
   getOnboardingTask: require('sentry/components/onboardingWizard/taskConfig')
     .getOnboardingTasks,
