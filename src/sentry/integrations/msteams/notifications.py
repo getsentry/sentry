@@ -24,6 +24,7 @@ from sentry.notifications.notify import register_notification_provider
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
 
+from ...services.hybrid_cloud.user import APIUser
 from .card_builder.notifications import (
     MSTeamsIssueNotificationsMessageBuilder,
     MSTeamsNotificationsMessageBuilder,
@@ -67,7 +68,7 @@ def get_notification_card(
 @register_notification_provider(ExternalProviders.MSTEAMS)
 def send_notification_as_msteams(
     notification: BaseNotification,
-    recipients: Iterable[Team | User],
+    recipients: Iterable[Team | APIUser],
     shared_context: Mapping[str, Any],
     extra_context_by_actor_id: Mapping[int, Mapping[str, Any]] | None,
 ):

@@ -48,6 +48,7 @@ from sentry.ownership import grammar
 from sentry.ownership.grammar import Matcher, Owner, dump_schema
 from sentry.plugins.base import Notification
 from sentry.rules import EventState
+from sentry.services.hybrid_cloud.user import user_service
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -375,9 +376,9 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         args, kwargs = mock_func.call_args
         notification = args[1]
 
-        assert notification.get_recipient_context(self.user, {})["timezone"] == pytz.timezone(
-            "Europe/Vienna"
-        )
+        assert notification.get_recipient_context(user_service.serialize_user(self.user), {})[
+            "timezone"
+        ] == pytz.timezone("Europe/Vienna")
 
         self.assertEqual(notification.project, self.project)
         self.assertEqual(notification.reference, group)

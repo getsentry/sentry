@@ -59,10 +59,10 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
             settings_url, recipient
         )
 
-    def get_title_link(self, recipient: Team | User, provider: ExternalProviders) -> str | None:
+    def get_title_link(self, recipient: Team | APIUser, provider: ExternalProviders) -> str | None:
         return None
 
-    def get_log_params(self, recipient: Team | User) -> MutableMapping[str, Any]:
+    def get_log_params(self, recipient: Team | APIUser) -> MutableMapping[str, Any]:
         if isinstance(recipient, Team):
             raise NotImplementedError
 

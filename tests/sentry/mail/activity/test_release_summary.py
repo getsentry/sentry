@@ -7,6 +7,7 @@ from sentry.notifications.notifications.activity.release_summary import (
     ReleaseSummaryActivityNotification,
 )
 from sentry.notifications.types import GroupSubscriptionReason
+from sentry.services.hybrid_cloud.user import user_service
 from sentry.testutils.cases import ActivityTestCase
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
@@ -65,7 +66,9 @@ class ReleaseSummaryTestCase(ActivityTestCase):
         context = release_summary.get_context()
         assert context["environment"] == "production"
 
-        user_context = release_summary.get_recipient_context(self.user1, {})
+        user_context = release_summary.get_recipient_context(
+            user_service.serialize_user(self.user1), {}
+        )
         # make sure this only includes projects user has access to
         assert len(user_context["projects"]) == 1
         assert user_context["projects"][0][0] == self.project

@@ -7,6 +7,7 @@ from sentry.notifications.types import (
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
+from sentry.services.hybrid_cloud.user import user_service
 from sentry.testutils.cases import ActivityTestCase
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
@@ -107,7 +108,7 @@ class ReleaseTestCase(ActivityTestCase):
             (self.commit1, self.user1),
         ]
 
-        user_context = email.get_recipient_context(self.user1, {})
+        user_context = email.get_recipient_context(user_service.serialize_user(self.user1), {})
         # make sure this only includes projects user has access to
         assert len(user_context["projects"]) == 1
         assert user_context["projects"][0][0] == self.project
@@ -156,7 +157,7 @@ class ReleaseTestCase(ActivityTestCase):
         assert context["environment"] == "production"
         assert context["repos"] == []
 
-        user_context = email.get_recipient_context(self.user1, {})
+        user_context = email.get_recipient_context(user_service.serialize_user(self.user1), {})
         # make sure this only includes projects user has access to
         assert len(user_context["projects"]) == 1
         assert user_context["projects"][0][0] == self.project
@@ -206,7 +207,7 @@ class ReleaseTestCase(ActivityTestCase):
         assert context["environment"] == "production"
         assert context["repos"] == []
 
-        user_context = email.get_recipient_context(user6, {})
+        user_context = email.get_recipient_context(user_service.serialize_user(user6), {})
         # make sure this only includes projects user has access to
         assert len(user_context["projects"]) == 1
         assert user_context["projects"][0][0] == self.project
