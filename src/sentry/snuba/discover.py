@@ -135,6 +135,7 @@ def query(
     selected_columns,
     query,
     params,
+    snuba_params=None,
     equations=None,
     orderby=None,
     offset=None,
@@ -189,6 +190,7 @@ def query(
     builder = QueryBuilder(
         Dataset.Discover,
         params,
+        snuba_params=snuba_params,
         query=query,
         selected_columns=selected_columns,
         equations=equations,
@@ -222,6 +224,7 @@ def timeseries_query(
     functions_acl: Optional[Sequence[str]] = None,
     allow_metric_aggregates=False,
     has_metrics=False,
+    use_metrics_layer=False,
 ):
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -284,8 +287,8 @@ def timeseries_query(
                 {
                     "data": zerofill(
                         result["data"],
-                        snql_query.params["start"],
-                        snql_query.params["end"],
+                        snql_query.params.start,
+                        snql_query.params.end,
                         rollup,
                         "time",
                     )
@@ -658,6 +661,7 @@ def spans_histogram_query(
     limit_by=None,
     extra_condition=None,
     normalize_results=True,
+    use_metrics_layer=False,
 ):
     """
     API for generating histograms for span exclusive time.
@@ -828,6 +832,7 @@ def histogram_query(
     histogram_rows=None,
     extra_conditions=None,
     normalize_results=True,
+    use_metrics_layer=False,
 ):
     """
     API for generating histograms for numeric columns.

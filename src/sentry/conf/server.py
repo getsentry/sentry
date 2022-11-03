@@ -1136,18 +1136,12 @@ SENTRY_FEATURES = {
     "organizations:org-subdomains": False,
     # Enable project selection on the stats page
     "organizations:project-stats": False,
-    # Enable views for ops breakdown
-    "organizations:performance-ops-breakdown": False,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
     "organizations:performance-chart-interpolation": False,
-    # Enable views for suspect tags
-    "organizations:performance-suspect-spans-view": False,
     # Enable views for anomaly detection
     "organizations:performance-anomaly-detection-ui": False,
     # Enable histogram view in span details
     "organizations:performance-span-histogram-view": False,
-    # Enable autogrouping of sibling spans
-    "organizations:performance-autogroup-sibling-spans": False,
     # Enable performance on-boarding checklist
     "organizations:performance-onboarding-checklist": False,
     # Enable transaction name only search
@@ -1239,8 +1233,6 @@ SENTRY_FEATURES = {
     # Enable functionality for attaching  minidumps to events and displaying
     # then in the group UI.
     "projects:minidump": True,
-    # Enable ingestion for suspect spans
-    "projects:performance-suspect-spans-ingestion": False,
     # Enable functionality for project plugins.
     "projects:plugins": True,
     # Enable alternative version of group creation that is supposed to be less racy.
@@ -1736,7 +1728,6 @@ SENTRY_ROLES = (
         "id": "manager",
         "name": "Manager",
         "desc": "Gains admin access on all teams as well as the ability to add and remove members.",
-        "is_global": True,
         "scopes": {
             "event:read",
             "event:write",
@@ -1757,6 +1748,7 @@ SENTRY_ROLES = (
             "alerts:read",
             "alerts:write",
         },
+        "is_global": True,
     },
     {
         "id": "owner",
@@ -1768,7 +1760,6 @@ SENTRY_ROLES = (
             billing and plan changes.
             """
         ),
-        "is_global": True,
         "scopes": {
             "org:read",
             "org:write",
@@ -1790,6 +1781,7 @@ SENTRY_ROLES = (
             "alerts:read",
             "alerts:write",
         },
+        "is_global": True,
     },
 )
 
@@ -2873,6 +2865,7 @@ SILO_MODE_UNSTABLE_TESTS = bool(os.environ.get("SENTRY_SILO_MODE_UNSTABLE_TESTS"
 DISALLOWED_CUSTOMER_DOMAINS = []
 
 SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS = {}
+SENTRY_PERFORMANCE_ISSUES_REDUCE_NOISE = False
 
 SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
 SENTRY_REGION_CONFIG: Iterable[Region] = ()
@@ -2888,5 +2881,5 @@ SENTRY_SLICING_LOGICAL_PARTITION_COUNT = 256
 # to a slice ID
 SENTRY_SLICING_CONFIG: Mapping[str, Mapping[Tuple[int, int], int]] = {}
 
-# Flag if we are in SaaS mode
-SENTRY_IS_SAAS = False
+# Show session replay banner on login page
+SHOW_SESSION_REPLAY_BANNER = False

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Any, List, Tuple
 
 import sentry_sdk
@@ -6,13 +8,14 @@ from snuba_sdk import AliasedExpression, Function
 from sentry.discover.models import TeamKeyTransaction
 from sentry.exceptions import IncompatibleMetricsQuery
 from sentry.models import ProjectTeam
-from sentry.search.events import constants, fields
-from sentry.search.events.builder import QueryBuilder
+from sentry.search.events import builder, constants, fields
 from sentry.search.events.types import SelectType
 from sentry.utils.numbers import format_grouped_length
 
 
-def dry_run_default(builder: QueryBuilder, alias: str, *args: Any, **kwargs: Any) -> SelectType:
+def dry_run_default(
+    builder: builder.QueryBuilder, alias: str, *args: Any, **kwargs: Any
+) -> SelectType:
     """It doesn't really matter what we return here, the query won't be run
 
     This is so we can easily swap to something when we're dry running to prevent hitting postgres at all
@@ -21,7 +24,7 @@ def dry_run_default(builder: QueryBuilder, alias: str, *args: Any, **kwargs: Any
 
 
 def resolve_team_key_transaction_alias(
-    builder: QueryBuilder, resolve_metric_index: bool = False
+    builder: builder.QueryBuilder, resolve_metric_index: bool = False
 ) -> SelectType:
     team_key_transactions = get_team_transactions(builder, resolve_metric_index)
     if len(team_key_transactions) == 0:
@@ -38,11 +41,11 @@ def resolve_team_key_transaction_alias(
 
 
 def get_team_transactions(
-    builder: QueryBuilder, resolve_metric_index: bool = False
+    builder: builder.QueryBuilder, resolve_metric_index: bool = False
 ) -> List[Tuple[int, str]]:
-    org_id = builder.params.get("organization_id")
-    project_ids = builder.params.get("project_id")
-    team_ids = builder.params.get("team_id")
+    org_id = builder.params.organization.id if builder.params.organization is not None else None
+    project_ids = builder.params.project_ids
+    team_ids = builder.params.team_ids
 
     if org_id is None or team_ids is None or project_ids is None:
         raise TypeError("Team key transactions parameters cannot be None")
@@ -66,7 +69,7 @@ def get_team_transactions(
         # Its completely possible that a team_key_transaction never existed in the metrics dataset
         for project, transaction in team_key_transactions:
             try:
-                resolved_transaction = builder.resolve_tag_value(transaction)
+                resolved_transaction = builder.resolve_tag_value(transaction)  # type: ignore
             except IncompatibleMetricsQuery:
                 continue
             if resolved_transaction:
@@ -84,7 +87,9 @@ def get_team_transactions(
     return team_key_transactions
 
 
-def resolve_project_slug_alias(builder: QueryBuilder, alias: str) -> SelectType:
-    builder.value_resolver_map[alias] = lambda project_id: builder.project_ids.get(project_id, "")
+def resolve_project_slug_alias(builder: builder.QueryBuilder, alias: str) -> SelectType:
+    builder.value_resolver_map[alias] = lambda project_id: builder.params.project_id_map.get(
+        project_id, ""
+    )
     builder.meta_resolver_map[alias] = "string"
     return AliasedExpression(exp=builder.column("project_id"), alias=alias)

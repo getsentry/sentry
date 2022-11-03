@@ -13,7 +13,6 @@ from sentry.utils.samples import load_data
 FEATURES = {
     "organizations:performance-span-histogram-view": True,
     "organizations:performance-view": True,
-    "organizations:performance-suspect-spans-view": True,
 }
 
 

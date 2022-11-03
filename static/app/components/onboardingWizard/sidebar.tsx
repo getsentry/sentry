@@ -11,6 +11,7 @@ import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {OnboardingTask, OnboardingTaskKey, Project} from 'sentry/types';
+import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -52,8 +53,10 @@ Heading.defaultProps = {
   transition: testableTransition(),
 };
 
+const completeNowText = isDemoWalkthrough() ? t('Sentry Basics') : t('Next Steps');
+
 const customizedTasksHeading = <Heading key="customized">{t('The Basics')}</Heading>;
-const completeNowHeading = <Heading key="now">{t('Next Steps')}</Heading>;
+const completeNowHeading = <Heading key="now">{completeNowText}</Heading>;
 const upcomingTasksHeading = (
   <Heading key="upcoming">
     <Tooltip

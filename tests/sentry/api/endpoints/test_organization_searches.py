@@ -2,7 +2,7 @@ from django.utils import timezone
 from exam import fixture
 
 from sentry.api.serializers import serialize
-from sentry.models.savedsearch import SavedSearch, SortOptions
+from sentry.models.savedsearch import SavedSearch, SortOptions, Visibility
 from sentry.models.search_common import SearchType
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
@@ -24,9 +24,7 @@ class OrgLevelOrganizationSearchesListTest(APITestCase):
         # extra rows to be created, so remove them to keep this test working
         SavedSearch.objects.filter(is_global=True).delete()
 
-        team = self.create_team(members=[self.user])
         SavedSearch.objects.create(
-            project=self.create_project(teams=[team], name="foo"),
             name="foo",
             query="some test",
             sort=SortOptions.DATE,
@@ -84,16 +82,9 @@ class OrgLevelOrganizationSearchesListTest(APITestCase):
             query="pinned junk",
             sort=SortOptions.NEW,
             date_added=timezone.now(),
+            visibility=Visibility.OWNER_PINNED,
         )
         included.append(pinned_query)
-        self.check_results(included)
-        # Check a pinned query that uses an existing query correctly filters
-        # the existing query
-        to_be_pinned = included.pop()
-        to_be_pinned.is_pinned = True
-        pinned_query.query = to_be_pinned.query
-        pinned_query.save()
-        included[0] = to_be_pinned
         self.check_results(included)
 
 
@@ -173,22 +164,3 @@ class CreateOrganizationSearchesTest(APITestCase):
         )
         assert resp.status_code == 400
         assert "This field may not be blank." == resp.data["query"][0]
-
-    def test_create_dupe_on_organization_name_type(self):
-        self.login_as(user=self.manager)
-        resp = self.get_response(
-            self.organization.slug,
-            type=SearchType.ISSUE.value,
-            name="hello",
-            query="is:unresolved",
-        )
-        assert resp.status_code == 200
-
-        resp_dupe = self.get_response(
-            self.organization.slug,
-            type=SearchType.ISSUE.value,
-            name="hello",
-            query="is:resolved",
-        )
-        assert resp_dupe.status_code == 400
-        assert "The combination" in resp_dupe.data["detail"]
