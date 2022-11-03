@@ -607,6 +607,10 @@ def process_code_mappings(job: PostProcessJob) -> None:
         event = job["event"]
         project = event.project
 
+        # We're currently only processing code mappings for python events
+        if event.data["platform"] != "python":
+            return
+
         cache_key = f"code-mappings:{project.organization_id}"
         organization_queued = cache.get(cache_key)
         # TODO(snigdha): Change the cache to per-project once we're able to optimize get_trees_for_org.
