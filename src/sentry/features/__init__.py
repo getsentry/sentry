@@ -121,7 +121,6 @@ default_manager.add("organizations:notification-all-recipients", OrganizationFea
 default_manager.add("organizations:onboarding", OrganizationFeature)  # Only enabled in sentry.io to enable onboarding flows.
 default_manager.add("organizations:org-subdomains", OrganizationFeature)
 default_manager.add("organizations:performance-anomaly-detection-ui", OrganizationFeature, True)
-default_manager.add("organizations:performance-autogroup-sibling-spans", OrganizationFeature, True)
 default_manager.add("organizations:performance-chart-interpolation", OrganizationFeature, True)
 default_manager.add("organizations:performance-dry-run-mep", OrganizationFeature, True)
 default_manager.add("organizations:performance-frontend-use-events-endpoint", OrganizationFeature, True)
