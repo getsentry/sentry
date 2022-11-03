@@ -16,6 +16,7 @@ import {OnboardingTaskStatus, Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import theme, {Theme} from 'sentry/utils/theme';
 import withProjects from 'sentry/utils/withProjects';
+import {OnboardingState} from 'sentry/views/onboarding/types';
 import {usePersistedOnboardingState} from 'sentry/views/onboarding/utils';
 
 import {CommonSidebarProps, SidebarPanelKey} from './types';
@@ -34,6 +35,25 @@ export const shouldShowSidebar = (organization: Organization) => {
   const defaultHook = () => organization.features?.includes('onboarding');
   const featureHook = HookStore.get('onboarding:show-sidebar')[0] || defaultHook;
   return featureHook(organization);
+};
+
+/**
+ * This is used to determine which tasks are fetched to use in the sidebar.
+ * The Sandbox will set this hook to allow for the walkthrough tasks
+ * to show up in the sidebar count instead of the onboarding ones.
+ */
+export const getSidebarTasks = (
+  organization: Organization,
+  projects: Project[],
+  onboardingState: OnboardingState | null
+) => {
+  const defaultHook = getMergedTasks({
+    organization,
+    projects,
+    onboardingState: onboardingState || undefined,
+  });
+  const featureHook = HookStore.get('onboarding:sidebar-tasks')[0] || defaultHook;
+  return featureHook({organization, projects, onboardingState});
 };
 
 const isDone = (task: OnboardingTaskStatus) =>
@@ -63,11 +83,7 @@ function OnboardingStatus({
     return null;
   }
 
-  const tasks = getMergedTasks({
-    organization: org,
-    projects,
-    onboardingState: onboardingState || undefined,
-  });
+  const tasks = getSidebarTasks(org, projects, onboardingState);
 
   const allDisplayedTasks = tasks
     .filter(task => task.display)

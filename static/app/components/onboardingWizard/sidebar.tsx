@@ -9,12 +9,14 @@ import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import {CommonSidebarProps} from 'sentry/components/sidebar/types';
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
+import HookStore from 'sentry/stores/hookStore';
 import space from 'sentry/styles/space';
-import {OnboardingTask, OnboardingTaskKey, Project} from 'sentry/types';
+import {OnboardingTask, OnboardingTaskKey, Organization, Project} from 'sentry/types';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import withProjects from 'sentry/utils/withProjects';
+import type {OnboardingState} from 'sentry/views/onboarding/types';
 import {usePersistedOnboardingState} from 'sentry/views/onboarding/utils';
 
 import ProgressHeader from './progressHeader';
@@ -36,6 +38,36 @@ const INITIAL_MARK_COMPLETE_TIMEOUT = 600;
  * How long (in ms) to delay between marking each unseen task as complete.
  */
 const COMPLETION_SEEN_TIMEOUT = 800;
+
+/**
+ * This is used to determine which tasks are fetched to use in the Panel.
+ * The Sandbox will set this hook to allow for the walkthrough tasks
+ * to show up in the panel instead of the onboarding ones.
+ */
+export const useGetTasks = (
+  organization: Organization,
+  projects: Project[],
+  onboardingState: OnboardingState | null
+) => {
+  const defaultHook = useMemo(() => {
+    const all = getMergedTasks({
+      organization,
+      projects,
+      onboardingState: onboardingState || undefined,
+    }).filter(task => task.display);
+    const tasks = all.filter(task => !task.renderCard);
+    return {
+      allTasks: all,
+      customTasks: all.filter(task => task.renderCard),
+      active: tasks.filter(findActiveTasks),
+      upcoming: tasks.filter(findUpcomingTasks),
+      complete: tasks.filter(findCompleteTasks),
+    };
+  }, [organization, projects, onboardingState]);
+
+  const featureHook = HookStore.get('onboarding:sandbox-tasks')[0] || defaultHook;
+  return featureHook({organization, projects, onboardingState});
+};
 
 const Heading = styled(motion.div)`
   display: flex;
@@ -65,7 +97,6 @@ const upcomingTasksHeading = (
   </Heading>
 );
 const completedTasksHeading = <Heading key="complete">{t('Completed')}</Heading>;
-
 function OnboardingWizardSidebar({collapsed, orientation, onClose, projects}: Props) {
   const api = useApi();
   const organization = useOrganization();
@@ -89,21 +120,11 @@ function OnboardingWizardSidebar({collapsed, orientation, onClose, projects}: Pr
     });
   }
 
-  const {allTasks, customTasks, active, upcoming, complete} = useMemo(() => {
-    const all = getMergedTasks({
-      organization,
-      projects,
-      onboardingState: onboardingState || undefined,
-    }).filter(task => task.display);
-    const tasks = all.filter(task => !task.renderCard);
-    return {
-      allTasks: all,
-      customTasks: all.filter(task => task.renderCard),
-      active: tasks.filter(findActiveTasks),
-      upcoming: tasks.filter(findUpcomingTasks),
-      complete: tasks.filter(findCompleteTasks),
-    };
-  }, [organization, projects, onboardingState]);
+  const {allTasks, customTasks, active, upcoming, complete} = getTasks(
+    organization,
+    projects,
+    onboardingState
+  );
 
   const markTasksAsSeen = useCallback(
     async function () {

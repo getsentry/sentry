@@ -45,9 +45,15 @@ const SentryApp = {
   Modal: require('sentry/actionCreators/modal'),
   getModalPortal: require('sentry/utils/getModalPortal').default,
   Client: require('sentry/api').Client,
-  IconArrow: require('sentry/icons/iconArrow').IconArrow,
-  IconClose: require('sentry/icons/iconClose').IconClose,
-  IconCheckmark: require('sentry/icons/iconCheckmark').IconCheckmark,
+  // These are required for the Sandbox to fetch the demo walkthrough tasks and hook them into the Sidebar Panel and Sidebar Status
+  OnboardingTask: require('sentry/types').OnboardingTask,
+  getOnboardingTask: require('sentry/components/onboardingWizard/taskConfig')
+    .getOnboardingTasks,
+  findActiveTasks: require('sentry/components/onboardingWizard/utils').findActiveTasks,
+  findCompleteTasks: require('sentry/components/onboardingWizard/utils')
+    .findCompleteTasks,
+  findUpcomingTasks: require('sentry/components/onboardingWizard/utils')
+    .findUpcomingTasks,
 };
 
 globals.SentryApp = SentryApp;
