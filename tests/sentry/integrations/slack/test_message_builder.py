@@ -5,7 +5,6 @@ from typing import Any, Mapping
 
 from django.urls import reverse
 
-from sentry.event_manager import EventManager
 from sentry.eventstore.models import Event
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
 from sentry.incidents.models import IncidentStatus
@@ -19,13 +18,10 @@ from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricA
 from sentry.models import Group, Team, User
 from sentry.notifications.notifications.active_release import ActiveReleaseIssueNotification
 from sentry.testutils import TestCase
-from sentry.testutils.helpers import override_options
-from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import region_silo_test
 from sentry.types.issues import GroupType
 from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
-from sentry.utils.samples import load_data
 
 
 def build_test_message(
@@ -172,37 +168,15 @@ class BuildGroupAttachmentTest(TestCase):
         attachments = SlackIssuesMessageBuilder(event.group, event).build()
         assert attachments["fallback"] == f"[{self.project.slug}] {event.group.title}"
 
-    def test_build_performance_issue(self):
-        event_data = load_data(
-            "transaction-n-plus-one",
-            timestamp=before_now(minutes=10),
-            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE.value}-group1"],
-        )
-        perf_event_manager = EventManager(event_data)
-        perf_event_manager.normalize()
-        with override_options(
-            {
-                "performance.issues.all.problem-creation": 1.0,
-                "performance.issues.all.problem-detection": 1.0,
-                "performance.issues.n_plus_one_db.problem-creation": 1.0,
-            }
-        ), self.feature(
-            [
-                "organizations:performance-issues-ingest",
-                "projects:performance-suspect-spans-ingestion",
-            ]
-        ):
-            event = perf_event_manager.save(self.project.id)
-        event = event.for_group(event.groups[0])
+    def test_build_performance_issue_color_no_event_passed(self):
+        """This test doesn't pass an event to the SlackIssuesMessageBuilder to mimic what
+        could happen in that case (it is optional). It also creates a performance group that won't
+        have a latest event attached to it to mimic a specific edge case.
+        """
+        perf_group = self.create_group(type=GroupType.PERFORMANCE_N_PLUS_ONE.value)
         with self.feature("organizations:performance-issues"):
-            attachments = SlackIssuesMessageBuilder(event.group).build()  # do not pass the event
+            attachments = SlackIssuesMessageBuilder(perf_group).build()
 
-        assert attachments["title"] == "N+1 Query"
-        assert (
-            attachments["text"]
-            == "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
-        )
-        assert attachments["fallback"] == f"[{self.project.slug}] N+1 Query"
         assert attachments["color"] == "#2788CE"  # blue for info level
 
     def test_build_group_release_with_commits_attachment(self):

@@ -225,7 +225,9 @@ def get_color(
         if color and color in LEVEL_TO_COLOR.keys():
             return color
     if group.issue_category == GroupCategory.PERFORMANCE:
-        return LEVEL_TO_COLOR["info"]
+        # XXX(CEO): this shouldn't be needed long term, but due to a race condition
+        # the group's latest event is not found and we end up with no event_for_tags here for perf issues
+        return "info"
 
     return "error"
 
