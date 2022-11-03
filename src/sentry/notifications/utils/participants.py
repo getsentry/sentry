@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequen
 from sentry import features
 from sentry.models import (
     ActorTuple,
-    BaseUser,
     Commit,
     Group,
     GroupSubscription,
@@ -328,7 +327,7 @@ def partition_recipients(
 ) -> tuple[Iterable[Team], Iterable[User]]:
     teams, users = set(), set()
     for recipient in recipients:
-        if isinstance(recipient, BaseUser):
+        if recipient.class_name() == "User":
             users.add(recipient)
         else:
             teams.add(recipient)

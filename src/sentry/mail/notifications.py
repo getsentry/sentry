@@ -7,7 +7,7 @@ import sentry_sdk
 from django.utils.encoding import force_text
 
 from sentry import options
-from sentry.models import BaseUser, Project, ProjectOption, Team
+from sentry.models import Project, ProjectOption, Team
 from sentry.notifications.notifications.active_release import ActiveReleaseIssueNotification
 from sentry.notifications.notifications.base import BaseNotification, ProjectNotification
 from sentry.notifications.notify import register_notification_provider
@@ -98,7 +98,7 @@ def get_context(
     # TODO(mgaeta): The unsubscribe system relies on `user_id` so it doesn't
     #  work with Teams. We should add the `actor_id` to the signed link.
     unsubscribe_key = notification.get_unsubscribe_key()
-    if isinstance(recipient, BaseUser) and unsubscribe_key:
+    if recipient.class_name() == "User" and unsubscribe_key:
         key, resource_id, referrer = unsubscribe_key
         context.update(
             {"unsubscribe_link": get_unsubscribe_link(recipient.id, resource_id, key, referrer)}

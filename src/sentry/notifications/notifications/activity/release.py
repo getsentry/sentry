@@ -6,7 +6,6 @@ from sentry_relay import parse_release
 
 from sentry.models import (
     Activity,
-    BaseUser,
     Commit,
     CommitFileChange,
     OrganizationMember,
@@ -96,7 +95,7 @@ class ReleaseActivityNotification(ActivityNotification):
         if not self.release:
             return set()
 
-        if isinstance(recipient, BaseUser):
+        if recipient.class_name() == "User":
             if recipient.is_superuser or self.organization.flags.allow_joinleave:
                 # Admins can see all projects.
                 return self.projects

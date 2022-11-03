@@ -99,25 +99,8 @@ class UserManager(BaseManager, DjangoUserManager):
         )
 
 
-class BaseUser:
-    """
-    Implements functionality shared by User and APIUser for the purposes of hybrid cloud compatibility
-    """
-
-    id: int
-    pk: int
-    actor_id: int
-    email: str
-
-    def get_display_name(self) -> str:
-        return ""
-
-    def class_name(self):
-        return "User"
-
-
 @control_silo_only_model
-class User(BaseModel, AbstractBaseUser, BaseUser):
+class User(BaseModel, AbstractBaseUser):
     __include_in_export__ = True
 
     id = BoundedAutoField(primary_key=True)

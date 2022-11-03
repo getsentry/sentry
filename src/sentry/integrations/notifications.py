@@ -6,7 +6,7 @@ from typing import Any, Iterable, Mapping, MutableMapping
 from django.db.models import F
 
 from sentry.constants import ObjectStatus
-from sentry.models import BaseUser, ExternalActor, Identity, Integration, Organization, Team, User
+from sentry.models import ExternalActor, Identity, Integration, Organization, Team, User
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.services.hybrid_cloud.user import APIUser
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
@@ -92,7 +92,7 @@ def get_integrations_by_channel_by_recipient(
     for recipient in recipients:
         channels_to_integrations = (
             get_channel_and_integration_by_user(recipient, organization, provider)
-            if isinstance(recipient, BaseUser)
+            if recipient.class_name() == "User"
             else get_channel_and_integration_by_team(recipient, organization, provider)
         )
         output[recipient] = channels_to_integrations

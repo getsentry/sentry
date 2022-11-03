@@ -12,7 +12,6 @@ from sentry.models import (
     ApiKey,
     AuditLogEntry,
     Authenticator,
-    BaseUser,
     Organization,
     OrganizationMember,
     User,
@@ -166,7 +165,7 @@ class VerifiedEmailComplianceTask(OrganizationComplianceTask):
                 "Could not send verified email compliance notification (non-Sentry User model)"
             )
             return
-        elif not isinstance(user, BaseUser):
+        elif not isinstance(user, User):
             raise TypeError(user)
 
         email = UserEmail.objects.get_primary_email(user)

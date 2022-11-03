@@ -162,7 +162,7 @@ class ActorTuple(namedtuple("Actor", "id type")):
         results = {}
         for type, _actors in actors_by_type.items():
             if type == User:
-                for instance in user_service.get_many([a.id for a in _actors], is_active=None):
+                for instance in user_service.get_many([a.id for a in _actors]):
                     results[(type, instance.id)] = instance
             else:
                 for instance in type.objects.filter(id__in=[a.id for a in _actors]):

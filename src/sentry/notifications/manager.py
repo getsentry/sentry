@@ -250,7 +250,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         parent: Organization | Project,
         recipients: Iterable[Team | User | APIUser],
     ) -> QuerySet:
-        from sentry.models import BaseUser, Team
+        from sentry.models import Team
 
         """
         Find all of a project/organization's notification settings for a list of
@@ -263,7 +263,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         for recipient in recipients:
             if type(recipient) == Team:
                 team_ids.add(recipient.id)
-            if isinstance(recipient, BaseUser):
+            if recipient.class_name() == "User":
                 user_ids.add(recipient.id)
             actor_ids.add(recipient.actor_id)
 

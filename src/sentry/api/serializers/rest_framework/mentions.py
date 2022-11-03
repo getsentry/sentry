@@ -4,7 +4,7 @@ from typing import Sequence
 
 from rest_framework import serializers
 
-from sentry.models import ActorTuple, BaseUser, Team, User
+from sentry.models import ActorTuple, Team, User
 from sentry.services.hybrid_cloud.user import APIUser
 
 
@@ -39,7 +39,7 @@ def separate_actors(actors):
 
 
 def separate_resolved_actors(actors: Sequence[APIUser | Team]):
-    users = [actor for actor in actors if isinstance(actor, BaseUser)]
+    users = [actor for actor in actors if actor.class_name() == "User"]
     teams = [actor for actor in actors if isinstance(actor, Team)]
 
     return {"users": users, "teams": teams}
