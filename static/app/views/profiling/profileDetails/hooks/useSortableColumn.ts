@@ -1,8 +1,7 @@
 import {useCallback, useMemo} from 'react';
 
 import {GridColumnSortBy} from 'sentry/components/gridEditable';
-
-import {useQuerystringState} from './useQuerystringState';
+import {useQuerystringState} from 'sentry/utils/useQuerystringState';
 
 export function useSortableColumns<T extends string>(options: {
   defaultSort: GridColumnSortBy<T>;

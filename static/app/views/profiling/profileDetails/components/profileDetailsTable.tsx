@@ -19,12 +19,12 @@ import {makeFormatter} from 'sentry/utils/profiling/units/units';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
+import {useQuerystringState} from 'sentry/utils/useQuerystringState';
 
 import {useProfileGroup} from '../../profileGroupProvider';
 import {useColumnFilters} from '../hooks/useColumnFilters';
 import {useFuseSearch} from '../hooks/useFuseSearch';
 import {usePageLinks} from '../hooks/usePageLinks';
-import {useQuerystringState} from '../hooks/useQuerystringState';
 import {useSortableColumns} from '../hooks/useSortableColumn';
 import {aggregate, AggregateColumnConfig, collectProfileFrames} from '../utils';
 
