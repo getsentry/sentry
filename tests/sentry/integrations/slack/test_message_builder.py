@@ -204,7 +204,6 @@ class BuildGroupAttachmentTest(TestCase):
         )
         assert attachments["fallback"] == f"[{self.project.slug}] N+1 Query"
         assert attachments["color"] == "#2788CE"  # blue for info level
-        assert False
 
     def test_build_group_release_with_commits_attachment(self):
         group = self.create_group(project=self.project)
