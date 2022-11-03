@@ -54,7 +54,13 @@ def derive_code_mappings(
     trees: JSONData = installation.get_trees_for_org()
     trees_helper = CodeMappingTreesHelper(trees)
     code_mappings = trees_helper.generate_code_mappings(stacktrace_paths)
-    set_project_codemappings(code_mappings, organization_integration, project, dry_run)
+    if dry_run:
+        logger.exception(
+            f"Dry run {project.id=}: would create these code mapping based on {stacktrace_paths=}: {code_mappings}"
+        )
+        return
+
+    set_project_codemappings(code_mappings, organization_integration, project)
 
 
 def identify_stacktrace_paths(data: NodeData) -> List[str]:
@@ -115,7 +121,6 @@ def set_project_codemappings(
     code_mappings: List[CodeMapping],
     organization_integration: OrganizationIntegration,
     project: Project,
-    dry_run: bool,
 ) -> None:
     """
     Given a list of code mappings, create a new repository project path
