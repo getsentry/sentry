@@ -20,7 +20,6 @@ import {
 } from 'sentry/actionCreators/savedSearches';
 import {fetchTagValues, loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
-import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
@@ -31,6 +30,7 @@ import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {PageContent} from 'sentry/styles/organization';
+import space from 'sentry/styles/space';
 import {
   BaseGroup,
   Group,
@@ -57,6 +57,7 @@ import withIssueTags from 'sentry/utils/withIssueTags';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withSavedSearches from 'sentry/utils/withSavedSearches';
+import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
 
 import IssueListActions from './actions';
 import IssueListFilters from './filters';
@@ -104,6 +105,7 @@ type State = {
   // TODO(Kelly): remove forReview once issue-list-removal-action feature is stable
   forReview: boolean;
   groupIds: string[];
+  isSavedSearchesOpen: boolean;
   issuesLoading: boolean;
   itemsRemoved: number;
   memberList: ReturnType<typeof indexMembersByProject>;
@@ -172,6 +174,7 @@ class IssueListOverview extends Component<Props, State> {
       queryCounts: {},
       queryMaxCount: 0,
       error: null,
+      isSavedSearchesOpen: false,
       issuesLoading: true,
       memberList: {},
     };
@@ -1097,6 +1100,12 @@ class IssueListOverview extends Component<Props, State> {
     this.fetchData(true);
   };
 
+  onToggleSavedSearches = (isOpen: boolean) => {
+    this.setState({
+      isSavedSearchesOpen: isOpen,
+    });
+  };
+
   tagValueLoader = (key: string, search: string) => {
     const {orgId} = this.props.params;
     const projectIds = this.getSelectedProjectIds();
@@ -1118,6 +1127,7 @@ class IssueListOverview extends Component<Props, State> {
     }
 
     const {
+      isSavedSearchesOpen,
       pageLinks,
       queryCount,
       queryCounts,
@@ -1128,8 +1138,15 @@ class IssueListOverview extends Component<Props, State> {
       issuesLoading,
       error,
     } = this.state;
-    const {organization, savedSearch, savedSearches, selection, location, router} =
-      this.props;
+    const {
+      organization,
+      savedSearch,
+      savedSearches,
+      savedSearchLoading,
+      selection,
+      location,
+      router,
+    } = this.props;
     const links = parseLinkHeader(pageLinks);
     const query = this.getQuery();
     const queryPageInt = parseInt(location.query.page, 10);
@@ -1172,6 +1189,8 @@ class IssueListOverview extends Component<Props, State> {
     return (
       <StyledPageContent>
         <IssueListHeader
+          isSavedSearchesOpen={isSavedSearchesOpen}
+          onToggleSavedSearches={this.onToggleSavedSearches}
           organization={organization}
           query={query}
           sort={this.getSort()}
@@ -1187,8 +1206,8 @@ class IssueListOverview extends Component<Props, State> {
           savedSearch={savedSearch}
           selectedProjectIds={selection.projects}
         />
-        <Layout.Body>
-          <Layout.Main fullWidth>
+        <StyledBody>
+          <StyledMain>
             <IssueListFilters
               organization={organization}
               query={query}
@@ -1247,8 +1266,14 @@ class IssueListOverview extends Component<Props, State> {
               onCursor={this.onCursorChange}
               paginationAnalyticsEvent={this.paginationAnalyticsEvent}
             />
-          </Layout.Main>
-        </Layout.Body>
+          </StyledMain>
+          <SavedIssueSearches
+            {...{savedSearches, savedSearch, savedSearchLoading, organization}}
+            isOpen={isSavedSearchesOpen}
+            onSavedSearchDelete={this.onSavedSearchDelete}
+            onSavedSearchSelect={this.onSavedSearchSelect}
+          />
+        </StyledBody>
       </StyledPageContent>
     );
   }
@@ -1263,6 +1288,31 @@ export default withRouteAnalytics(
 );
 
 export {IssueListOverview};
+
+const StyledBody = styled('div')`
+  background-color: ${p => p.theme.background};
+
+  display: flex;
+  flex-direction: column-reverse;
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    flex: 1;
+    display: grid;
+    grid-template-rows: 1fr;
+    grid-template-columns: 1fr auto;
+    gap: 0;
+    padding: 0;
+  }
+`;
+
+const StyledMain = styled('section')`
+  padding: ${space(2)};
+  overflow: hidden;
+
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    padding: ${space(3)} ${space(4)};
+  }
+`;
 
 const StyledPagination = styled(Pagination)`
   margin-top: 0;

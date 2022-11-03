@@ -616,6 +616,7 @@ def test_ensure_interval_set_to_granularity_in_performance_queries():
     assert mq.interval == mq.granularity.granularity
 
 
+@pytest.mark.skip(reason="flaky test: TET-505")
 @pytest.mark.parametrize(
     "granularity, interval, expected_granularity",
     [

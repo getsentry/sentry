@@ -1140,8 +1140,6 @@ SENTRY_FEATURES = {
     "organizations:performance-ops-breakdown": False,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
     "organizations:performance-chart-interpolation": False,
-    # Enable views for suspect tags
-    "organizations:performance-suspect-spans-view": False,
     # Enable views for anomaly detection
     "organizations:performance-anomaly-detection-ui": False,
     # Enable histogram view in span details
@@ -1239,8 +1237,6 @@ SENTRY_FEATURES = {
     # Enable functionality for attaching  minidumps to events and displaying
     # then in the group UI.
     "projects:minidump": True,
-    # Enable ingestion for suspect spans
-    "projects:performance-suspect-spans-ingestion": False,
     # Enable functionality for project plugins.
     "projects:plugins": True,
     # Enable alternative version of group creation that is supposed to be less racy.
@@ -2873,6 +2869,7 @@ SILO_MODE_UNSTABLE_TESTS = bool(os.environ.get("SENTRY_SILO_MODE_UNSTABLE_TESTS"
 DISALLOWED_CUSTOMER_DOMAINS = []
 
 SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS = {}
+SENTRY_PERFORMANCE_ISSUES_REDUCE_NOISE = False
 
 SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
 SENTRY_REGION_CONFIG: Iterable[Region] = ()
