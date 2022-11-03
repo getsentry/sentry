@@ -483,7 +483,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         child_event["spans"] = child_event["spans"][0:3]
         self.store_event(data=child_event, project_id=self.project.id, assert_no_errors=True)
 
-        with self.feature(FEATURE_NAMES + ["organizations:performance-autogroup-sibling-spans"]):
+        with self.feature(FEATURE_NAMES):
             # Get the list page
             self.browser.get(self.result_path + "?" + transactions_sorted_query())
             self.wait_until_loaded()
