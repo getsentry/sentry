@@ -163,22 +163,3 @@ class CreateOrganizationSearchesTest(APITestCase):
         )
         assert resp.status_code == 400
         assert "This field may not be blank." == resp.data["query"][0]
-
-    def test_create_dupe_on_organization_name_type(self):
-        self.login_as(user=self.manager)
-        resp = self.get_response(
-            self.organization.slug,
-            type=SearchType.ISSUE.value,
-            name="hello",
-            query="is:unresolved",
-        )
-        assert resp.status_code == 200
-
-        resp_dupe = self.get_response(
-            self.organization.slug,
-            type=SearchType.ISSUE.value,
-            name="hello",
-            query="is:resolved",
-        )
-        assert resp_dupe.status_code == 400
-        assert "The combination" in resp_dupe.data["detail"]
