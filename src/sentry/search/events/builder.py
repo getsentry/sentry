@@ -2898,7 +2898,7 @@ class ProfilesQueryBuilderProtocol(Protocol):
         ...
 
     @property
-    def params(self) -> ParamsType:
+    def params(self) -> SnubaParams:
         ...
 
     def column(self, name: str) -> Column:
