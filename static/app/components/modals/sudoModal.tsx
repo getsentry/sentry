@@ -90,15 +90,11 @@ class SudoModal extends Component<Props, State> {
         superuserReason: suReason,
       });
     } else {
-      if (isSuperuser) {
+      try {
+        await api.requestPromise('/auth/', {method: 'PUT', data});
         this.handleSuccess();
-      } else {
-        try {
-          await api.requestPromise('/auth/', {method: 'PUT', data});
-          this.handleSuccess();
-        } catch (err) {
-          this.handleError(err);
-        }
+      } catch (err) {
+        this.handleError(err);
       }
     }
   };
