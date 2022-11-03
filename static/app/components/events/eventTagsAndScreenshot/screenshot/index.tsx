@@ -14,8 +14,6 @@ import space from 'sentry/styles/space';
 import {Event, EventAttachment, Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
-import DataSection from '../dataSection';
-
 import ImageVisualization from './imageVisualization';
 
 type Props = {
@@ -135,20 +133,7 @@ function Screenshot({
           return null;
         }
 
-        if (onlyRenderScreenshot) {
-          return <StyledPanel>{renderContent(screenshot)}</StyledPanel>;
-        }
-
-        return (
-          <DataSection
-            title={t('Screenshot')}
-            description={t(
-              'This image was captured around the time that the event occurred.'
-            )}
-          >
-            <StyledPanel>{renderContent(screenshot)}</StyledPanel>
-          </DataSection>
-        );
+        return <StyledPanel>{renderContent(screenshot)}</StyledPanel>;
       }}
     </Role>
   );
