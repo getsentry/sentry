@@ -1728,7 +1728,6 @@ SENTRY_ROLES = (
         "id": "manager",
         "name": "Manager",
         "desc": "Gains admin access on all teams as well as the ability to add and remove members.",
-        "is_global": True,
         "scopes": {
             "event:read",
             "event:write",
@@ -1749,6 +1748,7 @@ SENTRY_ROLES = (
             "alerts:read",
             "alerts:write",
         },
+        "is_global": True,
     },
     {
         "id": "owner",
@@ -1760,7 +1760,6 @@ SENTRY_ROLES = (
             billing and plan changes.
             """
         ),
-        "is_global": True,
         "scopes": {
             "org:read",
             "org:write",
@@ -1782,6 +1781,7 @@ SENTRY_ROLES = (
             "alerts:read",
             "alerts:write",
         },
+        "is_global": True,
     },
 )
 
