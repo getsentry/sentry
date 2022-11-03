@@ -1,7 +1,7 @@
 from exam import fixture
 
 from sentry.api.endpoints.organization_pinned_searches import PINNED_SEARCH_NAME
-from sentry.models.savedsearch import SavedSearch, SortOptions
+from sentry.models.savedsearch import SavedSearch, SortOptions, Visibility
 from sentry.models.search_common import SearchType
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
@@ -34,6 +34,7 @@ class CreateOrganizationPinnedSearchTest(APITestCase):
             type=search_type,
             query=query,
             sort=sort,
+            visibility=Visibility.OWNER_PINNED,
         ).exists()
 
         query = "test_2"
@@ -45,6 +46,7 @@ class CreateOrganizationPinnedSearchTest(APITestCase):
             type=search_type,
             query=query,
             sort=sort,
+            visibility=Visibility.OWNER_PINNED,
         ).exists()
 
         self.get_success_response(type=SearchType.EVENT.value, query=query, status_code=201)
@@ -61,6 +63,7 @@ class CreateOrganizationPinnedSearchTest(APITestCase):
             owner=self.member,
             type=SearchType.EVENT.value,
             query=query,
+            visibility=Visibility.OWNER_PINNED,
         ).exists()
 
         self.login_as(self.user)
@@ -71,6 +74,7 @@ class CreateOrganizationPinnedSearchTest(APITestCase):
             owner=self.member,
             type=search_type,
             query=query,
+            visibility=Visibility.OWNER_PINNED,
         ).exists()
         assert SavedSearch.objects.filter(
             organization=self.organization,
@@ -78,6 +82,7 @@ class CreateOrganizationPinnedSearchTest(APITestCase):
             owner=self.user,
             type=search_type,
             query=query,
+            visibility=Visibility.OWNER_PINNED,
         ).exists()
 
     def test_pin_sort_mismatch(self):
@@ -87,6 +92,7 @@ class CreateOrganizationPinnedSearchTest(APITestCase):
             type=SearchType.ISSUE.value,
             sort=SortOptions.FREQ,
             query="wat",
+            visibility=Visibility.OWNER_PINNED,
         )
         self.login_as(self.user)
         resp = self.get_success_response(
@@ -122,12 +128,14 @@ class DeleteOrganizationPinnedSearchTest(APITestCase):
             owner=self.member,
             type=SearchType.ISSUE.value,
             query="wat",
+            visibility=Visibility.OWNER_PINNED,
         )
         other_saved_search = SavedSearch.objects.create(
             organization=self.organization,
             owner=self.user,
             type=SearchType.ISSUE.value,
             query="wat",
+            visibility=Visibility.OWNER_PINNED,
         )
 
         self.login_as(self.member)

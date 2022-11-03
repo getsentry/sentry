@@ -8,6 +8,7 @@ export function Config(params = {}) {
     languageCode: 'en',
     csrfCookieName: 'csrf-test-cookie',
     superUserCookieName: 'su-test-cookie',
+    superUserCookieDomain: '.sentry.io',
     features: new Set(),
     singleOrganization: false,
     urlPrefix: 'https://sentry-jest-tests.example.com/',

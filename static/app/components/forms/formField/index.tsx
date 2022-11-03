@@ -325,10 +325,8 @@ class FormField extends Component<FormFieldProps> {
             flexibleControlStateSize={flexibleControlStateSize}
             {...props}
           >
-            {({alignRight, inline, disabled, disabledReason}) => (
+            {({alignRight, disabled, inline}) => (
               <FieldControl
-                disabled={disabled}
-                disabledReason={disabledReason}
                 inline={inline}
                 alignRight={alignRight}
                 flexibleControlStateSize={flexibleControlStateSize}
