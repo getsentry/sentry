@@ -39,7 +39,7 @@ type State = AsyncComponent['state'] & {
   sentryAppInstallations: SentryAppInstallation[];
 };
 
-type ExternalIssue = {
+type ExternalIssueComponent = {
   component: React.ReactNode;
   key: string;
   disabled?: boolean;
@@ -119,7 +119,7 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
     }
   }
 
-  renderIntegrationIssues(): ExternalIssue[] {
+  renderIntegrationIssues(): ExternalIssueComponent[] {
     const {group} = this.props;
     const integrations = this.state.integrations ?? [];
 
@@ -155,12 +155,12 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
     );
   }
 
-  renderSentryAppIssues(): ExternalIssue[] {
+  renderSentryAppIssues(): ExternalIssueComponent[] {
     const {externalIssues, sentryAppInstallations} = this.state;
     const {components, group} = this.props;
 
     return components
-      .map<ExternalIssue | null>(component => {
+      .map<ExternalIssueComponent | null>(component => {
         const {sentryApp, error: disabled} = component;
         const installation = sentryAppInstallations.find(
           i => i.app.uuid === sentryApp.uuid
@@ -190,10 +190,10 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
           ),
         };
       })
-      .filter((x): x is ExternalIssue => x !== null);
+      .filter((x): x is ExternalIssueComponent => x !== null);
   }
 
-  renderPluginIssues(): ExternalIssue[] {
+  renderPluginIssues(): ExternalIssueComponent[] {
     const {group, project} = this.props;
 
     return group.pluginIssues?.map((plugin, i) => ({
@@ -204,7 +204,7 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
     }));
   }
 
-  renderPluginActions(): ExternalIssue[] {
+  renderPluginActions(): ExternalIssueComponent[] {
     const {group} = this.props;
 
     return (

@@ -118,7 +118,7 @@ class SentryAppExternalIssueActions extends Component<Props, State> {
     const name = sentryAppComponent.sentryApp.name;
 
     let url = '#';
-    let displayName: React.ReactNode | string = tct('[name] Issue', {name});
+    let displayName: React.ReactNode | string = t('%s Issue', name);
 
     if (externalIssue) {
       url = externalIssue.webUrl;

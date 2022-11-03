@@ -81,7 +81,7 @@ function IssueSyncListElement({
   );
 
   return (
-    <IssueSyncListElementContainer>
+    <IssueSyncListElementContainer data-test-id="external-issue-item">
       <ClassNames>
         {({css}) => (
           <StyledHovercard
