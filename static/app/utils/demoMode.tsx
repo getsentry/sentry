@@ -30,3 +30,25 @@ export function urlAttachQueryParams(url: string, params: URLSearchParams): stri
   }
   return url;
 }
+
+// For the Sandbox, we are testing a new walkthrough. This effects a few different components of Sentry including the Onboarding Sidebar, Onboarding Tasks, the Demo End Modal, Demo Sign Up Modal, Guides, and more.
+// Outside of the Sandbox, this should have no effect on other elements of Sentry.
+export function isDemoWalkthrough(): boolean {
+  return localStorage.getItem('new-walkthrough') === '1';
+}
+
+// Function to determine which tour has completed depending on the guide that is being passed in.
+export function getTour(guide: string): string | undefined {
+  switch (guide) {
+    case 'sidebar_v2':
+      return 'tabs';
+    case 'issues_v3':
+      return 'issues';
+    case 'release-details_v2':
+      return 'releases';
+    case 'transaction_details_v2':
+      return 'performance';
+    default:
+      return undefined;
+  }
+}
