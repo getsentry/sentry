@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import omit from 'lodash/omit';
 
-import Feature from 'sentry/components/acl/feature';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import TransactionsList, {
   DropdownOption,
@@ -342,23 +341,18 @@ function SummaryContent({
           })}
           forceLoading={isLoading}
         />
-        <Feature
-          requireAll={false}
-          features={['organizations:performance-suspect-spans-view']}
-        >
-          <SuspectSpans
-            location={location}
-            organization={organization}
-            eventView={eventView}
-            totals={
-              defined(totalValues?.['count()'])
-                ? {'count()': totalValues!['count()']}
-                : null
-            }
-            projectId={projectId}
-            transactionName={transactionName}
-          />
-        </Feature>
+        <SuspectSpans
+          location={location}
+          organization={organization}
+          eventView={eventView}
+          totals={
+            defined(totalValues?.['count()'])
+              ? {'count()': totalValues!['count()']}
+              : null
+          }
+          projectId={projectId}
+          transactionName={transactionName}
+        />
         <TagExplorer
           eventView={eventView}
           organization={organization}

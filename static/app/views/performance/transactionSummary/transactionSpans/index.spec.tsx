@@ -10,7 +10,7 @@ import {
 } from 'sentry/views/performance/transactionSummary/transactionSpans/types';
 
 function initializeData({query} = {query: {}}) {
-  const features = ['performance-view', 'performance-suspect-spans-view'];
+  const features = ['performance-view'];
   const organization = TestStubs.Organization({
     features,
     projects: [TestStubs.Project()],
