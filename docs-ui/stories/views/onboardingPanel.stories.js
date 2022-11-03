@@ -15,4 +15,13 @@ export const Default = () => {
   );
 };
 
+export const NoImage = () => {
+  return (
+    <OnboardingPanel>
+      <h3>A title</h3>
+      <p>Some content to show in the onboarding state.</p>
+    </OnboardingPanel>
+  );
+};
+
 Default.storyName = 'Onboarding Panel';
