@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
@@ -77,11 +78,13 @@ const SavedSearchItem = ({
         aria-label={savedSearch.name}
         onClick={() => onSavedSearchSelect(savedSearch)}
         hasMenu={!savedSearch.isGlobal}
+        borderless
+        align="left"
       >
-        <div>
+        <TitleDescriptionWrapper>
           <SavedSearchItemTitle>{savedSearch.name}</SavedSearchItemTitle>
           <SavedSearchItemDescription>{savedSearch.query}</SavedSearchItemDescription>
-        </div>
+        </TitleDescriptionWrapper>
       </StyledItemButton>
       {!savedSearch.isGlobal && (
         <OverflowMenu
@@ -252,16 +255,24 @@ const SearchListItem = styled('li')`
   margin: 0;
 `;
 
-const StyledItemButton = styled('button')<{hasMenu?: boolean}>`
-  width: 100%;
-  background: ${p => p.theme.white};
-  border: 0;
-  border-radius: ${p => p.theme.borderRadius};
-  text-align: left;
+const StyledItemButton = styled(Button)<{hasMenu?: boolean}>`
   display: block;
-
-  padding: ${space(1)} ${p => (p.hasMenu ? '60px' : space(2))} ${space(1)} ${space(2)};
+  width: 100%;
+  text-align: left;
+  height: auto;
+  font-weight: normal;
+  line-height: ${p => p.theme.text.lineHeightBody};
   margin-top: 2px;
+
+  ${p =>
+    p.hasMenu &&
+    css`
+      padding-right: 60px;
+    `}
+`;
+
+const TitleDescriptionWrapper = styled('div')`
+  overflow: hidden;
 `;
 
 const SavedSearchItemTitle = styled('div')`
