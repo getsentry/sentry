@@ -1,5 +1,5 @@
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Optional, Sequence
 
 import pytest
@@ -26,7 +26,7 @@ class MetricsQueryBuilder:
     AVG_DURATION_METRIC = MetricField(op="avg", metric_mri=SessionMRI.DURATION.value)
 
     def __init__(self):
-        now = datetime.now(timezone.utc)
+        now = datetime.now()
         self.org_id: int = 1
         self.project_ids: Sequence[int] = [1, 2]
         self.select: Sequence[MetricField] = [self.AVG_DURATION_METRIC]
