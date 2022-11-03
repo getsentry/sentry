@@ -3,6 +3,7 @@ import {Component} from 'react';
 import Confirm from 'sentry/components/confirm';
 import FormField from 'sentry/components/forms/formField';
 import Switch from 'sentry/components/switchButton';
+import Tooltip from 'sentry/components/tooltip';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
 import {InputFieldProps, OnEvent} from './inputField';
@@ -32,7 +33,7 @@ export default class BooleanField extends Component<BooleanFieldProps> {
   };
 
   render() {
-    const {confirm, ...fieldProps} = this.props;
+    const {confirm, disabledReason, ...fieldProps} = this.props;
 
     return (
       <FormField {...fieldProps} resetOnError>
@@ -70,26 +71,32 @@ export default class BooleanField extends Component<BooleanFieldProps> {
                 onConfirm={() => handleChange({})}
               >
                 {({open}) => (
-                  <Switch
-                    {...switchProps}
-                    toggle={(e: React.MouseEvent) => {
-                      // If we have a `confirm` prop and enabling switch
-                      // Then show confirm dialog, otherwise propagate change as normal
-                      if (confirm[(!value).toString()]) {
-                        // Open confirm modal
-                        open();
-                        return;
-                      }
+                  <Tooltip title={disabledReason} skipWrapper disabled={!disabled}>
+                    <Switch
+                      {...switchProps}
+                      toggle={(e: React.MouseEvent) => {
+                        // If we have a `confirm` prop and enabling switch
+                        // Then show confirm dialog, otherwise propagate change as normal
+                        if (confirm[(!value).toString()]) {
+                          // Open confirm modal
+                          open();
+                          return;
+                        }
 
-                      handleChange(e);
-                    }}
-                  />
+                        handleChange(e);
+                      }}
+                    />
+                  </Tooltip>
                 )}
               </Confirm>
             );
           }
 
-          return <Switch {...switchProps} />;
+          return (
+            <Tooltip title={disabledReason} skipWrapper disabled={!disabled}>
+              <Switch {...switchProps} />
+            </Tooltip>
+          );
         }}
       </FormField>
     );
