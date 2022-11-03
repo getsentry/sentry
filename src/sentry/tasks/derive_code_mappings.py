@@ -2,6 +2,7 @@ import logging
 from datetime import timedelta
 from typing import Any, List, Mapping, Tuple
 
+import sentry_sdk
 from sentry_sdk import set_tag, set_user
 
 from sentry.db.models.fields.node import NodeData
@@ -55,8 +56,9 @@ def derive_code_mappings(
     trees_helper = CodeMappingTreesHelper(trees)
     code_mappings = trees_helper.generate_code_mappings(stacktrace_paths)
     if dry_run:
-        logger.exception(
-            f"Dry run {project.id=}: would create these code mapping based on {stacktrace_paths=}: {code_mappings}"
+        set_tag("project.slug", project.slug)
+        sentry_sdk.capture_message(
+            f"Dry run {project.slug=}: would create these code mapping based on {stacktrace_paths=}: {code_mappings}"
         )
         return
 

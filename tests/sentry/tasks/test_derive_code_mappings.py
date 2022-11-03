@@ -139,12 +139,15 @@ class TestIdentfiyStacktracePaths(TestCase):
         with patch(
             "sentry.tasks.derive_code_mappings.identify_stacktrace_paths",
             return_value=["sentry/models/release.py", "sentry/tasks.py"],
-        ) as mock_identify_stacktraces, self.tasks():
+        ) as mock_identify_stacktraces, patch(
+            "sentry_sdk.capture_message"
+        ) as capture_message, self.tasks():
             derive_code_mappings(self.project.id, event.data, dry_run=True)
 
+        assert capture_message.call_count == 1
         assert mock_identify_stacktraces.call_count == 1
         assert mock_get_trees_for_org.call_count == 1
         assert mock_generate_code_mappings.call_count == 1
 
         # We should not create the code mapping for dry runs
-        assert RepositoryProjectPathConfig.objects.filter(project_id=self.project.id).exists()
+        assert not RepositoryProjectPathConfig.objects.filter(project_id=self.project.id).exists()
